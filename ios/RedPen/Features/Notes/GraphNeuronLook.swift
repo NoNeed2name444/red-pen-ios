@@ -1,18 +1,20 @@
 import SceneKit
 import UIKit
 import Metal
+import CoreImage
 import simd
 
 // MARK: - The Neurons look
 //
 // How the Neurons theme (GraphNeurons) is dressed, for the shared theme
-// scene (GraphThemeScene), after the owner's board: every cell a
-// translucent, glowing gel soma (NeuronShaders.soma, its membrane wobbling,
-// a purple and magenta interior round a bright nucleus), a crown of soft
-// tapered dendrites growing out of it (swaying), a halo round it, and a
-// glow its dendrites give off when an impulse arrives - on deep blue fluid
-// with bokeh (out-of-focus lights in the palette's colours) and slow motes
-// drifting through the map, instead of stars.
+// scene (GraphThemeScene), after the close-up the owner circled on their
+// board: every cell a glass soma (NeuronShaders.soma, its membrane
+// wobbling) round a deep-violet nucleus with a bright heart, golden light
+// hugging it, its edge white-blue; a crown of glass dendrites with golden
+// light inside growing out of it (swaying), a faint glow round it, and a
+// glow its dendrites give off when an impulse arrives - on deep navy fluid
+// with far, blurred blue neurons and gold and blue bokeh behind, instead
+// of stars.
 //
 // What a cell holds is drawn inside it, and only once it is opened: a part
 // (a folder in the cell's folder) a smaller gel sphere floating in its
@@ -26,10 +28,11 @@ import simd
 // its target (GraphLinkArbor); its width follows the sender's size and the
 // link's strength (GraphRibbonWriter.widthStep).
 //
-// Colours are bioluminescence on deep blue (NeuronPalette): each cell its
-// own dye (green, cyan, pink, amber, violet), its parts and ideas leaning
-// to the dye's accent; receptors gold, drifting cells pale ice; axons
-// amber, impulses amber with a magenta halo.
+// Colours are the close-up's violet and gold on deep navy (NeuronPalette):
+// each cell keeps a touch of its own dye (green, cyan, pink, amber, violet)
+// in its nucleus and at its edge, its parts and ideas leaning to the
+// dye's accent; receptors gold, drifting cells pale ice; axons glass with
+// golden-white light inside, impulses amber in a warm orange halo.
 //
 // Each cell shows a state (NeuronState, chosen in the Look menu or by its
 // role): resting, firing, releasing, pacemaker, migrating, engulfing - the
@@ -45,8 +48,8 @@ import simd
 //
 // The Graphics budget (GraphQuality.current) sets the cost: at Smooth the
 // sphere has fewer segments, the arbors fewer sides, samples and side
-// branches, the shaders their simple path (rpDetail 0: no organelles, no
-// spines, no bursts) and fewer impulses fire. Reduce Motion or a still
+// branches, the shaders their simple path (rpDetail 0: no sparkles, no
+// strands, no bursts) and fewer impulses fire. Reduce Motion or a still
 // space: no wobble, no sway, no impulses, no easing - the picture whole
 // but still.
 
@@ -201,11 +204,12 @@ final class GraphNeuronLook: GraphThemeLook {
 
     // MARK: colours
 
-    /// The organelles' speckle, the axons' and tracts' amber, and the
-    /// impulses (NeuronPalette: amber in a magenta-pink halo).
-    static let organelles = SIMD3<Float>(0.9, 0.95, 0.7)
-    static let fibre = SIMD3<Float>(1.0, 0.62, 0.24)
-    static let tract = SIMD3<Float>(1.0, 0.55, 0.2)
+    /// The soma's golden sparkles, the light inside the axons and tracts
+    /// (golden-white, as in the owner's close-up), and the impulses
+    /// (NeuronPalette: amber in a warm orange halo).
+    static let sparkle = SIMD3<Float>(1.0, 0.88, 0.6)
+    static let fibre = SIMD3<Float>(1.0, 0.8, 0.45)
+    static let tract = SIMD3<Float>(1.0, 0.72, 0.38)
     static let impulse: SIMD3<Float> = NeuronPalette.impulse
     static let impulseHalo: SIMD3<Float> = NeuronPalette.impulseHalo
 
@@ -502,7 +506,7 @@ final class GraphNeuronLook: GraphThemeLook {
         Self.set(material, "rpWobble", lively ? kind.wobble : 0)
         Self.tint(material, "rpTintA", membrane)
         Self.tint(material, "rpTintB", NeuronPalette.nucleus)
-        Self.tint(material, "rpTintC", Self.organelles)
+        Self.tint(material, "rpTintC", Self.sparkle)
         clocked.append(material)
         swaying.append(material)
         return material
@@ -527,8 +531,8 @@ final class GraphNeuronLook: GraphThemeLook {
         return geometry
     }
 
-    /// The dendrites: golden amber, a touch of the membrane's dye in it (as
-    /// in the owner's reference).
+    /// The dendrites: glass with golden light inside near the soma, a
+    /// touch of the membrane's dye in it (as in the owner's close-up).
     private func makeArbor(slot: Int, idea: Bool) -> SCNMaterial {
         let key: String = "m\(slot)-\(idea ? 1 : 0)"
         if let made = somaLooks[key] { return made }
@@ -553,7 +557,8 @@ final class GraphNeuronLook: GraphThemeLook {
     private func haloGeometry(slot: Int, state: NeuronState, idea: Bool) -> SCNGeometry {
         let key: String = "h\(slot)-\(state.code)-\(idea ? 1 : 0)"
         if let made = haloLooks[key] { return made }
-        let tint: SIMD3<Float> = NeuronPalette.glow(slot: slot, idea: idea)
+        // gold-leaning, as the light round the owner's close-up is
+        let tint: SIMD3<Float> = SIMD3<Float>(1.0, 0.74, 0.36) * 0.7 + NeuronPalette.glow(slot: slot, idea: idea) * 0.3
         let material: SCNMaterial = Self.haloMaterial(tint: tint, hot: false, support: support, state: state,
                                                       lively: lively)
         if support.has("halo") && state != .resting { clocked.append(material) }
@@ -584,7 +589,7 @@ final class GraphNeuronLook: GraphThemeLook {
     }
 
     /// An arriving impulse's glow: its amber, a quarter of the way to its
-    /// magenta halo.
+    /// orange halo.
     private static let arrivalGlow: SIMD3<Float> = impulse + (impulseHalo - impulse) * 0.25
 
     private static func arrivalMaterial(support: NeuronSupport) -> SCNMaterial {
@@ -908,12 +913,13 @@ enum NeuronArbor {
 
 // MARK: - The fluid behind
 
-/// The Neurons' backdrop, in place of the stars: deep blue fluid lit by
-/// soft, wide glows (blue, teal, a little violet and magenta), with bokeh -
-/// discs of the palette's green, cyan, pink and amber, out of focus behind
-/// the microscope's plane (NeuronBokeh). Made once, on a sphere of radius
-/// 1, shared by every scene and scaled by the builder; GraphSim keeps it
-/// round the camera, so it is at infinity.
+/// The Neurons' backdrop, in place of the stars, as behind the owner's
+/// close-up: deep navy fluid lit by soft, wide glows (blue, teal, a little
+/// violet), far neurons blurred out of focus in blue (NeuronBokeh.farCells)
+/// and bokeh - gold and blue discs out of focus behind the microscope's
+/// plane (NeuronBokeh.discs). Made once, on a sphere of radius 1, shared by
+/// every scene and scaled by the builder; GraphSim keeps it round the
+/// camera, so it is at infinity.
 @MainActor
 enum NeuronTissue {
     static func makeSky() -> SCNNode {
@@ -924,6 +930,11 @@ enum NeuronTissue {
         dome.renderingOrder = -30
         dome.categoryBitMask = 2
         sky.addChildNode(dome)
+        // both added on, so their order does not matter
+        let far = SCNNode(geometry: Self.farCells)
+        far.renderingOrder = -29
+        far.categoryBitMask = 2
+        sky.addChildNode(far)
         let bokeh = SCNNode(geometry: Self.bokeh)
         bokeh.renderingOrder = -29
         bokeh.categoryBitMask = 2
@@ -936,7 +947,7 @@ enum NeuronTissue {
         var random = UniverseRandom(0x7155)
         let hues: [SIMD3<Float>] = [
             SIMD3<Float>(0.02, 0.06, 0.16), SIMD3<Float>(0.02, 0.09, 0.11), SIMD3<Float>(0.06, 0.03, 0.14),
-            SIMD3<Float>(0.08, 0.02, 0.08)
+            SIMD3<Float>(0.02, 0.05, 0.14)
         ]
         var out: [(SIMD3<Float>, Float, SIMD3<Float>)] = []
         for k in 0..<16 {
@@ -998,25 +1009,56 @@ enum NeuronTissue {
 
     private static let bokeh: SCNGeometry = makeBokeh()
 
-    /// The bokeh discs (NeuronBokeh): each a quad facing the middle, its
-    /// colour in its vertices, in one geometry.
+    /// The bokeh discs (NeuronBokeh.discs), in one geometry.
     private static func makeBokeh() -> SCNGeometry {
+        let quads: [SkyQuad] = NeuronBokeh.discs().map { disc in
+            SkyQuad(direction: disc.direction, size: disc.size, turn: 0,
+                    tint: linear(disc.colour * (0.32 * disc.strength)))
+        }
+        return skyQuads(quads, radius: 0.98, image: NeuronArt.bokehDisc)
+    }
+
+    private static let farCells: SCNGeometry = makeFarCells()
+
+    /// The far neurons (NeuronBokeh.farCells), each turned its own way, in
+    /// one geometry, a little farther out than the bokeh.
+    private static func makeFarCells() -> SCNGeometry {
+        let quads: [SkyQuad] = NeuronBokeh.farCells().map { cell in
+            SkyQuad(direction: cell.direction, size: cell.size, turn: cell.turn,
+                    tint: linear(cell.colour * (0.42 * cell.strength)))
+        }
+        return skyQuads(quads, radius: 0.97, image: NeuronArt.farNeuron)
+    }
+
+    /// One picture on the sky: where (unit), its half side (radians), how
+    /// it is turned (radians) and its colour (linear).
+    private struct SkyQuad {
+        let direction: SIMD3<Float>
+        let size: Float
+        let turn: Float
+        let tint: SIMD3<Float>
+    }
+
+    /// Quads facing the middle at `radius`, each showing `image` in its
+    /// vertices' colour, added on, in one geometry.
+    private static func skyQuads(_ quads: [SkyQuad], radius: Float, image: UIImage) -> SCNGeometry {
         var positions: [SCNVector3] = []
         var coords: [CGPoint] = []
         var colours: [Float] = []
         var indices: [Int32] = []
-        for disc in NeuronBokeh.discs() {
-            let dir: SIMD3<Float> = disc.direction
-            let u: SIMD3<Float> = GraphLinkCurve.perpendicular(to: dir)
+        for quad in quads {
+            let dir: SIMD3<Float> = quad.direction
+            let a: SIMD3<Float> = GraphLinkCurve.perpendicular(to: dir)
+            let b: SIMD3<Float> = GraphLinkCurve.cross(dir, a)
+            let u: SIMD3<Float> = a * cos(quad.turn) + b * sin(quad.turn)
             let v: SIMD3<Float> = GraphLinkCurve.cross(dir, u)
             let first = Int32(positions.count)
             let corners: [(Float, Float)] = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
-            let tint: SIMD3<Float> = linear(disc.colour * (0.32 * disc.strength))
             for (x, y) in corners {
-                let p: SIMD3<Float> = dir * 0.98 + u * (x * disc.size) + v * (y * disc.size)
+                let p: SIMD3<Float> = dir * radius + u * (x * quad.size) + v * (y * quad.size)
                 positions.append(SCNVector3(x: p.x, y: p.y, z: p.z))
                 coords.append(CGPoint(x: CGFloat((x + 1) / 2), y: CGFloat((y + 1) / 2)))
-                colours.append(contentsOf: [tint.x, tint.y, tint.z])
+                colours.append(contentsOf: [quad.tint.x, quad.tint.y, quad.tint.z])
             }
             indices.append(contentsOf: [first, first + 1, first + 2, first, first + 2, first + 3])
         }
@@ -1027,7 +1069,7 @@ enum NeuronTissue {
                                    elements: [SCNGeometryElement(indices: indices, primitiveType: .triangles)])
         let material = SCNMaterial()
         material.lightingModel = .constant
-        material.diffuse.contents = NeuronArt.bokehDisc
+        material.diffuse.contents = image
         material.blendMode = .add
         material.isDoubleSided = true
         material.writesToDepthBuffer = false
@@ -1046,122 +1088,12 @@ enum NeuronTissue {
     private static func linear(_ c: SIMD3<Float>) -> SIMD3<Float> {
         SIMD3<Float>(pow(max(c.x, 0), 2.2), pow(max(c.y, 0), 2.2), pow(max(c.z, 0), 2.2))
     }
-
-    /// The orbs (NeuronBokeh.orbs) round a map's `middle`, `reach` its
-    /// radius: each a camera-facing glowing sphere ringed with light, added
-    /// on, one material per colour, its brightness its opacity; fine
-    /// glowing threads join the near ones (NeuronBokeh.threads).
-    static func orbs(around middle: SIMD3<Float>, reach: Float) -> SCNNode {
-        let holder = SCNNode()
-        holder.name = "orbs"
-        holder.categoryBitMask = 2
-        let all: [NeuronOrb] = NeuronBokeh.orbs()
-        var looks: [SIMD3<Float>: SCNGeometry] = [:]
-        for orb in all {
-            let shape: SCNGeometry
-            if let made = looks[orb.colour] {
-                shape = made
-            } else {
-                let look = SCNMaterial()
-                look.lightingModel = .constant
-                look.diffuse.contents = NeuronArt.ringedOrb
-                look.multiply.contents = UIColor(red: CGFloat(orb.colour.x), green: CGFloat(orb.colour.y),
-                                                 blue: CGFloat(orb.colour.z), alpha: 1)
-                look.blendMode = .add
-                look.isDoubleSided = true
-                look.writesToDepthBuffer = false
-                let plane = SCNPlane(width: 2, height: 2)
-                plane.materials = [look]
-                looks[orb.colour] = plane
-                shape = plane
-            }
-            let node = SCNNode(geometry: shape)
-            node.simdPosition = middle + orb.at * reach
-            let side: Float = orb.size * reach
-            node.simdScale = SIMD3<Float>(side, side, side)
-            node.opacity = CGFloat(orb.strength)
-            node.renderingOrder = 9
-            node.categoryBitMask = 2
-            node.castsShadow = false
-            let facing = SCNBillboardConstraint()
-            facing.freeAxes = .all
-            node.constraints = [facing]
-            holder.addChildNode(node)
-        }
-        holder.addChildNode(threads(all, around: middle, reach: reach))
-        return holder
-    }
-
-    /// The threads between the orbs: thin tubes of faint blue light, added
-    /// on, their width in the map's reach so they stay fine at any size.
-    private static func threads(_ all: [NeuronOrb], around middle: SIMD3<Float>, reach: Float) -> SCNNode {
-        let holder = SCNNode()
-        holder.name = "threads"
-        holder.categoryBitMask = 2
-        let look = SCNMaterial()
-        look.lightingModel = .constant
-        look.diffuse.contents = UIColor(red: 0.42, green: 0.66, blue: 1.0, alpha: 1)
-        look.blendMode = .add
-        look.writesToDepthBuffer = false
-        let up = SIMD3<Float>(0, 1, 0)
-        for thread in NeuronBokeh.threads(all) {
-            let a: SIMD3<Float> = middle + all[thread.a].at * reach
-            let b: SIMD3<Float> = middle + all[thread.b].at * reach
-            let span: Float = simd_length(b - a)
-            guard span > 0.0001 else { continue }
-            let tube = SCNCylinder(radius: CGFloat(reach * 0.0022), height: CGFloat(span))
-            tube.radialSegmentCount = 6
-            tube.materials = [look]
-            let node = SCNNode(geometry: tube)
-            node.simdPosition = (a + b) * 0.5
-            node.simdOrientation = simd_quatf(from: up, to: (b - a) / span)
-            node.opacity = 0.22
-            node.renderingOrder = 9
-            node.categoryBitMask = 2
-            node.castsShadow = false
-            holder.addChildNode(node)
-        }
-        return holder
-    }
-
-    /// Motes drifting slowly through the map, near and far (High budget,
-    /// moving space only): specks of the palette in the fluid, so the
-    /// depth reads as fluid and not as empty space. `reach` is the map's
-    /// radius.
-    static func motes(reach: Float) -> SCNNode {
-        let system = SCNParticleSystem()
-        let room: Float = max(reach * 1.3, 1)
-        system.emitterShape = SCNSphere(radius: CGFloat(room))
-        system.birthLocation = .volume
-        system.birthRate = 4
-        system.warmupDuration = 30
-        system.particleLifeSpan = 28
-        system.particleLifeSpanVariation = 8
-        system.particleSize = CGFloat(room * 0.006)
-        system.particleSizeVariation = CGFloat(room * 0.004)
-        system.particleVelocity = CGFloat(room * 0.004)
-        system.particleVelocityVariation = CGFloat(room * 0.004)
-        system.spreadingAngle = 180
-        system.particleImage = NeuronArt.softDisc
-        system.particleColor = UIColor(red: 0.45, green: 0.9, blue: 0.85, alpha: 0.5)
-        system.particleColorVariation = SCNVector4(x: 0.35, y: 0.2, z: 0.3, w: 0.2)
-        system.blendMode = .additive
-        system.isAffectedByGravity = false
-        system.particleAngularVelocityVariation = 0
-        let node = SCNNode()
-        node.name = "motes"
-        node.categoryBitMask = 2
-        node.renderingOrder = 5
-        node.addParticleSystem(system)
-        return node
-    }
 }
 
-/// Small pictures, drawn once: a soft disc (the fallback glows, the motes),
-/// a bokeh disc (flat, a little brighter at its rim, soft-edged - a light
-/// out of focus through a round aperture) and a ringed orb (a glowing
-/// sphere's bright middle inside a thin ring of light, as on the owner's
-/// board).
+/// Small pictures, drawn once: a soft disc (the fallback glows), a bokeh
+/// disc (flat, a little brighter at its rim, soft-edged - a light out of
+/// focus through a round aperture) and a far neuron out of focus (as
+/// behind the owner's close-up).
 @MainActor
 enum NeuronArt {
     static let softDisc: UIImage = draw { context, size in
@@ -1185,16 +1117,70 @@ enum NeuronArt {
                                    endRadius: size / 2, options: [])
     }
 
-    static let ringedOrb: UIImage = draw(side: 128) { context, size in
-        let clear = UIColor(white: 1, alpha: 0).cgColor
-        let colours: [CGColor] = [UIColor(white: 1, alpha: 0.95).cgColor, UIColor(white: 1, alpha: 0.5).cgColor,
-                                  UIColor(white: 1, alpha: 0.1).cgColor, UIColor(white: 1, alpha: 0.05).cgColor,
-                                  UIColor(white: 1, alpha: 0.85).cgColor, clear, clear]
-        guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colours as CFArray,
-                                        locations: [0, 0.2, 0.5, 0.74, 0.82, 0.92, 1]) else { return }
+    /// A soft body and six tapering branches, each forking on the way,
+    /// drawn white (the vertex colour tints it), then blurred.
+    static let farNeuron: UIImage = blurred(draw(side: 256) { context, size in
+        var random = UniverseRandom(0xFA2D)
         let middle = CGPoint(x: size / 2, y: size / 2)
+        context.setFillColor(UIColor.white.cgColor)
+        for k in 0..<6 {
+            let angle: CGFloat = (CGFloat(k) + 0.6 * CGFloat(random.signed())) / 6 * 2 * .pi
+            let length: CGFloat = size * (0.26 + 0.14 * CGFloat(random.unit()))
+            branch(context, from: middle, angle: angle, length: length, width: size * 0.026, forks: 2,
+                   random: &random)
+        }
+        let colours: [CGColor] = [UIColor.white.cgColor, UIColor(white: 1, alpha: 0.6).cgColor,
+                                  UIColor(white: 1, alpha: 0).cgColor]
+        guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colours as CFArray,
+                                        locations: [0, 0.45, 1]) else { return }
         context.drawRadialGradient(gradient, startCenter: middle, startRadius: 0, endCenter: middle,
-                                   endRadius: size / 2, options: [])
+                                   endRadius: size * 0.1, options: [])
+    }, sigma: 2.5)
+
+    /// One tapering branch from `start`: a gently bending filled shape,
+    /// `width` thick at its base and a quarter of that at its tip, with
+    /// `forks` more branches leaving it half to two thirds of the way out.
+    private static func branch(_ context: CGContext, from start: CGPoint, angle: CGFloat, length: CGFloat,
+                               width: CGFloat, forks: Int, random: inout UniverseRandom) {
+        let steps: Int = 10
+        let bend: CGFloat = 0.09 * CGFloat(random.signed())
+        let forkAt: Int = 5 + Int(random.unit() * 2)
+        var spine: [(CGPoint, CGFloat)] = [(start, angle)]
+        var heading: CGFloat = angle
+        var at: CGPoint = start
+        for _ in 0..<steps {
+            heading += bend + 0.05 * CGFloat(random.signed())
+            at = CGPoint(x: at.x + cos(heading) * length / CGFloat(steps),
+                         y: at.y + sin(heading) * length / CGFloat(steps))
+            spine.append((at, heading))
+        }
+        var left: [CGPoint] = []
+        var right: [CGPoint] = []
+        for (i, (p, h)) in spine.enumerated() {
+            let w: CGFloat = width * (1 - 0.75 * CGFloat(i) / CGFloat(steps)) / 2
+            left.append(CGPoint(x: p.x - sin(h) * w, y: p.y + cos(h) * w))
+            right.append(CGPoint(x: p.x + sin(h) * w, y: p.y - cos(h) * w))
+        }
+        context.beginPath()
+        context.addLines(between: left + right.reversed())
+        context.closePath()
+        context.fillPath()
+        guard forks > 0 else { return }
+        let (p, h) = spine[forkAt]
+        let side: CGFloat = random.unit() < 0.5 ? -1 : 1
+        branch(context, from: p, angle: h + side * (0.4 + 0.35 * CGFloat(random.unit())),
+               length: length * (0.45 + 0.2 * CGFloat(random.unit())),
+               width: width * (1 - 0.75 * CGFloat(forkAt) / CGFloat(steps)) * 0.85, forks: forks - 1,
+               random: &random)
+    }
+
+    /// `image` out of focus: a Gaussian blur of `sigma` pixels (the image
+    /// as drawn, should the blur fail).
+    private static func blurred(_ image: UIImage, sigma: Double) -> UIImage {
+        guard let input = CIImage(image: image) else { return image }
+        let soft: CIImage = input.clampedToExtent().applyingGaussianBlur(sigma: sigma).cropped(to: input.extent)
+        guard let made = CIContext(options: nil).createCGImage(soft, from: input.extent) else { return image }
+        return UIImage(cgImage: made)
     }
 
     private static func draw(side: CGFloat = 64, _ paint: (CGContext, CGFloat) -> Void) -> UIImage {

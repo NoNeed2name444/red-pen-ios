@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-08, 5:32 PM Cairo.
+Last updated: 2026-10-08, 6:15 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,9 +35,9 @@ Last updated: 2026-10-08, 5:32 PM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | the look rework ("Neurons: cells drawn after the owner's reference") | M3 in progress; preflight OK on the rework (5:20 PM); 5909600's App build (run 37781812785) compiled the app (Build step green, 4:25 PM) |
-| design/3d-overhaul | the wip head | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; its App build (run 37784372084, e5e40b8) passed at 4:33 PM, its Swift tests (run 37786312064, b02e48a) at 5:20 PM; the rework's App build is the compile check for GraphNeuronLook |
-| preview/3d-overhaul | e5e40b8 | a push here makes screenshots; the Neurons-only run 37784398918 was taking them at 4:40 PM (don't push here while it runs: a push cancels it) |
+| wip/3d-neurons-m3 | the close-up redraw ("Neurons: the cell redrawn after the circled close-up") | M3 in progress; the Linux suites pass on the redraw; 8a18676 (the look before it) compiled on the Mac (App build run 37793822496, green) |
+| design/3d-overhaul | the wip head once pushed | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the redraw's App build here is the compile check for GraphNeuronLook (far neurons, CoreImage blur) |
+| preview/3d-overhaul | 44e42e7 (the look the owner rejected) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | d608991 | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -73,9 +73,12 @@ Last updated: 2026-10-08, 5:32 PM Cairo.
   swift-tests branch at the same moment ("cannot lock ref"). The log
   pushes now retry once (swift-tests.yml); b02e48a's run (37786312064)
   passed.
-- The look rework, after the owner's reference (section 4, "The look"), is
-  on wip and design/: the Linux suites and preflight pass. GraphNeuronLook
-  only compiles on the Mac, so its App build on design/ is the check.
+- The owner rejected the 44e42e7 look ("it's completely different from
+  what i want from u. i only want what is marked in white") and circled the
+  big labelled neuron close-up on their board. The cells are redrawn after
+  that close-up only (section 4, "The look"): no ringed orbs, no threads,
+  no circuits. GraphNeuronLook only compiles on the Mac, so its App build
+  on design/ is the check.
 - The wip App build (run 37781812785, 5909600) ran the whole UI suite on a
   simulator after its compile (design/ branches skip it), then hit its
   60-minute limit. Two map tests failed:
@@ -120,10 +123,14 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    (it cancels a running push-started run on the same branch).
 7. [ ] When CI is green, merge design/3d-overhaul into personal (no
    force-push), and bring the session branches up to personal.
-6a. [x] Redraw the cells after the owner's reference (section 4, "The
-   look"): purple-magenta somas, white-violet nuclei, golden-amber dendrites
-   that reach further, one glow with the cell, thick beaded amber axons,
-   ringed orbs joined by threads. Then step 6 with the new look.
+6a. [x] Redraw the cells after the owner's reference: purple-magenta
+   somas, golden-amber dendrites, ringed orbs joined by threads. Rejected
+   by the owner (8 Oct, 6 PM): they want only the circled close-up.
+6b. [ ] Redraw the cell after the circled close-up (section 4, "The look"):
+   glass soma, deep-violet nucleus with a bright star, golden filament
+   light, glass dendrites with golden light, beaded glass axon with a
+   golden bouton, far blurred blue neurons and gold and blue bokeh behind.
+   Code and Linux suites done; next: App build on design/, then step 6.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
@@ -131,6 +138,13 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
 ## 4. M3: the Neurons rebuild
 
 ### What the owner asked (verbatim, newest first)
+
+> it's completely different from what i want from u. i only want what is marked in white
+
+With a picture of their design board, the big labelled neuron close-up at
+the top right circled in white ("Neuron cell body / Dendrites / Axon /
+Synapse"). Only that close-up is the target now; not the phone screens'
+ringed orbs and threads.
 
 > continue also animate the progressive openings and remove circuits entirely
 
@@ -158,6 +172,17 @@ public. It shows:
 
 If the owner attaches it again, look at it before judging the screenshots.
 
+The circled close-up (8 Oct, 6 PM), the only target now:
+- the soma a glass sphere; inside it a deep-violet nucleus with a bright
+  violet-white star at its middle, radial spokes and violet sparkles;
+- golden-orange filament light hugging the nucleus, unevenly bright, with
+  golden sparkles; then the clear glass envelope, its edge white-blue;
+- glass dendrites with golden light inside near their bases;
+- the axon a beaded glass tube with golden-white light inside, ending in a
+  golden bouton against the next cell's blue glass bulb, golden sparks
+  round the synapse;
+- behind: dark navy, far blurred blue neuron networks, gold and blue bokeh.
+
 ### The hierarchy
 
 - A cell is a main folder. A part is a folder inside it, and smaller parts
@@ -169,30 +194,35 @@ If the owner attaches it again, look at it before judging the screenshots.
   membrane, swells into a hillock, tapers, and ends in one synapse on its
   target. Its width follows the sender's size.
 
-### The look (after the reference, 8 Oct, 5:20 PM)
+### The look (after the circled close-up, 8 Oct, 6 PM)
 
-What changed to bring the cells closer to the reference, and where:
-- Soma (NeuronShaders.soma): purple at the rim, magenta deep inside
-  (interior (0.58,0.24,0.98) to heart (0.98,0.28,0.72) by depth²), a
-  white-violet nucleus (the nucleus tint 42% of the way to (1,0.94,1)), a
-  soft wet highlight (0.25). Opening a cell still clears its gel (rpOpen).
-- Dendrites (NeuronShaders.arbor, makeArbor): solid golden amber,
-  (1,0.74,0.36)·0.88 + the dye·0.12, with a warm white core near the soma.
-  A cell's dendrites are 0.75 to 0.95 radii long and 0.26 thick; a
-  receptor's leading process 0.65, its back one 0.4. GraphNeurons.reach is
-  1.9, so the sheets are further apart (sheetGap 2.8: pitch =
-  biggest·(2 + 2.8·spacing)); LinkLengthTests' pitchRatio uses it.
-- Halo (NeuronShaders.halo, NeuronPalette.glow): one glow with the cell, a
-  soft one outside the membrane and a faint fill within it, so there is no
-  seam. A cell's glow leans to violet (half its dye, half (0.78,0.34,0.95));
-  receptors and drifters keep their own colour. Firing rays 0.22.
-- Arrival (NeuronShaders.arrival): a hot amber core with a soft glow round
-  it (arrivalGlow: the impulse a quarter of the way to its magenta halo).
-- Axon (NeuronShaders.axon): thicker (nearHalf 0.165, farHalf 0.26), a
-  hillock twice as wide at the soma, beads at nodes every 0.3 along it.
-- Background (NeuronTissue.orbs, NeuronArt.ringedOrb, NeuronBokeh.threads):
-  each orb is a glowing middle inside a thin ring, and each joins its two
-  nearest within 0.6 by a fine blue thread.
+What the cells are now, and where (each shader's doc says the same):
+- Soma (NeuronShaders.soma): inside 0.66 of the radius the nucleus, deep
+  violet (NeuronPalette.interior (0.2,0.07,0.46)) brightening to violet at
+  its heart (.heart (0.52,0.24,0.98)), touched by the dye (tint A, 16%);
+  radial spokes and twinkling violet sparkles in it; a violet-white star at
+  its middle (rpNucleus its size); a crisp glassy rim round it. Outside it,
+  golden filament light hugging the nucleus, unevenly bright, with golden
+  sparkles (tint C, NeuronLook.sparkle (1,0.88,0.6)); then the clear glass,
+  its edge white-blue, and a wet highlight.
+- Dendrites (NeuronShaders.arbor): glass, a white-blue edge, golden light
+  inside near the soma (tint A, the golden (1,0.74,0.36)·0.88 + dye·0.12)
+  cooling to blue-violet further out, faint spiralling strands, golden
+  sparkles in arbor space; hidden over the nucleus so the middle stays
+  clear.
+- Halo (NeuronShaders.halo): one faint, gold-leaning glow ((1,0.74,0.36)·0.7
+  + NeuronPalette.glow·0.3), brightest at the membrane, reaching only a
+  little way in, fading softly out with no seam.
+- Axon (NeuronShaders.axon): a glass tube, white-blue at its edges,
+  golden-white light down its middle (NeuronLook.fibre (1,0.8,0.45), tract
+  (1,0.72,0.38)), brighter at each node between the myelin's beads, golden
+  sparks in it; a golden bouton with golden-white vesicles, a cyan cleft and
+  transmitter, golden sparks spraying round the synapse. Impulses amber in
+  a warm orange halo (NeuronPalette.impulseHalo (1,0.58,0.22)).
+- Background (NeuronTissue): deep navy glows; 28 far neurons blurred out of
+  focus in blue, cyan and violet (NeuronBokeh.farCells, NeuronArt.farNeuron:
+  six tapering, forking branches, CoreImage-blurred); gold and blue bokeh
+  (NeuronBokeh.tones). The orbs, threads and motes are gone.
 
 ### Decided design: implement this
 
@@ -375,8 +405,8 @@ recentre() about 1734; `case .open(let id)` about 448.
 - NeuronPalette:
   - dyes green, cyan, pink, amber, violet; receptor (1,0.84,0.48); drifter
     (0.62,0.8,0.98);
-  - interior (0.58,0.24,0.98), heart (0.98,0.28,0.72), nucleus (0.82,0.36,1);
-  - impulse (1,0.72,0.30), impulseHalo (1,0.32,0.80).
+  - interior (0.2,0.07,0.46), heart (0.52,0.24,0.98), nucleus (0.82,0.36,1);
+  - impulse (1,0.72,0.30), impulseHalo (1,0.58,0.22).
 - Ribbon writer:
   - fill() is about 291–356. `u0 = Float(code*64+1)`; with an arbor,
     `width = arbor.halfWidth(dEnd: along, r: membrane, h: halfWidth)`.
@@ -410,7 +440,7 @@ recentre() about 1734; `case .open(let id)` about 448.
   - NeuronLookTests N5:
     - soma and halo contain "float rpState;", and the halo "rpState > 0.5" …
       "rpState > 4.5";
-    - the soma contains "float3(0.58, 0.24, 0.98)" and "float3(0.98, 0.28, 0.72)";
+    - the soma contains "float3(0.2, 0.07, 0.46)" and "float3(0.52, 0.24, 0.98)";
     - soma and halo contain "rp_t / 1.5";
     - plus the palette tests.
   - NeuronHierarchyTests T10 call the NeuronImpulse functions with raw seeds,

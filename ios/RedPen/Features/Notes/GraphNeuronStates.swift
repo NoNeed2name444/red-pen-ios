@@ -2,11 +2,13 @@ import Foundation
 
 // MARK: - The Neurons theme's colours, cell states and bokeh
 //
-// The owner's Neurons target (docs/design/targets-2026-10-01.md, section 3):
-// bioluminescent green, pink, cyan and amber on deep blue with bokeh; each
-// soma translucent and glowing with a purple and magenta interior; and, as
-// the space's bodies have their styles, cells shown in six states - each
-// its own biological process, with its own look and movement:
+// The owner's Neurons target (docs/design/targets-2026-10-01.md, section 3)
+// and the close-up they circled on their board: a glass cell on deep navy,
+// far blurred blue networks and gold and blue bokeh behind it; inside the
+// soma a deep-violet nucleus with a bright violet-white heart, golden light
+// hugging it; and, as the space's bodies have their styles, cells shown in
+// six states - each its own biological process, with its own look and
+// movement:
 //
 //   resting    (the rocky planet's mirror) calm, slowly breathing
 //   firing     (the sun's)       a burst of spikes: flickering, rays of
@@ -45,15 +47,16 @@ nonisolated enum NeuronPalette {
     /// A receptor's gold, a drifting free cell's pale ice.
     static let receptor = SIMD3<Float>(1.0, 0.84, 0.48)
     static let drifter = SIMD3<Float>(0.62, 0.8, 0.98)
-    /// The soma's interior: purple, deepening to magenta at its heart; the
-    /// nucleus a violet-magenta, its nucleolus brighter.
-    static let interior = SIMD3<Float>(0.58, 0.24, 0.98)
-    static let heart = SIMD3<Float>(0.98, 0.28, 0.72)
+    /// The soma's interior, as in the owner's close-up: a deep violet,
+    /// brightening to violet at its heart; the nucleus a violet-magenta,
+    /// its nucleolus brighter.
+    static let interior = SIMD3<Float>(0.2, 0.07, 0.46)
+    static let heart = SIMD3<Float>(0.52, 0.24, 0.98)
     static let nucleus = SIMD3<Float>(0.82, 0.36, 1.0)
     static let nucleolus = SIMD3<Float>(1.0, 0.5, 0.88)
-    /// Impulses: amber, in a magenta-pink halo.
+    /// Impulses: amber, in a warm orange halo.
     static let impulse = SIMD3<Float>(1.0, 0.72, 0.30)
-    static let impulseHalo = SIMD3<Float>(1.0, 0.32, 0.80)
+    static let impulseHalo = SIMD3<Float>(1.0, 0.58, 0.22)
     /// The fluid behind everything: deep blue.
     static let deep = SIMD3<Float>(0.012, 0.03, 0.09)
 
@@ -71,7 +74,7 @@ nonisolated enum NeuronPalette {
     }
 
     /// The violet a cell's glow leans to, so the light in and round it is
-    /// one with its purple-magenta body.
+    /// one with its violet nucleus.
     static let glowViolet = SIMD3<Float>(0.78, 0.34, 0.95)
 
     /// A dye slot's glow: a cell's dye halfway to the violet; a receptor's
@@ -261,18 +264,26 @@ nonisolated struct NeuronBokehDisc: Sendable, Equatable {
     let strength: Float
 }
 
-/// The backdrop's bokeh: soft discs of the palette's colours scattered over
-/// the deep blue, most small and bright, a few large and faint - as light
-/// out of focus behind a microscope's plane. The same every time.
+/// The backdrop's bokeh: soft gold and blue discs (the owner's close-up)
+/// scattered over the deep navy, most small and bright, a few large and
+/// faint - as light out of focus behind a microscope's plane. The same
+/// every time.
 nonisolated enum NeuronBokeh {
     static let count: Int = 84
+    /// The bokeh's colours (sRGB): golds and blues, as in the close-up.
+    static let tones: [SIMD3<Float>] = [
+        SIMD3<Float>(1.0, 0.74, 0.36),
+        SIMD3<Float>(0.3, 0.5, 1.0),
+        SIMD3<Float>(1.0, 0.6, 0.25),
+        SIMD3<Float>(0.35, 0.8, 1.0),
+        SIMD3<Float>(0.6, 0.45, 1.0)
+    ]
 
     static func discs(count n: Int = NeuronBokeh.count) -> [NeuronBokehDisc] {
         var random = UniverseRandom(0xB0E4)
         var out: [NeuronBokehDisc] = []
         out.reserveCapacity(n)
-        let tones: [SIMD3<Float>] = NeuronPalette.dyes.prefix(4).map { $0.main }
-            + [SIMD3<Float>(0.3, 0.45, 1.0)]
+        let tones: [SIMD3<Float>] = NeuronBokeh.tones
         for k in 0..<n {
             let d: SIMD3<Float> = GraphUniverse.float3(ThemeLayout.fibonacci(k, n))
             let jitter = SIMD3<Float>(Float(random.signed()), Float(random.signed()), Float(random.signed()))
@@ -290,75 +301,45 @@ nonisolated enum NeuronBokeh {
     }
 }
 
-/// One out-of-focus orb floating in the fluid round the map (the owner's
-/// board: heavy bokeh in front of the cells and behind them): where, from
-/// the map's middle, in map reaches; how wide, likewise; its colour (sRGB)
-/// and how bright.
-nonisolated struct NeuronOrb: Sendable, Equatable {
-    let at: SIMD3<Float>
+/// One far, out-of-focus neuron on the Neurons' backdrop (the owner's
+/// close-up: blurred blue networks far behind the cell): where it is on
+/// the sky (unit), how big (radians), how it is turned (radians), its
+/// colour (sRGB) and how bright.
+nonisolated struct NeuronFarCell: Sendable, Equatable {
+    let direction: SIMD3<Float>
     let size: Float
+    let turn: Float
     let colour: SIMD3<Float>
     let strength: Float
 }
 
 extension NeuronBokeh {
-    static let orbCount: Int = 28
-    /// The nearest an orb comes towards the camera, in map reaches: it
-    /// never sits on the lens.
-    static let orbFront: Float = 0.9
+    static let farCount: Int = 28
 
-    /// Orbs all round the map, a shell from 0.7 to 1.4 of its reach, half
-    /// of them nearer the camera than the map's middle; most small, the
-    /// big ones fainter. The same every time.
-    static func orbs(count n: Int = NeuronBokeh.orbCount) -> [NeuronOrb] {
-        var random = UniverseRandom(0x0B5)
-        var out: [NeuronOrb] = []
+    /// The far neurons spread over the whole sky, blue, cyan and violet,
+    /// each turned its own way; the big ones fainter, as nearer the
+    /// microscope's blur. The same every time.
+    static func farCells(count n: Int = NeuronBokeh.farCount) -> [NeuronFarCell] {
+        var random = UniverseRandom(0xFA2C)
+        var out: [NeuronFarCell] = []
         out.reserveCapacity(n)
-        let tones: [SIMD3<Float>] = NeuronPalette.dyes.prefix(4).map { $0.main }
-            + [SIMD3<Float>(0.3, 0.45, 1.0)]
+        let tones: [SIMD3<Float>] = [
+            SIMD3<Float>(0.3, 0.5, 1.0),
+            SIMD3<Float>(0.25, 0.75, 1.0),
+            SIMD3<Float>(0.5, 0.4, 1.0)
+        ]
         for k in 0..<n {
             let d: SIMD3<Float> = GraphUniverse.float3(ThemeLayout.fibonacci(k, n))
             let jitter = SIMD3<Float>(Float(random.signed()), Float(random.signed()), Float(random.signed()))
-            let v: SIMD3<Float> = d + jitter * 0.3
+            let v: SIMD3<Float> = d + jitter * 0.25
             let length: Float = (v * v).sum().squareRoot()
             let dir: SIMD3<Float> = length > 0.0001 ? v / length : d
-            var at: SIMD3<Float> = dir * (0.7 + 0.7 * Float(random.unit()))
-            at.z = min(at.z, orbFront)
             let u: Float = Float(random.unit())
-            let size: Float = 0.05 + 0.12 * u * u * u
-            let strength: Float = (0.16 + 0.2 * Float(random.unit())) * (1 - 0.5 * (size - 0.05) / 0.12)
-            out.append(NeuronOrb(at: at, size: size, colour: tones[(k * 3) % tones.count], strength: strength))
+            let size: Float = 0.12 + 0.16 * u
+            let turn: Float = Float(random.unit()) * 2 * Float.pi
+            let strength: Float = (0.5 + 0.5 * Float(random.unit())) * (1 - 0.4 * u)
+            out.append(NeuronFarCell(direction: dir, size: size, turn: turn, colour: tones[k % tones.count], strength: strength))
         }
         return out
     }
-
-    /// The farthest apart, in map reaches, two orbs a thread joins.
-    static let threadReach: Float = 0.6
-
-    /// The fine glowing threads strung between the orbs (the owner's
-    /// board: glowing spheres joined by fine lines): each orb to its one or
-    /// two nearest within `threadReach`, each pair once, the lower index
-    /// first. The same every time.
-    static func threads(_ orbs: [NeuronOrb]) -> [NeuronThread] {
-        var made: Set<NeuronThread> = []
-        for i in orbs.indices {
-            var near: [(d: Float, j: Int)] = []
-            for j in orbs.indices where j != i {
-                let v: SIMD3<Float> = orbs[j].at - orbs[i].at
-                let d: Float = (v * v).sum().squareRoot()
-                if d <= threadReach { near.append((d, j)) }
-            }
-            near.sort { $0.d < $1.d || ($0.d == $1.d && $0.j < $1.j) }
-            for pick in near.prefix(2) {
-                made.insert(NeuronThread(a: min(i, pick.j), b: max(i, pick.j)))
-            }
-        }
-        return made.sorted { $0.a < $1.a || ($0.a == $1.a && $0.b < $1.b) }
-    }
-}
-
-/// A thread between two orbs, by their places in NeuronBokeh.orbs.
-nonisolated struct NeuronThread: Sendable, Hashable {
-    let a: Int
-    let b: Int
 }

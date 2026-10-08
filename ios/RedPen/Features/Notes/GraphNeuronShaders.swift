@@ -3,17 +3,20 @@ import Foundation
 // The Neurons theme's shader modifiers (GraphNeuronLook builds the materials
 // and checks they compile; GraphNeurons plans what they dress).
 //
-// The look follows the owner's reference picture: a cell is a glowing
-// purple-magenta body, deepest where there is most of it to look through,
-// with a bright white-violet nucleus and nucleolus, faint organelles, a
-// wet highlight and a slowly breathing membrane; golden-amber dendrites
-// taper out of it, and one thick amber axon swells out of it at a hillock
-// and runs, beaded at the nodes of Ranvier, to one synapse
-// (GraphLinkArbor): a gel golf tee - stem, wet neck, one wide shallow cup
-// hugging the target's membrane across a thin dark cleft;
-// action potentials run along them at each axon's own random times
-// (NeuronImpulse, mirrored here exactly), and on reaching the cup send
-// transmitter across its cleft.
+// The look is the close-up neuron the owner circled on the design board:
+// a cell is a glass sphere holding a deep-violet nucleus - a bright
+// violet-white star at its middle, radial spokes and violet sparkles in
+// it, a crisp glassy rim round it - wrapped in uneven golden filament light
+// with golden sparkles, inside a faint glass envelope with white-blue
+// edges and a slowly breathing membrane; glass dendrites taper out of it,
+// golden light inside them near the body, and one glass axon swells out
+// of it at a hillock and runs, golden-white light inside it, beaded at
+// the nodes of Ranvier, to one synapse (GraphLinkArbor): a golden bouton -
+// stem, neck, one wide shallow cup - touching the next cell's blue glass
+// membrane across a thin cleft, golden sparks round it; action potentials
+// run along them at each axon's own random times (NeuronImpulse, mirrored
+// here exactly), and on reaching the cup send transmitter across its
+// cleft.
 //
 // They follow the Space's rules (GraphStyleShaders): surface modifiers write
 // the final colour into `_surface.diffuse` (constant lighting, added to
@@ -25,31 +28,38 @@ import Foundation
 // (the membrane's wobble, the dendrites' sway) read their own clock,
 // `rpSway`, set by NeuronImpulses each frame - an argument is never
 // declared by two modifiers of one material. `rpDetail` 0 (the Smooth
-// budget) drops the organelles, the dendrites' beads and the bursts.
+// budget) drops the sparkles, the strands and the bursts. Fine detail
+// fades with a cell's size on screen (1 / its radius in pixels), so a far
+// cell is a clean violet disc in a gold ring and a glass edge, never
+// shimmering noise.
 //
 // Per-cell variety needs no per-cell material: every cell's soma and arbor
-// are turned at random when built, so the nucleus, speckle and wobble fall
-// differently on each, and the breathing's phase comes from where it is.
+// are turned at random when built, so the sparkles and wobble fall
+// differently on each, and the gold's lobes and the breathing's phase
+// come from where it is.
 
 nonisolated enum NeuronShaders {
     // MARK: the soma
 
-    /// A cell body on a unit sphere (the node scaled to its size): inside,
-    /// a purple glow deepening to magenta where there is most cell to look
-    /// through (NeuronPalette.interior, .heart, touched by tint A, the
-    /// membrane dye); the membrane glowing just inside the edge, violet in
-    /// a full cell, the dye's own colour in a thin one; B the nucleus,
-    /// lifted towards white-violet, its nucleolus brighter; C the organelles;
-    /// `rpNucleus` the nucleus's radius as a share of the cell's (0: none).
-    /// `rpState` its state (NeuronState.code): firing flickers hotter, a
-    /// pacemaker brightens on each beat (twice a turn of NeuronState
-    /// .beatPeriod, with its halo), releasing crowds vesicles under the
-    /// membrane, engulfing darkens its heart to a phagosome ringed with
-    /// light. `rpFill` how much of the purple and magenta interior shows
-    /// (NeuronCellKind.fill: thin in a part and a vesicle); `rpOpen` (0
-    /// closed, 1 open, eased between) clears an opened container's middle
-    /// so what floats inside shows: its nucleus settles small at the centre,
-    /// its speckle goes and its interior thins.
+    /// A cell body on a unit sphere (the node scaled to its size), drawn by
+    /// how far from its middle each pixel looks (0 the middle, 1 the edge):
+    /// inside 0.66 the nucleus, deep violet brightening to violet at its
+    /// heart (NeuronPalette.interior, .heart, touched by tint A, the
+    /// membrane dye), radial spokes and slowly twinkling violet sparkles in
+    /// it, a crisp glassy rim round it; outside it golden filament light
+    /// hugging the nucleus, unevenly bright, with golden sparkles (tint C);
+    /// then the clear glass envelope, its edge white-blue, and a wet
+    /// highlight. B tints the glow round the star at the nucleus's middle;
+    /// `rpNucleus` (0: no star - a part and a vesicle are clear) sets the
+    /// star's size. `rpState` its state (NeuronState.code): firing flickers
+    /// hotter, a pacemaker brightens on each beat (twice a turn of
+    /// NeuronState.beatPeriod, with its halo), releasing crowds golden
+    /// vesicles round the nucleus, engulfing darkens the nucleus's heart to
+    /// a phagosome inside its bright rim. `rpFill` how much of the violet
+    /// shows and how wide the gold is (NeuronCellKind.fill: thin in a part
+    /// and a vesicle); `rpOpen` (0 closed, 1 open, eased between) clears an
+    /// opened container's middle so what floats inside shows: the star,
+    /// spokes and sparkles go and the violet thins to a glassy disc.
     static let soma: String = """
     #pragma arguments
     float rpClock;
@@ -81,52 +91,21 @@ nonisolated enum NeuronShaders {
     float rp_q = clamp(dot(rp_off, rp_off) / rp_R2, 0.0, 1.0);
     float rp_thick = sqrt(1.0 - rp_q);
 
-    float3 rp_nc = rp_c + (rp_ax * 0.18 + rp_ay * 0.07) * (1.0 - rpOpen);
-    float rp_nt = dot(rp_nc, rp_d);
-    float3 rp_no = rp_d * rp_nt - rp_nc;
-    float rp_nr = max(rp_R * rpNucleus * (1.0 - 0.45 * rpOpen), 0.0001);
-    float rp_nd = length(rp_no) / rp_nr;
-    float rp_has = step(0.01, rpNucleus);
-    float rp_nuc = (1.0 - smoothstep(0.8, 1.0, rp_nd)) * rp_has;
-    float rp_ne = (rp_nd - 0.9) / 0.1;
-    float rp_env = exp(-rp_ne * rp_ne) * rp_has;
-    float3 rp_lc = rp_nc - rp_ay * 0.12 + rp_az * 0.1;
-    float rp_lt = dot(rp_lc, rp_d);
-    float3 rp_lo = rp_d * rp_lt - rp_lc;
-    float rp_ld = length(rp_lo) / (rp_nr * 0.34);
-    float rp_lol = (1.0 - smoothstep(0.55, 1.0, rp_ld)) * rp_nuc;
-
+    float rp_r = sqrt(rp_q);
     float rp_t = rpClock * rpMotion;
-    float3 rp_rel = _surface.position - rp_c;
-    float3 rp_lp = float3(dot(rp_rel, rp_ax), dot(rp_rel, rp_ay), dot(rp_rel, rp_az));
-    rp_lp = rp_lp / rp_R2;
-    float3 rp_g = rp_lp * 5.0 + float3(0.0, rp_t * 0.04, 0.0);
-    float3 rp_gi = floor(rp_g);
-    float3 rp_gf = rp_g - rp_gi;
-    float rp_gs = sin(dot(rp_gi, float3(12.9898, 78.233, 37.719)));
-    float rp_gh = fract(rp_gs * 43758.5453);
-    float3 rp_gp = float3(rp_gh, fract(rp_gh * 7.13), fract(rp_gh * 3.71));
-    rp_gp = rp_gp * 0.6 + float3(0.2, 0.2, 0.2);
-    float rp_gd = length(rp_gf - rp_gp);
-    float rp_dot = 1.0 - smoothstep(0.05, 0.14, rp_gd);
-    rp_dot = rp_dot * step(0.45, rp_gh) * rpDetail * (1.0 - rpOpen);
-
-    float rp_rim = pow(1.0 - rp_mu, 2.4) * smoothstep(0.0, 0.18, rp_mu);
     float rp_ph = dot(scn_node.modelTransform[3].xyz, float3(1.7, 2.3, 1.1));
-    float rp_br = 1.0 + 0.07 * sin(rp_t * 0.9 + rp_ph);
-    float rp_deep = rp_thick * rp_thick;
-    float3 rp_inner = mix(float3(0.58, 0.24, 0.98), float3(0.98, 0.28, 0.72), rp_deep);
-    rp_inner = mix(rp_inner, rpTintA, 0.15);
-    float rp_gel = rpFill * (1.0 - 0.6 * rpOpen);
-    float rp_mem = mix(1.0, 0.3, rpFill) + 0.3 * rpOpen;
-    float3 rp_skin = mix(rpTintA, float3(0.85, 0.6, 1.0), 0.6 * rpFill);
-    float3 rp_col = rp_skin * (0.04 + rp_mem * rp_rim);
-    rp_col = rp_col + rp_inner * ((0.1 + 0.62 * rp_deep) * rp_gel);
-    float3 rp_nucCol = mix(rpTintB, float3(1.0, 0.94, 1.0), 0.42) * (0.5 + 0.38 * rp_thick);
-    rp_col = mix(rp_col, rp_nucCol, rp_nuc * 0.85);
-    rp_col = rp_col + rpTintB * (0.45 * rp_env);
-    rp_col = rp_col + float3(1.0, 0.86, 0.96) * (0.5 * rp_lol);
-    rp_col = rp_col + rpTintC * (0.35 * rp_dot * rp_thick);
+    float rp_pz = fract(rp_ph * 0.13) * 40.0;
+    float rp_px = 1.0 / max(2000.0 * rp_R / max(-rp_c.z, 0.0001), 1.0);
+    float rp_fine = 1.0 - smoothstep(0.025, 0.07, rp_px);
+    float rp_tiny = 1.0 - smoothstep(0.016, 0.04, rp_px);
+    float2 rp_sd = rp_off.xy / max(length(rp_off.xy), 0.00001);
+    float rp_lit = 0.5 + 0.5 * dot(rp_sd, float2(-0.6, 0.8));
+    float rp_a = atan2(rp_sd.y, rp_sd.x);
+    float rp_star = step(0.01, rpNucleus) * (1.0 - rpOpen);
+    float rp_n0 = 0.66;
+    float rp_rn = rp_r / rp_n0;
+    float rp_inN = 1.0 - smoothstep(rp_n0 - max(0.01, rp_px), rp_n0 + max(0.004, rp_px), rp_r);
+    float rp_gel = rpFill * (1.0 - 0.8 * rpOpen);
     float rp_fire = step(0.5, rpState) * step(rpState, 1.5);
     float rp_vesk = step(1.5, rpState) * step(rpState, 2.5);
     float rp_pace = step(2.5, rpState) * step(rpState, 3.5);
@@ -134,15 +113,74 @@ nonisolated enum NeuronShaders {
     float rp_fl = 0.5 + 0.5 * sin(rp_t * 17.0 + rp_ph * 5.0) * sin(rp_t * 7.3 + rp_ph);
     float rp_beat = fract((rp_t / 1.5 + fract(rp_ph * 0.37)) * 2.0);
     float rp_bp = exp(-rp_beat * 6.0) * rpMotion;
-    rp_col = rp_col * (1.0 + rp_fire * (0.3 + 0.35 * rp_fl) + rp_pace * 0.7 * rp_bp);
-    rp_col = rp_col * (1.0 - rp_eat * 0.8 * smoothstep(0.45, 0.8, rp_thick));
-    rp_col = rp_col + rpTintA * (rp_eat * 0.5 * rp_rim);
-    rp_col = rp_col + rpTintC * (rp_vesk * 0.5 * rp_dot * (1.0 - rp_thick));
+
+    float3 rp_vio = mix(float3(0.2, 0.07, 0.46), float3(0.52, 0.24, 0.98), exp(-rp_rn * rp_rn * 2.0));
+    rp_vio = mix(rp_vio, rpTintA, 0.16);
+    float3 rp_col = rp_vio * (0.72 * rp_inN * rp_gel);
+
+    """ + GraphShaderKit.noise("rp_sn", "float3(rp_sd * 2.5, rp_rn * 1.5 + rp_pz)") + """
+    float rp_sk = 0.5 + 0.5 * cos(rp_a * 11.0 + rp_sn * 6.0);
+    rp_sk = rp_sk * rp_sk * rp_sk;
+    rp_sk = rp_sk * rp_sk;
+    float rp_spoke = rp_sk * smoothstep(0.03, 0.2, rp_rn) * (1.0 - smoothstep(0.5, 0.98, rp_rn)) * rp_inN;
+    rp_col = rp_col + float3(0.74, 0.52, 1.0) * (0.42 * rp_spoke * rp_star * rp_gel * rp_fine);
+    float rp_sz = 0.0015 + 0.006 * rpNucleus;
+    rp_col = rp_col + float3(0.97, 0.9, 1.0) * (1.6 * exp(-rp_q / rp_sz) * rp_star);
+    rp_col = rp_col + rpTintB * (0.5 * exp(-rp_q / (rp_sz * 9.0)) * rp_star * rp_gel);
+
+    float rp_dots = 0.0;
+    for (int rp_k = 0; rp_k < 3; rp_k++) {
+        float3 rp_pt = rp_off + rp_d * ((float(rp_k) - 1.0) * 0.5 * rp_thick * rp_R);
+        float3 rp_lp = float3(dot(rp_pt, rp_ax), dot(rp_pt, rp_ay), dot(rp_pt, rp_az)) / rp_R2;
+        float3 rp_g = rp_lp * 8.0 + float3(float(rp_k) * 3.7, rp_t * 0.06, 0.0);
+        float3 rp_gi = floor(rp_g);
+        float rp_gh = fract(sin(dot(rp_gi, float3(12.9898, 78.233, 37.719))) * 43758.5453);
+        float3 rp_gj = float3(rp_gh, fract(rp_gh * 7.13), fract(rp_gh * 3.71)) * 0.5 + float3(0.25, 0.25, 0.25);
+        float rp_gd = 1.0 - smoothstep(0.0, 0.22, length(rp_g - rp_gi - rp_gj));
+        rp_dots = rp_dots + rp_gd * rp_gd * step(0.5, rp_gh) * (0.6 + 0.4 * sin(rp_t * 1.7 + rp_gh * 40.0));
+    }
+    float3 rp_spark = mix(float3(0.85, 0.72, 1.0), rpTintA, 0.3);
+    rp_col = rp_col + rp_spark * (1.3 * rp_dots * rp_inN * rp_gel * (1.0 - rpOpen) * rp_tiny * rpDetail);
+
+    float rp_nw = max(0.014, 1.2 * rp_px);
+    float rp_nd = (rp_r - rp_n0) / rp_nw;
+    float rp_nrim = exp(-rp_nd * rp_nd) * (0.014 / rp_nw);
+    float3 rp_glass = mix(float3(0.82, 0.7, 1.0), float3(1.0, 0.95, 1.0), rp_lit);
+    rp_col = rp_col + rp_glass * (0.6 * rp_nrim * (0.45 + 0.55 * rp_lit) * mix(0.5, 1.0, rpFill) * (1.0 - 0.5 * rpOpen));
+
+    """ + GraphShaderKit.noise("rp_gn", "float3(rp_sd * 0.9, rp_pz + rp_t * 0.04)")
+        + GraphShaderKit.noise("rp_fn", "float3(rp_sd * 3.0, rp_r * 10.0 - rp_t * 0.1 + rp_pz)") + """
+    float rp_ridge = 1.0 - abs(2.0 * rp_fn - 1.0);
+    rp_ridge = rp_ridge * rp_ridge;
+    rp_ridge = rp_ridge * rp_ridge;
+    float rp_gate = smoothstep(rp_n0 - 0.02, rp_n0 + 0.015, rp_r);
+    float rp_out = max(rp_r - rp_n0, 0.0);
+    float rp_bw = 0.07 * mix(0.55, 1.0, rpFill);
+    float rp_band = exp(-rp_out / rp_bw) * rp_gate;
+    float rp_lobe = smoothstep(0.2, 0.8, rp_gn);
+    float rp_gold = rp_band * (0.3 + 0.7 * rp_lobe) * (0.5 + 0.9 * rp_fine * rp_ridge);
+    float3 rp_amber = mix(float3(1.0, 0.6, 0.2), float3(1.0, 0.86, 0.55), rp_band * rp_lobe);
+    rp_col = rp_col + rp_amber * (0.95 * rp_gold * (1.0 - 0.3 * rpOpen));
+
+    float rp_pa = (rp_a + 3.14159265) * 10.18592;
+    float rp_pr = rp_r * 14.0;
+    float2 rp_pc = floor(float2(rp_pa, rp_pr));
+    float rp_pk = fract(sin(dot(rp_pc, float2(12.9898, 78.233)) + rp_pz) * 43758.5453);
+    float2 rp_pj = float2(fract(rp_pk * 7.13), fract(rp_pk * 3.71)) * 0.5 + float2(0.25, 0.25);
+    float rp_pd = 1.0 - smoothstep(0.0, 0.3, length(float2(rp_pa, rp_pr) - rp_pc - rp_pj));
+    float rp_glint = rp_pd * rp_pd * step(0.85 - 0.35 * rp_vesk, rp_pk) * (0.55 + 0.45 * sin(rp_t * 2.1 + rp_pk * 60.0));
+    rp_col = rp_col + rpTintC * (1.5 * rp_glint * rp_gate * exp(-rp_out / 0.16) * rp_tiny);
+
+    float rp_rim = pow(1.0 - rp_mu, 3.0) * smoothstep(0.0, 0.22, rp_mu);
+    rp_col = rp_col + mix(float3(0.6, 0.8, 1.0), rpTintA, 0.3) * (1.3 * rp_rim * (0.55 + 0.45 * rp_lit));
+    rp_col = rp_col + float3(0.3, 0.42, 0.7) * (0.06 * (1.0 - rp_inN) * rp_thick);
     float3 rp_L = normalize(float3(-0.45, 0.6, 0.66));
     float3 rp_H = normalize(rp_L + rp_V);
-    float rp_sp = pow(max(dot(rp_N, rp_H), 0.0), 40.0);
-    float3 rp_wet = float3(0.75, 0.95, 1.0) * (0.25 * rp_sp);
-    rp_col = rp_col * rp_br + rp_wet;
+    rp_col = rp_col + float3(0.8, 0.95, 1.0) * (0.4 * pow(max(dot(rp_N, rp_H), 0.0), 60.0));
+
+    rp_col = rp_col * (1.0 + rp_fire * (0.25 + 0.3 * rp_fl) + rp_pace * 0.6 * rp_bp);
+    rp_col = rp_col * (1.0 - rp_eat * 0.75 * rp_inN * smoothstep(0.1, 0.6, 1.0 - rp_rn));
+    rp_col = rp_col * (1.0 + 0.06 * sin(rp_t * 0.9 + rp_ph));
 
     """ + GraphStyleShaders.glowEnd
 
@@ -166,8 +204,12 @@ nonisolated enum NeuronShaders {
     // MARK: the dendrites
 
     /// The dendritic arbor's tapered tubes (u runs 0 at the soma to 1 at
-    /// the tip): solid golden-amber light, a warm white core near the soma,
-    /// fading out along its length, beaded with spines.
+    /// the tip, v round the tube), glass as in the owner's close-up: a
+    /// white-blue edge, golden light inside near the soma (tint A) cooling
+    /// to blue-violet further out, three faint strands spiralling along it,
+    /// golden sparkles in it (on a grid in the arbor's own space, so they
+    /// stay put on the tube) when the cell is big on screen, and nothing
+    /// over the nucleus, so the cell's middle stays clear.
     static let arbor: String = """
     #pragma arguments
     float rpProbe;
@@ -179,15 +221,35 @@ nonisolated enum NeuronShaders {
     float3 rp_V = normalize(_surface.view);
     float rp_mu = abs(dot(rp_N, rp_V));
     float rp_s = _surface.diffuseTexcoord.x;
-    float rp_core = pow(rp_mu, 0.6);
-    float rp_rim = pow(1.0 - rp_mu, 2.5) * smoothstep(0.0, 0.25, rp_mu);
-    float rp_fade = 1.0 - 0.55 * rp_s;
-    float rp_sw = pow(abs(sin(rp_s * 38.0)), 12.0);
-    float rp_bead = 1.0 + 0.35 * rpDetail * rp_sw;
-    float rp_lum = (0.62 * rp_core + 0.45 * rp_rim) * rp_fade;
-    float3 rp_col = rpTintA * (rp_lum * rp_bead);
-    rp_col = rp_col + float3(1.0, 0.92, 0.75) * (0.18 * rp_core * rp_core * (1.0 - rp_s));
-    rp_col = rp_col * (1.0 - smoothstep(0.93, 1.0, rp_s));
+    float rp_v = _surface.diffuseTexcoord.y;
+    float4x4 rp_mv = scn_node.modelViewTransform;
+    float3 rp_c = rp_mv[3].xyz;
+    float rp_R = max(length(rp_mv[0].xyz), 0.0001);
+    float3 rp_d = normalize(_surface.position);
+    float3 rp_off = rp_d * dot(rp_c, rp_d) - rp_c;
+    float rp_hide = smoothstep(0.5, 0.75, length(rp_off) / rp_R);
+    float rp_px = 1.0 / max(2000.0 * rp_R / max(-rp_c.z, 0.0001), 1.0);
+    float rp_tiny = 1.0 - smoothstep(0.016, 0.04, rp_px);
+    float rp_edge = pow(1.0 - rp_mu, 3.0) * smoothstep(0.0, 0.2, rp_mu);
+    float rp_core = rp_mu * rp_mu;
+    rp_core = rp_core * rp_core * rp_mu;
+    float rp_warm = 1.0 - smoothstep(0.12, 0.6, rp_s);
+    float3 rp_inner = mix(float3(0.42, 0.36, 0.95), rpTintA, rp_warm);
+    float rp_st = 0.5 + 0.5 * cos(rp_v * 18.849556 + rp_s * 11.0);
+    rp_st = rp_st * rp_st * rp_st;
+    rp_st = rp_st * rp_st;
+    float3 rp_col = float3(0.6, 0.8, 1.0) * (0.9 * rp_edge);
+    rp_col = rp_col + rp_inner * (rp_core * (0.25 + 0.75 * rp_warm) + 0.3 * rpDetail * rp_st * rp_mu);
+    float3 rp_rel = _surface.position - rp_c;
+    float3 rp_lp = float3(dot(rp_rel, rp_mv[0].xyz), dot(rp_rel, rp_mv[1].xyz), dot(rp_rel, rp_mv[2].xyz)) / (rp_R * rp_R);
+    float3 rp_g = rp_lp * 12.0;
+    float3 rp_gi = floor(rp_g);
+    float rp_gh = fract(sin(dot(rp_gi, float3(12.9898, 78.233, 37.719))) * 43758.5453);
+    float3 rp_gj = float3(rp_gh, fract(rp_gh * 7.13), fract(rp_gh * 3.71)) * 0.5 + float3(0.25, 0.25, 0.25);
+    float rp_gd = 1.0 - smoothstep(0.0, 0.3, length(rp_g - rp_gi - rp_gj));
+    rp_col = rp_col + float3(1.0, 0.88, 0.55) * (1.3 * rp_gd * rp_gd * step(0.86, rp_gh) * (1.0 - 0.7 * rp_s) * rpDetail * rp_tiny);
+    rp_col = rp_col + rpTintA * (0.7 * rp_mu * (1.0 - smoothstep(0.04, 0.25, rp_s)));
+    rp_col = rp_col * (smoothstep(0.0, 0.06, rp_s) * (1.0 - 0.45 * rp_s) * (1.0 - smoothstep(0.9, 1.0, rp_s)) * rp_hide);
 
     """ + GraphStyleShaders.glowEnd
 
@@ -210,11 +272,12 @@ nonisolated enum NeuronShaders {
 
     // MARK: glows
 
-    /// The light in and round a cell, on a billboard 5 cell radii across
-    /// (the membrane at 0.4 of its half side): one glow with the cell, its
-    /// brightest at the membrane, fading softly in to the middle and out
-    /// past the edge with no seam; tint C draws the chosen cell's thin
-    /// ring. `rpState`
+    /// The light round a cell, on a billboard 5 cell radii across (the
+    /// membrane at 0.4 of its half side): one faint, gold-leaning glow with
+    /// the cell (tint A), its brightest at the membrane, reaching only a
+    /// little way in (so the glass and the nucleus stay clear) and fading
+    /// softly out past the edge with no seam; tint C draws the chosen
+    /// cell's thin ring. `rpState`
     /// (NeuronState.code) adds the cell's process, each moving on the
     /// shaders' clock, its phase from where the cell is:
     ///
@@ -244,10 +307,9 @@ nonisolated enum NeuronShaders {
     float rp_e = 0.4;
     float rp_out = max(rp_r - rp_e, 0.0);
     float rp_outside = step(rp_e, rp_r);
-    float rp_soft = exp(-rp_out / 0.08) * 0.2;
-    float rp_wide = exp(-rp_out / 0.26) * 0.1;
-    float rp_in = min(rp_r / rp_e, 1.0);
-    float rp_within = 0.3 * (0.35 + 0.65 * rp_in * rp_in);
+    float rp_soft = exp(-rp_out / 0.08) * 0.13;
+    float rp_wide = exp(-rp_out / 0.26) * 0.07;
+    float rp_within = 0.2 * smoothstep(0.75 * rp_e, rp_e, rp_r);
     float rp_lum = (rp_soft + rp_wide) * rp_outside + rp_within * (1.0 - rp_outside);
     float3 rp_col = rpTintA * (rp_lum * rpGain);
     float rp_ph = dot(scn_node.modelTransform[3].xyz, float3(1.7, 2.3, 1.1));
@@ -274,7 +336,7 @@ nonisolated enum NeuronShaders {
     float rp_vf = fract(rp_vq) - 0.5;
     float rp_vg = fract(rp_vw) - 0.5;
     float rp_ves = exp(-(rp_vf * rp_vf + rp_vg * rp_vg) * 60.0) * step(0.62, rp_vh) * rp_outside;
-    rp_col = rp_col + mix(rpTintA, float3(1.0, 0.5, 0.85), 0.35) * rp_cloud;
+    rp_col = rp_col + mix(rpTintA, float3(1.0, 0.78, 0.45), 0.35) * rp_cloud;
     rp_col = rp_col + float3(1.0, 0.9, 0.72) * (rp_ves * 0.45 * exp(-rp_out / 0.4));
     } else if (rpState > 2.5 && rpState < 3.5) {
     float rp_turn = rp_t / 1.5 + fract(rp_ph * 0.37);
@@ -349,12 +411,16 @@ nonisolated enum NeuronShaders {
     /// thin stem, swells into a wet neck and flares into one wide, shallow
     /// gel cup - a golf tee - whose front follows the membrane across a
     /// thin dark cleft, its rim thicker and softly wobbling on the link's
-    /// own phase, vesicle specks inside, a faint bright density on the
+    /// own phase, golden-white vesicles inside, a faint blue density on the
     /// membrane facing it. An impulse runs down to the cup's back, landing
     /// at NeuronImpulse's arrival time; the cup brightens, bulges and
-    /// settles like jelly, and transmitter glows across the cleft and
-    /// spreads along the membrane from the cup's rim. Tint A the fibre, B
-    /// the impulse, C its halo. Each axon is a single fibre (`rpBundle` 0;
+    /// settles like jelly, and cyan transmitter glows across the cleft and
+    /// spreads along the membrane from the cup's rim. As in the owner's
+    /// close-up, the fibre is a glass tube: white-blue at its edges,
+    /// golden-white light down its middle (tint A, the cup's gold too),
+    /// brighter at each node between the myelin's beads, golden sparks in
+    /// it, and golden sparks spraying round the bouton; tint B the impulse,
+    /// C its halo. Each axon is a single fibre (`rpBundle` 0;
     /// 1 would draw three, gathered before the stem), swelling into a
     /// hillock where it leaves its sender and tapering; `rpHalf` the
     /// strip's base half width, times the width step's
@@ -532,25 +598,37 @@ nonisolated enum NeuronShaders {
     float rp_sheath = (rp_x - 0.82) / 0.16;
     float rp_edge = exp(-rp_sheath * rp_sheath) * (1.0 - 0.5 * rp_node);
     float rp_halo = exp(-max(rp_x - 1.0, 0.0) * 1.6) * (1.0 - rp_cleft);
-    float rp_bead = 1.0 + 0.35 * rp_node;
 
     float rp_in = 1.0 - smoothstep(0.92, 1.08, rp_x);
     float rp_imp = min(rp_pulse * rpMotion * (1.0 + 0.7 * rp_node), 1.6) * rp_in;
     rp_imp = max(rp_imp, 0.5 * rp_still * rp_in);
     float rp_flash = rp_tee * max(rp_act * exp(-rp_tp / 0.25), 0.6 * rp_still);
-    float rp_fibre = (0.5 * rp_tube + 0.3 * rp_edge) * rp_in * rp_bead;
-    float rp_gl = (rp_y / rp_wm - 0.42) / 0.16;
-    float rp_gloss = exp(-rp_gl * rp_gl) * rp_myel * (1.0 - rp_node) * (1.0 - rpBundle) * rp_in;
-    float3 rp_col = rpTintA * (rp_fibre + 0.05 * rp_halo + 0.22 * rp_gloss);
-    rp_col = rp_col + float3(0.9, 0.95, 1.0) * (0.08 * rp_gloss);
-    rp_col = rp_col + rpTintA * (0.1 * rp_tee + 0.08 * rp_cupIn + 0.18 * rp_psd);
-    rp_col = rp_col + (rpTintA * 0.6 + float3(0.25, 0.25, 0.25)) * (0.16 * min(rp_ves, 1.0) * rp_cupIn);
+    float rp_glow = exp(-rp_x * rp_x * 6.0);
+    float3 rp_col = float3(0.62, 0.8, 1.0) * (0.45 * rp_edge * rp_in);
+    rp_col = rp_col + float3(0.3, 0.45, 0.8) * (0.06 * rp_tube * rp_in);
+    rp_col = rp_col + rpTintA * ((0.75 * rp_glow * (1.0 + 0.8 * rp_node) + 0.5 * rp_node) * rp_in);
+    float2 rp_kc = float2(rp_along / (rp_hw * 0.45), rp_y / rp_wm * 1.5 + 1.5);
+    float2 rp_ki = floor(rp_kc);
+    float rp_kh = fract(sin(dot(rp_ki, float2(12.9898, 78.233)) + rp_seed * 3.1) * 43758.5453);
+    float2 rp_kf = rp_kc - rp_ki - (float2(fract(rp_kh * 7.13), fract(rp_kh * 3.71)) * 0.5 + float2(0.25, 0.25));
+    float rp_kd = 1.0 - smoothstep(0.0, 0.3, length(rp_kf));
+    rp_col = rp_col + float3(1.0, 0.88, 0.55) * (0.9 * rp_kd * rp_kd * step(0.8, rp_kh) * (0.6 + 0.4 * sin(rp_t * 2.3 + rp_kh * 50.0)) * rpDetail * rp_in);
+    rp_col = rp_col + rpTintA * (0.35 * rp_tee + 0.25 * rp_cupIn);
+    rp_col = rp_col + float3(1.0, 0.92, 0.7) * (0.3 * min(rp_ves, 1.0) * rp_cupIn);
+    rp_col = rp_col + float3(0.35, 0.9, 1.0) * (0.35 * rp_psd + 0.1 * rp_cleft);
+    rp_col = rp_col + float3(0.5, 0.95, 1.0) * (0.8 * rp_nt);
+    float2 rp_zc = float2(rp_dE, rp_y) / (rp_Wc * 0.35);
+    float2 rp_zi = floor(rp_zc);
+    float rp_zh = fract(sin(dot(rp_zi, float2(12.9898, 78.233)) + rp_seed * 1.7) * 43758.5453);
+    float2 rp_zf = rp_zc - rp_zi - (float2(fract(rp_zh * 7.13), fract(rp_zh * 3.71)) * 0.5 + float2(0.25, 0.25));
+    float rp_zd = 1.0 - smoothstep(0.0, 0.3, length(rp_zf));
+    float rp_spray = rp_zd * rp_zd * step(0.85, rp_zh) * exp(-max(rp_dE - rp_D1, 0.0) / (rp_Wc * 1.5)) * (1.0 - rp_in) * step(rp_R, rp_rr) * rpDetail;
+    rp_col = rp_col + rpTintA * (1.1 * rp_spray * (0.55 + 0.45 * sin(rp_t * 2.9 + rp_zh * 70.0)));
     float rp_core = exp(-rp_x * rp_x * 1.5);
     rp_col = rp_col + rpTintB * (rp_imp * (0.95 * rp_core + 0.12));
     rp_col = rp_col + rpTintC * (rp_imp * rp_halo * 0.35);
     float3 rp_hot = rpTintB + rpTintC * 0.5;
     rp_col = rp_col + rp_hot * (0.4 * rp_flash);
-    rp_col = rp_col + (rpTintB * 0.55 + rpTintC * 0.45) * (0.8 * rp_nt);
     rp_col = rp_col * (1.0 + 0.45 * rp_lit);
     rp_col = rp_col * smoothstep(0.0, 2.0 * rp_hw, rp_along);
 

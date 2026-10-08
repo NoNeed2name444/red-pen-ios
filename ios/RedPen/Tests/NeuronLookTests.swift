@@ -3,7 +3,8 @@
 // - the palette: bioluminescent green, cyan, pink and amber dyes on a deep
 //   blue, every colour on screen's scale; an idea leans to its cell's
 //   accent, so two cells already show all four colours; the soma's
-//   interior purple deepening to magenta;
+//   interior a deep violet brightening to violet at its heart (the owner's
+//   close-up);
 // - the cell states: six, one for each space style and back again, each its
 //   own shader number; the Look menu in the space styles' order; natural
 //   states follow biology (a receptor migrates, a drifter engulfs, the
@@ -11,10 +12,12 @@
 // - the choice: one state for every note, one per cell winning over it,
 //   containers always resting, stored strings read back the same and
 //   anything unreadable skipped;
-// - the bokeh: always the same discs, on the unit sphere, in the
-//   palette's colours, the big ones fainter;
+// - the bokeh: always the same discs, on the unit sphere, gold and blue,
+//   the big ones fainter;
 // - the shaders say the same: the soma and halo read rpState and its
-//   codes, the soma's interior is the palette's.
+//   codes, the soma's interior is the palette's;
+// - the far cells behind it all: always the same, spread over the sky,
+//   blue, each turned its own way, the big ones fainter.
 //
 // Compiled with GraphUniverse.swift, GraphThemePlan.swift, GraphNeurons.swift,
 // GraphAnatomy.swift, GraphNeuronImpulses.swift, GraphTheme.swift, GraphSpaceOptics.swift,
@@ -49,9 +52,10 @@ let amber: Bool = mains.contains { $0.x > 0.9 && $0.y > 0.6 && $0.z < 0.4 }
 check("N1 green, cyan, pink and amber dyes", green && cyan && pink && amber)
 let deep: SIMD3<Float> = NeuronPalette.deep
 check("N1 the fluid deep blue: dark, blue the strongest", deep.z > deep.y && deep.y > deep.x && deep.max() < 0.12)
-check("N1 the interior purple, the heart magenta",
-      NeuronPalette.interior.z > NeuronPalette.interior.x && NeuronPalette.heart.x > NeuronPalette.heart.z
-      && NeuronPalette.heart.z > NeuronPalette.heart.y)
+check("N1 the interior deep violet, the heart a brighter violet",
+      NeuronPalette.interior.z > NeuronPalette.interior.x && NeuronPalette.interior.x > NeuronPalette.interior.y
+      && NeuronPalette.heart.z > NeuronPalette.heart.x && NeuronPalette.heart.x > NeuronPalette.heart.y
+      && NeuronPalette.heart.max() > NeuronPalette.interior.max())
 let first: SIMD3<Float> = NeuronPalette.dye(slot: 0)
 let firstIdea: SIMD3<Float> = NeuronPalette.dye(slot: 0, idea: true)
 let accent: SIMD3<Float> = NeuronPalette.dyes[0].accent
@@ -158,6 +162,9 @@ let discs: [NeuronBokehDisc] = NeuronBokeh.discs()
 check("N4 the same every time", discs == NeuronBokeh.discs() && discs.count == NeuronBokeh.count)
 check("N4 on the unit sphere", discs.allSatisfy { abs((($0.direction * $0.direction).sum()).squareRoot() - 1) < 0.001 })
 check("N4 the palette's colours, on screen's scale", discs.allSatisfy { onScreen($0.colour) && $0.strength > 0 })
+let golds: Int = discs.filter { $0.colour.x > 0.9 && $0.colour.z < 0.45 }.count
+let blues: Int = discs.filter { $0.colour.z > 0.9 && $0.colour.x < 0.65 }.count
+check("N4 gold and blue, nothing else", golds > 0 && blues > 0 && golds + blues == discs.count)
 let big: [NeuronBokehDisc] = discs.filter { $0.size > 0.08 }
 let small: [NeuronBokehDisc] = discs.filter { $0.size < 0.03 }
 let meanBig: Float = big.map(\.strength).reduce(0, +) / Float(max(big.count, 1))
@@ -177,40 +184,32 @@ check("N5 the soma and halo read the state", NeuronShaders.soma.contains("float 
 check("N5 the halo draws every state's process",
       (1...5).allSatisfy { NeuronShaders.halo.contains("rpState > \(Double($0) - 0.5)") })
 check("N5 the soma's interior is the palette's",
-      NeuronShaders.soma.contains("float3(0.58, 0.24, 0.98)") && NeuronShaders.soma.contains("float3(0.98, 0.28, 0.72)")
-      && NeuronPalette.interior == SIMD3<Float>(0.58, 0.24, 0.98) && NeuronPalette.heart == SIMD3<Float>(0.98, 0.28, 0.72))
+      NeuronShaders.soma.contains("float3(0.2, 0.07, 0.46)") && NeuronShaders.soma.contains("float3(0.52, 0.24, 0.98)")
+      && NeuronPalette.interior == SIMD3<Float>(0.2, 0.07, 0.46) && NeuronPalette.heart == SIMD3<Float>(0.52, 0.24, 0.98))
 check("N5 the pacemaker's beat is the pulsar's period in both",
       NeuronShaders.soma.contains("rp_t / 1.5") && NeuronShaders.halo.contains("rp_t / 1.5")
       && SpaceOptics.pulsarPeriod == 1.5)
 
-// MARK: N6 the orbs round the map
+// MARK: N6 the far cells behind it all
 
-let orbs: [NeuronOrb] = NeuronBokeh.orbs()
-check("N6 the same every time", orbs == NeuronBokeh.orbs() && orbs.count == NeuronBokeh.orbCount)
-check("N6 in a shell round the map, never on the lens",
-      orbs.allSatisfy { o in
-          let r: Float = (o.at * o.at).sum().squareRoot()
-          return r > 0.3 && r <= 1.41 && o.at.z <= NeuronBokeh.orbFront
-      })
-check("N6 in front of the cells and behind them",
-      orbs.filter { $0.at.z > 0.2 }.count >= 6 && orbs.filter { $0.at.z < -0.2 }.count >= 6)
-let bigOrbs: [NeuronOrb] = orbs.filter { $0.size > 0.11 }
-let smallOrbs: [NeuronOrb] = orbs.filter { $0.size < 0.08 }
-let meanBigOrb: Float = bigOrbs.map(\.strength).reduce(0, +) / Float(max(bigOrbs.count, 1))
-let meanSmallOrb: Float = smallOrbs.map(\.strength).reduce(0, +) / Float(max(smallOrbs.count, 1))
-check("N6 most small, the big ones fainter, all faint",
-      smallOrbs.count > bigOrbs.count && meanBigOrb < meanSmallOrb
-      && orbs.allSatisfy { $0.strength > 0 && $0.strength < 0.4 && onScreen($0.colour) })
-
-let threads: [NeuronThread] = NeuronBokeh.threads(orbs)
-check("N6 threads join near orbs, each pair once, the same every time",
-      threads == NeuronBokeh.threads(orbs) && Set(threads).count == threads.count
-      && threads.count >= NeuronBokeh.orbCount / 2
-      && threads.allSatisfy { t in
-          guard t.a < t.b, t.b < orbs.count else { return false }
-          let v: SIMD3<Float> = orbs[t.b].at - orbs[t.a].at
-          return (v * v).sum().squareRoot() <= NeuronBokeh.threadReach
-      })
+let far: [NeuronFarCell] = NeuronBokeh.farCells()
+check("N6 the same every time", far == NeuronBokeh.farCells() && far.count == NeuronBokeh.farCount)
+check("N6 on the unit sphere", far.allSatisfy { abs((($0.direction * $0.direction).sum()).squareRoot() - 1) < 0.001 })
+check("N6 on screen's scale, never full strength",
+      far.allSatisfy { onScreen($0.colour) && $0.strength > 0 && $0.strength < 1 && $0.size > 0.1 && $0.size < 0.3 })
+check("N6 blue, the strongest channel", far.allSatisfy { $0.colour.z >= $0.colour.x && $0.colour.z >= $0.colour.y })
+let bigFar: [NeuronFarCell] = far.filter { $0.size > 0.24 }
+let smallFar: [NeuronFarCell] = far.filter { $0.size < 0.18 }
+let meanBigFar: Float = bigFar.map(\.strength).reduce(0, +) / Float(max(bigFar.count, 1))
+let meanSmallFar: Float = smallFar.map(\.strength).reduce(0, +) / Float(max(smallFar.count, 1))
+check("N6 the big ones fainter", !bigFar.isEmpty && !smallFar.isEmpty && meanBigFar < meanSmallFar)
+var farOctants = Set<Int>()
+for c in far {
+    farOctants.insert((c.direction.x > 0 ? 1 : 0) + (c.direction.y > 0 ? 2 : 0) + (c.direction.z > 0 ? 4 : 0))
+}
+check("N6 spread over the sky", farOctants.count >= 6)
+check("N6 each turned its own way", Set(far.map { Int($0.turn * 100) }).count >= far.count - 1
+      && far.allSatisfy { $0.turn >= 0 && $0.turn < 2 * Float.pi })
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)
