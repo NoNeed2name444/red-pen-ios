@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 10:40 AM Cairo.
+Last updated: 2026-10-09, 10:50 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,10 +39,10 @@ Last updated: 2026-10-09, 10:40 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -785,9 +785,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       re-pins. Timing is within the machine's noise (an ordinary batch
       about 2.6 ms warm before and after; the check is about 0.13 ms of
       it, and the worst batch never reaches it).
-    - [ ] Preflight, push design/map-lighter, Server tests green, then
+    - [x] Preflight, push design/map-lighter, Server tests green, then
       personal and the session branch (with step 15's tasks 1 and 3).
       Live only after a Worker deploy, which needs the owner's word.
+      Done: preflight OK; Server tests 37900489984 green on 695ca2f;
+      personal and claude/new-session-013tes5v moved to it on 9 Oct at
+      about 10:50 AM.
 19. [ ] Re-pin the Worker's port to Chat-me personal. Measured on 9 Oct:
     besides step 17's vectors, the port still has two behaviours Chat-me
     dropped in d17635d (step 11). Its multilingual replace is not
