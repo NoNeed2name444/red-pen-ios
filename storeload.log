@@ -1,0 +1,62 @@
+ios/RedPen/Shared/CardQuality.swift:120:13: warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+118 |             out.append(Problem(itemID: card.id, rule: rule, detail: detail))
+119 |         }
+120 |         let why = card.why.trimmingCharacters(in: .whitespacesAndNewlines)
+    |             `- warning: initialization of immutable value 'why' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+121 | 
+122 |         if card.type == .cloze {
+
+compile rc=0
+ok   a store read in init is loaded straight away
+ok   a set and a flag are written
+ok   a store read in the background is not loaded straight away
+ok   and is not read whole meanwhile, so nothing is swept
+ok   it is loaded once the read is in
+ok   with the library on disk
+ok   and the progress
+ok   read whole
+ok   a flush before the read is in writes nothing
+ok   a set added before the read is in is kept on top of the file
+ok   and written once it is
+ok   nothing on disk was lost to the early flush
+ok   with no file yet, what was added stays
+ok   a library never written is read whole
+ok   the set added before the read came in is written
+ok   and is on disk
+ok   a library that is there but cannot be read is unreadable
+ok   and not read whole
+ok   nothing is written over it, and flushed says so
+ok   read again, the file is taken in and the set added meanwhile kept
+ok   and the library is read whole
+ok   flushed waits for the read, then writes
+ok   all three are on disk
+ok   in memory a set keeps its pictures as base64
+ok   the old file is written again
+ok   migrated: the file holds a reference
+ok   and the picture is a file beside it
+ok   read back, the reference is filled in
+ok   a rename is written
+ok   and the file is small (413 bytes), not carrying the picture
+ok   a set with a data: picture is written
+ok   a data: picture is a reference too
+ok   a picture in two sets is stored once
+ok   a reference whose blob is missing stays a reference
+ok   the library is written even when a blob cannot be
+ok   and the picture whose blob failed stays inline
+ok   a library with a picture is written
+ok   written again within the day
+ok   not swept again within the day
+ok   and once the day is up
+ok   an old picture nothing refers to is swept
+ok   one the library refers to is kept, however old
+ok   one a set this version cannot read mentions is kept
+ok   one a recovery copy mentions is kept
+ok   swept once more
+ok   a picture from the last day is spared
+ok   a set with the swept picture is added
+ok   a picture added back after a sweep is written again
+ok   a library that could not be read is written over only once put aside
+ok   and no picture is swept on its word
+all passed
+
+run rc=0
