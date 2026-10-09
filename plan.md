@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 7:05 AM Cairo.
+Last updated: 2026-10-09, 7:30 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -37,9 +37,9 @@ Last updated: 2026-10-09, 7:05 AM Cairo.
 |---|---|---|
 | wip/3d-neurons-m3 | "Plan: M3 joins personal" | M3, done: the cells, parts and notes, one membrane per cell, links as dendrites from both cells (round D); #20 found no freeze of the app's own, only XCTest unable to end it while the simulator's first boot settled, and the fix (0435184: boot during the build, wait for the Mac's load) was confirmed by run 37862852271, green; this commit is what personal took (section 3, step 7) |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
-| preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
-| shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM) | personal is the working branch; keep session branches equal to it |
+| preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
@@ -509,12 +509,34 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       doc (AccuracyLedger.swift). Done with step 13's push on
       design/map-lighter; the accuracy suite checks the words.
     - Live only after a Worker deploy, which needs the owner's word.
-11. [ ] Chat-me (the owner attached it to this session with push on 9 Oct
+11. [x] Chat-me (the owner attached it to this session with push on 9 Oct
     at about 7:00 AM, after an earlier refusal): port the 50-claim benchmark
     into personal's evals, so the verifier is held to it, and give
     personal's verifier C's direction axis, so F02 to F05 stop passing as
     SUPPORTED; and correct the verifier README's `app.main:app` to
     `api.main:app`. C itself can't be merged as it stands (section 5, #7).
+    Done in Chat-me d17635d (personal, 9 Oct, about 7:20 AM; its Python CI
+    green):
+    - evals/suites/adversarial_50.py runs the 50 claims through the whole
+      pipeline, each with its own passage as two sources from two families;
+      tests/unit/test_adversarial_50_benchmark.py holds it: no false claim
+      supported, and at least the 15 true ones it supports today.
+    - agents/specialists/verification_agent/direction.py, read per atom in
+      `_atomic_alignment`: the change axis (increases, lower) and the amount
+      axis (high, rare), as in the Worker's turnedAround; part names
+      (lower limb, common bile duct, low-dose) and cut-offs ("below 30"
+      against "< 30") say no way, and a swapped comparison reads the same
+      way. A wrong-way reading abstains (UNKNOWN), never contradicts (22f
+      fail-safe brief; ACCEPTANCE_GATES.md), since curriculum and question
+      validation take an independent CONTRADICTS outright.
+    - F02 also needed the multilingual normaliser to swap whole words:
+      Spanish "reduce" turned English "reduced" into "reducesd".
+    - Result: 10 of 10 false claims no longer supported (F02 to F05 were
+      SUPPORTED); 15 of 40 true ones kept, the same 15; no other verdict
+      moved; 184 tests pass.
+    - The README's quick start runs from the repository root
+      (`api.main:app`), and its commercial-use note points at the NOTICE
+      beside it (docs/COMMERCIAL_USE.md never existed).
 12. [x] #27, the 3D map's audit findings left from before M3, checked
     against the code after it (Chat-me personal:
     docs/architecture/audit/stethoscore-verified-findings.md, rows 107 to
@@ -574,11 +596,18 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     - Left: 111 (section 3, step 12). NoteStore.allEdges(), which the
       signature asks for on every redraw, is already kept until a note
       changes (its edgeCache), so it needs nothing.
-14. [ ] #29, one preview run for step 13: preview/3d-overhaul
+14. [x] #29, one preview run for step 13: preview/3d-overhaul
     fast-forwarded to personal's tip. Check 45-1 and 45-2 (names over
     bright bodies: names are now made the first time they show), that the
     shaders are on, and a cell's opening and closing; send the owner the
-    name shots.
+    name shots. Done: run 37879552679 on 66791a5 green (45 tests passed,
+    none failed; shots on shots/3d-overhaul at 04b044e). The names on 45-1
+    and 45-2 read on iPhone and iPad (the iPad's "Heart failure" pill is a
+    little lower in contrast, still legible); the shaders are on (the sun's
+    corona, the gas giant's bands, the neurons' glass and glow); cells are
+    closed at rest and open in turn (Examples, then Inguinal inside it).
+    The four name shots went to the owner at about 7:25 AM. personal's own
+    App build on the map lighter (37879541559) is green too.
 15. [ ] #30, the owner's "give repetitive tasks to chatgpt through the
     loop": docs/chatgpt-tasks.md lists four tasks (two wrong labels, rows
     40 and 34; a re-check of 31 audit rows; the on-device recogniser's
@@ -589,8 +618,14 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     - [ ] Queue them, one at a time; this session sends them ("u send the
       packets not me", 9 Oct, about 6:55 AM). The owner attached the loop's
       repository to this session with push at about 7:00 AM. Task 1 (the
-      two labels) went in as the loop's turn 55 at 7:02 AM and its worker
-      started. The packets for tasks 1 to 3 are in the session's scratchpad
+      two labels) went in as the loop's turn 55 at 7:02 AM and was approved
+      at turn 57 (7:23 AM; aahp/personal 7358ef8): the account header's Pro
+      chip shows a real subscription, the personal build hides "Restore
+      purchases", and the Mixed tile reads "20 across all your sets". The
+      loop's note for the owner: no preview shot shows the Mixed tile or
+      the Account page; an Account screen in the preview would show rows
+      34 and 40. Task 2 (the re-check, a report only) went in as turn 58
+      at 7:27 AM. The packets for tasks 1 to 3 are in the session's scratchpad
       and went to the owner, kept out of this repository (the loop's format
       is private); a new session rebuilds them from docs/chatgpt-tasks.md in
       the format of the loop's last task commit. When one is approved, queue
@@ -601,7 +636,22 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       aahp/personal, so it adds no merge risk to these tasks.
     - [ ] Review each result when it comes back, then merge aahp/personal
       into personal (a merge commit; these tasks touch no file personal
-      changed).
+      changed). Task 1 is reviewed (its diff is what the task asked) and
+      could go in now; it waits for task 3, so one App build on personal
+      covers both.
+16. [ ] #32, Chat-me's verifier.yml swift-test job (macOS,
+    clients/ios/MedicalVerifierCore) has been red since at least d504978
+    (1 Oct), with the same four failures on 28bdcf3 (7 Oct) and d17635d,
+    so they are older than step 11: AdvancedClaimReasoningTests
+    testTemporalScopeMustBePreserved; CrossPlatformConformanceTests
+    testSharedConformanceVectors (weight_based_arithmetic gives
+    SOURCE_UNSUPPORTED where the shared vectors say VALIDATED);
+    MedicalVerifierCoreTests testDailyDoseEquivalenceIsSupported
+    (sourceUncertain, not validated) and
+    testWeightBasedArithmeticIsEquivalentOnlyWithExplicitWeight
+    (sourceUnsupported, not validated). Reproduce them on Linux with
+    /opt/swift if the package is Foundation-only, fix, push to Chat-me's
+    personal.
 
 ## 4. M3: the Neurons rebuild
 
