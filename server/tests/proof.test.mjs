@@ -667,6 +667,12 @@ function runBatch(P, srcs, per, items) {
   }
   return { read, whys };
 }
+// CPU time so far, in ms: what a Worker request is charged for, and unlike a
+// clock it stands still while a busy machine runs something else
+function cpuMs() {
+  const u = process.cpuUsage();
+  return (u.user + u.system) / 1000;
+}
 // items whose claims every source nearly states, so that each is read to its end
 const WORST_ITEMS = [
   { kind: 'fact', text: 'Metformin lowers glucose.' }, { kind: 'fact', text: 'Metformin lowers the glucose.' },
@@ -688,20 +694,24 @@ const WORST_ITEMS = [
     let last;
     for (let i = 0; i < 30; i++) {
       const srcs = worstSources(n, nonce++);
-      const a = performance.now();
+      const a = cpuMs();
       last = runBatch(P, srcs, per, items);
-      t.push(performance.now() - a);
+      t.push(cpuMs() - a);
     }
     const ms = t.sort((x, y) => x - y)[15];
     console.log(`     warm, ${what}: ${ms.toFixed(2)} ms, read ${last.read} (${(ms * 1e6 / last.read).toFixed(0)} ns a unit): ${last.whys.join(', ')}`);
     ok(last.read <= P.PROOF_CHARS && !last.whys.includes('claim') && ms < 8, `warm, ${what}: never more than PROOF_CHARS read, within a few ms of CPU (about 3 here)`);
-    const cold = Number(execFileSync(process.execPath, ['--input-type=module', '-e', `const P = await import(${JSON.stringify(url)});
+    // the least of three fresh isolates, as how much compiling runs beside
+    // the batch varies from one start to the next
+    const coldOnce = () => Number(execFileSync(process.execPath, ['--input-type=module', '-e', `const P = await import(${JSON.stringify(url)});
 ${worstSources}
 ${runBatch}
+${cpuMs}
 const srcs = worstSources(${n}, 0);
-const a = performance.now();
+const a = cpuMs();
 runBatch(P, srcs, ${per}, ${JSON.stringify(items)});
-console.log(performance.now() - a);`]).toString().trim());
+console.log(cpuMs() - a);`]).toString().trim());
+    const cold = Math.min(coldOnce(), coldOnce(), coldOnce());
     console.log(`     cold, ${what}: ${cold.toFixed(1)} ms`);
     ok(cold < 50, `cold, ${what}: a few tens of ms at most, in a fresh isolate`);
   }

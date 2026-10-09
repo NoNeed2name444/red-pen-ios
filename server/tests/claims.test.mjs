@@ -295,6 +295,10 @@ const CASES = [
   ok(JSON.stringify(C.claimGate({ source: CASES[0][1], ...CASES[0][2] })) === before, 'the same item, the same findings, whatever ran before');
 }
 
+/// CPU time so far, in ms: what a Worker request is charged for, and unlike
+/// a clock it stands still while a busy machine runs something else.
+const cpuMs = () => { const u = process.cpuUsage(); return (u.user + u.system) / 1000; };
+
 // the worst batch the server takes: four notes of MAX_ITEM_CHARS (3,500),
 // every sentence a dose that restates one of its lecture's (MAX_SOURCE_CHARS,
 // 1,400) with another dose and frequency - and an ordinary batch: a
@@ -325,18 +329,18 @@ const ordinary = [
   ok(o.every(g => g.complete), `an ordinary batch is gated to the end within the budget (${o.map(g => g.work).join('+')} units of ${C.MAX_WORK})`);
   ok(o.map(g => g.hard.map(f => f.code).join('+')).join() === 'frequency,dose,,', `and finds the changed dose and dose frequency, and nothing in the rest (${o.map(g => g.hard.map(f => f.code).join('+') || '-').join(', ')})`);
   // CPU, warm: the median of 30 runs
-  const warm = batch => { const t = []; for (let i = 0; i < 30; i++) { const a = performance.now(); claimsStage(batch); t.push(performance.now() - a); } return t.sort((x, y) => x - y)[15]; };
+  const warm = batch => { const t = []; for (let i = 0; i < 30; i++) { const a = cpuMs(); claimsStage(batch); t.push(cpuMs() - a); } return t.sort((x, y) => x - y)[15]; };
   for (let i = 0; i < 20; i++) claimsStage(worst);
   const wms = warm(worst), oms = warm(ordinary);
   console.log(`     warm: the worst batch ${wms.toFixed(1)} ms, an ordinary one ${oms.toFixed(1)} ms`);
   ok(wms < 8 && oms < 8, 'warm, a batch takes a few ms of CPU at most (about 3 here; generous for a slow runner)');
   // CPU, cold: the first batch of a fresh isolate, the gate's patterns and
   // code compiled on the way (Unicode \b alone was about 100 ms of it); the
-  // least of three fresh isolates, as one can be held up by whatever else
-  // the machine is doing (a clock, not CPU time)
+  // least of three fresh isolates, as how much compiling runs beside the
+  // batch varies from one start to the next
   const accuracy = new URL('../accuracy.js', import.meta.url).href;
   const coldOnce = () => Number(execFileSync(process.execPath, ['--input-type=module', '-e',
-    `const { claimsStage } = await import(${JSON.stringify(accuracy)});${WORST}\nconst a = performance.now(); claimsStage(worst); console.log(performance.now() - a);`]).toString().trim());
+    `const { claimsStage } = await import(${JSON.stringify(accuracy)});${WORST}\nconst cpuMs = ${cpuMs};\nconst a = cpuMs(); claimsStage(worst); console.log(cpuMs() - a);`]).toString().trim());
   const cold = Math.min(coldOnce(), coldOnce(), coldOnce());
   console.log(`     cold: the worst batch ${cold.toFixed(1)} ms`);
   ok(cold < 50, 'cold, the worst batch is a few tens of ms at most, not the 130 it was (about 15 here)');
