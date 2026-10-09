@@ -1,6 +1,6 @@
 {
- "verifier": "Chat-me 3df53cd (personal, agents/specialists/verification_agent)",
- "conformance_version": "1.6",
+ "verifier": "Chat-me cda5d2c (personal, agents/specialists/verification_agent)",
+ "conformance_version": "1.7",
  "pairs": [
   {
    "source": "conformance:valid_basic",
@@ -4758,6 +4758,169 @@
     "atoms": [
      {
       "text": "Amoxicillin 500 mg orally three times a day",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_route_swapped_around_words",
+   "claim": "Adrenaline 0.5 mg IV for anaphylaxis in adults.",
+   "evidence": "Adrenaline 0.5 mg IM is given for anaphylaxis in adults.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "adrenaline 0.5 mg iv for anaphylaxis in adults.",
+    "tokens": [
+     "adrenaline",
+     "adults",
+     "anaphylaxis"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "0.5"
+    ],
+    "measurements": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "adult",
+     "adults",
+     "renal"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Adrenaline 0",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     },
+     {
+      "text": "5 mg IV for anaphylaxis in adults",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "adrenaline 0.5 mg im is given for anaphylaxis in adults.",
+    "tokens": [
+     "adrenaline",
+     "adults",
+     "anaphylaxis",
+     "given"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "0.5"
+    ],
+    "measurements": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "adult",
+     "adults",
+     "renal"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Adrenaline 0",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     },
+     {
+      "text": "5 mg IM is given for anaphylaxis in adults",
       "relation": "unclassified",
       "polarity": "positive",
       "temporal": [],
@@ -15890,6 +16053,122 @@
   },
   {
    "source": "stethoscore",
+   "claim": "Vincristine is given intrathecally.",
+   "evidence": "Vincristine must only be given intravenously.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [
+    "absolute_claim_not_matched"
+   ],
+   "claim_facts": {
+    "double_negation": "vincristine is given intrathecally.",
+    "tokens": [
+     "given",
+     "intrathecally",
+     "vincristine"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Vincristine is given intrathecally",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "vincristine must only be given intravenously.",
+    "tokens": [
+     "given",
+     "intravenously",
+     "must",
+     "only",
+     "vincristine"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": true
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Vincristine must only be given intravenously",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
    "claim": "El tratamiento reduce el riesgo.",
    "evidence": "El tratamiento reduce el riesgo en adultos.",
    "verify": {
@@ -16683,9 +16962,9 @@
    "claim": "Adrenaline 0.5 mg IV for anaphylaxis in adults.",
    "evidence": "Adrenaline 0.5 mg IM is given for anaphylaxis in adults.",
    "verify": {
-    "label": "SUPPORTS",
+    "label": "UNKNOWN",
     "reasons": [
-     "independent_structured_checks_passed"
+     "atomic_term_substituted"
     ]
    },
    "opposite": false,

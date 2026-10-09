@@ -2,7 +2,7 @@
 // every item before the votes (plan Task 5d step 3; the Task 4 audit's
 // section 10, integration step 2).
 //
-// The guards are ported from Python, Chat-me's medical verifier at 3df53cd
+// The guards are ported from Python, Chat-me's medical verifier at cda5d2c
 // (branch personal, MIT, the same owner): in
 // agents/specialists/verification_agent/, claim_reasoning.py,
 // independent_entailment.py and its _base, direction.py, semantic_guard.py,
@@ -694,13 +694,21 @@ const SHORT_NON_TERMS = new Set([
   'one', 'two', 'six', 'ten',
 ]);
 /// The short and long names of one route, so writing it the other way is no
-/// swap ("500 mg PO" for "500 mg orally").
+/// swap ("500 mg PO" for "500 mg orally"), while two different routes are
+/// one, whatever words stand around them ("given IV" for "IM is given").
 const ROUTE_NAMES = new Map(Object.entries({
   po: 'oral', oral: 'oral', orally: 'oral',
   iv: 'intravenous', intravenous: 'intravenous', intravenously: 'intravenous',
   im: 'intramuscular', intramuscular: 'intramuscular', intramuscularly: 'intramuscular',
   sc: 'subcutaneous', sq: 'subcutaneous', subcut: 'subcutaneous',
   subcutaneous: 'subcutaneous', subcutaneously: 'subcutaneous',
+  intrathecal: 'intrathecal', intrathecally: 'intrathecal',
+  sublingual: 'sublingual', sublingually: 'sublingual',
+  rectal: 'rectal', rectally: 'rectal',
+  topical: 'topical', topically: 'topical',
+  inhaled: 'inhaled', nebulised: 'inhaled', nebulized: 'inhaled',
+  intranasal: 'intranasal', intranasally: 'intranasal',
+  intradermal: 'intradermal', intradermally: 'intradermal',
 }));
 /// Endings cut so another form of the same word still lines up; there is no
 /// "-ate" or "-ic" rule, which would make nitrate and nitrite one word.
@@ -780,8 +788,12 @@ const stemmed = remembered('stems', text => {
 
 function swapsATerm(claimText, evidenceText) {
   const claim = stemmed(claimText), evidence = stemmed(evidenceText);
-  // a swap needs a term on each side that the other does not say; most
-  // pairs that get this far have none, and need no alignment
+  // a route on each side and none in common, whatever words stand around them
+  const routes = side => new Set(side.words.filter(w => ROUTE_NAMES.has(w)).map(w => ROUTE_NAMES.get(w)));
+  const claimRoutes = routes(claim), evidenceRoutes = routes(evidence);
+  if (claimRoutes.size > 0 && evidenceRoutes.size > 0 && !meets(claimRoutes, evidenceRoutes)) return true;
+  // any other swap needs a term on each side that the other does not say;
+  // most pairs that get this far have none, and need no alignment
   const unsaid = (side, other) => side.words.some((w, i) => !other.set.has(side.stems[i]) && contentWord(w));
   if (!unsaid(claim, evidence) || !unsaid(evidence, claim)) return false;
   return unmatchedRuns(claim.stems, evidence.stems).some(([[i1, i2], [j1, j2]]) => isSwap(

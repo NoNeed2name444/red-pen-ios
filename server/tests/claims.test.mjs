@@ -2,7 +2,7 @@
 // verifier's deterministic guards in JavaScript, and what the gate makes of
 // them on Stethoscore items against their own lectures.
 //
-// 1. Conformance: on every pair in claim-vectors.json (the verifier's 45
+// 1. Conformance: on every pair in claim-vectors.json (the verifier's 46
 //    shared conformance vectors and Stethoscore-shaped pairs), each guard
 //    gives exactly what the Python gave (bench/claim-vectors.py made it);
 //    and on the rules its later changes brought (a daily dose written
@@ -55,11 +55,11 @@ const facts = t => ({
 });
 /// Pairs whose answers a later Chat-me changed on purpose, with the new ones
 /// (the later Python's), keyed by claim and evidence, until the vectors are
-/// made again from it. None: the vectors are 3df53cd's, the port's.
+/// made again from it. None: the vectors are cda5d2c's, the port's.
 const DEPARTURES = new Map();
 {
-  ok(/3df53cd/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
-  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 45, 'all 45 of the verifier\'s shared conformance vectors among them');
+  ok(/cda5d2c/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
+  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 46, 'all 46 of the verifier\'s shared conformance vectors among them');
   const differences = [], departed = new Set();
   for (const p of fx.pairs) {
     const key = `${p.claim}\n${p.evidence}`, departure = DEPARTURES.get(key) || {};
@@ -80,7 +80,7 @@ const DEPARTURES = new Map();
   }
   for (const d of differences.slice(0, 10)) console.log('     ', d);
   ok(differences.length === 0, `every guard gives the Python's answer on every pair (${differences.length} differences)`);
-  ok(departed.size === DEPARTURES.size, `each departure from 3df53cd is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
+  ok(departed.size === DEPARTURES.size, `each departure from cda5d2c is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
   ok(fx.entities.every(([a, b, want]) => C.entitiesEquivalent(a, b) === want), 'entity aliases as the Python reads them');
   const labels = new Set(fx.pairs.map(p => p.verify.label));
   ok(labels.has('SUPPORTS') && labels.size >= 2, `the pairs cover more than one verdict (${[...labels].join(', ')})`);
@@ -107,13 +107,15 @@ const DEPARTURES = new Map();
 }
 {
   // The swapped-term rule as Chat-me 746a7d7 has it, with 3df53cd's short
-  // terms (its conformance vectors 1.6 and independent_entailment.py), with
-  // its Python's answers: a claim that copies its evidence but for another
-  // drug, outcome or verb in one place is not backed by it, however short the
-  // term (LDL, IV, K); another form of the same word, a known alias, one
-  // route's two names, a short name and the words it stands for, a clotting
-  // factor and its activated form, words the evidence adds, or another
-  // sentence of it that does back the claim, still are.
+  // terms and cda5d2c's routes (its conformance vectors 1.7 and
+  // independent_entailment.py), with its Python's answers: a claim that
+  // copies its evidence but for another drug, outcome or verb in one place
+  // is not backed by it, however short the term (LDL, IV, K), nor one that
+  // names another route, whatever words stand around it; another form of
+  // the same word, a known alias, one route's two names, a short name and
+  // the words it stands for, a clotting factor and its activated form,
+  // words the evidence adds, or another sentence of it that does back the
+  // claim, still are.
   const SWAPS = [
     ['Amoxicillin treats otitis media.', 'Ibuprofen treats otitis media.', 'UNKNOWN'],
     ['Warfarin increases the risk of bleeding.', 'Warfarin increases the risk of stroke.', 'UNKNOWN'],
@@ -127,6 +129,8 @@ const DEPARTURES = new Map();
     ['Aspirin is used after MI.', 'Aspirin is used after PE.', 'UNKNOWN'],
     ['Adrenaline 0.5 mg is given IM for anaphylaxis.', 'Adrenaline 0.5 mg is given IV for anaphylaxis.', 'UNKNOWN'],
     ['Warfarin is reversed with vitamin K.', 'Warfarin is reversed with vitamin D.', 'UNKNOWN'],
+    ['Adrenaline 0.5 mg IV for anaphylaxis in adults.', 'Adrenaline 0.5 mg IM is given for anaphylaxis in adults.', 'UNKNOWN'],
+    ['Vincristine is given intrathecally.', 'Vincristine must only be given intravenously.', 'UNKNOWN'],
     ['Gout is more common in men.', 'Gout is more common in women.', 'UNKNOWN'],
     ['Amoxicillin 500 mg PO three times a day.', 'Amoxicillin 500 mg orally three times a day.', 'SUPPORTS'],
     ['Rate control in AF uses beta blockers.', 'Rate control in atrial fibrillation uses beta blockers.', 'SUPPORTS'],
