@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 11:57 AM Cairo.
+Last updated: 2026-10-09, 12:02 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,7 +39,7 @@ Last updated: 2026-10-09, 11:57 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d), then step 19's re-pin of the Worker to Chat-me 746a7d7 (design/map-lighter; joined at about 11:37 AM as 809ddac; Server tests 37906094562 green), then step 21's three-letter comparison side (design/map-lighter 4a68424; joined at about 11:57 AM) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d), then step 19's re-pin of the Worker to Chat-me 746a7d7 (design/map-lighter; joined at about 11:37 AM as 809ddac; Server tests 37906094562 green), then step 21's three-letter comparison side (design/map-lighter 4a68424; joined at about 11:57 AM as a2a144f; Server tests 37908408628 green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
 | design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20), in personal; Row 17 next | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
@@ -921,7 +921,21 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       of 40 true claims supported, none of the 10 false). Before, "Risk
       is higher in women than in the elderly." was supported by "Risk is
       lower in the young than in women."; now it abstains. Merged into
-      personal; live only after a Worker deploy, on the owner's word.
+      personal as a2a144f (Server tests 37908408628 green); live only
+      after a Worker deploy, on the owner's word.
+22. [ ] Taken by the session that did steps 19 and 21 (9 Oct, 12:02 PM): a
+    swapped term under four letters still passes. Chat-me ff476bd and the
+    Worker both answer SUPPORTS for "Statins lower LDL cholesterol."
+    against "Statins lower HDL cholesterol.", "Tenofovir treats HIV
+    infection." against "... HBV infection." and "Aspirin is used after
+    MI." against "... after PE.": the swapped-term rule (746a7d7's known
+    limit) and the overlap checks read only words of four letters or
+    more. Fix it in Chat-me first (Python, and the Swift twin in
+    MedicalVerifierCore, with a shared conformance vector, as 746a7d7
+    did), keeping the 50-claim benchmark's answers; then port it to
+    server/claims.js and make the vectors again. Touches Chat-me's
+    verification_agent and MedicalVerifierCore, and here server/ only:
+    nothing of step 20's.
 
 ## 4. M3: the Neurons rebuild
 
@@ -1355,8 +1369,8 @@ follows is the brief as it stood.
     §3c moved into api/, agents/, orchestration/ and governance/ (d504978);
   - prework/container-20261007 (2): the Dockerfile's entrypoint fix is in
     personal; its README fix is not (docs/architecture/verifier/README.md:26
-    still says `uvicorn app.main:app`, for `api.main:app`), a line for the
-    next Chat-me push (step 11);
+    said `uvicorn app.main:app`, for `api.main:app`); fixed since (line 27
+    now says `api.main:app`);
   - codex/build-native-ios-3d-anatomy-app (3, 26 to 28 Sep): Codex's
     separate AnatomyAtlas thorax app, not Stethoscore's; not ported;
   - verification-layer-adversarial-50 (A) and
