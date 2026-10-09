@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 4:55 AM Cairo.
+Last updated: 2026-10-09, 5:30 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,9 +39,9 @@ Last updated: 2026-10-09, 4:55 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM) and the claim gate's direction check (step 10; joined at about 4:55 AM) | personal is the working branch; keep session branches equal to it |
-| design/port-prework | the same as personal | the three fixes found only on design/prework-20261006 (step 9, done) |
-| design/claim-direction | the same as personal | the claim gate's direction check (#24, section 3, step 10) |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green) and the claim gate's direction check (step 10; joined at about 4:55 AM) | personal is the working branch; keep session branches equal to it |
+| design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
+| design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -450,7 +450,11 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      67f4714 (step 7) is done. Done: preflight OK; on 22f16f3, App build
      37867652715 and Server tests 37867652555 green; personal and the
      session branch fast-forwarded to this commit on 9 Oct at about 4:40
-     AM, after step 7's run. Not ported: INT-PREVIEW (the shots
+     AM, after step 7's run. Personal's own App build on it (37870387509,
+     5d0edcd) green at about 5:20 AM: the UI suite said TEST SUCCEEDED,
+     28 of 28 (the map's 21 among them); the accessibility step failed as
+     before (two tests: no example mcq or anki set in the library, no
+     Mixed quiz tile), continue-on-error. Not ported: INT-PREVIEW (the shots
      branches keep only the latest run, by design) and the rest of that
      branch (another agent's prework/medical-assistant scaffold, PARTIAL
      or BLOCKED by its own notes).
@@ -510,6 +514,43 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     personal's verifier C's direction axis, so F02 to F05 stop passing as
     SUPPORTED; and correct the verifier README's `app.main:app` to
     `api.main:app`. C itself can't be merged as it stands (section 5, #7).
+12. [x] #27, the 3D map's audit findings left from before M3, checked
+    against the code after it (Chat-me personal:
+    docs/architecture/audit/stethoscore-verified-findings.md, rows 107 to
+    115; 108, the aliased wiki link, was fixed before):
+    - 107, real in part: the map's signature (Graph3DView) was worked out
+      on every redraw of the screen around it, and counted every note's
+      words each time. The editor saves half a second after typing
+      pauses; a full rebuild came only when a name, folder, link or size
+      step changed, as the audit found. Step 13.
+    - 109, real: a still map drew at the screen's full rate, and went on
+      under the sheets over it. Step 13.
+    - 110, real: every rebuild made SceneKit text for every body's name
+      on the main thread, though only the hovered, pressed or chosen
+      one's ever shows. Step 13.
+    - 111, real but small: GraphSim holds its lock while it writes to the
+      nodes. Left until a frame trace shows it costs a frame.
+    - 112, real: a shader probe that fails once (with the app in the
+      background, say) turns the shaders off until the app is quit.
+      Step 13.
+    - 113, fixed already (41e90a5: the map refits when its size changes).
+    - 114, real: a layout the map no longer wanted ran to the end. Step 13.
+    - 115, not a fault: a new feature (a card set's source note), left for
+      the roadmap.
+13. [ ] #28, the 3D map lighter, on design/map-lighter (from c0f61e8; the
+    owner: the map is "wasting lots pf resources"):
+    - [ ] 109: the frame rate follows what the map is doing (GraphPace): a
+      lively map draws at its full rate while touched and for 3 s after,
+      then 60, and 30 after 20 s untouched; a still one at 60 at most while
+      touched and for 3 s after, then 20; 20 under a sheet.
+    - [ ] 114: a newer change cancels the layout it supersedes (GraphWork,
+      the loop's check).
+    - [ ] 107: the notes' part of the signature as one hash, a note's words
+      counted again only when its text changes (GraphShapeKey).
+    - [ ] 110: names made the first time they show.
+    - [ ] 112: a failed probe is not kept while the app is not active.
+    - [ ] Preflight, push, App build green, then personal and the session
+      branch.
 
 ## 4. M3: the Neurons rebuild
 
