@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 3:00 AM Cairo.
+Last updated: 2026-10-09, 3:40 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,11 +35,11 @@ Last updated: 2026-10-09, 3:00 AM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | "Preview: let the simulator settle before the 3D map tests" | M3 in progress; #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); 2428ffd sampled the app from outside (run 37846299540, red only because the sampler held the app); 8ce4459 and 5f8eb9f have the app report its own stuck threads and the watch only look (App build 37857473899, green; preview run 37858247053 found no freeze, only a Mac out of memory while the simulator's first boot settled); this commit boots the simulator during the build and has the tests wait for the Mac to calm down (section 3, step 6d) |
+| wip/3d-neurons-m3 | "Plan: M3 joins personal" | M3, done: the cells, parts and notes, one membrane per cell, links as dendrites from both cells (round D); #20 found no freeze of the app's own, only XCTest unable to end it while the simulator's first boot settled, and the fix (0435184: boot during the build, wait for the Mac's load) was confirmed by run 37862852271, green; this commit is what personal took (section 3, step 7) |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
-| preview/3d-overhaul | 0435184 (run 37862852271, the confirming run of the freeze fix, step 6d) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
-| shots/3d-overhaul | f4023db (run 37858247053) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
+| preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
+| personal, claude/new-session-013tes5v | the same as wip (M3 joined on 9 Oct at about 3:40 AM; before it, 3827785) | personal is the working branch; keep session branches equal to it |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -184,6 +184,14 @@ Last updated: 2026-10-09, 3:00 AM Cairo.
   settled (the iPhone's AtRest 115.2, 90.7, then 33.0 s). So the simulator
   now boots during the build, and the tests wait (up to 10 minutes) for the
   Mac's load to come down (step 6d).
+- The confirming run (37862852271, 0435184; shots 8dc9d3f) was green:
+  AtRest, FlyIn and Legend three times each on the iPad and the iPhone, 18
+  passes, and every app ended when asked. Booting beside the build slowed
+  the build (8.5 to 14 minutes, from about 6), and after it the Mac took 5
+  to 10 minutes to bring its 1-minute load under 40. The first AtRest was
+  still slow (56.8 s on the iPad and 63.2 s on the iPhone, against 46.2
+  and 26.9 s by the third) but well inside its limits. So M3 went to
+  personal (step 7).
 
 ## 3. Next steps
 
@@ -206,13 +214,24 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    inside it (20 to 22). For a quick look first, dispatch only those:
    `gh workflow run design-preview.yml --ref preview/3d-overhaul -f only=testNeurons`
    (it cancels a running push-started run on the same branch).
-7. [ ] When CI is green, merge design/3d-overhaul into personal (no
-   force-push), and bring the session branches up to personal.
+7. [x] When CI is green, merge design/3d-overhaul into personal (no
+   force-push), and bring the session branches up to personal. Done on 9
+   Oct at about 3:40 AM: personal and claude/new-session-013tes5v
+   fast-forwarded from 3827785 to this commit.
    - [x] app-build.yml's limit raised from 60 to 90 minutes first: the
      full run (compile, UI suite, accessibility) took 61 on wip.
    - [ ] Then personal's App build runs the whole UI suite for the first
      time since M3. testHoldForOptions is the one to watch: fixed in
      8a18676 but not run on the Mac since (the previews ran only=testNeurons).
+     Read it with `tools/ci_status.py personal --wait`. Its simulator still
+     boots inside `xcodebuild test`, as the preview's did before step 6d's
+     fix, so its first tests run while that first boot settles. Left as it
+     is: the map's tests come after ArabicUITests, DesignTourUITests and
+     ExamplesUITests (about 14 minutes), past the 5 to 10 the Mac took to
+     settle, and the suite passed that way before (App builds 37730791613
+     and 37725355312). If a test there cannot end the app, give
+     app-build.yml the preview's early boot and settle wait
+     (design-preview.yml, "Build for testing" and "Take the pictures").
 6a. [x] Redraw the cells after the owner's reference: purple-magenta
    somas, golden-amber dendrites, ringed orbs joined by threads. Rejected
    by the owner (8 Oct, 6 PM): they want only the circled close-up.
@@ -287,7 +306,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    - [x] Send the owner round D's shots (graph-11, 20, 21, 22 and the
      OpenInTurn recording, under 30 MiB), saying plainly that the app
      sometimes freezes in the tests and that it is being chased (6d).
-6d. [ ] #20, the freeze: find and fix what now and then freezes the app in
+6d. [x] #20, the freeze: find and fix what now and then freezes the app in
    the map's UI tests (section 2, round D). It blocks the merge into
    personal (step 7).
    - [x] tools/hang_watch.sh, run by design-preview.yml for the iphone-graph
@@ -383,13 +402,16 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      lines in the Take the pictures log); hang_watch.sh finds the app and
      the GPU host by name (`pgrep -x`, `ucomm`), never reading the other
      processes' memory.
-   - [ ] One confirming run of the same three tests three times each (the
-     dispatch above, on this commit). Read the "load" lines to see how
-     long the Mac took to settle, and tune the 40 if it never got there.
-     If a test still cannot end the app, give the simulator's build of the
-     map a lighter load (30 frames a second, 2× MSAA under
-     `#if targetEnvironment(simulator)`) and run again. When it is green,
-     go on to step 7.
+   - [x] One confirming run of the same three tests three times each (run
+     37862852271, 0435184; shots 8dc9d3f): green. iPad AtRest 56.8, 70.2,
+     46.2; FlyIn 21.1, 21.3, 31.7; Legend 25.3, 14.9, 18.9. iPhone AtRest
+     63.2, 60.9, 26.9; FlyIn 26.9, 17.6, 15.1; Legend 21.9, 14.0, 14.2. The
+     "load" lines: the iPad's went from 135 to 39 in 4 min 43 s, the iPhone
+     graph part's from 104 to 40 in 7 min 46 s, the iPhone tour part's from
+     186 to 34 in 9 min 48 s (nearly the 10-minute cap), so 40 stays. If a
+     test ever fails to end the app again, give the simulator's build of
+     the map a lighter load (30 frames a second, 2× MSAA under
+     `#if targetEnvironment(simulator)`).
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
