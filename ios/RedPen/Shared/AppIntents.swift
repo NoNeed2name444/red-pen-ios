@@ -227,7 +227,10 @@ final class SpotlightIndexer {
         let snapshot: [UUID: String] = now
         running?.cancel()
         running = Task.detached(priority: .background) {
-            guard await SpotlightIndexer.send(changed, removing: gone) else { return }
+            guard await SpotlightIndexer.send(changed, removing: gone) else {
+                await MainActor.run { SpotlightIndexer.shared.release(snapshot) }
+                return
+            }
             SpotlightIndexer.saveIndexed(snapshot)
             await MainActor.run { SpotlightIndexer.shared.confirm(snapshot) }
         }
@@ -235,6 +238,10 @@ final class SpotlightIndexer {
 
     private func confirm(_ snapshot: [UUID: String]) {
         indexed = snapshot
+        if pending == snapshot { pending = nil }
+    }
+
+    private func release(_ snapshot: [UUID: String]) {
         if pending == snapshot { pending = nil }
     }
 
@@ -259,22 +266,14 @@ final class SpotlightIndexer {
         RedPenShortcuts.updateAppShortcutParameters()
     }
 
-    /// False when cancelled part way, so nothing is marked as indexed.
+    /// False when cancelled or a call fails, so nothing is marked as indexed.
     nonisolated static func send(_ entities: [StudySetEntity], removing gone: [UUID]) async -> Bool {
         let index = CSSearchableIndex.default()
-        var start: Int = 0
-        while start < entities.count {
-            if Task.isCancelled { return false }
-            let end: Int = min(start + 500, entities.count)
-            let batch: [StudySetEntity] = Array(entities[start..<end])
-            try? await index.indexAppEntities(batch)
-            start = end
-        }
-        if Task.isCancelled { return false }
-        if !gone.isEmpty {
-            try? await index.deleteAppEntities(identifiedBy: gone, ofType: StudySetEntity.self)
-        }
-        return !Task.isCancelled
+        return await SpotlightPlan.send(entities, removing: gone, index: { batch in
+            try await index.indexAppEntities(batch)
+        }, delete: { ids in
+            try await index.deleteAppEntities(identifiedBy: ids, ofType: StudySetEntity.self)
+        })
     }
 
     // MARK: what was sent, across launches

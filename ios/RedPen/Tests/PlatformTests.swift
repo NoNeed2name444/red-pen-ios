@@ -58,6 +58,45 @@ do {
     check("spotlight resends unconfirmed changes", plan.changed == [b] && plan.gone == [c])
     check("spotlight nothing to do", SpotlightPlan.diff(confirmed: [a: "x"], now: [a: "x"]).changed.isEmpty)
 }
+do {
+    enum SendFailure: Error { case failed }
+    let items = Array(0..<1001)
+    let gone = [UUID(), UUID()]
+    var batches: [[Int]] = []
+    var deleted: [[UUID]] = []
+    var calls: [String] = []
+    let sent = await SpotlightPlan.send(items, removing: gone, index: { batch in
+        batches.append(batch)
+        calls.append("index")
+    }, delete: { ids in
+        deleted.append(ids)
+        calls.append("delete")
+    })
+    check("spotlight sends in batches of 500, then the removals",
+          sent && batches.map(\.count) == [500, 500, 1] && batches.flatMap { $0 } == items
+          && deleted == [gone] && calls == ["index", "index", "index", "delete"])
+
+    batches = []
+    deleted = []
+    let failedIndex = await SpotlightPlan.send(items, removing: gone, index: { batch in
+        batches.append(batch)
+        throw SendFailure.failed
+    }, delete: { ids in deleted.append(ids) })
+    check("a failed index call is not confirmed",
+          !failedIndex && batches.count == 1 && deleted.isEmpty)
+
+    deleted = []
+    let failedDelete = await SpotlightPlan.send([1], removing: gone, index: { _ in }, delete: { ids in
+        deleted.append(ids)
+        throw SendFailure.failed
+    })
+    check("a failed delete is not confirmed", !failedDelete && deleted == [gone])
+
+    deleted = []
+    let noRemovals = await SpotlightPlan.send([1], removing: [], index: { _ in },
+                                              delete: { ids in deleted.append(ids) })
+    check("nothing to remove, no delete call", noRemovals && deleted.isEmpty)
+}
 check("alias cardio", SubjectMatch.score(query: "cardio", candidate: "Cardiology") == 3)
 check("alias heart", SubjectMatch.score(query: "heart", candidate: "cardiology") == 3)
 check("US and UK spelling", SubjectMatch.score(query: "pediatrics", candidate: "Paediatrics") == 3)

@@ -119,6 +119,28 @@ enum AppLink: Equatable {
 /// from what Spotlight confirmed holding, not from what was last asked for:
 /// a run cut short by a newer one leaves its sets for the next run to send.
 enum SpotlightPlan {
+    /// Sends ordered batches and removals; only a complete, uncancelled run succeeds.
+    static func send<Item>(_ items: [Item], removing gone: [UUID],
+                           index: ([Item]) async throws -> Void,
+                           delete: ([UUID]) async throws -> Void) async -> Bool {
+        do {
+            var start: Int = 0
+            while start < items.count {
+                if Task.isCancelled { return false }
+                let end: Int = min(start + 500, items.count)
+                try await index(Array(items[start..<end]))
+                start = end
+            }
+            if !gone.isEmpty {
+                if Task.isCancelled { return false }
+                try await delete(gone)
+            }
+            return !Task.isCancelled
+        } catch {
+            return false
+        }
+    }
+
     static func diff(confirmed: [UUID: String], now: [UUID: String]) -> (changed: Set<UUID>, gone: [UUID]) {
         let changed: Set<UUID> = Set(now.keys.filter { confirmed[$0] != now[$0] })
         let gone: [UUID] = confirmed.keys.filter { now[$0] == nil }.sorted { $0.uuidString < $1.uuidString }
