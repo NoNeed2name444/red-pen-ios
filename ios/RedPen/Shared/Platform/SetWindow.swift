@@ -45,7 +45,12 @@ struct SetWindowRoot: View {
 
     var body: some View {
         NavigationStack {
-            if let set = store.library.first(where: { $0.id == setID }) {
+            if !store.loaded {
+                // a window brought back with the app, before the library is read
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .wardScreen()
+            } else if let set = store.library.first(where: { $0.id == setID }) {
                 StudySetScreen(set: set)
                     .navigationTitle(set.name)
             } else {

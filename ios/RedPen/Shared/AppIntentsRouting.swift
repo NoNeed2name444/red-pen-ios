@@ -58,8 +58,9 @@ final class AppRouter: ObservableObject {
     /// Whether the signed-in library is on screen.
     private var ready = false
 
-    /// The library on screen, for an intent's query; nil before it is.
-    var library: [StudySet]? { store?.library }
+    /// The library on screen, for an intent's query; nil before it is, and
+    /// while it is still being read (Store), when the saved copy stands in.
+    var library: [StudySet]? { store?.loaded == true ? store?.library : nil }
 
     func attach(store: Store, ready: Bool) {
         self.store = store

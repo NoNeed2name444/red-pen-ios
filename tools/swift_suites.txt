@@ -412,3 +412,15 @@ suite cases CasesTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiC
 # the layered app icon: SVGs parse, layers stack back to front, icon.json
 # names every asset (tools/icon_layers.py writes them)
 suite iconlayers IconLayersTests.swift $S/Brand/IconLayerSpec.swift
+# the library read off the main thread at launch: nothing written before it is
+# in, sets added meanwhile kept, a protected file left alone until read again
+# (macOS only: Store publishes with Combine, BlobRefs hashes with CryptoKit)
+suite storeload StoreLoadTests.swift ios/RedPen/Persistence/Store.swift ios/RedPen/Persistence/StoreStudy.swift \
+      ios/RedPen/Persistence/StoreSync.swift $S/StoreFiles.swift $S/LibraryFile.swift $S/BlobRefs.swift $S/SetPictures.swift \
+      $S/Insight/InsightModels.swift $S/LectureAudio.swift $S/L10nRules.swift \
+      $S/Diagnostics/DiagnosticsModel.swift $S/Diagnostics/DiagnosticsQueue.swift $S/Diagnostics/Diagnostics.swift \
+      $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift $M/OsceChecklist.swift $M/NarrateSegment.swift \
+      $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift $S/SoundKey.swift $S/PronunciationStore.swift \
+      $S/OnDeviceLearning.swift $S/LectureTranscriber.swift $S/Brand.swift $S/BookPages.swift $S/BookFigures.swift \
+      $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift $S/Reasoning/ReasoningModels.swift \
+      $S/LLM/LLMCore.swift $S/ExamTrack.swift $S/RecoveryFiles.swift

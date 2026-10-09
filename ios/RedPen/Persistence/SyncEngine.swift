@@ -104,6 +104,10 @@ final class SyncEngine: ObservableObject {
 
     func syncNow() async {
         guard let first = account.token, first != Session.localToken else { return }
+        // the library as read from disk, never the empty one there is before
+        // it is (Store reads it off the main thread at launch): an empty one
+        // would look like every set deleted here
+        await store.whenLoaded()
         // a session near its end is renewed first, so a sync never fails
         // halfway through for want of one
         await account.refreshIfNeeded()

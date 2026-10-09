@@ -211,6 +211,9 @@ final class LearnNotificationDelegate: NSObject, UNUserNotificationCenterDelegat
         }
         let done = UncheckedHandler(run: completionHandler)
         Task { @MainActor in
+            // an answer from a cold start goes into the progress as read,
+            // not the empty one there is before it is (Store)
+            await LearnNotifications.store?.whenLoaded()
             LearnNotifications.handle(action: action, fields: fields)
             done.run()
         }

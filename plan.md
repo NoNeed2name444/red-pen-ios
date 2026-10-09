@@ -42,7 +42,7 @@ Last updated: 2026-10-09, 8:30 AM Cairo.
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18 and Row 91 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
+| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -705,8 +705,19 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       count in the ledger anyway: it saw the key, and a question counts as
       checked only on two or more blind votes, from three model families,
       with a source proof (AccuracyLedger.isChecked).
-    - [ ] Row 1: the library decoded off the main thread at launch, with
-      no write before it has loaded.
+    - [x] Row 1: the library is read off the main thread at launch
+      (Store(inBackground:), Persistence/Store.swift). Nothing is written
+      before it is in: a flush asked for meanwhile waits for it, and a set or
+      folder added meanwhile is kept on top of what was read. A library that
+      could not be read (a prewarm before the first unlock) is never written
+      over; it is read again once the app is in front. The launch splash
+      stays up until the library is read, 2 s at most, then fades onto a
+      screen saying it is opening (LibraryLoadingView, preview screen
+      library-loading); no screen shows the library before it is in, and
+      the examples, sync, a notification's answer, the second iPad window
+      and Siri's queries wait for it (Siri reads the saved copy meanwhile).
+      Checked by the storeload suite (macOS CI); its screenshot goes in the
+      preview run with GAP 1's and GAP 2's.
     - [ ] Row 17: library pictures as blob references, with a migration.
 
 ## 4. M3: the Neurons rebuild
