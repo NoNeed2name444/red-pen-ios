@@ -29,10 +29,13 @@ Every task stays clear of:
 - Row 40: the Mixed quiz tile says "20 from every set" but builds 20
   questions in all (StudyCategory.swift:281; the quiz at :409-411). Make it
   "20 across all your sets".
-- Row 34, what is left of it: the personal build still shows "Manage or
-  cancel" and "Restore purchases" on the Account page
-  (AccountView.swift:175-182), with no subscription to manage. Hide both
-  when `PersonalBuild.isOn`.
+- Row 34, what is left of it: the account line and "Manage or cancel" are
+  right now, but the personal build, with no subscription, still shows a
+  "Pro" chip on the account card (AccountView.swift:279 and :303, fed by
+  `subscriptions.isPro` at :78, which is true whenever the build unlocks
+  everything) and offers "Restore purchases" (:181). Let the chip follow
+  the real subscription (`subscriptions.access.isPro`), keep the card's
+  button as it is, and hide "Restore purchases" when `PersonalBuild.isOn`.
 
 Done when: the tile and the Account page read as above, nothing else
 moves, and the iOS preview builds with every shot.
@@ -54,18 +57,20 @@ Already checked here and fixed: 32, 35, 37, 38, 39 and 122, 48, 50, 54,
 
 The cloud transcript now names only the lecture's own terms, but the
 on-device recogniser is still given a lupus-only list for every lecture
-(LectureTranscriber.swift:139; the list at :169). Give it the
-lecture's own terms when the lecture has slides
-(`CloudTranscript.lectureTerms`, as LectureImporter.swift:73 does for the
-cloud), and no list otherwise; keep the 100-word cap. Make the choice a
-small function in CloudTranscript.swift, which has no Apple-only imports,
-so the Linux suite can test it. Keep `MedicalTerms` itself:
+(LectureTranscriber.swift:139; the list at :169). LectureImporter already
+holds the lecture's own terms (`vocabulary`, from
+`CloudTranscript.lectureTerms`, at most 80 words, none without slides; :73)
+and sends them to the cloud; pass the same words to
+`LectureTranscriber.transcribe` (called at :110) and give the recogniser
+those, so a lecture without slides gets no list. Do the picking in a small
+function outside the Speech fence, so the Linux suites that compile
+LectureTranscriber.swift can test it. Keep `MedicalTerms` itself:
 tools/asr_bench.mjs reads it, and VoiceListener.swift:58 is a separate
 question.
 
 Done when: CloudTranscriptTests.swift checks that a lecture whose slides
-never mention lupus gets no lupus words and that one without slides gets
-no list, and the Swift tests and the iOS preview pass.
+never mention lupus gives the recogniser no lupus words and that one
+without slides gives it none, and the Swift tests and the iOS preview pass.
 
 ## 4. Fixes from task 2's report, one area at a time
 

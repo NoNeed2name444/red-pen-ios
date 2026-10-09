@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 6:40 AM Cairo.
+Last updated: 2026-10-09, 6:51 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -587,10 +587,16 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     - [x] Pick rows still open on aahp/personal (d7da19a); most rows the
       audit lists as open turned out fixed (the doc names them).
     - [ ] Queue them. The loop's task file is in the owner's private loop
-      repository, which this session can read but not write (refused), and
-      the other session is using the loop for T0028. Waiting on the owner:
-      write access for this session, or the loop's own session queueing
-      them after T0028.
+      repository, which this session can read but not write (refused). The
+      loop approved T0028 at its turn 54 and is paused, so it is free.
+      Ready-to-paste packets for tasks 1 to 3 went to the owner on 9 Oct
+      (kept out of this repository: the loop's format is private); the
+      first is filled in for turn 55, the other two take the turn and
+      commits of the one before. Waiting on the owner: write access for
+      this session, or the owner or the loop's own session queueing them
+      one at a time.
+    - The neumorphic branch (5d2a0c6) is already inside both personal and
+      aahp/personal, so it adds no merge risk to these tasks.
     - [ ] Review each result when it comes back, then merge aahp/personal
       into personal (a merge commit; these tasks touch no file personal
       changed).
@@ -1120,8 +1126,9 @@ They answer four questions, in order:
 - Each Worker deploy.
 - Push access to Chat-me, refused to this session on 9 Oct: section 3,
   step 11 waits on it.
-- Write access to the loop's repository for this session, or the loop's
-  own session queueing docs/chatgpt-tasks.md (section 3, step 15).
+- Write access to the loop's repository for this session, or the owner or
+  the loop's own session queueing the packets sent on 9 Oct, one at a time
+  (section 3, step 15).
 
 ## 6. Standing rules
 
