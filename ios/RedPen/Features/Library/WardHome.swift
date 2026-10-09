@@ -346,7 +346,9 @@ struct HomeBand: View {
 
     var body: some View {
         if let bottom = track.bottom {
-            WardPaperBand(bottom: bottom)
+            // no edge of its own: the frame draws the opening's rounded top
+            // here (WardPaperTop)
+            WardPaperBand(bottom: bottom, edge: false)
                 .padding(.horizontal, -WardPaper.sideInset)
                 .ignoresSafeArea()
                 .transition(.identity)
@@ -357,16 +359,19 @@ struct HomeBand: View {
 /// The bar area over the page, solid from the window's top to the list's:
 /// what scrolls up passes under it and is cut there, rather than fading
 /// under iOS's soft scroll edge. With the band it is the same ECG paper on
-/// the same grid, and draws the band's edge once the band has gone under
-/// it; without (while searching), it is the plain base, with an edge once
-/// the list has moved.
+/// the same grid, and the paper's opening starts just under the band, with
+/// the frame's rounded corners, rising with it as the list scrolls and
+/// held at the bar's bottom once the band has gone under it
+/// (WardPaperTop); without (while searching), it is the plain base, with a
+/// straight edge once the list has moved.
 struct HomeMasthead: View {
     let track: HomeBandTrack
     let band: Bool
 
     var body: some View {
         let bottom: CGFloat? = band ? track.bottom : nil
-        let edge: Bool = bottom.map { $0 <= track.barBottom + 0.5 } ?? (track.scroll > 0.5)
+        let paperTop: CGFloat? = bottom.map { max($0, track.barBottom) }
+        let edge: Bool = bottom == nil && track.scroll > 0.5
         Color.clear
             .frame(height: 0)
             .background(alignment: .bottom) {
@@ -379,6 +384,10 @@ struct HomeMasthead: View {
             }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+            .onChange(of: paperTop, initial: true) { _, y in WardPaperTop.shared.y = y }
+            .onAppear { WardPaperTop.shared.y = paperTop }
+            // a page pushed over home has the frame's own opening
+            .onDisappear { WardPaperTop.shared.y = nil }
     }
 }
 

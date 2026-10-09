@@ -183,28 +183,61 @@ struct WardBackground: View {
     }
 }
 
+/// Where a page moves the top of the paper's opening down to, in window
+/// points; nil keeps it at the frame. The home page sets it to just under
+/// its header (HomeMasthead), so the grid runs on from the window's top and
+/// the opening starts there with the frame's own corners.
+@MainActor
+@Observable
+final class WardPaperTop {
+    static let shared = WardPaperTop()
+    var y: CGFloat?
+}
+
 /// Still ECG paper around the screen; content scrolls beneath the open panel.
+/// With the opening moved down (WardPaperTop), the paper fills its top
+/// corners as well, and its edge is drawn there instead of at the frame's
+/// top; the paper above it is the page's own band, under the content.
 struct WardPaperFrame: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
+        let top: CGFloat? = WardPaperTop.shared.y
         Canvas { context, size in
-            guard let panel = WardPaper.panel(width: Double(size.width), height: Double(size.height)) else { return }
+            let w = Double(size.width), h = Double(size.height)
+            guard let panel = WardPaper.panel(width: w, height: h) else { return }
             let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
             let (r, g, b) = WardPalette.rgb(ink.hex)
             let color = Color(red: r, green: g, blue: b)
             let rect = CGRect(origin: .zero, size: size)
-            let panelRect = CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height)
-            let hole = RoundedRectangle(cornerRadius: CGFloat(panel.radius), style: .continuous)
-                .path(in: panelRect)
+            func hole(_ p: WardPaperPanel) -> Path {
+                RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
+                    .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
+            }
+            let frameHole = hole(panel)
             var frame = Path(rect)
-            frame.addPath(hole)
+            frame.addPath(frameHole)
             context.drawLayer { layer in
                 layer.clip(to: frame, style: FillStyle(eoFill: true))
                 WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
             }
-            context.stroke(hole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
+            guard let top, let moved = WardPaper.panel(width: w, height: h, top: Double(top)),
+                  moved.y > panel.y else {
+                context.stroke(frameHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
+                return
+            }
+            // the opening's top corners, which the frame's paper leaves open
+            let movedHole = hole(moved)
+            let strip = Path(CGRect(x: moved.x, y: moved.y, width: moved.width, height: moved.radius))
+            var corners = strip
+            corners.addPath(movedHole)
+            context.drawLayer { layer in
+                layer.clip(to: strip)
+                layer.clip(to: corners, style: FillStyle(eoFill: true))
+                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
+            }
+            context.stroke(movedHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)

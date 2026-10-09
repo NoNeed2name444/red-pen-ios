@@ -261,6 +261,22 @@ enum WardPaper {
                               radius: (min(width, height) - 2 * frame) * cornerShare)
     }
 
+    /// The panel with its top moved down to `top` (window points): the home
+    /// page's opening starts under its header, the paper solid above it,
+    /// with the frame's own corners (the owner, 9 Oct: the line under the
+    /// header "with the roundedness of it and continuity with the rest of
+    /// the grid line"). A `top` above the frame's, or too low to leave room
+    /// for both corners, is held to what fits.
+    static func panel(width: Double, height: Double, top: Double) -> WardPaperPanel? {
+        guard var p = panel(width: width, height: height) else { return nil }
+        let bottom = p.y + p.height
+        let y = min(max(top, p.y), bottom - 2 * p.radius)
+        guard y > p.y else { return p }
+        p.y = y
+        p.height = bottom - y
+        return p
+    }
+
     static func lines(_ length: Double) -> [(at: Double, bold: Bool)] {
         lines(length, from: 0)
     }

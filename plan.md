@@ -1553,10 +1553,19 @@ move personal up.
    strip under them now; they float on the page's paper, and the list's
    end row is the dock's height plus 24 pt. The selection bar keeps its
    strip, and so do the study screens.
-8. Next: App build, Swift tests and an ios-preview run on the session
+8. The owner, on the marked home screen: "i wanted the upper line removed
+   and the lower red line replacing it with the roundedness of it and
+   continuity with the rest of the grid line". On home the paper's opening
+   now starts just under the header (WardPaperTop, set by HomeMasthead;
+   `WardPaper.panel(width:height:top:)`, tested): no frame line at the
+   top, no straight line under the band; the opening's top has the
+   frame's corners and runs into the side lines, rises with the band as
+   the list scrolls and is held at the bar's bottom. Pushed pages and
+   search keep the frame's own opening.
+9. Next: App build, Swift tests and an ios-preview run on the session
    branch (personal, 537ccc4, is merged in); check the strip line, the
-   OSCE clock, the library's floating New set and dock, and the blue
-   control edges; send the owner marked full screens; then move personal up to
+   OSCE clock, the library's floating New set and dock, the blue
+   control edges and home's rounded opening under the header; send the owner marked full screens; then move personal up to
    the session branch.
 
 ### Other open work

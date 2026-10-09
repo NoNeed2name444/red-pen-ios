@@ -217,6 +217,20 @@ for (width, height) in [(428.0, 926.0), (926.0, 428.0)] {
         check("paper phone panel exists", false)
     }
 }
+// The home page's opening, moved down under its header: same sides, bottom
+// and corners; held to the frame above and to room for its corners below.
+if let base = WardPaper.panel(width: 402, height: 874),
+   let low = WardPaper.panel(width: 402, height: 874, top: 280),
+   let high = WardPaper.panel(width: 402, height: 874, top: 4),
+   let deep = WardPaper.panel(width: 402, height: 874, top: 870) {
+    check("paper panel moved down", low.y == 280 && low.x == base.x && low.width == base.width &&
+          low.y + low.height == base.y + base.height && low.radius == base.radius)
+    check("paper panel never above the frame", high == base)
+    check("paper panel keeps room for its corners", near(deep.height, 2 * base.radius) &&
+          deep.y + deep.height == base.y + base.height)
+} else {
+    check("paper moved panel exists", false)
+}
 let paper30 = WardPaper.lines(30), paper31 = WardPaper.lines(31)
 check("paper grid excludes endpoint", paper30.count == 5 &&
       paper30.map { $0.at } == [0, 6, 12, 18, 24] &&
