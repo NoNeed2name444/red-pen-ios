@@ -37,7 +37,7 @@ Last updated: 2026-10-09, 3:00 AM Cairo.
 |---|---|---|
 | wip/3d-neurons-m3 | "Preview: let the simulator settle before the 3D map tests" | M3 in progress; #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); 2428ffd sampled the app from outside (run 37846299540, red only because the sampler held the app); 8ce4459 and 5f8eb9f have the app report its own stuck threads and the watch only look (App build 37857473899, green; preview run 37858247053 found no freeze, only a Mac out of memory while the simulator's first boot settled); this commit boots the simulator during the build and has the tests wait for the Mac to calm down (section 3, step 6d) |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
-| preview/3d-overhaul | 5f8eb9f (run 37858247053, the second freeze run); next the same as wip (the confirming run, step 6d) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| preview/3d-overhaul | 0435184 (run 37862852271, the confirming run of the freeze fix, step 6d) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | f4023db (run 37858247053) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
@@ -199,7 +199,8 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    GraphSim (G). Run the suites and app-build again.
 5. [x] Run preflight. Then push to design/3d-overhaul and preview/3d-overhaul
    (both fast-forwards) and watch CI.
-6. [ ] Fetch shots/3d-overhaul and send the owner the Neurons shots: at rest,
+6. [x] Fetch shots/3d-overhaul and send the owner the Neurons shots (rounds
+   B, C and D were sent; round D is the newest look): at rest,
    a cell opened with its parts and notes inside, and axons growing out of
    the cells. The preview flies into a cell (shots 14, 15) and then a part
    inside it (20 to 22). For a quick look first, dispatch only those:
