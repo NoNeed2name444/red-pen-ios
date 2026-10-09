@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 11:20 AM Cairo.
+Last updated: 2026-10-09, 11:40 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,11 +39,11 @@ Last updated: 2026-10-09, 11:20 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d), then step 19's re-pin of the Worker to Chat-me 746a7d7 (design/map-lighter; joined at about 11:37 AM as 809ddac; Server tests 37906094562 green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
 | design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20), in personal; Row 17 next | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
-| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal; then the Worker's re-pin to Chat-me 746a7d7 (step 19: server/ and this file; not yet in personal) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal; then the Worker's re-pin to Chat-me 746a7d7 (step 19: server/ and this file; Server tests 37904982081 green on f5ebba9; in personal as 809ddac) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -827,9 +827,10 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       not read, so "Gout is less common in women than in men." against
       "... more common in men than in women." abstains as a direction
       mismatch (soft); fix it in Chat-me first, then port.
-    - [ ] Preflight, push design/map-lighter, Server tests green, then
+    - [x] Preflight, push design/map-lighter, Server tests green, then
       merge into personal (merge origin/personal first, keep both sides'
-      lines here) and the session branch. Live only after a Worker
+      lines here) and the session branch: personal and the session branch
+      at 809ddac, Server tests 37906094562 green. Live only after a Worker
       deploy, which needs the owner's word.
 20. [ ] #35, the owner's "look for upgrades - unfinished work - half-backed
     features in the stethoscore app for u to make" (9 Oct, about 7:30 AM):
@@ -897,6 +898,17 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       Checked by the storeload suite (macOS CI); its screenshot goes in the
       preview run with GAP 1's and GAP 2's.
     - [ ] Row 17: library pictures as blob references, with a migration.
+21. [ ] Taken by the session that did step 19 (9 Oct, 11:40 AM): the
+    "men" quirk from step 19. A comparison's side shorter than four letters
+    is not read, so "Gout is less common in women than in men." against
+    "... more common in men than in women." abstains as a direction
+    mismatch. Fixed first in Chat-me's direction.py (three-letter words
+    count as a side unless they are function words like "the"), then
+    ported to server/claims.js. Touches Chat-me's direction.py and its
+    test, and here server/claims.js, its tests and claim-vectors.json:
+    nothing of step 20's. No audit rows or loop tasks are taken; audit
+    item 111 (step 12) stays left until a frame trace shows it costs a
+    frame.
 
 ## 4. M3: the Neurons rebuild
 
