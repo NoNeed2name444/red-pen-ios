@@ -499,15 +499,11 @@ struct LibraryView: View {
             // measured like the dock, so the rows can still be scrolled
             // clear of it
             selectionBar
+                .wardBarBase(shown: !underSky)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0
                 }
                 .frame(maxWidth: .infinity)
-                .background {
-                    if !underSky {
-                        Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom])
-                    }
-                }
                 .transition(.slideFade(.bottom))
         } else if keyboardUp {
             // the dock steps aside while typing
@@ -523,15 +519,11 @@ struct LibraryView: View {
                         .environment(\.colorScheme, dockScheme)
                 }
             }
+            .wardBarBase(shown: !underSky)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
             .frame(maxWidth: .infinity)
-            .background {
-                if !underSky {
-                    Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom])
-                }
-            }
             .transition(.slideFade(.bottom))
         }
     }

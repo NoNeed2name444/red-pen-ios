@@ -308,6 +308,7 @@ struct SkyRoot<Content: View>: View {
         let budget: GraphicsBudget = center.graphics
         let scheme: ColorScheme? = alwaysNight || center.skyCovered ? .dark : nil
         content
+            .safeAreaPadding(.horizontal, WardPaper.sideInset)
             .environment(\.spaceQuality, level)
             .environment(\.graphics, budget)
             .environment(\.skyZoom, zoom)

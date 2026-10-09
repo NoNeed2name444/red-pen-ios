@@ -26,7 +26,7 @@ enum PreviewExtras {
         case "quiz-from-cards":
             NavigationStack { MCQQuizView(set: PreviewDecks.lupusQuiz) }
         case "quiz-folded":
-            // The quiz with its study slab folded to the band alone.
+            // The quiz scrolled to its answer row above the folded round deck button.
             NavigationStack { MCQQuizView(set: SampleData.nephrology) }
         case "narrate-fixing":
             // a real Egyptian-mix lecture line, with the fix sheet open on the
