@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 6:35 AM Cairo.
+Last updated: 2026-10-09, 8:20 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -37,13 +37,13 @@ Last updated: 2026-10-09, 6:35 AM Cairo.
 |---|---|---|
 | wip/3d-neurons-m3 | "Plan: M3 joins personal" | M3, done: the cells, parts and notes, one membrane per cell, links as dendrites from both cells (round D); #20 found no freeze of the app's own, only XCTest unable to end it while the simulator's first boot settled, and the fix (0435184: boot during the build, wait for the Mac's load) was confirmed by run 37862852271, green; this commit is what personal took (section 3, step 7) |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
-| preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
-| shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM), the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM), then the neumorphic app (#33, from aahp/personal; joined on 9 Oct) | personal is the working branch; keep session branches equal to it |
+| preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the neumorphic app (#33, from aahp/personal; joined on 9 Oct) | personal is the working branch; keep session branches equal to it |
 | aahp/personal | the merge that took the neumorphic app into personal | the design loop's branch (#33, tasks T0018 to T0028); its CI runs read-only and publishes nothing |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -511,12 +511,34 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       doc (AccuracyLedger.swift). Done with step 13's push on
       design/map-lighter; the accuracy suite checks the words.
     - Live only after a Worker deploy, which needs the owner's word.
-11. [ ] Chat-me (needs push access there, which this session was refused;
-    don't retry, it's the owner's to grant): port the 50-claim benchmark
+11. [x] Chat-me (the owner attached it to this session with push on 9 Oct
+    at about 7:00 AM, after an earlier refusal): port the 50-claim benchmark
     into personal's evals, so the verifier is held to it, and give
     personal's verifier C's direction axis, so F02 to F05 stop passing as
     SUPPORTED; and correct the verifier README's `app.main:app` to
     `api.main:app`. C itself can't be merged as it stands (section 5, #7).
+    Done in Chat-me d17635d (personal, 9 Oct, about 7:20 AM; its Python CI
+    green):
+    - evals/suites/adversarial_50.py runs the 50 claims through the whole
+      pipeline, each with its own passage as two sources from two families;
+      tests/unit/test_adversarial_50_benchmark.py holds it: no false claim
+      supported, and at least the 15 true ones it supports today.
+    - agents/specialists/verification_agent/direction.py, read per atom in
+      `_atomic_alignment`: the change axis (increases, lower) and the amount
+      axis (high, rare), as in the Worker's turnedAround; part names
+      (lower limb, common bile duct, low-dose) and cut-offs ("below 30"
+      against "< 30") say no way, and a swapped comparison reads the same
+      way. A wrong-way reading abstains (UNKNOWN), never contradicts (22f
+      fail-safe brief; ACCEPTANCE_GATES.md), since curriculum and question
+      validation take an independent CONTRADICTS outright.
+    - F02 also needed the multilingual normaliser to swap whole words:
+      Spanish "reduce" turned English "reduced" into "reducesd".
+    - Result: 10 of 10 false claims no longer supported (F02 to F05 were
+      SUPPORTED); 15 of 40 true ones kept, the same 15; no other verdict
+      moved; 184 tests pass.
+    - The README's quick start runs from the repository root
+      (`api.main:app`), and its commercial-use note points at the NOTICE
+      beside it (docs/COMMERCIAL_USE.md never existed).
 12. [x] #27, the 3D map's audit findings left from before M3, checked
     against the code after it (Chat-me personal:
     docs/architecture/audit/stethoscore-verified-findings.md, rows 107 to
@@ -576,11 +598,151 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     - Left: 111 (section 3, step 12). NoteStore.allEdges(), which the
       signature asks for on every redraw, is already kept until a note
       changes (its edgeCache), so it needs nothing.
-14. [ ] #29, one preview run for step 13: preview/3d-overhaul
+14. [x] #29, one preview run for step 13: preview/3d-overhaul
     fast-forwarded to personal's tip. Check 45-1 and 45-2 (names over
     bright bodies: names are now made the first time they show), that the
     shaders are on, and a cell's opening and closing; send the owner the
-    name shots.
+    name shots. Done: run 37879552679 on 66791a5 green (45 tests passed,
+    none failed; shots on shots/3d-overhaul at 04b044e). The names on 45-1
+    and 45-2 read on iPhone and iPad (the iPad's "Heart failure" pill is a
+    little lower in contrast, still legible); the shaders are on (the sun's
+    corona, the gas giant's bands, the neurons' glass and glow); cells are
+    closed at rest and open in turn (Examples, then Inguinal inside it).
+    The four name shots went to the owner at about 7:25 AM. personal's own
+    App build on the map lighter (37879541559) is green too.
+15. [ ] #30, the owner's "give repetitive tasks to chatgpt through the
+    loop": docs/chatgpt-tasks.md lists four tasks (two wrong labels, rows
+    40 and 34; a re-check of 31 audit rows; the on-device recogniser's
+    lupus list, row 74; then fixes from the re-check, one area at a time),
+    each clear of the files personal changed and of the neumorphic work.
+    - [x] Pick rows still open on aahp/personal (d7da19a); most rows the
+      audit lists as open turned out fixed (the doc names them).
+    - [ ] Queue them, one at a time; this session sends them ("u send the
+      packets not me", 9 Oct, about 6:55 AM). The owner attached the loop's
+      repository to this session with push at about 7:00 AM. Task 1 (the
+      two labels) went in as the loop's turn 55 at 7:02 AM and was approved
+      at turn 57 (7:23 AM; aahp/personal 7358ef8): the account header's Pro
+      chip shows a real subscription, the personal build hides "Restore
+      purchases", and the Mixed tile reads "20 across all your sets". The
+      loop's note for the owner: no preview shot shows the Mixed tile or
+      the Account page; an Account screen in the preview would show rows
+      34 and 40. Task 2 (the re-check, a report only) went in as turn 58
+      at 7:26 AM and was approved at turn 60 (7:31 AM): of its 31 rows, 26
+      are fixed, 1, 17 and 91 are open, and 4 and 18 partly
+      (docs/chatgpt-tasks.md, task 4, has what is left). The packets for
+      tasks 1 to 3 are in the session's scratchpad and went to the owner,
+      kept out of this repository (the loop's format is private); a new
+      session rebuilds them from docs/chatgpt-tasks.md in the format of the
+      loop's last task commit.
+    - The loop is shared: another session queued its own task at turn 61
+      (7:33 AM), and it was still in review at turn 64 (8:02 AM). Never
+      overwrite or start another session's task. Task 3 goes in once that
+      one is approved, under the next free task number, with the turn
+      after the approval, the approving commit as its base and
+      aahp/personal's tip as its target base; then run the loop's worker.
+      The same for each task after it.
+    - The neumorphic branch (5d2a0c6) is already inside both personal and
+      aahp/personal, so it adds no merge risk to these tasks.
+    - [ ] Review each result when it comes back, then merge aahp/personal
+      into personal (a merge commit; these tasks touch no file personal
+      changed). Task 1 is reviewed (its diff is what the task asked) and
+      could go in now; it waits for task 3, so one App build on personal
+      covers both.
+16. [x] #32, Chat-me's verifier.yml swift-test job (macOS,
+    clients/ios/MedicalVerifierCore) has been red since at least d504978
+    (1 Oct), with the same four failures on 28bdcf3 (7 Oct) and d17635d,
+    so they are older than step 11: AdvancedClaimReasoningTests
+    testTemporalScopeMustBePreserved; CrossPlatformConformanceTests
+    testSharedConformanceVectors (weight_based_arithmetic gives
+    SOURCE_UNSUPPORTED where the shared vectors say VALIDATED);
+    MedicalVerifierCoreTests testDailyDoseEquivalenceIsSupported
+    (sourceUncertain, not validated) and
+    testWeightBasedArithmeticIsEquivalentOnlyWithExplicitWeight
+    (sourceUnsupported, not validated). Reproduce them on Linux with
+    /opt/swift if the package is Foundation-only, fix, push to Chat-me's
+    personal. Done in Chat-me 4fe8af6 (9 Oct, about 7:45 AM; Medical
+    Verifier CI 37885203716 green, the first green run since at least
+    d504978). The cross-platform conformance doc holds a release while
+    Python and iOS disagree, and the Task 4 audit puts MedicalVerifierCore
+    in the app (recommendation d). Three causes:
+    - the question check's dose pattern had lost its backslashes, so
+      "500 mg" never matched and a dose answer read as not answering the
+      question (Python had its own form of it: it looked for the unit
+      among words of four letters or more, so "mg" was never seen);
+    - Swift lacked Python's rule that a dose written another way with the
+      same daily total ("500 mg twice daily" for "1000 mg daily") is the
+      same dose;
+    - Swift's relation anchors had no past tense ("increased",
+      "reduced"), so a time marker before the verb was missed.
+    The package's Linux run (CryptoKit shimmed) passes all 44 Swift tests;
+    185 Python tests pass.
+17. [x] #33, found in step 16: that same-total rule skipped every other
+    check, so "Warfarin 1000 mg is given daily" was validated against
+    "Aspirin 500 mg is given twice daily", in Python and in Swift, and an
+    answer that added "with food" (or, on Swift, "for 7 days") passed too.
+    - [x] Chat-me a4152d5 (9 Oct, about 7:55 AM; Medical Verifier CI
+      37885973407 green): the rule now holds only when every other word of
+      four letters or more in the claim is in the evidence too; words that
+      only say how much, how often or how a dose is given (dose, daily,
+      twice, every, hours, given, take and the like) may still change.
+      Python's verify and semantic guard and Swift's SemanticGuard share
+      the list, and three shared vectors pin it (corpus 1.4): the same drug
+      stays VALIDATED; another drug, or an added course, is
+      SOURCE_UNSUPPORTED. The five honest rewordings (twice daily, a
+      concentration, weight-based, every 8 hours, "should be given") stay
+      VALIDATED, and the 50-claim benchmark is unchanged. 191 Python tests
+      and 47 Swift tests pass. Known limit: a drug the evidence names, but
+      not as the one being dosed, still counts as kept.
+    - [x] The Worker (server/claims.js, ported from Chat-me 2f4fd4e, step
+      9) had the same rule, and its claim gate skips an item that any near
+      lecture sentence supports. So a lecture with "Amoxicillin 500 mg
+      three times daily" and "Ibuprofen 500 mg twice daily" let a card's
+      "Amoxicillin 1000 mg daily" through: the ibuprofen sentence has the
+      same daily total. doseRewordingKeepsTerms is a port of a4152d5's rule
+      with its word list, in verify and semanticWarnings. The audit makes
+      the shared vectors the Worker's regression corpus (Task 4 audit,
+      recommendation e), so tests/claims.test.mjs keeps them at 2f4fd4e and
+      lists the one vector this changes on purpose (10 mL of a 5 mg/mL
+      solution twice daily against "The daily dose is 100 mg.": "solution"
+      is not in the evidence, so the verifier now abstains), with the later
+      Python's answers. It also holds four of a4152d5's cases (the same
+      drug, another drug, a condition added, a course added) with that
+      Python's answers, and two gate cases where another drug's sentence
+      with the same daily total used to hide the dose and frequency
+      findings. The new checks fail on the old gate; 88 pass on the new
+      one. The ordinary batch takes no longer (about 2.5 ms warm).
+    - [x] Preflight, push design/map-lighter, Server tests green, then
+      personal and the session branch (server and plan only: no App
+      build). Live only after a Worker deploy, which needs the owner's
+      word. Done: preflight OK; Server tests 37887435889 green on
+      a06955a; personal and claude/new-session-013tes5v fast-forwarded to
+      it on 9 Oct at about 8:15 AM.
+18. [ ] #34, a swapped drug name passes: Chat-me's verify and the Worker's
+    say SUPPORTS for "Amoxicillin treats otitis media." against
+    "Ibuprofen treats otitis media.", for "Amoxicillin is used for otitis
+    media." against "Ibuprofen is used for otitis media.", and for
+    "Amoxicillin 500 mg twice daily for otitis media." against "Ibuprofen
+    500 mg twice daily for otitis media.". Where no relation is
+    recognised, the atomic subject check never runs ("Warfarin increases
+    bleeding risk." against "Aspirin …" is rightly UNKNOWN,
+    atomic_subject_mismatch). In the gate it is the same hole as step 17:
+    a near sentence about another drug supports the item and hides what
+    its own drug's sentence would find. Fix it in Chat-me first (Python,
+    the Swift twin and a shared vector; abstain, never contradict, per the
+    22f fail-safe brief), then port it to the Worker like step 17.
+19. [ ] Re-pin the Worker's port to Chat-me personal. Measured on 9 Oct:
+    besides step 17's vectors, the port still has two behaviours Chat-me
+    dropped in d17635d (step 11). Its multilingual replace is not
+    whole-word, so Spanish "reduce" turns English "reduces" into
+    "reducess" inside its double-negation facts, and it has no direction
+    axis, so "Ibuprofen reduces bleeding risk with warfarin." against
+    "… increases …" abstains as atomic_object_mismatch, where Chat-me now
+    says atomic_relation_mismatch. Port both, then regenerate
+    tests/claim-vectors.json from Chat-me personal: bench/claim-vectors.py
+    needs the module paths d504978 moved (agents/specialists/
+    verification_agent/ for app/verification/), and the test's pinned
+    commit and counts, the bench's docstring and claims.js's header move
+    with it. DEPARTURES then empties.
 
 ## 4. M3: the Neurons rebuild
 
@@ -1105,8 +1267,9 @@ They answer four questions, in order:
    if they're useless: the workflows went (c3c50c3). The permission system
    refused deleting remote branches, so that stays undone.
 4. Write access for this session to NoNeed2name444/claude-code: the owner
-   allowed it, but the permission system refused the request. It's the
-   owner's to grant; don't retry or work around it.
+   allowed it; the permission system refused it twice, and the owner then
+   attached the repository to this session themselves (9 Oct, about
+   7:00 AM).
 
 ### Waiting on the owner
 
@@ -1116,8 +1279,6 @@ They answer four questions, in order:
   the phone; it needs the owner's call and a device test.
 - The launch splash colour (midnight for now).
 - Each Worker deploy.
-- Push access to Chat-me, refused to this session on 9 Oct: section 3,
-  step 11 waits on it.
 
 ## 6. Standing rules
 
@@ -1155,8 +1316,10 @@ Cases
 Permission refusals
 - When the permission system refuses something, don't retry it and don't
   ask another session or agent to do it; tell the owner instead. Refused so
-  far: deleting remote branches, merging codex-fixes, write access to
-  NoNeed2name444/claude-code, and curl of the agent proxy's status page.
+  far: deleting remote branches, merging codex-fixes, and curl of the agent
+  proxy's status page. Write access to NoNeed2name444/claude-code and push
+  to Chat-me were refused too, until the owner attached both repositories
+  to this session on 9 Oct at about 7:00 AM.
 
 Code
 - Keep test-covered logic in Foundation-only files, and fence Apple-only
