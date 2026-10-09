@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 12:37 PM Cairo.
+Last updated: 2026-10-09, 12:49 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -967,6 +967,37 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     server/claims.js and make the vectors again. Touches Chat-me's
     verification_agent and MedicalVerifierCore, and here server/ only:
     nothing of step 20's.
+    - [x] Chat-me 3df53cd (its CI 37909547536 green; Python 202 passed,
+      Swift 54 on Linux, conformance 1.6): a word of three letters or
+      fewer is a term unless it is a joining word or a short way of
+      writing a dose; one route's two names (PO, orally), a short name
+      and the two words it stands for (AF, atrial fibrillation) and a
+      clotting factor and its activated form (Xa, activated factor X)
+      are not swaps. The 50-claim benchmark is unchanged.
+    - [x] Ported on design/map-lighter, e372ec0 (Server tests 37913421490
+      green): 137 vector pairs, no earlier pair's answer changed, the old
+      port fails six checks; the benchmark gives Python's answer on every
+      case.
+    - [ ] Merge into personal with step 23, once the App build on
+      382a950 is green.
+23. [ ] Found by step 22's preflight: the forcelayout suite's F4f ("a
+    rebuild cancelled before its job starts cancels it too") failed under
+    load, twice in three runs. A real race in GraphWork.offMain
+    (Features/Notes/ForceLayout3D.swift, step 13's audit row 114): the
+    detached job could start and look before the cancel handler reached
+    it; a stress run missed the cancel 187 times in 20,000. Fixed on
+    design/map-lighter, 382a950: a rebuild already cancelled starts its
+    job cancelled (none missed in 20,000; preflight 76 of 76 suites).
+    Waiting on its App build, then into personal with step 22.
+24. [ ] Taken by the same session (9 Oct, 12:49 PM): a joining word next to a
+    swapped route still hides it, so "Adrenaline 0.5 mg IV for
+    anaphylaxis in adults." is backed by "Adrenaline 0.5 mg IM is given
+    for anaphylaxis in adults." in Chat-me and in the Worker's gate (no
+    finding at all). Dropping joining words from every swap costs four
+    true claims of the 50-claim benchmark, so only routes: a claim and
+    evidence that name different routes, and no route in common, are a
+    swap whatever words stand around them. Chat-me first (Python, Swift,
+    conformance 1.7), then server/claims.js.
 
 ## 4. M3: the Neurons rebuild
 
