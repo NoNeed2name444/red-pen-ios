@@ -173,6 +173,18 @@ check("no slides, no slide terms", CloudTranscript.lectureTerms(slides: []).isEm
       && !CloudTranscript.prompt(vocabulary: CloudTranscript.lectureTerms(slides: [])).contains("Terms from"))
 check("Arabic on a slide is not a spelling hint",
       CloudTranscript.vocabulary(from: ["الذئبة الحمراء lupus"]).allSatisfy { $0.unicodeScalars.allSatisfy(\.isASCII) })
+let recogniserHeart = LectureTranscriber.recogniserTerms(
+    CloudTranscript.lectureTerms(slides: ["Atrial fibrillation: anticoagulation and rhythm control"]))
+check("the recogniser hears a cardiology lecture's own terms",
+      recogniserHeart.contains("fibrillation") && !recogniserHeart.contains("lupus")
+      && !recogniserHeart.contains("hydroxychloroquine"), "\(recogniserHeart)")
+check("no slides, no recogniser terms",
+      LectureTranscriber.recogniserTerms(CloudTranscript.lectureTerms(slides: [])).isEmpty)
+let distinctRecogniserTerms = (0..<150).map { "term\($0)" }
+check("recogniser terms keep order, omit empties and case repeats, and stop at 100",
+      LectureTranscriber.recogniserTerms(["", "Fibrillation", "fibrillation", "", "Anticoagulation", "FIBRILLATION"])
+      == ["Fibrillation", "Anticoagulation"]
+      && LectureTranscriber.recogniserTerms(distinctRecogniserTerms) == Array(distinctRecogniserTerms.prefix(100)))
 let prompt = CloudTranscript.prompt(vocabulary: ["hydroxychloroquine"])
 check("the prompt carries the slide terms", prompt.contains("hydroxychloroquine"))
 check("and asks for Egyptian Arabic in Arabic script, English in English",
