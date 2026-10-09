@@ -1,6 +1,6 @@
 {
- "verifier": "Chat-me medical-verifier 2f4fd4e (medical-verifier-v0.1-commercial-safe)",
- "conformance_version": "1.3",
+ "verifier": "Chat-me ff476bd (personal, agents/specialists/verification_agent)",
+ "conformance_version": "1.5",
  "pairs": [
   {
    "source": "conformance:valid_basic",
@@ -14,6 +14,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -59,6 +63,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -101,6 +113,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -116,6 +136,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -158,7 +182,9 @@
       "subject": [],
       "object": []
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "insulin lowers blood glucose.",
@@ -200,6 +226,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -218,6 +252,10 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [
     "percentage_not_matched"
    ],
@@ -225,7 +263,7 @@
     "numeric_claim_not_supported_verbatim"
    ],
    "claim_facts": {
-    "double_negation": "treatment a reducess risk by 50 percent.",
+    "double_negation": "treatment a reduces risk by 50 percent.",
     "tokens": [
      "percent",
      "reduces",
@@ -273,10 +311,18 @@
        "risk by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "treatment a reducess risk by 20 percent.",
+    "double_negation": "treatment a reduces risk by 20 percent.",
     "tokens": [
      "percent",
      "reduces",
@@ -324,6 +370,14 @@
        "risk by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -339,6 +393,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -391,6 +449,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -438,6 +504,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -453,6 +527,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -503,6 +581,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -550,6 +636,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -565,6 +659,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -616,6 +714,14 @@
        "children"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -660,6 +766,14 @@
        "adults"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -675,6 +789,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -714,6 +832,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -755,6 +881,14 @@
        "condition"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -770,6 +904,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -810,7 +948,9 @@
       "subject": [],
       "object": []
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "the adverse event is common.",
@@ -847,6 +987,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     1
+    ],
+    "stated_directions": [
+     null,
+     1
     ]
    }
   },
@@ -862,6 +1010,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -900,6 +1052,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -937,6 +1097,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -952,6 +1120,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -995,6 +1167,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -1032,6 +1212,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -1047,6 +1235,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -1094,6 +1286,14 @@
       ],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -1134,6 +1334,14 @@
       ],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -1149,6 +1357,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -1194,6 +1406,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -1247,6 +1467,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -1264,6 +1492,10 @@
    "condition": [
     true,
     null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_not_entailed"
    ],
    "semantic": [
     "atomic_claim_not_entailed"
@@ -1309,6 +1541,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -1332,7 +1572,15 @@
     "dates": [],
     "temporal": [],
     "safety": null,
-    "atoms": []
+    "atoms": [],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
    }
   },
   {
@@ -1347,6 +1595,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -1392,6 +1644,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -1434,6 +1694,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -1449,6 +1717,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -1503,6 +1775,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -1552,6 +1832,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -1567,6 +1855,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -1621,6 +1913,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -1670,6 +1970,447 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:daily_dose_same_drug",
+   "claim": "Aspirin 1000 mg is given daily.",
+   "evidence": "Aspirin 500 mg is given twice daily.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [
+    "numeric_claim_not_supported_verbatim"
+   ],
+   "claim_facts": {
+    "double_negation": "aspirin 1000 mg is given daily.",
+    "tokens": [
+     "1000",
+     "aspirin",
+     "daily",
+     "given"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "1000"
+    ],
+    "measurements": [
+     [
+      1000.0,
+      "mg"
+     ]
+    ],
+    "frequency": 1.0,
+    "frequency_guard": 1.0,
+    "daily_dose": 1000.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      1000.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin 1000 mg is given daily",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "aspirin 500 mg is given twice daily.",
+    "tokens": [
+     "aspirin",
+     "daily",
+     "given",
+     "twice"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "500"
+    ],
+    "measurements": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "frequency": 2.0,
+    "frequency_guard": 2.0,
+    "daily_dose": 1000.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin 500 mg is given twice daily",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:daily_dose_other_drug",
+   "claim": "Warfarin 1000 mg is given daily.",
+   "evidence": "Aspirin 500 mg is given twice daily.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "measurement_unit_or_value_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [
+    "dose_or_unit_not_matched",
+    "dose_frequency_mismatch"
+   ],
+   "specificity": [
+    "numeric_claim_not_supported_verbatim"
+   ],
+   "claim_facts": {
+    "double_negation": "warfarin 1000 mg is given daily.",
+    "tokens": [
+     "1000",
+     "daily",
+     "given",
+     "warfarin"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "1000"
+    ],
+    "measurements": [
+     [
+      1000.0,
+      "mg"
+     ]
+    ],
+    "frequency": 1.0,
+    "frequency_guard": 1.0,
+    "daily_dose": 1000.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      1000.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Warfarin 1000 mg is given daily",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "aspirin 500 mg is given twice daily.",
+    "tokens": [
+     "aspirin",
+     "daily",
+     "given",
+     "twice"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "500"
+    ],
+    "measurements": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "frequency": 2.0,
+    "frequency_guard": 2.0,
+    "daily_dose": 1000.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin 500 mg is given twice daily",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:daily_dose_added_duration",
+   "claim": "Aspirin 1000 mg is given daily for 7 days.",
+   "evidence": "Aspirin 500 mg is given twice daily.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "temporal_scope_missing"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [
+    "temporal_scope_missing",
+    "dose_or_unit_not_matched",
+    "dose_frequency_mismatch"
+   ],
+   "specificity": [
+    "numeric_claim_not_supported_verbatim"
+   ],
+   "claim_facts": {
+    "double_negation": "aspirin 1000 mg is given daily for 7 days.",
+    "tokens": [
+     "1000",
+     "aspirin",
+     "daily",
+     "days",
+     "given"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "1000",
+     "7"
+    ],
+    "measurements": [
+     [
+      1000.0,
+      "mg"
+     ]
+    ],
+    "frequency": 1.0,
+    "frequency_guard": 1.0,
+    "daily_dose": 1000.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      1000.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [
+     "duration"
+    ],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin 1000 mg is given daily for 7 days",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [
+       "duration"
+      ],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "aspirin 500 mg is given twice daily.",
+    "tokens": [
+     "aspirin",
+     "daily",
+     "given",
+     "twice"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "500"
+    ],
+    "measurements": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "frequency": 2.0,
+    "frequency_guard": 2.0,
+    "daily_dose": 1000.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin 500 mg is given twice daily",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -1685,6 +2426,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -1731,6 +2476,14 @@
       ],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -1771,6 +2524,14 @@
       ],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -1786,6 +2547,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -1831,6 +2596,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -1873,6 +2646,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -1890,6 +2671,10 @@
    "condition": [
     false,
     "conditional_scope_missing"
+   ],
+   "direction": [
+    true,
+    null
    ],
    "semantic": [
     "conditional_scope_missing"
@@ -1940,6 +2725,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -2011,6 +2804,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2026,6 +2827,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -2088,6 +2893,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -2159,6 +2972,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2174,6 +2995,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -2227,6 +3052,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -2294,6 +3127,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2309,6 +3150,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -2370,6 +3215,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -2422,6 +3275,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2440,6 +3301,10 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [],
    "specificity": [],
    "claim_facts": {
@@ -2477,6 +3342,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -2514,6 +3387,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2529,6 +3410,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -2572,6 +3457,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -2612,6 +3505,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2627,6 +3528,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -2667,7 +3572,9 @@
       "subject": [],
       "object": []
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "la insulina increases la glucose.",
@@ -2704,6 +3611,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2722,12 +3637,16 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [
     "atomic_subject_mismatch"
    ],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "drug a increases bleeding. drug a reducess blood pressure.",
+    "double_negation": "drug a increases bleeding. drug a reduces blood pressure.",
     "tokens": [
      "bleeding",
      "blood",
@@ -2781,10 +3700,18 @@
        "blood pressure"
       ]
      }
+    ],
+    "directions": [
+     0,
+     null
+    ],
+    "stated_directions": [
+     0,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "drug a increases bleeding. drug b reducess blood pressure.",
+    "double_negation": "drug a increases bleeding. drug b reduces blood pressure.",
     "tokens": [
      "bleeding",
      "blood",
@@ -2838,6 +3765,14 @@
        "blood pressure"
       ]
      }
+    ],
+    "directions": [
+     0,
+     null
+    ],
+    "stated_directions": [
+     0,
+     null
     ]
    }
   },
@@ -2853,6 +3788,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -2899,6 +3838,14 @@
        "bleeding"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    },
    "evidence_facts": {
@@ -2941,6 +3888,366 @@
        "blood pressure"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_swapped_drug",
+   "claim": "Amoxicillin treats otitis media.",
+   "evidence": "Ibuprofen treats otitis media.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "amoxicillin treats otitis media.",
+    "tokens": [
+     "amoxicillin",
+     "media",
+     "otitis",
+     "treats"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Amoxicillin treats otitis media",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "ibuprofen treats otitis media.",
+    "tokens": [
+     "ibuprofen",
+     "media",
+     "otitis",
+     "treats"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Ibuprofen treats otitis media",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_swapped_outcome",
+   "claim": "Warfarin increases the risk of bleeding.",
+   "evidence": "Warfarin increases the risk of stroke.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "warfarin increases the risk of bleeding.",
+    "tokens": [
+     "bleeding",
+     "increases",
+     "risk",
+     "warfarin"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Warfarin increases the risk of bleeding",
+      "relation": "risk_increase",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [
+       "warfarin"
+      ],
+      "object": [
+       "risk"
+      ]
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "warfarin increases the risk of stroke.",
+    "tokens": [
+     "increases",
+     "risk",
+     "stroke",
+     "warfarin"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Warfarin increases the risk of stroke",
+      "relation": "risk_increase",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [
+       "warfarin"
+      ],
+      "object": [
+       "risk"
+      ]
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_reworded",
+   "claim": "Clopidogrel is a prodrug requiring metabolic activation.",
+   "evidence": "Clopidogrel is a prodrug and requires metabolic activation.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "clopidogrel is a prodrug requiring metabolic activation.",
+    "tokens": [
+     "activation",
+     "clopidogrel",
+     "metabolic",
+     "prodrug",
+     "requiring"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Clopidogrel is a prodrug requiring metabolic activation",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "clopidogrel is a prodrug and requires metabolic activation.",
+    "tokens": [
+     "activation",
+     "clopidogrel",
+     "metabolic",
+     "prodrug",
+     "requires"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Clopidogrel is a prodrug and requires metabolic activation",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -2956,6 +4263,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3003,6 +4314,14 @@
        "bleeding"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -3045,6 +4364,14 @@
        "bleeding"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -3060,6 +4387,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3111,6 +4442,14 @@
        "bleeding"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    },
    "evidence_facts": {
@@ -3152,6 +4491,14 @@
        "bleeding"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    }
   },
@@ -3167,6 +4514,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3218,6 +4569,14 @@
        "bleeding"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    },
    "evidence_facts": {
@@ -3264,6 +4623,14 @@
        "bleeding"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    }
   },
@@ -3279,6 +4646,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3325,6 +4696,14 @@
        "drug b"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -3366,6 +4745,14 @@
        "drug b"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -3381,6 +4768,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3429,6 +4820,14 @@
        "pregnancy"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -3473,6 +4872,14 @@
        "pregnancy"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -3488,6 +4895,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3532,6 +4943,14 @@
        "drug b"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -3573,6 +4992,14 @@
        "drug b"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -3591,10 +5018,14 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "paracetamol reducess pain.",
+    "double_negation": "paracetamol reduces pain.",
     "tokens": [
      "pain",
      "paracetamol",
@@ -3632,10 +5063,18 @@
        "pain"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "acetaminophen reducess pain.",
+    "double_negation": "acetaminophen reduces pain.",
     "tokens": [
      "acetaminophen",
      "pain",
@@ -3673,6 +5112,14 @@
        "pain"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -3691,12 +5138,16 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [
     "atomic_object_mismatch"
    ],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "paracetamol reducess pain.",
+    "double_negation": "paracetamol reduces pain.",
     "tokens": [
      "pain",
      "paracetamol",
@@ -3734,10 +5185,18 @@
        "pain"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "paracetamol reducess pains.",
+    "double_negation": "paracetamol reduces pains.",
     "tokens": [
      "pains",
      "paracetamol",
@@ -3775,6 +5234,14 @@
        "pains"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -3790,6 +5257,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3848,6 +5319,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -3901,6 +5380,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -3916,6 +5403,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -3972,6 +5463,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4025,6 +5524,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4040,6 +5547,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4096,6 +5607,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4148,6 +5667,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4163,6 +5690,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4218,6 +5749,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4278,6 +5817,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4293,6 +5840,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4351,6 +5902,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4413,6 +5972,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4428,6 +5995,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4494,6 +6065,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4544,6 +6123,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4559,6 +6146,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4615,6 +6206,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4674,6 +6273,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4689,6 +6296,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4743,6 +6354,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4795,6 +6414,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4810,6 +6437,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4867,6 +6498,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -4918,6 +6557,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -4933,6 +6580,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -4989,6 +6640,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5039,6 +6698,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5047,9 +6714,9 @@
    "claim": "Give 10 mL of a 5 mg/mL solution twice daily.",
    "evidence": "The daily dose is 100 mg.",
    "verify": {
-    "label": "SUPPORTS",
+    "label": "UNKNOWN",
     "reasons": [
-     "independent_structured_checks_passed"
+     "insufficient_semantic_overlap"
     ]
    },
    "opposite": false,
@@ -5057,8 +6724,14 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [
-    "atomic_claim_not_entailed"
+    "atomic_claim_not_entailed",
+    "dose_or_unit_not_matched",
+    "dose_frequency_mismatch"
    ],
    "specificity": [
     "numeric_claim_not_supported_verbatim"
@@ -5120,6 +6793,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5168,6 +6849,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5183,6 +6872,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -5242,6 +6935,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5298,6 +6999,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5313,6 +7022,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -5355,6 +7068,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5403,6 +7124,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5418,6 +7147,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -5472,6 +7205,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5520,6 +7261,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5535,6 +7284,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -5587,6 +7340,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5636,6 +7397,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5651,6 +7420,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -5703,6 +7476,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5751,6 +7532,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5766,6 +7555,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -5805,6 +7598,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5844,6 +7645,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5859,6 +7668,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -5909,6 +7722,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -5957,6 +7778,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -5975,10 +7804,14 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "aspirin reducess mortality by 23 percent.",
+    "double_negation": "aspirin reduces mortality by 23 percent.",
     "tokens": [
      "aspirin",
      "mortality",
@@ -6026,10 +7859,18 @@
        "mortality by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "aspirin reducess mortality by 23 percent in acute mi.",
+    "double_negation": "aspirin reduces mortality by 23 percent in acute mi.",
     "tokens": [
      "acute",
      "aspirin",
@@ -6078,6 +7919,14 @@
        "mortality by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -6096,6 +7945,10 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [
     "percentage_not_matched"
    ],
@@ -6103,7 +7956,7 @@
     "numeric_claim_not_supported_verbatim"
    ],
    "claim_facts": {
-    "double_negation": "aspirin reducess mortality by 50 percent.",
+    "double_negation": "aspirin reduces mortality by 50 percent.",
     "tokens": [
      "aspirin",
      "mortality",
@@ -6151,10 +8004,18 @@
        "mortality by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "aspirin reducess mortality by 23 percent in acute mi.",
+    "double_negation": "aspirin reduces mortality by 23 percent in acute mi.",
     "tokens": [
      "acute",
      "aspirin",
@@ -6203,6 +8064,14 @@
        "mortality by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -6218,6 +8087,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -6264,6 +8137,14 @@
        "events by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -6308,6 +8189,14 @@
        "events by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -6323,6 +8212,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -6371,6 +8264,14 @@
        "risk by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -6422,6 +8323,14 @@
        "risk by"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -6437,6 +8346,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -6493,6 +8406,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -6544,6 +8465,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -6559,6 +8488,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -6602,7 +8535,9 @@
       "subject": [],
       "object": []
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "metformin is first-line in type 2 diabetes.",
@@ -6642,6 +8577,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -6657,6 +8600,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -6702,6 +8649,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -6747,7 +8702,9 @@
        "blood glucose"
       ]
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    }
   },
   {
@@ -6762,6 +8719,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -6804,7 +8765,9 @@
       "subject": [],
       "object": []
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "insulin lowers blood glucose.",
@@ -6846,6 +8809,14 @@
        "blood glucose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -6861,6 +8832,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -6902,7 +8877,9 @@
       "subject": [],
       "object": []
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "hypoglycaemia is common with sulfonylureas.",
@@ -6940,6 +8917,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     1
+    ],
+    "stated_directions": [
+     null,
+     1
     ]
    }
   },
@@ -6955,6 +8940,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7003,7 +8992,9 @@
        "bronchospasm"
       ]
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "beta blockers cause bronchospasm in asthma.",
@@ -7046,6 +9037,14 @@
        "bronchospasm"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -7061,6 +9060,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7107,7 +9110,9 @@
        "lung cancer"
       ]
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "smoking is associated with lung cancer.",
@@ -7150,6 +9155,14 @@
        "lung cancer"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -7165,6 +9178,10 @@
    },
    "opposite": true,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7214,7 +9231,9 @@
       "subject": [],
       "object": []
      }
-    ]
+    ],
+    "directions": null,
+    "stated_directions": null
    },
    "evidence_facts": {
     "double_negation": "aspirin should be given to children with kawasaki disease.",
@@ -7258,6 +9277,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -7273,6 +9300,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7323,6 +9354,14 @@
        "hba1c"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -7366,6 +9405,14 @@
        "hba1c"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -7381,6 +9428,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7430,6 +9481,14 @@
        "proteinuria"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -7471,6 +9530,14 @@
        "proteinuria"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -7486,6 +9553,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7530,6 +9601,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -7568,6 +9647,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -7583,6 +9670,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7628,6 +9719,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -7668,6 +9767,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -7683,6 +9790,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7729,6 +9840,14 @@
        "pregnancy"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -7774,6 +9893,14 @@
        "pregnancy"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -7789,6 +9916,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -7841,6 +9972,14 @@
        "dose if"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -7890,6 +10029,14 @@
        "dose if"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -7907,6 +10054,10 @@
    "condition": [
     false,
     "conditional_scope_missing"
+   ],
+   "direction": [
+    true,
+    null
    ],
    "semantic": [
     "atomic_object_mismatch",
@@ -7949,6 +10100,14 @@
        "dose"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -7998,6 +10157,14 @@
        "dose if"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -8013,6 +10180,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -8065,6 +10236,14 @@
        "verapamil"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -8112,6 +10291,14 @@
        "verapamil"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -8127,6 +10314,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -8175,6 +10366,14 @@
        "lung cancer"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -8218,6 +10417,14 @@
        "lung cancer"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -8233,6 +10440,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -8278,6 +10489,14 @@
        "lung cancer"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -8320,6 +10539,14 @@
        "lung cancer"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -8335,6 +10562,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -8380,6 +10611,14 @@
        "simvastatin"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -8422,6 +10661,14 @@
        "simvastatin"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -8437,6 +10684,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -8484,6 +10735,14 @@
        "simvastatin"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -8526,6 +10785,14 @@
        "simvastatin"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -8541,6 +10808,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -8588,6 +10859,14 @@
        "first trimester"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -8631,6 +10910,14 @@
        "first trimester"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -8646,6 +10933,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -8693,6 +10984,14 @@
        "bleeding risk"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    },
    "evidence_facts": {
@@ -8737,6 +11036,14 @@
        "bleeding risk"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    }
   },
@@ -8747,7 +11054,7 @@
    "verify": {
     "label": "UNKNOWN",
     "reasons": [
-     "atomic_object_mismatch"
+     "atomic_relation_mismatch"
     ]
    },
    "opposite": false,
@@ -8755,12 +11062,16 @@
     true,
     null
    ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
    "semantic": [
     "atomic_relation_mismatch"
    ],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "ibuprofen reducess bleeding risk with warfarin.",
+    "double_negation": "ibuprofen reduces bleeding risk with warfarin.",
     "tokens": [
      "bleeding",
      "ibuprofen",
@@ -8801,6 +11112,14 @@
        "bleeding risk"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -8845,6 +11164,14 @@
        "bleeding risk"
       ]
      }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
     ]
    }
   },
@@ -8863,10 +11190,14 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "paracetamol reducess fever.",
+    "double_negation": "paracetamol reduces fever.",
     "tokens": [
      "fever",
      "paracetamol",
@@ -8904,10 +11235,18 @@
        "fever"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "acetaminophen reducess fever.",
+    "double_negation": "acetaminophen reduces fever.",
     "tokens": [
      "acetaminophen",
      "fever",
@@ -8945,6 +11284,14 @@
        "fever"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -8963,12 +11310,16 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [
     "atomic_object_mismatch"
    ],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "paracetamol reducess fever.",
+    "double_negation": "paracetamol reduces fever.",
     "tokens": [
      "fever",
      "paracetamol",
@@ -9006,10 +11357,18 @@
        "fever"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "paracetamol reducess fevers.",
+    "double_negation": "paracetamol reduces fevers.",
     "tokens": [
      "fevers",
      "paracetamol",
@@ -9047,6 +11406,14 @@
        "fevers"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -9065,10 +11432,14 @@
     true,
     null
    ],
+   "direction": [
+    true,
+    null
+   ],
    "semantic": [],
    "specificity": [],
    "claim_facts": {
-    "double_negation": "drug a increases bleeding and drug a reducess blood pressure.",
+    "double_negation": "drug a increases bleeding and drug a reduces blood pressure.",
     "tokens": [
      "bleeding",
      "blood",
@@ -9122,10 +11493,18 @@
        "blood pressure"
       ]
      }
+    ],
+    "directions": [
+     0,
+     null
+    ],
+    "stated_directions": [
+     0,
+     null
     ]
    },
    "evidence_facts": {
-    "double_negation": "drug a increases bleeding. drug a reducess blood pressure.",
+    "double_negation": "drug a increases bleeding. drug a reduces blood pressure.",
     "tokens": [
      "bleeding",
      "blood",
@@ -9179,6 +11558,14 @@
        "blood pressure"
       ]
      }
+    ],
+    "directions": [
+     0,
+     null
+    ],
+    "stated_directions": [
+     0,
+     null
     ]
    }
   },
@@ -9194,6 +11581,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9239,6 +11630,14 @@
        "absence seizures"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -9281,6 +11680,14 @@
        "absence seizures"
       ]
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -9289,13 +11696,17 @@
    "claim": "Lithium is dangerous in renal failure.",
    "evidence": "Lithium is harmful in renal failure.",
    "verify": {
-    "label": "SUPPORTS",
+    "label": "UNKNOWN",
     "reasons": [
-     "independent_structured_checks_passed"
+     "atomic_term_substituted"
     ]
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9339,6 +11750,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -9379,6 +11798,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -9394,6 +11821,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9441,6 +11872,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -9483,6 +11922,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -9498,6 +11945,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9544,6 +11995,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -9587,6 +12046,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -9602,6 +12069,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9652,6 +12123,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -9695,6 +12174,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -9710,6 +12197,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9760,6 +12251,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -9803,6 +12302,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -9818,6 +12325,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9867,6 +12378,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -9912,6 +12431,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -9927,6 +12454,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -9975,6 +12506,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10018,6 +12557,2237 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Statin therapy is associated with a reduced risk of new-onset diabetes.",
+   "evidence": "Statin therapy is associated with a modestly increased risk of new-onset diabetes.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "statin therapy is associated with a reduced risk of new-onset diabetes.",
+    "tokens": [
+     "associated",
+     "diabetes",
+     "new-onset",
+     "reduced",
+     "risk",
+     "statin",
+     "therapy",
+     "with"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statin therapy is associated with a reduced risk of new-onset diabetes",
+      "relation": "mixed",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "statin therapy is associated with a modestly increased risk of new-onset diabetes.",
+    "tokens": [
+     "associated",
+     "diabetes",
+     "increased",
+     "modestly",
+     "new-onset",
+     "risk",
+     "statin",
+     "therapy",
+     "with"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statin therapy is associated with a modestly increased risk of new-onset diabetes",
+      "relation": "mixed",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Statins have a high incidence of clinically apparent liver injury.",
+   "evidence": "Clinically apparent liver injury attributed to statins is rare.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "statins have a high incidence of clinically apparent liver injury.",
+    "tokens": [
+     "apparent",
+     "clinically",
+     "have",
+     "high",
+     "incidence",
+     "injury",
+     "liver",
+     "statins"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "liver"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statins have a high incidence of clinically apparent liver injury",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     1
+    ],
+    "stated_directions": [
+     null,
+     1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "clinically apparent liver injury attributed to statins is rare.",
+    "tokens": [
+     "apparent",
+     "attributed",
+     "clinically",
+     "injury",
+     "liver",
+     "rare",
+     "statins"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "liver"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Clinically apparent liver injury attributed to statins is rare",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     -1
+    ],
+    "stated_directions": [
+     null,
+     -1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "SGLT2 inhibitors have a lower risk of genital infection.",
+   "evidence": "SGLT2 inhibitors have a higher risk of genital infection.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "sglt2 inhibitors have a lower risk of genital infection.",
+    "tokens": [
+     "genital",
+     "have",
+     "infection",
+     "inhibitors",
+     "lower",
+     "risk",
+     "sglt2"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "SGLT2 inhibitors have a lower risk of genital infection",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "sglt2 inhibitors have a higher risk of genital infection.",
+    "tokens": [
+     "genital",
+     "have",
+     "higher",
+     "infection",
+     "inhibitors",
+     "risk",
+     "sglt2"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "SGLT2 inhibitors have a higher risk of genital infection",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Hyperkalaemia is a common side effect of spironolactone.",
+   "evidence": "Hyperkalaemia is a rare side effect of spironolactone.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "hyperkalaemia is a common side effect of spironolactone.",
+    "tokens": [
+     "common",
+     "effect",
+     "hyperkalaemia",
+     "side",
+     "spironolactone"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Hyperkalaemia is a common side effect of spironolactone",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     1
+    ],
+    "stated_directions": [
+     null,
+     1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "hyperkalaemia is a rare side effect of spironolactone.",
+    "tokens": [
+     "effect",
+     "hyperkalaemia",
+     "rare",
+     "side",
+     "spironolactone"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Hyperkalaemia is a rare side effect of spironolactone",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     -1
+    ],
+    "stated_directions": [
+     null,
+     -1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Vitamin K has a stronger anticoagulant effect on warfarin.",
+   "evidence": "Vitamin K interacts with warfarin, whose anticoagulant activity depends on vitamin K.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_not_entailed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_not_entailed"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "vitamin k has a stronger anticoagulant effect on warfarin.",
+    "tokens": [
+     "anticoagulant",
+     "effect",
+     "stronger",
+     "vitamin",
+     "warfarin"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Vitamin K has a stronger anticoagulant effect on warfarin",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "vitamin k interacts with warfarin, whose anticoagulant activity depends on vitamin k.",
+    "tokens": [
+     "activity",
+     "anticoagulant",
+     "depends",
+     "interacts",
+     "vitamin",
+     "warfarin",
+     "whose",
+     "with"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": "interaction",
+    "atoms": [
+     {
+      "text": "Vitamin K interacts with warfarin, whose anticoagulant activity depends on vitamin K",
+      "relation": "interaction",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": "interaction",
+      "subject": [
+       "vitamin k"
+      ],
+      "object": [
+       "warfarin whose"
+      ]
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Statins lower LDL cholesterol.",
+   "evidence": "Statins are effective in lowering LDL cholesterol.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "statins lower ldl cholesterol.",
+    "tokens": [
+     "cholesterol",
+     "lower",
+     "statins"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statins lower LDL cholesterol",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "statins are effective in lowering ldl cholesterol.",
+    "tokens": [
+     "cholesterol",
+     "effective",
+     "lowering",
+     "statins"
+    ],
+    "relation_class": "effectiveness",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statins are effective in lowering LDL cholesterol",
+      "relation": "effectiveness",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [
+       "statins"
+      ],
+      "object": [
+       "lowering ldl"
+      ]
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Statin-associated myopathy is uncommon.",
+   "evidence": "Myopathy is listed as a rare adverse effect of statins.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "insufficient_semantic_overlap"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [
+    "atomic_claim_not_entailed"
+   ],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "statin-associated myopathy is uncommon.",
+    "tokens": [
+     "myopathy",
+     "statin-associated",
+     "uncommon"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statin-associated myopathy is uncommon",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     -1
+    ],
+    "stated_directions": [
+     null,
+     -1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "myopathy is listed as a rare adverse effect of statins.",
+    "tokens": [
+     "adverse",
+     "effect",
+     "listed",
+     "myopathy",
+     "rare",
+     "statins"
+    ],
+    "relation_class": "safety",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Myopathy is listed as a rare adverse effect of statins",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     -1
+    ],
+    "stated_directions": [
+     null,
+     -1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Metformin lowers blood glucose.",
+   "evidence": "Metformin is a glucose-lowering drug.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "insufficient_semantic_overlap"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [
+    "atomic_claim_not_entailed"
+   ],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "metformin lowers blood glucose.",
+    "tokens": [
+     "blood",
+     "glucose",
+     "lowers",
+     "metformin"
+    ],
+    "relation_class": "risk_decrease",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Metformin lowers blood glucose",
+      "relation": "risk_decrease",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [
+       "metformin"
+      ],
+      "object": [
+       "blood glucose"
+      ]
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "metformin is a glucose-lowering drug.",
+    "tokens": [
+     "drug",
+     "glucose-lowering",
+     "metformin"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Metformin is a glucose-lowering drug",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Metformin does not increase lactate.",
+   "evidence": "Metformin increases lactate.",
+   "verify": {
+    "label": "CONTRADICTS",
+    "reasons": [
+     "claim_evidence_polarity_mismatch"
+    ]
+   },
+   "opposite": true,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [
+    "negation_scope_mismatch"
+   ],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "metformin does not increase lactate.",
+    "tokens": [
+     "does",
+     "increase",
+     "lactate",
+     "metformin"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Metformin does not increase lactate",
+      "relation": "risk_increase",
+      "polarity": "negative",
+      "temporal": [],
+      "safety": null,
+      "subject": [
+       "metformin"
+      ],
+      "object": [
+       "lactate"
+      ]
+     }
+    ],
+    "directions": null,
+    "stated_directions": null
+   },
+   "evidence_facts": {
+    "double_negation": "metformin increases lactate.",
+    "tokens": [
+     "increases",
+     "lactate",
+     "metformin"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Metformin increases lactate",
+      "relation": "risk_increase",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [
+       "metformin"
+      ],
+      "object": [
+       "lactate"
+      ]
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Low-dose aspirin is given after the stent.",
+   "evidence": "Aspirin is given after the stent.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "low-dose aspirin is given after the stent.",
+    "tokens": [
+     "after",
+     "aspirin",
+     "given",
+     "low-dose",
+     "stent"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [
+     "after_event"
+    ],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Low-dose aspirin is given after the stent",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [
+       "after_event"
+      ],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "aspirin is given after the stent.",
+    "tokens": [
+     "after",
+     "aspirin",
+     "given",
+     "stent"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [
+     "after_event"
+    ],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin is given after the stent",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [
+       "after_event"
+      ],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Lower limb ischaemia needs urgent review.",
+   "evidence": "Lower limb ischaemia needs urgent vascular review.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "lower limb ischaemia needs urgent review.",
+    "tokens": [
+     "ischaemia",
+     "limb",
+     "lower",
+     "needs",
+     "review",
+     "urgent"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Lower limb ischaemia needs urgent review",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "lower limb ischaemia needs urgent vascular review.",
+    "tokens": [
+     "ischaemia",
+     "limb",
+     "lower",
+     "needs",
+     "review",
+     "urgent",
+     "vascular"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Lower limb ischaemia needs urgent vascular review",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Metformin is contraindicated when eGFR is below 30 mL/min.",
+   "evidence": "Metformin is contraindicated when eGFR is < 30 mL/min.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "metformin is contraindicated when egfr is below 30 ml/min.",
+    "tokens": [
+     "below",
+     "contraindicated",
+     "egfr",
+     "metformin",
+     "when"
+    ],
+    "relation_class": "safety",
+    "numbers": [
+     "30"
+    ],
+    "measurements": [
+     [
+      30.0,
+      "ml"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [
+     [
+      "below",
+      "egfr"
+     ]
+    ],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      30.0,
+      "ml"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": "contraindication",
+    "atoms": [
+     {
+      "text": "Metformin is contraindicated when eGFR is below 30 mL/min",
+      "relation": "contraindication",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": "contraindication",
+      "subject": [
+       "metformin"
+      ],
+      "object": [
+       "when egfr"
+      ]
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "metformin is contraindicated when egfr is < 30 ml/min.",
+    "tokens": [
+     "contraindicated",
+     "egfr",
+     "metformin",
+     "when"
+    ],
+    "relation_class": "safety",
+    "numbers": [
+     "30"
+    ],
+    "measurements": [
+     [
+      30.0,
+      "ml"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [
+     [
+      "egfr"
+     ]
+    ],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      30.0,
+      "ml"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": "contraindication",
+    "atoms": [
+     {
+      "text": "Metformin is contraindicated when eGFR is < 30 mL/min",
+      "relation": "contraindication",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": "contraindication",
+      "subject": [
+       "metformin"
+      ],
+      "object": [
+       "when egfr"
+      ]
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "The dose is halved when eGFR is below 45 mL/min.",
+   "evidence": "The dose is halved when eGFR is above 45 mL/min.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    false,
+    "condition_not_entrailed"
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [
+    "condition_not_entrailed"
+   ],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "the dose is halved when egfr is below 45 ml/min.",
+    "tokens": [
+     "below",
+     "dose",
+     "egfr",
+     "halved",
+     "when"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "45"
+    ],
+    "measurements": [
+     [
+      45.0,
+      "ml"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [
+     [
+      "below",
+      "egfr"
+     ]
+    ],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      45.0,
+      "ml"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "The dose is halved when eGFR is below 45 mL/min",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "the dose is halved when egfr is above 45 ml/min.",
+    "tokens": [
+     "above",
+     "dose",
+     "egfr",
+     "halved",
+     "when"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "45"
+    ],
+    "measurements": [
+     [
+      45.0,
+      "ml"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [
+     [
+      "above",
+      "egfr"
+     ]
+    ],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      45.0,
+      "ml"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "The dose is halved when eGFR is above 45 mL/min",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Warfarin has a higher risk of intracranial hemorrhage than DOACs.",
+   "evidence": "DOACs have a lower risk of intracranial hemorrhage than warfarin.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "warfarin has a higher risk of intracranial hemorrhage than doacs.",
+    "tokens": [
+     "doacs",
+     "hemorrhage",
+     "higher",
+     "intracranial",
+     "risk",
+     "than",
+     "warfarin"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Warfarin has a higher risk of intracranial hemorrhage than DOACs",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "doacs have a lower risk of intracranial hemorrhage than warfarin.",
+    "tokens": [
+     "doacs",
+     "have",
+     "hemorrhage",
+     "intracranial",
+     "lower",
+     "risk",
+     "than",
+     "warfarin"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "DOACs have a lower risk of intracranial hemorrhage than warfarin",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "DOACs have a higher rate of recurrent intracranial hemorrhage than warfarin.",
+   "evidence": "DOACs had a lower risk of recurrent intracranial hemorrhage than warfarin.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "doacs have a higher rate of recurrent intracranial hemorrhage than warfarin.",
+    "tokens": [
+     "doacs",
+     "have",
+     "hemorrhage",
+     "higher",
+     "intracranial",
+     "rate",
+     "recurrent",
+     "than",
+     "warfarin"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "DOACs have a higher rate of recurrent intracranial hemorrhage than warfarin",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "doacs had a lower risk of recurrent intracranial hemorrhage than warfarin.",
+    "tokens": [
+     "doacs",
+     "hemorrhage",
+     "intracranial",
+     "lower",
+     "recurrent",
+     "risk",
+     "than",
+     "warfarin"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "DOACs had a lower risk of recurrent intracranial hemorrhage than warfarin",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Gout is less common in women than in men.",
+   "evidence": "Gout is more common in men than in women.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "gout is less common in women than in men.",
+    "tokens": [
+     "common",
+     "gout",
+     "less",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is less common in women than in men",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     1
+    ],
+    "stated_directions": [
+     -1,
+     1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "gout is more common in men than in women.",
+    "tokens": [
+     "common",
+     "gout",
+     "more",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in men than in women",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Gout is more common in women than in men.",
+   "evidence": "Gout is more common in men than in women.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "gout is more common in women than in men.",
+    "tokens": [
+     "common",
+     "gout",
+     "more",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in women than in men",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "gout is more common in men than in women.",
+    "tokens": [
+     "common",
+     "gout",
+     "more",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in men than in women",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Risk is higher in women than in the elderly.",
+   "evidence": "Risk is lower in the young than in women.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [
+    "population_qualifier_not_matched"
+   ],
+   "claim_facts": {
+    "double_negation": "risk is higher in women than in the elderly.",
+    "tokens": [
+     "elderly",
+     "higher",
+     "risk",
+     "than",
+     "women"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "elderly"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Risk is higher in women than in the elderly",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "risk is lower in the young than in women.",
+    "tokens": [
+     "lower",
+     "risk",
+     "than",
+     "women",
+     "young"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Risk is lower in the young than in women",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -10033,6 +14803,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10077,6 +14851,14 @@
        "el riesgo"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    },
    "evidence_facts": {
@@ -10121,6 +14903,14 @@
        "el riesgo"
       ]
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
     ]
    }
   },
@@ -10136,6 +14926,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10176,6 +14970,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10213,6 +15015,133 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Smoking has a causal role in lung cancer.",
+   "evidence": "Smoking causes lung cancer.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "smoking has a causal role in lung cancer.",
+    "tokens": [
+     "cancer",
+     "causal",
+     "lung",
+     "role",
+     "smoking"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Smoking has a causal role in lung cancer",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "smoking causes lung cancer.",
+    "tokens": [
+     "cancer",
+     "causes",
+     "lung",
+     "smoking"
+    ],
+    "relation_class": "causal",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Smoking causes lung cancer",
+      "relation": "causal",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [
+       "smoking"
+      ],
+      "object": [
+       "lung cancer"
+      ]
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -10228,6 +15157,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10287,6 +15220,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10326,6 +15267,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -10341,6 +15290,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10386,6 +15339,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10437,6 +15398,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -10452,6 +15421,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10517,6 +15490,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10589,6 +15570,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -10604,6 +15593,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10669,6 +15662,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10732,6 +15733,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -10747,6 +15756,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10788,6 +15801,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10830,6 +15851,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -10845,6 +15874,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -10913,6 +15946,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -10976,6 +16017,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -10991,6 +16040,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -11041,6 +16094,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -11086,6 +16147,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -11101,6 +16170,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -11148,6 +16221,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -11188,6 +16269,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -11203,6 +16292,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -11229,7 +16322,15 @@
     "dates": [],
     "temporal": [],
     "safety": null,
-    "atoms": []
+    "atoms": [],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
    },
    "evidence_facts": {
     "double_negation": "anything.",
@@ -11264,6 +16365,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    }
   },
@@ -11279,6 +16388,10 @@
    },
    "opposite": false,
    "condition": [
+    true,
+    null
+   ],
+   "direction": [
     true,
     null
    ],
@@ -11319,6 +16432,14 @@
       "subject": [],
       "object": []
      }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
     ]
    },
    "evidence_facts": {
@@ -11342,7 +16463,15 @@
     "dates": [],
     "temporal": [],
     "safety": null,
-    "atoms": []
+    "atoms": [],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
    }
   }
  ],

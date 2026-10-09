@@ -4,7 +4,6 @@ account
 dataio
 docx
 imports
-sync
 zip
 ocr
 storeload

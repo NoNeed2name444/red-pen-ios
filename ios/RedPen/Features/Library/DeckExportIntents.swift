@@ -128,10 +128,13 @@ enum DeckExport {
     /// library's own export does once the student has said so.
     @MainActor
     static func file(for set: StudySet) async throws -> IntentFile {
+        // a set read from the saved library holds its pictures as references
+        // to their files: filled in once, for either form
+        let set: StudySet = BlobCache().restore(set)
         let url: URL?
         if set.kind == .anki {
             // the schedule as saved, read only, so each card keeps its place
-            url = try? await ApkgExporter.exportInBackground(BlobCache().restore(set),
+            url = try? await ApkgExporter.exportInBackground(set,
                                                              schedule: ReviewStore().records)
         } else {
             url = DeckPDF.export(set)

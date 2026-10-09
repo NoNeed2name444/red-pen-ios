@@ -65,9 +65,13 @@ final class Store: ObservableObject {
     /// The rule sheet: one line to remember per missed question, by question id.
     @Published var ruleSheet: [UUID: StudyRule] = [:] { didSet { studyDirty = true; changeCount &+= 1 } }
 
-    /// The library itself: sets, folders, tombstones. Large - it carries every
-    /// picture as base64 - so it is rewritten only when one of those changed.
+    /// The library itself: sets, folders, tombstones. Its pictures are
+    /// references to files in `pictures`' folder (audit row 17); it is still
+    /// rewritten only when one of those changed.
     private let fileURL: URL
+    /// The library's pictures on disk: packed into references as the file is
+    /// written, filled back in as it is read. In memory a set keeps base64.
+    private let pictures: LibraryPictures
     /// Everything about how the studying is going: resume positions, flags,
     /// the answer history and log, mistake reasons, the rule sheet. Small, and
     /// written on its own, so recording an answer never re-encodes the library.
@@ -142,13 +146,19 @@ final class Store: ObservableObject {
     /// and `loaded` turns true once they are - for the app's own library.
     /// Otherwise they are read before init returns (a screenshot run's or a
     /// preview's throwaway store, which is used straight away).
-    init(fileURL: URL? = nil, inBackground: Bool = false) {
+    ///
+    /// `pictures`: where the library's pictures go; by default the picture
+    /// cache for the app's own library, and a folder beside any other
+    /// (LibraryPictures.folder).
+    init(fileURL: URL? = nil, inBackground: Bool = false, pictures: URL? = nil) {
         if let fileURL {
             self.fileURL = fileURL
         } else {
             let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             self.fileURL = dir.appendingPathComponent("redpen-library.json")
         }
+        let support: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        self.pictures = LibraryPictures(folder: pictures ?? LibraryPictures.folder(forLibrary: fileURL, support: support))
         self.studyURL = self.fileURL.deletingLastPathComponent()
             .appendingPathComponent(self.fileURL.deletingPathExtension().lastPathComponent + "-progress.json")
         if inBackground {
@@ -172,7 +182,7 @@ final class Store: ObservableObject {
 
     /// Reads both files now, on the calling thread.
     func load() {
-        finishReading(Self.readFiles(library: fileURL, study: studyURL), atLaunch: true)
+        finishReading(Self.readFiles(library: fileURL, study: studyURL, pictures: pictures), atLaunch: true)
     }
 
     /// What reading the two files found, worked out away from the store (off
@@ -186,8 +196,9 @@ final class Store: ObservableObject {
         /// or had sets that could not even be kept as text.
         var readWhole = true
         var unreadable: Set<URL> = []
-        /// Sets taken back from the held text, or skipped sets now kept: the
-        /// library file is written again straight away.
+        /// Sets taken back from the held text, skipped sets now kept, or
+        /// pictures still inline (before audit row 17): the library file is
+        /// written again straight away.
         var rewrite = false
         /// The progress came out of an old library file (before the split).
         var migrated = false
@@ -195,7 +206,8 @@ final class Store: ObservableObject {
 
     /// Reads and decodes both files. Touches nothing of the store's, so it can
     /// run on any thread.
-    nonisolated private static func readFiles(library fileURL: URL, study studyURL: URL) -> FilesRead {
+    nonisolated private static func readFiles(library fileURL: URL, study studyURL: URL,
+                                              pictures: LibraryPictures) -> FilesRead {
         var found = FilesRead()
         var libraryData: Data?
         if let data = try? Data(contentsOf: fileURL) {
@@ -227,6 +239,14 @@ final class Store: ObservableObject {
                     found.rewrite = found.rewrite || kept.count == file.skippedAt.count
                     if kept.count != file.skippedAt.count { found.readWhole = false }
                     setAside(fileURL, as: "library-partly-unreadable", once: true)
+                }
+                // pictures inline, as every file before audit row 17 has
+                // them: written again at once, as references
+                if !found.rewrite, sets.contains(where: { LibraryPictures.needsPacking($0.images) }) {
+                    found.rewrite = true
+                }
+                for index in sets.indices where sets[index].images.contains(where: BlobRefs.isRef) {
+                    sets[index].images = pictures.fill(sets[index].images, of: sets[index].id)
                 }
                 found.file = (sets, file.folders, file.tombstones ?? [:], unread)
             } else {
@@ -266,8 +286,9 @@ final class Store: ObservableObject {
         reading = true
         let fileURL: URL = fileURL
         let studyURL: URL = studyURL
+        let pictures: LibraryPictures = pictures
         Task.detached(priority: .userInitiated) { [weak self] in
-            let found: FilesRead = Store.readFiles(library: fileURL, study: studyURL)
+            let found: FilesRead = Store.readFiles(library: fileURL, study: studyURL, pictures: pictures)
             await self?.finishReading(found, atLaunch: atLaunch)
         }
     }
@@ -353,12 +374,6 @@ final class Store: ObservableObject {
                 readWaiters.append(done)
             }
         }
-    }
-
-    /// Pictures named by sets this version could not read, so a sweep of the
-    /// picture cache keeps them.
-    var heldPictureNames: Set<String> {
-        unreadSets.reduce(into: Set<String>()) { $0.formUnion(BlobRefs.names(mentionedIn: $1)) }
     }
 
     private func apply(_ study: StudyFile) {
@@ -535,7 +550,10 @@ final class Store: ObservableObject {
         if writeLibrary { libraryDirty = false }
         if writeStudy { studyDirty = false }
         writesInFlight += 1
-        let job = WriteJob(library: libraryFile, libraryURL: fileURL, study: studyFile, studyURL: studyURL)
+        // the picture folder is swept only on the word of a library read
+        // whole: one empty because it was not read refers to nothing
+        let job = WriteJob(library: libraryFile, libraryURL: fileURL, study: studyFile, studyURL: studyURL,
+                           pictures: pictures, maySweep: readWhole && unreadable.isEmpty)
         #if canImport(UIKit)
         // a write started just before the app is backgrounded still finishes
         let taskID = UIApplication.shared.beginBackgroundTask(withName: "Saving library", expirationHandler: nil)
@@ -957,12 +975,17 @@ private struct Lossy<T: Decodable>: Decodable {
 }
 
 /// One write, carried to the write queue: the parts that changed, already
-/// copied, and where they go. Only value types, so it is safe to hand over.
+/// copied, and where they go. Value types, and the store's LibraryPictures,
+/// which locks for itself, so it is safe to hand over.
 private struct WriteJob: @unchecked Sendable {
     var library: LibraryFile?
     var libraryURL: URL
     var study: StudyFile?
     var studyURL: URL
+    var pictures: LibraryPictures
+    /// The library was read whole and nothing is unreadable: the pictures
+    /// nothing refers to may be swept once this write lands.
+    var maySweep: Bool
 
     /// Which files landed: nil for a file this job does not carry, false when
     /// encoding or the write failed (the disk is full, the file is protected).
@@ -970,12 +993,22 @@ private struct WriteJob: @unchecked Sendable {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         var landed: (library: Bool?, study: Bool?) = (nil, nil)
-        if let library {
+        if var library {
+            // each picture as a reference to its blob, written first if it
+            // is not on disk yet; the file never names a blob that is not
+            library.library = library.library.map { set in
+                guard !set.images.isEmpty else { return set }
+                var packed = set
+                packed.images = pictures.pack(set.images, of: set.id)
+                return packed
+            }
+            pictures.keepOnly(Set(library.library.map(\.id)))
             if let data = try? encoder.encode(library) {
                 landed.library = StoreFiles.write(data, to: libraryURL) == nil
             } else {
                 landed.library = false
             }
+            if landed.library == true && maySweep { sweepIfDue(after: library) }
         }
         if let study {
             if let data = try? encoder.encode(study) {
@@ -985,6 +1018,26 @@ private struct WriteJob: @unchecked Sendable {
             }
         }
         return landed
+    }
+
+    /// At most once a day, right after the library landed: drops the
+    /// pictures nothing refers to. Kept: every blob the file just written
+    /// names (a reference whose blob is missing too), those the sets this
+    /// version cannot read mention, those the library's recovery copies
+    /// mention, and any changed in the last day (SourceFiles.sweep's rule).
+    /// Here on the write queue, not on the main actor, so it never races a
+    /// write's packing.
+    private func sweepIfDue(after file: LibraryFile) {
+        guard pictures.sweepDue() else { return }
+        var live = Set<String>()
+        for set in file.library {
+            for image in set.images {
+                if let name = BlobRefs.hash(fromRef: image) { live.insert(name) }
+            }
+        }
+        for text in file.unread ?? [] { live.formUnion(BlobRefs.names(mentionedIn: text)) }
+        live.formUnion(pictures.mentions(inCopiesIn: libraryURL.deletingLastPathComponent()))
+        pictures.sweep(keeping: live)
     }
 }
 

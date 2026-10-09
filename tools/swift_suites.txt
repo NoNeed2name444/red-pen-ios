@@ -423,4 +423,8 @@ suite storeload StoreLoadTests.swift ios/RedPen/Persistence/Store.swift ios/RedP
       $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift $S/SoundKey.swift $S/PronunciationStore.swift \
       $S/OnDeviceLearning.swift $S/LectureTranscriber.swift $S/Brand.swift $S/BookPages.swift $S/BookFigures.swift \
       $S/CardQuality.swift $S/QuizFromCards.swift $S/ModeConversion.swift $S/Reasoning/ReasoningModels.swift \
-      $S/LLM/LLMCore.swift $S/ExamTrack.swift $S/RecoveryFiles.swift
+      $S/LLM/LLMCore.swift $S/ExamTrack.swift $S/RecoveryFiles.swift $S/LibraryPictures.swift
+# the library's pictures on disk (audit row 17): packed into references as the
+# file is written, filled back in as it is read, swept when nothing refers to
+# them, and named by the same SHA-256 on Linux (plain Swift) as with CryptoKit
+suite pictures LibraryPicturesTests.swift $S/LibraryPictures.swift $S/BlobRefs.swift $S/RecoveryFiles.swift
