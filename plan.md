@@ -502,11 +502,11 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       commit on 9 Oct at about 4:55 AM. Server and plan only, so it
       started no App build and left personal's running one (step 9's
       port, 37870387509) alone.
-    - [ ] The app's own words for it, with the next batch of ios/ work (it
+    - [x] The app's own words for it, with the next batch of ios/ work (it
       starts a Mac run): AccuracyAssessment.holdReason("direction"), "Says
       the other way from its own lecture.", and "direction" in claimHolds'
-      doc (AccuracyLedger.swift). Until then the app reads it as "Differs
-      from its own lecture.", which is true.
+      doc (AccuracyLedger.swift). Done with step 13's push on
+      design/map-lighter; the accuracy suite checks the words.
     - Live only after a Worker deploy, which needs the owner's word.
 11. [ ] Chat-me (needs push access there, which this session was refused;
     don't retry, it's the owner's to grant): port the 50-claim benchmark
