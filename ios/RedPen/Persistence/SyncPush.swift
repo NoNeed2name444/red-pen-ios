@@ -21,6 +21,15 @@ extension SyncEngine {
         var stamps: [String: Date] = [:]
     }
 
+    /// One deck's schedule as a pass packed it: the records, and the hash of
+    /// the document they made. The same records always make the same bytes,
+    /// so while they and the server's hash still match there is nothing to
+    /// send, and nothing worth encoding to find that out.
+    struct PackedSchedule {
+        var records: [UUID: ReviewRecord]
+        var hash: String
+    }
+
     // MARK: pushing
 
     func push(_ run: Run) async throws {
@@ -67,7 +76,7 @@ extension SyncEngine {
                 record(result, sent: batch, stamps: outgoing.stamps)
                 conflicts += result.conflicts
                 resting = result.resting == true
-                guard await store.flushed() else { throw LibraryNotSaved() }
+                guard await savedHere() else { throw LibraryNotSaved() }
                 await bookmarks.commit()
             }
             guard !conflicts.isEmpty else { break }
@@ -119,6 +128,7 @@ extension SyncEngine {
         var out = Outgoing()
         let state = bookmarks.state
         let now = Date()
+        var schedules: [UUID: PackedSchedule] = [:]
         // a document the server refused last time, unchanged since, is not
         // offered again yet (SyncRules.stillRefused)
         func offer(_ doc: inout SyncDoc) -> Bool {
@@ -162,12 +172,21 @@ extension SyncEngine {
                     bookmarks.update { $0.stamps[id] = set.updatedAt }
                 }
             }
-            if var review = (try? SyncDocuments.reviewDocument(forSet: set,
-                                                               records: reviews.records)) ?? nil,
-               offer(&review) {
-                out.docs.append(review)
+            // The schedule: every rating re-encoded and hashed for every deck
+            // on every pass would cost seconds on a big library, so a deck
+            // whose records the server already holds is left as it is.
+            let held = SyncDocuments.reviewRecords(forSet: set, records: reviews.records)
+            let reviewID = SyncDocuments.reviewDocID(forSet: set.id)
+            if let packed = packedSchedules[set.id], packed.records == held,
+               packed.hash == state.mark(reviewID)?.contentHash {
+                schedules[set.id] = packed
+            } else if var review = (try? SyncDocuments.reviewDocument(forSet: set.id, holding: held)) ?? nil {
+                schedules[set.id] = PackedSchedule(records: held, hash: SyncMerge.hash(review))
+                if offer(&review) { out.docs.append(review) }
             }
         }
+        // only the decks still here, so a deleted one's records do not linger
+        packedSchedules = schedules
         for folder in store.folders where !state.heldBack.contains(folder.id.uuidString) {
             guard var doc = try? SyncDocuments.document(for: folder) else { continue }
             if offer(&doc) { out.docs.append(doc) }

@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 8:04 AM Cairo.
+Last updated: 2026-10-09, 8:30 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -42,7 +42,7 @@ Last updated: 2026-10-09, 8:04 AM Cairo.
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/launch-gaps | GAP 2, GAP 1, GAP 3 and Row 4 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
+| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18 and Row 91 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -684,10 +684,27 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       refused clear keeps what Spotlight holds counted, so the next update
       with the toggle off asks again; both are recorded as failure reports
       (app area). Compiled by the mac App build.
-    - [ ] Row 18: review writes batched and flushed when the app leaves
-      the foreground; each deck's review document kept between pushes.
-    - [ ] Row 91: the accuracy ledger seeded from the cloud generation
-      verdicts (Shared/LLM/CloudJobs.swift).
+    - [x] Row 18: the schedule (Persistence/ReviewStore.swift) is written
+      a second after the last rating, encoded off the main thread, and
+      flushed when the app leaves the foreground. A schedule that could not
+      be read at launch (a prewarm before the first unlock) is never
+      written over; it is read again once the app is in front and merged
+      with anything taken in meanwhile. Sync waits for the schedule as well
+      as the library before any bookmark (SyncEngine.savedHere), and skips
+      encoding and hashing a deck whose records the server already holds
+      (SyncEngine.packedSchedules; the payload's bytes unchanged, checked
+      on Linux against the old packing). The library's write failure now
+      reaches the failure reports under a key (library.write_failed) rather
+      than "unknown". Compiled by the mac App build.
+    - [x] Row 91 no longer applies: there are no cloud generation verdicts
+      left to seed the accuracy ledger from. Since the verification layer
+      (1 Oct) the app's job spec carries no check (Shared/LLM/CloudJobs.swift,
+      Spec); the server runs the checker only for a job that asks for one
+      (server/jobs.js), which only builds from before then do, and nothing
+      but the citations reads those replies. One checker's reply could not
+      count in the ledger anyway: it saw the key, and a question counts as
+      checked only on two or more blind votes, from three model families,
+      with a source proof (AccuracyLedger.isChecked).
     - [ ] Row 1: the library decoded off the main thread at launch, with
       no write before it has loaded.
     - [ ] Row 17: library pictures as blob references, with a migration.

@@ -345,7 +345,7 @@ final class Store: ObservableObject {
             if !landed { studyDirty = true }
         }
         if landedLibrary == false || landedStudy == false {
-            Diagnostics.record(.error, area: .app, message: "The library could not be written")
+            Diagnostics.record(.error, area: .app, message: "library.write_failed")
         }
         if writesInFlight == 0 {
             let waiting = flushWaiters

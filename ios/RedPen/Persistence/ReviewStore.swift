@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Only decks of cards have a schedule; a textbook or a transcript answers with
 /// nothing, which is what keeps them out of the day's queue.
@@ -15,8 +18,9 @@ extension StudySet: ReviewDeck {
 /// snapshot. The library carries every set's images as base64 inside its JSON,
 /// so it can run to tens of megabytes; rewriting all of it every time a card is
 /// rated - four times a second, in a fast review - would make the rating
-/// buttons stutter. This file holds a date and two counters per card and stays
-/// a few kilobytes however big the library gets.
+/// buttons stutter. This file holds a few dates and counters per card, and is
+/// written a moment after the last change, off the main thread, so a run of
+/// ratings is one write.
 ///
 /// The decisions are all in ReviewPlan, which is pure and tested. This only
 /// remembers them.
@@ -28,6 +32,31 @@ final class ReviewStore: ObservableObject {
     private(set) var changeCount = 0
 
     private let fileURL: URL
+    /// The file was there at launch and could not be read: a launch before
+    /// the first unlock after a restart (iOS prewarms the app) finds it still
+    /// protected. That is not an empty schedule, so nothing is written over
+    /// it until `reloadIfUnread()` has read it.
+    private(set) var unreadable = false
+    /// A change not yet handed to a write.
+    private var dirty = false
+    /// Whether the last write failed (the disk is full, the file is
+    /// protected): the change stays dirty, to be written again, and
+    /// `flushed()` says so, so sync records nothing as safely here.
+    private var writeFailed = false
+    private var writesInFlight = 0
+    private var flushWaiters: [CheckedContinuation<Void, Never>] = []
+    /// The delayed write waiting to run, if any.
+    private var pendingWrite: Task<Void, Never>?
+    /// Set up with the first change rather than at init: a store opened only
+    /// to read the schedule (an export from Shortcuts) never writes.
+    private var lifecycleObservers: [NSObjectProtocol] = []
+
+    /// Encoding and writing happen here, off the main thread, one at a time
+    /// and in order, so a later write can never land before an earlier one.
+    private static let writeQueue = DispatchQueue(label: "redpen.reviews.write", qos: .utility)
+    /// How long a change waits for more before the schedule is written: a
+    /// fast review rates a card or two a second.
+    private static let saveDelayNanoseconds: UInt64 = 1_000_000_000
 
     init(fileURL: URL? = nil) {
         if let fileURL {
@@ -40,7 +69,20 @@ final class ReviewStore: ObservableObject {
     }
 
     func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }
+        let data: Data
+        switch StoreFiles.read(fileURL) {
+        case .data(let read):
+            data = read
+        case .missing:
+            unreadable = false
+            return
+        case .unreadable:
+            unreadable = true
+            // read again once the app is in front, the device unlocked
+            observeLifecycle()
+            return
+        }
+        unreadable = false
         // card by card: a record this version cannot read costs only itself,
         // not the whole schedule
         guard let read = RecoveryFiles.records(ReviewRecord.self, from: data, decoder: .redPen) else {
@@ -53,9 +95,124 @@ final class ReviewStore: ObservableObject {
         records = read.values
     }
 
+    /// Reads again a schedule that could not be read at launch, once the app
+    /// is in front (the device is unlocked by then). Anything taken in
+    /// meanwhile (a sync that ran first) is merged into what is read, card by
+    /// card, so neither is lost.
+    func reloadIfUnread() {
+        guard unreadable else { return }
+        let here: [UUID: ReviewRecord] = records
+        load()
+        guard !unreadable else { return }
+        merge(here)
+    }
+
     private func save() {
-        guard let data = try? JSONEncoder.redPen.encode(records) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+        dirty = true
+        observeLifecycle()
+        guard pendingWrite == nil else { return }
+        pendingWrite = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: ReviewStore.saveDelayNanoseconds)
+            guard !Task.isCancelled, let self else { return }
+            self.pendingWrite = nil
+            self.write()
+        }
+    }
+
+    /// Writes anything outstanding now: for the moment the app leaves the
+    /// foreground, and for sync (`flushed()`).
+    ///
+    /// `wait` blocks until the bytes are on disk - only for the app being
+    /// ended, when nothing queued would get the chance to run.
+    func flush(wait: Bool = false) {
+        pendingWrite?.cancel()
+        pendingWrite = nil
+        write()
+        if wait { Self.writeQueue.sync {} }
+    }
+
+    /// Writes anything outstanding and returns once it is on disk, without
+    /// holding the main thread while it is written. Sync waits for it before
+    /// a bookmark says a merged schedule is safely here.
+    ///
+    /// False when the schedule is not on disk: its write failed, or it could
+    /// not be read at launch and nothing is written over it.
+    @discardableResult
+    func flushed() async -> Bool {
+        flush()
+        if writesInFlight > 0 {
+            await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+                flushWaiters.append(done)
+            }
+        }
+        return !writeFailed && !unreadable
+    }
+
+    /// Takes a copy of the schedule (cheap: it is a value) and encodes and
+    /// writes it on the write queue.
+    private func write() {
+        guard dirty, !unreadable else { return }
+        dirty = false
+        writesInFlight += 1
+        let job = ReviewWriteJob(records: records, url: fileURL)
+        #if canImport(UIKit)
+        // a write started just before the app is backgrounded still finishes
+        let taskID = UIApplication.shared.beginBackgroundTask(withName: "Saving reviews", expirationHandler: nil)
+        Self.writeQueue.async { [weak self] in
+            let landed = job.run()
+            Task { @MainActor in
+                self?.writeFinished(landed)
+                if taskID != .invalid { UIApplication.shared.endBackgroundTask(taskID) }
+            }
+        }
+        #else
+        Self.writeQueue.async { [weak self] in
+            let landed = job.run()
+            Task { @MainActor in
+                self?.writeFinished(landed)
+            }
+        }
+        #endif
+    }
+
+    /// Back on the main actor after a write: a schedule that did not land is
+    /// dirty again, and whoever waits in `flushed()` is let go.
+    private func writeFinished(_ landed: Bool) {
+        writesInFlight -= 1
+        writeFailed = !landed
+        if !landed {
+            dirty = true
+            Diagnostics.record(.error, area: .app, message: "reviews.write_failed")
+        }
+        if writesInFlight == 0 {
+            let waiting = flushWaiters
+            flushWaiters = []
+            for done in waiting { done.resume() }
+        }
+    }
+
+    /// Writes anything outstanding when the app leaves the foreground, where
+    /// it may be suspended or ended before a delayed write would run; and
+    /// reads again a schedule that was still protected at launch, once the
+    /// app is in front.
+    private func observeLifecycle() {
+        #if canImport(UIKit)
+        guard lifecycleObservers.isEmpty else { return }
+        let names: [Notification.Name] = [UIApplication.didEnterBackgroundNotification,
+                                          UIApplication.willTerminateNotification]
+        for name in names {
+            let ending = name == UIApplication.willTerminateNotification
+            let token = NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.flush(wait: ending) }
+            }
+            lifecycleObservers.append(token)
+        }
+        let active = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification,
+                                                            object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.reloadIfUnread() }
+        }
+        lifecycleObservers.append(active)
+        #endif
     }
 
     // MARK: what the review screens ask for
@@ -236,5 +393,22 @@ final class ReviewStore: ObservableObject {
         guard kept.count != records.count else { return }
         records = kept
         save()
+    }
+}
+
+/// One write of the schedule, carried to the write queue: a copy of the
+/// records and where they go. Only values, so it is safe to hand over.
+private struct ReviewWriteJob: @unchecked Sendable {
+    var records: [UUID: ReviewRecord]
+    var url: URL
+
+    /// Whether it landed: false when encoding or the write failed (the disk
+    /// is full, the file is protected).
+    func run() -> Bool {
+        // an encoder of its own, not the shared one, as the library's write does
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(records) else { return false }
+        return StoreFiles.write(data, to: url) == nil
     }
 }

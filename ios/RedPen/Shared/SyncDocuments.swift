@@ -45,18 +45,39 @@ enum SyncDocuments {
     /// card deleted from it stops being synced with it.
     static func reviewDocument(forSet set: StudySet,
                                records: [UUID: ReviewRecord]) throws -> SyncDoc? {
-        var mine: [String: ReviewRecord] = [:]
+        try reviewDocument(forSet: set.id, holding: reviewRecords(forSet: set, records: records))
+    }
+
+    /// The records of the cards one deck holds - what its schedule document
+    /// carries. Cheap next to packing them, so sync can tell a deck whose
+    /// schedule has not changed without encoding it again.
+    static func reviewRecords(forSet set: StudySet,
+                              records: [UUID: ReviewRecord]) -> [UUID: ReviewRecord] {
+        var mine: [UUID: ReviewRecord] = [:]
         for card in set.cards {
-            if let record = records[card.id] { mine[card.id.uuidString] = record }
+            if let record = records[card.id] { mine[card.id] = record }
         }
+        return mine
+    }
+
+    /// One deck's schedule document, from the records it holds; nil when it
+    /// holds none.
+    static func reviewDocument(forSet id: UUID,
+                               holding mine: [UUID: ReviewRecord]) throws -> SyncDoc? {
         guard !mine.isEmpty else { return nil }
         // The document's own timestamp is the most recent rating in it, so a
         // deck nobody has touched does not keep looking newer every time the
         // app opens.
         let newest = mine.values.map(\.ratedAt).max() ?? Date()
-        return SyncDoc(id: reviewDocID(forSet: set.id), kind: .review, rev: 0,
+        // keyed by the card's id as text, as it always has been: a payload
+        // that changed shape would hash differently, and every deck would look
+        // edited to every device
+        var keyed: [String: ReviewRecord] = [:]
+        keyed.reserveCapacity(mine.count)
+        for (card, record) in mine { keyed[card.uuidString] = record }
+        return SyncDoc(id: reviewDocID(forSet: id), kind: .review, rev: 0,
                        updatedAt: newest, deleted: false,
-                       payload: try JSONEncoder.sync.encode(mine))
+                       payload: try JSONEncoder.sync.encode(keyed))
     }
 
     static func tombstone(_ id: UUID, kind: SyncKind, at when: Date) -> SyncDoc {
