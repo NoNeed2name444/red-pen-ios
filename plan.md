@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 3:40 AM Cairo.
+Last updated: 2026-10-09, 4:00 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -40,6 +40,7 @@ Last updated: 2026-10-09, 3:40 AM Cairo.
 | preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | the same as wip (M3 joined on 9 Oct at about 3:40 AM; before it, 3827785) | personal is the working branch; keep session branches equal to it |
+| design/port-prework | 67f4714 plus the port (section 3, step 9) | the three fixes found only on design/prework-20261006; fast-forward personal to it once its CI and personal's App build are done |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -235,7 +236,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
 6a. [x] Redraw the cells after the owner's reference: purple-magenta
    somas, golden-amber dendrites, ringed orbs joined by threads. Rejected
    by the owner (8 Oct, 6 PM): they want only the circled close-up.
-6b. [ ] Redraw the cell after the circled close-up (section 4, "The look"):
+6b. [x] Redraw the cell after the circled close-up (section 4, "The look"):
    glass soma, deep-violet nucleus with a bright star, golden filament
    light, glass dendrites with golden light, beaded glass axon with a
    golden bouton, far blurred blue neurons and gold and blue bokeh behind.
@@ -264,7 +265,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      owner drew two lines: Groin hernia to Atrial fibrillation.
    - [x] App build on design/ (37815149897, green) and round B shots
      (only=testNeurons, run 37815161808), sent.
-6c. [ ] One surface per cell, and links as dendrites joining two cells (the
+6c. [x] One surface per cell, and links as dendrites joining two cells (the
    owner, 8 Oct, 8:35 PM; section 4).
    - [x] #14, the soma and its dendrites as one closed mesh
      (GraphNeuronMembrane): the zero set of one distance field (the soma
@@ -415,6 +416,35 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
+9. [ ] Port the three real fixes the branch sweep (section 5, #7) found
+   only on design/prework-20261006, on design/port-prework (from 67f4714):
+   - [x] The question bank's check in batches of four (from 696192f02):
+     pipeline.mjs sent eight candidates per /accuracy/check, which
+     server/accuracy.js refuses past BATCH = 4 (400), so every pilot
+     candidate came back "not checked". The bank test now holds it to
+     BATCH, with nine candidates (4, 4, 1), and a failed middle batch
+     leaves the rest checked.
+   - [x] The voice cache (after a0b70fb00, done differently): a line kept
+     from MeloTTS used to cost one of the day's lines each time it played,
+     and past TTS_DAILY_LIMIT it was refused though it costs nothing. Now
+     it gives that line back, and plays after the day's lines run out.
+     Aura-2 still comes first (the prework played a kept MeloTTS line
+     before trying Aura-2, so a line once read by MeloTTS could never move
+     up to Aura-2). server/tests/tts.test.mjs: five of the new checks fail
+     on the old code. Live only after a Worker deploy, which needs the
+     owner's word.
+   - [x] Commute mode's answers into history (from 7b32b0640): an MCQ
+     answered by voice in commute mode moved the review schedule but never
+     reached Store.recordAnswer, so streaks, weak spots and the stats
+     missed it. CommuteSession keeps a weak reference to the store and
+     records each answer as the board does.
+   - [ ] Preflight, push design/port-prework, CI green (the App build
+     there only compiles), then fast-forward personal and
+     claude/new-session-013tes5v to it once personal's own App build on
+     67f4714 (step 7) is done. Not ported: INT-PREVIEW (the shots
+     branches keep only the latest run, by design) and the rest of that
+     branch (another agent's prework/medical-assistant scaffold, PARTIAL
+     or BLOCKED by its own notes).
 
 ## 4. M3: the Neurons rebuild
 
@@ -825,8 +855,23 @@ follows is the brief as it stood.
 - #7, sweep all four repos and every branch for missed work: the extra
   repos are done, and their ports went to design/port-transcription,
   design/port-content-quality, design/port-ocr-sources and
-  design/port-asr-bench. Still to check: red-pen-ios's branches, Chat-me and
-  the gaps.
+  design/port-asr-bench. red-pen-ios's branches were swept on 9 Oct (the
+  GitHub compare API against personal; local counts mislead, because the
+  clone is shallow):
+  - in personal: every gaps/* and wip/* lane, design/lanes-*,
+    merge/lanes-ui and the design/port-* branches;
+  - aahp/*: another session's (aahp/personal 13 ahead, aahp/red-pen is
+    main plus one). Leave them alone;
+  - main (8 ahead): the 23 Sep workflow_dispatch entries, which run on
+    personal; on main by design. claude/new-session-eskvv8 holds only
+    those and merges;
+  - cursor/neuron-circuit-perf-d39a (6) and cursor/ideas-map-quality-40a2
+    (4): Cursor's 3D, dropped (#18). design/codex-fixes (3): never merge;
+  - design/prework-20261006 (22): Cursor's 6, 696192f02 and 15
+    "pre-work:" commits from another agent's 6 to 7 Oct run, mostly a
+    separate scaffold under prework/medical-assistant/. Its three real
+    fixes are section 3, step 9.
+  Still to check: Chat-me's branches.
 - #8, the owner's design targets (docs/design/targets-2026-10-01.md): V1 to
   V3 and V6 are done. V4 is #17 (above), V5 is #18.
 - #18, V5, the 3D map from the owner's boards and Chat-me plan §3d: M1 to M3
@@ -842,11 +887,12 @@ follows is the brief as it stood.
   > review and merge the gaps and wip branches and merge cleanups
 
   The owner keeps Chat-me 28bdcf3 and transcribe 7e2ae3a. design/cleanup-2
-  is merged (e094da0). Left: review and merge the gaps/* and wip/* lanes.
-  perf-core-backup and neuron-circuit-redesign are recorded (5360fb1,
-  ac66667); a11y, l10n and audio are on design/lanes-ui; growth-p0-1 and
-  growth-p0-2a are on design/lanes-growth. wip/3d-neurons-m3 is M3's own
-  branch, not one of these lanes.
+  is merged (e094da0). Done for red-pen-ios: every gaps/* and wip/* lane
+  is in personal (the 9 Oct sweep, #7). perf-core-backup and
+  neuron-circuit-redesign are recorded (5360fb1, ac66667); a11y, l10n and
+  audio came through design/lanes-ui; growth-p0-1 and growth-p0-2a through
+  design/lanes-growth; wip/3d-neurons-m3, M3's own branch, joined on 9 Oct
+  (67f4714).
 - #26, VT3, the verification layer to 99.999% on what it commits to:
 
   > i didn't say 99.999% just by them agreeing i meant they need to be PROVEN 99.999% right
