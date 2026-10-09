@@ -20,8 +20,10 @@ struct TagChipsField: View {
                 ChipFlow(spacing: 8) {
                     ForEach(tags, id: \.self) { tag in
                         chip(tag)
+                            .transition(.identity)
                     }
                 }
+                .transition(.identity)
             }
             HStack(spacing: 8) {
                 Image(systemName: "tag")
@@ -57,6 +59,7 @@ struct TagChipsField: View {
                             }
                             .buttonStyle(WardChipButtonStyle())
                             .accessibilityLabel("Add tag \(tag)")
+                            .transition(.identity)
                         }
                     }
                     // room inside the scroll view for the chips' lights,
@@ -65,6 +68,7 @@ struct TagChipsField: View {
                     .padding(.vertical, 6)
                 }
                 .padding(.horizontal, -6)
+                .transition(.identity)
             }
         }
     }

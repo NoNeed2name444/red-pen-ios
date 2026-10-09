@@ -341,7 +341,7 @@ struct WardCalcView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .frame(maxWidth: 110)
-                .wardInset(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .wardInset(in: RoundedRectangle(cornerRadius: 10, style: .continuous), control: true)
                 .focused($focused, equals: field.id)
                 .accessibilityLabel(spoken)
             if !unitName.isEmpty {
@@ -514,6 +514,7 @@ struct WardScoreView: View {
             if on {
                 Spacer(minLength: 0)
                 Image(systemName: "checkmark").font(.subheadline.weight(.bold)).accessibilityHidden(true)
+                    .transition(.identity)
             }
         }
         .foregroundStyle(on ? Color.wardPrimaryInk : Color.wardInk)
@@ -540,10 +541,12 @@ private struct WardScoreTotal: View {
                 Text(band?.title ?? "")
                     .font(.headline)
                     .foregroundStyle(Color.wardInk)
+                    .contentTransition(.identity)
                 Text(band?.detail ?? "")
                     .font(.caption)
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(3)
+                    .contentTransition(.identity)
             }
             Spacer(minLength: 0)
         }

@@ -296,6 +296,7 @@ struct NewSetView: View {
                 Text(step.question)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Color.wardInk)
+                    .contentTransition(.identity)
                     .accessibilityAddTraits(.isHeader)
             }
         }
@@ -311,8 +312,10 @@ struct NewSetView: View {
                 .fill(Color.wardPrimaryInk)
                 .frame(height: 2)
                 .accessibilityHidden(true)
+                .transition(.identity)
         } else {
             WardEtch()
+                .transition(.identity)
         }
     }
 
@@ -328,8 +331,10 @@ struct NewSetView: View {
                 // the step being written stays in sight until it is done
                 .disabled(generation.job != nil)
                 .accessibilityLabel(spoken)
+                .transition(.identity)
         } else {
             dot
+                .transition(.identity)
         }
     }
 
@@ -472,6 +477,7 @@ struct NewSetView: View {
                 Image(systemName: mark)
                     .font(.title3)
                     .foregroundStyle(markInk)
+                    .contentTransition(.identity)
                     .accessibilityHidden(true)
             }
             .padding(16)

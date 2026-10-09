@@ -209,7 +209,7 @@ extension View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return padding(insets)
             .frame(minHeight: 44)
-            .wardInset(in: shape)
+            .wardInset(in: shape, control: true)
     }
 
     /// popField as a Form row of its own: the row's own background goes, so
@@ -228,7 +228,7 @@ extension View {
             .padding(.horizontal, 7)
             .padding(.vertical, 3)
             .frame(minHeight: 44)
-            .wardInset(in: shape)
+            .wardInset(in: shape, control: true)
     }
 
     /// popEditor as a Form row of its own.

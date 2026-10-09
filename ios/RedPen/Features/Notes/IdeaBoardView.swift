@@ -220,7 +220,7 @@ struct IdeaBoardView: View {
             }
         }
         .overlay {
-            if chosen { shape.strokeBorder(Color.wardPrimaryInk, lineWidth: 2) }
+            if chosen { shape.strokeBorder(Color.wardPrimaryInk, lineWidth: 2).transition(.identity) }
         }
         .scaleEffect(grow)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: lifted)

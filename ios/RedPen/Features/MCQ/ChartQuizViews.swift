@@ -54,8 +54,10 @@ struct WardOptionRow: View {
                 if noColour {
                     Text(mark == .right ? "Right" : "Your pick")
                         .font(.caption.weight(.semibold)).foregroundStyle(letterInk).accessibilityHidden(true)
+                        .transition(.identity)
                 }
                 Image(systemName: symbol).font(.title3.weight(.semibold)).foregroundStyle(letterInk).accessibilityHidden(true)
+                    .transition(.identity)
             }
         }
         .padding(.horizontal, 18)
@@ -63,7 +65,7 @@ struct WardOptionRow: View {
         .frame(minHeight: 56)
         .wardRelief(in: shape, lift: ChartQuiz.liesLow(struck: struck, mark: mark) ? .low : .mid, pressed: tone != nil)
         // Differentiate Without Colour: the chosen one also ringed
-        .overlay { if noColour && mark == .chosen { shape.strokeBorder(letterInk, lineWidth: 3) } }
+        .overlay { if noColour && mark == .chosen { shape.strokeBorder(letterInk, lineWidth: 3).transition(.identity) } }
     }
 }
 

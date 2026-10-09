@@ -50,27 +50,29 @@ struct WardHoldsControl: PreferenceKey {
 }
 
 /// Controls soften the base-colour face and active lights together as they glide
-/// into the page; labels stay sharp, as does the Increase Contrast edge.
+/// into the page; labels stay sharp, as does the ink edge. A face that only
+/// shows a choice (an icon tile) passes `control: false` and has no edge.
 struct WardPressFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
     var pressed: Bool
     var fill = AnyShapeStyle(Color.wardSurface)
+    var control = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0,
-                        fill: fill, dark: scheme == .dark, strong: contrast == .increased)
+        WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill,
+                        dark: scheme == .dark, strong: contrast == .increased, control: control)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .preference(key: WardHoldsControl.self, value: true)
     }
 }
 
 extension WardPressFace {
-    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color) {
-        self.init(shape: shape, lift: lift, pressed: pressed, fill: AnyShapeStyle(fill))
+    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color, control: Bool = true) {
+        self.init(shape: shape, lift: lift, pressed: pressed, fill: AnyShapeStyle(fill), control: control)
     }
 }
 
@@ -81,6 +83,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     let fill: AnyShapeStyle
     let dark: Bool
     let strong: Bool
+    let control: Bool
 
     var animatableData: Double {
         get { depth }
@@ -88,7 +91,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     }
 
     var body: some View {
-        let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong)
+        let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong, control: control)
         ZStack {
             ZStack {
                 if spec.outerShade.lit {
@@ -122,15 +125,18 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
 
 /// A shape raised off the base or pressed into it. Raised, the two lights
 /// are two fills, the shade drawn over the highlight, so neither shadows the
-/// other; the face is one layer, so a fade fades it whole. Increase Contrast
-/// deepens the shade and adds an ink edge. Flat containers keep only the fill
-/// and that contrast edge, so their controls stand just one level high.
+/// other; the face is one layer. A control's face (`control`: a tile to tap,
+/// a field, a switch's track) has a 1-pt ink edge at 3:1 or more on the
+/// base; a card's or a slab's has one only under Increase Contrast, which
+/// also deepens the shade. Flat containers keep only the fill (and that
+/// edge), so their controls stand just one level high.
 struct WardReliefFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
     var inset = false
     var flat = false
     var fill = AnyShapeStyle(Color.wardSurface)
+    var control = false
 
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -138,8 +144,8 @@ struct WardReliefFace<S: InsettableShape>: View {
     var body: some View {
         let dark: Bool = scheme == .dark
         let strong: Bool = contrast == .increased
-        let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong)
-                                         : WardRelief.raised(lift, dark: dark, highContrast: strong)
+        let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong, control: control)
+                                         : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
         ZStack {
             if flat {
                 shape.fill(fill)
@@ -160,8 +166,9 @@ struct WardReliefFace<S: InsettableShape>: View {
 }
 
 extension WardReliefFace {
-    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color) {
-        self.init(shape: shape, lift: lift, inset: inset, flat: flat, fill: AnyShapeStyle(fill))
+    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color,
+         control: Bool = false) {
+        self.init(shape: shape, lift: lift, inset: inset, flat: flat, fill: AnyShapeStyle(fill), control: control)
     }
 }
 
@@ -195,31 +202,101 @@ struct WardPaperFrame: View {
             frame.addPath(hole)
             context.drawLayer { layer in
                 layer.clip(to: frame, style: FillStyle(eoFill: true))
-                layer.fill(Path(rect), with: .color(.wardBackground))
-                func drawLine(_ line: Path, bold: Bool) {
-                    if ink.fine > 0 {
-                        layer.fill(line, with: .color(color.opacity(ink.fine)))
-                    }
-                    if bold && ink.bold > 0 {
-                        layer.fill(line, with: .color(color.opacity(ink.bold)))
-                    }
-                }
-                if ink.fine > 0 || ink.bold > 0 {
-                    for line in WardPaper.lines(Double(size.width)) {
-                        drawLine(Path(CGRect(x: line.at, y: 0, width: WardPaper.line,
-                                             height: size.height)), bold: line.bold)
-                    }
-                    for line in WardPaper.lines(Double(size.height)) {
-                        drawLine(Path(CGRect(x: 0, y: line.at, width: size.width,
-                                             height: WardPaper.line)), bold: line.bold)
-                    }
-                }
+                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
             }
             context.stroke(hole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+extension WardPaperInk {
+    /// The base, then the frame's grid over `size`, for a canvas whose top
+    /// left corner sits at `origin` in the window, so its lines fall on the
+    /// frame's.
+    static func drawPaper(in context: inout GraphicsContext, size: CGSize, from origin: CGPoint,
+                          ink: WardPaperInk, color: Color) {
+        context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.wardBackground))
+        guard ink.fine > 0 || ink.bold > 0 else { return }
+        func drawLine(_ line: Path, bold: Bool) {
+            if ink.fine > 0 {
+                context.fill(line, with: .color(color.opacity(ink.fine)))
+            }
+            if bold && ink.bold > 0 {
+                context.fill(line, with: .color(color.opacity(ink.bold)))
+            }
+        }
+        for line in WardPaper.lines(Double(size.width), from: Double(origin.x)) {
+            drawLine(Path(CGRect(x: line.at, y: 0, width: WardPaper.line, height: size.height)),
+                     bold: line.bold)
+        }
+        for line in WardPaper.lines(Double(size.height), from: Double(origin.y)) {
+            drawLine(Path(CGRect(x: 0, y: line.at, width: size.width, height: WardPaper.line)),
+                     bold: line.bold)
+        }
+    }
+}
+
+/// ECG paper in a band from the top of the window down to `bottom` (window
+/// points), its lines on the frame's grid and in its ink, ending in a line
+/// in the frame's edge ink: the home page's header stands on it (the owner,
+/// 9 Oct: "the grid from upwards till under the stethoscore word"). Below
+/// `bottom` it draws nothing. Under Increase Contrast the ink has no grid,
+/// so the band is the plain base with its edge.
+struct WardPaperBand: View {
+    var bottom: CGFloat
+    var grid = true
+    var edge = true
+
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @State private var origin: CGPoint = .zero
+
+    var body: some View {
+        Canvas { context, size in
+            let height: CGFloat = min(size.height, bottom - origin.y)
+            guard height > 0 else { return }
+            var ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
+            if !grid { ink.fine = 0; ink.bold = 0 }
+            let (r, g, b) = WardPalette.rgb(ink.hex)
+            let color = Color(red: r, green: g, blue: b)
+            var band = context
+            band.clip(to: Path(CGRect(x: 0, y: 0, width: size.width, height: height)))
+            WardPaperInk.drawPaper(in: &band, size: CGSize(width: size.width, height: height),
+                                   from: origin, ink: ink, color: color)
+            if edge {
+                let w = CGFloat(WardPaper.edgeWidth)
+                context.fill(Path(CGRect(x: 0, y: height - w, width: size.width, height: w)),
+                             with: .color(color.opacity(ink.edge)))
+            }
+        }
+        .onGeometryChange(for: CGPoint.self) { $0.frame(in: .global).origin } action: { origin = $0 }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The bar area of a page, solid: from the top of the window down to the
+/// page's safe area, in the base colour, so what scrolls up passes under it
+/// and is cut there instead of fading under iOS's soft scroll edge (the
+/// owner, 9 Oct: no fading). The bars' own buttons and fields stay on top.
+struct WardMasthead: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .scrollEdgeEffectHidden(true, for: .top)
+            .overlay(alignment: .top) {
+                // nothing tall at the safe area's top, and from there up to
+                // the window's top the base
+                Color.clear
+                    .frame(height: 0)
+                    .background(alignment: .bottom) {
+                        Color.wardBackground.ignoresSafeArea(edges: .top)
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
     }
 }
 
@@ -262,10 +339,11 @@ struct MonitorCard<Content: View>: View {
     }
 }
 
-/// A List or Form row as a soft tile raised low off the base. A cell clips
-/// what it draws, so the tile keeps clear of the cell's edges by more than
-/// its lights reach and no cut shows; between rows that clearance is the gap
-/// soft tiles stand apart by. Pressed in, it marks the chosen row.
+/// A List or Form row as a soft tile raised low off the base, with a
+/// control's ink edge: a row is tapped. A cell clips what it draws, so the
+/// tile keeps clear of the cell's edges by more than its lights reach and no
+/// cut shows; between rows that clearance is the gap soft tiles stand apart
+/// by. Pressed in, it marks the chosen row.
 struct WardRowTile: View {
     var inset = false
 
@@ -281,23 +359,72 @@ struct WardRowTile: View {
 
     var body: some View {
         WardReliefFace(shape: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous),
-                       lift: .low, inset: inset)
+                       lift: .low, inset: inset, control: true)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
     }
 }
 
+/// The line where what scrolls is cut by a solid bar: the paper frame's edge
+/// ink across the panel, out to the frame's line on both sides, as the
+/// home's grid band ends. Without it a card cut there read as two things
+/// overlapping (the owner, 9 Oct: "some ui elements overlap").
+struct WardScrollEdgeLine: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
+        let (r, g, b) = WardPalette.rgb(ink.hex)
+        Rectangle()
+            .fill(Color(red: r, green: g, blue: b).opacity(ink.edge))
+            .frame(height: CGFloat(WardPaper.edgeWidth))
+            // the page sits sideInset in from the window (SkyRoot); the
+            // frame covers what runs on past its line
+            .padding(.horizontal, -WardPaper.sideInset)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The scroll edge's line along the top of what scrolls, once any of it has
+/// gone under what stands above it (the bar area, a study header); at rest
+/// at its top, no line.
+private struct WardScrollTopEdge: ViewModifier {
+    @State private var scrolled = false
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y + $0.contentInsets.top > 0.5 } action: { _, now in
+                scrolled = now
+            }
+            .overlay(alignment: .top) {
+                if scrolled { WardScrollEdgeLine().transition(.identity) }
+            }
+    }
+}
+
 extension View {
-    /// A solid strip under a bar: it hides and blocks the rows beneath, and
-    /// nothing fades. The room above the bar is for its lights (a `.high`
-    /// slab's reach about 20 pt). Hidden, it takes no room; shown or hidden,
-    /// the bar keeps its identity, so a fold never cross-fades it.
+    /// A line where what scrolls is cut at the top of its frame, once it
+    /// has scrolled (WardScrollEdgeLine). On the scroll view, or on what
+    /// holds it with nothing above it.
+    func wardScrollTopEdge() -> some View {
+        modifier(WardScrollTopEdge())
+    }
+
+    /// A solid strip under a bar, with the scroll edge's line along its top:
+    /// it hides and blocks the rows beneath, and nothing fades. The room
+    /// above the bar is for its lights (a raised `.high` slab's reach about
+    /// 20 pt; a flat one, or a row of buttons, casts nothing up). Hidden, it
+    /// takes no room; shown or hidden, the bar keeps its identity, so a fold
+    /// never cross-fades it.
     func wardBarBase(room: CGFloat = 24, shown: Bool = true) -> some View {
         self.padding(.top, shown ? room : 0)
             .background {
                 if shown {
                     Color.wardBackground
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
+                        .overlay(alignment: .top) { WardScrollEdgeLine() }
                         .transition(.identity)
                 }
             }
@@ -308,21 +435,29 @@ extension View {
     }
 
     /// Containers stand off the base unless they hold a Ward control; then
-    /// only the control is raised and the container keeps its fill and contrast edge.
-    func wardRaised<S: InsettableShape>(in shape: S, lift: WardLift = .mid, fill: Color = .wardSurface) -> some View {
+    /// only the control is raised and the container keeps its fill (and its
+    /// edge). `control` for a control's own body (a segmented control's
+    /// capsule): it takes the control's ink edge.
+    func wardRaised<S: InsettableShape>(in shape: S, lift: WardLift = .mid, fill: Color = .wardSurface,
+                                        control: Bool = false) -> some View {
         backgroundPreferenceValue(WardHoldsControl.self) { holdsControl in
-            WardReliefFace(shape: shape, lift: lift, flat: holdsControl, fill: fill)
+            WardReliefFace(shape: shape, lift: lift, flat: holdsControl, fill: fill, control: control)
         }
     }
 
     /// Pressed into the base: fields, tracks, wells and whatever is chosen.
-    func wardInset<S: InsettableShape>(in shape: S, lift: WardLift = .low, fill: Color = .wardSurface) -> some View {
-        background { WardReliefFace(shape: shape, lift: lift, inset: true, fill: fill) }
+    /// `control` for a field or a switch's track: it takes the ink edge.
+    func wardInset<S: InsettableShape>(in shape: S, lift: WardLift = .low, fill: Color = .wardSurface,
+                                       control: Bool = false) -> some View {
+        background { WardReliefFace(shape: shape, lift: lift, inset: true, fill: fill, control: control) }
     }
 
-    /// Raised at rest; glides into a hollow at the same lift while held or chosen.
-    func wardRelief<S: InsettableShape>(in shape: S, lift: WardLift = .low, pressed: Bool) -> some View {
-        background { WardPressFace(shape: shape, lift: lift, pressed: pressed) }
+    /// Raised at rest; glides into a hollow at the same lift while held or
+    /// chosen. A control, with its ink edge, unless `control` is false (an
+    /// icon tile that only shows a choice).
+    func wardRelief<S: InsettableShape>(in shape: S, lift: WardLift = .low, pressed: Bool,
+                                        control: Bool = true) -> some View {
+        background { WardPressFace(shape: shape, lift: lift, pressed: pressed, control: control) }
     }
 
     /// The soft UI's controls: the Theatre Blue that reads on the base as
@@ -336,18 +471,31 @@ extension View {
             .progressViewStyle(WardProgressViewStyle())
     }
 
-    /// A screen in the soft UI: the matte base under it and its controls.
+    /// A page's bar area solid in the base colour, in place of iOS 26's soft
+    /// top scroll edge, which blurs and fades what passes under the bars
+    /// (not `.hard`: it takes no colour and flashes dark under a forced
+    /// colour scheme).
+    func wardMasthead() -> some View {
+        modifier(WardMasthead())
+    }
+
+    /// A screen in the soft UI: the matte base under it, a solid bar area
+    /// and its controls.
     func wardScreen() -> some View {
         self
+            .wardMasthead()
             .background(WardBackground())
             .wardControls()
     }
 
     /// A Form or List in the soft UI: its own grey ground hidden for the
-    /// base, rows tall enough for their tiles, and the controls.
+    /// base, a solid bar area with the scroll edge's line under it once the
+    /// rows have moved, rows tall enough for their tiles, and the controls.
     func wardForm() -> some View {
         self
             .scrollContentBackground(.hidden)
+            .wardScrollTopEdge()
+            .wardMasthead()
             .environment(\.defaultMinListRowHeight, 56)
             .background(WardBackground())
             .wardControls()

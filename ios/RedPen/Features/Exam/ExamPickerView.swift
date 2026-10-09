@@ -111,6 +111,7 @@ struct ExamPickerView: View {
                 Spacer(minLength: 8)
                 if chosen {
                     Image(systemName: "checkmark").foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
+                        .transition(.identity)
                 }
             }
             .frame(minHeight: 44)

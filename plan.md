@@ -40,7 +40,7 @@ Last updated: 2026-10-09, 11:26 AM Cairo.
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d) | personal is the working branch; keep session branches equal to it |
-| claude/medical-assistant-orchestration-javb9y | personal (c470b2d) plus the neumorphic app (#33, tasks T0018 to T0032) and the no-fade work | personal moves up to it once its preview run is checked (#33 follow-ups) |
+| claude/medical-assistant-orchestration-javb9y | personal (c470b2d) plus the neumorphic app (#33, tasks T0018 to T0032) and the #33 follow-ups (no fading, control edges, cut lines, the home grid band) | personal moves up to it once its preview run is checked and personal (09bc61b) is merged in (#33 follow-ups) |
 | aahp/personal | T0033's cece1a4 on T0032 (4ef98ff) | the design loop's branch (#33, tasks T0018 to T0033); its CI runs read-only and publishes nothing; cece1a4 is kept out of the session branch |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
@@ -1310,67 +1310,64 @@ ChatGPT review loop. Work on the session branch, check the screens in an
 ios-preview run (light and dark), send the owner marked full screens, then
 move personal up.
 
-1. No fading. Done in code on the session branch; not yet seen in a preview
-   run.
+1. No fading. Done in code; not yet seen in a preview run.
    - Disabled controls are a solid face at `.low`, not see-through.
    - `.opacity` transitions became `.identity`, `.slideIn(edge)` or
      `.growIn(scale, anchor:)` (AccessibilitySupport.swift; both are
      `.identity` under Reduce Motion). The study bar's folded button grows in
      from the bottom right, and its slab slides up.
+   - The implicit fades (redone in full): views that come and go under an
+     animation carry `.transition(.identity)` (the case ladder panel and the
+     explain-back topic bar `.slideIn`), and words and symbols that change in
+     place carry `.contentTransition(.identity)`; about 40 screens.
+   - iOS 26's soft scroll edge is hidden on every page: WardMasthead puts
+     `.scrollEdgeEffectHidden(true, for: .top)` and a solid base over the bar
+     area (not `.hard`: it can't take a colour and flashes dark under a
+     forced colour scheme).
    - Left alone on purpose: DrawRecallView's compare slider; decorative
      alphas (PhotonRing, StarLayers, AppBackdrop, ExamPlanView's fill tint,
      IdeaBoardView's line ink, MCQExamTools' 0.06 tint);
-     `.contentTransition(.numericText())`; the audio volume fade.
+     `.contentTransition(.numericText())`; the audio volume fade; the case
+     complaint's size change (CaseWardView, a type change).
    - Not touched, since other sessions own them: LaunchSplash.swift and
      Graph3DView.swift. Tell those sessions.
-   - Still to do:
-     - iOS 26's soft scroll edge blurs and fades what passes under the bars
-       (seen in library-end). Add `.scrollEdgeEffectHidden(true, for: .top)`
-       to the library List, then check the other pages. Don't use `.hard`:
-       it can't take a colour and flashes dark under a forced colour scheme.
-     - Redo the audit for implicit fades (it was cut short): views inserted,
-       removed or re-identified under an animation with no explicit
-       transition. Fix each with a transition on the branch's outermost view.
-2. Clear button edges. Not started. The owner's newest word overrides the
+2. Clear button edges. Done in code. The owner's newest word overrides the
    brief's "faces the background colour with no outline".
-   - Give every raised and pressed control a visible edge. Today
-     `WardRelief.raised` sets `edgeAlpha` to 0 except under Increase
-     Contrast; WardReliefFace already draws it as a 1-pt `wardInk` stroke.
-   - A control boundary needs at least 3:1 against the base, in light and
-     dark.
-   - Keep the faces matte, with no glow.
-3. Overlaps across the app. Not started.
-   - From a fresh preview run, list every overlap by screen, light and dark,
-     and fix each.
+   - A control (buttons, tappable chips, the dock, segmented controls, switch
+     tracks, text fields, tappable row tiles) has a 1-pt Chart Ink edge: 0.55
+     in light, 0.45 in dark (at least 3:1 on the base, tested in
+     WardReliefTests), 0.75 under Increase Contrast.
+   - Cards, slabs, status chips, pills and icon tiles have no edge, so what
+     can be pressed stands apart; under Increase Contrast a card takes 0.35.
+   - `control:` on wardRaised, wardInset, wardRelief, WardReliefFace and
+     WardPressFace picks which. Faces stay matte, with no glow.
+3. Overlaps. Done in code for what the last shots showed; check in the
+   preview run, light and dark.
+   - Where scrolled content is cut by a solid bar, a 1.5-pt line in the paper
+     frame's edge ink marks the cut: always along the top of the bottom strip
+     (wardBarBase), and at the top of what scrolls once it has scrolled
+     (wardScrollTopEdge: wardForm, the folding study bar's host and the study
+     screens' scroll views).
+   - The open deck's fold chevron is a small pill with a control's edge.
+   - Library (A3): Plan's 44-pt target no longer adds height, the header
+     row's bottom inset is 0 and its top padding 4, and the strip keeps 8 pt
+     above the dock with the New set row (24 without), so Start ward round
+     ends above the strip.
    - Screens outside the preview set go into PreviewExtras first, so they
-     can be seen.
-   - Keep the wording as it is, and keep New set in its thumb row.
-4. The home page's grid band. Designed, not coded. ECG paper runs from the
-   top of the screen to just under the header (Stethoscore and the
-   greeting, and the countdown pill when it shows), over the page's
-   backdrop. It lines up with the outer frame's grid and is drawn with the
-   frame's ink. Under Increase Contrast, no grid.
-   - `WardPaper.lines(_ length:, from origin:)`: the frame's lines
-     (k·cell, bold every fifth) that fall in [origin, origin + length), in
-     local positions. Foundation-only, with tests beside the WardPaper ones.
-   - `WardPaperBand` in WardSurfaces.swift, beside WardPaperFrame: a Canvas
-     that reads its global origin, fills `wardBackground`, draws the lines
-     down to a given global bottom, and ends in a 1.5-pt line in the frame's
-     edge ink.
-   - LibraryView: put the band in `backdrop` (not under the sky, not in
-     Ideas, not while searching), padded out by `-WardPaper.sideInset` and
-     ignoring the safe area.
-   - Track the header's bottom: `onGeometryChange` on the header row (global
-     maxY), plus the List's `onScrollGeometryChange` (contentOffset.y +
-     contentInsets.top), so the band follows a scroll and survives a pop
-     back.
-   - Add a masthead over the bar area (y 0 to the safe-area top), opaque
-     and seamless with the band. It shows a bottom line once the band has
-     scrolled under it.
-   - After CI, check x 12 to 16 pt (about 23 to 31 px) in the band rows. If
-     the navigation stack clips there, draw those strips at SkyRoot instead.
+     can be seen. Keep the wording as it is, and keep New set in its thumb
+     row.
+4. The home page's grid band. Done in code: `WardPaper.lines(_:from:)` (with
+   tests), WardPaperBand, HomeBandTrack and the masthead with its line once
+   the band has scrolled under it. ECG paper from the top of the screen to
+   just under the header, lined up with the frame; no grid under Increase
+   Contrast. After CI, check x 12 to 16 pt (about 23 to 31 px) in the band
+   rows; if the navigation stack clips there, draw those strips at SkyRoot.
 5. T0034's side insets. Done in code; check its A1 to A9 in the same preview
    run. A9's exceptions include the library tiles at about 47 px.
+6. Next: App build, Swift tests and an ios-preview run on the session
+   branch; read every shot, light and dark (edges, cut lines, A1 to A9);
+   send the owner marked full screens; then merge personal (09bc61b) in,
+   preflight, CI green, and move personal up to the session branch.
 
 ### Other open work
 

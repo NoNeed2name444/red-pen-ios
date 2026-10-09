@@ -212,6 +212,7 @@ private struct SwitcherSegment<Value: Hashable>: View {
             .background {
                 if chosen {
                     SwitcherLift(shape: shape, tint: tint, liftSpace: liftSpace)
+                        .transition(.identity)
                 }
             }
             .contentShape(shape)

@@ -59,7 +59,8 @@ struct ModeTile: View {
             .font(.system(size: size * 0.42, weight: .semibold))
             .foregroundStyle(selected ? Color.wardPrimaryInk : kind.tint)
             .frame(width: size, height: size)
-            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected)
+            // the row or header around it is what is tapped: no edge here
+            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected, control: false)
             .animation(reduceMotion ? nil : .wardShade(down: selected), value: selected)
             .accessibilityHidden(true)
     }
@@ -135,10 +136,11 @@ struct ContentCard: ViewModifier {
 extension View {
     func contentCard() -> some View { modifier(ContentCard()) }
 
-    /// Standard chrome for a mode screen: the base under it, and Theatre
-    /// Blue controls.
+    /// Standard chrome for a mode screen: the base under it, a solid bar
+    /// area, and Theatre Blue controls.
     func modeScreen(_ kind: StudySetKind) -> some View {
         self
+            .wardMasthead()
             .background(ModeBackdrop(kind: kind))
             .wardControls()
             .environment(\.modeTint, Color.wardPrimaryInk)
@@ -476,13 +478,15 @@ extension ButtonStyle where Self == BigButtonStyle {
     static var bigCompanion: BigButtonStyle { BigButtonStyle(weight: .secondary, fills: false) }
 }
 
-/// The bottom study deck: an open slab with a 44-point folding band and a
-/// trailing chevron, or one 56-point round button at the trailing edge.
-/// The open deck stands on a solid strip; the folded button has nothing
-/// behind it. Folding slides the slab down and grows the button in, solid
-/// all the way. Wide windows keep the slab under the trailing hand.
-/// Attach with `.studyBar(folds:shown:)`. Hiding it takes no height and keeps
-/// its fold state for the next question. It starts open except in quiz-folded.
+/// The bottom study deck: an open slab with a 44-point folding band, its
+/// chevron in a small edged pill at the trailing end, or one 56-point round
+/// button at the trailing edge. The open deck stands on a solid strip with
+/// a line along its top, where what scrolls passes under it; the folded
+/// button has nothing behind it. Folding slides the slab down and grows the
+/// button in, solid all the way. Wide windows keep the slab under the
+/// trailing hand. Attach with `.studyBar(folds:shown:)`. Hiding it takes no
+/// height and keeps its fold state for the next question. It starts open
+/// except in quiz-folded.
 struct StudyActionBar<Content: View>: View {
     private let content: Content
     private let folds: Bool
@@ -521,16 +525,9 @@ struct StudyActionBar<Content: View>: View {
                     VStack(spacing: 0) {
                         if folds {
                             Button(action: toggle) {
-                                HStack(spacing: 0) {
-                                    Spacer(minLength: 0)
-                                    Image(systemName: "chevron.compact.down")
-                                        .font(.body.weight(.semibold))
-                                        .foregroundStyle(Color.wardInk)
-                                        .frame(width: 56, height: 44)
-                                }
-                                .contentShape(Rectangle())
+                                Image(systemName: "chevron.compact.down")
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(DeckFoldBandStyle())
                             .accessibilityLabel("Hide buttons")
                             .accessibilityIdentifier("studyBarFold")
                         }
@@ -550,16 +547,65 @@ struct StudyActionBar<Content: View>: View {
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
-            .wardBarBase(shown: !(folds && folded))
+            // the slab holds controls, so it is flat and casts nothing up:
+            // the strip and its line start at the slab's top
+            .wardBarBase(room: 0, shown: !(folds && folded))
         }
+    }
+}
+
+/// The open deck's folding band: the chevron in a small pill at the
+/// trailing end, raised off the slab with a control's edge and pressed in
+/// while held. The whole band is the target, as it was.
+private struct DeckFoldBandStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        DeckFoldBand(label: configuration.label, pressed: configuration.isPressed)
+    }
+}
+
+private struct DeckFoldBand: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            label
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Color.wardInk)
+                .frame(width: 44, height: 28)
+                .background { WardPressFace(shape: Capsule(), lift: .low, pressed: pressed) }
+                .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
+                .capPop(pressed)
+                .frame(width: 56, height: 44)
+        }
+        .contentShape(Rectangle())
     }
 }
 
 extension View {
     func studyBar<C: View>(folds: Bool, shown: Bool = true, @ViewBuilder _ content: () -> C) -> some View {
-        safeAreaInset(edge: .bottom, spacing: 0) {
-            StudyActionBar(folds: folds, shown: shown, content: content)
-        }
+        modifier(StudyBarHost(folds: folds, shown: shown, bar: content()))
+    }
+}
+
+/// The deck under what scrolls, and a line where what scrolls is cut at the
+/// top of its frame (under a study header, or under the bar area) once any
+/// of it has gone under: with the strip's line at the bottom, a card cut at
+/// either end reads as passing under, not as two things overlapping (the
+/// owner, 9 Oct).
+private struct StudyBarHost<Bar: View>: ViewModifier {
+    let folds: Bool
+    let shown: Bool
+    let bar: Bar
+
+    func body(content: Content) -> some View {
+        content
+            .wardScrollTopEdge()
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                StudyActionBar(folds: folds, shown: shown) { bar }
+            }
     }
 }
 

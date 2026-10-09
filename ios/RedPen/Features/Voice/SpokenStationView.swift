@@ -233,6 +233,7 @@ private struct SpokenTranscript: View {
                 .padding()
                 .readableColumn()
             }
+            .wardScrollTopEdge()
             .onChange(of: session.lines.count) { _, _ in
                 if let last = session.lines.last?.id {
                     withAnimation { proxy.scrollTo(last, anchor: .bottom) }
@@ -361,7 +362,7 @@ private struct SpokenStationComposer: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .frame(minHeight: 48)
-            .wardInset(in: shape)
+            .wardInset(in: shape, control: true)
     }
 
     private var speakerButton: some View {

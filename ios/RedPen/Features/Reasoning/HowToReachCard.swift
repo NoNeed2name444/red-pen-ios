@@ -70,6 +70,7 @@ struct HowToReachCard: View {
                         Image(systemName: isOpen ? "chevron.up" : "chevron.down")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Color.wardInkSecondary)
+                            .contentTransition(.identity)
                     }
                     .contentShape(Rectangle())
                 }

@@ -304,7 +304,8 @@ struct WardTimerPill: View {
 }
 
 /// A rounded icon square: the glyph in its tone on a soft raised square;
-/// chosen, the square is pressed in and the glyph goes Theatre Blue.
+/// chosen, the square is pressed in and the glyph goes Theatre Blue. No ink
+/// edge: the row or tile around it is what is tapped.
 struct WardIconSquare: View {
     let symbol: String
     var tone: WardTone = .blue
@@ -317,7 +318,7 @@ struct WardIconSquare: View {
             .font(.system(size: size * 0.42, weight: .semibold))
             .foregroundStyle(selected ? Color.wardPrimaryInk : tone.color)
             .frame(width: size, height: size)
-            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected)
+            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected, control: false)
             .accessibilityHidden(true)
     }
 }
@@ -352,7 +353,7 @@ private struct WardToggleFace: View {
                     .padding(4)
             }
             .frame(width: 52, height: 32)
-            .wardInset(in: Capsule())
+            .wardInset(in: Capsule(), control: true)
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -422,13 +423,14 @@ struct WardSegmented<Value: Hashable, Label: View>: View {
                 } label: {
                     label(option)
                         .font(.subheadline.weight(chosen ? .semibold : .regular))
+                        .contentTransition(.identity)
                         .foregroundStyle(chosen ? Color.wardPrimaryInk : Color.wardInk)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                         .padding(.horizontal, 10)
                         .frame(maxWidth: .infinity, minHeight: 36)
                         .background {
-                            if chosen { WardReliefFace(shape: Capsule(), lift: .low, inset: true) }
+                            if chosen { WardReliefFace(shape: Capsule(), lift: .low, inset: true).transition(.identity) }
                         }
                         .contentShape(Capsule())
                 }
@@ -437,7 +439,7 @@ struct WardSegmented<Value: Hashable, Label: View>: View {
             }
         }
         .padding(4)
-        .wardRaised(in: Capsule(), lift: .low)
+        .wardRaised(in: Capsule(), lift: .low, control: true)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selection)
         .sensoryFeedback(.selection, trigger: selection)
     }

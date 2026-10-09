@@ -198,6 +198,7 @@ struct MCQQuizView: View {
                     } label: {
                         Label(saved.wrappedValue ? "Saved" : "Save", systemImage: saved.wrappedValue ? "checkmark" : "square.and.arrow.down")
                             .labelStyle(.titleAndIcon)
+                            .contentTransition(.identity)
                     }
                     // one fixed style plus .disabled() conveys the "already
                     // saved" state: a disabled Ward button goes Biro Grey
@@ -436,8 +437,10 @@ struct MCQQuizView: View {
     private var headerAccessory: some View {
         if let ends = examEndsAt {
             examClock(ends)
+                .transition(.identity)
         } else if canStartExam && pendingResume == nil {
             timedChip
+                .transition(.identity)
         }
     }
 
@@ -485,7 +488,13 @@ struct MCQQuizView: View {
             withAnimation(.snappy) { store.toggleFlag(q.id) }
         } label: {
             if labelled {
-                Label(on ? "Flagged" : "Flag", systemImage: symbol).labelStyle(.titleAndIcon)
+                // the word swaps at once; the flag keeps its replace below
+                Label {
+                    Text(on ? "Flagged" : "Flag").contentTransition(.identity)
+                } icon: {
+                    Image(systemName: symbol)
+                }
+                .labelStyle(.titleAndIcon)
             } else {
                 Image(systemName: symbol)
             }
@@ -524,6 +533,7 @@ struct MCQQuizView: View {
             // once answered: Verified / Check this / Flagged, and why
             if a.checked && !examMode {
                 AccuracyBadge(set: studySet, itemID: q.id.uuidString)
+                    .transition(.identity)
             }
             if layout.plain {
                 HighlightableStem(stem: q.stem, plain: plainText(q.stem), marked: highlightBinding,
@@ -539,6 +549,7 @@ struct MCQQuizView: View {
                       systemImage: "eye")
                     .font(.subheadline)
                     .foregroundStyle(Color.wardInkSecondary)
+                    .transition(.identity)
             }
             if let idx = q.imageIndex, idx >= 0, idx < studySet.images.count,
                let data = Data(base64Encoded: stripDataPrefix(studySet.images[idx])),
@@ -550,6 +561,7 @@ struct MCQQuizView: View {
         .contentCard()
         .riseIn()
         .id("stem-\(current)")
+        .transition(.identity)
     }
 
     /// The chart's parts, each only when the stem gives it - no empty grid
@@ -598,7 +610,7 @@ struct MCQQuizView: View {
 
     private func chartTools(labelled: Bool, flaggable: Bool) -> some View {
         HStack(spacing: 8) {
-            if canHint { HintChip(used: hints[q.id] != nil, labelled: labelled, action: askHint) }
+            if canHint { HintChip(used: hints[q.id] != nil, labelled: labelled, action: askHint).transition(.identity) }
             if flaggable { flagButton(labelled: labelled) }
         }
     }
@@ -848,10 +860,12 @@ struct MCQQuizView: View {
                     if canRetest {
                         chip("Re-test me soon", symbol: "arrow.uturn.forward", on: false) { insertRetest() }
                             .accessibilityHint("Asks this question again, re-shuffled, a few questions from now")
+                            .transition(.identity)
                     }
                     if note == nil && !writing {
                         chip("Write a twin", symbol: "square.on.square.badge.person.crop", on: false) { writeTwin() }
                             .accessibilityHint("A new question on the same point, in a different patient, for a day or two from now")
+                            .transition(.identity)
                     }
                 }
                 .padding(.vertical, 4)
@@ -861,14 +875,17 @@ struct MCQQuizView: View {
                 Label("It comes back, re-shuffled, a few questions from now.", systemImage: "arrow.uturn.forward")
                     .font(.footnote)
                     .foregroundStyle(Color.wardInkSecondary)
+                    .transition(.identity)
             }
             if writing {
                 HStack(spacing: 8) {
                     EcgLoader()
                     Text("Writing a twin\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)
                 }
+                .transition(.identity)
             } else if let note {
                 Text(note).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .transition(.identity)
             }
         }
         .transition(.identity)
@@ -997,11 +1014,12 @@ struct MCQQuizView: View {
                     optionRow(idx)
                         .riseIn(index: idx + 1)
                         .id("\(current)-\(idx)")
+                        .transition(.identity)
                 }
             }
 
             if pendingResume == nil {
-                answerButtons(proxy).id(Self.answerRowID)
+                answerButtons(proxy).id(Self.answerRowID).transition(.identity)
             }
 
             // in exam mode the explanation waits for the results,
@@ -1028,8 +1046,10 @@ struct MCQQuizView: View {
         VStack(spacing: 12) {
             if let p = pendingResume {
                 resumeButtons(p)
+                    .transition(.identity)
             } else if !a.checked && shuffle && asksConfidence {
                 confidencePicker
+                    .transition(.identity)
             }
         }
     }
@@ -1052,6 +1072,7 @@ struct MCQQuizView: View {
                 }
                 .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
                 .accessibilityHint("Scrolls to the explanation")
+                .transition(.identity)
             }
 
             Button {
@@ -1059,6 +1080,7 @@ struct MCQQuizView: View {
             } label: {
                 Label(title, systemImage: symbol)
                     .labelStyle(.titleAndIcon)
+                    .contentTransition(.identity)
             }
             .buttonStyle(.bigPrimary)
             .keyboardShortcut(.return, modifiers: [])
@@ -1072,8 +1094,10 @@ struct MCQQuizView: View {
         Button { if current > 0 { current -= 1 } } label: {
             if short {
                 Image(systemName: "chevron.left")
+                    .transition(.identity)
             } else {
                 Label("Back", systemImage: "chevron.left")
+                    .transition(.identity)
             }
         }
         .buttonStyle(.bigCompanion)

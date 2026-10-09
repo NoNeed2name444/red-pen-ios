@@ -312,6 +312,7 @@ struct CommuteModeView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .wardScrollTopEdge()
             .onChange(of: session.lines.count) { _, _ in
                 if let last = session.lines.last?.id {
                     withAnimation { proxy.scrollTo(last, anchor: .bottom) }

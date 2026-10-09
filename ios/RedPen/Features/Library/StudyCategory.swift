@@ -599,7 +599,7 @@ struct CategoryDock: View {
         .accessibilityLabel("Sections, now \(here)")
         .accessibilityHint("Lists every section to choose from")
         .accessibilityIdentifier("dockList")
-        .wardRaised(in: shape)
+        .wardRaised(in: shape, control: true)
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
         .sheet(isPresented: $listing) {
@@ -628,7 +628,7 @@ struct CategoryDock: View {
             }
         }
         .padding(4)
-        .wardRaised(in: panelShape, lift: .high)
+        .wardRaised(in: panelShape, lift: .high, control: true)
     }
 
     /// Ideas, on a panel of its own beside the categories.
@@ -666,7 +666,7 @@ struct CategoryDock: View {
         }
         .padding(5)
         .frame(width: 76)
-        .wardRaised(in: panelShape, lift: .high)
+        .wardRaised(in: panelShape, lift: .high, control: true)
         .padding(.leading, 12)
         .frame(maxHeight: .infinity)
     }
@@ -683,6 +683,7 @@ struct CategoryDock: View {
                     if chosen {
                         WardReliefFace(shape: segment, lift: .low, inset: true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
+                            .transition(.identity)
                     }
                 }
                 .contentShape(segment)
@@ -711,6 +712,7 @@ struct CategoryDock: View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
         let ink: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), ink: ink)
+            .contentTransition(.identity)
     }
 
     private func item(_ category: StudyCategory) -> some View {
@@ -735,6 +737,7 @@ struct CategoryDock: View {
                     if chosen {
                         WardReliefFace(shape: segment, lift: .low, inset: true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
+                            .transition(.identity)
                     }
                 }
                 .contentShape(segment)

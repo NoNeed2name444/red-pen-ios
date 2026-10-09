@@ -392,6 +392,7 @@ struct LensChipLayer: View {
                 if outlines {
                     ForEach(Array(chips.enumerated()), id: \.element.id) { pair in
                         outline(rects[pair.offset])
+                            .transition(.identity)
                     }
                 }
                 ForEach(Array(chips.enumerated()), id: \.element.id) { pair in

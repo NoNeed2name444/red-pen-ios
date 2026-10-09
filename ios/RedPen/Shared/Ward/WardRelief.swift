@@ -36,7 +36,7 @@ struct WardReliefSpec: Equatable, Sendable {
     var highlight: WardReliefLight
     var shade: WardReliefLight
     var inner: Bool
-    /// An ink edge for Increase Contrast; 0 draws none.
+    /// The ink edge's strength; 0 draws none.
     var edgeAlpha: Double
 
     /// Raised to pressed in and back: the lights stay where they are.
@@ -52,11 +52,41 @@ struct WardReliefSpec: Equatable, Sendable {
 ///
 /// Light mode: white at 0.75 to 0.9 and a cool grey shade (#A3B1C6) at 0.5
 /// to 0.65. Dark mode: white at 0.05 to 0.08, so nothing glares, and black
-/// at 0.45 to 0.6. Increase Contrast deepens the shade and adds the edge.
+/// at 0.45 to 0.6. A control's face (a button, a chip, a tile to tap, a
+/// field) has a 1-pt ink edge that reads at least 3:1 on the base (the
+/// owner, 9 Oct: buttons "not visually distinct in borders"), so what can
+/// be pressed stands apart from what cannot; a card or a slab shows its
+/// shape by its lights alone, as Retro Press draws it, with an edge only
+/// under Increase Contrast. Increase Contrast deepens the shade and
+/// strengthens both edges.
 enum WardRelief {
     static let lightShade: UInt32 = 0xA3B1C6
     static let highContrastShadeGain = 0.15
-    static let highContrastEdge = 0.35
+    /// A control's edge, light and dark: 3.6:1 on the base in both.
+    static let lightEdge = 0.55
+    static let darkEdge = 0.45
+    static let highContrastEdge = 0.75
+    /// A card's or a slab's edge under Increase Contrast; none otherwise.
+    static let containerHighContrastEdge = 0.35
+    /// The least a control's boundary may read against the base (WCAG 1.4.11).
+    static let edgeContrast = 3.0
+
+    /// A control's edge strength.
+    static func edgeAlpha(dark: Bool, highContrast: Bool = false) -> Double {
+        highContrast ? highContrastEdge : (dark ? darkEdge : lightEdge)
+    }
+
+    /// A card's or a slab's edge strength: 0 unless Increase Contrast is on.
+    static func containerEdgeAlpha(highContrast: Bool = false) -> Double {
+        highContrast ? containerHighContrastEdge : 0
+    }
+
+    /// A control's edge as it lands on the base.
+    static func edgeColor(dark: Bool, highContrast: Bool = false) -> UInt32 {
+        composite(WardReliefLight(hex: WardPalette.hex(.ink, dark: dark),
+                                  alpha: edgeAlpha(dark: dark, highContrast: highContrast),
+                                  x: 0, y: 0, radius: 0), on: base(dark: dark))
+    }
 
     /// The shade's offset from the shape, down and right; the highlight
     /// falls the same distance up and left.
@@ -96,7 +126,10 @@ enum WardRelief {
     /// The ground both lights fall on.
     static func base(dark: Bool) -> UInt32 { WardPalette.hex(.background, dark: dark) }
 
-    static func raised(_ lift: WardLift, dark: Bool, highContrast: Bool = false) -> WardReliefSpec {
+    /// A surface raised off the base: a card or a slab, or with `control`
+    /// a control's face, which carries the ink edge.
+    static func raised(_ lift: WardLift, dark: Bool, highContrast: Bool = false,
+                       control: Bool = false) -> WardReliefSpec {
         let d = offset(lift), r = radius(lift)
         return WardReliefSpec(
             highlight: WardReliefLight(hex: 0xFFFFFF, alpha: highlightAlpha(lift, dark: dark), x: -d, y: -d, radius: r),
@@ -104,11 +137,13 @@ enum WardRelief {
                                    alpha: shadeAlpha(lift, dark: dark, highContrast: highContrast),
                                    x: d, y: d, radius: r),
             inner: false,
-            edgeAlpha: highContrast ? highContrastEdge : 0)
+            edgeAlpha: control ? edgeAlpha(dark: dark, highContrast: highContrast)
+                               : containerEdgeAlpha(highContrast: highContrast))
     }
 
-    static func inset(_ lift: WardLift, dark: Bool, highContrast: Bool = false) -> WardReliefSpec {
-        raised(lift, dark: dark, highContrast: highContrast).mirrored()
+    static func inset(_ lift: WardLift, dark: Bool, highContrast: Bool = false,
+                      control: Bool = false) -> WardReliefSpec {
+        raised(lift, dark: dark, highContrast: highContrast, control: control).mirrored()
     }
 
     /// What a light looks like where it lies at full strength on `base`.
@@ -156,11 +191,14 @@ enum WardPress {
         max(0, press - max(0, held))
     }
 
+    /// A pressable face at `depth` (0 raised, 1 pressed in): a control's,
+    /// with its ink edge, unless `control` is false (an icon tile that only
+    /// shows a choice).
     static func spec(_ lift: WardLift, depth q: Double, dark: Bool,
-                     highContrast: Bool = false) -> WardPressSpec {
+                     highContrast: Bool = false, control: Bool = true) -> WardPressSpec {
         let q = min(1, max(0, q))
         let up = 1 - q, down = depth * q
-        let raised = WardRelief.raised(lift, dark: dark, highContrast: highContrast)
+        let raised = WardRelief.raised(lift, dark: dark, highContrast: highContrast, control: control)
         func light(_ original: WardReliefLight, weight: Double) -> WardReliefLight {
             WardReliefLight(hex: original.hex, alpha: original.alpha * weight,
                             x: original.x * weight, y: original.y * weight,
@@ -215,10 +253,21 @@ enum WardPaper {
     }
 
     static func lines(_ length: Double) -> [(at: Double, bold: Bool)] {
+        lines(length, from: 0)
+    }
+
+    /// The frame's lines (k·cell, bold every fifth) that fall in
+    /// [origin, origin + length), in positions local to `origin`: a band
+    /// that starts at a global `origin` lines up with the frame's grid.
+    static func lines(_ length: Double, from origin: Double) -> [(at: Double, bold: Bool)] {
+        guard length > 0, origin.isFinite, length.isFinite else { return [] }
         var result: [(at: Double, bold: Bool)] = []
-        var k = 0
-        while Double(k) * cell < length {
-            result.append((at: Double(k) * cell, bold: k % boldEvery == 0))
+        var k = Int((origin / cell).rounded(.up))
+        while Double(k) * cell < origin + length {
+            let at = Double(k) * cell - origin
+            if at >= 0 {
+                result.append((at: at, bold: ((k % boldEvery) + boldEvery) % boldEvery == 0))
+            }
             k += 1
         }
         return result

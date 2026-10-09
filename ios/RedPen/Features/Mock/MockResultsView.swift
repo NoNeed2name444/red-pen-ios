@@ -120,11 +120,15 @@ struct MockResultsView: View {
                 }
                 .frame(minHeight: 44)
             }
+            .contentTransition(.identity)
             if shown.isEmpty {
                 Text("Nothing missed. Well done.").foregroundStyle(Color.wardInkSecondary)
+                    .transition(.identity)
             }
             ForEach(Array(shown.enumerated()), id: \.offset) { _, pick in
                 reviewRow(pick)
+                    .contentTransition(.identity)
+                    .transition(.identity)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

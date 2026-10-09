@@ -41,8 +41,10 @@ struct CaseWardView: View {
         Group {
             if run.isFinished {
                 CaseDebriefView(file: file, setID: setID, run: run, again: startAgain)
+                    .transition(.identity)
             } else {
                 ward
+                    .transition(.identity)
             }
         }
         .navigationTitle(file.patient.ageSex.isEmpty ? "Patient" : file.patient.ageSex)
@@ -58,12 +60,12 @@ struct CaseWardView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     triage
                     if arriving {
-                        clerkingCard
-                        arrivalNote
+                        clerkingCard.transition(.identity)
+                        arrivalNote.transition(.identity)
                     } else {
-                        clerkingFolded
-                        actions
-                        clinicalNote
+                        clerkingFolded.transition(.identity)
+                        actions.transition(.identity)
+                        clinicalNote.transition(.identity)
                     }
                 }
                 .padding(16)
@@ -72,8 +74,10 @@ struct CaseWardView: View {
             }
             if wide && !arriving {
                 WardEtch(vertical: true)
+                    .transition(.identity)
                 CaseLadderPanel(file: file, run: $run)
                     .frame(width: 340)
+                    .transition(.slideIn(.trailing))
             }
         }
         .wardScreen()
@@ -212,6 +216,7 @@ struct CaseWardView: View {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: done ? "checkmark.circle.fill" : "plus.circle")
                     .foregroundStyle(done ? CaseInk.discharge : CaseInk.theatre)
+                    .contentTransition(.identity)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(step.label)
@@ -246,10 +251,12 @@ struct CaseWardView: View {
                 Text("Findings appear here as you ask, examine and test.")
                     .font(.subheadline)
                     .foregroundStyle(CaseInk.biro)
+                    .transition(.identity)
             }
             ForEach(Array(run.taken.reversed()), id: \.stepID) { taken in
                 if let step = file.step(taken.stepID) {
                     noteEntry(step, at: taken.at)
+                        .transition(.identity)
                 }
             }
         }
@@ -288,19 +295,23 @@ struct CaseWardView: View {
                     Label("See the patient", systemImage: "stethoscope")
                 }
                 .buttonStyle(.wardPrimary)
+                .transition(.identity)
             } else {
                 if !wide {
                     Button { showingLadder = true } label: {
                         Label(ladderTitle, systemImage: "list.number")
+                            .contentTransition(.identity)
                     }
                     .buttonStyle(.wardSecondary)
                     .accessibilityHint("Your ranked working diagnoses")
+                    .transition(.identity)
                 }
                 Button { deciding = true } label: {
                     Label("Decide", systemImage: "checkmark.seal")
                 }
                 .buttonStyle(.wardPrimary)
                 .accessibilityHint("Confirm the diagnosis and choose the next step")
+                .transition(.identity)
             }
         }
     }
@@ -357,9 +368,12 @@ struct CaseLadderPanel: View {
                         .font(.subheadline)
                         .foregroundStyle(CaseInk.biro)
                         .fixedSize(horizontal: false, vertical: true)
+                        .transition(.identity)
                 }
                 ForEach(Array(run.ladder.enumerated()), id: \.element) { index, name in
                     rung(index, name)
+                        .contentTransition(.identity)
+                        .transition(.identity)
                 }
                 CaseLabel("Add a diagnosis")
                 HStack(spacing: 8) {
@@ -375,6 +389,7 @@ struct CaseLadderPanel: View {
                     Text("The ladder is full: a new diagnosis takes the bottom rung.")
                         .font(.caption)
                         .foregroundStyle(CaseInk.biro)
+                        .transition(.identity)
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 8)], alignment: .leading, spacing: 8) {
                     ForEach(pickable, id: \.self) { name in
@@ -388,6 +403,7 @@ struct CaseLadderPanel: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityHint("Adds it to your ladder")
+                        .transition(.identity)
                     }
                 }
             }

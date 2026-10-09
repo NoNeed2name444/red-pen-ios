@@ -232,12 +232,12 @@ struct WardFilterChip: View {
 }
 
 extension View {
-    /// A text field: a well pressed into the base.
+    /// A text field: a well pressed into the base, with a control's ink edge.
     func wardField() -> some View {
         self
             .padding(.horizontal, WardSpace.m)
             .padding(.vertical, 10)
-            .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+            .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), control: true)
     }
 }
 #endif

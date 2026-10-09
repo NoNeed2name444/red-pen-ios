@@ -163,6 +163,7 @@ struct AnkiReviewView: View {
             .padding(.bottom, 24)
             .readableColumn()
         }
+        .wardScrollTopEdge()
         .reviewUndoChip(until: $undoUntil, action: undo)
         .studyBar { finishButtons }
         // a streak of a week, finished here, is a good moment to ask once

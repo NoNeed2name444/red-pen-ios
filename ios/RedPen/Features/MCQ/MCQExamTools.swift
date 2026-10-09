@@ -136,11 +136,13 @@ struct AttendingHintCard: View {
                     .font(.body)
                     .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
+                    .transition(.identity)
             } else {
                 HStack(spacing: 8) {
                     EcgLoader()
                     Text("Thinking it through\u{2026}").foregroundStyle(Color.wardInkSecondary)
                 }
+                .transition(.identity)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,6 +166,7 @@ struct HintChip: View {
             if labelled {
                 Label(used ? "Hint shown" : "Hint", systemImage: symbol)
                 .labelStyle(.titleAndIcon)
+                .contentTransition(.identity)
             } else {
                 Image(systemName: symbol)
             }

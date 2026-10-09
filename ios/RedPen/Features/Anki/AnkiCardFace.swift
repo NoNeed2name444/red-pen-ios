@@ -38,6 +38,8 @@ struct AnkiCardFace: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
+                    // the answer is in the gap at once: it never fades in
+                    .contentTransition(.identity)
                     .accessibilityLabel(Self.clozeSpoken(card.clozeText, revealed: revealed))
             } else {
                 Text(front)

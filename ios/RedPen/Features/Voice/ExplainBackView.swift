@@ -100,9 +100,11 @@ struct ExplainBackView: View {
             // topic folds away until the keyboard goes
             if !writing {
                 topicBar
+                    .transition(.slideIn(.top))
             }
             if let message = hearing?.message {
                 VoicePermissionNote(message: message)
+                    .transition(.identity)
             }
             transcriptBox
             notes
@@ -184,7 +186,7 @@ struct ExplainBackView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 110, maxHeight: .infinity, alignment: .topLeading)
-        .wardInset(in: shape)
+        .wardInset(in: shape, control: true)
     }
 
     @ViewBuilder

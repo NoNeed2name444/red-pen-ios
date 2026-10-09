@@ -142,17 +142,21 @@ struct RedPenApp: App {
                     // a big library still being read (Store): nothing shows
                     // the library, or writes into it, before it is in
                     LibraryLoadingView()
+                        .transition(.identity)
                 } else if let signedIn = account.account, !terms.hasAgreed(signedIn.id) {
                     // once per account, before anything else: recordings are
                     // only transcribed with the speakers' permission
                     RecordingTermsView { terms.agree(signedIn.id) }
+                        .transition(.identity)
                 } else if let signedIn = account.account, firstRun.isDue(signedIn.id, terms: terms) {
                     // once per account, every page skippable: exam, date,
                     // daily goal, reminders, an example set
                     FirstRunView(accountId: signedIn.id) { firstRun.finish(signedIn.id); examQuestion.done() }
+                        .transition(.identity)
                 } else if account.isSignedIn && !examQuestion.asked {
                     // once, skippable: the exam everything will put first
                     ExamOnboardingView { examQuestion.done() }
+                        .transition(.identity)
                 } else if account.isSignedIn {
                     // the library, with the four categories and Ideas in its
                     // dock and the pages about the app in its account menu
@@ -261,8 +265,10 @@ struct RedPenApp: App {
                                 Task { await CloudJobCollector.collect(into: store) }
                             }
                         }
+                        .transition(.identity)
                 } else {
                     SignInView()
+                        .transition(.identity)
                 }
             }
             // links, opened files, Spotlight, Siri, the widgets' digest, the

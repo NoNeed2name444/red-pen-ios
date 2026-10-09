@@ -49,6 +49,7 @@ struct ReaderBar: View {
             }
             if hasRow {
                 row
+                    .transition(.identity)
             }
         }
         .padding(.horizontal, 16)

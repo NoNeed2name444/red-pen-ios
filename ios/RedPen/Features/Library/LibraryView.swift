@@ -173,6 +173,10 @@ struct LibraryView: View {
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
 
+    /// Where the home's grid band ends, followed through a scroll without
+    /// redrawing the list (HomeBandTrack).
+    @State var bandTrack = HomeBandTrack()
+
     // The spacer marks the end of the library list for preview scrolling.
     private static let listEndID = "library-list-end"
 
@@ -399,6 +403,8 @@ struct LibraryView: View {
                 .id(pageKey)
                 .transition(pageTransition)
         }
+            // a new page's list starts at its top, its header not yet seen
+            .onChange(of: pageKey) { bandTrack.reset() }
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             // Snapshotted when tapped rather than built live: a flag taken
             // off half way through the flagged quiz must not pull the
@@ -434,30 +440,45 @@ struct LibraryView: View {
     }
 
     /// The category's list; on a wide iPad, one column of a comfortable
-    /// width rather than rows stretched across the whole window.
-    @ViewBuilder
+    /// width rather than rows stretched across the whole window. The bar
+    /// area over it is solid (the masthead).
     private var categoryPage: some View {
-        if span == .broad {
-            content
-                .frame(maxWidth: 820)
-                .frame(maxWidth: .infinity)
-        } else {
-            content
+        Group {
+            if span == .broad {
+                content
+                    .frame(maxWidth: 820)
+                    .frame(maxWidth: .infinity)
+            } else {
+                content
+            }
         }
+        .overlay(alignment: .top) { HomeMasthead(track: bandTrack, band: bandShown) }
     }
+
+    /// The band runs down from the window's top to just under the header,
+    /// on a category's page at rest or scrolled, not while searching (the
+    /// header steps aside), not in Ideas and never under the sky.
+    private var bandShown: Bool { !inIdeas && !underSky && !searching }
 
     /// How far Ideas' lists run on past their last row, to clear the dock -
     /// nothing while the keyboard has put the dock away.
     private var ideasClearance: CGFloat { keyboardUp ? 0 : dockHeight }
 
-    /// The ECG grid paper under every page, Ideas' list and board too; only
-    /// the 3D map keeps the sky it flies through.
+    /// The base under every page, Ideas' list and board too, with the grid
+    /// band under a category page's header; only the 3D map keeps the sky
+    /// it flies through.
     @ViewBuilder
     private var backdrop: some View {
+        // one ground or the other at once, never cross-faded
         if underSky {
             AppBackdrop(tint: IdeasPlace.tint)
+                .transition(.identity)
         } else {
             WardBackground()
+                .overlay(alignment: .top) {
+                    if bandShown { HomeBand(track: bandTrack).transition(.identity) }
+                }
+                .transition(.identity)
         }
     }
 
@@ -511,17 +532,21 @@ struct LibraryView: View {
             // the dock steps aside while typing
             EmptyView()
         } else {
+            let newSet: Bool = !inIdeas && !store.library.isEmpty
             VStack(spacing: 10) {
                 // An empty library has its own big button in the middle of
                 // the page, so this one stays away until there is something
                 // to list; Ideas has its own capture row instead.
-                if !inIdeas && !store.library.isEmpty { newSetRow }
+                if newSet { newSetRow.transition(.identity) }
                 if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
                         .environment(\.colorScheme, dockScheme)
                 }
             }
-            .wardBarBase(shown: !underSky)
+            // New set casts nothing up, so its line sits just over it,
+            // clear of the round's button; the dock's raised panel needs
+            // room for its lights
+            .wardBarBase(room: newSet ? 8 : 24, shown: !underSky)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
@@ -578,6 +603,14 @@ struct LibraryView: View {
             }
             .listSectionSpacing(16)
             .scrollContentBackground(.hidden)
+            // the masthead stands in for iOS's soft top edge (categoryPage)
+            .scrollEdgeEffectHidden(true, for: .top)
+            // how far the list has scrolled, for the grid band and the
+            // masthead's line
+            .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, y in
+                bandTrack.scroll = y
+            }
+            .onScrollPhaseChange { _, phase in bandTrack.settle(idle: phase == .idle) }
             // Back from a set that Turn into just made: the new set in view,
             // not somewhere below the fold.
             .onChange(of: opened.isEmpty) { _, back in
@@ -722,6 +755,7 @@ struct LibraryView: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Color.wardPrimaryInk)
             .lineLimit(1)
+            .contentTransition(.identity)
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
     }

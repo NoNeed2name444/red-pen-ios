@@ -112,11 +112,13 @@ extension LibraryView {
                             .font(.title3)
                             .accessibilityHidden(true)
                             .foregroundStyle(selected.contains(set.id) ? Color.wardPrimaryInk : Color.wardInkSecondary)
+                            .contentTransition(.identity)
                         setRow(set)
                     }
                 }
                 .buttonStyle(.pressableRow)
                 .accessibilityAddTraits(selected.contains(set.id) ? [.isSelected] : [])
+                .transition(.identity)
             } else {
                 // The ellipsis sits beside the link rather than inside its
                 // label: a control inside a link's label fights the row for
@@ -126,6 +128,7 @@ extension LibraryView {
                         .accessibilityIdentifier("setRow-\(set.kind.rawValue)")
                     rowMoreMenu(set)
                 }
+                .transition(.identity)
             }
         }
         // a soft tile, a little tighter above and below than a form's, so
@@ -262,6 +265,7 @@ extension LibraryView {
             .foregroundStyle(Color.wardInkSecondary)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
+            .contentTransition(.identity)
     }
 
     /// Whether the selection holds any questions to mix into one quiz.

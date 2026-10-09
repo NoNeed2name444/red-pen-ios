@@ -103,6 +103,7 @@ struct DueTodayView: View {
                 .readableColumn()
             }
         }
+        .wardScrollTopEdge()
         .reviewUndoChip(until: $undoUntil, action: undo)
         .studyBar { footer(due) }
         .saveToIdeasHost()
@@ -115,6 +116,7 @@ struct DueTodayView: View {
                 .padding(.top, 32)
                 .readableColumn()
         }
+        .wardScrollTopEdge()
         .reviewUndoChip(until: $undoUntil, action: undo)
         // commute mode reads questions as well as due cards, so Listen
         // stays in reach with nothing due

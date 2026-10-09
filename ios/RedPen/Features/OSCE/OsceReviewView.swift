@@ -51,8 +51,10 @@ struct OsceReviewView: View {
                 progressHeader(checklist)
                 if complete {
                     completeBody(checklist)
+                        .transition(.identity)
                 } else {
                     stepBody(checklist)
+                        .transition(.identity)
                 }
             } else {
                 WardEmptyState(symbol: "checklist", title: "No checklists in this set.")
@@ -201,7 +203,7 @@ struct OsceReviewView: View {
             status = "Step \(run.stepIndex + 1) of \(checklist.steps.count)"
         }
         return StudyProgressHeader(status, detail: checklist.title, fraction: fraction) {
-            if !complete { stationClock }
+            if !complete { stationClock.transition(.identity) }
         }
     }
 
@@ -225,12 +227,14 @@ struct OsceReviewView: View {
                         .multilineTextAlignment(.center)
                         .padding(16)
                         .frame(maxWidth: .infinity)
+                        .transition(.identity)
                 }
                 if !revealed && run.stepIndex == 0 {
                     Text(run.restarts == 0
                          ? "Work through the station out loud, in order, revealing each step to check yourself."
                          : "From the top. The steps go in order, so a missed one means starting again.")
                         .font(.subheadline).foregroundStyle(Color.wardInkSecondary).multilineTextAlignment(.center)
+                        .transition(.identity)
                 }
             }
             .padding(16)
@@ -274,6 +278,7 @@ struct OsceReviewView: View {
                 .accessibilityIdentifier("osceGotIt")
                 .accessibilityHint("On to the next step")
             }
+            .transition(.identity)
         } else {
             Button(action: reveal) {
                 Label("Reveal", systemImage: "eye")
@@ -281,6 +286,7 @@ struct OsceReviewView: View {
             .buttonStyle(.bigPrimary)
             .keyboardShortcut(.space, modifiers: [])
             .accessibilityIdentifier("osceReveal")
+            .transition(.identity)
         }
     }
 
@@ -318,6 +324,7 @@ struct OsceReviewView: View {
             .padding(.bottom, 24)
             .readableColumn()
         }
+        .wardScrollTopEdge()
         .studyBar { completeButtons(hasNext: hasNext) }
     }
 

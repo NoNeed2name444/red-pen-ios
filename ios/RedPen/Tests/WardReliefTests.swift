@@ -72,10 +72,26 @@ for dark in [false, true] {
         check("\(tag): pressed in keeps the lights where they are",
               inset.highlight == spec.highlight && inset.shade == spec.shade)
 
-        // Increase Contrast: an ink edge and a deeper shade, nothing else moves
+        // A control's face has an ink edge at 3:1 or more; a card or a slab
+        // has none until Increase Contrast, which strengthens both
+        let control = WardRelief.raised(lift, dark: dark, control: true)
         let strong = WardRelief.raised(lift, dark: dark, highContrast: true)
-        check("\(tag): no edge without Increase Contrast", spec.edgeAlpha == 0)
-        check("\(tag): Increase Contrast adds an edge at 0.3 to 0.4", (0.3...0.4).contains(strong.edgeAlpha), f(strong.edgeAlpha))
+        let strongControl = WardRelief.raised(lift, dark: dark, highContrast: true, control: true)
+        let edge = WardPalette.contrast(WardRelief.edgeColor(dark: dark), base)
+        let strongEdge = WardPalette.contrast(WardRelief.edgeColor(dark: dark, highContrast: true), base)
+        check("\(tag): a control's edge reads at least 3:1 on the base",
+              control.edgeAlpha == WardRelief.edgeAlpha(dark: dark) && edge >= WardRelief.edgeContrast, f(edge))
+        check("\(tag): a card has no edge", spec.edgeAlpha == 0)
+        check("\(tag): a control's face is a card's with the edge",
+              control.highlight == spec.highlight && control.shade == spec.shade && control.inner == spec.inner)
+        check("\(tag): pressed in keeps the edge",
+              inset.edgeAlpha == spec.edgeAlpha &&
+              WardRelief.inset(lift, dark: dark, control: true).edgeAlpha == control.edgeAlpha)
+        check("\(tag): Increase Contrast edges a card",
+              strong.edgeAlpha == WardRelief.containerHighContrastEdge && strong.edgeAlpha > 0)
+        check("\(tag): Increase Contrast strengthens a control's edge, past a card's",
+              strongControl.edgeAlpha > control.edgeAlpha && strongEdge > edge &&
+              strongControl.edgeAlpha > strong.edgeAlpha, "\(f(strongEdge)) vs \(f(edge))")
         check("\(tag): Increase Contrast deepens the shade",
               strong.shade.alpha > spec.shade.alpha &&
               WardPalette.luminance(WardRelief.composite(strong.shade, on: base)) < ls)
@@ -126,10 +142,15 @@ for (lift, expected) in zip(WardLift.allCases, [1.0, 1.5, 2.0, 2.5]) {
     check("softness \(lift)", near(WardPress.soft(lift), expected))
     for dark in [false, true] {
         for strong in [false, true] {
-            let raised = WardRelief.raised(lift, dark: dark, highContrast: strong)
+            let raised = WardRelief.raised(lift, dark: dark, highContrast: strong, control: true)
             func spec(_ q: Double) -> WardPressSpec {
                 WardPress.spec(lift, depth: q, dark: dark, highContrast: strong)
             }
+            check("\(lift)/\(dark)/\(strong): a pressable face is a control's, edged",
+                  spec(0).edgeAlpha == WardRelief.edgeAlpha(dark: dark, highContrast: strong))
+            check("\(lift)/\(dark)/\(strong): an icon tile's is a card's",
+                  WardPress.spec(lift, depth: 0.5, dark: dark, highContrast: strong, control: false).edgeAlpha
+                    == WardRelief.containerEdgeAlpha(highContrast: strong))
             check("\(lift)/\(dark)/\(strong): depth clamps", spec(-1) == spec(0) && spec(2) == spec(1))
             for (q, extra) in [(-1.0, 0.0), (0.0, 0.0), (0.5, 0.5), (1.0, 1.0), (2.0, 1.0)] {
                 check("blur \(lift)/\(dark)/\(strong)/\(q)", near(spec(q).blur, expected + extra))
@@ -204,6 +225,39 @@ check("paper grid includes next bold", paper31.count == 6 &&
       paper31.map { $0.at } == [0, 6, 12, 18, 24, 30] &&
       paper31.filter { $0.bold }.map { $0.at } == [0, 30])
 check("paper nonpositive grid empty", WardPaper.lines(0).isEmpty && WardPaper.lines(-5).isEmpty)
+
+// A band from a global origin: the frame's lines, in local positions.
+check("paper band from zero is the frame grid",
+      WardPaper.lines(31, from: 0).map { $0.at } == paper31.map { $0.at } &&
+      WardPaper.lines(31, from: 0).map { $0.bold } == paper31.map { $0.bold })
+let band = WardPaper.lines(20, from: 10)
+check("paper band shifts into local positions",
+      band.map { $0.at } == [2, 8, 14] && band.map { $0.bold } == [false, false, false],
+      "\(band.map { $0.at })")
+let bandBold = WardPaper.lines(25, from: 27)
+check("paper band keeps the global bold lines",
+      bandBold.map { $0.at } == [3, 9, 15, 21] &&
+      bandBold.filter { $0.bold }.map { $0.at } == [3],
+      "\(bandBold.map { ($0.at, $0.bold) })")
+let bandOnLine = WardPaper.lines(12, from: 30)
+check("paper band includes a line on its origin, excludes its end",
+      bandOnLine.map { $0.at } == [0, 6] && bandOnLine.first?.bold == true)
+let bandAbove = WardPaper.lines(14, from: -8)
+check("paper band above the origin counts bold lines the same way",
+      bandAbove.map { $0.at } == [2, 8] && bandAbove.map { $0.bold } == [false, true],
+      "\(bandAbove.map { ($0.at, $0.bold) })")
+check("paper band empty for no length", WardPaper.lines(0, from: 40).isEmpty &&
+      WardPaper.lines(-3, from: 40).isEmpty && WardPaper.lines(.infinity, from: 0).isEmpty)
+var aligned = true
+for origin in stride(from: -37.5, through: 211.0, by: 3.25) {
+    for line in WardPaper.lines(90, from: origin) {
+        let global = line.at + origin
+        let k = (global / WardPaper.cell).rounded()
+        if abs(k * WardPaper.cell - global) > 1e-9 || line.at < 0 || line.at >= 90 ||
+            line.bold != (Int(k) % 5 == 0) { aligned = false }
+    }
+}
+check("paper band lines sit on the frame's grid", aligned)
 
 print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
                        : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")

@@ -111,8 +111,10 @@ struct DuelView: View {
         Group {
             if finished {
                 summaryScreen
+                    .transition(.identity)
             } else {
                 playScreen
+                    .transition(.identity)
             }
         }
         .wardScreen()
@@ -147,7 +149,7 @@ struct DuelView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
-                    if index > 0 { feedback(order[index - 1]) }
+                    if index > 0 { feedback(order[index - 1]).transition(.identity) }
                     if order.indices.contains(index) {
                         card(order[index])
                     }
@@ -160,6 +162,7 @@ struct DuelView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
             }
+            .wardScrollTopEdge()
             .studyBar { choices }
         }
     }
@@ -252,11 +255,15 @@ struct DuelView: View {
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: symbol)
                 .foregroundStyle(colour)
+                .contentTransition(.identity)
                 .accessibilityLabel(ok ? "Right" : "Wrong")
             VStack(alignment: .leading, spacing: 2) {
                 Text(line).font(.footnote.weight(.semibold)).foregroundStyle(Color.wardInk)
+                    .contentTransition(.identity)
                 if !feature.why.isEmpty {
                     Text(feature.why).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                        .contentTransition(.identity)
+                        .transition(.identity)
                 }
             }
             Spacer(minLength: 0)
@@ -292,6 +299,7 @@ struct DuelView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
         }
+        .wardScrollTopEdge()
         .studyBar { summaryButtons }
     }
 

@@ -66,6 +66,7 @@ struct CaseClockPill: View {
         Label(used == 0 ? "\(budget) min" : "\(used) / \(budget) min", systemImage: over ? "exclamationmark.circle.fill" : "clock")
             .font(.system(.subheadline, design: .monospaced).weight(.semibold))
             .monospacedDigit()
+            .contentTransition(.identity)
             .foregroundStyle(over ? Color.wardDanger : Color.wardInk)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)

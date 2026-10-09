@@ -57,7 +57,9 @@ struct NewSetDock: View {
                     .font(.footnote)
                     .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
+                    .contentTransition(.identity)
                     .frame(maxWidth: .infinity)
+                    .transition(.identity)
             }
             HStack(spacing: 0) {
                 backButton
@@ -105,14 +107,17 @@ private struct NewSetDockPrimaryButton: View {
             .disabled(!ready)
             .keyboardShortcut(.defaultAction)
             .accessibilityIdentifier("newSetNext")
+            .transition(.identity)
         case .chooseSaved:
             Button(action: chooseSaved) {
                 Label("Choose a file", systemImage: "square.and.arrow.down")
             }
             .buttonStyle(.wardPrimary)
+            .transition(.identity)
         case .floating(let id):
             let shortcut: KeyboardShortcut? = id == "create" ? NewSetDockPrimaryButton.save : nil
             FloatingActionButton(expecting: id, shortcut: shortcut)
+                .transition(.identity)
         }
     }
 }

@@ -86,7 +86,7 @@ struct NarrateLine: View, Equatable {
         .padding(.vertical, 6).padding(.horizontal, 8)
         // the line being read pressed into the page
         .background {
-            if current { WardReliefFace(shape: shape, lift: .low, inset: true) }
+            if current { WardReliefFace(shape: shape, lift: .low, inset: true).transition(.identity) }
         }
         // a pointer lights the whole line, which is what a click jumps to;
         // one modifier per line, not one per word

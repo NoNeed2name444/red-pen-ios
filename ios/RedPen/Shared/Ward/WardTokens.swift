@@ -30,12 +30,13 @@ extension Color {
     static let wardHairline = ward(.hairline)
     static let wardMonitor = ward(.monitor)
 
-    /// Increase Contrast's edge: Chart Ink at WardRelief.highContrastEdge,
-    /// clear otherwise, so a line drawn with it shows only when asked for.
+    /// A control's edge: Chart Ink at WardRelief.edgeAlpha, at least 3:1 on
+    /// the base, stronger under Increase Contrast.
     static let wardEdge = Color(uiColor: UIColor { traits in
-        guard traits.accessibilityContrast == .high else { return .clear }
-        let (r, g, b) = WardPalette.rgb(WardPalette.hex(.ink, dark: traits.userInterfaceStyle == .dark))
-        return UIColor(red: r, green: g, blue: b, alpha: WardRelief.highContrastEdge)
+        let dark = traits.userInterfaceStyle == .dark
+        let (r, g, b) = WardPalette.rgb(WardPalette.hex(.ink, dark: dark))
+        return UIColor(red: r, green: g, blue: b,
+                       alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
     })
 
     /// One relief light at its strength.

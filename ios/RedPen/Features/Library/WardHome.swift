@@ -49,6 +49,10 @@ extension LibraryView {
         let hour: Int = Calendar.current.component(.hour, from: now)
         let greeting: String = WardWords.greeting(hour: hour, name: account.account?.displayName)
         let header = HomeHeader(date: now, greeting: greeting, countdown: ExamCountdown.text(now: now))
+            // where the header ends, for the grid band under it
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { y in
+                bandTrack.header(y)
+            }
         return Section { homeRow(header) }
     }
 
@@ -74,10 +78,11 @@ extension LibraryView {
         }
     }
 
-    /// The row the page's title sits in: the page's gutter, nothing behind.
+    /// The row the page's title sits in: the page's gutter, nothing behind,
+    /// nothing under it but the band's edge and the sections' spacing.
     private func homeRow<Content: View>(_ content: Content) -> some View {
         content
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 0, trailing: 16))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
     }
@@ -267,7 +272,7 @@ struct HomeHeader: View {
                     .padding(.top, WardSpace.xs)
             }
         }
-        .padding(.top, WardSpace.s)
+        .padding(.top, WardSpace.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -284,6 +289,96 @@ struct HomeHeader: View {
                 .frame(width: 34, height: 18)
                 .accessibilityHidden(true)
         }
+    }
+}
+
+// MARK: - The grid band under the header
+
+/// Where the home's grid band ends, in window points (WardPaperBand): the
+/// header's bottom with the list at its top, less how far the list has
+/// scrolled. Kept apart from LibraryView, so following a scroll redraws only
+/// the band and the masthead, not the list.
+@MainActor
+@Observable
+final class HomeBandTrack {
+    /// The header's bottom with the list at its top, once seen.
+    private(set) var rest: CGFloat?
+    /// How far the list has scrolled from its top.
+    var scroll: CGFloat = 0
+    /// The bottom of the bar area (HomeMasthead).
+    var barBottom: CGFloat = 0
+    @ObservationIgnored private var seen: CGFloat?
+    @ObservationIgnored private var idle = true
+
+    /// Clear of the header's last line: the band's edge sits this far under it.
+    static let belowHeader: CGFloat = 10
+
+    var bottom: CGFloat? { rest.map { $0 - scroll + Self.belowHeader } }
+
+    /// The header reported where its bottom is. At rest that pairs with the
+    /// scroll, so it fixes where the header stands with the list at its
+    /// top; while the list moves, the scroll alone moves the band.
+    func header(_ y: CGFloat) {
+        seen = y
+        if idle || rest == nil { rest = y + scroll }
+    }
+
+    /// The list started or stopped moving. Once at rest, where the header
+    /// was last seen fixes the band afresh, while the header is on screen.
+    func settle(idle now: Bool) {
+        idle = now
+        if now, let seen, (rest ?? .infinity) - scroll > 0 { rest = seen + scroll }
+    }
+
+    /// Another page's list: at its top, its header not yet seen.
+    func reset() {
+        rest = nil
+        seen = nil
+        scroll = 0
+        idle = true
+    }
+}
+
+/// The band behind the page, from the window's top to just under the
+/// header, out to the paper frame on both sides.
+struct HomeBand: View {
+    let track: HomeBandTrack
+
+    var body: some View {
+        if let bottom = track.bottom {
+            WardPaperBand(bottom: bottom)
+                .padding(.horizontal, -WardPaper.sideInset)
+                .ignoresSafeArea()
+                .transition(.identity)
+        }
+    }
+}
+
+/// The bar area over the page, solid from the window's top to the list's:
+/// what scrolls up passes under it and is cut there, rather than fading
+/// under iOS's soft scroll edge. With the band it is the same ECG paper on
+/// the same grid, and draws the band's edge once the band has gone under
+/// it; without (while searching), it is the plain base, with an edge once
+/// the list has moved.
+struct HomeMasthead: View {
+    let track: HomeBandTrack
+    let band: Bool
+
+    var body: some View {
+        let bottom: CGFloat? = band ? track.bottom : nil
+        let edge: Bool = bottom.map { $0 <= track.barBottom + 0.5 } ?? (track.scroll > 0.5)
+        Color.clear
+            .frame(height: 0)
+            .background(alignment: .bottom) {
+                WardPaperBand(bottom: .greatestFiniteMagnitude, grid: bottom != nil, edge: edge)
+                    .padding(.horizontal, -WardPaper.sideInset)
+                    .ignoresSafeArea(edges: .top)
+                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { y in
+                        track.barBottom = y
+                    }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
 
@@ -326,11 +421,15 @@ struct HomeRoundCard: View {
 
     private var planButton: some View {
         Button(action: onPlan) {
+            // a 44-point target that takes only the words' height in the
+            // heading's row, so the row is no taller than its two lines and
+            // the round's button stays clear of New set
             Label("Plan", systemImage: "chart.line.uptrend.xyaxis")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
-                .frame(minHeight: 44)
+                .padding(.vertical, 12)
                 .contentShape(Rectangle())
+                .padding(.vertical, -12)
         }
         .buttonStyle(.borderless)
         .accessibilityHint("Opens the exam plan and forecast")

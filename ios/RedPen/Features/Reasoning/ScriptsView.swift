@@ -242,6 +242,7 @@ struct ScriptCard: View {
             Image(systemName: symbol)
                 .font(.title3)
                 .foregroundStyle(colour)
+                .contentTransition(.identity)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }

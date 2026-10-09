@@ -121,6 +121,7 @@ private struct FirstRunGoalPage: View {
                     .contentTransition(.numericText())
                     .accessibilityHidden(true)
                 Stepper("\(goal) a day", value: $goal.animation(.snappy), in: DailyGoal.range, step: 10)
+                    .contentTransition(.identity)
                     .accessibilityIdentifier("firstRunGoalStepper")
                 HStack(spacing: 8) {
                     ForEach(FirstRunGoalPage.presets, id: \.self) { value in
@@ -303,6 +304,7 @@ private extension View {
         let bar = StudyActionBar(folds: false) {
             Button(action: next) {
                 Text(nextTitle).font(.headline)
+                    .contentTransition(.identity)
             }
             .buttonStyle(.bigPrimary)
             .accessibilityIdentifier("firstRun-\(page.name)-next")

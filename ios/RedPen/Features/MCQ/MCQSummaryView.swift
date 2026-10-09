@@ -64,6 +64,7 @@ struct MCQSummaryView: View {
             }
             .buttonStyle(.bigSecondary)
             .accessibilityLabel("Open your rule sheet")
+            .transition(.identity)
         } else {
             let fresh = store.questionsWithoutRules(checkedMistakes).count
             if fresh > 0 {
@@ -78,6 +79,7 @@ struct MCQSummaryView: View {
                 }
                 .buttonStyle(.bigSecondary)
                 .accessibilityLabel("Add \(fresh) rule\(plural) to your rule sheet")
+                .transition(.identity)
             }
         }
     }
@@ -91,6 +93,7 @@ struct MCQSummaryView: View {
             Label("\(added) rule\(plural) added to your rule sheet", systemImage: "checkmark")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.wardInkSecondary)
+                .transition(.identity)
         }
     }
 
@@ -193,6 +196,7 @@ struct MCQSummaryView: View {
             if next != .done {
                 Button("Done") { dismiss() }
                     .buttonStyle(.bigCompanion)
+                    .transition(.identity)
                 if span == .broad { Spacer(minLength: 16) }
             }
             primaryButton
@@ -210,6 +214,7 @@ struct MCQSummaryView: View {
             }
             .buttonStyle(.bigPrimary)
             .keyboardShortcut(.return, modifiers: [])
+            .transition(.identity)
         case .practise:
             Button(action: practiseMistakes) {
                 Label("Practise mistakes (\(mistakes.count))", systemImage: "arrow.uturn.backward.circle")
@@ -217,10 +222,12 @@ struct MCQSummaryView: View {
             .buttonStyle(.bigPrimary)
             .keyboardShortcut(.return, modifiers: [])
             .accessibilityHint("Saves the questions you got wrong as a set called Mistakes, and opens it")
+            .transition(.identity)
         case .done:
             Button("Done") { dismiss() }
                 .buttonStyle(.bigPrimary)
                 .keyboardShortcut(.return, modifiers: [])
+                .transition(.identity)
         }
     }
 
@@ -233,11 +240,13 @@ struct MCQSummaryView: View {
                 Label("Saved to library", systemImage: "checkmark")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.wardInkSecondary)
+                    .transition(.identity)
             }
             if mistakesSaved {
                 Label("In your library as \u{201C}Mistakes\u{201D}", systemImage: "checkmark")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.wardInkSecondary)
+                    .transition(.identity)
             }
 
             rulesAddedNote

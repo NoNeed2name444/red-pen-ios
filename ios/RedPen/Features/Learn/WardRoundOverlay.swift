@@ -161,6 +161,7 @@ struct WardRoundFloat: View {
                         .ignoresSafeArea()
                         .onTapGesture { setExpanded(false) }
                         .accessibilityHidden(true)
+                        .transition(.identity)
                     WardRoundPanel(round: round, notice: clock.notice) { setExpanded(false) }
                         .frame(maxWidth: 440)
                         // VoiceOver stays in the open panel; the escape
@@ -172,6 +173,7 @@ struct WardRoundFloat: View {
                         .transition(.slideIn(.bottom))
                 } else {
                     chip(round)
+                        .transition(.identity)
                 }
             }
         }

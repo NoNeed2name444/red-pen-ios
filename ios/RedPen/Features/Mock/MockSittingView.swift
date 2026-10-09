@@ -142,16 +142,20 @@ struct MockSittingView: View {
         if let result {
             MockResultsView(result: result, sitting: sitting, selected: selected,
                             minutesUsed: minutesUsed, onDone: { dismiss() })
+                .transition(.identity)
         } else if onBreak {
             breakScreen
+                .transition(.identity)
         } else if picks.isEmpty {
             WardEmptyState(symbol: "questionmark.square.dashed", title: "No questions", tone: .grey)
                 .frame(maxHeight: .infinity)
+                .transition(.identity)
         } else {
             VStack(spacing: 0) {
                 header
                 questionScroll
             }
+            .transition(.identity)
         }
     }
 

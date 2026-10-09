@@ -132,7 +132,7 @@ private struct IdeaCaptureField: View {
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 48)
-        .wardInset(in: Capsule())
+        .wardInset(in: Capsule(), control: true)
     }
 }
 

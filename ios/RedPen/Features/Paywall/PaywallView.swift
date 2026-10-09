@@ -36,6 +36,7 @@ struct PaywallView: View {
                 .frame(maxWidth: .infinity)
             }
             .wardScreen()
+            .wardScrollTopEdge()
             // buying, restoring and the small print, under the thumb
             .studyBar { buyBar }
             .navigationTitle(PaywallView.title)
@@ -118,6 +119,7 @@ struct PaywallView: View {
             HStack(spacing: 12) {
                 Image(systemName: symbol)
                     .foregroundStyle(mark)
+                    .contentTransition(.identity)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(plan.label).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
                     if plan == .yearly, let saving = subscriptions.yearlySaving, saving > 0 {
