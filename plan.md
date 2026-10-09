@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 8:30 AM Cairo.
+Last updated: 2026-10-09, 10:35 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,11 +39,11 @@ Last updated: 2026-10-09, 8:30 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
-| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
+| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20) | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -626,13 +626,20 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       loop's note for the owner: no preview shot shows the Mixed tile or
       the Account page; an Account screen in the preview would show rows
       34 and 40. Task 2 (the re-check, a report only) went in as turn 58
-      at 7:27 AM. The packets for tasks 1 to 3 are in the session's scratchpad
-      and went to the owner, kept out of this repository (the loop's format
-      is private); a new session rebuilds them from docs/chatgpt-tasks.md in
-      the format of the loop's last task commit. When one is approved, queue
-      the next with the turn after the approval, the approving commit as its
-      base and aahp/personal's tip as its target base, then run the loop's
-      worker.
+      at 7:26 AM and was approved at turn 60 (7:31 AM): of its 31 rows, 26
+      are fixed, 1, 17 and 91 are open, and 4 and 18 partly
+      (docs/chatgpt-tasks.md, task 4, has what is left). The packets for
+      tasks 1 to 3 are in the session's scratchpad and went to the owner,
+      kept out of this repository (the loop's format is private); a new
+      session rebuilds them from docs/chatgpt-tasks.md in the format of the
+      loop's last task commit.
+    - The loop is shared: another session queued its own task at turn 61
+      (7:33 AM), and it was still in review at turn 64 (8:02 AM). Never
+      overwrite or start another session's task. Task 3 goes in once that
+      one is approved, under the next free task number, with the turn
+      after the approval, the approving commit as its base and
+      aahp/personal's tip as its target base; then run the loop's worker.
+      The same for each task after it.
     - The neumorphic branch (5d2a0c6) is already inside both personal and
       aahp/personal, so it adds no merge risk to these tasks.
     - [ ] Review each result when it comes back, then merge aahp/personal
@@ -640,7 +647,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       changed). Task 1 is reviewed (its diff is what the task asked) and
       could go in now; it waits for task 3, so one App build on personal
       covers both.
-16. [ ] #32, Chat-me's verifier.yml swift-test job (macOS,
+16. [x] #32, Chat-me's verifier.yml swift-test job (macOS,
     clients/ios/MedicalVerifierCore) has been red since at least d504978
     (1 Oct), with the same four failures on 28bdcf3 (7 Oct) and d17635d,
     so they are older than step 11: AdvancedClaimReasoningTests
@@ -652,15 +659,97 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     testWeightBasedArithmeticIsEquivalentOnlyWithExplicitWeight
     (sourceUnsupported, not validated). Reproduce them on Linux with
     /opt/swift if the package is Foundation-only, fix, push to Chat-me's
-    personal.
-17. [ ] #34, the owner's "look for upgrades - unfinished work - half-backed
+    personal. Done in Chat-me 4fe8af6 (9 Oct, about 7:45 AM; Medical
+    Verifier CI 37885203716 green, the first green run since at least
+    d504978). The cross-platform conformance doc holds a release while
+    Python and iOS disagree, and the Task 4 audit puts MedicalVerifierCore
+    in the app (recommendation d). Three causes:
+    - the question check's dose pattern had lost its backslashes, so
+      "500 mg" never matched and a dose answer read as not answering the
+      question (Python had its own form of it: it looked for the unit
+      among words of four letters or more, so "mg" was never seen);
+    - Swift lacked Python's rule that a dose written another way with the
+      same daily total ("500 mg twice daily" for "1000 mg daily") is the
+      same dose;
+    - Swift's relation anchors had no past tense ("increased",
+      "reduced"), so a time marker before the verb was missed.
+    The package's Linux run (CryptoKit shimmed) passes all 44 Swift tests;
+    185 Python tests pass.
+17. [x] #33, found in step 16: that same-total rule skipped every other
+    check, so "Warfarin 1000 mg is given daily" was validated against
+    "Aspirin 500 mg is given twice daily", in Python and in Swift, and an
+    answer that added "with food" (or, on Swift, "for 7 days") passed too.
+    - [x] Chat-me a4152d5 (9 Oct, about 7:55 AM; Medical Verifier CI
+      37885973407 green): the rule now holds only when every other word of
+      four letters or more in the claim is in the evidence too; words that
+      only say how much, how often or how a dose is given (dose, daily,
+      twice, every, hours, given, take and the like) may still change.
+      Python's verify and semantic guard and Swift's SemanticGuard share
+      the list, and three shared vectors pin it (corpus 1.4): the same drug
+      stays VALIDATED; another drug, or an added course, is
+      SOURCE_UNSUPPORTED. The five honest rewordings (twice daily, a
+      concentration, weight-based, every 8 hours, "should be given") stay
+      VALIDATED, and the 50-claim benchmark is unchanged. 191 Python tests
+      and 47 Swift tests pass. Known limit: a drug the evidence names, but
+      not as the one being dosed, still counts as kept.
+    - [x] The Worker (server/claims.js, ported from Chat-me 2f4fd4e, step
+      9) had the same rule, and its claim gate skips an item that any near
+      lecture sentence supports. So a lecture with "Amoxicillin 500 mg
+      three times daily" and "Ibuprofen 500 mg twice daily" let a card's
+      "Amoxicillin 1000 mg daily" through: the ibuprofen sentence has the
+      same daily total. doseRewordingKeepsTerms is a port of a4152d5's rule
+      with its word list, in verify and semanticWarnings. The audit makes
+      the shared vectors the Worker's regression corpus (Task 4 audit,
+      recommendation e), so tests/claims.test.mjs keeps them at 2f4fd4e and
+      lists the one vector this changes on purpose (10 mL of a 5 mg/mL
+      solution twice daily against "The daily dose is 100 mg.": "solution"
+      is not in the evidence, so the verifier now abstains), with the later
+      Python's answers. It also holds four of a4152d5's cases (the same
+      drug, another drug, a condition added, a course added) with that
+      Python's answers, and two gate cases where another drug's sentence
+      with the same daily total used to hide the dose and frequency
+      findings. The new checks fail on the old gate; 88 pass on the new
+      one. The ordinary batch takes no longer (about 2.5 ms warm).
+    - [x] Preflight, push design/map-lighter, Server tests green, then
+      personal and the session branch (server and plan only: no App
+      build). Live only after a Worker deploy, which needs the owner's
+      word. Done: preflight OK; Server tests 37887435889 green on
+      a06955a; personal and claude/new-session-013tes5v fast-forwarded to
+      it on 9 Oct at about 8:15 AM.
+18. [ ] #34, a swapped drug name passes: Chat-me's verify and the Worker's
+    say SUPPORTS for "Amoxicillin treats otitis media." against
+    "Ibuprofen treats otitis media.", for "Amoxicillin is used for otitis
+    media." against "Ibuprofen is used for otitis media.", and for
+    "Amoxicillin 500 mg twice daily for otitis media." against "Ibuprofen
+    500 mg twice daily for otitis media.". Where no relation is
+    recognised, the atomic subject check never runs ("Warfarin increases
+    bleeding risk." against "Aspirin …" is rightly UNKNOWN,
+    atomic_subject_mismatch). In the gate it is the same hole as step 17:
+    a near sentence about another drug supports the item and hides what
+    its own drug's sentence would find. Fix it in Chat-me first (Python,
+    the Swift twin and a shared vector; abstain, never contradict, per the
+    22f fail-safe brief), then port it to the Worker like step 17.
+19. [ ] Re-pin the Worker's port to Chat-me personal. Measured on 9 Oct:
+    besides step 17's vectors, the port still has two behaviours Chat-me
+    dropped in d17635d (step 11). Its multilingual replace is not
+    whole-word, so Spanish "reduce" turns English "reduces" into
+    "reducess" inside its double-negation facts, and it has no direction
+    axis, so "Ibuprofen reduces bleeding risk with warfarin." against
+    "… increases …" abstains as atomic_object_mismatch, where Chat-me now
+    says atomic_relation_mismatch. Port both, then regenerate
+    tests/claim-vectors.json from Chat-me personal: bench/claim-vectors.py
+    needs the module paths d504978 moved (agents/specialists/
+    verification_agent/ for app/verification/), and the test's pinned
+    commit and counts, the bench's docstring and claims.js's header move
+    with it. DEPARTURES then empties.
+20. [ ] #35, the owner's "look for upgrades - unfinished work - half-backed
     features in the stethoscore app for u to make" (9 Oct, about 7:30 AM):
     the launch checklist's open gaps (docs/launch/launch-checklist.md
     section 1.3) and the audit's rows still open, built on
     design/launch-gaps. Clear of step 15's loop tasks (rows 34, 40, 74 and
-    the re-check), step 16 (another session's), the neumorphic work and the
-    map. Order: what Linux and node can check first; the screens last, in
-    one preview run.
+    the re-check), steps 16 to 19 (another session's), the neumorphic work
+    and the map. Order: what Linux and node can check first; the screens
+    last, in one preview run.
     - [x] GAP 2: no "Sign in with Google" door in a build without a Google
       client id (AuthRules.googleClientID, GoogleSignIn.isConfigured; the
       cloud blocker then names only Apple). Checked by the account suite

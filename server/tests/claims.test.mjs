@@ -4,7 +4,9 @@
 //
 // 1. Conformance: on every pair in claim-vectors.json (the verifier's 35
 //    shared conformance vectors and Stethoscore-shaped pairs), each guard
-//    gives exactly what the Python gave (bench/claim-vectors.py made it).
+//    gives exactly what the Python gave (bench/claim-vectors.py made it),
+//    but where a later Chat-me changed an answer on purpose (DEPARTURES);
+//    and on the daily-dose rule that change brought, the later Python's.
 // 2. The gate: hard findings only where an item restates its lecture and
 //    contradicts it (a flipped negation, another dose, frequency or
 //    percentage) or turns it around (higher for lower, rare for common);
@@ -49,11 +51,26 @@ const facts = t => ({
   scope: C.scopeStrength(t), quantities: C.quantities(t.toLowerCase()), percents: C.percents(t.toLowerCase()),
   dates: C.extractExplicitDates(t), temporal: C.temporalSignature(t), safety: C.safetyRelation(t), atoms: C.decomposeClaim(t),
 });
+/// Pairs whose answers a later Chat-me changed on purpose, with the new ones
+/// (the later Python's), keyed by claim and evidence.
+const DEPARTURES = new Map([
+  // Chat-me a4152d5: a same daily total written another way counts as the
+  // same dose only when the claim keeps the evidence's other words, and
+  // "solution" is not in "The daily dose is 100 mg." The verifier abstains.
+  ['Give 10 mL of a 5 mg/mL solution twice daily.\nThe daily dose is 100 mg.', {
+    verify: { label: 'UNKNOWN', reasons: ['insufficient_semantic_overlap'] },
+    semantic: ['atomic_claim_not_entailed', 'dose_or_unit_not_matched', 'dose_frequency_mismatch'],
+  }],
+]);
 {
   ok(/2f4fd4e/.test(fx.verifier) && fx.pairs.length >= 100, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
   ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 35, 'all 35 of the verifier\'s shared conformance vectors among them');
-  const differences = [];
+  const differences = [], departed = new Set();
   for (const p of fx.pairs) {
+    const key = `${p.claim}\n${p.evidence}`, departure = DEPARTURES.get(key) || {};
+    const want = { ...p, ...departure };
+    if (DEPARTURES.has(key)) departed.add(key);
+    for (const k of Object.keys(departure)) if (eq(p[k], departure[k])) differences.push(`${p.source} ${k}: the vectors already say so; drop it from DEPARTURES`);
     const got = {
       verify: C.verify(p.claim, p.evidence), opposite: C.oppositePolarityEntailed(p.claim, p.evidence),
       condition: C.conditionSupported(p.claim, p.evidence), semantic: C.semanticWarnings(p.claim, p.evidence),
@@ -61,15 +78,36 @@ const facts = t => ({
     };
     for (const k of Object.keys(got)) {
       if (k.endsWith('facts')) {
-        for (const f of Object.keys(got[k])) if (!eq(got[k][f], p[k][f])) differences.push(`${p.source} ${k}.${f}: py ${JSON.stringify(p[k][f])} js ${JSON.stringify(got[k][f])}`);
-      } else if (!eq(got[k], p[k])) differences.push(`${p.source} ${k}: py ${JSON.stringify(p[k])} js ${JSON.stringify(got[k])}`);
+        for (const f of Object.keys(got[k])) if (!eq(got[k][f], want[k][f])) differences.push(`${p.source} ${k}.${f}: py ${JSON.stringify(want[k][f])} js ${JSON.stringify(got[k][f])}`);
+      } else if (!eq(got[k], want[k])) differences.push(`${p.source} ${k}: py ${JSON.stringify(want[k])} js ${JSON.stringify(got[k])}`);
     }
   }
   for (const d of differences.slice(0, 10)) console.log('     ', d);
   ok(differences.length === 0, `every guard gives the Python's answer on every pair (${differences.length} differences)`);
+  ok(departed.size === DEPARTURES.size, `each departure from 2f4fd4e is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
   ok(fx.entities.every(([a, b, want]) => C.entitiesEquivalent(a, b) === want), 'entity aliases as the Python reads them');
   const labels = new Set(fx.pairs.map(p => p.verify.label));
   ok(labels.has('SUPPORTS') && labels.size >= 2, `the pairs cover more than one verdict (${[...labels].join(', ')})`);
+}
+{
+  // The daily-dose rule as Chat-me a4152d5 has it (its conformance vectors
+  // 1.4 and tests/unit/test_scope_frequency_extraction.py), with its
+  // Python's answers: 500 mg twice daily backs 1000 mg daily of the same
+  // drug, not of another one, nor with a condition or a course added.
+  const evidence = 'Aspirin 500 mg is given twice daily.';
+  const SAME_TOTAL = [
+    ['Aspirin 1000 mg is given daily.', 'SUPPORTS', ['independent_structured_checks_passed'], []],
+    ['Warfarin 1000 mg is given daily.', 'UNKNOWN', ['measurement_unit_or_value_mismatch'], ['dose_or_unit_not_matched', 'dose_frequency_mismatch']],
+    ['Aspirin 1000 mg is given daily with food.', 'UNKNOWN', ['measurement_unit_or_value_mismatch'], ['dose_or_unit_not_matched', 'dose_frequency_mismatch']],
+    ['Aspirin 1000 mg is given daily for 7 days.', 'UNKNOWN', ['temporal_scope_missing'], ['temporal_scope_missing', 'dose_or_unit_not_matched', 'dose_frequency_mismatch']],
+  ];
+  for (const [claim, label, reasons, semantic] of SAME_TOTAL) {
+    const v = C.verify(claim, evidence), s = C.semanticWarnings(claim, evidence);
+    ok(v.label === label && eq(v.reasons, reasons) && eq(s, semantic),
+       `${label.padEnd(8)} ${claim}${v.label === label ? '' : `  (${v.label} ${v.reasons.join(',')}; ${s.join(',')})`}`);
+  }
+  ok(C.doseRewordingKeepsTerms('Take 1000 mg of it daily.', 'Take 500 mg twice daily.'),
+     'a reworded dose may drop or add words of three letters or fewer');
 }
 
 // MARK: 2. the gate on items against their own lectures
@@ -96,6 +134,10 @@ const CASES = [
   ['clean', 'Hypoglycaemia is common with sulfonylureas.', { kind: 'fact', text: 'Hypoglycaemia is not uncommon with sulfonylureas.' }],
   ['clean', 'Digoxin 0.125 mg once daily for rate control.', { kind: 'card', text: 'Digoxin 125 mcg once daily for rate control.' }],
   ['clean', 'Metformin 500 mg twice daily with meals.', { kind: 'card', text: 'Metformin 1000 mg once daily with meals.' }],
+  // another drug's sentence with the same daily total does not vouch for
+  // this one's (Chat-me a4152d5)
+  ['dose+frequency', 'Amoxicillin 500 mg three times daily for otitis media. Ibuprofen 500 mg twice daily for otitis media.', { kind: 'card', text: 'Amoxicillin 1000 mg daily for otitis media.' }],
+  ['dose+frequency', 'Metformin 500 mg three times daily in type 2 diabetes. Gliclazide 80 mg twice daily in type 2 diabetes.', { kind: 'card', text: 'Metformin 160 mg daily in type 2 diabetes.' }],
   ['clean', 'Aspirin should be given to children with Kawasaki disease.', { kind: 'fact', text: 'Aspirin should not be given to children under 16.' }],
   ['clean', 'PCC reverses warfarin within minutes.', { kind: 'mcq', stem: 'A patient on warfarin bleeds. Best immediate reversal?', options: ['Vitamin K', 'Prothrombin complex concentrate'], key: 1, explanation: 'PCC works fastest.' }],
   ['clean', 'Vancomycin 15 mg/kg every 12 hours for MRSA bacteraemia.', { kind: 'card', text: 'Ceftriaxone 2 g every 12 hours for meningitis.' }],
