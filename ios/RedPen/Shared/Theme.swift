@@ -453,87 +453,87 @@ extension ButtonStyle where Self == BigButtonStyle {
     static var bigCompanion: BigButtonStyle { BigButtonStyle(weight: .secondary, fills: false) }
 }
 
-/// The bar across the bottom of a study screen, where the thumb rests.
-///
-/// A soft slab raised high off the base, holding the screen's main button
-/// and, now and then, a small companion beside it. A hit-testable base strip
-/// covers the sides and bottom safe area so hidden rows cannot show or take taps.
-/// Always at the bottom, so the next step is in the same place on every
-/// screen. Attach it with `.studyBar { }` so the content scrolls under it; it
-/// still works as the last child of a VStack. Reading screens can opt in with
-/// `.studyBar(folds: true) { }`: a band inside the slab folds its buttons away
-/// for this visit. It starts open except in the quiz-folded preview; bars
-/// without that option stay shown.
-///
-/// On a wide iPad the slab hugs its buttons and sits at the trailing edge,
-/// under the right hand (the left hand, right to left: `.trailing` turns
-/// round with the language, as the buttons' order in it does).
+/// The bottom study deck: an open slab with a 44-point folding band and a
+/// trailing chevron, or one 56-point round button at the trailing edge.
+/// The open deck has a solid base and a tap-through fade; the folded button
+/// has nothing behind it. Wide windows keep the slab under the trailing hand.
+/// Attach with `.studyBar(folds:shown:)`. Hiding it takes no height and keeps
+/// its fold state for the next question. It starts open except in quiz-folded.
 struct StudyActionBar<Content: View>: View {
     private let content: Content
     private let folds: Bool
+    private let shown: Bool
     @State private var folded = PreviewLaunch.screen == "quiz-folded"
     @Environment(\.windowSpan) private var span
 
-    init(folds: Bool = false, @ViewBuilder content: () -> Content) {
+    init(folds: Bool = false, shown: Bool = true, @ViewBuilder content: () -> Content) {
         self.folds = folds
+        self.shown = shown
         self.content = content()
     }
 
-    var body: some View {
-        let broad: Bool = span == .broad
-        let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
-        let innerCap: CGFloat? = broad ? nil : 700
-        let outerCap: CGFloat = broad ? 1000 : 700
-        let side: Alignment = broad ? .trailing : .center
-        Group {
-            if folds {
-                VStack(spacing: 0) {
-                    Button {
-                        withAnimation(Motion.gentle(.easeInOut(duration: 0.25))) {
-                            folded.toggle()
-                        }
-                    } label: {
-                        Image(systemName: folded ? "chevron.compact.up" : "chevron.compact.down")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(Color.wardInk)
-                            .frame(minWidth: 88, maxWidth: .infinity, minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(folded ? "Show buttons" : "Hide buttons")
-                    .accessibilityIdentifier("studyBarFold")
+    private func toggle() {
+        withAnimation(Motion.gentle(.easeInOut(duration: 0.25))) { folded.toggle() }
+    }
 
-                    if !folded {
+    var body: some View {
+        if shown {
+            let broad: Bool = span == .broad
+            let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
+            let innerCap: CGFloat? = broad ? nil : 700
+            let side: Alignment = broad ? .trailing : .center
+            Group {
+                if folds && folded {
+                    Button(action: toggle) {
+                        Image(systemName: "chevron.compact.up")
+                            .frame(width: 16, height: 16)
+                    }
+                    .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
+                    .accessibilityLabel("Show buttons")
+                    .accessibilityIdentifier("studyBarFold")
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                } else {
+                    VStack(spacing: 0) {
+                        if folds {
+                            Button(action: toggle) {
+                                HStack(spacing: 0) {
+                                    Spacer(minLength: 0)
+                                    Image(systemName: "chevron.compact.down")
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(Color.wardInk)
+                                        .frame(width: 56, height: 44)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Hide buttons")
+                            .accessibilityIdentifier("studyBarFold")
+                        }
                         VStack(spacing: 12) { content }
                             .padding(.horizontal, 12)
+                            .padding(.top, folds ? 0 : 12)
                             .padding(.bottom, 12)
                             .transition(.slideFade(.bottom))
                     }
-                }
-                .fixedSize(horizontal: broad, vertical: false)
-                .frame(maxWidth: innerCap)
-                .wardRaised(in: shape, lift: .high)
-                .frame(maxWidth: .infinity, alignment: side)
-            } else {
-                VStack(spacing: 12) { content }
-                    .padding(12)
+                    .fixedSize(horizontal: broad, vertical: false)
                     .frame(maxWidth: innerCap)
                     .wardRaised(in: shape, lift: .high)
                     .frame(maxWidth: .infinity, alignment: side)
+                    .frame(maxWidth: broad ? 1000 : 700, alignment: side)
+                    .frame(maxWidth: .infinity)
+                }
             }
-        }
-            .frame(maxWidth: outerCap, alignment: side)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
-            .frame(maxWidth: .infinity)
-            .background { Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom]) }
+            .wardBarBase(shown: !(folds && folded))
+        }
     }
 }
 
 extension View {
-    func studyBar<C: View>(folds: Bool, @ViewBuilder _ content: () -> C) -> some View {
+    func studyBar<C: View>(folds: Bool, shown: Bool = true, @ViewBuilder _ content: () -> C) -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
-            StudyActionBar(folds: folds, content: content)
+            StudyActionBar(folds: folds, shown: shown, content: content)
         }
     }
 }

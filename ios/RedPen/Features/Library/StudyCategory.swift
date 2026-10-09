@@ -278,7 +278,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .stations: return "Step-by-step checklists"
         case .lectures: return "Read along with the lecture"
         case .patients: return "Work up, decide, debrief"
-        case .mixed: return "20 from every set"
+        case .mixed: return "20 across all your sets"
         case .mistakes: return "Last got wrong"
         case .flagged: return "The ones you flagged"
         case .timed: return "10 against the clock"
@@ -522,25 +522,10 @@ enum IdeasPlace {
     static var order: Int { StudyCategory.allCases.count }
 }
 
-/// The floating dock: the four categories, each a symbol over its name, on
-/// one soft panel raised high off the base, and Ideas on a panel of its own
-/// beside it.
-///
-/// On a phone (and a narrow iPad window) it runs along the bottom, under the
-/// thumb: four equal slots in the panel - on a 375-point iPhone about 65
-/// points each, room for "Questions" at caption2 size, which shrinks a touch
-/// rather than truncating at the largest text sizes - and the 64-point Ideas
-/// pill. On a wide iPad it stands on end as a rail on the leading edge, under
-/// the left hand, with Ideas last after a divider.
-///
-/// The chosen one is pressed into the panel, its symbol and name in Theatre
-/// Blue, and the hollow travels between them (it jumps under Reduce Motion);
-/// the others are Biro Grey. Ideas, chosen, is its whole panel pressed in.
-///
-/// At the accessibility text sizes six names cannot share one strip without
-/// shrinking past reading, so the dock folds into one wide button that
-/// names where you are, and opens a list of every place as a sheet - the same
-/// identifiers on its rows, so everything that finds a dock item still does.
+/// Five categories share a raised panel beside the 56-point Ideas pill.
+/// Slots fit their names, then share spare room by filling the narrower slots
+/// equally. The chosen hollow travels between categories with the selection.
+/// Wide windows use the leading rail; accessibility sizes open a list instead.
 struct CategoryDock: View {
     @Binding var selection: StudyCategory
     /// Whether Ideas, rather than a category, is the page on show.
@@ -574,7 +559,10 @@ struct CategoryDock: View {
         } else if axis == .vertical {
             rail
         } else {
-            bar
+            ViewThatFits(in: .horizontal) {
+                bar
+                listButton
+            }
         }
     }
 
@@ -622,24 +610,24 @@ struct CategoryDock: View {
     // MARK: along the bottom
 
     private var bar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             categoriesPanel
             ideasPill
         }
         // the pill as tall as the panel, whatever the text size
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: 560)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.bottom, 10)
     }
 
     private var categoriesPanel: some View {
-        HStack(spacing: 2) {
+        DockSlots {
             ForEach(StudyCategory.allCases) { category in
                 item(category)
             }
         }
-        .padding(5)
+        .padding(4)
         .wardRaised(in: panelShape, lift: .high)
     }
 
@@ -649,7 +637,7 @@ struct CategoryDock: View {
         let shape: RoundedRectangle = panelShape
         return Button(action: chooseIdeas) {
             ideasFace(chosen: chosen)
-                .frame(width: 64)
+                .frame(width: 56)
                 .frame(minHeight: 56, maxHeight: .infinity)
                 .wardRelief(in: shape, lift: .high, pressed: chosen)
                 .contentShape(shape)
@@ -734,6 +722,9 @@ struct CategoryDock: View {
             withAnimation(change) { selection = category }
         } label: {
             DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), ink: ink)
+                // Four points is eight pixels in the 2x preview. Keep this
+                // inside the pressed face, including at its minimum width.
+                .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .padding(.vertical, 2)
                 .background {
@@ -845,6 +836,48 @@ private struct DockListSheet: View {
     }
 }
 
+/// Name-sized slots with spare width shared by water-filling the narrower ones.
+private struct DockSlots: Layout {
+    private func widths(_ subviews: Subviews, offered: CGFloat?) -> [CGFloat] {
+        // Each label already contains its four-point side padding.
+        let ideals = subviews.map { max(44, $0.sizeThatFits(.unspecified).width) }
+        let total = ideals.reduce(0, +)
+        guard let offered, total > 0 else { return ideals }
+        let width = max(0, offered)
+        // Never compress away label clearance. ViewThatFits uses the
+        // list button when the names cannot fit at their shared font size.
+        if width < total { return ideals }
+        var remaining = width
+        var count = ideals.count
+        var level: CGFloat = 0
+        for ideal in ideals.sorted(by: >) {
+            level = remaining / CGFloat(count)
+            if ideal <= level { break }
+            remaining -= ideal
+            count -= 1
+        }
+        return ideals.map { max($0, level) }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let slots = widths(subviews, offered: proposal.width)
+        let height = zip(subviews, slots).map {
+            $0.0.sizeThatFits(ProposedViewSize(width: $0.1, height: nil)).height
+        }.max() ?? 0
+        return CGSize(width: max(proposal.width ?? 0, slots.reduce(0, +)), height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let slots = widths(subviews, offered: bounds.width)
+        var x = bounds.minX
+        for (subview, width) in zip(subviews, slots) {
+            subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: width, height: bounds.height))
+            x += width
+        }
+    }
+}
+
 /// One dock item's face: a symbol over its name (already in the app's
 /// language: the dock's words are in the catalog).
 private struct DockItemFace: View {
@@ -860,7 +893,7 @@ private struct DockItemFace: View {
             Text(title)
                 .font(.caption2.weight(.bold))
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .foregroundStyle(ink)
     }

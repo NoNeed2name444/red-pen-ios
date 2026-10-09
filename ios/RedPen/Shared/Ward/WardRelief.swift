@@ -192,6 +192,8 @@ struct WardPaperPanel: Equatable, Sendable {
 
 enum WardPaper {
     static let frame = 12.0
+    /// Keep controls four points inside the paper frame line.
+    static let sideInset = frame + 4
     static let cell = 6.0
     static let boldEvery = 5
     static let line = 1.0

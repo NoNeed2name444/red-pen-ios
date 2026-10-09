@@ -960,6 +960,7 @@ struct MCQQuizView: View {
 
     /// Where a new patient's chart scrolls back to.
     private static let chartTop: String = "chart-top"
+    private static let answerRowID = "quiz-answer-row"
 
     /// The question, the options and what follows them, scrolling under the
     /// bar at the bottom; a new patient starts at the top of the chart.
@@ -968,15 +969,24 @@ struct MCQQuizView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     Color.clear.frame(height: 1).id(Self.chartTop)
-                    scrollContent
+                    scrollContent(proxy)
                 }
             }
-            .studyBar(folds: true) { footer(proxy) }
+            .studyBar(folds: true, shown: pendingResume != nil || (!a.checked && shuffle && asksConfidence)) { footer }
+            .task {
+                guard PreviewLaunch.screen == "quiz-folded" else { return }
+                // Retry after layout passes so the row clears the folded button.
+                for _ in 0..<12 {
+                    do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+                    guard !Task.isCancelled else { return }
+                    proxy.scrollTo(Self.answerRowID, anchor: .bottom)
+                }
+            }
             .onChange(of: current) { _, _ in proxy.scrollTo(Self.chartTop, anchor: .top) }
         }
     }
 
-    private var scrollContent: some View {
+    private func scrollContent(_ proxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             if let p = pendingResume { resumeBanner(p) }
             questionCard
@@ -988,6 +998,10 @@ struct MCQQuizView: View {
                         .riseIn(index: idx + 1)
                         .id("\(current)-\(idx)")
                 }
+            }
+
+            if pendingResume == nil {
+                answerButtons(proxy).id(Self.answerRowID)
             }
 
             // in exam mode the explanation waits for the results,
@@ -1006,19 +1020,14 @@ struct MCQQuizView: View {
         .readableColumn()
     }
 
-    /// While a saved place waits, Start again and Resume; otherwise How
-    /// sure? over Back and the one big button - Check answer, then Next
-    /// patient with Explain beside it - in the same place for every question.
-    /// One column, so How sure? sits over the buttons in any bar.
-    private func footer(_ proxy: ScrollViewProxy) -> some View {
+    /// The deck holds Start again and Resume while a saved place waits,
+    /// or How sure? before checking. Back and the main action follow the choices.
+    private var footer: some View {
         VStack(spacing: 12) {
             if let p = pendingResume {
                 resumeButtons(p)
-            } else {
-                // inside the bar, above the buttons, so it is never hidden under
-                // the bar and is where the thumb already is
-                if !a.checked && shuffle && asksConfidence { confidencePicker }
-                answerButtons(proxy)
+            } else if !a.checked && shuffle && asksConfidence {
+                confidencePicker
             }
         }
     }

@@ -499,15 +499,11 @@ struct LibraryView: View {
             // measured like the dock, so the rows can still be scrolled
             // clear of it
             selectionBar
+                .wardBarBase(shown: !underSky)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0
                 }
                 .frame(maxWidth: .infinity)
-                .background {
-                    if !underSky {
-                        Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom])
-                    }
-                }
                 .transition(.slideFade(.bottom))
         } else if keyboardUp {
             // the dock steps aside while typing
@@ -523,15 +519,11 @@ struct LibraryView: View {
                         .environment(\.colorScheme, dockScheme)
                 }
             }
+            .wardBarBase(shown: !underSky)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
             .frame(maxWidth: .infinity)
-            .background {
-                if !underSky {
-                    Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom])
-                }
-            }
             .transition(.slideFade(.bottom))
         }
     }
@@ -586,9 +578,15 @@ struct LibraryView: View {
             }
             .task(id: dockHeight) {
                 guard PreviewLaunch.screen == "library-end", dockHeight > 0 else { return }
-                // The photo must show the list's end once the dock has a height.
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
-                proxy.scrollTo(Self.listEndID, anchor: .bottom)
+                // A measured dock does not mean List has laid out its rows yet.
+                // Retry across layout passes, including any late inset updates,
+                // rather than spending the preview's only scroll on an early pass.
+                // This finishes in three seconds; the capture waits seven.
+                for _ in 0..<12 {
+                    do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+                    guard !Task.isCancelled else { return }
+                    proxy.scrollTo(Self.listEndID, anchor: .bottom)
+                }
             }
         }
     }

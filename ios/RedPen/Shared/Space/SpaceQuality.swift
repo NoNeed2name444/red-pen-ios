@@ -308,6 +308,11 @@ struct SkyRoot<Content: View>: View {
         let budget: GraphicsBudget = center.graphics
         let scheme: ColorScheme? = alwaysNight || center.skyCovered ? .dark : nil
         content
+            // NavigationStack owns its safe area and can reset an inherited
+            // safeAreaPadding. Reduce its actual layout bounds instead, so
+            // pushed pages, search chrome and bottom insets share the clearance.
+            // WardBackground ignores the safe area to keep the paper full-bleed.
+            .padding(.horizontal, WardPaper.sideInset)
             .environment(\.spaceQuality, level)
             .environment(\.graphics, budget)
             .environment(\.skyZoom, zoom)
