@@ -278,7 +278,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .stations: return "Step-by-step checklists"
         case .lectures: return "Read along with the lecture"
         case .patients: return "Work up, decide, debrief"
-        case .mixed: return "20 from every set"
+        case .mixed: return "20 across all your sets"
         case .mistakes: return "Last got wrong"
         case .flagged: return "The ones you flagged"
         case .timed: return "10 against the clock"
