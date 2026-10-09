@@ -104,6 +104,18 @@ enum LectureTranscriber {
         lines.map { line in line.words.map { ($0.text, $0.start, $0.end) } }
     }
 
+    /// Keep up to 100 nonempty lecture terms in order, ignoring case for repeats.
+    static func recogniserTerms(_ terms: [String]) -> [String] {
+        var seen: Set<String> = []
+        var result: [String] = []
+        for term in terms where !term.isEmpty {
+            guard seen.insert(term.lowercased()).inserted else { continue }
+            result.append(term)
+            if result.count == 100 { break }
+        }
+        return result
+    }
+
     // MARK: the device
     // (Apple's Speech framework only: the pure parts above also build on Linux,
     // where the test suites run)
@@ -122,7 +134,7 @@ enum LectureTranscriber {
     /// already in Voice Memos or the Files app by the time a student thinks
     /// about studying it, and a file is also what a share-sheet import hands
     /// over.
-    static func transcribe(fileAt url: URL, locale: Locale) async throws -> [Line] {
+    static func transcribe(fileAt url: URL, locale: Locale, terms: [String]) async throws -> [Line] {
         guard await authorize() else { throw Failure.notPermitted }
         guard let recogniser = SFSpeechRecognizer(locale: locale) else {
             throw Failure.noRecogniser(locale.identifier)
@@ -134,9 +146,9 @@ enum LectureTranscriber {
         let request = SFSpeechURLRecognitionRequest(url: url)
         request.requiresOnDeviceRecognition = true
         request.shouldReportPartialResults = false
-        // Medical lectures are mostly terms no general recogniser expects, and
-        // this is the one hint the framework takes.
-        request.contextualStrings = Array(MedicalTerms.common.prefix(100))
+        // Hint with this lecture's own slide terms, which a general recogniser
+        // may not expect. Without slides there are no terms to hint with.
+        request.contextualStrings = recogniserTerms(terms)
 
         let transcription: SFTranscription = try await withCheckedThrowingContinuation { continuation in
             var settled = false

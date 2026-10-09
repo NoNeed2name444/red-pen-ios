@@ -107,7 +107,7 @@ final class LectureImporter: ObservableObject {
             }
             if !byLine {
                 working = "Listening to the lecture"
-                lines = try await LectureTranscriber.transcribe(fileAt: url, locale: locale)
+                lines = try await LectureTranscriber.transcribe(fileAt: url, locale: locale, terms: vocabulary)
             }
             guard !lines.isEmpty else {
                 working = nil
