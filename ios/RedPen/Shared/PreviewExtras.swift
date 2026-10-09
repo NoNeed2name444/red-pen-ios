@@ -11,7 +11,8 @@ import SwiftUI
 /// actually prove.
 enum PreviewExtras {
 
-    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example", "quiz-folded", "library-end"]
+    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
+                          "quiz-folded", "library-end", "library-loading"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -35,6 +36,10 @@ enum PreviewExtras {
         case "occlusion-example":
             // the heart diagram, read and covered by the real route
             NavigationStack { OcclusionExampleView() }
+        case "library-loading":
+            // what a launch shows once the splash gives up waiting for a big
+            // library to be read (RedPenApp, Store)
+            LibraryLoadingView()
         default:
             EmptyView()
         }

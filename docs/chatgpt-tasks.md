@@ -80,11 +80,21 @@ aahp/personal; 1, 17 and 91 are open, and 4 and 18 partly. Rows 1, 17 and
 two tasks, each with checks added to the test file that already covers
 the code:
 
-- Row 4, what is left of it: the phone's send to the watch waits for the
-  reply and rejects a cancel, but swallows an indexing or deletion error
-  before it confirms (Shared/AppIntents.swift, about :270 and :275).
-  Report either error as a failed send and keep the pending snapshot for
-  a retry. Tests: Tests/PlatformTests.swift.
+- Row 4, what is left of it: Spotlight's indexer (`SpotlightIndexer`,
+  Shared/AppIntents.swift) now waits for its calls and confirms nothing
+  after a cancel, but swallows a failed index or delete call (about :270
+  and :275), so those sets still count as indexed; and after a run that
+  fails, the next update with the same library sends nothing. Report
+  either error as a failed run and free the pending snapshot, so the next
+  update sends again. Do the sending in `SpotlightPlan`
+  (Shared/Platform/AppLink.swift, Foundation-only), so the Linux suite
+  can test it. Tests: Tests/PlatformTests.swift. Done: approved in the
+  loop on 9 Oct at 10:20 AM (aahp/personal cece1a4). The launch-gaps
+  session fixed the same row on design/launch-gaps (b0ebd11, in
+  AppIntents.swift, more fully: a refused clear is asked again too, and
+  both failures reach the failure reports). Where the two meet, its
+  AppIntents.swift stays; from this task, only `SpotlightPlan.send` and its
+  tests, if they are wired in (plan.md, section 3, step 15).
 - Row 91: the cloud jobs receive each generated item's check results but
   keep only its evidence (Shared/LLM/CloudJobs.swift, about :63 to :66),
   so the accuracy schedule checks the item again
@@ -93,7 +103,12 @@ the code:
   its blind-solve and proof details; an incomplete check must still run,
   and nothing may count as checked that was not. AccuracyLedger.swift is
   personal's (above): go through what it already offers. Tests:
-  Tests/AccuracyTests.swift.
+  Tests/AccuracyTests.swift. Not queued: it no longer applies (the
+  launch-gaps session's finding, 9 Oct). Since the verification layer (1
+  Oct) the app's job spec carries no check, so there are no generation
+  verdicts to hand over; and one checker's reply could not count anyway: a
+  question counts as checked only on two or more blind votes, from three
+  model families, with a source proof (AccuracyLedger.isChecked).
 
 ## What stays with Claude
 

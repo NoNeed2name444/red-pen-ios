@@ -52,6 +52,17 @@ check("an empty code is refused",
       AuthRules.code(fromRedirect: URL(string: "redpen://auth?code=&state=abc")!,
                      expectedState: "abc") == nil)
 
+// MARK: the Google client id
+
+// an unset build setting arrives as "" (or not at all): no client id, so no
+// Google door that could only fail in front of App Review
+check("no Google client id when the build left it unset",
+      AuthRules.googleClientID(nil) == nil && AuthRules.googleClientID("") == nil
+        && AuthRules.googleClientID("  \n") == nil)
+check("a set Google client id comes back trimmed",
+      AuthRules.googleClientID(" 123-abc.apps.googleusercontent.com ")
+        == "123-abc.apps.googleusercontent.com")
+
 // MARK: sessions
 
 let account = Account(id: "u1", provider: .apple)

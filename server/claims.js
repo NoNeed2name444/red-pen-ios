@@ -13,12 +13,16 @@
 // what the Python itself said (tests/claim-vectors.json, made by
 // bench/claim-vectors.py) on the verifier's 35 shared conformance vectors and
 // on Stethoscore-shaped pairs. One known difference: Python's \d also
-// matches other scripts' digits; here it is 0-9 only. One change since, after
-// Chat-me a4152d5: a same daily total written another way (1000 mg daily for
-// 500 mg twice daily) is the same dose only where the claim keeps the
-// evidence's other words (doseRewordingKeepsTerms), so a lecture's 500 mg of
-// one drug twice daily no longer backs 1000 mg a day of another; the test
-// lists the one vector that changes.
+// matches other scripts' digits; here it is 0-9 only. Two changes since.
+// After Chat-me a4152d5, a same daily total written another way (1000 mg
+// daily for 500 mg twice daily) is the same dose only where the claim keeps
+// the evidence's other words (doseRewordingKeepsTerms), so a lecture's 500 mg
+// of one drug twice daily no longer backs 1000 mg a day of another. After
+// Chat-me 746a7d7, a claim that lines up with its evidence word for word but
+// for one or two content words on each side - neither another form of the
+// same word nor a known alias: another drug, another outcome - is not backed
+// by it; the verifier abstains (termSubstituted, "atomic_term_substituted").
+// The test lists the vectors that change.
 //
 // Not ported: temporal_guard.py (it needs the evidence's date, which a
 // lecture does not have) and the question-side gates (adversarial.py,
@@ -40,8 +44,9 @@
 // that is wrong, which is for the votes and the student to settle). What
 // else the guards notice about such a restated sentence - a wider scope, a
 // population or a condition the lecture does not give, a cause read from an
-// association - is a soft finding: reported beside the verdict and changing
-// nothing, until labelled Stethoscore items show how far it can be trusted.
+// association, another drug or outcome in one place - is a soft finding:
+// reported beside the verdict and changing nothing, until labelled
+// Stethoscore items show how far it can be trusted.
 // Sentences that are not restatements are left to the votes: a paraphrase is
 // not a contradiction.
 
@@ -535,6 +540,16 @@ export function conditionSupported(claim, evidence) {
   return [true, null];
 }
 
+/// Does an evidence atom carry a claim atom: most of its words (0.45), and
+/// the same relation, timing and safety relation; or the reason it does not.
+function atomPairCheck(c, e) {
+  const claimTokens = tokens(c.text), evidenceTokens = tokens(e.text);
+  const overlap = [...claimTokens].filter(t => evidenceTokens.has(t)).length / Math.max(1, claimTokens.size);
+  if (overlap < 0.45) return [false, null];
+  const failed = [relationEntailed(c, e), temporalEntailed(c, e), safetyRelationEntailed(c, e)].find(([ok]) => !ok);
+  return failed || [true, null];
+}
+
 /// Every atomic claim matched by an evidence atom that shares its words,
 /// relation, timing and safety relation; or the first reason one is not.
 export function atomicAlignment(claim, evidence) {
@@ -544,22 +559,111 @@ export function atomicAlignment(claim, evidence) {
   if (!evidenceAtoms.length) return [false, 'no_atomic_evidence_claim'];
   evidenceAtoms = evidenceAtoms.filter(a => a.text);
   for (const c of claimAtoms) {
-    const claimTokens = tokens(c.text);
     let matched = false;
     const failures = [];
     for (const e of evidenceAtoms) {
-      const evidenceTokens = tokens(e.text);
-      const overlap = [...claimTokens].filter(t => evidenceTokens.has(t)).length / Math.max(1, claimTokens.size);
-      if (overlap < 0.45) continue;
-      const checks = [relationEntailed(c, e), temporalEntailed(c, e), safetyRelationEntailed(c, e)];
-      const failed = checks.find(([ok]) => !ok);
-      if (failed) { if (failed[1]) failures.push(failed[1]); continue; }
-      matched = true;
-      break;
+      const [ok, reason] = atomPairCheck(c, e);
+      if (ok) { matched = true; break; }
+      if (reason) failures.push(reason);
     }
     if (!matched) return [false, failures.length ? failures[0] : 'atomic_claim_not_entailed'];
   }
   return [true, null];
+}
+
+/// Words that join or qualify a phrase rather than name a drug, a condition
+/// or an outcome ("after", "before", "more", "less" and the like carry
+/// meaning).
+const FUNCTION_WORDS = new Set([
+  'about', 'across', 'along', 'also', 'although', 'among', 'because', 'been',
+  'being', 'between', 'could', 'from', 'however', 'into', 'might', 'onto',
+  'shall', 'such', 'than', 'their', 'them', 'then', 'there', 'therefore',
+  'they', 'though', 'through', 'throughout', 'thus', 'toward', 'towards',
+  'upon', 'very', 'what', 'when', 'where', 'whereas', 'whether', 'which',
+  'while', 'whom', 'whose', 'would',
+]);
+const ARTICLES = new Set(['a', 'an', 'the']);
+/// Endings cut so another form of the same word still lines up; there is no
+/// "-ate" or "-ic" rule, which would make nitrate and nitrite one word.
+const STEM_RULES = [
+  ['isations', ''], ['izations', ''], ['isation', ''], ['ization', ''],
+  ['ising', ''], ['izing', ''], ['ised', ''], ['ized', ''],
+  ['ises', ''], ['izes', ''], ['ise', ''], ['ize', ''],
+  ['ations', 'at'], ['ation', 'at'], ['ites', ''], ['ite', ''],
+  ['isms', ''], ['ism', ''], ['ies', 'y'], ['ied', 'y'], ['ing', ''],
+  ['eed', 'eed'], ['ed', ''], ['sses', 'ss'], ['ss', 'ss'], ['us', 'us'],
+  ['is', 'is'], ['es', ''], ['s', ''], ['e', ''],
+];
+
+function stem(word) {
+  const w = (word.endsWith("'s") ? word.slice(0, -2) : word).replaceAll('ae', 'e').replaceAll('oe', 'e');
+  const rule = STEM_RULES.find(([suffix]) => w.endsWith(suffix) && w.length - suffix.length >= 3);
+  return rule ? w.slice(0, w.length - rule[0].length) + rule[1] : w;
+}
+
+const contentWord = word => word.length >= 4 && !ANCHOR_STOPWORDS.has(word) && !FUNCTION_WORDS.has(word)
+  && !DOSE_WORDS.has(word) && !/[0-9]/.test(word);
+
+/// The stretches of two word lists left over by their longest common
+/// subsequence, as pairs of index ranges; at least one side has words.
+function unmatchedRuns(left, right) {
+  const table = Array.from({ length: left.length + 1 }, () => new Array(right.length + 1).fill(0));
+  for (let i = left.length - 1; i >= 0; i--) {
+    for (let j = right.length - 1; j >= 0; j--) {
+      table[i][j] = left[i] === right[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
+    }
+  }
+  const runs = [];
+  let i = 0, j = 0, startI = 0, startJ = 0;
+  while (i < left.length && j < right.length) {
+    if (left[i] === right[j]) {
+      if (startI !== i || startJ !== j) runs.push([[startI, i], [startJ, j]]);
+      i++; j++;
+      startI = i; startJ = j;
+    } else if (table[i + 1][j] >= table[i][j + 1]) i++;
+    else j++;
+  }
+  if (startI !== left.length || startJ !== right.length) runs.push([[startI, left.length], [startJ, right.length]]);
+  return runs;
+}
+
+/// One or two words on each side, every one a term, none said elsewhere in
+/// the other sentence and no pair a known alias (paracetamol, acetaminophen).
+function isSwap(claimGap, evidenceGap, claimStems, evidenceStems) {
+  if (claimGap.length < 1 || claimGap.length > 2 || evidenceGap.length < 1 || evidenceGap.length > 2) return false;
+  if (![...claimGap, ...evidenceGap].every(contentWord)) return false;
+  if (claimGap.some(w => evidenceStems.has(stem(w))) || evidenceGap.some(w => claimStems.has(stem(w)))) return false;
+  const pairs = [[claimGap.join(' '), evidenceGap.join(' ')], ...claimGap.flatMap(l => evidenceGap.map(r => [l, r]))];
+  return !pairs.some(([l, r]) => entitiesEquivalent(l, r));
+}
+
+/// A text's words in order, with their stems.
+const stemmed = remembered('stems', text => {
+  const words = text.toLowerCase().match(ASCII_TOKEN) || [];
+  const stems = words.map(stem);
+  return { words, stems, set: new Set(stems) };
+});
+
+function swapsATerm(claimText, evidenceText) {
+  const claim = stemmed(claimText), evidence = stemmed(evidenceText);
+  // a swap needs a term on each side that the other does not say; most
+  // pairs that get this far have none, and need no alignment
+  const unsaid = (side, other) => side.words.some((w, i) => !other.set.has(side.stems[i]) && contentWord(w));
+  if (!unsaid(claim, evidence) || !unsaid(evidence, claim)) return false;
+  return unmatchedRuns(claim.stems, evidence.stems).some(([[i1, i2], [j1, j2]]) => isSwap(
+    claim.words.slice(i1, i2).filter(w => !ARTICLES.has(w)), evidence.words.slice(j1, j2).filter(w => !ARTICLES.has(w)),
+    claim.set, evidence.set));
+}
+
+/// Does a claim sentence line up with the evidence only by putting another
+/// drug, condition or outcome in one place: every evidence atom that carries
+/// one of its atoms differs from it by a swapped term (Chat-me 746a7d7).
+export function termSubstituted(claim, evidence) {
+  const evidenceAtoms = decomposeClaim(evidence).filter(a => a.text);
+  return decomposeClaim(claim).some(c => {
+    const carriers = evidenceAtoms.filter(e => atomPairCheck(c, e)[0]);
+    return carriers.length > 0 && carriers.every(e => swapsATerm(c.text, e.text));
+  });
 }
 
 // MARK: independent_entailment.py
@@ -627,6 +731,7 @@ export function verify(claim, evidence) {
   if (claimNegated !== evidenceNegated) {
     return { label: claimNegated ? 'CONTRADICTS' : 'UNKNOWN', reasons: ['claim_evidence_polarity_mismatch'] };
   }
+  if (termSubstituted(claimLogic, evidenceLogic)) return unknown('atomic_term_substituted');
   return { label: 'SUPPORTS', reasons: ['independent_structured_checks_passed'] };
 }
 

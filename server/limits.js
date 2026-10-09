@@ -38,6 +38,11 @@ export const VERDICTS_KEEP_DAYS = 365;
 /// Apple sign-in nonces already used (worker.js): an identity token lives ten
 /// minutes, so a day is plenty.
 export const NONCES_KEEP_SECONDS = 86400;
+/// Tries counted per address per hour (pair.js: device accounts, pairing
+/// codes, subscription checks). Only the current hour's count is ever read;
+/// an hour goes at the first nightly pass after it is this old, which the
+/// privacy policy's bound allows for (legal.test.mjs).
+export const ATTEMPTS_KEEP_HOURS = 24;
 export const PRUNE_ROWS = 5_000;
 
 /// Adds `n` to a counter for today, all or nothing, while it stays within
@@ -93,7 +98,7 @@ export async function pruneStores(env, clock = nowSeconds) {
   // pairing and device-account tries, counted per address per hour
   await prune('attempts',
     `DELETE FROM pair_attempts WHERE rowid IN (SELECT rowid FROM pair_attempts WHERE hour < ? LIMIT ?)`,
-    Math.floor(at / 3600) - 24);
+    Math.floor(at / 3600) - ATTEMPTS_KEEP_HOURS);
   const verdictDays = Number(env.ACCURACY_CACHE_DAYS) || VERDICTS_KEEP_DAYS;
   await prune('verdicts',
     `DELETE FROM accuracy_verdicts WHERE hash IN (SELECT hash FROM accuracy_verdicts WHERE created_at < ? LIMIT ?)`,

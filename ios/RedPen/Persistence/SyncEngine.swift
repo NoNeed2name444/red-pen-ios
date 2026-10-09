@@ -71,6 +71,11 @@ final class SyncEngine: ObservableObject {
     /// Edited sets that were last written by a newer version of the app, and
     /// wait for this one to be updated before they go up.
     var heldForNewer = 0
+    /// Each deck's schedule as it was last packed, and the hash of what that
+    /// made. A pass that finds the same records, and the server holding that
+    /// hash, skips encoding and hashing the deck's schedule again
+    /// (outgoingDocuments).
+    var packedSchedules: [UUID: PackedSchedule] = [:]
 
     init(store: Store, reviews: ReviewStore, account: AccountStore,
          blobs: BlobCache? = nil, bookmarks: SyncStateStore? = nil) {
@@ -99,6 +104,10 @@ final class SyncEngine: ObservableObject {
 
     func syncNow() async {
         guard let first = account.token, first != Session.localToken else { return }
+        // the library as read from disk, never the empty one there is before
+        // it is (Store reads it off the main thread at launch): an empty one
+        // would look like every set deleted here
+        await store.whenLoaded()
         // a session near its end is renewed first, so a sync never fails
         // halfway through for want of one
         await account.refreshIfNeeded()
@@ -182,8 +191,17 @@ final class SyncEngine: ObservableObject {
     /// that describe it.
     private func saveProgress() async {
         // bookmarks only describe a library that reached the disk
-        guard await store.flushed() else { return }
+        guard await savedHere() else { return }
         await bookmarks.commit()
+    }
+
+    /// The library and the schedule both on disk: what every bookmark waits
+    /// for. The schedule is written a moment after it changes, so a merged
+    /// one is not yet on disk when a pass ends.
+    func savedHere() async -> Bool {
+        let library: Bool = await store.flushed()
+        let schedule: Bool = await reviews.flushed()
+        return library && schedule
     }
 
     /// The library did not reach the disk (the write failed, or a file could
@@ -383,7 +401,7 @@ final class SyncEngine: ObservableObject {
             // were seen. The other way round, an app killed in between wakes
             // with a cursor past documents its library never got - and a kept
             // conflict copy lost while its bookmark says we agreed.
-            guard await store.flushed() else { throw LibraryNotSaved() }
+            guard await savedHere() else { throw LibraryNotSaved() }
             try stillCurrent(run)
             bookmarks.update { $0.cursor = max($0.cursor, changes.cursor) }
             await bookmarks.commit()

@@ -102,6 +102,24 @@ final class Store: ObservableObject {
     /// finds them still protected. Nothing of them is known, so nothing is
     /// written over them until `reloadIfUnread()` has read them.
     private(set) var unreadable: Set<URL> = []
+    /// Whether the files have been read. The app's own store reads them off
+    /// the main thread (`init(fileURL:inBackground:)`): a library carries
+    /// every picture as base64, and decoding it on the main thread held the
+    /// launch for as long as that took. Until then the library is empty only
+    /// because it has not been read, so nothing is written, `readWhole` is
+    /// false, and whatever must see the real library waits in `whenLoaded()`.
+    @Published private(set) var loaded = true
+    /// Whoever waits for a read to come in (`whenLoaded`, `flushed`).
+    private var readWaiters: [CheckedContinuation<Void, Never>] = []
+    /// A read is out (at launch, or `reloadIfUnread`): writes wait for it, so
+    /// nothing goes over a file before what is in it is known.
+    private var reading = false
+    /// `flush()` called while a read was out (the app went to the background):
+    /// written as soon as the read is in, not after the usual pause.
+    private var flushWanted = false
+    /// `reloadIfUnread()` asked for while a read was out: tried once more
+    /// when it is in.
+    private var reloadWanted = false
     /// Whether the last write of each file failed (the disk is full, the file
     /// is protected): the change stays dirty, to be written again, and
     /// `flushed()` says so, so sync records nothing as safely here.
@@ -120,7 +138,11 @@ final class Store: ObservableObject {
     /// an answer and saves its position within the same tap.
     private static let saveDelayNanoseconds: UInt64 = 400_000_000
 
-    init(fileURL: URL? = nil) {
+    /// `inBackground`: the files are read and decoded off the main thread,
+    /// and `loaded` turns true once they are - for the app's own library.
+    /// Otherwise they are read before init returns (a screenshot run's or a
+    /// preview's throwaway store, which is used straight away).
+    init(fileURL: URL? = nil, inBackground: Bool = false) {
         if let fileURL {
             self.fileURL = fileURL
         } else {
@@ -129,7 +151,13 @@ final class Store: ObservableObject {
         }
         self.studyURL = self.fileURL.deletingLastPathComponent()
             .appendingPathComponent(self.fileURL.deletingPathExtension().lastPathComponent + "-progress.json")
-        load()
+        if inBackground {
+            loaded = false
+            readWhole = false
+            readInBackground(atLaunch: true)
+        } else {
+            load()
+        }
         observeLifecycle()
     }
 
@@ -142,10 +170,34 @@ final class Store: ObservableObject {
 
     // MARK: on disk
 
+    /// Reads both files now, on the calling thread.
     func load() {
-        var libraryData: Data?
+        finishReading(Self.readFiles(library: fileURL, study: studyURL), atLaunch: true)
+    }
+
+    /// What reading the two files found, worked out away from the store (off
+    /// the main thread at launch) and taken in by `finishReading`.
+    private struct FilesRead: @unchecked Sendable {
+        /// The library file's contents; nil when it is missing, protected or
+        /// could not be decoded.
+        var file: (library: [StudySet], folders: [StudyFolder], tombstones: [UUID: Date], unread: [String])?
+        var study: StudyFile?
+        /// False when the library file could not be decoded, is protected,
+        /// or had sets that could not even be kept as text.
+        var readWhole = true
+        var unreadable: Set<URL> = []
+        /// Sets taken back from the held text, or skipped sets now kept: the
+        /// library file is written again straight away.
         var rewrite = false
-        unreadable = []
+        /// The progress came out of an old library file (before the split).
+        var migrated = false
+    }
+
+    /// Reads and decodes both files. Touches nothing of the store's, so it can
+    /// run on any thread.
+    nonisolated private static func readFiles(library fileURL: URL, study studyURL: URL) -> FilesRead {
+        var found = FilesRead()
+        var libraryData: Data?
         if let data = try? Data(contentsOf: fileURL) {
             libraryData = data
             if let file = try? JSONDecoder.redPen.decode(LibraryFile.self, from: data) {
@@ -157,7 +209,7 @@ final class Store: ObservableObject {
                     if let set = try? JSONDecoder.redPen.decode(StudySet.self, from: Data(text.utf8)),
                        !sets.contains(where: { $0.id == set.id }) {
                         sets.append(set)
-                        rewrite = true
+                        found.rewrite = true
                     } else {
                         unread.append(text)
                     }
@@ -172,47 +224,135 @@ final class Store: ObservableObject {
                     // unreadable" and is not copied aside again every launch -
                     // but only when every one of them was kept; otherwise the
                     // copy put aside below is where they survive.
-                    rewrite = rewrite || kept.count == file.skippedAt.count
-                    if kept.count != file.skippedAt.count { readWhole = false }
+                    found.rewrite = found.rewrite || kept.count == file.skippedAt.count
+                    if kept.count != file.skippedAt.count { found.readWhole = false }
                     setAside(fileURL, as: "library-partly-unreadable", once: true)
                 }
-                library = sets
-                folders = file.folders
-                tombstones = file.tombstones ?? [:]
-                unreadSets = unread
+                found.file = (sets, file.folders, file.tombstones ?? [:], unread)
             } else {
                 // never overwritten unread: the file is put aside first, so a
                 // library this version cannot read is still there to recover
                 setAside(fileURL, as: "library-unreadable", once: true)
-                readWhole = false
+                found.readWhole = false
             }
         } else if StoreFiles.isPresent(fileURL) {
             // on disk, but not readable now (protected until the first unlock
             // after a restart, which a prewarmed launch runs before): not an
             // empty library, and nothing may be written over it - the write
             // path holds the library back until reloadIfUnread has read it
-            readWhole = false
-            unreadable.insert(fileURL)
+            found.readWhole = false
+            found.unreadable.insert(fileURL)
         }
-        var migrated = false
         if let data = try? Data(contentsOf: studyURL) {
             if let study = try? JSONDecoder.redPen.decode(StudyFile.self, from: data) {
-                apply(study)
+                found.study = study
             } else {
                 setAside(studyURL, as: "progress-unreadable", once: true)
             }
         } else if StoreFiles.isPresent(studyURL) {
-            unreadable.insert(studyURL)
+            found.unreadable.insert(studyURL)
         } else if let libraryData,
                   let legacy = try? JSONDecoder.redPen.decode(StudyFile.self, from: libraryData) {
             // written before the two were split: the history is still inside
             // the library file, and moves out on the next write
-            apply(legacy)
-            migrated = true
+            found.study = legacy
+            found.migrated = true
         }
-        libraryDirty = rewrite
-        studyDirty = migrated
-        if migrated || rewrite { scheduleWrite() }
+        return found
+    }
+
+    /// Reads the files on a background thread and takes them in back here.
+    private func readInBackground(atLaunch: Bool) {
+        reading = true
+        let fileURL: URL = fileURL
+        let studyURL: URL = studyURL
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let found: FilesRead = Store.readFiles(library: fileURL, study: studyURL)
+            await self?.finishReading(found, atLaunch: atLaunch)
+        }
+    }
+
+    /// Takes in what a read found. At launch that is everything. Read again
+    /// (`reloadIfUnread`), it is only the files that could not be read before:
+    /// the others are already here, with whatever changed since.
+    ///
+    /// Sets and folders added here while the library could not be read (a
+    /// cloud set collected in the background, one added while the files
+    /// were being read) are kept on top of what is read; anything else
+    /// changed meanwhile could not have been saved, and the file read now
+    /// wins.
+    private func finishReading(_ found: FilesRead, atLaunch: Bool) {
+        reading = false
+        let takeLibrary: Bool = atLaunch || unreadable.contains(fileURL)
+        let takeStudy: Bool = atLaunch || unreadable.contains(studyURL) || (takeLibrary && found.migrated)
+        let setsHere: [StudySet] = library
+        let foldersHere: [StudyFolder] = folders
+        var stillUnread: Set<URL> = unreadable
+        if takeLibrary {
+            readWhole = found.readWhole
+            // with no file read (none yet, or it could not be decoded), what
+            // is here stays, and stays to be written if it changed meanwhile
+            if let file = found.file {
+                library = file.library
+                folders = file.folders
+                tombstones = file.tombstones
+                unreadSets = file.unread
+                libraryDirty = found.rewrite
+            }
+            if found.unreadable.contains(fileURL) { stillUnread.insert(fileURL) } else { stillUnread.remove(fileURL) }
+        }
+        if takeStudy {
+            if let study = found.study {
+                apply(study)
+                studyDirty = found.migrated
+            }
+            if found.unreadable.contains(studyURL) { stillUnread.insert(studyURL) } else { stillUnread.remove(studyURL) }
+        }
+        unreadable = stillUnread
+        if takeLibrary && !unreadable.contains(fileURL) {
+            let knownSets: Set<UUID> = Set(library.map(\.id))
+            let extraSets: [StudySet] = setsHere.filter { !knownSets.contains($0.id) }
+            let knownFolders: Set<UUID> = Set(folders.map(\.id))
+            let extraFolders: [StudyFolder] = foldersHere.filter { !knownFolders.contains($0.id) }
+            if !extraFolders.isEmpty { folders += extraFolders }
+            if !extraSets.isEmpty { library += extraSets }
+        }
+        if atLaunch && !loaded { loaded = true }
+        let waiting = readWaiters
+        readWaiters = []
+        for done in waiting { done.resume() }
+        if flushWanted {
+            flushWanted = false
+            flush()
+        } else if libraryDirty || studyDirty {
+            scheduleWrite()
+        }
+        if reloadWanted {
+            reloadWanted = false
+            reloadIfUnread()
+        }
+    }
+
+    /// Returns once the files have been read - at once for a store that read
+    /// them in init. For whatever must not act on a library that is empty only
+    /// because it has not been read yet: seeding examples, a sync, an answer
+    /// from a notification.
+    func whenLoaded() async {
+        while !loaded {
+            await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+                readWaiters.append(done)
+            }
+        }
+    }
+
+    /// Returns once no read is out - a read again (`reloadIfUnread`) as well
+    /// as the first.
+    private func whenRead() async {
+        while !loaded || reading {
+            await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+                readWaiters.append(done)
+            }
+        }
     }
 
     /// Pictures named by sets this version could not read, so a sweep of the
@@ -237,7 +377,7 @@ final class Store: ObservableObject {
     /// `once`: not again for a file that has already been put aside - a
     /// library of hundreds of megabytes copied on every launch fills the
     /// phone. The same size under the same name is taken as the same file.
-    private func setAside(_ url: URL, as name: String, once: Bool = false) {
+    nonisolated private static func setAside(_ url: URL, as name: String, once: Bool = false) {
         let folder = url.deletingLastPathComponent()
         if once, let size = Self.size(of: url) {
             let earlier = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
@@ -250,7 +390,7 @@ final class Store: ObservableObject {
         try? FileManager.default.copyItem(at: url, to: aside)
     }
 
-    private static func size(of url: URL) -> Int? {
+    nonisolated private static func size(of url: URL) -> Int? {
         (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int
     }
 
@@ -267,9 +407,13 @@ final class Store: ObservableObject {
     ///
     /// `wait` blocks until the bytes are on disk - only for the app being
     /// ended, when nothing queued would get the chance to run.
+    ///
+    /// While the files are being read nothing is written (`write`); the
+    /// flush happens as soon as they are in.
     func flush(wait: Bool = false) {
         pendingWrite?.cancel()
         pendingWrite = nil
+        if !loaded || reading { flushWanted = true }
         write()
         if wait { Self.writeQueue.sync {} }
     }
@@ -283,8 +427,12 @@ final class Store: ObservableObject {
     /// over it. Then the other copy must be kept, and sync must not record the
     /// change as safely here. Changes other screens make while it waits (an
     /// answer, a sample set) are theirs to save and do not count against it.
+    ///
+    /// A read that is out (at launch, or `reloadIfUnread`) is waited for
+    /// first: until it is in, nothing is written.
     @discardableResult
     func flushed() async -> Bool {
+        await whenRead()
         flush()
         if writesInFlight > 0 {
             await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
@@ -294,12 +442,16 @@ final class Store: ObservableObject {
         return !libraryWriteFailed && !unreadable.contains(fileURL)
     }
 
-    /// Reads again a file that could not be read when the store loaded, once
-    /// the app is in front (the device is unlocked by then). Sets and folders
-    /// added here meanwhile (a cloud set collected in the background) are kept
-    /// on top of what is read; anything else changed meanwhile could not have
-    /// been saved, and the file read now wins.
+    /// Reads again, off the main thread, a file that could not be read when
+    /// the store loaded, once the app is in front (the device is unlocked by
+    /// then). `finishReading` takes in only the files that could not be read,
+    /// and keeps sets and folders added here meanwhile.
     func reloadIfUnread() {
+        // asked for while a read is out: tried again, once, when it is in
+        guard loaded, !reading else {
+            reloadWanted = true
+            return
+        }
         guard !unreadable.isEmpty else { return }
         // a write still landing is waited for, so what is read is what is there
         guard writesInFlight == 0 else {
@@ -311,18 +463,7 @@ final class Store: ObservableObject {
         }
         pendingWrite?.cancel()
         pendingWrite = nil
-        let setsHere: [StudySet] = library
-        let foldersHere: [StudyFolder] = folders
-        readWhole = true
-        load()
-        guard !unreadable.contains(fileURL) else { return }
-        let knownSets: Set<UUID> = Set(library.map(\.id))
-        let extraSets: [StudySet] = setsHere.filter { !knownSets.contains($0.id) }
-        let knownFolders: Set<UUID> = Set(folders.map(\.id))
-        let extraFolders: [StudyFolder] = foldersHere.filter { !knownFolders.contains($0.id) }
-        if !extraFolders.isEmpty { folders += extraFolders }
-        if !extraSets.isEmpty { library += extraSets }
-        if !extraSets.isEmpty || !extraFolders.isEmpty { save() }
+        readInBackground(atLaunch: false)
     }
 
     /// Takes back a set added in this run that could not be saved (a cloud
@@ -345,7 +486,7 @@ final class Store: ObservableObject {
             if !landed { studyDirty = true }
         }
         if landedLibrary == false || landedStudy == false {
-            Diagnostics.record(.error, area: .app, message: "The library could not be written")
+            Diagnostics.record(.error, area: .app, message: "library.write_failed")
         }
         if writesInFlight == 0 {
             let waiting = flushWaiters
@@ -367,6 +508,9 @@ final class Store: ObservableObject {
     /// Takes a copy of the changed parts here (cheap: they are values) and
     /// encodes and writes them on the write queue.
     private func write() {
+        // nothing goes over a file before what is in it is known: the changes
+        // stay dirty, and are written once the read is in (finishReading)
+        guard loaded, !reading else { return }
         let writeLibrary: Bool = libraryDirty && !unreadable.contains(fileURL)
         let writeStudy: Bool = studyDirty && !unreadable.contains(studyURL)
         guard writeLibrary || writeStudy else { return }

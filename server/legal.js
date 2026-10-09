@@ -7,7 +7,7 @@
 //
 // Routes (worker.js): GET /terms, GET /privacy.
 
-export const UPDATED = '1 October 2026';
+export const UPDATED = '9 October 2026';
 
 const page = (title, body) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -69,6 +69,7 @@ export const PRIVACY = page('Privacy policy', `
 <li><strong>On this device only:</strong> nothing about you is kept on our server. If you later link another device, an anonymous account is made for your library to sync through, with no name or email.</li>
 <li><strong>Pro:</strong> the App Store's record of your subscription, checked with Apple.</li>
 </ul>
+<p>Making an account without a sign-in, entering a pairing code and checking a subscription are each counted against the IP address the request comes from, so that codes cannot be guessed and the service cannot be flooded. The counts are kept for at most three days.</p>
 
 <h2>Sync (Pro)</h2>
 <p>With sync on, your sets, folders, review schedule, pictures and the pronunciations you have taught it are stored on our server so your other devices can fetch them. They are your own: nobody else can read them.</p>

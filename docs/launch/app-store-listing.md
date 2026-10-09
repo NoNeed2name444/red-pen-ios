@@ -434,7 +434,7 @@ Other User Content comes from these paths:
   - Neither is developer collection.
 - **Hosted models the student adds with their own API key** (OpenAI, Anthropic, OpenRouter, Groq, Gemini, their own server). Requests go straight from the device to the provider the student chose and never reach Stethoscore's servers, so they are not Stethoscore's collection. The privacy policy should still mention them.
 - **Model downloads from Hugging Face** are downloads only.
-- **IP addresses.** `pair_attempts` stores the IP per hour to rate-limit device accounts and pairing codes. Apple has no IP category and this is security use, so the label does not include it. The privacy policy must mention it.
+- **IP addresses.** `pair_attempts` stores the IP per hour to rate-limit device accounts, pairing codes and subscription checks. Apple has no IP category and this is security use, so the label does not include it. The privacy policy says so, with "kept for at most three days" (`server/legal.js`).
 
 ### 10.3 Add these rows when the planned packages ship (plan §6)
 
@@ -447,9 +447,13 @@ Other User Content comes from these paths:
 ### 10.4 Gaps found in the code (for the server job to fix; this file changes no code)
 
 1. **`pair_attempts` rows are never deleted.** Nothing removes old hours, so hashed-hour IP rows pile up indefinitely, while the policy draft (design F) promises "rate-limit counters 48 h". The fix is a cron cleanup or a delete-on-write of old hours.
+   **Fixed.** The nightly pass (`pruneStores` in `server/limits.js`) removes hours older than `ATTEMPTS_KEEP_HOURS` (24), checked by `limits.test.mjs`. The policy says "at most three days", and `legal.test.mjs` checks that bound against the constant.
 2. **`/account/delete` does not clear stored jobs.** It wipes `docs`, `sync_state`, blobs, `pair_codes` and the account row, but not the account's Durable Object jobs, which hold lecture text for up to 7 days. The policy must either say "generation jobs expire within 7 days" or the delete must clear them.
+   **Fixed.** `forgetEverything` in `server/worker.js` also calls `/wipe` on the account's jobs Durable Object, which deletes its storage and its alarm. This happens at deletion and again in the nightly sweep, checked by `pair.test.mjs` and `jobs.test.mjs`. The policy also gives the seven days for a generation that is never collected.
 3. **`ai_usage` and `ai_cost` survive deletion on purpose** (a comment in `worker.js` explains why). They hold only the account id, now orphaned, plus counts. The policy should say so.
+   **Fixed.** The policy's "Deleting your account" section says that counts which hold nothing about the student are kept.
 4. **The paywall's Terms and Privacy links go to `https://redpen.app/…`**, which is not known to exist. This is a rejection under 3.1.2 until P0.2 or P1.8 moves them to the Worker pages.
+   **Fixed.** `PaywallView` links to `LegalLinks.url(.terms)` and `LegalLinks.url(.privacy)`, the Worker's own pages (`server/legal.js`).
 
 ---
 

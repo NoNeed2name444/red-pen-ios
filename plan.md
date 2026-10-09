@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 8:20 AM Cairo.
+Last updated: 2026-10-09, 11:26 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,11 +39,13 @@ Last updated: 2026-10-09, 8:20 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the neumorphic app (#33, from aahp/personal; joined on 9 Oct) | personal is the working branch; keep session branches equal to it |
-| aahp/personal | the merge that took the neumorphic app into personal | the design loop's branch (#33, tasks T0018 to T0028); its CI runs read-only and publishes nothing |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d) | personal is the working branch; keep session branches equal to it |
+| claude/medical-assistant-orchestration-javb9y | personal (c470b2d) plus the neumorphic app (#33, tasks T0018 to T0032) and the no-fade work | personal moves up to it once its preview run is checked (#33 follow-ups) |
+| aahp/personal | T0033's cece1a4 on T0032 (4ef98ff) | the design loop's branch (#33, tasks T0018 to T0033); its CI runs read-only and publishes nothing; cece1a4 is kept out of the session branch |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
+| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20), in personal; Row 17 next | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -421,10 +423,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      test ever fails to end the app again, give the simulator's build of
      the map a lighter load (30 frames a second, 2× MSAA under
      `#if targetEnvironment(simulator)`).
-8. [x] #33, the neumorphic app, was another session's: it was made on
-   aahp/personal (the owner, 8 Oct, 4:16 PM: "anotger session is already
-   making the neumorphic part"). It joined personal on 9 Oct with the
-   owner's word ("i give u permission"); section 5, #33.
+8. [ ] #33, the neumorphic app, was made on aahp/personal by another
+   session (the owner, 8 Oct, 4:16 PM: "anotger session is already making
+   the neumorphic part"). The owner's word of 9 Oct ("i give u
+   permission") moves it into personal: it is on the session branch
+   claude/medical-assistant-orchestration-javb9y, and personal moves up to
+   it once its preview run is checked; section 5, #33 and its follow-ups.
 9. [x] Port the three real fixes the branch sweep (section 5, #7) found
    only on design/prework-20261006, on design/port-prework (from 67f4714):
    - [x] The question bank's check in batches of four (from 696192f02):
@@ -617,7 +621,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     each clear of the files personal changed and of the neumorphic work.
     - [x] Pick rows still open on aahp/personal (d7da19a); most rows the
       audit lists as open turned out fixed (the doc names them).
-    - [ ] Queue them, one at a time; this session sends them ("u send the
+    - [x] Queue them, one at a time; this session sends them ("u send the
       packets not me", 9 Oct, about 6:55 AM). The owner attached the loop's
       repository to this session with push at about 7:00 AM. Task 1 (the
       two labels) went in as the loop's turn 55 at 7:02 AM and was approved
@@ -641,13 +645,41 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       after the approval, the approving commit as its base and
       aahp/personal's tip as its target base; then run the loop's worker.
       The same for each task after it.
-    - The neumorphic branch (5d2a0c6) is already inside both personal and
-      aahp/personal, so it adds no merge risk to these tasks.
-    - [ ] Review each result when it comes back, then merge aahp/personal
-      into personal (a merge commit; these tasks touch no file personal
-      changed). Task 1 is reviewed (its diff is what the task asked) and
-      could go in now; it waits for task 3, so one App build on personal
-      covers both.
+    - Task 3 (the recogniser's words) went in as turn 66 at 8:19 AM, its
+      result came back at 8:21 AM, and it was approved at turn 67 (8:43 AM;
+      aahp/personal 4ef98ff; Server tests, Swift tests and the iOS preview
+      green, 36 shots, none changed beyond capture noise). The loop's note
+      for the owner: on book-light, the Back label wraps onto two lines,
+      as it did before this change.
+    - Task 4's first area (Spotlight's failed index or delete calls, row
+      4) went in as turn 68 at 8:49 AM. The loop's reviewer hit its rate
+      limit; the task was run again and approved at turn 69 (10:20 AM;
+      aahp/personal cece1a4). The launch-gaps session fixed row 4 too
+      (design/launch-gaps b0ebd11, in AppIntents.swift, more fully; its
+      plan's step 17). So when aahp/personal is merged into personal (the
+      design session's merge, which the owner approved), launch-gaps'
+      AppIntents.swift stays; take from this task only
+      `SpotlightPlan.send` (Shared/Platform/AppLink.swift) and its
+      PlatformTests, if they are wired in, never its AppIntents.swift hunk
+      over b0ebd11. This session does not bring it over itself.
+    - Row 91 is not queued: it no longer applies (launch-gaps' finding:
+      the job spec has carried no check since 1 Oct, and a question counts
+      as checked only on two or more blind votes from three model families
+      with a source proof). So none of this session's tasks is in the loop
+      now; its next task is the design session's. New repetitive tasks go
+      in the same way.
+    - [x] Review each result when it comes back, then bring it into
+      personal. Not by merging aahp/personal: it also carries other
+      sessions' loop tasks (the neumorphic restyling and frame clearance,
+      in Theme.swift, Shared/Ward/* and files personal changed since, such
+      as GraphLegend, NoteEditorView and CommuteModeView), which are
+      theirs to bring in. So each approved task of this session's comes
+      over on its own as one commit with a plain-English message: tasks 1
+      and 3 on 9 Oct at about 8:55 AM (from 7358ef8 and 4ef98ff; only
+      their own lines, none of the other sessions' edits to the same
+      files), as 8b529c4 and 2d35c18 on design/map-lighter (App build
+      37891118222, Server tests 37891118204 and Swift tests 37891118199,
+      green); they join personal with step 18.
 16. [x] #32, Chat-me's verifier.yml swift-test job (macOS,
     clients/ios/MedicalVerifierCore) has been red since at least d504978
     (1 Oct), with the same four failures on 28bdcf3 (7 Oct) and d17635d,
@@ -717,7 +749,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       word. Done: preflight OK; Server tests 37887435889 green on
       a06955a; personal and claude/new-session-013tes5v fast-forwarded to
       it on 9 Oct at about 8:15 AM.
-18. [ ] #34, a swapped drug name passes: Chat-me's verify and the Worker's
+18. [x] #34, a swapped drug name passes: Chat-me's verify and the Worker's
     say SUPPORTS for "Amoxicillin treats otitis media." against
     "Ibuprofen treats otitis media.", for "Amoxicillin is used for otitis
     media." against "Ibuprofen is used for otitis media.", and for
@@ -730,6 +762,41 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     its own drug's sentence would find. Fix it in Chat-me first (Python,
     the Swift twin and a shared vector; abstain, never contradict, per the
     22f fail-safe brief), then port it to the Worker like step 17.
+    - [x] Chat-me 746a7d7 (9 Oct, about 10:15 AM; Medical Verifier CI
+      37897988851 green): once every other check has passed, the verifier
+      lines the claim up against its evidence word by word, and if all
+      that differs is a run of up to two content words on each side,
+      neither another form of the same word nor a known alias, it abstains
+      (Python UNKNOWN with atomic_term_substituted; Swift
+      SOURCE_UNSUPPORTED). Shared vectors 1.5 pin a swapped drug, a
+      swapped outcome and a rewording that must still pass. 199 Python and
+      52 Swift tests pass; the 50-claim benchmark is unchanged.
+    - [x] The Worker: termSubstituted (server/claims.js) is a port of it,
+      in verify just before SUPPORTS. The one shared vector it changes on
+      purpose is in DEPARTURES with 746a7d7's answer: "Lithium is
+      dangerous in renal failure." against "… harmful …" now abstains (a
+      true synonym, which the fail-safe brief accepts). The test adds 15
+      pairs with 746a7d7's answers: 7 abstain (another drug, another
+      outcome, induces for inhibits, cardiovascular for all-cause
+      mortality, whose warfarin was stopped) and 8 still pass (haemorrhage
+      and hemorrhage, Crohn's and Crohn, paracetamol and acetaminophen,
+      "and requires" for "requiring", an added "in adults", two-sentence
+      evidence, an extra clause, the same sentence). And 6 gate cases: a
+      lecture sentence about another drug no longer hides an item's dose,
+      frequency or negation finding; a card that only swaps the drug is a
+      soft finding (atomic_term_substituted, beside the verdict, changing
+      nothing); two clean items stay clean. The new checks fail on the
+      old gate; 109 pass on the new one. On the probe pairs and the shared
+      vectors the port gives 746a7d7's answers but for the two step 19
+      re-pins. Timing is within the machine's noise (an ordinary batch
+      about 2.6 ms warm before and after; the check is about 0.13 ms of
+      it, and the worst batch never reaches it).
+    - [x] Preflight, push design/map-lighter, Server tests green, then
+      personal and the session branch (with step 15's tasks 1 and 3).
+      Live only after a Worker deploy, which needs the owner's word.
+      Done: preflight OK; Server tests 37900489984 green on 695ca2f;
+      personal and claude/new-session-013tes5v moved to it on 9 Oct at
+      about 10:50 AM.
 19. [ ] Re-pin the Worker's port to Chat-me personal. Measured on 9 Oct:
     besides step 17's vectors, the port still has two behaviours Chat-me
     dropped in d17635d (step 11). Its multilingual replace is not
@@ -737,12 +804,82 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     "reducess" inside its double-negation facts, and it has no direction
     axis, so "Ibuprofen reduces bleeding risk with warfarin." against
     "… increases …" abstains as atomic_object_mismatch, where Chat-me now
-    says atomic_relation_mismatch. Port both, then regenerate
+    says atomic_relation_mismatch. And "Metoprolol reduces heart rate."
+    against "… lowers …" abstains as atomic_object_mismatch, where Chat-me
+    746a7d7 says atomic_term_substituted (both abstain): the replace makes
+    the claim "reducess heart rate", whose object reads "s heart"; the
+    whole-word replace brings it in line. Port both, then regenerate
     tests/claim-vectors.json from Chat-me personal: bench/claim-vectors.py
     needs the module paths d504978 moved (agents/specialists/
     verification_agent/ for app/verification/), and the test's pinned
     commit and counts, the bench's docstring and claims.js's header move
     with it. DEPARTURES then empties.
+20. [ ] #35, the owner's "look for upgrades - unfinished work - half-backed
+    features in the stethoscore app for u to make" (9 Oct, about 7:30 AM):
+    the launch checklist's open gaps (docs/launch/launch-checklist.md
+    section 1.3) and the audit's rows still open, built on
+    design/launch-gaps. Clear of step 15's loop tasks (rows 34, 40, 74 and
+    the re-check), steps 16 to 19 (another session's), the neumorphic work
+    and the map. Order: what Linux and node can check first; the screens
+    last, in one preview run.
+    - [x] GAP 2: no "Sign in with Google" door in a build without a Google
+      client id (AuthRules.googleClientID, GoogleSignIn.isConfigured; the
+      cloud blocker then names only Apple). Checked by the account suite
+      (macOS CI); its screenshot goes with GAP 1's.
+    - [x] GAP 1: after an Apple-linked account is deleted, the sign-in
+      screen gives the steps from Apple's support article 102571 (Settings
+      > your name > Sign in with Apple > Stethoscore > Delete), in English
+      and Arabic (AuthProvider.listedInSettingsAfterDeletion,
+      AccountStore.appleStepsDue). Checked by the gates suite; its
+      screenshot goes in the preview run with GAP 2's.
+    - [x] GAP 3: the server already cleared a deleted account's
+      generation jobs (worker.js forgetEverything calls jobs.js /wipe) and
+      pruned pair_attempts nightly. What was left was the privacy policy,
+      which now says tries are counted against the IP address and kept
+      for at most three days (limits.js ATTEMPTS_KEEP_HOURS, checked by
+      legal.test.mjs). The policy goes live with the next Worker deploy,
+      on the owner's word.
+    - [x] Row 4: Spotlight failures are no longer swallowed
+      (Shared/AppIntents.swift): a refused batch or removal leaves nothing
+      confirmed and is sent again at the next library change or launch; a
+      refused clear keeps what Spotlight holds counted, so the next update
+      with the toggle off asks again; both are recorded as failure reports
+      (app area). Compiled by the mac App build.
+    - [x] Row 18: the schedule (Persistence/ReviewStore.swift) is written
+      a second after the last rating, encoded off the main thread, and
+      flushed when the app leaves the foreground. A schedule that could not
+      be read at launch (a prewarm before the first unlock) is never
+      written over; it is read again once the app is in front and merged
+      with anything taken in meanwhile. Sync waits for the schedule as well
+      as the library before any bookmark (SyncEngine.savedHere), and skips
+      encoding and hashing a deck whose records the server already holds
+      (SyncEngine.packedSchedules; the payload's bytes unchanged, checked
+      on Linux against the old packing). The library's write failure now
+      reaches the failure reports under a key (library.write_failed) rather
+      than "unknown". Compiled by the mac App build.
+    - [x] Row 91 no longer applies: there are no cloud generation verdicts
+      left to seed the accuracy ledger from. Since the verification layer
+      (1 Oct) the app's job spec carries no check (Shared/LLM/CloudJobs.swift,
+      Spec); the server runs the checker only for a job that asks for one
+      (server/jobs.js), which only builds from before then do, and nothing
+      but the citations reads those replies. One checker's reply could not
+      count in the ledger anyway: it saw the key, and a question counts as
+      checked only on two or more blind votes, from three model families,
+      with a source proof (AccuracyLedger.isChecked).
+    - [x] Row 1: the library is read off the main thread at launch
+      (Store(inBackground:), Persistence/Store.swift). Nothing is written
+      before it is in: a flush asked for meanwhile waits for it, and a set or
+      folder added meanwhile is kept on top of what was read. A library that
+      could not be read (a prewarm before the first unlock) is never written
+      over; it is read again once the app is in front. The launch splash
+      stays up until the library is read, 2 s at most, then fades onto a
+      screen saying it is opening (LibraryLoadingView, preview screen
+      library-loading); no screen shows the library before it is in, and
+      the examples, sync, a notification's answer, the second iPad window
+      and Siri's queries wait for it (Siri reads the saved copy meanwhile).
+      Checked by the storeload suite (macOS CI); its screenshot goes in the
+      preview run with GAP 1's and GAP 2's.
+    - [ ] Row 17: library pictures as blob references, with a migration.
 
 ## 4. M3: the Neurons rebuild
 
@@ -1125,7 +1262,7 @@ recentre() about 1734; `case .open(let id)` about 448.
 The #n numbers are task numbers carried over from earlier sessions. "Finding
 n" is from Chat-me's docs/architecture/audit/stethoscore-unverified-findings.md.
 
-### #33: the neumorphic app (in personal since 9 Oct)
+### #33: the neumorphic app (on the session branch; personal next)
 
 > also make the app be neumorphic in every way
 
@@ -1137,8 +1274,9 @@ Another session made it on aahp/personal with an automated review loop
 (tasks T0018 to T0028, each checked on CI screenshots), then merged personal
 into it: only swift-tests.yml clashed, and the merge keeps aahp's read-only
 suites with separate publish jobs (skipped on aahp/ branches) and moves
-personal's retry of a log push that loses a race into those jobs. personal
-moved up to that merge once CI passed on aahp/personal. The look: a retro
+personal's retry of a log push that loses a race into those jobs. The
+session branch took that work up to T0032 (4ef98ff) and merged personal
+in; personal moves up to it once a preview run is checked. The look: a retro
 console press; soft raised controls that shade into a pressed state at 70%
 depth; every button one height, as pills; no glow; ECG paper only in an
 outer frame; faces the background colour with no outline. Restyle new

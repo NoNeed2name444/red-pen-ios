@@ -46,12 +46,22 @@ struct RedPenApp: App {
         // crash and failure reports: what the last run left, and MetricKit
         // (Shared/Diagnostics) - never for a screenshot run
         if !seeded { DiagnosticsRuntime.start() }
-        let store = seeded ? PreviewLaunch.seededStore() : Store()
-        // a personal build opens with a finished example in every mode, so
-        // each one can be tried straight away
-        if !seeded { SampleData.seedPersonalBuild(into: store) }
-        // example answers, mistakes and rules, so Progress has something to show
-        if !seeded { InsightExamples.seed(into: store) }
+        // the student's library is read off the main thread (Store), so a
+        // big one does not hold up the launch; the screens wait for it below
+        let store = seeded ? PreviewLaunch.seededStore() : Store(inBackground: true)
+        if !seeded {
+            Task { @MainActor in
+                // into the library as read, never into one that only looks
+                // empty because it has not been read yet
+                await store.whenLoaded()
+                // a personal build opens with a finished example in every
+                // mode, so each one can be tried straight away
+                SampleData.seedPersonalBuild(into: store)
+                // example answers, mistakes and rules, so Progress has
+                // something to show
+                InsightExamples.seed(into: store)
+            }
+        }
         _store = StateObject(wrappedValue: store)
         // answers from the question-of-the-day notification, and taps that
         // open a learning screen (LearnNotifications)
@@ -108,7 +118,7 @@ struct RedPenApp: App {
     /// The signed-in library is on screen: where links, widgets, Siri and
     /// opened files land (platformRoutes waits for it).
     private var libraryShowing: Bool {
-        if GraphPreview.isOn || !account.isSignedIn || !examQuestion.asked { return false }
+        if GraphPreview.isOn || !store.loaded || !account.isSignedIn || !examQuestion.asked { return false }
         guard let signedIn = account.account else { return true }
         return terms.hasAgreed(signedIn.id) && !firstRun.isDue(signedIn.id, terms: terms)
     }
@@ -128,6 +138,10 @@ struct RedPenApp: App {
                     } else {
                         PreviewRoot(screen: screen)
                     }
+                } else if !store.loaded {
+                    // a big library still being read (Store): nothing shows
+                    // the library, or writes into it, before it is in
+                    LibraryLoadingView()
                 } else if let signedIn = account.account, !terms.hasAgreed(signedIn.id) {
                     // once per account, before anything else: recordings are
                     // only transcribed with the speakers' permission
@@ -278,8 +292,9 @@ struct RedPenApp: App {
             }
             // the launch screen's picture, dissolving over the app that is
             // already running beneath it (and the only launch screen the
-            // Playgrounds build has) - see LaunchSplash
-            .launchSplash()
+            // Playgrounds build has) - see LaunchSplash; held while a big
+            // library is still being read
+            .launchSplash(until: store.loaded)
             // iPad, two windows: links, opened files, widget taps and
             // Spotlight go to a main window already open, not a new one
             .handlesExternalEvents(preferring: ["*"], allowing: ["*"])

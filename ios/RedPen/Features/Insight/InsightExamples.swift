@@ -99,7 +99,9 @@ enum InsightExamples {
     /// build only.
     @MainActor
     static func seed(into store: Store, now: Date = Date()) {
-        guard PersonalBuild.isOn, !UserDefaults.standard.bool(forKey: key) else { return }
+        // not over a library that could not be read at this launch (Store)
+        guard PersonalBuild.isOn, store.unreadable.isEmpty,
+              !UserDefaults.standard.bool(forKey: key) else { return }
         UserDefaults.standard.set(true, forKey: key)
 
         let folderId = store.folders.first { $0.name.hasPrefix("Examples") }?.id
