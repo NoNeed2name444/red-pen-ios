@@ -110,6 +110,7 @@ Optional owner steps, none needed for launch:
 3. **Two privacy-policy mismatches** (already noted in `app-store-listing.md` §10.4):
    - `pair_attempts` rows are never pruned (P0.1's cron fixes this);
    - `/account/delete` leaves generation jobs in the Durable Object for up to 7 days. The policy must say so, or the delete must clear them.
+   - **Done** (plan step 17). Both were already fixed in the server: the nightly pass removes `pair_attempts` hours older than a day (`pruneStores` in `limits.js`), and deleting an account also wipes its jobs and their outputs (`forgetEverything` in `worker.js` calls `/wipe` in `jobs.js`), at once and again in the nightly sweep. What was left was the policy: it now says that tries are counted against the IP address for at most three days. The new text goes live with the next Worker deploy, which waits for the owner's word.
 4. **The Arabic privacy URL.** App Store Connect has one Privacy Policy URL per localisation. The Arabic one must be `…/privacy?lang=ar`, so P1.8 has to honour `?lang=ar` as well as `Accept-Language`. P1.8's acceptance test already checks `dir="rtl"`, so this only confirms it.
 5. **The App Store build has nothing to try until the student adds material.**
    - "Try every feature" (`SupportPage.examples.isListed`, `LibraryRows.examplesSection`, `CategoryPages`, `CategoryShelves`) and the sample lectures (`SampleLectures`) are all gated on `PersonalBuild.isOn`.

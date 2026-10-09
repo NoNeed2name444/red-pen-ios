@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 7:51 AM Cairo.
+Last updated: 2026-10-09, 7:58 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -42,7 +42,7 @@ Last updated: 2026-10-09, 7:51 AM Cairo.
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/launch-gaps | GAP 2 and GAP 1 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
+| design/launch-gaps | GAP 2, GAP 1 and GAP 3 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -671,8 +671,13 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       and Arabic (AuthProvider.listedInSettingsAfterDeletion,
       AccountStore.appleStepsDue). Checked by the gates suite; its
       screenshot goes in the preview run with GAP 2's.
-    - [ ] GAP 3: the server's /account/delete also clears the account's
-      generation jobs (node tests; no deploy without the owner's word).
+    - [x] GAP 3: the server already cleared a deleted account's
+      generation jobs (worker.js forgetEverything calls jobs.js /wipe) and
+      pruned pair_attempts nightly. What was left was the privacy policy,
+      which now says tries are counted against the IP address and kept
+      for at most three days (limits.js ATTEMPTS_KEEP_HOURS, checked by
+      legal.test.mjs). The policy goes live with the next Worker deploy,
+      on the owner's word.
     - [ ] Row 4: Spotlight indexing and deletion failures are reported
       (Shared/AppIntents.swift), so the callers retry.
     - [ ] Row 18: review writes batched and flushed when the app leaves
