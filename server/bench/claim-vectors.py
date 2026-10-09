@@ -4,14 +4,14 @@ deterministic guards say about a fixed set of claims and passages, so that
 server/claims.js, their JavaScript port, can be held to the same answers
 (server/tests/claims.test.mjs).
 
-The verifier is Chat-me's at ff476bd (branch personal, MIT), in
+The verifier is Chat-me's at cda5d2c (branch personal, MIT), in
 agents/specialists/verification_agent/. Run against a checkout of it:
 
-    git -C <Chat-me> worktree add /tmp/cm ff476bd
+    git -C <Chat-me> worktree add /tmp/cm cda5d2c
     python3 server/bench/claim-vectors.py /tmp/cm > server/tests/claim-vectors.json
 
 Standard library only, besides the verifier's own modules; nothing is
-fetched and nothing needs a key. The corpus is the verifier's 41 shared
+fetched and nothing needs a key. The corpus is the verifier's 46 shared
 conformance vectors (answer against passage) and the pairs below, written
 the way Stethoscore's cards, questions and lectures are.
 """
@@ -116,6 +116,14 @@ PAIRS = [
     ("Gout is less common in women than in men.", "Gout is more common in men than in women."),
     ("Gout is more common in women than in men.", "Gout is more common in men than in women."),
     ("Risk is higher in women than in the elderly.", "Risk is lower in the young than in women."),
+    # a swapped term of three letters or fewer, and short names of the same term
+    ("Tenofovir treats HIV infection.", "Tenofovir treats HBV infection."),
+    ("Aspirin is used after MI.", "Aspirin is used after PE."),
+    ("Warfarin is reversed with vitamin K.", "Warfarin is reversed with vitamin D."),
+    ("Gout is more common in men.", "Gout is more common in women."),
+    ("Rivaroxaban inhibits factor Xa.", "Rivaroxaban inhibits activated factor X."),
+    # another route, whatever words stand around it
+    ("Vincristine is given intrathecally.", "Vincristine must only be given intravenously."),
     # multilingual, as the verifier knows it, whole words only
     ("El tratamiento reduce el riesgo.", "El tratamiento reduce el riesgo en adultos."),
     ("Le traitement réduit le risque.", "Le traitement ne réduit pas le risque."),
@@ -199,7 +207,7 @@ def main():
     pairs = [judge(c["answer"], c["source_passage"], f"conformance:{c['id']}") for c in vectors["cases"]]
     pairs += [judge(claim, evidence, "stethoscore") for claim, evidence in PAIRS]
     out = {
-        "verifier": "Chat-me ff476bd (personal, agents/specialists/verification_agent)",
+        "verifier": "Chat-me cda5d2c (personal, agents/specialists/verification_agent)",
         "conformance_version": vectors["version"],
         "pairs": pairs,
         "entities": [[a, b, entities_equivalent(a, b)] for a, b in ENTITIES],
