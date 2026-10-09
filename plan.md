@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 3:55 PM Cairo.
+Last updated: 2026-10-09, 7:03 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -40,7 +40,7 @@ Last updated: 2026-10-09, 3:55 PM Cairo.
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d), then step 19's re-pin of the Worker to Chat-me 746a7d7 (design/map-lighter; joined at about 11:37 AM as 809ddac; Server tests 37906094562 green), then step 21's three-letter comparison side (design/map-lighter 4a68424; joined at about 11:57 AM as a2a144f; Server tests 37908408628 green), then step 20's Row 17, library pictures as blob references, and the preview screens signin and account-deleted (design/launch-gaps; joined at about 12:20 PM; App build, Server tests and Swift tests green on e45ebc4), then steps 22 to 24: short swapped terms, the map's cancelled-rebuild race and swapped routes (design/map-lighter 252bbe3; joined at about 3:45 PM with step 26; App build 37913421797 green on 382a950, Server tests 37928627326 on 252bbe3) | personal is the working branch; keep session branches equal to it |
-| claude/medical-assistant-orchestration-javb9y | personal (537ccc4) plus the neumorphic app (#33, tasks T0018 to T0032) and the #33 follow-ups (no fading, control edges, cut lines, the home grid band) | personal moves up to it once its App build, Swift tests and preview run are green and the shots are checked (#33 follow-ups) |
+| claude/medical-assistant-orchestration-javb9y | equal to personal (d16846d): personal 537ccc4 plus the neumorphic app (#33, tasks T0018 to T0032) and the #33 follow-ups (no fading, blue control edges, cut lines, the home grid band with its rounded opening, no strip or glow under floating controls); personal fast-forwarded to b74dd06 at about 5:58 PM and to d16846d at about 7:05 PM, each with App build, Swift tests and iOS preview green | keep equal to personal |
 | aahp/personal | T0033's cece1a4 on T0032 (4ef98ff) | the design loop's branch (#33, tasks T0018 to T0033); its CI runs read-only and publishes nothing; cece1a4 is kept out of the session branch |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
@@ -1580,11 +1580,16 @@ move personal up.
     and score, Study Lens's controls and answer bar, Draw from memory's
     compare panel and sign-in's doors. Bars on a solid strip keep their
     lights; sheets opened from the dock and the switcher reset it.
-11. Next: App build, Swift tests and an ios-preview run on the session
-   branch (personal, 537ccc4, is merged in); check the strip line, the
-   OSCE clock, the library's floating New set and dock, the blue
-   control edges and home's rounded opening under the header, the unlit New set and dock; send the owner marked full screens; then move personal up to
-   the session branch.
+11. Done: CI green on b74dd06 (App build 37939012193, Swift tests
+    37939008288, iOS preview 37939004451) and d16846d (App build
+    37947903215, Swift tests 37944900082, iOS preview 37944896228); the
+    shots were checked and sent to the owner (strip line, OSCE clock, blue
+    edges, home's rounded opening, the unlit floating controls); personal
+    is at d16846d.
+12. Next: whatever the owner marks on the screens. Not yet seen in a
+    preview shot: the unlit faces on screens outside the preview set (the
+    map, the board, the reader, Study Lens, sign-in); add them to
+    PreviewExtras if the owner asks to see them.
 
 ### Other open work
 
