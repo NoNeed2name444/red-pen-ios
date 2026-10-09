@@ -19,10 +19,14 @@ struct GraphPreviewRoot: View {
 struct Graph3DView: View {
     let open: (UUID) -> Void
     let openFolder: (UUID?) -> Void
+    /// A sheet is over the map (the real one draws slower then).
+    var covered: Bool = false
 
-    init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in }) {
+    init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in },
+         covered: Bool = false) {
         self.open = open
         self.openFolder = openFolder
+        self.covered = covered
     }
 
     var body: some View { NotInThisBuild(feature: "The 3D map") }

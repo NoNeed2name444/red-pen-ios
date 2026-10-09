@@ -244,7 +244,7 @@ nonisolated struct GraphLabelSettings: Sendable, Equatable {
 nonisolated enum GraphLabelChooser {
     static let lightText = GraphRGB(0.97, 0.97, 0.99)
     static let darkText = GraphRGB(0.05, 0.06, 0.09)
-    /// The dark slate pill of old (Graph3DView.pillFill) and its pale twin.
+    /// The dark slate pill of old (GraphLabelNode.pillFill) and its pale twin.
     static let darkPill = GraphRGB(0.12, 0.13, 0.19)
     static let palePill = GraphRGB(0.93, 0.94, 0.97)
 

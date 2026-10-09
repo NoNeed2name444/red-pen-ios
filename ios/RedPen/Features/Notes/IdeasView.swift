@@ -156,7 +156,7 @@ struct IdeasView: View {
                 Graph3DView(open: openNote, openFolder: { id in
                     folderId = id
                     modeRaw = IdeasMode.list.rawValue
-                })
+                }, covered: opening != nil || naming != nil)
             }
         }
     }

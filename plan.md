@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 5:30 AM Cairo.
+Last updated: 2026-10-09, 6:00 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -42,6 +42,7 @@ Last updated: 2026-10-09, 5:30 AM Cairo.
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green) and the claim gate's direction check (step 10; joined at about 4:55 AM) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
+| design/map-lighter | from 84fcf66: the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -537,20 +538,37 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     - 114, real: a layout the map no longer wanted ran to the end. Step 13.
     - 115, not a fault: a new feature (a card set's source note), left for
       the roadmap.
-13. [ ] #28, the 3D map lighter, on design/map-lighter (from c0f61e8; the
+13. [ ] #28, the 3D map lighter, on design/map-lighter (from 84fcf66; the
     owner: the map is "wasting lots pf resources"):
-    - [ ] 109: the frame rate follows what the map is doing (GraphPace): a
+    - [x] 109: the frame rate follows what the map is doing (GraphPace): a
       lively map draws at its full rate while touched and for 3 s after,
       then 60, and 30 after 20 s untouched; a still one at 60 at most while
-      touched and for 3 s after, then 20; 20 under a sheet.
-    - [ ] 114: a newer change cancels the layout it supersedes (GraphWork,
-      the loop's check).
-    - [ ] 107: the notes' part of the signature as one hash, a note's words
-      counted again only when its text changes (GraphShapeKey).
-    - [ ] 110: names made the first time they show.
-    - [ ] 112: a failed probe is not kept while the app is not active.
+      touched and for 3 s after, then 20; 20 under a sheet (the map's own,
+      and the Ideas screen's over it: Graph3DView's `covered`, which the
+      Playgrounds stand-in, tools/playgrounds_stubs/graph3d.swift, takes
+      too). Suite graphics, G7a to G7u.
+    - [x] 114: a newer change cancels the layout it supersedes (GraphWork,
+      the loop's check). Suite forcelayout (new).
+    - [x] 107: the notes' part of the signature as one hash, a note's words
+      counted again only when its text changes (GraphShapeKey). Suite
+      shapekey (new).
+    - [x] 110: names made the first time they show (GraphLabelNode, an
+      empty holder that GraphSim, in GraphMotion, fills when its name
+      first goes up).
+    - [x] 112: a shader check's answer is kept only when it can be
+      trusted: every shader passed, or the app was in front, in one visit,
+      from its start to its end (GraphProbeMemo; suite probememo, 18
+      checks; 12 planted bugs, all caught). The main thread builds with the
+      answer it has and never waits behind a check; the map checks and
+      builds again when the app comes back with an answer not kept, or
+      when a build ends in front with one (Graph3DView.recheckShaders). A
+      check still running is not "unsure", so the app's arrival at launch,
+      mid-check, does not build the map twice.
     - [ ] Preflight, push, App build green, then personal and the session
       branch.
+    - Left: 111 (section 3, step 12). NoteStore.allEdges(), which the
+      signature asks for on every redraw, is already kept until a note
+      changes (its edgeCache), so it needs nothing.
 
 ## 4. M3: the Neurons rebuild
 

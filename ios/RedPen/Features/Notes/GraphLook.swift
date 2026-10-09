@@ -307,14 +307,24 @@ nonisolated struct GraphShaderSupport: Sendable {
 
 /// A shader modifier that fails to compile fails silently: SceneKit logs it
 /// and draws nothing, or the plain material. So before the space is built,
-/// each modifier is tried once, off the main thread, in a tiny offscreen
-/// render: a plane covered with a black texture and the modifier, with
-/// `rpProbe` set to 1. A working modifier paints it white; a broken one
-/// leaves it black. Any that fail are left off, and those pieces use their
-/// baked textures alone - the notes and links still show, just still.
+/// each modifier is tried off the main thread in a tiny offscreen render: a
+/// plane covered with a black texture and the modifier, with `rpProbe` set
+/// to 1. A working modifier paints it white; a broken one leaves it black.
+/// Any that fail are left off, and those pieces use their baked textures
+/// alone - the notes and links still show, just still.
 nonisolated enum GraphShaderProbe {
-    /// Worked out once per launch, the first time it is asked for.
-    static let support: GraphShaderSupport = run()
+    /// Checked off the main thread before a build, and kept once it can be
+    /// trusted: every shader passed, or the app was in front for the whole
+    /// check (GraphProbeMemo; Chat-me audit row 112).
+    static var support: GraphShaderSupport { memo.check(visit: { GraphForeground.shared.visit }) }
+
+    /// Whether the last answer was not kept (GraphProbeMemo.unsure).
+    static var unsure: Bool { memo.unsure }
+
+    private static let memo = GraphProbeMemo<GraphShaderSupport> {
+        let found: GraphShaderSupport = GraphShaderProbe.run()
+        return (found, found.ring && found.disk && found.link)
+    }
 
     private static func run() -> GraphShaderSupport {
         guard let device = MTLCreateSystemDefaultDevice() else { return .none }

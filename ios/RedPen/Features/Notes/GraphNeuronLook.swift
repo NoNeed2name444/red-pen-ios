@@ -212,7 +212,9 @@ final class GraphNeuronLook: GraphThemeLook {
         self.cells = cells
         let budget: GraphicsBudget = GraphQuality.current
         self.budget = budget
-        let support: NeuronSupport = NeuronProbe.support
+        // the answer the check before this build gave (Graph3DView, off the
+        // main thread), kept or not: never a fresh check here
+        let support: NeuronSupport = NeuronProbe.latest
         self.support = support
         if support.has("bridge") {
             linkMaterial = Self.bridgeMaterial(base: Self.fibre, bold: bold, lively: lively, budget: budget,
@@ -1463,15 +1465,28 @@ nonisolated struct NeuronSupport: Sendable {
     func has(_ name: String) -> Bool { passed.contains(name) }
 }
 
-/// Tries each Neurons shader once, off the main thread (GraphThemes.prepare,
-/// before the first build), in GraphStyleProbe's tiny offscreen render: the
-/// soma, arbor and membrane with their geometry modifiers on a sphere, the
-/// rest on a plane.
+/// Tries each Neurons shader off the main thread (GraphThemes.prepare,
+/// before a build), in GraphStyleProbe's tiny offscreen render: the soma,
+/// arbor and membrane with their geometry modifiers on a sphere, the rest on
+/// a plane.
 nonisolated enum NeuronProbe {
-    static let support: NeuronSupport = run()
+    /// Checked off the main thread before a build, and kept once it can be
+    /// trusted: every shader passed, or the app was in front for the whole
+    /// check (GraphProbeMemo; Chat-me audit row 112).
+    static var support: NeuronSupport { memo.check(visit: { GraphForeground.shared.visit }) }
 
-    private static func run() -> NeuronSupport {
-        guard let device = MTLCreateSystemDefaultDevice() else { return NeuronSupport(passed: []) }
+    /// The answer the last check gave, without checking again: for the main
+    /// thread, building with it (GraphNeuronLook).
+    static var latest: NeuronSupport { memo.latest(visit: { GraphForeground.shared.visit }) }
+
+    /// Whether the last answer was not kept (GraphProbeMemo.unsure).
+    static var unsure: Bool { memo.unsure }
+
+    private static let memo = GraphProbeMemo<NeuronSupport> { NeuronProbe.run() }
+
+    /// What passed, and whether every shader did.
+    private static func run() -> (NeuronSupport, Bool) {
+        guard let device = MTLCreateSystemDefaultDevice() else { return (NeuronSupport(passed: []), false) }
         let tries: [(String, [SCNShaderModifierEntryPoint: String], Bool)] = [
             ("soma", [.geometry: NeuronShaders.wobble, .surface: NeuronShaders.soma], true),
             ("arbor", [.geometry: NeuronShaders.sway, .surface: NeuronShaders.arbor], true),
@@ -1494,6 +1509,6 @@ nonisolated enum NeuronProbe {
             }
             if ok { passed.insert(name) }
         }
-        return NeuronSupport(passed: passed)
+        return (NeuronSupport(passed: passed), passed.count == tries.count)
     }
 }

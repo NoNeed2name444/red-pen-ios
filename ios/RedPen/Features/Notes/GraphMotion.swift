@@ -498,9 +498,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let labelBack: GraphRGB
     private var labelSettings: GraphLabelSettings
     /// Each label's words, pill and rim materials (nil for an empty
-    /// holder), and its pill's half width and height in label units (a
-    /// label unit is `labelPoints` on screen).
-    private let labelParts: [GraphLabelParts?]
+    /// holder, or a name not made yet: a GraphLabelNode makes its pieces
+    /// the first time it shows), and its pill's half width and height in
+    /// label units (a label unit is `labelPoints` on screen).
+    private var labelParts: [GraphLabelParts?]
     private var labelTrackers: [Int: GraphLabelTracker] = [:]
     private var labelClock: Double = 0
 
@@ -1949,6 +1950,11 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let growth: Float = dt / labelPopTime
         for i in labelsWanted {
             if !labelsUp.contains(i) {
+                // made the first time it is wanted (GraphLabelNode; Chat-me
+                // audit row 110: every name used to be made with the map)
+                if labelParts[i] == nil, (labels[i] as? GraphLabelNode)?.fill() == true {
+                    labelParts[i] = GraphLabelParts.find(in: labels[i])
+                }
                 labelPop[i] = lively ? 0 : 1
                 shapeLabel(i)
                 labels[i].isHidden = false
@@ -2102,9 +2108,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 }
 
-/// A name pill's pieces (Graph3DView's GraphSceneBuilder.label: the rim,
-/// the pill and the words, in that order), to restyle it as what is behind
-/// it changes (GraphLabelContrast.swift).
+/// A name pill's pieces (Graph3DView's GraphLabelNode: the rim, the pill
+/// and the words, in that order), to restyle it as what is behind it
+/// changes (GraphLabelContrast.swift).
 nonisolated final class GraphLabelParts: @unchecked Sendable {
     let text: SCNMaterial
     let pill: SCNMaterial
@@ -2119,7 +2125,8 @@ nonisolated final class GraphLabelParts: @unchecked Sendable {
         self.half = half
     }
 
-    /// The pieces of `label`, or nil for an empty holder.
+    /// The pieces of `label`, or nil for an empty holder (or a
+    /// GraphLabelNode not filled yet).
     static func find(in label: SCNNode) -> GraphLabelParts? {
         let children: [SCNNode] = label.childNodes
         guard children.count >= 3 else { return nil }
