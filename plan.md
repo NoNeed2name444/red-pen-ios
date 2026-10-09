@@ -1463,9 +1463,11 @@ move personal up.
 2. Clear button edges. Done in code. The owner's newest word overrides the
    brief's "faces the background colour with no outline".
    - A control (buttons, tappable chips, the dock, segmented controls, switch
-     tracks, text fields, tappable row tiles) has a 1-pt Chart Ink edge: 0.55
-     in light, 0.45 in dark (at least 3:1 on the base, tested in
-     WardReliefTests), 0.75 under Increase Contrast.
+     tracks, text fields, tappable row tiles) has a 1-pt edge in the ECG
+     paper's blue (the owner: "make the line around the buttons match the
+     grid color"): 0.85 in light, 0.65 in dark (about 3.3:1 on the base,
+     tested in WardReliefTests; the grid's own strength would be about
+     2:1), full under Increase Contrast.
    - Cards, slabs, status chips, pills and icon tiles have no edge, so what
      can be pressed stands apart; under Increase Contrast a card takes 0.35.
    - `control:` on wardRaised, wardInset, wardRelief, WardReliefFace and
@@ -1509,7 +1511,8 @@ move personal up.
    strip, and so do the study screens.
 8. Next: App build, Swift tests and an ios-preview run on the session
    branch (personal, ac8794c, is merged in); check the strip line, the
-   OSCE clock and the library's floating New set and dock; send the owner marked full screens; then move personal up to
+   OSCE clock, the library's floating New set and dock, and the blue
+   control edges; send the owner marked full screens; then move personal up to
    the session branch.
 
 ### Other open work

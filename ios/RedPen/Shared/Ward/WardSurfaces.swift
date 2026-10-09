@@ -106,7 +106,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
             .compositingGroup()
             .blur(radius: spec.blur)
             if spec.edgeAlpha > 0 {
-                shape.strokeBorder(Color.wardInk.opacity(spec.edgeAlpha), lineWidth: 1)
+                shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }
         }
     }
@@ -158,7 +158,7 @@ struct WardReliefFace<S: InsettableShape>: View {
                 shape.fill(fill.shadow(.ward(spec.shade, inner: false)))
             }
             if spec.edgeAlpha > 0 {
-                shape.strokeBorder(Color.wardInk.opacity(spec.edgeAlpha), lineWidth: 1)
+                shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }
         }
         .compositingGroup()

@@ -53,8 +53,10 @@ struct WardReliefSpec: Equatable, Sendable {
 /// Light mode: white at 0.75 to 0.9 and a cool grey shade (#A3B1C6) at 0.5
 /// to 0.65. Dark mode: white at 0.05 to 0.08, so nothing glares, and black
 /// at 0.45 to 0.6. A control's face (a button, a chip, a tile to tap, a
-/// field) has a 1-pt ink edge that reads at least 3:1 on the base (the
-/// owner, 9 Oct: buttons "not visually distinct in borders"), so what can
+/// field) has a 1-pt edge in the ECG paper's blue that reads at least 3:1
+/// on the base (the owner, 9 Oct: buttons "not visually distinct in
+/// borders", then "make the line around the buttons match the grid
+/// color"), so what can
 /// be pressed stands apart from what cannot; a card or a slab shows its
 /// shape by its lights alone, as Retro Press draws it, with an edge only
 /// under Increase Contrast. Increase Contrast deepens the shade and
@@ -62,10 +64,11 @@ struct WardReliefSpec: Equatable, Sendable {
 enum WardRelief {
     static let lightShade: UInt32 = 0xA3B1C6
     static let highContrastShadeGain = 0.15
-    /// A control's edge, light and dark: 3.6:1 on the base in both.
-    static let lightEdge = 0.55
-    static let darkEdge = 0.45
-    static let highContrastEdge = 0.75
+    /// A control's edge, light and dark, in the paper's blue: about 3.3:1
+    /// on the base in both (the grid's own strength would be about 2:1).
+    static let lightEdge = 0.85
+    static let darkEdge = 0.65
+    static let highContrastEdge = 1.0
     /// A card's or a slab's edge under Increase Contrast; none otherwise.
     static let containerHighContrastEdge = 0.35
     /// The least a control's boundary may read against the base (WCAG 1.4.11).
@@ -81,9 +84,15 @@ enum WardRelief {
         highContrast ? containerHighContrastEdge : 0
     }
 
+    /// The ink of a control's edge: the ECG paper's blue, so the edges
+    /// carry on the grid and its frame line.
+    static func edgeHex(dark: Bool) -> UInt32 {
+        WardPaper.ink(dark: dark, highContrast: false).hex
+    }
+
     /// A control's edge as it lands on the base.
     static func edgeColor(dark: Bool, highContrast: Bool = false) -> UInt32 {
-        composite(WardReliefLight(hex: WardPalette.hex(.ink, dark: dark),
+        composite(WardReliefLight(hex: edgeHex(dark: dark),
                                   alpha: edgeAlpha(dark: dark, highContrast: highContrast),
                                   x: 0, y: 0, radius: 0), on: base(dark: dark))
     }

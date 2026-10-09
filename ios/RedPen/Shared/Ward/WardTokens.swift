@@ -30,11 +30,18 @@ extension Color {
     static let wardHairline = ward(.hairline)
     static let wardMonitor = ward(.monitor)
 
-    /// A control's edge: Chart Ink at WardRelief.edgeAlpha, at least 3:1 on
-    /// the base, stronger under Increase Contrast.
+    /// The ink of an edge: the ECG paper's blue (WardRelief.edgeHex), drawn
+    /// at a spec's edge strength.
+    static let wardEdgeInk = Color(uiColor: UIColor { traits in
+        let (r, g, b) = WardPalette.rgb(WardRelief.edgeHex(dark: traits.userInterfaceStyle == .dark))
+        return UIColor(red: r, green: g, blue: b, alpha: 1)
+    })
+
+    /// A control's edge: the paper's blue at WardRelief.edgeAlpha, at least
+    /// 3:1 on the base, stronger under Increase Contrast.
     static let wardEdge = Color(uiColor: UIColor { traits in
         let dark = traits.userInterfaceStyle == .dark
-        let (r, g, b) = WardPalette.rgb(WardPalette.hex(.ink, dark: dark))
+        let (r, g, b) = WardPalette.rgb(WardRelief.edgeHex(dark: dark))
         return UIColor(red: r, green: g, blue: b,
                        alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
     })
