@@ -6,6 +6,11 @@ name: iOS preview
 
 on:
   workflow_dispatch:
+    inputs:
+      screens:
+        description: 'Only these screens, space-separated (e.g. signin account-deleted library-loading); empty for the usual set'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -97,6 +102,7 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           UDID: ${{ steps.sim.outputs.udid }}
+          SCREENS: ${{ inputs.screens }}
         run: |
           # NOT set -e. A screen that fails to launch used to abort the whole
           # step, so one bad screen cost all thirty-six and left nothing to say
@@ -115,7 +121,7 @@ jobs:
           # answers, and fixing a misheard word in an Arabic transcript.
           for mode in light dark; do
             xcrun simctl ui "$UDID" appearance "$mode"
-            for screen in library new quiz quiz-checked summary anki anki-revealed book osce osce-revealed osce-complete narrate narrate-finished anki-quizable quiz-from-cards narrate-fixing; do
+            for screen in ${SCREENS:-library new quiz quiz-checked summary anki anki-revealed book osce osce-revealed osce-complete narrate narrate-finished anki-quizable quiz-from-cards narrate-fixing}; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" >> previews/shots.log 2>&1; then
                 echo "launch failed: $screen ($mode)" >> previews/shots.log

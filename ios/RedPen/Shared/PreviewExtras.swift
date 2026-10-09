@@ -12,7 +12,7 @@ import SwiftUI
 enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
-                          "library-loading"]
+                          "library-loading", "signin", "account-deleted"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -34,12 +34,33 @@ enum PreviewExtras {
             // what a launch shows once the splash gives up waiting for a big
             // library to be read (RedPenApp, Store)
             LibraryLoadingView()
+        case "signin":
+            // the doors, signed out: no Google door in a build without a
+            // Google client id (launch checklist GAP 2)
+            PreviewSignIn(deleted: false)
+        case "account-deleted":
+            // after an Apple-linked account is deleted: Apple's steps for
+            // removing the app from Sign in with Apple (GAP 1)
+            PreviewSignIn(deleted: true)
         default:
             EmptyView()
         }
     }
 
     static func handles(_ screen: String) -> Bool { screens.contains(screen) }
+}
+
+/// The sign-in screen on an account store of its own, signed out, with the
+/// steps after an Apple account's deletion due when `deleted`.
+private struct PreviewSignIn: View {
+    let deleted: Bool
+    @StateObject private var account = AccountStore()
+
+    var body: some View {
+        SignInView()
+            .environmentObject(account)
+            .task { if deleted { account.appleStepsDue = true } }
+    }
 }
 
 /// A deck with enough single-answer cards for a quiz to be built from it.
