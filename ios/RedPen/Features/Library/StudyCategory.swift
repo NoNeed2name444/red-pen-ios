@@ -559,7 +559,10 @@ struct CategoryDock: View {
         } else if axis == .vertical {
             rail
         } else {
-            bar
+            ViewThatFits(in: .horizontal) {
+                bar
+                listButton
+            }
         }
     }
 
@@ -614,7 +617,7 @@ struct CategoryDock: View {
         // the pill as tall as the panel, whatever the text size
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: 560)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.bottom, 10)
     }
 
@@ -719,6 +722,9 @@ struct CategoryDock: View {
             withAnimation(change) { selection = category }
         } label: {
             DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), ink: ink)
+                // Four points is eight pixels in the 2x preview. Keep this
+                // inside the pressed face, including at its minimum width.
+                .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .padding(.vertical, 2)
                 .background {
@@ -833,11 +839,14 @@ private struct DockListSheet: View {
 /// Name-sized slots with spare width shared by water-filling the narrower ones.
 private struct DockSlots: Layout {
     private func widths(_ subviews: Subviews, offered: CGFloat?) -> [CGFloat] {
-        let ideals = subviews.map { max(44, $0.sizeThatFits(.unspecified).width + 12) }
+        // Each label already contains its four-point side padding.
+        let ideals = subviews.map { max(44, $0.sizeThatFits(.unspecified).width) }
         let total = ideals.reduce(0, +)
         guard let offered, total > 0 else { return ideals }
         let width = max(0, offered)
-        if width < total { return ideals.map { $0 * width / total } }
+        // Never compress away label clearance. ViewThatFits uses the
+        // list button when the names cannot fit at their shared font size.
+        if width < total { return ideals }
         var remaining = width
         var count = ideals.count
         var level: CGFloat = 0
@@ -855,7 +864,7 @@ private struct DockSlots: Layout {
         let height = zip(subviews, slots).map {
             $0.0.sizeThatFits(ProposedViewSize(width: $0.1, height: nil)).height
         }.max() ?? 0
-        return CGSize(width: proposal.width ?? slots.reduce(0, +), height: height)
+        return CGSize(width: max(proposal.width ?? 0, slots.reduce(0, +)), height: height)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
@@ -875,7 +884,6 @@ private struct DockItemFace: View {
     let symbol: String
     let title: String
     let ink: Color
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(spacing: 3) {
@@ -885,7 +893,7 @@ private struct DockItemFace: View {
             Text(title)
                 .font(.caption2.weight(.bold))
                 .lineLimit(1)
-                .minimumScaleFactor(typeSize >= .xxxLarge && !typeSize.isAccessibilitySize ? 0.7 : 1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .foregroundStyle(ink)
     }
