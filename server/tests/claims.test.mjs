@@ -7,7 +7,8 @@
 //    gives exactly what the Python gave (bench/claim-vectors.py made it).
 // 2. The gate: hard findings only where an item restates its lecture and
 //    contradicts it (a flipped negation, another dose, frequency or
-//    percentage); paraphrases, extra detail and other sentences pass.
+//    percentage) or turns it around (higher for lower, rare for common);
+//    paraphrases, extra detail and other sentences pass.
 // 3. Its work budget: a long page stops at its share of MAX_WORK, saying
 //    so; a batch of ordinary items is done well within it; and the worst
 //    batch the server takes stays within a few ms of CPU, cold and warm (the
@@ -111,6 +112,27 @@ const CASES = [
   ['none', 'Thiazides cause hyponatraemia, hypokalaemia and hypercalcaemia.', { kind: 'fact', text: 'Thiazides cause hypokalaemia.' }],
   ['clean', 'Loop diuretics do not cause hypercalcaemia; thiazides do.', { kind: 'fact', text: 'Thiazides cause hypercalcaemia.' }],
   ['clean', 'Metformin is first-line in type 2 diabetes.', { kind: 'cloze', text: '{{c1::Metformin}} is first-line in type 2 diabetes.' }],
+  // which way it goes: the lecture's sentence turned around
+  ['direction', 'Statin therapy is associated with a modestly increased risk of new-onset diabetes.', { kind: 'fact', text: 'Statin therapy is associated with a reduced risk of new-onset diabetes.' }],
+  ['direction', 'The risk of genital infection was higher in the SGLT2 inhibitor group.', { kind: 'card', text: 'Q: SGLT2 inhibitors and genital infection?\nA: SGLT2 inhibitors have a lower risk of genital infection.' }],
+  ['direction', 'In atrial fibrillation patients with prior intracranial haemorrhage, DOACs had a lower risk of recurrent intracranial haemorrhage than warfarin.', { kind: 'fact', text: 'DOACs have a higher rate of recurrent intracranial haemorrhage than warfarin.' }],
+  ['direction', 'Metformin monotherapy has minimal hypoglycaemia risk.', { kind: 'card', text: 'Metformin monotherapy has a high hypoglycaemia risk.' }],
+  ['direction', 'Clinically apparent drug-induced liver injury attributed to statins is rare.', { kind: 'fact', text: 'Statins have a high incidence of clinically apparent liver injury.' }],
+  ['direction', 'Metformin is contraindicated when the eGFR is below 30.', { kind: 'card', text: 'Metformin is contraindicated when the eGFR is above 30.' }],
+  ['direction', 'Metoclopramide increases lower oesophageal sphincter pressure.', { kind: 'fact', text: 'Metoclopramide reduces lower oesophageal sphincter pressure.' }],
+  ['direction', 'Minimal change disease is the commonest cause of nephrotic syndrome in children.', { kind: 'card', text: 'Minimal change disease is a rare cause of nephrotic syndrome in children.' }],
+  ['direction', 'Gout is more common in men than in women.', { kind: 'fact', text: 'Gout is less common in men than in women.' }],
+  // and what is not: the same fact the other way round, another thing
+  // compared, a word changed for another, two ways in one sentence
+  ['none', 'Gout is more common in men than in women.', { kind: 'fact', text: 'Gout is less common in women than in men.' }],
+  ['none', 'Warfarin has a higher risk of intracranial bleeding than DOACs.', { kind: 'fact', text: 'DOACs have a lower risk of intracranial bleeding.' }],
+  ['none', 'Higher doses increase the risk of bleeding.', { kind: 'fact', text: 'Lower doses reduce the risk of bleeding.' }],
+  ['none', 'Statins raise HDL cholesterol levels.', { kind: 'fact', text: 'Statins lower LDL cholesterol levels.' }],
+  ['none', 'Statins raise high-density lipoprotein cholesterol.', { kind: 'fact', text: 'Statins lower low-density lipoprotein cholesterol.' }],
+  ['none', 'Lower motor neuron lesions cause decreased tone.', { kind: 'fact', text: 'Upper motor neuron lesions cause increased tone.' }],
+  ['clean', 'The risk of genital infection was significantly higher in the SGLT2 inhibitor group.', { kind: 'fact', text: 'SGLT2 inhibitors are associated with an increased risk of genital infection.' }],
+  ['clean', 'Myositis and myopathy are listed as rare adverse effects of high-intensity statin therapy.', { kind: 'fact', text: 'Statin-associated myopathy is an uncommon adverse effect.' }],
+  ['clean', 'ACE inhibitors decrease bradykinin degradation, increasing bradykinin concentration and contributing to dry cough.', { kind: 'fact', text: 'ACE inhibitor cough has been linked to increased bradykinin.' }],
 ];
 {
   for (const [want, source, item] of CASES) {
@@ -129,6 +151,8 @@ const CASES = [
   const twice = C.claimGate({ kind: 'note', text: 'Metformin is not first-line in type 2 diabetes. Metformin is not first-line in type 2 diabetes.', source: 'Metformin is first-line in type 2 diabetes.' });
   ok(twice.hard.length === 1, 'each finding once a sentence');
   ok(C.claimGate(null).hard.length === 0 && C.claimGate({}).complete, 'no item, no lecture: nothing to say');
+  ok(!C.turnedAround('Metformin does not increase the risk of lactic acidosis.', 'Metformin increases the risk of lactic acidosis.'),
+     'a negated sentence is left to the negation check, not read for a way');
 }
 
 // MARK: 3. the work budget

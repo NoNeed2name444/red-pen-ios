@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 4:40 AM Cairo.
+Last updated: 2026-10-09, 4:45 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -41,6 +41,7 @@ Last updated: 2026-10-09, 4:40 AM Cairo.
 | shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785) and the port (section 3, step 9; joined at about 4:40 AM) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | the same as personal | the three fixes found only on design/prework-20261006 (step 9, done) |
+| design/claim-direction | 5d0edcd plus step 10 | the claim gate's direction check (#24); to personal once its CI is green |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -453,6 +454,57 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      branches keep only the latest run, by design) and the rest of that
      branch (another agent's prework/medical-assistant scaffold, PARTIAL
      or BLOCKED by its own notes).
+10. [ ] #24, the claim gate reads which way a sentence goes, on
+    design/claim-direction (from 5d0edcd). The Worker's claim gate
+    (server/claims.js) caught a flipped negation, dose, frequency or
+    percentage, but not a sentence turned around: a card's "Statin therapy
+    is associated with a reduced risk of new-onset diabetes", written from
+    a lecture's "a modestly increased risk", went through. Chat-me's
+    50-claim benchmark
+    (tests/test_adversarial_50_benchmark.py on verification-layer-adversarial-50
+    and -commercial-accuracy-v1: 40 true claims, each with the passage it
+    came from, and 10 false ones, mostly true ones turned around) showed
+    it: the gate gave 0 of the 10 a hard finding. C's evidence model
+    (evidence_model.py on verification-layer-commercial-accuracy-v1, at
+    030ed8c) reads a direction axis and caught 8 of 10; personal's Chat-me
+    verifier passes 4 of them (F02 to F05) as SUPPORTED (step 11).
+    - [x] turnedAround() in claims.js, after C's direction axis but not a
+      port of it: two axes (raises or lowers, higher or lower, above or
+      below; high or low, common or rare, minimal), one such word on an
+      axis or the sentence says no way on it ("increase the dose to reduce
+      side effects"); a part or thing such a word names (the lower limb,
+      the greater trochanter, the common bile duct, minimal change disease,
+      "see below") is not a way; every other word stays the same, short
+      names and numbers too (LDL is not HDL, men are not women), a measure
+      being any measure (a higher rate, a lower risk); and what a
+      comparison is against does not swap sides. A negated sentence is
+      left to the negation check. The finding is hard ("direction"), and
+      the sentence turned around never backs the item it contradicts.
+      Left out: C's third class, "neutral" (no change, unchanged,
+      noninferior, no difference), against a sentence that goes one way.
+    - [x] tests/claims.test.mjs: nine sentences turned around and nine
+      that are not (one-sided comparisons, swapped sides, hyphenated
+      names, "Lower doses" and "Higher doses", upper and lower motor
+      neuron); the nine fail on the old gate. The benchmark (run from
+      scratch, not committed: it is Chat-me's): 6 of 10 false claims get
+      a hard finding (F01, F02, F04, F05, F06, F09), 0 of 40 true ones.
+      Out of its reach: F03 (its passage says no way), F07 and F08
+      ("unfounded": what the evidence is, not which way), F10
+      ("coadministered" against "coadministration": 3 of 7 words). The
+      ordinary batch takes no longer (about 2.4 ms warm).
+    - [ ] Preflight, push, CI green, then personal and the session branch.
+    - [ ] The app's own words for it, with the next batch of ios/ work (it
+      starts a Mac run): AccuracyAssessment.holdReason("direction"), "Says
+      the other way from its own lecture.", and "direction" in claimHolds'
+      doc (AccuracyLedger.swift). Until then the app reads it as "Differs
+      from its own lecture.", which is true.
+    - Live only after a Worker deploy, which needs the owner's word.
+11. [ ] Chat-me (needs push access there, which this session was refused;
+    don't retry, it's the owner's to grant): port the 50-claim benchmark
+    into personal's evals, so the verifier is held to it, and give
+    personal's verifier C's direction axis, so F02 to F05 stop passing as
+    SUPPORTED; and correct the verifier README's `app.main:app` to
+    `api.main:app`. C itself can't be merged as it stands (section 5, #7).
 
 ## 4. M3: the Neurons rebuild
 
@@ -879,7 +931,35 @@ follows is the brief as it stood.
     "pre-work:" commits from another agent's 6 to 7 Oct run, mostly a
     separate scaffold under prework/medical-assistant/. Its three real
     fixes are section 3, step 9.
-  Still to check: Chat-me's branches.
+  Chat-me's branches were swept on 9 Oct too (a read-only clone; push
+  access to Chat-me was refused this session):
+  - in personal: design/3c-migration, main, both claude/new-session-*
+    branches, and medical-verifier-v0.1-commercial-safe (V), whose files
+    §3c moved into api/, agents/, orchestration/ and governance/ (d504978);
+  - prework/container-20261007 (2): the Dockerfile's entrypoint fix is in
+    personal; its README fix is not (docs/architecture/verifier/README.md:26
+    still says `uvicorn app.main:app`, for `api.main:app`), a line for the
+    next Chat-me push (step 11);
+  - codex/build-native-ios-3d-anatomy-app (3, 26 to 28 Sep): Codex's
+    separate AnatomyAtlas thorax app, not Stethoscore's; not ported;
+  - verification-layer-adversarial-50 (A) and
+    verification-layer-commercial-accuracy-v1 (C): never merged, and never
+    runnable as they stand. Both split from V at ef94cb7 (27 Sep) and
+    missed V's "Restore runtime foundation" commits of 28 Sep (6bdf4b6
+    app/config.py, 60e17d1 app/models/claim.py, 89698f6
+    app/retrieval/local.py, cd9c810 app/terminology/normalize.py), so their
+    CI ran only test_evidence_model.py and test_reliability.py. What they
+    hold that personal lacks is the 50-claim benchmark (both) and C's
+    evidence model. Run against it (section 3, step 10):
+
+    | Checker | False claims caught | True claims |
+    |---|---|---|
+    | personal's verifier | 6 of 10 (F02 to F05 SUPPORTED) | 15 of 40 supported |
+    | C's evidence model, one passage each | 8 of 10 | 28 of 40 supported |
+    | the Worker's gate before step 10 | 0 of 10 | 0 of 40 flagged |
+    | the Worker's gate after step 10 | 6 of 10 | 0 of 40 flagged |
+
+    Taken from them: step 10 here; step 11 is for Chat-me.
 - #8, the owner's design targets (docs/design/targets-2026-10-01.md): V1 to
   V3 and V6 are done. V4 is #17 (above), V5 is #18.
 - #18, V5, the 3D map from the owner's boards and Chat-me plan §3d: M1 to M3
@@ -949,6 +1029,8 @@ They answer four questions, in order:
   the phone; it needs the owner's call and a device test.
 - The launch splash colour (midnight for now).
 - Each Worker deploy.
+- Push access to Chat-me, refused to this session on 9 Oct: section 3,
+  step 11 waits on it.
 
 ## 6. Standing rules
 

@@ -360,7 +360,8 @@ export function suggestedFix(item, votes) {
 //   claims    the claim gate (claims.js, the Chat-me verifier's deterministic
 //             guards): each item against its own lecture, sentence by
 //             sentence, before any vote; a hard finding (a flipped negation,
-//             another dose, frequency or percentage) keeps it from Verified.
+//             another dose, frequency or percentage, or a way turned around)
+//             keeps it from Verified.
 //             Pure, and counted in work (MAX_WORK units a batch),
 //             since a Worker's clock stands still while it computes; a gate
 //             that fails holds the item at Check this at best

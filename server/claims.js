@@ -26,6 +26,10 @@
 //   - flips its negation ("negation"),
 //   - gives a different dose or unit ("dose"), or a different frequency
 //     ("frequency"), or a different percentage ("percentage"),
+//   - or turns it around: the same words but for one that goes the other
+//     way, higher for lower, rare for common ("direction"; after the
+//     direction axis of Chat-me's evidence model, though not a port of it:
+//     see turnedAround()),
 // that is a hard finding: the item contradicts what it was written from, and
 // it is never Verified - it stays Check this (the lecture may be the one
 // that is wrong, which is for the votes and the student to settle). What
@@ -857,6 +861,107 @@ export function conflicts(claim, source, judged = verify(claim, source)) {
   return { hard, soft };
 }
 
+// MARK: which way it goes
+
+/// A cheap first look: no word that could say which way, nothing to read.
+const WAY_HINT = /increas|high|great|more|rais|elevat|above|decreas|reduc|low|less|fewer|below|common|frequent|minimal|negligible|rare|seldom/i;
+/// The two ways a sentence can go, as Chat-me's evidence model reads them
+/// (its DIRECTION: increase or decrease), on two axes: which way something
+/// moves or compares (raises, reduces; higher, lower; above, below), and how
+/// much or how often it is (high, low; common, rare; minimal). Never half of
+/// a hyphenated word: "low-density" is a name, not a way.
+const AXES = [
+  [py(r`(?<!-)\b(?:increas(?:e|es|ed|ing)|higher|greater|more|rais(?:e|es|ed|ing)|elevat(?:e|es|ed|ing)|above)\b(?!-)`, 'g'),
+    py(r`(?<!-)\b(?:decreas(?:e|es|ed|ing)|reduc(?:e|es|ed|ing|tion)|lower(?:s|ed|ing)?|less|fewer|below)\b(?!-)`, 'g')],
+  [py(r`(?<!-)\b(?:high(?:est)?|common(?:ly|est)?|frequent(?:ly)?)\b(?!-)`, 'g'),
+    py(r`(?<!-)\b(?:low(?:est)?|minimal|negligible|rare(?:ly)?|uncommon|infrequent(?:ly)?|seldom)\b(?!-)`, 'g')],
+];
+/// Where those words name a part or a thing, not a way: the lower limb and
+/// the lower oesophageal sphincter, the greater trochanter, higher centres,
+/// the common bile duct, minimal change disease, "see below".
+const NOT_A_WAY = py(r`\b(?:lower\s+(?:limbs?|lobes?|motor|o?esophag\w*|urinary|respiratory|gi|gastrointestinal|abdom\w*|back|quadrants?|segment|uterine|chest|ribs?|half|third|parts?|extremit\w*|legs?|airways?|poles?|borders?|eyelids?|lips?|jaws?|limits?)|greater\s+(?:trochanter|tuberc\w*|tuberos\w*|curvature|omentum|sciatic|saphenous|petrosal|palatine|occipital|splanchnic|auricular|wings?|sac)|higher\s+(?:centres?|centers?|cortical|mental)|common\s+(?:bile|carotid|iliac|peroneal|fibular|femoral|hepatic|cold|variable|pathway)|minimal\s+change|(?:as|see|described|shown|listed|discussed|mentioned|noted|outlined)\s+(?:above|below))\b`, 'g');
+/// What a comparison is against: "than warfarin", "compared with placebo".
+const AGAINST = py(r`\b(?:than|compared (?:with|to)|in comparison (?:with|to)|versus|vs|relative to)\b`);
+/// Words for a measure of how likely: "a higher rate" and "a lower risk" are
+/// about the same thing.
+const MEASURE = new Set(['risk', 'rate', 'incidence', 'prevalence', 'odds', 'likelihood', 'chance', 'probability', 'hazard']);
+const SHORT_STOP = new Set(['is', 'in', 'of', 'to', 'on', 'at', 'by', 'be', 'as', 'or', 'if', 'it', 'an', 'no', 'so', 'do', 'up', 'we',
+  'he', 'me', 'my', 'us', 'am', 'go', 'vs', 'ie', 'eg', 'mg', 'ml', 'kg', 'the', 'and', 'for', 'are', 'was', 'has', 'had', 'can', 'may',
+  'its', 'his', 'her', 'our', 'but', 'nor', 'yet', 'any', 'all', 'who', 'how', 'why', 'per', 'via', 'did', 'not', 'too', 'out', 'off',
+  'own', 'she', 'him', 'you', 'one', 'use', 'due', 'get', 'got', 'let', 'way', 'etc', 'day', 'mcg']);
+/// The words that must stay the same for two sentences to be one sentence
+/// turned around: its content words, and its short names too (LDL is not
+/// HDL, men are not women) and its numbers; a measure is any measure.
+const steadyWords = text => {
+  const out = new Set(content(text));
+  for (const word of String(text).toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+    if (word.length >= 2 && word.length <= 3 && !/^\d+$/.test(word) && !SHORT_STOP.has(word)) out.add(word);
+  }
+  for (const n of numbers(text)) out.add(n);
+  for (const w of MEASURE) out.delete(w);
+  return out;
+};
+/// Which way a sentence goes, axis by axis: on an axis where it has one such
+/// word - and only one: "increase the dose to reduce side effects" says
+/// nothing of which way the sentence goes - its sign, the rest of its words
+/// and, where it compares, what with. Null where it says no way, and where
+/// it is negated (a flipped negation is a check of its own).
+const turnOf = remembered('turn', text => {
+  if (!WAY_HINT.test(text) || negated(text)) return null;
+  const plain = replaceAll(String(text).toLowerCase(), DOUBLE_NEGATION_EQUIVALENTS);
+  // the parts and things blanked out for finding the way, kept for the words
+  let read = plain;
+  for (const m of allOf(plain, NOT_A_WAY)) read = read.slice(0, m.index) + ' '.repeat(m[0].length) + read.slice(m.index + m[0].length);
+  const ways = AXES.map(([up, down]) => {
+    const ups = allOf(read, up), downs = allOf(read, down);
+    if (ups.length + downs.length !== 1) return null;
+    const [m] = ups.length ? ups : downs;
+    const rest = `${plain.slice(0, m.index)} ${plain.slice(m.index + m[0].length)}`;
+    const marker = AGAINST.exec(rest);
+    return {
+      sign: ups.length ? 1 : -1, words: steadyWords(rest),
+      subject: marker ? steadyWords(rest.slice(0, marker.index)) : null,
+      against: marker ? steadyWords(rest.slice(marker.index + marker[0].length)) : null,
+    };
+  });
+  return ways.some(Boolean) ? ways : null;
+});
+const meets = (a, b) => [...a].some(w => b.has(w));
+
+/// Does `claim` say what `source` says, turned around: on one axis the two
+/// go opposite ways - higher for lower, rare for common - and all their
+/// other words are nearly the same (three or more in common, and three in
+/// five of all either has, as restates() counts them), with none changed
+/// for another (upper for lower motor neuron, LDL for HDL: two facts, not
+/// one turned). Where both say what they compare against, it must be the
+/// same thing on the same side - "more common in men than in women" turned
+/// is "less common in men than in women", but "less common in women than in
+/// men" says the same - and where only one does, the other must not name it
+/// ("warfarin has a higher risk than DOACs" and "DOACs have a lower risk"
+/// agree). After the direction axis of Chat-me's evidence model
+/// (evidence_model.py on verification-layer-commercial-accuracy-v1, at
+/// 030ed8c); not a port of it: that reads any two passages' words for a way,
+/// this only a sentence against its own lecture's, word for word.
+export function turnedAround(claim, source) {
+  const a = turnOf(claim), b = a && turnOf(source);
+  if (!b) return false;
+  return a.some((x, axis) => {
+    const y = b[axis];
+    if (!x || !y || x.sign === y.sign) return false;
+    const shared = [...x.words].filter(w => y.words.has(w)).length;
+    if (shared < 3 || shared / (x.words.size + y.words.size - shared) < 0.6) return false;
+    // a word changed for another
+    if (shared !== x.words.size && shared !== y.words.size) return false;
+    if (x.against && y.against) {
+      return (meets(x.against, y.against) || (!x.against.size && !y.against.size))
+        && !meets(x.against, y.subject) && !meets(y.against, x.subject);
+    }
+    if (x.against) return !meets(x.against, y.words);
+    if (y.against) return !meets(y.against, x.words);
+    return true;
+  });
+}
+
 /** @typedef {{ code: string, claim: string, source: string }} ClaimFinding */
 /** @typedef {{ hard: ClaimFinding[], soft: ClaimFinding[], checks: number, work: number, complete: boolean }} ClaimFindings */
 
@@ -865,14 +970,14 @@ const LIMIT = 5;
 /// Worker's clock stands still while it computes, and the free plan gives a
 /// request about 10 ms of CPU, most of it for the rest of the check. A
 /// statement of the item looked at, and each statement of the lecture it is
-/// compared with, is a unit of work (about 5 microseconds); a judgement
-/// (verify(), about 120) is VERIFY_WORK units. The worst batch the server
-/// takes - four items of MAX_ITEM_CHARS, every sentence a dose, against
-/// lectures of MAX_SOURCE_CHARS - comes to about 3 ms warm, and a batch of
-/// ordinary cards and questions is done well within it
-/// (tests/claims.test.mjs holds it to both). A long page stops at its share,
-/// with what it found so far (never more than the votes would have had
-/// without it) and `complete` false.
+/// compared with (whether it restates it or turns it around), is a unit of
+/// work (about 5 microseconds); a judgement (verify(), about 120) is
+/// VERIFY_WORK units. The worst batch the server takes - four items of
+/// MAX_ITEM_CHARS, every sentence a dose, against lectures of
+/// MAX_SOURCE_CHARS - comes to about 3 ms warm, and a batch of ordinary cards
+/// and questions is done well within it (tests/claims.test.mjs holds it to
+/// both). A long page stops at its share, with what it found so far (never
+/// more than the votes would have had without it) and `complete` false.
 export const MAX_WORK = 1200;
 export const VERIFY_WORK = 30;
 /// How many sentences of an item, and of its lecture, the gate reads: the
@@ -910,13 +1015,13 @@ export function remembering(fn) {
 }
 
 /// The claim gate for one item: each of its statements against those of its
-/// lecture that it restates - unless any statement of the lecture backs it
-/// as it is (a lecture can give a loading dose and a daily one). Nothing to
-/// say without a lecture, or where nothing is restated. Each finding once a
-/// sentence; at most `maxWork` units of work (`complete` false when it
-/// stopped there, or when the item or its lecture had more than
-/// MAX_SENTENCES sentences). `work` is what it used, `checks` how many
-/// judgements it made.
+/// lecture that it restates or turns around - unless any other statement of
+/// the lecture backs it as it is (a lecture can give a loading dose and a
+/// daily one). Nothing to say without a lecture, or where nothing is
+/// restated or turned. Each finding once a sentence; at most `maxWork` units
+/// of work (`complete` false when it stopped there, or when the item or its
+/// lecture had more than MAX_SENTENCES sentences). `work` is what it used,
+/// `checks` how many judgements it made.
 /** @returns {ClaimFindings} */
 export function claimGate(item, maxWork = MAX_WORK) {
   return remembering(() => gate(item, maxWork));
@@ -939,6 +1044,12 @@ function gate(item, maxWork) {
   if (cut || claims.length > MAX_SENTENCES) out.complete = false;
   const judge = (claim, source) => { out.checks++; out.work += VERIFY_WORK; return verify(claim, source); };
   const seen = new Set();
+  const note = (list, code, claim, source, sentence) => {
+    const key = `${code}|${sentence}`;
+    if (seen.has(key) || list.length >= LIMIT) return;
+    seen.add(key);
+    list.push({ code, claim: excerpt(claim), source: excerpt(source) });
+  };
   for (const { text: claim, sentence } of said) {
     // each step's work is counted before it is done, so an item never uses
     // more than it was given
@@ -947,23 +1058,22 @@ function gate(item, maxWork) {
     if (out.work + 1 + near.length > maxWork) { out.complete = false; break; }
     out.work += 1 + near.length;
     const restated = near.filter(s => restates(claim, s.text));
-    if (!restated.length) continue;
+    const turned = turnOf(claim) ? near.filter(s => turnedAround(claim, s.text)) : [];
+    if (!restated.length && !turned.length) continue;
     if (out.work + near.length > maxWork) { out.complete = false; break; }
     out.work += near.length;
     const facts = backing(claim);
-    const backers = near.filter(s => mayBack(facts, s.backing ||= backing(s.text)));
+    // verify() reads a sentence's words, not which way they go: the lecture's
+    // sentence turned around would back the item it contradicts
+    const away = new Set(turned.map(s => s.sentence));
+    const backers = near.filter(s => !away.has(s.sentence) && mayBack(facts, s.backing ||= backing(s.text)));
     if (out.work + (backers.length + restated.length) * VERIFY_WORK > maxWork) { out.complete = false; break; }
     if (backers.some(s => judge(claim, s.text).label === 'SUPPORTS')) continue;
+    for (const { text: source } of turned) note(out.hard, 'direction', claim, source, sentence);
     for (const { text: source } of restated) {
       const found = conflicts(claim, source, judge(claim, source));
-      for (const [list, codes] of [[out.hard, found.hard], [out.soft, found.soft]]) {
-        for (const code of codes) {
-          const key = `${code}|${sentence}`;
-          if (seen.has(key) || list.length >= LIMIT) continue;
-          seen.add(key);
-          list.push({ code, claim: excerpt(claim), source: excerpt(source) });
-        }
-      }
+      for (const code of found.hard) note(out.hard, code, claim, source, sentence);
+      for (const code of found.soft) note(out.soft, code, claim, source, sentence);
     }
   }
   return out;
