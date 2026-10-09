@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 7:00 AM Cairo.
+Last updated: 2026-10-09, 7:05 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -509,8 +509,8 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       doc (AccuracyLedger.swift). Done with step 13's push on
       design/map-lighter; the accuracy suite checks the words.
     - Live only after a Worker deploy, which needs the owner's word.
-11. [ ] Chat-me (needs push access there, which this session was refused;
-    don't retry, it's the owner's to grant): port the 50-claim benchmark
+11. [ ] Chat-me (the owner attached it to this session with push on 9 Oct
+    at about 7:00 AM, after an earlier refusal): port the 50-claim benchmark
     into personal's evals, so the verifier is held to it, and give
     personal's verifier C's direction axis, so F02 to F05 stop passing as
     SUPPORTED; and correct the verifier README's `app.main:app` to
@@ -586,20 +586,17 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     each clear of the files personal changed and of the neumorphic work.
     - [x] Pick rows still open on aahp/personal (d7da19a); most rows the
       audit lists as open turned out fixed (the doc names them).
-    - [ ] Queue them. The loop's task file is in the owner's private loop
-      repository, which this session can read but not write (refused). The
-      loop approved T0028 at its turn 54 and is paused, so it is free.
-      Ready-to-paste packets for tasks 1 to 3 went to the owner on 9 Oct
-      (kept out of this repository: the loop's format is private); the
-      first is filled in for turn 55, the other two take the turn and
-      commits of the one before. The owner wants this session to send
-      them ("u send the packets not me", 9 Oct, about 6:55 AM), but the
-      permission system refused write access to the loop's repository
-      again at 6:56 AM; don't retry it. Waiting on the owner: write access
-      for this session (GitHub reconnected at claude.ai/connect-github
-      with write on that repository), or a session started with it
-      selected. Then queue the turn-55 packet and run the loop's worker,
-      and each next packet once the one before is approved.
+    - [ ] Queue them, one at a time; this session sends them ("u send the
+      packets not me", 9 Oct, about 6:55 AM). The owner attached the loop's
+      repository to this session with push at about 7:00 AM. Task 1 (the
+      two labels) went in as the loop's turn 55 at 7:02 AM and its worker
+      started. The packets for tasks 1 to 3 are in the session's scratchpad
+      and went to the owner, kept out of this repository (the loop's format
+      is private); a new session rebuilds them from docs/chatgpt-tasks.md in
+      the format of the loop's last task commit. When one is approved, queue
+      the next with the turn after the approval, the approving commit as its
+      base and aahp/personal's tip as its target base, then run the loop's
+      worker.
     - The neumorphic branch (5d2a0c6) is already inside both personal and
       aahp/personal, so it adds no merge risk to these tasks.
     - [ ] Review each result when it comes back, then merge aahp/personal
@@ -1118,8 +1115,9 @@ They answer four questions, in order:
    if they're useless: the workflows went (c3c50c3). The permission system
    refused deleting remote branches, so that stays undone.
 4. Write access for this session to NoNeed2name444/claude-code: the owner
-   allowed it, but the permission system refused the request. It's the
-   owner's to grant; don't retry or work around it.
+   allowed it; the permission system refused it twice, and the owner then
+   attached the repository to this session themselves (9 Oct, about
+   7:00 AM).
 
 ### Waiting on the owner
 
@@ -1129,11 +1127,6 @@ They answer four questions, in order:
   the phone; it needs the owner's call and a device test.
 - The launch splash colour (midnight for now).
 - Each Worker deploy.
-- Push access to Chat-me, refused to this session on 9 Oct: section 3,
-  step 11 waits on it.
-- Write access to the loop's repository for this session (refused again at
-  6:56 AM on 9 Oct; the owner wants this session, not them, to send the
-  packets): section 3, step 15.
 
 ## 6. Standing rules
 
@@ -1171,8 +1164,10 @@ Cases
 Permission refusals
 - When the permission system refuses something, don't retry it and don't
   ask another session or agent to do it; tell the owner instead. Refused so
-  far: deleting remote branches, merging codex-fixes, write access to
-  NoNeed2name444/claude-code, and curl of the agent proxy's status page.
+  far: deleting remote branches, merging codex-fixes, and curl of the agent
+  proxy's status page. Write access to NoNeed2name444/claude-code and push
+  to Chat-me were refused too, until the owner attached both repositories
+  to this session on 9 Oct at about 7:00 AM.
 
 Code
 - Keep test-covered logic in Foundation-only files, and fence Apple-only
