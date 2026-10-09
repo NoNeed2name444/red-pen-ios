@@ -123,6 +123,10 @@ jobs:
           PART: ${{ matrix.part }}
         run: |
           set -o pipefail
+          # the simulator boots now, beside the build: its first boot keeps
+          # the Mac busy for minutes, and the tests wait for that to pass
+          # (Take the pictures)
+          xcrun simctl boot "$UDID" > /dev/null 2>&1 &
           # a failed build stops this part here, red, with its errors in the
           # summary (it used to carry on and report success with no pictures)
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
@@ -184,10 +188,22 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b || true
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
             --batteryState charged --wifiBars 3 || true
-          # now and then the app has frozen in a 3D map test (the screen stops
-          # changing, a query times out, the app cannot be ended): while the
-          # map's tests run, the state of its threads and the Mac's memory are
-          # noted, without touching the app (tools/hang_watch.sh)
+          # a simulator's first boot keeps the Mac busy for minutes (its
+          # widgets, News, Health and the like setting up, hundreds of them
+          # at once on 3 cores and 7 GB): the first tests ran in that rush,
+          # and once XCTest could not end the app in time (plan.md step 6d).
+          # It booted during the build; the tests wait here, up to ten
+          # minutes, for the Mac's load to come down.
+          for i in $(seq 60); do
+            load=$(sysctl -n vm.loadavg | awk '{print int($2)}')
+            if [ "$load" -lt 40 ] || [ $((i % 6)) -eq 1 ]; then echo "$(date '+%T') load $(sysctl -n vm.loadavg)"; fi
+            if [ "$load" -lt 40 ]; then break; fi
+            sleep 10
+          done
+          # now and then a 3D map test could not end the app (the app kept
+          # drawing; the Mac was out of memory): while the map's tests run,
+          # the state of its threads and the Mac's memory are noted, without
+          # touching the app (tools/hang_watch.sh)
           case "$PART" in
             iphone-graph|ipad) bash ../tools/hang_watch.sh watch "$UDID" "$RUNNER_TEMP/hang" > /dev/null 2>&1 & ;;
           esac

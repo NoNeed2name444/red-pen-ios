@@ -15,7 +15,10 @@
 #     "hang"), the Mac's GPU lines and any crash or hang reports.
 # It only looks: sampling the app held it still, so the tests could not end
 # it (plan.md step 6d). The design preview runs both and uploads <dir>
-# (design-preview.yml).
+# (design-preview.yml). What it found: the app never froze (it kept drawing
+# at about 50 frames a second); the Mac was out of memory while the
+# simulator's first boot was still settling, and XCTest's request to end
+# the app stalled for over a minute.
 set -u
 mode="${1:-}" udid="${2:-}" dir="${3:-}"
 if [ -z "$mode" ] || [ -z "$udid" ] || [ -z "$dir" ]; then
@@ -29,7 +32,10 @@ case "$mode" in
     seen=" " alive=" " tick=0
     while [ ! -e "$dir/stop" ]; do
       now=$(date '+%T') live=" "
-      for pid in $(pgrep -f "Devices/$udid/.*/RedPen\.app/RedPen( |$)"); do
+      # by name only (the runner boots one simulator): matching whole
+      # command lines reads every process's memory, which on a Mac short of
+      # it stalled this watch for two minutes and added to the strain
+      for pid in $(pgrep -x RedPen); do
         live="$live$pid "
         case "$seen" in *" $pid "*) ;; *) seen="$seen$pid "; echo "$now $pid started" >> "$dir/launches.txt" ;; esac
         { echo "== $now $pid"; ps -M -p "$pid" 2>&1 | cut -c1-100; } >> "$dir/threads.txt"
@@ -40,16 +46,15 @@ case "$mode" in
       alive="$live"
       # anything sampling the app or reporting on it (XCTest may, when a
       # query times out)
-      others=$(ps -A -o pid,ppid,stat,etime,command |
-        grep -E 'spindump|/sample |ReportCrash|tailspin|hangtracer|osanalytics|debugserver|lldb' |
-        grep -v grep | cut -c1-160)
+      others=$(ps -A -o pid,ppid,stat,etime,ucomm |
+        awk '$5 ~ /^(spindump|sample|ReportCrash|tailspin|hangtracer|osanalytics|debugserver|lldb)/')
       [ -n "$others" ] && printf '== %s\n%s\n' "$now" "$others" >> "$dir/others.txt"
       if [ $((tick % 5)) -eq 0 ]; then
         { echo "== $now"
           sysctl -n vm.swapusage vm.loadavg kern.memorystatus_vm_pressure_level
           vm_stat | awk 'NR > 1 { sub(/^ +/, ""); printf "%s; ", $0 } END { print "" }'
-          ps -A -r -o pid,pcpu,rss,time,stat,comm | head -n 10
-          ps -A -m -o pid,pcpu,rss,time,stat,comm | head -n 8
+          ps -A -r -o pid,pcpu,rss,time,stat,ucomm | head -n 10
+          ps -A -m -o pid,pcpu,rss,time,stat,ucomm | head -n 8
           for host in $(pgrep -x SimMetalHost); do ps -M -p "$host" | cut -c1-100; done
         } >> "$dir/host.txt" 2>&1
       fi

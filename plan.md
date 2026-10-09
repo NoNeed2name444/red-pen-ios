@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 2:00 AM Cairo.
+Last updated: 2026-10-09, 3:00 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -35,10 +35,10 @@ Last updated: 2026-10-09, 2:00 AM Cairo.
 
 | Branch | Head | What it holds |
 |---|---|---|
-| wip/3d-neurons-m3 | "Preview: build the freeze watch against the iOS 26 SDK" | M3 in progress; #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); 2428ffd sampled the app from outside (run 37846299540, red only because the sampler held the app); 8ce4459 has the app report its own stuck threads and the watch only look (section 3, step 6d), and this commit fixes its one compile error |
+| wip/3d-neurons-m3 | "Preview: let the simulator settle before the 3D map tests" | M3 in progress; #17 (91aedd2) and #18 (86791b6) are built (App build 37838831104, c8ec409) and shot (round D); 2428ffd sampled the app from outside (run 37846299540, red only because the sampler held the app); 8ce4459 and 5f8eb9f have the app report its own stuck threads and the watch only look (App build 37857473899, green; preview run 37858247053 found no freeze, only a Mac out of memory while the simulator's first boot settled); this commit boots the simulator during the build and has the tests wait for the Mac to calm down (section 3, step 6d) |
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
-| preview/3d-overhaul | 2428ffd (run 37846299540, the first freeze run); next the same as wip, once its App build passes (the second freeze run, step 6d) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
-| shots/3d-overhaul | 48787e9 (run 37846299540) | where design-preview.yml commits them |
+| preview/3d-overhaul | 5f8eb9f (run 37858247053, the second freeze run); next the same as wip (the confirming run, step 6d) | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
+| shots/3d-overhaul | f4023db (run 37858247053) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | 3827785 | personal is the working branch; keep session branches equal to it |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -171,6 +171,19 @@ Last updated: 2026-10-09, 2:00 AM Cairo.
   main and render threads are stuck (GraphHangReporter, in its own log),
   and hang_watch.sh only notes thread states and the Mac's memory (step
   6d).
+- The next run (37858247053, 5f8eb9f) found no freeze at all. Its one
+  failure, the iPad's testNeuronsAtRest #2, was XCTest failing to end a
+  healthy app: the app's own report had it drawing about 50 frames a
+  second, main's longest step 3 to 4 ms, while XCTest's "Terminate" waited
+  68 s. The Mac was the problem. The simulator first boots right after the
+  build, and its first boot starts hundreds of its own services at once
+  (widgets, News, Health, SpringBoard and more, 200 to 440 MB each) on a
+  3-core, 7 GB runner: the load reached 773 on the iPad and 847 on the
+  iPhone, free memory sat near 60 MB, swap reached 957 MB, and the app's
+  launch added 633 MB of wired GPU memory on top. The tests sped up as it
+  settled (the iPhone's AtRest 115.2, 90.7, then 33.0 s). So the simulator
+  now boots during the build, and the tests wait (up to 10 minutes) for the
+  Mac's load to come down (step 6d).
 
 ## 3. Next steps
 
@@ -322,18 +335,60 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      failed (App build 37856034906, 8ce4459): the iOS 26 SDK hands the
      run-loop observer's block plain CFOptionFlags, so it now takes either
      type.
-   - [ ] The same three tests three times each again:
+   - [x] The same three tests three times each again (run 37858247053,
+     5f8eb9f; shots f4023db):
      `gh workflow run design-preview.yml --ref preview/3d-overhaul -f only='testNeuronsAtRest|testNeuronsFlyIn|testNeuronsLegend' -f repeat=3`
      Then fetch the artifacts into a new empty directory:
      `gh api repos/noneed2name444/red-pen-ios/actions/runs/<run>/artifacts`
      for the ids, `gh api repos/noneed2name444/red-pen-ios/actions/artifacts/<id>/zip > hang.zip`.
-   - [ ] Read them: `grep 'com.cramdown.app:hang'` in sim-log.txt for the
+     Red only on the iPad's testNeuronsAtRest #2 (73.7 s, "Failed to
+     terminate", GraphPreviewUITests.swift:117). The rest passed: iPad
+     AtRest 79.8; FlyIn 51.9, 38.2, 32.3; Legend 45.2, 19.7, 21.2. iPhone
+     AtRest 115.2, 90.7, 33.0; FlyIn 46.2, 43.2, 13.8; Legend 31.5, 14.7,
+     16.7.
+   - [x] Read them: `grep 'com.cramdown.app:hang'` in sim-log.txt for the
      app's own reports (the "alive" lines and, in a freeze, the stuck
      threads' stacks); threads.txt for U or T rows; host.txt for swap and
      memory pressure at the time; others.txt for anything that sampled the
-     app; launches.txt for which process ran how long.
-   - [ ] Fix it, run preflight, push to wip and design/ (compile check),
-     then one confirming preview run, and go on to step 7.
+     app; launches.txt for which process ran how long. Found:
+     - the app never froze: the iPad app XCTest could not end kept
+       drawing (about 48 frames a second, main's longest step 3 to 4 ms)
+       right up to its SIGTERM; the iPhone's only "hang" reports were two
+       stalls of main at launch (3.4 s each, in the Swift runtime's type
+       lookups under an accessibility query, while paging), over in
+       seconds;
+     - XCTest asked to end it at 23:27:27 (0.24 s into the test's tear
+       down) and the request stalled; the app got SIGTERM only at
+       23:28:39.85, after the test had given up (68.2 s);
+     - the Mac: the simulator booted at 23:21:49, right after the build,
+       and its first boot was still settling when the tests began (23:26:07):
+       load 291 before the app, 773 on the iPad (23:28:53) and 847 on the
+       iPhone (23:28:55), down to 183 by 23:35; free memory near 60 MB,
+       5 to 8 GB squeezed into 2 to 2.6 GB of compressor, swap 700 to
+       957 MB; the app's launch added 633 MB of wired memory (its GPU
+       buffers at High quality). The busiest: the simulator's own services
+       (FitnessIntelligenceSnapshotService, healthd, News widgets,
+       IntentsExtension, chronod, WidgetRenderer, SpringBoard, each 200 to
+       440 MB) and both diagnosticd at 20 to 40% CPU. XCTest's own screen
+       recording (VTEncoderXPCService) was light, about 7%.
+     - the watch itself added to it: `pgrep -f` and `ps -o command` read
+       every process's memory, and it stalled through the whole wait
+       (23:26:36 to 23:28:42 on the iPad), so threads.txt has nothing from
+       then; elsewhere U shows only around launches (paging in), never T.
+   - [x] The fix (no change to the app, so the pictures stay true):
+     design-preview.yml boots the simulator in the background as the build
+     starts, and before the tests waits, up to 10 minutes, for the Mac's
+     1-minute load to drop under 40 (printing it each minute: "load ..."
+     lines in the Take the pictures log); hang_watch.sh finds the app and
+     the GPU host by name (`pgrep -x`, `ucomm`), never reading the other
+     processes' memory.
+   - [ ] One confirming run of the same three tests three times each (the
+     dispatch above, on this commit). Read the "load" lines to see how
+     long the Mac took to settle, and tune the 40 if it never got there.
+     If a test still cannot end the app, give the simulator's build of the
+     map a lighter load (30 frames a second, 2× MSAA under
+     `#if targetEnvironment(simulator)`) and run again. When it is green,
+     go on to step 7.
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
