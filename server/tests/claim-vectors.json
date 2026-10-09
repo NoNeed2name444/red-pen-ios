@@ -1,5 +1,5 @@
 {
- "verifier": "Chat-me 746a7d7 (personal, agents/specialists/verification_agent)",
+ "verifier": "Chat-me ff476bd (personal, agents/specialists/verification_agent)",
  "conformance_version": "1.5",
  "pairs": [
   {
@@ -14421,6 +14421,358 @@
     "atoms": [
      {
       "text": "DOACs had a lower risk of recurrent intracranial hemorrhage than warfarin",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Gout is less common in women than in men.",
+   "evidence": "Gout is more common in men than in women.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "gout is less common in women than in men.",
+    "tokens": [
+     "common",
+     "gout",
+     "less",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is less common in women than in men",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     1
+    ],
+    "stated_directions": [
+     -1,
+     1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "gout is more common in men than in women.",
+    "tokens": [
+     "common",
+     "gout",
+     "more",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in men than in women",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Gout is more common in women than in men.",
+   "evidence": "Gout is more common in men than in women.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "gout is more common in women than in men.",
+    "tokens": [
+     "common",
+     "gout",
+     "more",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in women than in men",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "gout is more common in men than in women.",
+    "tokens": [
+     "common",
+     "gout",
+     "more",
+     "than",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in men than in women",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Risk is higher in women than in the elderly.",
+   "evidence": "Risk is lower in the young than in women.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_direction_mismatch"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    false,
+    "atomic_direction_mismatch"
+   ],
+   "semantic": [],
+   "specificity": [
+    "population_qualifier_not_matched"
+   ],
+   "claim_facts": {
+    "double_negation": "risk is higher in women than in the elderly.",
+    "tokens": [
+     "elderly",
+     "higher",
+     "risk",
+     "than",
+     "women"
+    ],
+    "relation_class": "risk_increase",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "elderly"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Risk is higher in women than in the elderly",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     null
+    ],
+    "stated_directions": [
+     1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "risk is lower in the young than in women.",
+    "tokens": [
+     "lower",
+     "risk",
+     "than",
+     "women",
+     "young"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Risk is lower in the young than in women",
       "relation": "unclassified",
       "polarity": "positive",
       "temporal": [],

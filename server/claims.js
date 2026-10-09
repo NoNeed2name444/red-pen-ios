@@ -2,7 +2,7 @@
 // every item before the votes (plan Task 5d step 3; the Task 4 audit's
 // section 10, integration step 2).
 //
-// The guards are ported from Python, Chat-me's medical verifier at 746a7d7
+// The guards are ported from Python, Chat-me's medical verifier at ff476bd
 // (branch personal, MIT, the same owner): in
 // agents/specialists/verification_agent/, claim_reasoning.py,
 // independent_entailment.py and its _base, direction.py, semantic_guard.py,
@@ -369,10 +369,16 @@ const statedWaysOf = remembered('stated ways', text => readWays(text, false));
 /// negated statement. Without `cutOffs`, a cut-off ("below 30") is no way.
 export const directions = (text, cutOffs = true) => (cutOffs ? waysOf : statedWaysOf)(String(text));
 
-/// The words (as tokens()) before what a comparison is against, and after.
+/// Three-letter words that name no side of a comparison. Other three-letter
+/// words do: "than in men", "higher LDL", "with HIV".
+const SIDE_FILLER = new Set('the and for are was has had its can may all any per via who his her our yet nor not but'.split(' '));
+const sideWords = text => new Set((text.toLowerCase().match(ASCII_TOKEN) || [])
+  .filter(t => t.length >= 4 || (t.length === 3 && !SIDE_FILLER.has(t))));
+
+/// The words before what a comparison is against, and after.
 function sides(text) {
   const marker = AGAINST.exec(text);
-  return marker && [tokens(text.slice(0, marker.index)), tokens(text.slice(marker.index + marker[0].length))];
+  return marker && [sideWords(text.slice(0, marker.index)), sideWords(text.slice(marker.index + marker[0].length))];
 }
 
 /// "warfarin has a higher risk than DOACs" says what "DOACs have a lower risk
