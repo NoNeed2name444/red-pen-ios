@@ -4,14 +4,14 @@ deterministic guards say about a fixed set of claims and passages, so that
 server/claims.js, their JavaScript port, can be held to the same answers
 (server/tests/claims.test.mjs).
 
-The verifier is Chat-me's medical-verifier at 2f4fd4e (branch
-medical-verifier-v0.1-commercial-safe, MIT). Run against a checkout of it:
+The verifier is Chat-me's at 746a7d7 (branch personal, MIT), in
+agents/specialists/verification_agent/. Run against a checkout of it:
 
-    git -C <Chat-me> worktree add /tmp/mv 2f4fd4e
-    python3 server/bench/claim-vectors.py /tmp/mv/medical-verifier > server/tests/claim-vectors.json
+    git -C <Chat-me> worktree add /tmp/cm 746a7d7
+    python3 server/bench/claim-vectors.py /tmp/cm > server/tests/claim-vectors.json
 
 Standard library only, besides the verifier's own modules; nothing is
-fetched and nothing needs a key. The corpus is the verifier's 35 shared
+fetched and nothing needs a key. The corpus is the verifier's 41 shared
 conformance vectors (answer against passage) and the pairs below, written
 the way Stethoscore's cards, questions and lectures are.
 """
@@ -22,15 +22,16 @@ from pathlib import Path
 root = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(root))
 
-from app.verification import claim_reasoning as cr  # noqa: E402
-from app.verification import consistency as consistency  # noqa: E402
-from app.verification import independent_entailment as ie  # noqa: E402
-from app.verification import independent_entailment_base as base  # noqa: E402
-from app.verification import semantic_guard as sg  # noqa: E402
-from app.verification.entity_normalization import entities_equivalent  # noqa: E402
-from app.verification.temporal_normalization import extract_explicit_dates  # noqa: E402
+from agents.specialists.verification_agent import claim_reasoning as cr  # noqa: E402
+from agents.specialists.verification_agent import consistency as consistency  # noqa: E402
+from agents.specialists.verification_agent import direction  # noqa: E402
+from agents.specialists.verification_agent import independent_entailment as ie  # noqa: E402
+from agents.specialists.verification_agent import independent_entailment_base as base  # noqa: E402
+from agents.specialists.verification_agent import semantic_guard as sg  # noqa: E402
+from agents.specialists.verification_agent.entity_normalization import entities_equivalent  # noqa: E402
+from agents.specialists.verification_agent.temporal_normalization import extract_explicit_dates  # noqa: E402
 
-VECTORS = root / "ios/MedicalVerifierCore/Tests/MedicalVerifierCoreTests/Resources/conformance_vectors.json"
+VECTORS = root / "clients/ios/MedicalVerifierCore/Tests/MedicalVerifierCoreTests/Resources/conformance_vectors.json"
 
 PAIRS = [
     # doses, units, frequencies
@@ -95,9 +96,27 @@ PAIRS = [
     ("The label was updated 2024/02/30.", "The label was updated in 2024."),
     ("Give antibiotics within 1 hour of sepsis recognition.", "Give antibiotics within 1 hour in sepsis."),
     ("Give antibiotics after cultures are taken.", "Give antibiotics before cultures are taken."),
-    # multilingual, as the verifier knows it
+    # which way: turned around, a way the evidence never gives, the same way
+    # in other words, a part's name, a cut-off, a comparison either way round
+    ("Statin therapy is associated with a reduced risk of new-onset diabetes.", "Statin therapy is associated with a modestly increased risk of new-onset diabetes."),
+    ("Statins have a high incidence of clinically apparent liver injury.", "Clinically apparent liver injury attributed to statins is rare."),
+    ("SGLT2 inhibitors have a lower risk of genital infection.", "SGLT2 inhibitors have a higher risk of genital infection."),
+    ("Hyperkalaemia is a common side effect of spironolactone.", "Hyperkalaemia is a rare side effect of spironolactone."),
+    ("Vitamin K has a stronger anticoagulant effect on warfarin.", "Vitamin K interacts with warfarin, whose anticoagulant activity depends on vitamin K."),
+    ("Statins lower LDL cholesterol.", "Statins are effective in lowering LDL cholesterol."),
+    ("Statin-associated myopathy is uncommon.", "Myopathy is listed as a rare adverse effect of statins."),
+    ("Metformin lowers blood glucose.", "Metformin is a glucose-lowering drug."),
+    ("Metformin does not increase lactate.", "Metformin increases lactate."),
+    ("Low-dose aspirin is given after the stent.", "Aspirin is given after the stent."),
+    ("Lower limb ischaemia needs urgent review.", "Lower limb ischaemia needs urgent vascular review."),
+    ("Metformin is contraindicated when eGFR is below 30 mL/min.", "Metformin is contraindicated when eGFR is < 30 mL/min."),
+    ("The dose is halved when eGFR is below 45 mL/min.", "The dose is halved when eGFR is above 45 mL/min."),
+    ("Warfarin has a higher risk of intracranial hemorrhage than DOACs.", "DOACs have a lower risk of intracranial hemorrhage than warfarin."),
+    ("DOACs have a higher rate of recurrent intracranial hemorrhage than warfarin.", "DOACs had a lower risk of recurrent intracranial hemorrhage than warfarin."),
+    # multilingual, as the verifier knows it, whole words only
     ("El tratamiento reduce el riesgo.", "El tratamiento reduce el riesgo en adultos."),
     ("Le traitement réduit le risque.", "Le traitement ne réduit pas le risque."),
+    ("Smoking has a causal role in lung cancer.", "Smoking causes lung cancer."),
     # Stethoscore-shaped: card answers against lecture sentences
     ("Dose of amoxicillin for otitis media: 500 mg PO three times a day.", "Amoxicillin is first-line for acute otitis media."),
     ("Antidote to warfarin: vitamin K and prothrombin complex concentrate.", "PCC reverses warfarin within minutes; vitamin K acts over hours."),
@@ -149,6 +168,8 @@ def facts(text):
         "temporal": list(cr.temporal_signature(text)),
         "safety": cr.safety_relation(text),
         "atoms": [atom(a) for a in cr.decompose_claim(text)],
+        "directions": direction.directions(text),
+        "stated_directions": direction.directions(text, cut_offs=False),
     }
 
 
@@ -162,6 +183,7 @@ def judge(claim, evidence, source):
         "verify": {"label": verdict.label, "reasons": list(verdict.reasons)},
         "opposite": cr.opposite_polarity_entailed(claim, evidence),
         "condition": [ok, reason],
+        "direction": list(direction.direction_entailed(claim, evidence)),
         "semantic": semantic,
         "specificity": specificity,
         "claim_facts": facts(claim),
@@ -174,7 +196,7 @@ def main():
     pairs = [judge(c["answer"], c["source_passage"], f"conformance:{c['id']}") for c in vectors["cases"]]
     pairs += [judge(claim, evidence, "stethoscore") for claim, evidence in PAIRS]
     out = {
-        "verifier": "Chat-me medical-verifier 2f4fd4e (medical-verifier-v0.1-commercial-safe)",
+        "verifier": "Chat-me 746a7d7 (personal, agents/specialists/verification_agent)",
         "conformance_version": vectors["version"],
         "pairs": pairs,
         "entities": [[a, b, entities_equivalent(a, b)] for a, b in ENTITIES],
