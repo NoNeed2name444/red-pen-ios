@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 4:00 AM Cairo.
+Last updated: 2026-10-09, 4:40 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,8 +39,8 @@ Last updated: 2026-10-09, 4:00 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | the same as wip (M3 joined on 9 Oct at about 3:40 AM; before it, 3827785) | personal is the working branch; keep session branches equal to it |
-| design/port-prework | 67f4714 plus the port (section 3, step 9) | the three fixes found only on design/prework-20261006; fast-forward personal to it once its CI and personal's App build are done |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785) and the port (section 3, step 9; joined at about 4:40 AM) | personal is the working branch; keep session branches equal to it |
+| design/port-prework | the same as personal | the three fixes found only on design/prework-20261006 (step 9, done) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -221,8 +221,13 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
    fast-forwarded from 3827785 to this commit.
    - [x] app-build.yml's limit raised from 60 to 90 minutes first: the
      full run (compile, UI suite, accessibility) took 61 on wip.
-   - [ ] Then personal's App build runs the whole UI suite for the first
-     time since M3. testHoldForOptions is the one to watch: fixed in
+   - [x] Then personal's App build runs the whole UI suite for the first
+     time since M3. Done: run 37866071705 on 67f4714, green (9 Oct, 4:30
+     AM). testHoldForOptions passed (20.3 s) and the UI suite said TEST
+     SUCCEEDED; the accessibility step failed as it did before M3 (see
+     section 2), and it is continue-on-error. What follows is kept for
+     the next time a test there cannot end the app.
+     testHoldForOptions was the one to watch: fixed in
      8a18676 but not run on the Mac since (the previews ran only=testNeurons).
      Read it with `tools/ci_status.py personal --wait`. Its simulator still
      boots inside `xcodebuild test`, as the preview's did before step 6d's
@@ -416,7 +421,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
 8. [x] #33, the neumorphic app, is not this session's: another session is
    making it (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). Leave it alone here.
-9. [ ] Port the three real fixes the branch sweep (section 5, #7) found
+9. [x] Port the three real fixes the branch sweep (section 5, #7) found
    only on design/prework-20261006, on design/port-prework (from 67f4714):
    - [x] The question bank's check in batches of four (from 696192f02):
      pipeline.mjs sent eight candidates per /accuracy/check, which
@@ -438,10 +443,13 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      reached Store.recordAnswer, so streaks, weak spots and the stats
      missed it. CommuteSession keeps a weak reference to the store and
      records each answer as the board does.
-   - [ ] Preflight, push design/port-prework, CI green (the App build
+   - [x] Preflight, push design/port-prework, CI green (the App build
      there only compiles), then fast-forward personal and
      claude/new-session-013tes5v to it once personal's own App build on
-     67f4714 (step 7) is done. Not ported: INT-PREVIEW (the shots
+     67f4714 (step 7) is done. Done: preflight OK; on 22f16f3, App build
+     37867652715 and Server tests 37867652555 green; personal and the
+     session branch fast-forwarded to this commit on 9 Oct at about 4:40
+     AM, after step 7's run. Not ported: INT-PREVIEW (the shots
      branches keep only the latest run, by design) and the rest of that
      branch (another agent's prework/medical-assistant scaffold, PARTIAL
      or BLOCKED by its own notes).
