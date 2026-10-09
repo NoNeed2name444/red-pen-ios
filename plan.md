@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 6:35 AM Cairo.
+Last updated: 2026-10-09, 6:40 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -579,6 +579,21 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     bright bodies: names are now made the first time they show), that the
     shaders are on, and a cell's opening and closing; send the owner the
     name shots.
+15. [ ] #30, the owner's "give repetitive tasks to chatgpt through the
+    loop": docs/chatgpt-tasks.md lists four tasks (two wrong labels, rows
+    40 and 34; a re-check of 31 audit rows; the on-device recogniser's
+    lupus list, row 74; then fixes from the re-check, one area at a time),
+    each clear of the files personal changed and of the neumorphic work.
+    - [x] Pick rows still open on aahp/personal (d7da19a); most rows the
+      audit lists as open turned out fixed (the doc names them).
+    - [ ] Queue them. The loop's task file is in the owner's private loop
+      repository, which this session can read but not write (refused), and
+      the other session is using the loop for T0028. Waiting on the owner:
+      write access for this session, or the loop's own session queueing
+      them after T0028.
+    - [ ] Review each result when it comes back, then merge aahp/personal
+      into personal (a merge commit; these tasks touch no file personal
+      changed).
 
 ## 4. M3: the Neurons rebuild
 
@@ -1105,6 +1120,8 @@ They answer four questions, in order:
 - Each Worker deploy.
 - Push access to Chat-me, refused to this session on 9 Oct: section 3,
   step 11 waits on it.
+- Write access to the loop's repository for this session, or the loop's
+  own session queueing docs/chatgpt-tasks.md (section 3, step 15).
 
 ## 6. Standing rules
 
