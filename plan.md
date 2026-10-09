@@ -615,7 +615,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     each clear of the files personal changed and of the neumorphic work.
     - [x] Pick rows still open on aahp/personal (d7da19a); most rows the
       audit lists as open turned out fixed (the doc names them).
-    - [ ] Queue them, one at a time; this session sends them ("u send the
+    - [x] Queue them, one at a time; this session sends them ("u send the
       packets not me", 9 Oct, about 6:55 AM). The owner attached the loop's
       repository to this session with push at about 7:00 AM. Task 1 (the
       two labels) went in as the loop's turn 55 at 7:02 AM and was approved
@@ -639,13 +639,25 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       after the approval, the approving commit as its base and
       aahp/personal's tip as its target base; then run the loop's worker.
       The same for each task after it.
-    - The neumorphic branch (5d2a0c6) is already inside both personal and
-      aahp/personal, so it adds no merge risk to these tasks.
-    - [ ] Review each result when it comes back, then merge aahp/personal
-      into personal (a merge commit; these tasks touch no file personal
-      changed). Task 1 is reviewed (its diff is what the task asked) and
-      could go in now; it waits for task 3, so one App build on personal
-      covers both.
+    - Task 3 (the recogniser's words) went in as turn 66 at 8:19 AM, its
+      result came back at 8:21 AM, and it was approved at turn 67 (8:43 AM;
+      aahp/personal 4ef98ff; Server tests, Swift tests and the iOS preview
+      green, 36 shots, none changed beyond capture noise). The loop's note
+      for the owner: on book-light, the Back label wraps onto two lines,
+      as it did before this change.
+    - Task 4's first area (Spotlight's failed index or delete calls, row
+      4) went in as turn 68 at 8:49 AM; row 91 follows once it is
+      approved.
+    - [x] Review each result when it comes back, then bring it into
+      personal. Not by merging aahp/personal: it also carries other
+      sessions' loop tasks (the neumorphic restyling and frame clearance,
+      in Theme.swift, Shared/Ward/* and files personal changed since, such
+      as GraphLegend, NoteEditorView and CommuteModeView), which are
+      theirs to bring in. So each approved task of this session's comes
+      over on its own as one commit with a plain-English message: tasks 1
+      and 3 on 9 Oct at about 8:55 AM (from 7358ef8 and 4ef98ff; only
+      their own lines, none of the other sessions' edits to the same
+      files).
 16. [x] #32, Chat-me's verifier.yml swift-test job (macOS,
     clients/ios/MedicalVerifierCore) has been red since at least d504978
     (1 Oct), with the same four failures on 28bdcf3 (7 Oct) and d17635d,

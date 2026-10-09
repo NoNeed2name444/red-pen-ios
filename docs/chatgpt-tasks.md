@@ -80,11 +80,15 @@ aahp/personal; 1, 17 and 91 are open, and 4 and 18 partly. Rows 1, 17 and
 two tasks, each with checks added to the test file that already covers
 the code:
 
-- Row 4, what is left of it: the phone's send to the watch waits for the
-  reply and rejects a cancel, but swallows an indexing or deletion error
-  before it confirms (Shared/AppIntents.swift, about :270 and :275).
-  Report either error as a failed send and keep the pending snapshot for
-  a retry. Tests: Tests/PlatformTests.swift.
+- Row 4, what is left of it: Spotlight's indexer (`SpotlightIndexer`,
+  Shared/AppIntents.swift) now waits for its calls and confirms nothing
+  after a cancel, but swallows a failed index or delete call (about :270
+  and :275), so those sets still count as indexed; and after a run that
+  fails, the next update with the same library sends nothing. Report
+  either error as a failed run and free the pending snapshot, so the next
+  update sends again. Do the sending in `SpotlightPlan`
+  (Shared/Platform/AppLink.swift, Foundation-only), so the Linux suite
+  can test it. Tests: Tests/PlatformTests.swift. In the loop since 9 Oct.
 - Row 91: the cloud jobs receive each generated item's check results but
   keep only its evidence (Shared/LLM/CloudJobs.swift, about :63 to :66),
   so the accuracy schedule checks the item again
