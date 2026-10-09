@@ -55,10 +55,10 @@ const facts = t => ({
 });
 /// Pairs whose answers a later Chat-me changed on purpose, with the new ones
 /// (the later Python's), keyed by claim and evidence, until the vectors are
-/// made again from it. None: the vectors are 746a7d7's, the port's.
+/// made again from it. None: the vectors are ff476bd's, the port's.
 const DEPARTURES = new Map();
 {
-  ok(/746a7d7/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
+  ok(/ff476bd/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
   ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 41, 'all 41 of the verifier\'s shared conformance vectors among them');
   const differences = [], departed = new Set();
   for (const p of fx.pairs) {
@@ -80,7 +80,7 @@ const DEPARTURES = new Map();
   }
   for (const d of differences.slice(0, 10)) console.log('     ', d);
   ok(differences.length === 0, `every guard gives the Python's answer on every pair (${differences.length} differences)`);
-  ok(departed.size === DEPARTURES.size, `each departure from 746a7d7 is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
+  ok(departed.size === DEPARTURES.size, `each departure from ff476bd is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
   ok(fx.entities.every(([a, b, want]) => C.entitiesEquivalent(a, b) === want), 'entity aliases as the Python reads them');
   const labels = new Set(fx.pairs.map(p => p.verify.label));
   ok(labels.has('SUPPORTS') && labels.size >= 2, `the pairs cover more than one verdict (${[...labels].join(', ')})`);
@@ -136,7 +136,7 @@ const DEPARTURES = new Map();
   }
 }
 {
-  // Which way a statement goes, as Chat-me 746a7d7 reads it (direction.py
+  // Which way a statement goes, as Chat-me ff476bd reads it (direction.py
   // and tests/unit/test_direction.py; the pairs it judges are among the
   // vectors): a part or a name says no way, nor does a negated statement.
   const NO_WAY = [
