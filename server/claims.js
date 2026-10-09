@@ -13,7 +13,12 @@
 // what the Python itself said (tests/claim-vectors.json, made by
 // bench/claim-vectors.py) on the verifier's 35 shared conformance vectors and
 // on Stethoscore-shaped pairs. One known difference: Python's \d also
-// matches other scripts' digits; here it is 0-9 only.
+// matches other scripts' digits; here it is 0-9 only. One change since, after
+// Chat-me a4152d5: a same daily total written another way (1000 mg daily for
+// 500 mg twice daily) is the same dose only where the claim keeps the
+// evidence's other words (doseRewordingKeepsTerms), so a lecture's 500 mg of
+// one drug twice daily no longer backs 1000 mg a day of another; the test
+// lists the one vector that changes.
 //
 // Not ported: temporal_guard.py (it needs the evidence's date, which a
 // lecture does not have) and the question-side gates (adversarial.py,
@@ -453,6 +458,32 @@ export const dailyDoseEquivalent = remembered('daily', text => {
   return null;
 });
 
+/// Words that only say how much, how often or how a dose is given: a
+/// reworded daily dose may change these, never the drug, the patient or
+/// anything else (Chat-me a4152d5).
+const DOSE_WORDS = new Set([
+  'dose', 'doses', 'dosed', 'dosing', 'dosage', 'dosages',
+  'total', 'amount', 'divided',
+  'milligram', 'milligrams', 'gram', 'grams', 'microgram', 'micrograms',
+  'millilitre', 'millilitres', 'milliliter', 'milliliters',
+  'litre', 'litres', 'liter', 'liters', 'kilogram', 'kilograms',
+  'daily', 'once', 'twice', 'three', 'four', 'times', 'every',
+  'hour', 'hours', 'hourly', 'week', 'weekly',
+  'take', 'takes', 'taken', 'taking', 'give', 'gives', 'given', 'giving',
+  'administer', 'administers', 'administered', 'administering',
+  'used', 'uses', 'using',
+  'should', 'must', 'will', 'with', 'each', 'that', 'this', 'from', 'into',
+]);
+const LETTERS = /[a-z]+/g;
+const letterWords = text => String(text).toLowerCase().match(LETTERS) || [];
+
+/// Does a daily dose written another way keep the rest of the claim: each
+/// of its words of four letters or more, dose words aside, in the evidence.
+export function doseRewordingKeepsTerms(claim, evidence) {
+  const evidenceWords = new Set(letterWords(evidence));
+  return letterWords(claim).every(w => w.length < 4 || DOSE_WORDS.has(w) || evidenceWords.has(w));
+}
+
 export const measurementKind = remembered('kind', text => {
   const lower = String(text).toLowerCase();
   if (lower.includes('percentage point')) return 'percentage_points';
@@ -549,7 +580,8 @@ export function verify(claim, evidence) {
 
   const claimDaily = dailyDoseEquivalent(claimLogic);
   const evidenceDaily = dailyDoseEquivalent(evidenceLogic);
-  const dailyEquivalent = claimDaily !== null && evidenceDaily !== null && Math.abs(claimDaily - evidenceDaily) < 1e-9;
+  const dailyEquivalent = claimDaily !== null && evidenceDaily !== null && Math.abs(claimDaily - evidenceDaily) < 1e-9
+    && doseRewordingKeepsTerms(claimLogic, evidenceLogic);
 
   const shared = [...claimTokens].filter(t => evidenceTokens.has(t));
   if (shared.length / claimTokens.size < 0.50) {
@@ -661,7 +693,8 @@ export function semanticWarnings(claim, passage, title = '') {
   if (claimCausal && negationNearRelation(claimL, relationWords) !== negationNearRelation(evidence, relationWords)) warnings.push('negation_scope_mismatch');
 
   const claimDaily = dailyDoseEquivalent(claimL), evidenceDaily = dailyDoseEquivalent(evidence);
-  const dailyEquivalent = claimDaily !== null && evidenceDaily !== null && Math.abs(claimDaily - evidenceDaily) < 1e-9;
+  const dailyEquivalent = claimDaily !== null && evidenceDaily !== null && Math.abs(claimDaily - evidenceDaily) < 1e-9
+    && doseRewordingKeepsTerms(claimL, evidence);
   if (!dailyEquivalent) {
     const evidenceQ = quantities(evidence);
     for (const [value, unit] of quantities(claimL)) {

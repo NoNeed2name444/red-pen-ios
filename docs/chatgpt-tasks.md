@@ -74,13 +74,32 @@ without slides gives it none, and the Swift tests and the iOS preview pass.
 
 ## 4. Fixes from task 2's report, one area at a time
 
-One area per task, each with checks added to the test file that already
-covers the code: the quiz's re-tests and copies (43, 44, 45, 53); Anki
-import and scheduling (55, 56, 59, 63); the OSCE (58, 65); the coverage
-check (52).
+Task 2's report (approved on 9 Oct): of its 31 rows, 26 are fixed on
+aahp/personal; 1, 17 and 91 are open, and 4 and 18 partly. Rows 1, 17 and
+18 are data safety and sync, which stay with Claude (below). That leaves
+two tasks, each with checks added to the test file that already covers
+the code:
+
+- Row 4, what is left of it: the phone's send to the watch waits for the
+  reply and rejects a cancel, but swallows an indexing or deletion error
+  before it confirms (Shared/AppIntents.swift, about :270 and :275).
+  Report either error as a failed send and keep the pending snapshot for
+  a retry. Tests: Tests/PlatformTests.swift.
+- Row 91: the cloud jobs receive each generated item's check results but
+  keep only its evidence (Shared/LLM/CloudJobs.swift, about :63 to :66),
+  so the accuracy schedule checks the item again
+  (Shared/Accuracy/AccuracySchedule.swift, about :46). Hand a finished
+  generation check to the schedule by the item's final content hash, with
+  its blind-solve and proof details; an incomplete check must still run,
+  and nothing may count as checked that was not. AccuracyLedger.swift is
+  personal's (above): go through what it already offers. Tests:
+  Tests/AccuracyTests.swift.
 
 ## What stays with Claude
 
-Data safety and sync (rows 1, 15 to 18, 22 to 25, 46, 73), the 3D map and
+Data safety and sync (rows 1, 15 to 18, 22 to 25, 46, 73; task 2 found
+1, 17 and 18 still open: the library loaded on the main thread at
+launch, images kept inline in every snapshot, a write per review rating
+and every deck's schedule rebuilt on each sync), the 3D map and
 Notes, the look, the Cases rebuild, and the Worker (server/; a deploy needs
 the owner's word each time).
