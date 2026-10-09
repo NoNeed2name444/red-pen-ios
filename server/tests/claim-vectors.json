@@ -1,6 +1,6 @@
 {
- "verifier": "Chat-me ff476bd (personal, agents/specialists/verification_agent)",
- "conformance_version": "1.5",
+ "verifier": "Chat-me cda5d2c (personal, agents/specialists/verification_agent)",
+ "conformance_version": "1.7",
  "pairs": [
   {
    "source": "conformance:valid_basic",
@@ -4233,6 +4233,694 @@
     "atoms": [
      {
       "text": "Clopidogrel is a prodrug and requires metabolic activation",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_swapped_short",
+   "claim": "Statins lower LDL cholesterol.",
+   "evidence": "Statins lower HDL cholesterol.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "statins lower ldl cholesterol.",
+    "tokens": [
+     "cholesterol",
+     "lower",
+     "statins"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statins lower LDL cholesterol",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "statins lower hdl cholesterol.",
+    "tokens": [
+     "cholesterol",
+     "lower",
+     "statins"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Statins lower HDL cholesterol",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     -1,
+     null
+    ],
+    "stated_directions": [
+     -1,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_swapped_route",
+   "claim": "Adrenaline 0.5 mg is given IM for anaphylaxis.",
+   "evidence": "Adrenaline 0.5 mg is given IV for anaphylaxis.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "adrenaline 0.5 mg is given im for anaphylaxis.",
+    "tokens": [
+     "adrenaline",
+     "anaphylaxis",
+     "given"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "0.5"
+    ],
+    "measurements": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "renal"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Adrenaline 0",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     },
+     {
+      "text": "5 mg is given IM for anaphylaxis",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "adrenaline 0.5 mg is given iv for anaphylaxis.",
+    "tokens": [
+     "adrenaline",
+     "anaphylaxis",
+     "given"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "0.5"
+    ],
+    "measurements": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "renal"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Adrenaline 0",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     },
+     {
+      "text": "5 mg is given IV for anaphylaxis",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_short_name_reworded",
+   "claim": "Rate control in AF uses beta blockers.",
+   "evidence": "Rate control in atrial fibrillation uses beta blockers.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "rate control in af uses beta blockers.",
+    "tokens": [
+     "beta",
+     "blockers",
+     "control",
+     "rate",
+     "uses"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Rate control in AF uses beta blockers",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "rate control in atrial fibrillation uses beta blockers.",
+    "tokens": [
+     "atrial",
+     "beta",
+     "blockers",
+     "control",
+     "fibrillation",
+     "rate",
+     "uses"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Rate control in atrial fibrillation uses beta blockers",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_route_reworded",
+   "claim": "Amoxicillin 500 mg PO three times a day.",
+   "evidence": "Amoxicillin 500 mg orally three times a day.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "amoxicillin 500 mg po three times a day.",
+    "tokens": [
+     "amoxicillin",
+     "three",
+     "times"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "500"
+    ],
+    "measurements": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "frequency": 3.0,
+    "frequency_guard": 3.0,
+    "daily_dose": 1500.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Amoxicillin 500 mg PO three times a day",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "amoxicillin 500 mg orally three times a day.",
+    "tokens": [
+     "amoxicillin",
+     "orally",
+     "three",
+     "times"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "500"
+    ],
+    "measurements": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "frequency": 3.0,
+    "frequency_guard": 3.0,
+    "daily_dose": 1500.0,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      500.0,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Amoxicillin 500 mg orally three times a day",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "conformance:atomic_term_route_swapped_around_words",
+   "claim": "Adrenaline 0.5 mg IV for anaphylaxis in adults.",
+   "evidence": "Adrenaline 0.5 mg IM is given for anaphylaxis in adults.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "adrenaline 0.5 mg iv for anaphylaxis in adults.",
+    "tokens": [
+     "adrenaline",
+     "adults",
+     "anaphylaxis"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "0.5"
+    ],
+    "measurements": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "adult",
+     "adults",
+     "renal"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Adrenaline 0",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     },
+     {
+      "text": "5 mg IV for anaphylaxis in adults",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "adrenaline 0.5 mg im is given for anaphylaxis in adults.",
+    "tokens": [
+     "adrenaline",
+     "adults",
+     "anaphylaxis",
+     "given"
+    ],
+    "relation_class": "mixed",
+    "numbers": [
+     "0.5"
+    ],
+    "measurements": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [
+     "adult",
+     "adults",
+     "renal"
+    ],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [
+     [
+      0.5,
+      "mg"
+     ]
+    ],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Adrenaline 0",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     },
+     {
+      "text": "5 mg IM is given for anaphylaxis in adults",
       "relation": "unclassified",
       "polarity": "positive",
       "temporal": [],
@@ -14793,6 +15481,694 @@
   },
   {
    "source": "stethoscore",
+   "claim": "Tenofovir treats HIV infection.",
+   "evidence": "Tenofovir treats HBV infection.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "tenofovir treats hiv infection.",
+    "tokens": [
+     "infection",
+     "tenofovir",
+     "treats"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Tenofovir treats HIV infection",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "tenofovir treats hbv infection.",
+    "tokens": [
+     "infection",
+     "tenofovir",
+     "treats"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Tenofovir treats HBV infection",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Aspirin is used after MI.",
+   "evidence": "Aspirin is used after PE.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "aspirin is used after mi.",
+    "tokens": [
+     "after",
+     "aspirin",
+     "used"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [
+     "after_event"
+    ],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin is used after MI",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [
+       "after_event"
+      ],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "aspirin is used after pe.",
+    "tokens": [
+     "after",
+     "aspirin",
+     "used"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [
+     "after_event"
+    ],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Aspirin is used after PE",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [
+       "after_event"
+      ],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Warfarin is reversed with vitamin K.",
+   "evidence": "Warfarin is reversed with vitamin D.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "warfarin is reversed with vitamin k.",
+    "tokens": [
+     "reversed",
+     "vitamin",
+     "warfarin",
+     "with"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Warfarin is reversed with vitamin K",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "warfarin is reversed with vitamin d.",
+    "tokens": [
+     "reversed",
+     "vitamin",
+     "warfarin",
+     "with"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Warfarin is reversed with vitamin D",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Gout is more common in men.",
+   "evidence": "Gout is more common in women.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "gout is more common in men.",
+    "tokens": [
+     "common",
+     "gout",
+     "more"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in men",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "gout is more common in women.",
+    "tokens": [
+     "common",
+     "gout",
+     "more",
+     "women"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Gout is more common in women",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     1,
+     1
+    ],
+    "stated_directions": [
+     1,
+     1
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Rivaroxaban inhibits factor Xa.",
+   "evidence": "Rivaroxaban inhibits activated factor X.",
+   "verify": {
+    "label": "SUPPORTS",
+    "reasons": [
+     "independent_structured_checks_passed"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [],
+   "claim_facts": {
+    "double_negation": "rivaroxaban inhibits factor xa.",
+    "tokens": [
+     "factor",
+     "inhibits",
+     "rivaroxaban"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Rivaroxaban inhibits factor Xa",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "rivaroxaban inhibits activated factor x.",
+    "tokens": [
+     "activated",
+     "factor",
+     "inhibits",
+     "rivaroxaban"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Rivaroxaban inhibits activated factor X",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
+   "claim": "Vincristine is given intrathecally.",
+   "evidence": "Vincristine must only be given intravenously.",
+   "verify": {
+    "label": "UNKNOWN",
+    "reasons": [
+     "atomic_term_substituted"
+    ]
+   },
+   "opposite": false,
+   "condition": [
+    true,
+    null
+   ],
+   "direction": [
+    true,
+    null
+   ],
+   "semantic": [],
+   "specificity": [
+    "absolute_claim_not_matched"
+   ],
+   "claim_facts": {
+    "double_negation": "vincristine is given intrathecally.",
+    "tokens": [
+     "given",
+     "intrathecally",
+     "vincristine"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": false
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Vincristine is given intrathecally",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   },
+   "evidence_facts": {
+    "double_negation": "vincristine must only be given intravenously.",
+    "tokens": [
+     "given",
+     "intravenously",
+     "must",
+     "only",
+     "vincristine"
+    ],
+    "relation_class": "mixed",
+    "numbers": [],
+    "measurements": [],
+    "frequency": null,
+    "frequency_guard": null,
+    "daily_dose": null,
+    "measurement_kind": null,
+    "populations": [],
+    "conditions": [],
+    "scope": {
+     "universal": false,
+     "exclusive": true
+    },
+    "quantities": [],
+    "percents": [],
+    "dates": [],
+    "temporal": [],
+    "safety": null,
+    "atoms": [
+     {
+      "text": "Vincristine must only be given intravenously",
+      "relation": "unclassified",
+      "polarity": "positive",
+      "temporal": [],
+      "safety": null,
+      "subject": [],
+      "object": []
+     }
+    ],
+    "directions": [
+     null,
+     null
+    ],
+    "stated_directions": [
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "source": "stethoscore",
    "claim": "El tratamiento reduce el riesgo.",
    "evidence": "El tratamiento reduce el riesgo en adultos.",
    "verify": {
@@ -15586,9 +16962,9 @@
    "claim": "Adrenaline 0.5 mg IV for anaphylaxis in adults.",
    "evidence": "Adrenaline 0.5 mg IM is given for anaphylaxis in adults.",
    "verify": {
-    "label": "SUPPORTS",
+    "label": "UNKNOWN",
     "reasons": [
-     "independent_structured_checks_passed"
+     "atomic_term_substituted"
     ]
    },
    "opposite": false,

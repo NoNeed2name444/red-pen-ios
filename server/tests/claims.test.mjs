@@ -2,7 +2,7 @@
 // verifier's deterministic guards in JavaScript, and what the gate makes of
 // them on Stethoscore items against their own lectures.
 //
-// 1. Conformance: on every pair in claim-vectors.json (the verifier's 41
+// 1. Conformance: on every pair in claim-vectors.json (the verifier's 46
 //    shared conformance vectors and Stethoscore-shaped pairs), each guard
 //    gives exactly what the Python gave (bench/claim-vectors.py made it);
 //    and on the rules its later changes brought (a daily dose written
@@ -55,11 +55,11 @@ const facts = t => ({
 });
 /// Pairs whose answers a later Chat-me changed on purpose, with the new ones
 /// (the later Python's), keyed by claim and evidence, until the vectors are
-/// made again from it. None: the vectors are ff476bd's, the port's.
+/// made again from it. None: the vectors are cda5d2c's, the port's.
 const DEPARTURES = new Map();
 {
-  ok(/ff476bd/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
-  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 41, 'all 41 of the verifier\'s shared conformance vectors among them');
+  ok(/cda5d2c/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
+  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 46, 'all 46 of the verifier\'s shared conformance vectors among them');
   const differences = [], departed = new Set();
   for (const p of fx.pairs) {
     const key = `${p.claim}\n${p.evidence}`, departure = DEPARTURES.get(key) || {};
@@ -80,7 +80,7 @@ const DEPARTURES = new Map();
   }
   for (const d of differences.slice(0, 10)) console.log('     ', d);
   ok(differences.length === 0, `every guard gives the Python's answer on every pair (${differences.length} differences)`);
-  ok(departed.size === DEPARTURES.size, `each departure from ff476bd is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
+  ok(departed.size === DEPARTURES.size, `each departure from cda5d2c is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
   ok(fx.entities.every(([a, b, want]) => C.entitiesEquivalent(a, b) === want), 'entity aliases as the Python reads them');
   const labels = new Set(fx.pairs.map(p => p.verify.label));
   ok(labels.has('SUPPORTS') && labels.size >= 2, `the pairs cover more than one verdict (${[...labels].join(', ')})`);
@@ -106,10 +106,14 @@ const DEPARTURES = new Map();
      'a reworded dose may drop or add words of three letters or fewer');
 }
 {
-  // The swapped-term rule as Chat-me 746a7d7 has it (its conformance vectors
-  // 1.5 and independent_entailment.py), with its Python's answers: a claim
-  // that copies its evidence but for another drug, outcome or verb in one
-  // place is not backed by it; another form of the same word, a known alias,
+  // The swapped-term rule as Chat-me 746a7d7 has it, with 3df53cd's short
+  // terms and cda5d2c's routes (its conformance vectors 1.7 and
+  // independent_entailment.py), with its Python's answers: a claim that
+  // copies its evidence but for another drug, outcome or verb in one place
+  // is not backed by it, however short the term (LDL, IV, K), nor one that
+  // names another route, whatever words stand around it; another form of
+  // the same word, a known alias, one route's two names, a short name and
+  // the words it stands for, a clotting factor and its activated form,
   // words the evidence adds, or another sentence of it that does back the
   // claim, still are.
   const SWAPS = [
@@ -120,6 +124,18 @@ const DEPARTURES = new Map();
     ['Rifampicin induces hepatic enzymes.', 'Rifampicin inhibits hepatic enzymes.', 'UNKNOWN'],
     ['Statins reduce cardiovascular mortality.', 'Statins reduce all-cause mortality.', 'UNKNOWN'],
     ["The patient's warfarin was stopped.", "The patient's aspirin was stopped.", 'UNKNOWN'],
+    ['Statins lower LDL cholesterol.', 'Statins lower HDL cholesterol.', 'UNKNOWN'],
+    ['Tenofovir treats HIV infection.', 'Tenofovir treats HBV infection.', 'UNKNOWN'],
+    ['Aspirin is used after MI.', 'Aspirin is used after PE.', 'UNKNOWN'],
+    ['Adrenaline 0.5 mg is given IM for anaphylaxis.', 'Adrenaline 0.5 mg is given IV for anaphylaxis.', 'UNKNOWN'],
+    ['Warfarin is reversed with vitamin K.', 'Warfarin is reversed with vitamin D.', 'UNKNOWN'],
+    ['Adrenaline 0.5 mg IV for anaphylaxis in adults.', 'Adrenaline 0.5 mg IM is given for anaphylaxis in adults.', 'UNKNOWN'],
+    ['Vincristine is given intrathecally.', 'Vincristine must only be given intravenously.', 'UNKNOWN'],
+    ['Gout is more common in men.', 'Gout is more common in women.', 'UNKNOWN'],
+    ['Amoxicillin 500 mg PO three times a day.', 'Amoxicillin 500 mg orally three times a day.', 'SUPPORTS'],
+    ['Rate control in AF uses beta blockers.', 'Rate control in atrial fibrillation uses beta blockers.', 'SUPPORTS'],
+    ['Rivaroxaban inhibits factor Xa.', 'Rivaroxaban inhibits activated factor X.', 'SUPPORTS'],
+    ['Furosemide is used in heart failure.', 'Furosemide is used for heart failure.', 'SUPPORTS'],
     ['Clopidogrel is a prodrug requiring metabolic activation.', 'Clopidogrel is a prodrug and requires metabolic activation.', 'SUPPORTS'],
     ['Warfarin increases the risk of haemorrhage.', 'Warfarin increases the risk of hemorrhage.', 'SUPPORTS'],
     ["Crohn's disease affects the terminal ileum.", 'Crohn disease affects the terminal ileum.', 'SUPPORTS'],
@@ -279,6 +295,10 @@ const CASES = [
   ok(JSON.stringify(C.claimGate({ source: CASES[0][1], ...CASES[0][2] })) === before, 'the same item, the same findings, whatever ran before');
 }
 
+/// CPU time so far, in ms: what a Worker request is charged for, and unlike
+/// a clock it stands still while a busy machine runs something else.
+const cpuMs = () => { const u = process.cpuUsage(); return (u.user + u.system) / 1000; };
+
 // the worst batch the server takes: four notes of MAX_ITEM_CHARS (3,500),
 // every sentence a dose that restates one of its lecture's (MAX_SOURCE_CHARS,
 // 1,400) with another dose and frequency - and an ordinary batch: a
@@ -309,18 +329,18 @@ const ordinary = [
   ok(o.every(g => g.complete), `an ordinary batch is gated to the end within the budget (${o.map(g => g.work).join('+')} units of ${C.MAX_WORK})`);
   ok(o.map(g => g.hard.map(f => f.code).join('+')).join() === 'frequency,dose,,', `and finds the changed dose and dose frequency, and nothing in the rest (${o.map(g => g.hard.map(f => f.code).join('+') || '-').join(', ')})`);
   // CPU, warm: the median of 30 runs
-  const warm = batch => { const t = []; for (let i = 0; i < 30; i++) { const a = performance.now(); claimsStage(batch); t.push(performance.now() - a); } return t.sort((x, y) => x - y)[15]; };
+  const warm = batch => { const t = []; for (let i = 0; i < 30; i++) { const a = cpuMs(); claimsStage(batch); t.push(cpuMs() - a); } return t.sort((x, y) => x - y)[15]; };
   for (let i = 0; i < 20; i++) claimsStage(worst);
   const wms = warm(worst), oms = warm(ordinary);
   console.log(`     warm: the worst batch ${wms.toFixed(1)} ms, an ordinary one ${oms.toFixed(1)} ms`);
   ok(wms < 8 && oms < 8, 'warm, a batch takes a few ms of CPU at most (about 3 here; generous for a slow runner)');
   // CPU, cold: the first batch of a fresh isolate, the gate's patterns and
   // code compiled on the way (Unicode \b alone was about 100 ms of it); the
-  // least of three fresh isolates, as one can be held up by whatever else
-  // the machine is doing (a clock, not CPU time)
+  // least of three fresh isolates, as how much compiling runs beside the
+  // batch varies from one start to the next
   const accuracy = new URL('../accuracy.js', import.meta.url).href;
   const coldOnce = () => Number(execFileSync(process.execPath, ['--input-type=module', '-e',
-    `const { claimsStage } = await import(${JSON.stringify(accuracy)});${WORST}\nconst a = performance.now(); claimsStage(worst); console.log(performance.now() - a);`]).toString().trim());
+    `const { claimsStage } = await import(${JSON.stringify(accuracy)});${WORST}\nconst cpuMs = ${cpuMs};\nconst a = cpuMs(); claimsStage(worst); console.log(cpuMs() - a);`]).toString().trim());
   const cold = Math.min(coldOnce(), coldOnce(), coldOnce());
   console.log(`     cold: the worst batch ${cold.toFixed(1)} ms`);
   ok(cold < 50, 'cold, the worst batch is a few tens of ms at most, not the 130 it was (about 15 here)');

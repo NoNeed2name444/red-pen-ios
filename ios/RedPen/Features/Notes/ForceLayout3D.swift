@@ -136,10 +136,16 @@ enum ForceLayout3D {
 /// `.task(id:)`), but a detached job does not inherit that, so it is passed
 /// on: the force layout then stops at once instead of running to the end
 /// for nothing (Chat-me audit row 114). The plans still finish; the caller
-/// drops a cancelled rebuild's answer either way.
+/// drops a cancelled rebuild's answer either way. A rebuild already
+/// cancelled starts its job cancelled: the job could otherwise begin, and
+/// look, before the cancel handler reaches it.
 enum GraphWork {
     static func offMain<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
-        let job = Task.detached(priority: .userInitiated) { work() }
+        let cancelled = Task.isCancelled
+        let job = Task.detached(priority: .userInitiated) { () -> T in
+            if cancelled { withUnsafeCurrentTask { $0?.cancel() } }
+            return work()
+        }
         return await withTaskCancellationHandler { await job.value } onCancel: { job.cancel() }
     }
 }
