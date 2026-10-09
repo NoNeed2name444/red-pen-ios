@@ -227,7 +227,10 @@ final class SpotlightIndexer {
         let snapshot: [UUID: String] = now
         running?.cancel()
         running = Task.detached(priority: .background) {
-            guard await SpotlightIndexer.send(changed, removing: gone) else { return }
+            guard await SpotlightIndexer.send(changed, removing: gone) else {
+                await MainActor.run { SpotlightIndexer.shared.release(snapshot) }
+                return
+            }
             SpotlightIndexer.saveIndexed(snapshot)
             await MainActor.run { SpotlightIndexer.shared.confirm(snapshot) }
         }
@@ -238,15 +241,40 @@ final class SpotlightIndexer {
         if pending == snapshot { pending = nil }
     }
 
-    /// Everything out of Spotlight (the toggle turned off).
+    /// A run that did not finish: nothing in it is confirmed, and the next
+    /// update may send the same library again (the repeat guard above would
+    /// otherwise wait for a run that is over).
+    private func release(_ snapshot: [UUID: String]) {
+        if pending == snapshot { pending = nil }
+    }
+
+    /// Everything out of Spotlight (the toggle turned off). Until Spotlight
+    /// has done it, what it held still counts as held, in memory and on
+    /// disk, so the next update with the toggle off asks again.
     func clear() {
+        let held: [UUID: String] = indexed
         indexed = [:]
         pending = nil
         running?.cancel()
         running = Task.detached(priority: .background) {
-            try? await CSSearchableIndex.default().deleteAllSearchableItems()
-            SpotlightIndexer.saveIndexed([:])
+            do {
+                try await CSSearchableIndex.default().deleteAllSearchableItems()
+                SpotlightIndexer.saveIndexed([:])
+            } catch {
+                if !Task.isCancelled {
+                    Diagnostics.record(.warning, area: .app, message: "spotlight.clear_failed", error: error)
+                }
+                await MainActor.run { SpotlightIndexer.shared.restore(held) }
+            }
         }
+    }
+
+    /// A clear that failed: its sets are still in Spotlight. Left alone if
+    /// the toggle came back on or a run has started since, which send
+    /// everything again anyway.
+    private func restore(_ held: [UUID: String]) {
+        guard !Self.enabled, indexed.isEmpty, pending == nil else { return }
+        indexed = held
     }
 
     /// The subjects Siri can hear in "Quiz me on ...", told to the system
@@ -259,20 +287,30 @@ final class SpotlightIndexer {
         RedPenShortcuts.updateAppShortcutParameters()
     }
 
-    /// False when cancelled part way, so nothing is marked as indexed.
+    /// False when cancelled part way or when Spotlight refused a batch or
+    /// the removal, so nothing is marked as indexed and the next update
+    /// (the next library change, or the next launch) sends it again.
     nonisolated static func send(_ entities: [StudySetEntity], removing gone: [UUID]) async -> Bool {
         let index = CSSearchableIndex.default()
         var start: Int = 0
-        while start < entities.count {
+        do {
+            while start < entities.count {
+                if Task.isCancelled { return false }
+                let end: Int = min(start + 500, entities.count)
+                let batch: [StudySetEntity] = Array(entities[start..<end])
+                try await index.indexAppEntities(batch)
+                start = end
+            }
             if Task.isCancelled { return false }
-            let end: Int = min(start + 500, entities.count)
-            let batch: [StudySetEntity] = Array(entities[start..<end])
-            try? await index.indexAppEntities(batch)
-            start = end
-        }
-        if Task.isCancelled { return false }
-        if !gone.isEmpty {
-            try? await index.deleteAppEntities(identifiedBy: gone, ofType: StudySetEntity.self)
+            if !gone.isEmpty {
+                try await index.deleteAppEntities(identifiedBy: gone, ofType: StudySetEntity.self)
+            }
+        } catch {
+            // a run the next one cancelled is not a failure to report
+            if !Task.isCancelled {
+                Diagnostics.record(.warning, area: .app, message: "spotlight.index_failed", error: error)
+            }
+            return false
         }
         return !Task.isCancelled
     }
