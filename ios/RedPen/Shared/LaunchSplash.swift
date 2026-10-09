@@ -1,11 +1,12 @@
 import SwiftUI
 
 /// The first frame: the Midnight Enamel mark and the Stethoscore wordmark on
-/// Midnight navy, fading out over the app that is already there underneath.
+/// Midnight navy, then gone at once, uncovering the app that is already there
+/// underneath. It does not fade: the owner wants no fading in the app.
 ///
 /// The Xcode build has a real launch screen (`UILaunchScreen` in project.yml,
 /// drawing the same `LaunchLogo` image on the same colour), so there this only
-/// carries that picture across into the first SwiftUI frame and dissolves it.
+/// carries that picture across into the first SwiftUI frame and lifts it.
 /// The Swift Playgrounds package has no launch screen at all, so there this
 /// *is* the launch screen - which is why it is a view and not a plist entry.
 ///
@@ -14,15 +15,14 @@ import SwiftUI
 /// screen below, which is what makes it skippable), it is hidden from
 /// VoiceOver, and it is gone within `total` seconds - or, at a launch still
 /// reading a big library (Store), as soon as the library is read, and within
-/// `longestHold` + `fade` at most.
+/// `longestHold` at most.
 struct LaunchSplash: View {
-    /// Fully visible for `hold`, then a `fade`: 0.7 s in all, under the 0.8 s
-    /// budget.
+    /// Fully visible for `hold`, then gone, with no fade: 0.3 s in all, under
+    /// the 0.8 s budget.
     static let hold: Double = 0.3
-    static let fade: Double = 0.4
-    static var total: Double { hold + fade }
+    static var total: Double { hold }
     /// The longest it waits for the library to be read: a still picture held
-    /// any longer looks hung, so past this it fades anyway, onto the screen
+    /// any longer looks hung, so past this it goes anyway, onto the screen
     /// that says the library is opening (LibraryLoadingView).
     static let longestHold: Double = 2
 
@@ -61,7 +61,8 @@ struct LaunchSplash: View {
                     // exactly where UILaunchScreen puts the same image
                     Image("LaunchLogo")
                 }
-                .transition(.opacity)
+                // no fade, even under an animation from around it
+                .transition(.identity)
             }
         }
         .allowsHitTesting(false)
@@ -72,18 +73,18 @@ struct LaunchSplash: View {
             try? await Task.sleep(nanoseconds: UInt64(LaunchSplash.hold * 1_000_000_000))
             held = true
             try? await Task.sleep(nanoseconds: UInt64((LaunchSplash.longestHold - LaunchSplash.hold) * 1_000_000_000))
-            fadeOut()
+            hide()
         }
         // the task sees `ready` as it was when it started, so the two are
         // joined here, where it is current
         .onChange(of: held && ready) { _, go in
-            if go { fadeOut() }
+            if go { hide() }
         }
     }
 
-    private func fadeOut() {
+    private func hide() {
         guard visible else { return }
-        withAnimation(.easeOut(duration: LaunchSplash.fade)) { visible = false }
+        visible = false
     }
 }
 

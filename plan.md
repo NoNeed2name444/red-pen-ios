@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 12:37 PM Cairo.
+Last updated: 2026-10-09, 12:40 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -890,7 +890,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       folder added meanwhile is kept on top of what was read. A library that
       could not be read (a prewarm before the first unlock) is never written
       over; it is read again once the app is in front. The launch splash
-      stays up until the library is read, 2 s at most, then fades onto a
+      stays up until the library is read, 2 s at most, then goes (no fade) onto a
       screen saying it is opening (LibraryLoadingView, preview screen
       library-loading); no screen shows the library before it is in, and
       the examples, sync, a notification's answer, the second iPad window
@@ -929,6 +929,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       account-deleted (GAP 1, Apple's steps) and library-loading (Row 1),
       in light; signin in dark too. The dark account-deleted and
       library-loading shots caught the simulator mid-launch (no crash).
+    - [x] No fade at launch either (the owner's "i don't want fading in the
+      app", #33; the design session left LaunchSplash to this step): the
+      splash is lifted at once after its 0.3 s hold, or as soon as a big
+      library is read (2 s at most), with `.transition(.identity)` so no
+      animation around it can fade it. Compiled by the mac App build; a
+      still screenshot cannot show a transition.
 21. [x] Taken by the session that did step 19 (9 Oct, 11:40 AM): the
     "men" quirk from step 19. A comparison's side shorter than four letters
     is not read, so "Gout is less common in women than in men." against
