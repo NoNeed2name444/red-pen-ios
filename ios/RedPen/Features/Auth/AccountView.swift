@@ -74,8 +74,9 @@ struct AccountView: View {
 
     private var headerSection: some View {
         Section {
+            // The chip shows a real subscription; the personal build opens Pro without one.
             AccountHeaderCard(person: account.account, localOnly: isLocalOnly,
-                              isPro: subscriptions.isPro) {
+                              isPro: subscriptions.access.isPro) {
                 headerButton
             }
             .wardCardRow()
@@ -178,8 +179,11 @@ struct AccountView: View {
                 // screen of ours that can only be wrong
                 Button("Manage or cancel") { showManage() }
             }
-            Button("Restore purchases") { Task { await subscriptions.restore() } }
-                .disabled(subscriptions.busy)
+            // The owner's build has nothing to restore.
+            if !PersonalBuild.isOn {
+                Button("Restore purchases") { Task { await subscriptions.restore() } }
+                    .disabled(subscriptions.busy)
+            }
         }
         .wardRowBackground()
     }
