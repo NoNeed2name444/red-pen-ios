@@ -7,8 +7,8 @@ import AuthenticationServices
 /// that works on its own - start without an account - is the lowest and the
 /// one raised highest, its words in Theatre Blue; above it Apple, which on this platform is one
 /// tap and gives away the least; Google, because most students are already
-/// signed in to it in Safari; and a code, for a second iPhone or iPad joining
-/// the library of the first.
+/// signed in to it in Safari - in a build that carries a Google client id; and
+/// a code, for a second iPhone or iPad joining the library of the first.
 ///
 /// What this screen does not do is ask for a password. Nothing here stores one,
 /// so nothing here can leak one.
@@ -149,7 +149,9 @@ struct SignInView: View {
     // MARK: The doors
 
     /// Top to bottom: a code, Google, Apple, and - lowest, under the thumb -
-    /// straight in. Centred in the same 480-point column on an iPad.
+    /// straight in. Centred in the same 480-point column on an iPad. Google
+    /// only when the build is set up for it: without a client id its door
+    /// could only fail.
     ///
     /// On a soft pane raised high off the base, so that when a large text size makes the story
     /// scroll it goes under the pane rather than showing between the doors.
@@ -158,7 +160,7 @@ struct SignInView: View {
     private var doors: some View {
         VStack(spacing: 12) {
             codeDoor
-            googleDoor
+            if GoogleSignIn.isConfigured { googleDoor }
             appleDoor
             localDoor
         }

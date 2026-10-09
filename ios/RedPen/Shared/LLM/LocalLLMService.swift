@@ -150,7 +150,12 @@ final class LocalLLMService: ObservableObject {
     /// Why CramDown Cloud can't be used right now, or nil when it can.
     var cloudBlocker: String? {
         if !isPro { return "\(Brand.name) Cloud is part of Pro." }
-        if cloudToken == nil { return "Sign in with Apple or Google to use \(Brand.name) Cloud." }
+        if cloudToken == nil {
+            // only the doors the sign-in screen shows
+            return GoogleSignIn.isConfigured
+                ? "Sign in with Apple or Google to use \(Brand.name) Cloud."
+                : "Sign in with Apple to use \(Brand.name) Cloud."
+        }
         return nil
     }
 

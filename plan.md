@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 7:30 AM Cairo.
+Last updated: 2026-10-09, 7:45 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -42,6 +42,7 @@ Last updated: 2026-10-09, 7:30 AM Cairo.
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
+| design/launch-gaps | GAP 2 (section 3, step 17) | the launch checklist's open gaps and the audit's open rows (#34, section 3, step 17), each merged into personal once preflight and CI are green |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -652,6 +653,32 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     (sourceUnsupported, not validated). Reproduce them on Linux with
     /opt/swift if the package is Foundation-only, fix, push to Chat-me's
     personal.
+17. [ ] #34, the owner's "look for upgrades - unfinished work - half-backed
+    features in the stethoscore app for u to make" (9 Oct, about 7:30 AM):
+    the launch checklist's open gaps (docs/launch/launch-checklist.md
+    section 1.3) and the audit's rows still open, built on
+    design/launch-gaps. Clear of step 15's loop tasks (rows 34, 40, 74 and
+    the re-check), step 16 (another session's), the neumorphic work and the
+    map. Order: what Linux and node can check first; the screens last, in
+    one preview run.
+    - [x] GAP 2: no "Sign in with Google" door in a build without a Google
+      client id (AuthRules.googleClientID, GoogleSignIn.isConfigured; the
+      cloud blocker then names only Apple). Checked by the account suite
+      (macOS CI); its screenshot goes with GAP 1's.
+    - [ ] GAP 1: after an Apple-linked account is deleted, the steps that
+      stop it using the Apple ID (Settings > your name > Sign-In &
+      Security > Sign in with Apple > Stethoscore > Stop Using Apple ID).
+    - [ ] GAP 3: the server's /account/delete also clears the account's
+      generation jobs (node tests; no deploy without the owner's word).
+    - [ ] Row 4: Spotlight indexing and deletion failures are reported
+      (Shared/AppIntents.swift), so the callers retry.
+    - [ ] Row 18: review writes batched and flushed when the app leaves
+      the foreground; each deck's review document kept between pushes.
+    - [ ] Row 91: the accuracy ledger seeded from the cloud generation
+      verdicts (Shared/LLM/CloudJobs.swift).
+    - [ ] Row 1: the library decoded off the main thread at launch, with
+      no write before it has loaded.
+    - [ ] Row 17: library pictures as blob references, with a migration.
 
 ## 4. M3: the Neurons rebuild
 

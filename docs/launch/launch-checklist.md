@@ -105,6 +105,7 @@ Optional owner steps, none needed for launch:
    - **Full fix:** it needs a "Sign in with Apple" private key. That is another manual owner step at developer.apple.com, so it is not recommended for launch.
    - Owner: the app job, next to P2.9.
 2. **The "Sign in with Google" button shows even when no Google client ID is set.** `RED_PEN_GOOGLE_CLIENT_ID` is empty in `project.yml`, and a tap then fails with "not configured". A reviewer who taps a button that fails is a guideline 2.1 rejection. Setting up a Google OAuth client would be another manual step outside Apple, so the fix is to **hide the Google option when `GoogleSignIn.clientID` is empty**. Sign in with Apple, "Start without an account" and pairing codes stay. Owner: the app job (P0.2 already edits `SignInView`'s neighbours).
+   - **Done** (plan step 17): `GoogleSignIn.isConfigured` is false while the client id is empty or blank, and `SignInView` then leaves the Google door out. The cloud blocker then says "Sign in with Apple" only.
 3. **Two privacy-policy mismatches** (already noted in `app-store-listing.md` §10.4):
    - `pair_attempts` rows are never pruned (P0.1's cron fixes this);
    - `/account/delete` leaves generation jobs in the Durable Object for up to 7 days. The policy must say so, or the delete must clear them.

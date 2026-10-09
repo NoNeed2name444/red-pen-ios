@@ -18,18 +18,23 @@ import AuthenticationServices
 final class GoogleSignIn: NSObject, ASWebAuthenticationPresentationContextProviding {
 
     /// Read from the app's Info.plist so the client id is configuration rather
-    /// than source, and an unconfigured build says so instead of opening a
-    /// broken page.
+    /// than source; nil when the build left it unset.
     static var clientID: String? {
-        Bundle.main.object(forInfoDictionaryKey: "RedPenGoogleClientID") as? String
+        AuthRules.googleClientID(Bundle.main.object(forInfoDictionaryKey: "RedPenGoogleClientID") as? String)
     }
+
+    /// Whether this build can offer Google at all. Without a client id the
+    /// door could only fail with "not configured", and a button that fails in
+    /// front of App Review is a rejection (guideline 2.1), so the sign-in
+    /// screen leaves it out.
+    static var isConfigured: Bool { clientID != nil }
     static let scheme = "redpen"
     static var redirect: String { "\(scheme)://auth" }
 
     private var session: ASWebAuthenticationSession?
 
     func run() async throws -> Session {
-        guard let clientID = Self.clientID, !clientID.isEmpty else {
+        guard let clientID = Self.clientID else {
             throw AuthAPI.Failure.notConfigured
         }
         let verifier = AuthRules.verifier()
