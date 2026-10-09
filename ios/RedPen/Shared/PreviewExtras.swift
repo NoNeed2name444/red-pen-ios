@@ -11,11 +11,14 @@ import SwiftUI
 /// actually prove.
 enum PreviewExtras {
 
-    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example", "quiz-folded"]
+    static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example", "quiz-folded", "library-end"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
         switch screen {
+        case "library-end":
+            // The library at the end of its list, where the last row has to clear the dock.
+            LibraryView()
         case "anki-quizable":
             // the same review screen, on a deck big enough for the toolbar's
             // Quiz me button to be enabled

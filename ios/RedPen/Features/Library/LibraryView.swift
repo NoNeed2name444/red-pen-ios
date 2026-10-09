@@ -173,6 +173,9 @@ struct LibraryView: View {
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
 
+    // The spacer marks the end of the library list for preview scrolling.
+    private static let listEndID = "library-list-end"
+
     /// The sets opened on the stack.
     @State var opened: [StudySet] = []
     /// A page chosen from the account and settings menu (Vitals, lectures,
@@ -581,6 +584,12 @@ struct LibraryView: View {
                 arrived = nil
                 withAnimation(.snappy) { proxy.scrollTo(id, anchor: .center) }
             }
+            .task(id: dockHeight) {
+                guard PreviewLaunch.screen == "library-end", dockHeight > 0 else { return }
+                // The photo must show the list's end once the dock has a height.
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                proxy.scrollTo(Self.listEndID, anchor: .bottom)
+            }
         }
     }
 
@@ -613,6 +622,7 @@ struct LibraryView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .accessibilityHidden(true)
+            .id(Self.listEndID)
     }
 
     /// The category's sets: the loose ones, then each folder that holds any.
