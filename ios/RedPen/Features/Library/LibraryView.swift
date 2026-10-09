@@ -543,10 +543,10 @@ struct LibraryView: View {
                         .environment(\.colorScheme, dockScheme)
                 }
             }
-            // New set casts nothing up, so its line sits just over it,
-            // clear of the round's button; the dock's raised panel needs
-            // room for its lights
-            .wardBarBase(room: newSet ? 8 : 24, shown: !underSky)
+            // No strip under it: New set and the dock float on the page's
+            // own paper, so the page runs unbroken to the bottom (the
+            // owner's word, 9 Oct). The rows still scroll clear of it by
+            // its measured height.
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
@@ -657,7 +657,7 @@ struct LibraryView: View {
         // floating bar and neither did; a row cannot be ignored, because
         // the list has to make room for it like any other.
         Color.clear
-            .frame(height: dockHeight + 8)
+            .frame(height: dockHeight + 24)
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)

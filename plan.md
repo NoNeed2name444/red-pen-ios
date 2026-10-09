@@ -1496,7 +1496,12 @@ move personal up.
    - the OSCE station clock was a bare glyph and pill with no edge; it is a
      WardChipButtonStyle chip now (pressed in while it runs), and
      WardTimerPill takes `well: false` inside a button.
-7. Next: App build, Swift tests and an ios-preview run on the session
+7. The owner, 9 Oct: "i don't want that island down that has new set button
+   cuz it breaks page continuity". The library's New set and dock have no
+   strip under them now; they float on the page's paper, and the list's
+   end row is the dock's height plus 24 pt. The selection bar keeps its
+   strip, and so do the study screens.
+8. Next: App build, Swift tests and an ios-preview run on the session
    branch (personal, a22d1c2, is merged in); check the strip line and the
    OSCE clock; send the owner marked full screens; then move personal up to
    the session branch.
