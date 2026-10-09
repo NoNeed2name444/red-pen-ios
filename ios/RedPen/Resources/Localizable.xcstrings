@@ -147,6 +147,18 @@
         }
       }
     },
+    "Account deleted" : {
+      "comment" : "Sign-in screen (SignInView). Alert title, shown after an account that signed in with Apple is deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم حذف الحساب"
+          }
+        }
+      }
+    },
     "Agree, available in %lld seconds" : {
       "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. VoiceOver, while the agree button counts down.",
       "extractionState" : "manual",
@@ -833,6 +845,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأدوات"
+          }
+        }
+      }
+    },
+    "Your Apple Account still lists %@ under Sign in with Apple. To remove it, open Settings, tap your name, then Sign in with Apple. Choose %@ and tap Delete." : {
+      "comment" : "Sign-in screen (SignInView). Alert message after an account that signed in with Apple is deleted: the steps from Apple's support article (Settings > your name > Sign in with Apple > the app > Delete). Both %@ are the app's name (Latin script). Use the names iOS shows in Arabic for Settings, Sign in with Apple and Delete.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يزال حساب Apple الخاص بك يُدرج %1$@ ضمن «تسجيل الدخول باستخدام Apple». لإزالته، افتح «الإعدادات» واضغط على اسمك، ثم «تسجيل الدخول باستخدام Apple». اختر %2$@ ثم اضغط «حذف»."
           }
         }
       }

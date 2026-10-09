@@ -16,6 +16,10 @@ final class AccountStore: ObservableObject {
     /// versions it agreed to and those in force. Nil until asked, and for a
     /// this-device-only session, which never asks.
     @Published private(set) var me: AccountMe?
+    /// Set when an Apple account has just been deleted: the sign-in screen it
+    /// lands on then gives the steps that take the app off Sign in with Apple
+    /// in Settings, the one part of leaving the app cannot do for the student.
+    @Published var appleStepsDue = false
 
     private let google = GoogleSignIn()
     /// The raw nonce for a sign-in in progress. Apple is given only its hash,
@@ -279,6 +283,9 @@ final class AccountStore: ObservableObject {
         defer { busy = false }
         do {
             try await AuthAPI.deleteAccount(token: session.token)
+            // before signing out, which brings up the sign-in screen that
+            // shows the steps
+            appleStepsDue = session.account.provider.listedInSettingsAfterDeletion
             signOut()
             return true
         } catch {

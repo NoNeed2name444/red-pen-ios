@@ -14,6 +14,12 @@ enum AuthProvider: String, Codable, CaseIterable {
         case .device: return "a linked device"
         }
     }
+
+    /// Whether deleting the account leaves the app listed under Sign in with
+    /// Apple in the student's Settings. The server only ever sees Apple's
+    /// identity token, never one it could revoke with Apple, so that last
+    /// step is the student's (TN3194; launch checklist GAP 1).
+    var listedInSettingsAfterDeletion: Bool { self == .apple }
 }
 
 /// A person, as far as Red Pen is concerned.

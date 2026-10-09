@@ -104,6 +104,7 @@ Optional owner steps, none needed for launch:
    - **Smallest fix, with no new key or owner step:** after "Delete account" succeeds for an Apple-linked account, show "To finish, open Settings → [your name] → Sign-In & Security → Sign in with Apple → Vignette → Stop Using Apple ID".
    - **Full fix:** it needs a "Sign in with Apple" private key. That is another manual owner step at developer.apple.com, so it is not recommended for launch.
    - Owner: the app job, next to P2.9.
+   - **Done** (plan step 17), with the smallest fix. Apple has since moved the setting, so the steps follow its current support article (102571) rather than the path above: after an Apple-linked account is deleted, the sign-in screen says "Open Settings, tap your name, then Sign in with Apple. Choose Stethoscore and tap Delete." in English and Arabic.
 2. **The "Sign in with Google" button shows even when no Google client ID is set.** `RED_PEN_GOOGLE_CLIENT_ID` is empty in `project.yml`, and a tap then fails with "not configured". A reviewer who taps a button that fails is a guideline 2.1 rejection. Setting up a Google OAuth client would be another manual step outside Apple, so the fix is to **hide the Google option when `GoogleSignIn.clientID` is empty**. Sign in with Apple, "Start without an account" and pairing codes stay. Owner: the app job (P0.2 already edits `SignInView`'s neighbours).
    - **Done** (plan step 17): `GoogleSignIn.isConfigured` is false while the client id is empty or blank, and `SignInView` then leaves the Google door out. The cloud blocker then says "Sign in with Apple" only.
 3. **Two privacy-policy mismatches** (already noted in `app-store-listing.md` §10.4):
@@ -362,7 +363,7 @@ All of them are served by `server/legalpages.js`, in English and Arabic, with no
 
 - Terms and Privacy links on the paywall. They must be tappable before purchase (3.1.2).
 - An About & legal page with Privacy, Terms, Medical notice, Accuracy and Support.
-- Delete account (DONE), plus the Sign in with Apple revocation note (GAP 1).
+- Delete account (DONE), plus the Sign in with Apple revocation note (GAP 1, DONE).
 
 ### 9.3 Privacy manifest (PLANNED P3.1)
 
@@ -484,7 +485,7 @@ The 2025 questionnaire (ratings 4+, 9+, 13+, 16+, 18+) is required for every sub
 - [ ] New set from a sample lecture on the device (Apple Intelligence on). With Apple Intelligence off: the Gemma download offer shows its size (about 3.4 GB) and starts only after a tap.
 - [ ] The first cloud action shows the consent sheet naming the providers. "Keep everything on this device" works.
 - [ ] Paywall: yearly first with "1 week free", then monthly, then the Exam Pass. The Terms and Privacy links open the Worker pages. Restore and Redeem code are present. A sandbox purchase unlocks Pro, and `/owner/billing/notifications` shows a sandbox row.
-- [ ] Account → Delete account removes the account. For an Apple-linked account, the Stop Using note appears (GAP 1).
+- [ ] Account → Delete account removes the account. For an Apple-linked account, the note with the Sign in with Apple steps appears (GAP 1).
 - [ ] No Google button (GAP 2), or a working one.
 - [ ] Widgets and the exam-day Live Activity appear (P3.1). Siri: "Quiz me in Vignette".
 - [ ] iPad in landscape: occlusion and draw-from-memory are usable. Arabic (if 1.0 ships it): the layout is right-to-left.

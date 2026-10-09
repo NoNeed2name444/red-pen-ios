@@ -136,6 +136,15 @@ VignetteHeaders.apply(to: &toProvider)
 check("a request to a provider the student added carries neither",
       toProvider.allHTTPHeaderFields?.keys.contains { $0.lowercased().hasPrefix("x-vignette") } != true)
 
+// MARK: leaving
+
+// the server never holds an Apple token it could revoke, so deleting an Apple
+// account leaves one step in Settings, and only an Apple account does
+check("deleting an Apple account leaves the Settings step",
+      AuthProvider.apple.listedInSettingsAfterDeletion)
+check("no other way in leaves one",
+      AuthProvider.allCases.filter(\.listedInSettingsAfterDeletion) == [.apple])
+
 // MARK: legal links
 
 check("only the pages the worker serves (server/legal.js)", LegalLinks.Page.allCases.map(\.rawValue) == ["privacy", "terms"])
