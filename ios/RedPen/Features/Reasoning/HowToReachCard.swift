@@ -80,7 +80,7 @@ struct HowToReachCard: View {
             }
             if isOpen {
                 detail(entry)
-                    .transition(.opacity)
+                    .transition(.identity)
             }
         }
         .padding(.vertical, 2)

@@ -38,7 +38,7 @@ struct IdeasBottomBar: View {
         VStack(spacing: 10) {
             if !showCollapsed {
                 switcher
-                    .transition(.opacity)
+                    .transition(.identity)
             }
             captureRow
         }
@@ -93,7 +93,7 @@ struct IdeasBottomBar: View {
         HStack(spacing: 10) {
             if showCollapsed {
                 switcher
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .transition(.growIn(0.6))
             }
             IdeaCaptureField(draft: $draft, capturing: capturing, capture: capture)
             trailing
@@ -104,11 +104,11 @@ struct IdeasBottomBar: View {
     private var trailing: some View {
         if hasText {
             IdeaSendButton(action: capture)
-                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                .transition(.growIn(0.6))
         } else {
             IdeaAddMenu(newIdea: { capturing.wrappedValue = true },
                         newPage: newPage, newFolder: newFolder)
-                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                .transition(.growIn(0.6))
         }
     }
 }

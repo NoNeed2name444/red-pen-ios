@@ -12,8 +12,8 @@ import UIKit
 //   Announce          a sentence for VoiceOver the moment something happens
 //                     that is otherwise only seen: an answer marked, a card
 //                     rated, a step revealed
-//   Motion            an animation, or none under Reduce Motion; a slide that
-//                     is only a fade under Reduce Motion
+//   Motion            an animation, or none under Reduce Motion; a slide or
+//                     a grow that is simply there under Reduce Motion
 //   minimumHitTarget  44 by 44 points to press, whatever the face looks like
 //   GridItem.tiles    tiles as many across as fit, or one across at the
 //                     accessibility text sizes
@@ -91,17 +91,22 @@ enum Motion {
     }
 }
 
+/// Nothing in the app fades in or out: the owner wants nothing to look
+/// faded, even for a moment. Things slide or grow in solid, and under
+/// Reduce Motion they are simply there.
 extension AnyTransition {
-    /// Slides in from `edge` as it fades - only the fade under Reduce Motion.
-    @MainActor static func slideFade(_ edge: Edge) -> AnyTransition {
-        if UIAccessibility.isReduceMotionEnabled { return .opacity }
-        return .move(edge: edge).combined(with: .opacity)
+    /// Slides in from `edge`, solid all the way; under Reduce Motion it is
+    /// simply there.
+    @MainActor static func slideIn(_ edge: Edge) -> AnyTransition {
+        if UIAccessibility.isReduceMotionEnabled { return .identity }
+        return .move(edge: edge)
     }
 
-    /// Grows from `scale` as it fades - only the fade under Reduce Motion.
-    @MainActor static func growFade(_ scale: CGFloat, anchor: UnitPoint = .center) -> AnyTransition {
-        if UIAccessibility.isReduceMotionEnabled { return .opacity }
-        return .scale(scale: scale, anchor: anchor).combined(with: .opacity)
+    /// Grows from `scale`, solid all the way; under Reduce Motion it is
+    /// simply there.
+    @MainActor static func growIn(_ scale: CGFloat, anchor: UnitPoint = .center) -> AnyTransition {
+        if UIAccessibility.isReduceMotionEnabled { return .identity }
+        return .scale(scale: scale, anchor: anchor)
     }
 }
 

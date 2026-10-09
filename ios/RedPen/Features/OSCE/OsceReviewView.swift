@@ -217,7 +217,7 @@ struct OsceReviewView: View {
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 10)
                         .contentCard()
-                        .transition(.growFade(0.96))
+                        .transition(.growIn(0.96))
                 } else {
                     Text(promptLine)
                         .font(.title3)
@@ -236,7 +236,7 @@ struct OsceReviewView: View {
             .padding(16)
             // a start over slides the station back in from the top
             .id(run.restarts)
-            .transition(.asymmetric(insertion: .slideFade(.top), removal: .opacity))
+            .transition(.asymmetric(insertion: .slideIn(.top), removal: .identity))
             .frame(minHeight: 220)
             .padding(.bottom, 12)
             .readableColumn()

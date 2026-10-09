@@ -311,13 +311,17 @@ struct SkyRoot<Content: View>: View {
             // NavigationStack owns its safe area and can reset an inherited
             // safeAreaPadding. Reduce its actual layout bounds instead, so
             // pushed pages, search chrome and bottom insets share the clearance.
-            // WardBackground ignores the safe area to keep the paper full-bleed.
-            .padding(.horizontal, WardPaper.sideInset)
+            // The page face fills that clearance edge to edge (a screen's own
+            // background stops at it), so no strip of the window shows
+            // between the paper frame and the page. The 3D map has no frame:
+            // it fills the screen, with neither.
+            .padding(.horizontal, center.skyCovered ? 0 : WardPaper.sideInset)
+            .background { if !center.skyCovered { WardBackground().transition(.identity) } }
             .environment(\.spaceQuality, level)
             .environment(\.graphics, budget)
             .environment(\.skyZoom, zoom)
             .preferredColorScheme(scheme)
-            .overlay { if !center.skyCovered { WardPaperFrame() } }
+            .overlay { if !center.skyCovered { WardPaperFrame().transition(.identity) } }
             .onAppear {
                 // the cues' tones are made once, ahead of the first one
                 if SpaceSettings.sounds { SpaceSounds.shared.prepare() }

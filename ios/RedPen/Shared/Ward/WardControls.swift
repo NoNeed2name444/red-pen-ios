@@ -33,7 +33,8 @@ enum WardTone {
 /// 360 points wide on a broad iPad. The kind shows in the label's colour
 /// (Theatre Blue, Chart Ink, Resus Red), never a fill, and the primary
 /// stands a step higher; held, a button is pressed into the base; disabled,
-/// it sinks half away and goes Biro Grey, so "not yet" is unmistakable.
+/// it sinks to the lowest step and says its word in Chart Ink, as solid as
+/// any other button: the owner wants nothing in the app to look faded.
 /// Compact and quiet are the small 44-point ones for a card or a panel:
 /// compact says its word in Theatre Blue, quiet in Chart Ink.
 struct WardButtonStyle: ButtonStyle {
@@ -56,7 +57,7 @@ private struct WardButtonFace: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var ink: Color {
-        if !enabled { return .wardInkSecondary }
+        if !enabled { return .wardInk }
         switch kind {
         case .primary, .compact: return .wardPrimaryInk
         case .secondary, .quiet: return .wardInk
@@ -93,11 +94,7 @@ private struct WardButtonFace: View {
             }
         }
             .background {
-                if enabled {
-                    WardPressFace(shape: shape, lift: lift, pressed: pressed)
-                } else {
-                    WardPressFace(shape: shape, lift: .low, pressed: false).opacity(0.5)
-                }
+                WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: enabled && pressed)
             }
             .contentShape(shape)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
@@ -170,7 +167,7 @@ private struct WardChipButtonFace: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var ink: Color {
-        if !enabled { return .wardInkSecondary }
+        if !enabled { return .wardInk }
         if on { return tone?.ink ?? .wardPrimaryInk }
         return .wardInk
     }
@@ -183,11 +180,7 @@ private struct WardChipButtonFace: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background {
-                if enabled {
-                    WardPressFace(shape: Capsule(), lift: .low, pressed: down)
-                } else {
-                    WardPressFace(shape: Capsule(), lift: .low, pressed: false).opacity(0.5)
-                }
+                WardPressFace(shape: Capsule(), lift: .low, pressed: enabled && down)
             }
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
@@ -220,7 +213,7 @@ private struct WardCircleButtonFace: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var ink: Color {
-        if !enabled { return .wardInkSecondary }
+        if !enabled { return .wardInk }
         if on { return .wardPrimaryInk }
         return .wardInk
     }
@@ -232,11 +225,7 @@ private struct WardCircleButtonFace: View {
             .foregroundStyle(ink)
             .frame(minWidth: 44, minHeight: 44)
             .background {
-                if enabled {
-                    WardPressFace(shape: Circle(), lift: lift, pressed: down)
-                } else {
-                    WardPressFace(shape: Circle(), lift: .low, pressed: false).opacity(0.5)
-                }
+                WardPressFace(shape: Circle(), lift: enabled ? lift : .low, pressed: enabled && down)
             }
             .contentShape(Circle())
             .animation(reduceMotion ? nil : .wardShade(down: down), value: down)
@@ -353,10 +342,12 @@ private struct WardToggleFace: View {
             configuration.label
                 .frame(maxWidth: .infinity, alignment: .leading)
             ZStack(alignment: on ? .trailing : .leading) {
+                // The tint is in the track at once, solid; only the knob
+                // moves.
                 Capsule()
                     .fill(.tint)
                     .padding(3)
-                    .opacity(on ? 1 : 0)
+                    .animation(nil) { $0.opacity(on ? 1 : 0) }
                 knob(on: on)
                     .padding(4)
             }
@@ -367,7 +358,6 @@ private struct WardToggleFace: View {
         .onTapGesture {
             if enabled { configuration.isOn.toggle() }
         }
-        .opacity(enabled ? 1 : 0.5)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: on)
         .sensoryFeedback(.selection, trigger: on)
         .accessibilityRepresentation {
@@ -377,17 +367,18 @@ private struct WardToggleFace: View {
     }
 
     /// Raised off the well; over the tint its shade goes neutral, since the
-    /// base's cool grey would light the blue rather than shade it.
-    @ViewBuilder
+    /// base's cool grey would light the blue rather than shade it. One knob
+    /// carries both looks, so it slides across rather than fading out at one
+    /// end and in at the other; the look itself changes at once.
     private func knob(on: Bool) -> some View {
-        if on {
+        ZStack {
+            WardReliefFace(shape: Circle(), lift: .low)
+                .animation(nil) { $0.opacity(on ? 0 : 1) }
             Circle()
                 .fill(Color.wardSurface.shadow(.drop(color: .black.opacity(0.3), radius: 2, x: 1, y: 1.5)))
-                .frame(width: 24, height: 24)
-        } else {
-            WardReliefFace(shape: Circle(), lift: .low)
-                .frame(width: 24, height: 24)
+                .animation(nil) { $0.opacity(on ? 1 : 0) }
         }
+        .frame(width: 24, height: 24)
     }
 }
 

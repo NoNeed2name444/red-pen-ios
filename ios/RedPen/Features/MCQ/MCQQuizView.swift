@@ -271,7 +271,7 @@ struct MCQQuizView: View {
             .lineLimit(oneLine)
             .minimumScaleFactor(0.85)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .transition(.slideFade(.top))
+            .transition(.slideIn(.top))
     }
 
     /// The bar while a saved place is waiting: Start again beside the big
@@ -745,7 +745,7 @@ struct MCQQuizView: View {
         }
         .contentCard()
         .id(explainID)
-        .transition(.growFade(0.96, anchor: .top))
+        .transition(.growIn(0.96, anchor: .top))
     }
 
     /// The question on screen as a note in Ideas.
@@ -824,7 +824,7 @@ struct MCQQuizView: View {
             // the chips' edges and shadows are not cut off
             .scrollClipDisabled()
         }
-        .transition(.opacity)
+        .transition(.identity)
     }
 
     // MARK: fixing a miss: a re-test now, a twin later
@@ -871,7 +871,7 @@ struct MCQQuizView: View {
                 Text(note).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
         }
-        .transition(.opacity)
+        .transition(.identity)
     }
 
     /// Slots this question in again a few questions on, options re-shuffled.
@@ -1014,7 +1014,9 @@ struct MCQQuizView: View {
                 twinOffer
             }
         }
-        .padding(.horizontal, 16)
+        // 12, as the progress header over it, so the choices' edges line
+        // up with the header slab's
+        .padding(.horizontal, 12)
         .padding(.top, 8)
         .padding(.bottom, 24)
         .readableColumn()

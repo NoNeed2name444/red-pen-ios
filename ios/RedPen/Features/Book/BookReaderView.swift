@@ -237,6 +237,8 @@ struct BookReaderView: View {
                 .disabled(index == 0)
                 .accessibilityLabel("Previous page")
                 .keyboardShortcut(.leftArrow, modifiers: [])
+                // its word whole first; the main button takes what is left
+                .layoutPriority(1)
 
                 contentsButton
 

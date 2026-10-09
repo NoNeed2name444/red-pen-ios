@@ -1293,6 +1293,85 @@ screens the same way. What follows is the brief as it stood.
 - Work on a design/ branch. Send screenshots of every changed screen, and
   merge into personal only when CI is green.
 
+### #33 follow-ups: the owner's asks of 9 Oct (in progress)
+
+> some buttons look faded fix that
+
+> i don't want fading in the app
+
+> also the main page should have the grid from upwards till under the
+> stethoscore word and under good morning preview
+
+> the buttons are still faded and not visually distinct in borders also some
+> ui elements overlap in the entire app. arrange the entire app ui.
+
+The session makes UI changes itself; only heavy non-UI work goes to the
+ChatGPT review loop. Work on the session branch, check the screens in an
+ios-preview run (light and dark), send the owner marked full screens, then
+move personal up.
+
+1. No fading. Done in code on the session branch; not yet seen in a preview
+   run.
+   - Disabled controls are a solid face at `.low`, not see-through.
+   - `.opacity` transitions became `.identity`, `.slideIn(edge)` or
+     `.growIn(scale, anchor:)` (AccessibilitySupport.swift; both are
+     `.identity` under Reduce Motion). The study bar's folded button grows in
+     from the bottom right, and its slab slides up.
+   - Left alone on purpose: DrawRecallView's compare slider; decorative
+     alphas (PhotonRing, StarLayers, AppBackdrop, ExamPlanView's fill tint,
+     IdeaBoardView's line ink, MCQExamTools' 0.06 tint);
+     `.contentTransition(.numericText())`; the audio volume fade.
+   - Not touched, since other sessions own them: LaunchSplash.swift and
+     Graph3DView.swift. Tell those sessions.
+   - Still to do:
+     - iOS 26's soft scroll edge blurs and fades what passes under the bars
+       (seen in library-end). Add `.scrollEdgeEffectHidden(true, for: .top)`
+       to the library List, then check the other pages. Don't use `.hard`:
+       it can't take a colour and flashes dark under a forced colour scheme.
+     - Redo the audit for implicit fades (it was cut short): views inserted,
+       removed or re-identified under an animation with no explicit
+       transition. Fix each with a transition on the branch's outermost view.
+2. Clear button edges. Not started. The owner's newest word overrides the
+   brief's "faces the background colour with no outline".
+   - Give every raised and pressed control a visible edge. Today
+     `WardRelief.raised` sets `edgeAlpha` to 0 except under Increase
+     Contrast; WardReliefFace already draws it as a 1-pt `wardInk` stroke.
+   - A control boundary needs at least 3:1 against the base, in light and
+     dark.
+   - Keep the faces matte, with no glow.
+3. Overlaps across the app. Not started.
+   - From a fresh preview run, list every overlap by screen, light and dark,
+     and fix each.
+   - Screens outside the preview set go into PreviewExtras first, so they
+     can be seen.
+   - Keep the wording as it is, and keep New set in its thumb row.
+4. The home page's grid band. Designed, not coded. ECG paper runs from the
+   top of the screen to just under the header (Stethoscore and the
+   greeting, and the countdown pill when it shows), over the page's
+   backdrop. It lines up with the outer frame's grid and is drawn with the
+   frame's ink. Under Increase Contrast, no grid.
+   - `WardPaper.lines(_ length:, from origin:)`: the frame's lines
+     (k·cell, bold every fifth) that fall in [origin, origin + length), in
+     local positions. Foundation-only, with tests beside the WardPaper ones.
+   - `WardPaperBand` in WardSurfaces.swift, beside WardPaperFrame: a Canvas
+     that reads its global origin, fills `wardBackground`, draws the lines
+     down to a given global bottom, and ends in a 1.5-pt line in the frame's
+     edge ink.
+   - LibraryView: put the band in `backdrop` (not under the sky, not in
+     Ideas, not while searching), padded out by `-WardPaper.sideInset` and
+     ignoring the safe area.
+   - Track the header's bottom: `onGeometryChange` on the header row (global
+     maxY), plus the List's `onScrollGeometryChange` (contentOffset.y +
+     contentInsets.top), so the band follows a scroll and survives a pop
+     back.
+   - Add a masthead over the bar area (y 0 to the safe-area top), opaque
+     and seamless with the band. It shows a bottom line once the band has
+     scrolled under it.
+   - After CI, check x 12 to 16 pt (about 23 to 31 px) in the band rows. If
+     the navigation stack clips there, draw those strips at SkyRoot instead.
+5. T0034's side insets. Done in code; check its A1 to A9 in the same preview
+   run. A9's exceptions include the library tiles at about 47 px.
+
 ### Other open work
 
 - #4, Tasks 5 to 5d and the §3c migration (Chat-me plan.md): done except

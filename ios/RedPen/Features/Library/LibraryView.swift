@@ -196,15 +196,15 @@ struct LibraryView: View {
                 Color.clear
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
                         let now = WindowSpan(width: w)
-                        // Animated, because in iPadOS 26 this changes while the
-                        // student is dragging the window's edge, and a layout
-                        // that jumps between one column and two mid-drag is
-                        // alarming in a way a quick crossfade is not.
+                        // In iPadOS 26 this changes while the student drags
+                        // the window's edge. Not animated: animating it would
+                        // cross-fade one column into two, and nothing in the
+                        // app fades, so the layout simply changes.
                         guard now != span else { return }
                         // The open set and any pushed page live on the one
                         // stack, so widening or narrowing the window loses
                         // neither.
-                        withAnimation(.snappy(duration: 0.25)) { span = now }
+                        span = now
                     }
             }
     }
@@ -359,11 +359,13 @@ struct LibraryView: View {
         }
     }
 
-    /// The new page comes in from the side the dock moved towards.
+    /// The new page comes in solid from the side the dock moved towards,
+    /// and the old one goes at once: nothing fades. Under Reduce Motion the
+    /// new page is simply there.
     private var pageTransition: AnyTransition {
+        if UIAccessibility.isReduceMotionEnabled { return .identity }
         let shift: CGFloat = forward ? 36 : -36
-        let arrive: AnyTransition = AnyTransition.opacity.combined(with: AnyTransition.offset(x: shift))
-        return AnyTransition.asymmetric(insertion: arrive, removal: AnyTransition.opacity)
+        return AnyTransition.asymmetric(insertion: AnyTransition.offset(x: shift), removal: AnyTransition.identity)
     }
 
     /// The page and its chrome: the backdrop, the title and search at the
@@ -391,7 +393,7 @@ struct LibraryView: View {
         let pageKey: String = inIdeas ? "ideas" : category.rawValue
         return ZStack {
             // One page at a time, keyed by it, so a move along the dock
-            // slides the new page in and fades the old one out rather than
+            // slides the new page in and takes the old one away rather than
             // swapping rows in place.
             page
                 .id(pageKey)
@@ -485,7 +487,7 @@ struct LibraryView: View {
         if railed && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
                 .environment(\.colorScheme, dockScheme)
-                .transition(.slideFade(.leading))
+                .transition(.slideIn(.leading))
         }
     }
 
@@ -504,7 +506,7 @@ struct LibraryView: View {
                     dockHeight = $0
                 }
                 .frame(maxWidth: .infinity)
-                .transition(.slideFade(.bottom))
+                .transition(.slideIn(.bottom))
         } else if keyboardUp {
             // the dock steps aside while typing
             EmptyView()
@@ -524,7 +526,7 @@ struct LibraryView: View {
                 dockHeight = $0
             }
             .frame(maxWidth: .infinity)
-            .transition(.slideFade(.bottom))
+            .transition(.slideIn(.bottom))
         }
     }
 
@@ -548,24 +550,31 @@ struct LibraryView: View {
     private var content: some View {
         ScrollViewReader { proxy in
             List {
-                // the page's title: the date, the name, a greeting and the
-                // countdown to the exam (WardHome)
-                if !searching { homeHeaderSection }
-                if store.library.isEmpty {
-                    Section {
-                        emptyState
-                            .frostedListRow()
+                Group {
+                    // the page's title: the date, the name, a greeting and the
+                    // countdown to the exam (WardHome)
+                    if !searching { homeHeaderSection }
+                    if store.library.isEmpty {
+                        Section {
+                            emptyState
+                                .frostedListRow()
+                        }
                     }
+                    // Today's ward round - what is due, the weakest topic,
+                    // something new, a station - in one card, and on Questions
+                    // the Vitals and brain map tiles under it (WardHome).
+                    homeRoundSections
+                    // The modes first - one tile per kind of set here - where
+                    // there is more than one. A category of one kind has its
+                    // "See all" beside the heading over its sets instead.
+                    if !searching && category.kinds.count > 1 { modesSection }
+                    listBody
                 }
-                // Today's ward round - what is due, the weakest topic,
-                // something new, a station - in one card, and on Questions
-                // the Vitals and brain map tiles under it (WardHome).
-                homeRoundSections
-                // The modes first - one tile per kind of set here - where
-                // there is more than one. A category of one kind has its
-                // "See all" beside the heading over its sets instead.
-                if !searching && category.kinds.count > 1 { modesSection }
-                listBody
+                // The whole page already sits 16 points in from the paper
+                // frame (SkyRoot), so the sections' own side margins would
+                // inset the list a second time and squeeze it. Beside the
+                // rail on a wide iPad they stay, to keep the list off it.
+                .listSectionMargins(.horizontal, railed ? 16 : 0)
             }
             .listSectionSpacing(16)
             .scrollContentBackground(.hidden)

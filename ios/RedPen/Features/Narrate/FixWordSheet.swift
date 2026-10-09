@@ -129,6 +129,6 @@ struct FixReport: View {
         // a soft slip floating over the transcript
         .wardRaised(in: Capsule(), lift: .high)
         .padding(.horizontal)
-        .transition(.slideFade(.bottom))
+        .transition(.slideIn(.bottom))
     }
 }

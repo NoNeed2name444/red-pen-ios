@@ -14,7 +14,7 @@ import UIKit
 //   hero      the one primary action on a screen: the strongest
 //
 // Held, a raised surface sinks into the base, one lift nearer it; disabled,
-// it lies low and faint. Anything raised also slides away from the eye as the
+// it lies low, as solid as ever (nothing in the app looks faded). Anything raised also slides away from the eye as the
 // device tilts (the higher, the further) and leans a degree or two towards
 // the viewer, its relief going with it: parallax between the planes is what
 // makes the eye read the depth. At rest everything sits where it was laid
@@ -249,7 +249,7 @@ enum PopOutField {
 }
 
 /// A tile raised off the base that sinks into it under the finger, and
-/// stays pressed in while `selected`. A disabled tile lies low and faint.
+/// stays pressed in while `selected`. A disabled tile lies low.
 /// The label draws no background of its own: the relief is its face.
 struct PopTileStyle: ButtonStyle {
     var cornerRadius: CGFloat = 20
@@ -293,7 +293,6 @@ private struct PopTileFace: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         label
-            .opacity(isEnabled ? 1 : 0.55)
             .contentShape(shape)
             .popOut(plane, in: shape, pressed: isPressed || selected, lift: lift)
             .contentShape(.hoverEffect, shape)
@@ -439,7 +438,7 @@ struct PopOutSetup: Equatable {
 /// A surface's relief, by its plane: a well on the deep plane, nothing on
 /// the screen plane, raised above it, higher with each plane (or as high as
 /// `chosenLift`). Controls glide into a hollow; disabled, the surface
-/// lies low and faint.
+/// lies low.
 private struct PopOutRelief<S: InsettableShape>: View {
     let shape: S
     let plane: PopOutPlane
@@ -456,12 +455,10 @@ private struct PopOutRelief<S: InsettableShape>: View {
         if let lift = reliefLift {
             if let pressed {
                 WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: enabled && pressed)
-                    .opacity(enabled ? 1 : 0.5)
             } else if plane == .deep {
                 WardReliefFace(shape: shape, lift: lift, inset: true)
             } else {
                 WardReliefFace(shape: shape, lift: enabled ? lift : .low)
-                    .opacity(enabled ? 1 : 0.5)
             }
         }
     }

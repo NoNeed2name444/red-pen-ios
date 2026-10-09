@@ -61,7 +61,7 @@ private struct ReviewUndoOverlay: ViewModifier {
                         .studyTip(.undo)
                         .padding(.top, 8)
                         .padding(.trailing, 16)
-                        .transition(.opacity)
+                        .transition(.identity)
                 }
             }
             .animation(Motion.gentle(.snappy(duration: 0.2)), value: until)

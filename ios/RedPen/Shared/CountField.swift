@@ -95,8 +95,8 @@ struct CountField: View {
 }
 
 /// A 44-point minus or plus beside the number: a small disc raised off the
-/// well at one end of the field, pressed in under the finger, and flat and
-/// Biro Grey once it can go no further. Its own button style, so in a Form
+/// well at one end of the field, pressed in under the finger, and its glyph
+/// in Chart Ink, not blue, once it can go no further. Its own button style, so in a Form
 /// row only this key takes the tap, not the whole row.
 private struct CountStepButton: View {
     let symbol: String
@@ -105,7 +105,7 @@ private struct CountStepButton: View {
     let action: () -> Void
 
     var body: some View {
-        let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInkSecondary
+        let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInk
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
@@ -120,18 +120,14 @@ private struct CountStepButton: View {
     }
 }
 
-/// The key's disc, kept clear of the well's wall; no disc once disabled.
+/// The key's disc, kept clear of the well's wall, as solid when disabled.
 private struct CountStepStyle: ButtonStyle {
     let enabled: Bool
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background {
-                if enabled {
-                    WardPressFace(shape: Circle().inset(by: 4), lift: .low, pressed: configuration.isPressed)
-                } else {
-                    WardPressFace(shape: Circle().inset(by: 4), lift: .low, pressed: false).opacity(0.5)
-                }
+                WardPressFace(shape: Circle().inset(by: 4), lift: .low, pressed: enabled && configuration.isPressed)
             }
             .capPop(configuration.isPressed)
     }

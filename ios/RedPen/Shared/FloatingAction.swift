@@ -100,7 +100,7 @@ struct FloatingActionButton: View {
         ZStack {
             if let item {
                 FloatingActionFace(item: item, shortcut: shortcut)
-                    .transition(.slideFade(.bottom))
+                    .transition(.slideIn(.bottom))
             }
         }
         .animation(change, value: item?.id)
@@ -136,7 +136,7 @@ private struct FloatingActionBar: View {
                 StudyActionBar(folds: false) {
                     FloatingActionButton(expecting: expecting)
                 }
-                .transition(.slideFade(.bottom))
+                .transition(.slideIn(.bottom))
             }
         }
         .animation(.snappy(duration: 0.25), value: showing)

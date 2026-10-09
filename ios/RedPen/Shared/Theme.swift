@@ -144,8 +144,10 @@ extension View {
             .environment(\.modeTint, Color.wardPrimaryInk)
     }
 
-    /// Slides up and fades in on first appearance, staggered by `index` so
-    /// a list of rows arrives as a cascade rather than all at once.
+    /// Slides up, solid, on first appearance, staggered by `index` so a
+    /// list of rows arrives as a cascade rather than all at once. It rises
+    /// less than the rows' spacing, so a row never passes over its
+    /// neighbour.
     func riseIn(index: Int = 0) -> some View { modifier(RiseIn(index: index)) }
 }
 
@@ -176,7 +178,7 @@ private struct CapPop: ViewModifier {
 
 /// A tappable row that gives a touch under the finger, for our custom rows
 /// (which draw their own soft tile). Reduce Motion keeps it still and only
-/// dims it.
+/// shades it.
 struct PressableRowStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         PressableRowFace(label: configuration.label, pressed: configuration.isPressed)
@@ -189,7 +191,7 @@ private struct PressableRowFace<Label: View>: View {
 
     var body: some View {
         label
-            .opacity(pressed ? 0.9 : 1)
+            .brightness(pressed ? -0.04 : 0)
             .capPop(pressed)
     }
 }
@@ -204,7 +206,6 @@ struct RiseIn: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .opacity(shown || reduceMotion ? 1 : 0)
             .offset(y: shown || reduceMotion ? 0 : 14)
             .onAppear {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(Double(index) * 0.05)) { shown = true }
@@ -428,9 +429,14 @@ extension View {
 ///
 /// Depth: every button is raised off the base and pressed in while held;
 /// the primary stands a step higher and says itself in Theatre Blue. A
-/// disabled one sinks low and fades. On a wide iPad a filling button stops
-/// at 360 points, so a lone primary lands under the right hand instead of
-/// stretching across the whole window.
+/// disabled one sinks low, as solid as the rest. On a wide iPad a filling
+/// button stops at 360 points, so a lone primary lands under the right hand
+/// instead of stretching across the whole window.
+///
+/// The words keep to one line, shrinking a little before they would wrap,
+/// so buttons sharing a row are one height (every button is one height,
+/// everywhere). At the accessibility text sizes they wrap instead, as
+/// shrinking them would undo the size the reader chose.
 struct BigButtonStyle: ButtonStyle {
     enum Weight { case primary, secondary }
     var weight: Weight = .primary
@@ -441,6 +447,23 @@ struct BigButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         WardButtonStyle(kind: weight == .primary ? .primary : .secondary, fills: fills)
             .makeBody(configuration: configuration)
+            .modifier(OneLineLabel())
+    }
+}
+
+/// One line, down to 85% before it would wrap; any number of lines at the
+/// accessibility text sizes.
+private struct OneLineLabel: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    func body(content: Content) -> some View {
+        if typeSize.isAccessibilitySize {
+            content.lineLimit(nil)
+        } else {
+            content
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
     }
 }
 
@@ -455,8 +478,9 @@ extension ButtonStyle where Self == BigButtonStyle {
 
 /// The bottom study deck: an open slab with a 44-point folding band and a
 /// trailing chevron, or one 56-point round button at the trailing edge.
-/// The open deck has a solid base and a tap-through fade; the folded button
-/// has nothing behind it. Wide windows keep the slab under the trailing hand.
+/// The open deck stands on a solid strip; the folded button has nothing
+/// behind it. Folding slides the slab down and grows the button in, solid
+/// all the way. Wide windows keep the slab under the trailing hand.
 /// Attach with `.studyBar(folds:shown:)`. Hiding it takes no height and keeps
 /// its fold state for the next question. It starts open except in quiz-folded.
 struct StudyActionBar<Content: View>: View {
@@ -492,6 +516,7 @@ struct StudyActionBar<Content: View>: View {
                     .accessibilityLabel("Show buttons")
                     .accessibilityIdentifier("studyBarFold")
                     .frame(maxWidth: .infinity, alignment: .trailing)
+                    .transition(.growIn(0.6, anchor: .bottomTrailing))
                 } else {
                     VStack(spacing: 0) {
                         if folds {
@@ -513,7 +538,6 @@ struct StudyActionBar<Content: View>: View {
                             .padding(.horizontal, 12)
                             .padding(.top, folds ? 0 : 12)
                             .padding(.bottom, 12)
-                            .transition(.slideFade(.bottom))
                     }
                     .fixedSize(horizontal: broad, vertical: false)
                     .frame(maxWidth: innerCap)
@@ -521,6 +545,7 @@ struct StudyActionBar<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: side)
                     .frame(maxWidth: broad ? 1000 : 700, alignment: side)
                     .frame(maxWidth: .infinity)
+                    .transition(.slideIn(.bottom))
                 }
             }
             .padding(.horizontal, 12)
@@ -698,7 +723,7 @@ private struct FinishCelebration: View {
                     .frame(height: 190)
                     .padding(.horizontal, -18)
                     .offset(y: -18)
-                    .transition(.opacity)
+                    .transition(.identity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

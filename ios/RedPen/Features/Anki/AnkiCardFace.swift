@@ -60,8 +60,9 @@ struct AnkiCardFace: View {
                         why
                     }
                 }
-                .transition(reduceMotion ? .opacity
-                            : .asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
+                // already in place, uncovered as the card grows (the face
+                // clips it): it never fades in
+                .transition(.identity)
             }
 
             citation

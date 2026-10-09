@@ -24,7 +24,7 @@ The table says which labels to claim and why. Section 3 lists what has still not
 | **Dark Interface** | Yes | The Ward Round palette has a dark twin for every colour (`WardPalette`), and the app follows the system's dark mode. "Always night sky" in Settings holds it dark. |
 | **Differentiate Without Colour Alone** | Yes | Right and wrong answers carry a tick or a cross, and with the setting on also the words "Right" / "Your pick" and a thicker border on the chosen option. On the study calendar, each day is one of five steps, and with the setting on each step is also a dot that grows with the step. Coverage shows its status as a word, plus a full, half or dashed circle with the setting on. The accuracy badge always shows a symbol and a word. The exam day in the due chart has a flag. |
 | **Sufficient Contrast** | Yes | Ward surfaces are solid cards with a hairline edge, not glass, so text never sits over a moving backdrop. Every text colour is promised a contrast against its surface, light and dark, and `WardPaletteTests` checks those pairs. |
-| **Reduced Motion** | Yes | Reduce Motion stills whatever still moves (`SpaceQuality.still`). The card flip, rise-in, rings and score animations were already turned off by it. Slides and zooms now become plain fades (`slideFade`, `growFade`), the dock's moving capsule jumps instead of travelling, and the listening waveform stays still. |
+| **Reduced Motion** | Yes | Reduce Motion stills whatever still moves (`SpaceQuality.still`). The card flip, rise-in, rings and score animations were already turned off by it. Slides and zooms are simply there instead (`slideIn`, `growIn`; nothing in the app fades, with or without the setting), the dock's moving capsule jumps instead of travelling, and the listening waveform stays still. |
 | **Voice Control** | Not claimed yet | It probably works, because every control has a visible name or label. It has not been checked. |
 | **Captions** / **Audio Descriptions** | Not applicable | The app has no video. Narrated lectures show their text as it is read. |
 
@@ -34,7 +34,7 @@ The Ideas 3D map (`Features/Notes`, `Shared/Space`) is handled in a separate lan
 
 ## 2. Where it lives
 
-- `Shared/AccessibilitySupport.swift`: `scaledFont`, `Announce`, `Motion`, the `slideFade`/`growFade` transitions, `minimumHitTarget` and `GridItem.tiles`.
+- `Shared/AccessibilitySupport.swift`: `scaledFont`, `Announce`, `Motion`, the `slideIn`/`growIn` transitions, `minimumHitTarget` and `GridItem.tiles`.
 - `Shared/Ward/`: the solid Ward surfaces and the palette whose contrast `WardPaletteTests` checks.
 - `Shared/AccessibilityText.swift`: the words VoiceOver says (`SpokenText`) and the calendar's five steps (`HeatLevel`). The Linux suite `accessibility` checks them (`Tests/AccessibilityTextTests.swift`).
 - `ios/UITests/AccessibilityUITests.swift`: at the largest text size (AX5), it walks the library, every section, a quiz, a card, Settings and the exam plan. It checks each control it needs is there, can be pressed, and fits inside the window. Then it runs Xcode's `performAccessibilityAudit()` on the library, the quiz, the revealed card and Settings.

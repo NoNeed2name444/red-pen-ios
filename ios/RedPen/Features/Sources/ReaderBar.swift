@@ -45,7 +45,7 @@ struct ReaderBar: View {
         VStack(spacing: 10) {
             if !collapsed {
                 switcher
-                    .transition(.opacity)
+                    .transition(.identity)
             }
             if hasRow {
                 row
@@ -66,12 +66,12 @@ struct ReaderBar: View {
             }
             if collapsed {
                 switcher
-                    .transition(.growFade(0.6))
+                    .transition(.growIn(0.6))
             }
             Spacer(minLength: 0)
             if !whole {
                 ReaderPager(page: $page, count: pageCount, noun: pageNoun)
-                    .transition(.slideFade(.trailing))
+                    .transition(.slideIn(.trailing))
             }
         }
     }
@@ -145,7 +145,7 @@ private struct ReaderPagerArrow: View {
     let action: () -> Void
 
     var body: some View {
-        let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInkSecondary.opacity(0.5)
+        let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInk
         Button(action: action) {
             Image(systemName: symbol)
                 .scaledFont(16, relativeTo: .body, weight: .semibold, maxSize: 26)

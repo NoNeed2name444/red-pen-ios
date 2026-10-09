@@ -82,7 +82,7 @@ private struct IncomingImport: ViewModifier {
                         // a soft slip floating over the screen
                         .wardRaised(in: Capsule(), lift: .high)
                         .padding(.top, 8)
-                        .transition(.opacity)
+                        .transition(.identity)
                         .accessibilityIdentifier("incomingImportReading")
                 }
             }

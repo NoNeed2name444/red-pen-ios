@@ -31,7 +31,7 @@ struct FirstRunView: View {
                     FirstRunExamplesPage(finish: onDone)
                 }
             }
-            .transition(.opacity)
+            .transition(.identity)
         }
         .onAppear { FirstRun.start(accountId: accountId) }
     }

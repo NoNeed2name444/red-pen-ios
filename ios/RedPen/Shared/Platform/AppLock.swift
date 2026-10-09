@@ -109,7 +109,7 @@ private struct AppLockShield: ViewModifier {
             .overlay {
                 if enabled && (covered || locked) {
                     shield
-                        .transition(.opacity)
+                        .transition(.identity)
                 }
             }
             .onAppear {

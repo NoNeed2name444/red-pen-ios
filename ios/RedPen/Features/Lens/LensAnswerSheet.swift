@@ -421,8 +421,9 @@ struct LensBulletStyle: LabelStyle {
     }
 }
 
-/// Grooves pressed into the card that shimmer while the answer is written;
-/// still under Reduce Motion.
+/// Grooves pressed into the card, a solid light sweeping along each while
+/// the answer is written (no soft edges: nothing fades); still under
+/// Reduce Motion.
 struct LensShimmer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: CGFloat = -1
@@ -448,8 +449,7 @@ struct LensShimmer: View {
             let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
             Color.clear
                 .overlay(
-                    LinearGradient(colors: [.clear, Color.wardSurface.opacity(0.7), .clear],
-                                   startPoint: .leading, endPoint: .trailing)
+                    Color.wardSurface
                         .frame(width: w * 0.4)
                         .offset(x: phase * w)
                 )

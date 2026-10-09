@@ -10,7 +10,8 @@ import SwiftUI
 /// Blue; once checked, the right one is pressed in with a Discharge Green
 /// letter and check, a wrong pick with a Resus Red letter and cross - the
 /// colour on the letter and the mark only. Crossed out, it is struck through
-/// and dimmed. For the quiz and the mock paper.
+/// and lies low, as do the options neither picked nor right once checked:
+/// solid, never dimmed. For the quiz and the mock paper.
 struct WardOptionRow: View {
     let letter: String
     let text: String
@@ -44,7 +45,7 @@ struct WardOptionRow: View {
                 .accessibilityHidden(true)
             Text(text)
                 .font(.callout)
-                .foregroundStyle(mark == .chosen ? Color.wardPrimaryInk : (mark == .past ? Color.wardInkSecondary : Color.wardInk))
+                .foregroundStyle(mark == .chosen ? Color.wardPrimaryInk : Color.wardInk)
                 .strikethrough(struck, color: .wardInkSecondary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -60,10 +61,9 @@ struct WardOptionRow: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
         .frame(minHeight: 56)
-        .wardRelief(in: shape, lift: .mid, pressed: tone != nil)
+        .wardRelief(in: shape, lift: ChartQuiz.liesLow(struck: struck, mark: mark) ? .low : .mid, pressed: tone != nil)
         // Differentiate Without Colour: the chosen one also ringed
         .overlay { if noColour && mark == .chosen { shape.strokeBorder(letterInk, lineWidth: 3) } }
-        .opacity(ChartQuiz.faded(struck: struck, mark: mark) ? 0.45 : 1)
     }
 }
 

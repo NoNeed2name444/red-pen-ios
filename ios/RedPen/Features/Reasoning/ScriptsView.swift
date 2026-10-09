@@ -57,7 +57,7 @@ struct ScriptsView: View {
                 SavedToIdeasToast(message: savedMessage) { self.savedMessage = nil }
                     .padding(.top, 8)
                     .padding(.horizontal, 16)
-                    .transition(.slideFade(.top))
+                    .transition(.slideIn(.top))
             }
         }
         .animation(.snappy, value: savedMessage)

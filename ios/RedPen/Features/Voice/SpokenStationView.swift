@@ -420,7 +420,7 @@ private struct SpokenStationComposer: View {
 /// microphone, or Send - is the screen's hero and stands a step higher; the
 /// quiet one - the speaker - is raised low. Held, or on (the speaker reading
 /// aloud, the microphone listening), it is pressed in; disabled, it lies low
-/// and faint.
+/// with its glyph in Chart Ink.
 private struct StationCircleStyle: ButtonStyle {
     let prominent: Bool
     let tint: Color
@@ -444,17 +444,13 @@ private struct StationCircleFace: View {
     var body: some View {
         let down: Bool = isEnabled && (isPressed || on)
         let rest: WardLift = prominent ? .mid : .low
-        let ink: Color = isEnabled ? tint : Color.wardInkSecondary
+        let ink: Color = isEnabled ? tint : Color.wardInk
         label
             .font(.title3.weight(.semibold))
             .foregroundStyle(ink)
             .frame(width: 48, height: 48)
             .background {
-                if isEnabled {
-                    WardPressFace(shape: Circle(), lift: rest, pressed: down)
-                } else {
-                    WardPressFace(shape: Circle(), lift: .low, pressed: false).opacity(0.5)
-                }
+                WardPressFace(shape: Circle(), lift: isEnabled ? rest : .low, pressed: down)
             }
             .contentShape(Circle())
             .animation(reduceMotion ? nil : .wardShade(down: down), value: down)

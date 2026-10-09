@@ -198,8 +198,8 @@ struct DuelView: View {
                     }
             )
             .id(feature.id)
-            .transition(.asymmetric(insertion: .growFade(0.9),
-                                    removal: .opacity))
+            .transition(.asymmetric(insertion: .growIn(0.9),
+                                    removal: .identity))
             .accessibilityHint("Swipe left, right or up, or use the buttons below.")
     }
 

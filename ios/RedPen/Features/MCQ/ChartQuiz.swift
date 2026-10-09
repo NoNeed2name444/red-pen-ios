@@ -114,8 +114,10 @@ enum ChartQuiz {
         return slot == selected ? .wrong : .past
     }
 
-    /// A crossed-out option is dimmed, except the right answer once it shows.
-    static func faded(struck: Bool, mark: Mark) -> Bool { struck && mark != .right }
+    /// A crossed-out option lies low, except the right answer once it shows;
+    /// once checked, so does every option neither picked nor right. Nothing
+    /// is dimmed or greyed: the owner wants nothing in the app to look faded.
+    static func liesLow(struck: Bool, mark: Mark) -> Bool { mark == .past || (struck && mark != .right) }
 
     /// What VoiceOver adds to a marked option, so colour is never the only sign.
     static func spoken(_ mark: Mark) -> String? {

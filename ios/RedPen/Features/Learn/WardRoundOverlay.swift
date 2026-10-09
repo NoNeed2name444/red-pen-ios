@@ -169,7 +169,7 @@ struct WardRoundFloat: View {
                         .accessibilityAction(.escape) { setExpanded(false) }
                         .padding(16)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.slideIn(.bottom))
                 } else {
                     chip(round)
                 }

@@ -243,7 +243,7 @@ private struct SaveToIdeasHost: ViewModifier {
                                        onDismiss: { saver.dismiss(shown.id) })
                             .padding(.top, 8)
                             .padding(.horizontal, 16)
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .transition(.slideIn(.top))
                     }
                 }
                 .animation(.snappy, value: shown?.id)

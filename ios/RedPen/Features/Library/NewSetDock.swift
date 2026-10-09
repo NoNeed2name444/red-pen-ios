@@ -41,7 +41,7 @@ struct NewSetDock: View {
             GenerationHUD()
             if showsSlab {
                 slab
-                    .transition(.slideFade(.bottom))
+                    .transition(.slideIn(.bottom))
             }
         }
         .frame(maxWidth: .infinity)

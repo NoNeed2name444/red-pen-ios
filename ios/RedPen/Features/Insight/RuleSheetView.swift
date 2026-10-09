@@ -47,7 +47,7 @@ struct RuleSheetView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if hasActions {
                     StudyActionBar { actions }
-                        .transition(.slideFade(.bottom))
+                        .transition(.slideIn(.bottom))
                 }
             }
             .searchable(text: $query, prompt: "Search rules")

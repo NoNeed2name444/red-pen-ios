@@ -397,7 +397,7 @@ struct LensChipLayer: View {
                 ForEach(Array(chips.enumerated()), id: \.element.id) { pair in
                     LensChip(question: pair.element.question) { open(pair.element.question) }
                         .offset(x: origins[pair.offset].x, y: origins[pair.offset].y)
-                        .transition(.growFade(0.6))
+                        .transition(.growIn(0.6))
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)

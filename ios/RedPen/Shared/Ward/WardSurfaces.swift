@@ -288,25 +288,19 @@ struct WardRowTile: View {
 }
 
 extension View {
-    /// The solid strip hides and blocks rows under the bar; the fade passes taps
-    /// through. The fade belongs to the bar's height, so its inset makes room for it.
-    @ViewBuilder
-    func wardBarBase(fade: CGFloat = 24, shown: Bool = true) -> some View {
-        if shown {
-            self.padding(.top, fade)
-                .background {
-                    VStack(spacing: 0) {
-                        LinearGradient(colors: [Color.wardBackground.opacity(0), Color.wardBackground],
-                                       startPoint: .top, endPoint: .bottom)
-                            .frame(height: fade)
-                            .allowsHitTesting(false)
-                        Color.wardBackground
-                    }
-                    .ignoresSafeArea(edges: [.horizontal, .bottom])
+    /// A solid strip under a bar: it hides and blocks the rows beneath, and
+    /// nothing fades. The room above the bar is for its lights (a `.high`
+    /// slab's reach about 20 pt). Hidden, it takes no room; shown or hidden,
+    /// the bar keeps its identity, so a fold never cross-fades it.
+    func wardBarBase(room: CGFloat = 24, shown: Bool = true) -> some View {
+        self.padding(.top, shown ? room : 0)
+            .background {
+                if shown {
+                    Color.wardBackground
+                        .ignoresSafeArea(edges: [.horizontal, .bottom])
+                        .transition(.identity)
                 }
-        } else {
-            self
-        }
+            }
     }
 
     func wardCard(padding: CGFloat = WardSpace.gutter, lift: WardLift = .mid) -> some View {

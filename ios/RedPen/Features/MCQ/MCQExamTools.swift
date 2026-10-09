@@ -145,7 +145,7 @@ struct AttendingHintCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentCard()
-        .transition(.slideFade(.top))
+        .transition(.growIn(0.96, anchor: .top))
         .accessibilityElement(children: .combine)
     }
 }

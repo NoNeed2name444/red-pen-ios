@@ -89,9 +89,12 @@ check("a timed paper never shows right or wrong",
       mark(1, selected: 2, checked: true, exam: true) == .idle && mark(2, selected: 2, checked: true, exam: true) == .chosen)
 check("a question with no key paints no option right",
       (0..<4).allSatisfy { ChartQuiz.mark(slot: $0, selected: 2, correct: -1, checked: true, examMode: false) != .right })
-check("a crossed-out option is dimmed", ChartQuiz.faded(struck: true, mark: .past) && ChartQuiz.faded(struck: true, mark: .idle))
-check("except the right answer once shown", !ChartQuiz.faded(struck: true, mark: .right))
-check("and nothing else is", !ChartQuiz.faded(struck: false, mark: .wrong))
+check("a crossed-out option lies low", ChartQuiz.liesLow(struck: true, mark: .past) && ChartQuiz.liesLow(struck: true, mark: .idle))
+check("except the right answer once shown", !ChartQuiz.liesLow(struck: true, mark: .right))
+check("once checked, an option neither picked nor right lies low", ChartQuiz.liesLow(struck: false, mark: .past))
+check("and nothing else does",
+      !ChartQuiz.liesLow(struck: false, mark: .wrong) && !ChartQuiz.liesLow(struck: false, mark: .idle)
+      && !ChartQuiz.liesLow(struck: false, mark: .chosen) && !ChartQuiz.liesLow(struck: false, mark: .right))
 check("VoiceOver hears right and wrong, not only colour",
       ChartQuiz.spoken(.right) == "Correct answer" && ChartQuiz.spoken(.wrong) == "Your answer, wrong"
       && ChartQuiz.spoken(.chosen) == nil)

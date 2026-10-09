@@ -430,7 +430,7 @@ struct CaseLadderPanel: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(enabled ? CaseInk.theatre : Color.wardInkSecondary.opacity(0.5))
+        .foregroundStyle(enabled ? CaseInk.theatre : Color.wardInk)
         .disabled(!enabled)
         .accessibilityLabel(label)
     }

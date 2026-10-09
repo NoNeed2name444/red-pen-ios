@@ -83,13 +83,13 @@ struct FloatingSwitcher<Value: Hashable>: View {
                                identifier: toggleIdentifier,
                                expand: { if large { listing = true } else { setCollapsed(false) } },
                                choose: choose)
-                    .transition(.growFade(0.6))
+                    .transition(.growIn(0.6))
             } else {
                 SwitcherStrip(items: items, selection: selection, tint: tint,
                               identifier: toggleIdentifier, liftSpace: liftSpace,
                               collapse: { setCollapsed(true) },
                               choose: choose)
-                    .transition(.growFade(0.9))
+                    .transition(.growIn(0.9))
             }
         }
         .sensoryFeedback(.selection, trigger: selection)
