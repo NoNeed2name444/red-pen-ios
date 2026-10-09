@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import SceneKit
 import UIKit
@@ -55,6 +56,10 @@ struct Graph3DView: View {
     /// Opens a folder in the List (nil: its top level) - two double taps on
     /// a star or black hole in the Universe.
     var openFolder: (UUID?) -> Void = { _ in }
+    /// A sheet from the screen around the map is up over it (the Ideas
+    /// bar's note or name): the map draws slowly under it (GraphPace), as
+    /// under its own sheets.
+    var covered: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The sky's shared switch (SpaceQuality): at .still - Low Power Mode,
     /// a hot device - the map holds still too.
@@ -119,12 +124,20 @@ struct Graph3DView: View {
     /// The region the camera is flown in to, named on a pill at the top
     /// ("Examples · 14 notes"); nil over the whole map.
     @State private var flownRegion: UUID?
+    /// The notes' part of the signature, keeping each note's size step
+    /// until its text changes (GraphShapeKey).
+    @State private var shapeKey = GraphShapeKey()
+    /// Counts the times the map was built again because a shader check it
+    /// used could not be trusted (shadersUnsure); part of the signature.
+    @State private var probeRound: Int = 0
     @Namespace private var peekZoom
     @AccessibilityFocusState private var cardFocused: Bool
 
-    init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in }) {
+    init(open: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void = { _ in },
+         covered: Bool = false) {
         self.open = open
         self.openFolder = openFolder
+        self.covered = covered
     }
 
     var body: some View {
@@ -144,6 +157,12 @@ struct Graph3DView: View {
             }
         }
         .task(id: signature) { await rebuild() }
+        // back in front with a shader check that failed while away (not
+        // kept, GraphProbeMemo): check again and build again (Chat-me audit
+        // row 112)
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            if shadersUnsure { probeRound += 1 }
+        }
         // a folder being filtered to was deleted: show everything again
         .onChange(of: notes.folders) { _, _ in
             if case .folder(let id) = filter, notes.folder(id) == nil { filter = .all }
@@ -238,7 +257,7 @@ struct Graph3DView: View {
                              insets: insets, onTap: open, openFolder: openFolder,
                              command: command, chosen: selection.selected,
                              linksFor: selection.linksShown ? selection.selected : nil,
-                             labels: labelSettings, touch: touchHandlers)
+                             labels: labelSettings, touch: touchHandlers, covered: covered || sheetUp)
             }
             .ignoresSafeArea()
         }
@@ -765,26 +784,21 @@ struct Graph3DView: View {
     /// Everything the picture depends on. When this changes the layout is
     /// worked out again; moving a card on the board does not change it. In
     /// the Universe each note's size step counts too (GraphUniverse.level),
-    /// so typing rebuilds only when a note crosses one.
+    /// so typing rebuilds only when a note crosses one. It is worked out on
+    /// every redraw of the map's screen, so the notes' part is one hash that
+    /// counts a note's words again only when its text changes (GraphShapeKey;
+    /// Chat-me audit row 107).
     private var signature: String {
         let universe: Bool = sizedByLength
-        var parts: [String] = []
-        for note in notes.notes {
-            let folder: String = note.folderId?.uuidString ?? ""
-            var line: String = "\(note.id.uuidString)|\(note.title)|\(note.kind.rawValue)|\(folder)"
-            if universe {
-                let words: Int = GraphUniverse.wordCount(note.body)
-                line += "|L\(GraphUniverse.level(words: words))"
-            }
-            parts.append(line)
+        let list: [GraphShapeKey.Note] = notes.notes.map { note in
+            GraphShapeKey.Note(id: note.id, title: note.title, kind: note.kind.rawValue, folder: note.folderId,
+                               body: note.body)
         }
-        for edge in notes.allEdges() {
-            parts.append(edge.0.uuidString + edge.1.uuidString)
+        let folders: [GraphShapeKey.Folder] = notes.folders.map { folder in
+            GraphShapeKey.Folder(id: folder.id, name: folder.name, parent: folder.parentId)
         }
-        for folder in notes.folders {
-            let parent: String = folder.parentId?.uuidString ?? ""
-            parts.append("\(folder.id.uuidString)|\(folder.name)|\(parent)")
-        }
+        let shape: Int = shapeKey.key(notes: list, edges: notes.allEdges(), folders: folders, levels: universe)
+        var parts: [String] = ["s\(shape)"]
         parts.append("\(reduceMotion)")
         parts.append(nodeStyle + "|" + folderStyles)
         if theme == .neurons {
@@ -799,7 +813,37 @@ struct Graph3DView: View {
         // the link length plans the Universe and the themes (not the single
         // looks, which the force layout places)
         if universe { parts.append(GraphLinkLength.tag(linkValue)) }
+        parts.append("p\(probeRound)")
         return parts.joined(separator: "\n")
+    }
+
+    /// Whether a shader check this look builds with was not kept: it failed
+    /// with the app away, or as it came or went. One made in the background
+    /// used to leave the map plain until the app was quit.
+    private var shadersUnsure: Bool {
+        switch theme {
+        case .space: return GraphShaderProbe.unsure || GraphStyleProbe.unsure
+        case .neurons: return NeuronProbe.unsure
+        case .performance: return false
+        }
+    }
+
+    /// After a build: a shader check it used was not kept and the app is in
+    /// front now (it came back while the check ran), so check again and
+    /// build again. One that ends with the app away waits for it to come
+    /// back (the didBecomeActive handler above). The new round checks with
+    /// the app in front, so unless it leaves again mid-check, that answer is
+    /// kept and the next build stops here.
+    private func recheckShaders() {
+        guard !Task.isCancelled, shadersUnsure, GraphForeground.shared.visit != nil else { return }
+        probeRound += 1
+    }
+
+    /// One of the map's own sheets is up over it (every one dims the map
+    /// and takes its touches): it draws slowly under them (GraphPace).
+    private var sheetUp: Bool {
+        reading != nil || renaming != nil || linkingFrom != nil || movingNote != nil || addingInto != nil
+            || addingFolder || showingLegend
     }
 
     /// Reduce Transparency or Increase Contrast: brighter, solid links.
@@ -813,6 +857,10 @@ struct Graph3DView: View {
     }
 
     private func rebuild() async {
+        // the shader checks keep an answer only if the app was in front
+        // throughout (GraphProbeMemo)
+        GraphForeground.shared.watch()
+        defer { recheckShaders() }
         if theme == .performance {
             rebuildPerformance()
             return
@@ -834,10 +882,10 @@ struct Graph3DView: View {
         }
         // a constant copy: a var cannot be handed to another thread
         let groups = folders
-        // the layout, and (once per launch) a check that the shaders work
-        // then packed into one constellation and turned to show its broadest
-        // face (GraphFraming)
-        let worked = await Task.detached(priority: .userInitiated) {
+        // the layout, and a check that the shaders work (kept once it can be
+        // trusted: GraphProbeMemo), then packed into one constellation and
+        // turned to show its broadest face (GraphFraming)
+        let worked = await GraphWork.offMain {
             let laid = ForceLayout3D.layout(nodes: ids, edges: edges, groups: groups)
             let radius: Float = GraphFraming.pageRadius(laid, edges: edges)
             let reach: Float = radius * GraphShape.diskRadius
@@ -845,7 +893,7 @@ struct Graph3DView: View {
             let support: GraphShaderSupport = GraphShaderProbe.support
             _ = GraphStyleProbe.support
             return (positions, support, radius)
-        }.value
+        }
         guard !Task.isCancelled else { return }
         let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
         var scene: GraphScene = GraphSceneBuilder.build(store: notes, positions: worked.0, edges: edges,
@@ -862,12 +910,12 @@ struct Graph3DView: View {
     private func rebuildUniverse() async {
         let edges = notes.allEdges()
         let input: UniverseInput = universeInput(edges: edges)
-        let worked = await Task.detached(priority: .userInitiated) {
+        let worked = await GraphWork.offMain {
             let plan: UniversePlan = GraphUniverse.plan(input)
             let support: GraphShaderSupport = GraphShaderProbe.support
             _ = GraphStyleProbe.support
             return (plan, support)
-        }.value
+        }
         guard !Task.isCancelled else { return }
         let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
         // folder looks by the plan's galaxy, not the store's top-level walk
@@ -893,11 +941,11 @@ struct Graph3DView: View {
     private func rebuildTheme(_ chosen: GraphTheme) async {
         let edges = notes.allEdges()
         let input: UniverseInput = universeInput(edges: edges)
-        let worked = await Task.detached(priority: .userInitiated) { () -> ThemePlan? in
+        let worked = await GraphWork.offMain { () -> ThemePlan? in
             let plan: ThemePlan? = GraphThemes.plan(chosen, input)
             GraphThemes.prepare(chosen)
             return plan
-        }.value
+        }
         guard !Task.isCancelled else { return }
         let lively: Bool = !reduceMotion && quality != .still && SpaceQuality.current() != .still
         let cells: NeuronStateChoice = cellChoice
@@ -1077,7 +1125,7 @@ enum GraphSceneBuilder {
         // connections: camera-facing ribbons, all in one geometry that
         // GraphSim rebuilds as the notes move; the look is in the shader,
         // which also reads each end's style (GraphStyleShaders.link)
-        let styled: GraphStyleSupport = GraphStyleProbe.support
+        let styled: GraphStyleSupport = GraphStyleProbe.latest
         let linkMaterial: SCNMaterial = GraphStyleKit.link(bold: bold, old: shaders.link,
                                                            styled: styled.has("link"),
                                                            lively: lively, reach: pageRadius * 2.5)
@@ -1250,19 +1298,82 @@ enum GraphSceneBuilder {
     /// pill just the size of the words, with a thin lighter rim round it.
     /// Everything in it is fully opaque and drawn over the whole scene
     /// without depth testing, so no link, glow or note ever shows through or
-    /// hides it. It starts hidden; GraphSim shows it for the hovered,
-    /// pressed or chosen note.
+    /// hides it. It starts hidden and empty: GraphSim shows it for the
+    /// hovered, pressed or chosen note, and makes its words, pill and rim
+    /// the first time it does (GraphLabelNode).
     /// `rim` tints the rim (a galaxy's names); `cut` shortens a long title
     /// (a folder's label comes already cut, so its count always shows).
     static func label(_ text: String, color: UIColor, height: Float, contrast: Bool,
                       rim rimTint: UIColor? = nil, cut: Bool = true) -> SCNNode {
         let long: Bool = cut && text.count > 28
         let shown: String = long ? String(text.prefix(27)) + "\u{2026}" : text
-        let geometry = SCNText(string: shown, extrusionDepth: 0)
+        return GraphLabelNode(GraphLabelNode.Recipe(text: shown, color: color, height: height, contrast: contrast,
+                                                    rim: rimTint))
+    }
+}
+
+/// A name over a body (GraphSceneBuilder.label), made the first time it is
+/// wanted. Every rebuild of the map used to make SceneKit text, a pill and a
+/// rim for every body's name, on the main thread, though only the hovered,
+/// pressed or chosen body's name ever shows (Chat-me audit row 110): a
+/// rebuild now makes an empty holder that keeps what to draw, and GraphSim
+/// fills it when the name first goes up (on SceneKit's render thread, with
+/// its lock held), so a map of a thousand notes makes the few names anyone
+/// looks at.
+///
+/// The holder carries where the name sits and how big it is (the scene
+/// builders, GraphSim.placeLabel); its children are the rim, the pill and
+/// the words, in that order (GraphLabelParts.find).
+nonisolated final class GraphLabelNode: SCNNode {
+    /// What a name is made from.
+    struct Recipe {
+        /// The words, already cut to length.
+        let text: String
+        let color: UIColor
+        let height: Float
+        let contrast: Bool
+        /// The rim's tint (a galaxy's names); nil for the usual rim.
+        let rim: UIColor?
+    }
+
+    /// What to draw, until it is drawn.
+    private var recipe: Recipe?
+
+    /// Whether the words, pill and rim are made.
+    var isFilled: Bool { recipe == nil }
+
+    init(_ recipe: Recipe) {
+        self.recipe = recipe
+        super.init()
+        name = "label"
+        renderingOrder = 20
+        let billboard = SCNBillboardConstraint()
+        billboard.freeAxes = .all
+        constraints = [billboard]
+    }
+
+    /// SceneKit's own copies come this way (clone(), for a body leaving the
+    /// map): a copy keeps the children it was given, and never makes any.
+    override init() {
+        super.init()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    /// Makes the words, the pill and the rim, once; false when they were
+    /// made already.
+    @discardableResult
+    func fill() -> Bool {
+        guard let recipe else { return false }
+        self.recipe = nil
+        let height: Float = recipe.height
+        let geometry = SCNText(string: recipe.text, extrusionDepth: 0)
         geometry.font = UIFont.systemFont(ofSize: 10, weight: .bold)
         geometry.flatness = 0.3
         let material = SCNMaterial()
-        material.diffuse.contents = color
+        material.diffuse.contents = recipe.color
         material.lightingModel = .constant
         material.isDoubleSided = true
         material.writesToDepthBuffer = false
@@ -1287,7 +1398,7 @@ enum GraphSceneBuilder {
         let padY: Float = height * 0.10
         let pillWidth: Float = textWidth + padX * 2
         let pillHeight: Float = textHeight + padY * 2
-        let pillColor: UIColor = contrast ? UIColor.black : Self.pillFill
+        let pillColor: UIColor = recipe.contrast ? UIColor.black : Self.pillFill
         let pill = SCNPlane(width: CGFloat(pillWidth), height: CGFloat(pillHeight))
         pill.cornerRadius = CGFloat(pillHeight / 2)
         pill.materials = [Self.solid(pillColor)]
@@ -1298,7 +1409,7 @@ enum GraphSceneBuilder {
         let edge: Float = height * 0.12
         let rimWidth: Float = pillWidth + edge
         let rimHeight: Float = pillHeight + edge
-        let rimColor: UIColor = contrast ? UIColor.white : (rimTint ?? Self.rimFill)
+        let rimColor: UIColor = recipe.contrast ? UIColor.white : (recipe.rim ?? Self.rimFill)
         let rim = SCNPlane(width: CGFloat(rimWidth), height: CGFloat(rimHeight))
         rim.cornerRadius = CGFloat(rimHeight / 2)
         rim.materials = [Self.solid(rimColor)]
@@ -1311,16 +1422,10 @@ enum GraphSceneBuilder {
         pillNode.renderingOrder = 20
         textNode.renderingOrder = 21
 
-        let holder = SCNNode()
-        holder.name = "label"
-        holder.renderingOrder = 20
-        holder.addChildNode(rimNode)
-        holder.addChildNode(pillNode)
-        holder.addChildNode(textNode)
-        let billboard = SCNBillboardConstraint()
-        billboard.freeAxes = .all
-        holder.constraints = [billboard]
-        return holder
+        addChildNode(rimNode)
+        addChildNode(pillNode)
+        addChildNode(textNode)
+        return true
     }
 
     /// A solid dark slate: dark enough for the pale words, not so black it
@@ -1397,6 +1502,8 @@ struct GraphSCNView: UIViewRepresentable {
     var linksFor: UUID? = nil
     var labels = GraphLabelSettings()
     var touch = GraphTouchHandlers()
+    /// A sheet is up over the map: it draws slowly under it (GraphPace).
+    var covered: Bool = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onTap: onTap, openFolder: openFolder, recenter: recenter, insets: insets)
@@ -1450,6 +1557,7 @@ struct GraphSCNView: UIViewRepresentable {
         coordinator.linksID = linksFor
         coordinator.labels = labels
         coordinator.commandSerial = command.serial
+        coordinator.cover(covered)
         coordinator.attach(built, to: view)
         coordinator.apply(filter)
         return view
@@ -1481,6 +1589,7 @@ struct GraphSCNView: UIViewRepresentable {
         } else if coordinator.insets != insets {
             coordinator.inset(to: insets)
         }
+        coordinator.cover(covered)
     }
 
     static func dismantleUIView(_ view: FramingSCNView, coordinator: Coordinator) {
@@ -1601,10 +1710,12 @@ struct GraphSCNView: UIViewRepresentable {
         private var lastHover: CGPoint?
         /// The small tick when a note is chosen.
         private let chooser = UISelectionFeedbackGenerator()
-        /// The last touch, press, pan, tap or hover (the Universe's frame
-        /// rate), and whether a check to slow down is already waiting.
+        /// The last touch, press, pan, tap or hover, choice or framing (the
+        /// frame rate, GraphPace), when the waiting look at the rate is due
+        /// (0: none), and whether a sheet is up over the map.
         private var lastWake: CFTimeInterval = 0
-        private var settling: Bool = false
+        private var lookDue: CFTimeInterval = 0
+        private var covered: Bool = false
 
         init(onTap: @escaping (UUID) -> Void, openFolder: @escaping (UUID?) -> Void, recenter: Int,
              insets: GraphInsets) {
@@ -1771,6 +1882,7 @@ struct GraphSCNView: UIViewRepresentable {
             shownFilter = filter
             sim.apply(filter)
             refreshVoice()
+            wake()
             // the chosen body filtered away: let it go (after this update)
             if let id = chosenID, let i = sim.index[id], !sim.isVisible(i) {
                 let report: (UUID?) -> Void = touch.select
@@ -1895,6 +2007,7 @@ struct GraphSCNView: UIViewRepresentable {
             camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
             SCNTransaction.commit()
             framedPose = camera.simdTransform
+            wake()
         }
 
         /// Keeps the whole map inside the camera's far plane from `distance`:
@@ -1957,41 +2070,45 @@ struct GraphSCNView: UIViewRepresentable {
 
         // MARK: the frame rate
 
-        /// Any touch, press, pan, tap or hover: 120 frames a second, until 3
-        /// seconds after the last one (the Universe; the graph look always
-        /// runs at 120). A Universe that holds still (Reduce Motion, Low
-        /// Power Mode, a hot device) stays at 60: nothing animates, and a
-        /// drag is smooth enough there.
+        /// Any touch, press, pan, tap or hover, a new choice, filter,
+        /// framing or fly-in: the fast rate again, stepping down as the map
+        /// goes quiet (GraphPace: the budget's rate, then 60, then 30 for a
+        /// lively map; 60, then 20 for one that holds still - Reduce
+        /// Motion, Low Power Mode, a hot device).
         func wake() {
-            guard let view else { return }
-            if universe, let sim, !sim.lively {
-                if view.preferredFramesPerSecond != 60 { view.preferredFramesPerSecond = 60 }
-                return
-            }
             lastWake = CACurrentMediaTime()
-            // Smooth: 60 throughout, so the rate never changes under the eye
-            let fast: Int = GraphQuality.frameRate
-            if view.preferredFramesPerSecond != fast { view.preferredFramesPerSecond = fast }
-            guard universe, !settling else { return }
-            settling = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.05) { [weak self] in
-                self?.settle()
-            }
+            pace()
         }
 
-        private func settle() {
-            settling = false
-            guard let view, universe else { return }
-            let quiet: CFTimeInterval = CACurrentMediaTime() - lastWake
-            if dragging || quiet < 3 {
-                settling = true
-                let wait: Double = dragging ? 1 : max(3.05 - quiet, 0.1)
-                DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
-                    self?.settle()
-                }
-                return
+        /// A sheet is up over the map (the note, a picker, a name): it
+        /// draws at GraphPace.idle under it, and wakes when it goes.
+        func cover(_ now: Bool) {
+            guard now != covered else { return }
+            covered = now
+            wake()
+        }
+
+        /// Asks for the rate GraphPace gives now, and looks again when that
+        /// would next change: one look waits at a time, a sooner one
+        /// replacing it.
+        private func pace() {
+            guard let view else { return }
+            let now: CFTimeInterval = CACurrentMediaTime()
+            let quiet: Double = now - lastWake
+            let lively: Bool = sim?.lively ?? true
+            let rate: Int = GraphPace.rate(fast: GraphQuality.frameRate, lively: lively, covered: covered,
+                                           quiet: quiet, busy: dragging)
+            if view.preferredFramesPerSecond != rate { view.preferredFramesPerSecond = rate }
+            guard let wait = GraphPace.recheck(lively: lively, covered: covered, quiet: quiet,
+                                               busy: dragging) else { return }
+            let due: CFTimeInterval = now + wait
+            if lookDue > 0 && lookDue <= due { return }
+            lookDue = due
+            DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+                guard let self, self.lookDue == due else { return }
+                self.lookDue = 0
+                self.pace()
             }
-            view.preferredFramesPerSecond = 60
         }
 
         // MARK: gestures
@@ -2176,12 +2293,14 @@ struct GraphSCNView: UIViewRepresentable {
                 } else {
                     sim.clearSelection()
                 }
+                wake()
             }
             if !shownLinksSet || shownLinks != linksID {
                 shownLinksSet = true
                 shownLinks = linksID
                 let slot: Int? = linksID.flatMap { sim.index[$0] }
                 sim.focusLinks(on: slot)
+                wake()
             }
         }
 

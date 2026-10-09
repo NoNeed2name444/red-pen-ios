@@ -294,6 +294,9 @@ gated.record(gateReply(#","claims":{"hard":[{"code":"frequency","claim":"every 4
 check("an item that contradicts its own lecture is never Verified, whatever the votes", gated.assess(item0).grade == .check
       && gated.records[hash0]?.claimHolds == ["frequency"] && gated.isChecked(hash0))
 check("and the finding is a reason, in words", gated.assess(item0).reasons.contains("Gives a different dosing frequency from its own lecture."))
+gated.record(gateReply(#","claims":{"hard":[{"code":"direction","claim":"raises the potassium","source":"lowers the potassium"}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("a sentence turned around has words of its own", gated.assess(item0).grade == .check
+      && gated.assess(item0).reasons.contains("Says the other way from its own lecture."))
 gated.record(gateReply(""), for: [hash0], at: gateTime)
 check("a later reply's findings replace the earlier ones", gated.assess(item0).grade == .verified)
 gated.add(votes: [AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports")], holds: ["negation"], for: hash0)

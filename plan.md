@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 6:30 AM Cairo.
+Last updated: 2026-10-09, 6:35 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,10 +39,11 @@ Last updated: 2026-10-09, 6:30 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green) and the claim gate's direction check (step 10; joined at about 4:55 AM), then the neumorphic app (#33, from aahp/personal; joined on 9 Oct) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM), the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM), then the neumorphic app (#33, from aahp/personal; joined on 9 Oct) | personal is the working branch; keep session branches equal to it |
 | aahp/personal | the merge that took the neumorphic app into personal | the design loop's branch (#33, tasks T0018 to T0028); its CI runs read-only and publishes nothing |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -460,7 +461,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      branches keep only the latest run, by design) and the rest of that
      branch (another agent's prework/medical-assistant scaffold, PARTIAL
      or BLOCKED by its own notes).
-10. [ ] #24, the claim gate reads which way a sentence goes, on
+10. [x] #24, the claim gate reads which way a sentence goes, on
     design/claim-direction (from 5d0edcd). The Worker's claim gate
     (server/claims.js) caught a flipped negation, dose, frequency or
     percentage, but not a sentence turned around: a card's "Statin therapy
@@ -504,11 +505,11 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       commit on 9 Oct at about 4:55 AM. Server and plan only, so it
       started no App build and left personal's running one (step 9's
       port, 37870387509) alone.
-    - [ ] The app's own words for it, with the next batch of ios/ work (it
+    - [x] The app's own words for it, with the next batch of ios/ work (it
       starts a Mac run): AccuracyAssessment.holdReason("direction"), "Says
       the other way from its own lecture.", and "direction" in claimHolds'
-      doc (AccuracyLedger.swift). Until then the app reads it as "Differs
-      from its own lecture.", which is true.
+      doc (AccuracyLedger.swift). Done with step 13's push on
+      design/map-lighter; the accuracy suite checks the words.
     - Live only after a Worker deploy, which needs the owner's word.
 11. [ ] Chat-me (needs push access there, which this session was refused;
     don't retry, it's the owner's to grant): port the 50-claim benchmark
@@ -539,20 +540,47 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     - 114, real: a layout the map no longer wanted ran to the end. Step 13.
     - 115, not a fault: a new feature (a card set's source note), left for
       the roadmap.
-13. [ ] #28, the 3D map lighter, on design/map-lighter (from c0f61e8; the
+13. [x] #28, the 3D map lighter, on design/map-lighter (from 84fcf66; the
     owner: the map is "wasting lots pf resources"):
-    - [ ] 109: the frame rate follows what the map is doing (GraphPace): a
+    - [x] 109: the frame rate follows what the map is doing (GraphPace): a
       lively map draws at its full rate while touched and for 3 s after,
       then 60, and 30 after 20 s untouched; a still one at 60 at most while
-      touched and for 3 s after, then 20; 20 under a sheet.
-    - [ ] 114: a newer change cancels the layout it supersedes (GraphWork,
-      the loop's check).
-    - [ ] 107: the notes' part of the signature as one hash, a note's words
-      counted again only when its text changes (GraphShapeKey).
-    - [ ] 110: names made the first time they show.
-    - [ ] 112: a failed probe is not kept while the app is not active.
-    - [ ] Preflight, push, App build green, then personal and the session
-      branch.
+      touched and for 3 s after, then 20; 20 under a sheet (the map's own,
+      and the Ideas screen's over it: Graph3DView's `covered`, which the
+      Playgrounds stand-in, tools/playgrounds_stubs/graph3d.swift, takes
+      too). Suite graphics, G7a to G7u.
+    - [x] 114: a newer change cancels the layout it supersedes (GraphWork,
+      the loop's check). Suite forcelayout (new).
+    - [x] 107: the notes' part of the signature as one hash, a note's words
+      counted again only when its text changes (GraphShapeKey). Suite
+      shapekey (new).
+    - [x] 110: names made the first time they show (GraphLabelNode, an
+      empty holder that GraphSim, in GraphMotion, fills when its name
+      first goes up).
+    - [x] 112: a shader check's answer is kept only when it can be
+      trusted: every shader passed, or the app was in front, in one visit,
+      from its start to its end (GraphProbeMemo; suite probememo, 18
+      checks; 12 planted bugs, all caught). The main thread builds with the
+      answer it has and never waits behind a check; the map checks and
+      builds again when the app comes back with an answer not kept, or
+      when a build ends in front with one (Graph3DView.recheckShaders). A
+      check still running is not "unsure", so the app's arrival at launch,
+      mid-check, does not build the map twice.
+    - [x] Preflight, push, App build green, then personal and the session
+      branch. Done: preflight OK (76 of 76 Swift suites, every server
+      test, the four Playgrounds packages); App build 37878253817 and
+      Swift tests 37878253831 green on c9c7d7f; personal and
+      claude/new-session-013tes5v fast-forwarded on 9 Oct at about
+      6:35 AM. That push runs personal's own App build (the whole UI
+      suite).
+    - Left: 111 (section 3, step 12). NoteStore.allEdges(), which the
+      signature asks for on every redraw, is already kept until a note
+      changes (its edgeCache), so it needs nothing.
+14. [ ] #29, one preview run for step 13: preview/3d-overhaul
+    fast-forwarded to personal's tip. Check 45-1 and 45-2 (names over
+    bright bodies: names are now made the first time they show), that the
+    shaders are on, and a cell's opening and closing; send the owner the
+    name shots.
 
 ## 4. M3: the Neurons rebuild
 

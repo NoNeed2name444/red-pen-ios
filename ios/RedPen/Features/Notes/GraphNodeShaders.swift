@@ -22,9 +22,9 @@ nonisolated struct GraphStyleSupport: Sendable {
     static let none = GraphStyleSupport(passed: [])
 }
 
-/// Tries each style shader once, off the main thread, in the same tiny
-/// offscreen render GraphShaderProbe uses. Bodies must also see a real
-/// normal to pass.
+/// Tries each style shader off the main thread, in the same tiny offscreen
+/// render GraphShaderProbe uses. Bodies must also see a real normal to
+/// pass.
 nonisolated enum GraphStyleProbe {
     static let all: [(String, String)] = [
         ("link", GraphStyleShaders.link),
@@ -48,9 +48,22 @@ nonisolated enum GraphStyleProbe {
         ("well", GraphStyleShaders.well)
     ]
 
-    /// Worked out once per launch (Graph3DView asks for it off the main
-    /// thread, before building).
-    static let support: GraphStyleSupport = run()
+    /// Checked off the main thread before a build (Graph3DView), and kept
+    /// once it can be trusted: every shader passed, or the app was in front
+    /// for the whole check (GraphProbeMemo; Chat-me audit row 112).
+    static var support: GraphStyleSupport { memo.check(visit: { GraphForeground.shared.visit }) }
+
+    /// The answer the last check gave, without checking again: for the main
+    /// thread, building with it.
+    static var latest: GraphStyleSupport { memo.latest(visit: { GraphForeground.shared.visit }) }
+
+    /// Whether the last answer was not kept (GraphProbeMemo.unsure).
+    static var unsure: Bool { memo.unsure }
+
+    private static let memo = GraphProbeMemo<GraphStyleSupport> {
+        let found: GraphStyleSupport = GraphStyleProbe.run()
+        return (found, found.passed.count == GraphStyleProbe.all.count)
+    }
 
     private static func run() -> GraphStyleSupport {
         guard let device = MTLCreateSystemDefaultDevice() else { return .none }

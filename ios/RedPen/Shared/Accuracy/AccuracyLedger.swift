@@ -16,9 +16,10 @@ struct AccuracyRecord: Codable, Hashable {
     var reported: Bool = false
     /// The server's claim gate (server/claims.js): what the item says that
     /// contradicts its own lecture - "negation", "dose", "frequency",
-    /// "percentage" - or "gate_failed" when the gate could not tell. Any of
-    /// them and the item is never Verified, whatever the votes say. Nil when
-    /// the gate found nothing (or the check predates it).
+    /// "percentage", "direction" (a sentence turned around: higher for
+    /// lower, rare for common) - or "gate_failed" when the gate could not
+    /// tell. Any of them and the item is never Verified, whatever the votes
+    /// say. Nil when the gate found nothing (or the check predates it).
     var claimHolds: [String]? = nil
     /// The server's source proof (server/proof.js): which of the item's
     /// claims an official source states word for word. Nil before the check
@@ -147,6 +148,7 @@ struct AccuracyAssessment: Hashable {
         case "dose": return "Gives a different dose from its own lecture."
         case "frequency": return "Gives a different dosing frequency from its own lecture."
         case "percentage": return "Gives a different percentage from its own lecture."
+        case "direction": return "Says the other way from its own lecture."
         case AccuracyCheckReply.gateFailed: return "Couldn't be compared with its lecture yet; it will be checked again."
         default: return "Differs from its own lecture."
         }

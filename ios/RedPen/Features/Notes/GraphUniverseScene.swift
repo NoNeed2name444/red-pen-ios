@@ -33,7 +33,7 @@ extension GraphSceneBuilder {
 
         // links: the approved calm beam, finer; between galaxies and to
         // comets 55% as bright, in a node of their own
-        let styled: GraphStyleSupport = GraphStyleProbe.support
+        let styled: GraphStyleSupport = GraphStyleProbe.latest
         let beam: Bool = styled.has("link")
         let linkMaterial: SCNMaterial = GraphStyleKit.link(bold: bold, old: shaders.link, styled: beam,
                                                            lively: lively, reach: 0.5)
@@ -319,7 +319,7 @@ extension GraphSceneBuilder {
     /// A name pill's rim in a galaxy: the usual rim mixed half with its tone.
     static func rim(tone colour: UIColor) -> UIColor {
         let tone: SIMD3<Float> = GraphStyleArt.components(colour)
-        let base: SIMD3<Float> = GraphStyleArt.components(rimFill)
+        let base: SIMD3<Float> = GraphStyleArt.components(GraphLabelNode.rimFill)
         let mixed: SIMD3<Float> = (tone + base) * 0.5
         return UIColor(red: CGFloat(mixed.x), green: CGFloat(mixed.y), blue: CGFloat(mixed.z), alpha: 1)
     }

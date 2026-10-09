@@ -124,8 +124,8 @@ enum GraphThemes {
         }
     }
 
-    /// Checks the theme's shaders once, off the main thread, before its
-    /// first build.
+    /// Checks the theme's shaders off the main thread before a build (kept
+    /// once the answer can be trusted: GraphProbeMemo).
     nonisolated static func prepare(_ theme: GraphTheme) {
         switch theme {
         case .neurons: _ = NeuronProbe.support

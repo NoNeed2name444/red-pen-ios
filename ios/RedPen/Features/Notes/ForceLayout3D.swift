@@ -12,6 +12,10 @@ import Foundation
 /// shape, because the starting scatter comes from a fixed seed and the notes
 /// are taken in a fixed order - so the space does not rearrange itself every
 /// time it is opened, and the layout can be tested without a screen.
+///
+/// Stops early when the task running it is cancelled - the map asked for a
+/// newer layout, and this one's half-settled answer is thrown away (Chat-me
+/// audit row 114: superseded layouts used to run to the end).
 enum ForceLayout3D {
     /// - Parameters:
     ///   - nodes: every note to place.
@@ -62,6 +66,7 @@ enum ForceLayout3D {
         let cooling = temperature / Float(max(iterations, 1))
 
         for _ in 0..<max(iterations, 0) {
+            if Task.isCancelled { break }
             var push = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: n)
 
             // every pair pushes apart, harder the closer they are
@@ -122,6 +127,20 @@ enum ForceLayout3D {
 
     private static func length(_ v: SIMD3<Float>) -> Float {
         (v.x * v.x + v.y * v.y + v.z * v.z).squareRoot()
+    }
+}
+
+/// A rebuild's heavy part (the layout, a theme's plan), off the main thread.
+///
+/// A newer change to the map cancels the rebuild waiting here (the view's
+/// `.task(id:)`), but a detached job does not inherit that, so it is passed
+/// on: the force layout then stops at once instead of running to the end
+/// for nothing (Chat-me audit row 114). The plans still finish; the caller
+/// drops a cancelled rebuild's answer either way.
+enum GraphWork {
+    static func offMain<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+        let job = Task.detached(priority: .userInitiated) { work() }
+        return await withTaskCancellationHandler { await job.value } onCancel: { job.cancel() }
     }
 }
 

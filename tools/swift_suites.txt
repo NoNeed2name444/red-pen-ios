@@ -156,6 +156,16 @@ suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift
 # the Graphics setting (Automatic / High quality / Smooth), even
 # frame steps, and every link one smooth curve
 suite graphics GraphicsTests.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphLinkCurve.swift
+# the classic Space map's force layout: the same shape every time, and a
+# layout the map no longer wants stops when its rebuild is cancelled
+suite forcelayout ForceLayoutTests.swift $F/Notes/ForceLayout3D.swift
+# what the map's picture takes from the notes, as one number: it changes
+# with every name, folder, link and size step, not while typing inside a
+# step, and a note's words are counted again only when its text changes
+suite shapekey GraphShapeKeyTests.swift $F/Notes/GraphShapeKey.swift $F/Notes/GraphUniverse.swift
+# a shader check's answer is kept only when it can be trusted: every
+# shader passed, or the app was in front for the whole check
+suite probememo GraphProbeMemoTests.swift $F/Notes/GraphProbeMemo.swift
 # the Space styles' physics: Kepler's disk and beaming, the terminator
 # facing its light, ring shadows, the pulsar's sweep and its links' beat,
 # the comet's two tails, the corona's code, each style's sparks
