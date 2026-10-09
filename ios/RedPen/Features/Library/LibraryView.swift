@@ -586,9 +586,15 @@ struct LibraryView: View {
             }
             .task(id: dockHeight) {
                 guard PreviewLaunch.screen == "library-end", dockHeight > 0 else { return }
-                // The photo must show the list's end once the dock has a height.
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
-                proxy.scrollTo(Self.listEndID, anchor: .bottom)
+                // A measured dock does not mean List has laid out its rows yet.
+                // Retry across layout passes, including any late inset updates,
+                // rather than spending the preview's only scroll on an early pass.
+                // This finishes in three seconds; the capture waits seven.
+                for _ in 0..<12 {
+                    do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+                    guard !Task.isCancelled else { return }
+                    proxy.scrollTo(Self.listEndID, anchor: .bottom)
+                }
             }
         }
     }
