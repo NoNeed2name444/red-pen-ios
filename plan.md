@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 8:20 AM Cairo.
+Last updated: 2026-10-09, 10:40 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -42,7 +42,7 @@ Last updated: 2026-10-09, 8:20 AM Cairo.
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -646,8 +646,22 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       for the owner: on book-light, the Back label wraps onto two lines,
       as it did before this change.
     - Task 4's first area (Spotlight's failed index or delete calls, row
-      4) went in as turn 68 at 8:49 AM; row 91 follows once it is
-      approved.
+      4) went in as turn 68 at 8:49 AM. The loop's reviewer hit its rate
+      limit; the task was run again and approved at turn 69 (10:20 AM;
+      aahp/personal cece1a4). The launch-gaps session fixed row 4 too
+      (design/launch-gaps b0ebd11, in AppIntents.swift, more fully; its
+      plan's step 17). So when aahp/personal is merged into personal (the
+      design session's merge, which the owner approved), launch-gaps'
+      AppIntents.swift stays; take from this task only
+      `SpotlightPlan.send` (Shared/Platform/AppLink.swift) and its
+      PlatformTests, if they are wired in, never its AppIntents.swift hunk
+      over b0ebd11. This session does not bring it over itself.
+    - Row 91 is not queued: it no longer applies (launch-gaps' finding:
+      the job spec has carried no check since 1 Oct, and a question counts
+      as checked only on two or more blind votes from three model families
+      with a source proof). So none of this session's tasks is in the loop
+      now; its next task is the design session's. New repetitive tasks go
+      in the same way.
     - [x] Review each result when it comes back, then bring it into
       personal. Not by merging aahp/personal: it also carries other
       sessions' loop tasks (the neumorphic restyling and frame clearance,
@@ -657,7 +671,9 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       over on its own as one commit with a plain-English message: tasks 1
       and 3 on 9 Oct at about 8:55 AM (from 7358ef8 and 4ef98ff; only
       their own lines, none of the other sessions' edits to the same
-      files).
+      files), as 8b529c4 and 2d35c18 on design/map-lighter (App build
+      37891118222, Server tests 37891118204 and Swift tests 37891118199,
+      green); they join personal with step 18.
 16. [x] #32, Chat-me's verifier.yml swift-test job (macOS,
     clients/ios/MedicalVerifierCore) has been red since at least d504978
     (1 Oct), with the same four failures on 28bdcf3 (7 Oct) and d17635d,
@@ -727,7 +743,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       word. Done: preflight OK; Server tests 37887435889 green on
       a06955a; personal and claude/new-session-013tes5v fast-forwarded to
       it on 9 Oct at about 8:15 AM.
-18. [ ] #34, a swapped drug name passes: Chat-me's verify and the Worker's
+18. [x] #34, a swapped drug name passes: Chat-me's verify and the Worker's
     say SUPPORTS for "Amoxicillin treats otitis media." against
     "Ibuprofen treats otitis media.", for "Amoxicillin is used for otitis
     media." against "Ibuprofen is used for otitis media.", and for
@@ -740,6 +756,38 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     its own drug's sentence would find. Fix it in Chat-me first (Python,
     the Swift twin and a shared vector; abstain, never contradict, per the
     22f fail-safe brief), then port it to the Worker like step 17.
+    - [x] Chat-me 746a7d7 (9 Oct, about 10:15 AM; Medical Verifier CI
+      37897988851 green): once every other check has passed, the verifier
+      lines the claim up against its evidence word by word, and if all
+      that differs is a run of up to two content words on each side,
+      neither another form of the same word nor a known alias, it abstains
+      (Python UNKNOWN with atomic_term_substituted; Swift
+      SOURCE_UNSUPPORTED). Shared vectors 1.5 pin a swapped drug, a
+      swapped outcome and a rewording that must still pass. 199 Python and
+      52 Swift tests pass; the 50-claim benchmark is unchanged.
+    - [x] The Worker: termSubstituted (server/claims.js) is a port of it,
+      in verify just before SUPPORTS. The one shared vector it changes on
+      purpose is in DEPARTURES with 746a7d7's answer: "Lithium is
+      dangerous in renal failure." against "… harmful …" now abstains (a
+      true synonym, which the fail-safe brief accepts). The test adds 15
+      pairs with 746a7d7's answers: 7 abstain (another drug, another
+      outcome, induces for inhibits, cardiovascular for all-cause
+      mortality, whose warfarin was stopped) and 8 still pass (haemorrhage
+      and hemorrhage, Crohn's and Crohn, paracetamol and acetaminophen,
+      "and requires" for "requiring", an added "in adults", two-sentence
+      evidence, an extra clause, the same sentence). And 6 gate cases: a
+      lecture sentence about another drug no longer hides an item's dose,
+      frequency or negation finding; a card that only swaps the drug is a
+      soft finding (atomic_term_substituted, beside the verdict, changing
+      nothing); two clean items stay clean. The new checks fail on the
+      old gate; 109 pass on the new one. On the probe pairs and the shared
+      vectors the port gives 746a7d7's answers but for the two step 19
+      re-pins. Timing is within the machine's noise (an ordinary batch
+      about 2.6 ms warm before and after; the check is about 0.13 ms of
+      it, and the worst batch never reaches it).
+    - [ ] Preflight, push design/map-lighter, Server tests green, then
+      personal and the session branch (with step 15's tasks 1 and 3).
+      Live only after a Worker deploy, which needs the owner's word.
 19. [ ] Re-pin the Worker's port to Chat-me personal. Measured on 9 Oct:
     besides step 17's vectors, the port still has two behaviours Chat-me
     dropped in d17635d (step 11). Its multilingual replace is not
@@ -747,7 +795,11 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     "reducess" inside its double-negation facts, and it has no direction
     axis, so "Ibuprofen reduces bleeding risk with warfarin." against
     "… increases …" abstains as atomic_object_mismatch, where Chat-me now
-    says atomic_relation_mismatch. Port both, then regenerate
+    says atomic_relation_mismatch. And "Metoprolol reduces heart rate."
+    against "… lowers …" abstains as atomic_object_mismatch, where Chat-me
+    746a7d7 says atomic_term_substituted (both abstain): the replace makes
+    the claim "reducess heart rate", whose object reads "s heart"; the
+    whole-word replace brings it in line. Port both, then regenerate
     tests/claim-vectors.json from Chat-me personal: bench/claim-vectors.py
     needs the module paths d504978 moved (agents/specialists/
     verification_agent/ for app/verification/), and the test's pinned

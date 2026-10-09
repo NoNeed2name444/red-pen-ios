@@ -6,7 +6,8 @@
 //    shared conformance vectors and Stethoscore-shaped pairs), each guard
 //    gives exactly what the Python gave (bench/claim-vectors.py made it),
 //    but where a later Chat-me changed an answer on purpose (DEPARTURES);
-//    and on the daily-dose rule that change brought, the later Python's.
+//    and on the rules those changes brought (a daily dose written another
+//    way, a term swapped for another), the later Python's.
 // 2. The gate: hard findings only where an item restates its lecture and
 //    contradicts it (a flipped negation, another dose, frequency or
 //    percentage) or turns it around (higher for lower, rare for common);
@@ -61,6 +62,12 @@ const DEPARTURES = new Map([
     verify: { label: 'UNKNOWN', reasons: ['insufficient_semantic_overlap'] },
     semantic: ['atomic_claim_not_entailed', 'dose_or_unit_not_matched', 'dose_frequency_mismatch'],
   }],
+  // Chat-me 746a7d7: a claim that differs from its evidence by one term
+  // swapped for another abstains, and so does a true synonym (dangerous for
+  // harmful), which the fail-safe brief accepts.
+  ['Lithium is dangerous in renal failure.\nLithium is harmful in renal failure.', {
+    verify: { label: 'UNKNOWN', reasons: ['atomic_term_substituted'] },
+  }],
 ]);
 {
   ok(/2f4fd4e/.test(fx.verifier) && fx.pairs.length >= 100, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
@@ -109,6 +116,36 @@ const DEPARTURES = new Map([
   ok(C.doseRewordingKeepsTerms('Take 1000 mg of it daily.', 'Take 500 mg twice daily.'),
      'a reworded dose may drop or add words of three letters or fewer');
 }
+{
+  // The swapped-term rule as Chat-me 746a7d7 has it (its conformance vectors
+  // 1.5 and independent_entailment.py), with its Python's answers: a claim
+  // that copies its evidence but for another drug, outcome or verb in one
+  // place is not backed by it; another form of the same word, a known alias,
+  // words the evidence adds, or another sentence of it that does back the
+  // claim, still are.
+  const SWAPS = [
+    ['Amoxicillin treats otitis media.', 'Ibuprofen treats otitis media.', 'UNKNOWN'],
+    ['Warfarin increases the risk of bleeding.', 'Warfarin increases the risk of stroke.', 'UNKNOWN'],
+    ['Amoxicillin 500 mg twice daily for otitis media.', 'Ibuprofen 500 mg twice daily for otitis media.', 'UNKNOWN'],
+    ['Metformin is first-line in type 2 diabetes.', 'Gliclazide is first-line in type 2 diabetes.', 'UNKNOWN'],
+    ['Rifampicin induces hepatic enzymes.', 'Rifampicin inhibits hepatic enzymes.', 'UNKNOWN'],
+    ['Statins reduce cardiovascular mortality.', 'Statins reduce all-cause mortality.', 'UNKNOWN'],
+    ["The patient's warfarin was stopped.", "The patient's aspirin was stopped.", 'UNKNOWN'],
+    ['Clopidogrel is a prodrug requiring metabolic activation.', 'Clopidogrel is a prodrug and requires metabolic activation.', 'SUPPORTS'],
+    ['Warfarin increases the risk of haemorrhage.', 'Warfarin increases the risk of hemorrhage.', 'SUPPORTS'],
+    ["Crohn's disease affects the terminal ileum.", 'Crohn disease affects the terminal ileum.', 'SUPPORTS'],
+    ['Paracetamol treats headache.', 'Acetaminophen treats headache.', 'SUPPORTS'],
+    ['Ceftriaxone treats bacterial meningitis.', 'Ceftriaxone treats bacterial meningitis in adults.', 'SUPPORTS'],
+    ['Amoxicillin treats otitis media.', 'Ibuprofen treats otitis media. Amoxicillin treats otitis media.', 'SUPPORTS'],
+    ['Amoxicillin treats otitis media.', 'Amoxicillin treats otitis media and ibuprofen treats fever.', 'SUPPORTS'],
+    ['Amoxicillin is used for otitis media.', 'Amoxicillin is used for otitis media.', 'SUPPORTS'],
+  ];
+  for (const [claim, evidence, label] of SWAPS) {
+    const v = C.verify(claim, evidence);
+    const pass = v.label === label && eq(v.reasons, [label === 'SUPPORTS' ? 'independent_structured_checks_passed' : 'atomic_term_substituted']);
+    ok(pass, `${label.padEnd(8)} ${claim} / ${evidence}${pass ? '' : `  (${v.label} ${v.reasons.join(',')})`}`);
+  }
+}
 
 // MARK: 2. the gate on items against their own lectures
 
@@ -138,6 +175,15 @@ const CASES = [
   // this one's (Chat-me a4152d5)
   ['dose+frequency', 'Amoxicillin 500 mg three times daily for otitis media. Ibuprofen 500 mg twice daily for otitis media.', { kind: 'card', text: 'Amoxicillin 1000 mg daily for otitis media.' }],
   ['dose+frequency', 'Metformin 500 mg three times daily in type 2 diabetes. Gliclazide 80 mg twice daily in type 2 diabetes.', { kind: 'card', text: 'Metformin 160 mg daily in type 2 diabetes.' }],
+  // nor does one that says the same of another drug (Chat-me 746a7d7): the
+  // item is held to its own drug's sentence, and a sentence that only swaps
+  // the drug is a soft finding
+  ['frequency', 'Amoxicillin 500 mg three times daily for otitis media. Ibuprofen 500 mg twice daily for otitis media.', { kind: 'card', text: 'Amoxicillin 500 mg twice daily for otitis media.' }],
+  ['dose', 'Digoxin 125 micrograms once daily for rate control in AF. Bisoprolol 125 mg once daily for rate control in AF.', { kind: 'card', text: 'Digoxin 125 mg once daily for rate control in AF.' }],
+  ['negation', 'Metformin is first-line in type 2 diabetes. Gliclazide is not first-line in type 2 diabetes.', { kind: 'card', text: 'Metformin is not first-line in type 2 diabetes.' }],
+  ['soft', 'Ibuprofen treats otitis media.', { kind: 'card', text: 'Amoxicillin treats otitis media.' }],
+  ['clean', 'Ibuprofen treats otitis media. Amoxicillin treats otitis media.', { kind: 'card', text: 'Amoxicillin treats otitis media.' }],
+  ['clean', 'Clopidogrel is a prodrug and requires metabolic activation.', { kind: 'fact', text: 'Clopidogrel is a prodrug requiring metabolic activation.' }],
   ['clean', 'Aspirin should be given to children with Kawasaki disease.', { kind: 'fact', text: 'Aspirin should not be given to children under 16.' }],
   ['clean', 'PCC reverses warfarin within minutes.', { kind: 'mcq', stem: 'A patient on warfarin bleeds. Best immediate reversal?', options: ['Vitamin K', 'Prothrombin complex concentrate'], key: 1, explanation: 'PCC works fastest.' }],
   ['clean', 'Vancomycin 15 mg/kg every 12 hours for MRSA bacteraemia.', { kind: 'card', text: 'Ceftriaxone 2 g every 12 hours for meningitis.' }],

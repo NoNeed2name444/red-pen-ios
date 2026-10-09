@@ -88,7 +88,13 @@ the code:
   either error as a failed run and free the pending snapshot, so the next
   update sends again. Do the sending in `SpotlightPlan`
   (Shared/Platform/AppLink.swift, Foundation-only), so the Linux suite
-  can test it. Tests: Tests/PlatformTests.swift. In the loop since 9 Oct.
+  can test it. Tests: Tests/PlatformTests.swift. Done: approved in the
+  loop on 9 Oct at 10:20 AM (aahp/personal cece1a4). The launch-gaps
+  session fixed the same row on design/launch-gaps (b0ebd11, in
+  AppIntents.swift, more fully: a refused clear is asked again too, and
+  both failures reach the failure reports). Where the two meet, its
+  AppIntents.swift stays; from this task, only `SpotlightPlan.send` and its
+  tests, if they are wired in (plan.md, section 3, step 15).
 - Row 91: the cloud jobs receive each generated item's check results but
   keep only its evidence (Shared/LLM/CloudJobs.swift, about :63 to :66),
   so the accuracy schedule checks the item again
@@ -97,7 +103,12 @@ the code:
   its blind-solve and proof details; an incomplete check must still run,
   and nothing may count as checked that was not. AccuracyLedger.swift is
   personal's (above): go through what it already offers. Tests:
-  Tests/AccuracyTests.swift.
+  Tests/AccuracyTests.swift. Not queued: it no longer applies (the
+  launch-gaps session's finding, 9 Oct). Since the verification layer (1
+  Oct) the app's job spec carries no check, so there are no generation
+  verdicts to hand over; and one checker's reply could not count anyway: a
+  question counts as checked only on two or more blind votes, from three
+  model families, with a source proof (AccuracyLedger.isChecked).
 
 ## What stays with Claude
 
