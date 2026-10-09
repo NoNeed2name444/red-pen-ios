@@ -122,21 +122,121 @@ jobs:
             --cellularMode active --cellularBars 4 --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p previews
-          # The last four are the newer screens (see PreviewExtras): the live
+          # A launch slower than the seven seconds allowed below leaves the
+          # system's launch screen in the photo instead of the app: about one
+          # shot in fifty, on any screen, and a pair that compares the launch
+          # screen with a real screen shows nothing. launch_screen.py tells
+          # the two apart by colour, from a tiny copy; a photo of the launch
+          # screen is taken again after a longer wait, twice at most, and a
+          # photo the check cannot read is kept as it is. It lives outside
+          # previews/ so it is never published.
+          probe="$RUNNER_TEMP/probe.png"
+          cat > "$RUNNER_TEMP/launch_screen.py" <<'PY'
+          # Is this photo the system launch screen rather than the app? The launch
+          # screen is navy all over (about 8,29,52 on average); every screen of the
+          # app averages far from that, the darkest (dark mode) near 46,51,59. Reads
+          # the small copy sips makes. Exit 0: launch screen; 1: not; 2: can't tell.
+          import struct, sys, zlib
+
+
+          def mean_rgb(path):
+              data = open(path, "rb").read()
+              if data[:8] != b"\x89PNG\r\n\x1a\n":
+                  return None
+              pos, idat, head = 8, [], None
+              while pos + 8 <= len(data):
+                  size, kind = struct.unpack(">I4s", data[pos:pos + 8])
+                  if kind == b"IHDR":
+                      head = struct.unpack(">IIBBBBB", data[pos + 8:pos + 21])
+                  elif kind == b"IDAT":
+                      idat.append(data[pos + 8:pos + 8 + size])
+                  elif kind == b"IEND":
+                      break
+                  pos += 12 + size
+              if head is None:
+                  return None
+              width, height, depth, colour, _, _, interlace = head
+              if depth != 8 or colour not in (2, 6) or interlace:
+                  return None
+              step = 3 if colour == 2 else 4
+              stride = width * step
+              raw = zlib.decompress(b"".join(idat))
+              if len(raw) < height * (stride + 1):
+                  return None
+              prev, sums = bytearray(stride), [0, 0, 0]
+              for y in range(height):
+                  start = y * (stride + 1)
+                  kind, row = raw[start], bytearray(raw[start + 1:start + 1 + stride])
+                  if kind > 4:
+                      return None
+                  for i in range(stride):
+                      a = row[i - step] if i >= step else 0
+                      b = prev[i]
+                      c = prev[i - step] if i >= step else 0
+                      if kind == 1:
+                          row[i] = (row[i] + a) & 255
+                      elif kind == 2:
+                          row[i] = (row[i] + b) & 255
+                      elif kind == 3:
+                          row[i] = (row[i] + (a + b) // 2) & 255
+                      elif kind == 4:
+                          p = a + b - c
+                          pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                          row[i] = (row[i] + (a if pa <= pb and pa <= pc else b if pb <= pc else c)) & 255
+                  for x in range(0, stride, step):
+                      sums[0] += row[x]
+                      sums[1] += row[x + 1]
+                      sums[2] += row[x + 2]
+                  prev = row
+              return [s / (width * height) for s in sums]
+
+
+          if __name__ == "__main__":
+              rgb = mean_rgb(sys.argv[1])
+              name = sys.argv[2] if len(sys.argv) > 2 else sys.argv[1]
+              if rgb is None:
+                  print(f"colour unknown: {name}")
+                  sys.exit(2)
+              r, g, b = rgb
+              print(f"colour {r:.0f},{g:.0f},{b:.0f}: {name}")
+              sys.exit(0 if r < 22 and b - r > 25 else 1)
+          PY
+          launch_screen() {
+            if ! sips -z 32 16 "$1" --out "$probe" >/dev/null 2>&1; then
+              echo "colour unknown (no small copy): $(basename "$1")" >> previews/shots.log
+              return 2
+            fi
+            python3 -I "$RUNNER_TEMP/launch_screen.py" "$probe" "$(basename "$1")" >> previews/shots.log 2>&1
+          }
+          # The last five are the newer screens (see PreviewExtras): the live
           # Quiz me button, the quiz the app builds out of a deck's own
-          # answers, fixing a misheard word in an Arabic transcript, and the
-          # quiz with its study bar folded.
+          # answers, fixing a misheard word in an Arabic transcript, the quiz
+          # with its study bar folded, and the library scrolled to its end,
+          # where the last row has to clear the dock.
           for mode in light dark; do
             xcrun simctl ui "$UDID" appearance "$mode"
-            for screen in library new quiz quiz-checked summary anki anki-revealed book osce osce-revealed osce-complete narrate narrate-finished anki-quizable quiz-from-cards narrate-fixing quiz-folded; do
+            for screen in library new quiz quiz-checked summary anki anki-revealed book osce osce-revealed osce-complete narrate narrate-finished anki-quizable quiz-from-cards narrate-fixing quiz-folded library-end; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" >> previews/shots.log 2>&1; then
                 echo "launch failed: $screen ($mode)" >> previews/shots.log
                 continue
               fi
               sleep 7
-              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "previews/$screen-$mode.png" \
+              shot="previews/$screen-$mode.png"
+              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$shot" \
                 >> previews/shots.log 2>&1 || echo "shot failed: $screen ($mode)" >> previews/shots.log
+              tries=0
+              while [ -f "$shot" ] && launch_screen "$shot"; do
+                if [ "$tries" -ge 2 ]; then
+                  echo "still the launch screen: $screen ($mode)" >> previews/shots.log
+                  break
+                fi
+                tries=$((tries + 1))
+                echo "launch screen, retake $tries: $screen ($mode)" >> previews/shots.log
+                sleep 8
+                xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$shot" \
+                  >> previews/shots.log 2>&1 || break
+              done
             done
           done
           # A crash on launch is the one failure the log above cannot explain,
