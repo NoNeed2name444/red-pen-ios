@@ -1451,10 +1451,19 @@ move personal up.
    rows; if the navigation stack clips there, draw those strips at SkyRoot.
 5. T0034's side insets. Done in code; check its A1 to A9 in the same preview
    run. A9's exceptions include the library tiles at about 47 px.
-6. Next: App build, Swift tests and an ios-preview run on the session
-   branch (personal, caceca7, is merged in); read every shot, light and
-   dark (edges, cut lines, A1 to A9); send the owner marked full screens;
-   then move personal up to the session branch.
+6. First preview run (37913208989, on 114eeba; App build and Swift tests
+   green): edges, the band and the library's strip are right, light and
+   dark. Two fixes from it:
+   - the bottom strip's cut line showed only at the screen's sides, since a
+     flat slab from the strip's top covered it; wardBarBase now draws the
+     line over the bar;
+   - the OSCE station clock was a bare glyph and pill with no edge; it is a
+     WardChipButtonStyle chip now (pressed in while it runs), and
+     WardTimerPill takes `well: false` inside a button.
+7. Next: App build, Swift tests and an ios-preview run on the session
+   branch (personal, a22d1c2, is merged in); check the strip line and the
+   OSCE clock; send the owner marked full screens; then move personal up to
+   the session branch.
 
 ### Other open work
 

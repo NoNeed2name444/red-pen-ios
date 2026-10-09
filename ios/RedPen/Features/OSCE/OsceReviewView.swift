@@ -148,18 +148,15 @@ struct OsceReviewView: View {
                     Image(systemName: symbol)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.wardPrimaryInk)
-                    WardTimerPill(seconds: left, warnBelow: warnBelow)
+                    WardTimerPill(seconds: left, warnBelow: warnBelow, well: false)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Station clock, " + SpokenText.duration(seconds: left))
                 .accessibilityHint(running ? "Pauses the clock" : (left == 0 ? "Resets the clock" : "Starts the clock"))
             }
-            .frame(minHeight: 44)
-            .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .contentShape(.hoverEffect, Capsule())
-        .hoverEffect(.highlight)
+        // an edged chip like every other control; pressed in while it runs
+        .buttonStyle(WardChipButtonStyle(on: clockEndsAt != nil))
     }
 
     private func secondsLeft(at date: Date) -> Int {

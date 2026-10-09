@@ -281,10 +281,12 @@ struct WardPill: View {
 }
 
 /// An exam timer in SF Mono: Resus Red once it is under `warnBelow`, "Time"
-/// at zero; hours shown for a paper over an hour (1:05:00).
+/// at zero; hours shown for a paper over an hour (1:05:00). `well: false`
+/// drops its own well, for a pill that sits inside a button's face.
 struct WardTimerPill: View {
     let seconds: Int
     var warnBelow = 60
+    var well = true
 
     var body: some View {
         let low: Bool = seconds < warnBelow
@@ -292,14 +294,19 @@ struct WardTimerPill: View {
         let clock: String = h > 0 ? String(format: "%d:%02d:%02d", h, seconds % 3600 / 60, seconds % 60)
             : String(format: "%d:%02d", seconds / 60, seconds % 60)
         let text: String = seconds <= 0 ? "Time" : clock
-        Label(text, systemImage: "timer")
+        let label = Label(text, systemImage: "timer")
             .font(.system(.subheadline, design: .monospaced).weight(.semibold))
             .monospacedDigit()
             .foregroundStyle(low ? Color.wardDanger : Color.wardInk)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .wardInset(in: Capsule())
-            .contentTransition(.numericText())
+        if well {
+            label
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .wardInset(in: Capsule())
+                .contentTransition(.numericText())
+        } else {
+            label.contentTransition(.numericText())
+        }
     }
 }
 

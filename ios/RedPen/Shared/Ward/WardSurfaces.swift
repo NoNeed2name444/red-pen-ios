@@ -415,18 +415,21 @@ extension View {
     /// A solid strip under a bar, with the scroll edge's line along its top:
     /// it hides and blocks the rows beneath, and nothing fades. The room
     /// above the bar is for its lights (a raised `.high` slab's reach about
-    /// 20 pt; a flat one, or a row of buttons, casts nothing up). Hidden, it
-    /// takes no room; shown or hidden, the bar keeps its identity, so a fold
-    /// never cross-fades it.
+    /// 20 pt; a flat one, or a row of buttons, casts nothing up). The line is
+    /// drawn over the bar, since a flat slab that starts at the strip's top
+    /// would hide it along the slab's width. Hidden, it takes no room; shown
+    /// or hidden, the bar keeps its identity, so a fold never cross-fades it.
     func wardBarBase(room: CGFloat = 24, shown: Bool = true) -> some View {
         self.padding(.top, shown ? room : 0)
             .background {
                 if shown {
                     Color.wardBackground
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
-                        .overlay(alignment: .top) { WardScrollEdgeLine() }
                         .transition(.identity)
                 }
+            }
+            .overlay(alignment: .top) {
+                if shown { WardScrollEdgeLine().transition(.identity) }
             }
     }
 
