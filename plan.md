@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 3:24 PM Cairo.
+Last updated: 2026-10-09, 3:35 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -40,7 +40,7 @@ Last updated: 2026-10-09, 3:24 PM Cairo.
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d), then step 19's re-pin of the Worker to Chat-me 746a7d7 (design/map-lighter; joined at about 11:37 AM as 809ddac; Server tests 37906094562 green), then step 21's three-letter comparison side (design/map-lighter 4a68424; joined at about 11:57 AM as a2a144f; Server tests 37908408628 green), then step 20's Row 17, library pictures as blob references, and the preview screens signin and account-deleted (design/launch-gaps; joined at about 12:20 PM; App build, Server tests and Swift tests green on e45ebc4) | personal is the working branch; keep session branches equal to it |
-| claude/medical-assistant-orchestration-javb9y | personal (a22d1c2) plus the neumorphic app (#33, tasks T0018 to T0032) and the #33 follow-ups (no fading, control edges, cut lines, the home grid band) | personal moves up to it once its App build, Swift tests and preview run are green and the shots are checked (#33 follow-ups) |
+| claude/medical-assistant-orchestration-javb9y | personal (ac8794c) plus the neumorphic app (#33, tasks T0018 to T0032) and the #33 follow-ups (no fading, control edges, cut lines, the home grid band) | personal moves up to it once its App build, Swift tests and preview run are green and the shots are checked (#33 follow-ups) |
 | aahp/personal | T0033's cece1a4 on T0032 (4ef98ff) | the design loop's branch (#33, tasks T0018 to T0033); its CI runs read-only and publishes nothing; cece1a4 is kept out of the session branch |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
@@ -895,7 +895,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       folder added meanwhile is kept on top of what was read. A library that
       could not be read (a prewarm before the first unlock) is never written
       over; it is read again once the app is in front. The launch splash
-      stays up until the library is read, 2 s at most, then fades onto a
+      stays up until the library is read, 2 s at most, then goes (no fade) onto a
       screen saying it is opening (LibraryLoadingView, preview screen
       library-loading); no screen shows the library before it is in, and
       the examples, sync, a notification's answer, the second iPad window
@@ -934,6 +934,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       account-deleted (GAP 1, Apple's steps) and library-loading (Row 1),
       in light; signin in dark too. The dark account-deleted and
       library-loading shots caught the simulator mid-launch (no crash).
+    - [x] No fade at launch either (the owner's "i don't want fading in the
+      app", #33; the design session left LaunchSplash to this step): the
+      splash is lifted at once after its 0.3 s hold, or as soon as a big
+      library is read (2 s at most), with `.transition(.identity)` so no
+      animation around it can fade it. Compiled by the mac App build; a
+      still screenshot cannot show a transition.
 21. [x] Taken by the session that did step 19 (9 Oct, 11:40 AM): the
     "men" quirk from step 19. A comparison's side shorter than four letters
     is not read, so "Gout is less common in women than in men." against
@@ -1502,8 +1508,8 @@ move personal up.
    end row is the dock's height plus 24 pt. The selection bar keeps its
    strip, and so do the study screens.
 8. Next: App build, Swift tests and an ios-preview run on the session
-   branch (personal, a22d1c2, is merged in); check the strip line and the
-   OSCE clock; send the owner marked full screens; then move personal up to
+   branch (personal, ac8794c, is merged in); check the strip line, the
+   OSCE clock and the library's floating New set and dock; send the owner marked full screens; then move personal up to
    the session branch.
 
 ### Other open work

@@ -296,8 +296,8 @@ struct RedPenApp: App {
                 appActive = new == .active
                 DiagnosticsRuntime.phaseChanged(new, token: { account.token })
             }
-            // the launch screen's picture, dissolving over the app that is
-            // already running beneath it (and the only launch screen the
+            // the launch screen's picture, lifted (no fade) off the app that
+            // is already running beneath it (and the only launch screen the
             // Playgrounds build has) - see LaunchSplash; held while a big
             // library is still being read
             .launchSplash(until: store.loaded)
