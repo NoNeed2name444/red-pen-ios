@@ -1,0 +1,114 @@
+
+compile rc=0
+PASS T1 closed: two cells and two receptors
+PASS T1 closed: the top folders are the cells
+PASS T1 closed: the linked loose notes are receptors
+PASS T1 closed: nothing shows inside a closed cell
+PASS T1 the cells are the regions
+PASS T1 Examples opened: its two parts and three notes show
+PASS T1 Examples opened: Inguinal and Femoral are parts
+PASS T1 Examples opened: Groin hernia a vesicle, its ideas granules
+PASS T1 Examples opened: all of it inside Examples
+PASS T1 Inguinal opened too: Anatomy and Inguinal's notes show
+PASS T1 Anatomy is a part inside Inguinal
+PASS T1 a part inside a closed cell stays shut
+PASS T1 the order folders are opened in changes nothing
+PASS T1 all opened: every note shows inside its folder
+PASS T1 all opened: each note in the folder that holds it, a page a vesicle
+PASS T1 each body after what holds it
+PASS T1 a container's framing holds it; a note has none
+PASS T1 the preview's ladder holds, open and closed
+PASS T1 nothing inside meets or leaves its cell
+PASS T1 no cells meet
+PASS T1 the framing holds every cell
+PASS T2 closed: every link carried once
+PASS T2 closed: three processes into cells, one from each receptor and one from Examples to Cardiology
+PASS T2 Examples opened: every link carried once
+PASS T2 a link from outside joins the opened cell's membrane, not the part inside
+PASS T2 three links from Groin hernia into Inguinal make one process
+PASS T2 inside a cell kind 5, between cells 6
+PASS T2 Inguinal opened: every link carried once
+PASS T2 all opened: every link carried once
+PASS T2 all opened: inside a cell links join notes, between cells the cells themselves
+PASS T2 plain links are excitatory: strength 4 one way, 5 both ways
+PASS T2 a contrast and a hand link: one process, dyed by the contrast
+PASS T2 it runs from the cell that sends
+PASS T2 both cells opened: still one process, cell to cell, dyed by the contrast
+PASS T2 opened: every link carried once
+PASS T2 inside an opened cell: the contrast inhibitory, the hand link modulatory
+PASS T2 inside an opened cell: every link carried once
+PASS T3 all opened, every note and folder shows
+PASS T3 the ladder holds in 160 random vaults, closed, half open and open
+PASS T3 nothing leaves its membrane, enters a nucleus or meets a sibling, drifting for two minutes
+PASS T3 no two cells or free cells meet
+PASS T3 every link carried by exactly one process
+PASS T3 opening moves nothing already shown
+PASS T3 the framing holds every cell
+PASS T4 planned twice, the same
+PASS T4 the order notes come in changes nothing
+PASS T4 opening Examples moves nothing shown
+PASS T4 opening Inguinal moves nothing shown
+PASS T4 opening everything moves nothing shown
+PASS T4 closing hides only what was inside
+PASS T4 opening keeps the framing
+PASS T4 without links: no processes, the loose notes drift free
+PASS T5 the sender first: Zeta left of Mid on the top row, Alpha below
+PASS T5 Zeta faces Mid and Mid faces Alpha
+PASS T5 Alpha, sending nowhere, faces down the sheet
+PASS T5 the sheet is flat, facing the camera
+PASS T5 the processes run with the flow
+PASS T5 nothing meets
+PASS T6 no folders: one home cell first, holding every note
+PASS T6 no folders: the summary
+PASS T6 no folders: links inside the cell, each carried
+PASS T6 no folders: the ladder holds, nothing meets
+PASS T6 a cycle: one cell, one part inside it, both notes
+PASS T6 a cycle: the ladder holds, nothing meets, every link carried
+PASS T6 ten deep: one cell, nine parts each inside the last, ten notes
+PASS T6 ten deep: the smallest still has a size
+PASS T6 ten deep: the ladder holds, nothing leaves its membrane
+PASS T6 ten deep: every link carried
+PASS T6 ten deep, only the cell opened: it, its part and its note
+PASS T6 ten deep: a part opened inside a closed cell shows nothing more
+PASS T6 an empty folder: the smallest cell, nothing inside it when opened
+PASS T6 an empty part: inside its cell, nothing inside it
+PASS T6 empty folders: the ladder holds
+PASS T6 nothing: an empty plan
+PASS T6 folders and no notes: cells and parts only
+PASS T6 forty loose: twenty receptors, twenty free cells
+PASS T6 forty loose: no two meet
+PASS T6 forty loose: the framing holds them
+PASS T6 forty loose: each receptor faces the cell it sends to
+PASS T6 forty loose: all clear of the cell's processes
+PASS T6 forty loose: every process runs from a receptor into the cell
+PASS T6 forty loose, opened: every link carried, nothing meets
+PASS T7 300 notes, all opened: every note planned
+PASS T7 300 notes: planned in under 2 s
+     planned in 7 ms
+PASS T7 300 notes: the ladder holds
+PASS T7 300 notes: nothing leaves its membrane or meets
+PASS T7 300 notes: every link carried once
+PASS T7 300 notes: the framing holds
+PASS T7 two hundred notes in one cell: all inside, none meeting
+PASS T8 Space is the default
+PASS T8 Neurons is kept
+PASS T8 a removed theme falls back: a stored Circuit opens in Space
+PASS T8 the menu offers only ready themes
+PASS T8 the themes' words are their own
+PASS T9 no wobble without amplitude
+PASS T9 a drift stays within its amplitude
+PASS T9 a drift moves
+PASS T9 a drift is fine after 50 minutes
+PASS T10 slots 0.9 to 2.4 s, travel 0.45 to 0.95 s
+PASS T10 links keep their own rhythm
+PASS T10 never two firings within half a slot (refractory)
+PASS T10 about the budget's share of slots fire
+PASS T10 rate 0 never fires
+PASS T10 links do not fire in step
+PASS T10 each impulse arrives once, a travel time after it fires
+PASS T10 bursts arrive 0.12 s apart
+PASS T10 the per-frame check agrees with the full list
+PASS T10 the rhythm follows the whole seed
+all passed
+
+run rc=0

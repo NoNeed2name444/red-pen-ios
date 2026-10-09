@@ -1,0 +1,23 @@
+
+compile rc=0
+PASS P1a every shader passing is kept, even with the app away
+PASS P1b a failure with the app in front throughout is kept
+PASS P1c a failure with the app away is checked again at the next build
+PASS P1d a failure the app left during is not kept
+PASS P1e a failure the app came back during is not kept
+PASS P1f a failure the app left and came back during is not kept
+PASS P1g a failure in front after one that was not kept is kept
+PASS P1h a pass after a failure that was not kept is kept
+PASS P2a building after a failure that was not kept uses it, without checking again
+PASS P2b building with no answer yet checks once
+PASS P2c unsure: not before any check, yes after a failure not kept, no once kept
+PASS P3a eight builds at once run one check
+PASS P3b checks never overlap, even when none is kept
+PASS P3c a check still running is not unsure, reading that never waits for it, and a pass is kept
+PASS P3d building never waits behind a running check once there is an answer
+PASS P4a away until told otherwise
+PASS P4b arriving starts a visit; arriving again is the same one
+PASS P4c leaving ends it; the next arrival is a new visit, however many leavings
+ALL PASSED
+
+run rc=0

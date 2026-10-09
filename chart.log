@@ -1,0 +1,28 @@
+
+compile rc=0
+ok   who: age, sex and how long
+ok   the vitals, in the stem's order
+ok   normal vitals carry no flag
+ok   the results, as written
+ok   low albumin is L, from the check's own range
+ok   a result the range table does not know is not guessed
+ok   normal creatinine carries no flag
+ok   the question is pulled out
+ok   the story keeps what the chart does not show, and drops the lists it does
+ok   abnormal vitals are flagged
+ok   a high lactate is H
+ok   she is Female
+ok   a recall question has nothing to chart
+ok   and stays the question it was
+ok   a sentence with more than numbers stays in the story
+ok   its reading still reaches the grid
+ok   a decimal does not split a sentence
+ok   high potassium is H
+ok   a pulseless rhythm is not read as a pulse
+ok   a child's age in months
+ok   a pregnant woman says so
+ok   a stem with no question and nothing to chart is shown whole
+
+ALL CHART TESTS PASS
+
+run rc=0

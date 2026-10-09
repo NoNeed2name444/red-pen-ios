@@ -1,0 +1,67 @@
+
+compile rc=0
+ok   a brand new card is due at once
+ok   so a freshly generated deck is reviewable immediately
+ok   easy puts a card days away
+ok   and it is not due an hour later
+ok   nor the next day, which is what reopening the app used to undo
+ok   and it IS due once the interval is up
+ok   the card nobody rated is still waiting
+ok   a queue holds only what is due
+ok   and it is the right card
+ok   again brings it straight back
+ok   and is counted as a lapse
+ok   a rating is counted either way
+ok   a card you get right is not a lapse
+ok   studying ahead offers the whole deck
+ok   and a card keeps the interval it earned
+ok   studying ahead every day does not compound the interval
+ok   so a card seen on Thursday is back within days, not months
+ok   an early Good never shortens the interval a card had earned
+ok   and does not multiply it as if the month had passed
+ok   an early Hard brings it closer, by at most 40%
+ok   an early Again is still a lapse
+ok   rated when due, the interval grows as before
+ok   a learning step shown early still moves on, out of learning
+ok   Good graduates a card on its last learning step, as Anki does
+ok   Hard on a learning step stays a learning step
+ok   an early review's buttons promise what it will store
+ok   the exam cap still applies to an early review
+ok   sixty Easy ratings stop at the ceiling
+ok   and the label for it does not crash
+ok   nor for an interval already stored out of range
+ok   the buttons for a runaway card do not crash
+ok   the day's queue spans every deck
+ok   and each card remembers which deck it came from
+ok   a deck with nothing due contributes nothing
+ok   an empty library is not an error
+ok   the same card in two decks is two distinct rows
+ok   and removing one leaves the other
+ok   a card still in a deck keeps its place
+ok   a deleted card's schedule is dropped
+ok   again stores the interval its button promised
+ok   again sets the due date to match the interval
+ok   hard stores the interval its button promised
+ok   hard sets the due date to match the interval
+ok   good stores the interval its button promised
+ok   good sets the due date to match the interval
+ok   easy stores the interval its button promised
+ok   easy sets the due date to match the interval
+ok   both sittings survive a merge
+ok   the later rating of the same card wins
+ok   and an older one does not overwrite a newer
+ok   merging with nothing changes nothing
+ok   a card never rated goes as new, in its place
+ok   a reviewed card goes as a review card, due on its day, with its interval and history
+ok   an overdue card is due on a past day
+ok   a card in its learning steps goes as a one-day review card, not new
+ok   a suspended card stays suspended
+ok   so does a suspended new one
+ok   picture types are read from their first bytes
+ok   one file per set and picture
+ok   a question's picture leads the front
+ok   an answer's picture leads the back
+
+ALL SCHEDULE TESTS PASS
+
+run rc=0

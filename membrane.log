@@ -1,0 +1,87 @@
+
+compile rc=0
+  six: 5516 vertices, 11028 triangles, 17 ms
+PASS M1a six: a real mesh
+PASS M1b six: no loose edge (closed, no holes)
+PASS M1c six: almost every edge between exactly two triangles
+PASS M1d six: every edge crossed once each way (wound alike)
+PASS M1e six: no triangle uses a vertex twice
+PASS M2a six: one piece (soma and dendrites one surface)
+PASS M3a six: every vertex within a quarter step of the surface
+PASS M3b six: 99% within a tenth of a step
+PASS M4a six: one unit normal per vertex
+PASS M4b six: triangles face the way their normals point
+PASS M4c six: wound outwards (positive volume, more than the soma's)
+PASS M4d six: normals point away from the centre almost everywhere
+PASS M5a six: the centre is inside
+PASS M5b six: the soma round where no dendrite leaves it (top and bottom at its radius)
+PASS M5c six: dendrite 0 covered to its rounded tip
+PASS M5c six: dendrite 1 covered to its rounded tip
+PASS M5c six: dendrite 2 covered to its rounded tip
+PASS M5c six: dendrite 3 covered to its rounded tip
+PASS M5c six: dendrite 4 covered to its rounded tip
+PASS M5c six: dendrite 5 covered to its rounded tip
+PASS M5d six: neighbouring dendrites stay apart out along them
+PASS M6a six: one (along, soma) pair per vertex, both 0 to 1
+PASS M6b six: the soma's top is all soma, at the start of nothing
+PASS M6c six: at every tip, all dendrite and all the way along
+PASS M7a six: made in under a second even unoptimised (the previews, Swift Playgrounds)
+PASS M7b six: the same every time
+  seven: 5766 vertices, 11528 triangles, 19 ms
+PASS M1a seven: a real mesh
+PASS M1b seven: no loose edge (closed, no holes)
+PASS M1c seven: almost every edge between exactly two triangles
+PASS M1d seven: every edge crossed once each way (wound alike)
+PASS M1e seven: no triangle uses a vertex twice
+PASS M2a seven: one piece (soma and dendrites one surface)
+PASS M3a seven: every vertex within a quarter step of the surface
+PASS M3b seven: 99% within a tenth of a step
+PASS M4a seven: one unit normal per vertex
+PASS M4b seven: triangles face the way their normals point
+PASS M4c seven: wound outwards (positive volume, more than the soma's)
+PASS M4d seven: normals point away from the centre almost everywhere
+PASS M5a seven: the centre is inside
+PASS M5b seven: the soma round where no dendrite leaves it (top and bottom at its radius)
+PASS M5c seven: dendrite 0 covered to its rounded tip
+PASS M5c seven: dendrite 1 covered to its rounded tip
+PASS M5c seven: dendrite 2 covered to its rounded tip
+PASS M5c seven: dendrite 3 covered to its rounded tip
+PASS M5c seven: dendrite 4 covered to its rounded tip
+PASS M5c seven: dendrite 5 covered to its rounded tip
+PASS M5c seven: dendrite 6 covered to its rounded tip
+PASS M5d seven: neighbouring dendrites stay apart out along them
+PASS M6a seven: one (along, soma) pair per vertex, both 0 to 1
+PASS M6b seven: the soma's top is all soma, at the start of nothing
+PASS M6c seven: at every tip, all dendrite and all the way along
+PASS M7a seven: made in under a second even unoptimised (the previews, Swift Playgrounds)
+PASS M7b seven: the same every time
+  six b: 5548 vertices, 11092 triangles, 17 ms
+PASS M1a six b: a real mesh
+PASS M1b six b: no loose edge (closed, no holes)
+PASS M1c six b: almost every edge between exactly two triangles
+PASS M1d six b: every edge crossed once each way (wound alike)
+PASS M1e six b: no triangle uses a vertex twice
+PASS M2a six b: one piece (soma and dendrites one surface)
+PASS M3a six b: every vertex within a quarter step of the surface
+PASS M3b six b: 99% within a tenth of a step
+PASS M4a six b: one unit normal per vertex
+PASS M4b six b: triangles face the way their normals point
+PASS M4c six b: wound outwards (positive volume, more than the soma's)
+PASS M4d six b: normals point away from the centre almost everywhere
+PASS M5a six b: the centre is inside
+PASS M5b six b: the soma round where no dendrite leaves it (top and bottom at its radius)
+PASS M5c six b: dendrite 0 covered to its rounded tip
+PASS M5c six b: dendrite 1 covered to its rounded tip
+PASS M5c six b: dendrite 2 covered to its rounded tip
+PASS M5c six b: dendrite 3 covered to its rounded tip
+PASS M5c six b: dendrite 4 covered to its rounded tip
+PASS M5c six b: dendrite 5 covered to its rounded tip
+PASS M5d six b: neighbouring dendrites stay apart out along them
+PASS M6a six b: one (along, soma) pair per vertex, both 0 to 1
+PASS M6b six b: the soma's top is all soma, at the start of nothing
+PASS M6c six b: at every tip, all dendrite and all the way along
+PASS M7a six b: made in under a second even unoptimised (the previews, Swift Playgrounds)
+PASS M7b six b: the same every time
+ALL PASSED
+
+run rc=0

@@ -1,0 +1,40 @@
+
+compile rc=0
+PASS C1 black is 0, white is 1
+PASS C1 black on white is 21:1
+PASS C1 the ratio is symmetric
+PASS C1 mid grey is 0.214
+PASS C1 #767676 on white just passes 4.5
+PASS C1 green is brighter than blue
+PASS C1 blending
+PASS C2 a glow is made
+PASS C2 over a bright star: bright
+PASS C2 in its halo: lit, and busy
+PASS C2 far away: the backdrop
+PASS C2 five points across a pill
+PASS C2 a body behind the eye is ignored
+PASS C2 a pale nebula backdrop is pale
+PASS C3 at least 4.5:1 over every background, whatever the body's colour
+PASS C3 on the night sky: light words on a see-through dark pill
+PASS C3 on a pale nebula: dark words on a pale pill
+PASS C3 over a bright star the pill is more opaque
+PASS C3 busy backgrounds: more opaque, outlined
+PASS C3 the pill leans towards the body's colour
+PASS C3 Increase Contrast: always the strongest style
+PASS C3 Reduce Transparency: an opaque pill
+PASS C4 one bright measure does not switch the words
+PASS C4 held bright for longer than the hold: it switches
+PASS C4 the change eases over about 0.3 s
+PASS C4 it arrives
+PASS C4 a body passing on and off behind it never flips the words
+PASS C4 the pill's opacity eases smoothly (never back and forth)
+PASS C4 Reduce Motion: at once
+PASS C5 measured about 5 times a second, less on Smooth
+PASS C5 at most 10 labels
+PASS C5 a star shines brighter than a rocky planet
+PASS C5 a cell glows
+PASS C5 a supernova flares, then fades
+PASS C5 each theme's ground is dark
+all passed
+
+run rc=0

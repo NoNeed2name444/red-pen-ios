@@ -1,0 +1,14 @@
+
+compile rc=0
+ok   nothing to resume before anything is saved
+ok   a sitting comes back exactly as it was saved, in a folder made for it
+ok   answers, crossed-out options and flags come back by question
+ok   and the clock as it was left
+ok   answered and total, for the resume card
+ok   a later save replaces the earlier one
+ok   a file that cannot be read is no sitting, not a crash
+ok   a finished or abandoned sitting leaves nothing to resume
+
+ALL MOCK SITTING TESTS PASS
+
+run rc=0

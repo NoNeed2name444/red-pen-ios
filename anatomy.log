@@ -1,0 +1,109 @@
+
+compile rc=0
+PASS seven distinct parts
+PASS neuron parts are the §3d list
+PASS neuron file names
+PASS slug
+PASS tag keys
+PASS bullets strip markers and headings
+PASS hand + written link
+PASS a mention read as a contrast is inhibitory
+PASS a link drawn only by hand is modulatory
+PASS both ways: twoWay and +2
+PASS "vs" is a contrast
+PASS no link, no fibre
+PASS strength clamps at 10
+PASS contrast cues
+PASS mention needs the whole title
+PASS cells built
+PASS the cluster's notes
+PASS core: the most linked, longest page
+PASS seven parts in slot order
+PASS level 2 builds no files
+PASS level 2 still counts them
+PASS level 3 builds files, no bullets
+PASS level 4 builds bullets
+PASS levels clamp to 2...4
+PASS soma: idea, detail, examples
+PASS idea is the first line
+PASS examples from the Example heading
+PASS detail has the list lines
+PASS dendrites: one file per note linking in from outside
+PASS a note in no folder is outside every cluster
+PASS axon: one file per note linked to outside
+PASS axon bullet is the mention's line
+PASS nucleus: sources and written here
+PASS nucleus measure: share saved from a source
+PASS mitochondria: why lines
+PASS mitochondria measure: high-yield share
+PASS myelin measure: verified 1, sourced 0.5
+PASS myelin lists verified first
+PASS synapse: one file per hand-made link
+PASS synapse strongest first
+PASS synapse names the outside end
+PASS labels
+PASS unknown folder: no cell
+PASS a cluster holds its sub-folders' notes
+PASS links inside the cluster are not dendrites
+PASS an empty cluster: no core, seven quiet parts
+PASS files bounded, the rest counted
+PASS bullets bounded, the rest counted
+PASS bullets clipped
+PASS one fibre between the two regions
+PASS fibre: both ways, two links
+PASS fibre strength: mean 4 + log2(2)
+PASS fibre kind by weighted majority (tie -> inhibitory)
+PASS fibre from Cardiology (alphabetical on a tie)
+PASS evidence
+PASS links inside one region make no fibre
+PASS fibre thickness grows with strength
+PASS excitatory green
+PASS inhibitory red
+PASS modulatory yellow
+PASS far: the cell only
+PASS nearer: files
+PASS close: bullets
+PASS scales with the cell
+PASS hysteresis holds files at the edge
+PASS hysteresis holds bullets at the edge
+PASS leaves beyond the band
+PASS sizes never below a page (0.5, 0.14)
+PASS sizes step down (0.5, 0.14)
+PASS sizes never below a page (0.4, 0.228)
+PASS sizes step down (0.4, 0.228)
+PASS sizes never below a page (2.0, 0.1)
+PASS sizes step down (2.0, 0.1)
+PASS sizes never below a page (0.1, 0.14)
+PASS sizes step down (0.1, 0.14)
+PASS no overlaps (level 2, 3 notes)
+PASS one place a built piece (level 2)
+PASS parents come first
+PASS no place below a page
+PASS no overlaps (level 3, 3 notes)
+PASS one place a built piece (level 3)
+PASS parents come first
+PASS no place below a page
+PASS no overlaps (level 4, 3 notes)
+PASS one place a built piece (level 4)
+PASS parents come first
+PASS no place below a page
+PASS no overlaps (level 4, 1 notes)
+PASS one place a built piece (level 4)
+PASS parents come first
+PASS no place below a page
+PASS first label
+PASS link length spreads the parts
+PASS the same cell every time
+PASS the same fibres every time
+PASS a folder loop ends
+PASS links to missing notes are dropped
+5,000 notes: index, 66 fibres and 12 cells at level 4 in 0.701 s of CPU
+PASS 5,000 notes in under 2 s
+PASS every big cell bounded
+PASS big fibres in range
+PASS top-level cells hold every foldered note
+PASS a big cell lays out clear
+
+All anatomy checks passed.
+
+run rc=0

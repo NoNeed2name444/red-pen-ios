@@ -1,0 +1,1770 @@
+# Localisation and right-to-left report
+
+Scanned `ios/RedPen`; the catalog has 67 keys.
+
+| What | Count | Files |
+|---|---:|---:|
+| Wired but broken: no such catalog key (`missing-key`) | 0 | 0 |
+| String concatenation into Text (`concat-text`) | 18 | 14 |
+| String(format:) with English words (`format-english`) | 3 | 3 |
+| Hard-coded English plurals (`plural`) | 132 | 48 |
+| Dates in a fixed pattern or locale (`fixed-date`) | 4 | 3 |
+| Directional SF Symbols (use .forward / .backward) (`symbol`) | 29 | 16 |
+| .left / .right instead of .leading / .trailing (`left-right`) | 0 | 0 |
+| Horizontal offsets (never mirrored; right for a picture, wrong for a layout) (`offset-x`) | 11 | 6 |
+| Left / right arrow keys (`arrow-key`) | 11 | 7 |
+| Rings and arcs not filling from the leading side (`ring`) | 8 | 4 |
+| Comments that place things left or right (`wording`) | 48 | 30 |
+| On-screen literals not in the catalog yet (`not-in-catalog`) | 1203 | 124 |
+
+## String concatenation into Text (`concat-text`)
+
+- `Features/Support/AccuracyBadge.swift` (3)
+  - 196: `Text("Its own answer: " + answer).font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 202: `Text("Cites " + vote.cites.joined(separator: ", ")).font(.caption2).foregroundStyle(Color.wardInkSecondary)`
+  - 216: `Text("[" + e.id + "] " + e.source).font(.caption.weight(.semibold))`
+- `Features/Cases/CaseWardView.swift` (2)
+  - 137: `Text("\u{201C}" + file.complaint + "\u{201D}")`
+  - 269: `Text(step.group.label + " \u{00B7} " + step.label)`
+- `Features/Mock/MockPaperView.swift` (2)
+  - 141: `Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of \(per)")`
+  - 147: `Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of 40")`
+- `Features/Analytics/VitalsParts.swift` (1)
+  - 27: `Text("Study rhythm \u{00B7} " + reading.words)`
+- `Features/Cases/CaseListView.swift` (1)
+  - 86: `Text("\u{00B7} " + file.setting.label)`
+- `Features/Learn/ExamDayKitView.swift` (1)
+  - 144: `Text("By " + ExamWeekPlanner.clock(point.minute))`
+- `Features/Learn/ExamPlanView.swift` (1)
+  - 186: `Text("~" + today)`
+- `Features/Learn/SymptomBlocksView.swift` (1)
+  - 70: `Text(lookalikes + "\u{2026}")`
+- `Features/Lens/LensAnswerSheet.swift` (1)
+  - 74: `Text("Question " + number).font(.caption).foregroundStyle(Color.wardInkSecondary)`
+- `Features/Library/TagChips.swift` (1)
+  - 128: `Text("#" + CardTags.label(tag))`
+- `Features/Library/WardHome.swift` (1)
+  - 422: `Text("Today\u{2019}s ward round \u{00B7} " + BedPlan.summary(beds))`
+- `Features/Mock/MockResultsView.swift` (1)
+  - 101: `Text(line + " \u{00B7} \(share)%")`
+- `Features/Sources/SourcesCreditsView.swift` (1)
+  - 212: `Text("Changes: " + changes)`
+- `Shared/ImportRouter.swift` (1)
+  - 338: `Text(file.kind.label + " \u{00B7} " + sizeText)`
+
+## String(format:) with English words (`format-english`)
+
+- `Shared/CardQuality.swift` (1)
+  - 218: `detail: String(format: "%.2f like another", score)))`
+- `Shared/Diagnostics/DiagnosticsModel.swift` (1)
+  - 300: `let seconds: String = event.durationMs.map { String(format: " of %.1fs", Double($0) / 1000) } ?? ""`
+- `Shared/LLM/MedicalModelCatalog.swift` (1)
+  - 110: `String(format: "%.1f GB", Double(self) / 1_000_000_000)`
+
+## Hard-coded English plurals (`plural`)
+
+- `Features/Library/LectureWriterSection.swift` (10)
+  - 236: `let plural: String = found == 1 ? "" : "s"`
+  - 237: `return "\(found) picture card\(plural) from the file's diagrams."`
+  - 341: `let plural: String = found == 1 ? "" : "s"`
+  - 342: `return "Add \(found) image card\(plural)"`
+  - 344: `let plural: String = count == 1 ? "" : "s"`
+  - 345: `return "Make \(count) \(noun)\(plural)"`
+  - 417: `let plural: String = found == 1 ? "" : "s"`
+  - 418: `status = found == 0 ? nil : "\(found) image card\(plural) ready \u{2014} save the set below."`
+  - 475: `let plural: String = wanted == 1 ? "" : "s"`
+  - 476: `let jobTitle: String = "Writing \(wanted) \(noun)\(plural)"`
+- `Features/Library/PictureFromPhotoView.swift` (8)
+  - 240: `let plural: String = failed == 1 ? " was" : "s were"`
+  - 241: `problem = "\(failed) picture\(plural) not readable."`
+  - 464: `let plural: String = asked == 1 ? "" : "s"`
+  - 467: `return "\(asked) card\(plural) on this picture\(rest)"`
+  - 523: `let plural: String = total == 1 ? "" : "s"`
+  - 524: `let title: String = saving ? "Saving\u{2026}" : "Save \(total) picture card\(plural)"`
+  - 591: `let plural: String = result.cards == 1 ? "" : "s"`
+  - 598: `Text("Saved \(result.cards) picture card\(plural) to \u{201C}\(result.set.name)\u{201D}.\(lecture)")`
+- `Features/Library/LecturePDFSection.swift` (6)
+  - 147: `let plural: String = found == 1 ? "" : "s"`
+  - 148: `return "Also make \(found) picture card\(plural) from the diagrams"`
+  - 153: `let plural: String = found == 1 ? "" : "s"`
+  - 154: `return "Save \(found) picture card\(plural) and close"`
+  - 258: `let pagePlural: String = pages == 1 ? "" : "s"`
+  - 262: `let figurePlural: String = figureCount == 1 ? "" : "s"`
+- `Features/Anki/AnkiReviewView.swift` (5)
+  - 204: `let plural: String = reviewedCount == 1 ? "" : "s"`
+  - 205: `let first: String = "You went through \(reviewedCount) card\(plural). "`
+  - 220: `let status: String = left == 0 ? "All done" : "\(left) card\(left == 1 ? "" : "s") left"`
+  - 323: `let plural: String = count == 1 ? "" : "s"`
+  - 325: `quizNote = "This deck made \(count) usable question\(plural). \(why)"`
+- `Features/Insight/RuleSheetView.swift` (5)
+  - 137: `let plural: String = added == 1 ? "" : "s"`
+  - 138: `withAnimation(.snappy) { note = "Added \(added) rule\(plural)." }`
+  - 188: `let plural: String = todo.count == 1 ? "" : "s"`
+  - 190: `let rewrote: String = "Rewrote \(done) of \(todo.count) rule\(plural)."`
+  - 214: `let writePlural: String = plain == 1 ? "" : "s"`
+- `Features/Learn/ExamPlanView.swift` (5)
+  - 113: `let plural: String = lockIn == 1 ? "" : "s"`
+  - 202: `let plural: String = forecast.unseen == 1 ? "" : "s"`
+  - 203: `Text("\(forecast.unseen) card\(plural) not yet studied are not in these figures.")`
+  - 210: `let plural: String = forecast.days == 1 ? "" : "s"`
+  - 212: `return "Do \(forecast.reviewsNeeded) reviews over the next \(forecast.days) day\(plural) (\(perDay)) to reach 90%."`
+- `Features/MCQ/MCQSummaryView.swift` (5)
+  - 71: `let plural: String = fresh == 1 ? "" : "s"`
+  - 77: `Label("Add \(fresh) rule\(plural)", systemImage: "text.badge.plus")`
+  - 81: `.accessibilityLabel("Add \(fresh) rule\(plural) to your rule sheet")`
+  - 92: `let plural: String = added == 1 ? "" : "s"`
+  - 93: `Label("\(added) rule\(plural) added to your rule sheet", systemImage: "checkmark")`
+- `Shared/Learn/ExamWeekPlanner.swift` (5)
+  - 139: `case .dueCards(let n): return "Study \(n) due card\(n == 1 ? "" : "s")"`
+  - 141: `case .confidentErrors(let n): return "Fix \(n) confident error\(n == 1 ? "" : "s")"`
+  - 142: `case .mistakes(let n): return "Redo \(n) missed question\(n == 1 ? "" : "s")"`
+  - 143: `case .lockIn(let n): return "Lock in \(n) question\(n == 1 ? "" : "s")"`
+  - 144: `case .flagged(let n): return "Practise \(n) flagged question\(n == 1 ? "" : "s")"`
+- `Features/Insight/InsightViews.swift` (4)
+  - 123: `parts.append("\(Int((e.coveragePenalty * 100).rounded())) off for \(n) subject\(n == 1 ? "" : "s") with under \(Readiness.thinSubjectAnswers) answers.")`
+  - 126: `parts.append("\(Int((e.reviewPenalty * 100).rounded())) off for \(e.dueCards) card\(e.dueCards == 1 ? "" : "s") waiting for review.")`
+  - 218: `let plural: String = count == 1 ? "" : "s"`
+  - 219: `let footer: String = "\(count) question\(plural). Tap one to see its answer."`
+- `Features/Learn/BedtimeReviewView.swift` (4)
+  - 49: `let plural: String = count == 1 ? "" : "es"`
+  - 50: `return "\(count) miss\(plural), with the answer. Just read them."`
+  - 92: `let plural: String = count == 1 ? "" : "s"`
+  - 93: `return "\(count) question\(plural) you missed yesterday. About two minutes, before anything new \u{2014} asking again after a night\u{2019}s sleep is what fixes`
+- `Features/Library/LibrarySheets.swift` (4)
+  - 95: `let plural: String = count == 1 ? "" : "s"`
+  - 96: `return "\(count) picture card\(plural) can\u{2019}t be included"`
+  - 118: `let plural: String = count == 1 ? "" : "s"`
+  - 119: `return "Delete \(count) set\(plural)?"`
+- `Features/Library/NewSetView.swift` (4)
+  - 750: `let plural: String = count == 1 ? "" : "s"`
+  - 751: `let ready: String = "\(count) \(noun)\(plural) ready."`
+  - 842: `let plural: String = count == 1 ? "" : "s"`
+  - 843: `importNotice = "\(count) picture\(plural) had not finished downloading on the phone this came from, so the picture cards that needed them were left out. Ask for`
+- `Features/OSCE/OsceGenerateSection.swift` (4)
+  - 149: `let plural: String = stationCount == 1 ? "" : "s"`
+  - 198: `let plural: String = wanted == 1 ? "" : "s"`
+  - 199: `let jobTitle: String = "Writing \(wanted) station\(plural)"`
+  - 250: `let madePlural: String = made == 1 ? "" : "s"`
+- `Features/Reasoning/ReasoningView.swift` (4)
+  - 170: `let plural: String = count == 1 ? "" : "s"`
+  - 171: `return "\(count) \(tool.noun)\(plural) written"`
+  - 241: `let plural: String = n == 1 ? "" : "s"`
+  - 242: `return "\(n) \(tool.noun)\(plural)"`
+- `Shared/Learn/StudyRhythm.swift` (4)
+  - 111: `let plural = misses == 1 ? "" : "es"`
+  - 112: `var s = "\(misses) of today\u{2019}s miss\(plural), with the answer and one line each. A calm read, not a test."`
+  - 118: `let plural = items == 1 ? "" : "s"`
+  - 119: `return "Two minutes: \(items) question\(plural) you missed yesterday, before anything new."`
+- `Features/Anki/DueTodayView.swift` (3)
+  - 163: `let plural: String = reviewedCount == 1 ? "" : "s"`
+  - 164: `return "\(reviewedCount) card\(plural) reviewed across your decks."`
+  - 170: `let status: String = left == 0 ? "All done" : "\(left) card\(left == 1 ? "" : "s") due"`
+- `Features/Coverage/CoverageView.swift` (3)
+  - 304: `let plural: String = failed.count == 1 ? "" : "s"`
+  - 306: `return "\(failed.count) area\(plural) could not be checked this time: \(names)."`
+  - 435: `var parts = ["\(sub.evidence) item\(sub.evidence == 1 ? "" : "s")"]`
+- `Shared/Cases/CaseChecks.swift` (3)
+  - 53: `case .fewKeySteps(let n): return "\(n) key step\(n == 1 ? "" : "s") (2 wanted)"`
+  - 175: `let plural: String = dropped == 1 ? "" : "s"`
+  - 176: `return " \(dropped) case\(plural) failed the structure or accuracy checks and \(dropped == 1 ? "was" : "were") left out."`
+- `Features/Analytics/AnalyticsView.swift` (2)
+  - 505: `detail: "\(n) question\(n == 1 ? "" : "s") you were sure of and got wrong",`
+  - 513: `detail: "\(s.due) card\(s.due == 1 ? "" : "s") waiting for review",`
+- `Features/Analytics/AnalyticsVisuals.swift` (2)
+  - 500: `let plural: String = rested == 1 ? "" : "s"`
+  - 501: `return " \(rested) rest day\(plural) kept the streak."`
+- `Features/Cases/CaseDebriefView.swift` (2)
+  - 353: `: "\(fresh.count) card\(fresh.count == 1 ? "" : "s") added to \u{201C}\(deckName)\u{201D}."`
+  - 358: `cardsNote = "\(made.count) card\(made.count == 1 ? "" : "s") in a new deck, \u{201C}\(deckName)\u{201D}."`
+- `Features/Cases/CaseListView.swift` (2)
+  - 69: `let plural: String = heldCount == 1 ? " is" : "s are"`
+  - 70: `return "\(heldCount) patient\(plural) held while the checkers look at a possible error."`
+- `Features/Cases/CaseMakeSection.swift` (2)
+  - 128: `"Make \(caseCount) patient" + (caseCount == 1 ? "" : "s")`
+  - 177: `guard let job = GenerationCenter.shared.begin("Writing \(wanted) patient\(wanted == 1 ? "" : "s")", total: wanted,`
+- `Features/Learn/SymptomBlocksView.swift` (2)
+  - 85: `let plural: String = block.ids.count == 1 ? "" : "s"`
+  - 90: `Text("\(block.ids.count) question\(plural)").font(.system(.caption, design: .monospaced))`
+- `Features/Library/StatsView.swift` (2)
+  - 371: `let plural: String = count == 1 ? "" : "s"`
+  - 372: `return "\(count) \(noun)\(plural)"`
+- `Features/Library/TurnIntoPicker.swift` (2)
+  - 78: `let plural: String = n == 1 ? "" : "s"`
+  - 79: `let text: String = "Instant \u{00B7} \(n) \(made.itemNoun)\(plural)"`
+- `Features/Library/WardHome.swift` (2)
+  - 845: `let plural: String = set.itemCount == 1 ? "" : "s"`
+  - 846: `let amount: String = "\(set.itemCount) \(set.itemNoun)\(plural)"`
+- `Features/Mock/MockPaperView.swift` (2)
+  - 141: `Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of \(per)")`
+  - 147: `Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of 40")`
+- `Features/Notes/NoteEditorView.swift` (2)
+  - 468: `let plural: String = count == 1 ? "" : "s"`
+  - 469: `let made: String = "\(count) card\(plural)"`
+- `Features/Reasoning/ScriptsView.swift` (2)
+  - 143: `let plural: String = added == 1 ? "" : "s"`
+  - 144: `parts.append("\(added) new page\(plural)")`
+- `Features/Sources/SourcesLibraryView.swift` (2)
+  - 153: `let pagePlural: String = pages == 1 ? "" : "s"`
+  - 156: `let setPlural: String = sets == 1 ? "" : "s"`
+- `Features/Voice/ExplainBackView.swift` (2)
+  - 668: `let plural: String = cards.count == 1 ? "" : "s"`
+  - 669: `madeMessage = "Saved \(cards.count) card\(plural) as \u{201C}\(deck.name)\u{201D}. They're due now."`
+- `Shared/LLM/MedicalGenerate.swift` (2)
+  - 105: `user: "Write the \(perCall) station\(perCall == 1 ? "" : "s") now, as JSON only.",`
+  - 123: `.user("Write the \(callCount) station\(callCount == 1 ? "" : "s") now, as JSON only.")],`
+- `Shared/Learn/BedPlan.swift` (2)
+  - 292: `detail: "\(drill) MCQ\(drill == 1 ? "" : "s"), missed ones first", status: .weak,`
+  - 396: `"\(n) \(noun)\(n == 1 ? "" : "s")"`
+- `Features/Cases/CaseMaker.swift` (1)
+  - 154: `let spec = CloudJobs.Spec(title: "Writing \(wanted) case\(wanted == 1 ? "" : "s")", mode: "each", extract: "pages",`
+- `Features/Cases/CaseWardView.swift` (1)
+  - 241: `.accessibilityLabel("\(step.label), \(step.minutes) minute\(step.minutes == 1 ? "" : "s")")`
+- `Features/Support/ReviewSettingsSection.swift` (1)
+  - 34: `Button("Let \(reviews.suspendedCount) suspended card\(reviews.suspendedCount == 1 ? "" : "s") back in") {`
+- `Shared/ContentCredits.swift` (1)
+  - 132: `parts.append("\(source.pageCount) \(noun)\(source.pageCount == 1 ? "" : "s")")`
+- `Shared/Coverage/CoverageExamples.swift` (1)
+  - 46: `? "\(sub.evidence) item\(sub.evidence == 1 ? "" : "s") mention it, mostly in passing"`
+- `Shared/Diagnostics/DiagnosticsPlatform.swift` (1)
+  - 97: `return note(count == 0 ? "Up to date." : "Sent \(count) report\(count == 1 ? "" : "s").")`
+- `Shared/Exam/ExamFormats.swift` (1)
+  - 20: `return [MockPaperSpec(id: "\(exam.id)-\(n)", title: "\(exam.shortName), \(n) \(noun)" + (n == 1 ? "" : "s"),`
+- `Shared/Exam/MockPaper.swift` (1)
+  - 64: `return [MockPaperSpec(id: "usmle\(count)", title: "USMLE-style, \(count) block" + (count == 1 ? "" : "s"),`
+- `Shared/LibraryBackup.swift` (1)
+  - 171: `if sets > 0 { parts.append("\(sets) set\(sets == 1 ? "" : "s") added") }`
+- `Shared/OsceGenerator.swift` (1)
+  - 87: `to: "Write the \(callCount) station\(callCount == 1 ? "" : "s") now.",`
+- `Shared/OsceStations.swift` (1)
+  - 114: `"From the source below, write \(count) station checklist\(count == 1 ? "" : "s").",`
+- `Shared/PDFExporter.swift` (1)
+  - 71: `out.append(subtitle("\(set.kind.label) · \(set.subject) · \(set.itemCount) \(set.itemNoun)\(set.itemCount == 1 ? "" : "s")"))`
+- `Shared/Reasoning/ReasoningStore.swift` (1)
+  - 141: `let title: String = "Writing \(count) \(tool.noun)\(count == 1 ? "" : "s")"`
+- `Shared/Reasoning/ReasoningWriter.swift` (1)
+  - 128: `"List \(count) pair\(count == 1 ? "" : "s") of conditions from the source below that \(audience(subject, exam)) commonly confuses.",`
+
+## Dates in a fixed pattern or locale (`fixed-date`)
+
+- `Shared/PhotoOcclusion.swift` (2)
+  - 218: `formatter.locale = Locale(identifier: "en_GB")`
+  - 219: `formatter.dateFormat = "d MMM"`
+- `Shared/ImageSpoiler.swift` (1)
+  - 99: `locale: Locale(identifier: "en_US"))`
+- `Shared/Voice/VoiceListener.swift` (1)
+  - 39: `SFSpeechRecognizer(locale: Locale.current) ?? SFSpeechRecognizer(locale: Locale(identifier: "en-GB"))`
+
+## Directional SF Symbols (use .forward / .backward) (`symbol`)
+
+- `Features/Analytics/AnalyticsView.swift` (6)
+  - 594: `Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 705: `Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 852: `Image(systemName: "chevron.right")`
+  - 972: `case .up: return "arrow.up.right"`
+  - 973: `case .down: return "arrow.down.right"`
+  - 974: `case .flat: return "arrow.right"`
+- `Features/Library/StatsView.swift` (3)
+  - 272: `Label("Practise these \u{00B7} \(questions)", systemImage: "arrow.right.circle")`
+  - 280: `Label("Slow reading drill \u{00B7} key words marked, 15 s a question", systemImage: "arrow.right.circle")`
+  - 298: `systemImage: "arrow.right.circle")`
+- `Features/MCQ/MCQQuizView.swift` (3)
+  - 1059: `let symbol: String = a.checked ? "arrow.right" : "checkmark"`
+  - 1096: `Image(systemName: "chevron.left")`
+  - 1099: `Label("Back", systemImage: "chevron.left")`
+- `Features/Book/BookReaderView.swift` (2)
+  - 234: `Label("Back", systemImage: "chevron.left")`
+  - 274: `Label("Next page", systemImage: "arrow.right")`
+- `Features/Lens/StudyLensView.swift` (2)
+  - 239: `Button { showPage(still.page - 1) } label: { Image(systemName: "chevron.left") }`
+  - 246: `Button { showPage(still.page + 1) } label: { Image(systemName: "chevron.right") }`
+- `Features/Mock/MockSittingView.swift` (2)
+  - 366: `let nextSymbol: String = last ? "flag.checkered" : "arrow.right"`
+  - 369: `Label("Back", systemImage: "chevron.left")`
+- `Features/Sources/ReaderBar.swift` (2)
+  - 117: `ReaderPagerArrow(symbol: "chevron.left", label: before, key: .leftArrow,`
+  - 127: `ReaderPagerArrow(symbol: "chevron.right", label: after, key: .rightArrow,`
+- `Features/Cases/CaseListView.swift` (1)
+  - 98: `Image(systemName: "chevron.right")`
+- `Features/Insight/InsightViews.swift` (1)
+  - 98: `Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)`
+- `Features/Learn/SymptomBlocksView.swift` (1)
+  - 136: `Image(systemName: "arrow.right").font(.caption).foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)`
+- `Features/Library/CategoryShelves.swift` (1)
+  - 157: `Image(systemName: "chevron.right")`
+- `Features/Library/LibrarySearchResults.swift` (1)
+  - 95: `Image(systemName: "chevron.right")`
+- `Features/Notes/GraphPreview.swift` (1)
+  - 311: `Image(systemName: "chevron.left")`
+- `Features/OSCE/OsceReviewView.swift` (1)
+  - 358: `Label("Next station", systemImage: "arrow.right")`
+- `Features/Reasoning/ReasoningView.swift` (1)
+  - 190: `Image(systemName: "chevron.right")`
+- `Shared/Ward/WardControls.swift` (1)
+  - 537: `Image(systemName: "chevron.right")`
+
+## Horizontal offsets (never mirrored; right for a picture, wrong for a layout) (`offset-x`)
+
+- `Features/Insight/InsightViews.swift` (3)
+  - 173: `.offset(x: layout.rangeX)`
+  - 176: `.offset(x: layout.centerX)`
+  - 179: `.offset(x: layout.markX)`
+- `Features/Library/OcclusionCoverEditor.swift` (3)
+  - 101: `.offset(x: rect.minX, y: rect.minY)`
+  - 120: `.offset(x: points[index].x - s / 2, y: points[index].y - s / 2)`
+  - 131: `.offset(x: rect.minX, y: rect.minY)`
+- `Features/Lens/StudyLensView.swift` (2)
+  - 401: `.offset(x: origins[pair.offset].x, y: origins[pair.offset].y)`
+  - 424: `.offset(x: rect.minX, y: rect.minY)`
+- `Features/Lens/LensAnswerSheet.swift` (1)
+  - 454: `.offset(x: phase * w)`
+- `Features/Library/LibraryView.swift` (1)
+  - 372: `return AnyTransition.asymmetric(insertion: AnyTransition.offset(x: shift), removal: AnyTransition.identity)`
+- `Shared/AppBackdrop.swift` (1)
+  - 292: `.offset(x: dx, y: dy)`
+
+## Left / right arrow keys (`arrow-key`)
+
+- `Features/Book/BookReaderView.swift` (2)
+  - 239: `.keyboardShortcut(.leftArrow, modifiers: [])`
+  - 277: `.keyboardShortcut(.rightArrow, modifiers: [])`
+- `Features/Narrate/NarrateAudioBar.swift` (2)
+  - 72: `.keyboardShortcut(.leftArrow, modifiers: [])`
+  - 88: `.keyboardShortcut(.rightArrow, modifiers: [])`
+- `Features/Reasoning/DuelView.swift` (2)
+  - 232: `case .a: return .leftArrow`
+  - 234: `case .b: return .rightArrow`
+- `Features/Sources/ReaderBar.swift` (2)
+  - 117: `ReaderPagerArrow(symbol: "chevron.left", label: before, key: .leftArrow,`
+  - 127: `ReaderPagerArrow(symbol: "chevron.right", label: after, key: .rightArrow,`
+- `Features/MCQ/MCQQuizView.swift` (1)
+  - 1104: `.keyboardShortcut(.leftArrow, modifiers: [])`
+- `Features/Mock/MockSittingView.swift` (1)
+  - 372: `.keyboardShortcut(.leftArrow, modifiers: [])`
+- `Features/Voice/CommuteModeView.swift` (1)
+  - 374: `.keyboardShortcut(.rightArrow, modifiers: [])`
+
+## Rings and arcs not filling from the leading side (`ring`)
+
+- `Shared/Space/PhotonRing.swift` (3)
+  - 64: `.trim(from: 0, to: shown)`
+  - 71: `.trim(from: 0, to: shown)`
+  - 77: `.trim(from: 0, to: shown)`
+- `Features/Analytics/AnalyticsVisuals.swift` (2)
+  - 99: `.trim(from: 0, to: filled)`
+  - 106: `.trim(from: arc.start * grow, to: arc.end * grow)`
+- `Shared/Ward/WardVitals.swift` (2)
+  - 37: `.trim(from: 0, to: v)`
+  - 155: `.trim(from: 0, to: reduceMotion ? 1 : drawn)`
+- `Features/Learn/WardRoundView.swift` (1)
+  - 342: `.trim(from: 0, to: progress.fraction)`
+
+## Comments that place things left or right (`wording`)
+
+- `Features/Examples/OcclusionExample.swift` (5)
+  - 22: `/// (the right edge for the left-hand column), and the point its leader`
+  - 37: `// the patient's right, on the left of the picture`
+  - 48: `// the patient's left, on the right of the picture`
+  - 66: `/// side of the heart (blue) on the left of the picture.`
+  - 99: `// pulmonary trunk, arching over it to the left and down behind`
+- `Features/Library/LibraryView.swift` (3)
+  - 14: `/// iPad the dock stands on the leading edge as a rail, under the left hand,`
+  - 389: `// the wide iPad's rail, under the left hand`
+  - 564: `/// right thumb on a phone, bottom-right under the right hand on a wide`
+- `Features/Notes/GraphLook.swift` (3)
+  - 94: `/// The accretion disk: brighter on the right of the screen and dimmer on`
+  - 422: `/// ring just outside the silhouette, brighter and whiter on the right;`
+  - 453: `// 1 on the right, 0 on the left`
+- `Features/Voice/SpokenStationView.swift` (3)
+  - 188: `/// Marking failed: mark the same transcript again (the hero, right thumb),`
+  - 189: `/// or start the station over (left thumb). With nothing said, only the`
+  - 465: `/// right, in Theatre Blue words; the patient on the left, in ink), the`
+- `Shared/Theme.swift` (3)
+  - 220: `/// ZStack's '.leading' is the right-hand side right to left, so Arabic`
+  - 407: `// themselves a little differently: the main button was on the right in one,`
+  - 435: `/// button stops at 360 points, so a lone primary lands under the right hand`
+- `Features/Anki/AnkiCardFace.swift` (2)
+  - 293: `/// end, under the right thumb. Give it to '.studyBar { }', so the card`
+  - 323: `// on a wide iPad the companion goes to the left hand`
+- `Features/Library/LibraryRows.swift` (2)
+  - 434: `/// The fan: questions to the left, cards upright in the middle, stations`
+  - 435: `/// to the right.`
+- `Features/Notes/IdeaTools.swift` (2)
+  - 8: `// bottom container - under the right thumb on a phone - and on the trailing`
+  - 9: `// edge, vertically centred, on a wide iPad, where the right hand rests. Each`
+- `Features/Sources/ReaderBar.swift` (2)
+  - 7: `/// - the page list, as a soft disc at the leading end (left thumb) - on a`
+  - 9: `/// - in Page view, the pager at the trailing end (right thumb): back, where`
+- `Shared/Reasoning/ReasoningModels.swift` (2)
+  - 56: `/// The answer buttons, left to right: the first condition on the left,`
+  - 57: `/// "Both" in the middle, the second on the right - the same sides the`
+- `Shared/Ward/WardStates.swift` (2)
+  - 83: `/// 'vertical' stands it upright between two columns, the shade on the left`
+  - 84: `/// and the highlight on the right, as the light falls from the top left.`
+- `Features/Auth/SignInView.swift` (1)
+  - 113: `/// Questions to the left, cards upright in the middle, stations to the right.`
+- `Features/Book/BookReaderView.swift` (1)
+  - 227: `/// Back and Contents on the left, small; Next page at the trailing end -`
+- `Features/Learn/WardRoundOverlay.swift` (1)
+  - 212: `// leading is on the right in a right-to-left language`
+- `Features/Library/CategoryShelves.swift` (1)
+  - 63: `/// the trailing end, under the right thumb (the left, right to left).`
+- `Features/Library/LibraryCategory.swift` (1)
+  - 179: `/// a page of its own, or New set on the right kind.`
+- `Features/Library/NewSetDock.swift` (1)
+  - 19: `/// step's one main button at the trailing end (right thumb). While something is being`
+- `Features/Library/WardHome.swift` (1)
+  - 744: `/// off (RhythmReading.beats), oldest on the left. Decoration: whatever shows`
+- `Features/Narrate/LectureImporter.swift` (1)
+  - 179: `/// Add audio to the left hand; speed right beside the Play it controls.`
+- `Features/Notes/GraphAnatomy.swift` (1)
+  - 816: `/// side, the synapses out to the right.`
+- `Features/Notes/GraphLineStyle.swift` (1)
+  - 150: `/// same way). Curved: a quadratic bow to the left of p-to-q, its control`
+- `Features/Notes/GraphMotion.swift` (1)
+  - 1323: `/// of the notes' right side. Holds its pose while a note is dragged, so`
+- `Features/Notes/GraphPreview.swift` (1)
+  - 295: `/// system's glass back chevron on the left and the "Ideas" title on a soft`
+- `Features/OSCE/OsceReviewView.swift` (1)
+  - 253: `/// on a wide iPad, Start over under the left hand and I got it under the`
+- `Features/Reasoning/DuelView.swift` (1)
+  - 224: `// the first condition stays on the left, as the swipe does, in a`
+- `Features/Recall/DrawRecallView.swift` (1)
+  - 57: `/// right, under the right hand. On a phone PencilKit's tool picker docks`
+- `Features/Voice/CommuteModeView.swift` (1)
+  - 346: `/// The player's floating bar: Skip under the left thumb, the big Play/Pause`
+- `Shared/Corrections.swift` (1)
+  - 89: `// splice at the end lands a word or two to the right of the word that`
+- `Shared/PopOutMotion.swift` (1)
+  - 352: `// tipping the right edge away puts the eye to the left; tilting the`
+- `Shared/Space/PhotonRing.swift` (1)
+  - 8: `// of itself, brighter on the right - the Doppler side, as the map's disks`
+
+## On-screen literals not in the catalog yet (`not-in-catalog`)
+
+- `Features/Support/ModelSettingsView.swift` (41)
+  - 31: `ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+  - 50: `Label("Crash and failure reports", systemImage: "stethoscope")`
+  - 53: `Text("Technical reports so problems get fixed. Never your notes, questions or recordings.")`
+  - 57: `Text("A study aid, not medical advice. Generated text can be wrong even when checked.")`
+  - 63: `.navigationTitle("AI models")`
+  - 78: `Button("See Pro") { showPaywall = true }`
+  - 94: `Toggle("Verify what is generated", isOn: $llm.checkGenerated)`
+  - 99: `Text("Use")`
+  - 101: `Text("The writer writes questions, OSCE stations, cards and textbook pages. Everything it writes is checked by the verification layer: safety checks on this dev`
+  - 111: `Text("Off").tag(LLMChoice.off)`
+  - 128: `Text("On this device \u{00B7} Pro")`
+  - 144: `LabeledContent("Writer", value: "Gemini 3.5 Flash")`
+  - 145: `LabeledContent("Verification", value: "Three model families solving blind, the literature, a calibrated verdict")`
+  - 153: `Text("Status")`
+  - 156: `Text("\(Brand.name) Cloud \u{00B7} Pro")`
+  - 158: `Text("Google's Gemini, with Google's Gemma and Cloudflare's models taking over when it is busy. Works on every device, including ones too small for the on-devic`
+  - 179: `Label("Add a hosted model", systemImage: "plus.circle")`
+  - 187: `Text("Your own key \u{00B7} advanced")`
+  - 189: `Text("Your own API key, kept in the keychain on this device only. What you send goes to that provider under their terms.")`
+  - 203: `Button("Edit", systemImage: "pencil") { edit(provider) }`
+  - 204: `Button("Delete", systemImage: "trash", role: .destructive) { llm.remove(provider) }`
+  - 254: `Label("Too large for this device \u{2014} add a hosted model below.", systemImage: "exclamationmark.triangle.fill")`
+  - 258: `Label("Download", systemImage: "arrow.down.circle")`
+  - 263: `Text("Downloading \u{2014} \(Int(fraction * 100))%")`
+  - 268: `Button("Cancel download", role: .cancel) { llm.cancelDownload(model) }`
+  - 273: `Button("Remove", role: .destructive) { llm.delete(model) }`
+  - 278: `Button("Try again") { llm.download(model) }`
+  - 327: `TextField("Name", text: $provider.name)`
+  - 329: `Picker("API", selection: $provider.kind) {`
+  - 333: `TextField("Address", text: $provider.baseURL)`
+  - 337: `TextField("Model", text: $provider.model)`
+  - 343: `Toggle("Needs an API key", isOn: $provider.needsKey)`
+  - 351: `Text("Stored in the keychain on this device. Never synced, never sent anywhere except to this address.")`
+  - 360: `Text("Test")`
+  - 372: `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)`
+  - 374: `Button("Save") { save() }`
+  - 438: `Toggle("Check my whole library in the background", isOn: $accuracy.background)`
+  - 443: `Text("Items checked")`
+  - 445: `LabeledContent("Accuracy model", value: accuracy.weights.version)`
+  - 450: `Text("Accuracy engine")`
+  - 452: `Text("New and edited content is checked straight away; the rest of your library slowly, newest and most-studied first, within the free daily limits. Each item i`
+- `Features/Voice/SpokenStationView.swift` (31)
+  - 31: `.navigationTitle("Spoken station")`
+  - 49: `Label("Choose a model to play the patient", systemImage: "person.wave.2")`
+  - 51: `Text("The patient and the examiner are played by your writer model. With Pro, use \(Brand.name) Cloud or a model on this device; Apple's own model works for fre`
+  - 65: `Label("AI models", systemImage: "cpu")`
+  - 88: `Text("The examiner is marking\u{2026}")`
+  - 115: `Label("Also marked on SPIKES: setting, perception, invitation, knowledge, emotions, strategy and summary.",`
+  - 120: `Text("Tap the microphone to speak; it sends when you pause. The patient answers in their own voice. You can type instead.")`
+  - 130: `Label("Start the station", systemImage: "play.fill")`
+  - 158: `Button("End & mark") { Task { await session.finish() } }`
+  - 160: `.accessibilityHint("Ends the station now and has it marked")`
+  - 172: `Label("Try the station again", systemImage: "arrow.counterclockwise")`
+  - 197: `Button("Start again") { session.restart() }`
+  - 199: `Button("Mark again") { Task { await session.finish() } }`
+  - 207: `Label("Try the station again", systemImage: "arrow.counterclockwise")`
+  - 229: `Text("The patient is answering\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)`
+  - 257: `Section("Past attempts") {`
+  - 259: `Text("Your marked stations appear here.")`
+  - 307: `Button("Delete", role: .destructive, action: delete)`
+  - 311: `Button("Open", systemImage: "doc.text.magnifyingglass", action: open)`
+  - 313: `Button("Delete", systemImage: "trash", role: .destructive, action: delete)`
+  - 360: `return TextField("Or type what you say", text: $draft, axis: .vertical)`
+  - 400: `.accessibilityLabel("Send")`
+  - 511: `Text("of \(attempt.steps.count) steps").font(.title3).foregroundStyle(Color.wardInkSecondary)`
+  - 516: `Text("Communication")`
+  - 525: `.accessibilityLabel("Communication \(attempt.mark.communication) out of 5")`
+  - 536: `Section("SPIKES") {`
+  - 555: `Section("Checklist") {`
+  - 571: `Section("The examiner's notes") {`
+  - 579: `Section("Transcript") {`
+  - 591: `Text("A study aid, not an exam result. Marked by a model from a speech-recognition transcript, which can mishear.")`
+  - 598: `.navigationTitle("Station marks")`
+- `Features/Analytics/AnalyticsView.swift` (29)
+  - 65: `Label("Includes example data", systemImage: "info.circle")`
+  - 81: `Text("Readiness")`
+  - 104: `.navigationTitle("Vitals")`
+  - 567: `Text("Focus next")`
+  - 570: `Text("Ranked by how many marks each is likely worth: weak subjects by how often they are missed, then confident mistakes, cards waiting, syllabus gaps and your `
+  - 612: `Text("Accuracy by week").font(.subheadline.weight(.semibold))`
+  - 614: `Text("The last 8 weeks. The dashed line is the typical pass mark.")`
+  - 619: `Text("Studied per day").font(.subheadline.weight(.semibold))`
+  - 621: `Text("The last 30 days: questions answered and cards reviewed.")`
+  - 627: `Text("Trends")`
+  - 651: `Text("\(Int(value.as(Double.self) ?? 0))%")`
+  - 682: `Text("Why you lose marks").font(.subheadline.weight(.semibold))`
+  - 684: `Text("The last \(Store.reasonWindowDays) days, from the reason picked after each wrong answer. Your commonest one has its fix under Focus next.")`
+  - 691: `Text("Right by confidence").font(.subheadline.weight(.semibold))`
+  - 693: `Text("Bars are how often each was right; the dashed line is roughly where it should be. \u{201C}Sure\u{201D} well under the line means facts learned wrongly.")`
+  - 701: `Label("Confident but wrong", systemImage: "exclamationmark.triangle")`
+  - 713: `Picker("Subject", selection: $mistakeSubject) {`
+  - 714: `Text("All subjects").tag("")`
+  - 725: `Text("Mistakes")`
+  - 728: `Text("Your latest wrong answer to each question, newest first. Tap one to try it again; the list icon opens its line on the rule sheet.")`
+  - 767: `.accessibilityHint("Opens this question on its own")`
+  - 777: `.accessibilityLabel("Rule sheet")`
+  - 802: `.accessibilityHint("Opens a drill of \(subject.subject)")`
+  - 807: `Text("Subjects")`
+  - 821: `.accessibilityHint("Opens your accuracy, subject by subject")`
+  - 825: `Text("Weakest first; tap one to drill it. The arrow compares the last two weeks with before, when both have a few answers.")`
+  - 836: `Text("\(s.answered) answered").font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 882: `Text("Time")`
+  - 884: `Text("The average is over the days in the last 30 you studied at all. The calendar is the last 12 weeks, a column a week, today outlined; a moon marks a rest da`
+- `Features/Library/CardEditSheets.swift` (29)
+  - 37: `Text("Sentence")`
+  - 47: `Section("Question") {`
+  - 56: `Text("Answer")`
+  - 58: `Text("One bullet per line.")`
+  - 62: `Section("Question") {`
+  - 63: `TextField("What is labelled here?", text: $working.front)`
+  - 71: `Text("Answer")`
+  - 73: `Text("The label this card's mask covers. The mask itself is set where the card was made.")`
+  - 77: `Section("Why / how") {`
+  - 86: `Text("Tags")`
+  - 88: `Text("For finding it again: search for #tag. Tags go with the card to Anki.")`
+  - 91: `Section("From") {`
+  - 98: `.navigationTitle("Edit card")`
+  - 101: `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)`
+  - 103: `Button("Done", action: commit)`
+  - 149: `Section("Stem") {`
+  - 159: `Button("Add an option", systemImage: "plus") { working.options.append("") }`
+  - 163: `Text("Options")`
+  - 171: `Section("Explanation") {`
+  - 176: `Section("Tags") {`
+  - 181: `Section("From") {`
+  - 188: `.navigationTitle("Edit question")`
+  - 191: `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)`
+  - 193: `Button("Done") {`
+  - 228: `Button("Mark correct", systemImage: "checkmark.circle") { working.correctIndex = index }`
+  - 229: `Button("Delete", systemImage: "trash", role: .destructive) { removeOption(index) }`
+  - 231: `.accessibilityLabel("Mark correct")`
+  - 235: `TextField("Option", text: optionText(index), axis: .vertical)`
+  - 246: `.accessibilityLabel("Delete option")`
+- `Features/Support/SupportCenter.swift` (29)
+  - 209: `Toggle("Pop-out effect", isOn: $popOut)`
+  - 211: `Toggle("Pop-out with face tracking", isOn: $face)`
+  - 214: `Toggle("Always night sky", isOn: $alwaysNight)`
+  - 216: `Toggle("Sounds", isOn: $sounds)`
+  - 218: `Picker("Graphics", selection: $graphicsRaw) {`
+  - 226: `Text("Link length")`
+  - 233: `Text("Link length")`
+  - 235: `Text("Shorter").font(.caption)`
+  - 237: `Text("Longer").font(.caption)`
+  - 243: `Text("Lines")`
+  - 250: `.accessibilityLabel("Lines")`
+  - 337: `LabeledContent("Exam", value: ExamChoice.current?.shortName ?? "Choose")`
+  - 340: `Picker("Exam style", selection: $exam) {`
+  - 343: `Toggle("I have an exam date", isOn: hasExamDate)`
+  - 345: `DatePicker("Exam date", selection: examDay, in: Date()..., displayedComponents: .date)`
+  - 350: `Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their`
+  - 376: `Toggle("Ask before deleting a set", isOn: $confirmDelete)`
+  - 377: `Toggle("Open the last set on launch", isOn: $openLastSet)`
+  - 378: `Stepper("Daily goal: \(dailyGoal) a day", value: $dailyGoal, in: DailyGoal.range, step: 10)`
+  - 384: `Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")`
+  - 394: `Label("AI models", systemImage: "cpu")`
+  - 397: `Text("Doctor-R1 on this device, or \(Brand.name) Cloud (Gemini).")`
+  - 407: `Label("Sources and licences", systemImage: "books.vertical")`
+  - 410: `LabeledContent("Version", value: Bundle.main.shortVersion)`
+  - 412: `Text("About")`
+  - 461: `Text("Put your material in once, then study it in whichever shape suits the exam you are sitting.")`
+  - 468: `Section("The modes") {`
+  - 477: `Section("Getting material in") {`
+  - 486: `Section("Getting it out") {`
+- `Features/Notes/NoteEditorView.swift` (27)
+  - 70: `Label("Back", systemImage: "chevron.backward")`
+  - 78: `Button("Done") {`
+  - 87: `Button("Delete note", systemImage: "trash", role: .destructive) {`
+  - 95: `.accessibilityLabel("More")`
+  - 105: `.confirmationDialog("Delete this note?", isPresented: $confirmingDelete, titleVisibility: .visible) {`
+  - 106: `Button("Delete", role: .destructive) {`
+  - 111: `Text("Links to it from other notes are removed too.")`
+  - 113: `.alert("Turn into cards", isPresented: cardsAlertShown) {`
+  - 140: `TextField("Title", text: $title, axis: .vertical)`
+  - 165: `.accessibilityLabel("Note")`
+  - 168: `Text("Notes")`
+  - 170: `Text("Type [[ and a note\u{2019}s title to link it, like [[Heart failure]]. Markdown works too: # headings, - bullets, **bold**, *italic*; switch to Read to see`
+  - 178: `Section("Linked here from") {`
+  - 209: `Picker("Kind", selection: $kind) {`
+  - 227: `Picker("Folder", selection: $folderId) {`
+  - 228: `Text("No folder").tag(UUID?.none)`
+  - 262: `return Section("Linked notes") {`
+  - 273: `Label("Link to\u{2026}", systemImage: "link")`
+  - 290: `Text("No note by this name yet \u{2014} tap to make it")`
+  - 414: `Button("Unlink", systemImage: "xmark") {`
+  - 421: `Button("Unlink", systemImage: "xmark") {`
+  - 518: `.navigationTitle("Link to\u{2026}")`
+  - 522: `Button("Done") { dismiss() }`
+  - 546: `Text("Link to\u{2026}")`
+  - 552: `.accessibilityLabel("Link to\u{2026}")`
+  - 554: `Text("Turn into cards")`
+  - 579: `.accessibilityLabel("View")`
+- `Features/Auth/AccountView.swift` (25)
+  - 45: `ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+  - 50: `.alert("Delete your account?", isPresented: $confirmingDelete) {`
+  - 51: `Button("Cancel", role: .cancel) {}`
+  - 52: `Button("Delete", role: .destructive) { deleteAccount() }`
+  - 54: `Text("This cannot be undone. Your study material stays on this phone.")`
+  - 56: `.alert("Something went wrong", isPresented: troubleShown) {`
+  - 91: `Button("See plans") { showPaywall = true }`
+  - 95: `Label("Link another device", systemImage: "ipad.and.iphone")`
+  - 100: `Label("Sync now", systemImage: "arrow.triangle.2.circlepath")`
+  - 114: `Text("Sync")`
+  - 117: `Text("Keeping your iPhone and iPad the same is part of Pro.")`
+  - 120: `Text("This library is only on this device. Link another device to keep them the same.")`
+  - 125: `Label("Link another device", systemImage: "ipad.and.iphone")`
+  - 134: `Text("The library on this device was synced with another account. Nothing syncs until you choose.")`
+  - 136: `Button("Add it to this account") {`
+  - 139: `Button("Keep it on this device only") {`
+  - 145: `Button("Add them to this account") {`
+  - 150: `Text("Your decks, folders and review schedule follow you between your devices. Recordings and learned pronunciations stay on the phone that made them.")`
+  - 174: `LabeledContent("Subscription",`
+  - 180: `Button("Manage or cancel") { showManage() }`
+  - 184: `Button("Restore purchases") { Task { await subscriptions.restore() } }`
+  - 195: `Button("Sign out") { signOut() }`
+  - 196: `Button("Delete account", role: .destructive) { confirmingDelete = true }`
+  - 198: `Text("Deleting removes your account, your synced library and its subscription record from our server. The copy on this phone stays. It does not cancel an active`
+  - 323: `.accessibilityLabel("Pro subscription")`
+- `Features/Support/AccuracyBadge.swift` (24)
+  - 38: `.accessibilityLabel("Accuracy: " + (checking ? "checking" : assessment.grade.title))`
+  - 39: `.accessibilityHint("Shows why, the sources, and Report an error")`
+  - 76: `.accessibilityLabel("Accuracy: " + (summary.line ?? grade.title))`
+  - 88: `Label("Accuracy: " + line, systemImage: summary.grade.symbol)`
+  - 90: `Label("Accuracy: not checked yet", systemImage: "clock")`
+  - 123: `.navigationTitle("Accuracy")`
+  - 126: `ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+  - 146: `Label("Check now", systemImage: "checkmark.shield")`
+  - 152: `Text("Result")`
+  - 154: `Text("Checked against this \(item.kind.noun)'s lecture and current literature by free checker models voting, with rule checks for doses, lab values and contradi`
+  - 172: `Section("Rule checks") {`
+  - 186: `Section("Checker models") {`
+  - 196: `Text("Its own answer: " + answer).font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 202: `Text("Cites " + vote.cites.joined(separator: ", ")).font(.caption2).foregroundStyle(Color.wardInkSecondary)`
+  - 211: `Section("Sources the checkers were shown") {`
+  - 239: `Label("Accept the correction", systemImage: "checkmark.circle")`
+  - 244: `Text("Suggested correction")`
+  - 246: `Text("It is checked again once changed. You can still edit it by hand.")`
+  - 254: `TextField("What's wrong? (optional)", text: $note, axis: .vertical)`
+  - 257: `Button("Send report") { Task { await sendReport() } }`
+  - 260: `Label("You reported this \(item.kind.noun)", systemImage: "flag.fill").foregroundStyle(Color.wardInkSecondary)`
+  - 263: `Label("Report an error", systemImage: "flag")`
+  - 267: `Text("Reports help train the accuracy model. Only this \(item.kind.noun) and your note are sent.")`
+  - 357: `Label("Check accuracy", systemImage: "checkmark.shield")`
+- `Features/Cases/CaseDebriefView.swift` (23)
+  - 61: `Text("Discharge summary")`
+  - 90: `.accessibilityLabel("\(part.label): \(part.points) of \(part.of)")`
+  - 93: `Label("Capped at 60: a must-not-miss red flag was missed.", systemImage: "exclamationmark.triangle.fill")`
+  - 133: `.accessibilityLabel("Diagnosis: \(file.diagnosis.name). " + (debrief.diagnosisRight ? "You were right." : "You said \(debrief.chosenDiagnosis)."))`
+  - 135: `Text("You said: \(debrief.chosenDiagnosis)")`
+  - 140: `Text("What tells it from \(other.name):")`
+  - 150: `.accessibilityLabel("Your choice: \(chosen), wrong")`
+  - 153: `.accessibilityLabel("Right next step: \(debrief.rightNextStep)")`
+  - 160: `Text("Your reason: \(reason)")`
+  - 173: `Text("\(debrief.keyFound) of \(debrief.keyFindings.count) found")`
+  - 218: `Text("\(taken.at) min")`
+  - 230: `.accessibilityLabel("After \(file.step(taken.stepID)?.label ?? "a step"), your leading diagnosis was \(lead)")`
+  - 243: `Text("No low-yield steps.")`
+  - 247: `Text("Low-yield here:")`
+  - 251: `Text("\(step.label) \u{00B7} \(step.minutes) min").font(.subheadline.weight(.semibold))`
+  - 277: `Text("Source: \(cited)")`
+  - 290: `Label("Make cards from what I missed", systemImage: "rectangle.stack.badge.plus")`
+  - 299: `Label("Add to the Ideas map", systemImage: "lightbulb")`
+  - 309: `Label("Same diagnosis, a new presentation", systemImage: "person.badge.plus")`
+  - 314: `.accessibilityHint("Writes another patient with \(file.diagnosis.name), presented differently, into this set")`
+  - 317: `Label("The runner-up: \(other.name)", systemImage: "person.2")`
+  - 321: `.accessibilityHint("Writes a patient whose diagnosis is \(other.name) into this set")`
+  - 326: `Label("See this patient again", systemImage: "arrow.counterclockwise")`
+- `Features/Library/LibraryRows.swift` (22)
+  - 149: `Button("Select", systemImage: "checkmark.circle") {`
+  - 159: `Button("Rename", systemImage: "pencil") { renaming = set }`
+  - 165: `Button("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath") { turning = set }`
+  - 168: `Button("Reasoning practice\u{2026}", systemImage: "brain.head.profile") { reasoningFor = set }`
+  - 172: `Button("Open \(only.name)", systemImage: only.kind.symbol) {`
+  - 176: `Menu("Open source", systemImage: "doc.richtext") {`
+  - 185: `Button("Sources and licences", systemImage: "books.vertical") { creditsFor = set }`
+  - 188: `Button("Edit cards", systemImage: "square.and.pencil") { editing = set }`
+  - 190: `Menu("Move to folder", systemImage: "folder") {`
+  - 194: `Button("New folder\u{2026}", systemImage: "folder.badge.plus") {`
+  - 199: `Button("Remove from folder", systemImage: "folder.badge.minus") {`
+  - 205: `Button("Export PDF", systemImage: "arrow.down.doc") { export(set) }`
+  - 208: `Button("Export deck (.apkg)", systemImage: "square.and.arrow.up") {`
+  - 212: `Button("Share as JSON", systemImage: "doc.text") {`
+  - 217: `Button("Delete", systemImage: "trash", role: .destructive) { delete([set.id]) }`
+  - 255: `.accessibilityLabel("Done")`
+  - 256: `.accessibilityHint("Stop choosing sets")`
+  - 298: `Button("New folder\u{2026}", systemImage: "folder.badge.plus") { naming = .folder }`
+  - 388: `Text("Make your first set").font(.title2.weight(.bold))`
+  - 389: `Text("Add a lecture and \(Brand.name) turns it into questions or flashcards to study.")`
+  - 394: `Label("New set", systemImage: "plus")`
+  - 400: `.accessibilityHint("Make questions or cards from a lecture")`
+- `Features/Library/PictureFromPhotoView.swift` (22)
+  - 74: `.navigationTitle("From a photo or scan")`
+  - 123: `Text("A labelled diagram from a photo, a screenshot or a scanned page. The labels are read on this device and each gets a cover; move or add covers before savin`
+  - 286: `Text("Drag a cover to move it, its corners to stretch it, or across the picture to draw a new one.")`
+  - 318: `.accessibilityLabel("Page \(index + 1), \(count) labels")`
+  - 326: `Label("Add a cover", systemImage: "plus.rectangle")`
+  - 332: `Button("Labels anywhere on the picture") { placeAgain(.wholePicture) }`
+  - 333: `Button("Labels on the diagram only") { placeAgain(.diagramOnly) }`
+  - 335: `Button("Remove every cover", role: .destructive) { coversBinding.wrappedValue = []; selected = nil }`
+  - 336: `Button("Remove this picture", role: .destructive) { removePage() }`
+  - 338: `Label("More", systemImage: "ellipsis.circle")`
+  - 380: `TextField("What this cover hides", text: answerBinding(index))`
+  - 394: `.accessibilityLabel("Delete this cover")`
+  - 483: `Picker("Deck", selection: $destination) {`
+  - 484: `Text("A new deck").tag(UUID?.none)`
+  - 496: `.accessibilityLabel("Deck name")`
+  - 498: `TextField("Subject, like Anatomy", text: $subject)`
+  - 501: `.accessibilityLabel("Subject")`
+  - 506: `Text("Also keep the pages as a lecture")`
+  - 507: `Text("Listed under Sources, with the words read from each page.")`
+  - 598: `Text("Saved \(result.cards) picture card\(plural) to \u{201C}\(result.set.name)\u{201D}.\(lecture)")`
+  - 607: `Label("Open the deck", systemImage: "play.fill")`
+  - 614: `Label("Make more", systemImage: "plus")`
+- `Features/Voice/CommuteModeView.swift` (22)
+  - 48: `.navigationTitle("Commute mode")`
+  - 102: `Text("Cards due today")`
+  - 108: `Text("Read aloud")`
+  - 110: `Text("Right rates Good, wrong rates Again.")`
+  - 124: `Label("Explain it back", systemImage: "person.wave.2")`
+  - 151: `Stepper("Up to \(perSet) from each", value: $perSet, in: 5...50, step: 5)`
+  - 155: `Text("Say the letter, A to E.")`
+  - 166: `Text("Natural cloud voice")`
+  - 167: `Text("A human-sounding voice, made online")`
+  - 178: `Text("Works with the screen locked.")`
+  - 271: `Button("New list") { askNewList() }`
+  - 273: `.accessibilityHint("Stops this list and goes back to choosing what to play")`
+  - 277: `.confirmationDialog("Start a new list?", isPresented: $confirmNewList, titleVisibility: .visible) {`
+  - 278: `Button("New list", role: .destructive) { session.clear() }`
+  - 279: `Button("Keep going", role: .cancel) {}`
+  - 281: `Text("This list stops here. Cards already answered keep their ratings.")`
+  - 332: `Text("Turn on due cards or choose a question set.")`
+  - 338: `Label("Start", systemImage: "play.fill")`
+  - 372: `Button("Skip") { session.skip() }`
+  - 399: `Label("New list", systemImage: "arrow.counterclockwise")`
+  - 403: `.accessibilityHint("Goes back to choosing what to play")`
+  - 414: `Label("Voice", systemImage: "speaker.wave.2")`
+- `Features/Voice/ExplainBackView.swift` (21)
+  - 44: `.navigationTitle("Explain it back")`
+  - 81: `Label("History", systemImage: "clock")`
+  - 85: `.accessibilityHint("Your marked explanations")`
+  - 90: `Button("Done") { focus = nil }`
+  - 126: `TextField("Topic, e.g. the inguinal canal", text: $topic)`
+  - 143: `Picker("Marked against", selection: $setID) {`
+  - 144: `Text("No set - standard teaching").tag(UUID?.none)`
+  - 155: `.accessibilityLabel("Marked against")`
+  - 227: `Text("This iPhone recognises speech on Apple's servers, which stop after about a minute. Stop and carry on in parts - each part is added to the end.")`
+  - 237: `Text("Say a little more first - at least a few sentences.")`
+  - 308: `Button("Choose a model") {`
+  - 313: `.accessibilityHint("A model is needed to mark the explanation")`
+  - 432: `Text("Your explanation")`
+  - 485: `.navigationTitle("Past attempts")`
+  - 492: `Button("Done") { dismiss() }`
+  - 520: `Button("Delete", role: .destructive, action: delete)`
+  - 524: `Button("Open", systemImage: "doc.text.magnifyingglass", action: open)`
+  - 526: `Button("Delete", systemImage: "trash", role: .destructive, action: delete)`
+  - 593: `Section("What you said") {`
+  - 600: `.navigationTitle("Marked")`
+  - 640: `Text("Nothing").font(.footnote).foregroundStyle(Color.wardInkSecondary)`
+- `Features/Cases/CaseWardView.swift` (20)
+  - 88: `.navigationTitle("Differential")`
+  - 92: `Button("Done") { showingLadder = false }`
+  - 123: `.accessibilityLabel("\(file.patient.spoken), seen in \(file.setting.label)")`
+  - 141: `.accessibilityLabel("The patient says: " + file.complaint)`
+  - 186: `Text("You have \(file.budgetMinutes) minutes. Every examination and test costs time. Keep a ranked differential as you go, then decide the diagnosis and the nex`
+  - 202: `.accessibilityLabel("Action")`
+  - 227: `Text("\(step.minutes) min")`
+  - 241: `.accessibilityLabel("\(step.label), \(step.minutes) minute\(step.minutes == 1 ? "" : "s")")`
+  - 251: `Text("Findings appear here as you ask, examine and test.")`
+  - 273: `Text("\(at) min")`
+  - 295: `Label("See the patient", systemImage: "stethoscope")`
+  - 306: `.accessibilityHint("Your ranked working diagnoses")`
+  - 310: `Label("Decide", systemImage: "checkmark.seal")`
+  - 313: `.accessibilityHint("Confirm the diagnosis and choose the next step")`
+  - 367: `Text("Up to three working diagnoses, the most likely first. Change them whenever you like.")`
+  - 380: `TextField("Type a diagnosis", text: $typed)`
+  - 384: `Button("Add", action: addTyped)`
+  - 389: `Text("The ladder is full: a new diagnosis takes the bottom rung.")`
+  - 405: `.accessibilityHint("Adds it to your ladder")`
+  - 432: `.accessibilityLabel("Rung \(index + 1) of \(run.ladder.count): \(name)" + (leading ? ", leading" : ""))`
+- `Features/Coverage/CoverageView.swift` (20)
+  - 68: `Text("Reading your library\u{2026}").foregroundStyle(Color.wardInkSecondary)`
+  - 88: `.navigationTitle("Syllabus")`
+  - 145: `Picker("Exam", selection: $track) {`
+  - 150: `Button("Choose a specific exam\u{2026}", systemImage: "list.bullet") { pickingExam = true }`
+  - 157: `.accessibilityLabel("Exam")`
+  - 171: `.accessibilityLabel("Show")`
+  - 261: `Text("The keyword check below is instant. Check with AI reads what your matching items actually say.")`
+  - 266: `Text("AI check")`
+  - 268: `Text("Sends each area\u{2019}s subtopics and a short digest of your library \u{2014} set names, matching questions and cards, lecture headings \u{2014} to \(Bra`
+  - 277: `Label("Example check", systemImage: "wand.and.stars")`
+  - 280: `Text("Made up from your keyword result to show what a real check looks like, for the first \(CoverageExamples.areaCount) areas.")`
+  - 286: `Text("Checked by \(who) \u{00B7} \(when)")`
+  - 290: `Text("Gemini 3.1 Pro wasn't available, so \(who) checked it.")`
+  - 323: `Label("Study next: \(next)", systemImage: "arrow.forward.circle")`
+  - 328: `Text("\(target.name) blueprint")`
+  - 330: `Text("Blueprint covered \(ExamDashboardCard.percent(covered)) \u{00B7} predicted ~\(ExamDashboardCard.percent(predicted)) against a pass mark of ~\(ExamDashboar`
+  - 398: `Text("Keywords said \(sub.status.label.lowercased())")`
+  - 414: `Label("Generate questions", systemImage: "wand.and.stars")`
+  - 424: `Button("Generate questions", systemImage: "wand.and.stars") {`
+  - 516: `Button("Stop", role: .cancel, action: onStop)`
+- `Features/Learn/ExamPlanView.swift` (20)
+  - 31: `Text("Today")`
+  - 33: `Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} `
+  - 51: `Text("Remembering on the day")`
+  - 53: `Text("An estimate from your cards\u{2019} review intervals on a standard forgetting curve, not a measurement. No interval is allowed to run past your exam date:`
+  - 56: `Section("Due in the next two weeks") {`
+  - 63: `Text("Locked in")`
+  - 65: `Text("A question is locked in once you have got it right on three separate days. Getting something right in three spaced sessions keeps far more of it than thre`
+  - 68: `Section("What this phase is for") { phaseActions(phase) }`
+  - 74: `Text("Lab values, clinical calculators and scores, each with how it is worked out. For learning only.")`
+  - 79: `.navigationTitle("Exam plan")`
+  - 155: `Text("Set it in Settings \u{2192} Your exam.").font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 173: `Text("Review some cards and a forecast of what you would remember on the day will show here.")`
+  - 190: `Text("if your exam were today").font(.subheadline).foregroundStyle(Color.wardInkSecondary)`
+  - 196: `Text("On exam day with no more reviews: ~\(onDay).")`
+  - 203: `Text("\(forecast.unseen) card\(plural) not yet studied are not in these figures.")`
+  - 243: `Text("Today").font(.caption2).foregroundStyle(Color.wardInkSecondary)`
+  - 245: `Text("+13 days").font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)`
+  - 279: `Text("Answer some questions and each subject gets a ring here.")`
+  - 284: `Text("\(secured) of \(total) questions locked in")`
+  - 328: `.accessibilityLabel("\(ring.subject): \(ring.secured) of \(ring.total) locked in, \(ring.building) on their way")`
+- `Features/Library/StatsView.swift` (20)
+  - 73: `Label("Rule sheet", systemImage: "list.bullet.rectangle")`
+  - 82: `Text("One line to remember for each question you got wrong, by subject.")`
+  - 88: `Text("Make an MCQ set and answer a few questions, and how you are doing in each subject will show here.")`
+  - 100: `Text("Every answer you have checked counts, so a question answered twice counts twice. Weakest first. Tap a subject to drill it.")`
+  - 152: `.accessibilityHint("Drills up to 20 questions in this subject")`
+  - 154: `Button("Drill \(name)", systemImage: "scope") { drillSubject(name) }`
+  - 173: `Text("Pick Sure, Maybe or Guess before checking an answer, and how often each is right will show here.")`
+  - 181: `Text("\(Self.percent(row.accuracy)) right")`
+  - 201: `Label("Confident but wrong", systemImage: "exclamationmark.triangle")`
+  - 210: `Label("Confident mistakes quiz", systemImage: "scope")`
+  - 214: `Text("Confidence")`
+  - 217: `Text("\u{201C}Sure\u{201D} should be right nearly every time. Confident mistakes come first in every drill.")`
+  - 230: `Text("After a wrong answer, tap why you think you lost the mark. The reasons you give show here with something to do about each.")`
+  - 238: `Text("Why you lose marks")`
+  - 241: `Text("The last \(Store.reasonWindowDays) days, from the reason you picked after each wrong answer.")`
+  - 272: `Label("Practise these \u{00B7} \(questions)", systemImage: "arrow.right.circle")`
+  - 280: `Label("Slow reading drill \u{00B7} key words marked, 15 s a question", systemImage: "arrow.right.circle")`
+  - 291: `Text("A tip, and the \(questions)").font(.subheadline).foregroundStyle(.tint)`
+  - 297: `Label("Timed drill \u{00B7} 10 questions at \(ExamTrack.current.secondsPerQuestion) s each",`
+  - 309: `Text("See the \(questions)").font(.subheadline).foregroundStyle(.tint)`
+- `Features/MCQ/MCQQuizView.swift` (20)
+  - 285: `Button("Start again") { startAgain() }`
+  - 287: `.accessibilityLabel("Start again instead")`
+  - 288: `.accessibilityHint("Forgets where you left off and starts from the first question")`
+  - 295: `.accessibilityLabel("Resume, \(done) of \(total) answered")`
+  - 427: `Label("Timed", systemImage: "timer").labelStyle(.titleAndIcon)`
+  - 430: `.accessibilityLabel("Start a timed exam, \(ChartQuiz.clock(examSeconds))")`
+  - 548: `Label("Slow reading: the key words are marked, and you can answer after \(minReadSeconds) seconds.",`
+  - 606: `Text("Patient chart").wardSmallCaps().accessibilityAddTraits(.isHeader)`
+  - 694: `.accessibilityLabel("Answer \(letter(idx)): \(text)" + (out ? ", crossed out" : ""))`
+  - 745: `Label("You crossed out the right answer. What made you rule it out?",`
+  - 786: `Text("How sure?")`
+  - 792: `.accessibilityLabel("How sure are you? Optional")`
+  - 862: `.accessibilityHint("Asks this question again, re-shuffled, a few questions from now")`
+  - 867: `.accessibilityHint("A new question on the same point, in a different patient, for a day or two from now")`
+  - 875: `Label("It comes back, re-shuffled, a few questions from now.", systemImage: "arrow.uturn.forward")`
+  - 883: `Text("Writing a twin\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)`
+  - 1070: `Button("Explain") {`
+  - 1074: `.accessibilityHint("Scrolls to the explanation")`
+  - 1099: `Label("Back", systemImage: "chevron.left")`
+  - 1106: `.accessibilityLabel("Previous question")`
+- `Features/Reasoning/DuelView.swift` (20)
+  - 16: `Text("Features appear one at a time. Say whose each one is \u{2014} the first condition, the second, or both.")`
+  - 23: `Text("No duels yet. Write some from this set below.")`
+  - 28: `Section("Duels") {`
+  - 42: `.navigationTitle("Lookalike duels")`
+  - 48: `Button("Delete duels", systemImage: "trash", role: .destructive) { confirmClear = true }`
+  - 50: `Label("More", systemImage: "ellipsis")`
+  - 59: `.confirmationDialog("Delete these duels and their scores?", isPresented: $confirmClear, titleVisibility: .visible) {`
+  - 60: `Button("Delete duels", role: .destructive) { reasoning.clear(.duels, for: set.id) }`
+  - 71: `Text("Last time \(last.right) of \(last.total)")`
+  - 121: `.navigationTitle("Duel")`
+  - 148: `Text("\(pair.a) vs \(pair.b)")`
+  - 156: `Text("Swipe left for \(pair.a), right for \(pair.b), up for both.")`
+  - 206: `.accessibilityHint("Swipe left, right or up, or use the buttons below.")`
+  - 312: `Label("Comparison table", systemImage: "tablecells")`
+  - 317: `Label("Duel again", systemImage: "arrow.counterclockwise")`
+  - 333: `Text("\(pair.a) vs \(pair.b)")`
+  - 428: `Text("Both \u{2014} these do not tell them apart")`
+  - 455: `.navigationTitle("Comparison")`
+  - 459: `ShareLink(item: pair.comparisonText, subject: Text("\(pair.a) vs \(pair.b)")) {`
+  - 460: `Label("Share", systemImage: "square.and.arrow.up")`
+- `Features/Recall/DrawRecallView.swift` (20)
+  - 97: `Button("Close") { dismiss() }`
+  - 110: `Button("Compare") { compare() }`
+  - 124: `Label("Clear drawing", systemImage: "trash")`
+  - 128: `Label("More", systemImage: "ellipsis")`
+  - 133: `.accessibilityLabel("More")`
+  - 157: `Text("Draw it as you remember it, labels and all.")`
+  - 273: `Label("Compare", systemImage: "square.on.square")`
+  - 291: `Text("No labels are saved with this figure, so judge it by eye: shape, position, what connects to what.")`
+  - 295: `Text("Tick the labels you got \u{2014} \(got.count) of \(figure.labels.count)")`
+  - 316: `.accessibilityLabel("Fade between your drawing and the original")`
+  - 318: `Text("Yours")`
+  - 320: `Text("Original")`
+  - 326: `Button("Draw again") { startAgain() }`
+  - 336: `Text("Earlier attempts").wardSmallCaps()`
+  - 378: `.accessibilityLabel("Attempt from \(attempt.date.formatted(date: .abbreviated, time: .shortened))")`
+  - 514: `.accessibilityLabel("Your drawing")`
+  - 520: `.accessibilityLabel("The original figure")`
+  - 757: `Label("Draw it from memory", systemImage: "pencil.and.scribble")`
+  - 791: `Text("Draw it from memory").font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)`
+  - 792: `Text("An inguinal canal drawing ready to Compare")`
+- `Features/Notes/GraphMapPanels.swift` (18)
+  - 125: `.accessibilityHint("Selects it on the map")`
+  - 128: `Text("+\(content.moreLinks) more")`
+  - 145: `Button("Fly in", systemImage: "scope", action: flyIn)`
+  - 167: `.accessibilityLabel("More")`
+  - 268: `.accessibilityLabel("Linked")`
+  - 276: `.navigationTitle("Link to")`
+  - 280: `Button("Cancel") { dismiss() }`
+  - 305: `Button("No folder") { move(to: nil) }`
+  - 313: `.navigationTitle("Move to")`
+  - 317: `Button("Cancel") { dismiss() }`
+  - 346: `Text("Link length")`
+  - 353: `Button("Done", action: done)`
+  - 364: `.accessibilityLabel("Shorter")`
+  - 367: `Text("Link length")`
+  - 369: `Text("Shorter").font(.caption2).foregroundStyle(Color.wardInkSecondary)`
+  - 371: `Text("Longer").font(.caption2).foregroundStyle(Color.wardInkSecondary)`
+  - 386: `.accessibilityLabel("Longer")`
+  - 439: `.accessibilityLabel("Zoomed in to " + text)`
+- `Features/Mock/MockSittingView.swift` (17)
+  - 166: `Button("End") { confirmQuit = true }`
+  - 168: `.confirmationDialog("End the paper now?", isPresented: $confirmQuit, titleVisibility: .visible) {`
+  - 169: `Button("End and see results", role: .destructive) { finish() }`
+  - 170: `Button("Leave without results", role: .destructive) {`
+  - 175: `Text("Unanswered questions count as wrong.")`
+  - 185: `Label("More", systemImage: "ellipsis")`
+  - 190: `.accessibilityHint("Lab values, calculator and highlighter")`
+  - 229: `.accessibilityLabel("\(left / 60) minutes left in this section")`
+  - 262: `Button("Keep going", role: .cancel) {}`
+  - 273: `Text("Pick the one best answer")`
+  - 345: `.accessibilityLabel("Answer \(letter): \(optionText(slot))" + (out ? ", crossed out" : ""))`
+  - 369: `Label("Back", systemImage: "chevron.left")`
+  - 374: `.accessibilityLabel("Previous question")`
+  - 380: `.accessibilityHint("All the questions in this section, with the flagged and unanswered ones marked")`
+  - 438: `Button("Done") { showGrid = false }`
+  - 476: `.accessibilityLabel("Question \(i + 1), \(state)")`
+  - 495: `Label("Start \(next.title)", systemImage: "play.fill")`
+- `Features/Exam/WardPocketView.swift` (16)
+  - 46: `.accessibilityLabel("Section")`
+  - 61: `.navigationTitle("Ward pocket")`
+  - 71: `Button("Done") { dismiss() }`
+  - 99: `Section("Calculators") {`
+  - 112: `Section("Scores") {`
+  - 134: `Text("Liver disease severity and transplant priority").font(.caption)`
+  - 153: `.accessibilityLabel("Units")`
+  - 206: `Label("Practise this", systemImage: "sparkles")`
+  - 211: `.accessibilityHint("Writes exam questions on this with your usual question settings")`
+  - 256: `Section("Values") {`
+  - 280: `Button("Done") { focused = nil }`
+  - 290: `Section("Result") {`
+  - 307: `Text("Fill in the values above.")`
+  - 430: `Section("Criteria") {`
+  - 437: `Section("Bands") {`
+  - 456: `Button("Reset") { picks = [:] }`
+- `Features/Lens/StudyLensView.swift` (16)
+  - 49: `.navigationTitle("Study Lens")`
+  - 127: `Button("Open Settings") {`
+  - 179: `banner(Label("Reading\u{2026}", systemImage: "text.viewfinder"))`
+  - 184: `.accessibilityHint("Dismisses this message")`
+  - 189: `banner(Label("Paused to save battery \u{2013} move or tap to resume", systemImage: "pause.circle"))`
+  - 192: `.accessibilityHint("Starts reading questions again")`
+  - 208: `Label("Pictures stay on this device. Only a question you tap is sent to be answered.",`
+  - 216: `Label("Live", systemImage: "camera.viewfinder")`
+  - 221: `Label("Scan a photo", systemImage: "photo")`
+  - 227: `Label("PDF or file", systemImage: "doc.viewfinder")`
+  - 241: `.accessibilityLabel("Previous page")`
+  - 242: `Text("Page \(still.page + 1) of \(still.pageCount)")`
+  - 248: `.accessibilityLabel("Next page")`
+  - 359: `.accessibilityLabel("The page being read")`
+  - 409: `.accessibilityLabel("Questions found")`
+  - 461: `.accessibilityHint("Opens the answer and explanation")`
+- `Features/Library/NewSetView.swift` (16)
+  - 185: `.navigationTitle("New set")`
+  - 190: `Button("Cancel") { dismiss() }`
+  - 213: `.alert("Set imported", isPresented: importNoticeShown) {`
+  - 227: `Button("Close") {`
+  - 235: `.confirmationDialog("Keep these questions?", isPresented: $leavingQuiz,`
+  - 237: `Button("Save to library") {`
+  - 242: `Button("Discard", role: .destructive) { generatedSet = nil }`
+  - 243: `Button("Cancel", role: .cancel) {}`
+  - 294: `.accessibilityLabel("Step \(step.rawValue) of 3")`
+  - 296: `Text("New admission").wardSmallCaps()`
+  - 496: `TextField("Name", text: $name, prompt: Text("e.g. Cardiology week 3"))`
+  - 496: `TextField("Name", text: $name, prompt: Text("e.g. Cardiology week 3"))`
+  - 624: `.accessibilityLabel("From")`
+  - 630: `Text("Reading \u{201C}\(readingFile)\u{201D}\u{2026}")`
+  - 656: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 656: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+- `Features/MCQ/MCQSummaryView.swift` (16)
+  - 62: `Label("Rule sheet", systemImage: "list.bullet.rectangle")`
+  - 66: `.accessibilityLabel("Open your rule sheet")`
+  - 77: `Label("Add \(fresh) rule\(plural)", systemImage: "text.badge.plus")`
+  - 81: `.accessibilityLabel("Add \(fresh) rule\(plural) to your rule sheet")`
+  - 93: `Label("\(added) rule\(plural) added to your rule sheet", systemImage: "checkmark")`
+  - 183: `.navigationTitle("Results")`
+  - 197: `Button("Done") { dismiss() }`
+  - 213: `Label("Save to library", systemImage: "square.and.arrow.down")`
+  - 220: `Label("Practise mistakes (\(mistakes.count))", systemImage: "arrow.uturn.backward.circle")`
+  - 224: `.accessibilityHint("Saves the questions you got wrong as a set called Mistakes, and opens it")`
+  - 227: `Button("Done") { dismiss() }`
+  - 240: `Label("Saved to library", systemImage: "checkmark")`
+  - 246: `Label("In your library as \u{201C}Mistakes\u{201D}", systemImage: "checkmark")`
+  - 270: `Label("Try again", systemImage: "arrow.counterclockwise")`
+  - 274: `.accessibilityLabel("Try this set again")`
+  - 308: `Text("Answer: \(q.options[q.correctIndex])")`
+- `Features/Sources/SourcesCreditsView.swift` (16)
+  - 44: `Label("Every source and licence", systemImage: "books.vertical")`
+  - 50: `.navigationTitle("Sources and licences")`
+  - 73: `Text("Cited by \(lecture.cited) \(lecture.cited == 1 ? set.itemNoun : set.itemNoun + "s")")`
+  - 87: `.accessibilityHint("Opens the lecture")`
+  - 93: `Text("Cited, but not kept with this set")`
+  - 102: `Text("Made from")`
+  - 104: `Text("Your own material. \(Brand.name) keeps it so you can read it again, and claims nothing over it.")`
+  - 115: `Text("Question style")`
+  - 117: `Text("When questions are written for \(exam), the writer is shown a few real \(style.name) questions as examples of the exam\u{2019}s style. They are examples o`
+  - 144: `LabeledContent("Other sources") {`
+  - 150: `Text("Checked against")`
+  - 152: `Text("What the accuracy checks read for this set. Titles and links only: each page stays with its publisher, under its own terms.")`
+  - 177: `Text("Lectures, notes and decks you add are yours. \(Brand.name) keeps them on your devices and in your own sync so you can study from them, and claims nothing `
+  - 180: `Text("Your material")`
+  - 193: `.navigationTitle("Sources and licences")`
+  - 212: `Text("Changes: " + changes)`
+- `Features/Learn/WardRoundView.swift` (15)
+  - 79: `Label("Start a ward round", systemImage: "stethoscope")`
+  - 82: `Text("Four rounds of focus with a break between. Everything you study while the clock runs counts on the round, and its minutes count for your streak.")`
+  - 87: `Text("\(minutes) min")`
+  - 90: `.accessibilityLabel("Focus")`
+  - 93: `Text("\(minutes) min break")`
+  - 96: `.accessibilityLabel("Break")`
+  - 99: `Label("Start round 1", systemImage: "play.fill")`
+  - 119: `Button("Open") { WardRoundOverlay.shared.open() }`
+  - 156: `.accessibilityLabel("Ward round: " + round.caption(at: now))`
+  - 165: `.accessibilityHint("Opens the ward round. Drag to move it to another corner.")`
+  - 210: `Label("Ward round", systemImage: "stethoscope")`
+  - 222: `.accessibilityLabel("Fold the ward round away")`
+  - 275: `Text("Look away from the screen for a while.")`
+  - 296: `Text("Stop the ward round")`
+  - 354: `.accessibilityLabel("Daily goal: \(progress.done) of \(progress.goal) done today")`
+- `Features/Library/CustomSessionSheet.swift` (15)
+  - 34: `.navigationTitle("Build a session")`
+  - 37: `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)`
+  - 55: `.accessibilityLabel("Take")`
+  - 59: `Toggle("Missed this week", isOn: missedThisWeek)`
+  - 60: `Toggle("Due now", isOn: $filter.dueOnly)`
+  - 61: `Toggle("My flagged questions", isOn: $filter.myFlags)`
+  - 62: `Toggle("Flagged for accuracy", isOn: $filter.accuracyFlagged)`
+  - 66: `Text("Due counts cards; flags count questions. Missed means answered wrong, or a card rated Again.")`
+  - 70: `Picker("Subject", selection: $filter.subject) {`
+  - 71: `Text("Any").tag(String?.none)`
+  - 74: `TextField("Tag or topic, e.g. cardio", text: $filter.tag)`
+  - 77: `TextField("Words in the item", text: $filter.text)`
+  - 79: `Stepper("At most \(filter.limit)", value: $filter.limit, in: 10...200, step: 10)`
+  - 117: `Text("Review cards").frame(maxWidth: .infinity)`
+  - 123: `Text("Start quiz").frame(maxWidth: .infinity)`
+- `Features/Library/MCQGenerateForm.swift` (15)
+  - 72: `Text("Or paste your notes")`
+  - 74: `Text("The questions are written from this text. A file you add above lands here too.")`
+  - 127: `Label("The medical models are part of Pro. Apple's model is free \u{2014} switch in AI models.",`
+  - 151: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 151: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 154: `Toggle("Focus on high-yield facts", isOn: $highYield)`
+  - 157: `Text("Using \(summary).").font(.footnote).foregroundStyle(Color.wardInkSecondary)`
+  - 159: `Text("Using the downloaded Gemma 4 E2B model \u{2014} on-device, nothing sent anywhere.")`
+  - 163: `Button("Remove downloaded model", role: .destructive) {`
+  - 195: `Label("Download the offline model (3.4 GB, once)",`
+  - 198: `Text("A smaller model (Gemma 4 E2B, plus its vision projector) that runs entirely on this device once downloaded \u{2014} works on hardware that can't run Apple`
+  - 204: `Text("Downloading offline model").font(.footnote).foregroundStyle(Color.wardInk)`
+  - 214: `Button("Cancel download", role: .cancel) { gemma.cancelDownload() }`
+  - 218: `Button("Try again") { gemma.download() }`
+  - 221: `Text("Needed first: an offline model")`
+- `Features/Lens/LensAnswerSheet.swift` (14)
+  - 46: `ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+  - 74: `Text("Question " + number).font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 107: `Label("Answered by " + a.answeredBy + ". Check anything that matters against your notes.",`
+  - 116: `.accessibilityLabel("Answering")`
+  - 124: `Button("Try again") { model.answer(question, again: true) }`
+  - 127: `Button("AI models") { showModels = true }`
+  - 142: `Label("Add to\u{2026}", systemImage: "plus.circle.fill")`
+  - 147: `.accessibilityHint("Keeps this question in Questions, Cards, OSCE, Ideas or Audio")`
+  - 151: `Label("Ask again", systemImage: "arrow.clockwise")`
+  - 265: `Label("Answered from the question\u{2019}s words only; the picture itself is not sent.",`
+  - 437: `Text("Answering\u{2026}").font(.caption).foregroundStyle(Color.wardInkSecondary)`
+  - 490: `.accessibilityLabel("Accuracy: " + assessment.grade.title)`
+  - 491: `.accessibilityHint("Shows why, the sources, and Report an error")`
+  - 494: `Button("Check now") { check(item) }`
+- `Features/Library/WardHome.swift` (13)
+  - 422: `Text("Today\u{2019}s ward round \u{00B7} " + BedPlan.summary(beds))`
+  - 436: `Label("Plan", systemImage: "chart.line.uptrend.xyaxis")`
+  - 444: `.accessibilityHint("Opens the exam plan and forecast")`
+  - 449: `Label("All done for now \u{2014} nothing is waiting.", systemImage: "checkmark.circle")`
+  - 473: `.accessibilityHint("Opens this bed")`
+  - 489: `Label("Start ward round", systemImage: "bolt.fill")`
+  - 585: `.accessibilityHint("Opens Vitals")`
+  - 594: `.accessibilityLabel("Brain map. " + brainLine)`
+  - 595: `.accessibilityHint("Opens Ideas: the idea dump, its board and the 3D map")`
+  - 629: `Text("Vitals").wardSmallCaps()`
+  - 656: `Text("Readiness")`
+  - 680: `Text("Brain map").wardSmallCaps()`
+  - 875: `.accessibilityLabel("\(percent) percent done")`
+- `Features/Notes/IdeasView.swift` (13)
+  - 95: `.confirmationDialog("Move to", isPresented: movingShown, titleVisibility: .visible,`
+  - 173: `Text("Nothing matches \u{201C}\(query)\u{201D}.")`
+  - 219: `Section("Folders") {`
+  - 274: `Button("Start typing") { capturing = true }`
+  - 305: `Button("Rename", systemImage: "pencil") { naming = .rename(folder) }`
+  - 306: `Button("New folder inside", systemImage: "folder.badge.plus") {`
+  - 309: `Button("Delete folder", systemImage: "trash", role: .destructive) {`
+  - 314: `Button("Delete", systemImage: "trash", role: .destructive) {`
+  - 357: `Menu("Move to", systemImage: "folder") {`
+  - 360: `Button("Delete", systemImage: "trash", role: .destructive) {`
+  - 365: `Button("Move\u{2026}", systemImage: "folder") { moving = note }`
+  - 369: `Button("Delete", systemImage: "trash", role: .destructive) {`
+  - 379: `Button("No folder") { notes.move(note.id, to: nil) }`
+- `Features/OSCE/OsceReviewView.swift` (13)
+  - 71: `Label("Practise with a spoken patient", systemImage: "person.wave.2")`
+  - 80: `Button("Close") { spoken = nil }`
+  - 154: `.accessibilityLabel("Station clock, " + SpokenText.duration(seconds: left))`
+  - 261: `Label("Start over", systemImage: "arrow.counterclockwise")`
+  - 266: `.accessibilityHint("Back to step 1, with the clock reset")`
+  - 271: `Label("I got it", systemImage: "checkmark")`
+  - 276: `.accessibilityHint("On to the next step")`
+  - 281: `Label("Reveal", systemImage: "eye")`
+  - 314: `Label("Practise it with a spoken patient", systemImage: "person.wave.2")`
+  - 317: `.accessibilityHint("Runs this station out loud, with a patient who answers")`
+  - 354: `Button("Done for now") { dismiss() }`
+  - 358: `Label("Next station", systemImage: "arrow.right")`
+  - 364: `Button("Done") { dismiss() }`
+- `Features/Learn/SymptomBlocksView.swift` (12)
+  - 22: `Text("Questions from every set that start from the same complaint, mixed, so you learn to tell the lookalikes apart the way the exam asks.")`
+  - 29: `Text("No complaint has enough questions yet: a block needs \(SymptomBlocks.minimumQuestions) questions with at least \(SymptomBlocks.minimumCauses) different an`
+  - 34: `Section("Blocks") {`
+  - 40: `Section("Not enough questions yet") {`
+  - 47: `.navigationTitle("Symptom blocks")`
+  - 68: `Text("\(shown) questions \u{00B7} \(block.causes) different answers")`
+  - 80: `.accessibilityHint("Starts a mixed block of \(p.name.lowercased()) questions")`
+  - 90: `Text("\(block.ids.count) question\(plural)").font(.system(.caption, design: .monospaced))`
+  - 106: `Text("\(right) of \(events.count) right")`
+  - 110: `Text("No mix-ups this time.").font(.subheadline).foregroundStyle(Color.wardInkSecondary)`
+  - 114: `Text("Mix-ups \u{00B7} \(block.presentation.blockTitle)")`
+  - 116: `Text("What you picked, and what it was. The pairs that come up most are the ones to put side by side.")`
+- `Features/MCQ/MCQExamTools.swift` (12)
+  - 23: `Section("Exam tools") {`
+  - 25: `Label("Lab values (\(units))", systemImage: "testtube.2")`
+  - 28: `Label("Calculator", systemImage: "plus.forwardslash.minus")`
+  - 81: `Label("Tap a phrase to highlight it", systemImage: "highlighter")`
+  - 131: `Label("Attending\u{2019}s hint", systemImage: "stethoscope")`
+  - 143: `Text("Thinking it through\u{2026}").foregroundStyle(Color.wardInkSecondary)`
+  - 177: `.accessibilityHint("The next step in the reasoning, without the answer")`
+  - 200: `.navigationTitle("Lab values")`
+  - 204: `Button("Done") { dismiss() }`
+  - 277: `.accessibilityLabel("Display, \(calc.display)")`
+  - 305: `.navigationTitle("Calculator")`
+  - 309: `Button("Done") { dismiss() }`
+- `Features/Notes/GraphNodeStyles.swift` (12)
+  - 137: `Picker("Theme", selection: themeBinding) {`
+  - 156: `Label("Link length: " + GraphLinkLength.spoken(linkLength), systemImage: "arrow.left.and.right")`
+  - 172: `.accessibilityLabel("Look")`
+  - 173: `.accessibilityHint("Choose the map's theme - space, neurons or performance - how notes look in space, the cells' states in neurons, and curved or straight lines`
+  - 180: `Picker("Look", selection: $main) {`
+  - 181: `Label("Universe", systemImage: "sparkles").tag(GraphStyleChoice.auto)`
+  - 188: `Menu("Folder looks") {`
+  - 191: `Text("Same as all").tag("")`
+  - 206: `Picker("Cells", selection: cellState) {`
+  - 207: `Label("Natural", systemImage: "sparkles").tag(NeuronStateChoice.naturalValue)`
+  - 214: `Menu("Cell by cell") {`
+  - 217: `Text("Same as all").tag("")`
+- `Features/Reasoning/ReasoningView.swift` (12)
+  - 29: `Text("Exams test how you reach a diagnosis, not just what you know. Pick a set and practise telling lookalikes apart and holding a whole disease on one screen."`
+  - 34: `Section("Your sets") {`
+  - 51: `Section("Examples") {`
+  - 63: `.navigationTitle("Reasoning")`
+  - 262: `.accessibilityHint("Writes \(counted(count)) from this set")`
+  - 286: `Button("Stop", role: .destructive) { center.cancel() }`
+  - 289: `.accessibilityHint("Stops what is being written")`
+  - 311: `Picker("How many", selection: $count) {`
+  - 317: `Text("Writer: \(writer)")`
+  - 337: `.accessibilityLabel("How many to write")`
+  - 364: `Button("Reasoning practice\u{2026}", systemImage: "brain.head.profile") {`
+  - 406: `Button("Done") { holder.controller?.dismiss(animated: true) }`
+- `Features/Support/DiagnosticsSettingsView.swift` (12)
+  - 21: `Toggle("Send crash and failure reports", isOn: $enabled)`
+  - 33: `.navigationTitle("Diagnostics")`
+  - 42: `.confirmationDialog("Crash the app now?", isPresented: $confirmCrash, titleVisibility: .visible) {`
+  - 43: `Button("Crash", role: .destructive) { DiagnosticsRuntime.simulateCrash() }`
+  - 45: `Text("The app closes at once. Open it again: the crash is reported at that launch, with the screens that led to it.")`
+  - 54: `LabeledContent { obs(queued.count) } label: { Text("Waiting") }`
+  - 55: `LabeledContent { obs(sentToday) } label: { Text("Sent today") }`
+  - 66: `Button("Copy report", systemImage: "doc.on.doc") {`
+  - 73: `Button("Simulate a failure") {`
+  - 77: `Button("Simulate a hang (4 seconds)") { DiagnosticsRuntime.simulateHang() }`
+  - 78: `Button("Simulate a crash", role: .destructive) { confirmCrash = true }`
+  - 85: `Text("Reports become GitHub issues each day (diagnostics-triage workflow). Crashes and hangs come from MetricKit on the next launch, only with Share With App De`
+- `Features/Book/BookReaderView.swift` (11)
+  - 52: `.accessibilityLabel("You are here")`
+  - 60: `.navigationTitle("Contents")`
+  - 64: `Button("Close") { showToc = false }`
+  - 90: `Text("This textbook is empty.").foregroundStyle(Color.wardInkSecondary)`
+  - 234: `Label("Back", systemImage: "chevron.left")`
+  - 238: `.accessibilityLabel("Previous page")`
+  - 259: `Label("Contents", systemImage: "list.bullet")`
+  - 264: `.accessibilityLabel("Contents")`
+  - 265: `.accessibilityHint("Lists every page, to jump to one")`
+  - 274: `Label("Next page", systemImage: "arrow.right")`
+  - 283: `Label("Done", systemImage: "checkmark")`
+- `Features/Learn/GuessFirstView.swift` (11)
+  - 23: `Text("Nothing to ask from this one yet.").font(.body).foregroundStyle(Color.wardInkSecondary)`
+  - 38: `.navigationTitle("Guess first")`
+  - 48: `Text("Take a guess").font(.largeTitle.weight(.bold)).foregroundStyle(Color.wardInk)`
+  - 49: `Text("\(questions.count) quick questions on \(set.name), before you read it. It\u{2019}s fine to be wrong.")`
+  - 61: `Text("\(index + 1) of \(questions.count)")`
+  - 128: `Text("\(right) of \(questions.count)")`
+  - 132: `Text("Whatever the score, you now know what to look out for. Watch for these as you read.")`
+  - 142: `Button("Start reading") { dismiss() }.buttonStyle(.wardPrimary)`
+  - 145: `Button("Skip") { dismiss() }.buttonStyle(WardButtonStyle(kind: .secondary, fills: false))`
+  - 146: `Button("Guess") { started = true }.buttonStyle(.wardPrimary)`
+  - 151: `Button("Skip") { dismiss() }.buttonStyle(WardButtonStyle(kind: .secondary, fills: false))`
+- `Features/Mock/MockPaperView.swift` (11)
+  - 55: `.navigationTitle("Mock paper")`
+  - 70: `Text("\(save.title), unfinished")`
+  - 73: `Text("\(save.answered) of \(save.total) answered, \(part). The clock waits until you go back.")`
+  - 80: `Label("Resume", systemImage: "play.fill")`
+  - 83: `Button("Discard", role: .destructive) {`
+  - 117: `Text("Sit it like the real thing: the paper\u{2019}s length and clock, and nothing about right or wrong until the end.")`
+  - 128: `Picker("Paper", selection: $paperId) {`
+  - 141: `Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of \(per)")`
+  - 147: `Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of 40")`
+  - 180: `Label("Drawn from \(available) questions in your library, \(spread).",`
+  - 246: `Label("Start mock", systemImage: "timer")`
+- `Features/Exam/ExamPickerView.swift` (10)
+  - 22: `Text("Questions, study plan, coverage map and mock papers will follow its format and blueprint. You can change it any time.")`
+  - 38: `Text("Formats and blueprints come from each exam's published outline; where an exam publishes no percentages the weights are our estimate and are marked approxi`
+  - 55: `Button("Save") { save() }`
+  - 68: `Toggle("Also preparing for a second exam", isOn: $choosingSecond.animation())`
+  - 70: `Picker("Second exam", selection: $secondary) {`
+  - 71: `Text("None").tag("")`
+  - 77: `DatePicker("Exam date", selection: dateBinding, in: Date()..., displayedComponents: .date)`
+  - 79: `Button("Clear the date", role: .destructive) { examDate = 0 }`
+  - 84: `Text("A second exam counts for 30% of what to study next and of a generated set's topics.")`
+  - 185: `.accessibilityLabel("Written for \(exam.name)")`
+- `Features/Learn/ExamDayKitView.swift` (10)
+  - 34: `Text("Pacing \u{00B7} \(paper.name)")`
+  - 39: `Section("A question you can\u{2019}t crack") {`
+  - 49: `Text("Changing answers")`
+  - 52: `Section("Checklist") {`
+  - 63: `.accessibilityLabel("Worry box")`
+  - 65: `Button("Clear it", systemImage: "trash") { worries = "" }`
+  - 69: `Text("Optional: two minutes of worries")`
+  - 71: `Text("Some students find that writing their worries down just before an exam frees their head for the paper; the evidence is mixed, so skip it if it isn\u{2019}`
+  - 76: `.navigationTitle("Exam-day kit")`
+  - 144: `Text("By " + ExamWeekPlanner.clock(point.minute))`
+- `Features/Library/LibrarySheets.swift` (10)
+  - 43: `ToolbarItem(placement: .confirmationAction) { Button("Done") { reasoningFor = nil }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+  - 51: `ToolbarItem(placement: .confirmationAction) { Button("Done") { creditsFor = nil }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+  - 62: `Button("Delete", role: .destructive) { performDelete(ids) }`
+  - 63: `Button("Cancel", role: .cancel) {}`
+  - 65: `Text("This can\u{2019}t be undone.")`
+  - 67: `.alert("Couldn't export", isPresented: Binding(`
+  - 73: `Text("Something went wrong building the file for \(exportFailedSetName ?? "this set").")`
+  - 79: `Button("Export without them") { exportDeck(pending.set, withoutMissing: true) }`
+  - 80: `Button("Cancel", role: .cancel) {}`
+  - 82: `Text("Their pictures have not reached this phone yet \u{2014} they may still be downloading. Export again once sync has finished to include them.")`
+- `Features/Notes/Graph3DView.swift` (10)
+  - 147: `Label("Dump your first idea", systemImage: "cube.transparent")`
+  - 149: `Text("Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")`
+  - 202: `Button("Delete", role: .destructive) { delete(target) }`
+  - 266: `Text("Nothing here for this filter.")`
+  - 666: `.accessibilityLabel("Filter")`
+  - 720: `Picker("Show", selection: $filter) {`
+  - 721: `Text("Everything").tag(GraphFilter.all)`
+  - 722: `Text("Pages").tag(GraphFilter.pages)`
+  - 724: `Text("Linked notes").tag(GraphFilter.linked)`
+  - 729: `Picker("Folder", selection: $filter) {`
+- `Features/Onboarding/StudyTips.swift` (10)
+  - 175: `var title: Text { Text("Turn it into another mode") }`
+  - 177: `Text("More \u{2192} Turn into\u{2026} makes this set cards, questions, a case or audio.")`
+  - 184: `var title: Text { Text("Hold a set for more") }`
+  - 186: `Text("Rename it, turn it into another mode, practise reasoning or open its lecture.")`
+  - 193: `var title: Text { Text("Rated it wrong?") }`
+  - 194: `var message: Text? { Text("Undo brings the last card back for a few seconds after each rating.") }`
+  - 200: `var title: Text { Text("Not at the page?") }`
+  - 201: `var message: Text? { Text("Scan a photo or a PDF past paper: every question in it gets a chip.") }`
+  - 207: `var title: Text { Text("Change the map\u{2019}s look") }`
+  - 209: `Text("In the map, the round Look button switches it between Space, Neurons and Performance.")`
+- `Features/Reasoning/ScriptsView.swift` (10)
+  - 72: `.navigationTitle("Disease scripts")`
+  - 78: `Button("Save all to Ideas", systemImage: "lightbulb") { save(scripts) }`
+  - 80: `Button("Delete scripts", systemImage: "trash", role: .destructive) { confirmClear = true }`
+  - 83: `Label("More", systemImage: "ellipsis")`
+  - 92: `.confirmationDialog("Delete these scripts?", isPresented: $confirmClear, titleVisibility: .visible) {`
+  - 93: `Button("Delete scripts", role: .destructive) { reasoning.clear(.scripts, for: set.id) }`
+  - 95: `Text("Scripts already saved to Ideas stay there.")`
+  - 110: `Label("Save all to Ideas", systemImage: "lightbulb")`
+  - 113: `.accessibilityHint("Keeps every script here as a page in Ideas, with lookalikes linked")`
+  - 169: `Text("Saved to Ideas")`
+- `Features/Anki/AnkiReviewView.swift` (9)
+  - 59: `Label("Quiz me", systemImage: "list.bullet.rectangle")`
+  - 64: `Label("Bury until tomorrow", systemImage: "moon.zzz")`
+  - 67: `Label("Suspend this card", systemImage: "pause.circle")`
+  - 81: `.alert("Not enough to quiz on", isPresented: Binding(`
+  - 176: `Label("Quiz me on this deck", systemImage: "list.bullet.rectangle")`
+  - 179: `.accessibilityHint("A quiz whose wrong answers come from the other cards in this deck")`
+  - 188: `Button("Done") { dismiss() }`
+  - 191: `Button("Study it anyway") { studyAhead() }`
+  - 196: `Button("Done") { dismiss() }`
+- `Features/Examples/ExamplesHubView.swift` (9)
+  - 44: `} header: { Text("Thinking") }`
+  - 49: `} header: { Text("Where you stand") }`
+  - 54: `} header: { Text("Voice") }`
+  - 59: `} header: { Text("Drawing") }`
+  - 64: `} header: { Text("In the library") }`
+  - 180: `Label("Add the example sets \u{2014} one in every mode, in an Examples folder",`
+  - 185: `Label("Hold any set and choose \u{201C}Turn into\u{2026}\u{201D} to make it another mode.",`
+  - 187: `Label("Hold any set and choose \u{201C}Reasoning practice\u{2026}\u{201D} for its duels and scripts.",`
+  - 254: `.navigationTitle("How to reach it")`
+- `Features/Library/LibrarySearchResults.swift` (9)
+  - 27: `.accessibilityLabel("Search in")`
+  - 49: `Text("The first \(LibrarySearch.itemLimit). Add a word to narrow it.")`
+  - 85: `Text("Build a session")`
+  - 88: `Text("Missed this week, a subject, a tag, what\u{2019}s due")`
+  - 133: `.accessibilityHint("Opens it where it is")`
+  - 229: `Text("Show answer").frame(maxWidth: .infinity)`
+  - 238: `Label("Open \u{201C}\(found.set.name)\u{201D}", systemImage: "rectangle.stack")`
+  - 247: `.navigationTitle("Card")`
+  - 250: `ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+- `Features/Library/LibraryView.swift` (9)
+  - 421: `.alert("Nothing here yet", isPresented: nothingYetShown, presenting: nothingYet) { _ in`
+  - 710: `Label("New set", systemImage: "plus")`
+  - 713: `.accessibilityHint("Make questions or cards from a lecture")`
+  - 737: `.accessibilityHint("Every one of these sets, newest first")`
+  - 793: `Button("Select sets", systemImage: "checkmark.circle") {`
+  - 796: `Button("Rename folder", systemImage: "pencil") {`
+  - 799: `Button("Ungroup", systemImage: "folder.badge.minus") { store.ungroup(folder.id) }`
+  - 808: `.accessibilityLabel("Folder options")`
+  - 828: `Label("Account and settings", systemImage: "person.crop.circle")`
+- `Features/Narrate/LectureImporter.swift` (9)
+  - 194: `Label("Add audio", systemImage: "waveform.badge.plus")`
+  - 197: `.accessibilityLabel("Add an audio file")`
+  - 198: `.accessibilityHint("Transcribes a recording of the lecture and follows it word by word")`
+  - 207: `Label("Add audio", systemImage: "waveform.badge.plus")`
+  - 212: `.accessibilityLabel("Add an audio file")`
+  - 213: `.accessibilityHint("Transcribes a recording of the lecture and follows it word by word")`
+  - 223: `Picker("Reading speed", selection: $speed) {`
+  - 233: `.accessibilityLabel("Reading speed, \(shown)")`
+  - 240: `Label("Start again", systemImage: "arrow.counterclockwise")`
+- `Features/Support/LibraryDataSettingsSection.swift` (9)
+  - 60: `Text("Recovery copies")`
+  - 62: `Text("Copies of files this version of the app couldn\u{2019}t fully read, kept before anything was saved over them. Save them to Files, or send them with a mess`
+  - 71: `Label("Include lecture files and recordings", systemImage: "waveform.and.magnifyingglass")`
+  - 83: `Text("One file with every set, your review schedule, progress, notes, study log and settings. Save it to Files or iCloud Drive. Restoring adds what this phone d`
+  - 89: `.confirmationDialog("Restore from this backup?", isPresented: restoreAsked, titleVisibility: .visible,`
+  - 91: `Button("Restore") { restore(url) }`
+  - 92: `Button("Cancel", role: .cancel) {}`
+  - 94: `Text("Sets, schedules, notes and files this phone doesn\u{2019}t have are added. A set that differs from yours is added beside it.")`
+  - 117: `Text("Last backup")`
+- `Shared/Theme.swift` (9)
+  - 523: `.accessibilityLabel("Show buttons")`
+  - 534: `.accessibilityLabel("Hide buttons")`
+  - 685: `Text("optional")`
+  - 883: `Label("Check accuracy", systemImage: "checkmark.shield")`
+  - 888: `Label("Report a problem", systemImage: "flag")`
+  - 894: `Label("Turn into\u{2026}", systemImage: "arrow.triangle.2.circlepath")`
+  - 900: `Label("Ward pocket", systemImage: "cross.case")`
+  - 905: `Label("More", systemImage: "ellipsis")`
+  - 911: `.accessibilityHint("Other things you can do on this screen")`
+- `Features/Cases/CaseDecisionView.swift` (8)
+  - 44: `.navigationTitle("Decision")`
+  - 48: `Button("Back") { dismiss() }`
+  - 56: `Label("Discharge and debrief", systemImage: "doc.text")`
+  - 79: `TextField("Type a diagnosis", text: $typed)`
+  - 83: `Button("Use", action: useTyped)`
+  - 112: `Text("What is the single best next step?")`
+  - 120: `.accessibilityLabel("Option \(AccuracyItem.letter(index)): \(text)")`
+  - 130: `TextField("One line: why this patient, why now", text: $reason)`
+- `Features/Library/LectureWriterSection.swift` (8)
+  - 126: `Text("Or paste your notes").font(.subheadline.weight(.semibold))`
+  - 135: `Text("Add a file")`
+  - 137: `Text("PDF, Word or PowerPoint. It is read on this device.")`
+  - 148: `Picker("Card type", selection: $style) {`
+  - 187: `Text("Nothing to write from yet \u{2014} go Back and add a lecture.")`
+  - 192: `Button("AI models") { showModels = true }`
+  - 196: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 196: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+- `Features/Narrate/NarrateListenRow.swift` (8)
+  - 47: `.accessibilityLabel("Previous section")`
+  - 54: `.accessibilityLabel("Sections, \(place)")`
+  - 55: `.accessibilityHint("Shows the lecture's sections to jump to")`
+  - 59: `.accessibilityLabel("Next section")`
+  - 85: `Button("Turn off", systemImage: "xmark") { sleep.cancel() }`
+  - 136: `.navigationTitle("Sections")`
+  - 140: `Button("Done") { dismiss() }`
+  - 169: `.accessibilityLabel("Playing")`
+- `Features/Narrate/NarrateReviewView.swift` (8)
+  - 175: `.confirmationDialog("Transcribe the recording with", isPresented: $choosingEngine,`
+  - 177: `Button("Gemini (Pro) \u{2014} Arabic + English lecture") { choose(.cloud, .mixed) }`
+  - 178: `Button("Gemini (Pro) \u{2014} English-only lecture") { choose(.cloud, .english) }`
+  - 179: `Button("This phone only \u{2014} Arabic + English, offline") { choose(.device, .mixed) }`
+  - 180: `Button("This phone only \u{2014} English, offline") { choose(.device, .english) }`
+  - 182: `Text("Gemini is part of Pro and runs on Google's servers: the audio goes through \(Brand.name) to Google to transcribe, and while \(Brand.name) uses Google's fr`
+  - 205: `.alert("Couldn't use that recording", isPresented: troubleShowing) {`
+  - 210: `.alert("Transcribed", isPresented: Binding(get: { importer.notice != nil },`
+- `Shared/Ideas/SaveToIdeasUI.swift` (8)
+  - 259: `.confirmationDialog("Already in Ideas", isPresented: askingHere,`
+  - 261: `Button("Add to existing note") { saver.addToExisting(pending) }`
+  - 262: `Button("Cancel", role: .cancel) {}`
+  - 264: `Text("\u{201C}\(pending.noteTitle)\u{201D} was saved from this \(pending.clip.source.kind.noun). Add this to it?")`
+  - 296: `Text("Undo")`
+  - 304: `.accessibilityHint("Takes the save back")`
+  - 548: `.accessibilityLabel("From " + source.chipLabel)`
+  - 549: `.accessibilityHint("Opens it where it is in your library")`
+- `Features/Anki/AnkiCardFace.swift` (7)
+  - 114: `.accessibilityHint("Opens the lecture at \(found.source.kind.pageNoun.lowercased()) \(found.page)")`
+  - 147: `.accessibilityLabel("Picture on the card")`
+  - 224: `Text("Why / how").wardSmallCaps().accessibilityAddTraits(.isHeader)`
+  - 333: `Text("Reveal")`
+  - 338: `.accessibilityHint("Shows the answer. Say it to yourself first.")`
+  - 390: `Text("How well did you remember it?")`
+  - 437: `Text("back").font(.caption)`
+- `Features/Anki/DueTodayView.swift` (7)
+  - 40: `.navigationTitle("Due today")`
+  - 59: `Label("Bury until tomorrow", systemImage: "moon.zzz")`
+  - 62: `Label("Suspend this card", systemImage: "pause.circle")`
+  - 142: `Button("Done") { dismiss() }`
+  - 152: `Label("Listen", systemImage: "car.fill")`
+  - 155: `.accessibilityLabel("Listen in commute mode")`
+  - 156: `.accessibilityHint("Reads your due cards and questions aloud and listens for the answers")`
+- `Features/Anki/ReviewCardActions.swift` (7)
+  - 17: `Label("Undo", systemImage: "arrow.uturn.backward")`
+  - 27: `.accessibilityLabel("Undo last rating")`
+  - 28: `.accessibilityHint("Brings the last card back as it was")`
+  - 102: `.confirmationDialog("This card", isPresented: $asking, titleVisibility: .hidden) {`
+  - 105: `Button("Cancel", role: .cancel) {}`
+  - 124: `Label("Bury until tomorrow", systemImage: "moon.zzz")`
+  - 130: `Label("Suspend card", systemImage: "pause.circle")`
+- `Features/Auth/LinkDeviceView.swift` (7)
+  - 38: `.navigationTitle("Link another device")`
+  - 41: `ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)`
+  - 60: `Text("Add another device")`
+  - 62: `Text("Part of Pro. On your other iPhone or iPad, open \(Brand.name) and choose \u{201C}I have a code\u{201D} (or Account \u{2192} Link another device), then typ`
+  - 70: `TextField("Code", text: $typed)`
+  - 109: `Label("Linked. Your library is syncing.", systemImage: "checkmark.circle.fill")`
+  - 133: `Label("Join", systemImage: "link")`
+- `Features/Insight/RuleSheetView.swift` (7)
+  - 54: `.navigationTitle("Rule sheet")`
+  - 59: `Label("Share", systemImage: "square.and.arrow.up")`
+  - 109: `Text("No rules match \u{201C}\(query)\u{201D}.")`
+  - 166: `Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = rule.text }`
+  - 167: `Button("Delete", systemImage: "trash", role: .destructive) { store.deleteRule(rule.id) }`
+  - 223: `.accessibilityHint("Rewrites each plain rule as one exam-style line, ten at a time")`
+  - 254: `Text("Ten at a time. You can keep using the app while it works.")`
+- `Features/Narrate/FixWordSheet.swift` (7)
+  - 40: `TextField("the correct spelling", text: $spelling)`
+  - 50: `Label("Every other word that sounds the same is fixed too, and remembered for next time.",`
+  - 62: `Button("Fix", action: save)`
+  - 66: `.navigationTitle("Fix this word")`
+  - 70: `Button("Cancel") { dismiss() }`
+  - 77: `Button("Fix") { save() }`
+  - 124: `Button("Undo", action: onUndo)`
+- `Features/Notes/GraphPerfTheme.swift` (7)
+  - 52: `Text("This device cannot draw the fast map.")`
+  - 73: `Picker("Map", selection: demoBinding) {`
+  - 74: `Text("Your notes").tag(0)`
+  - 75: `Text("Demo: 100,000 notes").tag(GraphPerfDemo.sizes[0])`
+  - 76: `Text("Demo: 300,000 notes").tag(GraphPerfDemo.sizes[1])`
+  - 92: `.accessibilityLabel("Speed")`
+  - 94: `.accessibilityHint("How fast the map draws. Opens the demo maps of 100,000 and 300,000 notes.")`
+- `Features/Paywall/PaywallView.swift` (7)
+  - 46: `Button("Not now") { dismiss() }`
+  - 63: `Text("Everything, from any lecture")`
+  - 126: `Text("Save \(saving)% against monthly")`
+  - 174: `Button("Restore") { Task { await subscriptions.restore() } }`
+  - 177: `Link("Terms", destination: LegalLinks.url(.terms))`
+  - 178: `Link("Privacy", destination: LegalLinks.url(.privacy))`
+  - 185: `Text("Billed through your Apple Account and renews until cancelled. Cancel any time in Settings.")`
+- `Features/Support/QuestionReportSheet.swift` (7)
+  - 25: `Section("Reporting") {`
+  - 32: `Section("What\u{2019}s wrong?") {`
+  - 33: `Picker("Reason", selection: $reason) {`
+  - 43: `TextField("Add a note (optional)", text: $note, axis: .vertical)`
+  - 47: `Text("Only this \(report.item.kind.noun), the reason and your note are sent. Nothing else from your library.")`
+  - 62: `.navigationTitle("Report a problem")`
+  - 72: `Button("Send") { Task { await send() } }`
+- `Features/Analytics/VitalsParts.swift` (6)
+  - 27: `Text("Study rhythm \u{00B7} " + reading.words)`
+  - 199: `Text("Needs a consult")`
+  - 228: `.accessibilityLabel("\(spot.name), \(spot.percent) percent")`
+  - 229: `.accessibilityHint("Opens a drill of \(spot.name)")`
+  - 234: `Label("Treat weak spots now", systemImage: "cross.case.fill")`
+  - 237: `.accessibilityHint("Up to 20 questions from \(first.name), the ones you got wrong first")`
+- `Features/Cases/CaseMakeSection.swift` (6)
+  - 78: `Text("Add a lecture")`
+  - 80: `Text("PDF, Word or PowerPoint. A lecture on a condition - how it presents, what the tests show, how it is treated - makes the best patients.")`
+  - 88: `Text("Nothing to write from yet \u{2014} go Back and add a lecture.")`
+  - 107: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 107: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 112: `Text("Each patient is checked for its structure and its numbers before it is kept, and by the accuracy checkers once the set is saved.")`
+- `Features/Insight/InsightViews.swift` (6)
+  - 29: `Label("Readiness estimate", systemImage: "gauge.with.dots.needle.50percent")`
+  - 49: `Text("Answer at least \(needed) questions and an estimated score will show here.")`
+  - 52: `Text("\(min(answered, needed)) of \(needed)")`
+  - 66: `Text("likely \(Self.percent(e.low))\u{2013}\(Self.percent(e.high))")`
+  - 107: `.accessibilityHint("Opens a drill of \(lever.subject)")`
+  - 256: `Label("Quiz these", systemImage: "list.bullet.rectangle")`
+- `Features/Learn/BedtimeReviewView.swift` (6)
+  - 19: `Text("Today\u{2019}s misses").font(.largeTitle.weight(.semibold)).foregroundStyle(Color.wardInk)`
+  - 27: `Text("That\u{2019}s all. Good night \u{2014} tomorrow morning, two minutes on these.")`
+  - 30: `Button("Good night") { dismiss() }`
+  - 104: `Text("Morning check").font(.largeTitle.weight(.bold)).foregroundStyle(Color.wardInk)`
+  - 121: `Label("Start", systemImage: "play.fill")`
+  - 125: `Button("Done") { dismiss() }`
+- `Features/Library/TagChips.swift` (6)
+  - 32: `TextField("Add a tag", text: $typed)`
+  - 46: `.accessibilityLabel("Add tag")`
+  - 61: `.accessibilityLabel("Add tag \(tag)")`
+  - 91: `.accessibilityLabel("Remove tag \(tag)")`
+  - 99: `.accessibilityLabel("Tag \(tag)")`
+  - 140: `.accessibilityLabel("Tags: " + tags.joined(separator: ", "))`
+- `Features/Mock/MockResultsView.swift` (6)
+  - 39: `Label("A shortened paper: \(result.total) of the real \(sitting.wanted) questions.",`
+  - 125: `Text("Nothing missed. Well done.").foregroundStyle(Color.wardInkSecondary)`
+  - 147: `Label("Answer: " + answer, systemImage: "checkmark.circle.fill")`
+  - 150: `Label("You: " + yours, systemImage: "xmark.circle.fill")`
+  - 175: `Label("Practise missed", systemImage: "arrow.counterclockwise")`
+  - 180: `Label("Done", systemImage: "checkmark")`
+- `Features/Notes/IdeasBottomBar.swift` (6)
+  - 127: `TextField("Dump an idea\u{2026}", text: $draft)`
+  - 155: `.accessibilityLabel("Save idea")`
+  - 168: `Button("New idea", systemImage: "lightbulb", action: newIdea)`
+  - 170: `Button("New page", systemImage: "doc.badge.plus", action: newPage)`
+  - 171: `Button("New folder", systemImage: "folder.badge.plus", action: newFolder)`
+  - 180: `.accessibilityLabel("Add")`
+- `Features/OSCE/OsceGenerateSection.swift` (6)
+  - 89: `Text("Add a file")`
+  - 91: `Text("PDF, Word or PowerPoint. A skills lecture or a mark sheet works best.")`
+  - 100: `Text("Nothing to write from yet \u{2014} go Back and add a file.")`
+  - 123: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 123: `TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))`
+  - 128: `Text("The stations appear below to check before you save the set.")`
+- `Features/Sources/SourcesLibraryView.swift` (6)
+  - 59: `.navigationTitle("Sources")`
+  - 66: `Label("Add a lecture", systemImage: "plus")`
+  - 86: `Button("Add a lecture") { adding = true }`
+  - 110: `Button("Read", systemImage: "book") {`
+  - 113: `Section("Made from it") {`
+  - 128: `Label("Add a lecture", systemImage: "plus")`
+- `Features/Support/ReviewSettingsSection.swift` (6)
+  - 18: `LabeledContent { obs(limitWords(newPerDay)) } label: { Text("New cards a day") }`
+  - 22: `LabeledContent { obs(limitWords(reviewsPerDay)) } label: { Text("Reviews a day") }`
+  - 29: `.accessibilityLabel("Scheduler")`
+  - 31: `Toggle("Ask how sure I am", isOn: $asksConfidence)`
+  - 32: `LabeledContent { obs("\(reviews.records.count)") } label: { Text("Cards scheduled") }`
+  - 34: `Button("Let \(reviews.suspendedCount) suspended card\(reviews.suspendedCount == 1 ? "" : "s") back in") {`
+- `Features/Exam/ExamDashboardCard.swift` (5)
+  - 59: `Label("Which exam are you preparing for?", systemImage: "graduationcap")`
+  - 62: `Text("Pick it and questions, the plan, the coverage map and mock papers follow its format and blueprint.")`
+  - 65: `Button("Choose your exam") { picking = true }`
+  - 93: `.accessibilityLabel("Change exam")`
+  - 148: `.accessibilityHint("Makes a question set on it in \(exam.shortName) format")`
+- `Features/Library/CardsEditorView.swift` (5)
+  - 49: `Button("Cancel") { dismiss() }`
+  - 90: `Button("Delete", systemImage: "trash", role: .destructive) { delete(card) }`
+  - 101: `Button("Delete", systemImage: "trash", role: .destructive) { delete(question) }`
+  - 119: `Label("Save changes", systemImage: "checkmark")`
+  - 152: `.accessibilityLabel("Answer: \(question.options[question.correctIndex])")`
+- `Features/Library/CategoryShelves.swift` (5)
+  - 108: `Label("New", systemImage: "plus")`
+  - 151: `Text("From a photo or scan").font(.headline).foregroundStyle(Color.wardInk)`
+  - 152: `Text("Labels read and covered for you, then adjust")`
+  - 274: `Text("The set you pick stays as it is; the new one opens straight away.")`
+  - 282: `.navigationTitle("Turn into\u{2026}")`
+- `Features/Library/IncomingImport.swift` (5)
+  - 63: `.confirmationDialog("Restore from this backup?", isPresented: backupAsked,`
+  - 65: `Button("Restore") { restore(file) }`
+  - 66: `Button("Cancel", role: .cancel) {}`
+  - 68: `Text("Sets, schedules, notes and files this phone doesn\u{2019}t have are added. Nothing here is replaced or deleted.")`
+  - 77: `Label("Reading \(reading)\u{2026}", systemImage: "arrow.down.doc")`
+- `Features/Library/LecturePDFSection.swift` (5)
+  - 130: `Button("Not now", role: .cancel) {}`
+  - 132: `Text("They are saved as a Cards set of their own, and New set closes. Make the questions first if you want those too.")`
+  - 134: `Text("One card per label on the diagrams, masking the label itself. Nothing was generated \u{2014} the labels are the slide's own words.")`
+  - 138: `Text("Add a file")`
+  - 140: `Text("PDF, Word or PowerPoint. It is read on this device, scanned pages too.")`
+- `Features/Narrate/NarrateAudioBar.swift` (5)
+  - 49: `.accessibilityLabel("Position in the recording")`
+  - 73: `.accessibilityLabel("Back 15 seconds")`
+  - 89: `.accessibilityLabel("Forward 30 seconds")`
+  - 101: `Picker("Playback speed", selection: $speed) {`
+  - 112: `.accessibilityLabel("Playback speed, \(shown)")`
+- `Features/Notes/IdeaTools.swift` (5)
+  - 114: `.accessibilityLabel("Lines")`
+  - 121: `Section("Lines") {`
+  - 122: `Picker("Lines", selection: straightBinding) {`
+  - 181: `.accessibilityLabel("Look")`
+  - 183: `.accessibilityHint("Choose whether the lines between cards are curved or straight.")`
+- `Features/Support/PlatformSettingsSection.swift` (5)
+  - 31: `Toggle("Show sets in Spotlight", isOn: $spotlight)`
+  - 56: `Toggle("Exam-day Live Activity", isOn: $liveActivity)`
+  - 61: `Text("From 6 pm the evening before your exam, the Lock Screen shows the countdown and the cards still due. Add the widgets from the Home Screen, and the Review `
+  - 69: `Toggle("Lock with \(AppLock.biometryName)", isOn: $appLock)`
+  - 73: `Toggle("Log focus rounds to Health", isOn: $mindful)`
+- `Shared/AppIntentsRouting.swift` (5)
+  - 231: `.alert("Stethoscore", isPresented: noticeShown) {`
+  - 326: `Button("Done") { dismiss() }`
+  - 353: `Button("Open Last Set in New Window") { openLastSetWindow() }`
+  - 359: `Button("Search Library") { PlatformNotice.post(PlatformNotice.search, ["text": ""]) }`
+  - 363: `Button("Review Due Cards") { AppRouter.shared.open(.reviewDue) }`
+- `Shared/ImportRouter.swift` (5)
+  - 230: `Text("Reading\u{2026}")`
+  - 251: `.navigationTitle("Received")`
+  - 269: `Button("Close") { picturing = false }`
+  - 289: `Label("Make picture cards from this", systemImage: "photo.on.rectangle")`
+  - 380: `Text("\(set.kind.label) \u{00B7} \(set.itemCount) items \u{00B7} \(set.subject)")`
+- `Features/Analytics/AnalyticsVisuals.swift` (4)
+  - 288: `Text("\(Int((share.share * 100).rounded()))%")`
+  - 341: `Text("\(Int(value.as(Double.self) ?? 0))%")`
+  - 481: `Text("Less").font(.caption2).foregroundStyle(Color.wardInkSecondary)`
+  - 486: `Text("More").font(.caption2).foregroundStyle(Color.wardInkSecondary)`
+- `Features/Library/ImportPreviewSheet.swift` (4)
+  - 32: `.navigationTitle("Import")`
+  - 36: `Button("Cancel") { dismiss() }`
+  - 58: `Text("Nothing is added until you tap Import.")`
+  - 103: `Text("and \(preview.sets.count - listed) more")`
+- `Features/Library/StudyCategory.swift` (4)
+  - 599: `.accessibilityLabel("Sections, now \(here)")`
+  - 600: `.accessibilityHint("Lists every section to choose from")`
+  - 799: `.navigationTitle("Sections")`
+  - 803: `Button("Done") { dismiss() }`
+- `Features/Onboarding/FirstRunView.swift` (4)
+  - 92: `DatePicker("Exam date", selection: $chosen, in: Date()..., displayedComponents: .date)`
+  - 123: `Stepper("\(goal) a day", value: $goal.animation(.snappy), in: DailyGoal.range, step: 10)`
+  - 208: `Button("Skip") { finish() }`
+  - 321: `Button("Skip", action: skip)`
+- `Features/Support/StudyReminderSettings.swift` (4)
+  - 22: `Label { Text("Question of the day") } icon: { icon("questionmark.bubble") }`
+  - 26: `Label { Text("Bedtime lock-in") } icon: { icon("moon.stars") }`
+  - 30: `Label { Text("Morning check") } icon: { icon("sunrise") }`
+  - 40: `Text("A question from your weakest subject each day, answered right on the notification. In the evening, a calm re-read of the day\u{2019}s misses; the next mor`
+- `Features/Lens/LensAddSheet.swift` (3)
+  - 60: `.navigationTitle("Add to\u{2026}")`
+  - 69: `Button("Add") { save() }`
+  - 87: `Section("Add as") {`
+- `Features/Library/CategoryPages.swift` (3)
+  - 79: `.navigationTitle("Talking patient")`
+  - 160: `.navigationTitle("Draw from memory")`
+  - 172: `Label("Picture \(index + 1)", systemImage: "photo")`
+- `Features/Library/NewSetDock.swift` (3)
+  - 82: `Label("Back", systemImage: "chevron.backward")`
+  - 104: `Label("Next", systemImage: "arrow.forward")`
+  - 113: `Label("Choose a file", systemImage: "square.and.arrow.down")`
+- `Features/Library/TurnIntoPicker.swift` (3)
+  - 51: `Text("\u{201C}\(source.name)\u{201D} stays as it is. The new set is added beside it, with the same subject and folder.")`
+  - 64: `.navigationTitle("Turn into\u{2026}")`
+  - 67: `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)`
+- `Features/Notes/GraphLegend.swift` (3)
+  - 63: `Button("Done") { dismiss() }`
+  - 401: `Button("Full list", action: more)`
+  - 403: `Button("Got it", action: done)`
+- `Features/Reasoning/HowToReachCard.swift` (3)
+  - 17: `Label("How to reach it", systemImage: "signpost.right")`
+  - 120: `Text("Sources").font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)`
+  - 124: `Text("From the lecture").font(.caption).foregroundStyle(Color.wardInkSecondary)`
+- `Features/Sources/SourcePreviewView.swift` (3)
+  - 83: `Button("Done") { dismiss() }`
+  - 167: `Button("Done") { showingPages = false }`
+  - 234: `Label("Recognised", systemImage: "text.viewfinder")`
+- `Features/Support/HelpContactSection.swift` (3)
+  - 22: `Picker("About", selection: $topic) {`
+  - 28: `TextField("Your message", text: $message, axis: .vertical)`
+  - 58: `Text("A wrong question or card? Open it and use More \u{2192} Report a problem, so we know exactly which one. Messages include the app version, nothing from you`
+- `Features/Voice/VoiceEntryPoints.swift` (3)
+  - 28: `Label("Commute mode", systemImage: "car.fill")`
+  - 32: `.accessibilityHint("Reads your due cards and questions aloud and listens for the answers")`
+  - 56: `Button("Close") { isPresented = false }`
+- `RedPenApp.swift` (3)
+  - 226: `.alert("Add this device's library to your account?",`
+  - 228: `Button("Add to my account") {`
+  - 231: `Button("Keep on this device only") {`
+- `Features/Library/LibraryCategory.swift` (2)
+  - 45: `Text("More ways to practise")`
+  - 171: `Button("Make one") { newSetKind = category.mainKind }`
+- `Features/Library/OcclusionCoverEditor.swift` (2)
+  - 51: `.accessibilityLabel("Picture with \(covers.count) covers")`
+  - 52: `.accessibilityHint("Drag across the picture to draw a cover. Each cover's answer can also be edited in the list below.")`
+- `Features/Notes/IdeaBoardView.swift` (2)
+  - 149: `Text("Double-tap anywhere to put an idea there.")`
+  - 265: `Button("Cancel") { source = nil }`
+- `Features/Sources/SourcePageReader.swift` (2)
+  - 49: `Label("No text on this \(source.kind.pageNoun.lowercased())",`
+  - 55: `Label("Read by text recognition — worth checking against the original",`
+- `Shared/FloatingSwitcher.swift` (2)
+  - 121: `.navigationTitle("Show")`
+  - 125: `Button("Done") { dismiss() }`
+- `Shared/Platform/AppLock.swift` (2)
+  - 164: `Text("Locked")`
+  - 168: `Button("Unlock") { Task { await unlock() } }`
+- `Features/Auth/SignInView.swift` (1)
+  - 144: `Text("By continuing you agree to the [Terms](legal://terms) and [Privacy Policy](legal://privacy).")`
+- `Features/Cases/CaseListView.swift` (1)
+  - 108: `.accessibilityHint("Opens the patient")`
+- `Features/Examples/OcclusionExample.swift` (1)
+  - 313: `Text("Reading the heart diagram\u{2019}s labels\u{2026}")`
+- `Features/Learn/LearnRoutes.swift` (1)
+  - 35: `Button("Done") { dismiss() }`
+- `Features/Library/LibraryChrome.swift` (1)
+  - 51: `ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.buttonStyle(.wardQuiet) }.sharedBackgroundVisibility(.hidden)`
+- `Features/Narrate/NarrateWordFlow.swift` (1)
+  - 130: `.accessibilityHint("Plays from here")`
+- `Features/Notes/GraphPreview.swift` (1)
+  - 317: `.accessibilityLabel("Back")`
+- `Features/Notes/NoteMarkdown.swift` (1)
+  - 15: `Text("Nothing written yet.")`
+- `Features/Voice/VoiceParts.swift` (1)
+  - 13: `Button("Open Settings") { VoiceAccess.openSettings() }`
+- `Shared/CountField.swift` (1)
+  - 73: `Button("Done") { focused = false }`
+- `Shared/GenerationCenter.swift` (1)
+  - 166: `Text("Cancel")`
+- `Shared/LaunchSplash.swift` (1)
+  - 98: `Text("Opening your library…")`
+- `Shared/Platform/SetWindow.swift` (1)
+  - 35: `Label("Open in New Window", systemImage: "macwindow.badge.plus")`
+- `Shared/Ward/WardVitals.swift` (1)
+  - 162: `.accessibilityLabel("Working")`

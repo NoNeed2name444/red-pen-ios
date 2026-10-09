@@ -1,0 +1,46 @@
+
+compile rc=0
+ok   a normal launch on a device shows them
+ok   the simulator does not (the UI tests run there)
+ok   a screenshot run does not
+ok   -showOnboarding brings them back in the simulator
+ok   -disableOnboarding switches them off on a device
+ok   an account that just agreed to the terms is due
+ok   a device that never answered the exam question is due
+ok   somebody already studying here before the pages existed is not
+ok   pages left half way come back on the next launch
+ok   once finished, never again
+ok   unless the launch asks for them (a simulator that ran the test before)
+ok   finishing clears the half-way mark
+ok   per account: a second account on the device is still due
+ok   forced (the UI test) shows them to an account that has not finished
+ok   agreeing to changed terms is not being new
+ok   nor on a device that never answered the exam question (that page still asks)
+ok   pages left half way still come back to a returning account
+ok   an earlier version agreed to counts
+ok   the current version alone does not
+ok   with only one version there is nothing earlier
+ok   the keys carry the account and the version
+ok   the goal's key is the one the ward-round lane reads
+ok   the range is 10 to 300
+ok   50 until one is set
+ok   a goal is kept
+ok   too small comes up to 10
+ok   too big comes down to 300
+ok   a stored value out of range reads in range
+ok   no tip before the screen is opened
+ok   not on the first opening
+ok   not on the second
+ok   on the third, once it has been seen twice
+ok   each screen counts on its own
+ok   counting stops at the cap
+ok   five screens, five keys
+ok   tips on a device
+ok   no tips in UI tests (the simulator)
+ok   no tips in a screenshot run
+ok   -disableTips
+ok   -showTips in the simulator
+
+ALL FIRST RUN TESTS PASS
+
+run rc=0
