@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 6:51 AM Cairo.
+Last updated: 2026-10-09, 7:00 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -592,9 +592,14 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       Ready-to-paste packets for tasks 1 to 3 went to the owner on 9 Oct
       (kept out of this repository: the loop's format is private); the
       first is filled in for turn 55, the other two take the turn and
-      commits of the one before. Waiting on the owner: write access for
-      this session, or the owner or the loop's own session queueing them
-      one at a time.
+      commits of the one before. The owner wants this session to send
+      them ("u send the packets not me", 9 Oct, about 6:55 AM), but the
+      permission system refused write access to the loop's repository
+      again at 6:56 AM; don't retry it. Waiting on the owner: write access
+      for this session (GitHub reconnected at claude.ai/connect-github
+      with write on that repository), or a session started with it
+      selected. Then queue the turn-55 packet and run the loop's worker,
+      and each next packet once the one before is approved.
     - The neumorphic branch (5d2a0c6) is already inside both personal and
       aahp/personal, so it adds no merge risk to these tasks.
     - [ ] Review each result when it comes back, then merge aahp/personal
@@ -1126,9 +1131,9 @@ They answer four questions, in order:
 - Each Worker deploy.
 - Push access to Chat-me, refused to this session on 9 Oct: section 3,
   step 11 waits on it.
-- Write access to the loop's repository for this session, or the owner or
-  the loop's own session queueing the packets sent on 9 Oct, one at a time
-  (section 3, step 15).
+- Write access to the loop's repository for this session (refused again at
+  6:56 AM on 9 Oct; the owner wants this session, not them, to send the
+  packets): section 3, step 15.
 
 ## 6. Standing rules
 
