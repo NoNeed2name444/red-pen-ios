@@ -202,7 +202,8 @@ let previewDrafts: [Draft] = [
 let previewHandLinks: [(String, String)] = [
     ("Internal ring test", "Direct inguinal hernia"), ("Spermatic cord coverings", "Indirect inguinal hernia"),
     ("Femoral hernia", "Inguinal canal"), ("Acute coronary syndrome", "Heart failure"),
-    ("Atrial fibrillation", "Heart failure"), ("Murmurs", "Atrial fibrillation")
+    ("Atrial fibrillation", "Heart failure"), ("Murmurs", "Atrial fibrillation"),
+    ("Groin hernia", "Atrial fibrillation")
 ]
 
 /// `[[Title]]` in a body, as NoteStore.wikiTitles reads it.

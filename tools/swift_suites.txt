@@ -165,44 +165,44 @@ suite spacestyles SpaceStyleTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/G
 # declared before use, arguments declared and used, brackets, Metal only
 # (tools/shader_check.py compiles them against a stand-in for Metal)
 suite shaders ShaderSourceTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/GraphSpaceShaders.swift \
-      $F/Notes/GraphNeuronShaders.swift $F/Notes/GraphCircuitShaders.swift $F/Notes/GraphShaderCatalog.swift
-# the Neurons theme: folders as brain regions and relays down the
-# pathway, notes as neurons, glia and receptors - the ladder, no
-# overlaps, pathways running outward, impulses at random times
+      $F/Notes/GraphNeuronShaders.swift $F/Notes/GraphShaderCatalog.swift
+# the Neurons theme: top folders as cells on one sheet, folders inside
+# as parts inside them, notes as vesicles and granules, insides only
+# when opened, free cells at the edge, links as processes - the ladder,
+# nothing meeting, opening never moving anything, impulses at random times
 suite neurons NeuronHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
-      $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift
+      $F/Notes/GraphNeurons.swift $F/Notes/GraphAnatomy.swift $F/Notes/GraphNeuronImpulses.swift \
+      $F/Notes/GraphTheme.swift
 # the Neurons' look: green, cyan, pink and amber on deep blue, the six
 # cell states mirroring the space styles, the Look menu's choice, the bokeh
 suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
-      $F/Notes/GraphNeurons.swift $F/Notes/GraphNeuronImpulses.swift $F/Notes/GraphTheme.swift \
+      $F/Notes/GraphNeurons.swift $F/Notes/GraphAnatomy.swift $F/Notes/GraphNeuronImpulses.swift \
+      $F/Notes/GraphTheme.swift \
       $F/Notes/GraphSpaceOptics.swift $F/Notes/GraphNeuronStates.swift $F/Notes/GraphShaderKit.swift \
       $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift
-# the Circuit theme (glass tiles since 7 October): folders as chips on
-# their tiles and inlays, pages, ideas and loose notes as parts - the
-# ladder, no overlapping footprints, flat on the bench, every guide
-# routed square with rounded 45° corners, the chips' markings, the
-# parts' dressing clear of every part, and the one pulse of light a
-# beat round each circuit (every part lit, no wire outrun)
-suite circuit CircuitHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
-      $F/Notes/GraphCircuit.swift $F/Notes/GraphLinkCurve.swift $F/Notes/GraphNeuronImpulses.swift \
-      $F/Notes/GraphTheme.swift $F/Notes/GraphCircuitDress.swift
+# a Neurons cell's membrane: soma and dendrites one closed surface -
+# no holes, facing out, one piece, on the surface, apart, in range
+suite membrane NeuronMembraneTests.swift $F/Notes/GraphNeuronMembrane.swift
+# a Neurons link as one dendrite joining two cells: the outline leaves
+# each cell's disc along it and narrows smoothly to the tube's width
+suite bridge GraphLinkBridgeTests.swift $F/Notes/GraphLinkBridge.swift
 # removing a note: how each body dies (stars, planets, black holes;
-# apoptosis; a short circuit), link buffers never rewritten in flight,
+# apoptosis), link buffers never rewritten in flight,
 # and the synapse's terminal arbor
 suite death GraphDeathTests.swift $F/Notes/GraphDeath.swift $F/Notes/GraphFrameSync.swift $F/Notes/GraphSynapse.swift
 # link length: every theme's guarantees at 0.6-1.8, links grow with
 # the setting, bodies keep their size
 suite linklength LinkLengthTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift $F/Notes/GraphNeurons.swift \
-      $F/Notes/GraphCircuit.swift $S/Space/GraphicsQuality.swift
+      $F/Notes/GraphAnatomy.swift $S/Space/GraphicsQuality.swift
 # name pills stay readable: contrast maths, style choice, no flicker
 suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 # touching the map: tap, double tap, hold, drag, orbit, the peek card
 suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
 # lines: Curved / Straight - the straight segment and the board's bow
 suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
-# the themed hierarchy (plan §3d): each folder a cell or a circuit with
-# the same seven parts, files and bullets in both themes, read from the
-# notes; links as fibres (strength, kind) or wires (resistance, current);
+# the themed hierarchy (plan §3d): each folder a cell with the same
+# seven parts, files and bullets, read from the notes; links as fibres
+# (strength, kind);
 # levels 3-4 built only up close, bounded, never smaller than a page
 suite anatomy GraphAnatomyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphAnatomy.swift
 # each theme's lens: none at Smooth or in Performance, HDR, bloom and

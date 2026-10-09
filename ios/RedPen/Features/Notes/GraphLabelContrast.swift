@@ -5,8 +5,7 @@ import Foundation
 // The owner: "make the headlines of the nodes react and change in color
 // according to what is behind them to keep being visible and visually clear
 // and readable". A body's name pill must read over a bright star, a
-// supernova's flash, a glowing cell, a lit LED, the dark board or bench, or
-// a pale nebula.
+// supernova's flash, a glowing cell, the deep fluid, or a pale nebula.
 //
 // How the background is measured: ESTIMATED from the scene, not read back
 // from the frame. GraphSim already knows, every frame and under its lock,
@@ -462,38 +461,25 @@ nonisolated struct GraphShine: Sendable, Equatable {
         }
     }
 
-    /// The Neurons (NeuronRole's raw value): glowing somata, pale glia.
+    /// The Neurons (NeuronRole's raw value): glowing cells, the parts and
+    /// notes inside them dimmer, a receptor gold, a drifter pale.
     static func neurons(_ role: Int) -> GraphShine {
         switch role {
-        case 0, 1, 2: return GraphShine(colour: GraphRGB(0.95, 0.62, 0.78), reach: 2.2, strength: 0.7)
-        case 3: return GraphShine(colour: GraphRGB(0.72, 0.60, 0.95), reach: 1.8, strength: 0.55)
-        case 4, 6: return GraphShine(colour: GraphRGB(0.55, 0.78, 0.95), reach: 1.6, strength: 0.45)
-        case 5: return GraphShine(colour: GraphRGB(0.85, 0.88, 0.80), reach: 1.2, strength: 0.25)
-        case 7: return GraphShine(colour: GraphRGB(0.95, 0.85, 0.50), reach: 1.8, strength: 0.5)
+        case 0, 2: return GraphShine(colour: GraphRGB(0.95, 0.62, 0.78), reach: 2.2, strength: 0.7)
+        case 1: return GraphShine(colour: GraphRGB(0.82, 0.58, 0.95), reach: 1.8, strength: 0.55)
+        case 3: return GraphShine(colour: GraphRGB(0.72, 0.60, 0.95), reach: 1.6, strength: 0.5)
+        case 4: return GraphShine(colour: GraphRGB(0.55, 0.78, 0.95), reach: 1.4, strength: 0.4)
+        case 5: return GraphShine(colour: GraphRGB(0.62, 0.80, 0.98), reach: 1.2, strength: 0.25)
+        case 6: return GraphShine(colour: GraphRGB(0.95, 0.85, 0.50), reach: 1.8, strength: 0.5)
         default: return GraphShine(colour: GraphRGB(0.60, 0.70, 0.60), reach: 1.3, strength: 0.2)
         }
     }
 
-    /// The Circuit (CircuitRole's raw value): dark chips, a lit LED
-    /// bright, gold pads.
-    static func circuit(_ role: Int, lit: Bool) -> GraphShine {
-        switch role {
-        case 0, 1, 2: return GraphShine(colour: GraphRGB(0.10, 0.11, 0.12), reach: 1, strength: 0)
-        case 3: return GraphShine(colour: GraphRGB(0.30, 0.42, 0.70), reach: 1, strength: 0.05)
-        case 6:
-            if lit { return GraphShine(colour: GraphRGB(0.95, 1.0, 0.85), reach: 2.8, strength: 0.85) }
-            return GraphShine(colour: GraphRGB(0.35, 0.40, 0.32), reach: 1, strength: 0)
-        case 11: return GraphShine(colour: GraphRGB(0.95, 0.78, 0.35), reach: 1.3, strength: 0.3)
-        default: return GraphShine(colour: GraphRGB(0.6, 0.55, 0.40), reach: 1, strength: 0)
-        }
-    }
-
     /// Each theme's ground behind everything: the night sky, the Neurons'
-    /// deep blue fluid, the Circuit's bench and boards.
+    /// deep blue fluid.
     static func backdrop(theme: String) -> GraphRGB {
         switch theme {
         case "neurons": return GraphRGB(0.03, 0.06, 0.16)
-        case "circuit": return GraphRGB(0.06, 0.10, 0.08)
         default: return GraphRGB(0.03, 0.03, 0.06)
         }
     }
@@ -510,9 +496,6 @@ nonisolated struct GraphShine: Sendable, Equatable {
             return (peak, 11)
         case "planetaryNebula", "tidalDisruption":
             return (max(0, 1 - x / 0.6) * 0.7, 6)
-        case "shortCircuit":
-            let peak: Double = t < 0.08 ? t / 0.08 : max(0, 1 - (t - 0.1) / 0.5)
-            return (peak, 4)
         default:
             return (max(0, 1 - x) * 0.3, 2)
         }

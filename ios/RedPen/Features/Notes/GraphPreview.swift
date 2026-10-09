@@ -25,27 +25,20 @@ import SwiftUI
 ///   following.
 /// - `-graphPreviewFly <folder>` flies in to that folder's system 1.5 s
 ///   after the space appears, and holds it, instead of choosing a note.
+///   A comma-separated path (`Examples,Inguinal`) flies in to each in
+///   turn: in Neurons a folder inside a cell is only on the map once the
+///   cell has opened, so each waits for the one before.
 /// - `-graphPreviewLegend` opens "What the bodies mean" a second after the
 ///   space appears.
 /// - `-graphPreviewStyle <name>` (blackHole, sun, rocky, gasGiant, pulsar,
 ///   comet) shows every note in that one style in today's force layout
 ///   instead.
 /// - `-graphPreviewTheme neurons` shows the Neurons theme (GraphNeurons):
-///   Cardiology and Examples as two brain regions, Inguinal and Femoral
-///   relays out along Examples' pathway with Anatomy one step further,
-///   pages as large neurons, ideas as interneurons, the six short one-link
-///   ideas as glia on their neurons, the bridging idea as a commissural
-///   neuron and the two loose notes as receptors. `-graphPreviewFly` and
-///   `-graphPreviewLegend` work with it too.
-/// - `-graphPreviewTheme circuit` shows the Circuit theme (GraphCircuit):
-///   Cardiology and Examples as two circuit boards side by side on the
-///   bench, each with its chip, power rail along the top and ground rail
-///   along the bottom; Inguinal and Femoral as smaller chips on sub-boards
-///   on branches of Examples' bus, with Anatomy on Inguinal's; pages as
-///   capacitors, ideas as LEDs in branches off the pages they link to, and
-///   the two loose notes as gold pads on their boards' left edges.
-///   `-graphPreviewFly`, `-graphPreviewDrag` and `-graphPreviewLegend`
-///   work with it too.
+///   Cardiology and Examples as two cells, Inguinal and Femoral as parts
+///   inside Examples with Anatomy inside Inguinal, pages as vesicles and
+///   ideas as granules inside the folders that hold them, and the two
+///   loose notes as free cells at the edge. Flying in to a cell opens it.
+///   `-graphPreviewFly` and `-graphPreviewLegend` work with it too.
 /// - `-graphPreviewCells <state>` shows every Neurons cell in that state
 ///   (firing, releasing, pacemaker, migrating, engulfing or resting).
 /// - The screen round the map is the app's: a back chevron top left, the
@@ -67,17 +60,21 @@ enum GraphPreview {
     static let drags: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreviewDrag")
     /// The legend is opened a second after appearing.
     static let showsLegend: Bool = isOn && ProcessInfo.processInfo.arguments.contains("-graphPreviewLegend")
-    /// The folder to fly in to, asked for with `-graphPreviewFly`.
-    static let fly: String? = {
+    /// The folder to fly in to, asked for with `-graphPreviewFly`: the
+    /// first of `flyPath`.
+    static let fly: String? = flyPath.first
+    /// `-graphPreviewFly <folder>[,<folder inside it>...]`: the folders to
+    /// fly in to one after another, outermost first.
+    static let flyPath: [String] = {
         let args: [String] = ProcessInfo.processInfo.arguments
-        guard let at = args.firstIndex(of: "-graphPreviewFly"), at + 1 < args.count else { return nil }
-        return args[at + 1]
+        guard let at = args.firstIndex(of: "-graphPreviewFly"), at + 1 < args.count else { return [] }
+        return args[at + 1].split(separator: ",").map { String($0) }
     }()
     /// What `-graphPreviewRemove [titles]` deletes from the preview's store
     /// three seconds after the space appears, so screenshots can catch the
     /// bodies dying (GraphDeath): the folders and notes named in the
     /// comma-separated list that follows, or by default the Femoral and
-    /// Anatomy folders (stars; relays; sub-chips) and BNP, Murmurs, Troponin,
+    /// Anatomy folders (stars; parts; sub-chips) and BNP, Murmurs, Troponin,
     /// Expansile cough impulse and Richter's hernia (a moon, a gas giant, a
     /// rocky planet, the pulsar and a comet; cells; parts). Nil without it.
     static let removes: [String]? = {
@@ -129,7 +126,7 @@ enum GraphPreview {
     }
 
     /// The theme asked for with `-graphPreviewTheme <name>` (space,
-    /// neurons, circuit, performance); Space without one.
+    /// neurons, performance); Space without one.
     static let theme: GraphTheme = {
         let args: [String] = ProcessInfo.processInfo.arguments
         guard let at = args.firstIndex(of: "-graphPreviewTheme"), at + 1 < args.count else { return .space }
@@ -155,7 +152,8 @@ enum GraphPreview {
 
     /// The groin hernia examples (Examples, Inguinal with its Anatomy
     /// inside, Femoral), the bridging idea, a Cardiology folder of 14 more
-    /// and two ideas in no folder, on a file in the temporary folder.
+    /// (one linked from Examples) and two ideas in no folder, on a file in
+    /// the temporary folder.
     @MainActor
     static func makeStore() -> NoteStore {
         let name = "redpen-graph-preview-\(UUID().uuidString).json"
@@ -244,6 +242,12 @@ enum GraphPreview {
         store.link(acs.id, heartFailure.id)
         store.link(af.id, heartFailure.id)
         store.link(murmurs.id, af.id)
+        // and one from Examples (anticoagulation round a hernia repair), so
+        // the two big folders are joined by a link of their own, not only
+        // through the loose notes
+        if let groin = store.notes.first(where: { $0.title == "Groin hernia" }) {
+            store.link(groin.id, af.id)
+        }
     }
 
     /// An idea in Examples linking notes in both its subfolders (the
@@ -270,6 +274,9 @@ struct GraphPreviewRoot: View {
     /// temporary file, so Open works in the preview.
     @StateObject private var library: Store = Store(fileURL: FileManager.default.temporaryDirectory
         .appendingPathComponent("redpen-graph-preview-library-\(UUID().uuidString).json"))
+
+    /// The design preview's own freeze watch starts with it.
+    init() { GraphHangReporter.start() }
 
     var body: some View {
         // the bar takes the top of the safe area as the app's navigation bar

@@ -14,8 +14,8 @@
 // material). tools/shader_check.py goes further (a real compile against a
 // stand-in for Metal) where clang is installed.
 //
-// Compiled with GraphSpaceShaders.swift, GraphNeuronShaders.swift,
-// GraphCircuitShaders.swift and GraphShaderCatalog.swift (Foundation only).
+// Compiled with GraphSpaceShaders.swift, GraphNeuronShaders.swift and
+// GraphShaderCatalog.swift (Foundation only).
 import Foundation
 
 var failures: [String] = []
@@ -218,7 +218,7 @@ func read(_ item: GraphShaderItem) -> ShaderReport {
 
 let all: [GraphShaderItem] = GraphShaderCatalog.all
 check("S1 the catalogue lists every theme's shaders", GraphShaderCatalog.space.count >= 18
-      && GraphShaderCatalog.neurons.count >= 7 && GraphShaderCatalog.circuit.count >= 4, "\(all.count)")
+      && GraphShaderCatalog.neurons.count >= 7, "\(all.count)")
 check("S1 names are unique", Set(all.map(\.name)).count == all.count)
 check("S1 entry points are SceneKit's", all.allSatisfy { $0.entry == "surface" || $0.entry == "geometry" })
 var dirty: [String] = []

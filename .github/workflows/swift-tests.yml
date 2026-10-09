@@ -31,7 +31,6 @@ on:
       - 'ios/RedPen/Features/Notes/GraphNeurons.swift'
       - 'ios/RedPen/Features/Notes/GraphNeuronImpulses.swift'
       - 'ios/RedPen/Features/Notes/GraphTheme.swift'
-      - 'ios/RedPen/Features/Notes/GraphCircuit.swift'
       - 'ios/RedPen/Features/Notes/GraphDeath.swift'
       - 'ios/RedPen/Features/Notes/GraphFrameSync.swift'
       - 'ios/RedPen/Features/Notes/GraphSynapse.swift'
@@ -42,10 +41,10 @@ on:
       - 'ios/RedPen/Features/Notes/GraphShaderKit.swift'
       - 'ios/RedPen/Features/Notes/GraphSpaceOptics.swift'
       - 'ios/RedPen/Features/Notes/GraphNeuronShaders.swift'
-      - 'ios/RedPen/Features/Notes/GraphCircuitShaders.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeuronMembrane.swift'
+      - 'ios/RedPen/Features/Notes/GraphLinkBridge.swift'
       - 'ios/RedPen/Features/Notes/GraphShaderCatalog.swift'
       - 'ios/RedPen/Features/Notes/GraphNeuronStates.swift'
-      - 'ios/RedPen/Features/Notes/GraphCircuitDress.swift'
       - 'ios/RedPen/Features/Notes/GraphAnatomy.swift'
       - 'ios/RedPen/Features/Notes/GraphLens.swift'
       - 'ios/RedPen/Features/Notes/GraphPerf*.swift'
@@ -151,7 +150,10 @@ jobs:
           git init -q && git checkout -q -b swift-tests
           git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
           git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (linux) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
-          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests:swift-tests
+          url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # one commit pushed to two branches is tested twice, and both runs can
+          # publish here at the same moment: a push that loses the race tries once more
+          git push -f "$url" swift-tests:swift-tests || { sleep 10; git push -f "$url" swift-tests:swift-tests; }
   publish-mac:
     needs: mac
     if: ${{ always() && needs.mac.result != 'skipped' && !startsWith(github.ref_name, 'aahp/') }}
@@ -172,4 +174,7 @@ jobs:
           git init -q && git checkout -q -b swift-tests-mac
           git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
           git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (mac) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
-          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests-mac:swift-tests-mac
+          url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # one commit pushed to two branches is tested twice, and both runs can
+          # publish here at the same moment: a push that loses the race tries once more
+          git push -f "$url" swift-tests-mac:swift-tests-mac || { sleep 10; git push -f "$url" swift-tests-mac:swift-tests-mac; }

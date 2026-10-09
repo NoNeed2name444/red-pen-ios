@@ -58,6 +58,36 @@ nonisolated struct UniverseInput: Sendable {
     /// by it - orbits, the gaps between systems, pathways, part spacing -
     /// never a body's own size. Clamped to 0.6...1.8.
     var linkScale: Double = 1
+    /// What the Neurons theme reads to build each folder's cell (plan
+    /// §3d): every note's body, tags, source and
+    /// links. Nil for the other themes, which need only the titles.
+    var anatomy: AnatomyInput? = nil
+    /// The folders opened on the map, outermost first (Neurons): a cell
+    /// shows its parts and notes only while its folder is here, and a
+    /// part its own only while it is too. The other themes ignore it.
+    var open: [UUID] = []
+}
+
+/// One note as the anatomy reads it: what Graph3DView hands over from the
+/// store. `written` is the notes its `[[Title]]`s name (NoteStore.resolve),
+/// `hand` its hand-made links; `source` names where it was saved from
+/// ("Question · Cardiology set"), nil for a note written here.
+nonisolated struct AnatomyNote: Sendable, Equatable {
+    let id: UUID
+    let title: String
+    let body: String
+    let isPage: Bool
+    let folder: UUID?
+    let tags: [String]
+    let source: String?
+    let hand: [UUID]
+    let written: [UUID]
+    let created: Double
+}
+
+nonisolated struct AnatomyInput: Sendable {
+    let notes: [AnatomyNote]
+    let folders: [UniverseFolder]
 }
 
 extension UniverseInput {

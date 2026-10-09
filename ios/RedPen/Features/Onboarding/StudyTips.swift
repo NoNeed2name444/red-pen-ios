@@ -206,7 +206,7 @@ struct LensScanTip: Tip {
 struct IdeasThemeTip: Tip {
     var title: Text { Text("Change the map\u{2019}s look") }
     var message: Text? {
-        Text("In the map, the round Look button switches it between Space, Neurons and Circuit.")
+        Text("In the map, the round Look button switches it between Space, Neurons and Performance.")
     }
     var image: Image? { Image(systemName: "sparkles") }
     var options: [Option] { MaxDisplayCount(1) }

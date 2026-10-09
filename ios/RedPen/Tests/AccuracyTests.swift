@@ -249,7 +249,7 @@ check("a note is its own kind", AccuracyItem.note(id: UUID(), title: "T", body: 
 
 var ledger = AccuracyLedger()
 let item0 = AccuracyItem.items(in: mcqSet)[0]
-let fullProof = AccuracyProof(v: 1, claims: 1, proven: 1)
+let fullProof = AccuracyProof(v: 2, claims: 1, proven: 1)
 check("an unchecked item with no rule hits is Not checked yet", ledger.assess(item0).grade == .unchecked)
 ledger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true),
                    AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports", blind: true)],
@@ -274,7 +274,7 @@ reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "s
 reported.markReported(item0.contentHash)
 check("a reported item is never shown as Verified again", reported.assess(item0).grade == .check)
 // the claim gate (server/claims.js): the server's reply, as it sends it
-let provenJSON = #","proof":{"v":1,"claims":1,"proven":1,"quotes":[{"claim":"c","quote":"q","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov/x.html"}]}"#
+let provenJSON = #","proof":{"v":2,"claims":1,"proven":1,"quotes":[{"claim":"c","quote":"q","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov/x.html"}]}"#
 func gateReply(_ claims: String, proof: String = provenJSON) -> AccuracyCheckReply? {
     let json: String = """
     {"items":[{"id":"q","hash":"x","p":0.97,"verdict":"check","modelVersion":"v","features":{"source_match":0.8,"no_source":0},
@@ -335,14 +335,14 @@ check("three families with no proof in the reply: Check this, with the reason",
 check("the server's proof decodes, quotes and all", gateReply("")?.items?.first?.proof?.isFull == true
       && gateReply("")?.items?.first?.proof?.quotes?.first?.url == "https://medlineplus.gov/x.html")
 check("a proof is full only when every claim is proven, by this version, with nothing cut short",
-      fullProof.isFull && !AccuracyProof(v: 1, claims: 2, proven: 1).isFull && !AccuracyProof(v: 1, claims: 0, proven: 0).isFull
-      && !AccuracyProof(v: 2, claims: 1, proven: 1).isFull && !AccuracyProof(v: 1, claims: 1, proven: 1, why: "budget").isFull
-      && !AccuracyProof(v: 1, claims: 1, proven: 1, why: "stem").isFull)
+      fullProof.isFull && !AccuracyProof(v: 2, claims: 2, proven: 1).isFull && !AccuracyProof(v: 2, claims: 0, proven: 0).isFull
+      && !AccuracyProof(v: 1, claims: 1, proven: 1).isFull && !AccuracyProof(v: 2, claims: 1, proven: 1, why: "budget").isFull
+      && !AccuracyProof(v: 2, claims: 1, proven: 1, why: "stem").isFull)
 check("due again: cut short or an older version; not when it simply could not be proven",
-      AccuracyProof(v: 1, why: "lookup").due && AccuracyProof(v: 1, why: "budget").due && AccuracyProof(v: 1, why: "timeout").due
-      && AccuracyProof(v: 1, why: "error").due && AccuracyProof(v: 0).due && !AccuracyProof(v: 1, claims: 1, proven: 0, why: "unproven").due
-      && !AccuracyProof(v: 1, why: "stem").due && !fullProof.due)
-let lookupJSON = #","proof":{"v":1,"claims":1,"proven":0,"why":"lookup"}"#
+      AccuracyProof(v: 2, why: "lookup").due && AccuracyProof(v: 2, why: "budget").due && AccuracyProof(v: 2, why: "timeout").due
+      && AccuracyProof(v: 2, why: "error").due && AccuracyProof(v: 0).due && !AccuracyProof(v: 2, claims: 1, proven: 0, why: "unproven").due
+      && !AccuracyProof(v: 2, why: "stem").due && !fullProof.due)
+let lookupJSON = #","proof":{"v":2,"claims":1,"proven":0,"why":"lookup"}"#
 proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
 check("a source that could not be read: Check this, saying it will be checked again",
       proofs.assess(item0).grade == .check && proofs.records[hash0]?.proofTries == 2
@@ -359,13 +359,23 @@ check("proven on a later check: Verified, the tries cleared", proofs.assess(item
 proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
 check("a later check cut short does not take the proof away", proofs.assess(item0).grade == .verified && proofs.records[hash0]?.proof?.isFull == true)
 var budgeted = AccuracyLedger()
-budgeted.record(gateReply("", proof: #","proof":{"v":1,"claims":1,"proven":0,"why":"budget"}"#), for: [hash0], at: gateTime)
+budgeted.record(gateReply("", proof: #","proof":{"v":2,"claims":1,"proven":0,"why":"budget"}"#), for: [hash0], at: gateTime)
 check("sources too long for the batch: said so",
       budgeted.assess(item0).reasons.contains("Its official sources were too long to read in this batch; it will be checked again on its own."))
+var twoAnswers = AccuracyLedger()
+twoAnswers.record(gateReply("", proof: #","proof":{"v":2,"claims":1,"proven":1,"why":"distractor"}"#), for: [hash0], at: gateTime)
+check("a key stated word for word with another option a source may state too: said so, and not that no source states it",
+      twoAnswers.assess(item0).grade != .verified
+      && twoAnswers.assess(item0).reasons.contains("An official source may also state another of its options.")
+      && !twoAnswers.assess(item0).reasons.contains(where: { $0.contains("word for word") })
+      && AccuracyAssessment.proofReasons(AccuracyProof(v: 2, claims: 1, proven: 1, why: "options"), oath: true)
+         == ["One of its other options could not be read for certain."])
+check("neither is checked again: the sources will not change their words",
+      !AccuracyProof(v: 2, claims: 1, proven: 1, why: "distractor").due && !AccuracyProof(v: 2, claims: 1, proven: 1, why: "options").due)
 check("an oath item gets the oath's words", AccuracyAssessment.proofReasons(nil, oath: true) == ["A dose, diagnosis or treatment no official source states word for word yet."]
       && AccuracyAssessment.proofReasons(fullProof, oath: true).isEmpty)
 var unprovable = AccuracyLedger()
-unprovable.record(gateReply("", proof: #","proof":{"v":1,"claims":0,"proven":0,"why":"stem"}"#), for: [hash0], at: gateTime)
+unprovable.record(gateReply("", proof: #","proof":{"v":2,"claims":0,"proven":0,"why":"stem"}"#), for: [hash0], at: gateTime)
 check("an item no wording could be formed for is not asked again", unprovable.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(30 * 86400)))
 let olderRecord = try? JSONDecoder().decode(AccuracyRecord.self, from: Data(#"{"hash":"h","votes":[],"evidence":[],"checkedAt":0,"reported":false}"#.utf8))
 check("a record saved before the proof still loads, with none", olderRecord != nil && olderRecord?.proof == nil && olderRecord?.proofTries == nil)
@@ -403,7 +413,7 @@ let deduped = AccuracySchedule.plan(sets: [justMade, twin], items: { AccuracyIte
 check("the same content in two sets is checked once", deduped.reduce(0) { $0 + $1.items.count } == 5)
 var tooLong = AccuracyLedger()
 let longHash: String = AccuracyItem.items(in: justMade)[1].contentHash
-tooLong.add(votes: [AccuracyVote(model: "a", risk: 1)], proof: AccuracyProof(v: 1, claims: 1, proven: 0, why: "budget"), for: longHash, at: now.addingTimeInterval(-7 * 3600))
+tooLong.add(votes: [AccuracyVote(model: "a", risk: 1)], proof: AccuracyProof(v: 2, claims: 1, proven: 0, why: "budget"), for: longHash, at: now.addingTimeInterval(-7 * 3600))
 let alonePlan = AccuracySchedule.plan(sets: [justMade], items: { AccuracyItem.items(in: $0) }, ledger: tooLong, now: now)
 check("an item whose sources were too long for a batch goes on its own", alonePlan.map(\.items.count) == [4, 1]
       && alonePlan[1].items[0].contentHash == longHash && !alonePlan[0].items.contains { $0.contentHash == longHash })

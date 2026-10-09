@@ -27,7 +27,7 @@ for theme in GraphTheme.allCases {
 }
 check("L1b Performance has no lens even at High", GraphLens.of(.performance, tier: .high) == .off)
 check("L1c the plain lens costs nothing", !GraphLens.off.heavy)
-for theme in [GraphTheme.space, .neurons, .circuit] {
+for theme in [GraphTheme.space, .neurons] {
     let high: GraphLens = GraphLens.of(theme, tier: .high)
     check("L1d \(theme.rawValue): HDR and bloom at High",
           high.hdr && high.bloom > 0 && high.heavy)
@@ -47,23 +47,18 @@ for tier in [GraphicsTier.smooth, .high] {
     check("L2a lensed starlight exactly when the shaders draw their detail (\(tier))",
           GraphLens.of(.space, tier: tier).lensing == (budget.shaderDetail >= 1))
 }
-check("L2b only Space bends light", !GraphLens.of(.neurons, tier: .high).lensing
-      && !GraphLens.of(.circuit, tier: .high).lensing)
+check("L2b only Space bends light", !GraphLens.of(.neurons, tier: .high).lensing)
 
 // MARK: L3 - each theme its own lens
 
 let space: GraphLens = GraphLens.of(.space, tier: .high)
 let neurons: GraphLens = GraphLens.of(.neurons, tier: .high)
-let circuit: GraphLens = GraphLens.of(.circuit, tier: .high)
 check("L3a a microscope focuses shallower than a telescope", neurons.depthBlur > space.depthBlur && space.depthBlur > 0)
-check("L3b the glass boards are sharp: no depth of field over the Circuit, so its names read",
-      circuit.depthBlur == 0)
 check("L3c bioluminescence blooms most and widest",
-      neurons.bloom > space.bloom && neurons.bloom > circuit.bloom && neurons.bloomBlur > circuit.bloomBlur)
-check("L3d the microscope's corners are darkest", neurons.vignette > space.vignette && neurons.vignette > circuit.vignette)
-check("L3e a board under a macro lens has no colour fringe, the telescope the most",
-      circuit.fringe == 0 && space.fringe > neurons.fringe)
-check("L3f the three looks differ", space != neurons && neurons != circuit && space != circuit)
+      neurons.bloom > space.bloom && neurons.bloomBlur > space.bloomBlur)
+check("L3d the microscope's corners are darkest", neurons.vignette > space.vignette)
+check("L3e the telescope has the most colour fringe", space.fringe > neurons.fringe)
+check("L3f the two looks differ", space != neurons)
 
 // MARK: L4 - the optics
 
@@ -112,8 +107,7 @@ check("L4j a focus inside the lens stays finite",
 let neuronFit: GraphFit = GraphFit.of(.neurons, universe: true)
 check("L5a the Neurons fill the whole window, the near cells allowed past its edge",
       neuronFit.fill >= 1 && neuronFit.depth < 0.5)
-check("L5b Space and the Circuit keep every point on screen",
-      GraphFit.of(.space, universe: true).depth == 1 && GraphFit.of(.circuit, universe: true).depth == 1)
+check("L5b Space keeps every point on screen", GraphFit.of(.space, universe: true).depth == 1)
 check("L5c the plain map keeps the usual framing", GraphFit.of(.neurons, universe: false) == .plain
       && GraphFit.plain.fill == 0.8)
 let cloud: [SIMD3<Float>] = [SIMD3<Float>(1, 2, 3), SIMD3<Float>(-1, 0, -4)]

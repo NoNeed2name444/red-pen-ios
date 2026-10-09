@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - A theme's plan
 //
-// What a theme's planner (GraphNeurons, GraphCircuit) hands the shared theme
+// What a theme's planner (GraphNeurons) hands the shared theme
 // scene (GraphThemeScene): every body in order (each after its parent), how
 // it moves relative to its parent (GraphOrbit, the same moves GraphSim runs
 // for the Universe), what it is in the theme (`role`, the theme's own
@@ -19,10 +19,6 @@ nonisolated enum ThemeBodyKind: Sendable, Equatable {
     case folder
     /// The one container of a vault with no folders (GraphUniverse.homeID).
     case home
-    /// A piece of a theme's own wiring that stands for no note or folder
-    /// (the Circuit's power and ground taps and its edge connectors): drawn
-    /// and moved like a body, never picked, named or counted.
-    case fixture
 }
 
 nonisolated struct ThemeBody: Sendable, Equatable {
@@ -65,14 +61,17 @@ nonisolated struct ThemeBody: Sendable, Equatable {
 /// between regions or to a loose note (arched round the origin, in the
 /// far geometry), 3 hidden (drawn as touching instead), 4 a pathway: a
 /// container to the container inside it (straight, in the far geometry);
-/// 5 and 6 a theme's own wiring (the Circuit's feeds, taps and buses): 5
-/// with the links, 6 in the far geometry, both always sent from `a` to `b`
-/// whatever the ends' ranks.
+/// 5 and 6 always sent from `a` to `b` whatever the ends' ranks: 5 with
+/// the links, 6 in the far geometry. `tag` is the theme's own code for the
+/// link (for Neurons, FiberKind.rawValue) and `width` how thick it is
+/// drawn, 1 as planned.
 nonisolated struct ThemeLink: Sendable, Equatable {
     let a: Int
     let b: Int
     let kind: Int
     let centre: Int
+    var tag: Int = 0
+    var width: Float = 1
 }
 
 nonisolated struct ThemePlan: Sendable {
@@ -87,21 +86,8 @@ nonisolated struct ThemePlan: Sendable {
     let systems: [[SIMD3<Float>]]
     /// The top-level containers' body indices.
     let regions: [Int]
-    /// What VoiceOver reads: "2 regions, 3 relays, 12 neurons".
+    /// What VoiceOver reads: "2 cells, 3 parts, 12 granules".
     let summary: String
-    /// A theme's ground, when it has one (the Circuit's motherboard): its
-    /// low x, low y, high x and high y in the theme's own plane.
-    var ground: SIMD4<Float>? = nil
-    /// Per body, a rectangle round it on that ground (the Circuit: a chip's
-    /// own sub-board) - its centre's x and y from the body and its half
-    /// width and height; all zero for none. Empty when the theme has none.
-    var patches: [SIMD4<Float>] = []
-    /// Straight bars a theme draws on its ground (the Circuit's power and
-    /// ground rails), each carried by a body.
-    var bars: [ThemeBar] = []
-    /// Per body, the body current (or an impulse) comes into it from - its
-    /// feed in the theme's wiring - or -1. Empty when the theme has none.
-    var feeds: [Int] = []
 
     static let empty = ThemePlan(bodies: [], links: [], envelope: [], systems: [], regions: [], summary: "")
 
@@ -117,17 +103,6 @@ nonisolated struct ThemePlan: Sendable {
         }
         return p
     }
-}
-
-/// A straight bar on a theme's ground, carried by body `owner`: its
-/// middle's x and y on the ground from the owner, half its length along x,
-/// and what it is (the Circuit: 0 the power rail, 1 a ground rail).
-nonisolated struct ThemeBar: Sendable, Equatable {
-    let owner: Int
-    let x: Float
-    let y: Float
-    let half: Float
-    let kind: Int
 }
 
 // MARK: - Placing without overlaps

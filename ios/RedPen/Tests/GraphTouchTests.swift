@@ -83,10 +83,9 @@ func card(_ theme: String, _ role: String, page: Bool = false, folder: Bool = fa
 }
 check("T3 Space: Gas giant · Page", card("space", "gasGiant", page: true).kind == "Gas giant \u{00B7} Page")
 check("T3 Space: Rocky planet · Idea", card("space", "rocky").kind == "Rocky planet \u{00B7} Idea")
-check("T3 Neurons: Interneuron · Idea", card("neurons", "4").kind == "Interneuron \u{00B7} Idea")
-check("T3 Neurons: Neuron · Page", card("neurons", "3", page: true).kind == "Neuron \u{00B7} Page")
-check("T3 Circuit: LED · Idea", card("circuit", "6").kind == "LED \u{00B7} Idea")
-check("T3 Circuit: Capacitor · Page", card("circuit", "3", page: true).kind == "Capacitor \u{00B7} Page")
+check("T3 Neurons: Granule · Idea", card("neurons", "4").kind == "Granule \u{00B7} Idea")
+check("T3 Neurons: Vesicle · Page", card("neurons", "3", page: true).kind == "Vesicle \u{00B7} Page")
+check("T3 Neurons: Receptor · Idea", card("neurons", "6").kind == "Receptor \u{00B7} Idea")
 var single = GraphPeekInput(theme: "space", role: "", folder: false, title: "x", page: false)
 single.lookName = "Pulsar"
 check("T3 a single look names its style", GraphPeek.content(single).kind == "Pulsar \u{00B7} Idea")
@@ -97,7 +96,7 @@ check("T3 the first three lines, without markup", note.lines == ["Heart failure"
                                                                  "Types: HFrEF, HFpEF."], "\(note.lines)")
 check("T3 links as chips, by title", note.chips.map(\.title) == ["ACE inhibitors", "BNP"])
 check("T3 Open, Show links, More", note.primary == "Open" && note.secondary == ["Show links", "More"])
-var many = GraphPeekInput(theme: "circuit", role: "6", folder: false, title: "Hub")
+var many = GraphPeekInput(theme: "space", role: "rocky", folder: false, title: "Hub")
 many.links = (0..<10).map { (id(100 + $0), "Link \($0)") }
 let crowded: GraphPeekContent = GraphPeek.content(many)
 check("T3 six chips and the rest counted", crowded.chips.count == 6 && crowded.moreLinks == 4)
@@ -112,10 +111,10 @@ check("T3 a folder: counts and its latest notes", folderCard.lines == [
     "8 notes \u{00B7} 1 subfolder", "Latest: Inguinal canal, Internal ring test, Direct inguinal hernia"
 ], "\(folderCard.lines)")
 check("T3 a folder: Open folder and Fly in", folderCard.primary == "Open folder" && folderCard.secondary == ["Fly in"])
-check("T3 Neurons folder: Brain region", GraphPeek.content(GraphPeekInput(theme: "neurons", role: "0", folder: true,
-                                                                          title: "C")).kind == "Brain region \u{00B7} Folder")
-check("T3 Circuit folder: Processor", GraphPeek.content(GraphPeekInput(theme: "circuit", role: "0", folder: true,
-                                                                       title: "C")).kind == "Processor \u{00B7} Folder")
+check("T3 Neurons folder: Cell", GraphPeek.content(GraphPeekInput(theme: "neurons", role: "0", folder: true,
+                                                                  title: "C")).kind == "Cell \u{00B7} Folder")
+check("T3 Neurons subfolder: Cell part", GraphPeek.content(GraphPeekInput(theme: "neurons", role: "1", folder: true,
+                                                                         title: "C")).kind == "Cell part \u{00B7} Folder")
 check("T3 every card is read out whole", note.spoken.contains("Gas giant") && note.spoken.contains("2 links"))
 check("T3 an untitled note", GraphPeek.content(GraphPeekInput(theme: "space", role: "rocky", folder: false,
                                                               title: "")).title == "Untitled")

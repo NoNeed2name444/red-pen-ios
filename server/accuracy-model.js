@@ -207,8 +207,10 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
 
 /// Why an item got its verdict, in words the student can read: each reason
 /// that held it back or brought it down (Islamic brief: always record the
-/// reason; an unresolved conflict is said to be one, tawaqquf).
-export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = false, letters = null) {
+/// reason; an unresolved conflict is said to be one, tawaqquf). `stated`:
+/// an official source states it word for word, but another of its options
+/// may be stated too (proof.js 'distractor', 'options'), said apart.
+export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = false, letters = null, stated = false) {
   const t = model.thresholds || DEFAULT_WEIGHTS.thresholds;
   const out = [];
   const need = MIN_VERIFY_VOTERS;
@@ -228,7 +230,7 @@ export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = fa
   if ((Number(f.families) || 0) < need && verdictName !== 'flagged') out.push(`Not yet passed by ${words[need]} model families.`);
   if (Number(f.flag_frac) > 0 && verdictName !== 'flagged' && !(question && against >= 2)) out.push('A checker raised a concern.');
   if (Number(f.ev_contradict) > 0) out.push('A checker found literature against it.');
-  if (verdictName !== 'verified' && Number(f.source_proof) !== 1) {
+  if (verdictName !== 'verified' && Number(f.source_proof) !== 1 && !stated) {
     out.push(oath ? 'A dose, diagnosis or treatment no official source states word for word yet.' : 'No official source states it word for word yet.');
   }
   if (p < t.flagged) out.push('The checkers judged it likely wrong.');

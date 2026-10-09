@@ -9,11 +9,14 @@
 // 2. Heft: normalizing a text is paid for by what it takes, not its length.
 // 3. Statements: a label section's and a MedlinePlus summary's, each with
 //    the heading words a claim needs; lead-ins, qualified and taken-back
-//    sentences never prove alone; a list nested past 8 levels is unreadable.
+//    sentences never prove alone; a list nested past 8 levels is unreadable;
+//    read lightly (for what a section may state), nothing folded.
 // 4. Claims: what an item states (a fact, a card, a cloze, a question, a
 //    note), and the wordings a source may state it in.
 // 5. Proof: every verdict; quotes stating each claim word for word; near
-//    misses (another dose, a negation, a population) unproven.
+//    misses (another dose, a negation, a population) unproven; a question
+//    another option of which a source may state, however worded, never
+//    proven.
 // 6. The purse: reading stops at its budget, saying so ('budget'), never
 //    another verdict; a batch pays for a section once; the same answers cold
 //    and warm, whatever ran before.
@@ -175,6 +178,32 @@ const quoted = (r, srcs) => r.proven === r.claims && r.quotes.length === r.claim
     ['Metformin may lower vitamin B12 levels.', ['vitamin', 'b', '12', 'deficiency']],
     ['Measure hematologic parameters annually.', ['vitamin', 'b', '12', 'deficiency']],
   ]) && w.every(s => s.usable) && !w.cut, `subsection titles: a statement under one needs its words, but those already in it (work ${w.work})`);
+  // read lightly, for what a section may state (statedIn): nothing folded, a
+  // title's other endings left out and its whole line kept in their stead,
+  // unable to prove (it has the words of each); the rest as read in full
+  const lightly = raw => P.fdaSegments(raw, METFORMIN, Infinity, true);
+  const lw = lightly(W), ld = lightly(section('dosage_and_administration'));
+  ok(eq(lw.map(s => [s.usable, s.text, s.req]), [
+    [false, 'Lactic Acidosis There have been postmarketing cases of metformin-associated lactic acidosis, including fatal cases.', []],
+    [true, 'There have been postmarketing cases of metformin-associated lactic acidosis, including fatal cases.', ['lactic', 'acidosis']],
+    [true, 'Metformin decreases the liver uptake of lactate.', ['lactic', 'acidosis']],
+    [false, 'Vitamin B12 Deficiency Metformin may lower vitamin B12 levels.', []],
+    [true, 'Metformin may lower vitamin B12 levels.', ['vitamin', 'b', '12', 'deficiency']],
+    [true, 'Measure hematologic parameters annually.', ['vitamin', 'b', '12', 'deficiency']],
+  ]) && eq(statements(ld), [
+    [false, 'Adult Dosage The recommended starting dose of metformin is 500 mg twice a day with meals.'],
+    [true, 'The recommended starting dose of metformin is 500 mg twice a day with meals.'],
+    [false, 'The recommended starting dose of metformin is 500 mg once a day with meals.'],
+  ]) && [lw, ld].every(segs => segs.folded === 0 && segs.every(s => s.lower === '') && !segs.cut) && lw.work < w.work,
+    `read lightly: nothing folded, a title's other endings left out, its whole line kept in their stead, unable to prove (work ${lw.work}, not ${w.work})`);
+  // a title whose whole line is no statement (a colon in it): that line kept
+  // read in full too, so a section may state the same, read either way
+  const HYPO = '5 WARNINGS AND PRECAUTIONS 5.1 Hypoglycemia: Insulin Secretagogues Metformin may increase the risk of hypoglycemia.';
+  const whole = [false, 'Hypoglycemia: Insulin Secretagogues Metformin may increase the risk of hypoglycemia.'];
+  const body = [true, 'Metformin may increase the risk of hypoglycemia.'];
+  ok(eq(statements(P.fdaSegments(HYPO, METFORMIN)), [[true, 'Insulin Secretagogues Metformin may increase the risk of hypoglycemia.'],
+    [true, 'Secretagogues Metformin may increase the risk of hypoglycemia.'], whole, body]) && eq(statements(lightly(HYPO)), [whole, body]),
+    'a title whose whole line is no statement (a colon in it): that line kept read in full too');
   // MedlinePlus: a list item only with its lead-in; a population named in
   // capitals qualifies what follows it
   const m = P.mlpSegments(MLP.full, ASTHMA);
@@ -343,6 +372,77 @@ const quoted = (r, srcs) => r.proven === r.claims && r.quotes.length === r.claim
   const both = P.prove(q, [LABEL, LABEL2]), other = P.prove(q, [LABEL2]);
   ok(both.why === 'distractor' && both.claims === 1 && both.proven === 1 && both.quotes.length === 1 && other.why === 'unproven',
     "a question's key stated by one label, a distractor by another: 'distractor', never proven");
+  // a question's other options: one a source may state, however it words it,
+  // stops the proof ('distractor'), as does one not read for certain
+  // ('options'); proven only where no source may state another. Its key is
+  // proven, by its quote, in each: only the other options decide
+  {
+    const lab = s => ({ source: 'openFDA label', title: 'Metformin (other)', url: 'https://example.org/label/x', official: { drug: 'Metformin', sections: { adverse_reactions: '6 ADVERSE REACTIONS ' + s } } });
+    const mlp = html => ({ source: 'MedlinePlus', title: 'Asthma', url: 'https://medlineplus.gov/asthma2.html', full: P.structuredText(html) });
+    const ask = (stem, options) => ({ kind: 'mcq', stem, options, key: 0, explanation: '' });
+    const ae = (...options) => ask('The most common adverse reaction of metformin is:', options);
+    const trigger = (...options) => ask('The most common trigger of asthma attacks is:', options);
+    const LEAD = '<p>The most common trigger of asthma attacks is allergens.</p>';
+    const filler = n => Array.from({ length: n }, (_, i) => `Patients in trial ${i} reported headache at week ${i % 9}.`).join(' ');
+    const by = s => [q, [LABEL, lab(s)]];
+    // [what, its verdict, the question, its sources]
+    const cases = [
+      ['reworded', 'distractor', ...by('Nausea is the most common adverse reaction of metformin.')],
+      ['not naming the drug', 'distractor', ...by('Nausea is the most common adverse reaction.')],
+      ['in a list', 'distractor', ...by('The most common adverse reactions of metformin are nausea, vomiting and flatulence.')],
+      ['in a list after a colon', 'distractor', ...by('The most common adverse reactions of metformin were: vomiting; nausea; flatulence.')],
+      ['over two sentences, by a pronoun', 'distractor', ...by('Nausea occurs often with metformin. It is the most common adverse reaction.')],
+      ['in a longer statement', 'distractor', ...by('The most common adverse reaction of metformin is nausea, reported in 25% of patients.')],
+      ['for a population', 'distractor', ...by('Nausea is the most common adverse reaction of metformin in pediatric patients.')],
+      ['taken back', 'distractor', ...by('The most common adverse reaction of metformin is nausea. However, this was not seen in most trials.')],
+      ['under its subsection title', 'distractor', ...by('6.1 Nausea Reported in 25% of patients. The most common adverse reaction of metformin in clinical trials.')],
+      ['under its title, taken back', 'distractor', ...by('6.1 Nausea Reported in 25% of patients. The most common adverse reaction of metformin in clinical trials; in pediatric patients, vomiting.')],
+      ['under a title with a colon', 'distractor', ...by('6.1 Most Common Adverse Reactions: Nausea Reported in 25% of patients receiving metformin.')],
+      ['spelled the British way', 'distractor', ae('Nausea', 'Diarrhoea', 'Rash'), [LABEL2, LABEL]],
+      ['a summary, under its heading', 'distractor', trigger('allergens', 'exercise'), [mlp(LEAD + '<h3>Exercise</h3><p>The most common trigger of asthma attacks for athletes.</p>')]],
+      ['a summary, under a line in capitals', 'distractor', trigger('allergens', 'exercise'), [mlp(LEAD + '<p>EXERCISE</p><p>The most common trigger of asthma attacks for athletes.</p>')]],
+      ['a summary, in a list after its lead-in', 'distractor', trigger('allergens', 'smoke'),
+        [mlp(LEAD + '<p>For smokers, the most common triggers of asthma attacks are:</p><ul><li>Smoke</li><li>Cold air</li></ul>')]],
+      ['past the cap, in a sentence', 'distractor', ...by(filler(260) + ' Nausea is the most common adverse reaction of metformin.')],
+      ['past the cap, over two sentences', 'budget', ...by(filler(260) + ' Nausea was seen. The most common adverse reaction of metformin was reported.')],
+      ['not read for certain ("he\'d")', 'options', ae('Diarrhea', "he'd"), [LABEL]],
+      ['not read for certain (10⁹/L)', 'options', ae('Diarrhea', 'a platelet count below 10⁹/L'), [LABEL]],
+      ['its words under another title', 'proven', ...by('6.1 Overview Reported in 25% of patients. The most common adverse reaction of metformin in clinical trials.')],
+      ['its words in two sentences apart', 'proven', ...by(filler(20) + ' Nausea was seen. The most common adverse reaction of metformin was reported.')],
+      ['a milder one stated, not it', 'proven', ae('mild diarrhea', 'severe diarrhea'), [lab('The most common adverse reaction of metformin is mild diarrhea.')]],
+      ['a summary, its word in another sentence', 'proven', trigger('allergens', 'exercise'),
+        [mlp(LEAD + '<p>Exercise is good for you.</p><p>The most common trigger of asthma attacks for athletes.</p>')]],
+    ];
+    const verdict = ([, , item, srcs]) => { const r = P.prove(item, srcs); return quoted(r, srcs) ? r.why || 'proven' : 'key unproven'; };
+    table(verdict, cases.map(c => [c, c[1]]),
+      "a question another option of which a source may state, however worded: 'distractor'; past the statements read, 'budget'; one not read for certain, 'options'; proven only where none may be stated");
+    // a section read in full for the key is not read again for the other
+    // options; one read for them alone is read lightly, once
+    const lightReads = (item, srcs) => {
+      const paid = new Map(), r = P.prove(item, srcs, { paid });
+      return [r.why, [...paid.keys()].filter(k => typeof k === 'string' && k.startsWith('light\u0001')).length];
+    };
+    const titled = cases.find(c => c[0] === 'under its subsection title');
+    const shared = lab('The most common adverse reaction of metformin is diarrhea. 6.1 Nausea Reported in 25% of patients. The most common adverse reaction of metformin in clinical trials.');
+    ok(eq([lightReads(q, [shared]), lightReads(titled[2], titled[3])], [['distractor', 0], ['distractor', 1]]),
+      'a section read in full for the key not read again for the other options; one read for them alone read lightly, once');
+    // every purse short of what such a question reads: its verdict or
+    // 'budget', never another, so never proven where a source may state another
+    let checks = 0;
+    const wrong = [];
+    for (const what of ['under its title, taken back', 'a summary, in a list after its lead-in', 'not read for certain ("he\'d")', 'its words under another title']) {
+      const [, , item, srcs] = cases.find(c => c[0] === what);
+      const full = P.prove(item, srcs);
+      for (let chars = 0; chars <= full.read + 50; chars++) {
+        const r = P.prove(item, srcs, { chars });
+        checks++;
+        const right = r.read <= chars && (chars >= full.read ? same(r, full) : same(r, full) || r.why === 'budget');
+        if (!right && wrong.length < 6) wrong.push([what, chars, r.why, r.read, full.why, full.read]);
+      }
+    }
+    for (const w of wrong) console.log(`     ${JSON.stringify(w)}`);
+    ok(!wrong.length, `every purse from 0 to past what 4 such questions read (${checks}): the verdict or 'budget', never another, never read past it`);
+  }
   // a summary as MedlinePlus sends it (escaped HTML), made text only when a
   // claim asks: the same proofs as from its text
   const SENT = HTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');

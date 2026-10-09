@@ -1,16 +1,14 @@
-// The themed hierarchy (GraphAnatomy, plan §3d): every folder a cluster -
-// a cell in Neurons, a circuit in Circuit - with the same seven parts,
-// files and bullets in both themes, read from the app's own data.
+// The Neurons anatomy (GraphAnatomy, plan §3d): every folder a cell with
+// seven parts, files and bullets, read from the app's own data.
 //
-// Checked here: the vocabulary (seven distinct parts a theme, the file
-// names); a small vault's cells (the core note, from-/to- files, sources,
+// Checked here: the vocabulary (seven distinct parts, the file names); a small vault's cells (the core note, from-/to- files, sources,
 // why it matters, the myelin's share, hand-made links as synapses);
 // levels 3 and 4 built only when asked for, every list bounded; links'
 // strength and kind (contrast -> inhibitory, hand only -> modulatory),
-// both ways; fibres between clusters, wires' resistance, colours and
-// thickness; the level-of-detail distances and their hysteresis; the size
-// ladder's page floor; the layout's no-overlap; the same structure in both
-// themes; the same answer every run; 5,000 notes quickly.
+// both ways; fibres between clusters, their colours and thickness; the
+// level-of-detail distances and their hysteresis; the size ladder's page
+// floor; the layout's no-overlap; the same answer every run; 5,000 notes
+// quickly.
 //
 // Compiled with GraphUniverse.swift and GraphAnatomy.swift (Foundation only).
 import Foundation
@@ -84,24 +82,15 @@ func byID(_ n: Int) -> AnatomyNote { notes.first { $0.id == fixedID(n) }! }
 
 // MARK: - the vocabulary
 
-for theme in AnatomyTheme.allCases {
-    let names: [String] = AnatomySlot.allCases.map { $0.part(theme) }
-    check("seven distinct parts (\(theme))", Set(names).count == 7 && names.count == 7, "\(names)")
-}
+let names: [String] = AnatomySlot.allCases.map { $0.part }
+check("seven distinct parts", Set(names).count == 7 && names.count == 7, "\(names)")
 check("neuron parts are the §3d list",
-      Set(AnatomySlot.allCases.map { $0.part(.neuron) })
-        == ["soma", "dendrites", "axon", "nucleus", "mitochondria", "myelin", "synapse"])
-check("circuit parts are the §3d list",
-      Set(AnatomySlot.allCases.map { $0.part(.circuit) })
-        == ["source", "load", "conductors", "resistors", "capacitors", "switches", "ground"])
+      Set(names) == ["soma", "dendrites", "axon", "nucleus", "mitochondria", "myelin", "synapse"])
 let kinds: [AnatomyFileKind] = [.idea, .detail, .examples, .from("Heart failure"), .to("STEMI"), .source, .why,
                                 .confidence, .link("ACS")]
-check("neuron file names", kinds.map { $0.name(.neuron) } == [
+check("neuron file names", kinds.map { $0.name } == [
     "idea.md", "detail.md", "examples.md", "from-heart-failure.md", "to-stemi.md", "source.md", "why.md",
-    "confidence.md", "link-acs.md"], "\(kinds.map { $0.name(.neuron) })")
-check("circuit file names", kinds.map { $0.name(.circuit) } == [
-    "outcome.md", "detail.md", "application.md", "heart-failure.md", "path-stemi.md", "baseline.md", "voltage.md",
-    "limits.md", "if-acs.md"], "\(kinds.map { $0.name(.circuit) })")
+    "confidence.md", "link-acs.md"], "\(kinds.map { $0.name })")
 check("slug", GraphAnatomy.slug("Heart failure (HFrEF)") == "heart-failure-hfref"
       && GraphAnatomy.slug("  ") == "untitled" && GraphAnatomy.slug(String(repeating: "a", count: 80)).count <= 32)
 check("tag keys", GraphAnatomy.tagKey("#High_Yield") == "highyield" && GraphAnatomy.tagKey("must-know") == "mustknow")
@@ -164,15 +153,14 @@ check("examples from the Example heading",
 check("detail has the list lines", soma.files[1].bullets.contains { $0.text == "Reduced ejection fraction (HFrEF)" })
 let dendrites: AnatomyPart = part(c4, .incoming)
 check("dendrites: one file per note linking in from outside",
-      dendrites.files.map { $0.kind.name(.neuron) } == ["from-hernia-overview.md", "from-loose-thought.md"],
-      "\(dendrites.files.map { $0.kind.name(.neuron) })")
+      dendrites.files.map { $0.kind.name } == ["from-hernia-overview.md", "from-loose-thought.md"],
+      "\(dendrites.files.map { $0.kind.name })")
 check("a note in no folder is outside every cluster", dendrites.files.last?.concept == fixedID(30))
 let axon: AnatomyPart = part(c4, .outgoing)
-check("axon: one file per note linked to outside", axon.files.map { $0.kind.name(.neuron) } == ["to-femoral-hernia.md"]
+check("axon: one file per note linked to outside", axon.files.map { $0.kind.name } == ["to-femoral-hernia.md"]
       && axon.files.first?.concept == fixedID(20) && axon.files.first?.strength == 4)
 check("axon bullet is the mention's line", axon.files.first?.bullets.first?.text == "Not the same as Femoral hernia",
       "\(axon.files.first?.bullets ?? [])")
-check("circuit names the same file path-", axon.files.first?.kind.name(.circuit) == "path-femoral-hernia.md")
 let nucleus: AnatomyPart = part(c4, .reference)
 let sourceTexts: [String] = nucleus.files.first?.bullets.map(\.text) ?? []
 check("nucleus: sources and written here", sourceTexts.count == 3 && sourceTexts.contains("Written here (1)")
@@ -187,11 +175,11 @@ check("myelin measure: verified 1, sourced 0.5", abs(myelin.measure - 0.5) < 1e-
 check("myelin lists verified first", myelin.files.first?.bullets.first?.text.contains("Acute coronary syndrome") == true
       && myelin.files.first?.bullets.last?.text.contains("STEMI") == true)
 let synapse: AnatomyPart = part(c4, .links)
-check("synapse: one file per hand-made link", synapse.fileCount == 4, "\(synapse.files.map { $0.kind.name(.neuron) })")
+check("synapse: one file per hand-made link", synapse.fileCount == 4, "\(synapse.files.map { $0.kind.name })")
 check("synapse strongest first", synapse.files.first?.strength == 7
       && zip(synapse.files, synapse.files.dropFirst()).allSatisfy { $0.strength >= $1.strength })
 check("synapse names the outside end", synapse.files.contains { $0.kind == .link("Hernia overview") })
-check("labels", synapse.label(.neuron) == "synapse \u{00B7} 4" && synapse.label(.circuit) == "switches \u{00B7} 4")
+check("labels", synapse.label == "synapse \u{00B7} 4")
 check("unknown folder: no cell", GraphAnatomy.cell(fixedID(999), in: index, levels: 4) == nil)
 
 let ex: AnatomyCell! = GraphAnatomy.cell(examples, in: index, levels: 3)
@@ -221,7 +209,7 @@ check("bullets bounded, the rest counted", detail.bulletCount == 11 && detail.bu
 check("bullets clipped", hub.parts.allSatisfy { $0.files.allSatisfy { $0.bullets.allSatisfy {
     $0.text.count <= GraphAnatomy.bulletLength } } })
 
-// MARK: - fibres and wires
+// MARK: - fibres
 
 let fibers: [AnatomyFiber] = GraphAnatomy.fibers(index)
 check("one fibre between the two regions", fibers.count == 1, "\(fibers)")
@@ -229,40 +217,26 @@ if let f = fibers.first {
     check("fibre: both ways, two links", f.twoWay && f.links == 2, "\(f)")
     check("fibre strength: mean 4 + log2(2)", f.strength == 5, "\(f.strength)")
     check("fibre kind by weighted majority (tie -> inhibitory)", f.kind == .inhibitory, "\(f.kind)")
-    check("half by hand is analog", !f.digital)
     check("fibre from Cardiology (alphabetical on a tie)", f.from == cardio && f.to == examples)
     check("evidence", f.evidence.count == 2 && f.evidence.contains("Acute coronary syndrome \u{2192} Femoral hernia"),
           "\(f.evidence)")
 }
 check("links inside one region make no fibre", !fibers.contains { $0.from == $0.to })
-for s in 1...10 {
-    let f = AnatomyFiber(from: cardio, to: examples, strength: s, kind: .excitatory, twoWay: false, links: 1,
-                         digital: false, evidence: [])
-    check("resistance = 11 - strength (\(s))", f.resistance == 11 - s && (1...10).contains(f.resistance))
-}
 let thick: [Double] = (1...10).map {
-    AnatomyFiber(from: cardio, to: examples, strength: $0, kind: .excitatory, twoWay: false, links: 1, digital: false,
-                 evidence: []).thickness(.neuron, unit: 1)
+    AnatomyFiber(from: cardio, to: examples, strength: $0, kind: .excitatory, twoWay: false, links: 1,
+                 evidence: []).thickness(unit: 1)
 }
-let wire: [Double] = (1...10).map {
-    AnatomyFiber(from: cardio, to: examples, strength: $0, kind: .excitatory, twoWay: false, links: 1, digital: false,
-                 evidence: []).thickness(.circuit, unit: 1)
+check("fibre thickness grows with strength", zip(thick, thick.dropFirst()).allSatisfy { $0 < $1 } && thick.last == 1
+      && (thick.first ?? 0) > 0)
+func fiber(_ kind: FiberKind) -> AnatomyFiber {
+    AnatomyFiber(from: cardio, to: examples, strength: 5, kind: kind, twoWay: false, links: 1, evidence: [])
 }
-check("fibre thickness grows with strength", zip(thick, thick.dropFirst()).allSatisfy { $0 < $1 } && thick.last == 1)
-check("wire thickness falls with resistance", zip(wire, wire.dropFirst()).allSatisfy { $0 < $1 } && wire.last == 1
-      && (wire.first ?? 0) > 0)
-func fiber(_ kind: FiberKind, digital: Bool) -> AnatomyFiber {
-    AnatomyFiber(from: cardio, to: examples, strength: 5, kind: kind, twoWay: false, links: 1, digital: digital, evidence: [])
-}
-let green = fiber(.excitatory, digital: false).colour(.neuron)
-let red = fiber(.inhibitory, digital: false).colour(.neuron)
-let yellow = fiber(.modulatory, digital: false).colour(.neuron)
+let green = fiber(.excitatory).colour
+let red = fiber(.inhibitory).colour
+let yellow = fiber(.modulatory).colour
 check("excitatory green", green.g > green.r && green.g > green.b)
 check("inhibitory red", red.r > red.g && red.r > red.b)
 check("modulatory yellow", yellow.r > 0.8 && yellow.g > 0.7 && yellow.b < 0.4)
-let orange = fiber(.excitatory, digital: true).colour(.circuit)
-let blue = fiber(.excitatory, digital: false).colour(.circuit)
-check("digital orange, analog blue", orange.r > orange.g && orange.g > orange.b && blue.b > blue.r && blue.b > blue.g)
 
 // MARK: - level of detail and sizes
 
@@ -293,25 +267,19 @@ func overlaps(_ places: [AnatomyPlace], cell: Double) -> [String] {
     }
     return out
 }
-for theme in AnatomyTheme.allCases {
-    for cell in [c2!, c3!, c4!, hub!] {
-        let places = GraphAnatomy.layout(cell, cellSphere: 0.5, page: 0.14, theme: theme)
-        let bad = overlaps(places, cell: 0.5)
-        check("no overlaps (\(theme), level \(cell.levels), \(cell.notes) notes)", bad.isEmpty, "\(bad.prefix(4))")
-        let want: Int = cell.parts.count + cell.parts.reduce(0) { $0 + $1.files.count
-            + $1.files.reduce(0) { $0 + $1.bullets.count } }
-        check("one place a built piece (\(theme), level \(cell.levels))", places.count == want, "\(places.count) vs \(want)")
-        check("parents come first", places.enumerated().allSatisfy { $0.element.parent < $0.offset })
-        check("no place below a page", places.allSatisfy { $0.sphere >= 0.14 })
-    }
+for cell in [c2!, c3!, c4!, hub!] {
+    let places = GraphAnatomy.layout(cell, cellSphere: 0.5, page: 0.14)
+    let bad = overlaps(places, cell: 0.5)
+    check("no overlaps (level \(cell.levels), \(cell.notes) notes)", bad.isEmpty, "\(bad.prefix(4))")
+    let want: Int = cell.parts.count + cell.parts.reduce(0) { $0 + $1.files.count
+        + $1.files.reduce(0) { $0 + $1.bullets.count } }
+    check("one place a built piece (level \(cell.levels))", places.count == want, "\(places.count) vs \(want)")
+    check("parents come first", places.enumerated().allSatisfy { $0.element.parent < $0.offset })
+    check("no place below a page", places.allSatisfy { $0.sphere >= 0.14 })
 }
-let pn = GraphAnatomy.layout(c4, cellSphere: 0.5, page: 0.14, theme: .neuron)
-let pc = GraphAnatomy.layout(c4, cellSphere: 0.5, page: 0.14, theme: .circuit)
-check("the same shape in both themes", pn.map(\.centre) == pc.map(\.centre) && pn.map(\.sphere) == pc.map(\.sphere))
-check("only the names differ", pn.map(\.label) != pc.map(\.label)
-      && pn.first?.label == "soma \u{00B7} 3" && pc.first?.label == "load \u{00B7} 3",
-      "\(pn.first?.label ?? "") / \(pc.first?.label ?? "")")
-let spread = GraphAnatomy.layout(c4, cellSphere: 0.5, page: 0.14, theme: .neuron, spread: 1.6)
+let pn = GraphAnatomy.layout(c4, cellSphere: 0.5, page: 0.14)
+check("first label", pn.first?.label == "soma \u{00B7} 3", "\(pn.first?.label ?? "")")
+let spread = GraphAnatomy.layout(c4, cellSphere: 0.5, page: 0.14, spread: 1.6)
 check("link length spreads the parts", GraphAnatomy.length(spread[0].centre) > GraphAnatomy.length(pn[0].centre))
 
 // MARK: - determinism and odd input
@@ -368,7 +336,7 @@ check("every big cell bounded", bigCells.allSatisfy { $0.parts.allSatisfy {
 check("big fibres in range", !bigFibers.isEmpty && bigFibers.allSatisfy { (1...10).contains($0.strength) })
 check("top-level cells hold every foldered note", bigCells.reduce(0) { $0 + $1.notes } == big.count,
       "\(bigCells.reduce(0) { $0 + $1.notes })")
-let bigPlaces = GraphAnatomy.layout(bigCells[0], cellSphere: 0.5, page: 0.14, theme: .circuit)
+let bigPlaces = GraphAnatomy.layout(bigCells[0], cellSphere: 0.5, page: 0.14)
 check("a big cell lays out clear", overlaps(bigPlaces, cell: 0.5).isEmpty)
 
 print(failures.isEmpty ? "\nAll anatomy checks passed." : "\n\(failures.count) failed: \(failures)")

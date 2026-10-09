@@ -21,14 +21,15 @@ nonisolated struct GraphShaderItem: Sendable {
 
 nonisolated enum GraphShaderCatalog {
     static var all: [GraphShaderItem] {
-        space + neurons + circuit
+        space + neurons
     }
 
     /// Geometry and surface modifiers that share one material: SceneKit
     /// fails such a material if both declare the same argument.
     static let pairs: [(String, String)] = [
         ("neuronWobble", "neuronSoma"),
-        ("neuronSway", "neuronArbor")
+        ("neuronSway", "neuronArbor"),
+        ("neuronMembraneSway", "neuronMembrane")
     ]
 
     /// The Space theme's node styles and links (GraphSpaceShaders.swift).
@@ -64,19 +65,12 @@ nonisolated enum GraphShaderCatalog {
             GraphShaderItem(name: "neuronWobble", entry: "geometry", source: NeuronShaders.wobble),
             GraphShaderItem(name: "neuronArbor", entry: "surface", source: NeuronShaders.arbor),
             GraphShaderItem(name: "neuronSway", entry: "geometry", source: NeuronShaders.sway),
+            GraphShaderItem(name: "neuronMembrane", entry: "surface", source: NeuronShaders.membrane),
+            GraphShaderItem(name: "neuronMembraneSway", entry: "geometry", source: NeuronShaders.membraneSway),
             GraphShaderItem(name: "neuronHalo", entry: "surface", source: NeuronShaders.halo),
             GraphShaderItem(name: "neuronArrival", entry: "surface", source: NeuronShaders.arrival),
-            GraphShaderItem(name: "neuronAxon", entry: "surface", source: NeuronShaders.axon)
-        ]
-    }
-
-    /// The Circuit theme (GraphCircuitShaders.swift).
-    static var circuit: [GraphShaderItem] {
-        [
-            GraphShaderItem(name: "circuitBoard", entry: "surface", source: CircuitShaders.board),
-            GraphShaderItem(name: "circuitTrace", entry: "surface", source: CircuitShaders.trace),
-            GraphShaderItem(name: "circuitPart", entry: "surface", source: CircuitShaders.part),
-            GraphShaderItem(name: "circuitGlow", entry: "surface", source: CircuitShaders.glow)
+            GraphShaderItem(name: "neuronAxon", entry: "surface", source: NeuronShaders.axon),
+            GraphShaderItem(name: "neuronBridge", entry: "surface", source: NeuronShaders.bridge)
         ]
     }
 }

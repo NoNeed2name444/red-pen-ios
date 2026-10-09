@@ -21,6 +21,7 @@ import { resetBreakers } from '../breakers.js';
 import { jevOath, TIMEOUT_MS as JEV_TIMEOUT_MS } from '../jev.js';
 import { sourceMatch } from '../accuracy-rules.js';
 import { verdict, familyOf, MIN_VERIFY_VOTERS } from '../accuracy-model.js';
+import { PROOF_VERSION } from '../proof.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -336,10 +337,10 @@ async function play(check, extra, plan, calls) {
 }
 {
   // which cached proofs are due again
-  const p = why => ({ v: 1, claims: 1, proven: why ? 0 : 1, quotes: [], ...(why ? { why } : {}) });
+  const p = why => ({ v: PROOF_VERSION, claims: 1, proven: why ? 0 : 1, quotes: [], ...(why ? { why } : {}) });
   ok(proofDue(undefined) && proofDue(null) && proofDue({ ...p(), v: 0 }), 'due: no proof yet, or one from an older prover');
   ok(['budget', 'timeout', 'lookup', 'error'].every(why => proofDue(p(why))), 'due: one cut short (too long, out of time, a source not read, a failure)');
-  ok(!proofDue(p()) && !['unproven', 'no-source', 'stem', 'card', 'claim', 'many', 'empty'].some(why => proofDue(p(why))),
+  ok(!proofDue(p()) && !['unproven', 'no-source', 'stem', 'card', 'claim', 'many', 'empty', 'distractor', 'options'].some(why => proofDue(p(why))),
      'not due: one proved, or one its sources were read in full and do not state');
   // the stage's own results
   const fails = async () => { throw new Error('down'); };

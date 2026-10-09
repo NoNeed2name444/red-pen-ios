@@ -26,7 +26,7 @@
 //
 // Each account may ask for TTS_DAILY_LIMIT lines a day (300 by default) of
 // at most 1,500 characters each; the app splits longer text into sentences.
-import { proGate, spend, wallet, canPay, reserve, settle, proPays, takeNeurons, giveNeurons } from './ai.js';
+import { proGate, spend, refund, wallet, canPay, reserve, settle, proPays, takeNeurons, giveNeurons } from './ai.js';
 
 export const MAX_TTS_CHARS = 1500;
 const DEFAULT_DAILY_LIMIT = 300;
@@ -173,9 +173,16 @@ export async function speech(env, accountId, body, fetcher = fetch, { owner = fa
   const auraKey = await cacheKey(AURA, speaker, text, scope);
   const hit = await cached(env, auraKey);
   if (hit) return audio(hit, AURA, true);
+  // MeloTTS: one voice for both roles, so the cache ignores the speaker. A
+  // line kept from it is played only when Aura-2 cannot make the line, so the
+  // line can still move up to Aura-2, but it costs nothing either way: it
+  // gives back the day's line it took, and plays after the day's lines run out
+  const meloKey = await cacheKey(MELO, 'default', text, scope);
+  const meloHit = await cached(env, meloKey);
 
   const limit = owner ? Number(env.OWNER_TTS_DAILY_LIMIT) || 1000 : Number(env.TTS_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
   if (!await spend(env, `tts:${scope}`, limit)) {
+    if (meloHit) return audio(meloHit, MELO, true);
     return fail(429, `That's today's ${limit} natural-voice lines used. The phone's own voice carries on, and it resets at midnight UTC.`);
   }
 
@@ -213,10 +220,10 @@ export async function speech(env, accountId, body, fetcher = fetch, { owner = fa
     if (auraNeurons) await giveNeurons(env, scope, auraNeurons, owner).catch(e => console.error('tts neurons', e));
   }
 
-  // MeloTTS: one voice for both roles, so the cache ignores the speaker
-  const meloKey = await cacheKey(MELO, 'default', text, scope);
-  const meloHit = await cached(env, meloKey);
-  if (meloHit) return audio(meloHit, MELO, true);
+  if (meloHit) {
+    await refund(env, `tts:${scope}`).catch(e => console.error('tts line', e));
+    return audio(meloHit, MELO, true);
+  }
   const meloNeurons = text.length * MELO_NEURONS_PER_CHAR;
   if (await takeNeurons(env, scope, meloNeurons, owner)) {
     const melo = await synthesise(env, MELO, 'default', text);

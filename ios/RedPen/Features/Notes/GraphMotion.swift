@@ -27,14 +27,12 @@ enum GraphFilter: Hashable {
 }
 
 /// What a body in the space stands for: a note, a folder (a star or a
-/// black hole in the Universe), the home star of a vault with no folders,
-/// or a theme's own wiring (the Circuit's taps and edge connectors: shown
-/// with its board, never picked, named or counted).
+/// black hole in the Universe), or the home star of a vault with no
+/// folders.
 nonisolated enum GraphBodyKind: Sendable, Equatable {
     case note
     case folder
     case home
-    case fixture
 }
 
 /// Everything the live space needs to know about one note, gathered when the
@@ -118,17 +116,24 @@ struct GraphUniverseLooks {
     /// coding of the links' seeds (GraphRibbonWriter).
     var halfWidth: Float = 0.10
     var farHalfWidth: Float = 0.10
+    /// How far into each end's radius links are trimmed, by style code
+    /// (GraphRibbonWriter); empty: GraphShape.linkTrim.
+    var trims: [Float] = []
     var seeded: Bool = false
-    /// A board the links are routed on, flat (the Circuit theme); nil
-    /// draws them as camera-facing beams.
-    var board: GraphLinkBoard? = nil
     /// The Neurons' axon endings (GraphLinkArbor): the links' and the far
     /// links' (tracts, pathways); nil elsewhere.
     var arbor: GraphLinkArbor? = nil
     var farArbor: GraphLinkArbor? = nil
+    /// The Neurons' links as dendrites joining two cells
+    /// (GraphLinkBridge), near and far; nil elsewhere.
+    var bridge: GraphLinkBridge? = nil
     /// A theme's work each frame after the links are written (the Neurons'
     /// impulses lighting the cells they reach). Render thread.
     var ticker: GraphThemeTicker? = nil
+    /// Where a theme's links leave their cells, told each time the links
+    /// are written (the Neurons' membranes open their rims there). Render
+    /// thread.
+    var mouths: GraphLinkMouthKeeper? = nil
 }
 
 /// What a theme runs once a frame on the render thread, after the links
@@ -136,6 +141,15 @@ struct GraphUniverseLooks {
 /// and the links drawn this frame (near, and in the far geometry).
 nonisolated protocol GraphThemeTicker: AnyObject {
     func tick(time: Float, step: Float, links: [GraphRibbonLink], far: [GraphRibbonLink])
+}
+
+/// What a theme is told on the render thread each time the links are
+/// written, moving or at rest (the camera turning rewrites them too): the
+/// links drawn (near, and in the far geometry), every body's position and
+/// link trim radius, and the eye, all in the sim's space.
+nonisolated protocol GraphLinkMouthKeeper: AnyObject {
+    func place(links: [GraphRibbonLink], far: [GraphRibbonLink], position: [SIMD3<Float>], radius: [Float],
+               eye: SIMD3<Float>)
 }
 
 /// The pieces of the look GraphSim drives that are shared by every note.
@@ -277,6 +291,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     // the black holes
     private let radius: [Float]
     private let ringStretch: [SCNNode]
+    /// A Space glow's billboarded holder and how far its ring is lifted
+    /// towards the camera (nil and 0 for a glow that is not lifted). The
+    /// lift is moved off the ring onto the holder and kept on the line from
+    /// the body to the eye (shapeRing): a billboard faces the screen, so a
+    /// ring lifted along its own z slid off its body's centre wherever the
+    /// body was not straight ahead.
+    private let ringHolder: [SCNNode?]
+    private let liftOf: [Float]
     private let ringLeaf: [SCNNode]
     private let ringGeometry: [SCNGeometry]
     private let diskLeaf: [SCNNode]
@@ -336,6 +358,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private var farLinks: [GraphRibbonLink] = []
     /// A theme's own work each frame (GraphUniverseLooks.ticker).
     private let ticker: GraphThemeTicker?
+    /// Where the theme's links leave their cells (GraphUniverseLooks.mouths).
+    private let mouths: GraphLinkMouthKeeper?
     /// Each body's orbit offset now, worked out once a frame, and how far it
     /// moved in the last step (carried to its children).
     private var offsets: [SIMD3<Float>]
@@ -425,6 +449,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// What each ring was last shaped with, so an unchanged ring is left alone.
     private var shownFit: [Float]
     private var shownLevel: [Float]
+    /// Where each lifted glow's holder was last aimed (its node's frame).
+    private var shownAim: [SIMD3<Float>]
     /// The fastest few moving notes this frame, and which note each trail
     /// emitter is following.
     private var picks: [(Int, Float)] = []
@@ -471,7 +497,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let shines: [GraphShine]
     private let labelBack: GraphRGB
     private var labelSettings: GraphLabelSettings
-    /// Each label's words, pill and rim materials (nil for wiring's empty
+    /// Each label's words, pill and rim materials (nil for an empty
     /// holder), and its pill's half width and height in label units (a
     /// label unit is `labelPoints` on screen).
     private let labelParts: [GraphLabelParts?]
@@ -572,16 +598,18 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let linkCount: Int = pairs.count
         let nearWidth: Float = universeLooks?.halfWidth ?? GraphShape.linkHalfWidth
         let seeded: Bool = universeLooks?.seeded ?? false
-        let board: GraphLinkBoard? = universeLooks?.board
         let frames: GraphFrameFence = fence
         ribbons = GraphRibbonWriter(halfWidth: nearWidth, material: looks.linkMaterial,
                                     samples: budgetNow.linkSamples, expected: linkCount, seeded: seeded,
-                                    board: board, fence: frames, arbor: universeLooks?.arbor)
+                                    fence: frames, arbor: universeLooks?.arbor, bridge: universeLooks?.bridge,
+                                    trims: universeLooks?.trims ?? [])
         let farLook: SCNMaterial = universeLooks?.farMaterial ?? looks.linkMaterial
         let farWidth: Float = universeLooks?.farHalfWidth ?? 0.10
         farRibbons = GraphRibbonWriter(halfWidth: farWidth, material: farLook, samples: budgetNow.linkSamples,
-                                       seeded: seeded, board: board, fence: frames, arbor: universeLooks?.farArbor)
+                                       seeded: seeded, fence: frames, arbor: universeLooks?.farArbor,
+                                       bridge: universeLooks?.bridge, trims: universeLooks?.trims ?? [])
         ticker = universeLooks?.ticker
+        mouths = universeLooks?.mouths
         deathKinds = infos.map(\.deathKind)
         counts = infos.map(\.count)
         dying = looks.dying
@@ -632,6 +660,20 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         phase = phaseList
         radius = infos.map(\.radius)
         ringStretch = infos.map(\.ringStretch)
+        var holders = [SCNNode?](repeating: nil, count: infos.count)
+        var lifts = [Float](repeating: 0, count: infos.count)
+        for (i, info) in infos.enumerated() {
+            let stretch: SCNNode = info.ringStretch
+            let lift: Float = stretch.simdPosition.z
+            guard abs(lift) > 0.000_1, let holder = stretch.parent,
+                  holder.constraints?.contains(where: { $0 is SCNBillboardConstraint }) == true else { continue }
+            stretch.simdPosition = SIMD3<Float>(0, 0, 0)
+            holder.simdPosition = SIMD3<Float>(0, 0, lift)
+            holders[i] = holder
+            lifts[i] = lift
+        }
+        ringHolder = holders
+        liftOf = lifts
         ringLeaf = infos.map(\.ringLeaf)
         ringGeometry = infos.map(\.ringGeometry)
         diskLeaf = infos.map(\.diskLeaf)
@@ -652,6 +694,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         // impossible values, so every ring is shaped on the first frame
         shownFit = [Float](repeating: -1, count: infos.count)
         shownLevel = [Float](repeating: 1, count: infos.count)
+        shownAim = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: infos.count)
         owner = [Int?](repeating: nil, count: looks.emitters.count)
 
         var edgeList: [(Int, Int)] = []
@@ -691,17 +734,28 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         start.reserveCapacity(homeList.count)
         var scales: [Float] = []
         var waits: [Float] = []
+        var born: Int = 0
         for (k, p) in homeList.enumerated() {
             let id: UUID = idList[k]
             var from: SIMD3<Float> = p
+            let isFresh: Bool = recall.fresh?.contains(id) ?? true
+            // a container opening (Neurons): what is inside grows out of it,
+            // from its centre, one after another
+            let up: Int = orbiting ? infos[k].parent : -1
+            let opening: Bool = lively && recall.fresh != nil && isFresh && up >= 0 && up < k
             if lively, let known = recall.starts[id] {
                 from = known
+            } else if opening {
+                from = start[up]
             } else if lively && recall.fresh == nil {
                 from = p * Float(0.7)
             }
             start.append(from)
-            let isFresh: Bool = recall.fresh?.contains(id) ?? true
-            let wait: Float = recall.fresh == nil ? min(Float(k) * 0.004, 0.6) : 0.05
+            var wait: Float = recall.fresh == nil ? min(Float(k) * 0.004, 0.6) : 0.05
+            if opening {
+                wait = min(0.05 + Float(born) * 0.035, 0.7)
+                born += 1
+            }
             scales.append(lively && isFresh ? 0 : 1)
             waits.append(lively && isFresh ? wait : 0)
         }
@@ -850,7 +904,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.lock()
         defer { lock.unlock() }
         guard i >= 0, i < visible.count else { return false }
-        return visible[i] && !ghost[i] && bodyKind[i] != .fixture
+        return visible[i] && !ghost[i]
     }
 
     /// Every shown note and where it is now, in the space's own coordinates,
@@ -875,7 +929,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         defer { lock.unlock() }
         var found: [(Int, SIMD3<Float>, Float, Bool)] = []
         found.reserveCapacity(position.count)
-        for i in position.indices where visible[i] && !ghost[i] && bodyKind[i] != .fixture {
+        for i in position.indices where visible[i] && !ghost[i] {
             let size: Float = pickRadius[i] * max(popScale[i], 0.05)
             found.append((i, position[i], size, bodyKind[i] != .note))
         }
@@ -1008,9 +1062,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                 partners.append((ids[other], e))
             }
             let copy: SCNNode = nodes[i].clone()
+            // where it would fold back to, should its cell be closing
+            // (GraphDeathStage.make decides)
+            let up: Int = parentOf[i]
+            let folds: Bool = universe && up >= 0 && up < ids.count && keeping.contains(ids[up])
+                && bodyKind[up] != .note
             out.append(GraphDeparture(id: ids[i], node: copy, position: where_[i], radius: radius[i] * sizes[i],
                                       scale: sizes[i], kind: deathKinds[i], count: counts[i], code: codes[i],
-                                      partners: partners))
+                                      partners: partners, into: folds ? where_[up] : nil))
         }
         return out
     }
@@ -1162,11 +1221,6 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                 wanted[i] = members[i].contains { wanted[$0] }
             }
         }
-        // wiring shows with the body that carries it (parents come first)
-        for i in nodes.indices where bodyKind[i] == .fixture {
-            let p: Int = parentOf[i]
-            wanted[i] = p >= 0 && p < i ? wanted[p] : filter == .all
-        }
         return wanted
     }
 
@@ -1190,8 +1244,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             near.insert(i)
             for (a, b) in edges where a == i || b == i {
                 near.insert(a == i ? b : a)
-                // a folder's links are its pathway or wiring: its members
-                // count too
+                // a folder's links are its pathway: its members count too
             }
             for m in members[i] { near.insert(m) }
             var up: Int = parentOf[i]
@@ -1225,6 +1278,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// SceneKit calls this on its render thread once before every frame it
     /// draws.
     func renderer(_ renderer: any SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        // the design preview's freeze watch: a frame is coming
+        GraphHangReporter.frame()
         lastTime = time
         // the GPU's progress: which link buffers may be written again
         fence.begin(queue: renderer.commandQueue)
@@ -1569,11 +1624,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                                                    codes: codes, axis: axes, focus: focus, eye: eye,
                                                    device: device)
         if lines.geometry !== geometry { lines.geometry = geometry }
-        guard let farLines, farMaterial != nil else { return }
+        guard let farLines, farMaterial != nil else {
+            mouths?.place(links: ribbonLinks, far: [], position: position, radius: linkRadius, eye: eye)
+            return
+        }
         let far: SCNGeometry? = farRibbons.write(links: farLinks, position: position, radius: linkRadius,
                                                  codes: codes, axis: axes, focus: focus, eye: eye,
                                                  device: device)
         if farLines.geometry !== far { farLines.geometry = far }
+        mouths?.place(links: ribbonLinks, far: farLinks, position: position, radius: linkRadius, eye: eye)
     }
 
     /// Adds one link, from its sending end; in the Universe a link between
@@ -1581,8 +1640,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// to a comet, from the origin, fainter, in the far geometry).
     private func addRibbon(_ i: Int, _ j: Int, seed: Int, grow: Float, edge: Int? = nil) {
         let eased: Float = grow * grow * (3 - 2 * grow)
-        // a theme's own wiring (kinds 5 and 6) is always sent from its
-        // first end; every other link from its higher rank
+        // a theme's fixed-direction links (kinds 5 and 6) are always sent
+        // from their first end; every other link from its higher rank
         var fixed: Bool = false
         if universe, let e = edge, e < linkKind.count { fixed = linkKind[e] >= 5 }
         let swap: Bool = !fixed && linkCodes[j] > linkCodes[i]
@@ -1795,6 +1854,15 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// goes. Left alone when nothing about it has changed.
     private func shapeRing(_ i: Int, eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>) {
         let distance: Float = simd_distance(eye, position[i])
+        if let holder = ringHolder[i], distance > 0.000_1 {
+            // lifted along the line of sight, so the glow stays centred on
+            // its body anywhere on screen
+            let aim: SIMD3<Float> = nodes[i].simdOrientation.inverse.act((eye - position[i]) / distance)
+            if simd_distance_squared(aim, shownAim[i]) > 0.000_001 {
+                shownAim[i] = aim
+                holder.simdPosition = aim * liftOf[i]
+            }
+        }
         if crowded && thinnable[i] { thinHalo(i, distance: distance) }
         let fit: Float = ringFit(distance: distance, radius: radius[i])
         let m: Float = level[i]
@@ -2014,7 +2082,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     private func wantLabel(_ i: Int?) {
-        guard let i, i >= 0, i < nodes.count, visible[i], !ghost[i], bodyKind[i] != .fixture else { return }
+        guard let i, i >= 0, i < nodes.count, visible[i], !ghost[i] else { return }
         if labelsWanted.contains(i) { return }
         labelsWanted.append(i)
     }
@@ -2051,7 +2119,7 @@ nonisolated final class GraphLabelParts: @unchecked Sendable {
         self.half = half
     }
 
-    /// The pieces of `label`, or nil for wiring's empty holder.
+    /// The pieces of `label`, or nil for an empty holder.
     static func find(in label: SCNNode) -> GraphLabelParts? {
         let children: [SCNNode] = label.childNodes
         guard children.count >= 3 else { return nil }

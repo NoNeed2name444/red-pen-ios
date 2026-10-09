@@ -8,7 +8,7 @@ An item is Verified only when an official source states each of its claims word 
 
 ## How
 
-92 official sources: 60 openFDA labels (three each for 20 drugs, from acetaminophen to warfarin, including narrow-margin ones: digoxin, heparin, insulin, lithium, methotrexate, warfarin) and 32 MedlinePlus summaries (asthma to tuberculosis). Their 10,940 statements were each proven as they stand, then changed so they mean something else and proven again:
+92 official sources: 60 openFDA labels (three each for 20 drugs, from acetaminophen to warfarin, including narrow-margin ones: digoxin, heparin, insulin, lithium, methotrexate, warfarin) and 32 MedlinePlus summaries (asthma to tuberculosis). Their 10,964 statements were each proven as they stand, then changed so they mean something else and proven again:
 
 | change | example |
 |---|---|
@@ -30,27 +30,33 @@ A changed statement whose words are still some statement of the same source (the
 
 | measure | result |
 |---|---|
-| changed statements | **903,657** |
+| changed statements | **906,828** |
 | changes of a statement the proof finds as it stands (one change from a proof) | 144,410 |
 | **false proofs** | **0** |
-| statements proven as they stand | 1,598 of 10,940 (14.6%) |
-| run time | 64 s, on Linux |
+| statements proven as they stand | 1,598 of 10,964 (14.6%) |
+| run time | 132 s, on Linux |
 
 | change | cases | of a proven statement | still stated (left out) | false proofs |
 |---|---|---|---|---|
-| number | 58,191 | 4,561 | 84 | 0 |
-| unit | 6,893 | 1,142 | 0 | 0 |
-| frequency | 2,088 | 255 | 2 | 0 |
-| route | 1,575 | 442 | 0 | 0 |
-| negation | 7,740 | 1,280 | 3 | 0 |
-| opposite | 26,308 | 4,433 | 4 | 0 |
-| drug | 121,023 | 34,564 | 4 | 0 |
-| cut | 63,408 | 8,002 | 3,650 | 0 |
-| drop | 187,176 | 26,196 | 1,525 | 0 |
-| swap | 162,659 | 23,695 | 0 | 0 |
-| insert | 266,596 | 39,840 | 0 | 0 |
+| number | 58,289 | 4,561 | 84 | 0 |
+| unit | 6,925 | 1,142 | 0 | 0 |
+| frequency | 2,095 | 255 | 2 | 0 |
+| route | 1,582 | 442 | 0 | 0 |
+| negation | 7,757 | 1,280 | 3 | 0 |
+| opposite | 26,455 | 4,433 | 4 | 0 |
+| drug | 121,543 | 34,564 | 4 | 0 |
+| cut | 63,552 | 8,002 | 3,655 | 0 |
+| drop | 188,001 | 26,196 | 1,525 | 0 |
+| swap | 163,433 | 23,695 | 0 | 0 |
+| insert | 267,196 | 39,840 | 0 | 0 |
 
-With none in 903,657, the false-proof rate on these changes is below 3.3 in a million at 95% confidence (the rule of three): 99.9997%. On the 144,410 changes one step from a proof, it is below 21 in a million (99.998%).
+With none in 906,828, the false-proof rate on these changes is below 3.4 in a million at 95% confidence (the rule of three): 99.9997%. On the 144,410 changes one step from a proof, it is below 21 in a million (99.998%).
+
+## Questions
+
+A question is Verified only when its key is proven and no official source may state another of its options, however it words it: reworded, in a list, over two sentences joined by a pronoun, in a longer statement, for one population, taken back, under its subsection title or a MedlinePlus heading, or spelled the British way ('distractor'). An option that cannot be read for certain stops the proof too ('options'). A section too long to read into statements (over 12,000 characters) whose words are all there is 'budget', tried again later, never proven. server/tests/proof.test.mjs checks 23 such questions by hand, and every purse short of what four of them read (10,408 purses): the verdict or 'budget', never proven.
+
+On questions made from these sources (a stem from a statement, its key proven, three other options from the same section's lists), the earlier check proved all 11; this one proves 8 and stops 3 ('distractor': two on amlodipine's most common adverse reactions, one on heart failure treatment plans), where a statement of the source has the stem's words and another option's.
 
 ## What this does not show
 

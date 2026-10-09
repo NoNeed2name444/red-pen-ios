@@ -1,44 +1,34 @@
 import Foundation
 
-// The themed hierarchy (plan §3d): one structure, two pictures.
+// The Neurons theme's anatomy (plan §3d).
 //
 // Every folder is a concept cluster - every note in it and in the folders
-// inside it. In the Neurons theme a cluster is a cell; in the Circuit theme
-// the same cluster is a circuit. Its parts (level 2), their files (level 3)
-// and each file's atomic bullets (level 4) are the SAME seven slots, files
-// and bullets in both: switching the theme changes only the names and the
-// drawing, never what is in them.
+// inside it - drawn as a cell. Its parts (level 2), their files (level 3)
+// and each file's atomic bullets (level 4) are seven slots:
 //
-//   slot        from the app's data                       Neurons       Circuit
-//   core        the cluster's core note: its one-line     soma          load
-//               idea, its detail, its worked examples     idea.md       outcome.md
-//                                                         detail.md     detail.md
-//                                                         examples.md   application.md
-//   incoming    notes outside that link in, by hand or    dendrites     capacitors
-//               with [[Title]]                            from-X.md     X.md
-//   outgoing    notes outside it links out to             axon          conductors
-//                                                         to-X.md       path-X.md
-//   reference   where its notes came from (Save to Ideas  nucleus       ground
-//               sources: the question set, lecture...)    source.md     baseline.md
-//   energy      why it matters: notes tagged high yield,  mitochondria  source
-//               lines headed Why / Key point / High yield why.md        voltage.md
-//   confidence  verified / sourced / unchecked notes      myelin        resistors
-//               (tags, and whether a note has a source)   confidence.md limits.md
-//   links       the links made by hand (Note.links)       synapse       switches
-//                                                         link-X.md     if-X.md
+//   slot        from the app's data                       part and files
+//   core        the cluster's core note: its one-line     soma
+//               idea, its detail, its worked examples     idea.md, detail.md,
+//                                                         examples.md
+//   incoming    notes outside that link in, by hand or    dendrites
+//               with [[Title]]                            from-X.md
+//   outgoing    notes outside it links out to             axon
+//                                                         to-X.md
+//   reference   where its notes came from (Save to Ideas  nucleus
+//               sources: the question set, lecture...)    source.md
+//   energy      why it matters: notes tagged high yield,  mitochondria
+//               lines headed Why / Key point / High yield why.md
+//   confidence  verified / sourced / unchecked notes      myelin
+//               (tags, and whether a note has a source)   confidence.md
+//   links       the links made by hand (Note.links)       synapse
+//                                                         link-X.md
 //
-// The nucleus and ground are both the reference point (the canonical
-// source, the baseline); the mitochondria and the circuit's source are
-// both where the energy comes from (why it matters, its voltage).
-//
-// Between clusters, links are nerve fibres or wires (AnatomyFiber):
-// strength 1-10 from what joins them (hand-made links, [[Title]] mentions,
-// links both ways, a shared source or tag); a fibre is excitatory, or
-// inhibitory where the mention reads as a contrast ("not", "vs",
+// Between clusters, links are nerve fibres (AnatomyFiber): strength 1-10
+// from what joins them (hand-made links, [[Title]] mentions, links both
+// ways, a shared source or tag); a fibre is excitatory, or inhibitory
+// where the mention reads as a contrast ("not", "vs",
 // "contraindicated"...), or modulatory where the link was only drawn by
-// hand; a wire's resistance is 11 - strength, its current digital for a
-// hand-made link and analog for a written mention. Direction: one way, or
-// both when each side links to the other.
+// hand. Direction: one way, or both when each side links to the other.
 //
 // Levels 3 and 4 are built only when asked for (AnatomyDetail: the camera
 // close enough), every list is bounded (the rest counted in `more`), and
@@ -49,36 +39,12 @@ import Foundation
 
 // MARK: - the input
 
-/// One note as the anatomy reads it: what Graph3DView hands over from the
-/// store. `written` is the notes its `[[Title]]`s name (NoteStore.resolve),
-/// `hand` its hand-made links; `source` names where it was saved from
-/// ("Question · Cardiology set"), nil for a note written here.
-nonisolated struct AnatomyNote: Sendable, Equatable {
-    let id: UUID
-    let title: String
-    let body: String
-    let isPage: Bool
-    let folder: UUID?
-    let tags: [String]
-    let source: String?
-    let hand: [UUID]
-    let written: [UUID]
-    let created: Double
-}
-
-nonisolated struct AnatomyInput: Sendable {
-    let notes: [AnatomyNote]
-    let folders: [UniverseFolder]
-}
+// AnatomyNote and AnatomyInput live in GraphUniverse.swift, beside the
+// UniverseInput that carries them to the Neurons planner.
 
 // MARK: - the vocabulary
 
-nonisolated enum AnatomyTheme: Int, Sendable, CaseIterable {
-    case neuron = 0
-    case circuit = 1
-}
-
-/// The seven parts every cluster has, in both themes.
+/// The seven parts every cluster has.
 nonisolated enum AnatomySlot: Int, Sendable, CaseIterable {
     case core = 0
     case incoming
@@ -88,14 +54,9 @@ nonisolated enum AnatomySlot: Int, Sendable, CaseIterable {
     case confidence
     case links
 
-    /// The part's folder name in a theme.
-    func part(_ theme: AnatomyTheme) -> String {
-        switch theme {
-        case .neuron:
-            return ["soma", "dendrites", "axon", "nucleus", "mitochondria", "myelin", "synapse"][rawValue]
-        case .circuit:
-            return ["load", "capacitors", "conductors", "ground", "source", "resistors", "switches"][rawValue]
-        }
+    /// The part's folder name.
+    var part: String {
+        ["soma", "dendrites", "axon", "nucleus", "mitochondria", "myelin", "synapse"][rawValue]
     }
 }
 
@@ -114,19 +75,18 @@ nonisolated enum AnatomyFileKind: Sendable, Equatable {
     /// One per hand-made link.
     case link(String)
 
-    /// The file's name in a theme ("from-heart-failure.md", "path-stemi.md").
-    func name(_ theme: AnatomyTheme) -> String {
-        let neuron: Bool = theme == .neuron
+    /// The file's name ("from-heart-failure.md", "to-stemi.md").
+    var name: String {
         switch self {
-        case .idea: return neuron ? "idea.md" : "outcome.md"
+        case .idea: return "idea.md"
         case .detail: return "detail.md"
-        case .examples: return neuron ? "examples.md" : "application.md"
-        case .from(let title): return (neuron ? "from-" : "") + GraphAnatomy.slug(title) + ".md"
-        case .to(let title): return (neuron ? "to-" : "path-") + GraphAnatomy.slug(title) + ".md"
-        case .source: return neuron ? "source.md" : "baseline.md"
-        case .why: return neuron ? "why.md" : "voltage.md"
-        case .confidence: return neuron ? "confidence.md" : "limits.md"
-        case .link(let title): return (neuron ? "link-" : "if-") + GraphAnatomy.slug(title) + ".md"
+        case .examples: return "examples.md"
+        case .from(let title): return "from-" + GraphAnatomy.slug(title) + ".md"
+        case .to(let title): return "to-" + GraphAnatomy.slug(title) + ".md"
+        case .source: return "source.md"
+        case .why: return "why.md"
+        case .confidence: return "confidence.md"
+        case .link(let title): return "link-" + GraphAnatomy.slug(title) + ".md"
         }
     }
 }
@@ -164,8 +124,8 @@ nonisolated struct AnatomyPart: Sendable, Equatable {
     var more: Int
     let measure: Double
 
-    func label(_ theme: AnatomyTheme) -> String {
-        slot.part(theme) + " \u{00B7} \(fileCount)"
+    var label: String {
+        slot.part + " \u{00B7} \(fileCount)"
     }
 }
 
@@ -206,7 +166,7 @@ nonisolated struct AnatomyLink: Sendable, Equatable {
     let written: Bool
 }
 
-/// A nerve fibre (or a wire) between two clusters.
+/// A nerve fibre between two clusters.
 nonisolated struct AnatomyFiber: Sendable, Equatable {
     /// The sending cluster's folder (the side that links out more).
     let from: UUID
@@ -216,36 +176,21 @@ nonisolated struct AnatomyFiber: Sendable, Equatable {
     let twoWay: Bool
     /// How many note links it gathers.
     let links: Int
-    /// Whether most of them were made by hand: a wire's digital current.
-    let digital: Bool
     /// Up to three "A → B" pairs it is drawn from.
     let evidence: [String]
 
-    /// A wire's resistance, 1 (easy) to 10.
-    var resistance: Int { 11 - strength }
-
-    /// Green excitatory, red inhibitory, yellow modulatory; a wire orange
-    /// when digital, blue when analog.
-    func colour(_ theme: AnatomyTheme) -> AnatomyRGB {
-        switch theme {
-        case .neuron:
-            switch kind {
-            case .excitatory: return AnatomyRGB(r: 0.30, g: 0.95, b: 0.45)
-            case .inhibitory: return AnatomyRGB(r: 1.00, g: 0.28, b: 0.30)
-            case .modulatory: return AnatomyRGB(r: 1.00, g: 0.86, b: 0.25)
-            }
-        case .circuit:
-            return digital ? AnatomyRGB(r: 1.00, g: 0.55, b: 0.12) : AnatomyRGB(r: 0.25, g: 0.60, b: 1.00)
+    /// Green excitatory, red inhibitory, yellow modulatory.
+    var colour: AnatomyRGB {
+        switch kind {
+        case .excitatory: return AnatomyRGB(r: 0.30, g: 0.95, b: 0.45)
+        case .inhibitory: return AnatomyRGB(r: 1.00, g: 0.28, b: 0.30)
+        case .modulatory: return AnatomyRGB(r: 1.00, g: 0.86, b: 0.25)
         }
     }
 
-    /// Its radius, `unit` the thickest: a fibre's grows with strength, a
-    /// wire's falls with resistance (low resistance, thick wire).
-    func thickness(_ theme: AnatomyTheme, unit: Double) -> Double {
-        switch theme {
-        case .neuron: return unit * (0.25 + 0.75 * Double(strength) / 10)
-        case .circuit: return unit * (0.25 + 0.75 / Double(resistance))
-        }
+    /// Its radius, `unit` the thickest: it grows with strength.
+    func thickness(unit: Double) -> Double {
+        unit * (0.25 + 0.75 * Double(strength) / 10)
     }
 }
 
@@ -272,7 +217,7 @@ nonisolated enum AnatomyDetail {
 }
 
 /// How big each level is drawn: always a step down from the level above
-/// and never smaller than `page` (the theme's smallest page).
+/// and never smaller than `page` (the map's smallest page).
 nonisolated enum AnatomySizes {
     static func sphere(level: Int, cell: Double, page: Double) -> Double {
         let shares: [Double] = [1, 0.45, 0.3, 0.2]
@@ -755,7 +700,7 @@ extension GraphAnatomy {
 
     // MARK: fibres between clusters
 
-    /// The fibres (wires) between top-level clusters: one a pair that links
+    /// The fibres between top-level clusters: one a pair that links
     /// either way, strongest first.
     static func fibers(_ index: AnatomyIndex) -> [AnatomyFiber] {
         let notes: [AnatomyNote] = index.notes
@@ -791,7 +736,6 @@ extension GraphAnatomy {
             var kind: FiberKind = .excitatory
             if weight[1] > weight[0] && weight[1] >= weight[2] { kind = .inhibitory }
             else if weight[2] > weight[0] && weight[2] > weight[1] { kind = .modulatory }
-            let hand: Int = all.filter(\.hand).count
             let byID: [UUID: String] = Dictionary(all.flatMap { [($0.from, ""), ($0.to, "")] },
                                                   uniquingKeysWith: { a, _ in a })
                 .reduce(into: [:]) { acc, kv in acc[kv.key] = index.position[kv.key].map { notes[$0].title } ?? "" }
@@ -799,8 +743,7 @@ extension GraphAnatomy {
                 (byID[$0.from] ?? "") + " \u{2192} " + (byID[$0.to] ?? "")
             }
             out.append(AnatomyFiber(from: forward ? a : b, to: forward ? b : a, strength: strength, kind: kind,
-                                    twoWay: !ab.isEmpty && !ba.isEmpty, links: all.count,
-                                    digital: hand * 2 > all.count, evidence: evidence))
+                                    twoWay: !ab.isEmpty && !ba.isEmpty, links: all.count, evidence: evidence))
         }
         return out.sorted { x, y in
             x.strength != y.strength ? x.strength > y.strength
@@ -815,7 +758,7 @@ extension GraphAnatomy {
     /// behind, outgoing ahead...), each file further out towards its part,
     /// each bullet further out towards its file; each slides outward until
     /// clear of everything placed before it. Sizes from AnatomySizes.
-    static func layout(_ cell: AnatomyCell, cellSphere: Double, page: Double, theme: AnatomyTheme,
+    static func layout(_ cell: AnatomyCell, cellSphere: Double, page: Double,
                        spread: Double = 1) -> [AnatomyPlace] {
         let gap: Double = page * 0.4 * spread
         var placed: [AnatomyPlace] = []
@@ -843,7 +786,7 @@ extension GraphAnatomy {
         let s4: Double = AnatomySizes.sphere(level: 4, cell: cellSphere, page: page)
         for part in cell.parts {
             put(level: 2, slot: part.slot, file: -1, bullet: -1, dir: slotDirection(part.slot),
-                start: cellSphere + s2 + gap, sphere: s2, parent: -1, label: part.label(theme))
+                start: cellSphere + s2 + gap, sphere: s2, parent: -1, label: part.label)
         }
         guard cell.levels >= 3 else { return placed }
         for (p, part) in cell.parts.enumerated() {
@@ -852,7 +795,7 @@ extension GraphAnatomy {
             for (f, file) in part.files.enumerated() {
                 let dir: SIMD3<Double> = fan(axis, k: f, n: part.files.count, spread: 0.45)
                 put(level: 3, slot: part.slot, file: f, bullet: -1, dir: dir,
-                    start: length(home) + s2 + s3 + gap, sphere: s3, parent: p, label: file.kind.name(theme))
+                    start: length(home) + s2 + s3 + gap, sphere: s3, parent: p, label: file.kind.name)
                 guard cell.levels >= 4 else { continue }
                 let f3: Int = placed.count - 1
                 let fileAxis: SIMD3<Double> = normalize(placed[f3].centre)

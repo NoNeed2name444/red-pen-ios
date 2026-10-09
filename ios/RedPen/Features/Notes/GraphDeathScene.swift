@@ -18,8 +18,7 @@ import simd
 //   systems whose starts are delayed to their phase - as SCNActions, so
 //   they play on SceneKit's own clock whatever the simulation is doing;
 // - draws its links drawing back into it (a small ribbon writer of its own,
-//   from the new scene's positions each frame, stepped by GraphSim), the
-//   Circuit's flashing hot and going dark;
+//   from the new scene's positions each frame, stepped by GraphSim);
 // - and removes every node it made once its death is over.
 //
 // Each dying body costs a handful of draws for a second or two (a few
@@ -43,6 +42,10 @@ struct GraphDeparture {
     let code: Int
     /// Whom it was linked to, and each link's seed.
     let partners: [(UUID, Int)]
+    /// Where the container it sat in is, when that container stays: if it
+    /// is only hidden (a Neurons cell closing), it folds back into it there
+    /// instead of dying.
+    var into: SIMD3<Float>? = nil
 }
 
 /// How the links of the scene they die in look, for the dying links.
@@ -50,8 +53,8 @@ struct GraphDeathLinks {
     let material: SCNMaterial
     let halfWidth: Float
     var seeded: Bool = false
-    var board: GraphLinkBoard? = nil
     var arbor: GraphLinkArbor? = nil
+    var bridge: GraphLinkBridge? = nil
 }
 
 /// The deaths playing in one scene (made on the main thread when it is
@@ -60,12 +63,9 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
     private let dying: [GraphDeparture]
     private let plans: [GraphDeathPlan]
     private let lines: SCNNode
-    private let flashLines: SCNNode?
     private let look: GraphDeathLinks
-    private let flashMaterial: SCNMaterial?
     private let lively: Bool
     private var writer: GraphRibbonWriter?
-    private var flashWriter: GraphRibbonWriter?
     /// Each dying link: its dying end, its other end (an index in the new
     /// scene, or -1), or another dying body (or -1), and its seed.
     private var links: [(Int, Int, Int, Int)] = []
@@ -95,11 +95,23 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
     }
 
     /// The deaths for a new scene whose bodies are `keeping`, or nil when
-    /// none of the scene being replaced's bodies has gone.
+    /// none of the scene being replaced's bodies has gone. `hidden` are
+    /// ones still in the vault that the new scene does not show (inside a
+    /// closed cell): they fold back into their container, not die.
     @MainActor
     static func make(world: SCNNode, keeping: Set<UUID>, key: String, lively: Bool,
-                     links: GraphDeathLinks) -> GraphDeathStage? {
-        let gone: [GraphDeparture] = GraphMemory.leaving(keeping: keeping, key: key)
+                     links: GraphDeathLinks, hidden: Set<UUID> = []) -> GraphDeathStage? {
+        let leaving: [GraphDeparture] = GraphMemory.leaving(keeping: keeping, key: key)
+        // a closed cell's parts and notes fold back into it, staggered
+        // innermost last; only what was deleted dies
+        var folded: Int = 0
+        for d in leaving {
+            guard let into = d.into, hidden.contains(d.id) else { continue }
+            GraphDeathArt.fold(d, into: into, wait: lively ? min(Double(folded) * 0.02, 0.4) : 0, lively: lively,
+                               in: world)
+            folded += 1
+        }
+        let gone: [GraphDeparture] = leaving.filter { $0.into == nil || !hidden.contains($0.id) }
         guard !gone.isEmpty else { return nil }
         let still: Bool = !lively
         let smooth: Bool = GraphQuality.current.tier != .high
@@ -125,22 +137,8 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
         node.categoryBitMask = 2
         world.addChildNode(node)
         lines = node
-        let shorts: Bool = plans.contains { $0.effect == .shortCircuit }
-        if shorts {
-            let flash = SCNNode()
-            flash.renderingOrder = 6
-            flash.categoryBitMask = 2
-            flash.opacity = 0
-            world.addChildNode(flash)
-            flashLines = flash
-            flashMaterial = GraphDeathArt.additive(GraphArt.linkGlow, colour: SIMD3<Float>(1.0, 0.6, 0.25))
-        } else {
-            flashLines = nil
-            flashMaterial = nil
-        }
-        let up: SIMD3<Float> = look.board?.normal ?? SIMD3<Float>(0, 1, 0)
         for (k, d) in dying.enumerated() {
-            GraphDeathArt.play(d, plan: plans[k], in: world, up: up)
+            GraphDeathArt.play(d, plan: plans[k], in: world)
         }
     }
 
@@ -164,13 +162,8 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
         }
         let budget: GraphicsBudget = GraphQuality.current
         writer = GraphRibbonWriter(halfWidth: look.halfWidth, material: look.material, samples: budget.linkSamples,
-                                   expected: links.count, seeded: look.seeded, board: look.board, fence: fence,
-                                   arbor: look.arbor)
-        if let flashMaterial {
-            flashWriter = GraphRibbonWriter(halfWidth: look.halfWidth * 2.2, material: flashMaterial,
-                                            samples: budget.linkSamples, expected: links.count, seeded: look.seeded,
-                                            board: look.board, fence: fence)
-        }
+                                   expected: links.count, seeded: look.seeded, fence: fence, arbor: look.arbor,
+                                   bridge: look.bridge)
     }
 
     /// One frame of the links drawing back into their dying bodies. Render
@@ -189,14 +182,6 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
             slots.append(d.position)
             slotRadius.append(d.radius * max(s.y, 0.05))
             slotCode.append(d.code)
-        }
-        var flash: Float = 0
-        var dark: Float = 1
-        for (k, plan) in plans.enumerated() where plan.effect == .shortCircuit {
-            flash = max(flash, GraphDeath.traceFlash(plan, at: elapsed))
-            let char: Float = Float(GraphDeath.smooth(plan.progress("char", at: elapsed)))
-            dark = min(dark, 1 - 0.7 * char)
-            _ = k
         }
         for (d, other, mate, seed) in links {
             var reach: Float = GraphDeath.linkReach(plans[d], at: elapsed)
@@ -219,22 +204,14 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
             let fade: Double = min(elapsed / max(longest, 0.01), 1)
             lines.opacity = CGFloat(1 - fade)
         } else {
-            lines.opacity = CGFloat(dark)
+            lines.opacity = 1
         }
         let geometry: SCNGeometry? = writer?.write(links: ribbons, position: slots, radius: slotRadius,
                                                    codes: slotCode, axis: nil, focus: -1, eye: eye, device: device)
         if lines.geometry !== geometry { lines.geometry = geometry }
-        if let flashLines, let flashWriter {
-            flashLines.opacity = CGFloat(flash)
-            let hot: SCNGeometry? = flash > 0.01
-                ? flashWriter.write(links: ribbons, position: slots, radius: slotRadius, codes: slotCode, axis: nil,
-                                    focus: -1, eye: eye, device: device) : nil
-            if flashLines.geometry !== hot { flashLines.geometry = hot }
-        }
         if elapsed > longest + 0.1 {
             finished = true
             lines.geometry = nil
-            flashLines?.geometry = nil
         }
     }
 }
@@ -246,7 +223,7 @@ nonisolated final class GraphDeathStage: @unchecked Sendable {
 enum GraphDeathArt {
     /// Puts the dying body's copy back, runs its curves and its effect, and
     /// clears everything away after.
-    static func play(_ d: GraphDeparture, plan: GraphDeathPlan, in world: SCNNode, up: SIMD3<Float>) {
+    static func play(_ d: GraphDeparture, plan: GraphDeathPlan, in world: SCNNode) {
         let r: Float = max(d.radius, 0.02)
         // the body's copy, in a holder turned so its x is the tidal pull
         let holder = SCNNode()
@@ -287,9 +264,34 @@ enum GraphDeathArt {
         fx.categoryBitMask = 2
         fx.simdPosition = d.position
         world.addChildNode(fx)
-        effect(plan, radius: r, axis: axis, up: up, in: fx)
+        effect(plan, radius: r, axis: axis, in: fx)
         let tail: TimeInterval = life + 1.6
         fx.runAction(SCNAction.sequence([SCNAction.wait(duration: tail), SCNAction.removeFromParentNode()]))
+    }
+
+    /// A body whose container closed: it shrinks as it glides back into
+    /// the container's centre, then goes. Still: it simply goes.
+    static func fold(_ d: GraphDeparture, into: SIMD3<Float>, wait: Double, lively: Bool, in world: SCNNode) {
+        guard lively else { return }
+        let body: SCNNode = d.node
+        body.name = "folding"
+        quiet(body)
+        body.simdPosition = d.position
+        let size: Float = max(d.scale, 0.001)
+        body.simdScale = SIMD3<Float>(size, size, size)
+        world.addChildNode(body)
+        let from: SIMD3<Float> = d.position
+        let life: TimeInterval = 0.55
+        let curve = SCNAction.customAction(duration: life) { node, e in
+            let x: Float = Float(min(max(Double(e) / life, 0), 1))
+            let t: Float = x * x * (3 - 2 * x)
+            node.simdPosition = from + (into - from) * t
+            let s: Float = max(size * (1 - t), 0.0005)
+            node.simdScale = SIMD3<Float>(s, s, s)
+            node.opacity = CGFloat(1 - 0.6 * t)
+        }
+        body.runAction(SCNAction.sequence([SCNAction.wait(duration: wait), curve,
+                                           SCNAction.removeFromParentNode()]))
     }
 
     /// Everything in the copy unpickable and nameless.
@@ -308,8 +310,7 @@ enum GraphDeathArt {
         return simd_normalize(SIMD3<Float>(cos(a), 0.35, sin(a)))
     }
 
-    private static func effect(_ plan: GraphDeathPlan, radius r: Float, axis: SIMD3<Float>, up: SIMD3<Float>,
-                               in fx: SCNNode) {
+    private static func effect(_ plan: GraphDeathPlan, radius r: Float, axis: SIMD3<Float>, in fx: SCNNode) {
         let n: Int = plan.particles
         switch plan.effect {
         case .tidalDisruption:
@@ -446,39 +447,6 @@ enum GraphDeathArt {
                 bead.opacity = 0
                 bead.runAction(move)
             }
-        case .shortCircuit:
-            // the board's up: sparks fall to it, smoke rises off it
-            let normal: SIMD3<Float> = up
-            let spark: SCNNode = glow(colour: SIMD3<Float>(0.85, 0.95, 1.0))
-            spark.simdPosition = normal * r
-            fx.addChildNode(spark)
-            grow(spark, plan: plan, phase: "spark", from: 0.5 * r, to: 4 * r, peak: 1.0, early: 0.3)
-            let heat: SCNNode = glow(colour: SIMD3<Float>(1.0, 0.45, 0.12))
-            heat.simdPosition = normal * r
-            fx.addChildNode(heat)
-            grow(heat, plan: plan, phase: "glow", from: 2.5 * r, to: 3.2 * r, peak: 0.9, early: 0.4)
-            let arcs = SCNParticleSystem.death(count: max(n / 2, 8), start: 0, over: 0.22, life: 0.35, size: 0.06 * r,
-                                               speed: 5 * r, colour: SIMD3<Float>(0.8, 0.95, 1.0))
-            arcs.stretchFactor = 0.08
-            arcs.emitterShape = SCNSphere(radius: CGFloat(r * 0.4))
-            arcs.birthDirection = .surfaceNormal
-            let fall: SIMD3<Float> = normal * (-6 * r)
-            arcs.acceleration = SCNVector3(x: fall.x, y: fall.y, z: fall.z)
-            arcs.propertyControllers = [.color: SCNParticlePropertyController(animation: colours())]
-            fx.addParticleSystem(arcs)
-            let smoke = SCNParticleSystem.death(count: max(n / 2, 8), start: 0.3, over: 0.8, life: 1.3, size: 0.5 * r,
-                                                speed: 0.8 * r, colour: SIMD3<Float>(0.32, 0.32, 0.34))
-            smoke.blendMode = .alpha
-            smoke.emitterShape = SCNSphere(radius: CGFloat(r * 0.5))
-            smoke.birthLocation = .surface
-            let rise: SIMD3<Float> = (normal + SIMD3<Float>(0, 0.6, 0)) * (1.2 * r)
-            smoke.acceleration = SCNVector3(x: rise.x, y: rise.y, z: rise.z)
-            smoke.propertyControllers = [.size: SCNParticlePropertyController(animation: keys([0.6, 1.4, 2.4])),
-                                         .opacity: SCNParticlePropertyController(animation: keys([0, 0.55, 0]))]
-            let puff = SCNNode()
-            puff.simdPosition = normal * r
-            puff.addParticleSystem(smoke)
-            fx.addChildNode(puff)
         case .fade:
             break
         }
@@ -558,15 +526,6 @@ enum GraphDeathArt {
         animation.values = values.map { NSNumber(value: $0) }
         let last: Double = Double(max(values.count - 1, 1))
         animation.keyTimes = values.indices.map { NSNumber(value: Double($0) / last) }
-        return animation
-    }
-
-    /// Sparks: white-cyan, cooling to orange.
-    private static func colours() -> CAKeyframeAnimation {
-        let animation = CAKeyframeAnimation()
-        animation.values = [UIColor(red: 0.85, green: 0.95, blue: 1, alpha: 1),
-                            UIColor(red: 1, green: 0.6, blue: 0.2, alpha: 1)]
-        animation.keyTimes = [NSNumber(value: 0.0), NSNumber(value: 1.0)]
         return animation
     }
 }

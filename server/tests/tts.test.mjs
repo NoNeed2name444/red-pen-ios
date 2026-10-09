@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { speech, voiceFor, tidy, audioBytes, AURA, MELO, MAX_TTS_CHARS } from '../tts.js';
+import { speech, voiceFor, tidy, audioBytes, cacheKey, AURA, MELO, MAX_TTS_CHARS } from '../tts.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -185,6 +185,67 @@ const said = async r => new TextDecoder().decode(await r.arrayBuffer());
   const statuses = [];
   for (let i = 0; i < 3; i++) statuses.push((await speech(env, 'pro', { text: 'Same line.' }, noApple)).status);
   ok(statuses.join() === '200,200,200', 'a cached line again and again stays within a one-line day');
+}
+
+// a line kept from MeloTTS costs nothing either, even past the day's lines
+{
+  const env = freshEnv({ TTS_DAILY_LIMIT: '1', TTS_FREE_DAILY_CHARS: '0' });
+  const plays = [];
+  for (let i = 0; i < 3; i++) plays.push(await speech(env, 'pro', { text: 'Melo line.' }, noApple));
+  ok(plays.map(r => `${r.status} ${r.headers.get('x-voice-model')}`).join() === '200 melotts,200 melotts,200 melotts',
+     'a MeloTTS line again and again plays within a one-line day');
+  ok(plays.map(r => r.headers.get('x-voice-cache')).join() === 'miss,hit,hit', 'made once, then from R2');
+  ok(env.AI.calls.length === 1 && env.AI.calls[0].model === MELO, 'MeloTTS is asked only the first time');
+  ok((await said(plays[2])).startsWith('melo'), 'the kept MeloTTS line is what plays');
+  const row = env.db.prepare(`SELECT requests FROM ai_usage WHERE account_id = 'tts:pro'`).get();
+  ok(row.requests === 1, 'only the line that was made is counted');
+}
+
+// under the day's lines, a kept MeloTTS line gives back the line it took
+{
+  const env = freshEnv({ TTS_DAILY_LIMIT: '5', TTS_FREE_DAILY_CHARS: '0' });
+  for (let i = 0; i < 3; i++) await speech(env, 'pro', { text: 'Melo again.' }, noApple);
+  const row = env.db.prepare(`SELECT requests FROM ai_usage WHERE account_id = 'tts:pro'`).get();
+  ok(row.requests === 1 && env.AI.calls.length === 1, 'three plays of one MeloTTS line count once');
+}
+
+// a line kept in both voices plays in Aura-2
+{
+  const env = freshEnv();
+  ok(voiceFor(env, 'narrator') === 'pandora', "the narrator is Pandora (the Aura-2 key below is the narrator's)");
+  env.BLOBS.store.set(await cacheKey(AURA, 'pandora', 'Both cached.', 'pro'), mp3('aura kept'));
+  env.BLOBS.store.set(await cacheKey(MELO, 'default', 'Both cached.', 'pro'), mp3('melo kept'));
+  const r = await speech(env, 'pro', { text: 'Both cached.' }, noApple);
+  ok(r.headers.get('x-voice-model') === 'aura-2' && r.headers.get('x-voice-cache') === 'hit', 'the Aura-2 line wins');
+  ok((await said(r)).startsWith('aura kept') && env.AI.calls.length === 0, 'from R2, with no model asked');
+}
+
+// a line kept from MeloTTS moves up to Aura-2 once Aura-2 can make it
+{
+  const env = freshEnv({ TTS_FREE_DAILY_CHARS: '0' });
+  const before = await speech(env, 'pro', { text: 'Moving up.' }, noApple);
+  ok(before.headers.get('x-voice-model') === 'melotts', 'no free Aura-2 characters: MeloTTS');
+  env.TTS_FREE_DAILY_CHARS = '1000';
+  const after = await speech(env, 'pro', { text: 'Moving up.' }, noApple);
+  ok(after.headers.get('x-voice-model') === 'aura-2' && after.headers.get('x-voice-cache') === 'miss',
+     'with free characters again, the same line is made in Aura-2');
+  ok(env.AI.calls.map(c => c.model).join() === `${MELO},${AURA}`, 'MeloTTS once, then Aura-2 once');
+  const later = await speech(env, 'pro', { text: 'Moving up.' }, noApple);
+  ok(later.headers.get('x-voice-model') === 'aura-2' && later.headers.get('x-voice-cache') === 'hit',
+     'and from then on the Aura-2 line plays');
+}
+
+// Aura-2 failing on a line kept from MeloTTS: the kept line, and nothing spent
+{
+  const env = freshEnv({ AI: fakeAI({ auraFails: true }), TTS_FREE_DAILY_CHARS: '0' });
+  await speech(env, 'pro', { text: 'Kept line.' }, noApple);
+  env.TTS_FREE_DAILY_CHARS = '1000';
+  const r = await speech(env, 'pro', { text: 'Kept line.' }, noApple);
+  ok(r.status === 200 && r.headers.get('x-voice-model') === 'melotts' && r.headers.get('x-voice-cache') === 'hit',
+     'Aura-2 failing plays the kept MeloTTS line');
+  const chars = env.db.prepare(`SELECT requests FROM ai_usage WHERE account_id = 'tts-chars:all'`).get();
+  const lines = env.db.prepare(`SELECT requests FROM ai_usage WHERE account_id = 'tts:pro'`).get();
+  ok(chars.requests === 0 && lines.requests === 1, 'its free characters and its line are given back');
 }
 
 // Aura-2 failing gives its free characters back
