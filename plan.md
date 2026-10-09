@@ -1568,7 +1568,19 @@ move personal up.
    softened outline, keeping the face, its blue edge and the hollow when
    held or chosen; set on home's New set and dock (bar and rail), and
    reset inside the dock's sheet.
-10. Next: App build, Swift tests and an ios-preview run on the session
+10. The owner: "turn the glow off in anything that might have text behind
+    it at any point so visibility stays good". `.wardUnlit()` now also on
+    every face that floats with no strip under it (a sweep of
+    safeAreaInset and overlays): the folded study-bar button, the floating
+    switcher, the generation card, the Saved to Ideas toasts, the note
+    source chip, review Undo, the reader bar, the Ideas bar, board and map
+    (set at IdeasView, since Graph3DView is another session's), New set's
+    form dock, the selection bar over the map, the ward-round chip and
+    panel, Narrate's fix toast, the import slip, Ward pocket's disclaimer
+    and score, Study Lens's controls and answer bar, Draw from memory's
+    compare panel and sign-in's doors. Bars on a solid strip keep their
+    lights; sheets opened from the dock and the switcher reset it.
+11. Next: App build, Swift tests and an ios-preview run on the session
    branch (personal, 537ccc4, is merged in); check the strip line, the
    OSCE clock, the library's floating New set and dock, the blue
    control edges and home's rounded opening under the header, the unlit New set and dock; send the owner marked full screens; then move personal up to

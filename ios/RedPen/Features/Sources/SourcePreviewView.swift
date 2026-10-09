@@ -91,7 +91,8 @@ struct SourcePreviewView: View {
                 // Document / Page, the page list and the pager, under the
                 // thumb; out of the way while the results are showing
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if term.isEmpty { bar }
+                    // over the page, so no glow round it
+                    if term.isEmpty { bar.wardUnlit() }
                 }
                 .sheet(isPresented: $showingPages) { pageSheet }
                 .task { file = SourceFiles.url(for: source) }

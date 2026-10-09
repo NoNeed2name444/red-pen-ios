@@ -517,6 +517,9 @@ struct StudyActionBar<Content: View>: View {
                             .frame(width: 16, height: 16)
                     }
                     .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
+                    // folded, it floats over the page with no strip: no glow
+                    // to haze what scrolls under it
+                    .wardUnlit()
                     .accessibilityLabel("Show buttons")
                     .accessibilityIdentifier("studyBarFold")
                     .frame(maxWidth: .infinity, alignment: .trailing)

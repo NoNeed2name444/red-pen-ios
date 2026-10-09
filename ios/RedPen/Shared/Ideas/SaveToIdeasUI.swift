@@ -241,6 +241,7 @@ private struct SaveToIdeasHost: ViewModifier {
                         SavedIdeaToast(toast: shown,
                                        onUndo: { saver.undo() },
                                        onDismiss: { saver.dismiss(shown.id) })
+                            .wardUnlit()
                             .padding(.top, 8)
                             .padding(.horizontal, 16)
                             .transition(.slideIn(.top))
@@ -566,6 +567,7 @@ private struct NoteSourceInset: ViewModifier {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             if let source = notes.note(noteID)?.source {
                 NoteSourceChip(source: source)
+                    .wardUnlit()
                     .padding(.vertical, 8)
             }
         }

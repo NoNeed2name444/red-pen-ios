@@ -256,6 +256,7 @@ extension View {
     /// The generation card at the bottom of this screen. An inset rather than
     /// an overlay, so the rows under it can still be scrolled into view.
     func generationHUD() -> some View {
-        safeAreaInset(edge: .bottom, spacing: 0) { GenerationHUD() }
+        // it floats over the rows, so no glow round it
+        safeAreaInset(edge: .bottom, spacing: 0) { GenerationHUD().wardUnlit() }
     }
 }

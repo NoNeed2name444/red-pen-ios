@@ -79,8 +79,9 @@ private struct IncomingImport: ViewModifier {
                         .foregroundStyle(Color.wardInk)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        // a soft slip floating over the screen
+                        // a slip floating over the screen, with no glow
                         .wardRaised(in: Capsule(), lift: .high)
+                        .wardUnlit()
                         .padding(.top, 8)
                         .transition(.identity)
                         .accessibilityIdentifier("incomingImportReading")

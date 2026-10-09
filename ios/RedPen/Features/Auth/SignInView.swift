@@ -33,7 +33,7 @@ struct SignInView: View {
             upper
                 // every door in one stack at the bottom; nothing is ever
                 // drawn over them
-                .safeAreaInset(edge: .bottom, spacing: 0) { doors }
+                .safeAreaInset(edge: .bottom, spacing: 0) { doors.wardUnlit() }
         }
         .sheet(isPresented: $joining) { LinkDeviceView(joinOnly: true) }
         .alert(L10n.string("Couldn't sign in"), isPresented: troubleShown) {

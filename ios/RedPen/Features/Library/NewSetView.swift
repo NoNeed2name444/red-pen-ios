@@ -167,7 +167,8 @@ struct NewSetView: View {
                                 enabled: canCreate, run: create)
                 // the one bottom container: Back and the step's main button,
                 // or the progress card while something is being written
-                .safeAreaInset(edge: .bottom, spacing: 0) { dock }
+                // it floats over the form, so no glow round it
+                .safeAreaInset(edge: .bottom, spacing: 0) { dock.wardUnlit() }
                 .onDisappear {
                     FloatingAction.shared.clear()
                     // closing New set stops what it started, so nothing keeps

@@ -83,7 +83,8 @@ struct IdeasView: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+            // the bar floats over the list, board or map: no glow round it
+            .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar.wardUnlit() }
             .modifier(IdeasChrome(embedded: embedded, query: $ownQuery, night: overMap))
             .sheet(item: $opening) { ref in
                 NoteEditorView(noteID: ref.id)
@@ -149,7 +150,9 @@ struct IdeasView: View {
         } else {
             switch mode {
             case .list: listView
-            case .board: IdeaBoardView(open: openNote)
+            // the board's and the map's hints, panels and tools float over
+            // cards, labels and words: no glow round them
+            case .board: IdeaBoardView(open: openNote).wardUnlit()
             case .space:
                 // two double taps on a star or black hole open its folder
                 // in the List (the home star: the top level)
@@ -157,6 +160,7 @@ struct IdeasView: View {
                     folderId = id
                     modeRaw = IdeasMode.list.rawValue
                 }, covered: opening != nil || naming != nil)
+                .wardUnlit()
             }
         }
     }

@@ -43,7 +43,8 @@ struct StudyLensView: View {
                 liveLayer
             }
         }
-        .safeAreaInset(edge: .bottom) { controls }
+        // over the camera or the photo: no glow round the controls
+        .safeAreaInset(edge: .bottom) { controls.wardUnlit() }
         .overlay(alignment: .top) { statusBanner }
         .navigationTitle("Study Lens")
         .navigationBarTitleDisplayMode(.inline)

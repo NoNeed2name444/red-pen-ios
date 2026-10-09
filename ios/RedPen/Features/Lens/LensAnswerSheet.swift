@@ -45,7 +45,7 @@ struct LensAnswerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
             }
-            .safeAreaInset(edge: .bottom) { actionBar }
+            .safeAreaInset(edge: .bottom) { actionBar.wardUnlit() }
         }
         .tint(Color.wardPrimaryInk)
         .environment(\.modeTint, tint)

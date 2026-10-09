@@ -163,6 +163,7 @@ struct WardRoundFloat: View {
                         .accessibilityHidden(true)
                         .transition(.identity)
                     WardRoundPanel(round: round, notice: clock.notice) { setExpanded(false) }
+                        .wardUnlit()
                         .frame(maxWidth: 440)
                         // VoiceOver stays in the open panel; the escape
                         // gesture (two fingers, a Z) folds it away
@@ -189,6 +190,8 @@ struct WardRoundFloat: View {
 
     private func chip(_ round: WardRound) -> some View {
         WardRoundChip(round: round, notice: clock.notice) { setExpanded(true) }
+            // it floats over every screen: no glow round it
+            .wardUnlit()
             .offset(drag)
             .gesture(moving)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in

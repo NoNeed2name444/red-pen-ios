@@ -92,9 +92,12 @@ struct FloatingSwitcher<Value: Hashable>: View {
                     .transition(.growIn(0.9))
             }
         }
+        // it floats over the page: no glow round it
+        .wardUnlit()
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $listing) {
             SwitcherListSheet(items: items, selection: selection, tint: tint, choose: choose)
+                .wardUnlit(false)
         }
     }
 }

@@ -390,7 +390,7 @@ struct NarrateReviewView: View {
             }
         }
         // what a correction did, just above the bar, until undone or replaced
-        .overlay(alignment: .bottom) { fixToast }
+        .overlay(alignment: .bottom) { fixToast.wardUnlit() }
         .studyBar(folds: true) { controls }
     }
 

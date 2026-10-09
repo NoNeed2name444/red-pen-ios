@@ -57,6 +57,7 @@ private struct ReviewUndoOverlay: ViewModifier {
             .overlay(alignment: .topTrailing) {
                 if until != nil {
                     ReviewUndoChip { StudyTips.used(.undo); action() }
+                        .wardUnlit()
                         // once reviews are familiar (StudyTips)
                         .studyTip(.undo)
                         .padding(.top, 8)

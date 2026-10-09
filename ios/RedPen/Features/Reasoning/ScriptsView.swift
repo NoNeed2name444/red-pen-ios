@@ -55,6 +55,7 @@ struct ScriptsView: View {
         .overlay(alignment: .top) {
             if let savedMessage {
                 SavedToIdeasToast(message: savedMessage) { self.savedMessage = nil }
+                    .wardUnlit()
                     .padding(.top, 8)
                     .padding(.horizontal, 16)
                     .transition(.slideIn(.top))

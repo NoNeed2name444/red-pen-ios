@@ -523,6 +523,8 @@ struct LibraryView: View {
             // measured like the dock, so the rows can still be scrolled
             // clear of it
             selectionBar
+                // over the Ideas map it has no strip: no glow there
+                .wardUnlit(underSky)
                 .wardBarBase(shown: !underSky)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0

@@ -158,6 +158,7 @@ struct WardUnitsPicker: View {
 /// words at the foot of the screen, always in view.
 private struct WardDisclaimer: ViewModifier {
     func body(content: Content) -> some View {
+        // it floats over the page, so its chip has no glow
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             Label(WardPocket.disclaimer, systemImage: "graduationcap")
                 .font(.footnote.weight(.semibold))
@@ -167,6 +168,7 @@ private struct WardDisclaimer: ViewModifier {
                 .wardRaised(in: Capsule())
                 .padding(.bottom, 6)
                 .accessibilityIdentifier("wardDisclaimer")
+                .wardUnlit()
         }
     }
 }
@@ -459,6 +461,7 @@ struct WardScoreView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             WardScoreTotal(total: total, band: verdict)
+                .wardUnlit()
         }
         .wardDisclaimer()
     }

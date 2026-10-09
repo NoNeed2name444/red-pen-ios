@@ -68,7 +68,7 @@ struct DrawRecallView: View {
             .padding(.bottom, 8)
             // one bottom container: the compare panel, or on a wide iPad the
             // Compare pill
-            .safeAreaInset(edge: .bottom, spacing: 0) { bottomContainer }
+            .safeAreaInset(edge: .bottom, spacing: 0) { bottomContainer.wardUnlit() }
             .modeScreen(.anki)
             .navigationTitle(comparing ? "Compare" : "Draw from memory")
             .navigationBarTitleDisplayMode(.inline)
