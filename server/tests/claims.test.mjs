@@ -2,7 +2,7 @@
 // verifier's deterministic guards in JavaScript, and what the gate makes of
 // them on Stethoscore items against their own lectures.
 //
-// 1. Conformance: on every pair in claim-vectors.json (the verifier's 41
+// 1. Conformance: on every pair in claim-vectors.json (the verifier's 45
 //    shared conformance vectors and Stethoscore-shaped pairs), each guard
 //    gives exactly what the Python gave (bench/claim-vectors.py made it);
 //    and on the rules its later changes brought (a daily dose written
@@ -55,11 +55,11 @@ const facts = t => ({
 });
 /// Pairs whose answers a later Chat-me changed on purpose, with the new ones
 /// (the later Python's), keyed by claim and evidence, until the vectors are
-/// made again from it. None: the vectors are ff476bd's, the port's.
+/// made again from it. None: the vectors are 3df53cd's, the port's.
 const DEPARTURES = new Map();
 {
-  ok(/ff476bd/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
-  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 41, 'all 41 of the verifier\'s shared conformance vectors among them');
+  ok(/3df53cd/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
+  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 45, 'all 45 of the verifier\'s shared conformance vectors among them');
   const differences = [], departed = new Set();
   for (const p of fx.pairs) {
     const key = `${p.claim}\n${p.evidence}`, departure = DEPARTURES.get(key) || {};
@@ -80,7 +80,7 @@ const DEPARTURES = new Map();
   }
   for (const d of differences.slice(0, 10)) console.log('     ', d);
   ok(differences.length === 0, `every guard gives the Python's answer on every pair (${differences.length} differences)`);
-  ok(departed.size === DEPARTURES.size, `each departure from ff476bd is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
+  ok(departed.size === DEPARTURES.size, `each departure from 3df53cd is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
   ok(fx.entities.every(([a, b, want]) => C.entitiesEquivalent(a, b) === want), 'entity aliases as the Python reads them');
   const labels = new Set(fx.pairs.map(p => p.verify.label));
   ok(labels.has('SUPPORTS') && labels.size >= 2, `the pairs cover more than one verdict (${[...labels].join(', ')})`);
@@ -106,12 +106,14 @@ const DEPARTURES = new Map();
      'a reworded dose may drop or add words of three letters or fewer');
 }
 {
-  // The swapped-term rule as Chat-me 746a7d7 has it (its conformance vectors
-  // 1.5 and independent_entailment.py), with its Python's answers: a claim
-  // that copies its evidence but for another drug, outcome or verb in one
-  // place is not backed by it; another form of the same word, a known alias,
-  // words the evidence adds, or another sentence of it that does back the
-  // claim, still are.
+  // The swapped-term rule as Chat-me 746a7d7 has it, with 3df53cd's short
+  // terms (its conformance vectors 1.6 and independent_entailment.py), with
+  // its Python's answers: a claim that copies its evidence but for another
+  // drug, outcome or verb in one place is not backed by it, however short the
+  // term (LDL, IV, K); another form of the same word, a known alias, one
+  // route's two names, a short name and the words it stands for, a clotting
+  // factor and its activated form, words the evidence adds, or another
+  // sentence of it that does back the claim, still are.
   const SWAPS = [
     ['Amoxicillin treats otitis media.', 'Ibuprofen treats otitis media.', 'UNKNOWN'],
     ['Warfarin increases the risk of bleeding.', 'Warfarin increases the risk of stroke.', 'UNKNOWN'],
@@ -120,6 +122,16 @@ const DEPARTURES = new Map();
     ['Rifampicin induces hepatic enzymes.', 'Rifampicin inhibits hepatic enzymes.', 'UNKNOWN'],
     ['Statins reduce cardiovascular mortality.', 'Statins reduce all-cause mortality.', 'UNKNOWN'],
     ["The patient's warfarin was stopped.", "The patient's aspirin was stopped.", 'UNKNOWN'],
+    ['Statins lower LDL cholesterol.', 'Statins lower HDL cholesterol.', 'UNKNOWN'],
+    ['Tenofovir treats HIV infection.', 'Tenofovir treats HBV infection.', 'UNKNOWN'],
+    ['Aspirin is used after MI.', 'Aspirin is used after PE.', 'UNKNOWN'],
+    ['Adrenaline 0.5 mg is given IM for anaphylaxis.', 'Adrenaline 0.5 mg is given IV for anaphylaxis.', 'UNKNOWN'],
+    ['Warfarin is reversed with vitamin K.', 'Warfarin is reversed with vitamin D.', 'UNKNOWN'],
+    ['Gout is more common in men.', 'Gout is more common in women.', 'UNKNOWN'],
+    ['Amoxicillin 500 mg PO three times a day.', 'Amoxicillin 500 mg orally three times a day.', 'SUPPORTS'],
+    ['Rate control in AF uses beta blockers.', 'Rate control in atrial fibrillation uses beta blockers.', 'SUPPORTS'],
+    ['Rivaroxaban inhibits factor Xa.', 'Rivaroxaban inhibits activated factor X.', 'SUPPORTS'],
+    ['Furosemide is used in heart failure.', 'Furosemide is used for heart failure.', 'SUPPORTS'],
     ['Clopidogrel is a prodrug requiring metabolic activation.', 'Clopidogrel is a prodrug and requires metabolic activation.', 'SUPPORTS'],
     ['Warfarin increases the risk of haemorrhage.', 'Warfarin increases the risk of hemorrhage.', 'SUPPORTS'],
     ["Crohn's disease affects the terminal ileum.", 'Crohn disease affects the terminal ileum.', 'SUPPORTS'],

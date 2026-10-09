@@ -2,7 +2,7 @@
 // every item before the votes (plan Task 5d step 3; the Task 4 audit's
 // section 10, integration step 2).
 //
-// The guards are ported from Python, Chat-me's medical verifier at ff476bd
+// The guards are ported from Python, Chat-me's medical verifier at 3df53cd
 // (branch personal, MIT, the same owner): in
 // agents/specialists/verification_agent/, claim_reasoning.py,
 // independent_entailment.py and its _base, direction.py, semantic_guard.py,
@@ -677,6 +677,31 @@ const FUNCTION_WORDS = new Set([
   'while', 'whom', 'whose', 'would',
 ]);
 const ARTICLES = new Set(['a', 'an', 'the']);
+/// Words of three letters or fewer that name no drug, condition or outcome.
+/// Other short words do: LDL for HDL, HIV for HBV, MI for PE, IV for IM, men
+/// for women, vitamin K for vitamin D. The short ways of writing a dose (mg,
+/// bd, tds) stay out, so a dose written another way lines up as before.
+const SHORT_NON_TERMS = new Set([
+  'am', 'as', 'at', 'be', 'by', 'do', 'eg', 'ie', 'if', 'in', 'is', 'it',
+  'no', 'of', 'on', 'or', 'so', 'to', 'up', 'us', 'vs', 'we',
+  'all', 'and', 'any', 'are', 'but', 'can', 'did', 'due', 'etc', 'few',
+  'for', 'get', 'got', 'had', 'has', 'her', 'him', 'his', 'how', 'its',
+  'let', 'may', 'nor', 'not', 'now', 'off', 'our', 'out', 'own', 'per',
+  'put', 'say', 'see', 'she', 'the', 'too', 'try', 'use', 'via', 'was',
+  'way', 'who', 'why', 'yet', 'you',
+  'mg', 'kg', 'ml', 'dl', 'ug', 'iu', 'mcg', 'mol', 'hr', 'hrs', 'min',
+  'od', 'bd', 'bid', 'tid', 'tds', 'qds', 'qid', 'prn', 'day',
+  'one', 'two', 'six', 'ten',
+]);
+/// The short and long names of one route, so writing it the other way is no
+/// swap ("500 mg PO" for "500 mg orally").
+const ROUTE_NAMES = new Map(Object.entries({
+  po: 'oral', oral: 'oral', orally: 'oral',
+  iv: 'intravenous', intravenous: 'intravenous', intravenously: 'intravenous',
+  im: 'intramuscular', intramuscular: 'intramuscular', intramuscularly: 'intramuscular',
+  sc: 'subcutaneous', sq: 'subcutaneous', subcut: 'subcutaneous',
+  subcutaneous: 'subcutaneous', subcutaneously: 'subcutaneous',
+}));
 /// Endings cut so another form of the same word still lines up; there is no
 /// "-ate" or "-ic" rule, which would make nitrate and nitrite one word.
 const STEM_RULES = [
@@ -695,8 +720,9 @@ function stem(word) {
   return rule ? w.slice(0, w.length - rule[0].length) + rule[1] : w;
 }
 
-const contentWord = word => word.length >= 4 && !ANCHOR_STOPWORDS.has(word) && !FUNCTION_WORDS.has(word)
-  && !DOSE_WORDS.has(word) && !/[0-9]/.test(word);
+const contentWord = word => word.length < 4
+  ? /^[a-z]+$/.test(word) && !SHORT_NON_TERMS.has(word) && !ANCHOR_STOPWORDS.has(word)
+  : !ANCHOR_STOPWORDS.has(word) && !FUNCTION_WORDS.has(word) && !DOSE_WORDS.has(word) && !/[0-9]/.test(word);
 
 /// The stretches of two word lists left over by their longest common
 /// subsequence, as pairs of index ranges; at least one side has words.
@@ -721,14 +747,28 @@ function unmatchedRuns(left, right) {
   return runs;
 }
 
+/// A known alias, one route's two names, a short name spelled by the
+/// initials of the other side's two words (AF, atrial fibrillation), or a
+/// clotting factor and its activated form (X, Xa).
+function sameTerm(left, right) {
+  if (entitiesEquivalent(left, right)) return true;
+  const route = ROUTE_NAMES.get(left);
+  if (route !== undefined && route === ROUTE_NAMES.get(right)) return true;
+  return [[left, right], [right, left]].some(([short, long]) => {
+    const words = long.split(' ').filter(Boolean);
+    return (short.length < 4 && words.length === 2 && short === words.map(w => w[0]).join(''))
+      || (/^[ivx]+$/.test(short) && long === short + 'a');
+  });
+}
+
 /// One or two words on each side, every one a term, none said elsewhere in
-/// the other sentence and no pair a known alias (paracetamol, acetaminophen).
+/// the other sentence and no pair the same term (paracetamol, acetaminophen).
 function isSwap(claimGap, evidenceGap, claimStems, evidenceStems) {
   if (claimGap.length < 1 || claimGap.length > 2 || evidenceGap.length < 1 || evidenceGap.length > 2) return false;
   if (![...claimGap, ...evidenceGap].every(contentWord)) return false;
   if (claimGap.some(w => evidenceStems.has(stem(w))) || evidenceGap.some(w => claimStems.has(stem(w)))) return false;
   const pairs = [[claimGap.join(' '), evidenceGap.join(' ')], ...claimGap.flatMap(l => evidenceGap.map(r => [l, r]))];
-  return !pairs.some(([l, r]) => entitiesEquivalent(l, r));
+  return !pairs.some(([l, r]) => sameTerm(l, r));
 }
 
 /// A text's words in order, with their stems.
