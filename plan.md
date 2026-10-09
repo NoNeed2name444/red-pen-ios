@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 4:45 AM Cairo.
+Last updated: 2026-10-09, 4:55 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,9 +39,9 @@ Last updated: 2026-10-09, 4:45 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 0435184 (run 37862852271, green: the confirming run of the freeze fix, step 6d); the commits after it change only this file | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 8dc9d3f (run 37862852271) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785) and the port (section 3, step 9; joined at about 4:40 AM) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM) and the claim gate's direction check (step 10; joined at about 4:55 AM) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | the same as personal | the three fixes found only on design/prework-20261006 (step 9, done) |
-| design/claim-direction | 5d0edcd plus step 10 | the claim gate's direction check (#24); to personal once its CI is green |
+| design/claim-direction | the same as personal | the claim gate's direction check (#24, section 3, step 10) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -492,7 +492,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       ("unfounded": what the evidence is, not which way), F10
       ("coadministered" against "coadministration": 3 of 7 words). The
       ordinary batch takes no longer (about 2.4 ms warm).
-    - [ ] Preflight, push, CI green, then personal and the session branch.
+    - [x] Preflight, push, CI green, then personal and the session branch.
+      Done: preflight OK; Server tests 37871595207 green on aff3e44;
+      personal and claude/new-session-013tes5v fast-forwarded to this
+      commit on 9 Oct at about 4:55 AM. Server and plan only, so it
+      started no App build and left personal's running one (step 9's
+      port, 37870387509) alone.
     - [ ] The app's own words for it, with the next batch of ios/ work (it
       starts a Mac run): AccuracyAssessment.holdReason("direction"), "Says
       the other way from its own lecture.", and "direction" in claimHolds'
