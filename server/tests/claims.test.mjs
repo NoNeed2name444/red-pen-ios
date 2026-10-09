@@ -2,12 +2,12 @@
 // verifier's deterministic guards in JavaScript, and what the gate makes of
 // them on Stethoscore items against their own lectures.
 //
-// 1. Conformance: on every pair in claim-vectors.json (the verifier's 35
+// 1. Conformance: on every pair in claim-vectors.json (the verifier's 41
 //    shared conformance vectors and Stethoscore-shaped pairs), each guard
-//    gives exactly what the Python gave (bench/claim-vectors.py made it),
-//    but where a later Chat-me changed an answer on purpose (DEPARTURES);
-//    and on the rules those changes brought (a daily dose written another
-//    way, a term swapped for another), the later Python's.
+//    gives exactly what the Python gave (bench/claim-vectors.py made it);
+//    and on the rules its later changes brought (a daily dose written
+//    another way, a term swapped for another, which way a statement goes),
+//    what its own tests say.
 // 2. The gate: hard findings only where an item restates its lecture and
 //    contradicts it (a flipped negation, another dose, frequency or
 //    percentage) or turns it around (higher for lower, rare for common);
@@ -51,27 +51,15 @@ const facts = t => ({
   measurement_kind: C.measurementKind(t), populations: [...C.populations(t)].sort(), conditions: C.conditionSignatures(t).map(s => [...s].sort()),
   scope: C.scopeStrength(t), quantities: C.quantities(t.toLowerCase()), percents: C.percents(t.toLowerCase()),
   dates: C.extractExplicitDates(t), temporal: C.temporalSignature(t), safety: C.safetyRelation(t), atoms: C.decomposeClaim(t),
+  directions: C.directions(t), stated_directions: C.directions(t, false),
 });
 /// Pairs whose answers a later Chat-me changed on purpose, with the new ones
-/// (the later Python's), keyed by claim and evidence.
-const DEPARTURES = new Map([
-  // Chat-me a4152d5: a same daily total written another way counts as the
-  // same dose only when the claim keeps the evidence's other words, and
-  // "solution" is not in "The daily dose is 100 mg." The verifier abstains.
-  ['Give 10 mL of a 5 mg/mL solution twice daily.\nThe daily dose is 100 mg.', {
-    verify: { label: 'UNKNOWN', reasons: ['insufficient_semantic_overlap'] },
-    semantic: ['atomic_claim_not_entailed', 'dose_or_unit_not_matched', 'dose_frequency_mismatch'],
-  }],
-  // Chat-me 746a7d7: a claim that differs from its evidence by one term
-  // swapped for another abstains, and so does a true synonym (dangerous for
-  // harmful), which the fail-safe brief accepts.
-  ['Lithium is dangerous in renal failure.\nLithium is harmful in renal failure.', {
-    verify: { label: 'UNKNOWN', reasons: ['atomic_term_substituted'] },
-  }],
-]);
+/// (the later Python's), keyed by claim and evidence, until the vectors are
+/// made again from it. None: the vectors are 746a7d7's, the port's.
+const DEPARTURES = new Map();
 {
-  ok(/2f4fd4e/.test(fx.verifier) && fx.pairs.length >= 100, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
-  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 35, 'all 35 of the verifier\'s shared conformance vectors among them');
+  ok(/746a7d7/.test(fx.verifier) && fx.pairs.length >= 120, `the vectors: ${fx.pairs.length} pairs from ${fx.verifier}`);
+  ok(fx.pairs.filter(p => p.source.startsWith('conformance:')).length === 41, 'all 41 of the verifier\'s shared conformance vectors among them');
   const differences = [], departed = new Set();
   for (const p of fx.pairs) {
     const key = `${p.claim}\n${p.evidence}`, departure = DEPARTURES.get(key) || {};
@@ -80,7 +68,8 @@ const DEPARTURES = new Map([
     for (const k of Object.keys(departure)) if (eq(p[k], departure[k])) differences.push(`${p.source} ${k}: the vectors already say so; drop it from DEPARTURES`);
     const got = {
       verify: C.verify(p.claim, p.evidence), opposite: C.oppositePolarityEntailed(p.claim, p.evidence),
-      condition: C.conditionSupported(p.claim, p.evidence), semantic: C.semanticWarnings(p.claim, p.evidence),
+      condition: C.conditionSupported(p.claim, p.evidence), direction: C.directionEntailed(p.claim, p.evidence),
+      semantic: C.semanticWarnings(p.claim, p.evidence),
       specificity: C.specificityWarnings(p.claim, p.evidence), claim_facts: facts(p.claim), evidence_facts: facts(p.evidence),
     };
     for (const k of Object.keys(got)) {
@@ -91,7 +80,7 @@ const DEPARTURES = new Map([
   }
   for (const d of differences.slice(0, 10)) console.log('     ', d);
   ok(differences.length === 0, `every guard gives the Python's answer on every pair (${differences.length} differences)`);
-  ok(departed.size === DEPARTURES.size, `each departure from 2f4fd4e is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
+  ok(departed.size === DEPARTURES.size, `each departure from 746a7d7 is one of the pairs (${departed.size} of ${DEPARTURES.size})`);
   ok(fx.entities.every(([a, b, want]) => C.entitiesEquivalent(a, b) === want), 'entity aliases as the Python reads them');
   const labels = new Set(fx.pairs.map(p => p.verify.label));
   ok(labels.has('SUPPORTS') && labels.size >= 2, `the pairs cover more than one verdict (${[...labels].join(', ')})`);
@@ -145,6 +134,26 @@ const DEPARTURES = new Map([
     const pass = v.label === label && eq(v.reasons, [label === 'SUPPORTS' ? 'independent_structured_checks_passed' : 'atomic_term_substituted']);
     ok(pass, `${label.padEnd(8)} ${claim} / ${evidence}${pass ? '' : `  (${v.label} ${v.reasons.join(',')})`}`);
   }
+}
+{
+  // Which way a statement goes, as Chat-me 746a7d7 reads it (direction.py
+  // and tests/unit/test_direction.py; the pairs it judges are among the
+  // vectors): a part or a name says no way, nor does a negated statement.
+  const NO_WAY = [
+    'Lower limb ischaemia needs urgent review.', 'Greater trochanter pain syndrome.', 'Minimal change disease in children.',
+    'Stones in the common bile duct.', 'As described above, the drug is given daily.', 'Low-dose aspirin after the stent.',
+    'High-density lipoprotein carries cholesterol.',
+  ];
+  for (const text of NO_WAY) ok(eq(C.directions(text), [null, null]), `no way: ${text}`);
+  ok(C.directions('Metformin does not increase lactate.') === null && eq(C.directionEntailed('Metformin does not increase lactate.', 'Metformin increases lactate.'), [true, null]),
+     'a negated statement says no way: the negation checks own it');
+  ok(eq(C.directions('Metformin is a glucose-lowering drug.'), [-1, null]) && eq(C.directions('Statins are weaker than PCSK9 inhibitors.'), [-1, null]),
+     'the second half of a hyphenated word says a way, and "stronger" and "weaker" do');
+  ok(eq(C.directions('The dose is halved below 30 mL/min.'), [-1, null]) && eq(C.directions('The dose is halved below 30 mL/min.', false), [null, null]),
+     'a cut-off is a way, but not one the evidence must say in words');
+  // Spanish "reduce" and "causa", whole words only
+  ok(C.normalizeMultilingual('Reduced, reduce.') === 'reduced, reduces.' && C.normalizeMultilingual('Causal; causa') === 'causal; causes',
+     'the Spanish and French map changes whole words only');
 }
 
 // MARK: 2. the gate on items against their own lectures
@@ -233,6 +242,12 @@ const CASES = [
     const said = (item.text || item.explanation).replace(/\s+/g, ' ').slice(0, 60);
     ok(pass && g.complete, `${want.padEnd(10)} ${said}${pass ? '' : `  (hard: ${hard || '-'}, soft: ${g.soft.map(f => f.code).join(',') || '-'})`}`);
   }
+  const twiceOver = CASES.filter(([want, source, item]) => want === 'direction'
+    && C.claimGate({ source, ...item }).soft.some(f => f.code === 'atomic_direction_mismatch'));
+  ok(!twiceOver.length, 'a sentence turned around is one hard finding, not a soft one as well');
+  const other = C.claimGate({ kind: 'fact', text: 'Statins lower LDL cholesterol levels.', source: 'Statins raise HDL cholesterol levels.' });
+  ok(!other.hard.length && other.soft.some(f => f.code === 'atomic_direction_mismatch'),
+     'where the gate finds nothing turned around, the verifier\'s own way check is still a soft finding');
   const g = C.claimGate({ kind: 'card', text: 'Metformin is not first-line in type 2 diabetes.', source: 'Metformin is first-line in type 2 diabetes.' });
   ok(g.hard[0]?.claim === 'Metformin is not first-line in type 2 diabetes.' && g.hard[0]?.source === 'Metformin is first-line in type 2 diabetes.',
      'a finding names the item\'s sentence and the lecture\'s');

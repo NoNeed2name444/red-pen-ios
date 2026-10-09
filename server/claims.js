@@ -2,27 +2,19 @@
 // every item before the votes (plan Task 5d step 3; the Task 4 audit's
 // section 10, integration step 2).
 //
-// The guards are ported from Python, Chat-me's medical-verifier at 2f4fd4e
-// (branch medical-verifier-v0.1-commercial-safe, MIT, the same owner):
-// app/verification/claim_reasoning.py, independent_entailment.py and its
-// _base, semantic_guard.py, consistency.py, entity_normalization.py and
-// temporal_normalization.py. The functions keep the Python's names (in
-// camelCase) and its behaviour, quirks included - "reduce" read as
-// "reduces", a "%" only seen before a letter, "tds" unknown - so the two can
-// be held to the same answers: tests/claims.test.mjs checks them against
-// what the Python itself said (tests/claim-vectors.json, made by
-// bench/claim-vectors.py) on the verifier's 35 shared conformance vectors and
-// on Stethoscore-shaped pairs. One known difference: Python's \d also
-// matches other scripts' digits; here it is 0-9 only. Two changes since.
-// After Chat-me a4152d5, a same daily total written another way (1000 mg
-// daily for 500 mg twice daily) is the same dose only where the claim keeps
-// the evidence's other words (doseRewordingKeepsTerms), so a lecture's 500 mg
-// of one drug twice daily no longer backs 1000 mg a day of another. After
-// Chat-me 746a7d7, a claim that lines up with its evidence word for word but
-// for one or two content words on each side - neither another form of the
-// same word nor a known alias: another drug, another outcome - is not backed
-// by it; the verifier abstains (termSubstituted, "atomic_term_substituted").
-// The test lists the vectors that change.
+// The guards are ported from Python, Chat-me's medical verifier at 746a7d7
+// (branch personal, MIT, the same owner): in
+// agents/specialists/verification_agent/, claim_reasoning.py,
+// independent_entailment.py and its _base, direction.py, semantic_guard.py,
+// consistency.py, entity_normalization.py and temporal_normalization.py.
+// The functions keep the Python's names (in camelCase) and its behaviour,
+// quirks included - "reduce" read as "reduces", a "%" only seen before a
+// letter, "tds" unknown - so the two can be held to the same answers:
+// tests/claims.test.mjs checks them against what the Python itself said
+// (tests/claim-vectors.json, made by bench/claim-vectors.py) on the
+// verifier's 41 shared conformance vectors and on Stethoscore-shaped pairs.
+// One known difference: Python's \d also matches other scripts' digits;
+// here it is 0-9 only.
 //
 // Not ported: temporal_guard.py (it needs the evidence's date, which a
 // lecture does not have) and the question-side gates (adversarial.py,
@@ -44,7 +36,8 @@
 // that is wrong, which is for the votes and the student to settle). What
 // else the guards notice about such a restated sentence - a wider scope, a
 // population or a condition the lecture does not give, a cause read from an
-// association, another drug or outcome in one place - is a soft finding:
+// association, another drug or outcome in one place, a way (higher, rarer)
+// the lecture's words do not give or turn - is a soft finding:
 // reported beside the verdict and changing nothing, until labelled
 // Stethoscore items show how far it can be trusted.
 // Sentences that are not restatements are left to the votes: a paraphrase is
@@ -101,9 +94,21 @@ const allOf = (text, regex) => {
   }
   return out;
 };
+/// re.sub(regex, replace, text) for a global regex, `replace` a function of
+/// each match.
+const sub = (text, regex, replace) => {
+  const s = String(text);
+  let out = '', last = 0;
+  for (const m of allOf(s, regex)) {
+    out += s.slice(last, m.index) + replace(m);
+    last = m.index + m[0].length;
+  }
+  return out + s.slice(last);
+};
 const unique = list => [...new Set(list)];
 const sorted = list => [...list].sort();
 const subset = (a, b) => [...a].every(x => b.has(x));
+const meets = (a, b) => [...a].some(w => b.has(w));
 /// round(x, 9)
 const round9 = x => Number(x.toFixed(9));
 const ASCII_TOKEN = /[a-z0-9'-]+/g;
@@ -316,6 +321,84 @@ export function oppositePolarityEntailed(claim, evidence) {
   return false;
 }
 
+// MARK: direction.py
+
+// Which way a statement goes, and whether its evidence goes the same way: one
+// atom of a claim against one atom of its evidence, on the two axes the gate's
+// turnedAround() reads (below): which way something moves or compares
+// (increases, reduces; higher, lower) and how much or how often it is (high,
+// low; common, rare). A negated statement says no way here: the negation
+// checks own it.
+
+/// A cheap first look: no word that could say which way, nothing to read.
+const WAY_HINT = py(r`increas|high|great|more|strong|rais|elevat|above|decreas|reduc|low|less|fewer|weak|below|common|frequent|minimal|negligible|rare|seldom`, 'i');
+/// Never the first half of a hyphenated name ("low-dose", "high-density");
+/// the second half still says a way ("glucose-lowering").
+const way = words => py(r`\b(?:${words})\b(?!-)`, 'i');
+const CHANGE = 0, AMOUNT = 1;
+const DIRECTION_AXES = [
+  [way('increas(?:e|es|ed|ing)|higher|greater|more|stronger|rais(?:e|es|ed|ing)|elevat(?:e|es|ed|ing)|above'),
+    way('decreas(?:e|es|ed|ing)|reduc(?:e|es|ed|ing|tion)|lower(?:s|ed|ing)?|less|fewer|weaker|below')],
+  [way('high(?:est)?|common(?:ly|est)?|frequent(?:ly)?'),
+    way('low(?:est)?|minimal|negligible|rare(?:ly)?|uncommon|infrequent(?:ly)?|seldom')],
+];
+/// Where those words name a part or a thing, not a way: the lower limb and
+/// the lower oesophageal sphincter, the greater trochanter, higher centres,
+/// the common bile duct, minimal change disease, "see below".
+const NOT_A_WAY = py(r`\b(?:lower\s+(?:limbs?|lobes?|motor|o?esophag\w*|urinary|respiratory|gi|gastrointestinal|abdom\w*|back|quadrants?|segment|uterine|chest|ribs?|half|third|parts?|extremit\w*|legs?|airways?|poles?|borders?|eyelids?|lips?|jaws?|limits?)|greater\s+(?:trochanter|tuberc\w*|tuberos\w*|curvature|omentum|sciatic|saphenous|petrosal|palatine|occipital|splanchnic|auricular|wings?|sac)|higher\s+(?:centres?|centers?|cortical|mental)|common\s+(?:bile|carotid|iliac|peroneal|fibular|femoral|hepatic|cold|variable|pathway)|minimal\s+change|(?:as|see|described|shown|listed|discussed|mentioned|noted|outlined)\s+(?:above|below))\b`, 'gi');
+/// A cut-off, not a way: "below 30", "more than 50%". The evidence may write
+/// it another way ("< 30"), so a claim's cut-off asks nothing of its words.
+const THRESHOLD = py(r`\b(?:(?:more|less|greater|fewer|higher|lower)\s+than|above|below|over|under)\s+(?=\d)`, 'gi');
+/// What a comparison is against: "than warfarin", "compared with placebo".
+const AGAINST = py(r`\b(?:than|compared (?:with|to)|in comparison (?:with|to)|versus|vs|relative to)\b`, 'i');
+const blank = (pattern, text) => sub(text, pattern, m => ' '.repeat(m[0].length));
+
+function readWays(text, cutOffs) {
+  if (CLAIM_NEGATION.test(text)) return null;
+  if (!WAY_HINT.test(text)) return [null, null];
+  let read = blank(NOT_A_WAY, text);
+  if (!cutOffs) read = blank(THRESHOLD, read);
+  return DIRECTION_AXES.map(([up, down]) => {
+    const ups = up.test(read), downs = down.test(read);
+    return ups && downs ? 0 : ups ? 1 : downs ? -1 : null;
+  });
+}
+const waysOf = remembered('ways', text => readWays(text, true));
+const statedWaysOf = remembered('stated ways', text => readWays(text, false));
+/// Each axis's way: 1 up, -1 down, 0 both ways, null no way; null for a
+/// negated statement. Without `cutOffs`, a cut-off ("below 30") is no way.
+export const directions = (text, cutOffs = true) => (cutOffs ? waysOf : statedWaysOf)(String(text));
+
+/// The words (as tokens()) before what a comparison is against, and after.
+function sides(text) {
+  const marker = AGAINST.exec(text);
+  return marker && [tokens(text.slice(0, marker.index)), tokens(text.slice(marker.index + marker[0].length))];
+}
+
+/// "warfarin has a higher risk than DOACs" says what "DOACs have a lower risk
+/// than warfarin" says.
+function comparisonSwapped(claim, evidence) {
+  const claimSides = sides(claim), evidenceSides = sides(evidence);
+  if (!claimSides || !evidenceSides) return false;
+  const [claimSubject, claimAgainst] = claimSides, [evidenceSubject, evidenceAgainst] = evidenceSides;
+  return meets(claimAgainst, evidenceSubject) && meets(evidenceAgainst, claimSubject) && !meets(claimAgainst, evidenceAgainst);
+}
+
+/// [ok, reason]: does evidence that otherwise matches the claim go the
+/// claim's way? A claim that goes one way is not supported by evidence that
+/// goes the other ("a reduced risk" for "an increased risk"), nor by evidence
+/// that says no way at all ("a stronger effect" for "interacts with").
+export function directionEntailed(claim, evidence) {
+  const claimWays = directions(claim), evidenceWays = directions(evidence);
+  if (!claimWays || !evidenceWays) return [true, null];
+  let change = evidenceWays[CHANGE];
+  if (change && comparisonSwapped(claim, evidence)) change = -change;
+  const evidenceGoes = [change, evidenceWays[AMOUNT]];
+  if (claimWays.some((w, axis) => w && evidenceGoes[axis] && w === -evidenceGoes[axis])) return [false, 'atomic_direction_mismatch'];
+  if (directions(claim, false).some(Boolean) && evidenceGoes.every(w => w === null)) return [false, 'atomic_direction_not_entailed'];
+  return [true, null];
+}
+
 // MARK: independent_entailment_base.py
 
 export const RELATION_CLASSES = {
@@ -334,7 +417,9 @@ export const NEGATION = py(r`\b(no|not|never|without|does not|doesn't|cannot|can
 const DOUBLE_NEGATION_EQUIVALENTS = [['not uncommon', 'common'], ['not unlikely', 'likely'], ['not impossible', 'possible']];
 
 /// The verifier's narrow Spanish and French map, in its order: each
-/// replacement applies to what the ones before it left.
+/// replacement applies to what the ones before it left, and to whole words
+/// only (Spanish "reduce" leaves English "reduced" as it is, "causa" leaves
+/// "causal").
 const MULTILINGUAL = [
   ['no aumenta', 'does not increase'], ['ne augmente pas', 'does not increase'], ["n'augmente pas", 'does not increase'],
   ['no causa', 'does not cause'], ['ne cause pas', 'does not cause'], ["n'est pas sûr", 'is not safe'], ['no es seguro', 'is not safe'],
@@ -343,11 +428,12 @@ const MULTILINGUAL = [
   ['seguro', 'safe'], ['sûr', 'safe'], ['efectivo', 'effective'], ['efficace', 'effective'], ['pacientes', 'patients'],
   ['patients', 'patients'], ['niños', 'children'], ['enfants', 'children'], ['adultos', 'adults'], ['adultes', 'adults'],
   ['glucosa', 'glucose'], ['glucose', 'glucose'],
-];
+].map(([from, to]) => [from, py(r`(?<!\w)${from.replace(/[\\^$.*+?()[\]{}|/]/g, '\\$&')}(?!\w)`, 'g'), to]);
 
 const replaceAll = (text, pairs) => pairs.reduce((t, [from, to]) => t.split(from).join(to), text);
 
-export const normalizeMultilingual = remembered('multilingual', text => replaceAll(String(text).toLowerCase(), MULTILINGUAL));
+export const normalizeMultilingual = remembered('multilingual', text => MULTILINGUAL.reduce(
+  (t, [from, whole, to]) => (t.includes(from) ? sub(t, whole, () => to) : t), String(text).toLowerCase()));
 export const normalizeDoubleNegation = remembered('logic', text => replaceAll(normalizeMultilingual(text), DOUBLE_NEGATION_EQUIVALENTS));
 
 /// The words of four letters or more.
@@ -541,17 +627,19 @@ export function conditionSupported(claim, evidence) {
 }
 
 /// Does an evidence atom carry a claim atom: most of its words (0.45), and
-/// the same relation, timing and safety relation; or the reason it does not.
+/// the same relation, timing, safety relation and direction; or the reason
+/// it does not.
 function atomPairCheck(c, e) {
   const claimTokens = tokens(c.text), evidenceTokens = tokens(e.text);
   const overlap = [...claimTokens].filter(t => evidenceTokens.has(t)).length / Math.max(1, claimTokens.size);
   if (overlap < 0.45) return [false, null];
   const failed = [relationEntailed(c, e), temporalEntailed(c, e), safetyRelationEntailed(c, e)].find(([ok]) => !ok);
-  return failed || [true, null];
+  return failed || directionEntailed(c.text, e.text);
 }
 
 /// Every atomic claim matched by an evidence atom that shares its words,
-/// relation, timing and safety relation; or the first reason one is not.
+/// relation, timing, safety relation and direction; or the first reason one
+/// is not.
 export function atomicAlignment(claim, evidence) {
   const claimAtoms = decomposeClaim(claim);
   let evidenceAtoms = decomposeClaim(evidence);
@@ -1001,25 +1089,20 @@ export function conflicts(claim, source, judged = verify(claim, source)) {
 
 // MARK: which way it goes
 
-/// A cheap first look: no word that could say which way, nothing to read.
-const WAY_HINT = /increas|high|great|more|rais|elevat|above|decreas|reduc|low|less|fewer|below|common|frequent|minimal|negligible|rare|seldom/i;
 /// The two ways a sentence can go, as Chat-me's evidence model reads them
 /// (its DIRECTION: increase or decrease), on two axes: which way something
 /// moves or compares (raises, reduces; higher, lower; above, below), and how
 /// much or how often it is (high, low; common, rare; minimal). Never half of
-/// a hyphenated word: "low-density" is a name, not a way.
+/// a hyphenated word: "low-density" is a name, not a way. (The verifier's
+/// own, under direction.py above, also reads "stronger" and "weaker", and
+/// the second half of a hyphenated word: "glucose-lowering". The parts and
+/// things that are no way, and what a comparison is against, are its.)
 const AXES = [
   [py(r`(?<!-)\b(?:increas(?:e|es|ed|ing)|higher|greater|more|rais(?:e|es|ed|ing)|elevat(?:e|es|ed|ing)|above)\b(?!-)`, 'g'),
     py(r`(?<!-)\b(?:decreas(?:e|es|ed|ing)|reduc(?:e|es|ed|ing|tion)|lower(?:s|ed|ing)?|less|fewer|below)\b(?!-)`, 'g')],
   [py(r`(?<!-)\b(?:high(?:est)?|common(?:ly|est)?|frequent(?:ly)?)\b(?!-)`, 'g'),
     py(r`(?<!-)\b(?:low(?:est)?|minimal|negligible|rare(?:ly)?|uncommon|infrequent(?:ly)?|seldom)\b(?!-)`, 'g')],
 ];
-/// Where those words name a part or a thing, not a way: the lower limb and
-/// the lower oesophageal sphincter, the greater trochanter, higher centres,
-/// the common bile duct, minimal change disease, "see below".
-const NOT_A_WAY = py(r`\b(?:lower\s+(?:limbs?|lobes?|motor|o?esophag\w*|urinary|respiratory|gi|gastrointestinal|abdom\w*|back|quadrants?|segment|uterine|chest|ribs?|half|third|parts?|extremit\w*|legs?|airways?|poles?|borders?|eyelids?|lips?|jaws?|limits?)|greater\s+(?:trochanter|tuberc\w*|tuberos\w*|curvature|omentum|sciatic|saphenous|petrosal|palatine|occipital|splanchnic|auricular|wings?|sac)|higher\s+(?:centres?|centers?|cortical|mental)|common\s+(?:bile|carotid|iliac|peroneal|fibular|femoral|hepatic|cold|variable|pathway)|minimal\s+change|(?:as|see|described|shown|listed|discussed|mentioned|noted|outlined)\s+(?:above|below))\b`, 'g');
-/// What a comparison is against: "than warfarin", "compared with placebo".
-const AGAINST = py(r`\b(?:than|compared (?:with|to)|in comparison (?:with|to)|versus|vs|relative to)\b`);
 /// Words for a measure of how likely: "a higher rate" and "a lower risk" are
 /// about the same thing.
 const MEASURE = new Set(['risk', 'rate', 'incidence', 'prevalence', 'odds', 'likelihood', 'chance', 'probability', 'hazard']);
@@ -1048,8 +1131,7 @@ const turnOf = remembered('turn', text => {
   if (!WAY_HINT.test(text) || negated(text)) return null;
   const plain = replaceAll(String(text).toLowerCase(), DOUBLE_NEGATION_EQUIVALENTS);
   // the parts and things blanked out for finding the way, kept for the words
-  let read = plain;
-  for (const m of allOf(plain, NOT_A_WAY)) read = read.slice(0, m.index) + ' '.repeat(m[0].length) + read.slice(m.index + m[0].length);
+  const read = blank(NOT_A_WAY, plain);
   const ways = AXES.map(([up, down]) => {
     const ups = allOf(read, up), downs = allOf(read, down);
     if (ups.length + downs.length !== 1) return null;
@@ -1064,7 +1146,6 @@ const turnOf = remembered('turn', text => {
   });
   return ways.some(Boolean) ? ways : null;
 });
-const meets = (a, b) => [...a].some(w => b.has(w));
 
 /// Does `claim` say what `source` says, turned around: on one axis the two
 /// go opposite ways - higher for lower, rare for common - and all their
@@ -1201,17 +1282,21 @@ function gate(item, maxWork) {
     if (out.work + near.length > maxWork) { out.complete = false; break; }
     out.work += near.length;
     const facts = backing(claim);
-    // verify() reads a sentence's words, not which way they go: the lecture's
-    // sentence turned around would back the item it contradicts
+    // the lecture's sentence turned around never backs the item it
+    // contradicts, whatever verify() makes of it (verify() reads which way a
+    // sentence goes too, but not as turnedAround() does)
     const away = new Set(turned.map(s => s.sentence));
     const backers = near.filter(s => !away.has(s.sentence) && mayBack(facts, s.backing ||= backing(s.text)));
     if (out.work + (backers.length + restated.length) * VERIFY_WORK > maxWork) { out.complete = false; break; }
     if (backers.some(s => judge(claim, s.text).label === 'SUPPORTS')) continue;
     for (const { text: source } of turned) note(out.hard, 'direction', claim, source, sentence);
-    for (const { text: source } of restated) {
+    for (const { text: source, sentence: from } of restated) {
       const found = conflicts(claim, source, judge(claim, source));
       for (const code of found.hard) note(out.hard, code, claim, source, sentence);
-      for (const code of found.soft) note(out.soft, code, claim, source, sentence);
+      for (const code of found.soft) {
+        // a sentence turned around is the hard finding above already
+        if (code !== 'atomic_direction_mismatch' || !away.has(from)) note(out.soft, code, claim, source, sentence);
+      }
     }
   }
   return out;
