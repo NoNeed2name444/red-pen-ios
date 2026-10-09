@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 10:50 AM Cairo.
+Last updated: 2026-10-09, 11:20 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -42,7 +42,7 @@ Last updated: 2026-10-09, 10:50 AM Cairo.
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
+| design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal; then the Worker's re-pin to Chat-me 746a7d7 (step 19: server/ and this file; not yet in personal) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
   started 2026-10-08 at about 4 PM Cairo. Check its branch before starting
@@ -791,7 +791,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       Done: preflight OK; Server tests 37900489984 green on 695ca2f;
       personal and claude/new-session-013tes5v moved to it on 9 Oct at
       about 10:50 AM.
-19. [ ] Re-pin the Worker's port to Chat-me personal. Measured on 9 Oct:
+19. [x] Re-pin the Worker's port to Chat-me personal. Measured on 9 Oct:
     besides step 17's vectors, the port still has two behaviours Chat-me
     dropped in d17635d (step 11). Its multilingual replace is not
     whole-word, so Spanish "reduce" turns English "reduces" into
@@ -808,6 +808,28 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     verification_agent/ for app/verification/), and the test's pinned
     commit and counts, the bench's docstring and claims.js's header move
     with it. DEPARTURES then empties.
+    - [x] Done on design/map-lighter: Chat-me 746a7d7's whole-word
+      multilingual replace and its direction.py are ported (directions(),
+      and directionEntailed() at the end of atomPairCheck, so a claim
+      whose way differs from its evidence abstains as UNKNOWN,
+      atomic_direction_mismatch or atomic_direction_not_entailed). In the
+      gate these are soft findings, and a sentence the gate already finds
+      turned around is not reported a second time. tests/claim-vectors.json
+      is made from 746a7d7 (125 pairs, the 41 shared vectors v1.5, 15
+      which-way pairs); DEPARTURES is empty; 122 checks pass. The port
+      gives 746a7d7's answers on the 43 probe pairs, the 103 vector pairs
+      and Chat-me's 50-case benchmark, where verify alone now passes 19 of
+      40 true claims and none of the 10 false ones (before: 3 false
+      claims passed, the SGLT2 and statin ones that only reverse the
+      way). Timing is within the machine's noise. One quirk shared with
+      Python: a comparison's side under four letters ("than in men") is
+      not read, so "Gout is less common in women than in men." against
+      "... more common in men than in women." abstains as a direction
+      mismatch (soft); fix it in Chat-me first, then port.
+    - [ ] Preflight, push design/map-lighter, Server tests green, then
+      merge into personal (merge origin/personal first, keep both sides'
+      lines here) and the session branch. Live only after a Worker
+      deploy, which needs the owner's word.
 
 ## 4. M3: the Neurons rebuild
 
