@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 12:35 PM Cairo.
+Last updated: 2026-10-09, 3:24 PM Cairo.
 
 ## 1. Working with the owner
 
@@ -40,11 +40,11 @@ Last updated: 2026-10-09, 12:35 PM Cairo.
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
 | personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d), then step 19's re-pin of the Worker to Chat-me 746a7d7 (design/map-lighter; joined at about 11:37 AM as 809ddac; Server tests 37906094562 green), then step 21's three-letter comparison side (design/map-lighter 4a68424; joined at about 11:57 AM as a2a144f; Server tests 37908408628 green), then step 20's Row 17, library pictures as blob references, and the preview screens signin and account-deleted (design/launch-gaps; joined at about 12:20 PM; App build, Server tests and Swift tests green on e45ebc4) | personal is the working branch; keep session branches equal to it |
-| claude/medical-assistant-orchestration-javb9y | personal (caceca7) plus the neumorphic app (#33, tasks T0018 to T0032) and the #33 follow-ups (no fading, control edges, cut lines, the home grid band) | personal moves up to it once its App build, Swift tests and preview run are green and the shots are checked (#33 follow-ups) |
+| claude/medical-assistant-orchestration-javb9y | personal (a22d1c2) plus the neumorphic app (#33, tasks T0018 to T0032) and the #33 follow-ups (no fading, control edges, cut lines, the home grid band) | personal moves up to it once its App build, Swift tests and preview run are green and the shots are checked (#33 follow-ups) |
 | aahp/personal | T0033's cece1a4 on T0032 (4ef98ff) | the design loop's branch (#33, tasks T0018 to T0033); its CI runs read-only and publishes nothing; cece1a4 is kept out of the session branch |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20), then Row 17 (library pictures as blob references) and the preview screens signin and account-deleted, all in personal; one ios-preview.yml run (screens: signin account-deleted library-loading; dispatched at about 12:18 PM) for GAP 1's, GAP 2's and Row 1's screenshots | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
+| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20), then Row 17 (library pictures as blob references) and the preview screens signin and account-deleted, all in personal; the screenshots of GAP 1, GAP 2 and Row 1 taken in one ios-preview.yml run (37910253540, green, on e45ebc4; sent to the owner at about 12:35 PM): signin light and dark, account-deleted and library-loading light; their dark shots caught the simulator mid-launch (no crash report), worth one more run of just those two if wanted. Step 20 is done | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal; then the Worker's re-pin to Chat-me 746a7d7 (step 19: server/ and this file; Server tests 37904982081 green on f5ebba9; in personal as 809ddac); then step 21, a three-letter side of a comparison (4a68424: server/ only; Server tests 37907873352 green; in personal) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -837,7 +837,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       lines here) and the session branch: personal and the session branch
       at 809ddac, Server tests 37906094562 green. Live only after a Worker
       deploy, which needs the owner's word.
-20. [ ] #35, the owner's "look for upgrades - unfinished work - half-backed
+20. [x] #35, the owner's "look for upgrades - unfinished work - half-backed
     features in the stethoscore app for u to make" (9 Oct, about 7:30 AM):
     the launch checklist's open gaps (docs/launch/launch-checklist.md
     section 1.3) and the audit's rows still open, built on
@@ -929,6 +929,11 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       pictures suite and the sync suite run on Linux; storeload (macOS)
       checks the migration, the rename, the failed blob write, the missing
       blob, the data: prefix, the shared picture and the sweep rules.
+    - [x] The screenshots: one ios-preview.yml run (37910253540, green, on
+      e45ebc4) with the new `screens` input: signin (GAP 2, no Google door),
+      account-deleted (GAP 1, Apple's steps) and library-loading (Row 1),
+      in light; signin in dark too. The dark account-deleted and
+      library-loading shots caught the simulator mid-launch (no crash).
 21. [x] Taken by the session that did step 19 (9 Oct, 11:40 AM): the
     "men" quirk from step 19. A comparison's side shorter than four letters
     is not read, so "Gout is less common in women than in men." against
@@ -967,6 +972,37 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     server/claims.js and make the vectors again. Touches Chat-me's
     verification_agent and MedicalVerifierCore, and here server/ only:
     nothing of step 20's.
+    - [x] Chat-me 3df53cd (its CI 37909547536 green; Python 202 passed,
+      Swift 54 on Linux, conformance 1.6): a word of three letters or
+      fewer is a term unless it is a joining word or a short way of
+      writing a dose; one route's two names (PO, orally), a short name
+      and the two words it stands for (AF, atrial fibrillation) and a
+      clotting factor and its activated form (Xa, activated factor X)
+      are not swaps. The 50-claim benchmark is unchanged.
+    - [x] Ported on design/map-lighter, e372ec0 (Server tests 37913421490
+      green): 137 vector pairs, no earlier pair's answer changed, the old
+      port fails six checks; the benchmark gives Python's answer on every
+      case.
+    - [ ] Merge into personal with step 23, once the App build on
+      382a950 is green.
+23. [ ] Found by step 22's preflight: the forcelayout suite's F4f ("a
+    rebuild cancelled before its job starts cancels it too") failed under
+    load, twice in three runs. A real race in GraphWork.offMain
+    (Features/Notes/ForceLayout3D.swift, step 13's audit row 114): the
+    detached job could start and look before the cancel handler reached
+    it; a stress run missed the cancel 187 times in 20,000. Fixed on
+    design/map-lighter, 382a950: a rebuild already cancelled starts its
+    job cancelled (none missed in 20,000; preflight 76 of 76 suites).
+    Waiting on its App build, then into personal with step 22.
+24. [ ] Taken by the same session (9 Oct, 12:49 PM): a joining word next to a
+    swapped route still hides it, so "Adrenaline 0.5 mg IV for
+    anaphylaxis in adults." is backed by "Adrenaline 0.5 mg IM is given
+    for anaphylaxis in adults." in Chat-me and in the Worker's gate (no
+    finding at all). Dropping joining words from every swap costs four
+    true claims of the 50-claim benchmark, so only routes: a claim and
+    evidence that name different routes, and no route in common, are a
+    swap whatever words stand around them. Chat-me first (Python, Swift,
+    conformance 1.7), then server/claims.js.
 
 ## 4. M3: the Neurons rebuild
 
