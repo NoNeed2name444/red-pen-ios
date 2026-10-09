@@ -39,7 +39,7 @@ Last updated: 2026-10-09, 8:20 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only) | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
@@ -674,7 +674,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       "reduced"), so a time marker before the verb was missed.
     The package's Linux run (CryptoKit shimmed) passes all 44 Swift tests;
     185 Python tests pass.
-17. [ ] #33, found in step 16: that same-total rule skipped every other
+17. [x] #33, found in step 16: that same-total rule skipped every other
     check, so "Warfarin 1000 mg is given daily" was validated against
     "Aspirin 500 mg is given twice daily", in Python and in Swift, and an
     answer that added "with food" (or, on Swift, "for 7 days") passed too.
@@ -709,10 +709,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       with the same daily total used to hide the dose and frequency
       findings. The new checks fail on the old gate; 88 pass on the new
       one. The ordinary batch takes no longer (about 2.5 ms warm).
-    - [ ] Preflight, push design/map-lighter, Server tests green, then
+    - [x] Preflight, push design/map-lighter, Server tests green, then
       personal and the session branch (server and plan only: no App
       build). Live only after a Worker deploy, which needs the owner's
-      word.
+      word. Done: preflight OK; Server tests 37887435889 green on
+      a06955a; personal and claude/new-session-013tes5v fast-forwarded to
+      it on 9 Oct at about 8:15 AM.
 18. [ ] #34, a swapped drug name passes: Chat-me's verify and the Worker's
     say SUPPORTS for "Amoxicillin treats otitis media." against
     "Ibuprofen treats otitis media.", for "Amoxicillin is used for otitis
