@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 10:55 AM Cairo.
+Last updated: 2026-10-09, 11:22 AM Cairo.
 
 ## 1. Working with the owner
 
@@ -39,10 +39,10 @@ Last updated: 2026-10-09, 10:55 AM Cairo.
 | design/3d-overhaul | the same as wip | M1 (c122abb, Space), M2 (no Circuit, d4cff03) and the M3 code; the App build here is the compile check for the Mac-only files (GraphNeuronLook, GraphRibbons, GraphMotion, GraphThemeScene, GraphDeathScene, GraphHangReporter) |
 | preview/3d-overhaul | 66791a5 (run 37879552679, green: the preview of the map lighter, section 3, step 14); the commits after it change only this file and docs/chatgpt-tasks.md | a push here makes screenshots (don't push here while a run is in progress: a push cancels it) |
 | shots/3d-overhaul | 04b044e (run 37879552679) | where design-preview.yml commits them |
-| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d) | personal is the working branch; keep session branches equal to it |
+| personal, claude/new-session-013tes5v | M3 (joined on 9 Oct at about 3:40 AM; before it, 3827785), the port (section 3, step 9; joined at about 4:40 AM; its App build, 37870387509, green), the claim gate's direction check (step 10; joined at about 4:55 AM) and the map lighter with the app's words for the direction finding (step 13; joined at about 6:35 AM; its App build, 37879541559, green) and the Worker's dose rule (step 17; joined at about 8:15 AM), then the loop's tasks 1 and 3 (step 15) and the Worker's swapped-term rule (step 18; joined together at about 10:50 AM; Server tests 37900489984 green on 695ca2f), then step 20's GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (design/launch-gaps; joined at about 11:05 AM; App build, Server tests and Swift tests green on 512d48d), then step 20's Row 17, library pictures as blob references (fast-forwarded from design/launch-gaps once its CI is green) | personal is the working branch; keep session branches equal to it |
 | design/port-prework | 5d0edcd (in personal) | the three fixes found only on design/prework-20261006 (step 9, done) |
 | design/claim-direction | c0f61e8 (in personal) | the claim gate's direction check (#24, section 3, step 10) |
-| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20), in personal; Row 17 next | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
+| design/launch-gaps | GAP 2, GAP 1, GAP 3, Row 4, Row 18, Row 91 and Row 1 (section 3, step 20), in personal; then Row 17 (library pictures as blob references), joining personal once CI is green; then the preview run for GAP 1, GAP 2 and library-loading | the launch checklist's open gaps and the audit's open rows (#35, section 3, step 20), each merged into personal once preflight and CI are green |
 | design/map-lighter | c9c7d7f (in personal): the map lighter (#28, section 3, step 13) and the app's words for the direction finding (step 10); then plan commits and the Worker's dose rule (#33, step 17: server/ and this file, so Server tests only); then the loop's tasks 1 and 3 (8b529c4, 2d35c18: step 15; App build 37891118222, Server tests 37891118204 and Swift tests 37891118199, green) and the Worker's swapped-term rule (#34, step 18: server/, docs/ and this file; Server tests 37900489984 green), all in personal | the App build here (37878253817, green) is the compile check for the Mac-only files it touches (Graph3DView, IdeasView, GraphLook, GraphNodeShaders, GraphNeuronLook, GraphThemeScene, GraphUniverseScene, GraphMotion) |
 
 - M3 is being continued in the cloud session "M3 Neurons rebuild, continued",
@@ -874,7 +874,33 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       and Siri's queries wait for it (Siri reads the saved copy meanwhile).
       Checked by the storeload suite (macOS CI); its screenshot goes in the
       preview run with GAP 1's and GAP 2's.
-    - [ ] Row 17: library pictures as blob references, with a migration.
+    - [x] Row 17: the library file holds its pictures as blob references
+      ("blob:<sha256>"), each picture a file in the picture cache
+      (Application Support/RedPenBlobs; a test's or preview's library uses
+      a "<stem>-pictures" folder beside it), so a rename or a rating no
+      longer rewrites megabytes of base64. In memory a set still holds
+      base64 (about 87 call sites read `.images`): Shared/LibraryPictures.swift
+      packs as the file is written (on the write queue, the blob confirmed on
+      disk before its reference is written; a picture whose blob cannot be
+      written stays inline; a picture in two sets is one file) and fills in
+      as it is read (a missing blob stays a reference, for sync to fetch).
+      The migration: a file with any decodable inline picture is written
+      again at launch. The picture folder is now in the phone's backup
+      (BlobCache and LibraryPictures set isExcludedFromBackup false), since
+      it is the only copy on the device. The sweep moved from SyncEngine (a
+      main-actor sweep raced the write queue) into the Store, right after a
+      library write lands, at most once a day, only with the library read
+      whole; it keeps what the file names, what unread sets and the
+      library's recovery copies mention, and anything from the last day.
+      DeckExport fills a set's pictures before either export (Siri's
+      savedLibrary now returns references). Recovery copies now hold
+      references too, so their pictures stay on the device, not in the
+      copy. A downgrade is acceptable: references survive as strings and
+      sync restores them. BlobRefs and SyncMerge hash with a plain-Swift
+      SHA-256 where CryptoKit is missing (FIPS 180 vectors), so the new
+      pictures suite and the sync suite run on Linux; storeload (macOS)
+      checks the migration, the rename, the failed blob write, the missing
+      blob, the data: prefix, the shared picture and the sweep rules.
 
 ## 4. M3: the Neurons rebuild
 

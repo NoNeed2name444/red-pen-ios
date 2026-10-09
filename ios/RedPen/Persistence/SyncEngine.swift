@@ -60,7 +60,6 @@ final class SyncEngine: ObservableObject {
     /// Whether this run already renewed a refused session once, so a server
     /// that keeps refusing does not have the app renewing in a loop.
     private var renewedForRun = false
-    private var lastSweep: Date?
     /// Pictures the server could not give us lately, and when: asked for again
     /// after a while rather than on every run (a picture nobody uploaded is
     /// otherwise a request a minute for ever).
@@ -149,7 +148,6 @@ final class SyncEngine: ObservableObject {
             try stillCurrent(run)
             bookmarks.update { $0.lastSyncedAt = Date() }
             lastSyncedAt = bookmarks.state.lastSyncedAt
-            await sweepPicturesIfDue()
             status = problems() ?? .idle
             renewedForRun = false
         } catch is Superseded {
@@ -368,24 +366,6 @@ final class SyncEngine: ObservableObject {
         }
         return stamp
     }()
-
-    /// Pictures nothing refers to any more, dropped - at most once a day, and
-    /// only at the end of a run, with the whole library in hand.
-    private func sweepPicturesIfDue() async {
-        // not on the word of a library file that could not be read whole
-        guard store.readWhole else { return }
-        if let lastSweep, Date().timeIntervalSince(lastSweep) < 86_400 { return }
-        lastSweep = Date()
-        let images: [String] = store.library.flatMap(\.images)
-        // sets this version could not read still name their pictures
-        let alsoKept: Set<String> = store.heldPictureNames
-        // naming a picture means hashing it; a library holds hundreds of
-        // megabytes of them, so that is done off the main thread
-        let live: Set<String> = await Task.detached(priority: .utility) {
-            BlobRefs.names(in: images).union(alsoKept)
-        }.value
-        blobs.sweep(keeping: live)
-    }
 
     // MARK: pulling
 

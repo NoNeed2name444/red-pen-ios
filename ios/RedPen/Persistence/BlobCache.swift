@@ -25,12 +25,14 @@ final class BlobCache {
         }
         try? FileManager.default.createDirectory(at: self.directory,
                                                  withIntermediateDirectories: true)
-        // Not in the phone's backup: every picture here is also inside the
-        // library's own file and on the server, so backing it up again only
-        // fills the student's iCloud with a second copy.
+        // In the phone's backup: the library's file holds its pictures as
+        // references to the files here (LibraryPictures), so this folder is
+        // the only copy on the device, and a phone restored without it would
+        // have cards with no pictures. (It used to be left out, when every
+        // picture was inside the library file too.)
         var folder = self.directory
         var values = URLResourceValues()
-        values.isExcludedFromBackup = true
+        values.isExcludedFromBackup = false
         try? folder.setResourceValues(values)
     }
 
@@ -84,17 +86,5 @@ final class BlobCache {
         }
         out.images = BlobRefs.unpack(set.images, blobs: blobs)
         return out
-    }
-
-    /// Drops blobs nothing refers to any more.
-    ///
-    /// Only ever called with the WHOLE library in hand: a sweep that runs on a
-    /// partial view of it deletes pictures that are still in use, and unlike a
-    /// stale file, a missing one is visible on a card.
-    func sweep(keeping live: Set<String>) {
-        for name in names() where !live.contains(name) {
-            guard let file = url(name) else { continue }
-            try? FileManager.default.removeItem(at: file)
-        }
     }
 }

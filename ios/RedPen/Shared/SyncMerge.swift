@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 
 /// Deciding what happens to one document when two devices disagree.
 ///
@@ -112,10 +114,17 @@ enum SyncMerge {
     /// knows whether IT changed something since the last sync, without keeping
     /// a second copy of the whole library to compare against.
     static func hash(_ doc: SyncDoc) -> String {
+        #if canImport(CryptoKit)
         var hasher = SHA256()
         hasher.update(data: Data(doc.deleted ? [1] : [0]))
         if let payload = doc.payload { hasher.update(data: payload) }
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        #else
+        // the Linux suites: the same bytes through the plain-Swift SHA-256
+        var bytes = Data(doc.deleted ? [1] : [0])
+        if let payload = doc.payload { bytes.append(payload) }
+        return PlainSHA256.hex(bytes)
+        #endif
     }
 
     static func mark(for doc: SyncDoc, rev: Int? = nil) -> SyncMark {
