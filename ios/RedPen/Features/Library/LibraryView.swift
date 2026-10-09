@@ -508,6 +508,7 @@ struct LibraryView: View {
         if railed && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
                 .environment(\.colorScheme, dockScheme)
+                .wardUnlit()
                 .transition(.slideIn(.leading))
         }
     }
@@ -545,8 +546,10 @@ struct LibraryView: View {
             }
             // No strip under it: New set and the dock float on the page's
             // own paper, so the page runs unbroken to the bottom (the
-            // owner's word, 9 Oct). The rows still scroll clear of it by
-            // its measured height.
+            // owner's word, 9 Oct), and without a glow round them, only
+            // their edges. The rows still scroll clear of it by its
+            // measured height.
+            .wardUnlit()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }

@@ -49,6 +49,29 @@ struct WardHoldsControl: PreferenceKey {
     }
 }
 
+/// Faces drawn without their lights: no shade cast round them and no
+/// softening of their outline, only the face, its edge and, held or
+/// chosen, the hollow inside it. For what floats over a page (the home's
+/// New set and dock: the owner, 9 Oct, "remove the glow around the deck
+/// and floating buttons").
+private struct WardUnlitKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var wardUnlit: Bool {
+        get { self[WardUnlitKey.self] }
+        set { self[WardUnlitKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// The Ward faces inside are drawn without their lights (WardUnlitKey).
+    func wardUnlit(_ unlit: Bool = true) -> some View {
+        environment(\.wardUnlit, unlit)
+    }
+}
+
 /// Controls soften the base-colour face and active lights together as they glide
 /// into the page; labels stay sharp, as does the ink edge. A face that only
 /// shows a choice (an icon tile) passes `control: false` and has no edge.
@@ -61,10 +84,12 @@ struct WardPressFace<S: InsettableShape>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.wardUnlit) private var unlit
 
     var body: some View {
         WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill,
-                        dark: scheme == .dark, strong: contrast == .increased, control: control)
+                        dark: scheme == .dark, strong: contrast == .increased, control: control,
+                        unlit: unlit)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .preference(key: WardHoldsControl.self, value: true)
     }
@@ -84,6 +109,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     let dark: Bool
     let strong: Bool
     let control: Bool
+    var unlit = false
 
     var animatableData: Double {
         get { depth }
@@ -94,7 +120,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
         let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong, control: control)
         ZStack {
             ZStack {
-                if spec.outerShade.lit {
+                if spec.outerShade.lit && !unlit {
                     shape.fill(fill.shadow(.ward(spec.outerShade, inner: false)))
                 } else {
                     shape.fill(fill)
@@ -104,7 +130,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
                 }
             }
             .compositingGroup()
-            .blur(radius: spec.blur)
+            .blur(radius: unlit ? 0 : spec.blur)
             if spec.edgeAlpha > 0 {
                 shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }
@@ -140,6 +166,7 @@ struct WardReliefFace<S: InsettableShape>: View {
 
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.wardUnlit) private var unlit
 
     var body: some View {
         let dark: Bool = scheme == .dark
@@ -147,7 +174,7 @@ struct WardReliefFace<S: InsettableShape>: View {
         let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong, control: control)
                                          : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
         ZStack {
-            if flat {
+            if flat || (unlit && !spec.inner) {
                 shape.fill(fill)
             } else if spec.inner {
                 shape.fill(fill

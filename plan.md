@@ -1562,10 +1562,16 @@ move personal up.
    frame's corners and runs into the side lines, rises with the band as
    the list scrolls and is held at the bar's bottom. Pushed pages and
    search keep the frame's own opening.
-9. Next: App build, Swift tests and an ios-preview run on the session
+9. The owner: keep the rows passing under New set and the dock, "but
+   remove the glow around the deck and floating buttons". `.wardUnlit()`
+   (WardSurfaces) draws Ward faces with no shade cast round them and no
+   softened outline, keeping the face, its blue edge and the hollow when
+   held or chosen; set on home's New set and dock (bar and rail), and
+   reset inside the dock's sheet.
+10. Next: App build, Swift tests and an ios-preview run on the session
    branch (personal, 537ccc4, is merged in); check the strip line, the
    OSCE clock, the library's floating New set and dock, the blue
-   control edges and home's rounded opening under the header; send the owner marked full screens; then move personal up to
+   control edges and home's rounded opening under the header, the unlit New set and dock; send the owner marked full screens; then move personal up to
    the session branch.
 
 ### Other open work

@@ -603,7 +603,9 @@ struct CategoryDock: View {
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
         .sheet(isPresented: $listing) {
+            // a sheet has its lights, whatever the dock floats with
             DockListSheet(selection: $selection, inIdeas: $inIdeas, count: count)
+                .wardUnlit(false)
         }
     }
 
