@@ -1852,6 +1852,30 @@ with the marks on the screens last.
     move out from it), never by cross-fading opacity.
   - The frame budget from 4c sets how far each level reaches, so a slow
     phone switches to summaries sooner and a fast iPad later.
+  - The frame rate is the screen's own, not 60 (the owner, 14 Oct: "i want
+    it to run same as the monitor refresh rate"): 120 on ProMotion,
+    90/120/144 on Android screens that have them (Surface.setFrameRate),
+    60 elsewhere. Today GraphPerfMapView starts at 60 and the Smooth budget
+    caps at 60 (GraphicsQuality.swift maxFPS); both go to the screen's
+    maximum, and a slow device keeps the rate by cutting detail, never the
+    rate. The budget is per frame at that rate (8.3 ms at 120 Hz). While
+    nothing moves the screen may drop to its idle rate, as ProMotion does;
+    any touch brings it back to full at once.
+  - No visible loading delay, at almost no cost (the owner, 14 Oct):
+    1. Every node's position and its chunk summaries stay in GPU memory
+       on every device (a million nodes at 16 bytes is about 16 MB), so
+       "loading" is only choosing detail, done on the GPU in the same
+       frame: no disk, no waiting.
+    2. The coarse level is always there: a chunk entering the screen
+       already shows its summary point and refines from it (morphing),
+       so nothing is ever empty or pops in.
+    3. A guard band: chunks just outside the screen are prepared too,
+       wider in the direction the camera is moving (its velocity),
+       so a pan arrives at chunks already done.
+    4. Recently seen chunks stay cached (least recently used goes first),
+       so turning back is instant.
+    5. Only the heavy extras (labels, glow textures) stream, on a
+       background thread within a fixed slice of each frame.
 - [ ] 4d. A full Android app of Stethoscore (the owner chose it over a web
   map, 14 Oct): a large, separate project, planned after M3 and 4b. The
   owner has no Android device, so it is tested on CI emulators; its
