@@ -105,7 +105,7 @@ jobs:
             REC=$!
             sleep 3
             xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> film/launch.log 2>&1
-            sleep 5
+            sleep 9
             kill -INT $REC
             wait $REC || true
           done
