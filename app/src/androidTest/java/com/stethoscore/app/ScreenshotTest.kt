@@ -101,9 +101,43 @@ class ScreenshotTest {
         compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
         compose.onNodeWithText("4 ideas · 4 links",ignoreCase=true).assertIsDisplayed()
         shot("09-ideas")
-        compose.onNodeWithText("2D map").performClick()
-        compose.onNodeWithContentDescription("2D map of 4 ideas",substring=true).assertIsDisplayed()
+        compose.onNodeWithText("3D map").performClick()
+        compose.onNodeWithContentDescription("3D map of 4 ideas",substring=true).assertIsDisplayed()
+        SystemClock.sleep(3_000) // let the chunks open (a fifth of a second) and the readout fill
+        requireMapDrawn("3D map of 4 ideas")
         shot("11-ideas-map")
+    }
+    @Test fun millionNodeDemo() {
+        val store=store()
+        compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
+        compose.onNodeWithText("1M demo").performClick()
+        // building a million nodes and their octree takes a few seconds on a CI emulator
+        compose.waitUntil(120_000) { compose.onAllNodesWithText("1,000,000 nodes",substring=true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(60_000) { compose.onAllNodesWithText(" fps · ",substring=true).fetchSemanticsNodes().any { node ->
+            node.config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.Text) { null }?.joinToString()?.trim()?.startsWith("0 fps")==false } }
+        SystemClock.sleep(6_000) // the adaptive budget settles on what this emulator can draw at its refresh rate
+        requireMapDrawn("3D performance map of 1,000,000 nodes")
+        shot("12-ideas-million")
+    }
+    /**
+     * The GL surface really drew: the middle of the map (below the readout, above the zoom
+     * buttons) holds bright, coloured points. The readout and labels are near-white text, so
+     * only saturated colour counts.
+     */
+    private fun requireMapDrawn(description:String) {
+        val bounds=compose.onNodeWithContentDescription(description,substring=true).fetchSemanticsNode().boundsInRoot
+        val screen=checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()) {"No screenshot for $description"}
+        val left=(bounds.left+bounds.width*0.08f).toInt().coerceIn(0,screen.width-1)
+        val right=(bounds.right-bounds.width*0.08f).toInt().coerceIn(left+1,screen.width)
+        val top=(bounds.top+bounds.height*0.3f).toInt().coerceIn(0,screen.height-1)
+        val bottom=(bounds.bottom-bounds.height*0.2f).toInt().coerceIn(top+1,screen.height)
+        var coloured=0
+        for (y in top until bottom step 2) for (x in left until right step 2) {
+            val c=screen.getPixel(x,y)
+            val r=(c shr 16) and 255; val g=(c shr 8) and 255; val b=c and 255
+            if (r+g+b>220 && maxOf(r,g,b)-minOf(r,g,b)>45) coloured++
+        }
+        check(coloured>25) {"The 3D map drew nothing visible ($coloured coloured samples) for $description"}
     }
     @Test fun textbook() {
         val store=store()

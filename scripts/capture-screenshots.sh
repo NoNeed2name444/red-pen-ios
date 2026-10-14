@@ -31,6 +31,6 @@ adb shell input keyevent 82
 adb install -r -t built-apks/outputs/apk/debug/app-debug.apk
 adb install -r -t built-apks/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb shell am instrument -w -r com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
-grep -q 'OK (8 tests)' test-results/instrumentation.txt
+grep -q 'OK (9 tests)' test-results/instrumentation.txt
 adb pull /sdcard/Download/stethoscore-screenshots/. screenshots/
-test "$(find screenshots -name '*.png' | wc -l)" -eq 11
+test "$(find screenshots -name '*.png' | wc -l)" -eq 12

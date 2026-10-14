@@ -33,10 +33,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.Note
 import com.stethoscore.app.data.StudyStore
-import kotlin.math.cos
-import kotlin.math.sin
+import com.stethoscore.app.map.MapGraph
+import com.stethoscore.app.map.NoteLike
+import com.stethoscore.app.map.SyntheticGraph
+import com.stethoscore.app.ui.map.Map3DView
+import com.stethoscore.app.ui.map.MapScene
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-/** Native note editing and an honest 2D link map; the iOS SceneKit renderer is not implied. */
+/** Native note editing, the list, and the 3D map (OpenGL ES 3, chunked level of detail) with a 1,000,000-node demo. */
 @Composable fun IdeasScreen(store: StudyStore, onBack: () -> Unit) {
     var revision by remember { mutableIntStateOf(0) }
     var mode by rememberSaveable { mutableStateOf("List") }
@@ -59,7 +64,8 @@ import kotlin.math.sin
             ScreenHeader("Ideas", "Your notes, connected", onBack)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilterChip(mode == "List", { mode = "List" }, { Text("List") }, leadingIcon = { Icon(Icons.Rounded.ViewList, null, Modifier.size(18.dp)) })
-                FilterChip(mode == "Map", { mode = "Map" }, { Text("2D map") }, leadingIcon = { Icon(Icons.Rounded.Hub, null, Modifier.size(18.dp)) })
+                FilterChip(mode == "Map", { mode = "Map" }, { Text("3D map") }, leadingIcon = { Icon(Icons.Rounded.Hub, null, Modifier.size(18.dp)) })
+                FilterChip(mode == "Demo", { mode = "Demo" }, { Text("1M demo") })
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { edit(Note(title = "")) }) { Icon(Icons.Rounded.Add, "Add idea") }
             }
@@ -67,7 +73,10 @@ import kotlin.math.sin
             val ids = notes.map { it.id }.toSet()
             val links = notes.sumOf { note -> note.links.count { it in ids && it != note.id } }
             SectionLabel("${notes.size} ideas · $links links")
-            if (notes.isEmpty()) {
+            if (mode == "Demo") {
+                MillionDemo(Modifier.weight(1f).fillMaxWidth())
+                Text("1,000,000 synthetic notes in a seeded test vault, not your notes. Drag to turn · Pinch to zoom", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else if (notes.isEmpty()) {
                 WardCard(Modifier.fillMaxWidth()) {
                     Icon(Icons.Rounded.Lightbulb, null, Modifier.size(34.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(if (query.isBlank()) "Make room for an idea" else "No matching ideas", fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -75,8 +84,10 @@ import kotlin.math.sin
                     if (query.isBlank()) WardButton("Write your first idea", { edit(Note(title = "")) }, Modifier.fillMaxWidth())
                 }
             } else if (mode == "Map") {
-                NoteMap(notes, { edit(it) }, Modifier.weight(1f).fillMaxWidth())
-                Text("Pinch to zoom · Drag to move · Tap an idea to edit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val scene = remember(notes) { MapScene.of(MapGraph.fromNotes(notes.map { NoteNode(it) })) }
+                Map3DView(scene, Modifier.weight(1f).fillMaxWidth(), description = "3D map of ${notes.size} ideas. Edit all ideas from List view.",
+                    onOpenNode = { index -> notes.getOrNull(index)?.let { edit(it) } })
+                Text("Drag to turn · Pinch to zoom · Two fingers to move · Tap an idea to edit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 WardButton("New idea", { edit(Note(title = "")) }, Modifier.fillMaxWidth())
             } else {
                 LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -141,63 +152,28 @@ import kotlin.math.sin
     if (leaving) AlertDialog(onDismissRequest = { leaving = false }, title = { Text("Keep your changes?") }, confirmButton = { TextButton(onClick = ::save, enabled = title.isNotBlank()) { Text("Save") } }, dismissButton = { TextButton(onClick = onBack) { Text("Discard") } })
 }
 
-private fun notePosition(note: Note, index: Int, total: Int, radius: Float): Offset {
-    if (note.boardX != 0.0 || note.boardY != 0.0) return Offset(note.boardX.toFloat(), note.boardY.toFloat())
-    if (total == 1) return Offset.Zero
-    val angle = index * (Math.PI * 2 / total) - Math.PI / 2
-    return Offset(cos(angle).toFloat() * radius, sin(angle).toFloat() * radius)
+private class NoteNode(note: Note) : NoteLike {
+    override val id = note.id; override val title = note.title; override val links = note.links; override val tags = note.tags
 }
 
-@Composable private fun NoteMap(notes: List<Note>, open: (Note) -> Unit, modifier: Modifier) {
-    var zoom by remember { mutableFloatStateOf(1f) }
-    var pan by remember { mutableStateOf(Offset.Zero) }
-    var canvasSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
-    val colors = listOf(Color(0xFF76B4F2), Color(0xFF69D0BE), Color(0xFFF0B665), Color(0xFFAF9BF3))
-    Box(modifier.background(Color(0xFF0E1B2C), RoundedCornerShape(24.dp))) {
-        Canvas(Modifier.fillMaxSize().semantics { contentDescription = "2D map of ${notes.size} ideas. Edit all ideas from List view." }
-            .pointerInput(Unit) { detectTransformGestures { _, movement, factor, _ -> zoom = (zoom * factor).coerceIn(.35f, 3f); pan += movement } }
-            .pointerInput(notes, zoom, pan, canvasSize) {
-                detectTapGestures { tap ->
-                    val center = Offset(canvasSize.width / 2, canvasSize.height / 2)
-                    val radius = minOf(canvasSize.width, canvasSize.height) * .3f
-                    val found = notes.mapIndexed { i, n -> n to (center + pan + notePosition(n, i, notes.size, radius) * zoom) }.minByOrNull { (it.second - tap).getDistance() }
-                    if (found != null && (found.second - tap).getDistance() < 38.dp.toPx()) open(found.first)
-                }
-            }) {
-            if (canvasSize != size) canvasSize = size
-            val center = Offset(size.width / 2, size.height / 2)
-            val radius = minOf(size.width, size.height) * .3f
-            val positions = notes.mapIndexed { index, note -> note.id to (center + pan + notePosition(note, index, notes.size, radius) * zoom) }.toMap()
-            for (i in 0 until 55) {
-                val x = ((i * 83 + 19) % 997) / 997f * size.width
-                val y = ((i * 157 + 37) % 991) / 991f * size.height
-                drawCircle(Color.White.copy(alpha = .13f), 1.dp.toPx(), Offset(x, y))
-            }
-            val drawn = mutableSetOf<Set<String>>()
-            notes.forEach { note -> note.links.forEach { id ->
-                val start = positions[note.id]
-                val end = positions[id]
-                if (start != null && end != null && id != note.id && drawn.add(setOf(note.id, id))) drawLine(Color(0xFF6DB7E8).copy(alpha = .5f), start, end, 1.6.dp.toPx())
-            } }
-            notes.forEachIndexed { index, note ->
-                val point = positions.getValue(note.id)
-                val color = colors[index % colors.size]
-                val r = 11.dp.toPx() * zoom.coerceIn(.7f, 1.4f)
-                drawCircle(Brush.radialGradient(listOf(color.copy(alpha = .3f), Color.Transparent), point, r * 3), r * 3, point)
-                drawCircle(color.copy(alpha = .15f), r, point)
-                drawCircle(color, r * .55f, point)
-                drawCircle(Color.White.copy(alpha = .9f), 2.dp.toPx(), point)
-                drawIntoCanvas { canvas ->
-                    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { this.color = android.graphics.Color.rgb(225, 235, 249); textSize = 11.sp.toPx(); textAlign = android.graphics.Paint.Align.CENTER; typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL) }
-                    val label = if (note.title.length > 23) note.title.take(22) + "…" else note.title
-                    canvas.nativeCanvas.drawText(label, point.x, point.y + r + 19.dp.toPx(), paint)
-                }
+/** The million-node scene is built once per process, off the main thread, and kept while memory allows. */
+private object MillionScene {
+    private var kept: java.lang.ref.SoftReference<MapScene>? = null
+    @Synchronized fun get(): MapScene = kept?.get() ?: MapScene.of(SyntheticGraph.make(1_000_000)).also { kept = java.lang.ref.SoftReference(it) }
+}
+
+@Composable private fun MillionDemo(modifier: Modifier) {
+    var scene by remember { mutableStateOf<MapScene?>(null) }
+    LaunchedEffect(Unit) { scene = withContext(Dispatchers.Default) { MillionScene.get() } }
+    val ready = scene
+    if (ready == null) {
+        Box(modifier.background(Color(0xFF0E1B2C), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                CircularProgressIndicator(color = Color(0xFF76B4F2))
+                Text("Building 1,000,000 nodes and their links", color = Color(0xFFE1EBF9), fontSize = 14.sp)
             }
         }
-        Row(Modifier.align(Alignment.BottomEnd).padding(10.dp).background(Color(0xFF1D3047), RoundedCornerShape(24.dp))) {
-            IconButton(onClick = { zoom = (zoom / 1.25f).coerceAtLeast(.35f) }) { Icon(Icons.Rounded.Remove, "Zoom out", tint = Color.White) }
-            IconButton(onClick = { zoom = 1f; pan = Offset.Zero }) { Icon(Icons.Rounded.CenterFocusStrong, "Recenter map", tint = Color.White) }
-            IconButton(onClick = { zoom = (zoom * 1.25f).coerceAtMost(3f) }) { Icon(Icons.Rounded.Add, "Zoom in", tint = Color.White) }
-        }
+    } else {
+        Map3DView(ready, modifier, description = "3D performance map of 1,000,000 nodes", continuous = true, autoOrbit = true)
     }
 }
