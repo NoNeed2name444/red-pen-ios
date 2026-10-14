@@ -1890,6 +1890,13 @@ with the marks on the screens last.
   design/space-bodies (4), design/perf-million (4b, 4c, 4e on iOS),
   android/kotlin (4d: the same map on Android, then parity gaps). The logo
   stays on Claude-Code (T0037); the marks (6) wait for the owner.
+- [x] 3b. Launch logo chosen (the owner, 14 Oct, after rounds 4 and 5 on
+  Claude-Code, T0037 and T0038): "use the white in light mode and the grey
+  in dark mode": design/launch-logo/candidates-5/02-white-flat.png for
+  light and 06-slate-flat-dark.png for dark, both on the flat Ward base.
+  The animated opening (design/launch-anim) uses this pair, with a real
+  lub-dub (licence recorded, or synthesised) and an ECG drawn under the
+  stethoscope in step with it, also when muted.
 - [ ] 9. Ward design pass (the owner, 14 Oct: "the iOS design is a bit
   cramped - lacks color difference for each mode and animations when
   switching colors - also when we removed the fade some buttons became too
