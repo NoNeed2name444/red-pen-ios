@@ -1796,6 +1796,14 @@ with the marks on the screens last.
   (docs/verification/proof-plan.md): 99.999% needs 299,572 error-free
   Verified verdicts (about $5,400); staged 99.9% about $55, 99.99% about
   $540. Waits on a deploy, a target and its spend, and labels.
+  The owner, 14 Oct (about 7 PM): "1-ok 2-99.999 3-make a deep search
+  4-do both 5-do it 6-look for one": deploy ok (run from personal);
+  target 99.999% within the existing caps (Claude $90/month, the rest
+  free), climbed in stages; a deep search for the vignette proof route;
+  a third free family and a wider Workers AI pool; labels from public
+  gold sets (commercial licence, never from the checking models); an
+  open NLI model as jev-standin's default. Running on
+  design/verify-mechanisms; the search reports to this session.
 - [ ] 3. Launch logo round 3 (Claude-Code T0036): the swirl back as one
   real, continuous tube.
 - [ ] 4. #18, rebuild the Space node models from scratch from the owner's
