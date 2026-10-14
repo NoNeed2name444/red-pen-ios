@@ -1881,7 +1881,15 @@ with the marks on the screens last.
   owner has no Android device, so it is tested on CI emulators; its
   performance map shares 4b and 4c's design (Vulkan, GLES 3 as the low-end
   floor).
-- [ ] 5. Merge design/voice-claude into personal (the owner said ok).
+- [x] 5. Merge design/voice-claude into personal (the owner said ok):
+  personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
+  design/voice-claude and this plan.
+- Running in parallel from personal a6aa7be4 (the owner, 14 Oct: "run what
+  is left of the plan in parallel"), one writer per branch:
+  design/verify-mechanisms (1, 8, 7, then 2's proof plan; no deploy),
+  design/space-bodies (4), design/perf-million (4b, 4c, 4e on iOS),
+  android/kotlin (4d: the same map on Android, then parity gaps). The logo
+  stays on Claude-Code (T0037); the marks (6) wait for the owner.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
