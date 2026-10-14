@@ -33,6 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import org.json.JSONArray
 import org.json.JSONObject
@@ -279,6 +282,17 @@ private fun NarrateScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) 
         })
         engine = tts
         onDispose { disposed = true; tts.stop(); tts.shutdown(); engine = null }
+    }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle, engine) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                playing = false
+                engine?.stop()
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
     }
     LaunchedEffect(line, playing, speed, ready) {
         if (segments.isNotEmpty()) store.saveReadingProgress(set.id, line)
