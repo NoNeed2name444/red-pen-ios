@@ -17,6 +17,8 @@ on:
       - 'ios/RedPen/Shared/LaunchOpening.swift'
       - 'ios/RedPen/Assets.xcassets/LaunchLogo*/**'
       - 'ios/RedPen/Assets.xcassets/Heartbeat.dataset/**'
+      - 'ios/RedPen/Assets.xcassets/AppIcon.appiconset/**'
+      - 'ios/AppResources/AppIcon.icon/**'
       - '.github/workflows/launch-recording.yml'
 permissions:
   contents: write
@@ -114,13 +116,18 @@ jobs:
         run: |
           mkdir -p film
           grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -40 > film/errors.txt || true
+          # the asset compiler on the icon and the launch art: any complaint at all
+          grep -iE "actool|AppIcon|LaunchLogo|Heartbeat|\.icon" build.log 2>/dev/null \
+            | grep -iE "warning|error|note" | sed -E 's#^.*/ios/##' | sort -u | head -40 > film/assets.txt || true
+          # the compiled icon as the build made it, to look at
+          find ios/build -name "AppIcon*.png" -path "*RedPen.app*" -exec cp {} film/ \; 2>/dev/null || true
 
       - name: Publish
         if: always()
         env:
           TOKEN: ${{ github.token }}
         run: |
-          ls film/raw-*.mp4 >/dev/null 2>&1 || exit 0
+          ls film/* >/dev/null 2>&1 || exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           remote="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"

@@ -1,7 +1,8 @@
 // The layered app icon (tools/icon_layers.py): every layer is a 1024 x 1024
 // PNG with alpha, the layers stack back to front in IconLayer's order and
-// groups, AppIcon.icon's icon.json is valid and names every asset it ships,
-// and the in-app view shows the same PNGs. Run from the repository root
+// groups and the in-app view shows them; and the app icon itself
+// (AppIcon.icon, from tools/make_icon.py) is valid, names every asset it
+// ships, and has its dark and tinted looks. Run from the repository root
 // (tools/swift_suites.py does).
 
 import Foundation
@@ -35,35 +36,39 @@ for layer in IconLayer.allCases {
     ok(h?.depth == 8 && h?.colour == 6, "\(layer.asset) is 8-bit RGBA, so it has alpha")
 }
 
-// MARK: AppIcon.icon
+// MARK: AppIcon.icon (tools/make_icon.py, the owner's icon since 14 Oct)
 
 let json = fm.contents(atPath: "\(bundle)/icon.json")
 let icon = json.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
 ok(icon != nil, "icon.json is a JSON object")
 let groups = (icon?["groups"] as? [[String: Any]]) ?? []
-ok(groups.count <= 4, "at most four groups, as Icon Composer asks (\(groups.count))")
-ok(icon?["fill"] is [String: Any], "the icon has a fill behind the background layer")
+ok(groups.count >= 1 && groups.count <= 4, "one to four groups, as Icon Composer asks (\(groups.count))")
+ok(icon?["fill"] is [String: Any], "the icon has a fill behind its layers")
+let fills = (icon?["fill-specializations"] as? [[String: Any]]) ?? []
+ok(fills.contains { $0["appearance"] as? String == "dark" }, "the fill has a dark appearance")
 ok(json.map { !String(decoding: $0, as: UTF8.self).contains("color-space-for-untagged-svg-colors") } ?? false,
    "no color-space-for-untagged-svg-colors (actool on Xcode 26.4-26.6 crashes on it)")
-
-// Icon Composer lists groups, and the layers in each, front first.
-var backToFront: [(group: String, name: String, image: String)] = []
-for g in groups.reversed() {
-    for l in ((g["layers"] as? [[String: Any]]) ?? []).reversed() {
-        backToFront.append((g["name"] as? String ?? "", l["name"] as? String ?? "", l["image-name"] as? String ?? ""))
+var named = Set<String>()
+var appearances = Set<String>()
+for g in groups {
+    for l in (g["layers"] as? [[String: Any]]) ?? [] {
+        if let n = l["image-name"] as? String { named.insert(n) }
+        for sp in (l["image-name-specializations"] as? [[String: Any]]) ?? [] {
+            if let n = sp["value"] as? String { named.insert(n) }
+            if let a = sp["appearance"] as? String { appearances.insert(a) }
+        }
     }
 }
-let all = IconLayer.allCases
-ok(backToFront.map(\.name) == all.map(\.rawValue), "the layers stack back to front: \(backToFront.map(\.name))")
-ok(backToFront.map(\.image) == all.map(\.asset), "each layer names its own PNG")
-ok(backToFront.map(\.group) == all.map(\.group), "each layer sits in its group")
-
+ok(appearances.isSuperset(of: ["dark", "tinted"]), "the picture has dark and tinted versions: \(appearances.sorted())")
 let assets = ((try? fm.contentsOfDirectory(atPath: "\(bundle)/Assets")) ?? []).sorted()
-ok(assets == backToFront.map(\.image).sorted(), "icon.json names every asset in Assets, and no other: \(assets)")
+ok(assets == named.sorted(), "icon.json names every asset in Assets, and no other: \(assets) vs \(named.sorted())")
 for a in assets {
-    ok(fm.contents(atPath: "\(bundle)/Assets/\(a)") == fm.contents(atPath: "\(layersDir)/\(a)"),
-       "Assets/\(a) is design/icon/layers/\(a)")
+    let h = pngHeader("\(bundle)/Assets/\(a)")
+    ok(h?.width == 1024 && h?.height == 1024, "Assets/\(a) is 1024 x 1024")
 }
+let setJSON = fm.contents(atPath: "ios/RedPen/Assets.xcassets/AppIcon.appiconset/Contents.json")
+    .flatMap { String(data: $0, encoding: .utf8) } ?? ""
+ok(setJSON.contains("\"dark\"") && setJSON.contains("\"tinted\""), "the icon set has dark and tinted appearances")
 
 // MARK: the in-app view
 

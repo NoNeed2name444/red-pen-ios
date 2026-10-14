@@ -229,8 +229,8 @@ final class LaunchOpeningView: UIView {
     }
 
     /// Where the trace sits: under the mark, as wide as most of it.
-    private static let traceWidth: CGFloat = 156
-    private static let traceHeight: CGFloat = 30
+    private static let traceWidth: CGFloat = 176
+    private static let traceHeight: CGFloat = 36
 
     override func layoutSubviews() {
         super.layoutSubviews()
@@ -239,16 +239,23 @@ final class LaunchOpeningView: UIView {
         cover.frame = bounds
         ground.frame = bounds
         // centred in the safe area at its natural size, where UILaunchScreen
-        // puts the same image
-        let safe = bounds.inset(by: safeAreaInsets)
+        // puts the same image: the window's insets, since this view spans the
+        // whole screen (SwiftUI's ignoresSafeArea leaves its own at zero)
+        let insets = window?.safeAreaInsets ?? safeAreaInsets
+        let safe = bounds.inset(by: insets)
         let centre = CGPoint(x: safe.midX, y: safe.midY)
         let c = LaunchArt.chest(dark: phoneDark)
         mark.position = CGPoint(x: centre.x - side / 2 + c.x * side, y: centre.y - side / 2 + c.y * side)
         let w = Self.traceWidth
-        ecg.frame = CGRect(x: centre.x - w / 2, y: centre.y + side / 2 + 6, width: w, height: Self.traceHeight * 1.6)
+        ecg.frame = CGRect(x: centre.x - w / 2, y: centre.y + side / 2 - 2, width: w, height: Self.traceHeight * 1.6)
         if !started { hole.path = holePath(radius: 0) }
         hole.frame = bounds
         CATransaction.commit()
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        setNeedsLayout()
     }
 
     private var chestOnScreen: CGPoint { mark.position }

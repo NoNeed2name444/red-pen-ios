@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Stethoscore's app icon, cut into layers for iOS 26 (Icon Composer).
+"""Stethoscore's former app icon, cut into layers (for IconLayersView).
+
+Since 14 Oct the app icon itself (AppIcon.icon and the icon set) is the
+owner's new stethoscope, written by tools/make_icon.py; this keeps only
+design/icon/layers, the old render's layers the in-app view shows.
+
 
 The icon is the chosen render, design/icon/source.png. iOS 26 lights and moves
 an icon layer by layer (Liquid Glass), so this cuts that render - nothing is
@@ -316,8 +321,8 @@ def outputs(layers):
     for i, ((name, _), (rgb, a)) in enumerate(zip(LAYERS, layers)):
         data = png(rgb, a)
         files[LAYERS_DIR / asset_name(i, name)] = data
-        files[BUNDLE / "Assets" / asset_name(i, name)] = data
-    files[BUNDLE / "icon.json"] = icon_json().encode()
+    # AppIcon.icon is no longer these layers: since the owner's new icon
+    # (14 Oct) tools/make_icon.py writes it, from design/icon/source/
     return files
 
 def main():
@@ -333,7 +338,7 @@ def main():
     files = outputs(layers)
     stale = [p for p, data in files.items() if not p.exists() or p.read_bytes() != data]
     keep = {p.name for p in files}
-    extra = [p for d in (LAYERS_DIR, BUNDLE / "Assets") if d.exists() for p in d.iterdir() if p.name not in keep]
+    extra = [p for d in (LAYERS_DIR,) if d.exists() for p in d.iterdir() if p.name not in keep]
     for p in stale: print(("stale " if check else "wrote ") + str(p.relative_to(ROOT)))
     for p in extra: print(("extra " if check else "removed ") + str(p.relative_to(ROOT)))
     if not check:
