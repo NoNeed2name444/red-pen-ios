@@ -9,6 +9,7 @@
 // The bound is on the error rate among Verified verdicts: n Verified with k
 // errors proves accuracy of at least the exact one-sided 95% lower bound.
 import { lowerBound } from '../jev-standin/oath-bench.mjs';
+import { familyOf } from '../../server/accuracy-model.js';
 
 export const RUNGS = [
   { name: '99.9%', rate: 1e-3 },
@@ -21,7 +22,26 @@ export const needed = rate => Math.ceil(Math.log(0.05) / Math.log(1 - rate));
 
 export function emptyState() {
   return { v: 1, started: null, updated: null, checked: 0, right: 0, wrong: 0, verified: 0, errors: 0, flagged: 0, check: 0,
-           unchecked: 0, rightVerified: 0, cursor: {}, days: [], spentByLadder: 0 };
+           unchecked: 0, rightVerified: 0, cursor: {}, days: [], spentByLadder: 0, families: {} };
+}
+
+/// The ledger of each family's blind answers against the gold key: one
+/// item's votes (as the Worker returns them, runner ballots among them),
+/// counted once per family, in place. `gold` the gold option's letter.
+export function addFamilyVotes(state, gold, votes) {
+  state.families ||= {};
+  const seen = new Set();
+  for (const v of votes || []) {
+    if (!v?.blind || !v.answer) continue;
+    const family = familyOf(v.model);
+    if (seen.has(family)) continue;
+    seen.add(family);
+    const f = state.families[family] ||= { answered: 0, right: 0, runner: false };
+    f.answered++;
+    if (v.answer === gold) f.right++;
+    if (v.runner) f.runner = true;
+  }
+  return state;
 }
 
 /// Adds one batch's results ({ truth, verdict }) to the state, in place.
@@ -100,5 +120,9 @@ export function progressMarkdown(state) {
     '|---|---|---|---|',
     ...state.days.slice(-14).map(d => `| ${d.day} | ${d.checked} | ${d.verified} | ${d.errors} |`),
   ];
+  const fams = Object.entries(state.families || {}).sort((a, b) => b[1].answered - a[1].answered);
+  if (fams.length) lines.push('', 'Each family\'s blind answers against the gold key (one witness per family per question; "runner": run on GitHub\'s CPU with no key):', '',
+    '| family | answered | right | right, 95% lower bound |', '|---|---|---|---|',
+    ...fams.map(([f, c]) => `| ${f}${c.runner ? ' (runner)' : ''} | ${c.answered} | ${c.right} | ${c.answered ? pct(lowerBound(c.right, c.answered)) : 'n/a'} |`));
   return lines.join('\n') + '\n';
 }

@@ -4,8 +4,12 @@
 //
 // Run: node tests/proof-ladder/ladder.test.mjs
 import { readFileSync } from 'node:fs';
-import { RUNGS, needed, emptyState, addResults, standing, paceLimit, mayContinue, progressMarkdown } from '../../tools/proof-ladder/ladder-lib.mjs';
-import { itemOf, readable, SOURCES } from '../../tools/proof-ladder/ladder.mjs';
+import { RUNGS, needed, emptyState, addResults, addFamilyVotes, standing, paceLimit, mayContinue, progressMarkdown } from '../../tools/proof-ladder/ladder-lib.mjs';
+import { itemOf, readable, SOURCES, pick, runnerFor } from '../../tools/proof-ladder/ladder.mjs';
+import { requestFor, answersOf } from '../../tools/runner-voter/vote.mjs';
+import { runnerVoters, DEFAULT_RUNNER_VOTERS } from '../../server/runner-voters.js';
+import { familyOf } from '../../server/accuracy-model.js';
+import { validQuestionOf as validQ } from '../../tools/verification-bench/datasets.mjs';
 
 let failures = 0;
 const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if (!cond) failures++; };
@@ -54,6 +58,56 @@ ok(RUNGS.map(r => r.name).join() === '99.9%,99.99%,99.999%', 'climbed in order')
   ok(SOURCES.every(s => ['Apache-2.0', 'CC-BY-4.0', 'MIT', 'CC0-1.0'].includes(s.licence)) && SOURCES.every(s => s.split === 'train'),
      'its questions are under commercial-use licences, from splits neither the triage nor the bench uses');
   ok(/progress\.json/.test(progressMarkdown(emptyState())) === false && progressMarkdown(emptyState()).includes('99.999%'), 'the progress page names every rung');
+}
+
+// MARK: the gold key stays here; the ledger counts each family once
+{
+  const q = { id: 'medmcqa-train:g', source: 'MedMCQA', kind: 'mcq', stem: 'Drug of choice for absence seizures is', options: ['Ethosuximide', 'Phenytoin', 'Carbamazepine', 'Gabapentin'], key: 0 };
+  const x = itemOf(q);
+  ok(x.gold === 'A' && !('gold' in x.item), 'each item keeps its gold letter, which is never sent');
+  const s = emptyState();
+  addFamilyVotes(s, 'A', [{ model: 'gemini-3.5-flash-lite', answer: 'A', blind: true }, { model: 'gemma-4-31b-it', answer: 'B', blind: true },
+                          { model: 'phi-4-mini-instruct', answer: 'C', blind: true, runner: true }, { model: 'claude-opus-5-5', answer: 'A', blind: false }]);
+  ok(s.families.google.answered === 1 && s.families.google.right === 1 && s.families.microsoft.right === 0 && s.families.microsoft.runner && !s.families.anthropic,
+     "the ledger: one blind answer per family per question, a voter shown the key not counted");
+  ok(/microsoft \(runner\) \| 1 \| 0/.test(progressMarkdown({ ...s, updated: 'now' })), 'and the progress page shows it');
+}
+
+// MARK: picking the day's questions, page by page, from where it stopped
+{
+  const row = (i, stem) => ({ row: { id: `r${i}`, question: stem, opa: 'Ethosuximide', opb: 'Phenytoin', opc: 'Carbamazepine', opd: 'Gabapentin', cop: 0, choice_type: 'single', exp: '' } });
+  const short = 'Drug of choice for absence seizures is';
+  const vignette = 'A 45-year-old man presents with chest pain. He is sweating. Which of the following is the next step?';
+  const pages = { 0: Array.from({ length: 100 }, (_, i) => row(i, i % 2 ? vignette : short)), 100: Array.from({ length: 100 }, (_, i) => row(100 + i, short)) };
+  const page = async url => ({ rows: pages[Number(new URL(url).searchParams.get('offset'))] || [] });
+  const ready = readable(validQ(pages[0][0].row));
+  const a = await pick({ cursor: {} }, 3, { page });
+  ok(!ready || (a.picked.length === 3 && a.picked.every(p => p.src === 'medmcqa-train') && a.scanned['medmcqa-train'] === a.picked[2].at),
+     'it stops reading where the third question was, so the next day starts after it');
+  const b = await pick({ cursor: { 'medmcqa-train': a.scanned['medmcqa-train'] } }, 3, { page });
+  ok(!ready || !b.picked.some(p => a.picked.some(q => q.item.id === p.item.id)), 'and the next day never takes the same question again');
+  const c = await pick({ cursor: {} }, 50, { page });
+  ok(!ready || (c.picked.length === 50 && c.scanned['medmcqa-train'] === c.picked[49].at), 'across a page edge too');
+}
+
+// MARK: runner voters
+{
+  const cfg = JSON.parse(readFileSync(new URL('../../tools/runner-voter/models.json', import.meta.url)));
+  ok(cfg.models.map(m => m.name).join() === DEFAULT_RUNNER_VOTERS && runnerVoters({}).join() === DEFAULT_RUNNER_VOTERS, 'the Worker takes ballots from exactly the models the runners run');
+  ok(cfg.models.every(m => ['MIT', 'Apache-2.0'].includes(m.licence) && /^\d{4}-\d{2}-\d{2}$/.test(m.licenceRead) && familyOf(m.name) === m.family) && cfg.engine.licence === 'MIT',
+     'each under a licence that allows commercial use, read on a date, and the family it says it is');
+  ok(new Set(cfg.models.map(m => m.family)).size === cfg.models.length && cfg.models.every(m => m.bytes < 5e9), 'one family each, small enough for a free runner');
+  ok(/^b\d+$/.test(cfg.engine.tag) && cfg.engine.tagDate <= '2026-10-01', 'the engine is pinned to a tagged release at least two weeks old');
+  const items = [{ id: 'a#ladder', kind: 'mcq', stem: 'Drug of choice for absence seizures is', options: ['Ethosuximide', 'Phenytoin'], key: 1, explanation: 'Because.', source: '' }];
+  const req = requestFor(items, 'm');
+  const prompt = JSON.stringify(req.messages);
+  ok(prompt.includes('Keyed answer and explanation withheld') && !prompt.includes('Because.') && req.temperature === 0 && req.response_format?.type === 'json_object',
+     'a runner answers blind, with the Worker\'s own blind prompt, held to JSON');
+  const got = answersOf([...items, { ...items[0], id: 'b#ladder' }], '{"items":[{"i":1,"answer":"A","risk":1},{"i":2,"answer":"D","risk":1}]}');
+  ok(got['a#ladder']?.answer === 'A' && !got['b#ladder'], 'its answers are read as the Worker reads a vote; a letter beyond the options is none');
+  const batch = [{ item: { id: 'a#ladder' } }, { item: { id: 'b#ladder' } }];
+  const r = runnerFor(batch, [{ model: 'x', votes: { 'a#ladder': { answer: 'A', risk: 1 }, 'b#ladder': { answer: 'B', risk: 2 } } }, { model: 'y', votes: { 'a#ladder': { answer: 'A' } } }]);
+  ok(r.length === 1 && r[0].model === 'x' && r[0].votes[1].answer === 'B', 'a batch carries only the runners that answered every question in it, in its order');
 }
 
 console.log(failures ? `\n${failures} failed` : '\nall passed');
