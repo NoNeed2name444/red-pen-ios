@@ -52,6 +52,8 @@ struct CaseListView: View {
             .frame(maxWidth: .infinity)
         }
         .wardScreen()
+        // the Cases hue on the paper's grid and the controls' edges
+        .wardSection(.cases)
         .navigationTitle(current.name)
         .navigationBarTitleDisplayMode(.inline)
             }

@@ -67,7 +67,7 @@ enum WardRelief {
     /// A control's edge, light and dark, in the paper's blue: about 3.3:1
     /// on the base in both (the grid's own strength would be about 2:1).
     static let lightEdge = 0.85
-    static let darkEdge = 0.65
+    static let darkEdge = 0.7
     static let highContrastEdge = 1.0
     /// A card's or a slab's edge under Increase Contrast; none otherwise.
     static let containerHighContrastEdge = 0.35

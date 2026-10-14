@@ -144,6 +144,8 @@ extension View {
             .background(ModeBackdrop(kind: kind))
             .wardControls()
             .environment(\.modeTint, Color.wardPrimaryInk)
+            // the mode's hue on the paper's grid and the controls' edges
+            .wardSection(WardSection(kindRaw: kind.rawValue))
     }
 
     /// Slides up, solid, on first appearance, staggered by `index` so a
@@ -283,7 +285,7 @@ struct ScoreRing: View {
 /// the middle of the indigo Anki screen: the accent is the app's colour, not
 /// the screen's.
 private struct ModeTintKey: EnvironmentKey {
-    static let defaultValue: Color = .wardPrimaryInk
+    static var defaultValue: Color { .wardPrimaryInk }
 }
 
 extension EnvironmentValues {

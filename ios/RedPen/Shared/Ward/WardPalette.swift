@@ -60,20 +60,20 @@ enum WardPalette {
     /// (light, dark) as 0xRRGGBB.
     static let table: [WardToken: (light: UInt32, dark: UInt32)] = [
         .background:   (0xE0E5EC, 0x2A2E35),
-        .surface:      (0xE4E8EE, 0x2F333B),
-        .raised:       (0xE9EDF2, 0x353A43),
-        .well:         (0xD8DEE6, 0x24282E),
+        .surface:      (0xEBEFF4, 0x353A44),
+        .raised:       (0xF4F6F9, 0x3C424E),
+        .well:         (0xD5DCE5, 0x1F2228),
         .primary:      (0x1D5FB0, 0x136F8E),
-        .primaryInk:   (0x1D5FB0, 0x5CC8EC),
+        .primaryInk:   (0x1D5FB0, 0x4FD8FF),
         .onPrimary:    (0xFFFFFF, 0xFFFFFF),
-        .ecg:          (0xBA273B, 0xFF8A9B),
-        .beam:         (0xC2620B, 0xF5A54A),
-        .success:      (0x137045, 0x5DD39E),
-        .warning:      (0x8F5400, 0xF2B64E),
-        .danger:       (0xB8222A, 0xFF8A8F),
-        .ink:          (0x0E1B2C, 0xEEF2F7),
-        .inkSecondary: (0x4E5E73, 0xB0BCCB),
-        .hairline:     (0xC8D0DA, 0x1F2228),
+        .ecg:          (0xBA273B, 0xFF97A9),
+        .beam:         (0xC2620B, 0xFFAF57),
+        .success:      (0x137045, 0x5EE0A8),
+        .warning:      (0x8F5400, 0xFFC15A),
+        .danger:       (0xB8222A, 0xFF9A9F),
+        .ink:          (0x0E1B2C, 0xF5F8FC),
+        .inkSecondary: (0x4E5E73, 0xC4CEDA),
+        .hairline:     (0xC8D0DA, 0x1B1E23),
         .monitor:      (0x0E1B2C, 0x0E1B2C),
     ]
 
@@ -92,7 +92,7 @@ enum WardPalette {
 
     /// A colour part way from `a` to `b` (t 0 to 1), mixed in linear light
     /// so the middle of a light-to-dark shift is not muddy: what one frame
-    /// of the appearance glide shows (WardSchemeGlide).
+    /// of the appearance glide shows (WardGlide).
     static func mix(_ a: UInt32, _ b: UInt32, _ t: Double) -> UInt32 {
         let t = min(1, max(0, t))
         func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
@@ -160,8 +160,9 @@ enum WardScale {
 }
 
 /// Light to dark and back: the colours move to the other palette over
-/// about a third of a second, a colour shift and never a fade (WardSchemeGlide
-/// in WardTokens draws it; under Reduce Motion they switch at once).
+/// about a third of a second, a colour shift and never a fade (WardGlide in
+/// WardLook holds the shift, WardLookDriver in WardTokens runs it; under
+/// Reduce Motion they switch at once).
 enum WardSchemeGlide {
     static let duration = 0.35
 

@@ -517,7 +517,7 @@ enum IdeasPlace {
     static let chosenSymbol: String = "lightbulb.fill"
     /// Pager Amber: the tint of the 3D map's backdrop, the one place that
     /// keeps its own look.
-    static let tint: Color = Color.wardBeam
+    static var tint: Color { .wardBeam }
     /// Where Ideas sits along the dock: after the four categories.
     static var order: Int { StudyCategory.allCases.count }
 }

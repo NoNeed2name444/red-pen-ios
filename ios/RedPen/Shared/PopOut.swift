@@ -541,7 +541,7 @@ private struct PopOutLifecycle: ViewModifier {
         SkyRoot(content: content)
             // light and dark switch with a colour shift, the paper and the
             // base included (WardTokens)
-            .wardSchemeGlide()
+            .wardLookRoot()
             .overlay(alignment: .topLeading) {
                 if PopOutLifecycle.debug {
                     PopOutDebugLabel()

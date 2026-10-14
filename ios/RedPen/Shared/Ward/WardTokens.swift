@@ -4,54 +4,256 @@ import UIKit
 
 // The Ward Round palette as SwiftUI colours, type, spacing and radii. Every
 // colour comes from WardPalette's table through a dynamic UIColor, so light
-// and dark have one source and no colour set can drift. The soft UI light
+// and dark have one source and no colour set can drift, and every one is
+// drawn from the one look the app is at (WardLookStore), so a change of
+// light or dark, or of section, shifts them all together. The soft UI light
 // (WardRelief) is drawn by WardSurfaces.
 
 extension Color {
+    /// A palette colour. At rest it resolves from the trait it is drawn in,
+    /// as it always has. While the look shifts (WardLookStore), it is this
+    /// frame's colour, taken from the one glide every Ward colour shares,
+    /// so the whole app is at one point of the shift on every frame.
+    /// Reading it in a view's body subscribes the view to the shift.
     static func ward(_ token: WardToken) -> Color {
-        Color(uiColor: UIColor { traits in
-            let (r, g, b) = WardPalette.rgb(WardPalette.hex(token, dark: traits.userInterfaceStyle == .dark))
-            return UIColor(red: r, green: g, blue: b, alpha: 1)
+        let glide = WardLookStore.shared.glide
+        if glide.settled { return WardRestColors.palette[token.index] }
+        return Color(uiColor: UIColor { traits in
+            uiColor(glide.hex(token, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
         })
     }
 
-    static let wardBackground = ward(.background)
-    static let wardSurface = ward(.surface)
-    static let wardRaised = ward(.raised)
-    static let wardWell = ward(.well)
-    static let wardPrimary = ward(.primary)
-    static let wardPrimaryInk = ward(.primaryInk)
-    static let wardOnPrimary = ward(.onPrimary)
-    static let wardEcg = ward(.ecg)
-    static let wardBeam = ward(.beam)
-    static let wardSuccess = ward(.success)
-    static let wardWarning = ward(.warning)
-    static let wardDanger = ward(.danger)
-    static let wardInk = ward(.ink)
-    static let wardInkSecondary = ward(.inkSecondary)
-    static let wardHairline = ward(.hairline)
-    static let wardMonitor = ward(.monitor)
+    static var wardBackground: Color { ward(.background) }
+    static var wardSurface: Color { ward(.surface) }
+    static var wardRaised: Color { ward(.raised) }
+    static var wardWell: Color { ward(.well) }
+    static var wardPrimary: Color { ward(.primary) }
+    static var wardPrimaryInk: Color { ward(.primaryInk) }
+    static var wardOnPrimary: Color { ward(.onPrimary) }
+    static var wardEcg: Color { ward(.ecg) }
+    static var wardBeam: Color { ward(.beam) }
+    static var wardSuccess: Color { ward(.success) }
+    static var wardWarning: Color { ward(.warning) }
+    static var wardDanger: Color { ward(.danger) }
+    static var wardInk: Color { ward(.ink) }
+    static var wardInkSecondary: Color { ward(.inkSecondary) }
+    static var wardHairline: Color { ward(.hairline) }
+    static var wardMonitor: Color { ward(.monitor) }
 
-    /// The ink of an edge: the ECG paper's blue (WardRelief.edgeHex), drawn
-    /// at a spec's edge strength.
-    static let wardEdgeInk = Color(uiColor: UIColor { traits in
-        let (r, g, b) = WardPalette.rgb(WardRelief.edgeHex(dark: traits.userInterfaceStyle == .dark))
-        return UIColor(red: r, green: g, blue: b, alpha: 1)
-    })
+    /// The ink of an edge and of the paper's grid: the section's own hue
+    /// (WardSection.ink), drawn at a spec's edge strength.
+    static var wardEdgeInk: Color {
+        let glide = WardLookStore.shared.glide
+        if glide.settled { return WardRestColors.ink(glide.to.section) }
+        return Color(uiColor: UIColor { traits in
+            uiColor(glide.ink(dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
+        })
+    }
 
-    /// A control's edge: the paper's blue at WardRelief.edgeAlpha, at least
-    /// 3:1 on the base, stronger under Increase Contrast.
-    static let wardEdge = Color(uiColor: UIColor { traits in
-        let dark = traits.userInterfaceStyle == .dark
-        let (r, g, b) = WardPalette.rgb(WardRelief.edgeHex(dark: dark))
-        return UIColor(red: r, green: g, blue: b,
-                       alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
-    })
+    /// A control's edge: the section's ink at WardRelief.edgeAlpha, at
+    /// least 3:1 on the base, stronger under Increase Contrast.
+    static var wardEdge: Color {
+        let glide = WardLookStore.shared.glide
+        if glide.settled { return WardRestColors.edge(glide.to.section) }
+        return Color(uiColor: UIColor { traits in
+            let dark = traits.userInterfaceStyle == .dark
+            return uiColor(glide.ink(dark: dark, held: traits.wardHeld),
+                           alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
+        })
+    }
+
+    static func uiColor(_ hex: UInt32, alpha: Double = 1) -> UIColor {
+        let (r, g, b) = WardPalette.rgb(hex)
+        return UIColor(red: r, green: g, blue: b, alpha: alpha)
+    }
 
     /// One relief light at its strength.
     init(relief light: WardReliefLight) {
         let (r, g, b) = WardPalette.rgb(light.hex)
         self.init(red: r, green: g, blue: b, opacity: light.alpha)
+    }
+}
+
+extension WardToken {
+    var index: Int { WardRestColors.tokens.firstIndex(of: self) ?? 0 }
+}
+
+/// The colours at rest, made once: the dynamic ones every screen drew
+/// before the shift existed, resolved by the trait alone.
+enum WardRestColors {
+    static let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary,
+                                      .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor]
+    static let palette: [Color] = tokens.map { token in
+        Color(uiColor: UIColor { traits in
+            Color.uiColor(WardPalette.hex(token, dark: traits.userInterfaceStyle == .dark))
+        })
+    }
+    private static let inks: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
+        (section, Color(uiColor: UIColor { traits in
+            Color.uiColor(section.ink(dark: traits.userInterfaceStyle == .dark))
+        }))
+    })
+    private static let edges: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
+        (section, Color(uiColor: UIColor { traits in
+            let dark = traits.userInterfaceStyle == .dark
+            return Color.uiColor(section.ink(dark: dark),
+                                 alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
+        }))
+    })
+    static func ink(_ section: WardSection) -> Color { inks[section] ?? .blue }
+    static func edge(_ section: WardSection) -> Color { edges[section] ?? .blue }
+}
+
+// MARK: - The one animated value
+
+/// The look every Ward colour is drawn from (WardGlide): light or dark, and
+/// which section is on show, and the shift between two looks. One value for
+/// the whole app, so no frame can show two looks at once; views that read a
+/// Ward colour or the glide are redrawn on each step of a shift, in one
+/// update, with no animation transaction (so nothing cross-fades).
+final class WardLookStore: Observable, @unchecked Sendable {
+    static let shared = WardLookStore()
+
+    private let registrar = ObservationRegistrar()
+    private let lock = NSLock()
+    private var current = WardGlide.rest(WardLook(dark: false, section: .questions))
+    /// The sections asked for, newest last: a study screen's on top of
+    /// home's, so going back returns to home's hue.
+    private var sections: [(id: UUID, section: WardSection)] = []
+
+    var glide: WardGlide {
+        registrar.access(self, keyPath: \.glide)
+        return lock.withLock { current }
+    }
+
+    /// The look the app is at, or heading to.
+    var target: WardLook { lock.withLock { current.to } }
+
+    func set(_ glide: WardGlide) {
+        let changed: Bool = lock.withLock { current != glide }
+        guard changed else { return }
+        registrar.withMutation(of: self, keyPath: \.glide) {
+            lock.withLock { current = glide }
+        }
+    }
+
+    // sections
+
+    @MainActor func push(_ section: WardSection, id: UUID) {
+        if let i = sections.firstIndex(where: { $0.id == id }) {
+            sections[i].section = section
+        } else {
+            sections.append((id, section))
+        }
+        settleSection()
+    }
+
+    @MainActor func pop(id: UUID) {
+        sections.removeAll { $0.id == id }
+        settleSection()
+    }
+
+    @MainActor private func settleSection() {
+        let section = sections.last?.section ?? .questions
+        WardLookDriver.shared.go(WardLook(dark: target.dark, section: section))
+    }
+}
+
+/// Runs the shift: a display link steps the glide's progress each frame,
+/// for WardGlide.duration, then leaves it at rest. Under Reduce Motion a
+/// new look arrives at once.
+@MainActor
+final class WardLookDriver: NSObject {
+    static let shared = WardLookDriver()
+
+    var reduceMotion = false
+    private var link: CADisplayLink?
+    private var start: CFTimeInterval = 0
+    private var startProgress = 0.0
+
+    func go(_ look: WardLook) {
+        let store = WardLookStore.shared
+        let now = store.glide
+        guard look != now.to else { return }
+        if reduceMotion {
+            stop()
+            WardLookDriver.still { store.set(.rest(look)) }
+            return
+        }
+        let next = now.retargeted(look)
+        WardLookDriver.still { store.set(next) }
+        startProgress = next.progress
+        start = CACurrentMediaTime()
+        if link == nil {
+            let link = CADisplayLink(target: self, selector: #selector(step))
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+            link.add(to: .main, forMode: .common)
+            self.link = link
+        }
+    }
+
+    @objc private func step(_ link: CADisplayLink) {
+        let store = WardLookStore.shared
+        var glide = store.glide
+        glide.progress = min(1, startProgress + (CACurrentMediaTime() - start) / WardGlide.duration)
+        WardLookDriver.still {
+            store.set(glide.progress >= 1 ? .rest(glide.to) : glide)
+        }
+        if glide.progress >= 1 { stop() }
+    }
+
+    /// A step of the shift is a new colour, never an animation of one: a
+    /// change made inside someone's withAnimation (a dock tap) must not
+    /// cross-fade the colours (the grey films of the first recording).
+    static func still(_ change: () -> Void) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction, change)
+    }
+
+    private func stop() {
+        link?.invalidate()
+        link = nil
+    }
+}
+
+// MARK: - Held in one mode
+
+/// A part drawn in one mode whatever the app's is (the vitals monitor,
+/// bedtime's dark room): it keeps its colours while the app shifts. Bridged
+/// to the trait collection so the colours' providers can see it.
+struct WardHeldTrait: UITraitDefinition {
+    static let defaultValue = false
+}
+
+extension UITraitCollection {
+    var wardHeld: Bool { self[WardHeldTrait.self] }
+}
+
+extension UIMutableTraits {
+    var wardHeld: Bool {
+        get { self[WardHeldTrait.self] }
+        set { self[WardHeldTrait.self] = newValue }
+    }
+}
+
+struct WardHeldKey: EnvironmentKey, UITraitBridgedEnvironmentKey {
+    static let defaultValue = false
+    static func read(from traitCollection: UITraitCollection) -> Bool { traitCollection.wardHeld }
+    static func write(to mutableTraits: inout any UIMutableTraits, value: Bool) { mutableTraits.wardHeld = value }
+}
+
+extension EnvironmentValues {
+    var wardHeld: Bool {
+        get { self[WardHeldKey.self] }
+        set { self[WardHeldKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Drawn in `scheme` whatever the app's look, and kept out of the shift.
+    func wardHeld(_ scheme: ColorScheme) -> some View {
+        environment(\.colorScheme, scheme).environment(\.wardHeld, true)
     }
 }
 
@@ -90,34 +292,88 @@ enum WardRadius {
     static let bar = CGFloat(WardScale.xl)
 }
 
-/// Light to dark and back as a colour shift (WardSchemeGlide): the scheme
-/// the window has is passed on to the app a beat later, under an
-/// animation, so every Ward colour, which resolves from the scheme, moves
-/// from the old palette to the new one instead of jumping. Colours change;
-/// nothing fades. Under Reduce Motion the switch is immediate. Set once at
-/// the root, outside the paper and the base, so they shift too.
-struct WardSchemeGlideModifier: ViewModifier {
+/// The root of the shift: the window's light or dark (the system's, or
+/// Always night sky's) is handed to WardLookDriver the moment it changes,
+/// both from UIKit's trait change on the window (before SwiftUI redraws)
+/// and from SwiftUI's own scheme, whichever comes first. The window and its
+/// bars change style at once; every Ward colour shifts from the old palette
+/// to the new one over WardGlide.duration. Under Reduce Motion the switch
+/// is immediate. Set once at the root, outside the paper and the base.
+struct WardLookRoot: ViewModifier {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var shown: ColorScheme?
 
     func body(content: Content) -> some View {
         content
-            .environment(\.colorScheme, shown ?? scheme)
-            .onAppear { shown = scheme }
-            .onChange(of: scheme) { _, now in
-                if reduceMotion {
-                    shown = now
-                } else {
-                    withAnimation(.easeInOut(duration: WardSchemeGlide.duration)) { shown = now }
+            .background { WardWindowWatch().frame(width: 0, height: 0).accessibilityHidden(true) }
+            .onAppear {
+                WardLookDriver.shared.reduceMotion = reduceMotion
+                let store = WardLookStore.shared
+                if store.glide.settled && store.target.dark != (scheme == .dark) {
+                    store.set(.rest(WardLook(dark: scheme == .dark, section: store.target.section)))
                 }
+            }
+            .onChange(of: reduceMotion) { _, now in WardLookDriver.shared.reduceMotion = now }
+            .onChange(of: scheme) { _, now in
+                let store = WardLookStore.shared
+                WardLookDriver.shared.go(WardLook(dark: now == .dark, section: store.target.section))
             }
     }
 }
 
+/// Hears the window's light or dark change in UIKit, ahead of SwiftUI's
+/// redraw, so the first frame of the new style is already the shift's
+/// first frame (the old palette), never a frame of the new one.
+private struct WardWindowWatch: UIViewRepresentable {
+    func makeUIView(context: Context) -> WatchView { WatchView() }
+    func updateUIView(_ view: WatchView, context: Context) {}
+
+    final class WatchView: UIView {
+        private var registration: (any UITraitChangeRegistration)?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if let registration, let old = oldWindow { old.unregisterForTraitChanges(registration) }
+            registration = nil
+            oldWindow = window
+            guard let window else { return }
+            registration = window.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (window: UIWindow, _: UITraitCollection) in
+                let dark = window.traitCollection.userInterfaceStyle == .dark
+                let store = WardLookStore.shared
+                WardLookDriver.shared.go(WardLook(dark: dark, section: store.target.section))
+            }
+            let dark = window.traitCollection.userInterfaceStyle == .dark
+            let store = WardLookStore.shared
+            if store.glide.settled && store.target.dark != dark {
+                store.set(.rest(WardLook(dark: dark, section: store.target.section)))
+            }
+        }
+
+        private weak var oldWindow: UIWindow?
+    }
+}
+
+/// A screen's section: its hue tints the paper's grid and the controls'
+/// edges while it is on show, and the hue shifts to the next screen's
+/// with the same glide as light and dark.
+private struct WardSectionMark: ViewModifier {
+    let section: WardSection
+    @State private var id = UUID()
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { WardLookStore.shared.push(section, id: id) }
+            .onDisappear { WardLookStore.shared.pop(id: id) }
+            .onChange(of: section) { _, now in WardLookStore.shared.push(now, id: id) }
+    }
+}
+
 extension View {
-    /// Light and dark switch with a colour shift (WardSchemeGlideModifier).
-    func wardSchemeGlide() -> some View { modifier(WardSchemeGlideModifier()) }
+    /// The app's root: light and dark shift as one (WardLookRoot).
+    func wardLookRoot() -> some View { modifier(WardLookRoot()) }
+
+    /// This screen's section (WardSection): its hue on the grid and edges.
+    func wardSection(_ section: WardSection) -> some View { modifier(WardSectionMark(section: section)) }
 }
 
 /// A small-caps label ("TODAY'S WARD ROUND"): the source string stays in

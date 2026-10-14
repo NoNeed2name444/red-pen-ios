@@ -237,6 +237,10 @@ struct LibraryView: View {
             }
         }
         .task { restoreLastSet() }
+        // the "section-switch" preview steps along the dock as a tap would
+        .onReceive(NotificationCenter.default.publisher(for: PreviewExtras.dockStep)) { note in
+            previewDockStep(toIdeas: note.object as? String == "ideas")
+        }
         // the search's index follows the library and the notes; it is only
         // rebuilt while a search is showing
         .onReceive(store.$library) { search.libraryChanged($0) }
@@ -351,6 +355,24 @@ struct LibraryView: View {
         })
     }
 
+    /// One step along the dock, as a tap on the next place would take it:
+    /// each category, then Ideas, then back to Questions (a recording of the
+    /// sections' hues shifting); or straight to Ideas.
+    private func previewDockStep(toIdeas: Bool = false) {
+        let all: [StudyCategory] = StudyCategory.allCases
+        withAnimation(.snappy(duration: 0.3)) {
+            if toIdeas {
+                inIdeas = true
+            } else if inIdeas {
+                dockSelection.wrappedValue = all[0]
+            } else if let i = all.firstIndex(of: category), i + 1 < all.count {
+                dockSelection.wrappedValue = all[i + 1]
+            } else {
+                inIdeas = true
+            }
+        }
+    }
+
     /// Ideas in place of the category's page. It sits after the four
     /// categories, so it always slides in from the trailing side.
     func goToIdeas() {
@@ -390,6 +412,9 @@ struct LibraryView: View {
             .safeAreaInset(edge: .leading, spacing: 0) { rail }
             .safeAreaInset(edge: .bottom) { bottomBar }
             .modifier(KeyboardWatch(up: $keyboardUp))
+            // the category's hue (or Ideas') on the paper's grid and the
+            // controls' edges, shifting with the dock
+            .wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)
     }
 
     /// The page, and everything it can push.
@@ -508,6 +533,7 @@ struct LibraryView: View {
         if railed && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
                 .environment(\.colorScheme, dockScheme)
+                .environment(\.wardHeld, underSky)
                 .wardUnlit()
                 .transition(.slideIn(.leading))
         }
@@ -544,14 +570,18 @@ struct LibraryView: View {
                 if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
                         .environment(\.colorScheme, dockScheme)
+                        .environment(\.wardHeld, underSky)
                 }
             }
-            // No strip under it: New set and the dock float on the page's
-            // own paper, so the page runs unbroken to the bottom (the
-            // owner's word, 9 Oct), and without a glow round them, only
-            // their edges. The rows still scroll clear of it by its
-            // measured height.
+            // New set and the dock stand on the page's own base, in the
+            // page's colour, so the page still reads unbroken to the bottom
+            // (the owner, 9 Oct) but nothing scrolled under them shows
+            // through or peeks out below the dock (the owner, 14 Oct); the
+            // paper frame's edge ink marks where the rows are cut. Without a
+            // glow round them, only their edges. The rows scroll clear of it
+            // by its measured height.
             .wardUnlit()
+            .wardBarBase(room: WardSpace.m, shown: !underSky)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
