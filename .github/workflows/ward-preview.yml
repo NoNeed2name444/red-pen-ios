@@ -79,9 +79,10 @@ jobs:
             xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
             xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" "$@" >> out/shots.log 2>&1 \
               || echo "launch failed: $name" >> out/shots.log
-            sleep 9
+            sleep 12
             xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "out/shots/$name.png" >> out/shots.log 2>&1 \
               || echo "shot failed: $name" >> out/shots.log
+            pgrep -f "RedPen.app/RedPen" >/dev/null || echo "not running after: $name" >> out/shots.log
           }
           for mode in light dark; do
             for screen in library quiz new settings sheet; do
@@ -103,6 +104,9 @@ jobs:
           done
           kill -INT $REC
           wait $REC || true
+          for report in ~/Library/Logs/DiagnosticReports/RedPen*.ips; do
+            [ -f "$report" ] && cp "$report" out/ && echo "crash report: $(basename "$report")" >> out/shots.log
+          done
           for f in out/shots/*.png; do sips --resampleWidth 600 "$f" --out "$f" >/dev/null || true; done
           ls -la out out/shots
       - name: Keep the log
