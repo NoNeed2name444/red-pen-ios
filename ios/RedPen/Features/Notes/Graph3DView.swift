@@ -278,7 +278,7 @@ struct Graph3DView: View {
             } else if let id = flownRegion, let name = built.names[id] {
                 GraphRegionPill(text: name)
                     .padding(.top, 8)
-                    .transition(.opacity)
+                    .transition(.identity)
             }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: flownRegion)
@@ -337,7 +337,7 @@ struct Graph3DView: View {
         VStack(spacing: 10) {
             if tuningLinks {
                 GraphLinkLengthBar(value: linkBinding, done: { tuningLinks = false })
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(.move(edge: .bottom))
             }
             // it stays while its note is open over the map: the note grows
             // out of it, and shrinks back into it; it steps aside while a
@@ -354,7 +354,7 @@ struct Graph3DView: View {
                                   option: { item in choose(item, for: optionsTarget(id, in: built, at: nil)) })
                     .id(id)
                     .accessibilityFocused($cardFocused)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(.move(edge: .bottom))
             }
         }
         .padding(.horizontal, 16)
@@ -395,7 +395,7 @@ struct Graph3DView: View {
             }
             // the same space as the map's own view, where it was held
             .ignoresSafeArea()
-            .transition(.opacity)
+            .transition(.identity)
         }
     }
 
