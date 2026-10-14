@@ -62,14 +62,16 @@ struct LaunchSplash: View {
         return screen?.traitCollection.userInterfaceStyle == .dark
     }
 
-    /// The Ward base as the system launch screen drew it: the LaunchBackground
-    /// colour set, written out so the splash never depends on it being found.
-    static func base(dark: Bool) -> Color {
-        let (r, g, b) = WardPalette.rgb(WardPalette.hex(.background, dark: dark))
-        return Color(red: r, green: g, blue: b)
-    }
-
+    /// The Ward base as the system launch screen drew it: the very colour
+    /// the launch screen names (LaunchBackground, as the asset compiler
+    /// stored it), so the two are the same pixels, not a value a rounding
+    /// apart (run 38595937165: one chroma step off in both modes, with the
+    /// colour written out). The written-out value is only the fallback.
     static func baseCG(dark: Bool) -> CGColor {
+        let traits = UITraitCollection(userInterfaceStyle: dark ? .dark : .light)
+        if let named = UIColor(named: "LaunchBackground", in: nil, compatibleWith: traits) {
+            return named.resolvedColor(with: traits).cgColor
+        }
         let (r, g, b) = WardPalette.rgb(WardPalette.hex(.background, dark: dark))
         return UIColor(red: r, green: g, blue: b, alpha: 1).cgColor
     }
@@ -80,7 +82,8 @@ struct LaunchSplash: View {
 
     /// No splash for CI screenshots, the graph design preview, or a launch
     /// that asks for none (`-noSplash`). `-uiPreviewSplash` keeps it on a
-    /// preview launch, to record the opening.
+    /// preview launch, to record the opening (`-uiPreviewSplashHold` with it
+    /// holds its first frame, to be compared with the launch screen).
     @MainActor static var wanted: Bool {
         let args = ProcessInfo.processInfo.arguments
         if !shown && args.contains("-uiPreviewSplash") { return true }
@@ -314,6 +317,19 @@ final class LaunchOpeningView: UIView {
 
     private func begin() {
         guard !started, window != nil || bounds.width > 0 else { return }
+        // a preview launch can hold the first frame, to photograph it against
+        // the system launch screen, marked (a red square at the left edge's
+        // middle) so a screenshot shows which of the two it caught
+        if ProcessInfo.processInfo.arguments.contains("-uiPreviewSplashHold") {
+            let tag = CALayer()
+            tag.backgroundColor = UIColor.red.cgColor
+            tag.frame = CGRect(x: 0, y: bounds.midY - 4, width: 8, height: 8)
+            layer.addSublayer(tag)
+            started = true
+            link?.invalidate(); link = nil
+            waited?.cancel(); waited = nil
+            return
+        }
         started = true
         link?.invalidate(); link = nil
         waited?.cancel(); waited = nil

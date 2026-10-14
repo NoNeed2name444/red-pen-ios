@@ -103,20 +103,44 @@ jobs:
           xcrun simctl ui "$UDID" appearance "$MODE"
           xcrun simctl install "$UDID" "$APP"
           mkdir -p film
+          T="film/timing-$MODE.txt"
+          stamp() { echo "$(date -u +%H:%M:%S.%N | cut -c1-12) $*  | load $(sysctl -n vm.loadavg)" >> "$T"; }
+          stamp "booted and installed"
           # one launch first, unrecorded: the first launch after install
           # spends seconds on caches that no real opening does
+          stamp "warm-up launch"
           xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >/dev/null
           sleep 8
+          # two recorded launches: the film is the first; the second shows
+          # whether a slow first one was the machine settling after boot
+          for take in 1 2; do
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            sleep 3
+            name="film/raw-$MODE.mp4"; [ $take = 2 ] && name="film/raw-$MODE-2.mp4"
+            xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "$name" &
+            REC=$!
+            sleep 3
+            stamp "take $take: launch (3 s into $name)"
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> "film/launch-$MODE.log" 2>&1
+            # a Debug build on a busy runner can sit on the launch screen ~10 s
+            sleep 20
+            kill -INT $REC
+            wait $REC || true
+          done
+          # the splash's first frame against the system launch screen, as
+          # lossless screenshots: launched holding the first frame (marked
+          # with a red square), shot each second while it starts (the launch
+          # screen) and again once the held splash is up
           xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
           sleep 3
-          xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "film/raw-$MODE.mp4" &
-          REC=$!
-          sleep 3
-          xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> "film/launch-$MODE.log" 2>&1
-          # a Debug build on a busy runner can sit on the launch screen ~10 s
-          sleep 20
-          kill -INT $REC
-          wait $REC || true
+          xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash -uiPreviewSplashHold >/dev/null
+          for i in 1 2 3 4 5 6; do
+            sleep 1
+            xcrun simctl io "$UDID" screenshot --type=png "film/ground-$MODE-$i.png" >/dev/null 2>&1 || true
+          done
+          sleep 12
+          xcrun simctl io "$UDID" screenshot --type=png "film/ground-$MODE-held.png" >/dev/null 2>&1 || true
+          stamp "done"
           ls -la film
 
       - name: Keep the build log
