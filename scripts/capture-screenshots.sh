@@ -2,6 +2,9 @@
 set -euo pipefail
 mkdir -p screenshots test-results
 trap 'adb logcat -d > test-results/logcat.txt 2>&1 || true' EXIT
+sdkmanager --version | tee test-results/sdkmanager-version.txt
+grep -h "^target=" "$ANDROID_AVD_HOME/test.ini" | tee test-results/avd-target.txt
+grep -qx "target=android-37.0" test-results/avd-target.txt
 adb wait-for-device
 for attempt in $(seq 1 60); do
   if adb shell pm path android | grep -q 'package:'; then break; fi

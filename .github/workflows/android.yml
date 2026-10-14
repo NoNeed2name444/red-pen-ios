@@ -21,6 +21,7 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v3
         with:
+          cmdline-tools-version: '15859902'
           packages: 'platform-tools'
       - name: Install Android 17 SDK
         run: |
@@ -54,6 +55,7 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v3
         with:
+          cmdline-tools-version: '15859902'
           packages: 'platform-tools'
       - name: Install Android 17 SDK
         run: |
@@ -71,8 +73,8 @@ jobs:
       - name: Capture real Android screenshots and exercise study flows
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: '37.2'
-          target: google_apis_ps16k
+          api-level: '37.0'
+          target: google_apis
           arch: x86_64
           profile: pixel_6
           disable-animations: true
