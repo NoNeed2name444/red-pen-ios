@@ -132,7 +132,7 @@ function world(extra = {}, plan = {}) {
     if (url.includes('typesafe')) {
       const state = JSON.parse(init.body).state;
       log.push('jev');
-      const respond = () => new Response(JSON.stringify({ model: 'jev-1', answers: { oath: { type: 'noul', noul: state.includes('Start') ? 0.95 : 0.1 } } }), { status: 200 });
+      const respond = () => new Response(JSON.stringify({ model: 'jev-1', answers: { oath: { type: 'noul', noul: state.includes('covers') ? 0.95 : 0.1 } } }), { status: 200 });
       return plan.jev === 'hang' ? hang(respond) : respond();
     }
     log.push(`other:${url.split('?')[0]}`);
@@ -167,7 +167,7 @@ const C1 = { id: 'c1', kind: 'card', text: 'Q: Antidote to warfarin?\nA: Vitamin
 const DOSE = { id: 'd1', kind: 'card', text: 'Q: Dose of amoxicillin for otitis media?\nA: 500 mg PO three times a day', source: 'Amoxicillin is first-line for acute otitis media.' };
 const MGMT = { id: 'm1', kind: 'mcq', stem: 'A 54-year-old has crushing chest pain with ST elevation. What is the most appropriate next step in management?',
   options: ['Aspirin and primary PCI', 'Discharge home'], key: 0, explanation: 'Primary PCI is the treatment of choice for STEMI.', source: '' };
-const TREAT = { id: 't1', kind: 'card', text: 'Start ceftriaxone for suspected bacterial meningitis. NOEVIDENCE', source: '' };
+const TREAT = { id: 't1', kind: 'card', text: 'Ceftriaxone covers suspected bacterial meningitis. NOEVIDENCE', source: '' };
 const WRONG = { id: 'w1', kind: 'card', text: 'Q: Antidote to heparin?\nA: Vitamin K WRONG', source: 'Protamine reverses heparin.' };
 const SPLIT = { id: 's1', kind: 'mcq', stem: 'Drug of choice for absence seizures? SPLIT', options: ['Ethosuximide', 'Phenytoin'], key: 1, explanation: 'Phenytoin.', source: '' };
 const SEVERE = { id: 'p1', kind: 'card', text: 'Give paracetamol 10 g orally for fever.', source: '' };
@@ -268,7 +268,8 @@ async function play(check, extra, plan, calls) {
   };
   const quiet = () => ({ hard: [], soft: [], checks: 0, work: 0, complete: true });
   const open = await run([FLIP, DOSED, Q1], { gate: quiet });
-  const onlyProof = i => i.verdict === 'check' && i.p > 0.9 && i.reasons.length === 1 && /no official source states/i.test(i.reasons[0]);
+  // the proof's one reason: none states it yet, or it cannot be put as a statement a source could make
+  const onlyProof = i => i.verdict === 'check' && i.p > 0.9 && i.reasons.length === 1 && /word for word/i.test(i.reasons[0]);
   ok(onlyProof(open.body.items[0]) && onlyProof(open.body.items[1]) && !('claims' in open.body.items[0]),
      'without the gate, only the missing source proof holds both back: the votes alone pass them');
   const gated = await run([FLIP, DOSED, Q1]);
@@ -533,8 +534,8 @@ async function play(check, extra, plan, calls) {
   const votes = body.items[0].votes;
   ok(votes.length === 3 && votes.every(v => v.blind === true && v.fix === null), 'their votes are marked blind and fix nothing');
   ok(new Set(votes.map(v => familyOf(v.model))).size === 3, 'and come from three model families');
-  ok(body.items[0].verdict === 'check' && body.items[0].reasons.includes('No official source states it word for word yet.'),
-     'three independent blind solves reaching the key, passing it, with no official source stating it: still Check this');
+  ok(body.items[0].verdict === 'check' && body.items[0].reasons.some(r => r.startsWith('Its question is a clinical vignette')),
+     'three independent blind solves reaching the key, passing it, with no official source stating it: still Check this, and said why it never can be');
   w.release();
   const said = world({}, { says: SAYS });
   forgetWeights();

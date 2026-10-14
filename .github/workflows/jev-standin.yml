@@ -1,0 +1,90 @@
+# The open stand-in for Jev (§22a; plan, the owner's third round, item 7).
+#
+# Layer 7, the oath check (server/oath.js: our own rules plus the source
+# proof, fail closed), is measured on labelled claims: any miss fails the run
+# (§22a: "any miss blocks launch").
+# Layer 6, card and question triage: an open NLI cross-encoder scores every
+# option, in batch, on this runner's CPU (tools/jev-standin/score_nli.py), and
+# its thresholds are tuned on labelled items (triage.mjs), confirmed on a
+# held-out half. Free and open only: the model comes from the Hugging Face
+# Hub; no paid model is ever called and no secret is used.
+#
+# Which model: the "model" input, or the TRIAGE_NLI_MODEL repository
+# variable (an open NLI cross-encoder's Hub id). Which items: our own
+# labelled ones (tools/jev-standin/own-labels.jsonl, when it exists), or else
+# public exam questions with their true and a planted key, as a stand-in.
+# Results: the run summary and the jev-standin artifact.
+name: Jev stand-in
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Hub id of an open NLI cross-encoder (or set the TRIAGE_NLI_MODEL variable)'
+        required: false
+        default: ''
+      per_source:
+        description: 'Public questions per source when there are no own labels (each twice)'
+        required: false
+        default: '100'
+permissions:
+  contents: read
+concurrency:
+  group: jev-standin
+  cancel-in-progress: false
+jobs:
+  standin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Layer 7, the oath check on labelled claims
+        run: |
+          mkdir -p out
+          files=tools/jev-standin/oath-seed.jsonl
+          [ -f tools/jev-standin/own-oath-labels.jsonl ] && files="$files tools/jev-standin/own-oath-labels.jsonl"
+          node tools/jev-standin/oath-bench.mjs $files | tee out/oath.md
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: '.github/workflows/jev-standin.yml'
+      - name: Layer 6, the items
+        run: |
+          if [ -f tools/jev-standin/own-labels.jsonl ]; then
+            node tools/jev-standin/items.mjs --labels tools/jev-standin/own-labels.jsonl > out/items.jsonl
+          else
+            tools/verification-bench/fetch.sh data > /dev/null
+            node tools/jev-standin/items.mjs --bench data --per-source "${{ inputs.per_source || '100' }}" > out/items.jsonl
+          fi
+          wc -l out/items.jsonl
+      - name: Layer 6, scored by the open model (CPU)
+        env:
+          MODEL: ${{ inputs.model || vars.TRIAGE_NLI_MODEL }}
+        run: |
+          if [ -z "$MODEL" ]; then
+            echo "No model: give the model input or set TRIAGE_NLI_MODEL (an open NLI cross-encoder's Hub id)." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          pip install --quiet --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
+          pip install --quiet transformers==4.46.3 sentencepiece==0.2.0 protobuf==5.28.3
+          python tools/jev-standin/score_nli.py --model "$MODEL" --items out/items.jsonl --out out/scores.jsonl
+      - name: Layer 6, thresholds tuned and confirmed
+        run: node tools/jev-standin/triage.mjs --items out/items.jsonl --scores out/scores.jsonl --out out
+      - name: Summary
+        if: always()
+        run: |
+          [ -f out/oath.md ] && cat out/oath.md >> "$GITHUB_STEP_SUMMARY"
+          [ -f out/report.md ] && cat out/report.md >> "$GITHUB_STEP_SUMMARY"
+          true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jev-standin
+          path: |
+            out/*.md
+            out/thresholds.json
+            out/scores.jsonl
+          if-no-files-found: ignore

@@ -342,7 +342,7 @@ const items = [
   ok(r.status === 200 && body.items.length === 2 && body.items[0].id === 'q1', 'a batch is checked');
   ok([...calls].sort().join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/nvidia/nemotron-3-120b-a12b,workers:@cf/openai/gpt-oss-120b', `three free voters from three families, asked at once, one call each for the whole batch (${calls.join()})`);
   ok(body.items[0].votes.length === 3 && body.items[0].evidence.some(e => e.url.includes('medlineplus')), 'with all three votes and the evidence they were shown');
-  ok(body.items[0].verdict === 'check' && body.items[0].p > 0.85 && body.items[0].reasons.includes('No official source states it word for word yet.')
+  ok(body.items[0].verdict === 'check' && body.items[0].p > 0.85 && body.items[0].reasons.some(r => r.startsWith('Its question is a clinical vignette'))
      && body.items[0].proof?.v === PROOF_VERSION && body.items[0].proof.proven === 0,
      `agreeing votes with support but no official source stating it: Check this, with its proof attached (${body.items[0].p})`);
   ok(body.items[0].evidence.every(e => !('official' in e) && !('html' in e) && !('full' in e)), 'the official text read for the proof does not come back with the evidence');

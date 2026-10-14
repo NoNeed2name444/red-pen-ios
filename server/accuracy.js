@@ -38,9 +38,11 @@ import { proGate, askModel, spend, refund, pinnedSource } from './ai.js';
 import { europePMC, medlinePlus, openFDA, forModels } from './evidence.js';
 import { prove, fullyProven, PROOF_VERSION, PROOF_CHARS } from './proof.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
-import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, isOath, oathClaims, familyOf, MIN_VERIFY_VOTERS } from './accuracy-model.js';
+import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, oathClaims, familyOf, MIN_VERIFY_VOTERS } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
 import { claimGate, MAX_WORK, remembering } from './claims.js';
+import { provenance, registryOf, HOLD_REASONS } from './provenance.js';
+import { oathCheck } from './oath.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
@@ -149,7 +151,7 @@ export async function evidenceFor(item, fetcher, seen = new Map()) {
     const text = e.text.slice(0, 600);
     if (used + text.length > MAX_EVIDENCE_CHARS) break;
     used += text.length;
-    out.push({ ...forModels(e), text, id: `S${out.length + 1}` });
+    out.push({ ...forModels(e), text, id: `S${out.length + 1}`, ...(e.meta ? { meta: e.meta } : {}) });
   }
   return out;
 }
@@ -292,31 +294,67 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
                        sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter,
                        sourceProof: fullyProven(signals?.proof) });
   const p = predict(f, weights);
-  // the oath check: a dose, a diagnosis or a treatment needs evidence behind
-  // it; Jev's yes (jev.js, recorded with the votes) can only add one
+  // the oath check (oath.js: our own rules and the source proof, fail
+  // closed): a dose, a diagnosis or a treatment needs evidence behind it;
+  // Jev's yes (jev.js, recorded with the votes) can only add one
   const text = itemText(item);
-  const oath = oathWithJev(isOath(text), signals?.jevOath);
+  const sworn = oathCheck(item, signals?.proof);
+  const oath = oathWithJev(sworn.oath, signals?.jevOath);
   const graded = verdict(p, f, examWeights(weights, item, strictness), oath);
   const contradicted = Boolean(claims?.hard?.length);
-  const final = contradicted && graded === 'verified' ? 'check' : graded;
+  // provenance (provenance.js): each claim's chain, its sources' registry,
+  // and the five conditions; a condition that fails holds the item from
+  // Verified, as a contradiction of its lecture does
+  const prov = provenance(item, signals, { oath });
+  const held = Boolean(prov?.holds.length);
+  const final = (contradicted || held) && graded === 'verified' ? 'check' : graded;
   const fixed = suggestedFix(item, votes);
   const cut = signals?.proof?.why;
   // its key stated word for word, and another option a source may state too
   const other = cut === 'distractor' || cut === 'options';
-  const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null, other);
+  const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null, other || UNPROVABLE.has(cut));
   if (contradicted) reasons.push('It contradicts its own lecture.');
+  for (const code of new Set((prov?.holds || []).map(h => h.code))) reasons.push(HOLD_REASONS[code]);
   if (cut === 'lookup' || cut === 'timeout' || cut === 'error') reasons.push('An official source could not be read this time; it will be checked again.');
   else if (cut === 'budget') reasons.push('Its official sources were too long to read in this batch; it will be checked again on its own.');
   else if (cut === 'distractor') reasons.push('An official source may also state another of its options.');
   else if (cut === 'options') reasons.push('One of its other options could not be read for certain.');
+  else if (UNPROVABLE.has(cut)) reasons.push(UNPROVABLE_REASONS[cut] || UNPROVABLE_REASONS.other);
+  // the lecture's findings and provenance's holds go back together, so the
+  // app (which keeps the hard findings' codes) holds the item as the server did
+  const lectured = claimsReply(claims);
+  const findings = held ? { claims: { hard: [...(lectured?.claims.hard || []), ...prov.holds], soft: lectured?.claims.soft || [],
+    ...(lectured?.claims.partial ? { partial: true } : {}) } } : lectured;
   return {
     id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: final, modelVersion: weights.version, reasons,
     features: f, rules, votes, evidence: signals?.evidence || [], fix: fixed,
-    ...(oath ? { oath: oathClaims(text) } : {}),
-    ...(claimsReply(claims) || {}),
+    ...(oath ? { oath: { ...oathClaims(text), why: sworn.why } } : {}),
+    ...(findings || {}),
     ...(signals?.proof ? { proof: signals.proof } : {}),
+    ...(prov ? { provenance: { tier: final === 'verified' ? prov.tier : null, gates: prov.gates, witnesses: prov.witnesses,
+      chains: prov.chains.map(chainReply), sources: prov.sources.map(sourceReply), flags: prov.flags } } : {}),
   };
 }
+
+/// Proof's reasons for an item it can never prove word for word, however
+/// long it waits: the item is not built from statements a source could make
+/// (a clinical vignette, a case, a checklist). Said as it is, not "yet"
+/// (Islamic brief §1 row 20, "la adri": not established is an honest
+/// answer; §3: always record the reason).
+export const UNPROVABLE = new Set(['stem', 'kind', 'options', 'mcq', 'card', 'many', 'claim', 'split', 'cut', 'item', 'empty']);
+const UNPROVABLE_REASONS = {
+  stem: 'Its question is a clinical vignette, not a statement a source can make, so no source can prove it word for word: it stays for a person to check.',
+  kind: 'A case, a checklist or a page says more than one source states, so no source can prove it word for word: it stays for a person to check.',
+  options: 'Its options cannot each be read as a statement, so it cannot be proven word for word.',
+  many: 'It makes more claims than one check proves; split it to have it proven.',
+  other: 'It cannot be read into statements a source could prove word for word.',
+};
+
+// a chain and a source as the reply carries them: no more than the app shows
+const sourceReply = r => ({ id: r.id, url: r.url, source: r.source, title: r.title, type: r.type, grade: r.grade,
+  publisher: r.publisher, date: r.date, edition: r.edition, retracted: r.retracted, corrections: r.corrections, sponsors: r.sponsors });
+const chainReply = c => ({ claim: c.claim, passage: c.passage, section: c.section || null, source: c.source?.url || null,
+  retrieval: c.retrieval, checkers: c.checkers, gap: c.gap });
 
 /// The claim gate's findings as the reply carries them: nothing when it found
 /// nothing (so a reply is what it was before the gate), else the hard and
@@ -679,7 +717,7 @@ export async function jevStage(env, entries, votes, fetcher, budget = BUDGETS.je
   const statuses = [];
   const answers = [];
   for (const [n, e] of entries.entries()) {
-    if (!votes[n].length || isOath(itemText(e.item))) { answers.push(null); continue; }
+    if (!votes[n].length || oathCheck(e.item, e.proof).oath) { answers.push(null); continue; }
     const asked = await within(budget, () => jevOath(env, itemText(e.item), fetcher), null);
     statuses.push(asked.status);
     answers.push(asked.value === null ? null : Math.round(asked.value * 1000) / 1000);
@@ -805,6 +843,9 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   const found = done(await evidenceStage(todo.map(i => items[i]), fetcher, budget.evidence, seen));
   const proofs = await proved([...todo, ...reprove]);
   const entries = todo.map((i, n) => ({ i, item: items[i], evidence: found[n], proof: proofs[n] }));
+  // the official sources each item was proven from, for the registry: the
+  // proof's own lookups, shared by key (`seen`), so nothing is fetched again
+  const officials = await Promise.all(entries.map(async e => (await within(budget.proof, () => officialFor(e.item, fetcher, seen), { entries: [] })).value.entries));
   const { ballots, failures } = done(await votesStage(env, account, owner, body.writer, entries, fetcher, budget.votes));
   const votes = entries.map((_, n) => votesOn(ballots, n));
   const jev = done(await jevStage(env, entries, votes, fetcher, budget.jev));
@@ -817,6 +858,9 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
       kind: e.item.kind, votes: votes[n], sourceMatch: sourceMatch(e.item, e.item.source),
       evidence: e.evidence.map(({ id, source, title, url }) => ({ id, source, title, url })),
       proof: e.proof,
+      // each source's registry entry (provenance.js, rijal), kept with the
+      // verdict so a cached item's chains are read the same way again
+      sources: registryOf([...e.evidence, ...officials[n]]),
     };
     if (jev[n] !== null) signals.jevOath = jev[n];
     outcomes[e.i] = { from: 'check', signals };

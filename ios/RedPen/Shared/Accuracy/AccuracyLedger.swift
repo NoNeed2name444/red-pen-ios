@@ -150,6 +150,13 @@ struct AccuracyAssessment: Hashable {
         case "percentage": return "Gives a different percentage from its own lecture."
         case "direction": return "Says the other way from its own lecture."
         case AccuracyCheckReply.gateFailed: return "Couldn't be compared with its lecture yet; it will be checked again."
+        // the server's provenance holds (server/provenance.js): where its
+        // source came from and whether that chain can be trusted
+        case "retracted": return "A source it rests on was retracted or is under an expression of concern."
+        case "conflict": return "Only its sponsor's own source says this in its favour; it needs an independent source."
+        case "dabt": return "It doesn't copy its source faithfully: a number, unit, frequency, population or \"not\" differs, or a dose is written unsafely."
+        case "shadh": return "A stronger source was read against it."
+        case "tafarrud": return "Only one source supports it, and that source isn't strong enough on its own."
         default: return "Differs from its own lecture."
         }
     }
