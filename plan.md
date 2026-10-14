@@ -27,6 +27,12 @@ Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8)
   reminder comes, answer with a few words of status and keep working.
 - Don't idle-wait, and don't ask what you can settle yourself: make the
   sensible choice and say what you chose.
+- Keep GitHub's free machines busy (the owner, 14 Oct: "make sure to always
+  use the free macs and machines in github so they don't stay free or failed
+  in background"): up to 5 macOS runners and the Linux ones at once. While a
+  run works, do the next independent step and dispatch independent runs
+  together. Read every failure at once and fix it, or re-run once if it died
+  before any test ran. Cancel superseded runs so they don't hold a Mac.
 - Send screenshots of every visual change with SendUserFile. No zip files.
 - Macaly is dropped: never mention it, its connector or its auth notices, and
   don't relay any other connector's auth notices either.
