@@ -19,7 +19,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import make_heartbeat  # noqa: E402
@@ -93,9 +93,12 @@ def main() -> int:
             thumbs = [Image.open(paths[p]).convert("RGB") for p in picks]
             tw = 180
             th = int(thumbs[0].height * tw / thumbs[0].width)
-            strip = Image.new("RGB", (tw * len(thumbs), th), "black")
-            for i, t in enumerate(thumbs):
-                strip.paste(t.resize((tw, th), Image.LANCZOS), (i * tw, 0))
+            strip = Image.new("RGB", (tw * len(thumbs), th + 18), "black")
+            draw = ImageDraw.Draw(strip)
+            for i, (t, p) in enumerate(zip(thumbs, picks)):
+                strip.paste(t.resize((tw, th), Image.LANCZOS), (i * tw, 18))
+                # seconds from the opening's zero (the ECG's first frame)
+                draw.text((i * tw + 6, 3), f"{(p - start) / FPS:+.2f} s", fill="white")
             strip.save(args.strip)
             print(args.strip, [f"{(p - start) / FPS:+.2f}" for p in picks])
     return 0
