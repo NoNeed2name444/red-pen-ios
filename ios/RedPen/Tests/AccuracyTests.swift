@@ -297,6 +297,11 @@ check("and the finding is a reason, in words", gated.assess(item0).reasons.conta
 gated.record(gateReply(#","claims":{"hard":[{"code":"direction","claim":"raises the potassium","source":"lowers the potassium"}],"soft":[]}"#), for: [hash0], at: gateTime)
 check("a sentence turned around has words of its own", gated.assess(item0).grade == .check
       && gated.assess(item0).reasons.contains("Says the other way from its own lecture."))
+gated.record(gateReply(#","claims":{"hard":[{"code":"dabt","claim":"Give 1.0 mg","source":"number: 1 mg against 10 mg"}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("a provenance hold from the server (server/provenance.js) holds it too, in its own words", gated.assess(item0).grade == .check
+      && gated.assess(item0).reasons.contains { $0.hasPrefix("It doesn't copy its source faithfully") })
+check("and every provenance hold has words of its own", ["retracted", "conflict", "dabt", "shadh", "tafarrud"]
+      .allSatisfy { AccuracyAssessment.holdReason($0) != AccuracyAssessment.holdReason("anything else") })
 gated.record(gateReply(""), for: [hash0], at: gateTime)
 check("a later reply's findings replace the earlier ones", gated.assess(item0).grade == .verified)
 gated.add(votes: [AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports")], holds: ["negation"], for: hash0)

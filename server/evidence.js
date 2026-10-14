@@ -23,6 +23,7 @@
 // evidenceFor, leave them out).
 
 import { FDA_SECTIONS, drugTokens } from './proof.js';
+import { trialIds } from './provenance.js';
 
 const TIMEOUT_MS = 6000;
 const CACHE_SECONDS = 24 * 60 * 60;
@@ -167,7 +168,28 @@ export async function europePMC(query, fetcher = fetch) {
     title: `${unhtml(r.title)} (${r.journalInfo?.journal?.isoabbreviation || r.journalTitle || 'journal'}, ${r.pubYear})`,
     url: r.doi ? `https://doi.org/${r.doi}` : `https://europepmc.org/article/${r.source}/${r.id}`,
     text: trim(unhtml(r.abstractText), 900),
+    meta: pmcMeta(r),
   })).filter(e => e.text);
+}
+
+/// A Europe PMC record's registry facts (provenance.js, rijal): its
+/// publication types, date, identifiers, funders, corrections (an erratum,
+/// an update, a retraction notice) and the trials its abstract names. Never
+/// shown to a model.
+export function pmcMeta(r) {
+  const many = v => (Array.isArray(v) ? v : v ? [v] : []);
+  const text = s => String(s || '').trim();
+  return {
+    pubTypes: many(r?.pubTypeList?.pubType).map(text).filter(Boolean),
+    date: text(r?.firstPublicationDate) || (r?.pubYear ? String(r.pubYear) : null),
+    doi: text(r?.doi) || null,
+    pmid: text(r?.pmid) || null,
+    publisher: text(r?.journalInfo?.journal?.title || r?.journalTitle) || null,
+    funders: [...new Set(many(r?.grantsList?.grant).map(g => text(g?.agency)).filter(Boolean))].slice(0, 12),
+    corrections: many(r?.commentCorrectionList?.commentCorrection).map(c => text(c?.type)).filter(Boolean).slice(0, 12),
+    trials: trialIds(unhtml(r?.abstractText)),
+    work: workKey(unhtml(r?.title)) || null,
+  };
 }
 
 /// MedlinePlus health topics (NLM), the reviewed summary for the topic; with
@@ -237,6 +259,11 @@ export async function openFDA(drug, fetcher = fetch) {
     source: 'openFDA label', title: `${drug} (FDA label, effective ${label.effective_time || 'current'})`,
     url: setId ? `https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=${setId}` : 'https://open.fda.gov/apis/drug/label/',
     text,
+    // its registry facts (provenance.js): who made it, its date and edition
+    meta: {
+      manufacturer: (Array.isArray(label.openfda?.manufacturer_name) ? label.openfda.manufacturer_name[0] : null) || null,
+      date: label.effective_time || null, edition: label.version || null, setId: setId || null,
+    },
   };
   const official = officialLabel(drug, label);
   if (official) entry.official = official;
@@ -281,9 +308,9 @@ export async function gather(terms, fetcher = fetch) {
 }
 
 /// An entry as a model or the app may see it: without the full texts kept
-/// for proof.
+/// for proof, or its registry facts.
 export function forModels(entry) {
-  const { official, html, ...rest } = entry;
+  const { official, html, meta, ...rest } = entry;
   return rest;
 }
 
