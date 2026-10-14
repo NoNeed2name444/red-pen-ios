@@ -83,8 +83,8 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
        'score_nli.py --dry scores every option of every question, and a card once');
     const tri = spawnSync('node', [join(root, 'tools/jev-standin/triage.mjs'), '--items', join(dir, 'items.jsonl'), '--scores', join(dir, 'scores.jsonl'), '--out', dir], { encoding: 'utf8' });
     const th = existsSync(join(dir, 'thresholds.json')) ? JSON.parse(readFileSync(join(dir, 'thresholds.json'), 'utf8')) : null;
-    ok(tri.status === 0 && th && th.thresholds && th.labelled === 60 && /never verifies/.test(readFileSync(join(dir, 'report.md'), 'utf8')),
-       'triage.mjs tunes on the labels and writes its report and thresholds');
+    ok(tri.status === 0 && th && th.thresholds?.all && th.labelled === 60 && /never verifies/.test(readFileSync(join(dir, 'report.md'), 'utf8')),
+       'triage.mjs tunes each gate on its labels and writes its report and thresholds');
   }
 }
 
