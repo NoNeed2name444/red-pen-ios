@@ -77,6 +77,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           ram-size: 4096M
+          disk-size: 8G
           cores: 2
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           script: |
