@@ -134,14 +134,19 @@ export function reduxItems(rows, subject) {
   return out;
 }
 
-async function getJSON(url, tries = 3) {
+// the datasets server answers a burst with 429: wait as it asks (or
+// longer each time), up to about four minutes for one page
+async function getJSON(url, tries = 8) {
   for (let t = 0; ; t++) {
+    let wait = 2000 * 2 ** t;
     try {
       const r = await fetch(url, { headers: { 'user-agent': 'StethoscoreLabelSets/0.1 (+https://github.com/NoNeed2name444/red-pen-ios)' } });
       if (r.ok) return await r.json();
       if (t >= tries - 1 || (r.status < 500 && r.status !== 429)) throw new Error(`${url}: ${r.status}`);
-    } catch (e) { if (t >= tries - 1) throw e; }
-    await new Promise(res => setTimeout(res, 1500 * (t + 1)));
+      const after = Number(r.headers.get('retry-after'));
+      if (after > 0) wait = Math.max(wait, after * 1000);
+    } catch (e) { if (t >= tries - 1 || /: \d{3}$/.test(e.message)) throw e; }
+    await new Promise(res => setTimeout(res, Math.min(wait, 60_000)));
   }
 }
 async function hfRows(dataset, config, split, total) {
@@ -150,6 +155,7 @@ async function hfRows(dataset, config, split, total) {
     const page = await getJSON(`https://datasets-server.huggingface.co/rows?dataset=${encodeURIComponent(dataset)}&config=${config}&split=${split}&offset=${off}&length=100`);
     rows.push(...(page.rows || []));
     if (!page.rows?.length) break;
+    await new Promise(res => setTimeout(res, 500));
   }
   return rows;
 }
