@@ -129,8 +129,11 @@ final class GraphStyleKit {
         // each note a little differently
         let tilt = SCNNode()
         // a black hole leans less: its disk nearly edge-on, so the lensed
-        // far side arches over the shadow
-        let lean: Float = (style == .blackHole ? 0.1 : 0.26) + random.unit() * (style == .blackHole ? 0.08 : 0.14)
+        // far side arches over the shadow; a gas giant more, so its ring
+        // opens out
+        var lean: Float = 0.26 + random.unit() * 0.14
+        if style == .blackHole { lean = 0.1 + (lean - 0.26) * 0.6 }
+        if style == .gasGiant { lean += 0.22 }
         let roll: Float = random.unit() * 0.3
         let yaw: Float = random.unit() * Float.pi
         let flat = simd_quatf(angle: lean - Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
@@ -617,8 +620,10 @@ final class GraphStyleKit {
     private func holePair(tint: UIColor, dormant: Bool = false) -> (ring: SCNGeometry, disk: SCNGeometry) {
         let ringMaterial: SCNMaterial
         if support.has("bhRing") {
+            // the traced disk is its own colour (heat and Doppler), not the
+            // folder's tint, which would only dim it
             ringMaterial = Self.glow(GraphArt.ring)
-            ringMaterial.multiply.contents = tint
+            ringMaterial.multiply.contents = UIColor.white
             attach(ringMaterial, GraphStyleShaders.bhRing)
             ringMaterial.setValue(NSNumber(value: dormant ? 0.0 : 1.0), forKey: "rpDisk")
         } else {

@@ -1856,8 +1856,8 @@ struct GraphSCNView: UIViewRepresentable {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard let self, let sim = self.sim, let view = self.view, let camera = self.camera,
                       let i = sim.busiestNote() else { return }
-                // near enough that the widest glow (a sun's corona, about
-                // 4.6 radii) fills the narrower side of the screen
+                // near enough that the body and its inner glow (2.8 radii
+                // each side) fill the narrower side of the screen
                 let r: Float = sim.noteRadius(i)
                 var tanHalf: Float = 0.5
                 if let lens = camera.camera {
@@ -1867,12 +1867,13 @@ struct GraphSCNView: UIViewRepresentable {
                     let tanV: Float = vertical ? tan(half) : tan(half) / max(aspect, 0.01)
                     tanHalf = min(tanV, tanV * aspect)
                 }
-                let offset = SIMD3<Float>(0, 0, r * 4.6 / max(tanHalf, 0.05))
+                let offset = SIMD3<Float>(0, 0, r * 2.8 / max(tanHalf, 0.05))
                 let follow: () -> Void = {
                     let at: SIMD3<Float> = sim.world.simdConvertPosition(sim.currentPosition(i), to: nil)
                     camera.simdPosition = at + offset
                     camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
                 }
+                sim.namesWhileDragged = false
                 view.pointOfView = camera
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0

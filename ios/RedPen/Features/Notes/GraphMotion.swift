@@ -1087,6 +1087,11 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return home[i]
     }
 
+    /// Whether a dragged note shows its name (the design preview's close
+    /// ups turn it off, so the name does not cover the body). Set before a
+    /// drag, from the main thread.
+    var namesWhileDragged: Bool = true
+
     /// A note's radius, in the space's own units.
     func noteRadius(_ i: Int) -> Float {
         guard i >= 0, i < radius.count else { return 1 }
@@ -1946,7 +1951,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         labelsWanted.removeAll(keepingCapacity: true)
         wantLabel(hovered)
         wantLabel(pressedNote)
-        wantLabel(grabbed)
+        if namesWhileDragged { wantLabel(grabbed) }
         wantLabel(named)
         // the chosen body keeps its name while its card is up
         wantLabel(selected)

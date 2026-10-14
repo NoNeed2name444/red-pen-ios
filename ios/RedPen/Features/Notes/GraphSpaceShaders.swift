@@ -153,6 +153,9 @@ nonisolated enum GraphStyleShaders {
     ///   beams (period GraphNodeStyle.pulsarPeriod);
     /// - comet: icy, with twinkling dust.
     ///
+    /// Near each end the beam narrows (to a third of its width at the end),
+    /// so its glow meets the body as a point of light, not a square cut.
+    ///
     /// Every end but a black hole's flares where the beam leaves the body's
     /// limb (the strip starts inside the body, which hides the rest), the
     /// sending end the brighter, both brighter as pulses arrive.
@@ -214,6 +217,10 @@ nonisolated enum GraphStyleShaders {
     float rp_s = rp_s0 - rp_amp * sin(rp_turn);
     float rp_a = abs(rp_s);
     float rp_a2 = rp_a * rp_a * (1.0 + 2.5 * rp_bhW);
+    float rp_tpA = smoothstep(0.0, 0.6 * rp_reach, rp_along);
+    float rp_tpB = smoothstep(0.0, 0.6 * rp_reach, rp_toEnd);
+    float rp_wf = 0.3 + 0.7 * rp_tpA * rp_tpB;
+    rp_a2 = rp_a2 / (rp_wf * rp_wf);
     float rp_e = abs(rp_s0);
     float rp_w = clamp(1.0 - rp_e * rp_e, 0.0, 1.0);
     float rp_w2 = rp_w * rp_w;
@@ -809,12 +816,13 @@ nonisolated enum GraphStyleShaders {
     /// of the angle, drifting), fine polar plumes, and a thin rosy
     /// chromosphere on the limb with spicules. Three prominences: arches of
     /// glowing plasma standing on the limb, threaded with filaments, each
-    /// growing up out of the limb on its own clock until it erupts and is
-    /// carried away outwards, a new one rising after it. A flare throws a
-    /// loop of plasma off now and then, white cooling to orange as it goes.
+    /// rising out of the limb on its own clock and sinking back into it, a
+    /// new one rising elsewhere after it. Now and then a flare blows a loop
+    /// of plasma up off the limb, white cooling to orange, its feet always
+    /// on the sun (nothing comes loose to float away).
     /// The plane's z scale carries the note's own seed and how hard it is
     /// moving (SpaceOptics.coronaCode: 2 + seed + motion * 0.03), so no two
-    /// suns erupt in step, and dragged, its streamers stream outward, longer
+    /// suns flare in step, and dragged, its streamers stream outward, longer
     /// and brighter, and the plasma runs out along them.
     static let sunCorona: String = """
     #pragma arguments
@@ -858,12 +866,11 @@ nonisolated enum GraphStyleShaders {
     float rp_cA = rp_t / 14.0 + rp_seed * 0.1;
     float rp_fA = fract(rp_cA);
     float rp_tA = fract(sin(floor(rp_cA) * 3.7 + rp_seed) * 43758.5453) * 1.4 + 0.3 + rp_seed;
-    float rp_gA = max(rp_fA - 0.75, 0.0);
-    float rp_lA = rp_rl * (1.0 + 60.0 * rp_gA * rp_gA);
+    float rp_lA = rp_rl;
     float rp_xA = rp_qx * cos(rp_tA) + rp_qy * sin(rp_tA);
     float rp_yA = rp_qy * cos(rp_tA) - rp_qx * sin(rp_tA);
-    float rp_hA = rp_rl * (0.005 + 0.32 * min(rp_fA / 0.75, 1.0) + rp_gA);
-    float rp_wA = rp_rl * (0.01 + 0.12 * min(rp_fA / 0.3, 1.0) + rp_gA);
+    float rp_hA = rp_rl * (0.005 + 0.32 * sin(3.1415927 * rp_fA));
+    float rp_wA = rp_rl * (0.01 + 0.12 * sqrt(sin(3.1415927 * rp_fA)));
     float rp_sA = rp_yA / rp_wA;
     float rp_uA = (rp_xA - rp_lA) / rp_hA;
     float rp_eA = sqrt(rp_sA * rp_sA + rp_uA * rp_uA);
@@ -872,12 +879,11 @@ nonisolated enum GraphStyleShaders {
     float rp_cB = rp_t / 19.0 + 0.41 + rp_seed * 0.1;
     float rp_fB = fract(rp_cB);
     float rp_tB = fract(sin(floor(rp_cB) * 3.7 + 11.0 + rp_seed) * 43758.5453) * 1.6 + 2.6 + rp_seed;
-    float rp_gB = max(rp_fB - 0.75, 0.0);
-    float rp_lB = rp_rl * (1.0 + 60.0 * rp_gB * rp_gB);
+    float rp_lB = rp_rl;
     float rp_xB = rp_qx * cos(rp_tB) + rp_qy * sin(rp_tB);
     float rp_yB = rp_qy * cos(rp_tB) - rp_qx * sin(rp_tB);
-    float rp_hB = rp_rl * (0.005 + 0.24 * min(rp_fB / 0.75, 1.0) + rp_gB);
-    float rp_wB = rp_rl * (0.01 + 0.09 * min(rp_fB / 0.3, 1.0) + rp_gB);
+    float rp_hB = rp_rl * (0.005 + 0.24 * sin(3.1415927 * rp_fB));
+    float rp_wB = rp_rl * (0.01 + 0.09 * sqrt(sin(3.1415927 * rp_fB)));
     float rp_sB = rp_yB / rp_wB;
     float rp_uB = (rp_xB - rp_lB) / rp_hB;
     float rp_eB = sqrt(rp_sB * rp_sB + rp_uB * rp_uB);
@@ -886,12 +892,11 @@ nonisolated enum GraphStyleShaders {
     float rp_cC = rp_t / 23.0 + 0.77 + rp_seed * 0.1;
     float rp_fC = fract(rp_cC);
     float rp_tC = fract(sin(floor(rp_cC) * 3.7 + 22.0 + rp_seed) * 43758.5453) * 1.6 + 4.6 + rp_seed;
-    float rp_gC = max(rp_fC - 0.75, 0.0);
-    float rp_lC = rp_rl * (1.0 + 60.0 * rp_gC * rp_gC);
+    float rp_lC = rp_rl;
     float rp_xC = rp_qx * cos(rp_tC) + rp_qy * sin(rp_tC);
     float rp_yC = rp_qy * cos(rp_tC) - rp_qx * sin(rp_tC);
-    float rp_hC = rp_rl * (0.005 + 0.19 * min(rp_fC / 0.75, 1.0) + rp_gC);
-    float rp_wC = rp_rl * (0.01 + 0.07 * min(rp_fC / 0.3, 1.0) + rp_gC);
+    float rp_hC = rp_rl * (0.005 + 0.19 * sin(3.1415927 * rp_fC));
+    float rp_wC = rp_rl * (0.01 + 0.07 * sqrt(sin(3.1415927 * rp_fC)));
     float rp_sC = rp_yC / rp_wC;
     float rp_uC = (rp_xC - rp_lC) / rp_hC;
     float rp_eC = sqrt(rp_sC * rp_sC + rp_uC * rp_uC);
@@ -906,8 +911,8 @@ nonisolated enum GraphStyleShaders {
     float rp_ft = fract(sin(floor(rp_cF) * 5.3 + rp_seed) * 43758.5453) * 6.2831853;
     float rp_xF = rp_qx * cos(rp_ft) + rp_qy * sin(rp_ft);
     float rp_yF = rp_qy * cos(rp_ft) - rp_qx * sin(rp_ft);
-    float rp_go = rp_rl * (1.0 + 3.8 * pow(rp_fl, 1.3));
-    float rp_sz = rp_rl * (0.02 + 0.55 * pow(rp_fl, 0.7));
+    float rp_sz = rp_rl * (0.03 + 0.42 * sin(3.1415927 * rp_fl));
+    float rp_go = rp_rl + rp_sz * 0.45;
     float rp_dF = length(float2((rp_xF - rp_go) / (rp_sz * 0.7), rp_yF / rp_sz));
     float rp_shell = exp(-(rp_dF - 1.0) * (rp_dF - 1.0) * 30.0) * step(rp_rl, rp_r) * step(rp_go - rp_sz * 0.2, rp_xF + rp_sz * 0.7);
     float3 rp_fh = mix(float3(1.0, 0.95, 0.84), float3(1.0, 0.45, 0.12), rp_fl);
@@ -1266,7 +1271,7 @@ nonisolated enum GraphStyleShaders {
     float rp_sh = (1.0 - step(0.0, rp_al)) * (1.0 - smoothstep(0.85, 1.05, rp_perp));
     float rp_k = rp_d * rp_lit * (1.0 - 0.9 * rp_sh);
     rp_k = rp_k * (0.85 + 0.3 * rp_m);
-    float3 rp_col = rp_hue * (rp_k * 0.75) + float3(1.0, 0.95, 0.85) * (rp_fw * (1.0 - rp_sh));
+    float3 rp_col = rp_hue * (rp_k * 0.95) + float3(1.0, 0.95, 0.85) * (rp_fw * (1.0 - rp_sh));
 
     """ + glowEnd
 
