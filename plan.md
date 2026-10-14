@@ -1890,6 +1890,20 @@ with the marks on the screens last.
   design/space-bodies (4), design/perf-million (4b, 4c, 4e on iOS),
   android/kotlin (4d: the same map on Android, then parity gaps). The logo
   stays on Claude-Code (T0037); the marks (6) wait for the owner.
+- [ ] 9. Ward design pass (the owner, 14 Oct: "the iOS design is a bit
+  cramped - lacks color difference for each mode and animations when
+  switching colors - also when we removed the fade some buttons became too
+  flat and lost their neumorphic shaping so u can add fade to the buttons
+  but only a very small rim around the buttons enough to make them have
+  neumorphism but doesn't affect elements behind them"). On
+  design/ward-polish:
+  - More room: spacing, padding and line height on a consistent scale.
+  - Light and dark each get their own character, not one palette inverted.
+  - Switching light/dark animates the colours (a colour shift, no opacity).
+  - The one exception to "no fading": a small soft rim on buttons only (a
+    light highlight top-left and a shade bottom-right, a few points wide)
+    that gives them their neumorphic shape and never darkens or blurs what
+    lies behind or beside them.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
