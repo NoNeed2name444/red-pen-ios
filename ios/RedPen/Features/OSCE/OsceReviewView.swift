@@ -144,7 +144,7 @@ struct OsceReviewView: View {
                 let symbol: String = running ? "pause.fill" : (left == 0 ? "arrow.counterclockwise" : "play.fill")
                 // red in the last minute only while the clock runs
                 let warnBelow: Int = running ? 61 : 0
-                HStack(spacing: 6) {
+                HStack(spacing: WardSpace.s) {
                     Image(systemName: symbol)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.wardPrimaryInk)
@@ -208,13 +208,13 @@ struct OsceReviewView: View {
 
     private func stepBody(_ checklist: OsceChecklist) -> some View {
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(spacing: WardSpace.xl) {
                 if revealed, let text = currentStepText {
                     Text(text)
                         .font(.title3.weight(.medium))
                         .foregroundStyle(Color.wardInk)
                         .multilineTextAlignment(.center)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, WardSpace.m)
                         .contentCard()
                         .transition(.growIn(0.96))
                 } else {

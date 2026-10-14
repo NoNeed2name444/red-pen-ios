@@ -111,8 +111,8 @@ struct CaseWardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
                 CaseAvatar(initials: file.patient.initials)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: WardSpace.s) {
+                    HStack(spacing: WardSpace.s) {
                         if file.patient.age > 0 { WardChip(text: "\(file.patient.age) y", tone: .grey) }
                         if !file.patient.sexLetter.isEmpty {
                             WardChip(text: file.patient.isFemale ? "Female" : "Male", tone: .grey)
@@ -145,7 +145,7 @@ struct CaseWardView: View {
 
     /// The history as it was written on admission.
     private var clerkingCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             CaseLabel("Clerking note")
             clerkingParts
         }
@@ -167,7 +167,7 @@ struct CaseWardView: View {
     private var clerkingParts: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(file.clerking.parts.enumerated()), id: \.offset) { _, part in
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(part.label)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(CaseInk.biro)
@@ -218,7 +218,7 @@ struct CaseWardView: View {
                     .foregroundStyle(done ? CaseInk.discharge : CaseInk.theatre)
                     .contentTransition(.identity)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(step.label)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(done ? CaseInk.biro : Color.wardInk)
@@ -230,7 +230,7 @@ struct CaseWardView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(10)
+            .padding(WardSpace.m)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             // raised to be tapped; once taken, pressed into the card
             .wardRelief(in: shape, lift: .low, pressed: done)
@@ -264,7 +264,7 @@ struct CaseWardView: View {
     }
 
     private func noteEntry(_ step: CaseStep, at: Int) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
             HStack(alignment: .firstTextBaseline) {
                 Text(step.group.label + " \u{00B7} " + step.label)
                     .font(.footnote.weight(.semibold))
@@ -361,7 +361,7 @@ struct CaseLadderPanel: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: WardSpace.l) {
                 CaseLabel("Your ladder")
                 if run.ladder.isEmpty {
                     Text("Up to three working diagnoses, the most likely first. Change them whenever you like.")
@@ -398,7 +398,7 @@ struct CaseLadderPanel: View {
                                 .font(.subheadline)
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                .padding(.horizontal, 10)
+                                .padding(.horizontal, WardSpace.m)
                                 .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), lift: .low)
                         }
                         .buttonStyle(.plain)

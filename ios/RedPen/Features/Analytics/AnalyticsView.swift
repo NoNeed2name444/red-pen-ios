@@ -437,7 +437,7 @@ struct AnalyticsView: View {
                                 onToday: { route = .due })
         return Section {
             rings
-                .padding(.vertical, 6)
+                .padding(.vertical, WardSpace.s)
                 .listRowBackground(Color.clear)
         } footer: {
             Text(note)
@@ -579,7 +579,7 @@ struct AnalyticsView: View {
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(width: 22, height: 22)
                 .wardInset(in: Circle())
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Label(item.title, systemImage: item.symbol)
                     .font(.body.weight(.semibold))
                 Text(item.detail)
@@ -587,13 +587,13 @@ struct AnalyticsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if spark.count >= 2 {
                     Sparkline(points: spark)
-                        .padding(.top, 2)
+                        .padding(.top, WardSpace.xs)
                 }
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
@@ -743,7 +743,7 @@ struct AnalyticsView: View {
         if let picked = answer.picked, picked != q.correctIndex, q.options.indices.contains(picked) {
             chosen = "You chose " + q.options[picked]
         }
-        return HStack(alignment: .top, spacing: 10) {
+        return HStack(alignment: .top, spacing: WardSpace.m) {
             Button {
                 startQuiz(Store.temporaryQuiz(named: "One question", subject: Store.subjectName(answer.pick.set),
                                               from: [answer.pick]))
@@ -778,7 +778,7 @@ struct AnalyticsView: View {
                 .help("Rule sheet")
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
     }
 
     // MARK: - 5. Subjects
@@ -830,8 +830,8 @@ struct AnalyticsView: View {
     private func subjectRow(_ s: SubjectStats, trend: Trend?) -> some View {
         let accuracy: Double = s.answered == 0 ? 0 : s.accuracy
         let percent: String = s.answered == 0 ? "\u{2013}" : Self.percent(s.accuracy)
-        return HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
+        return HStack(spacing: WardSpace.m) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(s.subject).font(.body.weight(.semibold)).lineLimit(1)
                 Text("\(s.answered) answered").font(.caption).foregroundStyle(Color.wardInkSecondary)
             }
@@ -854,7 +854,7 @@ struct AnalyticsView: View {
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
         .frame(minHeight: 44)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -877,7 +877,7 @@ struct AnalyticsView: View {
             }
             .padding(.vertical, 4)
             StudyHeatmap(counts: s.dayCounts, restDays: log.restDaysUsed, focusDays: Set(log.minutes.keys))
-                .padding(.vertical, 6)
+                .padding(.vertical, WardSpace.s)
         } header: {
             Text("Time")
         } footer: {
@@ -886,7 +886,7 @@ struct AnalyticsView: View {
     }
 
     private func figure(_ value: String, _ caption: String, symbol: String, color: Color) -> some View {
-        VStack(spacing: 3) {
+        VStack(spacing: WardSpace.xs) {
             Image(systemName: symbol).font(.caption).foregroundStyle(color)
             Text(value).font(.title2.weight(.bold).monospacedDigit())
             Text(caption).font(.caption2).foregroundStyle(Color.wardInkSecondary)

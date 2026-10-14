@@ -81,8 +81,8 @@ struct CasePatientCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             CaseAvatar(initials: file.patient.initials)
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: WardSpace.s) {
+                HStack(spacing: WardSpace.s) {
                     Text(file.patient.ageSex)
                         .font(.headline)
                     Text("\u{00B7} " + file.setting.label)

@@ -144,7 +144,7 @@ struct DrawRecallView: View {
             }
         }
         .frame(minHeight: 44)
-        .padding(.top, 6)
+        .padding(.top, WardSpace.s)
     }
 
     @ViewBuilder
@@ -250,7 +250,7 @@ struct DrawRecallView: View {
             comparePill
                 .offset(y: -lift)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, WardSpace.xl)
         .padding(.bottom, 12)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
             if frame != pillRow { pillRow = frame }
@@ -277,7 +277,7 @@ struct DrawRecallView: View {
     }
 
     private var comparePanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             labelsPart
             if attempts.count > 1 { pastAttempts }
             fadeRow
@@ -311,7 +311,7 @@ struct DrawRecallView: View {
     /// and Draw again - the hero - at the trailing end.
     private var fadeRow: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(spacing: 2) {
+            VStack(spacing: WardSpace.xs) {
                 Slider(value: $fade, in: 0...1)
                     .accessibilityLabel("Fade between your drawing and the original")
                 HStack {
@@ -332,7 +332,7 @@ struct DrawRecallView: View {
     /// The thumbnails are raised; the scroll view clips what it draws, so
     /// the row keeps room inside it for their lights.
     private var pastAttempts: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
             Text("Earlier attempts").wardSmallCaps()
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -341,7 +341,7 @@ struct DrawRecallView: View {
                             .buttonStyle(.plain)
                     }
                 }
-                .padding(6)
+                .padding(WardSpace.s)
             }
             .padding(.horizontal, -6)
         }
@@ -350,7 +350,7 @@ struct DrawRecallView: View {
     private func thumbnail(_ attempt: RecallAttempt) -> some View {
         let here = attempt.id == attemptID
         let edge: Color = here ? Color.wardPrimaryInk : Color.clear
-        return VStack(spacing: 2) {
+        return VStack(spacing: WardSpace.xs) {
             Group {
                 if let picture = Self.picture(of: attempt) {
                     Image(uiImage: picture).resizable().scaledToFit()
@@ -782,12 +782,12 @@ struct DrawRecallExampleRow: View {
             opening = RecallExamples.seedIfNeeded()
             figure = RecallExamples.figure
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: WardSpace.l) {
                 Image(systemName: "pencil.and.scribble")
                     .font(.title3)
                     .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 30)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text("Draw it from memory").font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
                     Text("An inguinal canal drawing ready to Compare")
                         .font(.caption)
@@ -795,7 +795,7 @@ struct DrawRecallExampleRow: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, WardSpace.xs)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
