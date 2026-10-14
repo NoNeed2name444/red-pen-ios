@@ -274,7 +274,7 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(parseVotes('no json', 2).every(v => v === null), 'an unreadable reply is no vote');
   ok(disagree([{ risk: 1 }], [{ risk: 4 }]) && !disagree([{ risk: 1, answer: 'A' }], [{ risk: 2, answer: 'A' }]) && disagree([{ risk: 1, answer: 'A' }], [{ risk: 1, answer: 'B' }]), 'disagreement');
   const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {} };
-  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 4, 'the writing model never votes');
+  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 7, 'the writing model never votes');
   ok(votersFor({}, '').length === 0 && votersFor({ AI: {} }, '').every(v => /^workers-ai:/.test(v)), 'a voter whose provider is not set up here is left out');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'A', risk: 3 }])?.value === 'A', 'voters agreeing on another answer suggest it as the key');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'B', risk: 1 }]) === null, 'a split does not');

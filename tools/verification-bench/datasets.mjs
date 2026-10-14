@@ -8,32 +8,48 @@ export function loadQuestions(files) {
   for (const f of files) {
     const rows = JSON.parse(readFileSync(f, 'utf8')).rows || [];
     for (const { row } of rows) {
-      if ('opa' in row) {
-        if (row.choice_type && row.choice_type !== 'single') continue;
-        items.push({ id: `medmcqa:${row.id}`, source: 'MedMCQA', kind: 'mcq', stem: row.question,
-          options: [row.opa, row.opb, row.opc, row.opd], key: row.cop, explanation: row.exp || '' });
-      } else if (row.options && row.medical_task) {
-        // MedXpertQA (expert level, specialty boards, ten options): the stem
-        // carries its own "Answer Choices:" copy, cut off here
-        const letters = Object.keys(row.options).sort();
-        items.push({ id: `medxpertqa:${row.id}`, source: 'MedXpertQA', kind: 'mcq',
-          stem: row.question.split(/\nAnswer Choices:/)[0], options: letters.map(l => row.options[l]),
-          key: letters.indexOf(row.label), explanation: '', system: row.body_system, task: row.medical_task });
-      } else if (row.options) {
-        const letters = Object.keys(row.options).sort();
-        items.push({ id: `medqa:${items.length}`, source: 'MedQA', kind: 'mcq', stem: row.question,
-          options: letters.map(l => row.options[l]), key: letters.indexOf(row.answer_idx), explanation: '' });
-      } else if ('op1' in row) {
-        // CareQA: Spain's specialist-training entrance exams, in English
-        if (!['Medicine', 'Pharmacology', 'Nursing'].includes(row.category)) continue;
-        const options = ['op1', 'op2', 'op3', 'op4', 'op5'].map(k => row[k]).filter(o => o !== undefined && o !== null && o !== '');
-        items.push({ id: `careqa:${row.unique_id}`, source: `CareQA ${row.category}`, kind: 'mcq', stem: row.question,
-          options, key: Number(row.cop) - 1, explanation: '' });
-      }
+      const q = questionOf(row, items.length);
+      if (q) items.push(q);
     }
   }
-  return items.filter(q => Number.isInteger(q.key) && q.key >= 0 && q.key < q.options.length && q.stem);
+  return items.filter(valid);
 }
+
+const valid = q => Number.isInteger(q.key) && q.key >= 0 && q.key < q.options.length && q.stem;
+
+/// One datasets-server row as a question, by its shape; null for a row the
+/// bench does not take (and a question whose key does not fit its options
+/// is left out by the caller, after numbering, as before). `n`: a running
+/// number, for sets with no id of their own.
+export function questionOf(row, n = 0) {
+  let q = null;
+  if ('opa' in row) {
+    if (row.choice_type && row.choice_type !== 'single') return null;
+    q = { id: `medmcqa:${row.id}`, source: 'MedMCQA', kind: 'mcq', stem: row.question,
+      options: [row.opa, row.opb, row.opc, row.opd], key: row.cop, explanation: row.exp || '' };
+  } else if (row.options && row.medical_task) {
+    // MedXpertQA (expert level, specialty boards, ten options): the stem
+    // carries its own "Answer Choices:" copy, cut off here
+    const letters = Object.keys(row.options).sort();
+    q = { id: `medxpertqa:${row.id}`, source: 'MedXpertQA', kind: 'mcq',
+      stem: row.question.split(/\nAnswer Choices:/)[0], options: letters.map(l => row.options[l]),
+      key: letters.indexOf(row.label), explanation: '', system: row.body_system, task: row.medical_task };
+  } else if (row.options) {
+    const letters = Object.keys(row.options).sort();
+    q = { id: `medqa:${n}`, source: 'MedQA', kind: 'mcq', stem: row.question,
+      options: letters.map(l => row.options[l]), key: letters.indexOf(row.answer_idx), explanation: '' };
+  } else if ('op1' in row) {
+    // CareQA: Spain's specialist-training entrance exams, in English
+    if (!['Medicine', 'Pharmacology', 'Nursing'].includes(row.category)) return null;
+    const options = ['op1', 'op2', 'op3', 'op4', 'op5'].map(k => row[k]).filter(o => o !== undefined && o !== null && o !== '');
+    q = { id: `careqa:${row.unique_id}`, source: `CareQA ${row.category}`, kind: 'mcq', stem: row.question,
+      options, key: Number(row.cop) - 1, explanation: '' };
+  }
+  return q;
+}
+
+/// questionOf, keeping only a question whose key fits its options.
+export const validQuestionOf = (row, n = 0) => { const q = questionOf(row, n); return q && valid(q) ? q : null; };
 
 /// A seeded shuffle, so a run can be repeated exactly.
 export function seeded(seed) {

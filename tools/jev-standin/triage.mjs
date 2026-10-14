@@ -16,28 +16,36 @@ for (const s of lines(arg('scores'))) {
   const item = items.get(s.id);
   if (!item) continue;
   const f = item.kind === 'card' ? cardFeatures(s.scores[0]) : questionFeatures(s.scores, item.key);
-  rows.push({ id: s.id, truth: item.truth || null, source: item.source || 'own', f });
+  rows.push({ id: s.id, gate: item.gate || 'all', truth: item.truth || null, source: item.source || 'own', f });
 }
-const labelled = rows.filter(r => r.truth);
 const need = labelsNeeded(0.01);
 const pct = x => `${(100 * x).toFixed(1)}%`;
-const out = [`# Layer 6 triage (open NLI cross-encoder)`, '', `${rows.length} items scored, ${labelled.length} labelled.`, ''];
-let thresholds = null;
-if (labelled.filter(r => r.truth === 'wrong').length >= 10 && labelled.filter(r => r.truth === 'right').length >= 10) {
-  const t = tune(labelled);
-  thresholds = t.thresholds;
-  out.push(`| half | items | wrong | balanced accuracy | kappa | passed | wrong passed |`, `|---|---|---|---|---|---|---|`);
-  for (const [name, r] of [['tuned on', t.fit], ['held out', t.held]]) {
-    out.push(`| ${name} | ${r.n} | ${r.wrong} | ${pct(r.balanced)} | ${r.kappa.toFixed(3)} | ${r.passed} | ${r.passWrong} |`);
+const out = [`# Layer 6 triage (open NLI cross-encoder)`, '', `${rows.length} items scored, ${rows.filter(r => r.truth).length} labelled.`, ''];
+// each gate tuned on its own: a question, a card and a health claim read
+// differently, so one cut-off for all would fit none
+const gates = [...new Set(rows.map(r => r.gate))];
+const thresholds = {};
+const summary = {};
+out.push(`| gate | half | items | wrong | balanced accuracy | kappa | passed | wrong passed |`, `|---|---|---|---|---|---|---|---|`);
+const notes = [];
+for (const gate of gates) {
+  const labelled = rows.filter(r => r.gate === gate && r.truth);
+  if (labelled.filter(r => r.truth === 'wrong').length < 10 || labelled.filter(r => r.truth === 'right').length < 10) {
+    notes.push(`${gate}: too few labels to tune (at least 10 right and 10 wrong; §22a asks for ${need.tune} per gate).`);
+    continue;
   }
-  out.push('', `Thresholds (key's margin over the best other option): suspect at ${t.thresholds.suspect.toFixed(4)} or below, pass at ${t.thresholds.pass.toFixed(4)} or above.`);
-  out.push(`The §22a pilot bar: kappa of at least 0.8 on ${need.kappa} labels; held out here: ${t.held.kappa.toFixed(3)} (${t.held.kappa >= 0.8 ? 'met' : 'not met'}).`);
-} else {
-  out.push(`Too few labels to tune: at least 10 right and 10 wrong are needed to run, and §22a asks for ${need.tune} of our own per gate (${need.kappa} for the kappa bar).`);
+  const t = tune(labelled);
+  thresholds[gate] = t.thresholds;
+  summary[gate] = { fit: t.fit, held: t.held };
+  for (const [name, r] of [['tuned on', t.fit], ['held out', t.held]]) {
+    out.push(`| ${gate} | ${name} | ${r.n} | ${r.wrong} | ${pct(r.balanced)} | ${r.kappa.toFixed(3)} | ${r.passed} | ${r.passWrong} |`);
+  }
+  notes.push(`${gate}: suspect at a margin of ${t.thresholds.suspect.toFixed(4)} or below, pass at ${t.thresholds.pass.toFixed(4)} or above; held-out kappa ${t.held.kappa.toFixed(3)} on ${t.held.n} (§22a bar 0.8 on ${need.kappa}: ${t.held.kappa >= 0.8 && t.held.n >= need.kappa ? 'met' : t.held.kappa >= 0.8 ? 'met on fewer labels' : 'not met'}).`);
 }
+out.push('', ...notes.map(n => `- ${n}`));
 const counts = { suspect: 0, review: 0, pass: 0 };
-if (thresholds) for (const r of rows) counts[triage(r.f, thresholds)]++;
-if (thresholds) out.push('', `Triage of all ${rows.length}: ${counts.suspect} suspect, ${counts.review} review, ${counts.pass} pass. A triage only orders work; it never verifies.`);
+for (const r of rows) if (thresholds[r.gate]) counts[triage(r.f, thresholds[r.gate])]++;
+out.push('', `Triage of the tuned gates' items: ${counts.suspect} suspect, ${counts.review} review, ${counts.pass} pass. A triage only orders work; it never verifies.`);
 writeFileSync(join(outDir, 'report.md'), out.join('\n') + '\n');
-writeFileSync(join(outDir, 'thresholds.json'), JSON.stringify({ thresholds, labelled: labelled.length, need }, null, 1) + '\n');
+writeFileSync(join(outDir, 'thresholds.json'), JSON.stringify({ thresholds, summary, labelled: rows.filter(r => r.truth).length, need }, null, 1) + '\n');
 console.log(out.join('\n'));

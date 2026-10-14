@@ -9,23 +9,35 @@
 # held-out half. Free and open only: the model comes from the Hugging Face
 # Hub; no paid model is ever called and no secret is used.
 #
-# Which model: the "model" input, or the TRIAGE_NLI_MODEL repository
-# variable (an open NLI cross-encoder's Hub id). Which items: our own
-# labelled ones (tools/jev-standin/own-labels.jsonl, when it exists), or else
-# public exam questions with their true and a planted key, as a stand-in.
+# Which model: the "model" input, else the TRIAGE_NLI_MODEL repository
+# variable, else tools/jev-standin/default-model.json (a biomedical NLI
+# cross-encoder under the MIT licence, small enough for the runner's CPU).
+# Which items: our own labelled ones (tools/jev-standin/own-labels.jsonl,
+# when it exists), or else the public gold-labelled sets of
+# tools/label-sets/registry.json (each licence allows commercial use; no
+# label comes from a checking model), about 400 per gate.
 # Results: the run summary and the jev-standin artifact.
 name: Jev stand-in
 on:
+  # a push that changes the stand-in or its label sets runs it too (the run
+  # button only lists workflows on main)
+  push:
+    branches: ['design/verify-mechanisms', 'standin/run']
+    paths: ['tools/jev-standin/**', 'tools/label-sets/**', 'server/oath.js', '.github/workflows/jev-standin.yml']
   workflow_dispatch:
     inputs:
       model:
-        description: 'Hub id of an open NLI cross-encoder (or set the TRIAGE_NLI_MODEL variable)'
+        description: 'Hub id of an open NLI cross-encoder (empty: the TRIAGE_NLI_MODEL variable, else the default)'
         required: false
         default: ''
-      per_source:
-        description: 'Public questions per source when there are no own labels (each twice)'
+      entail_index:
+        description: 'Which class is entailment, for a model whose classes are LABEL_0.. only (empty: read from the model)'
         required: false
-        default: '100'
+        default: ''
+      per_gate:
+        description: 'Public labelled items per gate when there are no own labels (half right, half wrong)'
+        required: false
+        default: '400'
 permissions:
   contents: read
 concurrency:
@@ -40,12 +52,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Layer 7, the oath check on labelled claims
+      - name: The label sets (public, gold-labelled, licence-checked)
         run: |
           mkdir -p out
+          tools/verification-bench/fetch.sh data > /dev/null
+          node tools/label-sets/build.mjs --bench data --out out/labels --per-gate "${{ inputs.per_gate || '400' }}"
+      - name: Layer 7, the oath check on labelled claims
+        run: |
           files=tools/jev-standin/oath-seed.jsonl
           [ -f tools/jev-standin/own-oath-labels.jsonl ] && files="$files tools/jev-standin/own-oath-labels.jsonl"
           node tools/jev-standin/oath-bench.mjs $files | tee out/oath.md
+          # the FDA's own dosing and safety sentences: measured and reported;
+          # the launch bar is on our own labels above
+          node tools/jev-standin/oath-bench.mjs --report out/labels/oath.jsonl | tee out/oath-fda.md
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -56,27 +75,30 @@ jobs:
           if [ -f tools/jev-standin/own-labels.jsonl ]; then
             node tools/jev-standin/items.mjs --labels tools/jev-standin/own-labels.jsonl > out/items.jsonl
           else
-            tools/verification-bench/fetch.sh data > /dev/null
-            node tools/jev-standin/items.mjs --bench data --per-source "${{ inputs.per_source || '100' }}" > out/items.jsonl
+            node tools/jev-standin/items.mjs --labels out/labels/items.jsonl > out/items.jsonl
           fi
           wc -l out/items.jsonl
       - name: Layer 6, scored by the open model (CPU)
         env:
           MODEL: ${{ inputs.model || vars.TRIAGE_NLI_MODEL }}
+          ENTAIL: ${{ inputs.entail_index }}
         run: |
           if [ -z "$MODEL" ]; then
-            echo "No model: give the model input or set TRIAGE_NLI_MODEL (an open NLI cross-encoder's Hub id)." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 1
+            MODEL=$(node -p "require('./tools/jev-standin/default-model.json').hub")
+            [ -n "$ENTAIL" ] || ENTAIL=$(node -p "require('./tools/jev-standin/default-model.json').entailIndex")
           fi
+          echo "Model: $MODEL (entailment class: ${ENTAIL:-from its config})" | tee -a "$GITHUB_STEP_SUMMARY"
           pip install --quiet --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
           pip install --quiet transformers==4.46.3 sentencepiece==0.2.0 protobuf==5.28.3
-          python tools/jev-standin/score_nli.py --model "$MODEL" --items out/items.jsonl --out out/scores.jsonl
+          python tools/jev-standin/score_nli.py --model "$MODEL" ${ENTAIL:+--entail-index "$ENTAIL"} --items out/items.jsonl --out out/scores.jsonl
       - name: Layer 6, thresholds tuned and confirmed
         run: node tools/jev-standin/triage.mjs --items out/items.jsonl --scores out/scores.jsonl --out out
       - name: Summary
         if: always()
         run: |
+          [ -f out/labels/sets.json ] && { echo '## Label sets'; echo '```json'; cat out/labels/sets.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           [ -f out/oath.md ] && cat out/oath.md >> "$GITHUB_STEP_SUMMARY"
+          [ -f out/oath-fda.md ] && sed -n '1,12p' out/oath-fda.md >> "$GITHUB_STEP_SUMMARY"
           [ -f out/report.md ] && cat out/report.md >> "$GITHUB_STEP_SUMMARY"
           true
       - uses: actions/upload-artifact@v4
@@ -85,6 +107,7 @@ jobs:
           name: jev-standin
           path: |
             out/*.md
+            out/labels/sets.json
             out/thresholds.json
             out/scores.jsonl
           if-no-files-found: ignore
