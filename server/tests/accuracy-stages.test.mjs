@@ -697,10 +697,10 @@ async function play(check, extra, plan, calls) {
   const body = JSON.parse(await r.text());
   const blind = w.prompts.filter(p => p.includes('Keyed answer and explanation withheld'));
   const votes = body.items[0].votes || [];
-  ok(blind.length === 2 && votes.length === 3 && votes.some(v => v.model === 'phi-4-mini-instruct' && v.blind === true),
+  ok(blind.length === 2 && votes.length === 3 && votes.some(v => v.model === 'granite-4.0-h-tiny' && v.blind === true),
      "a runner's blind answer holds one family's seat on the owner's bench: two live voters are asked, not three");
   ok(new Set(votes.map(v => familyOf(v.model))).size === 3, 'and the three witnesses are still three families');
-  ok(!votes.some(v => v.model === 'granite-4.0-h-tiny'), 'one seat by default (RUNNER_SEATS), so the live families hold the rest');
+  ok(!votes.some(v => v.model === 'phi-4-mini-instruct'), 'one seat by default (RUNNER_SEATS), so the live families hold the rest');
   w.release();
 
   const w2 = world();
@@ -715,7 +715,7 @@ async function play(check, extra, plan, calls) {
   ok(runnerBallots({}, { runner: [{ model: 'phi-4-mini-instruct', votes: [{ answer: 'E' }] }] }, e, bench).length === 0, 'an answer that is not among the options holds no seat');
   ok(runnerBallots({}, { runner: [{ model: 'phi-4-mini-instruct', votes: [] }] }, [...e, { i: 1, item: cleanItem(Q1) }], bench).length === 0, 'nor a ballot that skipped a question');
   ok(runnerBallots({}, { runner }, [{ i: 0, item: cleanItem(C1) }], bench).length === 0, 'cards are never answered blind, so a runner never votes on them');
-  ok(runnerBallots({}, { runner, writer: 'phi-4-mini-instruct' }, e, bench)[0]?.model === 'granite-4.0-h-tiny', 'never the model that wrote the items');
+  ok(runnerBallots({}, { runner, writer: 'granite-4.0-h-tiny' }, e, bench)[0]?.model === 'phi-4-mini-instruct', 'never the model that wrote the items');
   const two = runnerBallots({ RUNNER_SEATS: '2' }, { runner }, e, bench);
   ok(two.length === 2 && two.every(b => b.blind && b.parsed[0].fix === null), 'RUNNER_SEATS=2 seats two families, each blind and fixing nothing');
   ok(runnerBallots({ RUNNER_SEATS: '0' }, { runner }, e, bench).length === 0, 'and 0 turns them off');
