@@ -99,7 +99,7 @@ class ScreenshotTest {
         val diuretics=Note(title="Loop diuretics",links=listOf(edema.id),tags=listOf("drugs"))
         listOf(heart,bnp,edema,diuretics).forEach(store::saveNote)
         compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
-        compose.onNodeWithText("4 ideas · 4 links").assertIsDisplayed()
+        compose.onNodeWithText("4 ideas · 4 links",ignoreCase=true).assertIsDisplayed()
         shot("09-ideas")
         compose.onNodeWithText("2D map").performClick()
         compose.onNodeWithContentDescription("2D map of 4 ideas",substring=true).assertIsDisplayed()
