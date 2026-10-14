@@ -24,7 +24,7 @@ jobs:
           packages: 'platform-tools'
       - name: Install Android 17 SDK
         run: |
-          sdkmanager --list --channel=3 | rg 'platforms;android-|build-tools;3[6-9]|system-images;android-(37|Cinnamon)'
+          sdkmanager --list --channel=3 | grep -E 'platforms;android-|build-tools;3[6-9]|system-images;android-(37|Cinnamon)'
           sdkmanager --channel=3 'platforms;android-37' 'build-tools;37.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -57,7 +57,7 @@ jobs:
           packages: 'platform-tools'
       - name: Install Android 17 SDK
         run: |
-          sdkmanager --list --channel=3 | rg 'platforms;android-|build-tools;3[6-9]|system-images;android-(37|Cinnamon)'
+          sdkmanager --list --channel=3 | grep -E 'platforms;android-|build-tools;3[6-9]|system-images;android-(37|Cinnamon)'
           sdkmanager --channel=3 'platforms;android-37' 'build-tools;37.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with:
