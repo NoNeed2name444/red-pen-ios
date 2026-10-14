@@ -1,0 +1,30 @@
+{
+ "v": 1,
+ "started": "2026-10-14",
+ "updated": "2026-10-14T16:33:45.292Z",
+ "checked": 0,
+ "right": 0,
+ "wrong": 0,
+ "verified": 0,
+ "errors": 0,
+ "flagged": 0,
+ "check": 0,
+ "unchecked": 0,
+ "rightVerified": 0,
+ "cursor": {},
+ "days": [],
+ "spentByLadder": 0,
+ "last": {
+  "day": "2026-10-14",
+  "sent": 0,
+  "stopped": "the Worker did not report the cloud checker's spend (/costs)",
+  "standing": {
+   "bound": null,
+   "proven": [],
+   "rung": "99.9%",
+   "moreVerified": 2995,
+   "verifiedPerChecked": null,
+   "moreChecks": null
+  }
+ }
+}
