@@ -1,0 +1,13 @@
+[
+  {"text": "Question three. A sixty-two-year-old man has had crushing central chest pain for forty minutes. Which artery is most likely blocked?", "tone": "asking", "role": "narrator"},
+  {"text": "A, the left anterior descending. B, the right coronary. C, the circumflex. D, the left main stem.", "tone": "listing", "role": "narrator"},
+  {"text": "That's right, A.", "tone": "praise", "role": "narrator"},
+  {"text": "The left anterior descending supplies most of the front of the heart, so a block there gives the widest anterior changes.", "tone": "explaining", "role": "narrator"},
+  {"text": "Question four. Which murmur is loudest at the apex and carries to the axilla?", "tone": "asking", "role": "narrator"},
+  {"text": "Not quite. It's mitral regurgitation.", "tone": "correcting", "role": "narrator"},
+  {"text": "A pansystolic murmur at the apex that carries to the axilla is mitral regurgitation. Aortic stenosis is ejection systolic, and goes to the carotids.", "tone": "explaining", "role": "narrator"},
+  {"text": "Take a history from this patient.", "tone": "asking", "role": "narrator"},
+  {"text": "It started this morning. The pain's terrible, right across my chest, and I'm really scared.", "tone": "uneasy", "role": "patient"},
+  {"text": "No, I've never had anything like it before.", "tone": "plain", "role": "patient"},
+  {"text": "One minute remaining.", "tone": "alert", "role": "narrator"}
+]
