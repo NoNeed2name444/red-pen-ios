@@ -32,11 +32,21 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     /// Frames over budget in a row before coarser; under half before finer.
     static let overRun: Int = 2
     static let underRun: Int = 45
+    /// Far under (a quarter of the target): finer by more, sooner, so detail
+    /// lost to a stall comes back in a second or two, not forty.
+    static let farFiner: Float = 1.25
+    static let farUnderRun: Int = 10
+    /// A frame this slow is a stall (the map being built, the app waking),
+    /// not the load the detail puts on the GPU: it is not counted.
+    static let stall: Double = 0.25
+    /// Frames not counted after a map is shown (its first frames carry the build).
+    static let warmUp: Int = 30
     /// Frames to wait after a change (the ones in flight still carry the old detail).
     static let settle: Int = 4
 
     private var over: Int = 0
     private var under: Int = 0
+    private var farUnder: Int = 0
     private var wait: Int = 0
     /// The last frames' costs, for the readout (seconds).
     private(set) var lastCost: Double = 0
@@ -51,9 +61,12 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
         }
     }
 
-    init(screenFPS: Int, tier: GraphPerfTier = .high) {
+    /// `warmUp`: the first frames not counted (GraphPerfFrameBudget.warmUp
+    /// when a map has just been shown).
+    init(screenFPS: Int, tier: GraphPerfTier = .high, warmUp: Int = 0) {
         self.screenFPS = Self.rate(screenFPS)
         split = Self.startingSplit(tier)
+        wait = max(warmUp, 0)
     }
 
     /// The rate to ask for: the screen's own, whatever the tier (30 at the least).
@@ -73,10 +86,12 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
             wait -= 1
             return
         }
-        let missed = interval.map { $0 > period * 1.5 && $0 < 0.25 } ?? false
+        if cost >= Self.stall { return }
+        let missed = interval.map { $0 > period * 1.5 && $0 < Self.stall } ?? false
         if cost > target || missed {
             over += 1
             under = 0
+            farUnder = 0
             if over >= Self.overRun {
                 setSplit(split * Self.coarser)
                 over = 0
@@ -84,13 +99,19 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
         } else if cost < target * 0.5 {
             under += 1
             over = 0
-            if under >= Self.underRun {
+            farUnder = cost < target * 0.25 ? farUnder + 1 : 0
+            if farUnder >= Self.farUnderRun {
+                setSplit(split / Self.farFiner)
+                under = 0
+                farUnder = 0
+            } else if under >= Self.underRun {
                 setSplit(split / Self.finer)
                 under = 0
             }
         } else {
             over = 0
             under = 0
+            farUnder = 0
         }
     }
 

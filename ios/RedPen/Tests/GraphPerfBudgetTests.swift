@@ -3,7 +3,8 @@
 // settles under its share of the frame (B2); a fast one opens detail again,
 // slowly and without see-sawing (B3); missed refreshes count (B4); the
 // streaming budget follows the room left (B5); the link pages follow memory
-// (B6); and the Graphics setting no longer caps the rate (B7).
+// (B6); the Graphics setting no longer caps the rate (B7); and a stall
+// is not load, while detail lost comes back within seconds (B8).
 import Foundation
 
 var failures: [String] = []
@@ -54,7 +55,7 @@ var fast = GraphPerfFrameBudget(screenFPS: 120)
 _ = run(&fast, speed: 3, frames: 3_000)
 check("B2 a fast device keeps more detail than a slow one", fast.split < slow.split, "\(fast.split) vs \(slow.split)")
 var hopeless = GraphPerfFrameBudget(screenFPS: 120)
-_ = run(&hopeless, speed: 0.001, frames: 2_000)
+_ = run(&hopeless, speed: 0.02, frames: 2_000)
 check("B2 however slow, the split stops at its coarsest", hopeless.split == GraphPerfFrameBudget.coarsest)
 
 // MARK: - B3 detail comes back slowly, without see-sawing
@@ -115,6 +116,26 @@ let high = GraphicsBudget.of(.high), smooth = GraphicsBudget.of(.smooth)
 check("B7 Smooth on ProMotion asks for 120", smooth.frameRate(screen: 120) == 120)
 check("B7 High on ProMotion asks for 120", high.frameRate(screen: 120) == 120)
 check("B7 both ask for 60 on a 60 Hz screen", smooth.frameRate(screen: 60) == 60 && high.frameRate(screen: 60) == 60)
+
+// MARK: - B8 a stall is not load, and lost detail comes back quickly
+
+var stalled = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<20 { stalled.record(cpu: 0.33, gpu: 0.33, interval: 0.33) }
+check("B8 frames of a third of a second (the build, a wake) leave the detail alone",
+      stalled.split == GraphPerfFrameBudget.startingSplit(.high), "split \(stalled.split)")
+var warm = GraphPerfFrameBudget(screenFPS: 120, warmUp: GraphPerfFrameBudget.warmUp)
+for _ in 0..<GraphPerfFrameBudget.warmUp { warm.record(cpu: 0.02, gpu: 0.02, interval: 1.0 / 120) }
+check("B8 the first frames after a map is shown are not counted", warm.split == GraphPerfFrameBudget.startingSplit(.high))
+var lost = GraphPerfFrameBudget(screenFPS: 120)
+_ = run(&lost, speed: 0.02, frames: 2_000)
+check("B8 (it starts at the coarsest)", lost.split == GraphPerfFrameBudget.coarsest)
+var frames = 0
+while lost.split > 40 && frames < 10_000 {
+    lost.record(cpu: 0.0005, gpu: 0.0005, interval: 1.0 / 120)
+    frames += 1
+}
+check("B8 from the coarsest, a quick device is back to fine detail within three seconds at 120",
+      lost.split <= 40 && frames <= 360, "\(frames) frames, split \(lost.split)")
 
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

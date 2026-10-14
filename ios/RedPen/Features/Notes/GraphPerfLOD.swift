@@ -149,10 +149,12 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
         return String(tenths / 10) + "." + String(tenths % 10)
     }
 
-    /// "98,412 drawn · 236 glows · 231,940 lines"
+    /// "98,412 drawn · 236 glows · 231,940 lines", and on the million map
+    /// " · opens at 26 pt" (the frame budget's split)
     var drawn: String {
         Self.grouped(drawnBodies) + " drawn \u{00B7} " + Self.grouped(drawnGlows)
             + (drawnGlows == 1 ? " glow" : " glows") + " \u{00B7} " + Self.grouped(drawnLines) + " lines"
+            + (detail > 0 ? " \u{00B7} opens at " + String(Int(detail.rounded())) + " pt" : "")
     }
 
     /// Thousands with commas, the same in every locale (the readout is a meter).

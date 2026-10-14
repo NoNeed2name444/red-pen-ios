@@ -96,13 +96,13 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     // what the map view sets
     var camera = GraphPerfCamera()
     var tier: GraphPerfTier = .high {
-        didSet { if tier != oldValue { budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier) } }
+        didSet { if tier != oldValue { budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier, warmUp: GraphPerfFrameBudget.warmUp) } }
     }
     var bold: Bool = false
     var selected: Int?
     var focus: Int?
     var screenFPS: Int = 60 {
-        didSet { if screenFPS != oldValue { budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier) } }
+        didSet { if screenFPS != oldValue { budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier, warmUp: GraphPerfFrameBudget.warmUp) } }
     }
     var beforeFrame: ((Double) -> Void)?
     var onStats: ((GraphPerfStats) -> Void)?
@@ -209,7 +209,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             planner: GraphPerfChunkPlanner(octree: next.octree, bundles: next.bundles),
             cache: GraphPerfChunkCache(leaves: next.octree.leafCount, pageCount: linkPages,
                                        pageSize: GraphPerfMillionShaders.pageSize))
-        budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier)
+        budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier, warmUp: GraphPerfFrameBudget.warmUp)
         selected = nil
         focus = nil
         for _ in 0..<Self.slotCount { inFlight.signal() }
