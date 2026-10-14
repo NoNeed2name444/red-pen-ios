@@ -68,6 +68,18 @@ import java.util.Locale
             notice=result.fold({ "Library exported" }) { it.message ?: "Unable to export the library" }
         }
     }
+    var printing by rememberSaveable { mutableStateOf<String?>(null) }
+    val printed=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        val set=store.library.firstOrNull { it.id==printing }
+        printing=null
+        if(uri!=null && set!=null) scope.launch {
+            val result=withContext(Dispatchers.IO) { runCatching {
+                val stream=context.contentResolver.openOutputStream(uri) ?: error("Unable to write to that location")
+                stream.use { com.stethoscore.app.export.DeckPdf.write(set,it) }
+            } }
+            notice=result.fold({ "Printed ${set.name} as a PDF deck ($it pages)" }) { it.message ?: "Unable to print this set" }
+        }
+    }
     BackHandler(screen!="home") { goHome() }
     StethoscoreTheme(dark) {
         Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
@@ -124,7 +136,8 @@ import java.util.Locale
                                 val filtered=store.library.filter { set ->
                                     (query.isNotBlank() || when(category) { "Questions" -> set.kind==StudySetKind.MCQ || set.kind==StudySetKind.BOOK; "Cards" -> set.kind==StudySetKind.ANKI;"Cases" -> set.kind==StudySetKind.CASES;"OSCE" -> set.kind==StudySetKind.OSCE;else -> set.kind==StudySetKind.NARRATE }) && (query.isBlank() || "${set.name} ${set.subject} ${set.tags.joinToString()}".contains(query,true))
                                 }
-                                items(filtered,key={it.id}) { set -> SetRow(set,{open(set)},{ change { store.deleteSet(set.id) } }) }
+                                items(filtered,key={it.id}) { set -> SetRow(set,{open(set)},{ change { store.deleteSet(set.id) } },
+                                    if(com.stethoscore.app.export.DeckBuilder.printsAsPdf(set.kind) && set.itemCount>0) ({ printing=set.id;printed.launch(com.stethoscore.app.export.DeckPdf.fileName(set)) }) else null) }
                                 if(filtered.isEmpty() && store.library.isNotEmpty()) item { Text(if(query.isNotBlank()) "No matching sets." else "No sets here yet. Create or import one.",color=MaterialTheme.colorScheme.onSurfaceVariant) }
                                 item { Text("Study aid · Not for clinical decisions",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
                             }
@@ -163,11 +176,12 @@ import java.util.Locale
     }
 }
 fun modeIcon(kind:StudySetKind):ImageVector = when(kind) { StudySetKind.MCQ -> Icons.Rounded.FactCheck;StudySetKind.ANKI -> Icons.Rounded.Style;StudySetKind.BOOK -> Icons.Rounded.AutoStories;StudySetKind.CASES -> Icons.Rounded.MedicalServices;StudySetKind.OSCE -> Icons.Rounded.Assignment;StudySetKind.NARRATE -> Icons.Rounded.GraphicEq }
-@Composable private fun SetRow(set:StudySet,open:()->Unit,delete:()->Unit) {
+@Composable private fun SetRow(set:StudySet,open:()->Unit,delete:()->Unit,print:(()->Unit)?=null) {
     var confirm by remember { mutableStateOf(false) }
     WardCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment=Alignment.CenterVertically) {
             Column(Modifier.weight(1f).clickable(onClick=open),verticalArrangement=Arrangement.spacedBy(7.dp)) { SectionLabel(set.subject);Text(set.name,fontSize=19.sp,fontWeight=FontWeight.SemiBold);Text("${set.kind.label} · ${set.itemCount} ${set.itemNoun}${if(set.itemCount!=1) "s" else ""}",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+            if(print!=null) IconButton(onClick=print) {Icon(Icons.Rounded.PictureAsPdf,"Export ${set.name} as a PDF deck",tint=MaterialTheme.colorScheme.onSurfaceVariant)}
             IconButton(onClick={confirm=true}) {Icon(Icons.Rounded.DeleteOutline,"Delete ${set.name}",tint=MaterialTheme.colorScheme.onSurfaceVariant)}
         }
         WardButton("Open ${set.kind.label.lowercase()}",open,Modifier.fillMaxWidth())
