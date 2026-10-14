@@ -22,6 +22,9 @@ import { vignetteRoute } from '../switches.js';
 import { VIGNETTE_REASONS } from '../vignette-proof.js';
 import { HOLD_REASONS } from '../provenance.js';
 import { seedItem } from '../../tools/criteria/stub-proposer.mjs';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 let failures = 0;
 const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if (!cond) failures++; };
@@ -196,6 +199,21 @@ ok(NOW.TIER_MEANINGS.verified.startsWith('Verified means every fact was matched 
   const held = describe({ ...seed, id: 's', vignette: packet }, 'h', signals, WEIGHTS, 0, undefined, { hard: [{ code: 'contradiction', claim: 'x' }], soft: [] }, { vignetteRoute: true });
   ok(held.verdict === 'check', 'on: an item that contradicts its lecture drops from Checked to Check this');
   ok(typeof HOLD_REASONS.naskh === 'string', 'a rule replaced by a newer one is a hold (naskh)');
+}
+
+// MARK: 5. the app says the same
+
+{
+  const app = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'ios', 'RedPen', 'Shared', 'Accuracy');
+  const model = readFileSync(join(app, 'AccuracyModel.swift'), 'utf8');
+  const ledger = readFileSync(join(app, 'AccuracyLedger.swift'), 'utf8');
+  const swiftString = s => `"${s.replace(/"/g, '\\"')}"`;
+  ok(model.includes(`case .verified: return ${swiftString(NOW.TIER_MEANINGS.verified)}`) && model.includes(`case .checked: return ${swiftString(NOW.TIER_MEANINGS.checked)}`),
+    'the app says what Verified and Checked mean in the same words (AccuracyGrade.meaning)');
+  ok(ledger.includes(`case "naskh": return ${swiftString(HOLD_REASONS.naskh)}`), 'the app words the naskh hold as the server does');
+  ok(/case verified, checked, check, flagged, unchecked/.test(model), 'the app has the Checked grade, between Verified and Check this');
+  ok(model.includes('(vignetteRoute && (f["vignette_proof"] ?? 0) == 1)') && model.includes('if vignetteRoute && (f["vignette_checked"] ?? 0) == 1'),
+    'the app grades the vignette route as the server does');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
