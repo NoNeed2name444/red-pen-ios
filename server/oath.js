@@ -32,6 +32,14 @@ const CRITERION = /\b(?:diagnostic criteri\w*|criteria for (?:the )?diagnosis|is
 const ACT = /\b(?:give|giving|administer\w*|start(?:ing)?|initiat\w*|prescrib\w*|treat(?:ed|ing)? with|switch(?:ed|ing)? to|stop(?:ping)?|discontinu\w*|withhold\w*|commence\w*|add(?:ing)?|increase the dose|reduce the dose)\b/i;
 const DRUG_SUFFIX = /\b[a-z]{3,}(?:olol|pril|sartan|statin|dipine|mab|cillin|mycin|floxacin|azole|prazole|tidine|parin|gliptin|gliflozin|glutide|triptan|setron|lukast|olone|asone|tinib|vir|xaban|gatran|cycline|sone|pam|lam)\b/i;
 const DRUG_NAMES = new RegExp(`\\b(?:${Object.keys(DRUGS).map(d => d.replace(/[-]/g, '\\-')).join('|')}|insulin|heparin|warfarin|adrenaline|epinephrine|morphine|digoxin|lithium|methotrexate)\\b`, 'i');
+// harm a drug can do: the words a boxed warning or a contraindication uses
+// (measured on FDA label sentences, tools/label-sets: developed on one half,
+// reported on the other)
+const RISK = /\b(?:increase[sd]? (?:the )?risk|risk of|mortality|fatal|death|life-threatening|toxicity|hypersensitivity|anaphyla\w*|suicid\w*|lactic acidosis|stevens-johnson|serious (?:adverse|cardiovascular|infections?|reactions?)|concomitant(?:ly)? (?:use|administ\w*|prescrib\w*)|risks?|hazards?|abuse|misuse|addiction|(?:renal|hepatic) impairment|pregnan\w*|while taking|should (?:generally )?not (?:be used|be given|exceed)|not approved|is indicated|are indicated|indicated for)\b/i;
+// how a drug is given: route, timing, frequency, the dose itself
+const DOSING = /\b(?:dose|doses|dosage|dosages|dosing|q\.?i\.?d|b\.?i\.?d|t\.?i\.?d|once (?:daily|weekly|a day)|twice (?:daily|a day)|(?:two|three|four) times (?:daily|a day)|times (?:a|per) day|with (?:or without )?(?:food|meals?)|empty stomach|orally|by mouth|intravenous(?:ly)?|infusion|subcutaneous(?:ly)?|intramuscular(?:ly)?|intrathecal|instill\w*|inhal(?:ed|ation)|sublingual(?:ly)?|swallow\w*|administered|before breakfast|at bedtime)\b/i;
+// watching a treated patient, or stopping the treatment
+const MONITOR = /\b(?:monitor(?:ed|ing)?|assess(?:ed)? (?:serum|renal|hepatic|liver|kidney|therapeutic)|therapy should be|treatment should be|should be discontinued|withdraw\w*)\b/i;
 const DRUG_AMOUNT = /\b\d+(?:\.\d+)?\s?(?:mg|mcg|µg|μg|micrograms?|milligrams?|g|grams?|units?|iu|ml)\b(?!\s?\/\s?(?:dl|l)\b)/i;
 export const namesDrug = text => DRUG_SUFFIX.test(String(text || '')) || DRUG_NAMES.test(String(text || ''));
 
@@ -57,6 +65,9 @@ export function oathCheck(item, proof = null) {
     if (c.treatment) why.push('treatment');
     if (SAFETY.test(text)) why.push('safety');
     if (CRITERION.test(text)) why.push('criterion');
+    if (RISK.test(text)) why.push('risk');
+    if (DOSING.test(text)) why.push('dosing');
+    if (MONITOR.test(text)) why.push('monitor');
     if (ACT.test(text) && namesDrug(text)) why.push('act');
     // a drug named beside an amount in a dose unit, however it is timed
     if (namesDrug(text) && DRUG_AMOUNT.test(text)) why.push('amount');
