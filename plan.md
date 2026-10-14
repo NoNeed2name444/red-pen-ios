@@ -1775,6 +1775,60 @@ They answer four questions, in order:
   this run's results.json before changing a threshold, and cite the brief
   any change follows.
 
+### The owner's answers of 14 Oct, third round
+
+> 1-2-3- continues 4- rebuild the space models from scratch from this image
+> 5-ok 6-let the marks be the last task please 7- is there another way to
+> have an opensource alt for jev? 8- also what did u do with the dna and
+> islamic verification parts?why aren't u using them?and why didn't u
+> implement them in the verification layer by how they function?
+
+Google (Antigravity, Jules, Colab) is parked for now (owner, same day).
+Order of work: 1 to 3, then 7 and 8 (server, checkable here), then 4 and 5,
+with the marks on the screens last.
+
+- [ ] 1. Why nothing reaches Verified (the unchecked step above).
+- [ ] 2. #26, the 99.999% proof on the live Worker.
+- [ ] 3. Launch logo round 3 (Claude-Code T0036): the swirl back as one
+  real, continuous tube.
+- [ ] 4. #18, rebuild the Space node models from scratch from the owner's
+  "Vignette - Space node styles" sheet (14 Oct; the owner's image, never
+  committed: these repos are public). Six bodies, each shown at rest and
+  dragged upwards, with its links:
+  - Black hole (elevated): photon ring brighter on the approaching side
+    (Doppler), lensed arcs, Keplerian streaks, an ISCO line; beams bend in,
+    redden and flash on arrival. Dragged: the disc flares and sheds matter.
+  - Sun: granulation, limb darkening, corona, prominences and a flare;
+    links run whiter and pulses leave as ejected plasma.
+  - Rocky planet: day/night terminator from the light, city lights on the
+    night side, sunlight, Fresnel air rim, a moon; pulses arrive as glints.
+  - Gas giant: bands with jets, a storm, a ring with the planet's shadow on
+    it and its own on the clouds; links light a bar on the ring.
+  - Pulsar: tidy core, two sweeping beams, a wind nebula; its links ring in
+    step with the beams.
+  - Comet: nucleus, coma, ion and dust tails pointing away from the light;
+    icy dust on its links. Dragged: the tails lengthen and shed dust.
+  Links everywhere are warm, glowing beams. Today's code: Graph3DView.swift
+  and GraphNodeStyles; rebuild the bodies, not the hierarchy (the
+  "Decided design" above still holds). App-look work: batch into Mac runs.
+- [ ] 5. Merge design/voice-claude into personal (the owner said ok).
+- [ ] 6. Last: the owner's marks on the screens.
+- [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
+  fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
+  our own rules and server/proof.js; Layer 6 as an open cross-encoder or NLI
+  model scoring each option, run in batch on GitHub Actions, with its
+  thresholds tuned on our own labelled items (§22a: tune on a few hundred
+  own labels).
+- [ ] 8. The DNA (§16a) and Islamic (§17) briefs as working mechanisms, not
+  only cited principles. In use today: independent witnesses (one family is
+  one witness), the blind second pass (kinetic proofreading), a sensor per
+  error type, retired practice (abrogation), holding back when unsure
+  (tawaqquf), explained objections. Missing: each claim's chain (isnad:
+  claim, passage, source, retrieval, checker), a source registry (rijal:
+  type, date, edition, retraction, funding), shadh and tafarrud flags,
+  common-link independence for sources, the conflict-of-interest rule, and
+  dabt (numbers, units, population and negation copied faithfully).
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
