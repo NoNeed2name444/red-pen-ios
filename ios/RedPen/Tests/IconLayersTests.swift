@@ -1,6 +1,6 @@
-// The layered app icon (tools/icon_layers.py): every layer is a 1024 x 1024
-// PNG with alpha, the layers stack back to front in IconLayer's order and
-// groups and the in-app view shows them; and the app icon itself
+// The app icon in layers (tools/icon_layers.py): every layer is a 1024 x 1024
+// PNG with alpha, light and dark, stacked back to front in IconLayer's order,
+// and the in-app view shows them; and the app icon itself
 // (AppIcon.icon, from tools/make_icon.py) is valid, names every asset it
 // ships, and has its dark and tinted looks. Run from the repository root
 // (tools/swift_suites.py does).
@@ -29,11 +29,11 @@ func pngHeader(_ path: String) -> (width: Int, height: Int, depth: Int, colour: 
 // MARK: the PNGs
 
 let pngs = ((try? fm.contentsOfDirectory(atPath: layersDir)) ?? []).sorted()
-ok(pngs == IconLayer.allCases.map(\.asset), "design/icon/layers holds one PNG per layer, numbered back to front: \(pngs)")
-for layer in IconLayer.allCases {
-    let h = pngHeader("\(layersDir)/\(layer.asset)")
-    ok(h?.width == 1024 && h?.height == 1024, "\(layer.asset) is on the 1024 x 1024 canvas")
-    ok(h?.depth == 8 && h?.colour == 6, "\(layer.asset) is 8-bit RGBA, so it has alpha")
+ok(pngs == IconLayer.assets.sorted(), "design/icon/layers holds one PNG per layer and look, numbered back to front: \(pngs)")
+for asset in IconLayer.assets {
+    let h = pngHeader("\(layersDir)/\(asset)")
+    ok(h?.width == 1024 && h?.height == 1024, "\(asset) is on the 1024 x 1024 canvas")
+    ok(h?.depth == 8 && h?.colour == 6, "\(asset) is 8-bit RGBA, so it has alpha")
 }
 
 // MARK: AppIcon.icon (tools/make_icon.py, the owner's icon since 14 Oct)
@@ -73,8 +73,8 @@ ok(setJSON.contains("\"dark\"") && setJSON.contains("\"tinted\""), "the icon set
 // MARK: the in-app view
 
 let swift = fm.contents(atPath: "ios/RedPen/Shared/Brand/IconLayers.swift").flatMap { String(data: $0, encoding: .utf8) } ?? ""
-ok(swift.contains("layer.asset") && swift.contains("subdirectory: \"layers\""),
-   "IconLayers.swift shows each layer's PNG from the app's layers folder")
+ok(swift.contains("layer.asset(dark: scheme == .dark)") && swift.contains("subdirectory: \"layers\""),
+   "IconLayers.swift shows each layer's PNG, light or dark, from the app's layers folder")
 let project = fm.contents(atPath: "ios/project.yml").flatMap { String(data: $0, encoding: .utf8) } ?? ""
 ok(project.contains("path: ../design/icon/layers"), "project.yml copies design/icon/layers into the app")
 

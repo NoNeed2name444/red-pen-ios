@@ -1,6 +1,7 @@
-// The app icon in the app, as the PNG layers AppIcon.icon is built from:
-// design/icon/layers (cut from the render by tools/icon_layers.py), copied
-// into the app as the folder "layers".
+// The app icon in the app, in layers: design/icon/layers (the icon's light
+// and dark pictures, cut by tools/icon_layers.py into the base and the
+// stethoscope), copied into the app as the folder "layers". It follows the
+// app's light or dark, as the home screen's icon follows the phone's.
 #if canImport(SwiftUI) && canImport(UIKit)
 import SwiftUI
 import UIKit
@@ -26,9 +27,11 @@ struct IconTile: Shape {
 
 struct IconLayerView: View {
     let layer: IconLayer
+    @Environment(\.colorScheme) private var scheme
     var body: some View {
         Group {
-            if let url = Bundle.main.url(forResource: layer.asset, withExtension: nil, subdirectory: "layers"),
+            if let url = Bundle.main.url(forResource: layer.asset(dark: scheme == .dark), withExtension: nil,
+                                         subdirectory: "layers"),
                let image = UIImage(contentsOfFile: url.path) {
                 Image(uiImage: image).resizable().interpolation(.high)
             } else {

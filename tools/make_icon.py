@@ -23,7 +23,7 @@ needs and changes nothing in them but their size:
 - design/icon/preview.png: light, dark and tinted side by side, rounded.
 
 The launch screen's mark is cut separately, from the flat pair, by
-tools/make_launch_logo.py; the old render's layers (design/icon/layers, for
+tools/make_launch_logo.py; the same pictures in layers (design/icon/layers, for
 IconLayersView) by tools/icon_layers.py.
 """
 

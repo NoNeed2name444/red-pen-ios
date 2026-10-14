@@ -63,7 +63,7 @@ targets:
       - path: AppResources/AppIcon.icon
         type: file
         buildPhase: resources
-      # The same layers as PNGs, for IconLayersView (actool compiles the .icon
+      # The icon in layers (light and dark PNGs), for IconLayersView (actool compiles the .icon
       # away, so the app cannot read them from it).
       - path: ../design/icon/layers
         type: folder
