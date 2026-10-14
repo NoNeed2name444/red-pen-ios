@@ -1826,6 +1826,18 @@ with the marks on the screens last.
   only near the camera and as aggregated bundles or a density field
   farther out, a 1,000,000-node demo, and the frame readout's numbers from
   the owner's iPad as the proof.
+- [ ] 4c. The Performance theme on very low-end phones and tablets,
+  iOS and Android (the owner, 14 Oct). Every device keeps 60 frames a
+  second by drawing what it can afford: the same 1,000,000-node map, with
+  the level of detail (points drawn, links in full, glow) set from a
+  measured frame budget; the full million in full detail on capable
+  devices only. iOS 26 is the floor (ios/project.yml), so the oldest
+  iPhones are the A13 ones.
+- [ ] 4d. A full Android app of Stethoscore (the owner chose it over a web
+  map, 14 Oct): a large, separate project, planned after M3 and 4b. The
+  owner has no Android device, so it is tested on CI emulators; its
+  performance map shares 4b and 4c's design (Vulkan, GLES 3 as the low-end
+  floor).
 - [ ] 5. Merge design/voice-claude into personal (the owner said ok).
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
