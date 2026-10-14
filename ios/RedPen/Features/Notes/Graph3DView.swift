@@ -1851,6 +1851,41 @@ struct GraphSCNView: UIViewRepresentable {
             return true
         }
 
+        /// For the design preview's app log: which style shaders did not
+        /// pass their check, and how the first gas giant rings stand (found
+        /// by their shader), so a piece missing from the pictures can be
+        /// traced.
+        private static func logCloseUp(_ view: SCNView) {
+            let support: GraphStyleSupport = GraphStyleProbe.latest
+            let missing: [String] = GraphStyleProbe.all.map(\.0).filter { !support.has($0) }
+            NSLog("graphPreview close-up: shaders not passed: [%@]", missing.joined(separator: ","))
+            guard let root = view.scene?.rootNode else { return }
+            let rings: [SCNNode] = root.childNodes { node, _ in
+                guard let text = node.geometry?.firstMaterial?.shaderModifiers?[.surface] else { return false }
+                return text.contains("rp_encke")
+            }
+            NSLog("graphPreview close-up: %ld ring planes", rings.count)
+            for node in rings.prefix(3) {
+                let t: simd_float4x4 = node.presentation.simdWorldTransform
+                let n: SIMD3<Float> = simd_normalize(SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z))
+                let side: Float = simd_length(SIMD3<Float>(t.columns.0.x, t.columns.0.y, t.columns.0.z))
+                var shown: CGFloat = 1
+                var hidden: Bool = false
+                var up: SCNNode? = node
+                while let at = up {
+                    shown *= at.presentation.opacity
+                    hidden = hidden || at.isHidden
+                    up = at.parent
+                }
+                let material: SCNMaterial? = node.geometry?.firstMaterial
+                let blend: Int = material?.blendMode.rawValue ?? -1
+                let box = node.boundingBox
+                NSLog("graphPreview close-up: ring side %.3f normal %.2f %.2f %.2f at %.2f %.2f %.2f opacity %.2f hidden %ld mask %ld order %ld blend %ld box %.2f..%.2f",
+                      side, n.x, n.y, n.z, t.columns.3.x, t.columns.3.y, t.columns.3.z, shown, hidden ? 1 : 0,
+                      node.categoryBitMask, node.renderingOrder, blend, box.min.x, box.max.x)
+            }
+        }
+
         /// For the design preview (`-graphPreviewCloseUp`): a second after
         /// the space appears, frames the busiest note close, straight on;
         /// with `-graphPreviewDrag` too, half a second later carries it
@@ -1880,6 +1915,7 @@ struct GraphSCNView: UIViewRepresentable {
                     camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
                 }
                 sim.namesShown = false
+                Self.logCloseUp(view)
                 view.pointOfView = camera
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0

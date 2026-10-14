@@ -35,6 +35,10 @@ on:
         description: 'Run each test up to this many times, stopping at its first failure (for a failure that comes and goes)'
         required: false
         default: ''
+      parts:
+        description: 'Only these parts (comma-separated: iphone-graph, iphone-tour, ipad), so a quick check holds one Mac; empty: all three'
+        required: false
+        default: ''
 permissions:
   contents: write
 concurrency:
@@ -50,18 +54,31 @@ jobs:
       matrix:
         part: [iphone-graph, iphone-tour, ipad]
     steps:
+      # a part not asked for (the parts input) ends here, freeing its Mac
+      - name: Wanted
+        id: want
+        env:
+          PARTS: ${{ inputs.parts }}
+          PART: ${{ matrix.part }}
+        run: |
+          if [ -z "$PARTS" ] || echo ",${PARTS// /}," | grep -q ",$PART,"; then echo "go=1" >> "$GITHUB_OUTPUT"
+          else echo "$PART not asked for"; fi
       - uses: actions/checkout@v4
+        if: steps.want.outputs.go == '1'
         # no token left in .git/config for the build: the packages it
         # compiles (and their macros and plugins) run in later steps, and
         # this job pushes nothing
         with:
           persist-credentials: false
       - name: Tools
+        if: steps.want.outputs.go == '1'
         run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
       - name: Generate the project
+        if: steps.want.outputs.go == '1'
         working-directory: ios
         run: xcodegen generate
       - name: Pick the simulators
+        if: steps.want.outputs.go == '1'
         id: sim
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
@@ -102,6 +119,7 @@ jobs:
               print("no iPad simulator on this runner", file=sys.stderr)
           PY
       - name: Choose the device
+        if: steps.want.outputs.go == '1'
         id: dev
         env:
           PART: ${{ matrix.part }}
