@@ -123,7 +123,13 @@ const mutated = [
   ['quote', 'a list item from another list', r => both(r, f => { f.criteria[3].values.push('myco_lab'); f.criteria[3].items.myco_lab = 'Mycobacteriology laboratory workers'; })],
   ['quote', 'a list item that is only part of a line', r => both(r, f => { f.criteria[3].items.hiv = 'People with'; })],
   ['number', 'a cut-off typed in, not read from the words', r => both(r, f => { f.criteria[2].value = 4; })],
-  ['number', 'a cut-off in the wrong unit', r => both(r, f => { f.criteria[2].unit = 'hours'; })],
+  ['slot', 'a cut-off in the wrong unit', r => both(r, f => { f.criteria[2].unit = 'hours'; })],
+  ['slot', 'a criterion reading a slot of another kind', r => both(r, f => { f.criteria[0].slot = 'tst_group'; })],
+  ['quote', 'a quote cut short of its sentence (found by the B6 bench)', r => both(r, f => { f.criteria[1].quote = f.criteria[1].quote.replace(/ by a health care worker.*$/, ''); })],
+  ['quote', 'a conclusion cut short of its line', r => both(r, f => { f.conclusion.quote = 'An induration of 5 or more millimeters is considered positive'; })],
+  ['shape', 'findings held together that the rule does not read', r => both(r, f => { f.together = [['tst', 'prior_tst']]; })],
+  ['asks', 'a question the lexicon does not know', r => both(r, f => { f.conclusion.asks = ['of this result']; })],
+  ['alias', 'an answer not what its words conclude', r => both(r, f => { f.conclusion.says = 'is considered'; })],
   ['number', 'words the quote does not hold', r => both(r, f => { f.criteria[2].says = '6 or more millimeters'; })],
   ['alias', 'an answer not in the rule\'s words', r => both(r, f => { f.conclusion.aliases = ['Latent TB infection'] ; })],
   ['alias', 'an excluded answer that is not the plain opposite', r => both(r, f => { f.exclusive = [{ aliases: ['Indeterminate'] }]; })],
@@ -141,6 +147,11 @@ const mutated = [
   ['shape', 'an unknown criterion operator', r => both(r, f => { f.criteria[0].op = 'roughly'; })],
 ];
 for (const [want, what, f] of mutated) why(reviewRule(f(clone(base)), ctx), want, `review refuses ${what} (${want})`);
+{
+  const c = raw('cdc-tst-contraindication');
+  for (const f of [c.formal, ...c.transcriptions.map(t => t.formal)]) f.criteria[1].items.anaphylactic_shock = 'shock';
+  why(reviewRule(c, ctx), 'quote', 'review refuses part of an inline list item ("shock" of "anaphylactic shock") (quote)');
+}
 {
   const nc = clone(ctx);
   nc.sources['cdc-tst-2025'].licence.id = 'cc-by-nc-4.0';
@@ -221,6 +232,8 @@ const cases = [
   ['cue', 'a hedged finding', () => variant(stem(S.replace('shows 6 mm', 'possibly shows 6 mm')))],
   ['cue', 'a finding still to come', () => variant(stem(S.replace('man with HIV attends clinic', 'man with HIV is awaiting results')))],
   ['cue', 'an estimated reading', () => variant(stem(S.replace('shows 6 mm', 'shows about 6 mm')))],
+  ['cue', 'a reading hedged with "maybe" (found by the B1 bench)', () => variant(stem(S.replace('shows 6 mm', 'shows maybe 6 mm')))],
+  ['cue', 'a person hedged with "perhaps"', () => variant(stem(S.replace('34-year-old man', '34-year-old perhaps man')))],
   ['conflict', 'a second induration left out of the proof', () => variant(stem(S.replace('attends clinic.', 'attends clinic. A repeat test shows 2 mm of induration.')))],
   ['conflict', 'an HIV mention the lexicon cannot read', () => variant(stem(S.replace('attends clinic.', 'attends clinic. An HIV test is due.')))],
   ['fires', 'under the cut-off', () => [seedItem(4).item, seedItem(4).packet]],
@@ -229,6 +242,10 @@ const cases = [
   ['together', 'the reading and the test in different sentences', () => variant(stem('A 34-year-old man with HIV attends clinic. His TB skin test is read. At 48 hours after placement it shows 6 mm of induration. What is the most appropriate interpretation of this result?'))],
   ['span', 'a finding in the question', () => variant(stem('A 34-year-old man with HIV attends clinic. His TB skin test, read 48 hours after placement, shows 6 mm of induration. What is the most appropriate interpretation of this result with HIV?'), { findings: [{ slot: 'tst_group', text: 'with HIV', nth: 1 }, { slot: 'tst', text: 'TB skin test' }, { slot: 'read_hours', text: '48 hours after placement' }, { slot: 'induration_mm', text: '6 mm of induration' }] })],
   ['asks', 'a question the rule does not answer', () => variant(stem(S.replace('What is the most appropriate interpretation of this result?', 'What is the next best step?')))],
+  ['asks', 'a question turned around (NOT)', () => variant(stem(S.replace('What is the most', 'What is NOT the most')))],
+  ['asks', 'a question turned around (least)', () => variant(stem(S.replace('most appropriate', 'least appropriate')))],
+  ['asks', 'a question turned around (inappropriate)', () => variant(stem(S.replace('most appropriate', 'most inappropriate')))],
+  ['asks', 'a hedged question', () => variant(stem(S.replace('What is the', 'What is possibly the')))],
   ['asks', 'no question at all', () => variant(stem(S.replace('What is the most appropriate interpretation of this result?', 'Interpret this result.')))],
   ['conclusion', 'a keyed answer not in the rule\'s words', () => variant(() => ({ options: ['Latent TB infection', 'Negative'] }))],
   ['distractor', 'an option nothing rules out', () => variant(() => ({ options: ['Positive', 'Negative', 'Indeterminate'] }), { eliminates: [{ option: 1, by: 'exclusive' }, { option: 2, by: 'exclusive' }] })],

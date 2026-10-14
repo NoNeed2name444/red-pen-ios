@@ -26,6 +26,7 @@
 // registry's `pending` list. Pure: the snapshots are passed in.
 
 import { normalize } from '../proof.js';
+import { SLOTS, ASKS } from '../lexicon.js';
 import { sha256, canonical, ruleHash, lexiconHash, licenceAllows, ruleSourceAllows, readSays, evaluateRule } from '../vignette-proof.js';
 
 const collapse = t => String(t ?? '').replace(/\s+/g, ' ').trim();
@@ -60,6 +61,40 @@ export function quotedIn(quote, snap) {
   return !!n && n.length > 0 && streamFor(snap).includes(` ${n.join(' ')} `);
 }
 
+/// Whether `quote` is whole where it stands: a whole line of the snapshot,
+/// or whole sentences of one (from a line's start or after a sentence's end,
+/// to a sentence's end) - never cut short, where a cut could drop a "not" or
+/// a qualifier.
+export function wholeIn(quote, snap) {
+  const q = collapse(quote);
+  if (!q || !snap) return false;
+  for (const raw of String(snap.text).split('\n')) {
+    const line = collapse(raw);
+    for (let at = line.indexOf(q); at >= 0; at = line.indexOf(q, at + 1)) {
+      const end = at + q.length;
+      const starts = at === 0 || /[.:;?!)]\s$/.test(line.slice(0, at));
+      const ends = end === line.length || (/[.:;?!]\)?$/.test(q) && /^\s/.test(line.slice(end)));
+      if (starts && ends) return true;
+    }
+  }
+  return false;
+}
+
+/// Whether `item` is a whole element of a list written inline in `quote`
+/// ("necrosis, blistering, anaphylactic shock, or ulcerations"): not part of
+/// one ("shock" of "anaphylactic shock").
+export function inlineItem(item, quote) {
+  const q = collapse(quote);
+  const it = collapse(item);
+  if (!it) return false;
+  for (let at = q.indexOf(it); at >= 0; at = q.indexOf(it, at + 1)) {
+    const before = q.slice(0, at);
+    const after = q.slice(at + it.length);
+    if ((at === 0 || /(?:\(e\.g\.,? |\(|, |\bor |\band )$/.test(before)) && (!after || /^(?:,|\)|\.| or\b| and\b| to\b)/.test(after))) return true;
+  }
+  return false;
+}
+
 /// Whether `quote` is a whole line of the snapshot.
 export const lineIn = (quote, snap) => !!snap && String(snap.text).split('\n').some(l => l.trim() === collapse(quote));
 
@@ -90,6 +125,10 @@ const within = (hay, needle) => !!hay && !!needle && ` ${hay} `.includes(` ${nee
 export const OPPOSITES = Object.freeze({ positive: 'negative', present: 'absent', reactive: 'nonreactive', indicated: 'not indicated' });
 
 const OPS = new Set(['present', 'anyOf', '>=', '>', '<=', '<', 'between', 'judgment']);
+const NUMERIC_OPS = ['>=', '>', '<=', '<', 'between'];
+/// The forms of conclusion a rule's `says` may take, each giving the answer
+/// it names.
+export const CONCLUDES = Object.freeze([/^(?:is|are) considered (.+)$/i, /^(.+?) should be used$/i, /^(.+?) (?:is|are) contraindicated$/i, /^confirms the diagnosis of (.+)$/i]);
 const ANSWER_KEY = /^Chapter (\d+): ((?:\d+\. [A-E](?:, [A-E])* ?)+)$/;
 
 const no = (why, detail) => ({ ok: false, why, detail: String(detail ?? '').slice(0, 300) });
@@ -122,17 +161,30 @@ export function reviewRule(rule, ctx) {
   };
   const snap = snapOf(rule.source);
   if (!snap) return no('snapshot', `${rule.source}: no snapshot, or not the pinned one`);
-  // b: every quote word for word
-  const quote = (q, where, s = snap) => (quotedIn(q, s) ? null : no('quote', `${where}: "${collapse(q).slice(0, 120)}" is not in ${rule.source} word for word`));
+  // each criterion reads a lexicon slot of its kind, in the slot's unit
   for (const c of f.criteria) {
-    const bad = quote(c.quote, c.id);
+    const slot = SLOTS[c.slot];
+    if (c.op === 'judgment') continue;
+    if (!slot) return no('slot', `${c.id}: no lexicon slot ${c.slot}`);
+    const fits = slot.type === 'flag' ? c.op === 'present' : slot.type === 'set' ? c.op === 'anyOf' : NUMERIC_OPS.includes(c.op) && c.unit === slot.unit;
+    if (!fits) return no('slot', `${c.id}: ${c.op}${c.unit ? ` ${c.unit}` : ''} does not read a ${slot.type} slot (${c.slot})`);
+  }
+  const used = new Set(f.criteria.map(c => c.slot));
+  for (const g of f.together || []) {
+    if (!Array.isArray(g) || g.length < 2 || g.some(x => !used.has(x))) return no('shape', 'together: slots the rule reads');
+  }
+  // b: every quote word for word, and whole (a sentence or a line)
+  const quote = (q, where, s = snap) => (quotedIn(q, s) ? null : no('quote', `${where}: "${collapse(q).slice(0, 120)}" is not in ${rule.source} word for word`));
+  const whole = (q, where) => (wholeIn(q, snap) ? null : no('quote', `${where}: "${collapse(q).slice(0, 120)}" is cut short of its sentence`));
+  for (const c of f.criteria) {
+    const bad = quote(c.quote, c.id) || whole(c.quote, c.id) || (c.leadIn ? whole(c.leadIn, `${c.id} lead-in`) : null);
     if (bad) return bad;
     if (c.op === 'anyOf') {
       if (!Array.isArray(c.values) || !c.values.length || !c.items || c.values.some(v => typeof c.items[v] !== 'string')) return no('shape', `${c.id}: every value needs its item`);
       for (const v of c.values) {
         if (c.leadIn) {
           if (!underLeadIn(c.items[v], c.leadIn, snap)) return no('quote', `${c.id}: "${c.items[v]}" is not a line under "${c.leadIn}"`);
-        } else if (!within(tok(c.quote), tok(c.items[v]))) return no('quote', `${c.id}: "${c.items[v]}" is not in its quote`);
+        } else if (!within(tok(c.quote), tok(c.items[v])) || !inlineItem(c.items[v], c.quote)) return no('quote', `${c.id}: "${c.items[v]}" is not an item of its quote`);
       }
     }
     if (['>=', '>', '<=', '<', 'between'].includes(c.op)) {
@@ -144,10 +196,17 @@ export function reviewRule(rule, ctx) {
   }
   const con = f.conclusion;
   if (typeof con.quote !== 'string' || !Array.isArray(con.aliases) || !con.aliases.length) return no('shape', 'conclusion');
-  const badCon = quote(con.quote, 'conclusion');
+  const badCon = quote(con.quote, 'conclusion') || whole(con.quote, 'conclusion');
   if (badCon) return badCon;
-  if (con.says && !collapse(con.quote).includes(collapse(con.says))) return no('quote', 'conclusion: its words are not in its quote');
+  if (typeof con.says !== 'string' || !collapse(con.quote).includes(collapse(con.says)) || !within(tok(con.quote), tok(con.says))) return no('quote', 'conclusion: its words are not in its quote');
+  // the answer it gives is read from those words by their grammar, never
+  // typed in alone: "is considered positive" gives "Positive"
+  const form = CONCLUDES.map(re => re.exec(collapse(con.says))).find(Boolean);
+  if (!form || !tok(form[1])) return no('alias', `conclusion: "${con.says}" is not a form of conclusion the review reads`);
+  for (const a of con.aliases) if (tok(a) !== tok(form[1])) return no('alias', `"${a}" is not what "${con.says}" concludes`);
   if (rule.kind === 'criteria' && (!Array.isArray(con.asks) || !con.asks.length || con.asks.some(a => !tok(a)))) return no('shape', 'conclusion: what question it answers');
+  // what a question may ask is the lexicon's fixed list, not a rule's own
+  for (const a of con.asks || []) if (!ASKS.includes(a)) return no('asks', `"${a}" is not a question the lexicon knows`);
   // an option it names must be in the rule's own words
   const words = [con.quote, ...f.criteria.flatMap(c => [c.quote, ...Object.values(c.items || {})])].map(tok).filter(Boolean);
   for (const a of con.aliases) if (!tok(a) || !words.some(w => within(w, tok(a)))) return no('alias', `"${a}" is not in the rule's own words`);

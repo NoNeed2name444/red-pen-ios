@@ -146,6 +146,20 @@ export const SLOTS = Object.freeze({
   },
 });
 
+/// What a vignette's question may ask, for a rule's conclusion to answer
+/// it (the rule's conclusion.asks, each one of these). A fixed list, so a
+/// rule cannot widen what it answers ("of this result" would take "What is
+/// the cause of this result?"). The checker also refuses a question turned
+/// around or hedged (vignette-proof.js).
+export const ASKS = Object.freeze([
+  'interpretation of this result',
+  'interpretation of this TB skin test result',
+  'interpretation of the TB skin test',
+  'which testing approach',
+  'which testing strategy',
+  'how should baseline testing be done',
+]);
+
 /// Every lexicon entry that is quoted, with an id: what the review proves and
 /// what the owner signs off.
 export function quotedEntries(slots = SLOTS) {

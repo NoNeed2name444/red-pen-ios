@@ -232,11 +232,14 @@ export function sentenceSpans(text) {
 /// unless the finding's slot allows that kind.
 export const CUES = Object.freeze({
   negation: /\b(?:no|not|nor|neither|none|never|denies|denied|deny|denying|without|negative|absent|absence|unremarkable|free of|ruled out|rule out|rules out|excluded|excludes?|lacks?|lacking|nonreactive|non-reactive)\b|n['’]t\b/i,
-  hedge: /\?|\b(?:possible|possibly|probable|probably|suspect\w*|suspicion|suspicious|may|might|could|likely|unlikely|questionabl\w*|query|consider\w*|concern\w*|versus|vs|presum\w*|apparent\w*|equivocal|borderline|indeterminate|uncertain|unclear|reported\w*|unknown|approximately|about|around|roughly|nearly|almost|over|under|less than|more than|at least|up to|estimated|or so)\b/i,
+  hedge: /\?|\b(?:possible|possibly|probable|probably|maybe|perhaps|seem\w*|appear\w*|allegedly|purported\w*|thought to|believed|doubtful|presumptive|tentative\w*|if any|suspect\w*|suspicion|suspicious|may|might|could|likely|unlikely|questionabl\w*|query|consider\w*|concern\w*|versus|vs|presum\w*|apparent\w*|equivocal|borderline|indeterminate|uncertain|unclear|reported\w*|unknown|approximately|about|around|roughly|nearly|almost|over|under|less than|more than|at least|up to|estimated|or so)\b/i,
   other: /\b(?:mother|father|parents?|sisters?|brothers?|siblings?|sons?|daughters?|wife|husband|partner|spouse|boyfriend|girlfriend|roommates?|friends?|family|relatives?|grand\w+|aunts?|uncles?|cousins?|nieces?|nephews?|co-?workers?|colleagues?|neighbou?rs?|classmates?|bab(?:y|ies)|infants?|newborns?|fetus|twins?|child(?:ren)?|someone|others?)\b/i,
   past: /\b(?:history|previous\w*|prior|former\w*|ago|past|childhood|once|earlier|last (?:year|month|week)|used to|had been|was treated|recovered|resolved|remote)\b/i,
   condition: /\b(?:if|unless|whether|would|should|will|plans?|planned|planning|scheduled|expect\w*|in case|wants?|hopes?|asks? (?:about|for)|requests?|awaiting|waiting|pending|candidate|referred|referral|evaluat\w* for|tested for|testing for|screen\w* for|test for)\b/i,
 });
+
+/// Words that turn a question around: it asks for what is not so.
+const TURNED = /\b(?:except|least|false|incorrect|untrue|wrong|inappropriate|inaccurate|unlikely|contraindicated|avoid\w*)\b/i;
 
 function cueIn(text, allows) {
   for (const [kind, re] of Object.entries(CUES)) if (!allows.includes(kind) && re.test(text)) return kind;
@@ -416,7 +419,11 @@ function check(item, packet, registry, slots, signoffs, work) {
 
   // 5. the question asks what the rule concludes, and the key is it
   const conclusion = rule.formal.conclusion;
-  const ask = tokens(stem.slice(question[0], question[1]));
+  const asked = stem.slice(question[0], question[1]);
+  // a question turned around ("NOT", "EXCEPT", "least", "incorrect") or
+  // hedged asks for something else than the rule's conclusion
+  if (CUES.negation.test(asked) || TURNED.test(asked) || CUES.hedge.test(asked.replace(/\?/g, '')) || CUES.other.test(asked)) return fail('asks', 'the question is turned around or hedged');
+  const ask = tokens(asked);
   if (!(conclusion.asks || []).some(a => contains(ask, tokens(a)))) return fail('asks');
   const opts = optionsOf(item.options);
   const optTokens = opts.map(tokens);
