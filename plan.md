@@ -1948,6 +1948,15 @@ with the marks on the screens last.
   design/ward-polish:
   - More room: spacing, padding and line height on a consistent scale.
   - Light and dark each get their own character, not one palette inverted.
+  - The owner, 14 Oct (about 7:55 PM): "i also meant by modes not just
+    light and dark i meant colors for the grid and the button rims in other
+    modes like osce mcq cards ideas etc". Each section (Questions, Cards,
+    Cases, OSCE, Audio, Textbook, Ideas) gets its own hue for the grid
+    lines and button rims (light and dark versions), from its existing
+    icon colour; switching sections shifts the colour, never fades.
+  - First round (shots ward-r3): the mode switch was patchy (regions
+    changed at different moments, grey films on search, dock and tab bar)
+    and card text showed under the dock; the owner: "very bad". Fixing.
   - Switching light/dark animates the colours (a colour shift, no opacity).
   - The one exception to "no fading": a small soft rim on buttons only (a
     light highlight top-left and a shade bottom-right, a few points wide)
