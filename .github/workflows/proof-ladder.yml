@@ -180,7 +180,8 @@ jobs:
           export KEY
           cfg=tools/proof-ladder/config.json
           node tools/proof-ladder/ladder.mjs --state out/progress.json --out out --items out/items.json --ballots ballots \
-            --max-items 100000 --share "$(node -p "require('./$cfg').share")" --hours "$(node -p "require('./$cfg').hours")"
+            --max-items 100000 --share "$(node -p "require('./$cfg').share")" --hours "$(node -p "require('./$cfg').hours")" \
+            --runner-seats "$(node -p "require('./$cfg').runnerSeats ?? 1")"
       - name: Summary
         if: always()
         run: |

@@ -4,7 +4,7 @@
 //
 //   node tools/proof-ladder/ladder.mjs --state progress.json --pick items.json [--max-items 600] [--all]
 //   WORKER=https://... KEY=<owner key> node tools/proof-ladder/ladder.mjs \
-//     --state progress.json --out DIR [--items items.json] [--ballots DIR] [--max-items 600] [--hours 5] [--share 60] [--all]
+//     --state progress.json --out DIR [--items items.json] [--ballots DIR] [--runner-seats 1] [--max-items 600] [--hours 5] [--share 60] [--all]
 //
 // --pick chooses the day's questions only; the runner voters answer them
 // blind on GitHub's CPU (tools/runner-voter), and the climb sends each batch
@@ -115,7 +115,8 @@ async function main() {
   const maxItems = Number(arg('max-items', '600'));
   const all = process.argv.includes('--all');
   mkdirSync(outDir, { recursive: true });
-  const state = existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8')) : emptyState();
+  // an older state gains the fields added since, empty
+  const state = { ...emptyState(), ...(existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8')) : {}) };
 
   // --pick FILE: only choose the day's questions (no Worker), for the runner
   // voters to answer before the climb sends them
@@ -138,7 +139,13 @@ async function main() {
   const { picked: queue, scanned } = arg('items') ? JSON.parse(readFileSync(arg('items'), 'utf8')) : await pick(state, maxItems, { all });
   // the runner voters' answers (tools/runner-voter), when they ran
   const dir = arg('ballots');
-  const ballots = dir && existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.json')).map(f => JSON.parse(readFileSync(join(dir, f), 'utf8'))) : [];
+  // in models.json's order, the most accurate first, and only as many as
+  // the seats the ladder may fill (config.json runnerSeats), so the Worker
+  // seats the runner the ledger trusts most
+  const order = JSON.parse(readFileSync(new URL('../runner-voter/models.json', import.meta.url), 'utf8')).models.map(m => m.name);
+  const seats = Number(arg('runner-seats', '1'));
+  const ballots = (dir && existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.json')).map(f => JSON.parse(readFileSync(join(dir, f), 'utf8'))) : [])
+    .filter(b => order.includes(b.model)).sort((a, b) => order.indexOf(a.model) - order.indexOf(b.model));
   console.log(`${queue.length} questions; runner ballots from ${ballots.map(b => `${b.model} (${Object.keys(b.votes || {}).length})`).join(', ') || 'none'}`);
 
   const spend = async () => {
@@ -151,7 +158,7 @@ async function main() {
     if (!c) { stopped = 'the Worker did not report the cloud checker\'s spend (/costs)'; break; }
     if (!mayContinue({ spent: c.spent, cap: c.cap, share, now: new Date() })) { stopped = `the paced share of the cloud checker (spent ${c.spent.toFixed(2)} of ${c.cap} this month)`; break; }
     const batch = unsent.slice(0, 4);
-    const runner = runnerFor(batch, ballots);
+    const runner = runnerFor(batch, ballots).slice(0, seats);
     let res = null;
     for (let attempt = 0; attempt < 5; attempt++) {
       res = await fetch(`${worker}/accuracy/check`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json', 'x-bench': '1' },
