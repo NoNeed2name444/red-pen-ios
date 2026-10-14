@@ -1811,6 +1811,21 @@ with the marks on the screens last.
   Links everywhere are warm, glowing beams. Today's code: Graph3DView.swift
   and GraphNodeStyles; rebuild the bodies, not the hierarchy (the
   "Decided design" above still holds). App-look work: batch into Mac runs.
+  The owner (same day): "i want the models to be the same high quality" -
+  the bodies must match the sheet's photoreal look, in real-time shaders
+  (procedural granulation, lensing, atmosphere, ring shadows), judged on
+  the iPad.
+- [ ] 4b. The Performance theme to 1,000,000 nodes with their links at 60
+  frames a second or more (the owner, 14 Oct: "why didn't u make the
+  performance nodes theme that can run 1million nodes and their connections
+  at a 60 fps at least"). It exists (GraphPerf*, Metal) but was built to
+  the 1 Oct target of 100,000 (targets §4), with demos of 100,000 and
+  300,000; the only measurement is the simulator's (about 48 frames a
+  second, iPad). Raise the target: GPU-only per-frame work (compute-shader
+  layout, instanced points, compact 16-bit positions), links drawn in full
+  only near the camera and as aggregated bundles or a density field
+  farther out, a 1,000,000-node demo, and the frame readout's numbers from
+  the owner's iPad as the proof.
 - [ ] 5. Merge design/voice-claude into personal (the owner said ok).
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
