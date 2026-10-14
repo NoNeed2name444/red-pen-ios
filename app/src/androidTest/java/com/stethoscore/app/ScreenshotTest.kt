@@ -116,8 +116,8 @@ class ScreenshotTest {
         compose.waitUntil(60_000) { compose.onAllNodesWithText(" fps · ",substring=true).fetchSemanticsNodes().any { node ->
             node.config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.Text) { null }?.joinToString()?.trim()?.startsWith("0 fps")==false } }
         SystemClock.sleep(6_000) // the adaptive budget settles on what this emulator can draw at its refresh rate
+        shot("12-ideas-million") // kept even when the check below fails, to see why
         requireMapDrawn("3D performance map of 1,000,000 nodes")
-        shot("12-ideas-million")
     }
     /**
      * The GL surface really drew: the middle of the map (below the readout, above the zoom

@@ -51,7 +51,11 @@ class FrameBudget(refreshHz: Float, initialDetail: Float = 0.6f) {
     }
 
     companion object {
-        const val MIN_DETAIL = 0.05f
+        /**
+         * The floor keeps a chunk opening by 120 pixels, so the slowest device still sees the
+         * map's structure (hundreds of summaries) and never one dot for the whole library.
+         */
+        const val MIN_DETAIL = 0.3f
         const val MAX_DETAIL = 4f
         const val BASE_OPEN_PIXELS = 36f
         const val BASE_DETAIL_NODES = 600_000

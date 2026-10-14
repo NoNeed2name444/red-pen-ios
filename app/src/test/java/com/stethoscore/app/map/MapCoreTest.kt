@@ -216,6 +216,7 @@ class FrameBudgetTest {
             previous = b.detail
         }
         assertEquals(FrameBudget.MIN_DETAIL, b.detail, 1e-6f)
+        assertTrue("even at the floor, chunks open by 120 px", b.openPixels <= 120.5f)
         repeat(100_000) { b.onFrame(16.6, 0.5) }
         assertEquals(FrameBudget.MAX_DETAIL, b.detail, 1e-6f)
         assertTrue(b.maxDetailNodes <= 4_000_000)
@@ -398,5 +399,10 @@ class LodSelectorTest {
         assertTrue("selection took $perFrame ms a frame", perFrame < 25)
         assertNotNull(lod.plan)
         assertTrue(abs(lod.plan.detailNodes) <= 1_000_000)
+        // the demo's home view on the slowest budget: still the galaxy's shape, not one dot
+        val slow = FrameBudget(60f, FrameBudget.MIN_DETAIL)
+        val home = OrbitCamera(target = Vec3(t.cx[0], t.cy[0], t.cz[0]), distance = t.radius[0] * 2.4f)
+        val floor = run(LodSelector(t, null), home, frames = 120, open = slow.openPixels, maxDetail = slow.maxDetailNodes)
+        assertTrue("${floor.summaryCount} summaries at the floor", floor.summaryCount >= 100)
     }
 }
