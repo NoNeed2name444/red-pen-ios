@@ -10,9 +10,8 @@
 # Hub; no paid model is ever called and no secret is used.
 #
 # Which model: the "model" input, else the TRIAGE_NLI_MODEL repository
-# variable, else the default below: a biomedical NLI cross-encoder under the
-# MIT licence, small enough for the runner's CPU, whose config names its
-# classes LABEL_0.. only (its card: LABEL_0 is entailment, so entail_index 0).
+# variable, else tools/jev-standin/default-model.json (a biomedical NLI
+# cross-encoder under the MIT licence, small enough for the runner's CPU).
 # Which items: our own labelled ones (tools/jev-standin/own-labels.jsonl,
 # when it exists), or else the public gold-labelled sets of
 # tools/label-sets/registry.json (each licence allows commercial use; no
@@ -81,9 +80,14 @@ jobs:
           wc -l out/items.jsonl
       - name: Layer 6, scored by the open model (CPU)
         env:
-          MODEL: ${{ inputs.model || vars.TRIAGE_NLI_MODEL || 'lighteternal/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext-finetuned-mnli' }}
-          ENTAIL: ${{ inputs.entail_index || (!(inputs.model || vars.TRIAGE_NLI_MODEL) && '0' || '') }}
+          MODEL: ${{ inputs.model || vars.TRIAGE_NLI_MODEL }}
+          ENTAIL: ${{ inputs.entail_index }}
         run: |
+          if [ -z "$MODEL" ]; then
+            MODEL=$(node -p "require('./tools/jev-standin/default-model.json').hub")
+            [ -n "$ENTAIL" ] || ENTAIL=$(node -p "require('./tools/jev-standin/default-model.json').entailIndex")
+          fi
+          echo "Model: $MODEL (entailment class: ${ENTAIL:-from its config})" | tee -a "$GITHUB_STEP_SUMMARY"
           pip install --quiet --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
           pip install --quiet transformers==4.46.3 sentencepiece==0.2.0 protobuf==5.28.3
           python tools/jev-standin/score_nli.py --model "$MODEL" ${ENTAIL:+--entail-index "$ENTAIL"} --items out/items.jsonl --out out/scores.jsonl
