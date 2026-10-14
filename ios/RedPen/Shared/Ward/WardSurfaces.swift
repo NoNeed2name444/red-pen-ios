@@ -336,9 +336,9 @@ struct WardPaperBand: View {
 
     var body: some View {
         // the section's ink and the base, this frame of the shift
-        var ink = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
-                                highContrast: contrast == .increased)
-        if !grid { ink.fine = 0; ink.bold = 0 }
+        let paper = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
+                                  highContrast: contrast == .increased)
+        let ink = WardPaperInk(hex: paper.hex, fine: grid ? paper.fine : 0, bold: grid ? paper.bold : 0, edge: paper.edge)
         let base: Color = .wardBackground
         Canvas { context, size in
             let height: CGFloat = min(size.height, bottom - origin.y)

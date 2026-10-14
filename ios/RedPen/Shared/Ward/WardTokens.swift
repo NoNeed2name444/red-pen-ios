@@ -19,7 +19,7 @@ extension Color {
         let glide = WardLookStore.shared.glide
         if glide.settled { return WardRestColors.palette[token.index] }
         return Color(uiColor: UIColor { traits in
-            uiColor(glide.hex(token, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
+            Color.uiColor(glide.hex(token, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
         })
     }
 
@@ -46,7 +46,7 @@ extension Color {
         let glide = WardLookStore.shared.glide
         if glide.settled { return WardRestColors.ink(glide.to.section) }
         return Color(uiColor: UIColor { traits in
-            uiColor(glide.ink(dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
+            Color.uiColor(glide.ink(dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
         })
     }
 
@@ -57,7 +57,7 @@ extension Color {
         if glide.settled { return WardRestColors.edge(glide.to.section) }
         return Color(uiColor: UIColor { traits in
             let dark = traits.userInterfaceStyle == .dark
-            return uiColor(glide.ink(dark: dark, held: traits.wardHeld),
+            return Color.uiColor(glide.ink(dark: dark, held: traits.wardHeld),
                            alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
         })
     }
@@ -224,6 +224,7 @@ final class WardLookDriver: NSObject {
 /// to the trait collection so the colours' providers can see it.
 struct WardHeldTrait: UITraitDefinition {
     static let defaultValue = false
+    static let affectsColorAppearance = true
 }
 
 extension UITraitCollection {
