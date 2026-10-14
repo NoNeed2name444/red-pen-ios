@@ -113,7 +113,8 @@ jobs:
           REC=$!
           sleep 3
           xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> "film/launch-$MODE.log" 2>&1
-          sleep 9
+          # a Debug build on a busy runner can sit on the launch screen ~10 s
+          sleep 20
           kill -INT $REC
           wait $REC || true
           ls -la film
