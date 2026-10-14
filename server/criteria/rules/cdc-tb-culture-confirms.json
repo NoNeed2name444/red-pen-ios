@@ -1,0 +1,84 @@
+{
+  "id": "cdc-tb-culture-confirms",
+  "kind": "criteria",
+  "version": "1",
+  "title": "A positive culture confirms TB disease",
+  "summary": "A positive culture for M. tuberculosis confirms the diagnosis of TB disease.",
+  "source": "cdc-tb-core-curriculum-2021",
+  "formal": {
+    "criteria": [
+      {
+        "id": "culture",
+        "slot": "mtb_culture",
+        "op": "present",
+        "quote": "Positive culture for M. tuberculosis confirms the diagnosis of TB disease"
+      }
+    ],
+    "conclusion": {
+      "quote": "Positive culture for M. tuberculosis confirms the diagnosis of TB disease",
+      "says": "confirms the diagnosis of TB disease",
+      "aliases": [
+        "TB disease"
+      ],
+      "asks": [
+        "confirms the diagnosis"
+      ]
+    }
+  },
+  "transcriptions": [
+    {
+      "by": "transcriber-a",
+      "at": "2026-10-14",
+      "how": "read from the pinned snapshot, first pass",
+      "formal": {
+        "criteria": [
+          {
+            "id": "culture",
+            "slot": "mtb_culture",
+            "op": "present",
+            "quote": "Positive culture for M. tuberculosis confirms the diagnosis of TB disease"
+          }
+        ],
+        "conclusion": {
+          "quote": "Positive culture for M. tuberculosis confirms the diagnosis of TB disease",
+          "says": "confirms the diagnosis of TB disease",
+          "aliases": [
+            "TB disease"
+          ],
+          "asks": [
+            "confirms the diagnosis"
+          ]
+        }
+      }
+    },
+    {
+      "by": "transcriber-b",
+      "at": "2026-10-14",
+      "how": "read again from the pinned snapshot, second pass, written without the first open; both passes are by the same agent session, so not yet independent people",
+      "formal": {
+        "criteria": [
+          {
+            "id": "culture",
+            "slot": "mtb_culture",
+            "op": "present",
+            "quote": "Positive culture for M. tuberculosis confirms the diagnosis of TB disease"
+          }
+        ],
+        "conclusion": {
+          "quote": "Positive culture for M. tuberculosis confirms the diagnosis of TB disease",
+          "says": "confirms the diagnosis of TB disease",
+          "aliases": [
+            "TB disease"
+          ],
+          "asks": [
+            "confirms the diagnosis"
+          ]
+        }
+      }
+    }
+  ],
+  "examples": [],
+  "signedOffAt": null,
+  "signedOffBy": null,
+  "signedOffHash": null
+}

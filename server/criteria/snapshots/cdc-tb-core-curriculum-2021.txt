@@ -1,0 +1,188 @@
+[page 14]
+Latent Tuberculosis Infection (LTBI)
+Persons with LTBI have M. tuberculosis in their bodies, but do not have TB disease
+and cannot spread the infection to other people. A person with LTBI is not a
+TB case. The process of LTBI begins when extracellular bacilli are ingested by
+macrophages and presented to other white blood cells. This triggers the immune
+response in which white blood cells kill or encapsulate most of the bacilli, leading
+to the formation of a granuloma. Once this happens, LTBI has been established.
+LTBI may be detected by using the interferon-gamma release assay (IGRA), also
+called a TB blood test, or tuberculin skin test (TST) (see Chapter 2: Testing for
+Tuberculosis Infection). It can take 2 to 8 weeks after the initial TB infection for the
+body’s immune system to be able to react to tuberculin and for the IGRA or TST to
+detect infection. Within weeks after infection, the immune system is usually able to
+halt the multiplication of the tubercle bacilli, preventing further progression.
+TB Disease
+In some people, the tubercle bacilli overcome the immune system and multiply,
+resulting in progression from LTBI to TB disease. Persons who have TB disease are
+usually infectious and may spread the bacteria to other people. The progression
+from LTBI to TB disease may occur at any time, but it is most common within the
+first two years of infection or in the context of certain medical conditions. Body
+fluid or tissue from the disease site should be collected for AFB smear and culture.
+Positive culture for M. tuberculosis confirms the diagnosis of TB disease (see
+Chapter 3: Diagnosis of Tuberculosis Disease). Table 1.5 indicates the differences
+between LTBI and TB disease.
+CHAPTER 1: TRANSMISSION AND PATHOGENESIS OF TUBERCULOSIS
+14
+[page 43]
+Knowledge Check
+Select the best answer for each question.
+1. The Mantoux tuberculin skin test (TST) is performed by placing an intradermal
+injection of 0.1 ml of purified protein derivative (PPD) containing 5 tuberculin
+units (TU) into the volar surface of the forearm.
+A. True
+B. False
+2. Which of the following groups are more likely to be exposed to or infected
+with M. tuberculosis?
+1. Contacts of people known or presumed to have infectious TB
+2. People who live in, or have lived in, high-risk congregate settings (for
+example, homeless shelters or correctional facilities)
+3. Health care workers who serve patients with TB disease
+4. People born in or who frequently travel to countries where TB disease is
+common, including Mexico, the Philippines, Vietnam, India, China, Haiti, and
+Guatemala
+A. 1, 2, and 3 are correct
+B. 1 and 3 are correct
+C. 2 and 3 are correct
+D. Only 4 is correct
+E. All are correct
+3. For the following groups, what induration size is considered a positive
+reaction to the tuberculin skin test? (Choose only 1 answer for all 3 groups.)
+• Recent contacts of a TB case
+• HIV-positive persons
+• Persons with fibrotic changes on a chest radiograph consistent with prior TB
+A. 5 millimeters or greater
+B. 10 millimeters or greater
+C. 15 millimeters or greater
+4. Both the TB blood test (interferon-gamma release assay [IGRA] test) and
+TST are contraindicated for persons who have been vaccinated with BCG.
+A. True
+B. False
+CHAPTER 2: TESTING FOR TUBERCULOSIS INFECTION
+43
+[page 44]
+5. The only approved TB blood tests for detection of M. tuberculosis are
+interferon-gamma release assays (IGRAs).
+A. True
+B. False
+6. Which of the following is NOT true about a TB blood test?
+A. Routine testing using both a TB blood test and TST is not recommended.
+B. TB blood test results can be available in 24 hours.
+C. TB blood test can cause booster phenomenon.
+D. BCG vaccine does not cause false-positive result.
+E. Results are based on the amount of interferon-gamma (IFN-γ) released
+or the number of IFN-γ producing cells (spots) produced.
+7. Which of the following is true about two-step testing?
+A. Two-step testing should be used for the initial skin testing of adults who
+will be retested periodically.
+B. Two-step testing should be used on all children.
+C. Two-step testing should be used on all adults.
+D. A negative reaction to the second test probably represents a boosted
+reaction.
+8. TB blood tests are the preferred method of testing for (select all that apply)
+A. Homeless persons or drug users.
+B. People who have received the BCG vaccine.
+C. Children younger than 5 years of age.
+D. A and B
+E. All of the above
+9. The presence of erythema (redness) at the site of the skin test injection
+indicates that a person has TB infection
+A. True
+B. False
+10. After TB has been transmitted, how long does it take for the body’s immune
+system to mount a response detectable by a TST or IGRA?
+A. 6 months or more
+B. 7 to 10 days
+C. 2 to 8 weeks
+D. 24 hours
+CHAPTER 2: TESTING FOR TUBERCULOSIS INFECTION
+44
+[page 71]
+Knowledge Check
+Select the best answer for each question.
+1. Culture examinations should be done on all specimens, regardless of AFB
+smear results.
+A. True
+B. False
+2. Gastric aspiration is the best way to obtain specimens from infants and young
+children if they cannot produce sputum.
+A. True
+B. False
+3. Which of the following statements are true?
+A. Genotyping is a laboratory-based approach used to analyze the genetic
+material (e.g., DNA) of M. tuberculosis.
+B. When coupled with traditional epidemiologic investigations, analyses of
+the genotype of M. tuberculosis strains can detect or confirm
+transmission of M. tuberculosis.
+C. Specific sections of the M. tuberculosis genome form distinct genetic
+patterns that help distinguish different strains of M. tuberculosis.
+D. All of the above
+4. Which of the following is NOT a component for conducting a complete
+medical evaluation for diagnosing TB disease?
+A. Medical history
+B. Genotyping
+C. Test for TB infection
+D. Chest x-ray
+E. Bacteriologic examination
+For question 5 check all that apply. There may be more than one answer to the
+question.
+5. Which of the following may be a symptom of TB disease?
+A. Fever
+B. Weight loss
+C. Fatigue
+D. Runny nose
+CHAPTER 3: DIAGNOSIS OF TUBERCULOSIS DISEASE
+71
+[page 72]
+6. Which of the following confirms the diagnosis of TB?
+A. Chest x-ray
+B. Detection of acid-fast bacilli in smear examination
+C. Positive tuberculin skin test
+D. Positive culture of M. tuberculosis
+7. What part of a patient's medical history should lead a clinician to suspect the
+possibility of TB disease?
+1. Exposure to a person who has TB disease
+2. Symptoms of TB disease
+3. Previous TB infection or TB disease
+4. Risk factors for developing TB disease
+A. 1, 2, and 3 are correct
+B. 1 and 3 are correct
+C. 2 and 4 are correct
+D. Only 4 is correct
+E. All are correct
+8. Second-line drug susceptibility testing should be performed only in reference
+laboratories.
+A. True
+B. False
+See page 195 for answer key.
+CHAPTER 3: DIAGNOSIS OF TUBERCULOSIS DISEASE
+72
+[page 195, column]
+Chapter 1:
+1. A
+2. B
+3. B
+4. B
+5. D
+6. A
+Chapter 2:
+1. A
+2. E
+3. A
+4. B
+5. A
+6. C
+7. A
+8. D
+9. B
+10. C
+11. C
+Chapter 3:
+1. A
+2. A
+3. D
+4. B
+5. A, B, C
+6. D
+7. E
+8. A
