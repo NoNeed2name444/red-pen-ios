@@ -1896,6 +1896,13 @@ with the marks on the screens last.
   owner has no Android device, so it is tested on CI emulators; its
   performance map shares 4b and 4c's design (Vulkan, GLES 3 as the low-end
   floor).
+  Progress 14 Oct (android/kotlin 8f7b8ab4, CI green 38593087418): the 3D
+  Ideas map on GLES 3 with 4e's chunks, LOD, morphing and refresh-rate
+  pacing, a 1M-node demo, FSRS-5 with daily limits, and PDF deck export.
+  Left: APKG import/export (needs zstd), Vulkan, widgets; out of scope so
+  far: cloud generation, sign-in and sync, recording, billing. Small: on
+  the 4-idea map the BNP label overlaps Pulmonary oedema, and the 1M demo
+  header reads 0 ideas.
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
