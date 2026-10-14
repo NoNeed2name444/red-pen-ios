@@ -47,11 +47,32 @@ Conclusion: 99.999% is out of reach at the current cap and free tiers. A defensi
 | 99.99% | 29,956 | about $540 | 6 |
 | 99.999% | 299,572 | about $5,400 | 60 |
 
-## What the owner must approve
+## The owner's answers (14 Oct) and what was done
 
-1. **A Worker deploy** with provenance.js and oath.js, so live verdicts carry the new holds (not deployed: needs the owner's word).
-2. **The target and the spend**: which row above, and whether to raise CLAUDE_MONTHLY_USD or spread the run over months. No paid run was started for this note.
-3. **The vignette route** (why-not-verified.md, option 2): whether a vignette's underlying fact proven word for word, plus three blind families, may count as proven.
-4. **A third free family or a larger Workers AI pool**, which the owner set aside on 2 Oct; without it the run depends on the cloud checker.
-5. **Labels**: 300 per triage gate, 200 for kappa, 299 oath positives, from the owner or a clinician the owner trusts.
-6. **The triage model**: set the repository variable TRIAGE_NLI_MODEL to an open NLI model on the Hugging Face Hub and run the jev-standin workflow by hand.
+1. **Deploy**: done (worker-deploy run 38593206448); the provenance holds and the oath check are live.
+2. **Target 99.999%, inside the cap**: the proof ladder below climbs 99.9% → 99.99% → 99.999% on its own. The cloud checker stays within CLAUDE_MONTHLY_USD (90); no cap was raised.
+3. **The vignette route**: being built on its own branch. The ladder takes vignettes once it is live (`all: true` in tools/proof-ladder/config.json).
+4. **Both**: two free checker families with their own keys (MISTRAL_API_KEY, GROQ_API_KEY), asked before the cloud checker, and a second free lane for the Workers AI family. Owner's checks only. See server/ai.js `FREE_HOSTS`.
+5. **Labels**: built from public gold-labelled sets with commercial-use licences (tools/label-sets/registry.json). No label comes from a checking model.
+6. **The triage model**: an open biomedical NLI model (MIT licence) is the workflow default (tools/jev-standin/default-model.json).
+
+## The proof ladder: where progress is recorded
+
+- **What it does.** `.github/workflows/proof-ladder.yml` runs once a day at 02:43 UTC (`tools/proof-ladder/ladder.mjs`). It checks public exam questions with gold keys on the live Worker as the owner's bench: MedMCQA train (Apache-2.0), then MedQA train (CC BY 4.0). These are splits that neither the triage nor the verification bench uses. Each question is used once. Half of them, chosen by id, have a distractor keyed instead of the answer; a Verified distractor counts as an error.
+- **Which questions.** Until the vignette route is live, only questions the source proof can read are sent, since no other question can reach Verified. That is about 5% of MedMCQA.
+- **The count and the bound.** The ladder counts Verified verdicts and errors among them. It proves the exact one-sided 95% lower bound on Verified's accuracy (Clopper-Pearson; 0.05^(1/n) with no error). The rungs need 2,995, 29,956 and 299,572 Verified with no error. One error costs about 1,900 more at the first rung.
+- **The spend.**
+  - Free families answer first. The cloud checker is asked only where they fail.
+  - The ladder holds itself to `share` dollars a month (60 of the 90; config.json), spread evenly over the month. It reads the month's spend from the Worker's `/costs` and stops for the day when it is ahead of that pace, or within one batch of the cap. That leaves the owner's own checks at least 30 dollars.
+  - It takes at most 600 items a day (`maxItems`), under the bench's 2,500 and everyone's 3,000.
+- **Where to read it.** `proof-ladder/progress.md` (and `progress.json`, the running state) on the **verification-bench-results** branch, after every run. Each run's summary repeats it.
+- **What it needs to run on its own.** GitHub runs a schedule only from the default branch (main). Until proof-ladder.yml is there, a push to `ladder/run`, or the "Run workflow" button once it is listed, starts a day.
+
+## What still needs the owner
+
+1. **The two free keys**, as repository secrets, then a Worker deploy:
+   - MISTRAL_API_KEY: console.mistral.ai, the free plan. It needs a phone number and no card. Its requests may be used to train Mistral's models, so it votes on the owner's checks only.
+   - GROQ_API_KEY: console.groq.com, the free plan, with no card.
+2. **The ladder on main**, so its daily schedule runs: merge `.github/workflows/proof-ladder.yml` and `tools/proof-ladder/` to main, or make personal the default branch.
+3. **A Worker deploy** of the `/costs` change (it reports the cloud checker's month), without which the ladder stops before sending anything (fail-closed).
+4. **Oath negatives and the app's own cards**: no public set labels them (registry.json `noPublicGold`). Each needs about 200 marked by a person.

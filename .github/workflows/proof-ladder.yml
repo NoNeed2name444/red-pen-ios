@@ -1,0 +1,95 @@
+# The proof ladder (docs/verification/proof-plan.md; the owner, 14 Oct:
+# 99.999%, staged 99.9% -> 99.99% -> 99.999%, on its own, inside the cap).
+# Once a day it checks public exam questions with gold keys (half with a
+# distractor keyed) on the live Worker, as the owner's bench, and adds the
+# verdicts to the running count: how many Verified, how many of them wrong,
+# and the accuracy that proves at 95%.
+#
+# Spend: free families first; the cloud checker only where they fail, held
+# by the Worker to CLAUDE_MONTHLY_USD (90), and by the ladder to its share
+# (tools/proof-ladder/config.json), paced over the month. Nothing else paid.
+# Needs the AI_API_KEY secret (the owner key), as the verification bench does.
+#
+# Progress: proof-ladder/progress.md and progress.json on the
+# verification-bench-results branch, and each run's summary.
+name: Proof ladder
+on:
+  # the schedule runs only from the default branch; until the ladder is
+  # there, a push to ladder/run (or a change to the ladder here) starts a day
+  schedule:
+    - cron: '43 2 * * *'
+  push:
+    branches: ['ladder/run', 'design/verify-mechanisms']
+    paths: ['tools/proof-ladder/**', '.github/workflows/proof-ladder.yml']
+  workflow_dispatch:
+    inputs:
+      max_items:
+        description: 'Items at most today (empty: config.json)'
+        required: false
+        default: ''
+permissions:
+  contents: write
+concurrency:
+  group: verification-bench
+  cancel-in-progress: false
+jobs:
+  climb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Where the ladder stands
+        run: |
+          mkdir -p out
+          if git fetch -q origin verification-bench-results && git cat-file -e FETCH_HEAD:proof-ladder/progress.json 2>/dev/null; then
+            git show FETCH_HEAD:proof-ladder/progress.json > out/progress.json
+          fi
+          ls -l out
+      - name: Climb
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          MAX: ${{ inputs.max_items }}
+        run: |
+          set -eo pipefail
+          test -n "$AI_API_KEY" || { echo "::error::the AI_API_KEY secret is not set"; exit 1; }
+          export WORKER=https://redpen-auth.vv7sh4rnnw.workers.dev
+          KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          echo "::add-mask::$KEY"
+          export KEY
+          cfg=tools/proof-ladder/config.json
+          max="${MAX:-$(node -p "require('./$cfg').maxItems")}"
+          all=$(node -p "require('./$cfg').all ? '--all' : ''")
+          node tools/proof-ladder/ladder.mjs --state out/progress.json --out out \
+            --max-items "$max" --share "$(node -p "require('./$cfg').share")" --hours "$(node -p "require('./$cfg').hours")" $all
+      - name: Summary
+        if: always()
+        run: |
+          [ -f out/progress.md ] && cat out/progress.md >> "$GITHUB_STEP_SUMMARY"
+          true
+      - name: Publish
+        if: always()
+        run: |
+          [ -f out/progress.json ] || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          dest="$RUNNER_TEMP/results"
+          for attempt in 1 2 3; do
+            rm -rf "$dest"; git worktree prune
+            if git fetch -q origin verification-bench-results; then
+              git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B verification-bench-results
+            else
+              git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan verification-bench-results
+              git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
+              find "$dest" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+            fi
+            mkdir -p "$dest/proof-ladder"
+            cp out/progress.json out/progress.md "$dest/proof-ladder/"
+            git -C "$dest" add proof-ladder
+            git -C "$dest" commit -q -m "Proof ladder ${{ github.run_id }} (${{ github.sha }})" || exit 0
+            git -C "$dest" push -q origin verification-bench-results && exit 0
+            sleep 10
+          done
+          exit 1

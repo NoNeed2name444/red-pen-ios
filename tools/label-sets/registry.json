@@ -104,6 +104,10 @@
   {
    "id": "medsnip",
    "why": "named in docs/verification/vignette-proof-research.md as CC BY 4.0, but not found on the Hugging Face Hub on 2026-10-14; to add once it can be fetched"
+  },
+  {
+   "id": "statpearls",
+   "why": "never, by the owner's rule (14 Oct): CC BY-NC-ND 4.0, not for commercial use"
   }
  ],
  "noPublicGold": [
