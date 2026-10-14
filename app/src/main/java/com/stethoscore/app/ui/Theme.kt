@@ -1,5 +1,9 @@
 package com.stethoscore.app.ui
 
+import android.app.Activity
+import android.content.ContextWrapper
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +31,19 @@ private val Dark = darkColorScheme(primary=Color(0xFF7DB0F2), onPrimary=Color(0x
 val LocalWardDark = staticCompositionLocalOf { false }
 
 @Composable fun StethoscoreTheme(dark:Boolean=false, content:@Composable ()->Unit) {
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val activity = generateSequence(view.context) { (it as? ContextWrapper)?.baseContext }
+                .filterIsInstance<Activity>().firstOrNull()
+            activity?.let {
+                WindowCompat.getInsetsController(it.window, view).apply {
+                    isAppearanceLightStatusBars = !dark
+                    isAppearanceLightNavigationBars = !dark
+                }
+            }
+        }
+    }
     CompositionLocalProvider(LocalWardDark provides dark) {
         MaterialTheme(colorScheme=if(dark) Dark else Light, typography=Typography(), content=content)
     }
