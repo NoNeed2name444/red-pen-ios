@@ -22,6 +22,14 @@ Metal. Only Metal's own functions are declared, with Metal's argument types,
 so a GLSL or HLSL name (mod, lerp, vec3, inversesqrt) or a scalar where
 Metal wants a vector fails here as it would on the device.
 
+The Performance map's whole Metal libraries (LIBRARIES: GraphPerfShaders,
+GraphPerfMillionShaders - render and compute functions compiled at run time
+with makeLibrary(source:)) are checked the same way, each as one file: the
+raw string is read straight from the Swift file, Metal's address spaces and
+function qualifiers become nothing, its attributes ([[buffer(0)]]) are
+unknown ones clang ignores, and the few Metal-only calls they use (as_type,
+unpack_unorm4x8_to_float, discard_fragment) are declared.
+
 Needs swiftc and clang++ (both ship with the Swift toolchain, e.g.
 /opt/swift/usr/bin). Exit status: 0 all compile, 1 something failed.
 """
@@ -169,6 +177,40 @@ struct SCNFrameBuffer {
 };
 """
 
+# the Performance map's Metal libraries: (Swift file, the string's name)
+LIBRARIES = [("GraphPerfShaders.swift", "source"), ("GraphPerfMillionShaders.swift", "source")]
+
+LIBRARY_HEADER = r"""
+#include <cstring>
+typedef unsigned short ushort;
+typedef unsigned char uchar;
+typedef ushort ushort2 __attribute__((ext_vector_type(2)));
+typedef ushort ushort3 __attribute__((ext_vector_type(3)));
+typedef ushort ushort4 __attribute__((ext_vector_type(4)));
+typedef uint uint4 __attribute__((ext_vector_type(4)));
+typedef uchar uchar4 __attribute__((ext_vector_type(4)));
+#define device
+#define constant
+#define threadgroup
+#define thread
+#define kernel
+#define vertex
+#define fragment
+namespace metal {}
+inline ushort4 mk_ushort4(ushort a, ushort b, ushort c, ushort d) { ushort4 v; v.x = a; v.y = b; v.z = c; v.w = d; return v; }
+inline ushort4 mk_ushort4(ushort3 a, ushort b) { ushort4 v; v.x = a.x; v.y = a.y; v.z = a.z; v.w = b; return v; }
+inline uint4 mk_uint4(uint a, uint b, uint c, uint d) { uint4 v; v.x = a; v.y = b; v.z = c; v.w = d; return v; }
+inline float3 mk_float3(ushort3 a) { float3 v; v.x = a.x; v.y = a.y; v.z = a.z; return v; }
+inline float3 mk_float3(uint3 a) { float3 v; v.x = a.x; v.y = a.y; v.z = a.z; return v; }
+inline float4 mk_float4(float2 a, float b, float c) { float4 v; v.x = a.x; v.y = a.y; v.z = b; v.w = c; return v; }
+template <class T, class U> inline T as_type(U u) { static_assert(sizeof(T) == sizeof(U), "as_type sizes differ"); T t; std::memcpy(&t, &u, sizeof(T)); return t; }
+inline float4 unpack_unorm4x8_to_float(uint c) { return mk_float4((float)(c & 255u), (float)(c >> 8 & 255u), (float)(c >> 16 & 255u), (float)(c >> 24)) / 255.0f; }
+inline void discard_fragment() {}
+inline float rp_rint1(float a) { return std::rint(a); }
+RP_UNARY(rint, rp_rint1)
+inline float3 clamp(float3 x, float a, float b) = delete;
+"""
+
 ENTRY = {
     "surface": "void rp_entry(SCNShaderSurface &_surface, const SCNNodeBuffer &scn_node, const SCNFrameBuffer &scn_frame) {\n",
     "geometry": "void rp_entry(SCNShaderGeometry &_geometry, const SCNNodeBuffer &scn_node, const SCNFrameBuffer &scn_frame) {\n",
@@ -239,6 +281,63 @@ def wrap(entry, source):
     return pre + "\n".join(metal(b) for b in body) + "\n}\n", start, first_body + 1
 
 
+def library_source(swift_file, name):
+    """The Metal source in `static let <name>: String = #\"\"\" ... \"\"\"#`, dedented."""
+    text = open(os.path.join(NOTES, swift_file)).read()
+    m = re.search(r"static let " + name + r": String = #\"\"\"\n(.*?)\n\s*\"\"\"#", text, re.S)
+    if not m:
+        return None
+    lines = m.group(1).split("\n")
+    indent = min((len(l) - len(l.lstrip()) for l in lines if l.strip()), default=0)
+    return "\n".join(l[indent:] for l in lines)
+
+
+def check_libraries(clang, work, keep):
+    """Each Performance library as one C++ file. Returns how many failed."""
+    bad = 0
+    for swift_file, name in LIBRARIES:
+        source = library_source(swift_file, name)
+        label = swift_file.replace(".swift", "")
+        if source is None:
+            print(f"FAIL {label}: no Metal source found")
+            bad += 1
+            continue
+        problems = []
+        for k, line in enumerate(source.split("\n"), 1):
+            code = line.split("//")[0]
+            m = GLSL.search(code)
+            if m:
+                problems.append(f"line {k}: not Metal: {m.group(0)}")
+            if SPLAT.search(code):
+                problems.append(f"line {k}: a vector set from a bare number: {code.strip()}")
+        body = "\n".join("" if l.strip().startswith("#include") or l.strip().startswith("using namespace")
+                         else l for l in source.split("\n"))
+        body = re.sub(r"\b(ushort|uint)([234])\(", r"mk_\1\2(", body)
+        body = re.sub(r"\b(float|int)([234])\(", r"mk_\1\2(", body)
+        body = re.sub(r"(?<![\w.])(\d+\.\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)(?![\w.])", r"\1f", body)
+        pre = HEADER + LIBRARY_HEADER
+        start = pre.count("\n") + 1
+        path = os.path.join(work, label + ".cpp")
+        open(path, "w").write(pre + body + "\n")
+        if keep:
+            shutil.copy(path, os.path.join(ROOT, "build", "shaders", label + ".cpp"))
+        run = subprocess.run([clang, "-fsyntax-only", "-std=c++17", "-Wno-unused-variable", "-Wno-unknown-attributes",
+                              "-Wno-unused-but-set-variable", "-ferror-limit=20", path],
+                             capture_output=True, text=True)
+        for l in (run.stdout + run.stderr).split("\n"):
+            m = re.match(r".*\.cpp:(\d+):(\d+): (error|warning): (.*)", l)
+            if m and m.group(3) == "error":
+                problems.append(f"line {int(m.group(1)) - start + 1}: {m.group(4)}")
+        if problems:
+            bad += 1
+            print(f"FAIL {label} (library)")
+            for p in problems[:12]:
+                print("    " + p)
+        else:
+            print(f"ok   {label} (library)")
+    return bad
+
+
 def main():
     keep = "--keep" in sys.argv
     clang = shutil.which("clang++") or "/opt/swift/usr/bin/clang++"
@@ -278,9 +377,11 @@ def main():
                 print("    " + p)
         else:
             print(f"ok   {name} ({entry})")
+    libs_bad = check_libraries(clang, work, keep)
     shutil.rmtree(work, ignore_errors=True)
-    print(f"{len(shaders) - bad}/{len(shaders)} shaders compile")
-    return 1 if bad else 0
+    print(f"{len(shaders) - bad}/{len(shaders)} shaders compile; "
+          f"{len(LIBRARIES) - libs_bad}/{len(LIBRARIES)} Metal libraries compile")
+    return 1 if bad or libs_bad else 0
 
 
 if __name__ == "__main__":

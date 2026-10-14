@@ -57,7 +57,7 @@ check("G1o the Settings titles", GraphicsChoice.allCases.map(\.title) == ["Autom
 let hi: GraphicsBudget = GraphicsBudget.of(.high)
 let lo: GraphicsBudget = GraphicsBudget.of(.smooth)
 check("G2a fewer link samples", lo.linkSamples < hi.linkSamples, "\(lo.linkSamples) vs \(hi.linkSamples)")
-check("G2b 60 frames a second at most", lo.maxFPS == 60 && hi.maxFPS == 120)
+check("G2b no cap below the screen in either tier", lo.maxFPS >= 120 && hi.maxFPS >= 120)
 check("G2c lighter multisampling", lo.msaa < hi.msaa)
 check("G2d the shaders' simple path", lo.shaderDetail == 0 && hi.shaderDetail == 1)
 check("G2e fewer sparks", lo.particleScale < hi.particleScale)
@@ -67,7 +67,7 @@ check("G2h High keeps all of them", hi.twinkle && hi.nebulaDrifts && hi.haze && 
 check("G2i fewer faint stars", lo.starStride > 1)
 check("G2j High on a 60 Hz screen asks for 60", hi.frameRate(screen: 60) == 60)
 check("G2k High on ProMotion asks for 120", hi.frameRate(screen: 120) == 120)
-check("G2l Smooth on ProMotion asks for 60", lo.frameRate(screen: 120) == 60)
+check("G2l Smooth on ProMotion asks for 120 too (it cuts detail, never the rate)", lo.frameRate(screen: 120) == 120)
 check("G2m even Smooth's links are finer than the old six segments", lo.linkSamples >= 12)
 
 // MARK: G3 - even frame steps

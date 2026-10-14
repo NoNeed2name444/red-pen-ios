@@ -438,6 +438,52 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
+    /// The Performance theme's million (plans 4b and 4e): the whole map, then
+    /// pinched in twice and turned, each picture with the speed readout
+    /// (frames a second against the screen's fastest, a frame's time against
+    /// one refresh), and the readout's words kept beside them. The simulator
+    /// is not the device: the iPad's own readout is the proof.
+    func testPerformanceMillion() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "performance",
+                                "-graphPreviewPerfDemo", "1000000"]
+        app.launch()
+        let space = app.otherElements["graph3D"]
+        XCTAssertTrue(space.waitForExistence(timeout: 30), "the map didn't open")
+        let readout = app.descendants(matching: .any)["perfReadout"]
+        XCTAssertTrue(readout.waitForExistence(timeout: 30), "no speed readout")
+        let built = NSPredicate(format: "value CONTAINS %@", "1,000,000 notes")
+        expectation(for: built, evaluatedWith: readout)
+        waitForExpectations(timeout: 180)
+        // keep it drawing for a few seconds so the readout measures frames
+        for _ in 0..<3 {
+            space.swipeLeft(velocity: .slow)
+        }
+        sleep(1)
+        snap(app, "50-1-million-whole")
+        keep(readout, "50-1-million-whole-readout")
+        space.pinch(withScale: 3, velocity: 1.5)
+        sleep(2)
+        snap(app, "50-2-million-closer")
+        keep(readout, "50-2-million-closer-readout")
+        space.pinch(withScale: 4, velocity: 2)
+        sleep(2)
+        snap(app, "50-3-million-close")
+        keep(readout, "50-3-million-close-readout")
+        space.swipeRight(velocity: .slow)
+        snap(app, "50-4-million-turning")
+        keep(readout, "50-4-million-turning-readout")
+    }
+
+    /// An element's value as a text attachment beside the pictures.
+    private func keep(_ element: XCUIElement, _ name: String) {
+        let words = (element.value as? String) ?? ""
+        let text = XCTAttachment(string: (element.label) + ": " + words)
+        text.name = name
+        text.lifetime = .keepAlways
+        add(text)
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let shot = uprightShot()
         shot.name = name

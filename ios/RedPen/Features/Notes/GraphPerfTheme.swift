@@ -5,17 +5,22 @@ import SwiftUI
 // with the map's own controls round it unchanged (Graph3DView: the filter,
 // the Look menu, Recentre, the peek card, a body's options). This file is
 // the glue: it builds the engine's scene off the main thread from the
-// adapter's snapshot (or a synthetic vault of 100,000 or 300,000 notes, the
-// readout's demo), and turns the engine's hits back into notes and folders.
+// adapter's snapshot (or a synthetic vault of 100,000, 300,000 or 1,000,000
+// notes, the readout's demos - the million drawn by the chunked engine,
+// GraphPerfMillionRenderer), and turns the engine's hits back into notes
+// and folders.
 
 /// The demo maps the readout offers (never the owner's notes).
 enum GraphPerfDemo {
     static let key: String = "vignette.space.perfDemo"
-    static let sizes: [Int] = [100_000, 300_000]
+    static let sizes: [Int] = [100_000, 300_000, 1_000_000]
+    /// From this size up, the chunked engine draws it.
+    static let million: Int = 1_000_000
 }
 
-/// The map with its speed readout (top left): notes, links, frames a
-/// second, and what this frame drew; its menu swaps in a demo vault.
+/// The map with its speed readout (top left): notes and links; frames a
+/// second against the screen's fastest, and a frame's time against one
+/// refresh; and what this frame drew. Its menu swaps in a demo vault.
 struct GraphPerfSpace: View {
     let source: GraphPerfSource?
     let filter: GraphFilter
@@ -74,11 +79,14 @@ struct GraphPerfSpace: View {
                 Text("Your notes").tag(0)
                 Text("Demo: 100,000 notes").tag(GraphPerfDemo.sizes[0])
                 Text("Demo: 300,000 notes").tag(GraphPerfDemo.sizes[1])
+                Text("Demo: 1,000,000 notes").tag(GraphPerfDemo.sizes[2])
             }
             .pickerStyle(.inline)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(stats.line)
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                Text(stats.pace)
                     .font(.caption.monospacedDigit().weight(.semibold))
                 Text(stats.drawn)
                     .font(.caption2.monospacedDigit())
@@ -90,8 +98,8 @@ struct GraphPerfSpace: View {
         }
         .foregroundStyle(Color.wardInk)
         .accessibilityLabel("Speed")
-        .accessibilityValue(stats.line)
-        .accessibilityHint("How fast the map draws. Opens the demo maps of 100,000 and 300,000 notes.")
+        .accessibilityValue(stats.line + ", " + stats.pace)
+        .accessibilityHint("How fast the map draws. Opens the demo maps of 100,000, 300,000 and 1,000,000 notes.")
         .accessibilityIdentifier("perfReadout")
     }
 }
@@ -169,6 +177,8 @@ final class GraphPerfCoordinator {
     private var loadedKey: String = ""
     private var building: Task<Void, Never>?
     private var demo: Bool = false
+    /// The chunked million map is showing.
+    private var million: Bool = false
     private var filter: GraphPerfFilter = .all
     private var maskedScene: Int = -1
     private var sceneNumber: Int = 0
@@ -202,6 +212,19 @@ final class GraphPerfCoordinator {
         loadedKey = key
         demo = size > 0
         building?.cancel()
+        if size >= GraphPerfDemo.million {
+            building = Task { [weak self] in
+                let made: GraphPerfMillionMap? = await Task.detached(priority: .userInitiated) {
+                    () -> GraphPerfMillionMap? in
+                    let wanted: GraphPerfInput = GraphPerfSynthetic.make(GraphPerfSynthetic.Spec(notes: size))
+                    guard let scene = GraphPerfScene.build(wanted) else { return nil }
+                    return GraphPerfMillionMap.build(scene)
+                }.value
+                guard !Task.isCancelled, let self, let made else { return }
+                self.show(million: made)
+            }
+            return
+        }
         building = Task { [weak self] in
             let made: GraphPerfScene? = await Task.detached(priority: .userInitiated) { () -> GraphPerfScene? in
                 let wanted: GraphPerfInput = input ?? GraphPerfSynthetic.make(GraphPerfSynthetic.Spec(notes: size))
@@ -212,8 +235,16 @@ final class GraphPerfCoordinator {
         }
     }
 
+    private func show(million made: GraphPerfMillionMap) {
+        scene = made.scene
+        million = true
+        sceneNumber += 1
+        view?.show(million: made)
+    }
+
     private func show(_ made: GraphPerfScene) {
         scene = made
+        million = false
         sceneNumber += 1
         view?.show(made)
         applyMask()
@@ -249,7 +280,7 @@ final class GraphPerfCoordinator {
 
     /// A request from the card: a link chip's glide, Fly in, the design preview's hold.
     func run(_ kind: GraphMapCommand.Kind) {
-        guard let scene, let view else { return }
+        guard let scene, let view, !million else { return }
         switch kind {
         case .select(let id, let glide):
             if glide, let b = scene.body(id) { view.fly(toBody: b) }

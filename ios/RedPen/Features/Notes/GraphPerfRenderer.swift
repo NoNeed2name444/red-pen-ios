@@ -23,7 +23,7 @@ import QuartzCore
 import UIKit
 
 @MainActor
-final class GraphPerfRenderer: NSObject, @preconcurrency MTKViewDelegate {
+final class GraphPerfRenderer: NSObject, @preconcurrency MTKViewDelegate, GraphPerfEngine {
     static let slotCount: Int = 3
     /// The layout's share of a frame.
     static let layoutSeconds: Double = 0.003
@@ -54,7 +54,10 @@ final class GraphPerfRenderer: NSObject, @preconcurrency MTKViewDelegate {
     var bold: Bool = false
     var selected: Int?
     var focus: Int?
+    /// The screen's fastest rate, for the readout.
+    var screenFPS: Int = 60
     private(set) var mask: [Bool]?
+    private let gpuClock = GraphPerfGPUClock()
     private var maskVersion: Int = 0
     /// Called at the start of each frame with the seconds since the last.
     var beforeFrame: ((Double) -> Void)?
@@ -184,13 +187,41 @@ final class GraphPerfRenderer: NSObject, @preconcurrency MTKViewDelegate {
         return GraphPerfDrawnPoints.of(scene, lists: planner.lists, xyzr: force.xyzr, view: viewpoint)
     }
 
+    // MARK: - GraphPerfEngine
+
+    var mapBounds: GraphPerfEngineBounds? {
+        guard let scene else { return nil }
+        return GraphPerfEngineBounds(centre: scene.centre, radius: scene.radius, spacing: scene.layout.spacing,
+                                     bodies: scene.bodyCount)
+    }
+
+    func clusterBall(_ s: Int) -> SIMD4<Float>? {
+        guard let scene, s >= 0, s < scene.clusters.count else { return nil }
+        let reach: Float = s < scene.graph.systemCount ? scene.layout.systemRadius[s] : scene.clusters.ball[s].w
+        let centre: SIMD3<Float> = scene.layout.systemCentre[s]
+        return SIMD4(centre.x, centre.y, centre.z, reach)
+    }
+
+    func title(_ i: Int) -> String { scene?.title(i) ?? "" }
+
+    /// What is under `point`: the same rules as the other themes' pick.
+    func pick(_ point: CGPoint, reach: Float, width: Float, height: Float) -> GraphPerfHit? {
+        guard let drawn = drawnPoints() else { return nil }
+        let bins = GraphPerfScreenBins(drawn.points, width: width, height: height)
+        guard let k = bins.pick(x: Float(point.x), y: Float(point.y), reach: reach), k < drawn.ids.count else {
+            return nil
+        }
+        let id: Int32 = drawn.ids[k]
+        return id >= 0 ? .body(Int(id)) : .cluster(Int(-id - 1))
+    }
+
     // MARK: - MTKViewDelegate
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     func draw(in view: MTKView) {
         let now: CFTimeInterval = CACurrentMediaTime()
-        let step: Double = lastTime > 0 ? min(now - lastTime, 0.25) : 1.0 / 60.0
+        let step: Double = lastTime > 0 ? min(now - lastTime, 0.25) : 1.0 / Double(max(screenFPS, 30))
         if lastTime > 0 { intervals.append(now - lastTime) }
         lastTime = now
         beforeFrame?(step)
@@ -293,6 +324,7 @@ final class GraphPerfRenderer: NSObject, @preconcurrency MTKViewDelegate {
         commands.present(drawable)
         let done: DispatchSemaphore = inFlight
         commands.addCompletedHandler { _ in done.signal() }
+        gpuClock.time(commands)
         commands.commit()
 
         cpuTimes.append(CACurrentMediaTime() - started)
@@ -311,8 +343,10 @@ final class GraphPerfRenderer: NSObject, @preconcurrency MTKViewDelegate {
         stats.drawnLines = lists.lineCount
         let total: Double = intervals.reduce(0, +)
         stats.fps = total > 0 ? Double(intervals.count) / total : 0
-        let target: Double = 1.0 / Double(max(Int(stats.fps.rounded()), 1))
+        let target: Double = 1.0 / Double(max(screenFPS, 1))
         stats.cpuP95 = GraphPerfFrameStats(cpuTimes, target: target).p95
+        stats.gpuP95 = GraphPerfFrameStats(gpuClock.drain(), target: target).p95
+        stats.screenFPS = screenFPS
         stats.settling = isSettling
         intervals.removeAll(keepingCapacity: true)
         cpuTimes.removeAll(keepingCapacity: true)

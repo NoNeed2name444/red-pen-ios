@@ -466,12 +466,18 @@ let none7 = GraphPerfFrameStats([], target: target)
 check("P7 no frames, zeros", none7.count == 0 && none7.p50 == 0 && none7.p95 == 0 && none7.hitches == 0)
 var readout = GraphPerfStats(notes: 100_000, links: 230_080, drawnBodies: 98_412, drawnGlows: 236, drawnLines: 231_940,
                              fps: 119.6, cpuP95: 0.004, settling: false)
-check("P7 the readout: notes, links, frames a second; what was drawn",
-      readout.line == "100,000 notes \u{00B7} 230,080 links \u{00B7} 120 fps"
+check("P7 the readout: notes, links; what was drawn",
+      readout.line == "100,000 notes \u{00B7} 230,080 links"
       && readout.drawn == "98,412 drawn \u{00B7} 236 glows \u{00B7} 231,940 lines", readout.line + " / " + readout.drawn)
+check("P7 the pace without a known screen: frames a second and a frame's time",
+      readout.pace == "120 fps \u{00B7} 4.0 ms a frame", readout.pace)
+readout.screenFPS = 120
+readout.gpuP95 = 0.0061
+check("P7 the pace on ProMotion: the rate of the screen's 120, the slower of CPU and GPU against 8.3 ms",
+      readout.pace == "120 of 120 fps \u{00B7} 6.1 ms a frame of 8.3", readout.pace)
 readout.notes = 1; readout.links = 1; readout.drawnGlows = 1
 check("P7 one of each is singular, and small numbers have no commas",
-      readout.line == "1 note \u{00B7} 1 link \u{00B7} 120 fps" && GraphPerfStats.grouped(999) == "999"
+      readout.line == "1 note \u{00B7} 1 link" && GraphPerfStats.grouped(999) == "999"
       && GraphPerfStats.grouped(1_000) == "1,000" && GraphPerfStats.grouped(-12_345) == "-12,345")
 
 // MARK: - P8 linear time

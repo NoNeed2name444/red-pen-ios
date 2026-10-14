@@ -13,7 +13,16 @@
 // The camera glides (eased, 0.6 s; at once with Reduce Motion) to frame
 // the whole map, a cluster, or a body. The chosen body's name sits on a pill
 // above it. When nothing moves - no finger, no glide, no spin, the layout
-// settled - the view stops drawing until something changes.
+// settled - the view stops drawing until something changes; any touch
+// brings it back at once.
+//
+// It draws at the screen's own rate (UIScreen.maximumFramesPerSecond: 120 on
+// ProMotion, with CADisableMinimumFrameDurationOnPhone in Info.plist), never
+// a fixed 60 (plan 4e): a slow device cuts detail, never the rate.
+//
+// Two engines draw through it: GraphPerfRenderer, the map of the owner's
+// notes and the 100,000 and 300,000 demos, and GraphPerfMillionRenderer,
+// the chunked million (GraphPerfEngine is what the view needs of either).
 //
 // Free of Stethoscore types: the theme's glue (GraphPerfTheme.swift) turns
 // hits into notes and folders, and the app's settings into a tier.
@@ -23,18 +32,44 @@ import MetalKit
 import QuartzCore
 import UIKit
 
-/// What a touch landed on.
-enum GraphPerfHit: Equatable {
-    /// A body drawn one by one (its index).
-    case body(Int)
-    /// A cluster drawn as one glow (its index).
-    case cluster(Int)
+/// The map's size and spacing, for framing and the zoom's reach.
+struct GraphPerfEngineBounds: Equatable {
+    var centre: SIMD3<Float>
+    var radius: Float
+    var spacing: Float
+    var bodies: Int
+}
+
+/// What the map view needs of a renderer.
+@MainActor
+protocol GraphPerfEngine: AnyObject {
+    var camera: GraphPerfCamera { get set }
+    var tier: GraphPerfTier { get set }
+    var bold: Bool { get set }
+    var selected: Int? { get set }
+    var focus: Int? { get set }
+    var screenFPS: Int { get set }
+    var beforeFrame: ((Double) -> Void)? { get set }
+    var onStats: ((GraphPerfStats) -> Void)? { get set }
+    /// Frames are still needed for the map itself (a layout settling).
+    var isSettling: Bool { get }
+    var mapBounds: GraphPerfEngineBounds? { get }
+    func position(_ i: Int) -> SIMD3<Float>?
+    /// A cluster's (or chunk's) ball: centre and radius.
+    func clusterBall(_ s: Int) -> SIMD4<Float>?
+    func title(_ i: Int) -> String
+    func pick(_ point: CGPoint, reach: Float, width: Float, height: Float) -> GraphPerfHit?
+    func setMask(_ mask: [Bool]?)
+    func resumeClock()
 }
 
 @MainActor
 final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     let metal: MTKView
     let renderer: GraphPerfRenderer?
+    /// The million's renderer, made the first time a million map is shown.
+    private(set) var million: GraphPerfMillionRenderer?
+    private var showsMillion: Bool = false
     var onTap: (GraphPerfHit?) -> Void = { _ in }
     var onDoubleTap: (GraphPerfHit?) -> Void = { _ in }
     var onHold: (GraphPerfHit, CGPoint) -> Void = { _, _ in }
@@ -42,8 +77,9 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     /// The part of the view under glass on each side (points); framing fits the rest.
     var insets: (top: Float, left: Float, bottom: Float, right: Float) = (0, 0, 0, 0)
     var reduceMotion: Bool = false
-    var preferredFPS: Int = 60 {
-        didSet { metal.preferredFramesPerSecond = preferredFPS }
+    /// The rate asked for (0: the screen's own); never above the screen's.
+    var preferredFPS: Int = 0 {
+        didSet { applyRate() }
     }
 
     static let turnRate: Float = 0.006
@@ -60,6 +96,17 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     private var lastBusy: CFTimeInterval = 0
     /// Framed for a map of this many bodies (0: not yet).
     private var framedBodies: Int = 0
+
+    /// The engine drawing now.
+    var engine: GraphPerfEngine? {
+        if showsMillion { return million }
+        return renderer
+    }
+
+    /// The fastest the screen goes (60 until the view is on one).
+    static func screenRate(_ screen: UIScreen?) -> Int {
+        max(screen?.maximumFramesPerSecond ?? 60, 30)
+    }
 
     override init(frame: CGRect) {
         let view = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
@@ -86,8 +133,8 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
             addSubview(unavailable)
             metal.isPaused = true
         }
-        renderer?.beforeFrame = { [weak self] seconds in self?.advance(seconds) }
-        renderer?.onStats = { [weak self] stats in self?.onStats(stats) }
+        hook(renderer)
+        applyRate()
         setUpPill()
         setUpGestures()
         isAccessibilityElement = true
@@ -99,12 +146,32 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         nil
     }
 
+    private func hook(_ engine: GraphPerfEngine?) {
+        engine?.beforeFrame = { [weak self] seconds in self?.advance(seconds) }
+        engine?.onStats = { [weak self] stats in self?.onStats(stats) }
+    }
+
+    /// The screen's fastest rate, asked of the display link (and told to the
+    /// engines for the readout and the frame budget).
+    private func applyRate() {
+        let top: Int = Self.screenRate(window?.windowScene?.screen)
+        let rate: Int = preferredFPS > 0 ? min(max(preferredFPS, 30), top) : top
+        metal.preferredFramesPerSecond = rate
+        renderer?.screenFPS = top
+        million?.screenFPS = top
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        applyRate()
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         metal.frame = bounds
         unavailable.frame = bounds.insetBy(dx: 32, dy: 32)
-        if framedBodies == 0, let scene = renderer?.scene, bounds.width > 1, bounds.height > 1 {
-            frameWhole(scene, animated: false)
+        if framedBodies == 0, let whole = engine?.mapBounds, bounds.width > 1, bounds.height > 1 {
+            frameWhole(whole, animated: false)
         }
         wake()
     }
@@ -116,11 +183,46 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     /// same map keeps the camera where it is.
     func show(_ scene: GraphPerfScene) {
         guard let renderer else { return }
+        let camera: GraphPerfCamera? = showsMillion ? million?.camera : nil
+        switchTo(million: false)
+        if let camera { renderer.camera = camera }
         renderer.load(scene)
-        let bodies: Int = max(scene.bodyCount, 1)
+        reframe(bodies: scene.bodyCount)
+    }
+
+    /// Shows a million map (GraphPerfMillionRenderer, made the first time).
+    func show(million map: GraphPerfMillionMap) {
+        if million == nil {
+            million = GraphPerfMillionRenderer(view: metal)
+            hook(million)
+            applyRate()
+        }
+        guard let million else { return }
+        let camera: GraphPerfCamera? = showsMillion ? nil : renderer?.camera
+        million.tier = renderer?.tier ?? million.tier
+        million.bold = renderer?.bold ?? million.bold
+        switchTo(million: true)
+        if let camera { million.camera = camera }
+        million.load(map)
+        reframe(bodies: map.bodyCount)
+    }
+
+    private func switchTo(million on: Bool) {
+        guard on != showsMillion else { return }
+        showsMillion = on
+        if on {
+            metal.delegate = million
+        } else {
+            metal.delegate = renderer
+        }
+        engine?.resumeClock()
+    }
+
+    private func reframe(bodies count: Int) {
+        let bodies: Int = max(count, 1)
         let changed: Bool = framedBodies == 0 || bodies > 2 * framedBodies || 2 * bodies < framedBodies
-        if changed && bounds.width > 1 && bounds.height > 1 {
-            frameWhole(scene, animated: false)
+        if changed, let whole = engine?.mapBounds, bounds.width > 1 && bounds.height > 1 {
+            frameWhole(whole, animated: false)
         }
         updatePill()
         wake()
@@ -128,60 +230,61 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
 
     /// Back to the whole map, from the usual angle.
     func recentre() {
-        guard let scene = renderer?.scene else { return }
-        frameWhole(scene, animated: true)
+        guard let whole = engine?.mapBounds else { return }
+        frameWhole(whole, animated: true)
     }
 
-    /// Frames a cluster's ball (a folder with everything round it).
+    /// Frames a cluster's ball (a folder with everything round it), or on
+    /// the million map a chunk's.
     func fly(toCluster s: Int) {
-        guard let renderer, let scene = renderer.scene, s >= 0, s < scene.clusters.count else { return }
-        let reach: Float = s < scene.graph.systemCount ? scene.layout.systemRadius[s] : scene.clusters.ball[s].w
-        let centre: SIMD3<Float> = scene.layout.systemCentre[s]
-        let goal: GraphPerfCamera = renderer.camera.framing(centre: centre, radius: max(reach, 1),
-                                                            width: Float(bounds.width), height: Float(bounds.height),
-                                                            insets: insets, fill: 0.88)
+        guard let engine, let ball = engine.clusterBall(s) else { return }
+        let goal: GraphPerfCamera = engine.camera.framing(centre: SIMD3(ball.x, ball.y, ball.z), radius: max(ball.w, 1),
+                                                          width: Float(bounds.width), height: Float(bounds.height),
+                                                          insets: insets, fill: 0.88)
         move(to: goal, animated: true)
     }
 
     /// Brings a body to the middle of the screen above the card, close enough to read.
     func fly(toBody b: Int) {
-        guard let renderer, let scene = renderer.scene, let at = renderer.position(b) else { return }
-        let near: Float = scene.layout.spacing * 14
+        guard let engine, let whole = engine.mapBounds, let at = engine.position(b) else { return }
+        let near: Float = whole.spacing * 14
         let ball: Float = near * 0.35
-        let goal: GraphPerfCamera = renderer.camera.framing(centre: at, radius: ball, width: Float(bounds.width),
-                                                            height: Float(bounds.height), insets: insets, fill: 0.9)
+        let goal: GraphPerfCamera = engine.camera.framing(centre: at, radius: ball, width: Float(bounds.width),
+                                                          height: Float(bounds.height), insets: insets, fill: 0.9)
         move(to: goal, animated: true)
     }
 
     func select(_ body: Int?) {
-        guard let renderer, renderer.selected != body else { return }
-        renderer.selected = body
+        guard let engine, engine.selected != body else { return }
+        engine.selected = body
         updatePill()
         wake()
     }
 
     func focus(_ body: Int?) {
-        guard let renderer, renderer.focus != body else { return }
-        renderer.focus = body
+        guard let engine, engine.focus != body else { return }
+        engine.focus = body
         wake()
     }
 
     func setMask(_ mask: [Bool]?) {
-        renderer?.setMask(mask)
+        engine?.setMask(mask)
         wake()
     }
 
     func setTier(_ tier: GraphPerfTier, bold: Bool) {
-        guard let renderer, renderer.tier != tier || renderer.bold != bold else { return }
-        renderer.tier = tier
-        renderer.bold = bold
+        for e in [renderer as GraphPerfEngine?, million as GraphPerfEngine?] {
+            guard let e, e.tier != tier || e.bold != bold else { continue }
+            e.tier = tier
+            e.bold = bold
+        }
         wake()
     }
 
     /// Where body `b` is drawn now (nil behind the eye or off screen).
     func screenPoint(of b: Int) -> CGPoint? {
-        guard let renderer, let p = renderer.position(b) else { return nil }
-        let at = renderer.camera.project(p, width: Float(bounds.width), height: Float(bounds.height))
+        guard let engine, let p = engine.position(b) else { return nil }
+        let at = engine.camera.project(p, width: Float(bounds.width), height: Float(bounds.height))
         guard at.depth > 0, at.x >= 0, at.y >= 0, at.x <= Float(bounds.width), at.y <= Float(bounds.height) else {
             return nil
         }
@@ -190,64 +293,58 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
 
     /// What is under `point`: the same rules as the other themes' pick.
     func pick(_ point: CGPoint, reach: Float = GraphPerfPick.fingerReach) -> GraphPerfHit? {
-        guard let drawn = renderer?.drawnPoints() else { return nil }
-        let bins = GraphPerfScreenBins(drawn.points, width: Float(bounds.width), height: Float(bounds.height))
-        guard let k = bins.pick(x: Float(point.x), y: Float(point.y), reach: reach), k < drawn.ids.count else {
-            return nil
-        }
-        let id: Int32 = drawn.ids[k]
-        return id >= 0 ? .body(Int(id)) : .cluster(Int(-id - 1))
+        engine?.pick(point, reach: reach, width: Float(bounds.width), height: Float(bounds.height))
     }
 
     // MARK: - The camera
 
-    private func frameWhole(_ scene: GraphPerfScene, animated: Bool) {
-        guard let renderer, bounds.width > 1, bounds.height > 1 else { return }
-        var from: GraphPerfCamera = renderer.camera
+    private func frameWhole(_ whole: GraphPerfEngineBounds, animated: Bool) {
+        guard let engine, bounds.width > 1, bounds.height > 1 else { return }
+        var from: GraphPerfCamera = engine.camera
         from.yaw = Self.defaultYaw
         from.pitch = Self.defaultPitch
-        let goal: GraphPerfCamera = from.framing(centre: scene.centre, radius: scene.radius, width: Float(bounds.width),
+        let goal: GraphPerfCamera = from.framing(centre: whole.centre, radius: whole.radius, width: Float(bounds.width),
                                                  height: Float(bounds.height), insets: insets, fill: 0.9)
-        framedBodies = max(scene.bodyCount, 1)
+        framedBodies = max(whole.bodies, 1)
         move(to: goal, animated: animated)
     }
 
     private func move(to goal: GraphPerfCamera, animated: Bool) {
-        guard let renderer else { return }
+        guard let engine else { return }
         spin = .zero
         if animated && !reduceMotion {
-            glide = (renderer.camera, goal, CACurrentMediaTime(), 0.6)
+            glide = (engine.camera, goal, CACurrentMediaTime(), 0.6)
         } else {
             glide = nil
-            renderer.camera = goal
+            engine.camera = goal
         }
         wake()
     }
 
     /// The zoom's reach: from a little over a body's spacing to well outside the map.
     private var zoomLimits: ClosedRange<Float> {
-        guard let scene = renderer?.scene else { return 0.5...1_000 }
-        let lo: Float = scene.layout.spacing * 1.5
-        return lo...max(scene.radius * 8, lo * 2)
+        guard let whole = engine?.mapBounds else { return 0.5...1_000 }
+        let lo: Float = whole.spacing * 1.5
+        return lo...max(whole.radius * 8, lo * 2)
     }
 
     /// Every frame: the glide, the spin, the name pill, and whether to keep drawing.
     private func advance(_ seconds: Double) {
-        guard let renderer else { return }
+        guard let engine else { return }
         let now: CFTimeInterval = CACurrentMediaTime()
         if let g = glide {
             let t: Float = Float((now - g.start) / g.duration)
-            renderer.camera = GraphPerfCamera.glide(g.from, g.to, t: t)
+            engine.camera = GraphPerfCamera.glide(g.from, g.to, t: t)
             if t >= 1 { glide = nil }
         }
         if spin != .zero {
             let dt = Float(seconds)
-            renderer.camera.orbit(yaw: spin.x * dt, pitch: spin.y * dt)
+            engine.camera.orbit(yaw: spin.x * dt, pitch: spin.y * dt)
             spin *= exp(-3.5 * dt)
             if abs(spin.x) < 0.02 && abs(spin.y) < 0.02 { spin = .zero }
         }
         updatePill()
-        let busy: Bool = touching > 0 || glide != nil || spin != .zero || renderer.isSettling
+        let busy: Bool = touching > 0 || glide != nil || spin != .zero || engine.isSettling
         if busy {
             lastBusy = now
         } else if now - lastBusy > 0.6 {
@@ -258,8 +355,8 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     /// Draw again (something changed).
     func wake() {
         lastBusy = CACurrentMediaTime()
-        guard renderer != nil, metal.isPaused else { return }
-        renderer?.resumeClock()
+        guard let engine, metal.isPaused, metal.delegate != nil else { return }
+        engine.resumeClock()
         metal.isPaused = false
     }
 
@@ -280,12 +377,11 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     }
 
     private func updatePill() {
-        guard let renderer, let scene = renderer.scene, let chosen = renderer.selected,
-              let at = screenPoint(of: chosen) else {
+        guard let engine, let chosen = engine.selected, let at = screenPoint(of: chosen) else {
             pillBack.isHidden = true
             return
         }
-        let title: String = scene.title(chosen)
+        let title: String = engine.title(chosen)
         if pill.text != title {
             pill.text = title
             pill.sizeToFit()
@@ -333,7 +429,7 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     }
 
     @objc private func panned(_ gesture: UIPanGestureRecognizer) {
-        guard let renderer else { return }
+        guard let engine else { return }
         switch gesture.state {
         case .began:
             touching += 1
@@ -350,9 +446,9 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
                 break
             }
             if panTouches >= 2 {
-                renderer.camera.pan(dx: Float(moved.x), dy: Float(moved.y), viewHeight: Float(bounds.height))
+                engine.camera.pan(dx: Float(moved.x), dy: Float(moved.y), viewHeight: Float(bounds.height))
             } else {
-                renderer.camera.orbit(yaw: -Float(moved.x) * Self.turnRate, pitch: Float(moved.y) * Self.turnRate)
+                engine.camera.orbit(yaw: -Float(moved.x) * Self.turnRate, pitch: Float(moved.y) * Self.turnRate)
             }
         case .ended, .cancelled, .failed:
             touching = max(touching - 1, 0)
@@ -369,14 +465,14 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     }
 
     @objc private func pinched(_ gesture: UIPinchGestureRecognizer) {
-        guard let renderer else { return }
+        guard let engine else { return }
         switch gesture.state {
         case .began:
             touching += 1
             glide = nil
             spin = .zero
         case .changed:
-            renderer.camera.zoom(by: Float(gesture.scale), limits: zoomLimits)
+            engine.camera.zoom(by: Float(gesture.scale), limits: zoomLimits)
             gesture.scale = 1
         case .ended, .cancelled, .failed:
             touching = max(touching - 1, 0)

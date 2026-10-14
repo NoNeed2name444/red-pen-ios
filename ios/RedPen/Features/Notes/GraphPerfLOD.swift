@@ -116,13 +116,37 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     /// Frames a second over the last half second, and the slowest twentieth's CPU time.
     var fps: Double = 0
     var cpuP95: Double = 0
+    /// The slowest twentieth's GPU time (0 until the GPU reports).
+    var gpuP95: Double = 0
+    /// The screen's fastest rate (0: not known).
+    var screenFPS: Int = 0
+    /// The frame budget's split size (points; 0 where there is none).
+    var detail: Float = 0
     /// The layout is still settling.
     var settling: Bool = false
 
-    /// "100,000 notes · 230,080 links · 120 fps"
+    /// "100,000 notes · 230,080 links"
     var line: String {
         Self.grouped(notes) + (notes == 1 ? " note" : " notes") + " \u{00B7} " + Self.grouped(links)
-            + (links == 1 ? " link" : " links") + " \u{00B7} " + String(Int(fps.rounded())) + " fps"
+            + (links == 1 ? " link" : " links")
+    }
+
+    /// The slower of the CPU's and the GPU's time for a frame (slowest twentieth).
+    var frameTime: Double { max(cpuP95, gpuP95) }
+
+    /// "118 of 120 fps · 3.4 ms a frame of 8.3": the rate, the screen's
+    /// fastest, and what a frame costs against the time one refresh allows.
+    var pace: String {
+        let rate = String(Int(fps.rounded()))
+        guard screenFPS > 0 else { return rate + " fps \u{00B7} " + Self.millis(frameTime) + " ms a frame" }
+        return rate + " of " + String(screenFPS) + " fps \u{00B7} " + Self.millis(frameTime) + " ms a frame of "
+            + Self.millis(1 / Double(screenFPS))
+    }
+
+    /// Milliseconds to one decimal, a dot in every locale.
+    static func millis(_ seconds: Double) -> String {
+        let tenths = Int((max(seconds, 0) * 10_000).rounded())
+        return String(tenths / 10) + "." + String(tenths % 10)
     }
 
     /// "98,412 drawn · 236 glows · 231,940 lines"
