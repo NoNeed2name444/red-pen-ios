@@ -571,100 +571,192 @@ nonisolated enum GraphStyleShaders {
 
     """ + glowEnd
 
-    /// The photon ring and what the hole's gravity does round it, on the
-    /// billboarded plane in front of the sphere. GraphStyleAnimator turns
-    /// the plane so +x is the side of the disk coming towards the eye (the
-    /// ring's Doppler-bright side, which moves as the disk precesses and
-    /// tilts), and its z scale carries the disk's inclination with a sign:
-    /// which side the broad lensed arc is on. Also: the ring's thinner
-    /// second image just inside it (light that went round the hole twice),
-    /// a hot spot running round the ring, a breathing glow, and (rpDetail)
-    /// the stars behind sheared into short arcs round the Einstein radius -
-    /// a cheap stand-in for lensing.
+    /// The black hole as the eye sees it, ray-traced on the billboard in
+    /// front of the black sphere (the shadow): every pixel is a light ray
+    /// arriving with impact parameter b (the shadow's edge, b = 1, is the
+    /// sphere's limb; rs = 1 / 2.6). The ray's plane holds the eye and the
+    /// pixel's direction; where that plane cuts the disk, and Beloborodov's
+    /// bending (1 - cos a = (1 - cos psi)(1 - rs/r), b = r sin a /
+    /// sqrt(1 - rs/r), four fixed-point steps), say which radius of the disk
+    /// the ray left. So the near side of the disk crosses in front of the
+    /// shadow, and its far side is seen bent up over the top and under the
+    /// bottom (the lensed arcs), without a second plane.
+    ///
+    /// The disk: a Novikov-Thorne-like glow (T^4 ~ r^-3 (1 - sqrt(r_in/r)))
+    /// from the innermost stable orbit (3 rs, drawn as a thin line), in
+    /// thin lanes that each turn at their own Kepler rate (so the pattern
+    /// shears into streaks and never winds up), with turbulent streaks and
+    /// two hot spots; Doppler beaming and gravitational redshift from the
+    /// gas's real motion against the photon's direction (g^4, and colour
+    /// from the shifted temperature). Round the shadow: the photon ring and,
+    /// just outside it, the thin second image of the disk; stars behind
+    /// sheared into arcs near the Einstein radius.
+    ///
+    /// GraphStyleAnimator turns the plane so +x is the side of the disk
+    /// coming towards the eye, and its z scale carries sin i, the side the
+    /// eye is on and the motion (SpaceOptics.holeCode). Dragged, the disk
+    /// runs hotter, puffs out and sheds matter in spiral streamers.
+    /// `rpDisk` 0 is a dormant hole: the shadow and its ring alone.
     static let bhRing: String = """
     #pragma arguments
     float rpClock;
     float rpMotion;
     float rpDetail;
     float rpProbe;
+    float rpDisk;
 
     #pragma body
 
     """ + plane + """
     float rp_code = length(scn_node.modelTransform[2].xyz) - 2.0;
-    float rp_k = clamp(abs(rp_code), 0.0, 1.0);
-    float rp_flip = rp_code < 0.0 ? 1.0 : -1.0;
+    float rp_above = rp_code < 0.0 ? -1.0 : 1.0;
+    float rp_v = min(abs(rp_code), 0.99999);
+    float rp_kq = floor(rp_v * 256.0);
+    float rp_k = rp_kq / 255.0;
+    float rp_m = clamp((rp_v * 256.0 - rp_kq) / 0.96, 0.0, 1.0) * rpMotion;
     float rp_t = rpClock * rpMotion;
     float3 rp_pos = scn_node.modelTransform[3].xyz;
-    float rp_seed = dot(rp_pos, float3(0.37, 0.51, 0.29));
-    float rp_ca = rp_qx / rp_r;
-    float rp_sa = rp_flip * rp_qy / rp_r;
-    float rp_a = atan2(rp_qy, rp_qx);
-    float rp_side = 0.5 + 0.5 * rp_ca * rp_k;
-    float rp_bright = 0.3 + 1.2 * rp_side * rp_side;
-    float rp_d = rp_r - 0.495;
-    float rp_sg = rp_d < 0.0 ? 0.010 : 0.022;
-    float rp_q = rp_d / rp_sg;
-    float rp_ph = exp(-rp_q * rp_q);
-    float rp_c = max(cos(rp_a - rp_t * 0.6283185 - rp_seed), 0.0);
-    rp_c = rp_c * rp_c;
-    rp_c = rp_c * rp_c;
-    rp_c = rp_c * rp_c;
-    float3 rp_gold = float3(1.0, 0.753, 0.302);
-    float3 rp_white = float3(1.0, 0.95, 0.84);
-    float3 rp_orange = float3(1.0, 0.416, 0.0);
-    float3 rp_hue = mix(rp_gold, rp_white, rp_side * rp_side);
-    float3 rp_col = rp_hue * (rp_ph * rp_bright * 1.25);
-    float rp_q2 = (rp_r - 0.481) / 0.0045;
-    rp_col = rp_col + rp_hue * (exp(-rp_q2 * rp_q2) * 0.5 * rp_bright);
-    rp_col = rp_col + rp_white * (rp_ph * rp_c * 0.6 * rpMotion);
-    float rp_fw = sin(rp_a * 4.0 + rp_t * 0.4) * 1.5;
-    float rp_flow = 0.6 + 0.4 * sin(rp_a * 9.0 - rp_t * 1.3 + rp_fw);
-    float rp_td = (rp_r - 0.6) / 0.05;
-    float rp_tw = mix(1.0, pow(max(rp_sa, 0.0), 1.2), rp_k);
-    float rp_top = exp(-rp_td * rp_td) * rp_tw;
-    float rp_bd = (rp_r - 0.535) / 0.02;
-    float rp_bw = mix(0.6, pow(max(-rp_sa, 0.0), 1.5), rp_k);
-    float rp_bot = exp(-rp_bd * rp_bd) * rp_bw * 0.7;
-    float rp_lens = (rp_top + rp_bot) * rp_flow * (0.45 + 0.8 * rp_side);
-    float3 rp_lensHue = mix(rp_orange, rp_gold, 0.45 + 0.4 * rp_side);
-    rp_col = rp_col + rp_lensHue * (rp_lens * 0.85);
-    float rp_out = max(rp_d, 0.0);
-    float rp_inner = rp_d > 0.0 ? 1.0 : rp_ph;
-    float rp_breath = 1.0 + 0.1 * sin(rp_t * 0.9 + rp_seed * 2.0);
-    float rp_halo = exp(-rp_out / 0.15) * 0.26 * rp_inner * rp_breath;
-    rp_col = rp_col + mix(rp_orange, rp_gold, 0.3) * (rp_halo * rp_bright);
-    if (rpDetail > 0.5) {
-    float rp_lr = floor(rp_r * 16.0);
-    float rp_la = floor(rp_a * 3.0 + rp_lr * 0.37);
-    float rp_lh = fract(sin(rp_la * 12.9898 + rp_lr * 78.233) * 43758.5453);
-    float rp_cr = (rp_lr + 0.5) / 16.0;
-    float rp_ang = (rp_la + 0.5 - rp_lr * 0.37) / 3.0;
-    float rp_dA = (rp_a - rp_ang) * rp_r;
-    float rp_ez = (rp_r - 0.66) / 0.12;
-    float rp_ein = exp(-rp_ez * rp_ez);
-    float rp_sx = rp_dA / (0.012 + 0.09 * rp_ein);
-    float rp_sy = (rp_r - rp_cr) / 0.006;
-    float rp_star = exp(-rp_sx * rp_sx - rp_sy * rp_sy);
-    rp_star = rp_star * step(0.82, rp_lh) * step(0.53, rp_r);
-    rp_col = rp_col + float3(0.75, 0.85, 1.0) * (rp_star * 0.45);
+    float rp_seed = fract(dot(rp_pos, float3(0.37, 0.51, 0.29)));
+    float rp_ci = rp_above * sqrt(max(1.0 - rp_k * rp_k, 0.0));
+    float3 rp_n = float3(0.0, -rp_k, rp_ci);
+    float rp_H = 3.0;
+    float rp_X = rp_qx * rp_H;
+    float rp_Y = rp_qy * rp_H;
+    float rp_b = sqrt(rp_X * rp_X + rp_Y * rp_Y) + 0.00001;
+    float3 rp_e = float3(rp_X / rp_b, rp_Y / rp_b, 0.0);
+    float rp_en = dot(rp_e, rp_n);
+    float rp_cs = rp_n.z < 0.0 ? rp_en : -rp_en;
+    float rp_psi0 = atan2(abs(rp_n.z) + 0.0001, rp_cs);
+    float rp_rs = 0.385;
+    float rp_rin = 1.155;
+    float rp_rout = 2.5 * (1.0 + 0.18 * rp_m);
+    float3 rp_d2 = float3(0.0, rp_n.z, rp_k);
+    float3 rp_col = float3(0.0);
+    float rp_lit = 0.0;
+    float rp_s1 = 0.5;
+    float rp_om = 0.9;
+    int rp_images = rpDetail > 0.5 ? 2 : 1;
+    for (int rp_img = 0; rp_img < rp_images; rp_img++) {
+    float rp_two = float(rp_img);
+    float rp_psi = rp_psi0 + 3.14159265 * rp_two;
+    float rp_bi = mix(rp_b, 1.0 + (rp_b - 1.0) * 3.5, rp_two);
+    float rp_sp = sin(rp_psi);
+    float rp_cp = cos(rp_psi);
+    float rp_x = 1.0 - rp_cp;
+    float rp_rr = max(rp_bi, 0.5);
+    for (int rp_i = 0; rp_i < 4; rp_i++) {
+    float rp_ui = min(rp_rs / rp_rr, 0.95);
+    float rp_cai = 1.0 - rp_x * (1.0 - rp_ui);
+    float rp_sai = sqrt(max(1.0 - rp_cai * rp_cai, 0.0001));
+    rp_rr = max(rp_bi, 0.0) * sqrt(1.0 - rp_ui) / rp_sai;
     }
-    float rp_e = clamp((1.0 - rp_r) / 0.18, 0.0, 1.0);
-    rp_col = rp_col * (rp_e * rp_e * (3.0 - 2.0 * rp_e));
-    rp_col = rp_col * step(0.3, rp_r);
+    float rp_u = min(rp_rs / rp_rr, 0.95);
+    float rp_ca = 1.0 - rp_x * (1.0 - rp_u);
+    float rp_sa = sqrt(max(1.0 - rp_ca * rp_ca, 0.0001));
+    float3 rp_P = float3(rp_e.x * rp_sp, rp_e.y * rp_sp, rp_cp);
+    float rp_phi = atan2(dot(rp_P, rp_d2), rp_P.x);
+    float rp_front = rp_b < 1.0 ? 1.0 - smoothstep(1.2, 1.6, rp_psi) : 1.0;
+    float rp_seen = mix(rp_front, step(1.0, rp_b) * 0.55, rp_two);
+    float rp_on = rp_seen * smoothstep(rp_rin - 0.04, rp_rin + 0.02, rp_rr) * (1.0 - smoothstep(rp_rout * 0.72, rp_rout, rp_rr));
+    float rp_rn = max(rp_rr / rp_rin, 1.0);
+    float rp_prof = 17.6 * (1.0 - 1.0 / sqrt(rp_rn)) / (rp_rn * rp_rn * rp_rn);
+    rp_prof = rp_prof + 0.18 * exp(-(rp_rn - 1.0) * 6.0);
+
+    float rp_lanes = 26.0;
+    float rp_ln = floor(rp_rr * rp_lanes);
+    float rp_lc = max((rp_ln + 0.5) / rp_lanes, rp_rin);
+    rp_om = 0.9 * pow(rp_rin / rp_lc, 1.5);
+    float rp_ph = rp_phi - rp_om * rp_t + rp_ln * 1.7 + rp_seed * 6.2831853;
+    float rp_lh = fract(sin(rp_ln * 12.9898 + rp_seed * 7.0) * 43758.5453);
+
+    """ + GraphShaderKit.noise("rp_n1", "float3(cos(rp_ph) * 2.4, sin(rp_ph) * 2.4, rp_ln * 0.61)") + """
+    rp_s1 = rp_n1;
+    float rp_streak = 0.45 + 0.9 * rp_n1 * (0.6 + 0.4 * rp_lh);
+    if (rpDetail > 0.5) {
+
+    """ + GraphShaderKit.noise("rp_n2", "float3(cos(rp_ph) * 7.0, sin(rp_ph) * 7.0, rp_rr * 40.0)") + """
+    rp_streak = rp_streak * (0.62 + 0.76 * rp_n2);
+    }
+    float rp_fine = 0.82 + 0.18 * sin(rp_rr * 150.0 + rp_n1 * 5.0);
+    float rp_hA = rp_phi - 0.9 * pow(rp_rin / 1.45, 1.5) * rp_t - 0.7;
+    rp_hA = rp_hA - 6.2831853 * floor(rp_hA / 6.2831853 + 0.5);
+    float rp_hB = rp_phi - 0.9 * pow(rp_rin / 1.9, 1.5) * rp_t - 3.4;
+    rp_hB = rp_hB - 6.2831853 * floor(rp_hB / 6.2831853 + 0.5);
+    float rp_dA = (rp_rr - 1.45) / 0.06;
+    float rp_dB = (rp_rr - 1.9) / 0.07;
+    float rp_hot = exp(-rp_dA * rp_dA - rp_hA * rp_hA * 9.0) * 0.9 + exp(-rp_dB * rp_dB - rp_hB * rp_hB * 7.0) * 0.6;
+    float rp_mat = rp_streak * rp_fine + rp_hot;
+
+    float rp_beta = min(sqrt(rp_rs / (2.0 * max(rp_rr - rp_rs, 0.3))), 0.6);
+    float3 rp_vel = cross(rp_n, rp_P);
+    float3 rp_T = float3(-rp_e.x * rp_cp, -rp_e.y * rp_cp, rp_sp);
+    float3 rp_kd = rp_P * rp_ca + rp_T * rp_sa;
+    float rp_cth = dot(rp_vel, rp_kd);
+    float rp_gam = 1.0 / sqrt(1.0 - rp_beta * rp_beta);
+    float rp_g = sqrt(max(1.0 - 1.5 * rp_rs / rp_rr, 0.05)) / (rp_gam * (1.0 - rp_beta * rp_cth));
+    rp_g = mix(1.0, rp_g, 0.8);
+    float rp_boost = clamp(rp_g * rp_g * rp_g, 0.04, 6.0);
+    float rp_heat = pow(max(rp_prof, 0.0), 0.25) * rp_g * (1.0 + 0.3 * rp_m);
+    float3 rp_hue = mix(float3(0.45, 0.04, 0.0), float3(1.0, 0.3, 0.03), clamp(rp_heat / 0.45, 0.0, 1.0));
+    rp_hue = mix(rp_hue, float3(1.0, 0.62, 0.24), clamp((rp_heat - 0.45) / 0.3, 0.0, 1.0));
+    rp_hue = mix(rp_hue, float3(1.0, 0.9, 0.72), clamp((rp_heat - 0.75) / 0.3, 0.0, 1.0));
+    rp_hue = mix(rp_hue, float3(0.86, 0.92, 1.0), clamp((rp_heat - 1.1) / 0.4, 0.0, 1.0));
+    float rp_lum = rp_prof * rp_mat * rp_boost * (1.0 + 0.7 * rp_m);
+    rp_lum = rp_lum / (1.0 + 0.45 * rp_lum);
+    rp_col = rp_col + rp_hue * (rp_lum * 1.3 * rp_on * rpDisk);
+    rp_lit = max(rp_lit, rp_lum * rp_on);
+    float rp_id = (rp_rr - rp_rin) / 0.018;
+    float rp_isco = exp(-rp_id * rp_id) * rp_seen * clamp(rp_boost, 0.3, 2.5) * rpDisk;
+    rp_col = rp_col + float3(1.0, 0.86, 0.6) * (rp_isco * 0.55);
+    float rp_sr = rp_rr / rp_rout;
+    float rp_arm = rp_phi + 2.6 * log(max(rp_sr, 0.5)) - rp_t * 0.5;
+
+    """ + GraphShaderKit.noise("rp_sh", "float3(cos(rp_arm) * 2.0, sin(rp_arm) * 2.0, rp_rr * 3.0 - rp_t * 0.4)") + """
+    float rp_shed = smoothstep(0.85, 1.0, rp_sr) * exp(-max(rp_sr - 1.0, 0.0) * 2.6) * smoothstep(0.5, 0.8, rp_sh);
+    rp_col = rp_col + float3(1.0, 0.42, 0.08) * (rp_shed * rp_m * rp_seen * clamp(rp_boost, 0.2, 3.0) * 0.5 * rpDisk);
+    }
+
+    float rp_side = 0.5 + 0.5 * rp_e.x * rp_k;
+    float rp_pd = (rp_b - 1.012) / 0.011;
+    float rp_ring = exp(-rp_pd * rp_pd) * (0.35 + 1.4 * rp_side * rp_side);
+    float rp_ld = (rp_b - 1.05) / 0.016;
+    float rp_echo = exp(-rp_ld * rp_ld) * (0.3 + 0.8 * rp_side) * (0.6 + 0.6 * rp_s1) * rpDisk * (1.0 - rpDetail);
+    float3 rp_ringHue = mix(float3(1.0, 0.7, 0.35), float3(1.0, 0.95, 0.86), rp_side);
+    rp_col = rp_col + rp_ringHue * (rp_ring * (1.1 + 0.6 * rp_m) + rp_echo * 0.5);
+    float rp_out = max(rp_b - 1.0, 0.0);
+    rp_col = rp_col + float3(1.0, 0.5, 0.15) * (exp(-rp_out / 0.35) * 0.05 * step(1.0, rp_b) * (0.5 + rp_side));
+    if (rpDetail > 0.5) {
+    float rp_sa2 = atan2(rp_Y, rp_X);
+    float rp_lr = floor(rp_b * 9.0);
+    float rp_la = floor(rp_sa2 * 4.0 + rp_lr * 0.37);
+    float rp_lsh = fract(sin(rp_la * 12.9898 + rp_lr * 78.233) * 43758.5453);
+    float rp_cr = (rp_lr + 0.5) / 9.0;
+    float rp_ang = (rp_la + 0.5 - rp_lr * 0.37) / 4.0;
+    float rp_dAng = (rp_sa2 - rp_ang) * rp_b;
+    float rp_ez = (rp_b - 1.35) / 0.25;
+    float rp_ein = exp(-rp_ez * rp_ez);
+    float rp_stx = rp_dAng / (0.02 + 0.2 * rp_ein);
+    float rp_sty = (rp_b - rp_cr) / 0.012;
+    float rp_star = exp(-rp_stx * rp_stx - rp_sty * rp_sty) * step(0.8, rp_lsh) * step(1.06, rp_b);
+    rp_col = rp_col + float3(0.75, 0.85, 1.0) * (rp_star * 0.35 * (1.0 - min(rp_lit, 1.0)));
+    }
+    float rp_edge = clamp((1.0 - rp_r) / 0.1, 0.0, 1.0);
+    rp_col = rp_col * (rp_edge * rp_edge * (3.0 - 2.0 * rp_edge));
 
     """ + glowEnd
 
     // MARK: the sun
 
-    /// The sun's face. Granulation: bright cells parted by dark lanes - the
-    /// lanes are where a value noise crosses its middle (1 - |2n - 1|),
-    /// warped by a slower supergranular noise so the cells boil and drift
-    /// instead of sitting on a grid, with a finer second set at full
-    /// quality. A sunspot pair: umbra, and a penumbra of radial filaments.
-    /// Faculae: bright patches towards the limb. Limb darkening that also
-    /// reddens the edge (I = 1 - 0.56 (1 - mu) - 0.22 (1 - mu)^2). Moving
-    /// (its z scale), it runs hotter.
+    /// The sun's face. Granulation: cellular noise (GraphShaderKit.cells) -
+    /// bright convection cells, each its own brightness, parted by narrow
+    /// dark lanes, every cell's centre wandering so the surface boils; under
+    /// a slower supergranular mottling (value noise), with finer cells at
+    /// full quality. A sunspot group: dark umbrae in penumbrae of radial
+    /// filaments. Faculae: bright patches towards the limb. Limb darkening
+    /// that also reddens the edge (I = 1 - 0.56 (1 - mu) - 0.22 (1 - mu)^2,
+    /// the colour from the temperature it leaves). A flare beside the spots
+    /// brightens and dies back on its own clock. Moving (its z scale), it
+    /// runs hotter.
     static let sunBody: String = """
     #pragma arguments
     float rpClock;
@@ -679,46 +771,68 @@ nonisolated enum GraphStyleShaders {
     float rp_lm = 1.0 - rp_mu;
     float rp_limb = 1.0 - 0.56 * rp_lm - 0.22 * rp_lm * rp_lm;
 
-    """ + GraphShaderKit.noise("rp_sg", "rp_p * 3.5 + float3(0.0, rp_t * 0.02, 0.0)") + """
-    float3 rp_gp = rp_p * 15.0 + float3(rp_sg * 1.8, rp_t * 0.09, rp_sg * 1.1);
+    """ + GraphShaderKit.noise("rp_sg", "rp_p * 4.0 + float3(0.0, rp_t * 0.015, 0.0)") + """
+    float rp_depth = max(-_surface.position.z, 0.001);
+    float rp_px = 2600.0 * length(scn_node.modelTransform[0].xyz) / rp_depth;
+    float rp_near = smoothstep(120.0, 420.0, rp_px);
+    float3 rp_gp = rp_p * 46.0 + float3(rp_sg * 1.2, 0.0, rp_sg * 0.8);
+    float rp_gran = 0.86 + 0.28 * (rp_sg - 0.5);
+    if (rp_near > 0.001) {
 
-    """ + GraphShaderKit.noise("rp_g1", "rp_gp") + """
-    float rp_lane = 1.0 - abs(2.0 * rp_g1 - 1.0);
-    float rp_gran = 1.0 - 0.42 * pow(rp_lane, 5.0);
+    """ + GraphShaderKit.cells("rp_c1", "rp_gp", wobble: "rp_t * 0.35") + """
+    float rp_lane = rp_c1_f2 - rp_c1_f1;
+    float rp_cell = 0.8 + 0.2 * smoothstep(0.0, 0.22, rp_lane);
+    rp_cell = rp_cell * (0.93 + 0.14 * rp_c1_id) * (1.0 - 0.12 * smoothstep(0.25, 0.8, rp_c1_f1));
+    rp_gran = mix(rp_gran, rp_gran * rp_cell * 1.08, rp_near);
+    }
     if (rpDetail > 0.5) {
 
-    """ + GraphShaderKit.noise("rp_g2", "rp_gp * 2.2 + float3(5.0, 1.0, 3.0)") + """
-    float rp_lane2 = 1.0 - abs(2.0 * rp_g2 - 1.0);
-    rp_gran = rp_gran - 0.16 * pow(rp_lane2, 5.0);
+    """ + GraphShaderKit.noise("rp_g2", "rp_p * 18.0 + float3(5.0, 1.0, rp_t * 0.05)") + """
+    rp_gran = rp_gran * (0.94 + 0.12 * rp_g2);
     }
     float rp_sd = dot(rp_p, float3(0.35, 0.28, 0.894));
-    float rp_um = smoothstep(0.988, 0.994, rp_sd);
-    float rp_pen = smoothstep(0.972, 0.988, rp_sd);
+    float rp_um = smoothstep(0.9935, 0.9965, rp_sd);
+    float rp_pen = smoothstep(0.981, 0.9925, rp_sd);
     float rp_fa = atan2(dot(rp_p, float3(0.1021, -0.9599, 0.2607)), dot(rp_p, float3(-0.931, 0.0, 0.3646)));
-    float rp_fil = 0.72 + 0.28 * sin(rp_fa * 46.0);
-    float rp_sd2 = dot(rp_p, float3(0.52, 0.16, 0.84));
-    float rp_um2 = smoothstep(0.9965, 0.9985, rp_sd2);
-    float rp_pen2 = smoothstep(0.991, 0.9965, rp_sd2);
-    float rp_spot = (rp_pen - rp_um) * rp_fil * 0.42 + rp_um * 0.62;
-    rp_spot = rp_spot + (rp_pen2 - rp_um2) * 0.35 + rp_um2 * 0.55;
-    float rp_fac = smoothstep(0.6, 0.78, rp_sg) * smoothstep(0.3, 0.8, rp_lm) * 0.22;
-    float rp_temp = 0.8 + 0.2 * rp_gran - rp_spot + rp_fac;
-    float rp_heat = rp_temp * rp_limb * (1.0 + 0.14 * rp_m);
-    float rp_w = clamp(rp_heat * 1.15 - 0.1, 0.0, 1.0);
-    float3 rp_hue = mix(float3(1.0, 0.34, 0.04), float3(1.0, 0.96, 0.82), rp_w);
-    float3 rp_col = rp_hue * (0.32 + 0.95 * rp_heat);
+    float rp_fil = 0.65 + 0.35 * sin(rp_fa * 60.0 + rp_sg * 6.0);
+    float rp_sd2 = dot(rp_p, float3(0.47, 0.2, 0.86));
+    float rp_um2 = smoothstep(0.9978, 0.9991, rp_sd2);
+    float rp_pen2 = smoothstep(0.9935, 0.9975, rp_sd2);
+    float rp_sd3 = dot(rp_p, float3(0.29, 0.36, 0.887));
+    float rp_um3 = smoothstep(0.9985, 0.9994, rp_sd3);
+    float rp_pen3 = smoothstep(0.9958, 0.9984, rp_sd3);
+    float rp_spot = (rp_pen - rp_um) * rp_fil * 0.45 + rp_um * 0.78;
+    rp_spot = rp_spot + (rp_pen2 - rp_um2) * 0.4 + rp_um2 * 0.72;
+    rp_spot = rp_spot + (rp_pen3 - rp_um3) * 0.38 + rp_um3 * 0.7;
+    float rp_fac = smoothstep(0.62, 0.8, rp_sg) * smoothstep(0.35, 0.85, rp_lm) * 0.3;
+    float rp_fc = rp_t / 11.0;
+    float rp_fl = fract(rp_fc);
+    float rp_fd = dot(rp_p, normalize(float3(0.41, 0.17, 0.9)));
+    float rp_fz = (1.0 - rp_fd) / 0.0012;
+    float rp_flare = exp(-rp_fz * rp_fz) * exp(-rp_fl * 6.0) * smoothstep(0.0, 0.03, rp_fl) * 1.4 * rpMotion;
+    float rp_temp = rp_gran - rp_spot * (1.0 - rp_flare) + rp_fac;
+    float rp_heat = rp_temp * (0.12 + 0.88 * rp_limb) * 1.15 * (1.0 + 0.16 * rp_m) + rp_flare;
+    float3 rp_col = mix(float3(0.55, 0.08, 0.0), float3(0.98, 0.36, 0.03), clamp(rp_heat / 0.42, 0.0, 1.0));
+    rp_col = mix(rp_col, float3(1.0, 0.7, 0.22), clamp((rp_heat - 0.42) / 0.25, 0.0, 1.0));
+    rp_col = mix(rp_col, float3(1.0, 0.9, 0.62), clamp((rp_heat - 0.67) / 0.22, 0.0, 1.0));
+    rp_col = mix(rp_col, float3(1.0, 0.98, 0.9), clamp((rp_heat - 0.89) / 0.2, 0.0, 1.0));
+    rp_col = rp_col * (0.25 + 0.85 * clamp(rp_heat, 0.0, 1.3));
 
     """ + bodyEnd
 
     /// The corona round the sun, on the lifted billboard (the limb at a
-    /// quarter of the half side): streamers whose strength wanders round
-    /// the limb (value noise of the angle, drifting), fine rays, a rosy
-    /// chromosphere rim, three prominences rising off the limb in loops and
-    /// fading, each on its own clock, and now and then a flare thrown off.
+    /// quarter of the half side): a bright inner corona falling off fast,
+    /// helmet streamers whose strength wanders round the limb (value noise
+    /// of the angle, drifting), fine polar plumes, and a thin rosy
+    /// chromosphere on the limb with spicules. Three prominences: arches of
+    /// glowing plasma standing on the limb, threaded with filaments, each
+    /// growing up out of the limb on its own clock until it erupts and is
+    /// carried away outwards, a new one rising after it. A flare throws a
+    /// loop of plasma off now and then, white cooling to orange as it goes.
     /// The plane's z scale carries the note's own seed and how hard it is
     /// moving (SpaceOptics.coronaCode: 2 + seed + motion * 0.03), so no two
-    /// suns flare in step, and dragged, its rays flare outward: they reach
-    /// further and brighter, and plasma visibly streams out along them.
+    /// suns erupt in step, and dragged, its streamers stream outward, longer
+    /// and brighter, and the plasma runs out along them.
     static let sunCorona: String = """
     #pragma arguments
     float rpClock;
@@ -739,70 +853,82 @@ nonisolated enum GraphStyleShaders {
     float rp_x = rp_r / rp_rl;
     float rp_out = max(rp_x - 1.0, 0.0);
 
-    """ + GraphShaderKit.noise("rp_sn", "float3(cos(rp_a) * 2.2, sin(rp_a) * 2.2, rp_t * 0.025 + rp_seed)") + """
-    float rp_st = 0.35 + 0.95 * rp_sn;
-    float rp_rw = sin(rp_a * 9.0 + rp_seed) * 2.5;
-    float rp_ray = 0.5 + 0.5 * sin(rp_a * 38.0 + rp_rw);
-    rp_ray = rp_ray * rp_ray;
-    rp_ray = rp_ray * rp_ray;
-    float rp_flow = 0.75 + 0.25 * sin(rp_out * 14.0 - rp_t * (1.2 + 5.0 * rp_mv) + rp_a * 3.0);
-    float rp_near = 0.3 * (1.0 + 0.9 * rp_mv);
-    float rp_far = 1.2 * (1.0 + 1.3 * rp_mv);
-    float rp_cor = exp(-rp_out / rp_near) * 0.55;
-    rp_cor = rp_cor + exp(-rp_out / rp_far) * 0.22 * (1.0 + 0.6 * rp_mv);
-    rp_cor = rp_cor * rp_st;
-    rp_cor = rp_cor * (0.75 + (0.6 + 0.8 * rp_mv) * rp_ray * smoothstep(1.0, 1.5, rp_x) * rp_flow);
-    rp_cor = rp_cor * step(1.0, rp_x);
-    float3 rp_hue = mix(float3(1.0, 0.93, 0.75), float3(1.0, 0.416, 0.0), clamp(rp_out * 0.6, 0.0, 1.0));
+    """ + GraphShaderKit.noise("rp_sn", "float3(cos(rp_a) * 1.8, sin(rp_a) * 1.8, rp_t * 0.02 + rp_seed)") + """
+    float rp_helm = 0.25 + 1.1 * rp_sn * rp_sn;
+    float rp_rw = sin(rp_a * 5.0 + rp_seed) * 1.5;
+    float rp_ray = 0.5 + 0.5 * sin(rp_a * 23.0 + rp_rw + rp_out * 0.8);
+    rp_ray = rp_ray * rp_ray * rp_ray;
+    float rp_flow = 0.8 + 0.2 * sin(rp_out * 9.0 - rp_t * (0.8 + 4.0 * rp_mv) + rp_a * 2.0);
+    float rp_inner = exp(-rp_out / (0.09 * (1.0 + 0.5 * rp_mv))) * 0.95;
+    float rp_k = exp(-rp_out / (0.35 * (1.0 + 0.8 * rp_mv))) * 0.4 * rp_helm;
+    float rp_far = exp(-rp_out / (1.1 * (1.0 + 1.2 * rp_mv))) * 0.14 * rp_helm * (0.6 + 0.8 * rp_ray) * rp_flow;
+    float rp_cor = (rp_inner + rp_k + rp_far) * step(1.0, rp_x);
+    float3 rp_hue = mix(float3(1.0, 0.86, 0.6), float3(1.0, 0.55, 0.2), clamp(rp_out * 0.8, 0.0, 1.0));
     float3 rp_col = rp_hue * rp_cor;
-    float rp_ch = (rp_x - 1.015) / 0.018;
-    rp_col = rp_col + float3(1.0, 0.42, 0.32) * (exp(-rp_ch * rp_ch) * 0.7);
-    float3 rp_prom = mix(float3(1.0, 0.3, 0.22), float3(1.0, 0.75, 0.45), 0.3);
-    float rp_lift = smoothstep(1.0, 1.06, rp_x) * (0.8 + 0.2 * rpDetail);
+    float rp_ch = (rp_x - 1.004) / 0.012;
+    float rp_spic = 0.7 + 0.3 * sin(rp_a * 160.0 + rp_t * 0.7);
+    rp_col = rp_col + float3(1.0, 0.32, 0.2) * (exp(-rp_ch * rp_ch) * 0.9 * rp_spic);
+    float3 rp_prom = float3(1.0, 0.36, 0.22);
 
-    float rp_cA = rp_t / 9.0 + rp_seed * 0.1;
+    """ + GraphShaderKit.noise("rp_pf", "float3(rp_qx * 34.0, rp_qy * 34.0, rp_t * 0.15)") + """
+    float rp_thread = 0.55 + 0.9 * rp_pf;
+    float rp_cA = rp_t / 14.0 + rp_seed * 0.1;
     float rp_fA = fract(rp_cA);
-    float rp_hA = fract(sin(floor(rp_cA) * 3.7 + rp_seed) * 43758.5453);
-    float rp_tA = (0.0 + rp_hA * 0.25) * 6.2831853 + rp_seed;
-    float rp_xA = rp_qx - cos(rp_tA) * rp_rl;
-    float rp_yA = rp_qy - sin(rp_tA) * rp_rl;
-    float rp_gA = rp_rl * (0.10 + 0.28 * rp_fA);
-    float rp_lA = (length(float2(rp_xA, rp_yA)) - rp_gA) / (0.009 + 0.006 * rp_fA);
-    float rp_thA = 0.7 + 0.3 * sin(atan2(rp_yA, rp_xA) * 14.0 + rp_t * 0.8);
-    float rp_pA = exp(-rp_lA * rp_lA) * sin(rp_fA * 3.14159) * rp_thA;
-    float rp_cB = rp_t / 12.0 + 0.37 + rp_seed * 0.1;
+    float rp_tA = fract(sin(floor(rp_cA) * 3.7 + rp_seed) * 43758.5453) * 1.4 + 0.3 + rp_seed;
+    float rp_gA = max(rp_fA - 0.75, 0.0);
+    float rp_lA = rp_rl * (1.0 + 60.0 * rp_gA * rp_gA);
+    float rp_xA = rp_qx * cos(rp_tA) + rp_qy * sin(rp_tA);
+    float rp_yA = rp_qy * cos(rp_tA) - rp_qx * sin(rp_tA);
+    float rp_hA = rp_rl * (0.005 + 0.32 * min(rp_fA / 0.75, 1.0) + rp_gA);
+    float rp_wA = rp_rl * (0.01 + 0.12 * min(rp_fA / 0.3, 1.0) + rp_gA);
+    float rp_sA = rp_yA / rp_wA;
+    float rp_uA = (rp_xA - rp_lA) / rp_hA;
+    float rp_eA = sqrt(rp_sA * rp_sA + rp_uA * rp_uA);
+    float rp_bA = (rp_eA - 1.0 + (rp_pf - 0.5) * 0.35) / (0.16 + 0.08 * rp_fA);
+    float rp_pA = exp(-rp_bA * rp_bA) * step(0.0, rp_xA - rp_rl * 0.995) * (0.7 + 0.5 * exp(-clamp(rp_uA, 0.0, 2.0) * 3.0));
+    float rp_cB = rp_t / 19.0 + 0.41 + rp_seed * 0.1;
     float rp_fB = fract(rp_cB);
-    float rp_hB = fract(sin(floor(rp_cB) * 3.7 + 11.0 + rp_seed) * 43758.5453);
-    float rp_tB = (0.333 + rp_hB * 0.25) * 6.2831853 + rp_seed;
-    float rp_xB = rp_qx - cos(rp_tB) * rp_rl;
-    float rp_yB = rp_qy - sin(rp_tB) * rp_rl;
-    float rp_gB = rp_rl * (0.10 + 0.28 * rp_fB);
-    float rp_lB = (length(float2(rp_xB, rp_yB)) - rp_gB) / (0.009 + 0.006 * rp_fB);
-    float rp_thB = 0.7 + 0.3 * sin(atan2(rp_yB, rp_xB) * 14.0 - rp_t * 0.7);
-    float rp_pB = exp(-rp_lB * rp_lB) * sin(rp_fB * 3.14159) * rp_thB;
-    float rp_cC = rp_t / 15.0 + 0.74 + rp_seed * 0.1;
+    float rp_tB = fract(sin(floor(rp_cB) * 3.7 + 11.0 + rp_seed) * 43758.5453) * 1.6 + 2.6 + rp_seed;
+    float rp_gB = max(rp_fB - 0.75, 0.0);
+    float rp_lB = rp_rl * (1.0 + 60.0 * rp_gB * rp_gB);
+    float rp_xB = rp_qx * cos(rp_tB) + rp_qy * sin(rp_tB);
+    float rp_yB = rp_qy * cos(rp_tB) - rp_qx * sin(rp_tB);
+    float rp_hB = rp_rl * (0.005 + 0.24 * min(rp_fB / 0.75, 1.0) + rp_gB);
+    float rp_wB = rp_rl * (0.01 + 0.09 * min(rp_fB / 0.3, 1.0) + rp_gB);
+    float rp_sB = rp_yB / rp_wB;
+    float rp_uB = (rp_xB - rp_lB) / rp_hB;
+    float rp_eB = sqrt(rp_sB * rp_sB + rp_uB * rp_uB);
+    float rp_bB = (rp_eB - 1.0 + (rp_pf - 0.5) * 0.35) / (0.18 + 0.08 * rp_fB);
+    float rp_pB = exp(-rp_bB * rp_bB) * step(0.0, rp_xB - rp_rl * 0.995) * (0.7 + 0.5 * exp(-clamp(rp_uB, 0.0, 2.0) * 3.0));
+    float rp_cC = rp_t / 23.0 + 0.77 + rp_seed * 0.1;
     float rp_fC = fract(rp_cC);
-    float rp_hC = fract(sin(floor(rp_cC) * 3.7 + 22.0 + rp_seed) * 43758.5453);
-    float rp_tC = (0.666 + rp_hC * 0.25) * 6.2831853 + rp_seed;
-    float rp_xC = rp_qx - cos(rp_tC) * rp_rl;
-    float rp_yC = rp_qy - sin(rp_tC) * rp_rl;
-    float rp_gC = rp_rl * (0.10 + 0.28 * rp_fC);
-    float rp_lC = (length(float2(rp_xC, rp_yC)) - rp_gC) / (0.009 + 0.006 * rp_fC);
-    float rp_thC = 0.7 + 0.3 * sin(atan2(rp_yC, rp_xC) * 14.0 + rp_t * 0.6);
-    float rp_pC = exp(-rp_lC * rp_lC) * sin(rp_fC * 3.14159) * rp_thC;
-    rp_col = rp_col + rp_prom * ((rp_pA + rp_pB + rp_pC) * rp_lift * 0.9);
+    float rp_tC = fract(sin(floor(rp_cC) * 3.7 + 22.0 + rp_seed) * 43758.5453) * 1.6 + 4.6 + rp_seed;
+    float rp_gC = max(rp_fC - 0.75, 0.0);
+    float rp_lC = rp_rl * (1.0 + 60.0 * rp_gC * rp_gC);
+    float rp_xC = rp_qx * cos(rp_tC) + rp_qy * sin(rp_tC);
+    float rp_yC = rp_qy * cos(rp_tC) - rp_qx * sin(rp_tC);
+    float rp_hC = rp_rl * (0.005 + 0.19 * min(rp_fC / 0.75, 1.0) + rp_gC);
+    float rp_wC = rp_rl * (0.01 + 0.07 * min(rp_fC / 0.3, 1.0) + rp_gC);
+    float rp_sC = rp_yC / rp_wC;
+    float rp_uC = (rp_xC - rp_lC) / rp_hC;
+    float rp_eC = sqrt(rp_sC * rp_sC + rp_uC * rp_uC);
+    float rp_bC = (rp_eC - 1.0 + (rp_pf - 0.5) * 0.35) / (0.2 + 0.08 * rp_fC);
+    float rp_pC = exp(-rp_bC * rp_bC) * step(0.0, rp_xC - rp_rl * 0.995) * (0.7 + 0.5 * exp(-clamp(rp_uC, 0.0, 2.0) * 3.0));
+    float rp_proms = (rp_pA + rp_pB + rp_pC) * rp_thread;
+    rp_col = rp_col + rp_prom * (rp_proms * 1.1);
+    rp_col = rp_col + float3(1.0, 0.75, 0.6) * (rp_proms * rp_proms * 0.25);
 
-    float rp_cF = rp_t / 13.0 + rp_seed * 0.3;
+    float rp_cF = rp_t / 17.0 + rp_seed * 0.3;
     float rp_fl = fract(rp_cF);
     float rp_ft = fract(sin(floor(rp_cF) * 5.3 + rp_seed) * 43758.5453) * 6.2831853;
-    float rp_fr = rp_rl * (1.02 + rp_fl * 1.6);
-    float rp_fx = rp_qx - cos(rp_ft) * rp_fr;
-    float rp_fy = rp_qy - sin(rp_ft) * rp_fr;
-    float rp_fs = 0.02 + 0.05 * rp_fl;
-    float rp_fb = exp(-(rp_fx * rp_fx + rp_fy * rp_fy) / (rp_fs * rp_fs));
-    rp_fb = rp_fb * (1.0 - rp_fl) * (1.0 - rp_fl) * rpMotion;
-    float3 rp_fh = mix(float3(1.0, 0.95, 0.84), float3(1.0, 0.416, 0.0), rp_fl);
-    rp_col = rp_col + rp_fh * (rp_fb * 1.3);
+    float rp_xF = rp_qx * cos(rp_ft) + rp_qy * sin(rp_ft);
+    float rp_yF = rp_qy * cos(rp_ft) - rp_qx * sin(rp_ft);
+    float rp_go = rp_rl * (1.0 + 3.8 * pow(rp_fl, 1.3));
+    float rp_sz = rp_rl * (0.02 + 0.55 * pow(rp_fl, 0.7));
+    float rp_dF = length(float2((rp_xF - rp_go) / (rp_sz * 0.7), rp_yF / rp_sz));
+    float rp_shell = exp(-(rp_dF - 1.0) * (rp_dF - 1.0) * 30.0) * step(rp_rl, rp_r) * step(rp_go - rp_sz * 0.2, rp_xF + rp_sz * 0.7);
+    float3 rp_fh = mix(float3(1.0, 0.95, 0.84), float3(1.0, 0.45, 0.12), rp_fl);
+    rp_col = rp_col + rp_fh * (rp_shell * 0.45 * rpMotion * (0.6 + 0.6 * rp_pf));
     float rp_e = clamp((1.0 - rp_r) / 0.25, 0.0, 1.0);
     rp_col = rp_col * (rp_e * rp_e * (3.0 - 2.0 * rp_e));
 
@@ -811,18 +937,20 @@ nonisolated enum GraphStyleShaders {
     // MARK: the rocky planet
 
     /// A rocky world, lit by its own star (the terminator faces the light,
-    /// SpaceOptics.day): continents from a few octaves of value noise over
-    /// its own sphere (turned by GraphStyleAnimator, so the land rotates) -
-    /// deep sea, shallows round the coasts, lowland and highland ground
-    /// varied by a wetter-or-drier field, bare rock and snow on the
-    /// heights, ice caps; at full quality, relief lit from the sun's side
-    /// (the terrain compared with itself a step towards the light). Clouds
-    /// in a warped noise, drifting a little faster than the ground. A soft
-    /// terminator reddened along its band (sunset light), a sharp sunlight
-    /// glint on open water brightening towards the limb (Fresnel), city
-    /// lights on the night side clustered along coasts, and a Fresnel rim
-    /// of air - blue by day, red at the terminator. Palette per folder:
-    /// rpTintA sea, B shallows, C land, D high ground.
+    /// SpaceOptics.day). Continents from domain-warped value-noise fBm over
+    /// its own sphere (turned by GraphStyleAnimator, so the land rotates):
+    /// deep sea darkening away from the coasts, shallows, lowland and
+    /// highland ground varied by a wetter-or-drier field and by latitude
+    /// (green towards the wet, tan towards the dry), bare rock and snow on
+    /// the heights, ice caps; at full quality, relief lit from the sun's side
+    /// (the terrain compared with itself a step towards the light). Clouds:
+    /// thin warped fBm in streets and swirls, drifting faster than the
+    /// ground, broken into wisps, casting a faint shadow. A soft terminator
+    /// reddened along its band (sunset light), the sun's glint on open water
+    /// (Blinn-Phong, stronger towards the limb by Fresnel), city lights on
+    /// the night side clustered along coasts and lowlands in a fine network,
+    /// and Rayleigh-blue air thickening towards the limb on the day side.
+    /// Palette per folder: rpTintA sea, B shallows, C land, D high ground.
     static let rockBody: String = """
     #pragma arguments
     float rpClock;
@@ -839,71 +967,81 @@ nonisolated enum GraphStyleShaders {
 
     """ + light + sphere + """
     float rp_t = rpClock * rpMotion;
-    int rp_oct = rpDetail > 0.5 ? 5 : 3;
-    float3 rp_sd = rp_p * 1.9 + float3(3.1, 7.4, 1.3);
+    int rp_oct = rpDetail > 0.5 ? 6 : 4;
+
+    """ + GraphShaderKit.noise("rp_wq", "rp_p * 1.3 + float3(7.0, 3.0, 1.0)") + """
+    float3 rp_sd = rp_p * 1.7 + float3(3.1 + rp_wq * 1.1, 7.4 - rp_wq * 0.8, 1.3 + rp_wq * 0.6);
 
     """ + GraphShaderKit.fbm("rp_h", "rp_sd", octaves: "rp_oct") + """
-    float rp_land = smoothstep(0.495, 0.52, rp_h);
-    float rp_depth = smoothstep(0.34, 0.5, rp_h);
-    float rp_alt = smoothstep(0.52, 0.72, rp_h);
+    float rp_land = smoothstep(0.622, 0.632, rp_h);
+    float rp_depth = smoothstep(0.45, 0.622, rp_h);
+    float rp_alt = smoothstep(0.632, 0.76, rp_h);
     float rp_lat = abs(rp_p.y);
 
-    """ + GraphShaderKit.noise("rp_wet", "rp_p * 3.3 + float3(11.0, 2.0, 5.0)") + """
-    float3 rp_ground = mix(rpTintC, rpTintD, clamp(rp_alt * 1.1 + (rp_wet - 0.5) * 0.7, 0.0, 1.0));
-    rp_ground = mix(rp_ground, rp_ground * 1.2 + float3(0.05, 0.045, 0.04), smoothstep(0.55, 0.9, rp_alt));
-    float3 rp_water = mix(rpTintA, rpTintB, rp_depth * rp_depth);
+    """ + GraphShaderKit.noise("rp_wet", "rp_p * 3.1 + float3(11.0, 2.0, 5.0)") + """
+    float rp_dry = clamp((rp_wet - 0.5) * 1.6 + 0.35 - abs(rp_lat - 0.3) * 0.9, 0.0, 1.0);
+    float3 rp_green = rpTintC;
+    float3 rp_tan = mix(rpTintD, float3(0.72, 0.58, 0.38), 0.45);
+    float3 rp_ground = mix(rp_green, rp_tan, rp_dry);
+    rp_ground = mix(rp_ground, rpTintD * 0.85, smoothstep(0.25, 0.8, rp_alt));
+    rp_ground = rp_ground * (0.85 + 0.3 * rp_wq);
+    float3 rp_water = mix(rpTintA * 0.75, rpTintB, rp_depth * rp_depth * rp_depth);
     float3 rp_alb = mix(rp_water, rp_ground, rp_land);
-    float rp_ice = smoothstep(0.76, 0.86, rp_lat + 0.25 * (rp_h - 0.5));
-    float rp_snow = smoothstep(0.82, 0.97, rp_alt + rp_lat * 0.3) * rp_land;
-    rp_alb = mix(rp_alb, float3(0.88, 0.92, 0.97), max(rp_ice, rp_snow));
+    float rp_ice = smoothstep(0.8, 0.9, rp_lat + 0.22 * (rp_h - 0.5) + 0.05 * rp_wq);
+    float rp_snow = smoothstep(0.85, 1.0, rp_alt + rp_lat * 0.3) * rp_land;
+    rp_alb = mix(rp_alb, float3(0.9, 0.93, 0.97), max(rp_ice, rp_snow));
     float rp_relief = 0.5;
     if (rpDetail > 0.5) {
 
-    """ + GraphShaderKit.noise("rp_r0", "rp_p * 15.0") + GraphShaderKit.noise("rp_r1", "rp_p * 15.0 + rp_Lo * 0.45") + """
-    rp_relief = clamp(0.5 + (rp_r0 - rp_r1) * 2.5, 0.0, 1.0);
+    """ + GraphShaderKit.noise("rp_r0", "rp_p * 19.0") + GraphShaderKit.noise("rp_r1", "rp_p * 19.0 + rp_Lo * 0.4") + """
+    rp_relief = clamp(0.5 + (rp_r0 - rp_r1) * 3.0, 0.0, 1.0);
     }
-    float rp_cc = cos(rp_t * 0.035);
-    float rp_cs = sin(rp_t * 0.035);
+    float rp_cc = cos(rp_t * 0.03);
+    float rp_cs = sin(rp_t * 0.03);
     float3 rp_pc = float3(rp_p.x * rp_cc - rp_p.z * rp_cs, rp_p.y, rp_p.x * rp_cs + rp_p.z * rp_cc);
 
-    """ + GraphShaderKit.noise("rp_cw", "rp_pc * 2.1 + float3(0.0, rp_t * 0.008, 0.0)") + """
-    int rp_coct = rpDetail > 0.5 ? 4 : 2;
+    """ + GraphShaderKit.noise("rp_cw", "rp_pc * 2.2 + float3(0.0, rp_t * 0.006, 0.0)") + """
+    float rp_sw = (rp_cw - 0.5) * 3.0;
+    float3 rp_pw = float3(rp_pc.x * cos(rp_sw) - rp_pc.z * sin(rp_sw), rp_pc.y, rp_pc.x * sin(rp_sw) + rp_pc.z * cos(rp_sw));
+    int rp_coct = rpDetail > 0.5 ? 5 : 3;
 
-    """ + GraphShaderKit.fbm("rp_cf", "rp_pc * 3.4 + float3(rp_cw * 1.6, rp_cw * 0.8, 0.0)", octaves: "rp_coct") + """
-    float rp_belt = 0.82 + 0.18 * cos(rp_p.y * 6.5);
-    float rp_cloud = smoothstep(0.5, 0.7, rp_cf * rp_belt + 0.03);
+    """ + GraphShaderKit.fbm("rp_cf", "float3(rp_pw.x * 4.2, rp_pw.y * 7.0, rp_pw.z * 4.2) + float3(rp_cw * 1.4, 0.0, 0.0)", octaves: "rp_coct") + """
+    float rp_belt = 0.78 + 0.22 * cos(rp_p.y * 7.0) + 0.1 * smoothstep(0.6, 0.9, rp_lat);
+    float rp_cloud = smoothstep(0.5, 0.68, rp_cf * rp_belt + 0.02);
+    rp_cloud = rp_cloud * (0.55 + 0.45 * smoothstep(0.35, 0.65, rp_cw));
     float rp_ndl = dot(rp_N, rp_Lv);
     float rp_day = smoothstep(-0.08, 0.22, rp_ndl);
-    float rp_sun = 1.12 * rp_day * pow(max(rp_ndl, 0.03), 0.75);
+    float rp_sun = 1.15 * rp_day * pow(max(rp_ndl, 0.03), 0.7);
     float rp_dk = rp_ndl - 0.04;
     float rp_dusk = exp(-rp_dk * rp_dk * 90.0);
-    float3 rp_tint = mix(float3(1.0, 1.0, 1.0), float3(1.0, 0.6, 0.36), rp_dusk * 0.65);
-    float rp_shape = mix(1.0, 0.7 + 0.6 * rp_relief, rp_land * (0.4 + 0.6 * rp_alt));
-    float3 rp_col = rp_alb * rp_tint * (0.012 + rp_sun * rp_shape);
-    float rp_cdl = smoothstep(-0.14, 0.3, rp_ndl) * pow(max(rp_ndl + 0.12, 0.02), 0.6);
-    float3 rp_cloudLit = float3(0.96, 0.97, 1.0) * rp_tint * (0.015 + 1.12 * rp_cdl);
-    rp_col = mix(rp_col, rp_cloudLit, rp_cloud * 0.9);
+    float3 rp_tint = mix(float3(1.0, 1.0, 1.0), float3(1.0, 0.55, 0.3), rp_dusk * 0.7);
+    float rp_shape = mix(1.0, 0.6 + 0.8 * rp_relief, rp_land * (0.45 + 0.55 * rp_alt));
+    float rp_shadow = 1.0 - 0.35 * smoothstep(0.45, 0.7, rp_cf * rp_belt) * (1.0 - rp_cloud);
+    float3 rp_col = rp_alb * rp_tint * (0.006 + rp_sun * rp_shape * rp_shadow);
+    float rp_cdl = smoothstep(-0.12, 0.28, rp_ndl) * pow(max(rp_ndl + 0.1, 0.02), 0.6);
+    float3 rp_cloudLit = float3(0.97, 0.97, 1.0) * rp_tint * (0.008 + 1.15 * rp_cdl);
+    rp_col = mix(rp_col, rp_cloudLit, rp_cloud * 0.92);
     float3 rp_hv = normalize(rp_Lv + rp_V);
     float rp_nh = max(dot(rp_N, rp_hv), 0.0);
     float rp_om = 1.0 - rp_mu;
     float rp_fres = 0.02 + 0.98 * rp_om * rp_om * rp_om * rp_om * rp_om;
-    float rp_glint = pow(rp_nh, 90.0) * 1.5 + pow(rp_nh, 16.0) * 0.1;
+    float rp_glint = pow(rp_nh, 140.0) * 2.2 + pow(rp_nh, 20.0) * 0.14;
     rp_glint = rp_glint * (0.35 + rp_fres * 2.0) * (1.0 - rp_land) * (1.0 - rp_cloud) * rp_day;
-    rp_col = rp_col + float3(1.0, 0.94, 0.82) * rp_glint;
-    float rp_night = 1.0 - smoothstep(-0.2, 0.05, rp_ndl);
+    rp_col = rp_col + float3(1.0, 0.93, 0.8) * rp_glint;
+    float rp_night = 1.0 - smoothstep(-0.18, 0.04, rp_ndl);
     if (rp_night > 0.01) {
 
-    """ + GraphShaderKit.noise("rp_pop", "rp_p * 4.5 + float3(4.0, 1.0, 9.0)") + GraphShaderKit.noise("rp_town", "rp_p * 36.0") + """
-    float rp_coast = 1.0 - smoothstep(0.0, 0.3, rp_alt);
-    float rp_glow = smoothstep(0.6, 0.8, rp_town) * smoothstep(0.42, 0.68, rp_pop) * (0.35 + 0.65 * rp_coast);
-    rp_glow = rp_glow * rp_land * (1.0 - max(rp_ice, rp_snow)) * (1.0 - 0.8 * rp_cloud) * rp_night;
-    float rp_flick = 0.85 + 0.15 * sin(rp_t * 2.7 + rp_town * 40.0);
-    rp_col = rp_col + float3(1.0, 0.68, 0.32) * (rp_glow * 0.75 * rp_flick);
+    """ + GraphShaderKit.noise("rp_pop", "rp_p * 5.0 + float3(4.0, 1.0, 9.0)") + GraphShaderKit.noise("rp_town", "rp_p * 42.0") + GraphShaderKit.noise("rp_road", "rp_p * 110.0") + """
+    float rp_coast = 1.0 - smoothstep(0.0, 0.25, rp_alt);
+    float rp_glow = smoothstep(0.55, 0.78, rp_town) * smoothstep(0.4, 0.66, rp_pop) * (0.4 + 0.6 * rp_coast);
+    rp_glow = rp_glow + 0.35 * smoothstep(0.72, 0.9, rp_road) * smoothstep(0.45, 0.62, rp_pop);
+    rp_glow = rp_glow * rp_land * (1.0 - max(rp_ice, rp_snow)) * (1.0 - 0.75 * rp_cloud) * rp_night;
+    rp_col = rp_col + float3(1.0, 0.66, 0.3) * (rp_glow * 0.9);
     }
-    float rp_fr = rp_om * rp_om * rp_om;
-    float3 rp_sky = mix(float3(0.32, 0.6, 1.0), float3(1.0, 0.45, 0.25), rp_dusk * 0.7);
-    float rp_air = rp_fr * (0.06 + 1.35 * smoothstep(-0.3, 0.45, rp_ndl));
-    rp_col = rp_col * (1.0 - rp_fr * 0.3) + rp_sky * rp_air;
+    float rp_fr = rp_om * rp_om;
+    float3 rp_sky = mix(float3(0.28, 0.55, 1.0), float3(1.0, 0.45, 0.25), rp_dusk * 0.75);
+    float rp_air = rp_fr * (0.04 + 0.9 * smoothstep(-0.25, 0.45, rp_ndl));
+    rp_col = rp_col * (1.0 - rp_fr * 0.45 * rp_day) + rp_sky * rp_air;
 
     """ + bodyEnd
 

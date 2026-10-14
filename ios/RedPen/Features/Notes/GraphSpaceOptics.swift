@@ -278,6 +278,28 @@ nonisolated enum SpaceOptics {
         return (s, m)
     }
 
+    // MARK: the black hole's number
+
+    /// A black hole's billboard carries in its z scale how its disk is seen
+    /// and how hard it is moving: 2 + above * (sin i to 1/255, over 256, +
+    /// motion * 0.96 / 256), where i is the angle between the disk's axis
+    /// and the eye and `above` the side of the disk the eye is on (+1 or
+    /// -1). GraphStyleShaders.bhRing reads it back.
+    static func holeCode(tilt k: Float, above: Bool, motion: Float) -> Float {
+        let q: Float = (min(max(k, 0), 1) * 255).rounded(.down)
+        let m: Float = min(max(motion, 0), 1)
+        let v: Float = q / 256 + m * (0.96 / 256)
+        return 2 + (above ? v : -v)
+    }
+
+    /// The tilt, side and motion back from a black hole's code.
+    static func holeRead(_ code: Float) -> (tilt: Float, above: Bool, motion: Float) {
+        let v: Float = min(abs(code - 2), 0.99999)
+        let q: Float = (v * 256).rounded(.down)
+        let m: Float = min(max((v * 256 - q) / 0.96, 0), 1)
+        return (q / 255, code - 2 >= 0, m)
+    }
+
     // MARK: sparks when a body moves
 
     /// How one style's sparks look (GraphSim's trail emitters wear the

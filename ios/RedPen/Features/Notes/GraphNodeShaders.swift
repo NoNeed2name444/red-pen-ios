@@ -164,7 +164,7 @@ nonisolated enum GraphStyleProbe {
 /// material never draws with one missing (rpKey especially: the light is
 /// normalised from it).
 nonisolated enum GraphStyleUniforms {
-    static let key = SIMD3<Float>(-0.55, 0.45, 0.70)
+    static let key = SIMD3<Float>(-0.75, 0.4, 0.45)
 
     static func defaults(_ material: SCNMaterial) {
         let zero = NSNumber(value: 0.0)
