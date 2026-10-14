@@ -446,6 +446,44 @@ check("a key fix reaches the question's copy in Mistakes too", fixedBoth.count =
       && Set(fixedBoth.map { $0.questions[0].correctIndex }).count == 1 && fixedBoth[1].name == "Mistakes")
 check("a fix for an unknown item does nothing", AccuracyFix.apply(keyFix, toItem: "nope", in: mcqSet) == nil)
 
+// MARK: the vignette route (server/vignette-proof.js): Checked, below Verified
+let checkedJSON: String = #","vignette":{"ok":true,"tier":"checked","why":null,"rules":["cdc-tst-5mm"]}"#
+var vignettes = AccuracyLedger()
+vignettes.record(gateReply(checkedJSON, proof: ""), for: [hash0], at: gateTime)
+check("V1 a vignette proof only checked, three blind families, no source proof: Checked", vignettes.assess(item0).grade == .checked,
+      "\(vignettes.assess(item0).grade)")
+check("V2 Checked says what it means", vignettes.assess(item0).reasons.contains(AccuracyGrade.checked.meaning ?? "-"))
+vignettes.record(gateReply(#","vignette":{"ok":true,"tier":"proven","why":null,"rules":["cdc-tst-5mm"]}"#, proof: ""), for: [hash0], at: gateTime)
+check("V3 a proof whose rules the owner signed off: Verified", vignettes.assess(item0).grade == .verified)
+vignettes.record(gateReply(#","vignette":{"ok":false,"tier":null,"why":"stale","rules":[]}"#, proof: ""), for: [hash0], at: gateTime)
+check("V4 a refused proof: Check this", vignettes.assess(item0).grade == .check)
+vignettes.record(gateReply(checkedJSON, proof: ""), for: [hash0], at: gateTime)
+vignettes.record(gateReply("", proof: ""), for: [hash0], at: gateTime)
+check("V5 a reply without it (the route off) clears it: Check this, as before", vignettes.records[hash0]?.vignette == nil && vignettes.assess(item0).grade == .check)
+var heldChecked = AccuracyLedger()
+heldChecked.record(gateReply(#","claims":{"hard":[{"code":"naskh","claim":"x","source":"y"}],"soft":[]}"# + checkedJSON, proof: ""), for: [hash0], at: gateTime)
+check("V6 a hold (a rule replaced: naskh) drops Checked to Check this, in its own words", heldChecked.assess(item0).grade == .check
+      && heldChecked.assess(item0).reasons.contains("A published rule its proof rests on has been replaced by a newer one."))
+var reportedChecked = AccuracyLedger()
+reportedChecked.record(gateReply(checkedJSON, proof: ""), for: [hash0], at: gateTime)
+reportedChecked.markReported(hash0)
+check("V7 reported by the student: never Checked to them again", reportedChecked.assess(item0).grade == .check)
+let vf: [String: Double] = ["no_models": 0, "kind_mcq": 1, "voters": 1, "families": 3, "blind_agree": 3, "vignette_proof": 1, "vignette_checked": 1]
+check("V8 the route off: a vignette proof backs nothing", AccuracyModel.grade(0.95, vf) == .check && AccuracyModel.grade(0.95, vf, vignetteRoute: false) == .check)
+check("V9 on: proven is Verified, checked is Checked, and neither below the cut-off",
+      AccuracyModel.grade(0.95, vf, vignetteRoute: true) == .verified
+      && AccuracyModel.grade(0.95, vf.merging(["vignette_proof": 0]) { $1 }, vignetteRoute: true) == .checked
+      && AccuracyModel.grade(0.5, vf.merging(["vignette_proof": 0]) { $1 }, vignetteRoute: true) == .check
+      && AccuracyModel.grade(0.95, vf.merging(["vignette_proof": 0, "blind_agree": 2]) { $1 }, vignetteRoute: true) == .check)
+var mixed = AccuracySummary()
+mixed.add(.verified); mixed.add(.checked)
+check("V10 a set of Verified and Checked: Checked overall, said plainly", mixed.grade == .checked && mixed.passed == 1 && mixed.checked == 2
+      && mixed.line == "1 verified \u{00B7} 1 checked, not fully proven")
+check("V11 the tiers' meanings", AccuracyGrade.checked.title == "Checked" && AccuracyGrade.verified.meaning?.hasPrefix("Verified means") == true
+      && AccuracyGrade.check.meaning == nil)
+let featuresBefore: [String: Double] = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [], evidenceCount: 0, sourceMatch: nil, keyLetter: "A")
+check("V12 the route off: no new feature", featuresBefore["vignette_proof"] == nil && featuresBefore["vignette_checked"] == nil)
+
 // MARK: the shared rule cases (server/tests/accuracy.test.mjs runs the same file)
 var ruleRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 while !FileManager.default.fileExists(atPath: ruleRoot.appendingPathComponent("server/tests/rule-vectors.json").path), ruleRoot.path != "/" {

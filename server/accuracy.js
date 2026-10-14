@@ -44,6 +44,8 @@ import { claimGate, MAX_WORK, remembering } from './claims.js';
 import { provenance, registryOf, HOLD_REASONS } from './provenance.js';
 import { oathCheck } from './oath.js';
 import { runnerBallots } from './runner-voters.js';
+import { checkVignette, vignetteProven, vignetteChecked, VIGNETTE_REASONS } from './vignette-proof.js';
+import { vignetteRoute } from './switches.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
@@ -77,8 +79,10 @@ const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
 const letter = i => String.fromCharCode(65 + i);
 
 /// An item as the app sends it, cleaned: only the fields the engine reads,
-/// each kept to a sane length. Null when it cannot be an item.
-export function cleanItem(raw) {
+/// each kept to a sane length. Null when it cannot be an item. `packets`:
+/// keep a question's vignette proof packet (only while the vignette route is
+/// on; never part of its hash).
+export function cleanItem(raw, { packets = false } = {}) {
   if (!raw || typeof raw !== 'object' || !KINDS.includes(raw.kind)) return null;
   const item = { id: str(raw.id, 80), kind: raw.kind, source: str(raw.source, 20_000) };
   if (raw.kind === 'mcq') {
@@ -88,6 +92,7 @@ export function cleanItem(raw) {
     item.key = Number.isInteger(raw.key) ? raw.key : -1;
     item.explanation = str(raw.explanation, MAX_ITEM_CHARS);
     if (!item.stem.trim()) return null;
+    if (packets === true && raw.vignette && typeof raw.vignette === 'object' && !Array.isArray(raw.vignette)) item.vignette = raw.vignette;
   } else {
     item.text = str(raw.text, MAX_ITEM_CHARS);
     if (!item.text.trim()) return null;
@@ -292,12 +297,16 @@ export function forgetWeights() { weightsCache = { value: null, until: 0 }; }
 /// `claims`: the claim gate's findings (claims.js), when there are any: an
 /// item that contradicts its own lecture is never Verified - Check this at
 /// best - and the findings go back with it.
-export function describe(item, hash, signals, weights, strictness = 0, rules = ruleHits(item), claims = null) {
+export function describe(item, hash, signals, weights, strictness = 0, rules = ruleHits(item), claims = null, { vignetteRoute: route = false } = {}) {
   const votes = signals?.votes || [];
   const keyLetter = item.kind === 'mcq' && item.key >= 0 ? letter(item.key) : null;
+  // the vignette route (vignette-proof.js), only while it is on: the item's
+  // proof packet checked here, pure and cheap, so nothing about it is cached
+  const vr = route === true && item.kind === 'mcq' && item.vignette ? checkVignette(item, item.vignette) : null;
   const f = features({ kind: item.kind, rules, votes, evidenceCount: (signals?.evidence || []).length,
                        sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter,
-                       sourceProof: fullyProven(signals?.proof) });
+                       sourceProof: fullyProven(signals?.proof),
+                       ...(route === true ? { vignette: { proven: vignetteProven(vr), checked: vignetteChecked(vr) } } : {}) });
   const p = predict(f, weights);
   // the oath check (oath.js: our own rules and the source proof, fail
   // closed): a dose, a diagnosis or a treatment needs evidence behind it;
@@ -305,14 +314,14 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
   const text = itemText(item);
   const sworn = oathCheck(item, signals?.proof);
   const oath = oathWithJev(sworn.oath, signals?.jevOath);
-  const graded = verdict(p, f, examWeights(weights, item, strictness), oath);
+  const graded = verdict(p, f, examWeights(weights, item, strictness), oath, { vignetteRoute: route === true });
   const contradicted = Boolean(claims?.hard?.length);
   // provenance (provenance.js): each claim's chain, its sources' registry,
   // and the five conditions; a condition that fails holds the item from
   // Verified, as a contradiction of its lecture does
-  const prov = provenance(item, signals, { oath });
+  const prov = provenance(item, signals, { oath, ...(vr?.ok ? { vignette: vr } : {}) });
   const held = Boolean(prov?.holds.length);
-  const final = (contradicted || held) && graded === 'verified' ? 'check' : graded;
+  const final = (contradicted || held) && (graded === 'verified' || graded === 'checked') ? 'check' : graded;
   const fixed = suggestedFix(item, votes);
   const cut = signals?.proof?.why;
   // its key stated word for word, and another option a source may state too
@@ -324,7 +333,8 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
   else if (cut === 'budget') reasons.push('Its official sources were too long to read in this batch; it will be checked again on its own.');
   else if (cut === 'distractor') reasons.push('An official source may also state another of its options.');
   else if (cut === 'options') reasons.push('One of its other options could not be read for certain.');
-  else if (UNPROVABLE.has(cut)) reasons.push(UNPROVABLE_REASONS[cut] || UNPROVABLE_REASONS.other);
+  else if (UNPROVABLE.has(cut) && !vr?.ok) reasons.push(UNPROVABLE_REASONS[cut] || UNPROVABLE_REASONS.other);
+  if (vr && !vr.ok) reasons.push(VIGNETTE_REASONS[vr.why] || VIGNETTE_REASONS.error);
   // the lecture's findings and provenance's holds go back together, so the
   // app (which keeps the hard findings' codes) holds the item as the server did
   const lectured = claimsReply(claims);
@@ -336,6 +346,7 @@ export function describe(item, hash, signals, weights, strictness = 0, rules = r
     ...(oath ? { oath: { ...oathClaims(text), why: sworn.why } } : {}),
     ...(findings || {}),
     ...(signals?.proof ? { proof: signals.proof } : {}),
+    ...(vr ? { vignette: { ok: vr.ok, tier: vr.tier, why: vr.why, rules: vr.rules || [] } } : {}),
     ...(prov ? { provenance: { tier: final === 'verified' ? prov.tier : null, gates: prov.gates, witnesses: prov.witnesses,
       chains: prov.chains.map(chainReply), sources: prov.sources.map(sourceReply), flags: prov.flags } } : {}),
   };
@@ -735,11 +746,11 @@ export async function jevStage(env, entries, votes, fetcher, budget = BUDGETS.je
 /// verdict: what the app is told about every item, from where its signals
 /// came: the cache, this check, or nowhere (and why).
 /** @returns {StageResult<object[]>} */
-export function verdictStage(items, hashes, outcomes, rules, weights, strict, budget = BUDGETS.verdict, claims = []) {
+export function verdictStage(items, hashes, outcomes, rules, weights, strict, budget = BUDGETS.verdict, claims = [], opts = {}) {
   const started = Date.now();
   const results = items.map((item, i) => {
     const o = outcomes[i];
-    const described = describe(item, hashes[i], o.signals, weights, strict, rules[i], claims[i] || null);
+    const described = describe(item, hashes[i], o.signals, weights, strict, rules[i], claims[i] || null, opts);
     if (o.from === 'cache') return { ...described, cached: true };
     return o.reason ? { ...described, reason: o.reason } : described;
   });
@@ -774,7 +785,9 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   }
   const raw = Array.isArray(body?.items) ? body.items : [];
   if (!raw.length || raw.length > BATCH) return fail(400, `Send 1 to ${BATCH} items.`);
-  const items = raw.map(cleanItem);
+  // the vignette route (switches.js), off unless the owner turns it on
+  const route = vignetteRoute(env);
+  const items = raw.map(r => cleanItem(r, { packets: route }));
   if (items.some(i => !i)) return fail(400, 'An item could not be read.');
   // the source is cut to the part the checker is shown, so the hash is of
   // what was actually checked
@@ -826,7 +839,7 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
     done(skipped('votes', budget.votes, { ballots: [], failures: [] }));
     done(skipped('jev', budget.jev, []));
     const graded = unchecked(extra.limit);
-    const results = done(verdictStage(items, hashes, graded, rules, weights, strict, budget.verdict, claims));
+    const results = done(verdictStage(items, hashes, graded, rules, weights, strict, budget.verdict, claims, { vignetteRoute: route }));
     done(writes.length ? await cacheStage(env, writes, budget.cache) : skipped('cache', budget.cache, []));
     return reply({ items: results, ...extra }, status);
   };
@@ -874,7 +887,7 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
     outcomes[e.i] = { from: 'check', signals };
     writes.push({ hash: hashes[e.i], signals });
   }
-  const results = done(verdictStage(items, hashes, outcomes, rules, weights, strict, budget.verdict, claims));
+  const results = done(verdictStage(items, hashes, outcomes, rules, weights, strict, budget.verdict, claims, { vignetteRoute: route }));
   done(await cacheStage(env, writes, budget.cache));
   // no voter answered: nothing was checked, so the allowance comes back and
   // the app is told to wait rather than send the next batch at once (audit #87)
