@@ -34,6 +34,7 @@ import java.util.Locale
     val context=LocalContext.current
     val prefs=remember { context.getSharedPreferences("appearance",Context.MODE_PRIVATE) }
     var dark by remember { mutableStateOf(forceDark ?: prefs.getBoolean("dark",false)) }
+    var reviewSettings by remember { mutableStateOf(store.reviewSettings) }
     var screen by rememberSaveable { mutableStateOf(initialScreen) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var revision by remember { mutableIntStateOf(0) }
@@ -83,7 +84,7 @@ import java.util.Locale
                     "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { refresh();open(set) }.onFailure { notice=it.message } },::goHome)
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
-                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply() },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome)
+                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply() },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } })
                     else -> Column(Modifier.fillMaxSize()) {
                         Box(Modifier.weight(1f)) {
                             EcgGrid(Modifier.fillMaxWidth().height(250.dp))

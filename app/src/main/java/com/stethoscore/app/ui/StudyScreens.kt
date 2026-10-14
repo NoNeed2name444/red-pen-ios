@@ -117,14 +117,14 @@ import com.stethoscore.app.data.*
             else {
                 SectionLabel("How well did you remember?")
                 val record=store.reviews[card.id] ?: ReviewRecord(System.currentTimeMillis(),0.0)
-                val labels=ReviewPlan.previewLabels(record, exam=store.examDate)
+                val labels=ReviewOptions.previewLabels(record, System.currentTimeMillis(), store.examDate, store.reviewSettings.scheduler)
                 Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     AnkiRating.entries.chunked(2).forEach { pair -> Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {pair.forEach {rating ->
                         OutlinedButton(onClick={store.rateCard(card,rating);reviewed++;revision++},modifier=Modifier.weight(1f).height(70.dp),shape=RoundedCornerShape(18.dp)) {Column(horizontalAlignment=Alignment.CenterHorizontally) {Text(rating.label,fontWeight=FontWeight.Bold);Text(labels[rating] ?: "",fontSize=12.sp)}}
                     }} }
                 }
             }
-            Text("Your schedule uses the same review intervals as Stethoscore on iOS.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if(store.reviewSettings.scheduler==ReviewScheduler.FSRS) "Scheduled by FSRS-5, as in Stethoscore on iOS. Change it in Settings." else "Your schedule uses the same review intervals as Stethoscore on iOS.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -6,12 +6,14 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.time.Instant
-import java.time.ZoneId
 
 /** Local library. Empty on first launch; examples are added only on request. */
 class StudyStore(private val directory: File) {
     private val file = File(directory, "stethoscore.json")
+    /** Settings > Review lives beside the library, not in it, as iOS keeps it in UserDefaults. */
+    private val reviewSettingsFile = File(directory, "review-settings.json")
+    var reviewSettings: ReviewSettings = readReviewSettings()
+        private set
     private var original = JSONObject()
     private var unknownSets = emptyList<JSONObject>()
     var loadError: String? = null
@@ -207,11 +209,13 @@ class StudyStore(private val directory: File) {
         saveQuietly()
     }
     @Synchronized fun toggleFlag(questionId: String) { flagged = if (questionId in flagged) flagged - questionId else flagged + questionId; saveQuietly() }
-    fun dueCards(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiCard> = set.cards.filter { ReviewPlan.isAvailable(reviews[it.id], now) }.sortedBy { reviews[it.id]?.due ?: now }
-    fun dueCount(now: Long = System.currentTimeMillis()): Int = library.filter { it.kind == StudySetKind.ANKI }.sumOf { dueCards(it, now).size }
+    /** Today's queue for one deck: due, not suspended or buried, within the library's daily limits. */
+    fun dueCards(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiCard> = ReviewOptions.dailyQueue(set.cards, reviews, now, reviewSettings.limits)
+    /** Everything due across the library today; the daily limits apply once to the whole library. */
+    fun dueCount(now: Long = System.currentTimeMillis()): Int = ReviewOptions.dueCount(library.filter { it.kind == StudySetKind.ANKI }.flatMap { it.cards }, reviews, now, reviewSettings.limits)
     @Synchronized fun rateCard(card: AnkiCard, rating: AnkiRating, now: Long = System.currentTimeMillis()): ReviewRecord {
         previousRating = card.id to reviews[card.id]
-        val next = ReviewPlan.after(rating, reviews[card.id] ?: ReviewRecord(now, 0.0), now, examDate)
+        val next = ReviewOptions.after(rating, reviews[card.id] ?: ReviewRecord(now, 0.0, ratedAt = now), now, examDate, reviewSettings.scheduler)
         reviews = reviews + (card.id to next)
         saveQuietly(); return reviews[card.id] ?: next
     }
@@ -221,8 +225,25 @@ class StudyStore(private val directory: File) {
         previousRating = null; saveQuietly(); return true
     }
     @Synchronized fun suspendCard(cardId: String) { val now = System.currentTimeMillis(); val kept = reviews[cardId] ?: ReviewRecord(now, 0.0); reviews = reviews + (cardId to kept.copy(suspended = true, changedAt = now)); saveQuietly() }
-    @Synchronized fun buryCard(cardId: String) { val now = System.currentTimeMillis(); val tomorrow = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(); val kept = reviews[cardId] ?: ReviewRecord(now, 0.0); reviews = reviews + (cardId to kept.copy(buriedUntil = tomorrow, changedAt = now)); saveQuietly() }
+    @Synchronized fun buryCard(cardId: String) { val now = System.currentTimeMillis(); val tomorrow = ReviewDay.next(now); val kept = reviews[cardId] ?: ReviewRecord(now, 0.0); reviews = reviews + (cardId to kept.copy(buriedUntil = tomorrow, changedAt = now)); saveQuietly() }
     @Synchronized fun setExamDate(date: Long?) { examDate = date; saveQuietly() }
+    @Synchronized fun setReviewSettings(settings: ReviewSettings) {
+        val clean = settings.copy(limits = ReviewLimits(settings.limits.newPerDay.coerceIn(0, 9999), settings.limits.reviewsPerDay.coerceIn(0, 9999)))
+        val json = JSONObject().put("scheduler", clean.scheduler.name.lowercase()).put("newPerDay", clean.limits.newPerDay).put("reviewsPerDay", clean.limits.reviewsPerDay)
+        check(directory.exists() || directory.mkdirs()) { "Could not create the library directory." }
+        val temporary = File(directory, "review-settings.json.tmp")
+        FileOutputStream(temporary).use { it.write(json.toString().toByteArray(Charsets.UTF_8)); it.fd.sync() }
+        check(temporary.renameTo(reviewSettingsFile)) { "Could not save the review settings." }
+        reviewSettings = clean
+    }
+    private fun readReviewSettings(): ReviewSettings = runCatching {
+        if (!reviewSettingsFile.exists()) return@runCatching ReviewSettings()
+        val o = JSONObject(reviewSettingsFile.readText())
+        ReviewSettings(
+            scheduler = ReviewScheduler.entries.firstOrNull { it.name.equals(o.optString("scheduler"), ignoreCase = true) } ?: ReviewScheduler.CLASSIC,
+            limits = ReviewLimits(o.optInt("newPerDay", 0).coerceAtLeast(0), o.optInt("reviewsPerDay", 0).coerceAtLeast(0)),
+        )
+    }.getOrDefault(ReviewSettings())
     @Synchronized fun saveNote(note: Note) {
         val existing = notes.firstOrNull { it.id == note.id }
         if (existing == note) return

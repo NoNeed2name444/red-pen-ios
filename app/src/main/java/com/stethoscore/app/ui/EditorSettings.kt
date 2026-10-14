@@ -63,12 +63,24 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
     }
 }
 
-@Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit) {
+@Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit,
+    review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={}) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Appearance")
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {Column {Text("Night shift",fontSize=18.sp,fontWeight=FontWeight.SemiBold);Text("Stethoscore's dark palette",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};Switch(dark,onDark)}
+        }
+        WardCard(Modifier.fillMaxWidth()) {
+            SectionLabel("Review")
+            Text("Scheduler",fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+            Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                ReviewScheduler.entries.forEach { s -> FilterChip(review.scheduler==s,{ onReview(review.copy(scheduler=s)) },{ Text(s.title) }) }
+            }
+            Text(if(review.scheduler==ReviewScheduler.FSRS) "FSRS-5 with its published weights: each card's stability and difficulty set its next interval." else "Classic: the web app's intervals, the default.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            LimitStepper("New cards a day",review.limits.newPerDay,5) { onReview(review.copy(limits=review.limits.copy(newPerDay=it))) }
+            LimitStepper("Reviews a day",review.limits.reviewsPerDay,10) { onReview(review.copy(limits=review.limits.copy(reviewsPerDay=it))) }
+            Text("Learning cards always come back when due. A study day turns over at 4 am.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Your library")
@@ -85,5 +97,14 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
             Text("Built from the audited October 9 Stethoscore source.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text("Stethoscore is a study aid. Source material and sample answers have not been independently verified for clinical use.",fontSize=12.sp,lineHeight=18.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable private fun LimitStepper(label:String,value:Int,step:Int,onChange:(Int)->Unit) {
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) { Text(label,fontSize=16.sp,fontWeight=FontWeight.SemiBold); Text(if(value<=0) "No limit" else "$value",fontSize=13.sp,color=MaterialTheme.colorScheme.primary) }
+        OutlinedButton(onClick={ onChange((value-step).coerceAtLeast(0)) },enabled=value>0) { Text("−") }
+        Spacer(Modifier.width(8.dp))
+        OutlinedButton(onClick={ onChange((value+step).coerceAtMost(9999)) }) { Text("+") }
     }
 }
