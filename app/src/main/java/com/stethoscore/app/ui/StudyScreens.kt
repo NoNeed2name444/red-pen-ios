@@ -108,7 +108,7 @@ import com.stethoscore.app.data.*
             else {
                 SectionLabel("How well did you remember?")
                 val record=store.reviews[card.id] ?: ReviewRecord(System.currentTimeMillis(),0.0)
-                val labels=ReviewPlan.previewLabels(record)
+                val labels=ReviewPlan.previewLabels(record, exam=store.examDate)
                 Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     AnkiRating.entries.chunked(2).forEach { pair -> Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {pair.forEach {rating ->
                         OutlinedButton(onClick={store.rateCard(card,rating);reviewed++;revision++},modifier=Modifier.weight(1f).height(70.dp),shape=RoundedCornerShape(18.dp)) {Column(horizontalAlignment=Alignment.CenterHorizontally) {Text(rating.label,fontWeight=FontWeight.Bold);Text(labels[rating] ?: "",fontSize=12.sp)}}
