@@ -788,40 +788,25 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(!votersFor(keyed, 'claude-opus-5-5', true).some(v => v.startsWith('claude:')), 'Claude never checks what Claude wrote');
 }
 
-// MARK: free hosts as checker families, with their own keys
+// MARK: more checker families with no key (the owner, 14 Oct: "make free workers without apis")
 {
-  const { askModel, pinnedSource, FREE_HOSTS } = await import('../ai.js');
+  const ai = await import('../ai.js');
   const { votersFor, DEFAULT_VOTERS } = await import('../accuracy.js');
   const { familyOf } = await import('../accuracy-model.js');
-  const vote = [{ role: 'user', content: 'Solve it blind.' }];
-  ok(pinnedSource({}, 'mistral:mistral-large-latest') === null && pinnedSource({}, 'groq:qwen/qwen3-32b') === null, 'no key, no free-host voter');
-  const m = pinnedSource({ MISTRAL_API_KEY: 'mk' }, 'mistral:mistral-large-latest');
-  ok(m?.kind === 'openai' && m.base === FREE_HOSTS.mistral.base && m.key === 'mk' && !m.paid, 'a free host routes to its own base with its own key, never as a paid lane');
-  ok(pinnedSource({ GROQ_API_KEY: 'gk' }, 'groq:bad model!') === null, 'a malformed model name is refused');
-
-  const env = freshEnv({ GROQ_API_KEY: 'gk' });
-  const student = await askModel(env, 'a1', false, 'groq:qwen/qwen3-32b', vote, 600, async () => { throw new Error('no call'); });
-  ok(!student.ok && student.status === 403, "a student's check never uses a free host's shared daily limit");
-  let seen = null;
-  const asked = await askModel(env, 'owner', true, 'groq:qwen/qwen3-32b', vote, 600, async (url, init) => {
-    seen = { url, auth: init.headers.authorization, model: JSON.parse(init.body).model };
-    return new Response(JSON.stringify({ choices: [{ message: { content: '<think>hm</think>{"items":[{"i":1,"risk":1,"answer":"C"}]}' } }], usage: { prompt_tokens: 900, completion_tokens: 300 } }), { status: 200 });
-  });
-  ok(asked.ok && asked.content.includes('"answer":"C"') && !asked.content.includes('think'), "the owner's check gets its vote, without its thinking");
-  ok(seen?.url === 'https://api.groq.com/openai/v1/chat/completions' && seen.auth === 'Bearer gk' && seen.model === 'qwen/qwen3-32b', 'sent to the host with its key');
-  const spent = freshEnv({ MISTRAL_API_KEY: 'mk' });
-  const limit = await askModel(spent, 'owner', true, 'mistral:mistral-large-latest', vote, 600, async () => new Response('{"message":"Requests rate limit exceeded"}', { status: 429 }));
-  ok(!limit.ok && limit.status === 429, "a free plan's spent day is no vote (the next voter is asked)");
-
-  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, ANTHROPIC_API_KEY: 'ak', MISTRAL_API_KEY: 'mk', GROQ_API_KEY: 'gk' };
-  const owner = votersFor(keyed, '', true);
-  ok(owner.indexOf('mistral:mistral-large-latest') < owner.indexOf('claude:claude-opus-5-5') && owner.indexOf('groq:qwen/qwen3-32b') < owner.indexOf('claude:claude-opus-5-5'),
-     'the free families are asked before the capped cloud checker');
-  ok(!votersFor(keyed, '', false).some(v => /^(mistral|groq|claude):/.test(v)), "students' checks stay on the shared free models");
-  const fams = new Set(owner.map(v => familyOf(v.slice(v.indexOf(':') + 1))));
-  ok(fams.has('mistral') && fams.has('alibaba') && fams.size >= 6, `each new voter is a family of its own (${[...fams].join(', ')})`);
-  ok(familyOf('openai/gpt-oss-120b') === familyOf('@cf/openai/gpt-oss-120b'), 'the second lane for a Workers AI model is the same family, one witness');
-  ok(DEFAULT_VOTERS.split(',').every(v => v.includes(':')), 'every default voter names its host');
+  ok(!('FREE_HOSTS' in ai) && ['mistral:mistral-large-latest', 'groq:qwen/qwen3-32b', 'cerebras:qwen-3-32b'].every(v => ai.pinnedSource({ MISTRAL_API_KEY: 'm', GROQ_API_KEY: 'g', CEREBRAS_API_KEY: 'c' }, v) === null),
+     'no checker needs a key of its own or a sign-up elsewhere: none of the declined hosts is known');
+  ok(!/mistral:|groq:|cerebras:/.test(DEFAULT_VOTERS), 'and none is in the default order');
+  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, ANTHROPIC_API_KEY: 'ak' };
+  const student = votersFor(keyed, '', false);
+  const added = student.filter(v => /qwen3-30b|glm-4\.7|mistral-small/.test(v));
+  ok(added.length === 3 && added.every(v => v.startsWith('workers-ai:')), 'three more families through the Worker\'s own AI binding');
+  const fams = added.map(v => familyOf(v.slice(v.indexOf(':') + 1)));
+  const before = student.filter(v => !added.includes(v)).map(v => familyOf(v.slice(v.indexOf(':') + 1)));
+  ok(new Set(fams).size === 3 && !fams.some(f => before.includes(f)), `each a family none of the earlier voters is (${fams.join(', ')})`);
+  ok(Math.min(...added.map(v => student.indexOf(v))) > Math.max(...student.filter(v => !added.includes(v)).map(v => student.indexOf(v))),
+     'they come after the voters the checker bench measured, standing in when those fail');
+  ok(!votersFor({ ...keyed, AI: undefined }, '', false).some(v => added.includes(v)), 'and without the binding they are left out');
+  ok(ai.workersInput('@cf/qwen/qwen3-30b-a3b-fp8', [], 100, 0).chat_template_kwargs?.enable_thinking === false, 'the thinking one is asked to answer, not think aloud');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

@@ -14,10 +14,6 @@
 #   APPCHECK_DEBUG_TOKEN, FIREBASE_APP_ID   App Check for those Gemini calls (a registered debug token)
 #   ANTHROPIC_API_KEY      Claude (platform.claude.com API key): checks the owner's
 #                          work as one more model family, within CLAUDE_MONTHLY_USD
-#   MISTRAL_API_KEY        Mistral's free plan (console.mistral.ai, phone check, no
-#                          card): one more checker family, the owner's checks only
-#   GROQ_API_KEY           Groq's free plan (console.groq.com, no card): one more
-#                          checker family and a second free lane for a Workers AI one
 # SESSION_SECRET is generated on the first deploy and never changed after.
 name: Deploy the worker
 on:
@@ -116,8 +112,6 @@ jobs:
           APPCHECK_DEBUG_TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           set -euo pipefail
           W="npx --yes wrangler@4"
@@ -132,7 +126,7 @@ jobs:
           fi
           # Novita's key is the writer's key (Baichuan-M2-32B)
           if [ -n "${NOVITA_API_KEY:-}" ]; then printf '%s' "$NOVITA_API_KEY" | $W secret put AI_WRITER_KEY; else echo "(NOVITA_API_KEY not set - CramDown Cloud starts at Gemini)"; fi
-          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID APPCHECK_DEBUG_TOKEN FIREBASE_APP_ID ANTHROPIC_API_KEY MISTRAL_API_KEY GROQ_API_KEY; do
+          for name in AI_API_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY GOOGLE_CLIENT_SECRET FIREBASE_API_KEY FIREBASE_PROJECT_ID APPCHECK_DEBUG_TOKEN FIREBASE_APP_ID ANTHROPIC_API_KEY; do
             value="${!name:-}"
             if [ -n "$value" ]; then printf '%s' "$value" | $W secret put "$name"; else echo "($name not set - skipped)"; fi
           done

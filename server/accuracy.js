@@ -43,6 +43,7 @@ import { exam as examById } from './exams.js';
 import { claimGate, MAX_WORK, remembering } from './claims.js';
 import { provenance, registryOf, HOLD_REASONS } from './provenance.js';
 import { oathCheck } from './oath.js';
+import { runnerBallots } from './runner-voters.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
@@ -55,12 +56,11 @@ export const BATCH = 4;
 // Claude second: it answers reliably once its key is set (the owner's checks
 // only, ai.js askClaudeVoter), so a third family no longer waits on Workers
 // AI's free pool; without the key it is left out (votersFor)
-// Since 14 Oct (the owner: "do both"), two free families with their own
-// keys come before it, so the capped cloud checker is asked only where they
-// fail, and a second free lane for a Workers AI family follows that family's
-// Workers AI voter, for when the day's pool is spent. Each joins only when
-// its secret is set (ai.js FREE_HOSTS), and on the owner's checks only.
-export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,mistral:mistral-large-latest,groq:qwen/qwen3-32b,claude:claude-opus-5-5,workers-ai:@cf/openai/gpt-oss-120b,groq:openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
+// Since 14 Oct (the owner: "make free workers without apis"), three more
+// Workers AI families, through the same binding with no key, come last: not
+// yet measured by the checker bench, they stand in when an earlier voter
+// fails or its share of the pool is spent, and cost less of it per check.
+export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,claude:claude-opus-5-5,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it,workers-ai:@cf/qwen/qwen3-30b-a3b-fp8,workers-ai:@cf/zai-org/glm-4.7-flash,workers-ai:@cf/mistralai/mistral-small-3.1-24b-instruct';
 const MAX_ITEM_CHARS = 3500;
 const MAX_SOURCE_CHARS = 1400;
 const MAX_EVIDENCE_CHARS = 1500;
@@ -260,12 +260,11 @@ export function disagree(a, b) {
 
 /// Which voters may judge: the configured order, minus the model that wrote
 /// the items (a model grading its own work agrees with itself). Claude is
-/// the owner's own key, and the free plans' terms and shared daily limits
-/// suit only the owner's checks, so those judge the owner's checks only.
+/// the owner's own key, so it judges the owner's checks only.
 export function votersFor(env, writer, owner = false) {
   const all = list(env.ACCURACY_VOTERS || DEFAULT_VOTERS)
     .filter(v => /^bench:/.test(v) || pinnedSource(env, v))
-    .filter(v => owner || !/^(claude|mistral|groq):/.test(v));
+    .filter(v => owner || !/^claude:/.test(v));
   const w = String(writer || '').toLowerCase().trim();
   if (!w) return all;
   return all.filter(v => { const model = v.slice(v.indexOf(':') + 1).toLowerCase(); return model !== w && !model.endsWith(`/${w}`); });
@@ -599,7 +598,7 @@ export async function proofStage(items, fetcher, budget = BUDGETS.proof, seen = 
 /// voter that fails, sends nothing readable, or has not answered within its
 /// budget is no vote, and the next one is asked.
 /** @returns {Promise<StageResult<Votes>>} */
-export async function votesStage(env, account, owner, writer, entries, fetcher, budget = BUDGETS.votes) {
+export async function votesStage(env, account, owner, writer, entries, fetcher, budget = BUDGETS.votes, seed = []) {
   const started = Date.now();
   const messages = votePrompt(entries);
   const hasMcq = entries.some(e => e.item.kind === 'mcq');
@@ -622,8 +621,9 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
     && disagree([ballots[0].parsed[n]], [ballots[1].parsed[n]]));
   const familiesIn = list => new Set(list.map(b => familyOf(b.model))).size;
   const sightedWanted = () => hasMcq && (explained || otherSplit()) && !ballots.some(b => !b.blind);
-  // round one's answers as they come in, then the ballots
-  const got = [];
+  // round one's answers as they come in, then the ballots; a blind ballot
+  // from a runner (runner-voters.js) already holds its family's seat
+  const got = seed.map((b, n) => ({ ...b, order: -seed.length + n }));
   // which voter next: 'fresh', from a family that has neither answered nor
   // is being asked (two votes from one family are one witness); 'hedge', or
   // else one standing in for a family still being asked; 'any', or else
@@ -683,7 +683,8 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
       });
       return true;
     };
-    for (let i = 0; i < need; i++) launch();
+    for (let i = familiesIn(got); i < need; i++) launch();
+    if (familiesIn(got) >= need) return finish();
     if (inFlight === 0) return finish();
     const timer = setTimeout(() => {
       if (finished || hedged || familiesIn(got) >= need) return;
@@ -852,7 +853,8 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   // the official sources each item was proven from, for the registry: the
   // proof's own lookups, shared by key (`seen`), so nothing is fetched again
   const officials = await Promise.all(entries.map(async e => (await within(budget.proof, () => officialFor(e.item, fetcher, seen), { entries: [] })).value.entries));
-  const { ballots, failures } = done(await votesStage(env, account, owner, body.writer, entries, fetcher, budget.votes));
+  const seed = runnerBallots(env, body, entries, { owner, bench });
+  const { ballots, failures } = done(await votesStage(env, account, owner, body.writer, entries, fetcher, budget.votes, seed));
   const votes = entries.map((_, n) => votesOn(ballots, n));
   const jev = done(await jevStage(env, entries, votes, fetcher, budget.jev));
 
