@@ -80,6 +80,7 @@ jobs:
             xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" "$@" >> out/shots.log 2>&1 \
               || echo "launch failed: $name" >> out/shots.log
             sleep 12
+            [ "$screen" = settings ] && sleep 8
             xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "out/shots/$name.png" >> out/shots.log 2>&1 \
               || echo "shot failed: $name" >> out/shots.log
             pgrep -f "RedPen.app/RedPen" >/dev/null || echo "not running after: $name" >> out/shots.log
@@ -102,6 +103,16 @@ jobs:
             xcrun simctl ui "$UDID" appearance "$mode"
             sleep 2.5
           done
+          kill -INT $REC
+          wait $REC || true
+          # the app's own shift, with no system cross-fade: home switching
+          # itself every 2.5 s (the mode-switch preview screen)
+          xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+          xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen mode-switch >> out/shots.log 2>&1
+          sleep 6
+          xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black out/mode-switch-app.mp4 &
+          REC=$!
+          sleep 11
           kill -INT $REC
           wait $REC || true
           for report in ~/Library/Logs/DiagnosticReports/RedPen*.ips; do

@@ -606,7 +606,9 @@ struct LibraryView: View {
                 // rail on a wide iPad they stay, to keep the list off it.
                 .listSectionMargins(.horizontal, railed ? 16 : 0)
             }
-            .listSectionSpacing(WardSpace.section)
+            // the scale's 16, not a page's 24: Start ward round has to end
+            // above New set, which floats over the list
+            .listSectionSpacing(WardSpace.l)
             .scrollContentBackground(.hidden)
             // the masthead stands in for iOS's soft top edge (categoryPage)
             .scrollEdgeEffectHidden(true, for: .top)

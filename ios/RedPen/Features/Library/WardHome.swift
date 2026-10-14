@@ -403,7 +403,7 @@ struct HomeRoundCard: View {
     let onPlan: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: WardSpace.l) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             heading
             if beds.isEmpty {
                 quiet

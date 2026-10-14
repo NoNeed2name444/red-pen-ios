@@ -13,7 +13,7 @@ enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
                           "quiz-folded", "library-end", "library-loading", "signin", "account-deleted",
-                          "settings", "sheet"]
+                          "settings", "sheet", "mode-switch"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -55,6 +55,10 @@ enum PreviewExtras {
         case "sheet":
             // a sheet over home: New set, as the dock's writing modes open it
             LibraryView().sheet(isPresented: .constant(true)) { NewSetView() }
+        case "mode-switch":
+            // home turning dark and back every 2.5 s, through the same
+            // colour shift the app's own switch takes, for a recording
+            PreviewModeSwitch()
         default:
             EmptyView()
         }
@@ -144,4 +148,23 @@ enum PreviewDecks {
             NarrateSegment(text: "والـ ميكو كوتينياس تاني في الـ كرايتيريا", lang: "ar"),
         ]
     )
+}
+
+/// Home, switching light and dark by itself (the "mode-switch" preview), so
+/// a recording shows the app's colour shift (wardSchemeGlide) on its own,
+/// without the system's own cross-fade on an appearance change.
+private struct PreviewModeSwitch: View {
+    @State private var dark = false
+
+    var body: some View {
+        LibraryView()
+            .wardSchemeGlide()
+            .environment(\.colorScheme, dark ? .dark : .light)
+            .task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    dark.toggle()
+                }
+            }
+    }
 }

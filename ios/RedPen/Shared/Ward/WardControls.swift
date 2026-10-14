@@ -111,7 +111,7 @@ private struct WardButtonFace: View {
             .font(font)
             .multilineTextAlignment(.center)
             .foregroundStyle(ink)
-            .padding(.horizontal, small ? WardSpace.l : WardSpace.xl)
+            .padding(.horizontal, small ? WardSpace.m : WardSpace.xl)
             .padding(.vertical, small ? WardSpace.s : WardSpace.m)
             .frame(minWidth: small ? 44 : 56, maxWidth: maxWidth, minHeight: small ? 44 : 56)
     }
@@ -180,7 +180,7 @@ private struct WardChipButtonFace: View {
         label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(ink)
-            .padding(.horizontal, WardSpace.l)
+            .padding(.horizontal, WardSpace.m)
             .padding(.vertical, WardSpace.s)
             .background {
                 WardPressFace(shape: Capsule(), lift: .low, pressed: enabled && down)
@@ -503,7 +503,7 @@ struct WardRow: View {
                 inline
             }
         }
-        .padding(.vertical, WardSpace.m)
+        .padding(.vertical, WardSpace.s)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
@@ -531,7 +531,9 @@ struct WardRow: View {
     }
 
     private var words: some View {
-        VStack(alignment: .leading, spacing: WardSpace.xs) {
+        // 2, under the scale's 4: the home's three beds and Start ward round
+        // have to end above New set
+        VStack(alignment: .leading, spacing: 2) {
             if let overline { Text(overline).wardSmallCaps() }
             Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
             if let detail { Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary) }
