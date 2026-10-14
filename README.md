@@ -1,17 +1,17 @@
 # Stethoscore for Android
 
-Native Kotlin / Jetpack Compose port on the independent `android/kotlin` branch.
+Native Kotlin / Jetpack Compose app targeting **Android 17 (API 37)**, on the independent `android/kotlin` branch.
 The source is `red-pen-ios/personal@be11a567cff6f96d74266cdadba63415b832a32c` (9 October 2026), selected after auditing 4 accessible repositories and 162 branches. This branch runs only the Android workflow. The iOS working branch is unaffected.
 
 ## Build and install
 
-Open this directory in Android Studio with JDK 17, Android SDK 35 and Gradle 8.11.1. Or run:
+Open this directory in Android Studio with JDK 17, Android 17 SDK (API 37) and Gradle 9.7.1. Or run:
 
 ```sh
 gradle :app:assembleDebug :app:testDebugUnitTest
 ```
 
-The [Android workflow](../../actions/workflows/android.yml) produces a debug APK and test reports. Download its `stethoscore-android-build` artifact, then install `debug/app-debug.apk` on an Android 8+ device. Screenshot tests run the real app on an Android 15 emulator and save PNGs in `screenshots/` and the screenshot artifact.
+The [Android workflow](https://github.com/NoNeed2name444/red-pen-ios/actions/workflows/android.yml) produces a debug APK and test reports. Download its `stethoscore-android-build` artifact, then install `outputs/apk/debug/app-debug.apk` on an Android 8+ device. Screenshot tests run the real app on an Android 17 emulator and save PNGs in `screenshots/` and the screenshot artifact.
 
 ## Implemented in this preview
 
