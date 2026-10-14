@@ -1,8 +1,9 @@
 # A short look at the Ward design pass, light and dark, without the whole
 # design tour: home, a study screen, New set, Settings and a sheet over home,
-# in both modes on an iPhone, home at the iPhone SE's 375-point width, and a
-# recording of home while the system switches between light and dark, so the
-# colour shift can be watched.
+# each section's screen in its hue, in both modes on an iPhone, home at the
+# iPhone SE's 375-point width, and recordings of the colour shift: the app's
+# own light/dark switch, home stepping through its sections, and the
+# system's switch. A picture that is still the launch screen is taken again.
 #
 # A push to a preview/ward-<name> branch runs it (design-preview.yml leaves
 # those branches alone); the pictures land on the shots/ward-<name> branch.
@@ -72,22 +73,69 @@ jobs:
             --cellularMode active --cellularBars 4 --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p out/shots
+          # Whether a picture is still the launch screen: flat above and below
+          # the logo. sips turns it into an uncompressed BMP to read.
+          cat > blank.py <<'PY'
+          import struct, sys
+          d = open(sys.argv[1], "rb").read()
+          off, = struct.unpack_from("<I", d, 10)
+          w, h = struct.unpack_from("<ii", d, 18)
+          bpp, = struct.unpack_from("<H", d, 28)
+          step = bpp // 8; row = (w * step + 3) & ~3; up = h > 0; h = abs(h)
+          def spread(top, bottom):  # rows as a share of the picture, from its top
+              vals = []
+              for r in range(int(h * top), int(h * bottom), 7):
+                  y = h - 1 - r if up else r
+                  for x in range(w // 8, 7 * w // 8, 5):
+                      i = off + y * row + x * step
+                      vals.append(0.2126 * d[i + 2] + 0.7152 * d[i + 1] + 0.0722 * d[i])
+              m = sum(vals) / len(vals)
+              return (sum((v - m) ** 2 for v in vals) / len(vals)) ** 0.5
+          # the launch screen: one flat colour above and below its logo
+          print("blank" if spread(0.12, 0.38) < 3 and spread(0.7, 0.9) < 3 else "ok")
+          PY
           shoot() {  # mode, screen, file name, extra launch arguments
-            local mode="$1" screen="$2" name="$3"
+            local mode="$1" screen="$2" name="$3" try
             shift 3
             xcrun simctl ui "$UDID" appearance "$mode"
-            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" "$@" >> out/shots.log 2>&1 \
-              || echo "launch failed: $name" >> out/shots.log
-            sleep 9
-            xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "out/shots/$name.png" >> out/shots.log 2>&1 \
-              || echo "shot failed: $name" >> out/shots.log
+            for try in 1 2 3; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" "$@" >> out/shots.log 2>&1 \
+                || echo "launch failed: $name" >> out/shots.log
+              sleep $((10 + 6 * try))
+              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "out/shots/$name.png" >> out/shots.log 2>&1 \
+                || echo "shot failed: $name" >> out/shots.log
+              pgrep -f "RedPen.app/RedPen" >/dev/null || echo "not running after: $name" >> out/shots.log
+              sips -s format bmp "out/shots/$name.png" --out shot.bmp >/dev/null 2>&1 || break
+              [ "$(python3 blank.py shot.bmp)" = ok ] && break
+              echo "still the launch screen, try $try: $name" >> out/shots.log
+            done
           }
+          record() {  # screen, file, seconds to wait, seconds to record
+            xcrun simctl ui "$UDID" appearance light
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$1" >> out/shots.log 2>&1
+            sleep "$3"
+            xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black "out/$2" &
+            REC=$!
+            sleep "$4"
+            kill -INT $REC
+            wait $REC || true
+          }
+          # the app's own switch first (Always night sky turning the window
+          # dark and back every 2.5 s), then home stepping along its dock
+          record mode-switch mode-switch-app.mp4 6 11
+          record section-switch section-switch.mp4 5 13
           for mode in light dark; do
             for screen in library quiz new settings sheet; do
               shoot "$mode" "$screen" "$screen-$mode"
             done
             shoot "$mode" library "library-se-$mode" -uiPreviewWidth 375
+            # each section in its hue: Cards, Textbook, Cases, OSCE, Audio
+            # and Ideas (Questions is the quiz above)
+            for screen in anki book cases osce narrate home-ideas; do
+              shoot "$mode" "$screen" "section-$screen-$mode"
+            done
           done
           # home while the system turns dark and back
           xcrun simctl ui "$UDID" appearance light
@@ -103,6 +151,9 @@ jobs:
           done
           kill -INT $REC
           wait $REC || true
+          for report in ~/Library/Logs/DiagnosticReports/RedPen*.ips; do
+            [ -f "$report" ] && cp "$report" out/ && echo "crash report: $(basename "$report")" >> out/shots.log
+          done
           for f in out/shots/*.png; do sips --resampleWidth 600 "$f" --out "$f" >/dev/null || true; done
           ls -la out out/shots
       - name: Keep the log
