@@ -94,7 +94,10 @@ private struct WardButtonFace: View {
             }
         }
             .background {
-                WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: enabled && pressed)
+                // the main button's face is a tier up (a sheet's), so it
+                // stands out by a shade as well as by its rim
+                WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: enabled && pressed,
+                              fill: kind == .primary && enabled ? Color.wardRaised : Color.wardSurface)
             }
             .contentShape(shape)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
@@ -108,8 +111,8 @@ private struct WardButtonFace: View {
             .font(font)
             .multilineTextAlignment(.center)
             .foregroundStyle(ink)
-            .padding(.horizontal, small ? 14 : 20)
-            .padding(.vertical, small ? 8 : 12)
+            .padding(.horizontal, small ? WardSpace.l : WardSpace.xl)
+            .padding(.vertical, small ? WardSpace.s : WardSpace.m)
             .frame(minWidth: small ? 44 : 56, maxWidth: maxWidth, minHeight: small ? 44 : 56)
     }
 
@@ -177,8 +180,8 @@ private struct WardChipButtonFace: View {
         label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(ink)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.horizontal, WardSpace.l)
+            .padding(.vertical, WardSpace.s)
             .background {
                 WardPressFace(shape: Capsule(), lift: .low, pressed: enabled && down)
             }
@@ -253,8 +256,8 @@ struct WardChip: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(tone.ink)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 4)
+        .padding(.horizontal, WardSpace.s)
+        .padding(.vertical, WardSpace.xs)
         .wardInset(in: Capsule())
         .accessibilityElement(children: .combine)
     }
@@ -273,8 +276,8 @@ struct WardPill: View {
         }
         .font(.subheadline.weight(.bold))
         .foregroundStyle(Color.wardWarning)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, WardSpace.m)
+        .padding(.vertical, WardSpace.s)
         .wardInset(in: Capsule())
         .accessibilityElement(children: .combine)
     }
@@ -300,8 +303,8 @@ struct WardTimerPill: View {
             .foregroundStyle(low ? Color.wardDanger : Color.wardInk)
         if well {
             label
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .padding(.horizontal, WardSpace.m)
+                .padding(.vertical, WardSpace.s)
                 .wardInset(in: Capsule())
                 .contentTransition(.numericText())
         } else {
@@ -397,7 +400,7 @@ struct WardProgressViewStyle: ProgressViewStyle {
     @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         if let fraction = configuration.fractionCompleted {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: WardSpace.s) {
                 configuration.label
                 WardGroove(fraction: fraction)
                 configuration.currentValueLabel
@@ -434,10 +437,13 @@ struct WardSegmented<Value: Hashable, Label: View>: View {
                         .foregroundStyle(chosen ? Color.wardPrimaryInk : Color.wardInk)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, WardSpace.m)
                         .frame(maxWidth: .infinity, minHeight: 36)
                         .background {
-                            if chosen { WardReliefFace(shape: Capsule(), lift: .low, inset: true).transition(.identity) }
+                            if chosen {
+                                WardReliefFace(shape: Capsule(), lift: .low, inset: true, fill: Color.wardWell)
+                                    .transition(.identity)
+                            }
                         }
                         .contentShape(Capsule())
                 }
@@ -497,7 +503,7 @@ struct WardRow: View {
                 inline
             }
         }
-        .padding(.vertical, WardSpace.s)
+        .padding(.vertical, WardSpace.m)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
@@ -525,7 +531,7 @@ struct WardRow: View {
     }
 
     private var words: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: WardSpace.xs) {
             if let overline { Text(overline).wardSmallCaps() }
             Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
             if let detail { Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary) }

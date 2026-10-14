@@ -539,6 +539,9 @@ private struct PopOutLifecycle: ViewModifier {
         // the sky's root: SpaceQuality, the tiles' zoom namespace and
         // "Always night sky" (Space/SpaceQuality.swift)
         SkyRoot(content: content)
+            // light and dark switch with a colour shift, the paper and the
+            // base included (WardTokens)
+            .wardSchemeGlide()
             .overlay(alignment: .topLeading) {
                 if PopOutLifecycle.debug {
                     PopOutDebugLabel()

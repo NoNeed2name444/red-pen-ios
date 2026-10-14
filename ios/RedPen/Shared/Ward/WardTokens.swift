@@ -17,6 +17,8 @@ extension Color {
 
     static let wardBackground = ward(.background)
     static let wardSurface = ward(.surface)
+    static let wardRaised = ward(.raised)
+    static let wardWell = ward(.well)
     static let wardPrimary = ward(.primary)
     static let wardPrimaryInk = ward(.primaryInk)
     static let wardOnPrimary = ward(.onPrimary)
@@ -66,20 +68,56 @@ enum WardType {
     static let obsLarge = Font.system(.title2, design: .monospaced).weight(.semibold)
 }
 
+/// Gaps and padding, every one a step of WardScale (4, 8, 12, 16, 24, 32).
 enum WardSpace {
-    static let xs: CGFloat = 4, s: CGFloat = 8, m: CGFloat = 12
-    /// the screen's side gutter
-    static let gutter: CGFloat = 16
-    static let l: CGFloat = 20, xl: CGFloat = 24
+    static let xs = CGFloat(WardScale.xs), s = CGFloat(WardScale.s), m = CGFloat(WardScale.m)
+    /// the screen's side gutter, and a card's padding
+    static let gutter = CGFloat(WardScale.l)
+    static let l = CGFloat(WardScale.l), xl = CGFloat(WardScale.xl), xxl = CGFloat(WardScale.xxl)
+    /// between the sections of a page
+    static let section = CGFloat(WardScale.xl)
+    /// extra room between the lines of a paragraph
+    static let leading = CGFloat(WardScale.leading)
 }
 
+/// Corner radii, on the same scale.
 enum WardRadius {
-    static let card: CGFloat = 16
-    static let tile: CGFloat = 24
-    static let button: CGFloat = 14
-    static let field: CGFloat = 12
-    static let icon: CGFloat = 10
-    static let bar: CGFloat = 22
+    static let card = CGFloat(WardScale.l)
+    static let tile = CGFloat(WardScale.xl)
+    static let button = CGFloat(WardScale.l)
+    static let field = CGFloat(WardScale.m)
+    static let icon = CGFloat(WardScale.m)
+    static let bar = CGFloat(WardScale.xl)
+}
+
+/// Light to dark and back as a colour shift (WardSchemeGlide): the scheme
+/// the window has is passed on to the app a beat later, under an
+/// animation, so every Ward colour, which resolves from the scheme, moves
+/// from the old palette to the new one instead of jumping. Colours change;
+/// nothing fades. Under Reduce Motion the switch is immediate. Set once at
+/// the root, outside the paper and the base, so they shift too.
+struct WardSchemeGlideModifier: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown: ColorScheme?
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.colorScheme, shown ?? scheme)
+            .onAppear { shown = scheme }
+            .onChange(of: scheme) { _, now in
+                if reduceMotion {
+                    shown = now
+                } else {
+                    withAnimation(.easeInOut(duration: WardSchemeGlide.duration)) { shown = now }
+                }
+            }
+    }
+}
+
+extension View {
+    /// Light and dark switch with a colour shift (WardSchemeGlideModifier).
+    func wardSchemeGlide() -> some View { modifier(WardSchemeGlideModifier()) }
 }
 
 /// A small-caps label ("TODAY'S WARD ROUND"): the source string stays in

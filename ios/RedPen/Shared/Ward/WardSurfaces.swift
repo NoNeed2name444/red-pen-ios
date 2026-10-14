@@ -118,9 +118,15 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
 
     var body: some View {
         let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong, control: control)
+        // a button keeps its small rim even where the page is unlit: the
+        // one soft light the app allows (WardRelief.rim)
+        let lit: Bool = control || !unlit
         ZStack {
             ZStack {
-                if spec.outerShade.lit && !unlit {
+                if lit && (spec.outerShade.lit || spec.outerHighlight.lit) {
+                    if spec.outerHighlight.lit {
+                        shape.fill(fill.shadow(.ward(spec.outerHighlight, inner: false)))
+                    }
                     shape.fill(fill.shadow(.ward(spec.outerShade, inner: false)))
                 } else {
                     shape.fill(fill)
@@ -130,7 +136,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
                 }
             }
             .compositingGroup()
-            .blur(radius: unlit ? 0 : spec.blur)
+            .blur(radius: unlit || spec.blur == 0 ? 0 : spec.blur)
             if spec.edgeAlpha > 0 {
                 shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }
@@ -171,10 +177,14 @@ struct WardReliefFace<S: InsettableShape>: View {
     var body: some View {
         let dark: Bool = scheme == .dark
         let strong: Bool = contrast == .increased
+        // a raised control (a row to tap, a segmented control) stands on its
+        // small rim, as a button does, lit or not; a card keeps its relief
+        let rim: Bool = control && !inset && !flat
         let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong, control: control)
-                                         : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
+                                 : rim ? WardRelief.rim(lift, dark: dark, highContrast: strong)
+                                       : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
         ZStack {
-            if flat || (unlit && !spec.inner) {
+            if flat || (unlit && !spec.inner && !rim) {
                 shape.fill(fill)
             } else if spec.inner {
                 shape.fill(fill
@@ -407,12 +417,14 @@ struct MonitorCard<Content: View>: View {
 struct WardRowTile: View {
     var inset = false
 
-    /// A tiled row's insets: the tile's clearance (8 a side, 6 above and
-    /// below) plus the room its content keeps inside it.
-    static let insets = EdgeInsets(top: 14, leading: 20, bottom: 14, trailing: 20)
-    /// A row that is one big raised button: as far in on every side as the
-    /// highest button's lights reach, so the cell never cuts them.
-    static let buttonInsets = EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
+    /// A tiled row's insets: the tile's clearance (8 on every side) plus
+    /// the room its content keeps inside it (8 above and below, 12 at the
+    /// sides), all on the scale (WardScale).
+    static let insets = EdgeInsets(top: 16, leading: 20, bottom: 16, trailing: 20)
+    /// A row that is one big raised button: its face where the tiles' are,
+    /// with room for its rim (WardRelief.rimReach, under 8), so the cell
+    /// never cuts it.
+    static let buttonInsets = EdgeInsets(top: 12, leading: 8, bottom: 12, trailing: 8)
     /// A row that is a card of its own, raised as low as the tiles: its
     /// edges where the tiles' are, its lights clear of the cell's.
     static let cardInsets = EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
@@ -420,8 +432,8 @@ struct WardRowTile: View {
     var body: some View {
         WardReliefFace(shape: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous),
                        lift: .low, inset: inset, control: true)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, WardSpace.s)
+            .padding(.vertical, WardSpace.s)
     }
 }
 
@@ -510,7 +522,7 @@ extension View {
 
     /// Pressed into the base: fields, tracks, wells and whatever is chosen.
     /// `control` for a field or a switch's track: it takes the ink edge.
-    func wardInset<S: InsettableShape>(in shape: S, lift: WardLift = .low, fill: Color = .wardSurface,
+    func wardInset<S: InsettableShape>(in shape: S, lift: WardLift = .low, fill: Color = .wardWell,
                                        control: Bool = false) -> some View {
         background { WardReliefFace(shape: shape, lift: lift, inset: true, fill: fill, control: control) }
     }
@@ -548,6 +560,7 @@ extension View {
         self
             .wardMasthead()
             .background(WardBackground())
+            .lineSpacing(WardSpace.leading)
             .wardControls()
     }
 
@@ -560,6 +573,8 @@ extension View {
             .wardScrollTopEdge()
             .wardMasthead()
             .environment(\.defaultMinListRowHeight, 56)
+            .listSectionSpacing(WardSpace.section)
+            .lineSpacing(WardSpace.leading)
             .background(WardBackground())
             .wardControls()
     }
