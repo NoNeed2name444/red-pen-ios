@@ -11,6 +11,18 @@ for attempt in $(seq 1 60); do
   sleep 2
 done
 adb shell pm path android | grep -q 'package:'
+# Wait for the full boot, then give the launcher time to settle: on the software GPU a
+# launcher still starting up raises "Pixel Launcher isn't responding" over every screen.
+for attempt in $(seq 1 90); do
+  if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then break; fi
+  sleep 2
+done
+[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ]
+# Keep system crash and not-responding dialogs off the screen; the test also checks for them.
+adb shell settings put global hide_error_dialogs 1
+adb shell settings put secure anr_show_background 0
+sleep 20
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null || true
 adb shell getprop ro.build.version.release | tee test-results/android-release.txt
 adb shell getprop ro.build.version.sdk | tee test-results/android-sdk.txt
 grep -qx '37' test-results/android-sdk.txt
@@ -21,4 +33,4 @@ adb install -r -t built-apks/outputs/apk/androidTest/debug/app-debug-androidTest
 adb shell am instrument -w -r com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
 grep -q 'OK (8 tests)' test-results/instrumentation.txt
 adb pull /sdcard/Download/stethoscore-screenshots/. screenshots/
-test "$(find screenshots -name '*.png' | wc -l)" -eq 10
+test "$(find screenshots -name '*.png' | wc -l)" -eq 11
