@@ -17,16 +17,20 @@ The [Android workflow](https://github.com/NoNeed2name444/red-pen-ios/actions/wor
 
 - Local JSON library, import/export, duplicate-safe identifiers and atomic saving.
 - MCQs with shuffled options, explanations, saved progress and answer history.
-- QA, cloze and image-occlusion cards, Classic review intervals, early-review protection and exam capping.
+- QA, cloze and image-occlusion cards, early-review protection and exam capping.
+- Review scheduling as on iOS: Classic intervals or FSRS-5 (chosen in Settings), learning steps, a study day that turns over at 4 am, daily new and review limits across the library, suspend and bury.
+- PDF export of any non-Anki set as a printable flashcard deck: cover, contents index, then each question on its own page with its answer on the next.
 - OSCE recall chains, textbook reading, transcript playback with Android text-to-speech.
 - Source-derived Cases with findings, investigation time costs, diagnosis and debrief.
-- Editable linked notes with a 2D map, practice metrics, light/dark Ward design.
+- Editable linked notes with a list view and a 3D map (OpenGL ES 3.0): octree chunks, frustum culling, continuous level of detail by on-screen size, summary points and link bundles for far chunks, changes by morphing (never fading), all nodes resident on the GPU, an LRU link cache with a guard band ahead of the motion, and an adaptive frame budget at the display's highest refresh rate (Surface.setFrameRate, display modes, Choreographer).
+- A 1,000,000-node demo of the map with a live readout (fps, display max Hz, frame ms, drawn nodes, chunks).
+- Practice metrics, light/dark Ward design.
 - Backend transport and encrypted credential storage, preserved server source and regression tests.
 
 Examples are optional and copied from the iOS examples. A normal first launch has an empty library. Screenshots use examples; progress is never fabricated.
 
 ## Remaining parity work
 
-This is an Android preview, not a finished one-to-one conversion. Cloud generation/accuracy UI, sign-in and full conflict-preserving sync, transcription/recording, APKG/PDF import/export, FSRS and full daily review limits, subscription billing, widgets, and the iOS 3D neuron/space renderer still require Android implementations. The map here is explicitly 2D. Backend transport is not automatic account sync, and examples are not independently verified medical content.
+This is an Android preview, not a finished one-to-one conversion. Still missing: cloud generation and the accuracy UI, sign-in and full conflict-preserving sync, transcription and recording, APKG import and export (Anki deck files), subscription billing, widgets, and a Vulkan path for the map (OpenGL ES 3.0 is the baseline). PDF export has no tappable contents links, because Android's PdfDocument has no link annotations; it lists page numbers instead. Backend transport is not automatic account sync, and examples are not independently verified medical content.
 
 `upstream/ios/` and `upstream/docs/` preserve the selected Swift source and design record. `docs/audit/` records source selection and branch heads. Do not deploy the preserved server without configuring its resources and explicit authorization. No server was deployed for this port.
