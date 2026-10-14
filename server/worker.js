@@ -14,7 +14,7 @@ import { legalPage } from './legal.js';
 import { pruneStores } from './limits.js';
 import { sign, verify, verifyApple, decodeClaims, spendNonce } from './tokens.js';
 import { changes, push, missingBlobs, putBlob, getBlob, wipe } from './sync.js';
-import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate, accountToken, spend } from './ai.js';
+import { chat, linkSubscription, isOwnerKey, transcribeChunk, budget, proGate, accountToken, spend, claudeVoterSpent, claudeVoterCap } from './ai.js';
 import { jobsRoute } from './jobs.js';
 import { checkBatch, report as reportError, modelWeights, setWeights, listReports } from './accuracy.js';
 import { speech } from './tts.js';
@@ -197,7 +197,9 @@ export default {
         // this month
         case '/costs':
           if (!isOwnerKey(request, env)) return fail(404, 'No such endpoint.');
-          return json(await budget(env, { fresh: true })); // forUse is null until the price is set (capped: false)
+          // and the cloud checker's month against its cap, so the proof
+          // ladder (tools/proof-ladder) can pace itself inside it
+          return json({ ...await budget(env, { fresh: true }), claude: { spent: await claudeVoterSpent(env), cap: claudeVoterCap(env) } }); // forUse is null until the price is set (capped: false)
         // a line read aloud in a natural voice, for Pro (tts.js): MP3 back
         case '/tts':
           if (isOwnerKey(request, env)) return await speech(env, 'owner', body, fetch, { owner: true });

@@ -1,0 +1,131 @@
+{
+ "about": "Public gold-labelled sets the verification layers are measured and tuned on (the owner, 14 Oct, third round, answer 5). Every label comes from the set's own authors (exam answer keys, expert fact-checkers, the FDA's own section headings), never from the models that do the checking. Only licences that allow commercial use. Each licence was read on the date given; nothing from these sets is committed here: build.mjs fetches them at run time.",
+ "sets": [
+  {
+   "id": "medqa-usmle",
+   "dataset": "GBaker/MedQA-USMLE-4-options",
+   "where": "https://huggingface.co/datasets/GBaker/MedQA-USMLE-4-options",
+   "split": "test",
+   "licence": "CC-BY-4.0",
+   "licenceRead": "2026-10-14",
+   "label": "the exam's own answer key",
+   "attribution": "Jin D, Pan E, Oufattole N, Weng W-H, Fang H, Szolovits P. What Disease does this Patient Have? A Large-scale Open Domain Question Answering Dataset from Medical Exams. arXiv:2009.13081 (2020). Licensed under CC BY 4.0.",
+   "gates": [
+    "mcq"
+   ]
+  },
+  {
+   "id": "medmcqa",
+   "dataset": "openlifescienceai/medmcqa",
+   "where": "https://huggingface.co/datasets/openlifescienceai/medmcqa",
+   "split": "validation",
+   "licence": "Apache-2.0",
+   "licenceRead": "2026-10-14",
+   "label": "the exam's own answer key (AIIMS and NEET PG)",
+   "attribution": "Pal A, Umapathi LK, Sankarasubbu M. MedMCQA: A Large-scale Multi-Subject Multi-Choice Dataset for Medical domain Question Answering. CHIL 2022. Apache License 2.0.",
+   "gates": [
+    "mcq",
+    "card"
+   ]
+  },
+  {
+   "id": "pubmedqa-labeled",
+   "dataset": "qiaojin/PubMedQA",
+   "where": "https://huggingface.co/datasets/qiaojin/PubMedQA",
+   "config": "pqa_labeled",
+   "split": "train",
+   "licence": "MIT",
+   "licenceRead": "2026-10-14",
+   "label": "the expert annotators' yes or no (maybe is left out)",
+   "attribution": "Jin Q, Dhingra B, Liu Z, Cohen W, Lu X. PubMedQA: A Dataset for Biomedical Research Question Answering. EMNLP 2019. MIT License.",
+   "gates": [
+    "research"
+   ]
+  },
+  {
+   "id": "pubhealth",
+   "dataset": "bigbio/pubhealth",
+   "where": "https://huggingface.co/datasets/bigbio/pubhealth",
+   "config": "pubhealth_source",
+   "split": "test",
+   "licence": "MIT",
+   "licenceRead": "2026-10-14",
+   "label": "the fact-checkers' true or false (mixture and unproven are left out)",
+   "attribution": "Kotonya N, Toni F. Explainable Automated Fact-Checking for Public Health Claims. EMNLP 2020. MIT License.",
+   "gates": [
+    "claim"
+   ]
+  },
+  {
+   "id": "mmlu-redux",
+   "dataset": "edinburgh-dawg/mmlu-redux-2.0",
+   "where": "https://huggingface.co/datasets/edinburgh-dawg/mmlu-redux-2.0",
+   "configs": "anatomy, clinical_knowledge, college_medicine, professional_medicine, medical_genetics, nutrition, virology, human_aging, college_biology",
+   "split": "test",
+   "licence": "CC-BY-4.0",
+   "licenceRead": "2026-10-14",
+   "label": "the re-annotators' verdict on the published key: a key they marked wrong_groundtruth is wrong, the key they gave instead is right (real errors, not planted)",
+   "attribution": "Gema AP, Leang JOJ, Hong G, et al. Are We Done with MMLU? NAACL 2025. arXiv:2406.04127. Licensed under CC BY 4.0.",
+   "gates": [
+    "natural"
+   ]
+  },
+  {
+   "id": "openfda-labels",
+   "dataset": "openFDA drug labeling (SPL)",
+   "where": "https://api.fda.gov/drug/label.json",
+   "licence": "CC0-1.0",
+   "licenceRead": "2026-10-14",
+   "licenceUrl": "https://open.fda.gov/license/",
+   "label": "the section the FDA label itself files a sentence under (dosage and administration, contraindications, boxed warning): an oath claim by the source's own heading",
+   "attribution": "U.S. Food and Drug Administration, openFDA drug labeling. Public domain (CC0).",
+   "gates": [
+    "oath"
+   ]
+  }
+ ],
+ "refused": [
+  {
+   "id": "scifact",
+   "why": "CC BY-NC 2.0: not for commercial use (allenai/scifact, read 2026-10-14)"
+  },
+  {
+   "id": "healthver",
+   "why": "no licence stated (github.com/sarrouti/HealthVer, read 2026-10-14): all rights reserved by default"
+  },
+  {
+   "id": "mednli",
+   "why": "PhysioNet credentialed data use agreement: not open for commercial use"
+  },
+  {
+   "id": "medcalc-bench",
+   "why": "CC BY-SA 4.0: share-alike, which this project's licence policy does not take (governance/licences); and an audit found at least 27% of its test labels wrong (docs/verification/vignette-proof-research.md)"
+  },
+  {
+   "id": "medsnip",
+   "why": "named in docs/verification/vignette-proof-research.md as CC BY 4.0, but not found on the Hugging Face Hub on 2026-10-14; to add once it can be fetched"
+  },
+  {
+   "id": "statpearls",
+   "why": "never, by the owner's rule (14 Oct): CC BY-NC-ND 4.0, not for commercial use"
+  }
+ ],
+ "noPublicGold": [
+  {
+   "gate": "oath negatives",
+   "why": "no public set labels a statement as not a dose, diagnosis, treatment or safety claim; precision is measured on our own 40-line seed only",
+   "how": "the owner (or a clinician the owner trusts) marks 200 app statements oath or not, from the app's own items; or every item a person checks in the app records the person's oath mark"
+  },
+  {
+   "gate": "card triage on the app's own cards",
+   "why": "public sets have questions and claims, not flashcards; the card gate here uses short exam stems as card fronts",
+   "how": "300 of the app's cards marked right or wrong by a person, the §22a bar"
+  }
+ ],
+ "notUsedYet": [
+  {
+   "id": "medxpertqa, careqa",
+   "why": "allowed (MIT, Apache-2.0) and already fetched for the live verification bench (tools/verification-bench/fetch.sh); not needed to reach about 400 items per gate, so left out to keep the CPU run short. They can be added as gates the same way as MedQA."
+  }
+ ]
+}

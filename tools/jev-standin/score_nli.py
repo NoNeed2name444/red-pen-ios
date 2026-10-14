@@ -11,9 +11,12 @@ into a triage: suspect, review or pass. Never a verdict.
     python score_nli.py --model HUB_ID --items items.jsonl --out scores.jsonl
     python score_nli.py --dry --items items.jsonl --out scores.jsonl   (no model: a fixed fake score, to test the plumbing)
 
-The model id is given at run time (the workflow's input or the
-TRIAGE_NLI_MODEL variable): any open NLI cross-encoder whose labels name an
-entailment class.
+The model id is given at run time (the workflow's input, the
+TRIAGE_NLI_MODEL variable, or the workflow's default): any open NLI
+cross-encoder whose labels name an entailment class, or with
+--entail-index when its config names its classes LABEL_0.. only.
+Long premises are cut, never the hypothesis (truncation of the first text
+only).
 """
 import argparse
 import hashlib
@@ -33,21 +36,28 @@ def fake_scores(batch):
     return [int(hashlib.sha256((p + "\x00" + h).encode()).hexdigest()[:8], 16) / 2**32 for p, h in batch]
 
 
-def model_scorer(model_id, max_len):
+def model_scorer(model_id, max_len, entail_index=None):
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForSequenceClassification.from_pretrained(model_id)
     model.eval()
-    labels = {i: str(n).lower() for i, n in model.config.id2label.items()}
-    entail = [i for i, n in labels.items() if n.startswith("entail")]
-    if len(entail) != 1:
-        sys.exit(f"The model's labels name no single entailment class: {labels}")
-    entail = entail[0]
+    labels = {int(i): str(n).lower() for i, n in model.config.id2label.items()}
+    if entail_index is not None:
+        # a model whose config names its classes LABEL_0.. only: its card
+        # says which is entailment, given here
+        if entail_index not in labels:
+            sys.exit(f"--entail-index {entail_index} is not one of the model's classes: {labels}")
+        entail = entail_index
+    else:
+        named = [i for i, n in labels.items() if n.startswith("entail")]
+        if len(named) != 1:
+            sys.exit(f"The model's labels name no single entailment class: {labels}; give --entail-index")
+        entail = named[0]
 
     def score(batch):
-        enc = tok([p for p, _ in batch], [h for _, h in batch], truncation=True, max_length=max_len,
+        enc = tok([p for p, _ in batch], [h for _, h in batch], truncation="only_first", max_length=max_len,
                   padding=True, return_tensors="pt")
         with torch.no_grad():
             probs = torch.softmax(model(**enc).logits, dim=-1)
@@ -64,10 +74,11 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--max-len", type=int, default=512)
+    ap.add_argument("--entail-index", type=int, default=None)
     a = ap.parse_args()
     if not a.dry and not a.model:
         sys.exit("Give --model (an open NLI cross-encoder's Hub id) or --dry.")
-    score = fake_scores if a.dry else model_scorer(a.model, a.max_len)
+    score = fake_scores if a.dry else model_scorer(a.model, a.max_len, a.entail_index)
     items = [json.loads(line) for line in open(a.items, encoding="utf-8") if line.strip()]
     with open(a.out, "w", encoding="utf-8") as out:
         for n, item in enumerate(items):

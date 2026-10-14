@@ -113,7 +113,8 @@ export const vector = (f, names = FEATURES) => names.map(n => Number(f[n]) || 0)
 /// tawatur needs independent chains).
 const FAMILIES = [['google', /gemini|gemma/], ['openai', /gpt|openai/], ['nvidia', /nemotron|nvidia/],
   ['meta', /llama|\bmeta\b/], ['alibaba', /qwen/], ['mistral', /mistral|mixtral/], ['deepseek', /deepseek/],
-  ['anthropic', /claude|anthropic/], ['baichuan', /baichuan/], ['microsoft', /\bphi-|microsoft/], ['apple', /\bapple\b/]];
+  ['anthropic', /claude|anthropic/], ['baichuan', /baichuan/], ['microsoft', /\bphi-|microsoft/], ['apple', /\bapple\b/],
+  ['ibm', /granite|\bibm\b/], ['zhipu', /\bglm-|zai-org/]];
 export function familyOf(model) {
   const m = String(model || '').toLowerCase();
   for (const [family, pattern] of FAMILIES) if (pattern.test(m)) return family;

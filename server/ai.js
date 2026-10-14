@@ -1080,6 +1080,9 @@ const NEURON_RATES = {
   '@cf/meta/llama-4-scout-17b-16e-instruct': [24545, 77273],
   '@cf/qwen/qwq-32b': [60000, 90909],
   '@cf/google/gemma-4-26b-a4b-it': [9091, 27273],
+  '@cf/qwen/qwen3-30b-a3b-fp8': [4625, 30475],
+  '@cf/zai-org/glm-4.7-flash': [5500, 36400],
+  '@cf/mistralai/mistral-small-3.1-24b-instruct': [31876, 50488],
 };
 
 async function addUp(env, name, n, limit) {
@@ -1191,7 +1194,7 @@ async function askWorkersAI(env, messages, maxTokens, temperature, pinned, accou
 /// false` turns its thinking off for the one retry askWorkersAI makes.
 export function workersInput(model, messages, maxTokens, temperature, { thinking = true } = {}) {
   const input = { messages, max_tokens: maxTokens, temperature };
-  if (/gemma-4/.test(model)) input.chat_template_kwargs = { enable_thinking: false };
+  if (/gemma-4|qwen3-/.test(model)) input.chat_template_kwargs = { enable_thinking: false };
   if (/nemotron-3/.test(model)) {
     input.chat_template_kwargs = thinking
       ? { enable_thinking: true, low_effort: true, force_nonempty_content: true }
