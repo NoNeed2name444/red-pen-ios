@@ -346,7 +346,9 @@ export function chainsFor(item, signals, registry) {
 /// Verified, and its tier when nothing holds it ('strong': two independent
 /// witnesses of good grade; 'single': one). `oath`: the item gives a dose, a
 /// diagnosis or a treatment (oath.js). Null for an item no check has read.
-export function provenance(item, signals, { oath = false } = {}) {
+/// `vignette`: an accepted vignette proof (vignette-proof.js checkVignette),
+/// passed only while the route is on; its chains join the item's.
+export function provenance(item, signals, { oath = false, vignette = null } = {}) {
   if (!signals || typeof signals !== 'object') return null;
   const stored = Array.isArray(signals.sources) ? signals.sources.filter(r => r && typeof r === 'object' && Array.isArray(r.origin)) : [];
   // older checks kept no registry: their evidence and quotes, as far as
@@ -366,6 +368,7 @@ export function provenance(item, signals, { oath = false } = {}) {
   const flags = [];
   const hold = (code, claim, detail) => flags.push({ code, claim: claim || '', detail, hold: true });
   const note = (code, claim, detail) => flags.push({ code, claim: claim || '', detail, hold: false });
+  if (vignette?.ok === true && Array.isArray(vignette.chains)) vignetteChains(item, signals, vignette, registry, chains, hold);
   const supporting = chains.filter(c => c.source);
   const quoted = chains.filter(c => c.retrieval === 'quoted');
 
@@ -431,8 +434,35 @@ export function provenance(item, signals, { oath = false } = {}) {
   };
 }
 
+/// The vignette route's chains (vignette-proof.js): each finding a span of
+/// the item's own stem, each rule quote from its registered source (a
+/// guideline, grade 5, its licence recorded), and the deduction marked as
+/// one (synthesis: no source states it; the checker proved it). A rule whose
+/// source is no longer current is abrogated (naskh): held from Verified.
+function vignetteChains(item, signals, vignette, registry, chains, hold) {
+  const checkers = checkersOf(item, signals?.votes);
+  for (const c of vignette.chains) {
+    let source = null;
+    if (c.source && typeof c.source === 'object') {
+      source = registry.find(r => r.url && r.url === c.source.url) || null;
+      if (!source) {
+        const type = GRADES[c.source.type] ? c.source.type : 'unknown';
+        source = { id: null, url: c.source.url || null, source: 'criteria registry', title: String(c.source.title || '').slice(0, 300), type,
+          grade: GRADES[type] || 1, publisher: c.source.publisher || null, date: c.source.date || null, edition: c.source.edition || null,
+          retracted: null, corrections: [], funders: [], sponsors: [], origin: c.source.url ? [`url:${c.source.url}`] : [],
+          status: c.source.status || null, licence: c.source.licence || null };
+        registry.push(source);
+      }
+      if (c.source.status !== 'current') hold('naskh', c.claim, `${c.source.title || c.source.url} is no longer current.`);
+    }
+    chains.push({ claim: c.claim ?? null, passage: c.passage ?? null, section: null, source, retrieval: c.retrieval || null, checkers, gap: null,
+      ...(c.rule ? { rule: c.rule } : {}), ...(c.synthesis ? { synthesis: true } : {}) });
+  }
+}
+
 /// What each hold means, in words the student can read.
 export const HOLD_REASONS = Object.freeze({
+  naskh: 'A published rule its proof rests on has been replaced by a newer one.',
   retracted: 'A source it rests on was retracted or is under an expression of concern.',
   conflict: "Only its sponsor's own source says this in its favour; it needs an independent source.",
   dabt: 'It does not copy its source faithfully (a number, unit, frequency, population or "not" differs, or a dose is written unsafely).',

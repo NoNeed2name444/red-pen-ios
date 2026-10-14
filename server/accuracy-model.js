@@ -37,8 +37,10 @@ const clamp01 = x => Math.min(1, Math.max(0, x));
 /// evidence. `votes`: [{ risk 1-4 | null, answer letter | null, evidence:
 /// 'supports' | 'contradicts' | 'none' }]; `keyLetter` for a question;
 /// `sourceProof`: every claim of the item is stated word for word by an
-/// official source (proof.js fullyProven).
-export function features({ kind, rules = [], votes = [], evidenceCount = 0, sourceMatch = null, keyLetter = null, sourceProof = false }) {
+/// official source (proof.js fullyProven). `vignette`: only while the
+/// vignette route is on, {proven, checked} from its checker
+/// (vignette-proof.js); left out, the features are what they always were.
+export function features({ kind, rules = [], votes = [], evidenceCount = 0, sourceMatch = null, keyLetter = null, sourceProof = false, vignette = null }) {
   const read = votes.filter(v => Number.isFinite(v?.risk));
   const risks = read.map(v => (clamp01((v.risk - 1) / 3)));
   const flags = read.map(v => v.risk >= 3);
@@ -92,6 +94,14 @@ export function features({ kind, rules = [], votes = [], evidenceCount = 0, sour
   // not weighted: proven word for word by an official source (proof.js), the
   // one witness Verified needs that no model can stand in for
   f.source_proof = sourceProof ? 1 : 0;
+  // not weighted: the vignette route's proof (vignette-proof.js) - proven
+  // (every rule it used signed off by the owner) stands where a source
+  // proof would; checked (passed review, not yet signed off) can give only
+  // the Checked tier. Set only while the route is on.
+  if (vignette && typeof vignette === 'object') {
+    f.vignette_proof = vignette.proven === true ? 1 : 0;
+    f.vignette_checked = vignette.checked === true ? 1 : 0;
+  }
   return f;
 }
 
@@ -172,7 +182,12 @@ export const isOath = text => {
 /// seeming to support it, never stand in for that. Flagged needs proof from two
 /// directions; rules alone flag an item only before any model has looked.
 /// Everything else is Check this. The app's AccuracyModel.grade, rule for rule.
-export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
+/// `vignetteRoute` (switches.js, off by default): a clinical vignette's
+/// accepted proof (vignette-proof.js) may stand where a source proof would -
+/// Verified only when every rule it used is signed off, else at most the
+/// Checked tier, with every other condition of Verified still met. Off,
+/// nothing here differs from before the route existed.
+export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false, { vignetteRoute = false } = {}) {
   const t = model.thresholds || DEFAULT_WEIGHTS.thresholds;
   if (f.no_models) return f.rule_severe > 0 ? 'flagged' : 'unchecked';
   const need = MIN_VERIFY_VOTERS;
@@ -191,7 +206,8 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   // every item needs an official source stating it word for word: a
   // witness no model shares, and proof rather than agreement (the owner:
   // "they need to be PROVEN 99.999% right", 7 Oct)
-  const backed = Number(f.source_proof) === 1;
+  const route = vignetteRoute === true;
+  const backed = Number(f.source_proof) === 1 || (route && Number(f.vignette_proof) === 1);
   const independent = (Number(f.families) || 0) >= need;
   // no voter raised a concern, none read the literature against it, and no
   // sensor fired, however mildly (0.5% of real questions; almost all real)
@@ -202,8 +218,22 @@ export function verdict(p, f, model = DEFAULT_WEIGHTS, oath = false) {
   // the key tends to agree with it (DNA brief: kinetic proofreading)
   const solved = !question || ((Number(f.blind_agree) || 0) >= need && !(Number(f.blind_dissent) > 0));
   if (p >= t.verified && clean && enough && backed && independent && unanimous && solved) return 'verified';
+  // Checked: everything Verified needs, but its proof rests on a rule the
+  // owner has not signed off yet
+  if (route && Number(f.vignette_checked) === 1 && p >= t.verified && clean && enough && independent && unanimous && solved) return 'checked';
   return 'check';
 }
+
+/// The grades from best to worst: Checked sits below Verified and above
+/// Check this, and is counted with neither.
+export const GRADE_ORDER = Object.freeze(['verified', 'checked', 'check', 'flagged', 'unchecked']);
+
+/// What Verified and Checked mean, in the app's words (AccuracyModel.swift
+/// AccuracyGrade.meaning, word for word).
+export const TIER_MEANINGS = Object.freeze({
+  verified: 'Verified means every fact was matched word for word to an open source, and every step was checked.',
+  checked: "Checked means it passed our checks and agreement tests, but it isn't fully proven yet.",
+});
 
 /// Why an item got its verdict, in words the student can read: each reason
 /// that held it back or brought it down (Islamic brief: always record the
@@ -230,7 +260,8 @@ export function reasonsFor(verdictName, p, f, model = DEFAULT_WEIGHTS, oath = fa
   if ((Number(f.families) || 0) < need && verdictName !== 'flagged') out.push(`Not yet passed by ${words[need]} model families.`);
   if (Number(f.flag_frac) > 0 && verdictName !== 'flagged' && !(question && against >= 2)) out.push('A checker raised a concern.');
   if (Number(f.ev_contradict) > 0) out.push('A checker found literature against it.');
-  if (verdictName !== 'verified' && Number(f.source_proof) !== 1 && !stated) {
+  if (verdictName === 'checked') out.push(TIER_MEANINGS.checked);
+  else if (verdictName !== 'verified' && Number(f.source_proof) !== 1 && !stated) {
     out.push(oath ? 'A dose, diagnosis or treatment no official source states word for word yet.' : 'No official source states it word for word yet.');
   }
   if (p < t.flagged) out.push('The checkers judged it likely wrong.');

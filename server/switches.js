@@ -117,3 +117,11 @@ export function switchStates(env) {
     ...(unknown.length ? { unknown } : {}),
   };
 }
+
+/// The vignette route (vignette-proof.js): off unless VIGNETTE_ROUTE is
+/// exactly "on". It is a switch the other way round from the ones above: off,
+/// every verdict is what it was before the route existed (a test holds this);
+/// on, a clinical vignette whose proof the checker accepts may be backed by
+/// it, at Checked until the owner signs its rules off, and at Verified only
+/// after. Only the owner turns it on.
+export const vignetteRoute = (env = {}) => String(env?.VIGNETTE_ROUTE ?? '').trim().toLowerCase() === 'on';
