@@ -209,9 +209,13 @@ export async function askModel(env, account, owner, use, messages, maxTokens, fe
   // where BENCH_MODELS is never set
   const bench = env.BENCH_MODELS === 'on' && /^bench:/.test(use);
   if (/^claude:/.test(use)) return askClaudeVoter(env, owner, use, messages, maxTokens, fetcher);
-  if (!bench && !/^(gemini|workers-ai):/.test(use)) return { ok: false, status: 400, detail: 'Only free models vote.' };
+  const host = use.slice(0, use.indexOf(':'));
+  if (!bench && !/^(gemini|workers-ai):/.test(use) && !FREE_HOSTS[host]) return { ok: false, status: 400, detail: 'Only free models vote.' };
   const source = pinnedSource(env, use);
   if (!source) return { ok: false, status: 503, detail: `${use} is not set up here.` };
+  // a free plan's requests may be kept to train its models, and its daily
+  // limit is one for the whole server: the owner's checks only
+  if (FREE_HOSTS[host] && !owner) return { ok: false, status: 403, detail: `${use} checks the owner's work only.` };
   const route = { sources: [source], account: owner ? 'owner' : account, owner, rounds: 1 };
   route.wallet = await wallet(env, account, owner);
   route.canPay = await canPay(env, account, owner, route.wallet);
@@ -262,6 +266,14 @@ async function askClaudeVoter(env, owner, use, messages, maxTokens, fetcher) {
 /// What Claude has spent of its monthly cap, in dollars.
 export async function claudeVoterSpent(env) { return spentBy(env, CLAUDE_VOTER_KEY); }
 
+/// Free OpenAI-compatible hosts a checker may use, by the secret that
+/// switches each on. Neither is paid: the free plan's own daily limits answer
+/// 429 when they are spent, and the next voter is asked.
+export const FREE_HOSTS = {
+  mistral: { key: 'MISTRAL_API_KEY', base: 'https://api.mistral.ai/v1' },
+  groq: { key: 'GROQ_API_KEY', base: 'https://api.groq.com/openai/v1' },
+};
+
 export function pinnedSource(env, use) {
   const at = use.indexOf(':');
   const kind = use.slice(0, at), model = use.slice(at + 1).trim();
@@ -274,6 +286,11 @@ export function pinnedSource(env, use) {
     return { kind: 'anthropic', key: env.ANTHROPIC_API_KEY, model };
   }
   if (kind === 'hf' && env.AI_API_KEY) return { kind: 'openai', base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY, model };
+  // free tiers with their own key (the owner, 14 Oct: "do both"): a third
+  // family that answers when Workers AI's pool is spent, and a second lane
+  // for a Workers AI family. Owner's checks only (votersFor, askModel).
+  const free = FREE_HOSTS[kind];
+  if (free && env[free.key] && /^[A-Za-z0-9._\/:-]+$/.test(model)) return { kind: 'openai', base: free.base, key: env[free.key], model, free: kind };
   if (kind === 'bench' && env.BENCH_MODELS === 'on' && env.BENCH_BASE_URL && env.BENCH_API_KEY) {
     return { kind: 'openai', base: env.BENCH_BASE_URL, key: env.BENCH_API_KEY, model };
   }

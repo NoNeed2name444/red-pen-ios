@@ -788,5 +788,41 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(!votersFor(keyed, 'claude-opus-5-5', true).some(v => v.startsWith('claude:')), 'Claude never checks what Claude wrote');
 }
 
+// MARK: free hosts as checker families, with their own keys
+{
+  const { askModel, pinnedSource, FREE_HOSTS } = await import('../ai.js');
+  const { votersFor, DEFAULT_VOTERS } = await import('../accuracy.js');
+  const { familyOf } = await import('../accuracy-model.js');
+  const vote = [{ role: 'user', content: 'Solve it blind.' }];
+  ok(pinnedSource({}, 'mistral:mistral-large-latest') === null && pinnedSource({}, 'groq:qwen/qwen3-32b') === null, 'no key, no free-host voter');
+  const m = pinnedSource({ MISTRAL_API_KEY: 'mk' }, 'mistral:mistral-large-latest');
+  ok(m?.kind === 'openai' && m.base === FREE_HOSTS.mistral.base && m.key === 'mk' && !m.paid, 'a free host routes to its own base with its own key, never as a paid lane');
+  ok(pinnedSource({ GROQ_API_KEY: 'gk' }, 'groq:bad model!') === null, 'a malformed model name is refused');
+
+  const env = freshEnv({ GROQ_API_KEY: 'gk' });
+  const student = await askModel(env, 'a1', false, 'groq:qwen/qwen3-32b', vote, 600, async () => { throw new Error('no call'); });
+  ok(!student.ok && student.status === 403, "a student's check never uses a free host's shared daily limit");
+  let seen = null;
+  const asked = await askModel(env, 'owner', true, 'groq:qwen/qwen3-32b', vote, 600, async (url, init) => {
+    seen = { url, auth: init.headers.authorization, model: JSON.parse(init.body).model };
+    return new Response(JSON.stringify({ choices: [{ message: { content: '<think>hm</think>{"items":[{"i":1,"risk":1,"answer":"C"}]}' } }], usage: { prompt_tokens: 900, completion_tokens: 300 } }), { status: 200 });
+  });
+  ok(asked.ok && asked.content.includes('"answer":"C"') && !asked.content.includes('think'), "the owner's check gets its vote, without its thinking");
+  ok(seen?.url === 'https://api.groq.com/openai/v1/chat/completions' && seen.auth === 'Bearer gk' && seen.model === 'qwen/qwen3-32b', 'sent to the host with its key');
+  const spent = freshEnv({ MISTRAL_API_KEY: 'mk' });
+  const limit = await askModel(spent, 'owner', true, 'mistral:mistral-large-latest', vote, 600, async () => new Response('{"message":"Requests rate limit exceeded"}', { status: 429 }));
+  ok(!limit.ok && limit.status === 429, "a free plan's spent day is no vote (the next voter is asked)");
+
+  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, ANTHROPIC_API_KEY: 'ak', MISTRAL_API_KEY: 'mk', GROQ_API_KEY: 'gk' };
+  const owner = votersFor(keyed, '', true);
+  ok(owner.indexOf('mistral:mistral-large-latest') < owner.indexOf('claude:claude-opus-5-5') && owner.indexOf('groq:qwen/qwen3-32b') < owner.indexOf('claude:claude-opus-5-5'),
+     'the free families are asked before the capped cloud checker');
+  ok(!votersFor(keyed, '', false).some(v => /^(mistral|groq|claude):/.test(v)), "students' checks stay on the shared free models");
+  const fams = new Set(owner.map(v => familyOf(v.slice(v.indexOf(':') + 1))));
+  ok(fams.has('mistral') && fams.has('alibaba') && fams.size >= 6, `each new voter is a family of its own (${[...fams].join(', ')})`);
+  ok(familyOf('openai/gpt-oss-120b') === familyOf('@cf/openai/gpt-oss-120b'), 'the second lane for a Workers AI model is the same family, one witness');
+  ok(DEFAULT_VOTERS.split(',').every(v => v.includes(':')), 'every default voter names its host');
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');
