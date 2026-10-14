@@ -62,5 +62,12 @@ class ScreenshotTest {
     @Test fun osce() { val store=store();val set=store.library.first {it.kind==StudySetKind.OSCE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("07-osce") }
     @Test fun cases() { val store=store();val set=store.library.first {it.kind==StudySetKind.CASES};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("08-cases") }
     @Test fun ideas() { val store=store();compose.setContent {StethoscoreApp(store,initialScreen="ideas")};shot("09-ideas") }
-    @Test fun textbook() { val store=store();val set=store.library.first {it.kind==StudySetKind.BOOK};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};compose.onNodeWithText("Table of contents").assertIsDisplayed();shot("10-textbook") }
+    @Test fun textbook() {
+        val store=store()
+        val set=store.library.first {it.kind==StudySetKind.BOOK}
+        compose.setContent {StethoscoreApp(store)}
+        compose.onNodeWithText(set.name).performScrollTo().performClick()
+        compose.onNodeWithText("Table of contents").assertIsDisplayed()
+        shot("10-textbook")
+    }
 }
