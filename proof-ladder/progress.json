@@ -1,29 +1,64 @@
 {
  "v": 1,
  "started": "2026-10-14",
- "updated": "2026-10-14T16:33:45.292Z",
- "checked": 0,
- "right": 0,
- "wrong": 0,
+ "updated": "2026-10-14T19:16:35.237Z",
+ "checked": 600,
+ "right": 309,
+ "wrong": 291,
  "verified": 0,
  "errors": 0,
- "flagged": 0,
- "check": 0,
+ "flagged": 181,
+ "check": 419,
  "unchecked": 0,
  "rightVerified": 0,
- "cursor": {},
- "days": [],
+ "cursor": {
+  "medmcqa-train": 19267
+ },
+ "days": [
+  {
+   "day": "2026-10-14",
+   "checked": 600,
+   "verified": 0,
+   "errors": 0
+  }
+ ],
  "spentByLadder": 0,
+ "families": {
+  "ibm": {
+   "answered": 584,
+   "right": 327,
+   "runner": true
+  },
+  "google": {
+   "answered": 597,
+   "right": 511,
+   "runner": false
+  },
+  "anthropic": {
+   "answered": 600,
+   "right": 539,
+   "runner": false
+  },
+  "microsoft": {
+   "answered": 12,
+   "right": 5,
+   "runner": true
+  }
+ },
  "last": {
   "day": "2026-10-14",
-  "sent": 0,
-  "stopped": "the Worker did not report the cloud checker's spend (/costs)",
+  "sent": 600,
+  "stopped": "the day's questions, all sent",
+  "runners": [
+   "granite-4.0-h-tiny",
+   "phi-4-mini-instruct"
+  ],
   "standing": {
    "bound": null,
    "proven": [],
    "rung": "99.9%",
    "moreVerified": 2995,
-   "verifiedPerChecked": null,
+   "verifiedPerChecked": 0,
    "moreChecks": null
   }
  }

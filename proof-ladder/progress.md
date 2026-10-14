@@ -1,10 +1,10 @@
 # The proof ladder
 
-Updated 2026-10-14T16:33:45.292Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
+Updated 2026-10-14T19:16:35.237Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
 
 | checked | Verified | errors among Verified | proven accuracy of Verified (95%, one-sided) |
 |---|---|---|---|
-| 0 | 0 | 0 | n/a |
+| 600 | 0 | 0 | n/a |
 
 | rung | Verified needed with no error | status |
 |---|---|---|
@@ -12,9 +12,19 @@ Updated 2026-10-14T16:33:45.292Z. Live Worker, every item checked once, half wit
 | 99.99% | 29,956 | waiting |
 | 99.999% | 299,572 | waiting |
 
-Verified per check so far: n/a. Flagged 0, Check this 0, not checked 0.
+Verified per check so far: 0.00%. Flagged 181, Check this 419, not checked 0.
 
 | day | checked | Verified | errors |
 |---|---|---|---|
+| 2026-10-14 | 600 | 0 | 0 |
 
-Today: 0 sent; stopped at the Worker did not report the cloud checker's spend (/costs).
+Each family's blind answers against the gold key (one witness per family per question; "runner": run on GitHub's CPU with no key):
+
+| family | answered | right | right, 95% lower bound |
+|---|---|---|---|
+| anthropic | 600 | 539 | 87.5721% |
+| google | 597 | 511 | 83.0160% |
+| ibm (runner) | 584 | 327 | 52.5119% |
+| microsoft (runner) | 12 | 5 | 18.1025% |
+
+Today: 600 sent; stopped at the day's questions, all sent.
