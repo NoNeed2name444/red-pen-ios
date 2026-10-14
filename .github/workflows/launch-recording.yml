@@ -1,0 +1,140 @@
+# A screen recording of the app's opening (LaunchSplash), in light and dark,
+# from the tap on the icon to the home screen: the system launch screen, the
+# heartbeat, the ECG and the circle that opens onto home.
+#
+# The simulator records no sound, so the raw films land silent on the
+# launch-recordings branch (runs/<run id>/); the heartbeat is laid in
+# afterwards, timed from the first frame the ECG shows in (tools/launch_film.py).
+#
+# Runs on a push to design/launch-anim that touches the opening, or by hand.
+name: Launch recording
+on:
+  workflow_dispatch:
+  push:
+    branches: ['design/launch-anim']
+    paths:
+      - 'ios/RedPen/Shared/LaunchSplash.swift'
+      - 'ios/RedPen/Shared/LaunchOpening.swift'
+      - 'ios/RedPen/Assets.xcassets/LaunchLogo*/**'
+      - 'ios/RedPen/Assets.xcassets/Heartbeat.dataset/**'
+      - '.github/workflows/launch-recording.yml'
+permissions:
+  contents: write
+concurrency:
+  group: launch-recording-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  record:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        # no token in .git/config while the build runs package plugins
+        with:
+          persist-credentials: false
+
+      - name: Tools
+        run: |
+          xcodebuild -version
+          brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          candidates = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPhone") or "SE" in name:
+                      continue
+                  candidates.append(((version, name.endswith("Pro"), "Pro" in name, name), d["udid"], name))
+          candidates.sort()
+          if not candidates:
+              raise SystemExit("no iPhone simulator on this runner")
+          _, udid, name = candidates[-1]
+          print(f"udid={udid}")
+          print("picked", name, file=sys.stderr)
+          PY
+
+      - name: Build for the simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+
+      - name: Record the opening
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -e
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
+            --batteryState charged --cellularMode active --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p film
+          # one launch first, unrecorded: the first launch after install
+          # spends seconds on caches that no real opening does
+          xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >/dev/null
+          sleep 8
+          for mode in light dark; do
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            xcrun simctl ui "$UDID" appearance "$mode"
+            sleep 3
+            xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "film/raw-$mode.mp4" &
+            REC=$!
+            sleep 3
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> film/launch.log 2>&1
+            sleep 5
+            kill -INT $REC
+            wait $REC || true
+          done
+          ls -la film
+
+      - name: Keep the build log
+        if: always()
+        run: |
+          mkdir -p film
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -40 > film/errors.txt || true
+
+      - name: Publish
+        if: always()
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          ls film/raw-*.mp4 >/dev/null 2>&1 || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          remote="https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git"
+          dest="$RUNNER_TEMP/results"
+          if git fetch -q "$remote" launch-recordings; then
+            git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B launch-recordings
+          else
+            git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan launch-recordings
+            git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
+            find "$dest" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          fi
+          mkdir -p "$dest/runs/${{ github.run_id }}"
+          cp film/* "$dest/runs/${{ github.run_id }}/"
+          git -C "$dest" add runs
+          git -C "$dest" commit -q -m "Launch recording ${{ github.run_id }} (${{ github.sha }})"
+          git -C "$dest" push -q "$remote" launch-recordings
+          echo "runs/${{ github.run_id }} on launch-recordings" >> "$GITHUB_STEP_SUMMARY"

@@ -17,10 +17,9 @@ app needs and changes nothing about the picture itself:
 - It ships that one square for every appearance. There is no separate dark or
   tinted file: iOS shows the same picture in dark mode and makes its own
   tinted version, so the icon is the render and nothing else.
-- It writes the launch logo: the icon, the wordmark and the tagline on a
-  clear ground, flat, with no shadow, once for light and once for dark. The
-  launch screen's colour (LaunchBackground.colorset) is the home screen's own
-  base, so the first frame runs straight on into the app.
+- It no longer writes the launch logo: that is the owner's stethoscope mark,
+  cut from its flat ground by tools/make_launch_logo.py. (launch_logo below,
+  the icon with the wordmark, is kept for anything that still wants it.)
 """
 
 from __future__ import annotations
@@ -263,8 +262,6 @@ def main() -> int:
     parser.add_argument("--source", default=str(SOURCE), help="the master render")
     parser.add_argument("--out", default="ios/RedPen/Assets.xcassets/AppIcon.appiconset",
                         help="where the icon itself goes")
-    parser.add_argument("--launch", default="ios/RedPen/Assets.xcassets/LaunchLogo.imageset",
-                        help="where the launch logo goes")
     parser.add_argument("--design", default="design/icon",
                         help="where the preview goes, next to the master render")
     args = parser.parse_args()
@@ -283,32 +280,12 @@ def main() -> int:
         "info": {"version": 1, "author": "xcode"},
     }, indent=2) + "\n")
 
-    launch = Path(args.launch)
-    launch.mkdir(parents=True, exist_ok=True)
-    images = []
-    for dark in (False, True):
-        stem = "launch-logo-dark" if dark else "launch-logo"
-        big = launch_logo(icon, scale=3, dark=dark)
-        big.save(launch / f"{stem}@3x.png")
-        big.resize((600, 520), Image.LANCZOS).save(launch / f"{stem}@2x.png")
-        big.resize((300, 260), Image.LANCZOS).save(launch / f"{stem}@1x.png")
-        for n in (1, 2, 3):
-            entry = {"idiom": "universal", "scale": f"{n}x", "filename": f"{stem}@{n}x.png"}
-            if dark:
-                entry["appearances"] = [{"appearance": "luminosity", "value": "dark"}]
-            images.append(entry)
-    (launch / "Contents.json").write_text(json.dumps({
-        "images": images,
-        "info": {"version": 1, "author": "xcode"},
-    }, indent=2) + "\n")
-
     design = Path(args.design)
     design.mkdir(parents=True, exist_ok=True)
     rounded(icon).save(design / "preview.png")
     remove(design, STALE_DESIGN)
 
     print(out / "icon-1024.png")
-    print(f"{launch}/ launch-logo(-dark)@1x, @2x, @3x")
     print(f"{design}/ preview.png")
     return 0
 

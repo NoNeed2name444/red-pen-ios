@@ -1,0 +1,189 @@
+// Stethoscore · the launch opening: the heartbeat's timing, the ECG drawn
+// in step with the sound, the hole that uncovers the home screen, and the
+// art and sound files the opening is built on.
+import Foundation
+
+var failures: [String] = []
+
+func check(_ label: String, _ ok: Bool, _ detail: String = "") {
+    print((ok ? "ok   " : "FAIL ") + label + (ok ? "" : "  | " + detail))
+    if !ok { failures.append(label) }
+}
+
+func near(_ a: Double, _ b: Double, _ tol: Double = 1e-6) -> Bool { abs(a - b) <= tol }
+
+let withSound = LaunchOpening()
+let still = LaunchOpening(reduced: true)
+
+// MARK: the first frame is the launch screen
+
+for (name, o) in [("full", withSound), ("reduced", still)] {
+    check("\(name): the mark starts at its launch-screen size", o.beat(at: 0) == 1 && o.markScale(at: 0) == 1)
+    check("\(name): the hole starts shut", o.reveal(at: 0) == 0)
+    check("\(name): no ECG on the first frame", o.ecgDrawn(at: 0) == nil)
+    check("\(name): fully open at the end", near(o.reveal(at: o.duration), 1))
+    let samples = o.times()
+    let opening = samples.map { o.reveal(at: $0) }
+    check("\(name): the hole only ever grows", zip(opening, opening.dropFirst()).allSatisfy { $0 <= $1 })
+    check("\(name): key times run from 0 to the end", samples.first == 0 && near(samples.last!, o.duration))
+}
+
+// MARK: length
+
+check("it is 1.2 to 1.5 s", (1.2...1.5).contains(withSound.duration), "\(withSound.duration)")
+check("Reduce Motion opens within 0.2 s", still.duration <= 0.2, "\(still.duration)")
+
+// MARK: the heartbeat, in step with the sound
+
+func peak(_ o: LaunchOpening, _ from: Double, _ to: Double) -> (t: Double, v: Double) {
+    var best = (t: from, v: 0.0)
+    var t = from
+    while t <= to { let v = o.beat(at: t); if v > best.v { best = (t, v) }; t += 0.001 }
+    return best
+}
+let lub = peak(withSound, withSound.r - 0.05, withSound.r + 0.15)
+let dub = peak(withSound, withSound.s2 - 0.05, withSound.s2 + 0.15)
+check("the lub swells to 1.06", near(lub.v, 1.06, 0.001), "\(lub)")
+check("the dub to 1.04", near(dub.v, 1.04, 0.001), "\(dub)")
+check("the lub peaks just after S1 is heard", lub.t > withSound.r && lub.t < withSound.r + 0.09, "\(lub.t)")
+check("the dub peaks just after S2", dub.t > withSound.s2 && dub.t < withSound.s2 + 0.09, "\(dub.t)")
+check("back to 1 between the two", near(withSound.beat(at: (withSound.r + 0.16 + withSound.s2 - 0.02) / 2), 1, 0.003))
+check("back to 1 before the hole opens", near(withSound.beat(at: withSound.revealStart), 1, 0.001))
+check("no beat under Reduce Motion", still.times().allSatisfy { still.beat(at: $0) == 1 })
+
+// MARK: the sound file, measured
+
+func caf(_ path: String) -> (samples: [Double], rate: Double)? {
+    guard let d = FileManager.default.contents(atPath: path), d.count > 8,
+          String(decoding: d.prefix(4), as: UTF8.self) == "caff" else { return nil }
+    let b = [UInt8](d)
+    func be(_ at: Int, _ n: Int) -> UInt64 { (0..<n).reduce(0) { $0 << 8 | UInt64(b[at + $1]) } }
+    var i = 8, rate = 0.0
+    var samples: [Double] = []
+    while i + 12 <= b.count {
+        let kind = String(decoding: b[i..<i + 4], as: UTF8.self)
+        let size = Int(be(i + 4, 8))
+        let body = i + 12
+        if kind == "desc" { rate = Double(bitPattern: be(body, 8)) }
+        if kind == "data" {
+            var j = body + 4
+            while j + 1 < body + size {
+                samples.append(Double(Int16(bitPattern: UInt16(be(j, 2)))) / 32768)
+                j += 2
+            }
+        }
+        i = body + size
+    }
+    return (samples, rate)
+}
+
+/// As tools/make_heartbeat.py --measure: where the 5 ms RMS first passes a
+/// tenth of its peak, for the first sound and the next after 60 ms of quiet.
+func onsets(_ x: [Double], _ rate: Double) -> (Double, Double) {
+    let win = Int(0.005 * rate)
+    var rms = [Double](repeating: 0, count: x.count)
+    var sum = 0.0
+    for i in 0..<x.count {
+        sum += x[i] * x[i]
+        if i >= win { sum -= x[i - win] * x[i - win] }
+        rms[i] = (max(sum, 0) / Double(win)).squareRoot()
+    }
+    let level = 0.1 * (rms.max() ?? 0)
+    let first = rms.firstIndex { $0 > level } ?? 0
+    var quiet = 0, i = first
+    while i < x.count {
+        quiet = rms[i] > level ? 0 : quiet + 1
+        if Double(quiet) > 0.06 * rate { break }
+        i += 1
+    }
+    let second = rms[i...].firstIndex { $0 > level } ?? i
+    return (Double(first) / rate, Double(second) / rate)
+}
+
+if let sound = caf("ios/RedPen/Assets.xcassets/Heartbeat.dataset/heartbeat.caf") {
+    let (s1, s2) = onsets(sound.samples, sound.rate)
+    check("the file's S1 is where HeartbeatSound says", near(s1, HeartbeatSound.s1, 0.001), "\(s1)")
+    check("the file's S2 is where HeartbeatSound says", near(s2, HeartbeatSound.s2, 0.001), "\(s2)")
+    check("the file is as long as it says", near(Double(sound.samples.count) / sound.rate, HeartbeatSound.length, 0.001))
+    check("S1 to S2 is a resting systole (0.25-0.35 s)", (0.25...0.35).contains(s2 - s1), "\(s2 - s1)")
+} else {
+    check("the heartbeat .caf reads", false, "not found or not a CAF")
+}
+
+// MARK: the ECG, drawn as the sound is heard
+
+let o = withSound
+check("the sound starts so that S1 lands on the R peak", near(o.audioAt + HeartbeatSound.s1, o.r))
+check("and S2 on the end of the T wave", near(o.audioAt + HeartbeatSound.s2, o.s2))
+var tallest = (t: 0.0, v: -1.0)
+var t = 0.0
+while t < o.traceEnd { let v = o.ecgHeight(at: t); if v > tallest.v { tallest = (t, v) }; t += 0.0005 }
+check("the R peak is the tallest point, on S1", near(tallest.t, o.r, 0.001) && near(tallest.v, 1, 0.01), "\(tallest)")
+check("P comes before QRS", o.ecgHeight(at: o.r - 0.15) > 0.1 && o.ecgHeight(at: o.r - 0.07) < 0.02)
+let tWave = o.ecgHeight(at: o.s2 - 0.09)
+check("the T wave rises between S1 and S2", tWave > 0.2, "\(tWave)")
+check("the T wave has ended by S2", abs(o.ecgHeight(at: o.s2)) < 0.01 && abs(o.ecgHeight(at: o.s2 + 0.03)) < 0.002,
+      "\(o.ecgHeight(at: o.s2))")
+check("Q and S dip below the line", o.ecgHeight(at: o.r - 0.022) < 0 && o.ecgHeight(at: o.r + 0.022) < 0)
+check("the baseline is flat where it starts", abs(o.ecgHeight(at: 0.05)) < 0.001)
+
+// the drawing head is at the trace time of the moment, once the baseline is out
+if let at = o.ecgDrawn(at: o.r) { check("the head is on the R peak when S1 is heard", near(at.to, o.r)) }
+else { check("the head is on the R peak when S1 is heard", false) }
+if let at = o.ecgDrawn(at: o.s2) { check("the head is at the T wave's end when S2 is heard", near(at.to, o.s2)) }
+else { check("the head is at the T wave's end when S2 is heard", false) }
+
+let early = o.ecgDrawn(at: 0.04)!
+check("it appears as a baseline growing out from its centre",
+      near((early.from + early.to) / 2, LaunchOpening.baselineGrow / 2) && early.to - early.from < 0.05, "\(early)")
+let drawn = o.times(rate: 240).compactMap { o.ecgDrawn(at: $0) }
+check("its head never goes back", zip(drawn, drawn.dropFirst()).allSatisfy { $0.to <= $1.to + 1e-9 })
+let swept = o.times(rate: 240).filter { $0 >= LaunchOpening.baselineGrow }.compactMap { o.ecgDrawn(at: $0) }
+check("once out, its tail never goes back", zip(swept, swept.dropFirst()).allSatisfy { $0.from <= $1.from + 1e-9 })
+check("it is erased from the left, gone before the end", o.ecgDrawn(at: o.eraseEnd + 0.001) == nil && o.eraseEnd <= o.duration)
+check("no ECG under Reduce Motion", still.times().allSatisfy { still.ecgDrawn(at: $0) == nil })
+
+let trace = o.trace(width: 160, height: 30)
+check("the trace runs the full width", near(trace.points.first!.x, 0) && near(trace.points.last!.x, 160))
+check("its R peak is 30 pt high (drawn upward)", abs((trace.points.map { $0.y }.min() ?? 0) + 30) < 0.5)
+let fractions = stride(from: 0.0, through: o.traceEnd, by: 0.002).map { LaunchOpening.fraction($0, of: trace, end: o.traceEnd) }
+check("trim fractions only grow along the trace", zip(fractions, fractions.dropFirst()).allSatisfy { $0 <= $1 })
+check("trim fractions run 0 to 1",
+      LaunchOpening.fraction(0, of: trace, end: o.traceEnd) == 0 && near(LaunchOpening.fraction(o.traceEnd, of: trace, end: o.traceEnd), 1))
+
+// MARK: the hole
+
+check("the hole ends past the farthest corner",
+      LaunchOpening.farthest(x: 300, y: 200, width: 400, height: 800) > (300.0 * 300 + 600 * 600).squareRoot())
+check("and from the middle, past every corner",
+      LaunchOpening.farthest(x: 200, y: 400, width: 400, height: 800) > (200.0 * 200 + 400 * 400).squareRoot())
+check("the mark grows by 14% as it is uncovered", near(o.markScale(at: o.duration), 1.14))
+
+// MARK: the art the launch screen and the opening share
+
+let yml = (try? String(contentsOfFile: "ios/project.yml", encoding: .utf8)) ?? ""
+check("the Xcode launch screen shows the launch art",
+      yml.contains("UIImageName: \(LaunchArt.imageName)\n"), "project.yml UIImageName")
+let set = "ios/RedPen/Assets.xcassets/\(LaunchArt.imageName).imageset"
+let files = (try? FileManager.default.contentsOfDirectory(atPath: set)) ?? []
+check("launch art: day and night at 1x, 2x, 3x", files.filter { $0.hasSuffix(".png") }.count == 6, "\(files)")
+for dark in [false, true] {
+    let c = LaunchArt.chest(dark: dark)
+    check("chest piece inside the \(dark ? "night" : "day") image",
+          c.x > 0.5 && c.x < 1 && c.y > 0 && c.y < 0.5 && c.r > 0.03 && c.r < 0.2)
+}
+check("the two modes' chest pieces are near the same place (no jump between modes)",
+      abs(LaunchArt.chest(dark: true).x - LaunchArt.chest(dark: false).x) < 0.02
+      && abs(LaunchArt.chest(dark: true).y - LaunchArt.chest(dark: false).y) < 0.02)
+
+// MARK: no fading, anywhere in the opening
+
+let splash = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchSplash.swift", encoding: .utf8)) ?? ""
+check("LaunchSplash.swift reads", !splash.isEmpty)
+for banned in [".opacity", "opacity =", "\"opacity\"", ".transition(.opacity", "fadeIn", "fadeOut"] {
+    check("the splash never uses \(banned)", !splash.contains(banned))
+}
+
+print(failures.isEmpty ? "\nALL LAUNCH OPENING TESTS PASS"
+                       : "\n\(failures.count) LAUNCH OPENING TEST FAILURE(S)")
+exit(failures.isEmpty ? 0 : 1)
