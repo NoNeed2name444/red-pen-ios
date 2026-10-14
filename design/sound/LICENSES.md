@@ -2,7 +2,7 @@
 
 | Asset | Source | Author | Licence |
 |---|---|---|---|
-| `ios/RedPen/Assets.xcassets/Heartbeat.dataset/heartbeat.caf` (the opening's lub-dub) | Synthesised by `tools/make_heartbeat.py` from arithmetic alone (damped valve tones, band-limited noise, a chest-and-tubing filter); no recording or sample was used | Stethoscore (this repository) | Owned outright; no third-party terms |
+| `ios/RedPen/Assets.xcassets/Heartbeat.dataset/heartbeat.caf` (the opening's lub-dub) | Synthesised by `tools/make_heartbeat.py` from arithmetic alone (damped valve tones, band-limited noise, a chest-and-tubing filter, and a valve knock at 170-600 Hz so a phone speaker can play it); no recording or sample was used | Stethoscore (this repository) | Owned outright; no third-party terms |
 
 A recorded heartbeat under CC0 was looked for first (Wikimedia Commons);
 its search could not be reached from the build machine at the time, so the

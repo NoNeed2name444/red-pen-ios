@@ -37,9 +37,9 @@ enum LaunchArt {
 enum HeartbeatSound {
     static let asset = "Heartbeat"
     /// S1, the "lub", starts here (seconds into the file).
-    static let s1: Double = 0.0302
+    static let s1: Double = 0.0304
     /// S2, the "dub".
-    static let s2: Double = 0.3287
+    static let s2: Double = 0.3305
     static let length: Double = 0.56
 }
 

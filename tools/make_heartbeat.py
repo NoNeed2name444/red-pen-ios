@@ -17,8 +17,14 @@ How it is made, as a heart sounds through a stethoscope's bell:
 - both with a fast rise and an exponential fall, and a little band-limited
   noise for the tissue's texture;
 - then coloured as the chest and the tubing colour it: a band from 20 to
-  about 240 Hz with a soft rise near 90 Hz, and a gentle saturation that
-  gives the thump the harmonics a phone speaker can actually play.
+  about 240 Hz with a soft rise near 90 Hz, and a gentle saturation;
+- and, because a phone's speaker plays almost nothing under 200 Hz, a
+  "speaker layer" on each valve: the valve's knock as damped partials at
+  about 170-480 Hz (the lub's lower and longer, the dub's higher and
+  snappier), with a 3 ms click of band-limited noise (300-1500 Hz) on its
+  front edge. The thump stays underneath for headphones; the knock is what
+  a phone speaker gives back. Writing (or --measure FILE --audit) prints
+  what a 200 Hz high-pass leaves of each sound.
 
 The file is a mono 16-bit linear PCM .caf (Core Audio Format), so the app
 starts it with no decoding delay, and the launchopening suite can read it.
@@ -43,6 +49,7 @@ RATE = 44100
 LEAD = 0.030          # silence before S1
 SYSTOLE = 0.300       # S1 onset to S2 onset
 LENGTH = 0.56
+KNOCK = 1.6          # the knock's peak against the thump's
 OUT = Path("ios/RedPen/Assets.xcassets/Heartbeat.dataset")
 
 
@@ -75,6 +82,24 @@ def band(x: np.ndarray, low: float, high: float, bump: float = 0) -> np.ndarray:
     return np.fft.irfft(np.fft.rfft(x) * gain, len(x))
 
 
+def knock(t: np.ndarray, start: float, parts, decay: float, rng: np.random.Generator,
+          click: float) -> np.ndarray:
+    """A valve's knock where a phone speaker can play it: damped partials
+    (each falling a little in pitch) and a short click on the front edge."""
+    u = t - start
+    on = u >= 0
+    env = np.zeros_like(t)
+    env[on] = (1 - np.exp(-u[on] / 0.0015)) * np.exp(-u[on] / decay)
+    sig = np.zeros_like(t)
+    for f, amp in parts:
+        sig += amp * np.sin(2 * np.pi * (f * u - 0.5 * 0.6 * f * u * u) + rng.uniform(0, 2 * np.pi))
+    tick = band(rng.standard_normal(len(t)), 300, 1500)
+    tick /= np.abs(tick).max() or 1
+    tick_env = np.zeros_like(t)
+    tick_env[on] = np.exp(-u[on] / 0.0012) * (u[on] < 0.012)
+    return sig * env + click * tick * tick_env
+
+
 def heartbeat(seed: int = 7) -> np.ndarray:
     rng = np.random.default_rng(seed)
     t = np.arange(int(LENGTH * RATE)) / RATE
@@ -90,6 +115,16 @@ def heartbeat(seed: int = 7) -> np.ndarray:
     # a soft saturation: harmonics up to a few hundred hertz, the thump a
     # small speaker can reproduce
     x = np.tanh(2.6 * x) / np.tanh(2.6)
+    # the knock, for small speakers (S1's mitral and tricuspid parts, S2's
+    # aortic and pulmonary), mixed in under the thump's peak
+    lub_k = [(172, 1.0), (258, 0.7), (344, 0.45), (470, 0.2)]
+    dub_k = [(236, 1.0), (330, 0.75), (452, 0.5), (590, 0.2)]
+    k = (knock(t, s1, lub_k, 0.042, rng, 0.9)
+         + 0.7 * knock(t, s1 + 0.022, lub_k, 0.034, rng, 0.6)
+         + 0.9 * knock(t, s2, dub_k, 0.020, rng, 1.0)
+         + 0.55 * knock(t, s2 + 0.028, dub_k, 0.016, rng, 0.6))
+    k = band(k, 140, 1800)
+    x = x + KNOCK * k / np.abs(k).max()
     # nothing before S1 but silence (the filter rings a hair either side)
     x[: int((s1 - 0.004) * RATE)] = 0
     fade = int(0.02 * RATE)
@@ -144,17 +179,37 @@ def onsets(x: np.ndarray, rate: int) -> tuple[float, float]:
     return first / rate, second / rate
 
 
+def audit(x: np.ndarray, rate: int) -> str:
+    """What a phone speaker keeps: the levels after a 4th-order 200 Hz
+    high-pass, and how the energy splits around the speaker's band."""
+    f = np.fft.rfftfreq(len(x), 1 / rate)
+    spec = np.fft.rfft(x)
+    y = np.fft.irfft(spec / np.sqrt(1 + (200 / np.maximum(f, 1e-6)) ** 8), len(x))
+    power = np.abs(spec) ** 2
+    share = lambda a, b: power[(f >= a) & (f < b)].sum() / power.sum()
+    db = lambda v: 20 * np.log10(max(float(v), 1e-9))
+    s1, s2 = onsets(x, rate)
+    win = int(0.05 * rate)
+    peak = lambda at: np.abs(y[int(at * rate):int(at * rate) + win]).max()
+    return (f"peak {db(np.abs(x).max()):.1f} dBFS; after a 200 Hz high-pass: lub {db(peak(s1)):.1f}, "
+            f"dub {db(peak(s2)):.1f} dBFS peak; energy under 150 Hz {share(0, 150):.0%}, "
+            f"150-600 Hz {share(150, 600):.0%}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--out", default=str(OUT))
     parser.add_argument("--m4a", help="also write an AAC copy here, to listen to")
     parser.add_argument("--wav", help="also write a WAV copy here")
     parser.add_argument("--measure", help="only measure this .caf or .wav")
+    parser.add_argument("--audit", action="store_true", help="with --measure: what a phone speaker keeps")
     args = parser.parse_args()
     if args.measure:
         x, rate = read(Path(args.measure))
         s1, s2 = onsets(x, rate)
         print(f"S1 {s1:.4f} s, S2 {s2:.4f} s, length {len(x) / rate:.4f} s")
+        if args.audit:
+            print(audit(x, rate))
         return 0
     x = heartbeat()
     out = Path(args.out)
@@ -166,6 +221,7 @@ def main() -> int:
         '    }\n  ],\n  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  }\n}\n')
     s1, s2 = onsets(*read(out / "heartbeat.caf"))
     print(f"{out}/heartbeat.caf: S1 {s1:.4f} s, S2 {s2:.4f} s, length {len(x) / RATE:.4f} s")
+    print(audit(*read(out / "heartbeat.caf")))
     if args.wav or args.m4a:
         wav = Path(args.wav or str(Path(args.m4a).with_suffix(".wav")))
         with wave.open(str(wav), "wb") as w:
