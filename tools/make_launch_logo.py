@@ -25,15 +25,15 @@ How the ground comes out (per pixel P, ground G, both known exactly):
 The owner's pair (14 Oct): the white tube by day (02-white-flat.png) and the
 slate tube by night (06-slate-flat-dark.png), written as LaunchLogo's light
 and dark images, cropped the same way so the mark sits at the same place in
-both modes. It prints where the chest piece is in each (as fractions of the
-image), which LaunchArt.chest in ios/RedPen/Shared/LaunchOpening.swift has
-to match.
+both modes. It measures where the chest piece is in each (as fractions of the image)
+and writes that into LaunchArt.chest in ios/RedPen/Shared/LaunchOpening.swift.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -47,15 +47,11 @@ HOLE = 41              # enclosed pockets narrower than this (pixels) are the ma
 CLOSE = 9              # gaps inside the mark narrower than this (pixels) are closed
 NOISE = 2              # this close to the ground is the ground
 
-# per version: the image set, the source files (day, night), and the chest
-# piece's disc in the source picture (x, y, radius in pixels), measured on
-# the art; the cut maps it into the image
+# The art: swapping it is replacing these two files in design/launch-logo
+# and running this script, which measures the chest piece itself and writes
+# it into LaunchOpening.swift.
 VERSIONS = {
     "launch": {"set": "LaunchLogo", "day": "02-white-flat.png", "night": "06-slate-flat-dark.png"},
-}
-CHEST = {
-    ("launch", False): (976.4, 371.0, 122.0),
-    ("launch", True): (938.5, 416.0, 101.0),
 }
 
 
@@ -124,6 +120,32 @@ def fill_holes(solid: Image.Image, wide: int) -> Image.Image:
     return Image.fromarray(np.where(open_ground, 0, 255).astype(np.uint8))
 
 
+def chest_piece(img: Image.Image) -> tuple[float, float, float]:
+    """The chest piece's disc in a cut image, as fractions of its side
+    (x, y, r): the widest solid run in the image's upper right is the disc's
+    diameter (the stem and tube below are far narrower); its middle is the
+    centre, and the disc's top plus half that width checks it."""
+    a = np.asarray(img)[..., 3] / 255
+    n = a.shape[0]
+    x0 = int(0.55 * n)
+    solid = a[: n // 2, x0:] > 0.9
+    widths, mids = np.zeros(solid.shape[0]), np.zeros(solid.shape[0])
+    for y in range(solid.shape[0]):
+        xs = np.nonzero(solid[y])[0]
+        if len(xs):
+            run = max(np.split(xs, np.nonzero(np.diff(xs) > 1)[0] + 1), key=len)
+            widths[y], mids[y] = len(run), (run[0] + run[-1]) / 2
+    best = widths.max()
+    rows = np.nonzero(widths >= 0.99 * best)[0]
+    cx = mids[rows].mean() + x0
+    cy = rows.mean()
+    r = best / 2
+    top = np.nonzero(a[: n // 2, int(round(cx))] > 0.9)[0].min()
+    if abs((top + r) - cy) > 0.03 * n:
+        raise SystemExit(f"the chest piece measures oddly: centre {cy:.0f} but top + radius {top + r:.0f}")
+    return cx / n, cy / n, r / n
+
+
 def bbox(rgba: np.ndarray) -> tuple[int, int, int, int]:
     ys, xs = np.nonzero(rgba[..., 3] > 6)
     return xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
@@ -166,12 +188,13 @@ def main() -> int:
     parser.add_argument("--out", default="ios/RedPen/Assets.xcassets", help="the asset catalogue")
     parser.add_argument("--preview", help="also write a check sheet here")
     parser.add_argument("--swift", default="ios/RedPen/Shared/LaunchOpening.swift",
-                        help="checked for LaunchArt.chest")
+                        help="where LaunchArt.chest is written")
     args = parser.parse_args()
     src, out = Path(args.src), Path(args.out)
     swift = Path(args.swift).read_text() if Path(args.swift).exists() else ""
     sheet = []
     crops = {}
+    chests = {}
     status = 0
     for name, v in VERSIONS.items():
         cuts = {dark: cut(src / v[("night" if dark else "day")], dark) for dark in (False, True)}
@@ -208,17 +231,18 @@ def main() -> int:
             if diff > 2:
                 status = 1
             sheet.append((name, dark, big))
+            chests[dark] = chest_piece(big)
         (folder / "Contents.json").write_text(json.dumps(
             {"images": images, "info": {"version": 1, "author": "xcode"}}, indent=2) + "\n")
-        for dark in (False, True):
-            cx, cy, cr = CHEST[(name, dark)]
-            left, top, side = squares[dark]
-            fx, fy, fr = (cx - left) / side, (cy - top) / side, cr / side
-            line = f"({fx:.4f}, {fy:.4f}, {fr:.4f})"
-            print(f"{name} chest piece, {'dark' if dark else 'light'}: {line}")
-            if swift and line not in swift:
-                print(f"  LaunchArt.chest in {args.swift} does not say this yet")
-                status = 1
+        # the chest pieces into LaunchArt.chest(dark:)
+        tup = {d: "({:.4f}, {:.4f}, {:.4f})".format(*chests[d]) for d in (False, True)}
+        line = f"dark ? {tup[True]} : {tup[False]}"
+        print(f"{name} chest piece: {line}")
+        if swift:
+            new = re.sub(r"dark \? \([0-9., ]+\) : \([0-9., ]+\)", line, swift, count=1)
+            if new != swift:
+                Path(args.swift).write_text(new)
+                print(f"  written into {args.swift}")
         print(f"{folder}/ launch-logo(-dark)@1x, @2x, @3x")
 
     if args.preview:
@@ -230,12 +254,9 @@ def main() -> int:
             for row, ground in enumerate((GROUND[dark], (255, 0, 255))):
                 bg = Image.new("RGBA", (tile, tile), ground + (255,))
                 bg.alpha_composite(resized(big, tile))
-                cx, cy, cr = CHEST[(name, dark)]
                 if row == 1:
                     # the measured chest piece, to check it lies on the disc
-                    left, top, side = crops[name][dark]
-                    k = tile / side
-                    x, y, r = (cx - left) * k, (cy - top) * k, cr * k
+                    x, y, r = (v * tile for v in chests[dark])
                     ImageDraw.Draw(bg).ellipse((x - r, y - r, x + r, y + r), outline=(0, 255, 0, 255))
                 board.paste(bg.convert("RGB"), (tile * i, tile * row))
         board.save(p / "launch-logo-sheet.png")

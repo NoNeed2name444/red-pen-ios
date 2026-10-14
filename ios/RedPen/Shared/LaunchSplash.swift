@@ -198,6 +198,10 @@ final class LaunchOpeningView: UIView {
             l.contents = image?.cgImage
             l.contentsScale = image?.scale ?? UIScreen.main.scale
             l.contentsGravity = .resizeAspect
+            // while it beats and grows: smooth resampling, so the metal's
+            // fine highlights do not shimmer
+            l.magnificationFilter = .linear
+            l.minificationFilter = .trilinear
         }
         let c = LaunchArt.chest(dark: phoneDark)
         let anchor = CGPoint(x: c.x, y: c.y)
@@ -245,7 +249,12 @@ final class LaunchOpeningView: UIView {
         let safe = bounds.inset(by: insets)
         let centre = CGPoint(x: safe.midX, y: safe.midY)
         let c = LaunchArt.chest(dark: phoneDark)
-        mark.position = CGPoint(x: centre.x - side / 2 + c.x * side, y: centre.y - side / 2 + c.y * side)
+        // the image's corner on a whole device pixel, so at rest it is drawn
+        // 1:1, exactly as the launch screen drew it, with no resampling
+        let px = window?.screen.scale ?? UIScreen.main.scale
+        let origin = CGPoint(x: ((centre.x - side / 2) * px).rounded() / px,
+                             y: ((centre.y - side / 2) * px).rounded() / px)
+        mark.position = CGPoint(x: origin.x + c.x * side, y: origin.y + c.y * side)
         let w = Self.traceWidth
         ecg.frame = CGRect(x: centre.x - w / 2, y: centre.y + side / 2 - 2, width: w, height: Self.traceHeight * 1.6)
         if !started { hole.path = holePath(radius: 0) }

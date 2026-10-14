@@ -44,13 +44,20 @@ def frames(raw: Path, tmp: Path) -> list[Path]:
 
 
 def ecg_start(paths: list[Path], mode: str) -> int:
-    """The first frame with the trace's colour in the band under the mark."""
+    """The first frame where the trace's colour newly appears in the band
+    just under the mark, where the ECG's baseline runs (and nothing else has
+    that colour: it must be new since a few frames before)."""
     want = np.array(TRACE[mode])
-    for i, p in enumerate(paths):
+
+    def hits(p: Path) -> np.ndarray:
         a = np.asarray(Image.open(p).convert("RGB"), dtype=int)
         h, w = a.shape[:2]
-        band = a[int(h * 0.50):int(h * 0.68), int(w * 0.2):int(w * 0.8)]
-        if (np.abs(band - want).max(axis=2) < 14).sum() >= 6:
+        band = a[int(h * 0.655):int(h * 0.71), int(w * 0.25):int(w * 0.75)]
+        return np.abs(band - want).max(axis=2) < 16
+
+    seen = [hits(p) for p in paths]
+    for i in range(6, len(paths)):
+        if (seen[i] & ~seen[i - 6]).sum() >= 8:
             return i
     raise SystemExit("no ECG found in the recording")
 

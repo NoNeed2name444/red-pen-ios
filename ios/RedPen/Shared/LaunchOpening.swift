@@ -18,7 +18,7 @@ enum LaunchArt {
     /// and the home screen opens out from here. The two drawings differ a
     /// little, so each has its own.
     static func chest(dark: Bool) -> (x: Double, y: Double, r: Double) {
-        dark ? (0.7714, 0.2896, 0.1052) : (0.7755, 0.2869, 0.1148)
+        dark ? (0.7727, 0.3068, 0.1109) : (0.7752, 0.2982, 0.1119)
     }
 
     /// The ECG's colour (0xRRGGBB). By night the slate tube's lit side, which
