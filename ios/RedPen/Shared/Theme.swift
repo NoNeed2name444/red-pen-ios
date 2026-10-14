@@ -129,7 +129,7 @@ struct ModeBackdrop: View {
 /// with the pop-out; only what you can touch leans with it.
 struct ContentCard: ViewModifier {
     func body(content: Content) -> some View {
-        content.wardCard(padding: 18)
+        content.wardCard(padding: WardSpace.xl)
     }
 }
 
@@ -386,8 +386,8 @@ struct ReadableColumn: ViewModifier {
         content
             .frame(maxWidth: limit, alignment: .leading)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, roomy ? 8 : 0)
-            .padding(.top, roomy ? 10 : 0)
+            .padding(.horizontal, roomy ? WardSpace.s : 0)
+            .padding(.top, roomy ? WardSpace.m : 0)
     }
 }
 
@@ -636,10 +636,10 @@ struct StudyProgressHeader<Accessory: View>: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
+        let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
+        VStack(alignment: .leading, spacing: WardSpace.s) {
+            HStack(alignment: .center, spacing: WardSpace.m) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(status)
                         .font(.headline)
                         .monospacedDigit()
@@ -661,12 +661,12 @@ struct StudyProgressHeader<Accessory: View>: View {
                     .accessibilityHidden(true)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, WardSpace.l)
+        .padding(.vertical, WardSpace.m)
         .frame(maxWidth: 700)
         .wardRaised(in: shape, lift: .low)
-        .padding(.horizontal, 12)
-        .padding(.top, 6)
+        .padding(.horizontal, WardSpace.m)
+        .padding(.top, WardSpace.s)
         .frame(maxWidth: .infinity)
     }
 }
@@ -685,8 +685,8 @@ struct OptionalTag: View {
         Text("optional")
             .font(.caption.weight(.medium))
             .foregroundStyle(Color.wardInkSecondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
+            .padding(.horizontal, WardSpace.s)
+            .padding(.vertical, WardSpace.xs)
             .wardInset(in: Capsule())
     }
 }

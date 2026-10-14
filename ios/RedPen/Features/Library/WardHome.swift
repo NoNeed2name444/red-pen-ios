@@ -403,7 +403,7 @@ struct HomeRoundCard: View {
     let onPlan: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: WardSpace.m) {
+        VStack(alignment: .leading, spacing: WardSpace.l) {
             heading
             if beds.isEmpty {
                 quiet
@@ -652,7 +652,7 @@ private struct VitalsTileFace: View {
     }
 
     private var figures: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text("Readiness")
                 .font(.caption)
                 .foregroundStyle(Color.wardInkSecondary)
@@ -732,7 +732,7 @@ extension View {
     func homeTile() -> some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return self
-            .padding(14)
+            .padding(WardSpace.l)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .contentShape(shape)
     }
@@ -814,7 +814,7 @@ struct SetRow: View {
         HStack(alignment: .top, spacing: WardSpace.m) {
             ModeTile(kind: set.kind, size: 40)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 nameLine
                 kindLine
                 if let progress { progressLine(progress) }
@@ -824,14 +824,14 @@ struct SetRow: View {
                 WardChip(text: "\(due) due", tone: .warning)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
         // a whole row to aim at, not only its words
         .frame(minHeight: 56)
         .contentShape(Rectangle())
     }
 
     private var nameLine: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: WardSpace.s) {
             Text(set.name)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Color.wardInk)
@@ -846,7 +846,7 @@ struct SetRow: View {
         let amount: String = "\(set.itemCount) \(set.itemNoun)\(plural)"
         let subject: String = set.subject.trimmingCharacters(in: .whitespacesAndNewlines)
         let showsSubject: Bool = !subject.isEmpty && subject != "General"
-        return HStack(spacing: 6) {
+        return HStack(spacing: WardSpace.s) {
             Text(set.kind.label).font(.caption.weight(.semibold))
             separator
             Text(amount).font(.caption)

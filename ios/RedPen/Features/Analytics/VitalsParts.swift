@@ -42,7 +42,7 @@ struct RhythmMonitor: View {
 
     private var observations: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: WardSpace.l) {
+            HStack(alignment: .top, spacing: WardSpace.xl) {
                 readings
             }
             VStack(alignment: .leading, spacing: WardSpace.s) {

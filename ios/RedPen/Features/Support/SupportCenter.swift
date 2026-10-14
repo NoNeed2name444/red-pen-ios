@@ -541,14 +541,14 @@ private struct HelpModeRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             ModeTile(kind: kind, size: 34)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(kind.label).font(.headline).foregroundStyle(Color.wardInk)
                 Text(detail)
                     .font(.footnote)
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
     }
 }
 
@@ -572,7 +572,7 @@ private struct HelpQuestionRow: View {
             Text(answer)
                 .font(.footnote)
                 .foregroundStyle(Color.wardInkSecondary)
-                .padding(.top, 2)
+                .padding(.top, WardSpace.xs)
         } label: {
             Text(question).font(.subheadline.weight(.semibold))
         }

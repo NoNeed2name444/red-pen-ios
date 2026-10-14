@@ -150,7 +150,7 @@ private struct AppLockShield: ViewModifier {
             // app underneath hidden and untouchable
             Color.wardBackground
             WardBackground()
-            VStack(spacing: WardSpace.l) {
+            VStack(spacing: WardSpace.xl) {
                 HStack(spacing: WardSpace.s) {
                     EcgSquiggle()
                         .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))

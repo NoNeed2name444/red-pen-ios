@@ -606,7 +606,7 @@ struct LibraryView: View {
                 // rail on a wide iPad they stay, to keep the list off it.
                 .listSectionMargins(.horizontal, railed ? 16 : 0)
             }
-            .listSectionSpacing(16)
+            .listSectionSpacing(WardSpace.section)
             .scrollContentBackground(.hidden)
             // the masthead stands in for iOS's soft top edge (categoryPage)
             .scrollEdgeEffectHidden(true, for: .top)
