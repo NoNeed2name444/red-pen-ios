@@ -1,0 +1,179 @@
+package com.stethoscore.app.data
+
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.time.Instant
+import java.time.ZoneId
+
+/** Local library. Empty on first launch; examples are added only on request. */
+class StudyStore(private val directory: File) {
+    private val file = File(directory, "stethoscore.json")
+    private var original = JSONObject()
+    private var unknownSets = emptyList<JSONObject>()
+    var loadError: String? = null
+        private set
+    var library: List<StudySet> = emptyList()
+        private set
+    var folders: List<StudyFolder> = emptyList()
+        private set
+    var notes: List<Note> = emptyList()
+        private set
+    var reviews: Map<String, ReviewRecord> = emptyMap()
+        private set
+    var quizProgress: Map<String, QuizProgress> = emptyMap()
+        private set
+    var readingProgress: Map<String, ReadingProgress> = emptyMap()
+        private set
+    var osceProgress: Map<String, OsceProgress> = emptyMap()
+        private set
+    var caseRuns: Map<String, String> = emptyMap()
+        private set
+    var answerHistory: Map<String, List<Boolean>> = emptyMap()
+        private set
+    var answerLog: List<AnswerEvent> = emptyList()
+        private set
+    var flagged: Set<String> = emptySet()
+        private set
+    var examDate: Long? = null
+        private set
+    private var previousRating: Pair<String, ReviewRecord?>? = null
+
+    init { load() }
+
+    @Synchronized fun load() {
+        if (!file.exists()) return
+        try {
+            val root = JSONObject(file.readText())
+            val sets = root.objects("library") { it }
+            original = root
+            library = sets.filter { StudySetKind.from(it.text("kind")) != null }.map(StudyJson::decodeSet)
+            unknownSets = sets.filter { StudySetKind.from(it.text("kind")) == null }
+            folders = root.objects("folders") { StudyFolder(it.text("id", newId()), it.text("name", "Folder"), StudyJson.date(it.opt("updatedAt")), it.toString()) }
+            notes = root.objects("notes", StudyJson::note)
+            reviews = readMap(root.obj("reviews"), StudyJson::review)
+            quizProgress = readMap(root.obj("quizProgress")) { o -> QuizProgress(o.optInt("current"), o.objects("answers") { MCQAnswer(it.intOrNull("selected"), it.optBoolean("checked")) }, o.strings("questionIds"), o.optJSONArray("optionOrders")?.let { a -> (0 until a.length()).map { i -> a.optJSONArray(i)?.let { row -> (0 until row.length()).map { row.optInt(it) } } ?: emptyList() } } ?: emptyList(), StudyJson.date(o.opt("savedAt"))) }
+            readingProgress = readMap(root.obj("readingProgress")) { ReadingProgress(it.optInt("position"), StudyJson.date(it.opt("savedAt"))) }
+            osceProgress = readMap(root.obj("osceProgress")) { OsceProgress(it.optInt("checklistIndex"), it.text("checklistTitle"), it.optInt("stepIndex"), intList(it.optJSONArray("missed")), StudyJson.date(it.opt("savedAt"))) }
+            caseRuns = root.obj("caseRuns").let { o -> o.keys().asSequence().associateWith { o.get(it).toString() } }
+            answerHistory = root.obj("answerHistory").let { o -> o.keys().asSequence().associateWith { key -> o.optJSONArray(key)?.let { a -> (0 until a.length()).map { a.optBoolean(it) } } ?: emptyList() } }
+            answerLog = root.objects("answerLog") { AnswerEvent(it.text("questionId"), it.optBoolean("correct"), StudyJson.date(it.opt("at"))) }
+            flagged = root.strings("flagged").toSet()
+            examDate = if (root.isNull("examDate")) null else StudyJson.date(root.opt("examDate"))
+            loadError = null
+        } catch (e: Exception) {
+            loadError = "Your library could not be opened. The original file has been kept: ${e.message.orEmpty()}"
+        }
+    }
+    private fun intList(a: JSONArray?): List<Int> = a?.let { (0 until it.length()).map(it::optInt) } ?: emptyList()
+    private fun <T> readMap(o: JSONObject, decode: (JSONObject) -> T): Map<String, T> = o.keys().asSequence().mapNotNull { key -> o.optJSONObject(key)?.let { key to decode(it) } }.toMap()
+    private fun <T> writeMap(map: Map<String, T>, encode: (T) -> Any): JSONObject = JSONObject().also { o -> map.forEach { (key, value) -> o.put(key, encode(value)) } }
+
+    @Synchronized fun exportJson(): String = snapshot().toString(2)
+    fun exportSet(set: StudySet): String = StudyJson.encodeSet(set).toString(2)
+
+    private fun snapshot(): JSONObject = raw(original.toString())
+        .put("format", "stethoscore-android-v1")
+        .put("library", jsonArray(library.map(StudyJson::encodeSet) + unknownSets))
+        .put("folders", jsonArray(folders.map { raw(it.rawJson).put("id", it.id).put("name", it.name).putDate("updatedAt", it.updatedAt) }))
+        .put("notes", jsonArray(notes.map(StudyJson::encodeNote)))
+        .put("reviews", writeMap(reviews, StudyJson::encodeReview))
+        .put("quizProgress", writeMap(quizProgress) { p -> JSONObject().put("current", p.current).put("answers", jsonArray(p.answers.map { JSONObject().put("selected", it.selected ?: JSONObject.NULL).put("checked", it.checked) })).put("questionIds", jsonArray(p.questionIds)).put("optionOrders", jsonArray(p.optionOrders.map(::jsonArray))).putDate("savedAt", p.savedAt) })
+        .put("readingProgress", writeMap(readingProgress) { JSONObject().put("position", it.position).putDate("savedAt", it.savedAt) })
+        .put("osceProgress", writeMap(osceProgress) { JSONObject().put("checklistIndex", it.checklistIndex).put("checklistTitle", it.checklistTitle).put("stepIndex", it.stepIndex).put("missed", jsonArray(it.missed)).putDate("savedAt", it.savedAt) })
+        .put("caseRuns", writeMap(caseRuns) { JSONObject(it) })
+        .put("answerHistory", writeMap(answerHistory, ::jsonArray))
+        .put("answerLog", jsonArray(answerLog.map { JSONObject().put("questionId", it.questionId).put("correct", it.correct).putDate("at", it.at) }))
+        .put("flagged", jsonArray(flagged.toList())).putDate("examDate", examDate)
+
+    /** fsync then atomic rename: interruption never replaces the library with a partial write. */
+    @Synchronized fun save() {
+        check(loadError == null) { loadError ?: "Library unavailable" }
+        check(directory.exists() || directory.mkdirs()) { "Could not create the library directory." }
+        val bytes = snapshot().toString().toByteArray(Charsets.UTF_8)
+        val temporary = File(directory, "stethoscore.json.tmp")
+        FileOutputStream(temporary).use { stream -> stream.write(bytes); stream.fd.sync() }
+        try {
+            Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
+            // Both files are in one directory; Android rename replaces atomically on its local filesystem.
+            check(temporary.renameTo(file)) { "Could not replace the library file." }
+        }
+    }
+
+    @Synchronized fun addSet(set: StudySet) {
+        val existing = library.indexOfFirst { it.id == set.id }
+        library = if (existing < 0) library + set else library.map { if (it.id == set.id) set.copy(updatedAt = System.currentTimeMillis()) else it }
+        save()
+    }
+    fun updateSet(set: StudySet) = addSet(set)
+    @Synchronized fun deleteSet(id: String) {
+        val removed = library.firstOrNull { it.id == id } ?: return
+        library = library.filterNot { it.id == id }
+        quizProgress = quizProgress - id; readingProgress = readingProgress - id; osceProgress = osceProgress - id
+        val remainingCards = library.flatMap { it.cards }.map { it.id }.toSet()
+        reviews = reviews.filterKeys { it in remainingCards }
+        caseRuns = caseRuns.filterKeys { !it.startsWith("$id:") && it !in removed.caseFiles.map { case -> case.id } }
+        save()
+    }
+    @Synchronized fun importJson(text: String): Int {
+        require(text.toByteArray(Charsets.UTF_8).size <= 32 * 1024 * 1024) { "Choose a JSON file smaller than 32 MB." }
+        val incoming = StudyJson.decodeSets(text)
+        require(incoming.isNotEmpty()) { "No supported study sets were found in this file." }
+        val ids = library.map { it.id }.toMutableSet()
+        val itemIds = library.flatMap { it.itemIds }.toMutableSet()
+        val additions = incoming.map { candidate ->
+            val set = if (candidate.id in ids || candidate.itemIds.any { it in itemIds }) candidate.duplicate() else candidate
+            ids += set.id; itemIds += set.itemIds; set
+        }
+        library = library + additions
+        save()
+        return additions.size
+    }
+    @Synchronized fun loadExamples() {
+        val added = DemoData.sets.filter { example -> library.none { it.name == "Example: ${example.name}" } }.map { it.duplicate().copy(name = "Example: ${it.name}") }
+        if (added.isNotEmpty()) { library = library + added; save() }
+    }
+    @Synchronized fun saveQuizProgress(setId: String, progress: QuizProgress) { quizProgress = quizProgress + (setId to progress); save() }
+    @Synchronized fun clearQuizProgress(setId: String) { quizProgress = quizProgress - setId; save() }
+    @Synchronized fun saveReadingProgress(setId: String, position: Int) { readingProgress = readingProgress + (setId to ReadingProgress(position.coerceAtLeast(0))); save() }
+    @Synchronized fun saveOsceProgress(setId: String, progress: OsceProgress) { osceProgress = osceProgress + (setId to progress); save() }
+    @Synchronized fun clearOsceProgress(setId: String) { osceProgress = osceProgress - setId; save() }
+    @Synchronized fun saveCaseRun(caseId: String, json: String) { JSONObject(json); caseRuns = caseRuns + (caseId to json); save() }
+    @Synchronized fun clearCaseRun(caseId: String) { caseRuns = caseRuns - caseId; save() }
+    @Synchronized fun recordAnswer(questionId: String, correct: Boolean) {
+        answerHistory = answerHistory + (questionId to ((answerHistory[questionId] ?: emptyList()) + correct))
+        answerLog = answerLog + AnswerEvent(questionId, correct)
+        save()
+    }
+    @Synchronized fun toggleFlag(questionId: String) { flagged = if (questionId in flagged) flagged - questionId else flagged + questionId; save() }
+    fun dueCards(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiCard> = set.cards.filter { ReviewPlan.isAvailable(reviews[it.id], now) }.sortedBy { reviews[it.id]?.due ?: now }
+    fun dueCount(now: Long = System.currentTimeMillis()): Int = library.filter { it.kind == StudySetKind.ANKI }.sumOf { dueCards(it, now).size }
+    @Synchronized fun rateCard(card: AnkiCard, rating: AnkiRating, now: Long = System.currentTimeMillis()): ReviewRecord {
+        previousRating = card.id to reviews[card.id]
+        val next = ReviewPlan.after(rating, reviews[card.id] ?: ReviewRecord(now, 0.0), now, examDate)
+        reviews = reviews + (card.id to next)
+        save(); return next
+    }
+    @Synchronized fun undoRating(): Boolean {
+        val previous = previousRating ?: return false
+        reviews = if (previous.second == null) reviews - previous.first else reviews + (previous.first to previous.second!!)
+        previousRating = null; save(); return true
+    }
+    @Synchronized fun suspendCard(cardId: String) { val now = System.currentTimeMillis(); val kept = reviews[cardId] ?: ReviewRecord(now, 0.0); reviews = reviews + (cardId to kept.copy(suspended = true, changedAt = now)); save() }
+    @Synchronized fun buryCard(cardId: String) { val now = System.currentTimeMillis(); val tomorrow = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(); val kept = reviews[cardId] ?: ReviewRecord(now, 0.0); reviews = reviews + (cardId to kept.copy(buriedUntil = tomorrow, changedAt = now)); save() }
+    @Synchronized fun setExamDate(date: Long?) { examDate = date; save() }
+    @Synchronized fun saveNote(note: Note) {
+        val existing = notes.firstOrNull { it.id == note.id }
+        if (existing == note) return
+        val updated = if (existing == null) note else note.copy(updatedAt = System.currentTimeMillis())
+        notes = if (existing == null) notes + updated else notes.map { if (it.id == note.id) updated else it }
+        save()
+    }
+    @Synchronized fun deleteNote(id: String) { notes = notes.filterNot { it.id == id }.map { it.copy(links = it.links - id) }; save() }
+    fun searchNotes(query: String): List<Note> { val words = query.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }; return notes.filter { n -> val text = "${n.title} ${n.body} ${n.tags.joinToString(" ")}".lowercase(); words.all(text::contains) }.sortedByDescending { it.updatedAt } }
+    fun backlinks(note: Note): List<Note> = notes.filter { it.id != note.id && (note.id in it.links || Regex("\\[\\[${Regex.escape(note.title)}(?:\\|[^]]*)?]]", RegexOption.IGNORE_CASE).containsMatchIn(it.body)) }
+}

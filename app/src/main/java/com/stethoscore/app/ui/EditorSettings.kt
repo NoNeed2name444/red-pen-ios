@@ -1,0 +1,89 @@
+package com.stethoscore.app.ui
+
+import android.content.Context
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.stethoscore.app.data.*
+
+@Composable fun NewSetScreen(onSave:(StudySet)->Unit,onBack:()->Unit) {
+    var name by rememberSaveable { mutableStateOf("") }
+    var subject by rememberSaveable { mutableStateOf("") }
+    var kindName by rememberSaveable { mutableStateOf(StudySetKind.ANKI.name) }
+    val kind=StudySetKind.valueOf(kindName)
+    var content by rememberSaveable { mutableStateOf("") }
+    var error by remember {mutableStateOf<String?>(null)}
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
+        ScreenHeader("New study set","Make something worth remembering",onBack)
+        OutlinedTextField(name,{name=it},Modifier.fillMaxWidth(),label={Text("Set name")},singleLine=true)
+        OutlinedTextField(subject,{subject=it},Modifier.fillMaxWidth(),label={Text("Subject")},singleLine=true)
+        SectionLabel("Study mode")
+        StudySetKind.entries.filter {it!=StudySetKind.CASES}.chunked(3).forEach { row -> Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {row.forEach { mode -> FilterChip(selected=kind==mode,onClick={kindName=mode.name},label={Text(mode.label,fontSize=12.sp)})} } }
+        WardCard(Modifier.fillMaxWidth()) {
+            Text(when(kind) {StudySetKind.ANKI->"One card per line";StudySetKind.MCQ->"One question per block";StudySetKind.OSCE->"One checklist step per line";StudySetKind.NARRATE->"One transcript segment per line";else->"Write or paste your notes"},fontWeight=FontWeight.Bold)
+            Text(when(kind) {StudySetKind.ANKI->"Question | Answer\nUse {{c1::answer}} for a cloze card.";StudySetKind.MCQ->"Question\nA) Option\n*B) Correct option\nC) Option\nWhy: Explanation\n\nSeparate questions with a blank line.";StudySetKind.BOOK->"Use # headings and ## page titles. Your text stays editable in exported JSON.";StudySetKind.OSCE->"Use the set name as the station title. Each non-empty line becomes a recall step.";else->"Paste the transcript. Playback uses the text-to-speech voice installed on your device."},fontSize=13.sp,lineHeight=21.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        OutlinedTextField(content,{content=it;error=null},Modifier.fillMaxWidth().heightIn(min=230.dp),label={Text("Study content")},minLines=8)
+        error?.let {Text(it,color=MaterialTheme.colorScheme.error)}
+        WardButton("Save study set",{
+            runCatching { onSave(parseStudySet(name,subject,kind,content)) }.onFailure {error=it.message ?: "Check your content and try again."}
+        },Modifier.fillMaxWidth(),name.isNotBlank() && content.isNotBlank())
+        Text("To add a Cases set, import a Stethoscore JSON file from Settings.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):StudySet {
+    require(name.isNotBlank() && content.isNotBlank()) {"Add a name and some content."}
+    val base=StudySet(name=name.trim(),subject=subject.trim().ifBlank {"General"},kind=kind)
+    val lines=content.lines().map {it.trim()}.filter {it.isNotEmpty()}
+    return when(kind) {
+        StudySetKind.ANKI -> base.copy(cards=lines.map {line->
+            if(Regex("\\{\\{c\\d+::").containsMatchIn(line)) AnkiCard(type=AnkiCardType.CLOZE,clozeText=line)
+            else {val pair=line.split('|',limit=2);require(pair.size==2 && pair.all {it.isNotBlank()}) {"Each card needs Question | Answer, or a cloze sentence."};AnkiCard(front=pair[0].trim(),bullets=listOf(pair[1].trim()))}
+        })
+        StudySetKind.MCQ -> base.copy(questions=content.trim().split(Regex("\\n\\s*\\n")).mapIndexed {i,block->
+            val parts=block.lines().map {it.trim()}.filter {it.isNotEmpty()};val options=parts.drop(1).filter {Regex("^\\*?[A-Z][).]\\s+.+").matches(it)}
+            val correct=options.indexOfFirst {it.startsWith("*")}
+            require(options.size>=2 && options.count {it.startsWith("*")}==1) {"Question ${i+1} needs at least two lettered options and exactly one marked with *."}
+            MCQQuestion(stem=parts.first(),options=options.map {it.replace(Regex("^\\*?[A-Z][).]\\s+"),"")},correctIndex=correct,explanation=parts.firstOrNull {it.startsWith("Why:",true)}?.substringAfter(':')?.trim().orEmpty())
+        })
+        StudySetKind.BOOK -> base.copy(bookMarkdown=content.trim())
+        StudySetKind.OSCE -> base.copy(osceChecklists=listOf(OsceChecklist(title=name.trim(),steps=lines)))
+        StudySetKind.NARRATE -> base.copy(narrateSegments=lines.map {NarrateSegment(text=it)})
+        else -> error("Import a Cases JSON file instead.")
+    }
+}
+
+@Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
+        ScreenHeader("Settings","Your study space",onBack)
+        WardCard(Modifier.fillMaxWidth()) {
+            SectionLabel("Appearance")
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {Column {Text("Night shift",fontSize=18.sp,fontWeight=FontWeight.SemiBold);Text("Stethoscore's dark palette",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};Switch(dark,onDark)}
+        }
+        WardCard(Modifier.fillMaxWidth()) {
+            SectionLabel("Your library")
+            Text("Saved on this device",fontSize=20.sp,fontWeight=FontWeight.SemiBold)
+            Text("Import sets from Stethoscore or export a backup of your library, notes and review history.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+            WardButton("Import JSON",onImport,Modifier.fillMaxWidth())
+            WardButton("Export library backup",onExport,Modifier.fillMaxWidth())
+            WardButton("Add example sets",onExamples,Modifier.fillMaxWidth())
+        }
+        WardCard(Modifier.fillMaxWidth()) {
+            SectionLabel("Android preview · 0.1")
+            Text("Native Kotlin. Same study foundations.",fontSize=20.sp,fontWeight=FontWeight.SemiBold)
+            Text("Questions, spaced cards, OSCE, textbook, transcript playback, Cases and linked notes work locally. Account sync, cloud AI, audio transcription and the 3D renderer are still being ported.",lineHeight=24.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Built from the audited October 9 Stethoscore source.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text("Stethoscore is a study aid. Source material and sample answers have not been independently verified for clinical use.",fontSize=12.sp,lineHeight=18.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
