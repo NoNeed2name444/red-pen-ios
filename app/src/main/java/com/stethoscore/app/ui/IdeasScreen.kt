@@ -41,16 +41,19 @@ import kotlin.math.sin
     var revision by remember { mutableIntStateOf(0) }
     var mode by rememberSaveable { mutableStateOf("List") }
     var query by rememberSaveable { mutableStateOf("") }
-    var editing by remember { mutableStateOf<Note?>(null) }
+    // Only the id is kept across rotation; the editor's own fields are saveable too.
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingNew by rememberSaveable { mutableStateOf(false) }
+    fun edit(note: Note?) { editingId = note?.id; editingNew = note != null && store.notes.none { it.id == note.id } }
     var error by remember { mutableStateOf<String?>(null) }
     val notes = remember(revision, query) { store.searchNotes(query) }
-    val current = editing
+    val current = editingId?.let { id -> if (editingNew) remember(id) { Note(id = id, title = "") } else store.notes.firstOrNull { it.id == id } }
     if (current != null) {
         NoteEditor(current, store.notes, onSave = { note ->
-            runCatching { store.saveNote(note) }.onSuccess { revision++; editing = null }.onFailure { error = it.message }
+            runCatching { store.saveNote(note) }.onSuccess { revision++; edit(null) }.onFailure { error = it.message }
         }, onDelete = {
-            runCatching { store.deleteNote(current.id) }.onSuccess { revision++; editing = null }.onFailure { error = it.message }
-        }, onBack = { editing = null })
+            runCatching { store.deleteNote(current.id) }.onSuccess { revision++; edit(null) }.onFailure { error = it.message }
+        }, onBack = { edit(null) })
     } else {
         Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             ScreenHeader("Ideas", "Your notes, connected", onBack)
@@ -58,7 +61,7 @@ import kotlin.math.sin
                 FilterChip(mode == "List", { mode = "List" }, { Text("List") }, leadingIcon = { Icon(Icons.Rounded.ViewList, null, Modifier.size(18.dp)) })
                 FilterChip(mode == "Map", { mode = "Map" }, { Text("2D map") }, leadingIcon = { Icon(Icons.Rounded.Hub, null, Modifier.size(18.dp)) })
                 Spacer(Modifier.weight(1f))
-                IconButton(onClick = { editing = Note(title = "") }) { Icon(Icons.Rounded.Add, "Add idea") }
+                IconButton(onClick = { edit(Note(title = "")) }) { Icon(Icons.Rounded.Add, "Add idea") }
             }
             OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), placeholder = { Text("Find an idea") }, leadingIcon = { Icon(Icons.Rounded.Search, null) }, singleLine = true, shape = RoundedCornerShape(24.dp))
             val ids = notes.map { it.id }.toSet()
@@ -69,16 +72,16 @@ import kotlin.math.sin
                     Icon(Icons.Rounded.Lightbulb, null, Modifier.size(34.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(if (query.isBlank()) "Make room for an idea" else "No matching ideas", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Text(if (query.isBlank()) "Keep a clinical pearl, a question or a connection. Link related notes to see how they fit together." else "Try another word from a title, note or tag.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (query.isBlank()) WardButton("Write your first idea", { editing = Note(title = "") }, Modifier.fillMaxWidth())
+                    if (query.isBlank()) WardButton("Write your first idea", { edit(Note(title = "")) }, Modifier.fillMaxWidth())
                 }
             } else if (mode == "Map") {
-                NoteMap(notes, { editing = it }, Modifier.weight(1f).fillMaxWidth())
+                NoteMap(notes, { edit(it) }, Modifier.weight(1f).fillMaxWidth())
                 Text("Pinch to zoom · Drag to move · Tap an idea to edit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                WardButton("New idea", { editing = Note(title = "") }, Modifier.fillMaxWidth())
+                WardButton("New idea", { edit(Note(title = "")) }, Modifier.fillMaxWidth())
             } else {
                 LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     items(notes, key = { it.id }) { note ->
-                        WardCard(Modifier.fillMaxWidth().clickable { editing = note }) {
+                        WardCard(Modifier.fillMaxWidth().clickable { edit(note) }) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Rounded.Lightbulb, null, tint = MaterialTheme.colorScheme.primary)
                                 Spacer(Modifier.width(10.dp))
@@ -101,7 +104,9 @@ import kotlin.math.sin
     var title by rememberSaveable(note.id) { mutableStateOf(note.title) }
     var body by rememberSaveable(note.id) { mutableStateOf(note.body) }
     var tags by rememberSaveable(note.id) { mutableStateOf(note.tags.joinToString(", ")) }
-    var links by remember(note.id) { mutableStateOf(note.links.toSet()) }
+    var linkList by rememberSaveable(note.id) { mutableStateOf(ArrayList(note.links.distinct())) }
+    val links = linkList.toSet()
+    fun setLinks(value: Set<String>) { linkList = ArrayList(value) }
     var deleting by remember { mutableStateOf(false) }
     var leaving by remember { mutableStateOf(false) }
     val dirty = title != note.title || body != note.body || tags != note.tags.joinToString(", ") || links != note.links.toSet()
@@ -118,8 +123,8 @@ import kotlin.math.sin
             val others = allNotes.filter { it.id != note.id }
             if (others.isEmpty()) Text("Create another idea to make your first connection.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             others.forEach { other ->
-                Row(Modifier.fillMaxWidth().clickable { links = if (other.id in links) links - other.id else links + other.id }.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(other.id in links, { checked -> links = if (checked) links + other.id else links - other.id })
+                Row(Modifier.fillMaxWidth().clickable { setLinks(if (other.id in links) links - other.id else links + other.id) }.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(other.id in links, { checked -> setLinks(if (checked) links + other.id else links - other.id) })
                     Text(other.title, Modifier.weight(1f), fontSize = 15.sp)
                 }
             }

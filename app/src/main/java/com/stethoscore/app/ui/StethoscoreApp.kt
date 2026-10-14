@@ -23,6 +23,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -37,19 +40,32 @@ import java.util.Locale
     var category by rememberSaveable { mutableStateOf("Questions") }
     var query by rememberSaveable { mutableStateOf("") }
     var notice by remember { mutableStateOf<String?>(null) }
+    val scope=rememberCoroutineScope()
+    DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
     fun refresh() { revision++ }
+    /** Library changes the person asked for; a failed save is shown, never a crash. */
+    fun change(action:()->Unit) { runCatching(action).onFailure { notice=it.message ?: "Could not save your library." };refresh() }
     fun goHome() { screen="home";refresh() }
     fun open(set:StudySet) { selectedId=set.id;screen="study" }
     val imported=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if(uri!=null) runCatching {
-            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
-                val text=reader.readText(); require(text.length<=20_000_000) { "This file is too large. Import one set at a time." }
-                val count=store.importJson(text);notice="Imported $count sets";refresh()
-            }
-        }.onFailure { notice=it.message ?: "Unable to import this file" }
+        // Reading, parsing and saving a large library takes seconds: keep it off the main thread.
+        if(uri!=null) scope.launch {
+            val result=withContext(Dispatchers.IO) { runCatching {
+                val text=context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("Unable to open this file")
+                require(text.length<=20_000_000) { "This file is too large. Import one set at a time." }
+                store.importJson(text)
+            } }
+            notice=result.fold({ "Imported $it sets" }) { it.message ?: "Unable to import this file" };refresh()
+        }
     }
     val exported=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(store.exportJson()) };notice="Library exported" }.onFailure { notice=it.message }
+        if(uri!=null) scope.launch {
+            val result=withContext(Dispatchers.IO) { runCatching {
+                val stream=context.contentResolver.openOutputStream(uri) ?: error("Unable to write to that location")
+                stream.bufferedWriter().use { it.write(store.exportJson()) }
+            } }
+            notice=result.fold({ "Library exported" }) { it.message ?: "Unable to export the library" }
+        }
     }
     BackHandler(screen!="home") { goHome() }
     StethoscoreTheme(dark) {
@@ -64,10 +80,10 @@ import java.util.Locale
                             else -> ClinicalScreen(set,store,::goHome)
                         } else LaunchedEffect(Unit) { goHome() }
                     }
-                    "new" -> NewSetScreen({ store.addSet(it);refresh();open(it) },::goHome)
+                    "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { refresh();open(set) }.onFailure { notice=it.message } },::goHome)
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
-                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply() },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ store.loadExamples();refresh();goHome() },::goHome)
+                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply() },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome)
                     else -> Column(Modifier.fillMaxSize()) {
                         Box(Modifier.weight(1f)) {
                             EcgGrid(Modifier.fillMaxWidth().height(250.dp))
@@ -82,12 +98,18 @@ import java.util.Locale
                                     Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) { Text("Stethoscore",fontSize=34.sp,fontWeight=FontWeight.Bold,letterSpacing=(-1).sp);PulseLine(Modifier.size(46.dp,24.dp)) }
                                     Text("A little practice. A clearer picture.",color=MaterialTheme.colorScheme.onSurfaceVariant,fontSize=14.sp)
                                 } }
-                                if(store.library.isEmpty()) {
+                                store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
+                                    Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
+                                    Text("Your library could not be opened",fontSize=20.sp,fontWeight=FontWeight.Bold)
+                                    Text(message,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Nothing is saved until it opens, so the file is never overwritten. Restart the app to try again.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                } } }
+                                if(store.library.isEmpty() && store.loadError==null) {
                                     item { WardCard(Modifier.fillMaxWidth()) {
                                         Icon(Icons.Rounded.AutoStories,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(36.dp))
                                         Text("Your ward starts here",fontSize=23.sp,fontWeight=FontWeight.Bold)
                                         Text("Bring your questions, cards and lecture notes together. Your library stays on this device.",color=MaterialTheme.colorScheme.onSurfaceVariant)
-                                        WardButton("Explore example sets",{store.loadExamples();refresh()},Modifier.fillMaxWidth())
+                                        WardButton("Explore example sets",{ change(store::loadExamples) },Modifier.fillMaxWidth(),enabled=store.loadError==null)
                                         TextButton(onClick={imported.launch(arrayOf("application/json","text/plain"))}) { Text("Import a Stethoscore library") }
                                     } }
                                 } else if(query.isBlank() && category=="Questions") {
@@ -101,7 +123,7 @@ import java.util.Locale
                                 val filtered=store.library.filter { set ->
                                     (query.isNotBlank() || when(category) { "Questions" -> set.kind==StudySetKind.MCQ || set.kind==StudySetKind.BOOK; "Cards" -> set.kind==StudySetKind.ANKI;"Cases" -> set.kind==StudySetKind.CASES;"OSCE" -> set.kind==StudySetKind.OSCE;else -> set.kind==StudySetKind.NARRATE }) && (query.isBlank() || "${set.name} ${set.subject} ${set.tags.joinToString()}".contains(query,true))
                                 }
-                                items(filtered,key={it.id}) { set -> SetRow(set,{open(set)},{store.deleteSet(set.id);refresh()}) }
+                                items(filtered,key={it.id}) { set -> SetRow(set,{open(set)},{ change { store.deleteSet(set.id) } }) }
                                 if(filtered.isEmpty() && store.library.isNotEmpty()) item { Text(if(query.isNotBlank()) "No matching sets." else "No sets here yet. Create or import one.",color=MaterialTheme.colorScheme.onSurfaceVariant) }
                                 item { Text("Study aid · Not for clinical decisions",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
                             }

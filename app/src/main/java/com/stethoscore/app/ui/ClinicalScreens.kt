@@ -1,6 +1,7 @@
 package com.stethoscore.app.ui
 
 import android.os.Handler
+import androidx.activity.compose.BackHandler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -36,7 +37,9 @@ import com.stethoscore.app.data.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
@@ -360,6 +363,7 @@ private fun CasesScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) {
     var activeId by rememberSaveable(set.id) { mutableStateOf<String?>(null) }
     val allowed = set.caseFiles.filter { it.verification.lowercase() !in setOf("flagged", "held") && it.heldBecause.isEmpty() }
     val active = allowed.firstOrNull { it.id == activeId }
+    BackHandler(active != null) { activeId = null }
     if (active != null) {
         key(active.id) { CaseWorkupScreen(set, active, store) { activeId = null } }
         return
@@ -420,9 +424,17 @@ private fun CaseWorkupScreen(set: StudySet, file: CaseFile, store: StudyStore, o
         items.put(JSONObject().put("after", action).put("ladder", JSONArray(listOf(first, second, third))).put("minutes", atMinutes))
         history = items.toString()
     }
-    LaunchedEffect(taken, first, second, third, nextStep, reason, finished, history) {
-        store.saveCaseRun(caseRunKey(set, file), JSONObject().put("taken", JSONArray(taken)).put("ladder", JSONArray(listOf(first, second, third))).put("nextStep", nextStep).put("reason", reason).put("finished", finished).put("history", JSONArray(history)).toString())
+    val runJson = JSONObject().put("taken", JSONArray(taken)).put("ladder", JSONArray(listOf(first, second, third))).put("nextStep", nextStep).put("reason", reason).put("finished", finished).put("history", JSONArray(history)).toString()
+    val latestRun by rememberUpdatedState(runJson)
+    var savedRun by remember(file.id) { mutableStateOf(store.caseRuns[caseRunKey(set, file)]) }
+    // Typing restarts this effect, so the whole library is written once the person pauses, not per keystroke.
+    LaunchedEffect(runJson) {
+        if (runJson == savedRun) return@LaunchedEffect
+        delay(600)
+        withContext(Dispatchers.IO) { store.saveCaseRun(caseRunKey(set, file), runJson) }
+        savedRun = runJson
     }
+    DisposableEffect(file.id) { onDispose { if (latestRun != savedRun) store.saveCaseRun(caseRunKey(set, file), latestRun) } }
     ClinicalColumn {
         ScreenHeader(file.patient.name.ifBlank { file.title }, "${file.patient.ageSex} · ${file.setting.replaceFirstChar { it.uppercase() }}", onBack)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -524,8 +536,13 @@ private fun CaseDebrief(set: StudySet, file: CaseFile, store: StudyStore, taken:
     val missedFlags = file.steps.filter { it.redFlag && it.id !in taken }
     val missedKeys = file.steps.filter { it.value.equals("key", true) && it.id !in taken }
     val missed = (missedFlags + missedKeys).distinctBy { it.id }
-    var cardsSaved by rememberSaveable(file.id) { mutableStateOf(false) }
-    var ideaSaved by rememberSaveable(file.id) { mutableStateOf(false) }
+    // Read "already saved" from the library, so reopening the case cannot make a second copy.
+    val deckName = "${file.title.ifBlank { file.diagnosis.name }} · missed findings"
+    val ideaTitle = file.title.ifBlank { file.diagnosis.name }
+    var saves by remember(file.id) { mutableIntStateOf(0) }
+    var saveError by remember(file.id) { mutableStateOf<String?>(null) }
+    val cardsSaved = remember(file.id, saves) { store.library.any { it.name == deckName } }
+    val ideaSaved = remember(file.id, saves) { store.notes.any { it.title == ideaTitle && "case-review" in it.tags } }
     if (missedFlags.isNotEmpty()) WardCard {
         Text("Missed red flags", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
         missedFlags.forEach { Text("${it.label}: ${it.finding}", color = MaterialTheme.colorScheme.error) }
@@ -579,8 +596,8 @@ private fun CaseDebrief(set: StudySet, file: CaseFile, store: StudyStore, taken:
     if (missed.isNotEmpty()) WardButton(if (cardsSaved) "${missed.size} cards saved to your library" else "Make cards from what I missed", onClick = {
         val source = listOf(file.source.lecture, file.source.pages).filter { it.isNotBlank() }.joinToString(" · ")
         val cards = missed.map { step -> AnkiCard(front = "${file.diagnosis.name}: what does ${step.label.lowercase()} show in this case?", bullets = listOf(step.finding), source = source.ifBlank { null }, tags = listOf("case-review")) }
-        store.addSet(StudySet(name = "${file.title.ifBlank { file.diagnosis.name }} · missed findings", subject = set.subject, kind = StudySetKind.ANKI, cards = cards, sources = set.sources, tags = listOf("case-review")))
-        cardsSaved = true
+        runCatching { store.addSet(StudySet(name = deckName, subject = set.subject, kind = StudySetKind.ANKI, cards = cards, sources = set.sources, tags = listOf("case-review"))) }.onFailure { saveError = it.message }
+        saves++
     }, modifier = Modifier.fillMaxWidth(), enabled = !cardsSaved)
     OutlinedButton(onClick = {
         val body = buildString {
@@ -592,7 +609,8 @@ private fun CaseDebrief(set: StudySet, file: CaseFile, store: StudyStore, taken:
             appendLine("\nSource: ${file.source.lecture} ${file.source.pages}")
             appendLine("Verification: ${file.verification}")
         }
-        store.saveNote(Note(title = file.title.ifBlank { file.diagnosis.name }, body = body, tags = listOf("case-review", set.subject)))
-        ideaSaved = true
+        runCatching { store.saveNote(Note(title = ideaTitle, body = body, tags = listOf("case-review", set.subject))) }.onFailure { saveError = it.message }
+        saves++
     }, modifier = Modifier.fillMaxWidth(), enabled = !ideaSaved) { Text(if (ideaSaved) "Saved to Ideas" else "Add to Ideas") }
+    saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 }

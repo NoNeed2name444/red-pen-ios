@@ -76,4 +76,39 @@ class StudyStoreTest {
         val stored = JSONObject(store.exportJson()).getJSONArray("library").getJSONObject(0)
         assertEquals("new-mode", stored.getString("kind")); assertEquals(3, stored.getJSONArray("payload").length())
     }
+    @Test fun failedSaveLeavesMemoryMatchingDisk() {
+        val store = StudyStore(folder.root)
+        val deck = StudySet(id = "deck", name = "Kept", kind = StudySetKind.ANKI, cards = listOf(AnkiCard(id = "card", front = "Q", bullets = listOf("A"))))
+        store.addSet(deck)
+        // A directory where the temporary file goes makes every write fail, like a full disk.
+        File(folder.root, "stethoscore.json.tmp").also { it.mkdir(); File(it, "keep").writeText("") }
+        var reported: String? = null
+        store.onSaveError = { reported = it }
+        store.rateCard(deck.cards[0], AnkiRating.GOOD)
+        assertNotNull(reported); assertTrue(store.reviews.isEmpty())
+        assertThrows(IllegalStateException::class.java) { store.addSet(deck.copy(id = "other", name = "Lost")) }
+        assertEquals(listOf("Kept"), store.library.map { it.name })
+        assertEquals(listOf("Kept"), StudyStore(folder.root).library.map { it.name })
+    }
+    @Test fun unreadableLibraryIsNeverOverwritten() {
+        File(folder.root, "stethoscore.json").writeText("{ truncated")
+        val store = StudyStore(folder.root)
+        assertNotNull(store.loadError)
+        assertThrows(IllegalStateException::class.java) { store.loadExamples() }
+        assertTrue(store.library.isEmpty())
+        assertEquals("{ truncated", File(folder.root, "stethoscore.json").readText())
+    }
+    @Test fun fullBackupRestoresNotesReviewsAndProgress() {
+        val source = StudyStore(folder.newFolder("source"))
+        val deck = StudySet(id = "deck", name = "Deck", kind = StudySetKind.ANKI, cards = listOf(AnkiCard(id = "card", front = "Q", bullets = listOf("A"))))
+        source.addSet(deck); source.rateCard(deck.cards[0], AnkiRating.EASY)
+        source.saveNote(Note(id = "note", title = "Idea")); source.recordAnswer("q1", true); source.setExamDate(1_800_000_000_000L)
+        val restored = StudyStore(folder.newFolder("restored"))
+        assertEquals(1, restored.importJson(source.exportJson()))
+        assertEquals(listOf("Idea"), restored.notes.map { it.title })
+        assertNotNull(restored.reviews["card"]); assertEquals(listOf(true), restored.answerHistory["q1"])
+        assertEquals(1_800_000_000_000L, restored.examDate)
+        val reopened = StudyStore(folder.root.resolve("restored"))
+        assertEquals(1, reopened.notes.size); assertEquals(1, reopened.reviews.size)
+    }
 }

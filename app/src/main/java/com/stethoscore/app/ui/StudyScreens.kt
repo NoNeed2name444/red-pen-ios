@@ -86,6 +86,15 @@ import com.stethoscore.app.data.*
     val due=remember(revision) {store.dueCards(set)}
     val card=due.firstOrNull()
     var revealed by rememberSaveable(card?.id) {mutableStateOf(false)}
+    // A card rated Again comes back in minutes: when the queue is empty, wait for the next one
+    // due within the next half hour and bring it back instead of staying on "All caught up".
+    LaunchedEffect(revision,card==null) {
+        if(card!=null) return@LaunchedEffect
+        val now=System.currentTimeMillis()
+        val next=set.cards.mapNotNull { store.reviews[it.id]?.takeIf { r -> !r.suspended }?.due }.filter { it>now && it-now<=30*60_000L }.minOrNull() ?: return@LaunchedEffect
+        kotlinx.coroutines.delay(next-now+500)
+        revision++
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(24.dp)) {
         ScreenHeader("Spaced review",set.name,onBack)
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {SectionLabel(set.subject);Text("${due.size} due",color=MaterialTheme.colorScheme.primary,fontWeight=FontWeight.Bold)}
