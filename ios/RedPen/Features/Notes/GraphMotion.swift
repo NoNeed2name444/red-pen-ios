@@ -178,6 +178,9 @@ struct GraphSimLooks {
     var recall: GraphRecall = .everything
     /// The Universe's rings and far links; nil in the graph look.
     var universe: GraphUniverseLooks? = nil
+    /// The graph look's link trims by style code (GraphRibbonWriter), used
+    /// when there is no Universe; empty: GraphShape.linkTrim.
+    var trims: [Float] = []
     /// Bodies of the scene before this one dying (GraphDeathStage).
     var dying: GraphDeathStage? = nil
     /// The theme's ground behind everything, and the accessibility
@@ -603,12 +606,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         ribbons = GraphRibbonWriter(halfWidth: nearWidth, material: looks.linkMaterial,
                                     samples: budgetNow.linkSamples, expected: linkCount, seeded: seeded,
                                     fence: frames, arbor: universeLooks?.arbor, bridge: universeLooks?.bridge,
-                                    trims: universeLooks?.trims ?? [])
+                                    trims: universeLooks?.trims ?? looks.trims)
         let farLook: SCNMaterial = universeLooks?.farMaterial ?? looks.linkMaterial
         let farWidth: Float = universeLooks?.farHalfWidth ?? 0.10
         farRibbons = GraphRibbonWriter(halfWidth: farWidth, material: farLook, samples: budgetNow.linkSamples,
                                        seeded: seeded, fence: frames, arbor: universeLooks?.farArbor,
-                                       bridge: universeLooks?.bridge, trims: universeLooks?.trims ?? [])
+                                       bridge: universeLooks?.bridge, trims: universeLooks?.trims ?? looks.trims)
         ticker = universeLooks?.ticker
         mouths = universeLooks?.mouths
         deathKinds = infos.map(\.deathKind)
@@ -1087,10 +1090,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return home[i]
     }
 
-    /// Whether a dragged note shows its name (the design preview's close
-    /// ups turn it off, so the name does not cover the body). Set before a
-    /// drag, from the main thread.
-    var namesWhileDragged: Bool = true
+    /// Whether names show at all (the design preview's close-ups turn them
+    /// off, so a name never covers the body: a grabbed note is also the
+    /// pressed, named and chosen one). Set from the main thread.
+    var namesShown: Bool = true
 
     /// A note's radius, in the space's own units.
     func noteRadius(_ i: Int) -> Float {
@@ -1949,12 +1952,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// lock held.
     private func updateLabels(_ dt: Float, eye: SIMD3<Float>, up: SIMD3<Float>) {
         labelsWanted.removeAll(keepingCapacity: true)
-        wantLabel(hovered)
-        wantLabel(pressedNote)
-        if namesWhileDragged { wantLabel(grabbed) }
-        wantLabel(named)
-        // the chosen body keeps its name while its card is up
-        wantLabel(selected)
+        if namesShown {
+            wantLabel(hovered)
+            wantLabel(pressedNote)
+            wantLabel(grabbed)
+            wantLabel(named)
+            // the chosen body keeps its name while its card is up
+            wantLabel(selected)
+        }
         for i in labelsUp where !labelsWanted.contains(i) {
             labels[i].isHidden = true
         }

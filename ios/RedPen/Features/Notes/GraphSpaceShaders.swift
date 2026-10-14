@@ -154,7 +154,9 @@ nonisolated enum GraphStyleShaders {
     /// - comet: icy, with twinkling dust.
     ///
     /// Near each end the beam narrows (to a third of its width at the end),
-    /// so its glow meets the body as a point of light, not a square cut.
+    /// and the strip itself ends in a rounded cap (an eighth of the reach
+    /// long), so its glow meets the body as a point of light, never a
+    /// square cut.
     ///
     /// Every end but a black hole's flares where the beam leaves the body's
     /// limb (the strip starts inside the body, which hides the rest), the
@@ -468,7 +470,12 @@ nonisolated enum GraphStyleShaders {
     rp_touch = rp_touch + 0.6 * exp(-rp_lB * rp_lB) * (1.0 - rp_bhB);
     rp_touch = rp_touch * exp(-rp_s0 * rp_s0 * 5.0) * (0.9 + 0.6 * rp_lit + 0.5 * rp_arrive);
     rp_col = rp_col + mix(rp_gold, rp_white, 0.6) * rp_touch;
-    rp_col = rp_col * rpEnergy;
+    float rp_capL = 0.12 * rp_reach;
+    float rp_cA = 1.0 - clamp(rp_along / rp_capL, 0.0, 1.0);
+    float rp_cB = 1.0 - clamp(rp_toEnd / rp_capL, 0.0, 1.0);
+    float rp_cw = sqrt(max(1.0 - max(rp_cA * rp_cA, rp_cB * rp_cB), 0.0));
+    float rp_cap = 1.0 - smoothstep(0.55, 1.0, rp_e / max(rp_cw, 0.001));
+    rp_col = rp_col * rp_cap * rpEnergy;
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
 

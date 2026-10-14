@@ -1260,6 +1260,12 @@ enum GraphSceneBuilder {
         var simLooks = GraphSimLooks(linkMaterial: linkMaterial, hotRing: hotRing, hotDisk: hotDisk,
                                      clocked: clocked, emitters: emitters, trails: trails, sky: sky)
         simLooks.styler = styler
+        // each link starts just inside its body, which hides the strip's
+        // end (a comet's in its nucleus, a pulsar's in its core), as shares
+        // of the note's link radius (GraphStyleKit.linkRadius); by
+        // GraphNodeStyle.code: black hole (at its photon ring), rocky, gas
+        // giant, comet, pulsar, sun
+        simLooks.trims = [1.2, 0.85, 0.8, 0.2, 0.5, 0.85]
         // only what changed since the scene on screen pops, grows or fades
         simLooks.recall = GraphMemory.recall(ids: infos.map(\.id), edges: edges, styles: styles,
                                              lively: lively)
@@ -1873,7 +1879,7 @@ struct GraphSCNView: UIViewRepresentable {
                     camera.simdPosition = at + offset
                     camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
                 }
-                sim.namesWhileDragged = false
+                sim.namesShown = false
                 view.pointOfView = camera
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0

@@ -73,8 +73,9 @@ final class GraphPreviewUITests: XCTestCase {
                 app.launch()
                 XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30),
                               "the 3D map didn't open")
-                // framed at one second; carried from one and a half
-                usleep(dragged ? 4_000_000 : 3_000_000)
+                // framed at one second; carried from one and a half; the
+                // first launch of a style also compiles its shaders
+                usleep(dragged ? 4_500_000 : 5_000_000)
                 snap(app, "8-body-\(k + 1)-\(style)-\(dragged ? "dragged" : "rest")")
                 app.terminate()
             }
