@@ -1787,8 +1787,15 @@ Google (Antigravity, Jules, Colab) is parked for now (owner, same day).
 Order of work: 1 to 3, then 7 and 8 (server, checkable here), then 4 and 5,
 with the marks on the screens last.
 
-- [ ] 1. Why nothing reaches Verified (the unchecked step above).
-- [ ] 2. #26, the 99.999% proof on the live Worker.
+- [x] 1. Why nothing reaches Verified (the unchecked step above). Done on
+  design/verify-mechanisms (merged 14 Oct): docs/verification/why-not-verified.md;
+  88 of 90 right keys stop at the verbatim proof, which cannot read
+  multi-sentence vignettes; only 36 of 90 got three checkers' answers.
+  Nothing loosened. The proof route for vignettes is the owner's call.
+- [ ] 2. #26, the 99.999% proof on the live Worker. Plan written
+  (docs/verification/proof-plan.md): 99.999% needs 299,572 error-free
+  Verified verdicts (about $5,400); staged 99.9% about $55, 99.99% about
+  $540. Waits on a deploy, a target and its spend, and labels.
 - [ ] 3. Launch logo round 3 (Claude-Code T0036): the swirl back as one
   real, continuous tube.
 - [ ] 4. #18, rebuild the Space node models from scratch from the owner's
@@ -1912,13 +1919,15 @@ with the marks on the screens last.
     that gives them their neumorphic shape and never darkens or blurs what
     lies behind or beside them.
 - [ ] 6. Last: the owner's marks on the screens.
-- [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
+- [x] 7. (Done 14 Oct: tools/jev-standin and jev-standin.yml; oath check 30 of
+  30, 0 false alarms; NLI model is the TRIAGE_NLI_MODEL repo variable.) An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
   our own rules and server/proof.js; Layer 6 as an open cross-encoder or NLI
   model scoring each option, run in batch on GitHub Actions, with its
   thresholds tuned on our own labelled items (§22a: tune on a few hundred
   own labels).
-- [ ] 8. The DNA (§16a) and Islamic (§17) briefs as working mechanisms, not
+- [x] 8. (Done 14 Oct: server/provenance.js and oath.js; dabt caught 38 of 38
+  changed statements; a 3,000-case fuzz found no new false Verified.) The DNA (§16a) and Islamic (§17) briefs as working mechanisms, not
   only cited principles. In use today: independent witnesses (one family is
   one witness), the blind second pass (kinetic proofreading), a sensor per
   error type, retired practice (abrogation), holding back when unsure
