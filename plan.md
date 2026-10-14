@@ -1833,6 +1833,25 @@ with the marks on the screens last.
   measured frame budget; the full million in full detail on capable
   devices only. iOS 26 is the floor (ios/project.yml), so the oldest
   iPhones are the A13 ones.
+- [ ] 4e. How 4b and 4c load the map: like Minecraft, only what is near
+  you (the owner, 14 Oct: "it only loads what is near u (what shows on ur
+  screen) and when u zoom out the texture quality falls down gradually and
+  smoothly depending on how far u zoomed out"). The design:
+  - Chunks: the map is cut into cubes in an octree; a chunk outside the
+    screen (frustum) is neither drawn nor laid out. Chunks stream in and
+    out with a per-frame budget, nearest first, so a fast pan never stalls
+    a frame; a chunk not loaded yet shows its parent's summary.
+  - Level of detail by on-screen size, not a few fixed steps: a node's
+    detail (glow, shading, label, then a plain point) follows how many
+    pixels it covers. Far away, a chunk becomes one summary point of its
+    nodes (brightness = how many, colour = their mix), like distant
+    terrain; links between far chunks become one bundle per chunk pair.
+  - Smooth with no fading (the owner's rule): detail changes by
+    continuous morphing (sizes, glow radius and bundle width
+    interpolate with zoom; a summary point grows into its nodes, which
+    move out from it), never by cross-fading opacity.
+  - The frame budget from 4c sets how far each level reaches, so a slow
+    phone switches to summaries sooner and a fast iPad later.
 - [ ] 4d. A full Android app of Stethoscore (the owner chose it over a web
   map, 14 Oct): a large, separate project, planned after M3 and 4b. The
   owner has no Android device, so it is tested on CI emulators; its
