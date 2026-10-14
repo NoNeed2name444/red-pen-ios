@@ -12,7 +12,8 @@ import SwiftUI
 enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
-                          "quiz-folded", "library-end", "library-loading", "signin", "account-deleted"]
+                          "quiz-folded", "library-end", "library-loading", "signin", "account-deleted",
+                          "settings", "sheet"]
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -48,6 +49,12 @@ enum PreviewExtras {
             // after an Apple-linked account is deleted: Apple's steps for
             // removing the app from Sign in with Apple (GAP 1)
             PreviewSignIn(deleted: true)
+        case "settings":
+            // Settings, for the Ward design pass's light and dark pairs
+            NavigationStack { SettingsPage() }
+        case "sheet":
+            // a sheet over home: New set, as the dock's writing modes open it
+            LibraryView().sheet(isPresented: .constant(true)) { NewSetView() }
         default:
             EmptyView()
         }

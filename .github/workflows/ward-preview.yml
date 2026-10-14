@@ -1,0 +1,144 @@
+# A short look at the Ward design pass, light and dark, without the whole
+# design tour: home, a study screen, New set, Settings and a sheet over home,
+# in both modes on an iPhone, home at the iPhone SE's 375-point width, and a
+# recording of home while the system switches between light and dark, so the
+# colour shift can be watched.
+#
+# A push to a preview/ward-<name> branch runs it (design-preview.yml leaves
+# those branches alone); the pictures land on the shots/ward-<name> branch.
+# Each name is pushed once, so a later round takes a new name.
+name: Ward preview
+on:
+  push:
+    branches: ['preview/ward-**']
+permissions:
+  contents: read
+concurrency:
+  group: ward-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  shots:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tools
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Pick a simulator
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          candidates = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPhone") or "SE" in name:
+                      continue
+                  candidates.append(((version, name.endswith("Pro"), "Pro" in name, name), d["udid"], name))
+          candidates.sort()
+          _, udid, name = candidates[-1]
+          print(f"udid={udid}")
+          print("picked", name, file=sys.stderr)
+          PY
+      - name: Build for the simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+      - name: Pictures and the recording
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 --batteryState charged \
+            --cellularMode active --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p out/shots
+          shoot() {  # mode, screen, file name, extra launch arguments
+            local mode="$1" screen="$2" name="$3"
+            shift 3
+            xcrun simctl ui "$UDID" appearance "$mode"
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" "$@" >> out/shots.log 2>&1 \
+              || echo "launch failed: $name" >> out/shots.log
+            sleep 9
+            xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "out/shots/$name.png" >> out/shots.log 2>&1 \
+              || echo "shot failed: $name" >> out/shots.log
+          }
+          for mode in light dark; do
+            for screen in library quiz new settings sheet; do
+              shoot "$mode" "$screen" "$screen-$mode"
+            done
+            shoot "$mode" library "library-se-$mode" -uiPreviewWidth 375
+          done
+          # home while the system turns dark and back
+          xcrun simctl ui "$UDID" appearance light
+          xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+          xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library >> out/shots.log 2>&1
+          sleep 9
+          xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black out/mode-switch.mp4 &
+          REC=$!
+          sleep 3
+          for mode in dark light dark light; do
+            xcrun simctl ui "$UDID" appearance "$mode"
+            sleep 2.5
+          done
+          kill -INT $REC
+          wait $REC || true
+          for f in out/shots/*.png; do sips --resampleWidth 600 "$f" --out "$f" >/dev/null || true; done
+          ls -la out out/shots
+      - name: Keep the log
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p out
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -60 > out/errors.txt || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ward-preview
+          path: out
+  publish:
+    needs: shots
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ward-preview
+          path: out
+      - name: Push to shots/ward-<name>
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ github.ref_name }}
+        run: |
+          set -e
+          NAME="${REF#preview/}"
+          cd out
+          git init -q
+          git checkout -q -b "shots/$NAME"
+          git config user.name "red-pen-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Ward preview of ${GITHUB_SHA::7}"
+          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "shots/$NAME:shots/$NAME"
