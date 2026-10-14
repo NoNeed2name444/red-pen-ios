@@ -25,8 +25,12 @@ class ScreenshotTest {
     private fun shot(name:String) {
         compose.waitForIdle()
         val instrumentation=InstrumentationRegistry.getInstrumentation()
-        val out=File(instrumentation.targetContext.getExternalFilesDir(null),"screenshots").apply {mkdirs()}
-        check(UiDevice.getInstance(instrumentation).takeScreenshot(File(out,"$name.png")))
+        require(name.matches(Regex("[a-z0-9-]+")))
+        val device=UiDevice.getInstance(instrumentation)
+        val directory="/sdcard/Download/stethoscore-screenshots"
+        device.executeShellCommand("mkdir -p $directory")
+        device.executeShellCommand("screencap -p $directory/$name.png")
+        check(device.executeShellCommand("test -s $directory/$name.png && echo ok").trim()=="ok")
     }
     @Test fun homeLight() { val store=store();compose.setContent {StethoscoreApp(store)};compose.onNodeWithText("Stethoscore").assertIsDisplayed();shot("01-home-light") }
     @Test fun homeDark() { val store=store();compose.setContent {StethoscoreApp(store,forceDark=true)};shot("02-home-dark") }
