@@ -1,0 +1,94 @@
+# The voice sample: the same short session (tools/voice_sample/lines.json),
+# a question, its options, a right and a wrong answer with why, and the
+# spoken patient, read the way the app reads it, as MP4s to listen to:
+#
+#   voice-cloud.mp4  the natural voice (Pro): the live Worker's /tts
+#   voice-phone.mp4  the phone's own voice, each line in its tone (VoiceTone)
+#
+# The Mac reads the phone's lines (AVSpeechSynthesizer has no Linux voice);
+# Linux fetches the cloud lines and makes the films. They go to the
+# voice-samples branch, runs/<run id>/. The cloud voice needs the AI_API_KEY
+# secret (the owner key, as verification-bench.yml builds it); without it
+# only the phone's film is made.
+name: Voice sample
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['design/**', personal]
+    paths:
+      - 'tools/voice_sample/**'
+      - 'ios/RedPen/Shared/Voice/VoiceTone.swift'
+      - '.github/workflows/voice-sample.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: voice-sample-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phone:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the lines in the phone's voice
+        run: |
+          swiftc -O ios/RedPen/Shared/Voice/VoiceTone.swift tools/voice_sample/main.swift -o "$RUNNER_TEMP/render"
+          "$RUNNER_TEMP/render" tools/voice_sample/lines.json out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phone-lines
+          path: out/
+
+  film:
+    needs: phone
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: phone-lines
+          path: out/
+      - name: Read the lines in the cloud voice
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          if [ -n "$AI_API_KEY" ]; then
+            WORKER_KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+            echo "::add-mask::$WORKER_KEY"
+            export WORKER_KEY
+          fi
+          python3 tools/voice_sample/voice_sample.py cloud tools/voice_sample/lines.json out
+      - name: Make the films
+        run: |
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null; }
+          ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=0xE0E5EC:s=1080x1080 \
+            -i ios/RedPen/Assets.xcassets/LaunchLogo.imageset/launch-logo@3x.png \
+            -filter_complex "overlay=(W-w)/2:(H-h)/2" -frames:v 1 still.png
+          python3 tools/voice_sample/voice_sample.py film out still.png
+          ls -la out/*.mp4
+      - name: Publish
+        run: |
+          ls out/*.mp4 >/dev/null 2>&1 || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          dest="$RUNNER_TEMP/results"
+          if git fetch -q origin voice-samples; then
+            git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B voice-samples
+          else
+            git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan voice-samples
+            git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
+            find "$dest" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          fi
+          mkdir -p "$dest/runs/${{ github.run_id }}"
+          cp out/*.mp4 tools/voice_sample/lines.json "$dest/runs/${{ github.run_id }}/"
+          git -C "$dest" add runs
+          git -C "$dest" commit -q -m "Voice sample ${{ github.run_id }} (${{ github.sha }})"
+          git -C "$dest" push -q origin voice-samples
+          echo "runs/${{ github.run_id }} on voice-samples" >> "$GITHUB_STEP_SUMMARY"

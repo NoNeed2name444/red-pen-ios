@@ -17,8 +17,10 @@ app needs and changes nothing about the picture itself:
 - It ships that one square for every appearance. There is no separate dark or
   tinted file: iOS shows the same picture in dark mode and makes its own
   tinted version, so the icon is the render and nothing else.
-- It writes the launch logo: the icon, the wordmark and the tagline on
-  Midnight navy, flat, with no shadow.
+- It writes the launch logo: the icon, the wordmark and the tagline on a
+  clear ground, flat, with no shadow, once for light and once for dark. The
+  launch screen's colour (LaunchBackground.colorset) is the home screen's own
+  base, so the first frame runs straight on into the app.
 """
 
 from __future__ import annotations
@@ -33,13 +35,13 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 S = 1024
 SOURCE = Path("design/icon/source.png")
 
-# Midnight navy: the launch background (LaunchBackground.colorset).
-NAVY = (10, 22, 40)
-# The wordmark: "Stetho" in Clean Sheet white, "score" in the tile's sky blue
-# so it reads on navy, the tagline in a quiet blue-grey.
-INK = (243, 246, 249)
-SKY = (95, 176, 250)
-TAGLINE = (159, 176, 198)
+# The wordmark's colours on the home screen's base (WardPalette .background,
+# 0xE0E5EC light and 0x2A2E35 dark): "Stetho" in the Ward ink, "score" in
+# the primary blue, the tagline in the secondary ink.
+WORDMARK = {
+    False: {"ink": (0x0E, 0x1B, 0x2C), "accent": (0x1D, 0x5F, 0xB0), "tagline": (0x4E, 0x5E, 0x73)},
+    True: {"ink": (0xE8, 0xEE, 0xF5), "accent": (0x7D, 0xB0, 0xF2), "tagline": (0xA3, 0xB1, 0xC3)},
+}
 
 FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -163,11 +165,12 @@ def font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default(size=size)
 
 
-def launch_logo(icon: Image.Image, scale: int = 3) -> Image.Image:
-    """The first frame: icon, wordmark, tagline on Midnight navy. 300 x 240 pt.
-    The icon sits flat on the navy, as it does on a home screen: no shadow."""
+def launch_logo(icon: Image.Image, scale: int = 3, dark: bool = False) -> Image.Image:
+    """The first frame: icon, wordmark, tagline on a clear ground. 300 x 240 pt.
+    The icon sits flat, as it does on a home screen: no shadow."""
     w, h = 300 * scale, 240 * scale
-    out = Image.new("RGBA", (w, h), NAVY + (255,))
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    colors = WORDMARK[dark]
 
     side = 128 * scale
     tile = rounded(icon.resize((side, side), Image.LANCZOS))
@@ -184,8 +187,8 @@ def launch_logo(icon: Image.Image, scale: int = 3) -> Image.Image:
     total = draw.textlength("Stethoscore", font=f)
     x0 = (w - total) / 2
     y0 = 152 * scale
-    draw.text((x0, y0), "Stetho", font=f, fill=INK)
-    draw.text((x0 + left, y0), "score", font=f, fill=SKY)
+    draw.text((x0, y0), "Stetho", font=f, fill=colors["ink"])
+    draw.text((x0 + left, y0), "score", font=f, fill=colors["accent"])
 
     # the tagline, tracked by hand: PIL has no letter spacing of its own
     text = "LISTEN · LEARN · SCORE"
@@ -199,7 +202,7 @@ def launch_logo(icon: Image.Image, scale: int = 3) -> Image.Image:
         size -= 1
     x = (w - width) / 2
     for c in text:
-        draw.text((x, 214 * scale), c, font=small, fill=TAGLINE)
+        draw.text((x, 214 * scale), c, font=small, fill=colors["tagline"])
         x += draw.textlength(c, font=small) + track
     return out
 
@@ -241,13 +244,20 @@ def main() -> int:
 
     launch = Path(args.launch)
     launch.mkdir(parents=True, exist_ok=True)
-    big = launch_logo(icon, scale=3)
-    big.save(launch / "launch-logo@3x.png")
-    big.resize((600, 480), Image.LANCZOS).save(launch / "launch-logo@2x.png")
-    big.resize((300, 240), Image.LANCZOS).save(launch / "launch-logo@1x.png")
+    images = []
+    for dark in (False, True):
+        stem = "launch-logo-dark" if dark else "launch-logo"
+        big = launch_logo(icon, scale=3, dark=dark)
+        big.save(launch / f"{stem}@3x.png")
+        big.resize((600, 480), Image.LANCZOS).save(launch / f"{stem}@2x.png")
+        big.resize((300, 240), Image.LANCZOS).save(launch / f"{stem}@1x.png")
+        for n in (1, 2, 3):
+            entry = {"idiom": "universal", "scale": f"{n}x", "filename": f"{stem}@{n}x.png"}
+            if dark:
+                entry["appearances"] = [{"appearance": "luminosity", "value": "dark"}]
+            images.append(entry)
     (launch / "Contents.json").write_text(json.dumps({
-        "images": [{"idiom": "universal", "scale": f"{n}x", "filename": f"launch-logo@{n}x.png"}
-                   for n in (1, 2, 3)],
+        "images": images,
         "info": {"version": 1, "author": "xcode"},
     }, indent=2) + "\n")
 
@@ -257,7 +267,7 @@ def main() -> int:
     remove(design, STALE_DESIGN)
 
     print(out / "icon-1024.png")
-    print(f"{launch}/ launch-logo@1x, @2x, @3x")
+    print(f"{launch}/ launch-logo(-dark)@1x, @2x, @3x")
     print(f"{design}/ preview.png")
     return 0
 

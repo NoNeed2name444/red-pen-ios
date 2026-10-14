@@ -1743,11 +1743,30 @@ They answer four questions, in order:
 6. Groin_Hernia.pdf and owner-claim.txt are no longer needed; never ask
    for them.
 
+### The owner's answers of 14 Oct, second round
+
+> 1-wait more 2-deploy 3- i want the color to be seamless with the other ui
+> home screen and if it isn't at least it becomes animated ( the color
+> switching i mean) 5-give me an mp4 file i can hear now to see how it
+> sounds like
+
+- [x] Deployed (worker-deploy run 38552794025, design/voice-claude at
+  89808a08): ANTHROPIC_API_KEY uploaded, Claude votes on the owner's checks.
+  App build green on the same commit (the iOS 26 Bluetooth option compiles).
+- [x] Launch splash on the home screen's base: LaunchBackground is the Ward
+  base (0xE0E5EC / 0x2A2E35), LaunchLogo is drawn on a clear ground in a
+  light and a dark version (tools/make_icon.py). Where the app's own light
+  or dark differs from the phone's, LaunchSplash moves the colour across in
+  0.25 s (a colour shift, not a fade). Check on the Mac build.
+- [x] Voice sample: voice-sample.yml reads tools/voice_sample/lines.json in
+  the natural cloud voice (live /tts) and the phone's voice with VoiceTone,
+  as MP4s on the voice-samples branch.
+- [ ] Run the verification bench (live) for the three-family numbers.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
-- The ANTHROPIC_API_KEY repository secret, and the word to deploy.
-- The launch splash colour (midnight for now).
+- What the voice sample sounds like to them.
 - Each Worker deploy.
 
 ## 6. Standing rules

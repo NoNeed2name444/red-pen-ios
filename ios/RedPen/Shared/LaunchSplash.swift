@@ -1,8 +1,15 @@
 import SwiftUI
 
-/// The first frame: the Midnight Enamel mark and the Stethoscore wordmark on
-/// Midnight navy, then gone at once, uncovering the app that is already there
-/// underneath. It does not fade: the owner wants no fading in the app.
+/// The first frame: the mark and the Stethoscore wordmark on the home
+/// screen's own base colour (the Ward base, light or dark), then gone at once,
+/// uncovering the app that is already there underneath. Same colour before
+/// and after, so the launch runs straight on into the home screen. It does
+/// not fade: the owner wants no fading in the app.
+///
+/// The one case where the colours differ: the system launch screen follows
+/// the phone's light or dark, and the app can be set to the other one. Then
+/// the splash's colour moves from the phone's base to the app's while the
+/// logo holds, so the change is a colour shift, not a jump.
 ///
 /// The Xcode build has a real launch screen (`UILaunchScreen` in project.yml,
 /// drawing the same `LaunchLogo` image on the same colour), so there this only
@@ -26,10 +33,25 @@ struct LaunchSplash: View {
     /// that says the library is opening (LibraryLoadingView).
     static let longestHold: Double = 2
 
-    /// Midnight, #0A1628: the same as the LaunchBackground colour set, written
-    /// out so the splash never depends on the colour set being found. The
-    /// launch colour is the owner's choice, outside the Ward palette.
-    static let midnight = Color(red: 10 / 255, green: 22 / 255, blue: 40 / 255)
+    /// How long the colour takes to move to the app's, when it has to.
+    static let shift: Double = 0.25
+
+    /// Whether the phone itself (not the app's setting) is in dark mode: what
+    /// the system launch screen, LaunchBackground and LaunchLogo, was drawn
+    /// in. The screen's traits are the phone's; a window's can be the app's.
+    @MainActor static var phoneIsDark: Bool {
+        let screen = UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.screen }
+            .first
+        return screen?.traitCollection.userInterfaceStyle == .dark
+    }
+
+    /// The Ward base as the system launch screen drew it: the LaunchBackground
+    /// colour set, written out so the splash never depends on it being found.
+    static func base(dark: Bool) -> Color {
+        let (r, g, b) = WardPalette.rgb(WardPalette.hex(.background, dark: dark))
+        return Color(red: r, green: g, blue: b)
+    }
 
     /// Once per process: a second window on iPad, or a scene rebuilt after a
     /// memory warning, is not a launch.
@@ -51,15 +73,22 @@ struct LaunchSplash: View {
     @State private var visible: Bool = LaunchSplash.wanted
     /// `hold` has passed.
     @State private var held: Bool = false
+    /// The phone's light or dark, read once, at launch.
+    @State private var phoneDark: Bool = LaunchSplash.phoneIsDark
+    /// The colour has moved on to the app's own base.
+    @State private var settled: Bool = false
 
     var body: some View {
         ZStack {
             if visible {
                 ZStack {
-                    LaunchSplash.midnight.ignoresSafeArea()
+                    (settled ? Color.wardBackground : LaunchSplash.base(dark: phoneDark))
+                        .ignoresSafeArea()
                     // at its natural point size, centred in the safe area:
-                    // exactly where UILaunchScreen puts the same image
+                    // exactly where UILaunchScreen puts the same image, in
+                    // the same light or dark as the system drew it
                     Image("LaunchLogo")
+                        .environment(\.colorScheme, phoneDark ? .dark : .light)
                 }
                 // no fade, even under an animation from around it
                 .transition(.identity)
@@ -70,6 +99,9 @@ struct LaunchSplash: View {
         .task {
             guard visible else { return }
             LaunchSplash.shown = true
+            // a colour shift, not a fade: nothing changes when the app's
+            // base is the phone's, which is nearly always
+            withAnimation(.easeInOut(duration: LaunchSplash.shift)) { settled = true }
             try? await Task.sleep(nanoseconds: UInt64(LaunchSplash.hold * 1_000_000_000))
             held = true
             try? await Task.sleep(nanoseconds: UInt64((LaunchSplash.longestHold - LaunchSplash.hold) * 1_000_000_000))

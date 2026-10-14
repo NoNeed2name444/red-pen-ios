@@ -101,9 +101,10 @@ targets:
         CFBundleLocalizations:
           - en
           - ar
-        # The first frame, before any Swift runs: the Midnight Enamel mark and
-        # the wordmark on Midnight navy. LaunchSplash draws the same picture
-        # for its first frame, so the hand-over is invisible.
+        # The first frame, before any Swift runs: the mark and the wordmark on
+        # the home screen's own base colour, light or dark with the phone.
+        # LaunchSplash draws the same picture for its first frame, so the
+        # hand-over is invisible and the app runs straight on from it.
         UILaunchScreen:
           UIColorName: LaunchBackground
           UIImageName: LaunchLogo
