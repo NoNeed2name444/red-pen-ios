@@ -43,13 +43,28 @@ WORDMARK = {
     True: {"ink": (0xE8, 0xEE, 0xF5), "accent": (0x7D, 0xB0, 0xF2), "tagline": (0xA3, 0xB1, 0xC3)},
 }
 
-FONT_CANDIDATES = [
+# The wordmark in the app's own face where there is one (San Francisco, on a
+# Mac), else Inter Display, drawn to the same proportions; DejaVu last.
+WORDMARK_FONTS = [
+    "/System/Library/Fonts/SFNSDisplay-Semibold.otf",
+    "/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
-    "/Library/Fonts/DejaVuSans-Bold.ttf",
-    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-    "/System/Library/Fonts/Helvetica.ttc",
 ]
+TAGLINE_FONTS = [
+    "/System/Library/Fonts/SFNSText-Medium.otf",
+    "/usr/share/fonts/opentype/inter/Inter-Medium.otf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+
+# The relief the home screen's raised tiles have (WardRelief.raised, .high):
+# a highlight from the top left and a shade to the bottom right, 8 pt each
+# way, 12 pt soft. (highlight, shade) as (rgb, alpha).
+RELIEF = {
+    False: (((255, 255, 255), 0.85), ((0xA3, 0xB1, 0xC6), 0.6)),
+    True: (((255, 255, 255), 0.07), ((0, 0, 0), 0.55)),
+}
+RELIEF_OFFSET = 8
+RELIEF_RADIUS = 12
 
 # Files earlier versions of this script wrote and this one does not: removed
 # on the way past, so a stale appearance never ships by accident.
@@ -158,52 +173,78 @@ def rounded(img: Image.Image, radius: float = 0.225) -> Image.Image:
 
 # --- the launch logo --------------------------------------------------------
 
-def font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    for path in FONT_CANDIDATES:
+def font(size: int, faces: list[str]) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for path in faces:
         if Path(path).exists():
             return ImageFont.truetype(path, size)
     return ImageFont.load_default(size=size)
 
 
+def tracked(draw: ImageDraw.ImageDraw, text: str, f, track: float) -> float:
+    return sum(draw.textlength(c, font=f) for c in text) + track * (len(text) - 1)
+
+
+def draw_tracked(draw: ImageDraw.ImageDraw, x: float, y: float, text: str, f, track: float, fill) -> float:
+    """PIL has no letter spacing of its own: one letter at a time."""
+    for c in text:
+        draw.text((x, y), c, font=f, fill=fill)
+        x += draw.textlength(c, font=f) + track
+    return x
+
+
+def relief(shape: Image.Image, dark: bool, scale: int) -> Image.Image:
+    """The light and the shade a raised Ward tile casts, under `shape`."""
+    alpha = shape.split()[3]
+    out = Image.new("RGBA", shape.size, (0, 0, 0, 0))
+    d = RELIEF_OFFSET * scale
+    blur = ImageFilter.GaussianBlur(RELIEF_RADIUS * scale / 2)
+    for (rgb, strength), (dx, dy) in zip(RELIEF[dark], ((-d, -d), (d, d))):
+        mask = Image.new("L", shape.size, 0)
+        mask.paste(alpha, (dx, dy))
+        mask = mask.filter(blur).point(lambda v: int(v * strength))
+        layer = Image.new("RGBA", shape.size, rgb + (0,))
+        layer.putalpha(mask)
+        out = Image.alpha_composite(out, layer)
+    return out
+
+
 def launch_logo(icon: Image.Image, scale: int = 3, dark: bool = False) -> Image.Image:
-    """The first frame: icon, wordmark, tagline on a clear ground. 300 x 240 pt.
-    The icon sits flat, as it does on a home screen: no shadow."""
-    w, h = 300 * scale, 240 * scale
-    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    """The first frame: icon, wordmark, tagline on a clear ground. 300 x 260 pt.
+
+    It is drawn as part of the home screen's soft surface rather than laid on
+    it: the tile rises out of the base with the same light and shade as the
+    home screen's raised tiles, and the wordmark is set like the app's own
+    titles, semibold and slightly tight, in the Ward inks."""
+    w, h = 300 * scale, 260 * scale
     colors = WORDMARK[dark]
 
-    side = 128 * scale
+    side = 112 * scale
+    top = 30 * scale
     tile = rounded(icon.resize((side, side), Image.LANCZOS))
-    out.alpha_composite(tile, ((w - side) // 2, 10 * scale))
+    placed = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    placed.alpha_composite(tile, ((w - side) // 2, top))
+    out = relief(placed, dark, scale)
+    out.alpha_composite(placed)
 
     draw = ImageDraw.Draw(out)
-    size = 52 * scale
+    size = 40 * scale
+    track = -0.4 * scale
     while size > 10:
-        f = font(size)
-        if draw.textlength("Stethoscore", font=f) <= w - 40 * scale:
+        f = font(size, WORDMARK_FONTS)
+        if tracked(draw, "Stethoscore", f, track) <= w - 56 * scale:
             break
         size -= scale
-    left = draw.textlength("Stetho", font=f)
-    total = draw.textlength("Stethoscore", font=f)
-    x0 = (w - total) / 2
-    y0 = 152 * scale
-    draw.text((x0, y0), "Stetho", font=f, fill=colors["ink"])
-    draw.text((x0 + left, y0), "score", font=f, fill=colors["accent"])
+    total = tracked(draw, "Stethoscore", f, track)
+    x = (w - total) / 2
+    y = top + side + 20 * scale
+    x = draw_tracked(draw, x, y, "Stetho", f, track, colors["ink"]) + 0
+    draw_tracked(draw, x, y, "score", f, track, colors["accent"])
 
-    # the tagline, tracked by hand: PIL has no letter spacing of its own
     text = "LISTEN · LEARN · SCORE"
-    track = 3 * scale
-    size = 12 * scale
-    while size > 6:
-        small = font(size)
-        width = sum(draw.textlength(c, font=small) for c in text) + track * (len(text) - 1)
-        if width <= w - 40 * scale:
-            break
-        size -= 1
-    x = (w - width) / 2
-    for c in text:
-        draw.text((x, 214 * scale), c, font=small, fill=colors["tagline"])
-        x += draw.textlength(c, font=small) + track
+    small = font(10 * scale, TAGLINE_FONTS)
+    track = 2.6 * scale
+    width = tracked(draw, text, small, track)
+    draw_tracked(draw, (w - width) / 2, y + 54 * scale, text, small, track, colors["tagline"])
     return out
 
 
@@ -249,8 +290,8 @@ def main() -> int:
         stem = "launch-logo-dark" if dark else "launch-logo"
         big = launch_logo(icon, scale=3, dark=dark)
         big.save(launch / f"{stem}@3x.png")
-        big.resize((600, 480), Image.LANCZOS).save(launch / f"{stem}@2x.png")
-        big.resize((300, 240), Image.LANCZOS).save(launch / f"{stem}@1x.png")
+        big.resize((600, 520), Image.LANCZOS).save(launch / f"{stem}@2x.png")
+        big.resize((300, 260), Image.LANCZOS).save(launch / f"{stem}@1x.png")
         for n in (1, 2, 3):
             entry = {"idiom": "universal", "scale": f"{n}x", "filename": f"{stem}@{n}x.png"}
             if dark:

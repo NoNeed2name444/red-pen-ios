@@ -39,14 +39,17 @@ def cloud(lines_path: Path, out: Path) -> int:
         request = urllib.request.Request(
             f"{WORKER}/tts", method="POST",
             data=json.dumps({"text": line["text"], "voice": line["role"]}).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                     # Cloudflare turns away Python's own user agent (403)
+                     "User-Agent": "stethoscore-voice-sample/1"})
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
                 body = response.read()
                 model = response.headers.get("x-voice-model", "?")
                 kind = response.headers.get("content-type", "")
         except Exception as error:  # noqa: BLE001 - reported, then the line is skipped
-            print(f"line {index}: {getattr(error, 'code', '')} {str(error)[:120]}")
+            said = error.read()[:200].decode("utf-8", "replace") if hasattr(error, "read") else ""
+            print(f"line {index}: {getattr(error, 'code', '')} {str(error)[:120]} {said}")
             continue
         if "audio" not in kind or len(body) < 256:
             print(f"line {index}: not audio ({kind}, {len(body)} bytes)")
