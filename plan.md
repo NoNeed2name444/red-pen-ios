@@ -1829,7 +1829,18 @@ with the marks on the screens last.
     use; never StatPearls (non-commercial).
   - A Checked tier below Verified, with an in-app explanation of the
     difference.
-  Building on design/vignette-proof, VIGNETTE_ROUTE off until measured.
+  Built on design/vignette-proof and merged into personal (cdd74e81):
+  checker, CDC rule set (3 admitted, 3 pending), Checked tier, benches B1 and
+  B6. The owner turned VIGNETTE_ROUTE on, 14 Oct. Still to do:
+  - [ ] Truly independent second transcription of each rule (both passes so
+    far came from one session).
+  - [ ] One-tap owner sign-off in the app plus an owner-only endpoint in D1.
+  - [ ] A real proposer, and the app sending proof packets (until then no
+    item reaches Checked).
+  - [ ] Denial rules so two-step and contraindication can rule out options.
+  - [ ] More sources (USPSTF, FDA labels, NIH); a weekly source-change check
+    (tools/criteria/fetch-sources.mjs).
+  - [ ] Benches B2 to B5.
 - [ ] 3. Launch logo round 3 (Claude-Code T0036): the swirl back as one
   real, continuous tube.
 - [ ] 4. #18, rebuild the Space node models from scratch from the owner's
