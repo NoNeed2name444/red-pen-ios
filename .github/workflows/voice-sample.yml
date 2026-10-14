@@ -87,7 +87,7 @@ jobs:
             find "$dest" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           fi
           mkdir -p "$dest/runs/${{ github.run_id }}"
-          cp out/*.mp4 tools/voice_sample/lines.json "$dest/runs/${{ github.run_id }}/"
+          cp out/*.mp4 out/*.m4a tools/voice_sample/lines.json "$dest/runs/${{ github.run_id }}/"
           git -C "$dest" add runs
           git -C "$dest" commit -q -m "Voice sample ${{ github.run_id }} (${{ github.sha }})"
           git -C "$dest" push -q origin voice-samples

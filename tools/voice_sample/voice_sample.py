@@ -92,8 +92,15 @@ def film(out: Path, still: Path) -> int:
         audio = work / "all.wav"
         run("-f", "concat", "-safe", "0", "-i", str(listing), "-c", "copy", str(audio))
         movie = out / f"voice-{part}.mp4"
-        run("-loop", "1", "-i", str(still), "-i", str(audio), "-c:v", "libx264", "-tune", "stillimage",
-            "-pix_fmt", "yuv420p", "-r", "2", "-c:a", "aac", "-b:a", "160k", "-shortest", str(movie))
+        # what an iPhone plays without a fuss: stereo at 48 kHz, an ordinary
+        # frame rate, the index at the front (a mono, 2 fps film played
+        # silent there)
+        run("-loop", "1", "-i", str(still), "-i", str(audio), "-c:v", "libx264", "-profile:v", "main",
+            "-tune", "stillimage", "-vf", "scale=720:720", "-pix_fmt", "yuv420p", "-r", "30",
+            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-movflags", "+faststart",
+            "-shortest", str(movie))
+        run("-i", str(audio), "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
+            "-movflags", "+faststart", str(movie.with_suffix(".m4a")))
         print(movie)
     return 0
 
