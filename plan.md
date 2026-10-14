@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-09, 7:03 PM Cairo.
+Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8).
 
 ## 1. Working with the owner
 
@@ -423,12 +423,14 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
      test ever fails to end the app again, give the simulator's build of
      the map a lighter load (30 frames a second, 2× MSAA under
      `#if targetEnvironment(simulator)`).
-8. [ ] #33, the neumorphic app, was made on aahp/personal by another
+8. [x] #33, the neumorphic app, was made on aahp/personal by another
    session (the owner, 8 Oct, 4:16 PM: "anotger session is already making
    the neumorphic part"). The owner's word of 9 Oct ("i give u
    permission") moves it into personal: it is on the session branch
    claude/medical-assistant-orchestration-javb9y, and personal moves up to
    it once its preview run is checked; section 5, #33 and its follow-ups.
+   Done: personal reached d16846d on 9 Oct with App build, Swift tests and
+   iOS preview green (section 5, #33 follow-ups, item 11).
 9. [x] Port the three real fixes the branch sweep (section 5, #7) found
    only on design/prework-20261006, on design/port-prework (from 67f4714):
    - [x] The question bank's check in batches of four (from 696192f02):
@@ -1026,7 +1028,7 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       deploy, on the owner's word. Known limit, as in Chat-me: a claim
       naming two routes ("IV or IM") against evidence naming one of them
       is not a swap.
-25. [ ] Taken by the same session (9 Oct, 3:30 PM): no fading in the map
+25. [x] Taken by the same session (9 Oct, 3:30 PM): no fading in the map
     (the owner's "i don't want fading in the app", #33). The design
     session ended the fades across about 40 screens (its 451713b, on
     claude/medical-assistant-orchestration-javb9y) and relayed that
@@ -1040,6 +1042,12 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     design/map-lighter, whose App build is its compile check. The 3D
     scene's own effects (the black hole's last glow in GraphDeathScene)
     are not interface fades and stay.
+    Done in design/map-lighter babed74 (App build 37933396423 green; the
+    four transitions only, and the map's animations are already nil under
+    Reduce Motion). Merged on top of personal be11a56 on 14 Oct on the
+    session branch claude/repo-branch-status-check-4k6js8; the merged
+    Graph3DView.swift is byte-for-byte the one that built. personal
+    fast-forwards to it on the owner's word.
 26. [x] Taken by the same session (9 Oct, 3:30 PM): the server tests'
     CPU budget checks read a wall clock, so a busy machine failed them:
     proof.test.mjs's cold start (one fresh process, 19 to 48 ms alone
