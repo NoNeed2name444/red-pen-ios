@@ -1761,12 +1761,24 @@ They answer four questions, in order:
 - [x] Voice sample: voice-sample.yml reads tools/voice_sample/lines.json in
   the natural cloud voice (live /tts) and the phone's voice with VoiceTone,
   as MP4s on the voice-samples branch.
-- [ ] Run the verification bench (live) for the three-family numbers.
+- [x] Voice sample heard: the audio-only files (.m4a) play perfectly on the
+  owner's phone; the MP4s played silent there, so the .m4a is the format to
+  send (voice-sample.yml writes both).
+- [x] Verification bench, live, with Claude (run 38554454303, 90 questions,
+  180 checks): Claude answered 163 at 84.0% right, the best and steadiest
+  witness (Gemini Flash Lite 156 at 69.2%, Nemotron 58 at 82.8%, gpt-oss 43
+  at 74.4%). Every wrong key caught (90/90), no false Verified, but no right
+  item Verified either (0/90) and 85% left as Check this.
+- [ ] Next: why nothing reaches Verified. The two Workers AI checkers answer
+  under a third of the checks, so three families rarely agree on one item;
+  look at what Verified asks for (accuracy.js, accuracy-model.js) against
+  this run's results.json before changing a threshold, and cite the brief
+  any change follows.
 
 ### Waiting on the owner
 
 - The marks on the latest screens.
-- What the voice sample sounds like to them.
+- What they think of the voice itself, now that it plays.
 - Each Worker deploy.
 
 ## 6. Standing rules
