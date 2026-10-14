@@ -147,7 +147,8 @@ nonisolated enum GraphStyleShaders {
     /// - sun: hotter and whiter near it; at an A end pulses leave it fast
     ///   and swollen, like ejected plasma, then slow;
     /// - rocky planet: bluer near it, and each arriving pulse glints;
-    /// - gas giant: a wider haze;
+    /// - gas giant: a wider haze, and a bar of light across the beam where
+    ///   it crosses the ring, brighter as pulses arrive;
     /// - pulsar: rings of blue-white run out along it, two per turn of its
     ///   beams (period GraphNodeStyle.pulsarPeriod);
     /// - comet: icy, with twinkling dust.
@@ -448,6 +449,12 @@ nonisolated enum GraphStyleShaders {
     rp_arms = rp_arms + rp_arm2 * exp(-rp_gd * rp_gd * 0.6);
     float rp_glint = (rp_star + rp_arms * 0.6) * rp_arrive * rp_rkB * rp_w;
     rp_col = rp_col + float3(0.8, 0.92, 1.0) * (rp_glint * 1.5);
+    float rp_gsA = step(1.5, rp_sA) - step(2.5, rp_sA);
+    float rp_gbA = (rp_along - 1.2 * rp_reach) / (0.1 * rp_reach);
+    float rp_gbB = (rp_toEnd - 1.2 * rp_reach) / (0.1 * rp_reach);
+    float rp_bar = exp(-rp_gbA * rp_gbA) * rp_gsA + exp(-rp_gbB * rp_gbB) * rp_gsB;
+    rp_bar = rp_bar * rp_w * (0.45 + 0.4 * rp_lit + 0.9 * rp_arrive);
+    rp_col = rp_col + float3(1.0, 0.9, 0.7) * (rp_bar * 0.7);
     float rp_lA = rp_along / 0.07;
     float rp_lB = rp_toEnd / 0.07;
     float rp_touch = exp(-rp_lA * rp_lA) * (1.0 - rp_bhA);
@@ -461,18 +468,16 @@ nonisolated enum GraphStyleShaders {
     // MARK: the black hole
 
     /// The accretion disk, face on in its own plane (GraphSim turns the
-    /// plane): streaky orbits whose inner lanes run ahead (Keplerian shear,
-    /// two cross-faded eight-second phases so the pattern never winds up),
-    /// three hot spots each at its own orbital pace, Doppler beaming from
-    /// the real direction each point moves relative to the eye, and a thin
-    /// line on the innermost stable orbit. At full quality each phase also
-    /// carries turbulent streaks: value noise drawn long along the orbit and
-    /// fine across it, sheared with the phase so it flows at Kepler's pace
-    /// (SpaceOptics.keplerRate). The plane's z scale carries how hard the
-    /// note is moving: the disk runs hotter (flares when dragged). Below
-    /// full quality (rpDetail 0) only one phase is drawn, without the
-    /// streaks: the pattern then re-seeds every eight seconds with a soft
-    /// step instead of a cross-fade.
+    /// plane), where the ray-traced ring (bhRing) is not used: streaky
+    /// orbits in 34 lanes, each lane turning rigidly at Kepler's pace for
+    /// its radius, so inner lanes run ahead and the pattern shears without
+    /// ever winding up or being redrawn (no cross-fade); three hot spots
+    /// each at its own orbital pace; Doppler beaming from the real direction
+    /// each point moves relative to the eye; and a thin line on the
+    /// innermost stable orbit. At full quality the lanes also carry
+    /// turbulent streaks (value noise drawn long along the orbit). The
+    /// plane's z scale carries how hard the note is moving: the disk runs
+    /// hotter (flares when dragged).
     static let bhDisk: String = """
     #pragma arguments
     float rpClock;
@@ -488,44 +493,22 @@ nonisolated enum GraphStyleShaders {
     float rp_a = atan2(rp_qy, rp_qx);
     float rp_t = rpClock * rpMotion;
     float rp_kep = pow(rp_in / max(rp_r, rp_in), 1.5);
-    float rp_om = 1.4 * (rp_kep - 0.28);
-    float rp_f1 = fract(rp_t * 0.125);
-    float rp_f2 = fract(rp_t * 0.125 + 0.5);
-    float rp_w1 = 1.0 - abs(2.0 * rp_f1 - 1.0);
-    float rp_n1 = floor(rp_t * 0.125);
-    float rp_n2 = floor(rp_t * 0.125 + 0.5) + 7.0;
     float rp_rb = floor(rp_r * 34.0);
-    float rp_a1 = rp_a - rp_om * rp_f1 * 8.0;
-    float rp_h1 = fract(sin(rp_rb * 7.13 + rp_n1 * 1.618) * 43758.5453);
+    float rp_lane = pow(rp_in / max((rp_rb + 0.5) / 34.0, rp_in), 1.5);
+    float rp_a1 = rp_a - 1.4 * rp_lane * rp_t;
+    float rp_h1 = fract(sin(rp_rb * 7.13) * 43758.5453);
     float rp_k1 = 1.0 + floor(rp_h1 * 4.0);
     float rp_v1 = sin(rp_a1 * 3.0 + rp_r * 20.0) * 0.6;
     float rp_arc1 = 0.5 + 0.5 * sin(rp_a1 * rp_k1 + rp_h1 * 6.2831 + rp_v1);
     rp_arc1 = rp_arc1 * rp_arc1 * rp_arc1;
     float rp_fw1 = sin(rp_a1 * 5.0 + rp_h1 * 3.0) * 1.4;
     float rp_fn1 = 0.5 + 0.5 * sin(rp_r * 170.0 + rp_fw1);
-    float rp_p1 = 0.3 + 0.45 * rp_arc1 * (0.4 + 0.6 * rp_h1);
-    rp_p1 = rp_p1 + 0.25 * rp_fn1;
+    float rp_pat = 0.3 + 0.45 * rp_arc1 * (0.4 + 0.6 * rp_h1);
+    rp_pat = (rp_pat + 0.25 * rp_fn1) * (0.85 + 0.15 * rp_kep);
     if (rpDetail > 0.5) {
 
-    """ + GraphShaderKit.noise("rp_dn1", "float3(cos(rp_a1) * 2.6, sin(rp_a1) * 2.6, rp_r * 30.0 + rp_n1 * 3.1)") + """
-    rp_p1 = rp_p1 * (0.68 + 0.64 * rp_dn1);
-    }
-    float rp_pat = rp_p1;
-    if (rpDetail > 0.5) {
-    float rp_a2 = rp_a - rp_om * rp_f2 * 8.0;
-    float rp_h2 = fract(sin(rp_rb * 7.13 + rp_n2 * 1.618) * 43758.5453);
-    float rp_k2 = 1.0 + floor(rp_h2 * 4.0);
-    float rp_v2 = sin(rp_a2 * 3.0 + rp_r * 20.0) * 0.6;
-    float rp_arc2 = 0.5 + 0.5 * sin(rp_a2 * rp_k2 + rp_h2 * 6.2831 + rp_v2);
-    rp_arc2 = rp_arc2 * rp_arc2 * rp_arc2;
-    float rp_fw2 = sin(rp_a2 * 5.0 + rp_h2 * 3.0) * 1.4;
-    float rp_fn2 = 0.5 + 0.5 * sin(rp_r * 170.0 + rp_fw2);
-    float rp_p2 = 0.3 + 0.45 * rp_arc2 * (0.4 + 0.6 * rp_h2);
-    rp_p2 = rp_p2 + 0.25 * rp_fn2;
-
-    """ + GraphShaderKit.noise("rp_dn2", "float3(cos(rp_a2) * 2.6, sin(rp_a2) * 2.6, rp_r * 30.0 + rp_n2 * 3.1)") + """
-    rp_p2 = rp_p2 * (0.68 + 0.64 * rp_dn2);
-    rp_pat = mix(rp_p2, rp_p1, rp_w1);
+    """ + GraphShaderKit.noise("rp_dn1", "float3(cos(rp_a1) * 2.6, sin(rp_a1) * 2.6, rp_r * 30.0)") + """
+    rp_pat = rp_pat * (0.68 + 0.64 * rp_dn1);
     }
     float rp_rise = smoothstep(0.0, 0.05, rp_u);
     float rp_fall = pow(max(1.0 - rp_u, 0.0), 1.2);
@@ -613,7 +596,7 @@ nonisolated enum GraphStyleShaders {
     float rp_v = min(abs(rp_code), 0.99999);
     float rp_kq = floor(rp_v * 256.0);
     float rp_k = rp_kq / 255.0;
-    float rp_m = clamp((rp_v * 256.0 - rp_kq) / 0.96, 0.0, 1.0) * rpMotion;
+    float rp_m = clamp((rp_v * 256.0 - rp_kq - 0.02) / 0.96, 0.0, 1.0) * rpMotion;
     float rp_t = rpClock * rpMotion;
     float3 rp_pos = scn_node.modelTransform[3].xyz;
     float rp_seed = fract(dot(rp_pos, float3(0.37, 0.51, 0.29)));
@@ -988,7 +971,7 @@ nonisolated enum GraphStyleShaders {
     float3 rp_water = mix(rpTintA * 0.75, rpTintB, rp_depth * rp_depth * rp_depth);
     float3 rp_alb = mix(rp_water, rp_ground, rp_land);
     float rp_ice = smoothstep(0.8, 0.9, rp_lat + 0.22 * (rp_h - 0.5) + 0.05 * rp_wq);
-    float rp_snow = smoothstep(0.85, 1.0, rp_alt + rp_lat * 0.3) * rp_land;
+    float rp_snow = smoothstep(0.97, 1.1, rp_alt + rp_lat * 0.3) * rp_land;
     rp_alb = mix(rp_alb, float3(0.9, 0.93, 0.97), max(rp_ice, rp_snow));
     float rp_relief = 0.5;
     if (rpDetail > 0.5) {
@@ -1007,15 +990,15 @@ nonisolated enum GraphStyleShaders {
 
     """ + GraphShaderKit.fbm("rp_cf", "float3(rp_pw.x * 4.2, rp_pw.y * 7.0, rp_pw.z * 4.2) + float3(rp_cw * 1.4, 0.0, 0.0)", octaves: "rp_coct") + """
     float rp_belt = 0.78 + 0.22 * cos(rp_p.y * 7.0) + 0.1 * smoothstep(0.6, 0.9, rp_lat);
-    float rp_cloud = smoothstep(0.5, 0.68, rp_cf * rp_belt + 0.02);
-    rp_cloud = rp_cloud * (0.55 + 0.45 * smoothstep(0.35, 0.65, rp_cw));
+    float rp_cloud = smoothstep(0.54, 0.74, rp_cf * rp_belt);
+    rp_cloud = rp_cloud * (0.45 + 0.4 * smoothstep(0.35, 0.65, rp_cw));
     float rp_ndl = dot(rp_N, rp_Lv);
     float rp_day = smoothstep(-0.08, 0.22, rp_ndl);
     float rp_sun = 1.15 * rp_day * pow(max(rp_ndl, 0.03), 0.7);
     float rp_dk = rp_ndl - 0.04;
     float rp_dusk = exp(-rp_dk * rp_dk * 90.0);
     float3 rp_tint = mix(float3(1.0, 1.0, 1.0), float3(1.0, 0.55, 0.3), rp_dusk * 0.7);
-    float rp_shape = mix(1.0, 0.6 + 0.8 * rp_relief, rp_land * (0.45 + 0.55 * rp_alt));
+    float rp_shape = mix(1.0, 0.75 + 0.5 * rp_relief, rp_land * (0.4 + 0.6 * rp_alt));
     float rp_shadow = 1.0 - 0.35 * smoothstep(0.45, 0.7, rp_cf * rp_belt) * (1.0 - rp_cloud);
     float3 rp_col = rp_alb * rp_tint * (0.006 + rp_sun * rp_shape * rp_shadow);
     float rp_cdl = smoothstep(-0.12, 0.28, rp_ndl) * pow(max(rp_ndl + 0.1, 0.02), 0.6);
@@ -1076,9 +1059,12 @@ nonisolated enum GraphStyleShaders {
     /// glow), on the lifted billboard: brightest on the sun's side, and a
     /// whole glowing ring when the sun is behind it; warmer where the
     /// terminator meets the limb (light through more air at sunset).
+    /// rpThin weighs the thin bright line on the limb: a planet's, not a
+    /// gas giant's (an oblate limb would leave a gap under a round line).
     static let halo: String = """
     #pragma arguments
     float rpProbe;
+    float rpThin;
     float3 rpTintA;
 
     """ + lightArguments + """
@@ -1095,7 +1081,7 @@ nonisolated enum GraphStyleShaders {
     float rp_back = max(-rp_Lv.z, 0.0);
     float rp_face = clamp(rp_dir * 0.8 + 0.35, 0.0, 1.0);
     float rp_lit = 0.12 + 1.1 * rp_face + 0.9 * rp_back;
-    float3 rp_col = rpTintA * ((rp_thin * 0.5 + rp_soft * 0.35) * rp_lit);
+    float3 rp_col = rpTintA * ((rp_thin * 0.5 * rpThin + rp_soft * 0.35) * rp_lit);
     float rp_edge = exp(-rp_dir * rp_dir * 8.0) * (1.0 - rp_back);
     rp_col = rp_col * mix(float3(1.0, 1.0, 1.0), float3(1.35, 0.75, 0.55), rp_edge * 0.6);
     rp_col = rp_col * clamp((1.0 - rp_r) / 0.2, 0.0, 1.0);
@@ -1119,16 +1105,21 @@ nonisolated enum GraphStyleShaders {
         """
     }
 
-    /// A gas giant: bands whose edges churn (a few octaves of value noise
-    /// round each latitude), each band's jet running at its own speed, fine
-    /// zonal streaks along them; a storm drifting with its band, its clouds
-    /// spiralling round its eye; paler poles; lit towards the nearest sun
-    /// with a gas giant's soft limb darkening; and, when it has a ring
-    /// (`rpRinged`), the ring's shadow on the clouds (SpaceOptics
-    /// .ringShadowRadius). Dragged (its z scale) the churn stretches out
-    /// along the bands - they smear - and fine streaks show. y is its spin
-    /// axis; the ring lies in y = 0. Palette per folder: rpTintA cream, B
-    /// tan, C rust, D the poles.
+    /// A gas giant, after Jupiter and Saturn: alternating pale zones and
+    /// darker belts of uneven width, each band's jet running its own way at
+    /// its own speed (so the bands shear past each other), their edges
+    /// churned into eddies by turbulence stretched along the latitudes,
+    /// fine streaks inside each band; a string of small white ovals in the
+    /// north; a great storm drifting with its band, its clouds spiralling
+    /// round its eye inside a pale collar, the bands bowing round it;
+    /// mottled paler poles; lit towards the nearest sun with a gas giant's
+    /// soft limb darkening. With a ring (`rpRinged`): the ring's shadow on
+    /// the clouds (SpaceOptics.ringShadowRadius), and the ring's near arc
+    /// dimming the clouds behind it (the same density, along the line to
+    /// the eye), so it crosses the disc as a real ring does. Dragged (its z
+    /// scale) the jets quicken and the churn smears out along the bands. y
+    /// is its spin axis; the ring lies in y = 0. Palette per folder:
+    /// rpTintA cream, B tan, C rust, D the poles.
     static let gasBody: String = """
     #pragma arguments
     float rpClock;
@@ -1148,37 +1139,57 @@ nonisolated enum GraphStyleShaders {
     float rp_t = rpClock * rpMotion;
     float rp_lat = rp_p.y;
     float rp_lon = atan2(rp_p.z, rp_p.x);
-    float rp_bi = floor(rp_lat * 7.0 + 3.5);
-    float rp_om = (fract(sin(rp_bi * 3.7) * 43758.5453) - 0.5) * 0.3;
-    float rp_lb = rp_lon + rp_t * rp_om;
-    float rp_R = 1.8 * (1.0 - 0.7 * rp_m);
-    float3 rp_bp = float3(cos(rp_lb) * rp_R, rp_lat * 5.5, sin(rp_lb) * rp_R);
-    int rp_oct = rpDetail > 0.5 ? 4 : 2;
-
-    """ + GraphShaderKit.fbm("rp_tb", "rp_bp + float3(0.0, 0.0, rp_t * 0.012)", octaves: "rp_oct") + """
-    float rp_lw = rp_lat + 0.06 * (rp_tb - 0.5) * (1.0 - 0.5 * rp_m);
-    float rp_tone = 0.5 + 0.3 * sin(rp_lw * 18.0 + 0.5);
-    rp_tone = rp_tone + 0.12 * sin(rp_lw * 41.0 + 2.0);
-    rp_tone = rp_tone + 0.2 * sin(rp_lw * 7.0 + 1.1);
-
-    """ + GraphShaderKit.noise("rp_zs", "float3(cos(rp_lb) * rp_R * 3.0, rp_lw * 46.0, sin(rp_lb) * rp_R * 3.0)") + """
-    rp_tone = rp_tone + (rp_zs - 0.5) * 0.16 + rp_m * 0.1 * sin(rp_lw * 90.0 + rp_lb * 0.5);
-    float3 rp_cloud = mix(rpTintC, rpTintB, smoothstep(0.1, 0.5, rp_tone));
-    rp_cloud = mix(rp_cloud, rpTintA, smoothstep(0.5, 0.85, rp_tone));
-    rp_cloud = mix(rp_cloud, rpTintD, smoothstep(0.72, 0.92, abs(rp_lat)));
-    float rp_so = rp_lb - rp_t * 0.02 - 1.0;
-    rp_so = rp_so - 6.2831853 * floor(rp_so / 6.2831853 + 0.5);
     float rp_cl = sqrt(max(1.0 - rp_lat * rp_lat, 0.0));
-    float rp_stx = rp_so * rp_cl / (0.26 * (1.0 + 0.8 * rp_m));
-    float rp_sty = (rp_lat + 0.34) / 0.09;
+    float rp_so = rp_lon + rp_t * 0.02 - 3.9;
+    rp_so = rp_so - 6.2831853 * floor(rp_so / 6.2831853 + 0.5);
+    float rp_stx = rp_so * rp_cl / 0.27;
+    float rp_sty = (rp_lat - 0.3) / 0.1;
     float rp_s2 = rp_stx * rp_stx + rp_sty * rp_sty;
     float rp_sr = sqrt(rp_s2);
-    float rp_swirl = 0.5 + 0.5 * sin(atan2(rp_sty, rp_stx) * 2.0 + rp_sr * 7.0 - rp_t * 0.5);
-    float rp_storm = exp(-rp_s2 * 1.4);
-    float rp_rimd = (rp_sr - 1.1) / 0.3;
-    float rp_srim = exp(-rp_rimd * rp_rimd) * 0.35;
-    rp_cloud = mix(rp_cloud, float3(0.74, 0.3, 0.16) * (0.8 + 0.35 * rp_swirl), rp_storm * 0.85);
-    rp_cloud = rp_cloud + float3(0.9, 0.8, 0.65) * (rp_srim * 0.3);
+    float rp_bq0 = rp_lat * 6.5 + 0.13 * sin(rp_lat * 9.0);
+    rp_bq0 = rp_bq0 + 0.35 * exp(-rp_s2 * 0.3) * rp_sty / (1.0 + abs(rp_sty));
+    float rp_bi = floor(rp_bq0 + 0.5);
+    float rp_way = 1.0 - 2.0 * (rp_bi - 2.0 * floor(rp_bi * 0.5));
+    float rp_om = (0.04 + 0.12 * fract(sin(rp_bi * 3.7) * 43758.5453)) * rp_way * (1.0 + 0.8 * rp_m);
+    float rp_lb = rp_lon + rp_t * rp_om;
+    float rp_R = 1.6 * (1.0 - 0.6 * rp_m);
+    float3 rp_ring3 = float3(cos(rp_lb) * rp_R, rp_lat * 9.0, sin(rp_lb) * rp_R);
+    int rp_oct = rpDetail > 0.5 ? 5 : 3;
+
+    """ + GraphShaderKit.fbm("rp_tb", "rp_ring3 + float3(0.0, 0.0, rp_t * 0.01)", octaves: "rp_oct")
+        + GraphShaderKit.noise("rp_ed", "float3(rp_ring3.x * 4.0, rp_lat * 34.0, rp_ring3.z * 4.0)") + """
+    float rp_bq = rp_bq0 + (rp_tb - 0.5) * 0.6 + (rp_ed - 0.5) * 0.2 * (1.0 - 0.6 * rp_m);
+    float rp_bj = floor(rp_bq);
+    float rp_bf = rp_bq - rp_bj;
+    float rp_par = rp_bj - 2.0 * floor(rp_bj * 0.5);
+    float rp_h1 = fract(sin(rp_bj * 12.9898) * 43758.5453);
+    float rp_h2 = fract(sin((rp_bj + 1.0) * 12.9898) * 43758.5453);
+    float rp_t1 = mix(0.74 + 0.24 * rp_h1, 0.14 + 0.3 * rp_h1, rp_par);
+    float rp_t2 = mix(0.74 + 0.24 * rp_h2, 0.14 + 0.3 * rp_h2, 1.0 - rp_par);
+    float rp_tone = mix(rp_t1, rp_t2, smoothstep(0.72, 1.0, rp_bf));
+
+    """ + GraphShaderKit.noise("rp_zs", "float3(rp_ring3.x * 2.2, rp_bq * 16.0, rp_ring3.z * 2.2)") + """
+    rp_tone = rp_tone + (rp_zs - 0.5) * 0.24 + rp_m * 0.07 * sin(rp_bq * 70.0);
+    float3 rp_cloud = mix(rpTintC * (0.8 + 0.3 * rp_h1), rpTintB, smoothstep(0.1, 0.5, rp_tone));
+    rp_cloud = mix(rp_cloud, rpTintA, smoothstep(0.5, 0.88, rp_tone));
+    float rp_oq = rp_lb * 1.9098593 + 0.3;
+    float rp_ox = (fract(rp_oq) - 0.5) / 0.16;
+    float rp_oy = (rp_lat - 0.56 + 0.02 * (rp_tb - 0.5)) / 0.032;
+    float rp_ov = exp(-rp_ox * rp_ox - rp_oy * rp_oy) * step(0.45, fract(sin(floor(rp_oq) * 7.31) * 43758.5453));
+    rp_cloud = mix(rp_cloud, float3(0.97, 0.95, 0.9), rp_ov * 0.85);
+    float rp_pole = smoothstep(0.6, 0.97, abs(rp_lat) + 0.06 * (rp_tb - 0.5));
+    rp_cloud = mix(rp_cloud, mix(rp_cloud, rpTintD, 0.6) * (0.8 + 0.4 * rp_tb), rp_pole);
+    float rp_sa = atan2(rp_sty, rp_stx) + 2.6 * exp(-rp_sr * 1.2) - rp_t * 0.35;
+
+    """ + GraphShaderKit.noise("rp_sn", "float3(cos(rp_sa) * 2.2, sin(rp_sa) * 2.2, rp_sr * 2.5)") + """
+    float rp_sw = rp_sr * (1.0 + 0.16 * (rp_sn - 0.5));
+    float rp_storm = 1.0 - smoothstep(0.82, 1.08, rp_sw);
+    float3 rp_red = mix(float3(0.66, 0.27, 0.15), float3(0.86, 0.5, 0.34), rp_sn);
+    rp_red = rp_red * (0.85 + 0.25 * smoothstep(0.0, 0.7, rp_sr));
+    float rp_cd = (rp_sw - 1.2) / 0.16;
+    float rp_collar = exp(-rp_cd * rp_cd);
+    rp_cloud = mix(rp_cloud, rp_red, rp_storm * 0.92);
+    rp_cloud = mix(rp_cloud, float3(0.95, 0.9, 0.82), rp_collar * 0.45);
     float rp_ly = abs(rp_Lo.y) < 0.001 ? 0.001 : rp_Lo.y;
     float rp_tt = -rp_lat / rp_ly;
     float rp_hx = rp_p.x + rp_Lo.x * rp_tt;
@@ -1186,25 +1197,36 @@ nonisolated enum GraphStyleShaders {
     float rp_rho = sqrt(rp_hx * rp_hx + rp_hz * rp_hz);
     """ + ringDensity("rp") + """
     float rp_shade = 1.0 - 0.6 * rp_den * step(0.0, rp_tt) * rpRinged;
+    float3 rp_Vo = float3(dot(rp_v0, rp_V), dot(rp_v1, rp_V), dot(rp_v2, rp_V));
+    float rp_vy = abs(rp_Vo.y) < 0.001 ? 0.001 : rp_Vo.y;
+    float rp_tv = -rp_lat / rp_vy;
+    float rp_vx = rp_p.x + rp_Vo.x * rp_tv;
+    float rp_vz = rp_p.z + rp_Vo.z * rp_tv;
+    float rq_rho = sqrt(rp_vx * rp_vx + rp_vz * rp_vz);
+    """ + ringDensity("rq") + """
+    float rp_veil = 1.0 - 0.8 * rq_den * step(0.0, rp_tv) * rpRinged;
     float rp_ndl = dot(rp_N, rp_Lv);
     float rp_day = smoothstep(-0.1, 0.3, rp_ndl) * pow(max(rp_ndl, 0.04), 0.6);
-    float rp_k = (0.02 + 1.1 * rp_day * rp_shade) * (0.62 + 0.38 * pow(max(rp_mu, 0.001), 0.4));
+    float rp_k = (0.015 + 1.1 * rp_day * rp_shade) * (0.6 + 0.4 * pow(max(rp_mu, 0.001), 0.45));
     float3 rp_col = rp_cloud * rp_k;
     float rp_lm = 1.0 - rp_mu;
     float rp_fr = rp_lm * rp_lm * rp_lm;
-    rp_col = rp_col + float3(0.9, 0.78, 0.55) * (rp_fr * 0.35 * smoothstep(-0.3, 0.5, rp_ndl));
+    rp_col = rp_col + float3(0.9, 0.78, 0.55) * (rp_fr * 0.18 * smoothstep(-0.3, 0.5, rp_ndl));
+    rp_col = rp_col * rp_veil;
 
     """ + bodyEnd
 
     /// A gas giant's ring, in the disk's plane (its half side 2.4 planet
-    /// radii): a faint C ring, the bright B ring, the Cassini division and
-    /// the A ring with its thin Encke gap, smooth ringlets of their own
-    /// brightness all across, colour shading from grey-brown inside to
-    /// cream; brightly lit on the face the sun shines on, dim on the other
-    /// unless the sun is behind it (dusty rings glow forward); and the
-    /// planet's shadow across it on the far side from the sun
-    /// (SpaceOptics.planetShadowsRing). Its z scale carries the planet's
-    /// motion: it shimmers brighter.
+    /// radii): the faint grey C ring, the bright cream B ring, the dark
+    /// Cassini division, the greyer A ring with its thin Encke gap; ringlets
+    /// at two scales across all of it (the finest only when the ring is big
+    /// enough on screen to show them without shimmering). Lit on the face
+    /// the sun shines on, dim on the other unless the sun is behind it
+    /// (dusty rings glow forward); the planet's shadow across it on the far
+    /// side from the sun (SpaceOptics.planetShadowsRing). The planet dims
+    /// what the ring hides of it (gasBody), so here the ring only adds its
+    /// own light. Its z scale carries the planet's motion: it shimmers
+    /// brighter.
     static let gasRing: String = """
     #pragma arguments
     float rpProbe;
@@ -1217,28 +1239,34 @@ nonisolated enum GraphStyleShaders {
     float rp_py = rp_qy * 2.4;
     float rp_rho = sqrt(rp_px * rp_px + rp_py * rp_py);
     """ + ringDensity("rp") + """
-    float rp_rq = rp_rho * 70.0;
-    float rp_ri = floor(rp_rq);
-    float rp_rf = fract(rp_rq);
-    rp_rf = rp_rf * rp_rf * (3.0 - 2.0 * rp_rf);
-    float rp_ra = fract(sin(rp_ri * 12.9898) * 43758.5453);
-    float rp_rb = fract(sin((rp_ri + 1.0) * 12.9898) * 43758.5453);
-    float rp_band = 0.62 + 0.55 * mix(rp_ra, rp_rb, rp_rf);
+    float rp_depth = max(-_surface.position.z, 0.001);
+    float rp_near = smoothstep(150.0, 600.0, 2600.0 * rp_zx / 4.8 / rp_depth);
+    float rp_q1 = rp_rho * 46.0;
+    float rp_i1 = floor(rp_q1);
+    float rp_f1 = fract(rp_q1);
+    rp_f1 = rp_f1 * rp_f1 * (3.0 - 2.0 * rp_f1);
+    float rp_mid = mix(fract(sin(rp_i1 * 12.9898) * 43758.5453), fract(sin((rp_i1 + 1.0) * 12.9898) * 43758.5453), rp_f1);
+    float rp_q2 = rp_rho * 240.0;
+    float rp_i2 = floor(rp_q2);
+    float rp_f2 = fract(rp_q2);
+    rp_f2 = rp_f2 * rp_f2 * (3.0 - 2.0 * rp_f2);
+    float rp_fine = mix(fract(sin(rp_i2 * 7.137) * 43758.5453), fract(sin((rp_i2 + 1.0) * 7.137) * 43758.5453), rp_f2);
+    float rp_band = (0.72 + 0.4 * rp_mid) * (1.0 + (rp_fine - 0.5) * 0.36 * rp_near);
     float rp_ek = (rp_rho - 2.14) / 0.008;
     float rp_encke = 1.0 - 0.8 * exp(-rp_ek * rp_ek);
     float rp_d = rp_den * rp_band * rp_encke;
-    float3 rp_hue = mix(float3(0.5, 0.44, 0.37), float3(0.98, 0.9, 0.74), smoothstep(1.42, 1.72, rp_rho));
-    rp_hue = mix(rp_hue, float3(0.8, 0.75, 0.66), smoothstep(1.98, 2.08, rp_rho));
+    float3 rp_hue = mix(float3(0.46, 0.41, 0.36), float3(0.96, 0.87, 0.7), smoothstep(1.44, 1.6, rp_rho));
+    rp_hue = mix(rp_hue, float3(0.8, 0.76, 0.69), smoothstep(1.98, 2.06, rp_rho));
     float3 rp_Vo = float3(dot(rp_v0, _surface.view), dot(rp_v1, _surface.view), dot(rp_v2, _surface.view));
     float rp_face = rp_Lo.z * rp_Vo.z >= 0.0 ? 1.0 : 0.0;
-    float rp_lit = (0.3 + 0.7 * abs(rp_Lo.z)) * mix(0.35, 1.0, rp_face);
+    float rp_lit = (0.3 + 0.7 * abs(rp_Lo.z)) * mix(0.3, 1.0, rp_face);
     float rp_fw = pow(max(-dot(rp_Lo, rp_Vo), 0.0), 6.0) * (1.0 - rp_face) * rp_d * (1.0 - min(rp_d, 1.0)) * 1.6;
     float rp_al = rp_px * rp_Lo.x + rp_py * rp_Lo.y;
     float rp_perp = rp_rho * rp_rho - rp_al * rp_al;
     float rp_sh = (1.0 - step(0.0, rp_al)) * (1.0 - smoothstep(0.85, 1.05, rp_perp));
-    float rp_k = rp_d * rp_lit * (1.0 - 0.88 * rp_sh);
+    float rp_k = rp_d * rp_lit * (1.0 - 0.9 * rp_sh);
     rp_k = rp_k * (0.85 + 0.3 * rp_m);
-    float3 rp_col = rp_hue * (rp_k * 0.8) + float3(1.0, 0.95, 0.85) * (rp_fw * (1.0 - rp_sh));
+    float3 rp_col = rp_hue * (rp_k * 0.75) + float3(1.0, 0.95, 0.85) * (rp_fw * (1.0 - rp_sh));
 
     """ + glowEnd
 
@@ -1264,14 +1292,18 @@ nonisolated enum GraphStyleShaders {
 
     """ + bodyEnd
 
-    /// The glow round the core and its purple-blue wind nebula, beating
-    /// with the beams. The nebula is the pulsar's own: GraphStyleAnimator
-    /// turns the plane so +y runs along the spin axis as seen
-    /// (SpaceOptics.nebula), and its z scale carries how edge-on the axis
-    /// is (|z| - 2: 0 the axis at the eye, 1 across the sky). So the torus
-    /// of wind round the equator is a ring flattened as the axis turns
-    /// across the sky, and two jets run out along the axis, shortened as
-    /// it turns towards the eye; filaments in both drift slowly outwards.
+    /// The glow round the core and its wind nebula, after the Crab's: a
+    /// tight blue-white glare beating with the beams; in the equator, a
+    /// thin bright inner ring and the broader torus outside it, both broken
+    /// into wisps that drift slowly outwards, the side coming towards the
+    /// eye brighter; two jets along the spin axis; and round it all a
+    /// synchrotron haze, blue, threaded with warm filaments. The nebula is
+    /// the pulsar's own: GraphStyleAnimator turns the plane so +y runs
+    /// along the spin axis as seen (SpaceOptics.nebula), and its z scale
+    /// carries how edge-on the axis is (|z| - 2: 0 the axis at the eye, 1
+    /// across the sky). So the rings are circles flattening into ellipses
+    /// as the axis turns across the sky, and the jets shorten as it turns
+    /// towards the eye.
     static let pulsarGlow: String = """
     #pragma arguments
     float rpClock;
@@ -1289,33 +1321,48 @@ nonisolated enum GraphStyleShaders {
     rp_b = rp_b * rp_b;
     rp_b = rp_b * rp_b;
     float rp_x = max(rp_r / rp_rl - 1.0, 0.0);
-    float rp_h = 1.0 / (1.0 + rp_x * rp_x * 5.0);
-    rp_h = rp_h * (0.55 + 0.9 * rp_b) * step(rp_rl * 0.95, rp_r);
-    float3 rp_col = float3(0.62, 0.74, 1.0) * (rp_h * 0.85);
+    float rp_h = 1.0 / (1.0 + rp_x * rp_x * 9.0) + 0.06 / (1.0 + rp_x * 0.6);
+    rp_h = rp_h * (0.5 + 0.9 * rp_b) * step(rp_rl * 0.95, rp_r);
+    float3 rp_col = float3(0.68, 0.8, 1.0) * (rp_h * 0.9);
     float rp_ratio = sqrt(max(1.0 - rp_k * rp_k, 0.0));
-    float rp_B = max(0.5 * rp_ratio, 0.05);
-    float rp_ex = rp_qx / 0.5;
+    float rp_B = max(rp_ratio, 0.08);
+    float rp_ex = rp_qx;
     float rp_ey = rp_qy / rp_B;
-    float rp_el = (sqrt(rp_ex * rp_ex + rp_ey * rp_ey) - 1.0) / (0.22 + 0.3 * (1.0 - rp_ratio));
-    float rp_ang = atan2(rp_qy, rp_qx);
+    float rp_er = sqrt(rp_ex * rp_ex + rp_ey * rp_ey) + 0.00001;
+    float rp_ang = atan2(rp_ey, rp_ex);
 
-    """ + GraphShaderKit.noise("rp_wn", "float3(cos(rp_ang) * 3.0, sin(rp_ang) * 3.0, rp_r * 6.0 - rp_t * 0.15)") + """
-    float rp_torus = exp(-rp_el * rp_el) * (0.45 + 0.75 * rp_wn);
+    """ + GraphShaderKit.noise("rp_wn", "float3(cos(rp_ang) * 3.0, sin(rp_ang) * 3.0, rp_er * 7.0 - rp_t * 0.15)") + """
+    float rp_near = 1.0 + 0.45 * rp_k * (-rp_ey / rp_er);
+    float rp_d1 = (rp_er - 0.21) / 0.022;
+    float rp_d2 = (rp_er - 0.4) / 0.085;
+    float rp_ring = exp(-rp_d1 * rp_d1) * (0.4 + 0.9 * rp_wn) * 0.55;
+    float rp_torus = exp(-rp_d2 * rp_d2) * (0.3 + 0.9 * rp_wn) * 0.38;
     float rp_ay = abs(rp_qy);
-    float rp_jet = exp(-rp_qx * rp_qx / (0.0016 + 0.01 * rp_ay)) * smoothstep(0.08, 0.2, rp_ay);
-    rp_jet = rp_jet * exp(-rp_ay / (0.12 + 0.5 * rp_k)) * (0.6 + 0.4 * rp_wn);
-    float rp_haze = exp(-rp_r / 0.35) * 0.12 * (0.7 + 0.6 * rp_wn);
-    float3 rp_neb = mix(float3(0.42, 0.3, 1.0), float3(0.35, 0.62, 1.0), rp_wn);
-    rp_col = rp_col + rp_neb * ((rp_torus * 0.38 + rp_jet * 0.45 + rp_haze) * (0.85 + 0.3 * rp_b));
+    float rp_jet = exp(-rp_qx * rp_qx / (0.0012 + 0.008 * rp_ay)) * smoothstep(0.08, 0.2, rp_ay);
+    rp_jet = rp_jet * exp(-rp_ay / (0.1 + 0.45 * rp_k)) * (0.6 + 0.4 * rp_wn) * 0.5;
+    float rp_ne = length(float2(rp_qx / 0.72, rp_qy / 0.6));
+
+    """ + GraphShaderKit.noise("rp_fm", "float3(rp_qx * 2.4 + 3.0, rp_qy * 2.4, rp_t * 0.01)")
+        + GraphShaderKit.noise("rp_fa", "float3(rp_qx * 5.0 + rp_fm * 1.5, rp_qy * 5.0 - rp_fm * 1.2, 2.0 + rp_t * 0.012)")
+        + GraphShaderKit.noise("rp_fb", "float3(rp_qx * 13.0, rp_qy * 13.0, 5.0)") + """
+    float rp_ra = 1.0 - abs(rp_fa * 2.0 - 1.0);
+    float rp_rb = 1.0 - abs(rp_fb * 2.0 - 1.0);
+    float rp_fil = pow(rp_ra, 5.0) * (0.6 + 0.6 * rp_rb);
+    float rp_env = exp(-rp_ne * rp_ne * 2.2) * (0.5 + 0.9 * rp_fm);
+    float3 rp_syn = mix(float3(0.32, 0.42, 1.0), float3(0.55, 0.75, 1.0), rp_fm) * (rp_env * 0.28);
+    float3 rp_warm = float3(1.0, 0.5, 0.32) * (rp_fil * rp_env * 0.22);
+    float3 rp_wind = float3(0.62, 0.78, 1.0) * ((rp_ring + rp_torus) * rp_near + rp_jet);
+    rp_col = rp_col + (rp_wind + rp_syn + rp_warm) * (0.88 + 0.24 * rp_b);
     rp_col = rp_col * clamp((1.0 - rp_r) / 0.3, 0.0, 1.0);
 
     """ + glowEnd
 
     /// Both beams in one long plane along the magnetic axis (turned each
-    /// frame by GraphStyleAnimator to face the eye): cones widening
-    /// outwards, streaming, with bright knots of plasma riding out along
-    /// them, blue-white at the core and violet at the edges, brightest and
-    /// widest as the beam sweeps towards the eye (its z scale).
+    /// frame by GraphStyleAnimator to face the eye): narrow cones widening
+    /// outwards with a bright spine, plasma streaming out along them in
+    /// fine striations, blue-white at the core and violet at the edges,
+    /// brightest and widest as the beam sweeps towards the eye (its z
+    /// scale).
     static let pulsarBeam: String = """
     #pragma arguments
     float rpClock;
@@ -1328,30 +1375,27 @@ nonisolated enum GraphStyleShaders {
     float rp_t = rpClock * rpMotion;
     float rp_face = rp_m;
     float rp_ay = abs(rp_qy);
-    float rp_wd = 0.07 + 0.5 * rp_ay * (1.0 + 0.6 * rp_face);
+    float rp_wd = 0.1 + 0.34 * rp_ay * (1.0 + 0.5 * rp_face);
     float rp_ac = rp_qx / rp_wd;
-    float rp_prof = exp(-rp_ac * rp_ac * 3.0);
-    float rp_fade = smoothstep(0.03, 0.12, rp_ay) * pow(max(1.0 - rp_ay, 0.0), 1.5);
-    float rp_fph = rp_ay * 30.0 - rp_t * 18.0 + rp_qx * 4.0;
-    float rp_flow = 0.7 + 0.3 * sin(rp_fph);
+    float rp_prof = exp(-rp_ac * rp_ac * 2.5);
+    float rp_spine = exp(-rp_ac * rp_ac * 28.0);
+    float rp_fade = smoothstep(0.02, 0.1, rp_ay) * pow(max(1.0 - rp_ay, 0.0), 1.6);
+
+    """ + GraphShaderKit.noise("rp_st", "float3(rp_ac * 2.5, rp_ay * 16.0 - rp_t * 7.0, step(0.0, rp_qy) * 7.0)") + """
+    float rp_flow = 0.65 + 0.6 * rp_st;
     float rp_f2 = rp_face * rp_face;
-    float rp_k = rp_prof * rp_fade * rp_flow * (0.7 + 1.8 * rp_f2 * rp_f2);
-    float rp_side = step(0.0, rp_qy);
-    float rp_kq = rp_ay * 7.0 - rp_t * 4.5 + rp_side * 0.37;
-    float rp_kf = fract(rp_kq) - 0.5;
-    float rp_kh = fract(sin(floor(rp_kq) * 7.7 + rp_side * 3.1) * 43758.5453);
-    float rp_knot = exp(-rp_kf * rp_kf * 120.0) * step(0.35, rp_kh) * exp(-rp_ac * rp_ac * 6.0);
-    rp_k = rp_k + rp_knot * rp_fade * 0.9 * (0.6 + 0.8 * rp_f2);
-    float3 rp_hue = mix(float3(0.88, 0.94, 1.0), float3(0.5, 0.45, 1.0), clamp(abs(rp_ac) * 0.8, 0.0, 1.0));
+    float rp_k = (rp_prof * 0.85 + rp_spine * 0.9) * rp_fade * rp_flow * (0.6 + 1.9 * rp_f2 * rp_f2);
+    float3 rp_hue = mix(float3(0.9, 0.95, 1.0), float3(0.52, 0.45, 1.0), clamp(abs(rp_ac) * 0.7, 0.0, 1.0));
     float3 rp_col = rp_hue * rp_k;
 
     """ + glowEnd
 
     // MARK: the comet
 
-    /// The nucleus: small, dark and lumpy (its shading broken up by two
-    /// noises, as an irregular body's would be), its sunward side lit, and
-    /// a faint cyan glint of ice sublimating along its sunlit edge.
+    /// The nucleus: small (a third of the head, GraphStyleKit), dark and
+    /// lumpy - its shading broken up by two noises, as an irregular body's
+    /// would be - its sunward side lit. The coma's glow (cometComa) is
+    /// added over it, so it sits inside a bright head.
     static let cometNucleus: String = """
     #pragma arguments
     float rpProbe;
@@ -1361,19 +1405,18 @@ nonisolated enum GraphStyleShaders {
 
     """ + light + sphere + GraphShaderKit.noise("rp_nn", "rp_p * 2.6 + float3(2.0, 7.0, 1.0)")
         + GraphShaderKit.noise("rp_nf", "rp_p * 7.0") + """
-    float rp_ndl = dot(rp_N, rp_Lv) + (rp_nn - 0.5) * 0.7 + (rp_nf - 0.5) * 0.25;
-    float rp_k = 0.03 + 0.34 * smoothstep(-0.1, 0.45, rp_ndl);
-    float rp_alb = 0.75 + 0.35 * rp_nf;
-    float3 rp_col = float3(0.6, 0.6, 0.62) * (rp_k * rp_alb);
-    float rp_lm = 1.0 - rp_mu;
-    float rp_sub = rp_lm * rp_lm * rp_lm * smoothstep(0.0, 0.5, dot(rp_N, rp_Lv));
-    rp_col = rp_col + float3(0.6, 0.95, 1.0) * (rp_sub * 0.35);
+    float rp_ndl = dot(rp_N, rp_Lv) + (rp_nn - 0.5) * 0.7 + (rp_nf - 0.5) * 0.3;
+    float rp_k = 0.02 + 0.55 * smoothstep(-0.1, 0.5, rp_ndl);
+    float3 rp_col = float3(0.56, 0.54, 0.5) * (rp_k * (0.7 + 0.4 * rp_nf));
 
     """ + bodyEnd
 
-    /// The coma: a cyan-green glow, pushed a little towards the sun, with a
-    /// brighter fan of jets on the sunward side turning slowly as the
-    /// nucleus spins.
+    /// The coma, over the head and round it: bright and nearly white at the
+    /// middle, falling off as gas does (about one over the distance) into a
+    /// wide green glow, squashed on the sunward side and drawn out away
+    /// from it, with a fan of jets on the sunward side turning slowly as
+    /// the nucleus spins. Measured in body radii from the head (the limb
+    /// sits at 0.1875 of the plane's half side).
     static let cometComa: String = """
     #pragma arguments
     float rpClock;
@@ -1385,23 +1428,22 @@ nonisolated enum GraphStyleShaders {
 
     """ + plane + light + """
     float rp_t = rpClock * rpMotion;
-    float rp_rl = 0.1875;
     float rp_lx = dot(rp_Lv, rp_v0);
     float rp_ly = dot(rp_Lv, rp_v1);
-    float rp_cx = rp_qx - rp_lx * 0.06;
-    float rp_cy = rp_qy - rp_ly * 0.06;
-    float rp_cr = length(float2(rp_cx, rp_cy)) + 0.00001;
-    float rp_g = exp(-max(rp_cr - rp_rl * 0.8, 0.0) / 0.1) * 0.7;
-    rp_g = rp_g + exp(-rp_cr / 0.33) * 0.3;
-    float rp_sa = atan2(rp_ly, rp_lx);
-    float rp_ca = atan2(rp_cy, rp_cx);
-    float rp_dA = rp_ca - rp_sa;
-    rp_dA = rp_dA - 6.2831853 * floor(rp_dA / 6.2831853 + 0.5);
-    float rp_fan = exp(-rp_dA * rp_dA * 1.6);
-    float rp_jets = 0.55 + 0.45 * sin(rp_ca * 7.0 + rp_t * 0.6);
-    rp_g = rp_g + exp(-rp_cr / 0.16) * rp_fan * rp_jets * 0.35;
-    float3 rp_hue = mix(float3(0.85, 1.0, 0.95), float3(0.3, 0.95, 0.75), clamp(rp_cr / 0.6, 0.0, 1.0));
-    float3 rp_col = rp_hue * (rp_g * clamp((1.0 - rp_cr) / 0.3, 0.0, 1.0));
+    float rp_cx = rp_qx / 0.1875;
+    float rp_cy = rp_qy / 0.1875;
+    float rp_cr = sqrt(rp_cx * rp_cx + rp_cy * rp_cy) + 0.0001;
+    float rp_lp = sqrt(rp_lx * rp_lx + rp_ly * rp_ly) + 0.0001;
+    float rp_ca = (rp_cx * rp_lx + rp_cy * rp_ly) / (rp_cr * rp_lp);
+    float rp_sw = rp_ca * min(rp_lp * 1.5, 1.0);
+    float rp_re = rp_cr * (1.0 + 0.5 * max(rp_sw, 0.0)) * (1.0 + 0.3 * min(rp_sw, 0.0));
+    float rp_g = 0.6 / (rp_re + 0.45) * exp(-rp_re * 0.2);
+    float rp_ang = atan2(rp_cy, rp_cx);
+    float rp_jw = 0.5 + 0.5 * sin(rp_ang * 6.0 + rp_t * 0.4 + rp_cr * 0.6);
+    rp_jw = rp_jw * rp_jw;
+    float rp_fan = smoothstep(0.1, 0.8, rp_sw) * (0.4 + 0.6 * rp_jw) * exp(-rp_cr * 0.6) * 0.3;
+    float3 rp_hue = mix(float3(1.0, 0.98, 0.92), float3(0.36, 1.0, 0.66), smoothstep(0.2, 2.2, rp_cr));
+    float3 rp_col = rp_hue * ((rp_g + rp_fan) * clamp((1.0 - rp_r) / 0.3, 0.0, 1.0));
 
     """ + glowEnd
 
@@ -1443,7 +1485,8 @@ nonisolated enum GraphStyleShaders {
     /// direction and where the comet has been, its +x towards the side it
     /// lags (SpaceOptics.cometTails): broad, pale gold, curving towards +x
     /// as it goes, with faint striae fanning from the head. Its z scale
-    /// carries how fast the comet is moving: brighter.
+    /// carries how fast the comet is moving: brighter, and shedding puffs
+    /// of dust that stream away down the tail.
     static let cometDust: String = """
     #pragma arguments
     float rpClock;
@@ -1463,8 +1506,14 @@ nonisolated enum GraphStyleShaders {
     float rp_sa = atan2(rp_tx - rp_xc * 0.5, rp_ty + 0.05);
     float rp_striae = 0.8 + 0.2 * sin(rp_sa * 34.0 + rp_t * 0.2);
     float rp_head = exp(-rp_ty * 7.0) * exp(-rp_tx * rp_tx * 25.0);
-    float3 rp_col = float3(1.0, 0.92, 0.74) * (rp_fan * 0.85 * rp_striae);
+    float3 rp_col = float3(1.0, 0.92, 0.74) * (rp_fan * 1.05 * rp_striae);
     rp_col = rp_col + float3(1.0, 0.97, 0.88) * (rp_head * 0.45);
+    float rp_pq = rp_ty * 9.0 - rp_t * 2.2;
+    float rp_pf = fract(rp_pq) - 0.5;
+    float rp_ph = fract(sin(floor(rp_pq) * 5.17) * 43758.5453);
+    float rp_pd = (rp_tx - rp_xc - (rp_ph - 0.5) * rp_wd * 1.2) / (0.03 + 0.05 * rp_ty);
+    float rp_puff = exp(-rp_pf * rp_pf * 60.0 - rp_pd * rp_pd) * step(0.4, rp_ph) * rp_m;
+    rp_col = rp_col + float3(1.0, 0.93, 0.78) * (rp_puff * 0.5 * (1.0 - rp_ty));
     rp_col = rp_col * (0.8 + 0.5 * rp_m);
 
     """ + glowEnd

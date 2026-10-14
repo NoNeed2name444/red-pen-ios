@@ -128,7 +128,9 @@ final class GraphStyleKit {
         // the note's frame: tilted so a disk is seen a little from above,
         // each note a little differently
         let tilt = SCNNode()
-        let lean: Float = 0.26 + random.unit() * 0.14
+        // a black hole leans less: its disk nearly edge-on, so the lensed
+        // far side arches over the shadow
+        let lean: Float = (style == .blackHole ? 0.1 : 0.26) + random.unit() * (style == .blackHole ? 0.08 : 0.14)
         let roll: Float = random.unit() * 0.3
         let yaw: Float = random.unit() * Float.pi
         let flat = simd_quatf(angle: lean - Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
@@ -139,9 +141,12 @@ final class GraphStyleKit {
         node.addChildNode(tilt)
 
         let bodyRadius: Float = r * Self.bodyScale(style)
+        // a comet's sphere is its nucleus, a third of its head: the coma's
+        // glow round it is the rest
+        let shownRadius: Float = style == .comet ? bodyRadius * 0.35 : bodyRadius
         let body = SCNNode(geometry: bodyGeometry(style, palette: palette, look: look))
         body.categoryBitMask = 1
-        body.simdScale = SIMD3<Float>(bodyRadius, bodyRadius, bodyRadius)
+        body.simdScale = SIMD3<Float>(shownRadius, shownRadius, shownRadius)
         let bodyTurn = simd_quatf(angle: Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
         body.simdOrientation = bodyTurn
         tilt.addChildNode(body)
@@ -150,11 +155,15 @@ final class GraphStyleKit {
         // giant's ring (in the Universe only from 250 words)
         let disk = SCNNode()
         let hasDisk: Bool = Self.hasDisk(style, look: look)
-        let diskGeometry: SCNGeometry? = hasDisk ? diskGeometry(style, folder: folder, palette: palette) : nil
-        let hotDisk: SCNGeometry? = style == .blackHole && hasDisk ? hotHole().disk : nil
+        // the ray-traced black hole draws its disk on its glow (bhRing), so
+        // it needs no disk plane
+        let traced: Bool = style == .blackHole && support.has("bhRing")
+        let planeDisk: Bool = hasDisk && !traced
+        let diskGeometry: SCNGeometry? = planeDisk ? diskGeometry(style, folder: folder, palette: palette) : nil
+        let hotDisk: SCNGeometry? = style == .blackHole && planeDisk ? hotHole().disk : nil
         disk.geometry = diskGeometry
         var diskSide: Float = 0
-        if style == .blackHole && hasDisk { diskSide = r * GraphShape.diskRadius * 2 }
+        if style == .blackHole && planeDisk { diskSide = r * GraphShape.diskRadius * 2 }
         if style == .gasGiant && hasDisk { diskSide = bodyRadius * 4.8 }
         let startSpin: Float = random.unit() * Float.pi
         disk.simdEulerAngles = SIMD3<Float>(0, 0, startSpin)
@@ -174,9 +183,10 @@ final class GraphStyleKit {
         let lift: Float = reachRadius * GraphShape.ringLift
         stretch.simdPosition = SIMD3<Float>(0, 0, lift)
         stretch.opacity = 0.85
-        let ringGeometry: SCNGeometry = ringGeometry(style, folder: folder, palette: palette, look: look)
+        let ringGeometry: SCNGeometry = style == .blackHole && !hasDisk ? holeLook(folder, dormant: true).ring
+            : ringGeometry(style, folder: folder, palette: palette, look: look)
         let ring = SCNNode(geometry: ringGeometry)
-        var ringSide: Float = Self.ringSide(style, r: r, body: bodyRadius)
+        var ringSide: Float = traced ? r * 6 : Self.ringSide(style, r: r, body: bodyRadius)
         if look == .moon { ringSide = bodyRadius * 2.4 }
         ring.simdScale = SIMD3<Float>(ringSide, ringSide, 1)
         ring.renderingOrder = 6
@@ -239,7 +249,7 @@ final class GraphStyleKit {
         }
 
         var rig = GraphStyleRig(style: style, tilt: tilt, base: base, body: body,
-                                bodyRadius: bodyRadius, bodyFlat: style == .gasGiant ? 0.94 : 1,
+                                bodyRadius: shownRadius, bodyFlat: style == .gasGiant ? 0.94 : 1,
                                 bodySpin: Self.bodySpin(style), bodyTurn: bodyTurn,
                                 diskLeaf: disk, diskSide: diskSide, ringLeaf: ring, ringSide: ringSide,
                                 moon: moon, moonOrbit: bodyRadius * 2.3, beam: beam, extraSize: extra,
@@ -253,9 +263,12 @@ final class GraphStyleKit {
         // a sun's corona swells a little as it moves; its rays flare in
         // the shader (the motion rides in its plane's z scale), so the
         // chromosphere stays on the limb
-        let swell: Float = style == .sun ? 0.1 : 0
-        let gain: Float = style == .blackHole ? 1 : 0.4
-        let hotRing: SCNGeometry? = style == .blackHole ? hotHole().ring : nil
+        // a body's glow keeps its limb on the body's: no swell or stretch
+        // for the black hole, sun and planets (their glow is fitted to the
+        // limb); the pulsar's and comet's soft glows still stretch
+        let swell: Float = 0
+        let gain: Float = style == .pulsar || style == .comet ? 0.4 : 0
+        let hotRing: SCNGeometry? = style == .blackHole && hasDisk ? hotHole().ring : nil
         lightNow = .shared
         lightKey = ""
         return GraphStyledParts(node: node, ringStretch: stretch, ringLeaf: ring,
@@ -501,6 +514,7 @@ final class GraphStyleKit {
                 attach(material, GraphStyleShaders.halo)
                 let v = SCNVector3(x: air.x, y: air.y, z: air.z)
                 material.setValue(NSValue(scnVector3: v), forKey: "rpTintA")
+                material.setValue(NSNumber(value: style == .rocky ? 1.0 : 0.0), forKey: "rpThin")
                 markLit(material)
             }
             let made = Self.unitPlane(material)
@@ -579,12 +593,12 @@ final class GraphStyleKit {
 
     /// The black hole's ring and disk for a folder: the elevated shaders,
     /// or the approved older ones (GraphLook) when these did not compile.
-    private func holeLook(_ folder: UUID?) -> (ring: SCNGeometry, disk: SCNGeometry) {
-        let key: String = "hole-" + folderKey(folder)
+    private func holeLook(_ folder: UUID?, dormant: Bool = false) -> (ring: SCNGeometry, disk: SCNGeometry) {
+        let key: String = "hole-" + folderKey(folder) + (dormant ? "-dormant" : "")
         if let ring = cache[key + "-ring"], let disk = cache[key + "-disk"] { return (ring, disk) }
         let tone: UIColor = folder.flatMap { tones[$0] } ?? NoteTone.uiColor(for: folder, in: store)
         let tint: UIColor = GraphLook.tint(tone)
-        let pair = holePair(tint: tint)
+        let pair = holePair(tint: tint, dormant: dormant)
         cache[key + "-ring"] = pair.ring
         cache[key + "-disk"] = pair.disk
         return pair
@@ -599,12 +613,14 @@ final class GraphStyleKit {
         return pair
     }
 
-    private func holePair(tint: UIColor) -> (ring: SCNGeometry, disk: SCNGeometry) {
+    /// A dormant hole's ring (an empty galaxy's) traces no disk (rpDisk 0).
+    private func holePair(tint: UIColor, dormant: Bool = false) -> (ring: SCNGeometry, disk: SCNGeometry) {
         let ringMaterial: SCNMaterial
         if support.has("bhRing") {
             ringMaterial = Self.glow(GraphArt.ring)
             ringMaterial.multiply.contents = tint
             attach(ringMaterial, GraphStyleShaders.bhRing)
+            ringMaterial.setValue(NSNumber(value: dormant ? 0.0 : 1.0), forKey: "rpDisk")
         } else {
             ringMaterial = GraphLook.ring(tint: tint, hot: false, shader: shaders.ring, lively: lively)
             if shaders.ring { clocked.append(ringMaterial) }

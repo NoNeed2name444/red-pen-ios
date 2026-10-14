@@ -1782,7 +1782,10 @@ struct GraphSCNView: UIViewRepresentable {
             syncChoice(tick: false)
             buildVoice(built, in: view)
             wake()
-            if GraphPreview.drags && !previewDragged {
+            if GraphPreview.closeUp && !previewDragged {
+                previewDragged = true
+                runPreviewCloseUp()
+            } else if GraphPreview.drags && !previewDragged {
                 previewDragged = true
                 runPreviewDrag()
             } else if GraphPreview.fly != nil && !previewChosen {
@@ -1840,6 +1843,68 @@ struct GraphSCNView: UIViewRepresentable {
             sim.press(i)
             fly(to: i, animated: true)
             return true
+        }
+
+        /// For the design preview (`-graphPreviewCloseUp`): a second after
+        /// the space appears, frames the busiest note close, straight on;
+        /// with `-graphPreviewDrag` too, half a second later carries it
+        /// steadily up the screen for nine seconds, the camera following
+        /// (for ten seconds either way), so the body is caught moving at the
+        /// same framing.
+        private func runPreviewCloseUp() {
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, let sim = self.sim, let view = self.view, let camera = self.camera,
+                      let i = sim.busiestNote() else { return }
+                // near enough that the widest glow (a sun's corona, about
+                // 4.6 radii) fills the narrower side of the screen
+                let r: Float = sim.noteRadius(i)
+                var tanHalf: Float = 0.5
+                if let lens = camera.camera {
+                    let half: Float = Float(lens.fieldOfView) * Float.pi / 360
+                    let aspect: Float = Float(view.bounds.width / max(view.bounds.height, 1))
+                    let vertical: Bool = lens.projectionDirection == .vertical
+                    let tanV: Float = vertical ? tan(half) : tan(half) / max(aspect, 0.01)
+                    tanHalf = min(tanV, tanV * aspect)
+                }
+                let offset = SIMD3<Float>(0, 0, r * 4.6 / max(tanHalf, 0.05))
+                let follow: () -> Void = {
+                    let at: SIMD3<Float> = sim.world.simdConvertPosition(sim.currentPosition(i), to: nil)
+                    camera.simdPosition = at + offset
+                    camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+                }
+                view.pointOfView = camera
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = 0
+                follow()
+                SCNTransaction.commit()
+                self.wake()
+                // the camera keeps following (a settling layout moves the
+                // note a little; a drag carries it)
+                let pov: simd_float4x4 = camera.simdWorldTransform
+                let screenUp = SIMD3<Float>(pov.columns.1.x, pov.columns.1.y, pov.columns.1.z)
+                let up: SIMD3<Float> = sim.world.simdConvertVector(screenUp, from: nil)
+                var start: SIMD3<Float> = sim.currentPosition(i)
+                var held: Bool = false
+                for k in 1...600 {
+                    try? await Task.sleep(nanoseconds: 16_666_667)
+                    if GraphPreview.drags && k > 30 {
+                        if !held {
+                            held = true
+                            start = sim.currentPosition(i)
+                            sim.grab(i)
+                        }
+                        let lift: Float = Float(k - 30) / 60 * r * 1.6
+                        sim.drag(to: start + up * lift)
+                    }
+                    SCNTransaction.begin()
+                    SCNTransaction.animationDuration = 0
+                    follow()
+                    SCNTransaction.commit()
+                    self.wake()
+                }
+                if held { sim.release() }
+            }
         }
 
         /// For the design preview (`-graphPreviewDrag`): a second after the

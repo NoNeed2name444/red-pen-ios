@@ -171,8 +171,9 @@ nonisolated enum GraphStyleUniforms {
         for name in ["rpClock", "rpMotion", "rpProbe", "rpSolid"] {
             material.setValue(zero, forKey: name)
         }
-        // rpRinged: a gas giant has its ring (and its shadow) unless told not
-        for name in ["rpDetail", "rpEnergy", "rpRinged"] {
+        // rpRinged: a gas giant has its ring (and its shadow) unless told not;
+        // rpDisk: a black hole traces its disk unless dormant
+        for name in ["rpDetail", "rpEnergy", "rpRinged", "rpDisk"] {
             material.setValue(NSNumber(value: 1.0), forKey: name)
         }
         material.setValue(NSNumber(value: 0.75), forKey: "rpReach")

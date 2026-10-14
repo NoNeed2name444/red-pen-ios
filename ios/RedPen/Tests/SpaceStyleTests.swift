@@ -222,5 +222,24 @@ check("P8 the ring shadow on the clouds only with a ring", GraphStyleShaders.gas
 check("P8 the disk's Kepler shear", GraphStyleShaders.bhDisk.contains("pow(rp_in / max(rp_r, rp_in), 1.5)")
       && close(0.43, SpaceOptics.diskInner))
 
+// MARK: P9 the black hole's code
+
+var holeTrip: Bool = true
+for k in stride(from: Float(0), through: 1, by: 0.05) {
+    for m in stride(from: Float(0), through: 1, by: 0.25) {
+        for above in [true, false] {
+            let back = SpaceOptics.holeRead(SpaceOptics.holeCode(tilt: k, above: above, motion: m))
+            if abs(back.tilt - k) > 1.0 / 255 + 1e-4 || back.above != above || abs(back.motion - m) > 0.02 {
+                holeTrip = false
+            }
+        }
+    }
+}
+check("P9 a black hole's code gives back its tilt (to 1/255), side and motion", holeTrip)
+check("P9 the code stays within 1 of 2 (the shader's |z| - 2)",
+      SpaceOptics.holeCode(tilt: 1, above: true, motion: 1) < 3 && SpaceOptics.holeCode(tilt: 1, above: false, motion: 1) > 1)
+check("P9 the shader reads it the same way", GraphStyleShaders.bhRing.contains("floor(rp_v * 256.0)")
+      && GraphStyleShaders.bhRing.contains("rp_kq / 255.0") && GraphStyleShaders.bhRing.contains("/ 0.96"))
+
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

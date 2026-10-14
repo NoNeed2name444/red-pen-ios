@@ -60,6 +60,27 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
+    /// Each style's body close up (`-graphPreviewCloseUp`), at rest and
+    /// while it is carried up the screen with the camera following, so its
+    /// detail - and how it moves - can be judged.
+    func testBodyCloseUps() {
+        let styles: [String] = ["blackHole", "sun", "rocky", "gasGiant", "pulsar", "comet"]
+        for (k, style) in styles.enumerated() {
+            for dragged in [false, true] {
+                let app = XCUIApplication()
+                app.launchArguments += ["-graphPreview", "-graphPreviewStyle", style, "-graphPreviewCloseUp"]
+                if dragged { app.launchArguments += ["-graphPreviewDrag"] }
+                app.launch()
+                XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30),
+                              "the 3D map didn't open")
+                // framed at one second; carried from one and a half
+                usleep(dragged ? 4_000_000 : 3_000_000)
+                snap(app, "8-body-\(k + 1)-\(style)-\(dragged ? "dragged" : "rest")")
+                app.terminate()
+            }
+        }
+    }
+
     /// Double-tapped Inguinal, as the app does it itself: the camera flown
     /// in to its system - Inguinal, its planets and the orange Anatomy
     /// companion - with its name pill held.

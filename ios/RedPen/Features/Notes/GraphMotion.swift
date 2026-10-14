@@ -1087,6 +1087,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return home[i]
     }
 
+    /// A note's radius, in the space's own units.
+    func noteRadius(_ i: Int) -> Float {
+        guard i >= 0, i < radius.count else { return 1 }
+        return radius[i]
+    }
+
     /// Where a note is now, in the space's own coordinates.
     func currentPosition(_ i: Int) -> SIMD3<Float> {
         lock.lock()

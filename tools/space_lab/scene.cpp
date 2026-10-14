@@ -148,7 +148,7 @@ static void blackHole() {
     float k = std::fmin(length(q), 1.0f);
     float turn = std::atan2(q.y, q.x);
     float above = dot(n, toEye) >= 0 ? 1 : -1;
-    float v = std::floor(k * 255) / 256 + M * (0.96f / 256);
+    float v = (std::floor(k * 255) + 0.02f + M * 0.96f) / 256;
     add(false, billboard(r * 1.08f, r * 6.0f, 2 + v * above, turn, 0, 0), sh_bhRing::entry,
         [] { COMMON(sh_bhRing) sh_bhRing::rpDetail = 1; sh_bhRing::rpDisk = 1; }, 1);
 }
@@ -182,7 +182,7 @@ static void rocky() {
         sh_rockBody::rpTintC = ROCK[2]; sh_rockBody::rpTintD = ROCK[3];
     });
     add(false, billboard(br * 1.08f, br * 3, 1, 0, 0, 0), sh_halo::entry, [] {
-        sh_halo::rpProbe = 0; LIGHTS(sh_halo) sh_halo::rpTintA = v3(0.38f, 0.64f, 1.0f);
+        sh_halo::rpProbe = 0; LIGHTS(sh_halo) sh_halo::rpThin = 1; sh_halo::rpTintA = v3(0.38f, 0.64f, 1.0f);
     }, 0.85f + 0.15f * M);
     // the moon on its orbit (lagging when dragged)
     float3 e1 = act(base, v3(1, 0, 0));
@@ -213,7 +213,7 @@ static void gasGiant() {
     add(false, trs(BODY, diskR, v3(side, side, side * (1 + M))), sh_gasRing::entry,
         [] { sh_gasRing::rpProbe = 0; LIGHTS(sh_gasRing) });
     add(false, billboard(br * 1.08f, br * 3, 1, 0, 0, 0), sh_halo::entry, [] {
-        sh_halo::rpProbe = 0; LIGHTS(sh_halo) sh_halo::rpTintA = v3(0.5f, 0.4f, 0.27f);
+        sh_halo::rpProbe = 0; LIGHTS(sh_halo) sh_halo::rpThin = 0; sh_halo::rpTintA = v3(0.5f, 0.4f, 0.27f);
     }, 0.85f + 0.15f * M);
 }
 
@@ -251,7 +251,8 @@ static void comet() {
     BODY = v3(-1.2f, 1.0f, -halfHeight / std::tan(27.5f * 3.14159265f / 180));
     float r = 1, br = 0.3f;
     R3 base = tiltFrame(0.33f, 0.12f, 0.5f, 0.22f);
-    add(true, trs(BODY, mul(base, rot(v3(1, 0, 0), 1.5707963f)), v3(br, br, br)), sh_cometNucleus::entry,
+    float nr = br * 0.35f;
+    add(true, trs(BODY, mul(base, rot(v3(1, 0, 0), 1.5707963f)), v3(nr, nr, nr)), sh_cometNucleus::entry,
         [] { sh_cometNucleus::rpProbe = 0; LIGHTS(sh_cometNucleus) });
     add(false, billboard(r * 0.45f * 1.08f, r * 3.2f, 1, 0, 0.4f, 0), sh_cometComa::entry,
         [] { COMMON(sh_cometComa) LIGHTS(sh_cometComa) }, 0.85f + 0.15f * M);

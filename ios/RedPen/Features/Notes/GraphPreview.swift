@@ -33,6 +33,11 @@ import SwiftUI
 /// - `-graphPreviewStyle <name>` (blackHole, sun, rocky, gasGiant, pulsar,
 ///   comet) shows every note in that one style in today's force layout
 ///   instead.
+/// - `-graphPreviewCloseUp`, with it, frames the busiest note close up
+///   a second after the space appears, so its body fills the middle of the
+///   screen; with `-graphPreviewDrag` as well, that note is then carried
+///   steadily upwards for eight seconds with the camera following, so a
+///   screenshot catches the body moving, framed the same.
 /// - `-graphPreviewTheme neurons` shows the Neurons theme (GraphNeurons):
 ///   Cardiology and Examples as two cells, Inguinal and Femoral as parts
 ///   inside Examples with Anatomy inside Inguinal, pages as vesicles and
@@ -101,7 +106,9 @@ enum GraphPreview {
     }
 
     /// Choose one note shortly after appearing (see GraphSCNView.Coordinator).
-    static let chooses: Bool = isOn && !drags && fly == nil && select == nil && hold == nil
+    static let chooses: Bool = isOn && !drags && !closeUp && fly == nil && select == nil && hold == nil
+    /// `-graphPreviewCloseUp`: one body framed close (see above).
+    static let closeUp: Bool = isOn && ProcessInfo.processInfo.arguments.contains("-graphPreviewCloseUp")
 
     /// `-graphPreviewSelect <title or folder>`: a moment after the map
     /// appears, that body is tapped - chosen, its peek card up. With
