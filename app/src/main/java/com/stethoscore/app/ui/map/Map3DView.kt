@@ -68,8 +68,22 @@ import kotlin.math.cbrt
 import kotlin.math.max
 
 /** A map ready to draw: its octree, how big a node is, and the notes behind the nodes. */
-class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>, val ids: List<String>) {
+/** [viewRadius] holds 95% of the nodes: the home view frames those, not a few far outliers. */
+class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>, val ids: List<String>, val viewRadius: Float = tree.radius[0]) {
     companion object {
+        fun viewRadius(tree: Octree): Float {
+            val n = tree.nodeCount
+            if (n < 50) return tree.radius[Octree.ROOT]
+            val step = max(1, n / 20_000)
+            val d = FloatArray((n + step - 1) / step) { k ->
+                val i = k * step
+                val dx = tree.positions[3 * i] - tree.cx[0]; val dy = tree.positions[3 * i + 1] - tree.cy[0]; val dz = tree.positions[3 * i + 2] - tree.cz[0]
+                kotlin.math.sqrt(dx * dx + dy * dy + dz * dz)
+            }
+            d.sort()
+            return max(d[(d.size * 0.95f).toInt().coerceAtMost(d.size - 1)], 1e-3f)
+        }
+
         fun of(graph: MapGraph, leafCapacity: Int = 4096): MapScene {
             val tree = Octree.build(graph, leafCapacity)
             // a node is about a third of the typical spacing between neighbours in its chunk
@@ -81,7 +95,7 @@ class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>
                 weight += tree.count[cell]
             }
             val radius = if (weight == 0) 0.35f else (spacing / weight * 0.3).toFloat().coerceIn(0.01f, 0.45f)
-            return MapScene(tree, radius, graph.titles, graph.ids)
+            return MapScene(tree, radius, graph.titles, graph.ids, viewRadius(tree))
         }
     }
 }
@@ -126,7 +140,9 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
     val hz = remember { floatArrayOf(display?.refreshRate ?: 60f) }
     val tree = scene.tree
     val camera = remember(scene) {
-        OrbitCamera(target = Vec3(tree.cx[0], tree.cy[0], tree.cz[0]), distance = max(tree.radius[0] * 2.4f, 4f)).apply {
+        // the whole map in view on a portrait screen (about 3:4), with room for the readout
+        OrbitCamera(target = Vec3(tree.cx[0], tree.cy[0], tree.cz[0]), pitch = 0.7f).apply {
+            distance = max(fitDistance(scene.viewRadius, aspect = 0.75f), 4f)
             minDistance = scene.nodeRadius * 4; maxDistance = max(tree.radius[0], 1f) * 80
         }
     }

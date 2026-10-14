@@ -32,6 +32,15 @@ class MapMathTest {
         assertEquals(0f, out[1] / out[3], 1e-4f)
     }
 
+    @Test fun theHomeViewFitsTheMapOnTheNarrowAxis() {
+        val c = OrbitCamera()
+        val d = c.fitDistance(10f, aspect = 0.75f, margin = 1f)
+        // a sphere of radius 10 at that distance just touches the sides of a 3:4 view
+        val halfH = kotlin.math.atan(kotlin.math.tan(c.fovY / 2) * 0.75f)
+        assertEquals(10f, d * kotlin.math.sin(halfH), 1e-3f)
+        assertTrue(c.fitDistance(10f, aspect = 2f) < c.fitDistance(10f, aspect = 0.75f))
+    }
+
     @Test fun cameraPanAndZoomStayInBounds() {
         val camera = OrbitCamera(distance = 10f)
         camera.minDistance = 1f; camera.maxDistance = 20f

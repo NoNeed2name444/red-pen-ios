@@ -446,7 +446,10 @@ void main() {
     float px = 2.0 * uNodeRadius * uFocal / w * st.w;
     vSize = clamp(px, 1.0, uMaxPoint);
     gl_PointSize = vSize;
-    vColor = uPalette[int(aGroup) % 6];
+    // a node smaller than a pixel lights the pixel by the area it covers, so dense far
+    // clusters stay coloured instead of adding up to white
+    float cover = clamp(px, 0.35, 1.0);
+    vColor = uPalette[int(aGroup) % 6] * cover * cover;
 }
 """
 
@@ -511,7 +514,7 @@ void main() {
     float r2 = dot(c, c);
     if (r2 > 1.0) discard;
     float core = 1.0 - smoothstep(0.08, 0.3, sqrt(r2));
-    float glow = exp(-r2 * 4.0) * 0.7;
+    float glow = exp(-r2 * 5.0) * 0.35;
     fragColor = vec4(vColor * (core + glow), 1.0);
 }
 """

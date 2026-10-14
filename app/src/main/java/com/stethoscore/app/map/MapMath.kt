@@ -1,6 +1,7 @@
 package com.stethoscore.app.map
 
 import kotlin.math.abs
+import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -130,6 +131,16 @@ class OrbitCamera(
     fun far() = distance * 4f + 1e4f
     fun view() = Mat4.lookAt(eye(), target)
     fun projection(aspect: Float) = Mat4.perspective(fovY, aspect, near(), far())
+
+    /**
+     * The distance at which a sphere of [radius] fits the view with [margin] to spare, on
+     * whichever of the two axes is narrower (a portrait map is narrow across).
+     */
+    fun fitDistance(radius: Float, aspect: Float, margin: Float = 1.3f): Float {
+        val halfV = fovY / 2
+        val halfH = atan(tan(halfV) * aspect)
+        return radius / sin(min(halfV, halfH)) * margin
+    }
 
     /** Pixels per world unit at depth 1: half the viewport height over tan(fov / 2). */
     fun focalPixels(viewportHeight: Float) = viewportHeight / 2f / tan(fovY / 2)

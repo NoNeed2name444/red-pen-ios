@@ -80,6 +80,8 @@ class LodSelector(val tree: Octree, val cache: ChunkCache?) {
     /** Opening per second while catching up with its target: about a fifth of a second for a full morph. */
     var morphRate = 5f
 
+    companion object { const val BUNDLE_GLOW = 0.06f; const val SUMMARY_SATURATION = 2.2f }
+
     private lateinit var frustum: Frustum
     private lateinit var guard: GuardBand
     private var eyeX = 0f; private var eyeY = 0f; private var eyeZ = 0f
@@ -186,7 +188,11 @@ class LodSelector(val tree: Octree, val cache: ChunkCache?) {
         val diameter = (pixels * 1.1f).coerceIn(2.5f, 120f) * scale
         if (diameter < 0.4f) return
         val brightness = 0.35f + 0.65f * ln(1f + tree.count[cell]) / max(logMax, 1e-3f)
-        plan.summaries.add(x, y, z, diameter, tree.colorR[cell] * brightness, tree.colorG[cell] * brightness, tree.colorB[cell] * brightness)
+        // the mean of many topics drifts to grey, so its hue is pushed back out: the mix still decides the colour
+        val r = tree.colorR[cell]; val g = tree.colorG[cell]; val b = tree.colorB[cell]
+        val lum = 0.3f * r + 0.59f * g + 0.11f * b
+        fun vivid(c: Float) = (lum + (c - lum) * SUMMARY_SATURATION).coerceIn(0f, 1f) * brightness
+        plan.summaries.add(x, y, z, diameter, vivid(r), vivid(g), vivid(b))
         plan.summaryCount++
     }
 
@@ -207,13 +213,17 @@ class LodSelector(val tree: Octree, val cache: ChunkCache?) {
             if (max(openness[ra], openness[rb]) >= 0.98f) continue
             pairs.add(Octree.pairKey(min(ra, rb), max(ra, rb)), counts[i])
         }
+        // the more threads cross the view, the fainter each, so together they stay a haze
+        val density = min(1f, sqrt(400f / max(pairs.size, 1)))
         pairs.forEach { key, count ->
             val ra = (key ushr 32).toInt(); val rb = key.toInt()
             val width = (0.8f + 0.55f * log2(1f + count)).coerceAtMost(6f) * (1f - max(openness[ra], openness[rb]))
             if (width < 0.05f) return@forEach
+            // faint threads: thousands of bundles add up, and the summaries are what carry the eye
+            val glow = BUNDLE_GLOW * density * (0.3f + 0.7f * min(1f, log2(1f + count) / 12f))
             plan.bundles.add10(
                 drawnX[ra], drawnY[ra], drawnZ[ra], drawnX[rb], drawnY[rb], drawnZ[rb], width,
-                (tree.colorR[ra] + tree.colorR[rb]) * 0.3f, (tree.colorG[ra] + tree.colorG[rb]) * 0.3f, (tree.colorB[ra] + tree.colorB[rb]) * 0.3f,
+                (tree.colorR[ra] + tree.colorR[rb]) * glow, (tree.colorG[ra] + tree.colorG[rb]) * glow, (tree.colorB[ra] + tree.colorB[rb]) * glow,
             )
             plan.bundleCount++
         }
