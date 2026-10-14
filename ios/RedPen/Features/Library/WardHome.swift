@@ -71,9 +71,9 @@ extension LibraryView {
             let due: [ReviewPlan.Due] = reviews.dueAcross(store.library)
             // the card and the tiles stand as low as the rows below them,
             // so the cell never cuts their lights
-            Section { roundCard(due: due).wardCardRow() }
+            Section { roundCard(due: due).launchEntrance(3).wardCardRow() }
             if category == .questions {
-                Section { homeTiles(due: due.count).wardCardRow() }
+                Section { homeTiles(due: due.count).launchEntrance(4).wardCardRow() }
             }
         }
     }
@@ -255,21 +255,31 @@ extension LibraryView {
 /// small caps, the app's name with a squiggle of ECG beside it, a greeting,
 /// and the countdown to the exam when there is a date.
 struct HomeHeader: View {
+    /// The squiggle's frame, which the opening's ECG becomes (its line is
+    /// LaunchOpening.squiggleLine).
+    static let squiggleSize = CGSize(width: 34, height: 18)
+
     let date: Date
     let greeting: String
     let countdown: String?
 
     var body: some View {
+        // at the opening's hand-off the name settles in where the stethoscope
+        // goes, the squiggle is where the ECG lands, and the rest grows into
+        // place around them (LaunchStage)
         VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide)))
                 .wardSmallCaps()
+                .launchEntrance(1)
             nameLine
             Text(greeting)
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)
+                .launchEntrance(2)
             if let countdown {
                 WardPill(text: countdown, symbol: "calendar")
                     .padding(.top, WardSpace.xs)
+                    .launchEntrance(2)
             }
         }
         .padding(.top, WardSpace.xs)
@@ -283,10 +293,16 @@ struct HomeHeader: View {
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+                .launchLetters()
+                .launchTarget(.title)
                 .accessibilityAddTraits(.isHeader)
             EcgSquiggle()
-                .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                .frame(width: 34, height: 18)
+                .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: CGFloat(LaunchOpening.squiggleLine),
+                                                          lineCap: .round, lineJoin: .round))
+                .frame(width: HomeHeader.squiggleSize.width, height: HomeHeader.squiggleSize.height)
+                // drawn the moment the opening's ECG lands on it
+                .scaleEffect(LaunchStage.shared.landed ? 1 : 0.0001)
+                .launchTarget(.squiggle)
                 .accessibilityHidden(true)
         }
     }

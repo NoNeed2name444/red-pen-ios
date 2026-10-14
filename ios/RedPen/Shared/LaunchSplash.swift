@@ -12,14 +12,19 @@ import AVFoundation
 ///
 /// 1. the chest piece beats, lub then dub, and the heartbeat is heard
 ///    (Assets.xcassets/Heartbeat, if the app's sound is on);
-/// 2. one ECG complex is drawn under the mark (LaunchArt.trace), its R
-///    peak as the lub is heard and its T wave ending as the dub is, then
-///    erased from the left as a monitor sweeps;
-/// 3. the home screen is uncovered by a circle opening from the chest piece,
-///    while the mark scales up about it.
+/// 2. one ECG complex is drawn under the mark (LaunchArt.trace), out from
+///    the middle of a baseline, its R peak as the lub is heard and its T
+///    wave ending as the dub is;
+/// 3. the hand-off, straight into home with no wipe: the splash's base gives
+///    way to home's own (the same colour, with nothing of home drawn yet),
+///    the ECG travels up and shrinks into the squiggle beside the title,
+///    the stethoscope glides up and shrinks away into the title as its
+///    letters settle in, home's ECG paper is drawn out from the trace, and
+///    home's parts spring into place in turn (LaunchStage).
 ///
-/// Nothing fades: everything is scale, stroke trims, a mask and (when the
-/// app's light or dark differs from the phone's) a colour shift of the base.
+/// Nothing fades: everything is position, scale, stroke trims, a path
+/// morph and (when the app's light or dark differs from the phone's) a
+/// colour shift of the base.
 /// The timings are LaunchOpening's, tested on Linux; here they are sampled
 /// into Core Animation keyframes, so the animation runs in the render server
 /// and a busy main thread cannot stall it. The sound and the drawing are
@@ -36,9 +41,10 @@ import AVFoundation
 ///
 /// It never holds anything up: the app is running beneath it from the first
 /// frame, it ignores touches, it is hidden from VoiceOver, and it goes as
-/// soon as the circle has passed the screen's corners. If the library takes
-/// longer than `longestHold`, it opens anyway, onto the screen saying the
-/// library is opening (LibraryLoadingView).
+/// soon as the ECG has landed on the title. If the library takes longer than
+/// `longestHold`, it opens anyway, onto the screen saying the library is
+/// opening (LibraryLoadingView): with no title to go to, the splash drops
+/// away down the screen instead.
 struct LaunchSplash: View {
     /// The longest it waits for the library to be read: a still picture held
     /// any longer looks hung.
@@ -144,9 +150,7 @@ final class LaunchOpeningView: UIView {
     private let appDark: Bool
     private let side = CGFloat(LaunchArt.side)
 
-    private let cover = CALayer()          // everything the hole opens through
-    private let hole = CAShapeLayer()      // the cover's mask: all but a circle
-    private let ground = CALayer()
+    private let ground = CALayer()         // the launch screen's base, until the hand-off
     private let mark = CALayer()           // scales about the chest piece
     private let logo = CALayer()
     private let chest = CALayer()          // the chest piece alone, for the beat
@@ -179,10 +183,7 @@ final class LaunchOpeningView: UIView {
     private func build() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        layer.addSublayer(cover)
-        cover.mask = hole
-        hole.fillRule = .evenOdd
-        cover.addSublayer(ground)
+        layer.addSublayer(ground)
         ground.backgroundColor = LaunchSplash.baseCG(dark: appDark)
         if appDark != phoneDark {
             // a colour shift, not a fade: from the phone's base to the app's
@@ -201,7 +202,7 @@ final class LaunchOpeningView: UIView {
             l.contents = image?.cgImage
             l.contentsScale = image?.scale ?? UIScreen.main.scale
             l.contentsGravity = .resizeAspect
-            // while it beats and grows: smooth resampling, so the metal's
+            // while it beats and moves: smooth resampling, so the metal's
             // fine highlights do not shimmer
             l.magnificationFilter = .linear
             l.minificationFilter = .trilinear
@@ -222,28 +223,34 @@ final class LaunchOpeningView: UIView {
         mark.addSublayer(logo)
         mark.addSublayer(chest)
 
-        let (cr, cg, cb) = WardPalette.rgb(LaunchArt.trace(dark: phoneDark))
-        ecg.strokeColor = UIColor(red: cr, green: cg, blue: cb, alpha: 1).cgColor
+        ecg.strokeColor = Self.traceColor(dark: phoneDark)
         ecg.fillColor = nil
         ecg.lineWidth = 2.5
+        ecg.contentsScale = UIScreen.main.scale
         ecg.lineCap = .round
         ecg.lineJoin = .round
         ecg.strokeStart = 0
         ecg.strokeEnd = 0
-        cover.addSublayer(ecg)
-        cover.addSublayer(mark)
+        layer.addSublayer(ecg)
+        layer.addSublayer(mark)
         CATransaction.commit()
+    }
+
+    private static func traceColor(dark: Bool) -> CGColor {
+        let (cr, cg, cb) = WardPalette.rgb(LaunchArt.trace(dark: dark))
+        return UIColor(red: cr, green: cg, blue: cb, alpha: 1).cgColor
     }
 
     /// Where the trace sits: under the mark, as wide as most of it.
     private static let traceWidth: CGFloat = 176
     private static let traceHeight: CGFloat = 36
+    /// The trace's baseline within the ECG layer.
+    private static var traceTop: CGFloat { traceHeight * 1.15 }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        cover.frame = bounds
         ground.frame = bounds
         // centred in the safe area at its natural size, where UILaunchScreen
         // puts the same image: the window's insets, since this view spans the
@@ -257,27 +264,15 @@ final class LaunchOpeningView: UIView {
         let px = window?.screen.scale ?? UIScreen.main.scale
         let origin = CGPoint(x: ((centre.x - side / 2) * px).rounded() / px,
                              y: ((centre.y - side / 2) * px).rounded() / px)
-        mark.position = CGPoint(x: origin.x + c.x * side, y: origin.y + c.y * side)
+        if !started { mark.position = CGPoint(x: origin.x + c.x * side, y: origin.y + c.y * side) }
         let w = Self.traceWidth
         ecg.frame = CGRect(x: centre.x - w / 2, y: centre.y + side / 2 - 2, width: w, height: Self.traceHeight * 1.6)
-        if !started { hole.path = holePath(radius: 0) }
-        hole.frame = bounds
         CATransaction.commit()
     }
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
         setNeedsLayout()
-    }
-
-    private var chestOnScreen: CGPoint { mark.position }
-
-    private func holePath(radius: CGFloat) -> CGPath {
-        let p = CGMutablePath()
-        p.addRect(bounds.insetBy(dx: -4, dy: -4))
-        let r = max(radius, 0.01)
-        p.addEllipse(in: CGRect(x: chestOnScreen.x - r, y: chestOnScreen.y - r, width: 2 * r, height: 2 * r))
-        return p
     }
 
     // MARK: starting
@@ -350,11 +345,22 @@ final class LaunchOpeningView: UIView {
         animate(opening, from: zero)
     }
 
+    // MARK: the opening
+
+    /// Home's title and its squiggle, in this view's points, when both are
+    /// on screen: where the stethoscope and the ECG go.
+    private var targets: (title: CGRect, squiggle: CGRect)? {
+        let stage = LaunchStage.shared
+        guard let title = stage.title, let squiggle = stage.squiggle else { return nil }
+        let t = convert(title, from: nil), q = convert(squiggle, from: nil)
+        guard bounds.contains(t), bounds.contains(q), t.width > 0, q.width > 0 else { return nil }
+        return (t, q)
+    }
+
     private func animate(_ o: LaunchOpening, from zero: CFTimeInterval) {
         let times = o.times()
         let keyTimes = times.map { NSNumber(value: $0 / o.duration) }
-        let maxR = CGFloat(LaunchOpening.farthest(x: chestOnScreen.x, y: chestOnScreen.y,
-                                                  width: bounds.width, height: bounds.height))
+        let goal = o.reduced ? nil : targets
 
         func keys(_ path: String, _ values: [Any]) -> CAKeyframeAnimation {
             let a = CAKeyframeAnimation(keyPath: path)
@@ -370,38 +376,165 @@ final class LaunchOpeningView: UIView {
 
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        hole.add(keys("path", times.map { holePath(radius: CGFloat(o.reveal(at: $0)) * maxR) }), forKey: "reveal")
-        mark.add(keys("transform.scale", times.map { o.markScale(at: $0) }), forKey: "grow")
         if !o.reduced {
             chest.add(keys("transform.scale", times.map { o.beat(at: $0) }), forKey: "beat")
-            let trace = o.trace(width: Double(Self.traceWidth), height: Double(Self.traceHeight))
-            let path = CGMutablePath()
-            let top = CGFloat(Self.traceHeight) * 1.15
-            for (i, p) in trace.points.enumerated() {
-                let pt = CGPoint(x: p.x, y: Double(top) + p.y)
-                if i == 0 { path.move(to: pt) } else { path.addLine(to: pt) }
-            }
-            ecg.path = path
-            var starts: [Double] = [], ends: [Double] = []
-            for t in times {
-                if let d = o.ecgDrawn(at: t) {
-                    starts.append(LaunchOpening.fraction(d.from, of: trace, end: o.traceEnd))
-                    ends.append(LaunchOpening.fraction(d.to, of: trace, end: o.traceEnd))
-                } else {
-                    let v: Double = t < o.eraseStart ? 0 : 1
-                    starts.append(v); ends.append(v)
-                }
-            }
-            ecg.add(keys("strokeStart", starts), forKey: "start")
-            ecg.add(keys("strokeEnd", ends), forKey: "end")
+            addTrace(o, times: times, goal: goal?.squiggle, keys: { keys($0, $1) })
+        }
+        if let goal {
+            // the stethoscope glides up into the title and shrinks away there
+            let from = mark.position
+            let to = CGPoint(x: goal.title.midX, y: goal.title.midY)
+            mark.add(keys("position", times.map { t -> NSValue in
+                let e = CGFloat(o.markTravel(at: t))
+                // a little arc: up first, then across
+                let x = from.x + (to.x - from.x) * e * e
+                let y = from.y + (to.y - from.y) * e
+                return NSValue(cgPoint: CGPoint(x: x, y: y))
+            }), forKey: "glide")
+            mark.add(keys("transform.scale", times.map { o.markScale(at: $0) }), forKey: "shrink")
+            // the splash's base gives way to home's (the same colour, with
+            // nothing of home drawn yet): no pixel changes
+            let gone = CAKeyframeAnimation(keyPath: "hidden")
+            gone.values = [false, true]
+            gone.keyTimes = [0, NSNumber(value: o.handoff / o.duration), 1]
+            gone.calculationMode = .discrete
+            gone.duration = o.duration
+            gone.beginTime = zero
+            gone.fillMode = .both
+            gone.isRemovedOnCompletion = false
+            ground.add(gone, forKey: "handoff")
+            enterNavigationBars(o, from: zero)
+        } else if o.reduced {
+            // Reduce Motion: the mark shrinks where it stands, then home is there
+            mark.add(keys("transform.scale", times.map { o.markScale(at: $0) }), forKey: "shrink")
+        } else {
+            // home is not showing its title (still opening the library, or
+            // another page): the splash, ground and all, goes down off the
+            // screen while the mark shrinks away
+            let drop = bounds.height + 40
+            layer.add(keys("sublayerTransform", times.map { t -> NSValue in
+                let e = CGFloat(LaunchOpening.easeIn((t - o.handoff) / LaunchOpening.travel))
+                return NSValue(caTransform3D: CATransform3DMakeTranslation(0, drop * e, 0))
+            }), forKey: "drop")
+            mark.add(keys("transform.scale", times.map { o.markScale(at: $0) }), forKey: "shrink")
         }
         CATransaction.commit()
 
-        // gone once the circle has passed every corner: nothing of it shows
-        // by then, so taking it away changes no pixel
-        let wait = max(0, zero + o.duration - CACurrentMediaTime()) + 0.03
+        // home's parts start to enter as the hand-off starts; the paper is
+        // drawn out from the trace's middle
+        let stage = LaunchStage.shared
+        stage.gridOrigin = convert(CGPoint(x: ecg.frame.midX, y: ecg.frame.minY + Self.traceTop), to: nil)
+        stage.window = window?.bounds.size ?? bounds.size
+        let toHandoff = max(0, zero + o.handoff - CACurrentMediaTime())
+        DispatchQueue.main.asyncAfter(deadline: .now() + toHandoff) {
+            LaunchStage.shared.enter(reduced: o.reduced)
+        }
+        // gone once the ECG is the squiggle (which home then draws, in the
+        // same frame) and the stethoscope has shrunk to nothing
+        let wait = max(0, zero + o.duration - CACurrentMediaTime()) + (goal == nil ? 0.03 : 0)
         DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            LaunchStage.shared.land()
             self?.done?()
+        }
+    }
+
+    /// The ECG: drawn in step with the sound, then, at the hand-off, carried
+    /// up and shrunk into the squiggle beside home's title (`goal`), turning
+    /// the squiggle's colour and weight as it goes.
+    private func addTrace(_ o: LaunchOpening, times: [Double], goal: CGRect?,
+                          keys: (String, [Any]) -> CAKeyframeAnimation) {
+        let trace = o.trace(width: Double(Self.traceWidth), height: Double(Self.traceHeight))
+        let top = Double(Self.traceTop)
+        func path(_ points: [(x: Double, y: Double)]) -> CGPath {
+            let p = CGMutablePath()
+            for (i, q) in points.enumerated() {
+                let pt = CGPoint(x: q.x, y: q.y)
+                if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
+            }
+            return p
+        }
+        var starts: [Double] = [], ends: [Double] = []
+        for t in times {
+            if let d = o.ecgDrawn(at: t) {
+                starts.append(LaunchOpening.fraction(d.from, of: trace, end: o.traceEnd))
+                ends.append(LaunchOpening.fraction(d.to, of: trace, end: o.traceEnd))
+            } else {
+                starts.append(0); ends.append(t > o.traceEnd ? 1 : 0)
+            }
+        }
+        guard let goal else {
+            ecg.path = path(trace.points.map { ($0.x, top + $0.y) })
+            ecg.add(keys("strokeStart", starts), forKey: "start")
+            ecg.add(keys("strokeEnd", ends), forKey: "end")
+            return
+        }
+        // the trace with every corner of the squiggle on it, so the same
+        // points make both; the squiggle in this layer's points
+        let pairs = o.morph(trace.points, width: Double(Self.traceWidth))
+        let target = ecg.convert(goal, from: layer)
+        let shapes = times.map { t -> CGPath in
+            path(LaunchOpening.morphed(pairs, at: o.travel(at: t), origin: (0, top),
+                                       target: (Double(target.minX), Double(target.minY),
+                                                Double(target.width), Double(target.height))))
+        }
+        // the trim fractions were of the trace alone; the morph's extra
+        // points lie on it, so its lengths are the trace's
+        ecg.path = shapes.first
+        ecg.add(keys("path", shapes), forKey: "travel")
+        ecg.add(keys("strokeStart", starts), forKey: "start")
+        ecg.add(keys("strokeEnd", ends), forKey: "end")
+        let traits = UITraitCollection(userInterfaceStyle: appDark ? .dark : .light)
+        let red = UIColor(Color.wardEcg).resolvedColor(with: traits).cgColor
+        let slate = Self.traceColor(dark: phoneDark)
+        ecg.add(keys("strokeColor", times.map { t -> CGColor in
+            Self.mix(slate, red, CGFloat(o.travel(at: t)))
+        }), forKey: "tint")
+        ecg.add(keys("lineWidth", times.map { t -> CGFloat in
+            2.5 + (CGFloat(LaunchOpening.squiggleLine) - 2.5) * CGFloat(o.travel(at: t))
+        }), forKey: "weight")
+    }
+
+    private static func mix(_ a: CGColor, _ b: CGColor, _ e: CGFloat) -> CGColor {
+        let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+        let ca = a.converted(to: srgb, intent: .defaultIntent, options: nil)?.components ?? [0, 0, 0, 1]
+        let cb = b.converted(to: srgb, intent: .defaultIntent, options: nil)?.components ?? [0, 0, 0, 1]
+        let c = (0..<3).map { ca[$0] + (cb[$0] - ca[$0]) * e } + [1]
+        return CGColor(colorSpace: srgb, components: c) ?? b
+    }
+
+    /// The navigation bar (home's account button and search field) is
+    /// UIKit's, out of SwiftUI's reach: it enters first, on the same spring
+    /// as the rest of home, held at nothing until then.
+    private func enterNavigationBars(_ o: LaunchOpening, from zero: CFTimeInterval) {
+        guard let window else { return }
+        var bars: [UINavigationBar] = []
+        func walk(_ v: UIView) {
+            if let bar = v as? UINavigationBar {
+                if !bar.isHidden, bar.window != nil { bars.append(bar) }
+                return
+            }
+            v.subviews.forEach(walk)
+        }
+        walk(window)
+        let length = LaunchOpening.settleTime
+        let n = max(2, Int((length * 120).rounded(.up)))
+        let ts = (0...n).map { length * Double($0) / Double(n) }
+        for bar in bars {
+            let a = CAKeyframeAnimation(keyPath: "transform")
+            a.values = ts.map { t -> NSValue in
+                let s = CGFloat(t >= length ? 1 : max(0.0001, LaunchOpening.spring(t)))
+                let rise = CGFloat(LaunchOpening.rise) * (1 - min(s, 1.2))
+                var m = CATransform3DMakeTranslation(0, rise, 0)
+                m = CATransform3DScale(m, s, s, 1)
+                return NSValue(caTransform3D: m)
+            }
+            a.keyTimes = ts.map { NSNumber(value: $0 / length) }
+            a.duration = length
+            a.beginTime = zero + o.entranceStart(0)
+            // nothing of it shows until it enters, and it ends as it is
+            a.fillMode = .backwards
+            a.isRemovedOnCompletion = true
+            bar.layer.add(a, forKey: "launchEntrance")
         }
     }
 }

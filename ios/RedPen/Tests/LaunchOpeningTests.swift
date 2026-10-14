@@ -19,19 +19,22 @@ let still = LaunchOpening(reduced: true)
 
 for (name, o) in [("full", withSound), ("reduced", still)] {
     check("\(name): the mark starts at its launch-screen size", o.beat(at: 0) == 1 && o.markScale(at: 0) == 1)
-    check("\(name): the hole starts shut", o.reveal(at: 0) == 0)
     check("\(name): no ECG on the first frame", o.ecgDrawn(at: 0) == nil)
-    check("\(name): fully open at the end", near(o.reveal(at: o.duration), 1))
+    check("\(name): no paper drawn before the hand-off", o.gridReach(at: o.handoff - 0.001) == 0)
+    check("\(name): the title's letters wait at nothing", (0..<11).allSatisfy { o.letter($0, at: 0).scale == 0 })
     let samples = o.times()
-    let opening = samples.map { o.reveal(at: $0) }
-    check("\(name): the hole only ever grows", zip(opening, opening.dropFirst()).allSatisfy { $0 <= $1 })
     check("\(name): key times run from 0 to the end", samples.first == 0 && near(samples.last!, o.duration))
+    check("\(name): the mark has shrunk to nothing when the splash goes", o.markScale(at: o.duration) <= 0.001)
+    let scales = samples.map { o.markScale(at: $0) }
+    check("\(name): and only ever shrinks", zip(scales, scales.dropFirst()).allSatisfy { $0 >= $1 })
 }
 
 // MARK: length
 
-check("it is 1.2 to 1.5 s", (1.2...1.5).contains(withSound.duration), "\(withSound.duration)")
-check("Reduce Motion opens within 0.2 s", still.duration <= 0.2, "\(still.duration)")
+check("the opening, hand-off and all, is 1.2 to 1.5 s", (1.2...1.5).contains(withSound.settled), "\(withSound.settled)")
+check("the hand-off after the ECG is 0.6 to 0.8 s", (0.6...0.8).contains(withSound.settled - withSound.handoff),
+      "\(withSound.settled - withSound.handoff)")
+check("Reduce Motion is done within 0.2 s", still.settled <= 0.2 && still.duration <= 0.2, "\(still.settled)")
 
 // MARK: the heartbeat, in step with the sound
 
@@ -48,7 +51,7 @@ check("the dub to 1.04", near(dub.v, 1.04, 0.001), "\(dub)")
 check("the lub peaks just after S1 is heard", lub.t > withSound.r && lub.t < withSound.r + 0.09, "\(lub.t)")
 check("the dub peaks just after S2", dub.t > withSound.s2 && dub.t < withSound.s2 + 0.09, "\(dub.t)")
 check("back to 1 between the two", near(withSound.beat(at: (withSound.r + 0.16 + withSound.s2 - 0.02) / 2), 1, 0.003))
-check("back to 1 before the hole opens", near(withSound.beat(at: withSound.revealStart), 1, 0.001))
+check("back to 1 before the hand-off", near(withSound.beat(at: withSound.handoff), 1, 0.001))
 check("no beat under Reduce Motion", still.times().allSatisfy { still.beat(at: $0) == 1 })
 
 // MARK: the sound file, measured
@@ -138,9 +141,9 @@ check("it appears as a baseline growing out from its centre",
       near((early.from + early.to) / 2, LaunchOpening.baselineGrow / 2) && early.to - early.from < 0.05, "\(early)")
 let drawn = o.times(rate: 240).compactMap { o.ecgDrawn(at: $0) }
 check("its head never goes back", zip(drawn, drawn.dropFirst()).allSatisfy { $0.to <= $1.to + 1e-9 })
-let swept = o.times(rate: 240).filter { $0 >= LaunchOpening.baselineGrow }.compactMap { o.ecgDrawn(at: $0) }
-check("once out, its tail never goes back", zip(swept, swept.dropFirst()).allSatisfy { $0.from <= $1.from + 1e-9 })
-check("it is erased from the left, gone before the end", o.ecgDrawn(at: o.eraseEnd + 0.001) == nil && o.eraseEnd <= o.duration)
+if let whole = o.ecgDrawn(at: o.handoff) {
+    check("the trace is drawn whole when the hand-off starts", whole.from == 0 && near(whole.to, o.traceEnd))
+} else { check("the trace is drawn whole when the hand-off starts", false) }
 check("no ECG under Reduce Motion", still.times().allSatisfy { still.ecgDrawn(at: $0) == nil })
 
 let trace = o.trace(width: 160, height: 30)
@@ -151,13 +154,61 @@ check("trim fractions only grow along the trace", zip(fractions, fractions.dropF
 check("trim fractions run 0 to 1",
       LaunchOpening.fraction(0, of: trace, end: o.traceEnd) == 0 && near(LaunchOpening.fraction(o.traceEnd, of: trace, end: o.traceEnd), 1))
 
-// MARK: the hole
+// MARK: the hand-off
 
-check("the hole ends past the farthest corner",
-      LaunchOpening.farthest(x: 300, y: 200, width: 400, height: 800) > (300.0 * 300 + 600 * 600).squareRoot())
-check("and from the middle, past every corner",
-      LaunchOpening.farthest(x: 200, y: 400, width: 400, height: 800) > (200.0 * 200 + 400 * 400).squareRoot())
-check("the mark grows by 14% as it is uncovered", near(o.markScale(at: o.duration), 1.14))
+check("the hand-off starts once the trace is whole", near(o.handoff, o.traceEnd))
+check("the ECG starts its journey at the hand-off and lands when the splash goes",
+      o.travel(at: o.handoff) == 0 && near(o.travel(at: o.landed), 1) && near(o.landed, o.duration))
+let journey = o.times().map { o.travel(at: $0) }
+check("and never goes back", zip(journey, journey.dropFirst()).allSatisfy { $0 <= $1 + 1e-12 })
+check("the mark is still whole when the hand-off starts", o.markScale(at: o.handoff) == 1)
+check("the paper is drawn out whole by the end", o.gridReach(at: o.handoff + LaunchOpening.gridLength) == 1)
+let reach = stride(from: o.handoff, through: o.settled, by: 0.005).map { o.gridReach(at: $0) }
+check("and only ever further", zip(reach, reach.dropFirst()).allSatisfy { $0 <= $1 + 1e-12 })
+check("home's parts follow one another 40 ms apart",
+      near(o.entranceStart(1) - o.entranceStart(0), 0.04) && o.entranceStart(0) > o.handoff)
+check("the spring starts at 0 and settles at 1",
+      LaunchOpening.spring(0) == 0 && abs(LaunchOpening.spring(LaunchOpening.settleTime) - 1) < 0.01
+      && abs(LaunchOpening.spring(3) - 1) < 1e-6)
+let peakSpring = stride(from: 0.0, through: 1.0, by: 0.002).map { LaunchOpening.spring($0) }.max()!
+check("it rises past its place only a little (a few points of a 10 pt rise)", peakSpring > 1 && peakSpring < 1.06, "\(peakSpring)")
+check("every letter is in place, at full size, once all is still",
+      (0..<11).allSatisfy { let l = o.letter($0, at: o.settled); return near(l.scale, 1) && near(l.drop, 0) })
+check("the letters settle left to right", o.letter(0, at: o.handoff + 0.3).scale > o.letter(5, at: o.handoff + 0.3).scale)
+check("under Reduce Motion home is simply there at the hand-off",
+      still.gridReach(at: still.handoff) == 1 && still.letter(3, at: still.handoff).scale == 1)
+
+// the ECG becoming the squiggle beside the title
+let pairs = o.morph(trace.points, width: 160)
+check("every point of the trace is kept, in order",
+      pairs.count >= trace.points.count
+      && trace.points.allSatisfy { p in pairs.contains { near($0.from.x, p.x) && near($0.from.y, p.y) } })
+check("every corner of the squiggle is a point of the journey",
+      LaunchOpening.squiggle.allSatisfy { c in pairs.contains { near($0.to.u, c.u) && near($0.to.v, c.v) } })
+check("and they run left to right at both ends", zip(pairs, pairs.dropFirst()).allSatisfy {
+    $0.from.x <= $1.from.x + 1e-9 && $0.to.u <= $1.to.u + 1e-9 })
+if let rPair = pairs.min(by: { $0.from.y < $1.from.y }) {
+    check("the R peak lands on the squiggle's R", near(rPair.to.u, 0.54) && near(rPair.to.v, -0.5), "\(rPair)")
+}
+let box = (x: 300.0, y: 120.0, width: 34.0, height: 18.0)
+let start = LaunchOpening.morphed(pairs, at: 0, origin: (10, 50), target: box)
+let end = LaunchOpening.morphed(pairs, at: 1, origin: (10, 50), target: box)
+check("it starts as the trace where it was drawn",
+      zip(start, pairs).allSatisfy { near($0.x, 10 + $1.from.x) && near($0.y, 50 + $1.from.y) })
+check("and ends as the squiggle, in its frame",
+      end.allSatisfy { $0.x >= box.x - 1e-9 && $0.x <= box.x + box.width + 1e-9
+                       && $0.y >= box.y - 1e-9 && $0.y <= box.y + box.height + 1e-9 }
+      && near(end.min { $0.y < $1.y }!.y, box.y), "\(end.min { $0.y < $1.y }!)")
+
+let vitals = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardVitals.swift", encoding: .utf8)) ?? ""
+let squiggleText = LaunchOpening.squiggle.map { "(\(fmt($0.u)), \(fmt($0.v)))" }.joined(separator: ", ")
+func fmt(_ x: Double) -> String { x == x.rounded() ? String(Int(x)) : String(format: "%.2f", x) }
+let bare = vitals.filter { !$0.isWhitespace }
+check("the squiggle is EcgSquiggle's own shape", bare.contains(squiggleText.filter { !$0.isWhitespace }), squiggleText)
+
+let home = (try? String(contentsOfFile: "ios/RedPen/Features/Library/WardHome.swift", encoding: .utf8)) ?? ""
+check("home's title and squiggle tell the opening where they are",
+      home.contains(".launchTarget(.title)") && home.contains(".launchTarget(.squiggle)") && home.contains(".launchLetters()"))
 
 // MARK: the art the launch screen and the opening share
 

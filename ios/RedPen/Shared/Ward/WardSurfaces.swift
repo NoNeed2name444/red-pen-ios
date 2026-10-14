@@ -231,40 +231,49 @@ struct WardPaperFrame: View {
 
     var body: some View {
         let top: CGFloat? = WardPaperTop.shared.y
-        Canvas { context, size in
-            let w = Double(size.width), h = Double(size.height)
-            guard let panel = WardPaper.panel(width: w, height: h) else { return }
-            let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
-            let (r, g, b) = WardPalette.rgb(ink.hex)
-            let color = Color(red: r, green: g, blue: b)
-            let rect = CGRect(origin: .zero, size: size)
-            func hole(_ p: WardPaperPanel) -> Path {
-                RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
-                    .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
+        // at the opening's hand-off the paper is drawn outward from the ECG
+        // trace, frame by frame (LaunchStage); at rest this is one still frame
+        let stage = LaunchStage.shared
+        TimelineView(.animation(paused: !stage.gridDrawing)) { timeline in
+            let reach = stage.gridReach(at: timeline.date)
+            Canvas { context, size in
+                let w = Double(size.width), h = Double(size.height)
+                guard let panel = WardPaper.panel(width: w, height: h) else { return }
+                let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
+                let (r, g, b) = WardPalette.rgb(ink.hex)
+                let color = Color(red: r, green: g, blue: b)
+                let rect = CGRect(origin: .zero, size: size)
+                func hole(_ p: WardPaperPanel) -> Path {
+                    RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
+                        .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
+                }
+                let frameHole = hole(panel)
+                var frame = Path(rect)
+                frame.addPath(frameHole)
+                context.drawLayer { layer in
+                    layer.clip(to: frame, style: FillStyle(eoFill: true))
+                    WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color, reach: reach)
+                }
+                // the edges, drawn out with the lines while the paper is
+                var edges = context
+                if let reach { edges.clip(to: WardPaperInk.reached(reach, size: size, from: .zero)) }
+                guard let top, let moved = WardPaper.panel(width: w, height: h, top: Double(top)),
+                      moved.y > panel.y else {
+                    edges.stroke(frameHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
+                    return
+                }
+                // the opening's top corners, which the frame's paper leaves open
+                let movedHole = hole(moved)
+                let strip = Path(CGRect(x: moved.x, y: moved.y, width: moved.width, height: moved.radius))
+                var corners = strip
+                corners.addPath(movedHole)
+                context.drawLayer { layer in
+                    layer.clip(to: strip)
+                    layer.clip(to: corners, style: FillStyle(eoFill: true))
+                    WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color, reach: reach)
+                }
+                edges.stroke(movedHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
             }
-            let frameHole = hole(panel)
-            var frame = Path(rect)
-            frame.addPath(frameHole)
-            context.drawLayer { layer in
-                layer.clip(to: frame, style: FillStyle(eoFill: true))
-                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
-            }
-            guard let top, let moved = WardPaper.panel(width: w, height: h, top: Double(top)),
-                  moved.y > panel.y else {
-                context.stroke(frameHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
-                return
-            }
-            // the opening's top corners, which the frame's paper leaves open
-            let movedHole = hole(moved)
-            let strip = Path(CGRect(x: moved.x, y: moved.y, width: moved.width, height: moved.radius))
-            var corners = strip
-            corners.addPath(movedHole)
-            context.drawLayer { layer in
-                layer.clip(to: strip)
-                layer.clip(to: corners, style: FillStyle(eoFill: true))
-                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
-            }
-            context.stroke(movedHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
@@ -276,10 +285,20 @@ extension WardPaperInk {
     /// The base, then the frame's grid over `size`, for a canvas whose top
     /// left corner sits at `origin` in the window, so its lines fall on the
     /// frame's.
+    ///
+    /// `reach` (window points), while the opening's hand-off draws the paper
+    /// out: each line drawn only as far as it has reached, the across ones
+    /// out from the trace's middle, the down ones out from its height.
     static func drawPaper(in context: inout GraphicsContext, size: CGSize, from origin: CGPoint,
-                          ink: WardPaperInk, color: Color) {
+                          ink: WardPaperInk, color: Color,
+                          reach: (x: ClosedRange<CGFloat>, y: ClosedRange<CGFloat>)? = nil) {
         context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.wardBackground))
         guard ink.fine > 0 || ink.bold > 0 else { return }
+        // across lines span `xs`, down lines `ys`, in this canvas's points
+        let xs: ClosedRange<CGFloat> = reach.map { max(0, $0.x.lowerBound - origin.x)...max(0, $0.x.upperBound - origin.x) }
+            ?? 0...size.width
+        let ys: ClosedRange<CGFloat> = reach.map { max(0, $0.y.lowerBound - origin.y)...max(0, $0.y.upperBound - origin.y) }
+            ?? 0...size.height
         func drawLine(_ line: Path, bold: Bool) {
             if ink.fine > 0 {
                 context.fill(line, with: .color(color.opacity(ink.fine)))
@@ -288,14 +307,32 @@ extension WardPaperInk {
                 context.fill(line, with: .color(color.opacity(ink.bold)))
             }
         }
-        for line in WardPaper.lines(Double(size.width), from: Double(origin.x)) {
-            drawLine(Path(CGRect(x: line.at, y: 0, width: WardPaper.line, height: size.height)),
-                     bold: line.bold)
+        let down = min(ys.upperBound, size.height) - ys.lowerBound
+        let across = min(xs.upperBound, size.width) - xs.lowerBound
+        if down > 0 {
+            for line in WardPaper.lines(Double(size.width), from: Double(origin.x)) {
+                drawLine(Path(CGRect(x: line.at, y: ys.lowerBound, width: WardPaper.line, height: down)),
+                         bold: line.bold)
+            }
         }
-        for line in WardPaper.lines(Double(size.height), from: Double(origin.y)) {
-            drawLine(Path(CGRect(x: 0, y: line.at, width: size.width, height: WardPaper.line)),
-                     bold: line.bold)
+        if across > 0 {
+            for line in WardPaper.lines(Double(size.height), from: Double(origin.y)) {
+                drawLine(Path(CGRect(x: xs.lowerBound, y: line.at, width: across, height: WardPaper.line)),
+                         bold: line.bold)
+            }
         }
+    }
+
+    /// Where the paper's lines have reached (as drawPaper draws them), as a
+    /// shape in a canvas whose top left is at `origin`: the edges are drawn
+    /// out within it.
+    static func reached(_ reach: (x: ClosedRange<CGFloat>, y: ClosedRange<CGFloat>), size: CGSize,
+                        from origin: CGPoint) -> Path {
+        var p = Path(CGRect(x: reach.x.lowerBound - origin.x, y: -origin.y - 4,
+                            width: reach.x.upperBound - reach.x.lowerBound, height: size.height + origin.y + 8))
+        p.addRect(CGRect(x: -origin.x - 4, y: reach.y.lowerBound - origin.y,
+                         width: size.width + origin.x + 8, height: reach.y.upperBound - reach.y.lowerBound))
+        return p
     }
 }
 
@@ -315,21 +352,27 @@ struct WardPaperBand: View {
     @State private var origin: CGPoint = .zero
 
     var body: some View {
-        Canvas { context, size in
-            let height: CGFloat = min(size.height, bottom - origin.y)
-            guard height > 0 else { return }
-            var ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
-            if !grid { ink.fine = 0; ink.bold = 0 }
-            let (r, g, b) = WardPalette.rgb(ink.hex)
-            let color = Color(red: r, green: g, blue: b)
-            var band = context
-            band.clip(to: Path(CGRect(x: 0, y: 0, width: size.width, height: height)))
-            WardPaperInk.drawPaper(in: &band, size: CGSize(width: size.width, height: height),
-                                   from: origin, ink: ink, color: color)
-            if edge {
-                let w = CGFloat(WardPaper.edgeWidth)
-                context.fill(Path(CGRect(x: 0, y: height - w, width: size.width, height: w)),
-                             with: .color(color.opacity(ink.edge)))
+        let stage = LaunchStage.shared
+        TimelineView(.animation(paused: !stage.gridDrawing)) { timeline in
+            let reach = stage.gridReach(at: timeline.date)
+            Canvas { context, size in
+                let height: CGFloat = min(size.height, bottom - origin.y)
+                guard height > 0 else { return }
+                var ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
+                if !grid { ink.fine = 0; ink.bold = 0 }
+                let (r, g, b) = WardPalette.rgb(ink.hex)
+                let color = Color(red: r, green: g, blue: b)
+                var band = context
+                band.clip(to: Path(CGRect(x: 0, y: 0, width: size.width, height: height)))
+                WardPaperInk.drawPaper(in: &band, size: CGSize(width: size.width, height: height),
+                                       from: origin, ink: ink, color: color, reach: reach)
+                if edge {
+                    let w = CGFloat(WardPaper.edgeWidth)
+                    var line = context
+                    if let reach { line.clip(to: WardPaperInk.reached(reach, size: size, from: origin)) }
+                    line.fill(Path(CGRect(x: 0, y: height - w, width: size.width, height: w)),
+                              with: .color(color.opacity(ink.edge)))
+                }
             }
         }
         .onGeometryChange(for: CGPoint.self) { $0.frame(in: .global).origin } action: { origin = $0 }
@@ -422,6 +465,8 @@ struct WardRowTile: View {
                        lift: .low, inset: inset, control: true)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
+            // with its row, at the opening's hand-off (LaunchStage)
+            .launchEntrance(4)
     }
 }
 

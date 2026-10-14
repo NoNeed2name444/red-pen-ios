@@ -509,6 +509,7 @@ struct LibraryView: View {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
                 .environment(\.colorScheme, dockScheme)
                 .wardUnlit()
+                .launchEntrance(5)
                 .transition(.slideIn(.leading))
         }
     }
@@ -540,10 +541,12 @@ struct LibraryView: View {
                 // An empty library has its own big button in the middle of
                 // the page, so this one stays away until there is something
                 // to list; Ideas has its own capture row instead.
-                if newSet { newSetRow.transition(.identity) }
+                // last to enter at the opening's hand-off (LaunchStage)
+                if newSet { newSetRow.launchEntrance(5).transition(.identity) }
                 if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
                         .environment(\.colorScheme, dockScheme)
+                        .launchEntrance(5)
                 }
             }
             // No strip under it: New set and the dock float on the page's
@@ -587,6 +590,7 @@ struct LibraryView: View {
                     if store.library.isEmpty {
                         Section {
                             emptyState
+                                .launchEntrance(3)
                                 .frostedListRow()
                         }
                     }
@@ -597,8 +601,8 @@ struct LibraryView: View {
                     // The modes first - one tile per kind of set here - where
                     // there is more than one. A category of one kind has its
                     // "See all" beside the heading over its sets instead.
-                    if !searching && category.kinds.count > 1 { modesSection }
-                    listBody
+                    if !searching && category.kinds.count > 1 { modesSection.launchEntrance(4) }
+                    listBody.launchEntrance(4)
                 }
                 // The whole page already sits 16 points in from the paper
                 // frame (SkyRoot), so the sections' own side margins would
