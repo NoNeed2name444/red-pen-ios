@@ -1,0 +1,5 @@
+18:08:11.685 booted and installed  | load { 466.50 260.05 121.53 }
+18:08:11.745 warm-up launch  | load { 466.50 260.05 121.53 }
+18:08:37.648 take 1: launch (3 s into film/raw-light.mp4)  | load { 511.26 287.05 135.27 }
+18:09:20.448 take 2: launch (3 s into film/raw-light-2.mp4)  | load { 459.59 306.41 150.33 }
+18:10:17.920 done  | load { 316.62 293.21 155.26 }
