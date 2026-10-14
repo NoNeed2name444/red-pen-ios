@@ -1804,6 +1804,26 @@ with the marks on the screens last.
   gold sets (commercial licence, never from the checking models); an
   open NLI model as jev-standin's default. Running on
   design/verify-mechanisms; the search reports to this session.
+  Vignette route (research: docs/verification/vignette-proof-research.md).
+  The owner, 14 Oct (about 7:20 PM): "1-proven means the medical facts
+  contained in the text is medically and clinically accurate by proven
+  100% open source free for commercial use sources 2-choose the best
+  option 3-ok 4-yes but add explanation to make users aware of the
+  difference". So:
+  - Proven: every medical fact in the item (findings-to-rule steps, each
+    rule, each ruled-out option) backed word for word by a source whose
+    licence allows commercial use; anything short stays at Check this.
+  - Rule review (chosen for the owner): a rule enters only after two
+    independent transcriptions agree exactly, its quote re-proves
+    verbatim, and the source's worked examples pass as tests; it backs
+    Verified only after the owner's one-tap sign-off (quote beside rule);
+    until then it can back Checked only.
+  - Sources: public-domain US federal guidelines and FDA labels first; a
+    society guideline only with a licence recorded that allows commercial
+    use; never StatPearls (non-commercial).
+  - A Checked tier below Verified, with an in-app explanation of the
+    difference.
+  Building on design/vignette-proof, VIGNETTE_ROUTE off until measured.
 - [ ] 3. Launch logo round 3 (Claude-Code T0036): the swirl back as one
   real, continuous tube.
 - [ ] 4. #18, rebuild the Space node models from scratch from the owner's
