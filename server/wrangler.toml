@@ -103,6 +103,10 @@ FALLBACK_MODEL = "@cf/nvidia/nemotron-3-120b-a12b"
 # key set this is inert and the free chain answers as before. Effort is
 # the one control over how much Opus thinks: low, medium, high, xhigh, max.
 STETHOSCORE_DEFAULT_MODEL = "claude-opus-5-5"
+# Claude as an accuracy checker (ai.js askClaudeVoter): the owner's checks
+# only, on the owner's own Anthropic key, within this many dollars a month
+# (the key's plan includes about 100). 0 switches it off.
+CLAUDE_MONTHLY_USD = "90"
 # Jev (jev.js), the oath check's second opinion: asked only while PRO_PAYS is
 # "on" and the JEV_API_KEY secret is set, so it is inert until then. It can
 # only add the oath check to an item, never take one away.

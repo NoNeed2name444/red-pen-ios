@@ -62,7 +62,7 @@ final class SpokenStationSession: ObservableObject {
         endsAt = Date().addingTimeInterval(TimeInterval(minutes * 60))
         startClock()
         add(.examiner, instructions)
-        if voiceOn { await speaker.say(instructions, as: .narrator) }
+        if voiceOn { await speaker.say(instructions, as: .narrator, tone: .asking) }
     }
 
     /// Listens for one thing the student says, then sends it. Tapping the
@@ -91,7 +91,7 @@ final class SpokenStationSession: ObservableObject {
                                                              lines: lines, using: backend)
             guard phase == .running else { return }
             add(.patient, reply)
-            if voiceOn { await speaker.say(reply, as: .patient) }
+            if voiceOn { await speaker.say(reply, as: .patient, tone: VoiceTone.forPatient(reply)) }
         } catch {
             add(.examiner, (error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
         }
@@ -164,7 +164,7 @@ final class SpokenStationSession: ObservableObject {
                 guard !Task.isCancelled, let self, self.phase == .running else { return }
                 self.add(.examiner, "One minute remaining.")
                 if !self.speaker.speaking, !self.listener.listening, self.voiceOn {
-                    await self.speaker.say("One minute remaining.", as: .narrator)
+                    await self.speaker.say("One minute remaining.", as: .narrator, tone: .alert)
                 }
             }
             let rest = ends.timeIntervalSinceNow
@@ -172,7 +172,7 @@ final class SpokenStationSession: ObservableObject {
             guard !Task.isCancelled, let self, self.phase == .running else { return }
             self.listener.stop()
             self.add(.examiner, "Time's up. Please stop there.")
-            if self.voiceOn { await self.speaker.say("Time's up. Please stop there.", as: .narrator) }
+            if self.voiceOn { await self.speaker.say("Time's up. Please stop there.", as: .narrator, tone: .alert) }
             // this task is the clock: forgotten, not cancelled, or the marking
             // it starts would be cancelled with it
             self.clock = nil

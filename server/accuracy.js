@@ -50,7 +50,10 @@ export const BATCH = 4;
 /// owner chose that over adding other providers (2 Oct). A voter whose
 /// provider is not set up here is left out. Not Llama 4 Scout (it passed only
 /// half the correct answers); not 3.1 Pro (no free tier).
-export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
+// Claude second: it answers reliably once its key is set (the owner's checks
+// only, ai.js askClaudeVoter), so a third family no longer waits on Workers
+// AI's free pool; without the key it is left out (votersFor)
+export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,claude:claude-opus-5-5,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
 const MAX_ITEM_CHARS = 3500;
 const MAX_SOURCE_CHARS = 1400;
 const MAX_EVIDENCE_CHARS = 1500;
@@ -249,9 +252,12 @@ export function disagree(a, b) {
 }
 
 /// Which voters may judge: the configured order, minus the model that wrote
-/// the items (a model grading its own work agrees with itself).
-export function votersFor(env, writer) {
-  const all = list(env.ACCURACY_VOTERS || DEFAULT_VOTERS).filter(v => /^bench:/.test(v) || pinnedSource(env, v));
+/// the items (a model grading its own work agrees with itself). Claude is
+/// the owner's own key, so it judges the owner's checks only.
+export function votersFor(env, writer, owner = false) {
+  const all = list(env.ACCURACY_VOTERS || DEFAULT_VOTERS)
+    .filter(v => /^bench:/.test(v) || pinnedSource(env, v))
+    .filter(v => owner || !/^claude:/.test(v));
   const w = String(writer || '').toLowerCase().trim();
   if (!w) return all;
   return all.filter(v => { const model = v.slice(v.indexOf(':') + 1).toLowerCase(); return model !== w && !model.endsWith(`/${w}`); });
@@ -558,7 +564,7 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
   const failures = [];
   const statuses = [];
   let calls = 0;
-  const queue = votersFor(env, writer);
+  const queue = votersFor(env, writer, owner);
   // a batch of questions is solved blind by three families first (DNA brief:
   // kinetic proofreading - independent discriminations before any is shown
   // the key; three for the owner's 99.999%); a voter shown the key comes

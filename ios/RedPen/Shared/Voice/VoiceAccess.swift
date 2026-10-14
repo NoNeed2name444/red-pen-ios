@@ -88,11 +88,18 @@ enum VoiceAccess {
     /// the audio background mode, so with the session active a commute
     /// session carries on with the screen locked. The loudspeaker rather than
     /// the earpiece, because a phone on a car seat is not held to an ear.
+    ///
+    /// No hands-free profile (HFP) for headphones (audit finding 79): HFP is
+    /// the phone-call link, and with it AirPods play every voice like a call
+    /// on a bad line. A2DP keeps the full-quality sound. iOS 26's
+    /// high-quality Bluetooth recording lets AirPods that have it use their
+    /// own microphone over that link; on headphones without it, the phone's
+    /// microphone listens instead, and the voice still sounds like a person.
     @discardableResult
     static func activate() -> Bool {
         let session = AVAudioSession.sharedInstance()
         let options: AVAudioSession.CategoryOptions = [.duckOthers, .defaultToSpeaker,
-                                                       .allowBluetooth, .allowBluetoothA2DP]
+                                                       .allowBluetoothA2DP, .bluetoothHighQualityRecording]
         do {
             try session.setCategory(.playAndRecord, mode: .spokenAudio, options: options)
         } catch {

@@ -742,5 +742,51 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(bench?.kind === 'openai' && bench.base === 'https://free.example/v1' && bench.model === 'some/model', 'the bench routes it to its provider');
 }
 
+// MARK: Claude as a checker family, on the owner's own key and capped
+{
+  const { askModel, pinnedSource, claudeVoterSpent, claudeVoterCap } = await import('../ai.js');
+  const { votersFor } = await import('../accuracy.js');
+  const vote = [{ role: 'user', content: 'Solve it blind.' }];
+  const claude = (usage = { input_tokens: 1000, output_tokens: 500 }) => async (url, init) => {
+    if (!url.includes('anthropic')) throw new Error('only Claude is asked');
+    const body = JSON.parse(init.body);
+    ok(init.headers['x-api-key'] === 'ak' && body.model === 'claude-opus-5-5', 'the vote goes to Claude with the owner\'s key');
+    return new Response(JSON.stringify({ model: body.model, content: [{ type: 'text', text: '{"items":[{"i":1,"risk":1,"answer":"B"}]}' }], usage }), { status: 200 });
+  };
+  ok(pinnedSource({}, 'claude:claude-opus-5-5') === null, 'no key, no Claude voter');
+  ok(pinnedSource({ ANTHROPIC_API_KEY: 'ak' }, 'claude:not a model') === null, 'a malformed model name is refused');
+  ok(claudeVoterCap({}) === 90 && claudeVoterCap({ CLAUDE_MONTHLY_USD: '25' }) === 25, 'the cap is 90 dollars a month unless set');
+
+  const env = freshEnv({ ANTHROPIC_API_KEY: 'ak' });
+  const student = await askModel(env, 'a1', false, 'claude:claude-opus-5-5', vote, 600, async () => { throw new Error('no call'); });
+  ok(!student.ok && student.status === 403, "a student's check never spends the owner's Claude allowance");
+
+  const asked = await askModel(env, 'owner', true, 'claude:claude-opus-5-5', vote, 600, claude());
+  ok(asked.ok && asked.content.includes('"answer":"B"'), "the owner's check gets Claude's vote");
+  const spent = await claudeVoterSpent(env);
+  ok(Math.abs(spent - (1000 * 4 + 500 * 20) / 1e6) < 1e-9, `what the call cost is counted, not its worst case (${spent})`);
+
+  const tight = freshEnv({ ANTHROPIC_API_KEY: 'ak', CLAUDE_MONTHLY_USD: '0.15' });
+  let calls = 0;
+  const counting = async (...a) => { calls++; return claude({ input_tokens: 3000, output_tokens: 4000 })(...a); };
+  const first = await askModel(tight, 'owner', true, 'claude:claude-opus-5-5', vote, 600, counting);
+  const second = await askModel(tight, 'owner', true, 'claude:claude-opus-5-5', vote, 600, counting);
+  ok(first.ok && !second.ok && second.status === 429 && calls === 1, 'past the month\'s cap Claude is not called (the next family answers)');
+
+  const off = freshEnv({ ANTHROPIC_API_KEY: 'ak', CLAUDE_MONTHLY_USD: '0' });
+  const none = await askModel(off, 'owner', true, 'claude:claude-opus-5-5', vote, 600, async () => { throw new Error('no call'); });
+  ok(!none.ok && none.status === 429, 'a cap of 0 switches Claude off');
+
+  const failed = freshEnv({ ANTHROPIC_API_KEY: 'ak' });
+  const down = await askModel(failed, 'owner', true, 'claude:claude-opus-5-5', vote, 600, async () => new Response('{"error":{"message":"overloaded"}}', { status: 529 }));
+  ok(!down.ok && (await claudeVoterSpent(failed)) === 0, 'a failed call gives back what it held');
+
+  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, ANTHROPIC_API_KEY: 'ak' };
+  ok(votersFor(keyed, '', true).includes('claude:claude-opus-5-5'), "Claude votes on the owner's checks");
+  ok(!votersFor(keyed, '', false).some(v => v.startsWith('claude:')), "and not on students'");
+  ok(!votersFor({ ...keyed, ANTHROPIC_API_KEY: undefined }, '', true).some(v => v.startsWith('claude:')), 'nor anywhere without its key');
+  ok(!votersFor(keyed, 'claude-opus-5-5', true).some(v => v.startsWith('claude:')), 'Claude never checks what Claude wrote');
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');

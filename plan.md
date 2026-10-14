@@ -1715,12 +1715,38 @@ They answer four questions, in order:
    attached the repository to this session themselves (9 Oct, about
    7:00 AM).
 
+### The owner's answers of 14 Oct
+
+> 1-wait for marks for now 2-use the api key from claude platform that has
+> 100$ worth of api calls for max plan each month 3-what is that? 4-no apple
+> de account 5-fix it and give it a human voice and natural tone depending on
+> context 6- don't need those files no more
+
+1. The screens: wait for the owner's marks (#33 follow-ups, item 12).
+2. Claude as a checker family (#21, #26), on design/voice-claude:
+   `claude:claude-opus-5-5` votes on the owner's checks only, within
+   CLAUDE_MONTHLY_USD (90; ai.js askClaudeVoter, counted under
+   "claude:owner" in ai_cost whatever PRO_PAYS says); students' checks never
+   use it (votersFor). The deploy sets the ANTHROPIC_API_KEY secret. Live
+   once the owner adds the repository secret ANTHROPIC_API_KEY and says to
+   deploy; then run the verification bench (live mode) for the three-family
+   numbers.
+3. Explained in chat: a Worker deploy (the server going live) and the
+   launch splash colour.
+4. No Apple Developer account: no TestFlight or App Store for now; the
+   Playgrounds zip stays the route.
+5. Finding 79, on design/voice-claude: no HFP (VoiceAccess: A2DP plus iOS
+   26's high-quality Bluetooth recording), and VoiceTone: each line said in
+   a tone for what it is (asking, listing, praise, correcting, explaining,
+   alert, uneasy for a patient in pain or afraid), with verdicts in varied
+   words. Needs a device test on AirPods once it reaches the iPad.
+6. Groin_Hernia.pdf and owner-claim.txt are no longer needed; never ask
+   for them.
+
 ### Waiting on the owner
 
-- An Apple Developer account and TestFlight, for the App Store.
-- Finding 79: the voice session prefers Bluetooth HFP, so speech sounds like
-  a phone call on AirPods. Dropping HFP moves the mic from the headset to
-  the phone; it needs the owner's call and a device test.
+- The marks on the latest screens.
+- The ANTHROPIC_API_KEY repository secret, and the word to deploy.
 - The launch splash colour (midnight for now).
 - Each Worker deploy.
 

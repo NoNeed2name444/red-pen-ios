@@ -208,6 +208,7 @@ export async function askModel(env, account, owner, use, messages, maxTokens, fe
   // run in GitHub Actions with a free provider's key): never in production,
   // where BENCH_MODELS is never set
   const bench = env.BENCH_MODELS === 'on' && /^bench:/.test(use);
+  if (/^claude:/.test(use)) return askClaudeVoter(env, owner, use, messages, maxTokens, fetcher);
   if (!bench && !/^(gemini|workers-ai):/.test(use)) return { ok: false, status: 400, detail: 'Only free models vote.' };
   const source = pinnedSource(env, use);
   if (!source) return { ok: false, status: 503, detail: `${use} is not set up here.` };
@@ -221,12 +222,57 @@ export async function askModel(env, account, owner, use, messages, maxTokens, fe
   return complete(env, route, messages, maxTokens, 0, fetcher);
 }
 
+/// Claude as one of the accuracy checker's families: the owner's own
+/// Anthropic key, whose plan includes a monthly API allowance (the owner,
+/// 14 Oct: "use the api key from claude platform that has 100$ worth of api
+/// calls ... each month"). It votes on the owner's checks only - students'
+/// checks stay on the free models until Pro pays (PRO_PAYS) - and within
+/// CLAUDE_MONTHLY_USD a month (90 by default, under the allowance), counted
+/// in ai_cost under "claude:owner" whatever PRO_PAYS says: each call holds
+/// back its worst case first, so calls at once cannot spend past the cap.
+/// A model from another family is a separate witness (accuracy-model.js
+/// familyOf), so Claude is what lets three families reach a verdict when
+/// Workers AI's free pool is spent (bench run 36915283305).
+export const CLAUDE_VOTER_KEY = 'claude:owner';
+export function claudeVoterCap(env) { return finite(env.CLAUDE_MONTHLY_USD, 90); }
+
+async function askClaudeVoter(env, owner, use, messages, maxTokens, fetcher) {
+  const source = pinnedSource(env, use);
+  if (!source) return { ok: false, status: 503, detail: `${use} is not set up here.` };
+  if (!owner) return { ok: false, status: 403, detail: 'Claude checks the owner\'s work only.' };
+  const payer = { keys: [CLAUDE_VOTER_KEY], cap: claudeVoterCap(env) };
+  if (payer.cap <= 0) return { ok: false, status: 429, detail: 'Claude is switched off (CLAUDE_MONTHLY_USD).' };
+  const inputTokens = Math.ceil(messages.reduce((n, m) => n + String(m.content || '').length, 0) / 3);
+  const worst = costOf(env, source.model, { input_tokens: inputTokens, output_tokens: maxTokens + ANTHROPIC_THINKING_ROOM });
+  if (!await reserve(env, payer, worst)) {
+    return { ok: false, status: 429, detail: `Claude has spent this month's ${payer.cap} dollars.` };
+  }
+  let result;
+  try {
+    result = await complete(env, { sources: [source], account: 'owner', owner: true, rounds: 1, canPay: false }, messages, maxTokens, 0, fetcher);
+  } catch (error) {
+    await settle(env, payer, worst, 0).catch(e => console.error('settle', e));
+    throw error;
+  }
+  const actual = result.usage ? costOf(env, source.model, result.usage) : 0;
+  await settle(env, payer, worst, actual).catch(e => console.error('settle', e));
+  return result;
+}
+
+/// What Claude has spent of its monthly cap, in dollars.
+export async function claudeVoterSpent(env) { return spentBy(env, CLAUDE_VOTER_KEY); }
+
 export function pinnedSource(env, use) {
   const at = use.indexOf(':');
   const kind = use.slice(0, at), model = use.slice(at + 1).trim();
   if (at < 1 || !model || model.length > 120) return null;
   if (kind === 'gemini' && env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) return { kind: 'gemini', models: [model] };
   if (kind === 'workers-ai' && env.AI) return { kind: 'workers-ai', model };
+  // the owner's Anthropic key, as a checker (askClaudeVoter): never a paid
+  // lane in complete()'s eyes, since its own cap is held back before it goes
+  if (kind === 'claude' && env.ANTHROPIC_API_KEY && /^claude-[a-z0-9.-]+$/.test(model)) {
+    return { kind: 'anthropic', key: env.ANTHROPIC_API_KEY, model };
+  }
   if (kind === 'hf' && env.AI_API_KEY) return { kind: 'openai', base: env.AI_BASE_URL || DEFAULT_BASE, key: env.AI_API_KEY, model };
   if (kind === 'bench' && env.BENCH_MODELS === 'on' && env.BENCH_BASE_URL && env.BENCH_API_KEY) {
     return { kind: 'openai', base: env.BENCH_BASE_URL, key: env.BENCH_API_KEY, model };

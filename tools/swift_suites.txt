@@ -28,6 +28,8 @@ suite narrate NarrateTests.swift $S/NarratePlan.swift
 # the lecture player's speeds and the one remembered, the sleep
 # timer's countdown and fade, and a lecture cut into sections
 suite audiocontrols AudioControlsTests.swift $S/AudioControls.swift
+# how a spoken line is said: tone by purpose, the patient's tone, varied verdicts
+suite voicetone VoiceToneTests.swift $S/Voice/VoiceTone.swift
 # what VoiceOver says on the study screens: rating intervals in
 # words, answers announced when checked, options' state, clocks,
 # cloze blanks and the study calendar's five steps
