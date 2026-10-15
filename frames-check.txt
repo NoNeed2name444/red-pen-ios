@@ -1,0 +1,2 @@
+== mode-switch-app: no recording
+== mode-switch-quiz: no recording

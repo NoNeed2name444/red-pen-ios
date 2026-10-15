@@ -1,0 +1,20 @@
+== ipad library-light
+FAULT the Vitals tile's streak breaks inside a word: its widest word needs 40 pt, it has 18
+card 236-589, start 517-573, new set 1118-1174, tiles 621-916, bar 1118-1190, cut 1106, large text false
+words: the Vitals tile's streak 18/40, the brain map's line 192/38
+== ipad library-dark
+FAULT the Vitals tile's streak breaks inside a word: its widest word needs 40 pt, it has 18
+card 236-589, start 517-573, new set 1118-1174, tiles 621-916, bar 1118-1190, cut 1106, large text false
+words: the Vitals tile's streak 18/40, the brain map's line 192/38
+== ipad xxl-library-light
+FAULT the Vitals tile's streak breaks inside a word: its widest word needs 50 pt, it has 30
+card 253-656, start 584-640, new set 1118-1174, tiles 688-1037, bar 1118-1190, cut 1106, large text true
+words: the Vitals tile's streak 30/50, the brain map's line 241/48
+== ipad xxl-library-dark
+FAULT the Vitals tile's streak breaks inside a word: its widest word needs 50 pt, it has 30
+card 253-656, start 584-640, new set 1118-1174, tiles 688-1037, bar 1118-1190, cut 1106, large text true
+words: the Vitals tile's streak 30/50, the brain map's line 241/48
+== ipad ax1-library-light
+FAULT Start ward round (968-1025) is sliced by the page's cut at 1020
+card 334-1041, start 967-1025, new set 1032-1089, tiles none, bar 1032-1190, cut 1020, large text true
+words: 
