@@ -1,0 +1,2 @@
+take 1: gap_ms=112 at=+0.96 refreshes=40 handoff=+0.73 still=+1.97 warm_off=+0.06 load=256.52 settle=unsettled
+take 2: gap_ms=121 at=+0.92 refreshes=46 handoff=+0.73 still=+1.98 warm_off=+0.04 load=143.66 settle=unsettled
