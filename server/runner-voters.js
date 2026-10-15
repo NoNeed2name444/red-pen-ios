@@ -16,7 +16,9 @@
 //   families still hold the rest; one family is one witness (votesStage).
 import { familyOf } from './accuracy-model.js';
 
-export const DEFAULT_RUNNER_VOTERS = 'phi-4-mini-instruct,granite-4.0-h-tiny';
+// in order of the dry run of 14 Oct (run 38606247012, 40 ladder questions):
+// the first answered all 40 and 28 rightly, the second 35 and 22
+export const DEFAULT_RUNNER_VOTERS = 'granite-4.0-h-tiny,phi-4-mini-instruct';
 export const DEFAULT_RUNNER_SEATS = 1;
 
 /// The models a runner may vote as, in the order their ballots are taken.
