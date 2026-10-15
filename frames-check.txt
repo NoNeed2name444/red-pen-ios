@@ -1,0 +1,6 @@
+== mode-switch-app
+33 frames; content contrast light 34.0, dark 32.1; a frame under 25.7 has faded
+clean: every frame keeps its contrast
+== mode-switch-quiz
+79 frames; content contrast light 42.0, dark 38.8; a frame under 31.1 has faded
+clean: every frame keeps its contrast
