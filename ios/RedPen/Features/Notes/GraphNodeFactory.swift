@@ -149,7 +149,12 @@ final class GraphStyleKit {
         if style == .blackHole { lean = 0.1 + (lean - 0.26) * 0.6 }
         if style == .gasGiant { lean += 0.22 }
         let roll: Float = random.unit() * 0.3
-        let yaw: Float = random.unit() * Float.pi
+        // turned about the vertical each its own way, but a gas giant only
+        // a little (within 40 degrees): turned further its ring swings
+        // towards edge-on from the default view, a line where the ring
+        // should be open
+        var yaw: Float = random.unit() * Float.pi
+        if style == .gasGiant { yaw *= 0.22 }
         let flat = simd_quatf(angle: lean - Float.pi / 2, axis: SIMD3<Float>(1, 0, 0))
         let rolled = simd_quatf(angle: roll, axis: SIMD3<Float>(0, 0, 1))
         let turned = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))

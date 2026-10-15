@@ -882,14 +882,25 @@ struct Graph3DView: View {
         }
         // a constant copy: a var cannot be handed to another thread
         let groups = folders
+        // the design preview's store makes new ids every launch, and the
+        // layout and packing order notes by id: there they work on stand-ins
+        // in the store's own order, so every launch has the same shape (a
+        // close-up's rest and dragged shots, two launches, frame one note)
+        let stand: GraphStandIns = GraphPreview.isOn ? GraphStandIns(ids, folders: notes.folders.map(\.id)) : .none
         // the layout, and a check that the shaders work (kept once it can be
         // trusted: GraphProbeMemo), then packed into one constellation and
         // turned to show its broadest face (GraphFraming)
         let worked = await GraphWork.offMain {
-            let laid = ForceLayout3D.layout(nodes: ids, edges: edges, groups: groups)
-            let radius: Float = GraphFraming.pageRadius(laid, edges: edges)
+            let laidIds: [UUID] = ids.map(stand.to)
+            let laidEdges: [(UUID, UUID)] = edges.map { (stand.to($0.0), stand.to($0.1)) }
+            var laidGroups: [UUID: UUID] = [:]
+            for (note, folder) in groups { laidGroups[stand.to(note)] = stand.to(folder) }
+            let laid = ForceLayout3D.layout(nodes: laidIds, edges: laidEdges, groups: laidGroups)
+            let radius: Float = GraphFraming.pageRadius(laid, edges: laidEdges)
             let reach: Float = radius * GraphShape.diskRadius
-            let positions = GraphFraming.arrange(laid, edges: edges, pad: reach)
+            let packed = GraphFraming.arrange(laid, edges: laidEdges, pad: reach)
+            var positions: [UUID: SIMD3<Float>] = [:]
+            for (id, p) in packed { positions[stand.from(id)] = p }
             let support: GraphShaderSupport = GraphShaderProbe.support
             _ = GraphStyleProbe.support
             return (positions, support, radius)

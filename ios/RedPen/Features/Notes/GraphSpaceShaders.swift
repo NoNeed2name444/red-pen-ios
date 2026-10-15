@@ -762,9 +762,11 @@ nonisolated enum GraphStyleShaders {
     /// dark lanes, every cell's centre wandering so the surface boils; under
     /// a slower supergranular mottling (value noise), with finer cells at
     /// full quality. A sunspot group: dark umbrae in penumbrae of radial
-    /// filaments, shallower towards the limb (foreshortened there; a full
-    /// black umbra on the edge read as a dark body in front of the sun).
-    /// Faculae: bright patches towards the limb. Limb darkening
+    /// filaments, shallower towards the limb, to a seventh of their depth
+    /// at the edge (foreshortened there, a full-depth umbra read as a hole
+    /// in the sun). Faculae: bright patches towards the limb, and a bright
+    /// network round each spot there, so a spot near the edge sits in its
+    /// active region as on the real sun. Limb darkening
     /// that also reddens the edge (I = 1 - 0.56 (1 - mu) - 0.22 (1 - mu)^2,
     /// the colour from the temperature it leaves). A flare beside the spots
     /// brightens and dies back on its own clock. Moving (its z scale), it
@@ -818,8 +820,10 @@ nonisolated enum GraphStyleShaders {
     float rp_spot = (rp_pen - rp_um) * rp_fil * 0.45 + rp_um * 0.78;
     rp_spot = rp_spot + (rp_pen2 - rp_um2) * 0.4 + rp_um2 * 0.72;
     rp_spot = rp_spot + (rp_pen3 - rp_um3) * 0.38 + rp_um3 * 0.7;
-    rp_spot = rp_spot * (0.3 + 0.55 * smoothstep(0.15, 0.6, rp_mu));
-    float rp_fac = smoothstep(0.62, 0.8, rp_sg) * smoothstep(0.35, 0.85, rp_lm) * 0.3;
+    rp_spot = rp_spot * (0.12 + 0.73 * smoothstep(0.2, 0.8, rp_mu));
+    float rp_act = smoothstep(0.955, 0.985, rp_sd) * (1.0 - rp_pen) + smoothstep(0.984, 0.993, rp_sd2) * (1.0 - rp_pen2);
+    rp_act = min(rp_act + smoothstep(0.989, 0.9955, rp_sd3) * (1.0 - rp_pen3), 1.0);
+    float rp_fac = (smoothstep(0.62, 0.8, rp_sg) * 0.3 + rp_act * (0.12 + 0.14 * rp_sg)) * smoothstep(0.35, 0.85, rp_lm);
     float rp_fc = rp_t / 11.0;
     float rp_fl = fract(rp_fc);
     float rp_fd = dot(rp_p, normalize(float3(0.41, 0.17, 0.9)));

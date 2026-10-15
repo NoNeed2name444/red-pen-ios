@@ -61,6 +61,40 @@ import SwiftUI
 /// The Universe seeds by names here, as the store's ids change every
 /// launch. The owner's own look setting is never read or written. The space
 /// is exposed to UI tests as the element "graph3D".
+/// Stand-in ids for laying out the design preview's store, whose ids are
+/// new every launch: ForceLayout3D and GraphFraming order notes by id, so
+/// the preview's notes and folders take ids that follow the store's own
+/// order (and give them back after), and every launch lays out alike.
+/// `.none` passes every id through.
+nonisolated struct GraphStandIns: Sendable {
+    private let forward: [UUID: UUID]
+    private let back: [UUID: UUID]
+
+    static let none = GraphStandIns(forward: [:], back: [:])
+
+    private init(forward: [UUID: UUID], back: [UUID: UUID]) {
+        self.forward = forward
+        self.back = back
+    }
+
+    /// The notes, then the folders, numbered in order.
+    init(_ notes: [UUID], folders: [UUID]) {
+        var forward: [UUID: UUID] = [:]
+        var back: [UUID: UUID] = [:]
+        for (k, id) in (notes + folders).enumerated() where forward[id] == nil {
+            let made = UUID(uuidString: String(format: "00000000-0000-4000-8000-%012lX", k + 1)) ?? id
+            forward[id] = made
+            back[made] = id
+        }
+        self.forward = forward
+        self.back = back
+    }
+
+    func to(_ id: UUID) -> UUID { forward[id] ?? id }
+
+    func from(_ id: UUID) -> UUID { back[id] ?? id }
+}
+
 enum GraphPreview {
     static let isOn: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreview")
     static let drags: Bool = ProcessInfo.processInfo.arguments.contains("-graphPreviewDrag")
