@@ -400,7 +400,9 @@ struct WardIconSquare: View {
 
 /// A switch in soft UI: a track pressed into the base, a raised knob, and
 /// the tint in the track only when it is on. The whole row toggles it;
-/// VoiceOver hears the system switch.
+/// VoiceOver hears the system switch. Held, the knob sinks into the track;
+/// disabled, an on-track goes Biro Grey and the knob lies flat with a thin
+/// Biro Grey edge (WardControlStates), solid, never faded.
 struct WardToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         WardToggleFace(configuration: configuration)
@@ -411,20 +413,25 @@ private struct WardToggleFace: View {
     let configuration: ToggleStyleConfiguration
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.wardShowsPressed) private var showsPressed
+    /// A finger on the row: tracked alongside the tap, never in its way.
+    @GestureState private var touching = false
 
     var body: some View {
         let on: Bool = configuration.isOn
+        // held, the knob sinks; a disabled switch ignores the finger
+        let held: Bool = enabled && (touching || showsPressed)
         HStack(spacing: WardSpace.m) {
             configuration.label
                 .frame(maxWidth: .infinity, alignment: .leading)
             ZStack(alignment: on ? .trailing : .leading) {
                 // The tint is in the track at once, solid; only the knob
-                // moves.
+                // moves. Disabled, the on-track is Biro Grey.
                 Capsule()
-                    .fill(.tint)
+                    .fill(enabled ? AnyShapeStyle(.tint) : AnyShapeStyle(Color.wardDisabledInk))
                     .padding(3)
                     .animation(nil) { $0.opacity(on ? 1 : 0) }
-                knob(on: on)
+                knob(on: on, held: held)
                     .padding(4)
             }
             .frame(width: 52, height: 32)
@@ -434,6 +441,10 @@ private struct WardToggleFace: View {
         .onTapGesture {
             if enabled { configuration.isOn.toggle() }
         }
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: .infinity, maximumDistance: 16)
+                .updating($touching) { pressing, state, _ in state = pressing }
+        )
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: on)
         .sensoryFeedback(.selection, trigger: on)
         .accessibilityRepresentation {
@@ -443,16 +454,29 @@ private struct WardToggleFace: View {
     }
 
     /// Raised off the well; over the tint its shade goes neutral, since the
-    /// base's cool grey would light the blue rather than shade it. One knob
-    /// carries both looks, so it slides across rather than fading out at one
-    /// end and in at the other; the look itself changes at once.
-    private func knob(on: Bool) -> some View {
-        ZStack {
+    /// base's cool grey would light the blue rather than shade it. Held, it
+    /// is pressed in; disabled, it lies flat, its edge in Biro Grey so it
+    /// still shows on the well. One knob carries every look, so it slides
+    /// across rather than fading out at one end and in at the other; the
+    /// look itself changes at once.
+    private func knob(on: Bool, held: Bool) -> some View {
+        let flat: Bool = !enabled
+        let sunk: Bool = !flat && held
+        let raised: Bool = !flat && !held
+        return ZStack {
             WardReliefFace(shape: Circle(), lift: .low)
-                .animation(nil) { $0.opacity(on ? 0 : 1) }
+                .animation(nil) { $0.opacity(raised && !on ? 1 : 0) }
             Circle()
                 .fill(Color.wardSurface.shadow(.drop(color: .black.opacity(0.3), radius: 2, x: 1, y: 1.5)))
-                .animation(nil) { $0.opacity(on ? 1 : 0) }
+                .animation(nil) { $0.opacity(raised && on ? 1 : 0) }
+            WardReliefFace(shape: Circle(), lift: .low, inset: true)
+                .animation(nil) { $0.opacity(sunk ? 1 : 0) }
+            Circle()
+                .fill(Color.wardSurface)
+                .overlay {
+                    Circle().strokeBorder(Color.wardDisabledInk, lineWidth: CGFloat(WardControlStates.knobEdgeWidth))
+                }
+                .animation(nil) { $0.opacity(flat ? 1 : 0) }
         }
         .frame(width: 24, height: 24)
     }
@@ -482,7 +506,10 @@ struct WardProgressViewStyle: ProgressViewStyle {
 }
 
 /// The app's segmented control: a soft capsule raised off the base, the
-/// chosen segment pressed into it with its label in Theatre Blue.
+/// chosen segment pressed into it with its label in the section's accent
+/// and a solid edge in the accent round it. Held, a segment sinks into the
+/// capsule; disabled, its words go Biro Grey (the system never dims it),
+/// and the chosen one stays pressed in with its edge.
 struct WardSegmented<Value: Hashable, Label: View>: View {
     @Binding var selection: Value
     let options: [Value]
@@ -497,22 +524,8 @@ struct WardSegmented<Value: Hashable, Label: View>: View {
                     selection = option
                 } label: {
                     label(option)
-                        .font(.subheadline.weight(chosen ? .semibold : .regular))
-                        .contentTransition(.identity)
-                        .foregroundStyle(chosen ? Color.wardPrimaryInk : Color.wardInk)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .padding(.horizontal, WardSpace.m)
-                        .frame(maxWidth: .infinity, minHeight: 36)
-                        .background {
-                            if chosen {
-                                WardReliefFace(shape: Capsule(), lift: .low, inset: true, fill: Color.wardWell)
-                                    .transition(.identity)
-                            }
-                        }
-                        .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(WardSegmentStyle(chosen: chosen))
                 .accessibilityAddTraits(chosen ? .isSelected : [])
             }
         }
@@ -520,6 +533,53 @@ struct WardSegmented<Value: Hashable, Label: View>: View {
         .wardRaised(in: Capsule(), lift: .low, control: true)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selection)
         .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+/// One segment of WardSegmented, a Ward face rather than the system's plain
+/// button, so held is a sink and disabled is Biro Grey, never dimmed.
+private struct WardSegmentStyle: ButtonStyle {
+    let chosen: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        WardSegmentFace(label: configuration.label, pressed: configuration.isPressed, chosen: chosen)
+    }
+}
+
+private struct WardSegmentFace: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    let chosen: Bool
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.wardShowsPressed) private var showsPressed
+
+    private var ink: Color {
+        if !enabled { return .wardDisabledInk }
+        return chosen ? .wardPrimaryInk : .wardInk
+    }
+
+    var body: some View {
+        let held: Bool = enabled && (pressed || showsPressed)
+        // chosen stays pressed in, disabled too
+        let down: Bool = chosen || held
+        label
+            .font(.subheadline.weight(chosen ? .semibold : .regular))
+            .contentTransition(.identity)
+            .foregroundStyle(ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, WardSpace.m)
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .background {
+                // a well pressed into the capsule, there at once
+                if down {
+                    WardReliefFace(shape: Capsule(), lift: .low, inset: true, fill: Color.wardWell)
+                        .wardChosenEdge(Capsule(), chosen)
+                        .transition(.identity)
+                }
+            }
+            .contentShape(Capsule())
+            .capPop(held)
     }
 }
 

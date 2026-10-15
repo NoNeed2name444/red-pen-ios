@@ -17,6 +17,16 @@ enum PreviewLaunch {
         return args[i + 1]
     }
 
+    /// The section the states gallery is drawn in (`-uiPreviewSection
+    /// <questions|cards|textbook|cases|osce|audio|ideas>`); Questions when
+    /// none, or none known, is named.
+    static var section: WardSection {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewSection"), i + 1 < args.count,
+              let section = WardSection(rawValue: args[i + 1].lowercased()) else { return .questions }
+        return section
+    }
+
     /// The orientation named on the command line, for the iPad job.
     ///
     /// simctl cannot rotate a simulator, so without this a "landscape" pass
@@ -376,6 +386,14 @@ struct PreviewRoot: View {
             NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: SampleData.narrate.narrateSegments.count - 1, startFinished: true) }
         case "cases":
             NavigationStack { CaseListView(set: SampleData.cases) }
+        case "states":
+            // every Ward control in each state, in one section's colours, on
+            // the base and with the controls a mode's screen has (modeScreen;
+            // the base is the same for every mode)
+            WardStatesGallery(section: PreviewLaunch.section)
+                .background(ModeBackdrop(kind: .mcq))
+                .wardControls()
+                .wardSection(PreviewLaunch.section)
         default:
             LibraryView()
         }
