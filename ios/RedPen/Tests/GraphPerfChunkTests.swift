@@ -4,8 +4,9 @@
 // (C8), the least-recently-used cache of prepared leaves (C9), streaming
 // within a frame's budget, nearest first (C10), a leaf that is not ready
 // showing its summary and morphing open once it is (C11), bundles giving way
-// to links (C12), and the million itself: built, and a frame planned in a
-// small share of a 120 Hz frame (C13).
+// to links (C12), bundle light shared where bundles meet (C14), planning a
+// frame ahead on its own thread (C15), and the million itself: built, and a
+// frame planned in a small share of a 120 Hz frame (C13).
 //
 // CI compiles this with -O (tools/swift_suites.py --release); a debug build
 // (-Onone, tools/preflight.sh) uses a smaller map and wider time bounds.
@@ -438,6 +439,49 @@ let holder = (0..<cut.count).first { k in
 }!
 check("C12 close in, the bundle cell round the camera narrows as its leaves open", nearBundles[holder].w < 1,
       "\(nearBundles[holder].w)")
+
+// MARK: - C14 bundle light shares the crowd
+
+let shares = GraphPerfMillionMap.overlapShares(ends: [0, 1, 0, 2, 0, 3, 0, 4, 5, 6], cells: 8)
+check("C14 a cut cell where four bundles meet gives each half its light (1/sqrt 4)", shares[0] == 0.5, "\(shares)")
+check("C14 a lone bundle end keeps full strength, and so does a cell with none",
+      shares[1] == 1 && shares[5] == 1 && shares[7] == 1, "\(shares)")
+check("C14 the million map has one share per cut cell, none above 1",
+      m.bundleShares.count == m.bundles.cells.count && m.bundleShares.allSatisfy { $0 > 0 && $0 <= 1 })
+
+// MARK: - C15 planning a frame ahead, on its own thread
+
+let aheadState = GraphPerfMillionState(planner: readyPlanner(),
+                                       cache: GraphPerfChunkCache(leaves: tree.leafCount, pageCount: 16, pageSize: 1_024))
+var inline = readyPlanner()
+let ahead = GraphPerfPlanAhead()
+var aheadSame = true
+var aheadTimed = true
+for k in 0..<6 {
+    var cam = whole
+    cam.distance = whole.distance / Float(1 + 3 * k)
+    cam.yaw += 0.2 * Float(k)
+    let v = view(cam)
+    ahead.start(aheadState, view: v, settings: settings, step: 1.0 / 60)
+    inline.advance(seconds: 1.0 / 60)
+    let expected = inline.plan(v, settings: settings)
+    guard let got = ahead.finish(for: aheadState) else {
+        aheadSame = false
+        break
+    }
+    aheadTimed = aheadTimed && got.seconds > 0
+    // summaries carry colour bits in a float, so compare bits, not values
+    func bits(_ v: [SIMD4<Float>]) -> [UInt32] { v.flatMap { [$0.x.bitPattern, $0.y.bitPattern, $0.z.bitPattern, $0.w.bitPattern] } }
+    aheadSame = aheadSame && got.frame.drawLeaves == expected.drawLeaves && bits(got.frame.summaries) == bits(expected.summaries)
+        && got.frame.wanted.map { $0.leaf } == expected.wanted.map { $0.leaf } && got.frame.bundleCells == expected.bundleCells
+}
+check("C15 a plan made on the planning thread is the plan made inline, view after view",
+      aheadSame && aheadTimed, "same \(aheadSame), timed \(aheadTimed)")
+let otherState = GraphPerfMillionState(planner: readyPlanner(),
+                                       cache: GraphPerfChunkCache(leaves: tree.leafCount, pageCount: 16, pageSize: 1_024))
+ahead.start(aheadState, view: view(whole), settings: settings, step: 0)
+check("C15 a plan made for a map since replaced is not used, and nothing waits once it is taken",
+      ahead.finish(for: otherState) == nil && ahead.finish(for: aheadState) == nil)
 
 // MARK: - C13 a million
 

@@ -118,7 +118,8 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         let sky: SIMD3<Float> = GraphPerfScene.background
         view.clearColor = MTLClearColor(red: Double(sky.x), green: Double(sky.y), blue: Double(sky.z), alpha: 1)
         view.sampleCount = 1
-        view.framebufferOnly = true
+        // readable: the million map measures what it showed (the share at 250+)
+        view.framebufferOnly = false
         view.enableSetNeedsDisplay = false
         view.preferredFramesPerSecond = 60
         metal = view

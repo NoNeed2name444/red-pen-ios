@@ -126,10 +126,12 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     /// where not measured): the CPU's own time, the GPU's near stage (notes,
     /// links) and far stage (bundles, glows).
     var cpuMedian: Double = 0
-    /// Of the CPU's, the planning.
+    /// The planning (on its own thread, a frame ahead).
     var planMedian: Double = 0
     var nearMedian: Double = 0
     var farMedian: Double = 0
+    /// The share of the map's screen at or above 250 of 255 (-1: not measured).
+    var saturated: Double = -1
     /// The layout is still settling.
     var settling: Bool = false
 
@@ -165,13 +167,23 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
             + (detail > 0 ? " \u{00B7} opens at " + String(Int(detail.rounded())) + " pt" : "")
     }
 
-    /// "cpu 0.9 (plan 0.3) · near 3.1 · far 1.2 ms", where the stages are measured
-    /// (the million map); empty elsewhere.
+    /// "cpu 0.9 · plan 0.3 · near 3.1 · far 1.2 ms · 0.4% at 250+", where the
+    /// stages are measured (the million map); empty elsewhere. The plan runs
+    /// on its own thread, so it is not part of the CPU's; the last part is
+    /// the share of the screen saturated, when measured.
     var stages: String {
         guard cpuMedian > 0 || nearMedian > 0 || farMedian > 0 else { return "" }
-        return "cpu " + Self.millis(cpuMedian) + " (plan " + Self.millis(planMedian) + ") \u{00B7} near "
+        let shown = "cpu " + Self.millis(cpuMedian) + " \u{00B7} plan " + Self.millis(planMedian) + " \u{00B7} near "
             + Self.millis(nearMedian)
             + " \u{00B7} far " + Self.millis(farMedian) + " ms"
+        guard saturated >= 0 else { return shown }
+        return shown + " \u{00B7} " + Self.percent(saturated) + " at 250+"
+    }
+
+    /// A share as a percentage to one decimal, a dot in every locale.
+    static func percent(_ share: Double) -> String {
+        let tenths = Int((max(share, 0) * 1_000).rounded())
+        return String(tenths / 10) + "." + String(tenths % 10) + "%"
     }
 
     /// The middle value (0 for none).

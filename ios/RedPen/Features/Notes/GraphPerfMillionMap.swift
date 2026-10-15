@@ -29,6 +29,8 @@ nonisolated struct GraphPerfMillionMap: Sendable {
     /// Per bundle, heaviest first: its two cut cells; and how many links it carries.
     let bundleEnds: [UInt32]
     let bundleWeights: [Float]
+    /// Each cut cell's share of the bundle light (overlapShares).
+    let bundleShares: [Float]
 
     var bodyCount: Int { octree.bodyCount }
     var linkCount: Int { scene.graph.linkCount }
@@ -105,6 +107,17 @@ nonisolated struct GraphPerfMillionMap: Sendable {
         }
         bundleEnds = ends
         bundleWeights = weights
+        bundleShares = Self.overlapShares(ends: ends, cells: bundles.cells.count)
+    }
+
+    /// Each cut cell's share of the light where bundles meet: 1/sqrt of how
+    /// many bundles end there (one bundle alone keeps its full strength), so
+    /// a crowded hub reads as structure and not as a solid fill. A bundle
+    /// takes the smaller share of its two ends.
+    static func overlapShares(ends: [UInt32], cells: Int) -> [Float] {
+        var count = [Int](repeating: 0, count: max(cells, 0))
+        for e in ends where Int(e) < count.count { count[Int(e)] += 1 }
+        return count.map { 1 / Float(max($0, 1)).squareRoot() }
     }
 
     /// Where body `i` is (its seed; the GPU layout moves it by under a third

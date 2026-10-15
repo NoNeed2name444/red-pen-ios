@@ -238,3 +238,86 @@ nonisolated enum GraphPerfMemoryBudget {
         return 5_120
     }
 }
+
+/// The million map's exposure (round 5): links, bundles and glows add up as
+/// light in a half-float texture, and the screen shows that light through a
+/// tone curve, 1 - exp(-k x), so a crowded region reads as a bright structure
+/// rather than a flat white. `k` follows the frame's own light: the 97th
+/// percentile of the lit samples in a 64 x 64 grid lands at `level` of white,
+/// and the change is smoothed over `settle` seconds, in the log, so the picture
+/// never pumps. The same grid's screen colours give the share of the screen at
+/// or above 250 of 255 (`saturated`), which the readout shows.
+nonisolated struct GraphPerfExposure: Sendable, Equatable {
+    /// Where the 97th percentile of the light lands (of white).
+    static let level: Float = 0.6
+    static let percentile: Float = 0.97
+    /// Seconds for the exposure to cover most (63%) of a change.
+    static let settle: Double = 0.3
+    /// The curve's strength stays in this range (a near-empty frame is not
+    /// lifted to grey; a blazing one still shows its brightest).
+    static let range: ClosedRange<Float> = 0.004...8
+    /// Light below this counts as none.
+    static let lit: Float = 1.0 / 1024
+    /// A screen colour at or above this luminance counts as saturated.
+    static let white: Float = 250.0 / 255.0
+
+    /// The curve's strength: shown = 1 - exp(-k * light).
+    private(set) var k: Float = 1
+    /// The share of the measured screen at 250 or more (-1 before a measure).
+    private(set) var saturated: Double = -1
+    /// The last frame's 97th-percentile light (0 when nothing was lit).
+    private(set) var high: Float = 0
+    private var primed = false
+
+    init() {}
+
+    /// The strength that lands `light` at `level`.
+    static func strength(for light: Float) -> Float {
+        guard light > 0 else { return range.upperBound }
+        let k = -log(1 - level) / light
+        return min(max(k, range.lowerBound), range.upperBound)
+    }
+
+    /// Takes one measure: `samples` holds pairs (light luminance, screen
+    /// luminance), `seconds` since the last measure.
+    mutating func update(samples: UnsafeBufferPointer<Float>, seconds: Double) {
+        let n = samples.count / 2
+        guard n > 0 else { return }
+        // light by its float bits: 8 bins an octave, no sort
+        var bins = [Int32](repeating: 0, count: 2_048)
+        var lit = 0, white = 0
+        bins.withUnsafeMutableBufferPointer { b in
+            for i in 0..<n {
+                let light = samples[2 * i], shown = samples[2 * i + 1]
+                if shown >= Self.white { white += 1 }
+                guard light >= Self.lit, light.isFinite else { continue }
+                lit += 1
+                b[Int(min(light.bitPattern >> 20, 2_047))] += 1
+            }
+        }
+        saturated = Double(white) / Double(n)
+        guard lit > 0 else {
+            high = 0
+            return
+        }
+        let want = Int32((Float(lit) * Self.percentile).rounded(.up))
+        var seen: Int32 = 0, bin = 0
+        for i in 0..<bins.count {
+            seen += bins[i]
+            if seen >= want {
+                bin = i
+                break
+            }
+        }
+        // the bin's middle
+        high = Float(bitPattern: UInt32(bin) << 20 | (1 << 19))
+        let target = Self.strength(for: high)
+        if !primed {
+            k = target
+            primed = true
+            return
+        }
+        let t = Float(1 - exp(-max(seconds, 0) / Self.settle))
+        k = exp(log(k) + (log(target) - log(k)) * t)
+    }
+}

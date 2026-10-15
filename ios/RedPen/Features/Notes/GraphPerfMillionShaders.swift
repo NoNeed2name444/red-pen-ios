@@ -32,7 +32,17 @@
 //   screen   width, height (points), focal length (points), pixels per point
 //   look     body floor (points), summary floor (points), link alpha, bundle width (points)
 //   pick     chosen slot (-1 none), largest body (points), bundle alpha, glow strength
-//   fog      depth where links start to fade, where they are faintest, 0, 0
+//   fog      depth where links start to fade, where they are faintest, bundle width cap (points),
+//            reach (points) past which a link or bundle running off the screen dims
+//
+// Light (links, bundles, glows) adds up in an rgba16Float picture; the
+// resolve pass tone-maps it onto the screen (1 - exp(-k x), k from the
+// picture's own 97th percentile, GraphPerfExposure) and the notes are drawn
+// over it in their own colours, so dense light reads as structure, never a
+// white fill, and notes stay shapes.
+//   mil_resolve_vertex/_fragment  one triangle over the screen: sky + (1 - sky) x tone
+//   mil_measure         a 64 x 64 grid of samples: the light's luminance (for
+//                       the exposure) and the screen's (the share at 250+)
 import Foundation
 
 nonisolated enum GraphPerfMillionShaders {
@@ -52,7 +62,23 @@ nonisolated enum GraphPerfMillionShaders {
         static let bundleCells = 11
         static let cutColours = 12
         static let summaries = 13
+        /// Per bundle cut cell: 1/sqrt(the bundles meeting there).
+        static let cutWeights = 14
     }
+
+    /// The resolve and measure passes' slots.
+    enum ResolveSlot {
+        /// fragment bytes: exposure k, then the sky's rgb
+        static let tone = 0
+        /// texture 0: the light (accumulated, rgba16Float); texture 1: the screen
+        static let light = 0
+        static let screen = 1
+        /// the measure kernel's samples: (light, screen) luminance pairs
+        static let samples = 0
+    }
+
+    /// The measure kernel samples a grid of this many points a side.
+    static let measureGrid = 64
 
     /// The layout kernel's slots.
     enum LayoutSlot {
@@ -80,12 +106,19 @@ nonisolated enum GraphPerfMillionShaders {
 
     static let functions: [String] = [
         "mil_layout", "mil_node_vertex", "mil_chosen_vertex", "mil_node_fragment", "mil_link_vertex",
-        "mil_line_fragment", "mil_bundle_vertex", "mil_summary_vertex", "mil_summary_fragment"
+        "mil_line_fragment", "mil_bundle_vertex", "mil_summary_vertex", "mil_summary_fragment",
+        "mil_resolve_vertex", "mil_resolve_fragment", "mil_measure"
     ]
 
     /// The frame's numbers, in Frame's order.
     /// The widest a bundle is drawn (points, before Bold).
     static let bundleWidthCap: Float = 2.5
+    /// A link or bundle with an end off the screen is drawn at full
+    /// strength up to this share of the screen's shorter side long, dimmer
+    /// in proportion beyond it (never under `longFloor`): close in, the
+    /// neighbourhood shows, not every ray leaving it.
+    static let longReach: Float = 0.35
+    static let longFloor: Float = 0.12
 
     static func frame(camera cam: GraphPerfCamera, width: Float, height: Float, near: Float, far: Float,
                       centre: SIMD3<Float>, radius: Float, tier: GraphPerfTier, bold: Bool, chosenSlot: Int?,
@@ -101,7 +134,8 @@ nonisolated enum GraphPerfMillionShaders {
             SIMD4(width, height, cam.focal(viewHeight: height), pixelsPerPoint),
             SIMD4(GraphPerfLOD.noteClamp.lowerBound, 1.6, base, bold ? 3 : 2.2),
             SIMD4(Float(chosenSlot ?? -1), GraphPerfLOD.hubClamp.upperBound, min(base * 1.6, 0.6), tier == .saver ? 0.7 : 1),
-            SIMD4(toCentre, toCentre + 2 * radius, bundleWidthCap * (bold ? 1.4 : 1), 0)
+            SIMD4(toCentre, toCentre + 2 * radius, bundleWidthCap * (bold ? 1.4 : 1),
+                  longReach * min(width, height))
         ]
     }
 
@@ -173,6 +207,23 @@ nonisolated enum GraphPerfMillionShaders {
 
     static float link_fog(float depth, constant Frame& f) {
         return mix(1.0, 0.35, smoothstep(f.fog.x, f.fog.y, depth));
+    }
+
+    static bool off_screen(float4 c) {
+        return c.w <= 1e-3 || abs(c.x) > c.w || abs(c.y) > c.w;
+    }
+
+    // a line with an end off the screen: full strength up to fog.w points
+    // long, then dimmer in proportion (a fixed strength for its length,
+    // never a fade over time); behind the eye, the dimmest
+    static float long_dim(float4 a, float4 b, constant Frame& f) {
+        if (!off_screen(a) && !off_screen(b)) { return 1.0; }
+        if (a.w <= 1e-3 || b.w <= 1e-3) { return 0.12; }
+        float2 half_screen = f.screen.xy * 0.5;
+        float2 sa = a.xy / a.w * half_screen;
+        float2 sb = b.xy / b.w * half_screen;
+        float len = length(sb - sa);
+        return clamp(f.fog.w / max(len, 1e-3), 0.12, 1.0);
     }
 
     // MARK: the GPU layout
@@ -309,14 +360,13 @@ nonisolated enum GraphPerfMillionShaders {
         // both leaves drawn: the lower leaf's copy draws it
         if (so.w >= 2.0 && qo.w < qh.w) { return o; }
         bool home = (vid & 1u) == 0u;
-        ushort4 q = home ? qh : qo;
-        float4 stand = home ? sh : so;
+        float4 ch = f.viewProj * float4(shown(unpack_position(qh, boxes[uint(qh.w)]), sh), 1.0);
+        float4 co = f.viewProj * float4(shown(unpack_position(qo, boxes[uint(qo.w)]), so), 1.0);
+        float4 clip = home ? ch : co;
         uint slot = home ? pair.x : pair.y;
-        float3 p = shown(unpack_position(q, boxes[uint(q.w)]), stand);
-        float4 clip = f.viewProj * float4(p, 1.0);
         float4 look = unpack_unorm4x8_to_float(looks[slot]);
         o.position = clip;
-        o.colour = float4(look.rgb * (f.look.z * link_fog(clip.w, f)), 0.0);
+        o.colour = float4(look.rgb * (f.look.z * link_fog(clip.w, f) * long_dim(ch, co, f)), 0.0);
         return o;
     }
 
@@ -325,7 +375,8 @@ nonisolated enum GraphPerfMillionShaders {
                                      const device uint2* ends [[buffer(9)]],
                                      const device float* weights [[buffer(10)]],
                                      const device float4* cells [[buffer(11)]],
-                                     const device uint* colours [[buffer(12)]]) {
+                                     const device uint* colours [[buffer(12)]],
+                                     const device float* overlap [[buffer(14)]]) {
         LineOut o;
         o.position = float4(0.0, 0.0, -2.0, 1.0);
         o.colour = float4(0.0);
@@ -353,7 +404,10 @@ nonisolated enum GraphPerfMillionShaders {
         float3 ka = unpack_unorm4x8_to_float(colours[e.x]).rgb;
         float3 kb = unpack_unorm4x8_to_float(colours[e.y]).rgb;
         o.position = c;
-        o.colour = float4((atB ? kb : ka) * f.pick.z * link_fog(c.w, f), 0.0);
+        // each bundle's share of the light where many meet (1/sqrt of how
+        // many), and dimmer when it runs off the screen
+        float share = min(overlap[e.x], overlap[e.y]);
+        o.colour = float4((atB ? kb : ka) * (f.pick.z * share * link_fog(c.w, f) * long_dim(ca, cb, f)), 0.0);
         return o;
     }
 
@@ -389,6 +443,45 @@ nonisolated enum GraphPerfMillionShaders {
         // a bright core in a soft halo: the shape of the point, the same at every size
         float glow = exp(-4.0 * d2) * (1.0 - d2) + 0.6 * exp(-26.0 * d2);
         return float4(in.colour.rgb * glow, 0.0);
+    }
+
+    // MARK: tone mapping and measuring
+
+    struct ResolveOut {
+        float4 position [[position]];
+    };
+
+    vertex ResolveOut mil_resolve_vertex(uint vid [[vertex_id]]) {
+        ResolveOut o;
+        float x = (vid == 1u) ? 3.0 : -1.0;
+        float y = (vid == 2u) ? 3.0 : -1.0;
+        o.position = float4(x, y, 0.0, 1.0);
+        return o;
+    }
+
+    fragment float4 mil_resolve_fragment(ResolveOut in [[stage_in]],
+                                         texture2d<float, access::read> light [[texture(0)]],
+                                         constant float4& tone [[buffer(0)]]) {
+        uint2 at = uint2(in.position.xy);
+        at = min(at, uint2(light.get_width() - 1u, light.get_height() - 1u));
+        float3 x = light.read(at).rgb;
+        float3 t = 1.0 - exp(-tone.x * max(x, float3(0.0)));
+        return float4(tone.yzw + (1.0 - tone.yzw) * t, 1.0);
+    }
+
+    kernel void mil_measure(uint2 gid [[thread_position_in_grid]],
+                            texture2d<float, access::read> light [[texture(0)]],
+                            texture2d<float, access::read> screen [[texture(1)]],
+                            device float2* samples [[buffer(0)]]) {
+        if (gid.x >= 64u || gid.y >= 64u) { return; }
+        float w = float(light.get_width());
+        float h = float(light.get_height());
+        uint2 at = uint2(uint((float(gid.x) + 0.5) / 64.0 * w), uint((float(gid.y) + 0.5) / 64.0 * h));
+        at = min(at, uint2(light.get_width() - 1u, light.get_height() - 1u));
+        uint2 shown_at = min(at, uint2(screen.get_width() - 1u, screen.get_height() - 1u));
+        float3 weights = float3(0.2126, 0.7152, 0.0722);
+        samples[gid.y * 64u + gid.x] = float2(dot(light.read(at).rgb, weights),
+                                              dot(screen.read(shown_at).rgb, weights));
     }
     """#
 }

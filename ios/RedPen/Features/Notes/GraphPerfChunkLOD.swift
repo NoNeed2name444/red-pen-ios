@@ -144,10 +144,13 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
     static let readySeconds: Float = 0.25
     private(set) var frame = GraphPerfChunkFrame()
     private var expandedMass: [Float]
+    /// The octree flattened for the walk (made once, shared by copies).
+    private let cells: GraphPerfPlanCells
 
     init(octree: GraphPerfOctree, bundles: GraphPerfBundles) {
         self.octree = octree
         self.bundles = bundles
+        cells = GraphPerfPlanCells(octree: octree, bundles: bundles)
         ready = [Float](repeating: 0, count: octree.leafCount)
         expandedMass = [Float](repeating: 0, count: bundles.cells.count)
         frame.standIn = [SIMD4<Float>](repeating: .zero, count: octree.leafCount)
@@ -163,7 +166,12 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
     /// Prepared leaves rise towards fully ready.
     mutating func advance(seconds: Float) {
         let step = max(seconds, 0) / Self.readySeconds
-        for l in 0..<ready.count where ready[l] > 0 && ready[l] < 1 { ready[l] = min(ready[l] + step, 1) }
+        ready.withUnsafeMutableBufferPointer { r in
+            for l in 0..<r.count {
+                let v = r[l]
+                if v > 0 && v < 1 { r[l] = min(v + step, 1) }
+            }
+        }
     }
 
     /// Makes every prepared leaf fully ready at once (tests; Reduce Motion).
@@ -172,6 +180,12 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
     }
 
     /// The frame for this view.
+    ///
+    /// The walk runs over flat per-cell arrays (GraphPerfPlanCells) with
+    /// plain Float arithmetic through unsafe pointers and an explicit stack:
+    /// no SIMD generics, no struct copies, no bounds checks, no recursion.
+    /// Swift Playgrounds builds without optimisation, where those cost about
+    /// 50 times their optimised price, and that is how the owner runs it.
     @discardableResult
     mutating func plan(_ view: GraphPerfChunkView, settings: GraphPerfChunkSettings) -> GraphPerfChunkFrame {
         frame.drawLeaves.removeAll(keepingCapacity: true)
@@ -181,14 +195,36 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
         frame.drawnBodies = 0
         frame.visibleLeaves = 0
         frame.openLeaves = 0
-        for k in 0..<expandedMass.count { expandedMass[k] = 0 }
         guard !octree.cells.isEmpty, octree.bodyCount > 0 else { return frame }
-        visit(0, at: octree.root.centroid, grow: 1, view, settings)
-        for k in 0..<bundles.cells.count {
-            let cell = octree.cells[Int(bundles.cells[k])]
-            let closed = 1 - min(expandedMass[k] / Float(max(cell.count, 1)), 1)
-            frame.bundleCells[k].w = closed
+        // the arrays written, moved out of self so each has its own pointer
+        var standIn = frame.standIn
+        var cutAt = frame.bundleCells
+        var mass = expandedMass
+        expandedMass = []
+        var out = frame
+        frame = GraphPerfChunkFrame()
+        let readyNow = ready
+        var walk = GraphPerfPlanWalk(view: view, settings: settings, cells: cells)
+        readyNow.withUnsafeBufferPointer { readyP in
+            standIn.withUnsafeMutableBufferPointer { standP in
+                cutAt.withUnsafeMutableBufferPointer { cutP in
+                    mass.withUnsafeMutableBufferPointer { massP in
+                        for k in 0..<massP.count { massP[k] = 0 }
+                        walk.run(ready: readyP, standIn: standP, cutAt: cutP, mass: massP, frame: &out)
+                        // a cut cell's bundle is as wide as its share still closed
+                        let cutCells = cells.cutCells, ints = cells.ints
+                        for k in 0..<cutP.count {
+                            let count = ints[Int(cutCells[k]) * GraphPerfPlanCells.intStride + 5]
+                            cutP[k].w = 1 - min(massP[k] / Float(max(count, 1)), 1)
+                        }
+                    }
+                }
+            }
         }
+        out.standIn = standIn
+        out.bundleCells = cutAt
+        frame = out
+        expandedMass = mass
         return frame
     }
 
@@ -216,69 +252,301 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
         let t = min(max((x - a) / (b - a), 0), 1)
         return t * t * (3 - 2 * t)
     }
+}
 
-    private mutating func visit(_ c: Int, at p: SIMD3<Float>, grow: Float, _ view: GraphPerfChunkView,
-                                _ settings: GraphPerfChunkSettings) {
-        let cell = octree.cells[c]
-        let centre = cell.ballCentre, radius = cell.ballRadius
-        let visible = view.frustum.touches(centre: centre, radius: radius)
-        let guarded = visible || view.guardFrustum.touches(centre: centre, radius: radius)
-        let size = Self.screenRadius(centre: centre, radius: radius, eye: view.eye, focal: view.focal)
-        // opening follows size alone, on screen or off: a cell leaving the
-        // view never snaps shut (links into it would jump), it is only not drawn
-        var open: Float = Self.smoothstep(settings.split, settings.split * settings.span, size)
-        if cell.isLeaf {
-            let leaf = Int(cell.leaf)
-            if guarded && size >= settings.split * settings.want {
-                let d = centre - view.eye
-                let dist = (d * d).sum().squareRoot()
-                frame.wanted.append((Int32(leaf), dist * (visible ? 1 : 2)))
-            }
-            open *= ready[leaf]
-            if visible { frame.visibleLeaves += 1 }
-        }
-        let cutLo = Int(bundles.cutStart[c]), cutHi = Int(bundles.cutEnd[c])
-        // a cut cell is drawn where this cell is when the cut is at or below it
-        if cutHi - cutLo == 1 && Int(bundles.cells[cutLo]) == c {
-            frame.bundleCells[cutLo] = SIMD4(p.x, p.y, p.z, 1)
-        }
-        if open <= 0 {
-            if visible { addSummary(c, at: p, scale: grow, settings) }
-            let lo = Int(cell.leafStart), hi = Int(cell.leafEnd)
-            for l in lo..<hi { frame.standIn[l] = SIMD4(p.x, p.y, p.z, 0) }
-            for k in cutLo..<cutHi where Int(bundles.cells[k]) > c {
-                frame.bundleCells[k] = SIMD4(p.x, p.y, p.z, 1)
-            }
-            return
-        }
-        if open < 1 && visible { addSummary(c, at: p, scale: grow * (1 - open), settings) }
-        if cell.isLeaf {
-            let leaf = Int(cell.leaf)
-            // drawn leaves carry 2 more: a link between two drawn leaves is drawn once
-            frame.standIn[leaf] = SIMD4(p.x, p.y, p.z, open + (visible ? 2 : 0))
-            frame.openLeaves += 1
-            if cutHi > cutLo { expandedMass[cutLo] += Float(cell.count) * open }
-            if visible {
-                frame.drawLeaves.append(UInt32(leaf))
-                frame.drawLeaves.append(UInt32(frame.drawnBodies))
-                frame.drawnBodies += Int(cell.count)
-            }
-            return
-        }
-        for child in octree.children(c) {
-            let target = octree.cells[Int(child)].centroid
-            visit(Int(child), at: p + (target - p) * open, grow: open, view, settings)
+/// The planner and the cache behind a reference, so a frame changes them in
+/// place (and the planning thread can work on them between frames).
+nonisolated final class GraphPerfMillionState: @unchecked Sendable {
+    var planner: GraphPerfChunkPlanner
+    var cache: GraphPerfChunkCache
+
+    init(planner: GraphPerfChunkPlanner, cache: GraphPerfChunkCache) {
+        self.planner = planner
+        self.cache = cache
+    }
+}
+
+/// Plans the next frame on its own thread while the main thread finishes
+/// this one, so planning is off the frame's critical path (Swift Playgrounds
+/// builds without optimisation, where a plan costs the most). The next frame
+/// takes the plan made from this frame's view: the guard band already covers
+/// a frame of motion. Only one plan is ever in flight, and the main thread
+/// touches the state only after `finish` or `wait`, so the two never share it.
+nonisolated final class GraphPerfPlanAhead: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "graphperf.plan", qos: .userInteractive)
+    private let group = DispatchGroup()
+    private var made: (state: GraphPerfMillionState, frame: GraphPerfChunkFrame, seconds: Double)?
+    /// The last wait for a plan still running (seconds).
+    private(set) var waited: Double = 0
+
+    init() {}
+
+    /// Starts the next plan: the ready leaves advance by `step`, then the plan for `view`.
+    func start(_ state: GraphPerfMillionState, view: GraphPerfChunkView, settings: GraphPerfChunkSettings, step: Float) {
+        group.wait()
+        made = nil
+        group.enter()
+        queue.async { [self] in
+            let began = DispatchTime.now().uptimeNanoseconds
+            state.planner.advance(seconds: step)
+            let frame = state.planner.plan(view, settings: settings)
+            let seconds = Double(DispatchTime.now().uptimeNanoseconds - began) / 1e9
+            made = (state, frame, seconds)
+            group.leave()
         }
     }
 
-    private mutating func addSummary(_ index: Int, at p: SIMD3<Float>, scale: Float,
-                                     _ settings: GraphPerfChunkSettings) {
-        guard scale > 0 else { return }
-        let cell = octree.cells[index]
-        frame.summaryCells.append(Int32(index))
-        let c = cell.colour
-        frame.summaries.append(SIMD4(p.x, p.y, p.z, Self.summaryRadius(cell)))
-        frame.summaries.append(SIMD4(Float(bitPattern: c), Self.brightness(cell.count), scale, 0))
+    /// Waits for the plan in flight; returns it (and how long it took) when it
+    /// was made for `state`, nil when there was none or the map changed.
+    func finish(for state: GraphPerfMillionState) -> (frame: GraphPerfChunkFrame, seconds: Double)? {
+        let began = DispatchTime.now().uptimeNanoseconds
+        group.wait()
+        waited = Double(DispatchTime.now().uptimeNanoseconds - began) / 1e9
+        defer { made = nil }
+        guard let m = made, m.state === state else { return nil }
+        return (m.frame, m.seconds)
+    }
+
+    /// Waits until no plan is running (before the main thread reads the state).
+    func wait() {
+        group.wait()
+    }
+}
+
+/// The octree flattened for the planner's walk, made once per map: per
+/// cell its ball and centroid (4 floats each), its summary's radius,
+/// brightness and colour bits (4 floats), and 9 integers (leaf, first
+/// child, children, first leaf, leaf end, bodies, bundle-cut range, and the
+/// cut index it is itself, or -1). Read-only after it is made, so copies of
+/// a planner share it.
+nonisolated final class GraphPerfPlanCells: @unchecked Sendable {
+    static let intStride = 9
+    let count: Int
+    let ball: UnsafeMutablePointer<Float>
+    let centroid: UnsafeMutablePointer<Float>
+    let looks: UnsafeMutablePointer<Float>
+    let ints: UnsafeMutablePointer<Int32>
+    let children: UnsafeMutablePointer<Int32>
+    let childTotal: Int
+    /// The bundle cut's cells, as GraphPerfBundles.cells.
+    let cutCells: UnsafeMutablePointer<Int32>
+    let cutCount: Int
+
+    init(octree: GraphPerfOctree, bundles: GraphPerfBundles) {
+        let n = octree.cells.count
+        count = n
+        ball = .allocate(capacity: max(4 * n, 1))
+        centroid = .allocate(capacity: max(4 * n, 1))
+        looks = .allocate(capacity: max(4 * n, 1))
+        ints = .allocate(capacity: max(Self.intStride * n, 1))
+        childTotal = octree.childList.count
+        children = .allocate(capacity: max(childTotal, 1))
+        cutCount = bundles.cells.count
+        cutCells = .allocate(capacity: max(cutCount, 1))
+        for (c, cell) in octree.cells.enumerated() {
+            let centre = cell.ballCentre
+            ball[4 * c] = centre.x
+            ball[4 * c + 1] = centre.y
+            ball[4 * c + 2] = centre.z
+            ball[4 * c + 3] = cell.ballRadius
+            centroid[4 * c] = cell.centroid.x
+            centroid[4 * c + 1] = cell.centroid.y
+            centroid[4 * c + 2] = cell.centroid.z
+            centroid[4 * c + 3] = 0
+            looks[4 * c] = GraphPerfChunkPlanner.summaryRadius(cell)
+            looks[4 * c + 1] = GraphPerfChunkPlanner.brightness(cell.count)
+            looks[4 * c + 2] = Float(bitPattern: cell.colour)
+            looks[4 * c + 3] = 0
+            let cutLo = c < bundles.cutStart.count ? Int32(bundles.cutStart[c]) : 0
+            let cutHi = c < bundles.cutEnd.count ? Int32(bundles.cutEnd[c]) : 0
+            let own: Int32 = cutHi - cutLo == 1 && Int(bundles.cells[Int(cutLo)]) == c ? cutLo : -1
+            let base = Self.intStride * c
+            ints[base] = cell.leaf
+            ints[base + 1] = cell.childStart
+            ints[base + 2] = cell.childCount
+            ints[base + 3] = cell.leafStart
+            ints[base + 4] = cell.leafEnd
+            ints[base + 5] = cell.count
+            ints[base + 6] = cutLo
+            ints[base + 7] = cutHi
+            ints[base + 8] = own
+        }
+        for (k, child) in octree.childList.enumerated() { children[k] = child }
+        for (k, cell) in bundles.cells.enumerated() { cutCells[k] = Int32(cell) }
+    }
+
+    deinit {
+        ball.deallocate()
+        centroid.deallocate()
+        looks.deallocate()
+        ints.deallocate()
+        children.deallocate()
+        cutCells.deallocate()
+    }
+}
+
+/// One plan's walk over GraphPerfPlanCells: depth first, children in order
+/// (the same order, and the same arithmetic, as walking the octree's cells).
+nonisolated struct GraphPerfPlanWalk {
+    private let ex: Float, ey: Float, ez: Float
+    private let focal: Float
+    private let split: Float, fullSplit: Float, wantSize: Float
+    /// Planes as (nx, ny, nz, d): the view's, then the guard band's.
+    private var planes: [Float]
+    private let viewPlanes: Int, guardPlanes: Int
+    private let cells: GraphPerfPlanCells
+
+    init(view: GraphPerfChunkView, settings: GraphPerfChunkSettings, cells: GraphPerfPlanCells) {
+        ex = view.eye.x
+        ey = view.eye.y
+        ez = view.eye.z
+        focal = view.focal
+        split = settings.split
+        fullSplit = settings.split * settings.span
+        wantSize = settings.split * settings.want
+        self.cells = cells
+        var p: [Float] = []
+        p.reserveCapacity(4 * (view.frustum.planes.count + view.guardFrustum.planes.count))
+        for plane in view.frustum.planes { p += [plane.normal.x, plane.normal.y, plane.normal.z, plane.d] }
+        for plane in view.guardFrustum.planes { p += [plane.normal.x, plane.normal.y, plane.normal.z, plane.d] }
+        planes = p
+        viewPlanes = view.frustum.planes.count
+        guardPlanes = view.guardFrustum.planes.count
+    }
+
+    /// Whether a ball reaches inside planes[from ..< from + count].
+    @inline(__always)
+    private static func touches(_ planes: UnsafeBufferPointer<Float>, from: Int, count: Int,
+                                _ x: Float, _ y: Float, _ z: Float, _ r: Float) -> Bool {
+        var k = from
+        let end = from + count
+        while k < end {
+            let b = 4 * k
+            if planes[b] * x + planes[b + 1] * y + planes[b + 2] * z - planes[b + 3] > r { return false }
+            k += 1
+        }
+        return true
+    }
+
+    @inline(__always)
+    private static func smoothstep(_ a: Float, _ b: Float, _ x: Float) -> Float {
+        guard b > a else { return x >= b ? 1 : 0 }
+        let t = min(max((x - a) / (b - a), 0), 1)
+        return t * t * (3 - 2 * t)
+    }
+
+    mutating func run(ready: UnsafeBufferPointer<Float>, standIn: UnsafeMutableBufferPointer<SIMD4<Float>>,
+                      cutAt: UnsafeMutableBufferPointer<SIMD4<Float>>, mass: UnsafeMutableBufferPointer<Float>,
+                      frame: inout GraphPerfChunkFrame) {
+        let n = cells.count
+        guard n > 0 else { return }
+        let ball = cells.ball, centroid = cells.centroid, looks = cells.looks
+        let ints = cells.ints, children = cells.children, cutCells = cells.cutCells
+        let stride = GraphPerfPlanCells.intStride
+        let ex = self.ex, ey = self.ey, ez = self.ez, focal = self.focal
+        let split = self.split, fullSplit = self.fullSplit, wantSize = self.wantSize
+        let viewPlanes = self.viewPlanes, guardPlanes = self.guardPlanes
+        // the stack: a cell, where it is drawn, and how far it has grown
+        let stackCell = UnsafeMutablePointer<Int32>.allocate(capacity: n + 1)
+        let stackAt = UnsafeMutablePointer<Float>.allocate(capacity: 4 * (n + 1))
+        defer {
+            stackCell.deallocate()
+            stackAt.deallocate()
+        }
+        var drawn = frame.drawnBodies, visibleLeaves = frame.visibleLeaves, openLeaves = frame.openLeaves
+        planes.withUnsafeBufferPointer { pl in
+            var top = 0
+            stackCell[0] = 0
+            stackAt[0] = centroid[0]
+            stackAt[1] = centroid[1]
+            stackAt[2] = centroid[2]
+            stackAt[3] = 1
+            top = 1
+            while top > 0 {
+                top -= 1
+                let c = Int(stackCell[top])
+                let px = stackAt[4 * top], py = stackAt[4 * top + 1], pz = stackAt[4 * top + 2]
+                let grow = stackAt[4 * top + 3]
+                let cx = ball[4 * c], cy = ball[4 * c + 1], cz = ball[4 * c + 2], radius = ball[4 * c + 3]
+                let visible = Self.touches(pl, from: 0, count: viewPlanes, cx, cy, cz, radius)
+                let guarded = visible || Self.touches(pl, from: viewPlanes, count: guardPlanes, cx, cy, cz, radius)
+                let dx = cx - ex, dy = cy - ey, dz = cz - ez
+                let dist = (dx * dx + dy * dy + dz * dz).squareRoot()
+                let size: Float = dist <= radius ? .infinity : radius * focal / dist
+                // opening follows size alone, on screen or off: a cell leaving
+                // the view never snaps shut, it is only not drawn
+                var open = Self.smoothstep(split, fullSplit, size)
+                let base = stride * c
+                let leaf = Int(ints[base])
+                if leaf >= 0 {
+                    if guarded && size >= wantSize {
+                        frame.wanted.append((Int32(leaf), dist * (visible ? 1 : 2)))
+                    }
+                    open *= ready[leaf]
+                    if visible { visibleLeaves += 1 }
+                }
+                let cutLo = Int(ints[base + 6]), cutHi = Int(ints[base + 7]), own = Int(ints[base + 8])
+                // a cut cell is drawn where this cell is when the cut is at or below it
+                if own >= 0 { cutAt[own] = SIMD4(px, py, pz, 1) }
+                if open <= 0 {
+                    if visible && grow > 0 { Self.summary(c, px, py, pz, grow, looks, &frame) }
+                    let lo = Int(ints[base + 3]), hi = Int(ints[base + 4])
+                    var l = lo
+                    while l < hi {
+                        standIn[l] = SIMD4(px, py, pz, 0)
+                        l += 1
+                    }
+                    var k = cutLo
+                    while k < cutHi {
+                        if Int(cutCells[k]) > c { cutAt[k] = SIMD4(px, py, pz, 1) }
+                        k += 1
+                    }
+                    continue
+                }
+                if open < 1 && visible {
+                    let scale = grow * (1 - open)
+                    if scale > 0 { Self.summary(c, px, py, pz, scale, looks, &frame) }
+                }
+                if leaf >= 0 {
+                    let count = Int(ints[base + 5])
+                    // drawn leaves carry 2 more: a link between two drawn leaves is drawn once
+                    standIn[leaf] = SIMD4(px, py, pz, open + (visible ? 2 : 0))
+                    openLeaves += 1
+                    if cutHi > cutLo { mass[cutLo] += Float(count) * open }
+                    if visible {
+                        frame.drawLeaves.append(UInt32(leaf))
+                        frame.drawLeaves.append(UInt32(drawn))
+                        drawn += count
+                    }
+                    continue
+                }
+                // children pushed last first, so they come off in order
+                let first = Int(ints[base + 1]), kids = Int(ints[base + 2])
+                var j = kids - 1
+                while j >= 0 {
+                    let child = Int(children[first + j])
+                    let tx = centroid[4 * child], ty = centroid[4 * child + 1], tz = centroid[4 * child + 2]
+                    stackCell[top] = Int32(child)
+                    stackAt[4 * top] = px + (tx - px) * open
+                    stackAt[4 * top + 1] = py + (ty - py) * open
+                    stackAt[4 * top + 2] = pz + (tz - pz) * open
+                    stackAt[4 * top + 3] = open
+                    top += 1
+                    j -= 1
+                }
+            }
+        }
+        frame.drawnBodies = drawn
+        frame.visibleLeaves = visibleLeaves
+        frame.openLeaves = openLeaves
+    }
+
+    @inline(__always)
+    private static func summary(_ c: Int, _ x: Float, _ y: Float, _ z: Float, _ scale: Float,
+                                _ looks: UnsafeMutablePointer<Float>, _ frame: inout GraphPerfChunkFrame) {
+        frame.summaryCells.append(Int32(c))
+        frame.summaries.append(SIMD4(x, y, z, looks[4 * c]))
+        frame.summaries.append(SIMD4(looks[4 * c + 2], looks[4 * c + 1], scale, 0))
     }
 }
 

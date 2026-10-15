@@ -480,8 +480,11 @@ var staged = readout
 staged.detail = 26
 staged.cpuMedian = 0.0009; staged.planMedian = 0.0003; staged.nearMedian = 0.0031; staged.farMedian = 0.0012
 check("P7 the million map's readout: the split and the three stages",
-      staged.drawn.hasSuffix(" \u{00B7} opens at 26 pt") && staged.stages == "cpu 0.9 (plan 0.3) \u{00B7} near 3.1 \u{00B7} far 1.2 ms",
+      staged.drawn.hasSuffix(" \u{00B7} opens at 26 pt") && staged.stages == "cpu 0.9 \u{00B7} plan 0.3 \u{00B7} near 3.1 \u{00B7} far 1.2 ms",
       staged.drawn + " / " + staged.stages)
+staged.saturated = 0.0137
+check("P7 once measured, the share of the screen at 250 or more ends the stages",
+      staged.stages.hasSuffix(" ms \u{00B7} 1.4% at 250+") && GraphPerfStats.percent(0) == "0.0%", staged.stages)
 check("P7 the median", GraphPerfStats.median([]) == 0 && GraphPerfStats.median([3, 1, 2]) == 2)
 readout.notes = 1; readout.links = 1; readout.drawnGlows = 1
 check("P7 one of each is singular, and small numbers have no commas",

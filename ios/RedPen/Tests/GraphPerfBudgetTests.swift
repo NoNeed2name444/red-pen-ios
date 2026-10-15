@@ -5,7 +5,9 @@
 // streaming budget follows the room left (B5); the link pages follow memory
 // (B6); the Graphics setting no longer caps the rate (B7); and a stall
 // is not load, while detail lost comes back within seconds (B8); and the
-// stage that takes the time pays for it, bundles before notes (B9).
+// stage that takes the time pays for it, bundles before notes (B9); and the
+// exposure lands the bright light short of white, follows a change without
+// pumping, and counts the saturated share (B10).
 import Foundation
 
 var failures: [String] = []
@@ -214,6 +216,61 @@ let firstBundle = order.firstIndex(of: "bundles") ?? order.count
 check("B9 with room again, the split returns to the tier's before any bundle comes back, then every bundle",
       cutBoth && !order[..<firstBundle].isEmpty && order[firstBundle...].allSatisfy { $0 != "split" || both.bundleShare == 1 }
       && both.bundleShare == 1 && both.split <= start, "\(order.prefix(12))")
+
+// MARK: - B10 exposure
+
+func measure(_ light: [Float], _ shown: [Float]) -> [Float] {
+    var out: [Float] = []
+    for i in 0..<light.count { out += [light[i], shown[i]] }
+    return out
+}
+func feed(_ e: inout GraphPerfExposure, _ samples: [Float], _ seconds: Double) {
+    samples.withUnsafeBufferPointer { e.update(samples: $0, seconds: seconds) }
+}
+// a frame mostly dark, its lit part spread from 0.02 to 8
+var lights: [Float] = Array(repeating: 0, count: 3_000)
+for i in 0..<1_096 { lights.append(0.02 * pow(400, Float(i) / 1_095)) }
+var shownFrame: [Float] = Array(repeating: 0.1, count: 4_096)
+for i in 0..<41 { shownFrame[i] = 1 }
+var exposure = GraphPerfExposure()
+feed(&exposure, measure(lights, shownFrame), 1.0 / 60)
+let litOnly = lights.filter { $0 >= GraphPerfExposure.lit }.sorted()
+let p97 = litOnly[Int(Float(litOnly.count) * 0.97)]
+let landed = 1 - exp(-exposure.k * p97)
+let overWhite = litOnly.filter { 1 - exp(-exposure.k * $0) >= GraphPerfExposure.white }.count
+check("B10 the lit samples' 97th percentile lands near 0.6 of white (dark samples don't count)",
+      abs(landed - GraphPerfExposure.level) < 0.08, "landed \(landed), k \(exposure.k), high \(exposure.high)")
+check("B10 only the top of the lit light reaches 250 (under 3% of what is lit)",
+      Double(overWhite) / Double(litOnly.count) < 0.03, "\(overWhite) of \(litOnly.count)")
+check("B10 the saturated share is the screen's share at 250 or more",
+      abs(exposure.saturated - 41.0 / 4_096) < 1e-9, "\(exposure.saturated)")
+
+// a sudden ten-times brighter frame: smoothed over about 0.3 s, never past it
+let before = exposure.k
+let brighter = measure(lights.map { $0 * 10 }, shownFrame).withUnsafeBufferPointer { Array($0) }
+var ks: [Float] = []
+for _ in 0..<180 {
+    feed(&exposure, brighter, 1.0 / 120)
+    ks.append(exposure.k)
+}
+let goal = GraphPerfExposure.strength(for: exposure.high)
+let at300ms = ks[35]
+let covered = log(before / at300ms) / log(before / goal)
+check("B10 a ten-times jump is followed smoothly: about 63% of the way (in the log) after 0.3 s",
+      ks.first! < before && ks.first! > before * 0.9 && covered > 0.55 && covered < 0.72,
+      "first \(ks.first!), covered \(covered)")
+check("B10 the exposure never overshoots and settles within 1.5 s",
+      zip(ks, ks.dropFirst()).allSatisfy { $1 <= $0 } && ks.allSatisfy { $0 >= goal * 0.999 } && abs(ks.last! / goal - 1) < 0.05,
+      "last \(ks.last!), goal \(goal)")
+
+// nothing lit: the strength stays where it was; strengths stay in range
+var dark = exposure
+feed(&dark, measure(Array(repeating: 0, count: 4_096), Array(repeating: 0, count: 4_096)), 1.0 / 60)
+check("B10 an empty frame keeps the exposure and reads 0% saturated",
+      dark.k == exposure.k && dark.saturated == 0 && dark.high == 0)
+check("B10 the strength stays in its range",
+      GraphPerfExposure.strength(for: 1e-6) == GraphPerfExposure.range.upperBound
+      && GraphPerfExposure.strength(for: 1e6) == GraphPerfExposure.range.lowerBound)
 
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)
