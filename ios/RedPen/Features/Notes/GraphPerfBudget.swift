@@ -9,16 +9,18 @@
 // counts against the stage that took the time (a refresh missed by a frame
 // within its share is the system's, not the map's); two in a row and that stage
 // draws less: the near one opens cells later (`split` x 1.2, so a slow phone
-// shows summaries sooner), the far one draws fewer bundles (the narrowest
-// and faintest go first). The split is never coarsened for time it did not
-// cost, so a costly far stage cannot hide every note. A long run of
-// cheap frames opens them sooner again, slowly (/ 1.05 after 45 frames
-// under half the share), so the detail never see-saws. After a change the
-// controller waits out the frames already on their way to the GPU before
-// judging again.
+// shows summaries sooner) and, once the split is half again its start,
+// pulls the depth band in (GraphPerfDepthBand: what lies past its end is
+// not drawn; `pull` x 0.9, down to 0.7); the far one draws fewer bundles
+// (the narrowest and faintest go first). The split is never coarsened for
+// time it did not cost, so a costly far stage cannot hide every note. A
+// long run of cheap frames gives the band back first, then opens cells
+// sooner again, slowly (/ 1.05 after 45 frames under half the share), so
+// the detail never see-saws. After a change the controller waits out the
+// frames already on their way to the GPU before judging again.
 //
-// The same number paces the streaming: how many links are copied and how
-// many bodies laid out a frame scale with the room left in the frame.
+// The same number paces the streaming: how many bodies are laid out a frame
+// scales with the room left in the frame.
 //
 // Foundation only: tested on Linux (Tests/GraphPerfBudgetTests.swift).
 import Foundation
@@ -50,6 +52,11 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     static let missed: Double = 1.25
     /// Frames to wait after a change (the ones in flight still carry the old detail).
     static let settle: Int = 4
+    /// The depth band's width as the budget allows it (GraphPerfDepthBand.depths):
+    /// pulled in by `pullStep` once the split is `pullAfter` times its start.
+    private(set) var pull: Float = 1
+    static let pullStep: Float = 0.9
+    static let pullAfter: Float = 1.5
 
     /// The share of the bundles drawn, heaviest first (the far stage's detail).
     private(set) var bundleShare: Double = 1
@@ -129,9 +136,9 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
                 case .far:
                     setBundleShare(bundleShare * Self.bundleCut)
                 case .near:
-                    setSplit(split * Self.coarser)
+                    coarser()
                 case .cpu:
-                    if stages.plan >= stages.cpu * 0.5 { setSplit(split * Self.coarser) }
+                    if stages.plan >= stages.cpu * 0.5 { coarser() }
                 }
             }
         } else if let interval, interval > period * Self.missed {
@@ -159,10 +166,31 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
         }
     }
 
-    /// Room to spare: the notes come back first (down to where the tier
-    /// starts), then the bundles, then finer detail still.
+    /// Less detail: a coarser split, and past half again its start, a
+    /// tighter depth band too (it culls the most for the least seen).
+    private mutating func coarser() {
+        if split >= startSplit * Self.pullAfter && pull > GraphPerfDepthBand.tightest {
+            setPull(pull * Self.pullStep)
+        } else {
+            setSplit(split * Self.coarser)
+        }
+    }
+
+    private mutating func setPull(_ next: Float) {
+        let clamped = min(max(next, GraphPerfDepthBand.tightest), 1)
+        guard clamped != pull else { return }
+        pull = clamped
+        wait = Self.settle
+        changes += 1
+    }
+
+    /// Room to spare: the depth band comes back first, then the notes
+    /// (down to where the tier starts), then the bundles, then finer detail
+    /// still.
     private mutating func finer(_ step: Float) {
-        if split > startSplit {
+        if pull < 1 {
+            setPull(pull / Self.pullStep)
+        } else if split > startSplit {
             setSplit(max(split / step, startSplit))
         } else if bundleShare < 1 {
             setBundleShare(min(bundleShare / Self.bundleCut, 1))
@@ -196,10 +224,8 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     /// The room left in this frame, 0...1 (the share of the target not spent).
     var room: Double { min(max(1 - lastCost / max(target, 1e-6), 0), 1) }
 
-    /// Links copied to the GPU this frame (at least a leaf's worth).
-    var linkBudget: Int { 16_000 + Int(160_000 * room) }
-    /// Bodies laid out this frame.
-    var bodyBudget: Int { 8_000 + Int(72_000 * room) }
+    /// Bodies laid out this frame (at least a leaf's: GraphPerfStreamer).
+    var bodyBudget: Int { 4_000 + Int(24_000 * room) }
 
     /// The chunk settings this budget asks for.
     var settings: GraphPerfChunkSettings {
@@ -234,17 +260,30 @@ nonisolated struct GraphPerfFrameStages: Sendable, Equatable {
     }
 }
 
-/// Link pages on the GPU: a phone with less memory keeps fewer leaves'
-/// links (and so draws fewer links in full); the bodies and summaries are
-/// always all there.
-nonisolated enum GraphPerfMemoryBudget {
-    /// Pages of 1,024 links (8 bytes each): 8 MB of them under 4 GB, 24 MB
-    /// under 6 GB, 40 MB above.
-    static func linkPages(physicalMemory: UInt64) -> Int {
-        let gb: UInt64 = 1 << 30
-        if physicalMemory > 0 && physicalMemory < 4 * gb { return 1_024 }
-        if physicalMemory > 0 && physicalMemory < 6 * gb { return 3_072 }
-        return 5_120
+/// A frame's GPU stages from the wall clock, for where the GPU's own
+/// timestamps are missing (the simulator reports about 0, so the budget
+/// would never see the GPU's load): the near stage runs from when its
+/// command buffer could start (committed, and the frame before done) to
+/// when it is done, plus the screen stage after the far one; the far stage
+/// from near done to far done. Completion is seen a little late, so this
+/// errs high: the budget trims a little early, never late.
+nonisolated enum GraphPerfWallStages {
+    /// The GPU's own times are used while they cover this share of the wall's.
+    static let trusted: Double = 0.25
+
+    /// Host times (seconds): A (near) committed, A, B (far) and C (screen)
+    /// done, and the frame before's C done.
+    static func stages(commitA: Double, doneA: Double, doneB: Double, doneC: Double,
+                       lastDoneC: Double) -> (near: Double, far: Double) {
+        let start = max(commitA, lastDoneC)
+        let near = max(doneA - start, 0) + max(doneC - max(doneB, doneA), 0)
+        let far = max(doneB - doneA, 0)
+        return (near, far)
+    }
+
+    /// Whether the GPU's own times are believable next to the wall's.
+    static func gpuTimesUsable(gpu: Double, wall: Double) -> Bool {
+        wall <= 0 || gpu >= wall * trusted
     }
 }
 

@@ -138,6 +138,24 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     var saturated: Double = -1
     /// The layout is still settling.
     var settling: Bool = false
+    /// The million map: the 1% low over the last 3 s (the rate of its
+    /// slowest hundredth of frames; 0: not measured), the frame's draw calls
+    /// (and compute dispatches), the GPU memory's peak (bytes), the cells in
+    /// each depth shell, and whether the depth fade is on.
+    var fpsOnePercent: Double = 0
+    var drawCalls: Int = 0
+    var gpuMemoryPeak: Int = 0
+    var shells = SIMD3<Int32>(0, 0, 0)
+    var fadeOn: Bool = true
+    /// The proof tour's phase and its numbers so far (empty without a tour).
+    var tourPhase: String = ""
+    var tourSummary: String = ""
+
+    /// "tour: measure", then the tour's numbers (empty without a tour).
+    var tour: String {
+        guard !tourPhase.isEmpty else { return "" }
+        return "tour: " + tourPhase + (tourSummary.isEmpty ? "" : "\n" + tourSummary)
+    }
 
     /// "100,000 notes · 230,080 links"
     var line: String {
@@ -153,7 +171,10 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     var pace: String {
         let rate = String(Int(fps.rounded()))
         if fpsLow > 0 && screenFPS > 0 {
-            return rate + " of " + String(screenFPS) + " fps (low " + String(Int(fpsLow.rounded())) + ") \u{00B7} "
+            let lows = fpsOnePercent > 0
+                ? " (low " + String(Int(fpsLow.rounded())) + ", 1% " + String(Int(fpsOnePercent.rounded())) + ")"
+                : " (low " + String(Int(fpsLow.rounded())) + ")"
+            return rate + " of " + String(screenFPS) + " fps" + lows + " \u{00B7} "
                 + Self.millis(frameTime) + " ms a frame of " + Self.millis(1 / Double(screenFPS))
         }
         guard screenFPS > 0 else { return rate + " fps \u{00B7} " + Self.millis(frameTime) + " ms a frame" }
@@ -168,11 +189,30 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     }
 
     /// "98,412 drawn · 236 glows · 231,940 lines", and on the million map
-    /// " · opens at 26 pt" (the frame budget's split)
+    /// " · opens at 26 pt" (the frame budget's split) and " · 7 draws"
     var drawn: String {
         Self.grouped(drawnBodies) + " drawn \u{00B7} " + Self.grouped(drawnGlows)
             + (drawnGlows == 1 ? " glow" : " glows") + " \u{00B7} " + Self.grouped(drawnLines) + " lines"
             + (detail > 0 ? " \u{00B7} opens at " + String(Int(detail.rounded())) + " pt" : "")
+            + (drawCalls > 0 ? " \u{00B7} " + String(drawCalls) + " draws" : "")
+    }
+
+    /// "depth 812/1,940/3,377 · fade on · GPU 61 MB": the cells in the
+    /// front, middle and back shells, the depth fade, and the GPU memory's
+    /// peak (the million map; empty elsewhere).
+    var depth: String {
+        guard gpuMemoryPeak > 0 || shells != SIMD3(0, 0, 0) else { return "" }
+        return "depth " + Self.grouped(Int(shells.x)) + "/" + Self.grouped(Int(shells.y)) + "/"
+            + Self.grouped(Int(shells.z)) + " \u{00B7} fade " + (fadeOn ? "on" : "off") + " \u{00B7} GPU "
+            + String(gpuMemoryPeak / 1_000_000) + " MB"
+    }
+
+    /// The 1% low: the rate at the slowest hundredth's frame interval (0 for none).
+    static func onePercentLow(_ intervals: [Double]) -> Double {
+        let sorted = intervals.filter { $0 > 0 }.sorted()
+        guard !sorted.isEmpty else { return 0 }
+        let slow = sorted[min(Int((Double(sorted.count) * 0.99).rounded(.down)), sorted.count - 1)]
+        return 1 / slow
     }
 
     /// "cpu 0.9 · plan 0.3 · near 3.1 · far 1.2 ms · 0.4% at 250+", where the

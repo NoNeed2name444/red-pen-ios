@@ -3,45 +3,59 @@
 // Playgrounds cannot compile .metal files. Foundation only, so the tests and
 // tools/shader_check.py hold the names, slots and frame layout.
 //
-//   mil_layout          the GPU layout, a compute pass over the leaves being
-//                       prepared: each body moves a little towards its
-//                       neighbours and back towards its seed, never more
-//                       than a third of a spacing from it nor out of its
-//                       leaf's box, and is written back as 16-bit numbers
+//   mil_layout          the GPU layout, one compute pass a step over every
+//                       leaf being prepared (a thread finds its leaf by a
+//                       binary search of the jobs): each body moves a little
+//                       towards its neighbours and back towards its seed,
+//                       never more than a third of a spacing from it nor out
+//                       of its leaf's box, and is written back as 16-bit numbers
 //   mil_node_vertex     one quad per body of every leaf drawn body by body,
 //                       found from the instance by a binary search of the
 //                       drawn leaves; placed and sized by its leaf's morph
 //                       (it moves out of the leaf's summary point and grows
-//                       as the leaf opens); shading and the lit ball grow
-//                       with the pixels it covers, a plain dot below two
+//                       as the leaf opens) and by its leaf's detail (D1:
+//                       smaller and flatter at the back); its colour mixed
+//                       towards the ground by its depth fade (plan 4f,
+//                       GraphPerfDepthBand), drawn opaque with the depth
+//                       test; past the band's end, not drawn at all
+//   mil_focus_link_vertex  the chosen note's own links, read straight from
+//                       the adjacency (none by default): each grows out from
+//                       the chosen note (GraphPerfFocusLook.tip), a smooth
+//                       1.3-point band shaded from one note's colour to the other's
+//   mil_focus_node_vertex  each neighbour again, over the dimmed map, growing
+//                       in as its link reaches it
 //   mil_chosen_vertex   the chosen body again, over everything, with a ring
-//   mil_link_vertex     the selected note's own links only (none by
-//                       default: GraphPerfLinkFocus), read from its leaf's
-//                       link pages (1,024 a page); each end where its leaf
-//                       shows it, so a link into a closed leaf ends at its
-//                       summary point
 //   mil_bundle_vertex   one faint band per bundle (the strongest 300 at most)
-//                       between two cut cells, as wide as
-//                       the log of the links it carries times the share of
-//                       both ends still closed: it narrows to nothing as the
-//                       links take over, never fades
+//                       between two cut cells, as wide as the log of the
+//                       links it carries times the share of both ends still
+//                       closed: it narrows to nothing as the links take
+//                       over, and the last few the budget leaves out narrow
+//                       away too (never a fade)
 //   mil_summary_vertex  one soft disc per summary point: brightness from how
 //                       many it stands for, colour their mix, its radius and
 //                       its floor both times its morph scale
 //
-// The frame's numbers are six float4s after the matrix (Frame below):
+// Bundles and glows are additive light: their share is times 1 - f, so they
+// fade to nothing with depth (never towards the ground, which would
+// brighten them), and times 1 - dim while a note is chosen.
+//
+// The frame's numbers are eight float4s after the matrix (Frame below):
 //   eye      xyz, w time
 //   screen   width, height (points), focal length (points), pixels per point
-//   look     body floor (points), summary floor (points), link alpha, bundle width (points)
-//   pick     chosen slot (-1 none), largest body (points), bundle alpha, glow strength
-//   fog      depth where links start to fade, where they are faintest, bundle width cap (points),
-//            reach (points) past which a link or bundle running off the screen dims
+//   look     body floor (points), summary floor (points), bundle alpha, bundle width (points)
+//   pick     chosen slot (-1 none), largest body (points), glow strength, focus links drawn
+//   fade     band start depth, end depth, exponent k, most (0: no fade)
+//   focus    links' growth (0...1, eased), reach (world: the longest link), dim, link width (points)
+//   bundles  limit (eased count: those under it full width), ramp (the next ones narrowing
+//            to nothing), width cap (points),
+//            reach (points) past which a bundle running off the screen dims
+//   sky      the ground's rgb (what the fade mixes towards), w unused
 //
-// Light (links, bundles, glows) adds up in an rgba16Float picture; the
-// resolve pass tone-maps it onto the screen (1 - exp(-k x), k from the
-// picture's own 97th percentile, GraphPerfExposure) and the notes are drawn
-// over it in their own colours, so dense light reads as structure, never a
-// white fill, and notes stay shapes.
+// Light (bundles, glows) adds up in an rgba16Float picture at a quarter of
+// the pixels; the resolve pass tone-maps it onto the screen (1 - exp(-k x),
+// k from the picture's own 97th percentile, GraphPerfExposure) and the
+// notes are drawn over it in their own colours, so dense light reads as
+// structure, never a white fill, and notes stay shapes.
 //   mil_resolve_vertex/_fragment  one triangle over the screen: sky + (1 - sky) x tone
 //   mil_measure         a 64 x 64 grid of samples: the light's luminance (for
 //                       the exposure) and the screen's (the share at 250+)
@@ -57,8 +71,8 @@ nonisolated enum GraphPerfMillionShaders {
         static let standIn = 4
         static let drawLeaves = 5
         static let drawCount = 6
-        static let pool = 7
-        static let pages = 8
+        static let adjacencyStart = 7
+        static let adjacency = 8
         static let bundleEnds = 9
         static let bundleWeights = 10
         static let bundleCells = 11
@@ -66,8 +80,8 @@ nonisolated enum GraphPerfMillionShaders {
         static let summaries = 13
         /// Per bundle cut cell: 1/sqrt(the bundles meeting there).
         static let cutWeights = 14
-        /// Per leaf, 1 when its links are drawn one by one (GraphPerfLinkFocus).
-        static let linkLeaves = 15
+        /// Per leaf: its detail, 0 (back) ... 1 (front) (GraphPerfChunkFrame.leafDetail).
+        static let leafDetail = 15
     }
 
     /// The resolve and measure passes' slots.
@@ -84,20 +98,19 @@ nonisolated enum GraphPerfMillionShaders {
     /// The measure kernel samples a grid of this many points a side.
     static let measureGrid = 64
 
-    /// The layout kernel's slots.
+    /// The layout kernel's slots: the jobs (first slot, count, leaf, the
+    /// threads before it), then as before, then how many jobs and threads.
     enum LayoutSlot {
-        static let job = 0
+        static let jobs = 0
         static let packed = 1
         static let seed = 2
         static let boxes = 3
         static let adjacencyStart = 4
         static let adjacency = 5
         static let params = 6
+        static let count = 7
     }
 
-    /// Links a page holds; an unused entry is `emptyEntry` (folded away).
-    static let pageSize = 1024
-    static let emptyEntry: UInt32 = 0xFFFF_FFFF
     /// How far a body may move from its seed, in spacings, and per step
     /// towards its neighbours and back to its seed.
     static let layoutReach: Float = 0.3
@@ -105,16 +118,15 @@ nonisolated enum GraphPerfMillionShaders {
     static let layoutAnchor: Float = 0.1
     /// Steps a leaf is laid out when it is prepared.
     static let layoutSteps = 10
-    /// The frame struct's size in floats: the matrix and five float4s.
-    static let frameFloats = 36
+    /// The frame struct's size in floats: the matrix and eight float4s.
+    static let frameFloats = 48
 
     static let functions: [String] = [
-        "mil_layout", "mil_node_vertex", "mil_chosen_vertex", "mil_node_fragment", "mil_link_vertex",
-        "mil_line_fragment", "mil_bundle_vertex", "mil_summary_vertex", "mil_summary_fragment",
-        "mil_resolve_vertex", "mil_resolve_fragment", "mil_measure"
+        "mil_layout", "mil_node_vertex", "mil_chosen_vertex", "mil_node_fragment", "mil_focus_link_vertex",
+        "mil_focus_link_fragment", "mil_focus_node_vertex", "mil_bundle_vertex", "mil_line_fragment",
+        "mil_summary_vertex", "mil_summary_fragment", "mil_resolve_vertex", "mil_resolve_fragment", "mil_measure"
     ]
 
-    /// The frame's numbers, in Frame's order.
     /// The widest a bundle is drawn (points, before Bold).
     static let bundleWidthCap: Float = 2.5
     /// At most this many bundles, the strongest: groups, not a web.
@@ -123,29 +135,47 @@ nonisolated enum GraphPerfMillionShaders {
     /// quarter of the pixels), then filtered up by the resolve: glows and
     /// bands are soft anyway, and it is most of the GPU's fill.
     static let lightScale: Float = 0.5
-    /// A link or bundle with an end off the screen is drawn at full
-    /// strength up to this share of the screen's shorter side long, dimmer
-    /// in proportion beyond it (never under `longFloor`): close in, the
-    /// neighbourhood shows, not every ray leaving it.
+    /// A bundle with an end off the screen is drawn at full strength up to
+    /// this share of the screen's shorter side long, dimmer in proportion
+    /// beyond it (never under `longFloor`).
     static let longReach: Float = 0.35
     static let longFloor: Float = 0.12
 
+    /// The selection as the frame draws it.
+    struct Focus: Sendable, Equatable {
+        /// The chosen slot (nil: none).
+        var slot: Int?
+        /// Its links drawn (at most GraphPerfFocusLook.most).
+        var links: Int = 0
+        /// How far they have grown (eased, 0...1), the longest one's length
+        /// (world), and how far the rest has stepped back.
+        var grow: Float = 0
+        var reach: Float = 1
+        var dim: Float = 0
+    }
+
+    /// The bundles drawn: the eased count, and how many narrow away at it.
+    static func bundleRamp(limit: Float) -> Float { max(8, 0.2 * limit) }
+
     static func frame(camera cam: GraphPerfCamera, width: Float, height: Float, near: Float, far: Float,
-                      centre: SIMD3<Float>, radius: Float, tier: GraphPerfTier, bold: Bool, chosenSlot: Int?,
-                      pixelsPerPoint: Float, time: Float) -> [SIMD4<Float>] {
+                      tier: GraphPerfTier, bold: Bool, focus: Focus, fade: SIMD4<Float>, bundleLimit: Float,
+                      sky: SIMD3<Float>, pixelsPerPoint: Float, time: Float) -> [SIMD4<Float>] {
         let projection = cam.projectionMatrix(aspect: width / max(height, 1), near: near, far: far)
         let viewProj = projection * cam.viewMatrix()
         let eye = cam.eye
         let base: Float = tier.linkBase * (bold ? 1.5 : 1)
-        let toCentre = max(((centre - eye) * cam.forward).sum(), 0)
         return [
             viewProj.c0, viewProj.c1, viewProj.c2, viewProj.c3,
             SIMD4(eye.x, eye.y, eye.z, time),
             SIMD4(width, height, cam.focal(viewHeight: height), pixelsPerPoint),
-            SIMD4(GraphPerfLOD.noteClamp.lowerBound, 1.6, base, bold ? 3 : 2.2),
-            SIMD4(Float(chosenSlot ?? -1), GraphPerfLOD.hubClamp.upperBound, min(base * 0.8, 0.3), tier == .saver ? 0.7 : 1),
-            SIMD4(toCentre, toCentre + 2 * radius, bundleWidthCap * (bold ? 1.4 : 1),
-                  longReach * min(width, height))
+            SIMD4(GraphPerfLOD.noteClamp.lowerBound, 1.6, min(base * 0.8, 0.3), bold ? 3 : 2.2),
+            SIMD4(Float(focus.slot ?? -1), GraphPerfLOD.hubClamp.upperBound, tier == .saver ? 0.7 : 1,
+                  Float(focus.links)),
+            fade,
+            SIMD4(focus.grow, max(focus.reach, 1e-4), focus.dim, GraphPerfFocusLook.linkWidth * (bold ? 1.4 : 1)),
+            SIMD4(bundleLimit, bundleRamp(limit: bundleLimit), bundleWidthCap * (bold ? 1.4 : 1),
+                  longReach * min(width, height)),
+            SIMD4(sky.x, sky.y, sky.z, 0)
         ]
     }
 
@@ -159,7 +189,10 @@ nonisolated enum GraphPerfMillionShaders {
         float4 screen;
         float4 look;
         float4 pick;
-        float4 fog;
+        float4 fade;
+        float4 focus;
+        float4 bundles;
+        float4 sky;
     };
 
     // a leaf's box: low corner (w: first slot's bits), extent (w: count's bits)
@@ -174,6 +207,16 @@ nonisolated enum GraphPerfMillionShaders {
         float2 uv;
         float pixels;
         float ring;
+        float detail;
+        float fade;
+        float dim;
+    };
+
+    struct LinkOut {
+        float4 position [[position]];
+        float4 colour;
+        float across;
+        float half_width;
     };
 
     struct LineOut {
@@ -200,10 +243,6 @@ nonisolated enum GraphPerfMillionShaders {
         return w >= 2.0 ? w - 2.0 : w;
     }
 
-    static float3 shown(float3 p, float4 stand) {
-        return mix(stand.xyz, p, leaf_open(stand.w));
-    }
-
     // the drawn leaf holding instance `i`: the last whose first instance is <= i
     static uint find_leaf(const device uint2* draw, uint count, uint i) {
         uint lo = 0u;
@@ -215,17 +254,22 @@ nonisolated enum GraphPerfMillionShaders {
         return lo;
     }
 
-    static float link_fog(float depth, constant Frame& f) {
-        return mix(1.0, 0.35, smoothstep(f.fog.x, f.fog.y, depth));
+    // the depth fade at view depth `depth`: SceneKit's fog curve,
+    // clamp((z - start) / (end - start), 0, 1)^k, times its most
+    static float fade_at(float depth, constant Frame& f) {
+        if (f.fade.w <= 0.0) { return 0.0; }
+        float t = clamp((depth - f.fade.x) / max(f.fade.y - f.fade.x, 1e-6), 0.0, 1.0);
+        if (t <= 0.0) { return 0.0; }
+        return pow(t, max(f.fade.z, 0.05)) * f.fade.w;
     }
 
     static bool off_screen(float4 c) {
         return c.w <= 1e-3 || abs(c.x) > c.w || abs(c.y) > c.w;
     }
 
-    // a line with an end off the screen: full strength up to fog.w points
-    // long, then dimmer in proportion (a fixed strength for its length,
-    // never a fade over time); behind the eye, the dimmest
+    // a bundle with an end off the screen: full strength up to bundles.w
+    // points long, then dimmer in proportion (a fixed strength for its
+    // length, never a fade over time); behind the eye, the dimmest
     static float long_dim(float4 a, float4 b, constant Frame& f) {
         if (!off_screen(a) && !off_screen(b)) { return 1.0; }
         if (a.w <= 1e-3 || b.w <= 1e-3) { return 0.12; }
@@ -233,21 +277,32 @@ nonisolated enum GraphPerfMillionShaders {
         float2 sa = a.xy / a.w * half_screen;
         float2 sb = b.xy / b.w * half_screen;
         float len = length(sb - sa);
-        return clamp(f.fog.w / max(len, 1e-3), 0.12, 1.0);
+        return clamp(f.bundles.w / max(len, 1e-3), 0.12, 1.0);
     }
 
     // MARK: the GPU layout
 
     kernel void mil_layout(uint tid [[thread_position_in_grid]],
-                           constant uint4& job [[buffer(0)]],
+                           const device uint4* jobs [[buffer(0)]],
                            device ushort4* packed [[buffer(1)]],
                            const device ushort4* seed [[buffer(2)]],
                            const device LeafBox* boxes [[buffer(3)]],
                            const device uint* adjacencyStart [[buffer(4)]],
                            const device uint* adjacency [[buffer(5)]],
-                           constant float4& params [[buffer(6)]]) {
-        if (tid >= job.y) { return; }
-        uint s = job.x + tid;
+                           constant float4& params [[buffer(6)]],
+                           constant uint2& count [[buffer(7)]]) {
+        if (tid >= count.y) { return; }
+        // the job holding this thread: the last whose first thread is <= tid
+        uint lo = 0u;
+        uint hi = count.x;
+        while (hi - lo > 1u) {
+            uint mid = (lo + hi) / 2u;
+            if (jobs[mid].w <= tid) { lo = mid; } else { hi = mid; }
+        }
+        uint4 job = jobs[lo];
+        uint at = tid - job.w;
+        if (at >= job.y) { return; }
+        uint s = job.x + at;
         LeafBox b = boxes[job.z];
         ushort4 q = packed[s];
         float3 p = unpack_position(q, b);
@@ -276,31 +331,28 @@ nonisolated enum GraphPerfMillionShaders {
 
     // MARK: bodies
 
-    static NodeOut node_out(uint slot, uint vid, float ring, constant Frame& f,
-                            const device ushort4* packed, const device uint* looks,
-                            const device LeafBox* boxes, const device float4* standIn) {
+    static NodeOut hidden_node() {
         NodeOut o;
-        ushort4 q = packed[slot];
-        uint leaf = uint(q.w);
-        float4 stand = standIn[leaf];
-        float open = leaf_open(stand.w);
-        if (ring > 0.0) { open = max(open, 1.0); }
-        float3 p = mix(stand.xyz, unpack_position(q, boxes[leaf]), open);
-        float4 look = unpack_unorm4x8_to_float(looks[slot]);
-        float radius = look.w * 2.55 * open;
-        float4 clip = f.viewProj * float4(p, 1.0);
-        float depth = max(clip.w, 1e-3);
-        float pixels = radius * f.screen.z / depth;
-        pixels = clamp(pixels, f.look.x * open, f.pick.y);
-        if (ring > 0.0) { pixels = max(pixels * 1.35, 7.0); }
+        o.position = float4(0.0, 0.0, -2.0, 1.0);
+        o.colour = float4(0.0);
+        o.uv = float2(0.0);
+        o.pixels = 0.0;
+        o.ring = 0.0;
+        o.detail = 0.0;
+        o.fade = 0.0;
+        o.dim = 0.0;
+        return o;
+    }
+
+    static NodeOut quad(float4 clip, float pixels, uint vid, float3 colour, constant Frame& f) {
+        NodeOut o = hidden_node();
         float2 c = corner(vid);
         float4 moved = clip;
         moved.xy += c * (pixels * 2.0 / f.screen.xy) * clip.w;
         o.position = moved;
-        o.colour = float4(look.rgb, 1.0);
+        o.colour = float4(colour, 1.0);
         o.uv = c;
         o.pixels = pixels * f.screen.w;
-        o.ring = ring;
         return o;
     }
 
@@ -311,78 +363,170 @@ nonisolated enum GraphPerfMillionShaders {
                                    const device LeafBox* boxes [[buffer(3)]],
                                    const device float4* standIn [[buffer(4)]],
                                    const device uint2* draw [[buffer(5)]],
-                                   constant uint& drawCount [[buffer(6)]]) {
+                                   constant uint& drawCount [[buffer(6)]],
+                                   const device float* leafDetail [[buffer(15)]]) {
         uint k = find_leaf(draw, drawCount, iid);
         uint leaf = draw[k].x;
         uint first = as_type<uint>(boxes[leaf].lo.w);
         uint slot = first + (iid - draw[k].y);
-        return node_out(slot, vid, 0.0, f, packed, looks, boxes, standIn);
+        ushort4 q = packed[slot];
+        float4 stand = standIn[leaf];
+        float open = leaf_open(stand.w);
+        float detail = clamp(leafDetail[leaf], 0.0, 1.0);
+        float3 p = mix(stand.xyz, unpack_position(q, boxes[leaf]), open);
+        float4 look = unpack_unorm4x8_to_float(looks[slot]);
+        float4 clip = f.viewProj * float4(p, 1.0);
+        float depth = max(clip.w, 1e-3);
+        float fade = fade_at(depth, f);
+        // past the band's end: gone, so not drawn at all
+        if (fade >= 0.999) { return hidden_node(); }
+        // smaller as its detail drops (D1), all times the leaf's morph
+        float shrink = 0.7 + 0.3 * detail;
+        float pixels = look.w * 2.55 * open * shrink * f.screen.z / depth;
+        pixels = clamp(pixels, f.look.x * open, f.pick.y);
+        NodeOut o = quad(clip, pixels, vid, look.rgb, f);
+        o.detail = detail;
+        o.fade = fade;
+        o.dim = f.focus.z;
+        return o;
     }
 
+    // the chosen note: at its own place whatever its leaf shows, unfaded,
+    // bigger, with a ring
     vertex NodeOut mil_chosen_vertex(uint vid [[vertex_id]],
                                      constant Frame& f [[buffer(0)]],
                                      const device ushort4* packed [[buffer(1)]],
                                      const device uint* looks [[buffer(2)]],
-                                     const device LeafBox* boxes [[buffer(3)]],
-                                     const device float4* standIn [[buffer(4)]]) {
+                                     const device LeafBox* boxes [[buffer(3)]]) {
         uint slot = uint(max(f.pick.x, 0.0));
-        return node_out(slot, vid, 1.0, f, packed, looks, boxes, standIn);
+        ushort4 q = packed[slot];
+        float3 p = unpack_position(q, boxes[uint(q.w)]);
+        float4 look = unpack_unorm4x8_to_float(looks[slot]);
+        float4 clip = f.viewProj * float4(p, 1.0);
+        if (clip.w <= 1e-3) { return hidden_node(); }
+        float pixels = clamp(look.w * 2.55 * f.screen.z / clip.w * 1.3, 3.5, f.pick.y);
+        pixels = max(pixels * 1.35, 7.0);
+        NodeOut o = quad(clip, pixels, vid, look.rgb, f);
+        o.ring = 1.0;
+        o.detail = 1.0;
+        return o;
     }
 
-    fragment float4 mil_node_fragment(NodeOut in [[stage_in]]) {
+    fragment float4 mil_node_fragment(NodeOut in [[stage_in]], constant Frame& f [[buffer(0)]]) {
         float d2 = dot(in.uv, in.uv);
         if (d2 > 1.0) { discard_fragment(); }
-        // shading grows with the pixels a body covers: a flat dot under
-        // two, a lit ball by eight, a rim of light by twenty
-        float lit = smoothstep(2.0, 8.0, in.pixels);
-        float rim = smoothstep(8.0, 20.0, in.pixels);
+        // shading grows with the pixels a body covers and its detail: a
+        // flat dot under two, a lit ball by eight, a rim of light by twenty
+        float lit = smoothstep(2.0, 8.0, in.pixels) * smoothstep(0.0, 1.0, in.detail);
+        float rim = smoothstep(8.0, 20.0, in.pixels) * smoothstep(0.5, 1.0, in.detail);
         float3 n = float3(in.uv.x, -in.uv.y, sqrt(max(1.0 - d2, 0.0)));
         float3 l = normalize(float3(-0.45, 0.55, 0.7));
         float diffuse = 0.42 + 0.58 * max(dot(n, l), 0.0);
         float edge = pow(1.0 - n.z, 3.0) * 0.5 * rim;
         float3 colour = in.colour.rgb * mix(1.0, diffuse, lit) + float3(edge);
-        if (in.ring > 0.0 && d2 > 0.62) { colour = float3(1.0); }
-        return float4(colour, 1.0);
+        // the depth fade, then the step back while another note is chosen
+        colour = mix(colour, f.sky.rgb, in.fade);
+        colour = mix(colour, f.sky.rgb, in.dim);
+        if (in.ring > 0.0 && d2 > 0.62) { colour = float3(0.94); }
+        return float4(min(colour, float3(0.94)), 1.0);
     }
 
-    // MARK: links and bundles
+    // MARK: the chosen note's neighbourhood
 
-    vertex LineOut mil_link_vertex(uint vid [[vertex_id]],
-                                   constant Frame& f [[buffer(0)]],
-                                   const device ushort4* packed [[buffer(1)]],
-                                   const device uint* looks [[buffer(2)]],
-                                   const device LeafBox* boxes [[buffer(3)]],
-                                   const device float4* standIn [[buffer(4)]],
-                                   const device uint2* pool [[buffer(7)]],
-                                   const device uint* pages [[buffer(8)]],
-                                   const device uchar* shownLinks [[buffer(15)]]) {
-        LineOut o;
-        uint e = vid >> 1u;
-        uint page = pages[e >> 10u];
-        uint2 pair = pool[page * 1024u + (e & 1023u)];
-        // off the clip volume: nothing drawn
+    // a neighbour's slot, and its link's growth (0...1) as it reaches it
+    static uint neighbour(uint iid, constant Frame& f, const device uint* adjacencyStart,
+                          const device uint* adjacency) {
+        uint chosen = uint(max(f.pick.x, 0.0));
+        return adjacency[adjacencyStart[chosen] + iid];
+    }
+
+    static float link_tip(float3 a, float3 b, constant Frame& f) {
+        float len = length(b - a);
+        if (len <= 1e-6) { return f.focus.x > 0.0 ? 1.0 : 0.0; }
+        return clamp(f.focus.x * f.focus.y / len, 0.0, 1.0);
+    }
+
+    vertex LinkOut mil_focus_link_vertex(uint vid [[vertex_id]], uint iid [[instance_id]],
+                                         constant Frame& f [[buffer(0)]],
+                                         const device ushort4* packed [[buffer(1)]],
+                                         const device uint* looks [[buffer(2)]],
+                                         const device LeafBox* boxes [[buffer(3)]],
+                                         const device uint* adjacencyStart [[buffer(7)]],
+                                         const device uint* adjacency [[buffer(8)]]) {
+        LinkOut o;
         o.position = float4(0.0, 0.0, -2.0, 1.0);
         o.colour = float4(0.0);
-        if (pair.x == 0xFFFFFFFFu) { return o; }
-        // the selected note's own links only: its neighbourhood (a link
-        // inside one leaf is kept once, so the note may be either end)
-        if (f.pick.x >= 0.0 && pair.x != uint(f.pick.x) && pair.y != uint(f.pick.x)) { return o; }
-        ushort4 qh = packed[pair.x];
-        ushort4 qo = packed[pair.y];
-        float4 sh = standIn[uint(qh.w)];
-        float4 so = standIn[uint(qo.w)];
-        // both leaves' links drawn: the lower leaf's copy draws it
-        if (shownLinks[uint(qo.w)] != 0u && qo.w < qh.w) { return o; }
-        bool home = (vid & 1u) == 0u;
-        float4 ch = f.viewProj * float4(shown(unpack_position(qh, boxes[uint(qh.w)]), sh), 1.0);
-        float4 co = f.viewProj * float4(shown(unpack_position(qo, boxes[uint(qo.w)]), so), 1.0);
-        float4 clip = home ? ch : co;
-        uint slot = home ? pair.x : pair.y;
-        float4 look = unpack_unorm4x8_to_float(looks[slot]);
-        o.position = clip;
-        o.colour = float4(look.rgb * (f.look.z * link_fog(clip.w, f) * long_dim(ch, co, f)), 0.0);
+        o.across = 0.0;
+        o.half_width = 1.0;
+        uint chosen = uint(max(f.pick.x, 0.0));
+        uint other = neighbour(iid, f, adjacencyStart, adjacency);
+        ushort4 qa = packed[chosen];
+        ushort4 qb = packed[other];
+        float3 a = unpack_position(qa, boxes[uint(qa.w)]);
+        float3 b = unpack_position(qb, boxes[uint(qb.w)]);
+        float tip = link_tip(a, b, f);
+        if (tip <= 0.0) { return o; }
+        float3 e = mix(a, b, tip);
+        float4 ca = f.viewProj * float4(a, 1.0);
+        float4 cb = f.viewProj * float4(e, 1.0);
+        if (ca.w <= 1e-3 || cb.w <= 1e-3) { return o; }
+        float2 half_screen = f.screen.xy * 0.5;
+        float2 sa = ca.xy / ca.w * half_screen;
+        float2 sb = cb.xy / cb.w * half_screen;
+        float2 along = sb - sa;
+        float len = length(along);
+        float2 dir = len > 1e-4 ? along / len : float2(1.0, 0.0);
+        float2 nrm = float2(-dir.y, dir.x);
+        bool atB = (vid & 2u) != 0u;
+        float side = (vid & 1u) != 0u ? 1.0 : -1.0;
+        // half its width and a pixel more for the smooth edge (points)
+        float half_width = f.focus.w * 0.5;
+        float reach = half_width + 1.0 / max(f.screen.w, 1.0);
+        float4 c = atB ? cb : ca;
+        c.xy += nrm * side * (reach / half_screen) * c.w;
+        float3 ka = unpack_unorm4x8_to_float(looks[chosen]).rgb;
+        float3 kb = unpack_unorm4x8_to_float(looks[other]).rgb;
+        o.position = c;
+        o.colour = float4(atB ? mix(ka, kb, tip) : ka, 1.0);
+        o.across = side * reach;
+        o.half_width = half_width;
         return o;
     }
+
+    fragment float4 mil_focus_link_fragment(LinkOut in [[stage_in]], constant Frame& f [[buffer(0)]]) {
+        // a smooth edge a pixel wide; premultiplied
+        float px = 1.0 / max(f.screen.w, 1.0);
+        float a = clamp((in.half_width + px * 0.5 - abs(in.across)) / px, 0.0, 1.0) * 0.9;
+        float3 colour = min(in.colour.rgb * 1.1, float3(0.94));
+        return float4(colour * a, a);
+    }
+
+    vertex NodeOut mil_focus_node_vertex(uint vid [[vertex_id]], uint iid [[instance_id]],
+                                         constant Frame& f [[buffer(0)]],
+                                         const device ushort4* packed [[buffer(1)]],
+                                         const device uint* looks [[buffer(2)]],
+                                         const device LeafBox* boxes [[buffer(3)]],
+                                         const device uint* adjacencyStart [[buffer(7)]],
+                                         const device uint* adjacency [[buffer(8)]]) {
+        uint chosen = uint(max(f.pick.x, 0.0));
+        uint other = neighbour(iid, f, adjacencyStart, adjacency);
+        ushort4 qa = packed[chosen];
+        ushort4 qb = packed[other];
+        float3 a = unpack_position(qa, boxes[uint(qa.w)]);
+        float3 b = unpack_position(qb, boxes[uint(qb.w)]);
+        // it grows in as its link arrives (the link's last 15%)
+        float arrived = smoothstep(0.85, 1.0, link_tip(a, b, f));
+        if (arrived <= 0.0) { return hidden_node(); }
+        float4 look = unpack_unorm4x8_to_float(looks[other]);
+        float4 clip = f.viewProj * float4(b, 1.0);
+        if (clip.w <= 1e-3) { return hidden_node(); }
+        float pixels = clamp(look.w * 2.55 * f.screen.z / clip.w * 1.3, 3.5, f.pick.y) * arrived;
+        NodeOut o = quad(clip, pixels, vid, look.rgb, f);
+        o.detail = 1.0;
+        return o;
+    }
+
+    // MARK: bundles
 
     vertex LineOut mil_bundle_vertex(uint vid [[vertex_id]], uint iid [[instance_id]],
                                      constant Frame& f [[buffer(0)]],
@@ -401,9 +545,12 @@ nonisolated enum GraphPerfMillionShaders {
         float4 ca = f.viewProj * float4(a.xyz, 1.0);
         float4 cb = f.viewProj * float4(b.xyz, 1.0);
         if (closed <= 0.0 || ca.w <= 1e-3 || cb.w <= 1e-3) { return o; }
-        // wider for more links, but never past the cap (fog.z, points): a
+        // past the budget's count the next few narrow away (never a fade)
+        float kept = clamp((f.bundles.x + f.bundles.y - float(iid)) / max(f.bundles.y, 1.0), 0.0, 1.0);
+        // wider for more links, but never past the cap (bundles.z, points): a
         // bundle of thousands is a line, not a band across the screen
-        float width = min(f.look.w * (0.5 + 0.3 * log2(1.0 + weights[iid])), f.fog.z) * closed;
+        float width = min(f.look.w * (0.5 + 0.3 * log2(1.0 + weights[iid])), f.bundles.z) * closed * kept;
+        if (width <= 0.0) { return o; }
         float2 half_screen = f.screen.xy * 0.5;
         float2 sa = ca.xy / ca.w * half_screen;
         float2 sb = cb.xy / cb.w * half_screen;
@@ -419,9 +566,12 @@ nonisolated enum GraphPerfMillionShaders {
         float3 kb = unpack_unorm4x8_to_float(colours[e.y]).rgb;
         o.position = c;
         // each bundle's share of the light where many meet (1/sqrt of how
-        // many), and dimmer when it runs off the screen
+        // many), dimmer when it runs off the screen, fading to nothing with
+        // depth, and stepping back while a note is chosen
         float share = min(overlap[e.x], overlap[e.y]);
-        o.colour = float4((atB ? kb : ka) * (f.pick.z * share * link_fog(c.w, f) * long_dim(ca, cb, f)), 0.0);
+        float deep = 1.0 - fade_at(max(c.w, 1e-3), f);
+        float strength = f.look.z * share * long_dim(ca, cb, f) * deep * (1.0 - f.focus.z);
+        o.colour = float4((atB ? kb : ka) * strength, 0.0);
         return o;
     }
 
@@ -435,11 +585,17 @@ nonisolated enum GraphPerfMillionShaders {
                                       constant Frame& f [[buffer(0)]],
                                       const device float4* sums [[buffer(13)]]) {
         GlowOut o;
+        o.position = float4(0.0, 0.0, -2.0, 1.0);
+        o.colour = float4(0.0);
+        o.uv = float2(0.0);
         float4 a = sums[2u * iid];
         float4 b = sums[2u * iid + 1u];
         float scale = b.z;
         float4 clip = f.viewProj * float4(a.xyz, 1.0);
         float depth = max(clip.w, 1e-3);
+        // additive light fades to nothing with depth: times 1 - f
+        float deep = 1.0 - fade_at(depth, f);
+        if (deep <= 0.001) { return o; }
         float pixels = max(a.w * f.screen.z / depth, f.look.y) * scale;
         // never wider than a fifth of the screen: a cluster close by opens
         // into notes, and a huge soft disc is only fill
@@ -449,7 +605,7 @@ nonisolated enum GraphPerfMillionShaders {
         moved.xy += c * (pixels * 2.0 / f.screen.xy) * clip.w;
         float3 colour = unpack_unorm4x8_to_float(as_type<uint>(b.x)).rgb;
         o.position = moved;
-        o.colour = float4(colour * (b.y * 0.55 * f.pick.w), 0.0);
+        o.colour = float4(colour * (b.y * 0.55 * f.pick.z * deep * (1.0 - f.focus.z)), 0.0);
         o.uv = c;
         return o;
     }

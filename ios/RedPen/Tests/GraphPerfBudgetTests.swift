@@ -2,12 +2,14 @@
 // (B1); a device that cannot keep it cuts detail, never the rate, and
 // settles under its share of the frame (B2); a fast one opens detail again,
 // slowly and without see-sawing (B3); missed refreshes count (B4); the
-// streaming budget follows the room left (B5); the link pages follow memory
-// (B6); the Graphics setting no longer caps the rate (B7); and a stall
-// is not load, while detail lost comes back within seconds (B8); and the
-// stage that takes the time pays for it, bundles before notes (B9); and the
-// exposure lands the bright light short of white, follows a change without
-// pumping, and counts the saturated share (B10).
+// streaming budget follows the room left (B5); the depth band is pulled in
+// once the split has coarsened, and given back first (B6, plan 4f); the
+// Graphics setting no longer caps the rate (B7); a stall is not load, while
+// detail lost comes back within seconds (B8); the stage that takes the time
+// pays for it, bundles before notes (B9); the exposure lands the bright
+// light short of white, follows a change without pumping, and counts the
+// saturated share (B10); a missed refresh opens nothing (B11); and the
+// GPU's stages from the wall clock where its own times read about 0 (B12).
 import Foundation
 
 var failures: [String] = []
@@ -107,19 +109,44 @@ var roomy = GraphPerfFrameBudget(screenFPS: 120)
 roomy.record(cpu: 0.0005, gpu: 0.0005, interval: 1.0 / 120)
 var tight = GraphPerfFrameBudget(screenFPS: 120)
 tight.record(cpu: 0.006, gpu: 0.006, interval: 1.0 / 120)
-check("B5 more room, more links and bodies prepared a frame",
-      roomy.linkBudget > tight.linkBudget && roomy.bodyBudget > tight.bodyBudget)
-check("B5 never nothing", tight.linkBudget >= 16_000 && tight.bodyBudget >= 8_000)
+check("B5 more room, more bodies laid out a frame", roomy.bodyBudget > tight.bodyBudget)
+check("B5 never nothing (ten leaves' worth at the least)", tight.bodyBudget >= 4_000)
 check("B5 the chunk settings carry the split", roomy.settings.split == roomy.split)
 
-// MARK: - B6 link pages from memory
+// MARK: - B6 the depth band: pulled in once the split has coarsened, given back first
 
-let gb: UInt64 = 1 << 30
-check("B6 a 4 GB phone (A13) keeps 8 MB of links, 6 GB 24, 8 GB 40",
-      GraphPerfMemoryBudget.linkPages(physicalMemory: 3_900_000_000) == 1_024
-      && GraphPerfMemoryBudget.linkPages(physicalMemory: 5_900_000_000) == 3_072
-      && GraphPerfMemoryBudget.linkPages(physicalMemory: 8 * gb) == 5_120)
-check("B6 unknown memory is not held against it", GraphPerfMemoryBudget.linkPages(physicalMemory: 0) == 5_120)
+var pulling = GraphPerfFrameBudget(screenFPS: 120)
+var cuts: [String] = []
+var splitAtFirstPull: Float = 0
+for _ in 0..<400 {
+    let was = (split: pulling.split, pull: pulling.pull)
+    pulling.record(GraphPerfFrameStages(cpu: 0.001, near: 0.02, far: 0.001), interval: 1.0 / 120)
+    if pulling.split > was.split { cuts.append("split") }
+    if pulling.pull < was.pull {
+        cuts.append("pull")
+        if splitAtFirstPull == 0 { splitAtFirstPull = pulling.split }
+    }
+}
+let firstPull = cuts.firstIndex(of: "pull") ?? cuts.count
+check("B6 notes over budget: the split coarsens to half again its start, then the band is pulled in",
+      firstPull > 0 && firstPull < cuts.count && cuts[..<firstPull].allSatisfy { $0 == "split" }
+      && splitAtFirstPull >= GraphPerfFrameBudget.startingSplit(.high) * GraphPerfFrameBudget.pullAfter,
+      "\(cuts.prefix(10)), split \(splitAtFirstPull) at the first pull")
+check("B6 the band comes in to 0.7 of its width and no further, then the split coarsens again; the rate stays",
+      abs(pulling.pull - GraphPerfDepthBand.tightest) < 1e-6
+      && (cuts.lastIndex(of: "split") ?? -1) > (cuts.lastIndex(of: "pull") ?? cuts.count)
+      && pulling.screenFPS == 120, "pull \(pulling.pull)")
+var givenBack: [String] = []
+for _ in 0..<3_000 {
+    let was = (split: pulling.split, pull: pulling.pull)
+    pulling.record(GraphPerfFrameStages(cpu: 0.0005, near: 0.0005, far: 0.0005), interval: 1.0 / 120)
+    if pulling.pull > was.pull { givenBack.append("pull") }
+    if pulling.split < was.split { givenBack.append("split") }
+}
+let lastPullBack = givenBack.lastIndex(of: "pull") ?? -1
+check("B6 with room again, the band comes back whole before the split opens anything",
+      pulling.pull == 1 && lastPullBack >= 0 && givenBack[...lastPullBack].allSatisfy { $0 == "pull" }
+      && givenBack.contains("split"), "\(givenBack.prefix(10))")
 
 // MARK: - B7 the Graphics setting no longer caps the rate
 
@@ -282,6 +309,19 @@ check("B11 cheap frames that miss refreshes (a GPU that reports 0) neither open 
 var seeing = GraphPerfFrameBudget(screenFPS: 60)
 for _ in 0..<600 { seeing.record(stages(0.001, 0, 0), interval: 1.0 / 60) }
 check("B11 the same frames on time open detail", seeing.split < blindStart, "split \(seeing.split)")
+
+// MARK: - B12 the GPU's stages from the wall clock (the simulator's own read about 0)
+
+let wall = GraphPerfWallStages.stages(commitA: 1.000, doneA: 1.004, doneB: 1.007, doneC: 1.009, lastDoneC: 0.998)
+check("B12 near: from its commit to done, and the screen pass after the far one; far: between them",
+      abs(wall.near - 0.006) < 1e-9 && abs(wall.far - 0.003) < 1e-9, "\(wall)")
+let queued = GraphPerfWallStages.stages(commitA: 1.000, doneA: 1.012, doneB: 1.013, doneC: 1.014, lastDoneC: 1.008)
+check("B12 a frame queued behind the one before counts from when that one was done",
+      abs(queued.near - 0.005) < 1e-9 && abs(queued.far - 0.001) < 1e-9, "\(queued)")
+check("B12 the GPU's own times are used while believable, the wall's when they read about 0",
+      GraphPerfWallStages.gpuTimesUsable(gpu: 0.004, wall: 0.006)
+      && !GraphPerfWallStages.gpuTimesUsable(gpu: 0.0001, wall: 0.006)
+      && GraphPerfWallStages.gpuTimesUsable(gpu: 0, wall: 0))
 
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

@@ -1947,7 +1947,37 @@ with the marks on the screens last.
   only inside the band, and the Graphics setting sets how far it reaches.
   It is the owner's second exception to "no fading", and applies inside
   the 3D scene only.
-  - [ ] Performance, on design/perf-million (with D1 to D5).
+  - [ ] Performance, on design/perf-million (with D1 to D5). The owner, 15
+    Oct, before 4f: "for the performance mode u can make things load based
+    on thier depth to u : for example the most surfaced is loaded and the
+    deepest to u is faded until u turn and the y load and others fade etc."
+    Linux tests: Tests/GraphPerfChunkTests.swift and GraphPerfBudgetTests.swift.
+    - [x] D1 depth shells per cell: front, middle and back by the cell's fade
+      f, with hysteresis; detail switches only where f is about 0.6 or
+      more; a back cell opens at 3.2 times the split, a middle one at 1.7
+      (GraphPerfChunkSettings; C17).
+    - [x] D2 depth fog, 4f's one curve: f = clamp((z - start) / (end -
+      start), 0, 1)^1.2 towards GraphPerfScene.background; the band follows
+      the focus (1 to 1.4 times the camera's distance at High, 1.32 Smooth,
+      1.25 Saver); bundles and glows times 1 - f; past the end culled;
+      Increase Contrast starts 15% later and stops at 0.6, culling nothing;
+      the frame budget may pull the end in to 0.7 of the band, never the
+      rate (GraphPerfDepth.swift, the node shader; C9, B6).
+    - [x] D3 loading follows the turn: leaves wanted by depth and size, a
+      body budget a frame, 0.2 s detail ramps, and opening or closing
+      bounded to a quarter second end to end, so a half turn in a second
+      swaps front and back detail within 8 frames of settling and no
+      body's brightness moves more than 0.13 of its range in a frame (the
+      bar is a sixth; C10, C17, C18).
+    - [x] D4 a faded body is picked like any other, one past the band's end
+      is not; choosing a note brings its leaf and its neighbours' to full
+      detail, prepared first (C16, C19). With it, the selection: links
+      hidden by default, the chosen note's own growing out to each
+      neighbour while the rest steps back (GraphPerfFocus.swift).
+    - [ ] D5 the proof on the Macs (design/perf-proof's tour): fps median 58
+      or more and 1% low 50 or more over a 10 s turn and zoom, the GPU
+      memory's peak, before and after at each Graphics level, near and far
+      stills, the slow-turn recording, and the independent review.
   - [ ] Space, on design/space-bodies (after its current step).
   - [ ] Neurons, on design/neurons-depth (a new stream).
   - [ ] Frame time and draw calls before and after for each theme, at

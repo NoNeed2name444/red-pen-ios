@@ -34,6 +34,7 @@ struct GraphPerfSpace: View {
     @State private var stats = GraphPerfStats()
     @Environment(\.graphics) private var graphics
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -52,7 +53,7 @@ struct GraphPerfSpace: View {
         #if canImport(Metal) && canImport(MetalKit)
         GraphPerfMap(source: source, demo: demoInForce, filter: filter, recenter: recenter, insets: insets,
                      command: command, chosen: chosen, linksFor: linksFor, touch: touch, tier: tier, bold: bold,
-                     reduceMotion: reduceMotion, onStats: { stats = $0 })
+                     contrast: contrast == .increased, reduceMotion: reduceMotion, onStats: { stats = $0 })
         #else
         Text("This device cannot draw the fast map.")
         #endif
@@ -96,6 +97,16 @@ struct GraphPerfSpace: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(Color.wardInkSecondary)
                 }
+                if !stats.depth.isEmpty {
+                    Text(stats.depth)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+                if !stats.tour.isEmpty {
+                    Text(stats.tour)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
@@ -103,7 +114,8 @@ struct GraphPerfSpace: View {
         }
         .foregroundStyle(Color.wardInk)
         .accessibilityLabel("Speed")
-        .accessibilityValue([stats.line, stats.pace, stats.drawn, stats.stages].filter { !$0.isEmpty }.joined(separator: ", "))
+        .accessibilityValue([stats.line, stats.pace, stats.drawn, stats.stages, stats.depth, stats.tour]
+            .filter { !$0.isEmpty }.joined(separator: ", "))
         .accessibilityHint("How fast the map draws. Opens the demo maps of 100,000, 300,000 and 1,000,000 notes.")
         .accessibilityIdentifier("perfReadout")
     }
@@ -123,6 +135,8 @@ struct GraphPerfMap: UIViewRepresentable {
     let touch: GraphTouchHandlers
     let tier: GraphPerfTier
     let bold: Bool
+    /// Increase Contrast: the depth fade starts later and stops short of the ground.
+    let contrast: Bool
     let reduceMotion: Bool
     let onStats: (GraphPerfStats) -> Void
 
@@ -151,7 +165,7 @@ struct GraphPerfMap: UIViewRepresentable {
         view.reduceMotion = reduceMotion
         view.insets = (Float(insets.top), Float(insets.leading), Float(insets.bottom), Float(insets.trailing))
         view.preferredFPS = GraphQuality.frameRate
-        view.setTier(tier, bold: bold)
+        view.setTier(tier, bold: bold, contrast: contrast)
         view.accessibilityLabel = GraphTheme.performance.mapLabel
         view.accessibilityHint = GraphTheme.performance.hint
         c.load(source: source, demo: demo)
