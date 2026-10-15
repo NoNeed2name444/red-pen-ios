@@ -237,7 +237,7 @@ struct WardPaperFrame: View {
         // launch screen; then it is cut at the opening's pose, frame by
         // frame. At rest this is one still frame.
         let stage = LaunchStage.shared
-        let arriving: Bool = stage.poseTime.isFinite
+        let arriving: Bool = false
         let pose = arriving ? stage.openingPose() : nil
         // off the main thread while the opening moves
         Canvas(rendersAsynchronously: arriving) { context, size in
