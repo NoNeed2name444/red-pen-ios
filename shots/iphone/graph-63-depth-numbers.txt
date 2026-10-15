@@ -1,0 +1,16 @@
+63-1-neurons-high-whole-after: no meter
+63-1-neurons-high-whole-before: no meter
+63-1-neurons-high-near-after: no meter
+63-1-neurons-high-near-before: no meter
+63-1-neurons-smooth-whole-after: no meter
+63-1-neurons-smooth-whole-before: no meter
+63-1-neurons-smooth-near-after: no meter
+63-1-neurons-smooth-near-before: no meter
+63-2-space-high-whole-after: no meter
+63-2-space-high-whole-before: no meter
+63-2-space-high-near-after: no meter
+63-2-space-high-near-before: no meter
+63-2-space-smooth-whole-after: no meter
+63-2-space-smooth-whole-before: no meter
+63-2-space-smooth-near-after: no meter
+63-2-space-smooth-near-before: no meter

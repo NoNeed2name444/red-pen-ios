@@ -1,0 +1,53 @@
+== logs/iphone-graph-testDepthBeforeAfter.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthBeforeAfter]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthBeforeAfter]' passed (139.093 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthGlide.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthGlide]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthGlide]' passed (58.304 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthMeasure.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthMeasure]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthMeasure]' passed (709.244 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthTurnNeurons.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' passed (55.590 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthTurnSpace.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' passed (53.440 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testLabelsOverBrightBodies.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' passed (43.568 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (40.009 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testTapNoteThenOpen.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' passed (48.965 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/ipad.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthBeforeAfter]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthBeforeAfter]' passed (159.882 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthGlide]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthGlide]' passed (46.665 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthMeasure]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthMeasure]' passed (739.772 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' passed (42.031 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' passed (42.987 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' passed (41.576 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (36.361 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' passed (46.656 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/videos.txt
+graph-testDepthBeforeAfter.mp4 left out: 113859680 bytes
+graph-testDepthMeasure.mp4 left out: 979453975 bytes
