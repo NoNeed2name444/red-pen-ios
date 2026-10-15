@@ -46,7 +46,10 @@ final class LocalSignInUITests: XCTestCase {
             skipExam.tap()
         }
         // and the library is really there, not a blank screen
-        XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 15), "the library didn't open after agreeing")
+        // (home draws its own top row, with no navigation bar: its account
+        // menu is there only when the library is)
+        let home = app.descendants(matching: .any)["libraryMenu"]
+        XCTAssertTrue(home.waitForExistence(timeout: 15), "the library didn't open after agreeing")
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.lifetime = .keepAlways
         add(shot)

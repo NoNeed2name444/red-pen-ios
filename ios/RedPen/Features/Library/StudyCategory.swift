@@ -578,20 +578,14 @@ struct CategoryDock: View {
         let here: String = inIdeas ? IdeasPlace.title : selection.title
         let symbol: String = inIdeas ? IdeasPlace.chosenSymbol : selection.symbol
         return Button { listing = true } label: {
-            HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(Color.wardPrimaryInk)
-                    .accessibilityHidden(true)
-                Text(here)
-                    .font(.headline)
-                    .foregroundStyle(Color.wardInk)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.up")
-                    .font(.headline)
-                    .foregroundStyle(Color.wardInkSecondary)
-                    .accessibilityHidden(true)
+            // The place's name is one word, never broken: with its symbol
+            // where both fit, without it where only the name does, and
+            // only then a little smaller ("Ques / tions" and "Card / s" at
+            // AX5, 15 Oct).
+            ViewThatFits(in: .horizontal) {
+                listFace(here, symbol: symbol)
+                listFace(here, symbol: nil)
+                listFace(here, symbol: nil, shrinks: true)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
@@ -605,10 +599,35 @@ struct CategoryDock: View {
         .wardRaised(in: shape, control: true)
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
+        // the preview's picture of the list, at the accessibility sizes
+        .task { if PreviewLaunch.screen == "sections" { listing = true } }
         .sheet(isPresented: $listing) {
             // a sheet has its lights, whatever the dock floats with
             DockListSheet(selection: $selection, inIdeas: $inIdeas, count: count)
                 .wardUnlit(false)
+        }
+    }
+
+    /// The list button's face: the place's symbol (or none), its name on
+    /// one line, and the chevron.
+    private func listFace(_ here: String, symbol: String?, shrinks: Bool = false) -> some View {
+        HStack(spacing: 12) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(Color.wardPrimaryInk)
+                    .accessibilityHidden(true)
+            }
+            Text(here)
+                .font(.headline)
+                .foregroundStyle(Color.wardInk)
+                .lineLimit(1)
+                .minimumScaleFactor(shrinks ? 0.5 : 1)
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.up")
+                .font(.headline)
+                .foregroundStyle(Color.wardInkSecondary)
+                .accessibilityHidden(true)
         }
     }
 
@@ -817,23 +836,13 @@ private struct DockListSheet: View {
             choose()
             dismiss()
         } label: {
-            HStack(spacing: 14) {
-                Image(systemName: symbol)
-                    .font(.title2)
-                    .foregroundStyle(tint)
-                    .frame(minWidth: 28)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline).foregroundStyle(Color.wardInk)
-                    Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
-                }
-                Spacer(minLength: 8)
-                if chosen {
-                    Image(systemName: "checkmark")
-                        .font(.headline)
-                        .foregroundStyle(Color.wardPrimaryInk)
-                        .accessibilityHidden(true)
-                }
+            // The name whole, as on the dock's button: with the symbol where
+            // both fit, without it, then a little smaller - never hyphenated
+            // ("Ques- tions" at AX5, 15 Oct). The line under it wraps.
+            ViewThatFits(in: .horizontal) {
+                rowFace(title: title, detail: detail, symbol: symbol, tint: tint, chosen: chosen)
+                rowFace(title: title, detail: detail, symbol: nil, tint: tint, chosen: chosen)
+                rowFace(title: title, detail: detail, symbol: nil, tint: tint, chosen: chosen, shrinks: true)
             }
             .frame(minHeight: 56)
             .contentShape(Rectangle())
@@ -841,6 +850,44 @@ private struct DockListSheet: View {
         .wardRowBackground()
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier(id)
+    }
+}
+
+extension DockListSheet {
+    /// A row's face: the symbol (or none), the name on one line over the
+    /// line about it, and the tick on the chosen row.
+    fileprivate func rowFace(title: String, detail: String, symbol: String?, tint: Color, chosen: Bool,
+                             shrinks: Bool = false) -> some View {
+        HStack(spacing: 14) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.title2)
+                    .foregroundStyle(tint)
+                    .frame(minWidth: 28)
+                    .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(Color.wardInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(shrinks ? 0.5 : 1)
+                // it wraps as it needs; its one-line width does not count
+                // towards whether the name fits
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(minWidth: 0, idealWidth: 0, maxWidth: .infinity, alignment: .leading)
+            }
+            Spacer(minLength: 8)
+            if chosen {
+                Image(systemName: "checkmark")
+                    .font(.headline)
+                    .foregroundStyle(Color.wardPrimaryInk)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 }
 

@@ -453,13 +453,18 @@ extension View {
 }
 
 /// A small-caps label ("TODAY'S WARD ROUND"): the source string stays in
-/// mixed case so VoiceOver reads words, not letters.
+/// mixed case so VoiceOver reads words, not letters. Its letters are spaced
+/// at the standard sizes, where they are small; at the accessibility sizes
+/// they are big enough to read apart, and a wrapped date with the spacing
+/// ran past its frame (the AX5 audit's "Text clipped", 15 Oct).
 struct WardSmallCaps: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     func body(content: Content) -> some View {
         content
             .font(.caption.weight(.semibold))
             .textCase(.uppercase)
-            .tracking(0.8)
+            .tracking(typeSize.isAccessibilitySize ? 0 : 0.8)
             .foregroundStyle(Color.wardInkSecondary)
     }
 }

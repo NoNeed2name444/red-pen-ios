@@ -226,19 +226,25 @@ struct BookReaderView: View {
 
     /// Back and Contents on the left, small; Next page at the trailing end -
     /// and on the last page, or a book of one page, Done.
+    ///
+    /// Back gives way to its symbol where its word has no room, as Contents
+    /// does, so the main button keeps its words whole: at XXL, with Back's
+    /// word kept whole first, Done was cut to "..." (15 Oct). VoiceOver
+    /// still hears "Previous page".
     @ViewBuilder
     private var footer: some View {
         if pages.count > 1 {
             HStack(spacing: 12) {
                 Button { index = max(0, index - 1) } label: {
-                    Label("Back", systemImage: "chevron.left")
+                    ViewThatFits(in: .horizontal) {
+                        Label("Back", systemImage: "chevron.left")
+                        Image(systemName: "chevron.left")
+                    }
                 }
                 .buttonStyle(.bigCompanion)
                 .disabled(index == 0)
                 .accessibilityLabel("Previous page")
                 .keyboardShortcut(.leftArrow, modifiers: [])
-                // its word whole first; the main button takes what is left
-                .layoutPriority(1)
 
                 contentsButton
 

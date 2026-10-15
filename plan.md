@@ -1915,8 +1915,25 @@ with the marks on the screens last.
     (`-uiPreviewScreen states -uiPreviewSection <section>`) shows every
     control in each state, shot by the Ward preview's states part. Done in
     code (7028b485, 35590f7b, then the gallery's switches without their
-    words). Left: the gallery's pictures once the preview's fade gate is
-    fixed, then an independent review of code and pictures together.
+    words). The fade gate is fixed (ward-polish merged in, 15 Oct). Left:
+    the gallery's pictures from the next Ward preview, then an independent
+    review of code and pictures together.
+  - The fade rule, loosened (the owner, 15 Oct, 6:25 PM Cairo: "loosen the
+    no fade rule a bit"). Still banned: anything that looks washed out at
+    rest (faded buttons, text or cards), and a visible fade lasting longer
+    than 0.2 s used as a transition. Allowed, besides the buttons' rim and
+    the Neurons depth fade (4f): iOS's own brief transitions (the status
+    bar, sheet and alert dimming, the keyboard, menus), any change that
+    settles within 0.2 s, and crossfades under Reduce Motion. The Ward
+    preview's gate (tools/ward_frames_check.py) follows it: the status bar
+    is measured and reported but never fails, and the content fails only
+    when a faded stretch stays on screen longer than 0.2 s (a shorter one
+    is reported as a brief dip, allowed).
+  - [x] The Ward preview no longer hangs on a recording: ward-r15's phone
+    job waited 80 minutes for simctl's recordVideo to stop and timed out.
+    tools/ward_shots.sh stop_rec gives it 20 s after the stop signal, then
+    kills it and logs a FAULT line, so a stuck recorder costs 20 s, not
+    the run.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

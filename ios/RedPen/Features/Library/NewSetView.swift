@@ -282,11 +282,21 @@ struct NewSetView: View {
     /// thumb.
     private var stepHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                ForEach(NewSetStep.allCases) { one in
-                    stepDot(one)
-                    if one != .make {
-                        stepLink(after: one)
+            // in a row where the three fit, one under another where they do
+            // not: at AX5 the row ran off both sides of the sheet, and the
+            // question under it with it (15 Oct)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(NewSetStep.allCases) { one in
+                        stepDot(one)
+                        if one != .make {
+                            stepLink(after: one)
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(NewSetStep.allCases) { one in
+                        stepDot(one)
                     }
                 }
             }

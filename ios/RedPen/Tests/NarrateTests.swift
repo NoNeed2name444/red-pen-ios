@@ -154,6 +154,58 @@ check("a recording kept keeps it",
 check("a lecture opened from the library is never dropped",
       !NarratePlan.dropsEmptyLecture(madeHere: false, segments: 0, hasRecording: false, importing: false))
 
+// MARK: the word flow's lines (FlowLines)
+
+check("words that fit share a line",
+      FlowLines.lines(widths: [30, 40, 50], spacing: 4, width: 200) == [0, 0, 0])
+check("a word that does not fit starts the next line",
+      FlowLines.lines(widths: [100, 100, 100], spacing: 4, width: 210) == [0, 0, 1],
+      "\(FlowLines.lines(widths: [100, 100, 100], spacing: 4, width: 210))")
+check("a word wider than a line has a line of its own",
+      FlowLines.lines(widths: [50, 500, 50], spacing: 4, width: 200) == [0, 1, 2])
+check("with no width offered, every word is on one line",
+      FlowLines.lines(widths: [80, 90, 100, 110], spacing: 4, width: .infinity) == [0, 0, 0, 0])
+check("each line is as wide as its words and the gaps between them",
+      FlowLines.lineWidths(widths: [100, 100, 100], spacing: 4, lines: [0, 0, 1]) == [204, 100])
+check("no words, no lines",
+      FlowLines.lines(widths: [], spacing: 4, width: 200).isEmpty
+        && FlowLines.lineWidths(widths: [], spacing: 4, lines: []).isEmpty)
+
+// The audio tile at XXL (15 Oct): measured on one line 188.6 wide, the
+// line was placed in 188.33 (rounded to a third of a point), and its last
+// word dropped onto the next paragraph.
+let rounded: [Double] = [60.2, 70.1, 50.3]
+check("a line placed in its own width, rounded down, keeps its last word",
+      FlowLines.lines(widths: rounded, spacing: 4, width: 188.6 - 0.27) == [0, 0, 0],
+      "\(FlowLines.lines(widths: rounded, spacing: 4, width: 188.6 - 0.27))")
+
+// Whatever the words and the width offered: offered back the width they
+// asked for (their widest line), less up to a point's rounding, they break
+// into the same lines - wherever no line needed the give to fit.
+var seed: UInt64 = 0x5EED
+func nextUnit() -> Double {
+    seed = seed &* 6364136223846793005 &+ 1442695040888963407
+    return Double(seed >> 11) / Double(UInt64(1) << 53)
+}
+var agree = true
+var disagreement = ""
+for _ in 0..<500 {
+    let count: Int = 1 + Int(nextUnit() * 30)
+    let widths: [Double] = (0..<count).map { _ in 8 + nextUnit() * 140 }
+    let offered: Double = 60 + nextUnit() * 400
+    let measured: [Int] = FlowLines.lines(widths: widths, spacing: 4, width: offered)
+    let widest: Double = FlowLines.lineWidths(widths: widths, spacing: 4, lines: measured).max() ?? 0
+    if widest > offered { continue }
+    let given: Double = widest - nextUnit() * 0.99
+    let placed: [Int] = FlowLines.lines(widths: widths, spacing: 4, width: given)
+    if placed != measured {
+        agree = false
+        disagreement = "offered \(offered), given \(given): \(measured) then \(placed)"
+        break
+    }
+}
+check("offered back its own width, rounded down, a flow keeps its lines", agree, disagreement)
+
 print(failures.isEmpty ? "\nALL NARRATE TESTS PASS"
                        : "\n\(failures.count) NARRATE TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

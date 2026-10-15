@@ -15,7 +15,7 @@
 # modes.
 # small: home and each section at the iPhone SE's size (375 x 647, the
 # app's own frame inside this phone); and Dynamic Type at XXL (the largest
-# standard size) and AX1 (the first accessibility size).
+# standard size), AX1 (the first accessibility size) and AX5 (the largest).
 # device: home and each section in both modes, and home at XXL and AX1
 # (Pro Max, iPad).
 # states: the states gallery (every Ward control at rest, held, disabled
@@ -74,6 +74,7 @@ category() {
     extra-extra-large) echo UICTContentSizeCategoryXXL ;;
     extra-extra-extra-large) echo UICTContentSizeCategoryXXXL ;;
     accessibility-medium) echo UICTContentSizeCategoryAccessibilityM ;;
+    accessibility-extra-extra-extra-large) echo UICTContentSizeCategoryAccessibilityXXXL ;;
     *) echo UICTContentSizeCategoryL ;;
   esac
 }
@@ -128,6 +129,21 @@ fit() {  # the name the report is filed under: home's fit, as the app wrote it
   if [ -n "$data" ]; then rm -f "$data/Documents/home-fit.txt"; fi
 }
 
+# Stops a recordVideo started in the background. simctl can hang while it
+# finishes the file (ward-r15's phone job waited 80 minutes on one), so it
+# gets 20 s, then is killed and the gap is logged; the frames check then
+# reports the missing or short video instead of the job timing out.
+stop_rec() {  # pid, file
+  kill -INT "$1" 2>/dev/null || true
+  for _ in $(seq 40); do
+    if ! kill -0 "$1" 2>/dev/null; then wait "$1" || true; return 0; fi
+    sleep 0.5
+  done
+  echo "FAULT recording $2 did not stop in 20 s; killed" >> "$LOG"
+  kill -KILL "$1" 2>/dev/null || true
+  wait "$1" 2>/dev/null || true
+}
+
 record() {  # screen, file, seconds to wait, seconds to record
   xcrun simctl ui "$UDID" appearance light
   xcrun simctl ui "$UDID" content_size large >> "$LOG" 2>&1 || true
@@ -137,8 +153,7 @@ record() {  # screen, file, seconds to wait, seconds to record
   xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black "$OUT/$2" &
   local rec=$!
   sleep "$4"
-  kill -INT $rec
-  wait $rec || true
+  stop_rec $rec "$2"
   # the pictures after a switch start from the device's own mode: the
   # app turns Always night sky off on any other preview screen
   xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
@@ -156,8 +171,7 @@ system_switch() {  # home while the system turns dark and back
     xcrun simctl ui "$UDID" appearance "$look"
     sleep 2.5
   done
-  kill -INT $rec
-  wait $rec || true
+  stop_rec $rec mode-switch.mp4
 }
 
 crashes() {
@@ -218,6 +232,15 @@ elif [ "$plan" = small ]; then
   shoot dark library "type/ax1-library-dark"
   fit "ax1-library-dark"
   shoot light quiz "type/ax1-quiz-light"
+  # AX5, the largest: home (on the SE's frame too), the sections list and
+  # New set, where words broke and a row ran off the sheet (15 Oct)
+  SIZE=accessibility-extra-extra-extra-large
+  shoot light library "type/ax5-library-light"
+  fit "ax5-library-light"
+  shoot light library "type/ax5-library-se-light" "${SE[@]}"
+  fit "ax5-library-se-light"
+  shoot light sections "type/ax5-sections-light"
+  shoot light new "type/ax5-new-light"
   SIZE=""
   xcrun simctl ui "$UDID" content_size large >> "$LOG" 2>&1 || true
 else

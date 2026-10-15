@@ -222,6 +222,9 @@ struct OsceReviewView: View {
                         .font(.title3)
                         .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
+                        // all its lines: at XXL it was cut to one, "Say it
+                        // ou..." (15 Oct)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(16)
                         .frame(maxWidth: .infinity)
                         .transition(.identity)
