@@ -1953,6 +1953,18 @@ with the marks on the screens last.
     stack each 2 ms, not judged), and re-measures the two judged takes on
     the same code. Next: read what the main thread does in that take's
     longest hold, then fix that cause only.
+  - The profiled recording (1a4fa025, 38785473364): light 117 ms at +0.94
+    (35 refreshes, the Mac's load average 497) and 87 ms at +1.40 (load
+    424); dark 50 ms at +1.56 and 126 ms at +1.03; the profiled take 69 ms
+    at +1.62 (load 303). The holds now fall at a different moment each
+    take. spindump came too late to show them: it attached 2 s after the
+    app started and prints no time per stack. It does show the first frame
+    (UIApplication's first commit, laying out the hosting view) taking
+    about 139 of 820 samples on that busy Mac. The dark film was lost: the
+    publish retry tried to check out the branch a second time, which git
+    refuses while the first attempt's worktree holds it; the retry now
+    works detached and pushes HEAD. Next: the advisor judges app or host
+    before any change to the app.
 
 ### Waiting on the owner
 

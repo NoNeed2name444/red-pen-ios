@@ -262,7 +262,9 @@ jobs:
           for attempt in 1 2 3 4 5; do
             dest="$RUNNER_TEMP/results-$attempt"
             if git fetch -q "$remote" launch-recordings; then
-              git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B launch-recordings
+              # detached: a branch can be checked out in one worktree only,
+              # and an earlier attempt's worktree still holds it
+              git worktree add -q --detach "$dest" FETCH_HEAD
             else
               git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan launch-recordings
               git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
@@ -272,7 +274,7 @@ jobs:
             cp film/* "$dest/runs/${{ github.run_id }}/"
             git -C "$dest" add runs
             git -C "$dest" commit -q -m "Launch recording ${{ github.run_id }} ${{ matrix.mode }} (${{ github.sha }})"
-            if git -C "$dest" push -q "$remote" launch-recordings; then
+            if git -C "$dest" push -q "$remote" HEAD:launch-recordings; then
               echo "runs/${{ github.run_id }} on launch-recordings (${{ matrix.mode }})" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
