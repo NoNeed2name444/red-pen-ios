@@ -119,6 +119,23 @@ shoot() {  # appearance, screen, picture name (may hold a folder), extra launch 
   done
 }
 
+wait_up() {  # file
+  local check
+  for check in $(seq 10); do
+    xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$OUT/.wait-$plan.png" >> "$LOG" 2>&1
+    sips -s format bmp "$OUT/.wait-$plan.png" --out "$OUT/.wait-$plan.bmp" >/dev/null 2>&1
+    if [ "$(python3 "$BLANK" "$OUT/.wait-$plan.bmp")" = ok ]; then
+      rm -f "$OUT/.wait-$plan.png" "$OUT/.wait-$plan.bmp"
+      return 0
+    fi
+    echo "still the launch screen before recording, check $check: $1" >> "$LOG"
+    sleep 3
+  done
+  echo "FAULT $1: the app's screen never came up; recorded anyway" >> "$LOG"
+  rm -f "$OUT/.wait-$plan.png" "$OUT/.wait-$plan.bmp"
+  return 0
+}
+
 fit() {  # the name the report is filed under: home's fit, as the app wrote it
   local data
   data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null) || true
@@ -150,6 +167,7 @@ record() {  # screen, file, seconds to wait, seconds to record
   xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$1" >> "$LOG" 2>&1
   sleep "$3"
+  wait_up "$2"
   xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black "$OUT/$2" &
   local rec=$!
   sleep "$4"
@@ -164,6 +182,7 @@ system_switch() {  # home while the system turns dark and back
   xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
   xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library >> "$LOG" 2>&1
   sleep 9
+  wait_up mode-switch.mp4
   xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black "$OUT/mode-switch.mp4" &
   local rec=$!
   sleep 3

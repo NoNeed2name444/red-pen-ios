@@ -1934,6 +1934,12 @@ with the marks on the screens last.
     tools/ward_shots.sh stop_rec gives it 20 s after the stop signal, then
     kills it and logs a FAULT line, so a stuck recorder costs 20 s, not
     the run.
+  - [x] Recordings start only once the app's screen is up: on a busy Mac,
+    ward-states-2's mode-switch-quiz.mp4 (preview 38779814424) was 7 s of
+    the system launch screen, so its "no switch" check failed. wait_up()
+    in tools/ward_shots.sh asks the same launch-screen check as shoot()
+    before record() and system_switch() start recording, every 3 s for
+    up to 10 checks, then logs a FAULT line and records anyway.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
