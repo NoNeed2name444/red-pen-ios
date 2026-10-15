@@ -181,7 +181,8 @@ jobs:
           cfg=tools/proof-ladder/config.json
           node tools/proof-ladder/ladder.mjs --state out/progress.json --out out --items out/items.json --ballots ballots \
             --max-items 100000 --share "$(node -p "require('./$cfg').share")" --hours "$(node -p "require('./$cfg').hours")" \
-            --runner-seats "$(node -p "require('./$cfg').runnerSeats ?? 1")"
+            --runner-seats "$(node -p "require('./$cfg').runnerSeats ?? 1")" --runner-bar "$(node -p "require('./$cfg').runnerBar ?? 0.8")" \
+            --pool-batches "$(node -p "require('./$cfg').poolBatches ?? 15")"
       - name: Summary
         if: always()
         run: |

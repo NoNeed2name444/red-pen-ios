@@ -4,7 +4,7 @@
 //
 // Run: node tests/proof-ladder/ladder.test.mjs
 import { readFileSync } from 'node:fs';
-import { RUNGS, needed, emptyState, addResults, addFamilyVotes, standing, paceLimit, mayContinue, progressMarkdown } from '../../tools/proof-ladder/ladder-lib.mjs';
+import { RUNGS, needed, emptyState, addResults, addFamilyVotes, addRunnerVotes, runnerSeated, addHeld, standing, paceLimit, mayContinue, progressMarkdown } from '../../tools/proof-ladder/ladder-lib.mjs';
 import { itemOf, readable, SOURCES, pick, runnerFor } from '../../tools/proof-ladder/ladder.mjs';
 import { requestFor, answersOf } from '../../tools/runner-voter/vote.mjs';
 import { runnerVoters, DEFAULT_RUNNER_VOTERS } from '../../server/runner-voters.js';
@@ -108,6 +108,27 @@ ok(RUNGS.map(r => r.name).join() === '99.9%,99.99%,99.999%', 'climbed in order')
   const batch = [{ item: { id: 'a#ladder' } }, { item: { id: 'b#ladder' } }];
   const r = runnerFor(batch, [{ model: 'x', votes: { 'a#ladder': { answer: 'A', risk: 1 }, 'b#ladder': { answer: 'B', risk: 2 } } }, { model: 'y', votes: { 'a#ladder': { answer: 'A' } } }]);
   ok(r.length === 1 && r[0].model === 'x' && r[0].votes[1].answer === 'B', 'a batch carries only the runners that answered every question in it, in its order');
+}
+
+// MARK: a runner earns its seat; why items were held
+{
+  const s = emptyState();
+  const sent = Array.from({ length: 300 }, (_, i) => ({ item: { id: `q${i}` }, gold: 'A' }));
+  const answers = Object.fromEntries(sent.map((x, i) => [x.item.id, { answer: i % 10 < 9 ? 'A' : 'B' }]));
+  addRunnerVotes(s, 'good', sent, answers);
+  addRunnerVotes(s, 'weak', sent, Object.fromEntries(sent.map((x, i) => [x.item.id, { answer: i % 2 ? 'A' : 'C' }])));
+  ok(s.runners.good.answered === 300 && s.runners.good.right === 270, 'every blind answer of a runner is counted against the gold key, seated or not');
+  ok(runnerSeated(s, 'good') && !runnerSeated(s, 'weak') && !runnerSeated(s, 'unknown'), 'a seat only at 80% or more by the lower bound (90% of 300 earns it, 50% does not)');
+  addRunnerVotes(s, 'new', sent.slice(0, 50), answers);
+  ok(!runnerSeated(s, 'new'), 'and not before 200 answers');
+  addHeld(s, 'check', ['Fewer than three independent blind solves reached the key.', 'No official source states it word for word yet.']);
+  addHeld(s, 'flagged', ['Checkers from 2 different model families, solving it without the key, chose another answer (B, C).']);
+  addHeld(s, 'verified', ['anything']);
+  ok(s.held['No official source states it word for word yet.'] === 1 && s.held['Checkers from 2 different model families, solving it without the key, chose another answer.'] === 1 && !s.held.anything,
+     'why items were held is counted by reason, letters cut, Verified ones not');
+  s.spend = { month: '2026-10', start: 1, end: 11.5, cap: 90 };
+  const md = progressMarkdown({ ...s, updated: 'now' });
+  ok(md.includes('$11.50 of the $90 cap') && md.includes('| good | 300 | 270 |') && md.includes('No official source'), 'the page shows the spend, the runners and the reasons');
 }
 
 console.log(failures ? `\n${failures} failed` : '\nall passed');

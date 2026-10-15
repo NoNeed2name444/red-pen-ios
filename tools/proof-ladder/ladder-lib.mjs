@@ -22,7 +22,7 @@ export const needed = rate => Math.ceil(Math.log(0.05) / Math.log(1 - rate));
 
 export function emptyState() {
   return { v: 1, started: null, updated: null, checked: 0, right: 0, wrong: 0, verified: 0, errors: 0, flagged: 0, check: 0,
-           unchecked: 0, rightVerified: 0, cursor: {}, days: [], spentByLadder: 0, families: {} };
+           unchecked: 0, rightVerified: 0, cursor: {}, days: [], spentByLadder: 0, families: {}, runners: {}, held: {}, spend: null };
 }
 
 /// The ledger of each family's blind answers against the gold key: one
@@ -59,6 +59,38 @@ export function addResults(state, results, day) {
     } else if (v === 'flagged') state.flagged++;
     else state.check++;
   }
+  return state;
+}
+
+/// Each runner model's blind answers against the gold key, from its whole
+/// ballot (seated or not), for the items sent: what decides whether it may
+/// hold a seat (runnerSeated). `answers` { id: { answer } }.
+export function addRunnerVotes(state, model, sentItems, answers) {
+  state.runners ||= {};
+  const r = state.runners[model] ||= { answered: 0, right: 0 };
+  for (const x of sentItems) {
+    const a = answers?.[x.item.id];
+    if (!a?.answer) continue;
+    r.answered++;
+    if (a.answer === x.gold) r.right++;
+  }
+  return state;
+}
+
+/// Whether a runner model may hold a seat: once its blind answers, by the
+/// 95% lower bound, are at least `bar` right on at least `least` questions
+/// (a weak witness in a seat stops the others' agreement from counting).
+export function runnerSeated(state, model, bar = 0.8, least = 200) {
+  const r = state.runners?.[model];
+  return !!r && r.answered >= least && lowerBound(r.right, r.answered) >= bar;
+}
+
+/// Why the items not Verified were held, counted by reason (letters cut, so
+/// the same reason counts once).
+export function addHeld(state, verdict, reasons) {
+  if (verdict === 'verified' || !Array.isArray(reasons)) return state;
+  state.held ||= {};
+  for (const r of new Set(reasons.map(x => String(x).replace(/\s*\([A-J](?:, [A-J])*\)/g, '').slice(0, 160)))) state.held[r] = (state.held[r] || 0) + 1;
   return state;
 }
 
@@ -120,6 +152,13 @@ export function progressMarkdown(state) {
     '|---|---|---|---|',
     ...state.days.slice(-14).map(d => `| ${d.day} | ${d.checked} | ${d.verified} | ${d.errors} |`),
   ];
+  if (state.spend) lines.push('', `The cloud checker this month (${state.spend.month}): $${state.spend.end.toFixed(2)} of the $${state.spend.cap} cap at the end of the last run, $${(state.spend.end - state.spend.start).toFixed(2)} of it during that run.`);
+  const runners = Object.entries(state.runners || {});
+  if (runners.length) lines.push('', 'Runner voters, every blind answer for the items sent (a runner holds a seat only at 80% or more by the lower bound, on 200 or more):', '',
+    '| runner | answered | right | right, 95% lower bound | seated |', '|---|---|---|---|---|',
+    ...runners.map(([m, c]) => `| ${m} | ${c.answered} | ${c.right} | ${c.answered ? pct(lowerBound(c.right, c.answered)) : 'n/a'} | ${runnerSeated(state, m) ? 'yes' : 'no'} |`));
+  const held = Object.entries(state.held || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  if (held.length) lines.push('', 'Why items were not Verified (each reason counted once per item):', '', '| reason | items |', '|---|---|', ...held.map(([r, n]) => `| ${r} | ${n} |`));
   const fams = Object.entries(state.families || {}).sort((a, b) => b[1].answered - a[1].answered);
   if (fams.length) lines.push('', 'Each family\'s blind answers against the gold key (one witness per family per question; "runner": run on GitHub\'s CPU with no key):', '',
     '| family | answered | right | right, 95% lower bound |', '|---|---|---|---|',
