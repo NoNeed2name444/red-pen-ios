@@ -163,42 +163,57 @@ final class NarrateScrollBand {
 ///
 /// SwiftUI has no inline flow of separately tappable views, and an HStack per
 /// line would need the text measured by hand. The Layout protocol does the
-/// measuring properly, including when the text size changes.
+/// measuring properly, including when the text size changes. Both passes
+/// break the lines with FlowLines, against the same width: the one offered.
+/// Placed against the width given instead (the widest line, rounded to
+/// pixels), the lines disagreed by a hair with the ones measured, and a
+/// line's last word dropped onto the next paragraph (Audio at XXL, 15 Oct).
 struct FlowLayout: Layout {
     var spacing: CGFloat = 4
     var lineSpacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .infinity
-        var x: CGFloat = 0, y: CGFloat = 0, lineHeight: CGFloat = 0, widest: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x > 0 && x + size.width > width {
-                widest = max(widest, x - spacing)
-                x = 0
-                y += lineHeight + lineSpacing
-                lineHeight = 0
-            }
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
-        }
-        widest = max(widest, x - spacing)
-        return CGSize(width: min(widest, width == .infinity ? widest : width), height: y + lineHeight)
+        let sizes: [CGSize] = subviews.map { $0.sizeThatFits(.unspecified) }
+        let widths: [Double] = sizes.map { Double($0.width) }
+        let lines: [Int] = FlowLines.lines(widths: widths, spacing: Double(spacing),
+                                           width: Double(proposal.width ?? .infinity))
+        let widest = CGFloat(FlowLines.lineWidths(widths: widths, spacing: Double(spacing), lines: lines).max() ?? 0)
+        let heights: [CGFloat] = lineHeights(sizes, lines)
+        let height: CGFloat = heights.reduce(0, +) + lineSpacing * CGFloat(max(0, heights.count - 1))
+        return CGSize(width: proposal.width.map { min(widest, $0) } ?? widest, height: height)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize,
                        subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, lineHeight: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x > bounds.minX && x + size.width > bounds.maxX {
+        let sizes: [CGSize] = subviews.map { $0.sizeThatFits(.unspecified) }
+        // the width the size was measured for, not the size's own width
+        let lines: [Int] = FlowLines.lines(widths: sizes.map { Double($0.width) }, spacing: Double(spacing),
+                                           width: Double(proposal.width ?? .infinity))
+        let heights: [CGFloat] = lineHeights(sizes, lines)
+        var x: CGFloat = bounds.minX
+        var y: CGFloat = bounds.minY
+        var current: Int = 0
+        for (i, view) in subviews.enumerated() {
+            while current < lines[i] {
+                y += heights[current] + lineSpacing
+                current += 1
                 x = bounds.minX
-                y += lineHeight + lineSpacing
-                lineHeight = 0
             }
-            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
+            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(sizes[i]))
+            x += sizes[i].width + spacing
         }
+    }
+
+    /// Each line's height: its tallest item's.
+    private func lineHeights(_ sizes: [CGSize], _ lines: [Int]) -> [CGFloat] {
+        var out: [CGFloat] = []
+        for (size, line) in zip(sizes, lines) {
+            if line < out.count {
+                out[line] = max(out[line], size.height)
+            } else {
+                out.append(size.height)
+            }
+        }
+        return out
     }
 }
