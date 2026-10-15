@@ -1,0 +1,20 @@
+== promax library-light
+FAULT the Vitals tile's streak breaks inside a word: its widest word needs 40 pt, it has 18
+card 266-653, start 581-637, new set 782-838, tiles 685-979, bar 782-922, cut 770, large text false
+words: the Vitals tile's streak 18/40, the brain map's line 154/38
+== promax library-dark
+FAULT the Vitals tile's streak breaks inside a word: its widest word needs 40 pt, it has 18
+card 266-653, start 581-637, new set 782-838, tiles 685-979, bar 782-922, cut 770, large text false
+words: the Vitals tile's streak 18/40, the brain map's line 154/38
+== promax xxl-library-light
+fits
+card 283-776, start 704-760, new set 780-836, tiles none, bar 780-922, cut 768, large text true
+words: 
+== promax xxl-library-dark
+fits
+card 283-776, start 704-760, new set 780-836, tiles none, bar 780-922, cut 768, large text true
+words: 
+== promax ax1-library-light
+fits
+card 364-1123, start 1049-1107, new set 780-837, tiles none, bar 780-922, cut 768, large text true
+words: 

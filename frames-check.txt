@@ -1,0 +1,22 @@
+== mode-switch-app
+8 frames; content contrast light 34.3, dark 32.1; a frame under 25.7 has faded
+8 frames; status bar contrast light 45.4, dark 42.1; a frame under 33.7 has faded (reported, never fails: iOS's own transition)
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch-quiz
+77 frames; content contrast light 42.1, dark 38.9; a frame under 31.1 has faded
+77 frames; status bar contrast light 46.6, dark 42.9; a frame under 34.3 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 2-24 from 1.982 s, on screen 0.357 s; lowest contrast 10.6, brightness 222
+faded status bar, not gated: frames 40-62 from 7.325 s, on screen 0.335 s; lowest contrast 10.6, brightness 223
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch (system, not gated)
+174 frames; content contrast light 7.6, dark 10.4; a frame under 6.1 has faded
+brief dip, allowed (content): frames 72-74 from 7.168 s, on screen 0.050 s; lowest contrast 4.0, brightness 139
+brief dip, allowed (content): frames 98-101 from 10.478 s, on screen 0.060 s; lowest contrast 4.2, brightness 138
+brief dip, allowed (content): frames 142-146 from 14.022 s, on screen 0.077 s; lowest contrast 3.9, brightness 143
+174 frames; status bar contrast light 28.3, dark 28.6; a frame under 22.7 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 2-2 from 3.640 s, on screen 0.095 s; lowest contrast 18.4, brightness 168
+faded status bar, not gated: frames 4-44 from 3.785 s, on screen 0.517 s; lowest contrast 5.1, brightness 46
+faded status bar, not gated: frames 54-98 from 6.890 s, on screen 3.602 s; lowest contrast 3.2, brightness 95
+faded status bar, not gated: frames 125-138 from 13.772 s, on screen 0.193 s; lowest contrast 3.5, brightness 73
+faded status bar, not gated: frames 147-164 from 14.098 s, on screen 0.285 s; lowest contrast 6.4, brightness 220
+clean: the content keeps its contrast, or dips for 0.2 s at most
