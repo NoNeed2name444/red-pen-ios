@@ -36,6 +36,16 @@ final class LaunchStage {
     private(set) var now: Double
     /// The splash has gone: home draws the squiggle the ECG became.
     private(set) var landed: Bool
+    /// During the ECG, behind the splash's opaque ground, home is drawn
+    /// whole once, so its first full frame (text laid out, images decoded,
+    /// the paper drawn) is done before anyone can see it, not in the middle
+    /// of the hand-off. It goes back to its starting pose `warmLead`
+    /// before the hand-off, still well behind the ground.
+    private(set) var warm = false
+    static let warmLead = 0.35
+
+    /// The time home is posed at: whole while it warms up.
+    var poseTime: Double { warm ? .infinity : now }
 
     @ObservationIgnored private(set) var reduced = false
     /// The hand-off's moment on the host clock (CACurrentMediaTime).
@@ -43,6 +53,14 @@ final class LaunchStage {
     @ObservationIgnored private var link: CADisplayLink?
     /// Home's clock at the last display refresh.
     @ObservationIgnored private var lastTime: Double?
+    /// The hand-off's smoothness, measured: the longest wait between two
+    /// display refreshes reaching the main thread from the hand-off until
+    /// home is still (a held-up main thread), and when it ended.
+    @ObservationIgnored private var lastStamp: CFTimeInterval?
+    @ObservationIgnored private var longestGap: Double = 0
+    @ObservationIgnored private var longestGapAt: Double = 0
+    @ObservationIgnored private var refreshes = 0
+    @ObservationIgnored private var warmEnded: Double?
     /// Where the paper is drawn out from, and the window it fills (window
     /// points): set by the splash as it starts.
     @ObservationIgnored var gridOrigin: CGPoint = .zero
@@ -75,7 +93,11 @@ final class LaunchStage {
         guard now == 0, link == nil else { return }
         self.reduced = reduced
         self.handoffHost = handoffHost
-        lastTime = LaunchOpening(reduced: reduced).handoff + (CACurrentMediaTime() - handoffHost)
+        let o = LaunchOpening(reduced: reduced)
+        lastTime = o.handoff + (CACurrentMediaTime() - handoffHost)
+        // warm up only with room to: home must be back at its starting pose
+        // well before the ground gives way
+        warm = !reduced && handoffHost - CACurrentMediaTime() > Self.warmLead + 0.1
         let ticker = LaunchTicker { [weak self] link in self?.tick(link) }
         let link = CADisplayLink(target: ticker, selector: #selector(LaunchTicker.tick(_:)))
         link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
@@ -86,6 +108,16 @@ final class LaunchStage {
     private func tick(_ link: CADisplayLink) {
         let o = LaunchOpening(reduced: reduced)
         let raw = o.handoff + (link.targetTimestamp - handoffHost)
+        if let last = lastStamp, raw >= o.handoff {
+            let gap = link.timestamp - last
+            if gap > longestGap { longestGap = gap; longestGapAt = raw }
+            refreshes += 1
+        }
+        lastStamp = link.timestamp
+        if warm && raw >= o.handoff - Self.warmLead {
+            warm = false
+            warmEnded = raw
+        }
         let t = lastTime.map { o.carryOn(from: $0, to: raw, frame: link.targetTimestamp - link.timestamp) } ?? raw
         if t != raw { handoffHost = link.targetTimestamp - (t - o.handoff) }
         lastTime = t
@@ -95,9 +127,23 @@ final class LaunchStage {
             now = .infinity
             link.invalidate()
             self.link = nil
+            writeReadout(o, still: raw)
         } else {
             now = t
         }
+    }
+
+    /// For a recorded opening (`-uiPreviewSplash`), what the hand-off
+    /// measured, in Caches/launch-handoff.txt, which the Launch recording
+    /// workflow reads back after each take. Times are the opening's.
+    private func writeReadout(_ o: LaunchOpening, still: Double) {
+        guard ProcessInfo.processInfo.arguments.contains("-uiPreviewSplash"),
+              let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        func s(_ x: Double) -> String { String(format: "%+.2f", x) }
+        let line = "gap_ms=\(Int((longestGap * 1000).rounded())) at=\(s(longestGapAt))"
+            + " refreshes=\(refreshes) handoff=\(s(o.handoff)) still=\(s(still))"
+            + " warm_off=\(warmEnded.map(s) ?? "none")\n"
+        try? line.write(to: dir.appendingPathComponent("launch-handoff.txt"), atomically: true, encoding: .utf8)
     }
 
     /// The splash has gone (taking its ECG with it).
@@ -108,7 +154,7 @@ final class LaunchStage {
     /// How far the ECG paper is drawn out: nil once whole, else the reach of
     /// its lines, in window points, across (x) and down (y).
     func gridReach() -> (x: ClosedRange<CGFloat>, y: ClosedRange<CGFloat>)? {
-        let f = CGFloat(LaunchOpening(reduced: reduced).gridReach(at: now))
+        let f = CGFloat(LaunchOpening(reduced: reduced).gridReach(at: poseTime))
         if f >= 1 { return nil }
         let p = gridOrigin
         let dx = max(p.x, window.width - p.x) + 2, dy = max(p.y, window.height - p.y) + 2
@@ -132,7 +178,7 @@ struct LaunchEntrance: ViewModifier {
 
     func body(content: Content) -> some View {
         let stage = LaunchStage.shared
-        let e = LaunchOpening(reduced: stage.reduced).entrance(order, at: stage.now)
+        let e = LaunchOpening(reduced: stage.reduced).entrance(order, at: stage.poseTime)
         content
             .scaleEffect(CGFloat(e.scale))
             .offset(y: CGFloat(e.drop))
@@ -143,7 +189,8 @@ struct LaunchEntrance: ViewModifier {
 /// it until the splash goes, when home's own takes over in the same frame.
 struct LaunchLanding: ViewModifier {
     func body(content: Content) -> some View {
-        content.scaleEffect(LaunchStage.shared.landed ? 1 : 0.0001)
+        let stage = LaunchStage.shared
+        content.scaleEffect(stage.landed || stage.warm ? 1 : 0.0001)
     }
 }
 
@@ -151,7 +198,7 @@ struct LaunchLanding: ViewModifier {
 struct LaunchLetters: ViewModifier {
     func body(content: Content) -> some View {
         let stage = LaunchStage.shared
-        content.textRenderer(LetterSettle(time: stage.now, reduced: stage.reduced))
+        content.textRenderer(LetterSettle(time: stage.poseTime, reduced: stage.reduced))
     }
 }
 

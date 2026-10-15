@@ -1,6 +1,6 @@
 # A screen recording of the app's opening (LaunchSplash), in light and dark,
 # from the tap on the icon to the home screen: the system launch screen, the
-# heartbeat, the ECG and the circle that opens onto home.
+# heartbeat, the ECG and the hand-off into home.
 #
 # The simulator records no sound, so the raw films land silent on the
 # launch-recordings branch (runs/<run id>/); the heartbeat is laid in
@@ -18,6 +18,10 @@ on:
     paths:
       - 'ios/RedPen/Shared/LaunchSplash.swift'
       - 'ios/RedPen/Shared/LaunchOpening.swift'
+      - 'ios/RedPen/Shared/LaunchStage.swift'
+      - 'ios/RedPen/Shared/Ward/WardSurfaces.swift'
+      - 'ios/RedPen/Features/Library/WardHome.swift'
+      - 'ios/RedPen/Features/Library/LibraryView.swift'
       - 'ios/RedPen/Assets.xcassets/LaunchLogo*/**'
       - 'ios/RedPen/Assets.xcassets/Heartbeat.dataset/**'
       - 'ios/RedPen/Assets.xcassets/AppIcon.appiconset/**'
@@ -111,21 +115,43 @@ jobs:
           stamp "warm-up launch"
           xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >/dev/null
           sleep 8
+          # what the app measured of the hand-off (LaunchStage.writeReadout):
+          # read back after each take, and cleared before the next
+          readout() {
+            local data
+            data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
+            [ -n "$data" ] || return 0
+            if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt"; return 0; fi
+            if [ -f "$data/Library/Caches/launch-handoff.txt" ]; then
+              echo "take $1: $(cat "$data/Library/Caches/launch-handoff.txt")" >> "film/handoff-$MODE.txt"
+            else
+              echo "take $1: no readout" >> "film/handoff-$MODE.txt"
+            fi
+          }
           # two recorded launches: the film is the first; the second shows
-          # whether a slow first one was the machine settling after boot
+          # whether a slow first one was the machine settling after boot. A
+          # take whose recording came out empty (the recorder can fail on a
+          # busy runner) is taken again, up to twice.
           for take in 1 2; do
-            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-            sleep 3
             name="film/raw-$MODE.mp4"; [ $take = 2 ] && name="film/raw-$MODE-2.mp4"
-            xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "$name" &
-            REC=$!
-            sleep 3
-            stamp "take $take: launch (3 s into $name)"
-            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> "film/launch-$MODE.log" 2>&1
-            # a Debug build on a busy runner can sit on the launch screen ~10 s
-            sleep 20
-            kill -INT $REC
-            wait $REC || true
+            for attempt in 1 2 3; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              sleep 3
+              readout clear
+              xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "$name" &
+              REC=$!
+              sleep 3
+              stamp "take $take (attempt $attempt): launch (3 s into $name)"
+              xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> "film/launch-$MODE.log" 2>&1
+              # a Debug build on a busy runner can sit on the launch screen ~10 s
+              sleep 20
+              kill -INT $REC
+              wait $REC || true
+              size=$(stat -f %z "$name" 2>/dev/null || echo 0)
+              if [ "$size" -gt 200000 ]; then break; fi
+              stamp "take $take (attempt $attempt): recording empty ($size bytes), taking again"
+            done
+            readout $take
           done
           # the splash's first frame against the system launch screen, as
           # lossless screenshots: launched holding the first frame (marked
@@ -142,6 +168,24 @@ jobs:
           xcrun simctl io "$UDID" screenshot --type=png "film/ground-$MODE-held.png" >/dev/null 2>&1 || true
           stamp "done"
           ls -la film
+          cat "film/handoff-$MODE.txt"
+
+      - name: Judge the hand-off
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          # the longest the main thread was held up between the hand-off and
+          # home being still, per take: over 100 ms is a visible hitch
+          f="film/handoff-$MODE.txt"
+          [ -f "$f" ] || { echo "::error::no hand-off readout"; exit 1; }
+          bad=0
+          while read -r line; do
+            gap=$(echo "$line" | sed -nE 's/.*gap_ms=([0-9]+).*/\1/p')
+            if [ -z "$gap" ]; then echo "::error::$MODE $line"; bad=1
+            elif [ "$gap" -gt 100 ]; then echo "::error::$MODE hand-off held up ${gap} ms: $line"; bad=1
+            else echo "$MODE ok: $line"; fi
+          done < "$f"
+          exit $bad
 
       - name: Keep the build log
         if: always()
