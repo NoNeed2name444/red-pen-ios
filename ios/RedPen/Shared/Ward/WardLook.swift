@@ -8,26 +8,18 @@ import Foundation
 /// chosen dock tab and progress (`accent`), and the fills under white
 /// words (`fill`). The base, the cards and the body text stay the Ward
 /// palette's, and so do the colours that mean something: Discharge green
-/// for right, Resus red for wrong, Caution amber for due, the blue New
-/// badge. A section's hue keeps clear of those (`semanticHues`), so
-/// Cards is no longer red and Textbook no longer green.
+/// for right, Resus red for wrong, Caution amber for due, the ECG red, the
+/// beam's orange, the blue New badge. The sections keep apart from those
+/// and from each other (at least 0.076 in OKLab, both modes).
 enum WardSection: String, CaseIterable, Sendable {
     case questions, cards, textbook, cases, osce, audio, ideas
 
-    /// The hue, in degrees. Questions keep the palette's own blue, as
-    /// drawn (its colours below are the palette's, not derived). The rest
-    /// sit at least 25 degrees from each other and from Questions' blue
-    /// and night cyan, and at least 30 from the semantic hues.
+    /// The hue, in OKLCH degrees (perceptual, so equal steps look equal).
+    /// Questions keep the palette's own blue, as drawn: Theatre Blue by
+    /// day and its cyan at night.
     var hue: Double {
-        switch self {
-        case .questions: return 214   // Theatre Blue
-        case .cases: return 246       // indigo
-        case .audio: return 274       // violet
-        case .cards: return 300       // orchid
-        case .ideas: return 326       // magenta
-        case .osce: return 70         // brass
-        case .textbook: return 100    // leaf
-        }
+        if self == .questions { return 256 }
+        return WardSection.table[self]!.hue
     }
 
     /// The section's ink (light, dark) as 0xRRGGBB: the grid's lines and
@@ -35,7 +27,7 @@ enum WardSection: String, CaseIterable, Sendable {
     /// card at a control's edge strength (WardRelief.edgeAlpha).
     var ink: (light: UInt32, dark: UInt32) {
         if self == .questions { return (0x2868C4, 0x78AAF5) }   // Theatre Blue paper
-        return WardSection.derived[self]!.ink
+        return WardSection.table[self]!.ink
     }
 
     /// Words and glyphs in the section's colour (buttons' labels, links,
@@ -45,7 +37,7 @@ enum WardSection: String, CaseIterable, Sendable {
         if self == .questions {
             return (WardPalette.hex(.primaryInk, dark: false), WardPalette.hex(.primaryInk, dark: true))
         }
-        return WardSection.derived[self]!.accent
+        return WardSection.table[self]!.accent
     }
 
     /// A fill in the section's colour, under white words (a switch that
@@ -54,34 +46,31 @@ enum WardSection: String, CaseIterable, Sendable {
         if self == .questions {
             return (WardPalette.hex(.primary, dark: false), WardPalette.hex(.primary, dark: true))
         }
-        return WardSection.derived[self]!.fill
+        return WardSection.table[self]!.fill
     }
 
     func accent(dark: Bool) -> UInt32 { dark ? accent.dark : accent.light }
     func fill(dark: Bool) -> UInt32 { dark ? fill.dark : fill.light }
+    func ink(dark: Bool) -> UInt32 { dark ? ink.dark : ink.light }
 
     /// The colours that mean something, which no section's accent may
-    /// look like: right, wrong, due, and the New badge's blue.
-    static let semanticTokens: [WardToken] = [.success, .danger, .warning]
+    /// look like (and the New badge's blue, which only Questions shares).
+    static let semanticTokens: [WardToken] = [.success, .danger, .warning, .ecg, .beam]
 
-    /// Every derived section's colours, worked out once.
-    private static let derived: [WardSection: (ink: (light: UInt32, dark: UInt32),
-                                               accent: (light: UInt32, dark: UInt32),
-                                               fill: (light: UInt32, dark: UInt32))] = {
-        var out: [WardSection: (ink: (light: UInt32, dark: UInt32), accent: (light: UInt32, dark: UInt32),
-                                fill: (light: UInt32, dark: UInt32))] = [:]
-        for section in allCases where section != .questions {
-            let h: Double = section.hue
-            out[section] = (
-                ink: (WardAccentMaker.edge(hue: h, dark: false), WardAccentMaker.edge(hue: h, dark: true)),
-                accent: (WardAccentMaker.text(hue: h, dark: false), WardAccentMaker.text(hue: h, dark: true)),
-                fill: (WardAccentMaker.fill(hue: h, dark: false), WardAccentMaker.fill(hue: h, dark: true))
-            )
-        }
-        return out
-    }()
-
-    func ink(dark: Bool) -> UInt32 { dark ? ink.dark : ink.light }
+    /// Every section's colours but Questions', worked out from its hue by
+    /// tools/ward_accents.py, which reads the palette and the edges'
+    /// strength from the source: a palette or hue change is one edit there
+    /// and a --write. (ink, accent, fill) as (light, dark) 0xRRGGBB.
+    // ward_accents.py: begin
+    private static let table: [WardSection: WardSectionColours] = [
+        .cards: WardSectionColours(hue: 320, ink: (0x9D3EB1, 0xDE93EF), accent: (0x77108B, 0xDA97EA), fill: (0xA344B8, 0x8E479D)),
+        .textbook: WardSectionColours(hue: 132, ink: (0x4A7C05, 0xA6DF74), accent: (0x345902, 0xA6DF74), fill: (0x4F8207, 0x49780A)),
+        .cases: WardSectionColours(hue: 284, ink: (0x6656D7, 0xA8A6FE), accent: (0x482EAE, 0xA9A9EF), fill: (0x6C5CDD, 0x6158BB)),
+        .osce: WardSectionColours(hue: 92, ink: (0x866C02, 0xD3AD1B), accent: (0x645000, 0xD3AD1B), fill: (0x8C7210, 0x7F6604)),
+        .audio: WardSectionColours(hue: 302, ink: (0x8B50CF, 0xD3B8FE), accent: (0x7132B1, 0xD3B8FE), fill: (0x8B50CF, 0x7A4FAF)),
+        .ideas: WardSectionColours(hue: 340, ink: (0xBE409D, 0xFEA7E1), accent: (0x9D1A7E, 0xFEA7E1), fill: (0xB83997, 0x9E3F84)),
+    ]
+    // ward_accents.py: end
 
     /// Where a kind of set lives, by StudySetKind's raw value (Foundation
     /// only, so the model's enum is not needed here).
@@ -97,77 +86,12 @@ enum WardSection: String, CaseIterable, Sendable {
     }
 }
 
-/// Works a section's colours out from its hue: for each mode, the most
-/// vivid colour of that hue that still keeps its promise, found by
-/// stepping the lightness (HSL) towards the page until the promise would
-/// break. A margin over each ratio keeps rounding from tipping it.
-enum WardAccentMaker {
-    static let margin = 0.1
-
-    /// 0xRRGGBB from hue (degrees), saturation and lightness (0...1).
-    static func hsl(_ h: Double, _ s: Double, _ l: Double) -> UInt32 {
-        let c = (1 - abs(2 * l - 1)) * s
-        let hp = (h.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) / 60
-        let x = c * (1 - abs(hp.truncatingRemainder(dividingBy: 2) - 1))
-        let (r1, g1, b1): (Double, Double, Double)
-        switch hp {
-        case ..<1: (r1, g1, b1) = (c, x, 0)
-        case ..<2: (r1, g1, b1) = (x, c, 0)
-        case ..<3: (r1, g1, b1) = (0, c, x)
-        case ..<4: (r1, g1, b1) = (0, x, c)
-        case ..<5: (r1, g1, b1) = (x, 0, c)
-        default: (r1, g1, b1) = (c, 0, x)
-        }
-        let m = l - c / 2
-        func byte(_ v: Double) -> UInt32 { UInt32((min(1, max(0, v + m)) * 255).rounded()) }
-        return byte(r1) << 16 | byte(g1) << 8 | byte(b1)
-    }
-
-    /// The lightness, stepping from `start` towards `end`, of the last
-    /// colour that still keeps `ok`.
-    private static func search(hue: Double, saturation: Double, from start: Double, to end: Double,
-                               _ ok: (UInt32) -> Bool) -> UInt32 {
-        var best: UInt32 = hsl(hue, saturation, start)
-        let steps = 200
-        for i in 0...steps {
-            let l = start + (end - start) * Double(i) / Double(steps)
-            let c = hsl(hue, saturation, l)
-            if ok(c) { best = c } else { break }
-        }
-        return best
-    }
-
-    /// Words and glyphs: 4.5:1 on every tier of the mode.
-    static func text(hue: Double, dark: Bool) -> UInt32 {
-        let tiers = WardPalette.tiers.map { WardPalette.hex($0, dark: dark) }
-        let ok: (UInt32) -> Bool = { c in tiers.allSatisfy { WardPalette.contrast(c, $0) >= 4.5 + margin } }
-        // light: from dark ink up towards the page; dark: from the page's
-        // own brightness down, pastel and bright
-        return dark ? search(hue: hue, saturation: 0.85, from: 0.95, to: 0.4, ok)
-                    : search(hue: hue, saturation: 0.62, from: 0.1, to: 0.6, ok)
-    }
-
-    /// A fill under white words: 4.5:1 for the words.
-    static func fill(hue: Double, dark: Bool) -> UInt32 {
-        let white = WardPalette.hex(.onPrimary, dark: dark)
-        let ok: (UInt32) -> Bool = { c in WardPalette.contrast(white, c) >= 4.5 + margin }
-        return search(hue: hue, saturation: dark ? 0.7 : 0.62, from: 0.1, to: 0.6, ok)
-    }
-
-    /// The grid's and the edges' ink: as an edge, at the mode's edge
-    /// strength, 3:1 on the base and on a card.
-    static func edge(hue: Double, dark: Bool) -> UInt32 {
-        let alpha: Double = WardRelief.edgeAlpha(dark: dark)
-        let grounds = [WardToken.background, .surface].map { WardPalette.hex($0, dark: dark) }
-        let ok: (UInt32) -> Bool = { c in
-            grounds.allSatisfy { ground in
-                let edge = WardRelief.composite(WardReliefLight(hex: c, alpha: alpha, x: 0, y: 0, radius: 0), on: ground)
-                return WardPalette.contrast(edge, ground) >= WardRelief.edgeContrast + margin
-            }
-        }
-        return dark ? search(hue: hue, saturation: 0.8, from: 0.95, to: 0.4, ok)
-                    : search(hue: hue, saturation: 0.62, from: 0.1, to: 0.6, ok)
-    }
+/// One section's colours, light and dark (WardSection.table).
+struct WardSectionColours: Sendable {
+    let hue: Double
+    let ink: (light: UInt32, dark: UInt32)
+    let accent: (light: UInt32, dark: UInt32)
+    let fill: (light: UInt32, dark: UInt32)
 }
 
 /// The wash behind the word being spoken in Audio: the section's fill at

@@ -2,7 +2,7 @@
 // move between sections. Its ends are the palette's own colours, the middle
 // is a linear-light mix, every token of a frame is taken at the same point
 // (so no frame mixes two looks), a part held in the other mode stays put,
-// each section's ink reads as an edge and sits apart in hue, and the relief,
+// each section's ink reads as an edge and sits apart (OKLab), and the relief,
 // press and paper specs move with it.
 import Foundation
 
@@ -120,30 +120,52 @@ check("questions keep the paper's blue",
       WardSection.questions.ink.light == WardPaper.ink(dark: false, highContrast: false).hex &&
       WardSection.questions.ink.dark == WardPaper.ink(dark: true, highContrast: false).hex)
 
+// OKLab (Ottosson), perceptual: equal distances look about equally
+// different, and the hue is the one the eye sees (an HSL hue drifts with
+// lightness: a dark yellow reads olive).
+func oklab(_ x: UInt32) -> (L: Double, a: Double, b: Double) {
+    func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+    let (r0, g0, b0) = WardPalette.rgb(x)
+    let r = linear(r0), g = linear(g0), b = linear(b0)
+    let l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+    let m = cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+    let s = cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+    return (0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+            1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+            0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s)
+}
 func hue(_ x: UInt32) -> Double {
-    let (r, g, b) = WardPalette.rgb(x)
-    let mx = max(r, g, b), mn = min(r, g, b), d = mx - mn
-    guard d > 0 else { return 0 }
-    var hh: Double
-    if mx == r { hh = (g - b) / d } else if mx == g { hh = (b - r) / d + 2 } else { hh = (r - g) / d + 4 }
-    hh *= 60
-    return hh < 0 ? hh + 360 : hh
+    let o = oklab(x)
+    let d = atan2(o.b, o.a) * 180 / .pi
+    return d < 0 ? d + 360 : d
+}
+func distance(_ x: UInt32, _ y: UInt32) -> Double {
+    let p = oklab(x), q = oklab(y)
+    return ((p.L - q.L) * (p.L - q.L) + (p.a - q.a) * (p.a - q.a) + (p.b - q.b) * (p.b - q.b)).squareRoot()
 }
 func apart(_ a: Double, _ b: Double) -> Double { let d = abs(a - b).truncatingRemainder(dividingBy: 360); return min(d, 360 - d) }
 
+// How far apart (OKLab) two sections, or a section and a colour that
+// means something, must sit to be told apart at a glance. 0.10 would be
+// clearly apart; with seven sections and six meanings all at text
+// contrast, 0.076 is the most these hue families give (tools/ward_accents.py).
+let sectionsApart = 0.075
+
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"
-    var closest = 360.0, pair = ""
+    var closest = 9.0, pair = ""
     for (i, a) in sections.enumerated() {
         for b in sections[(i + 1)...] {
-            let d = apart(hue(a.ink(dark: dark)), hue(b.ink(dark: dark)))
+            let d = distance(a.ink(dark: dark), b.ink(dark: dark))
             if d < closest { closest = d; pair = "\(a)/\(b)" }
         }
     }
-    check("\(mode): every section's hue sits at least 25 degrees from the others", closest >= 25, "\(pair) \(f(closest))")
-    for s in sections {
+    check("\(mode): every section's ink is told apart from the others' (0.06)", closest >= 0.06, "\(pair) \(f(closest))")
+    for s in sections where s != .questions {
         check("\(mode) \(s): light and dark inks share a hue",
-              apart(hue(s.ink.light), hue(s.ink.dark)) <= 8, f(apart(hue(s.ink.light), hue(s.ink.dark))))
+              apart(hue(s.ink.light), hue(s.ink.dark)) <= 4, f(apart(hue(s.ink.light), hue(s.ink.dark))))
+    }
+    for s in sections {
         for tier in [WardToken.background, .surface] {
             let base = WardPalette.hex(tier, dark: dark)
             let c = WardPalette.contrast(WardRelief.edgeColor(s, dark: dark, on: base), base)
@@ -267,27 +289,32 @@ for dark in [false, true] {
               rest.paletteHex(.primaryInk, dark: dark) == WardPalette.hex(.primaryInk, dark: dark))
         // the hue is the section's, in all three roles
         for (role, c) in [("ink", s.ink(dark: dark)), ("accent", accent), ("fill", fill)] where s != .questions {
-            check("\(mode) \(s): its \(role) is its hue", apart(hue(c), s.hue) <= 6, f(hue(c)))
+            check("\(mode) \(s): its \(role) is its hue", apart(hue(c), s.hue) <= 2, f(hue(c)))
         }
     }
     // the sections apart from one another in their accents too
-    var closest = 360.0, pair = ""
+    var closest = 9.0, pair = ""
     for (i, a) in sections.enumerated() {
         for b in sections[(i + 1)...] {
-            let d = apart(hue(a.accent(dark: dark)), hue(b.accent(dark: dark)))
+            let d = distance(a.accent(dark: dark), b.accent(dark: dark))
             if d < closest { closest = d; pair = "\(a)/\(b)" }
         }
     }
-    check("\(mode): every section's accent sits at least 25 degrees from the others", closest >= 25, "\(pair) \(f(closest))")
-    // and clear of what means something: right, wrong, due, and (away
-    // from Questions, whose own blue it is) the New badge
-    for s in sections where s != .questions {
+    check("\(mode): every section's accent is told apart from the others'", closest >= sectionsApart, "\(pair) \(f(closest))")
+    // and from what means something: right, wrong, due, the ECG red, the
+    // beam, and (away from Questions, whose own blue it is) the New badge
+    for s in sections {
+        var near = 9.0, what = ""
         for token in WardSection.semanticTokens {
-            let d = apart(hue(s.accent(dark: dark)), hue(WardPalette.hex(token, dark: dark)))
-            check("\(mode) \(s): the accent is clearly not \(token)'s colour (30 degrees)", d >= 30, f(d))
+            let d = distance(s.accent(dark: dark), WardPalette.hex(token, dark: dark))
+            if d < near { near = d; what = "\(token)" }
         }
-        let blue = apart(hue(s.accent(dark: dark)), hue(WardPalette.hex(.primaryInk, dark: dark)))
-        check("\(mode) \(s): the accent is clearly not the New badge's blue (25 degrees)", blue >= 25, f(blue))
+        if s != .questions {
+            let d = distance(s.accent(dark: dark), WardPalette.hex(.primaryInk, dark: dark))
+            if d < near { near = d; what = "the New badge's blue" }
+        }
+        check("\(mode) \(s): the accent is not mistaken for a colour that means something", near >= sectionsApart,
+              "\(what) \(f(near))")
     }
 }
 

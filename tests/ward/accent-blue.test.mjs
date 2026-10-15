@@ -3,9 +3,16 @@
 // the section's (WardSection.accent, through Color.wardPrimaryInk and the
 // .tint each section sets), so a screen in Cards or OSCE never shows the
 // Questions blue. The owner saw exactly that (14 Oct): blue words in other
-// sections. This reads the Swift sources; WardLookTests checks the colours.
+// sections. And every section's colour reads (WCAG AA) in light and dark:
+// its words 4.5:1 on every tier, as large text or an icon 3:1, white words
+// 4.5:1 on its fill, its ink 3:1 as a control's edge; and it is told apart
+// from the other sections and from what means something (right, wrong,
+// due, the ECG red, the beam, the New badge's blue). This reads the Swift
+// sources: WardPalette's table, WardLook's section table (written by
+// tools/ward_accents.py) and WardRelief's edge strengths.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const root = new URL('../../ios/RedPen/', import.meta.url).pathname;
 let failed = 0;
@@ -86,6 +93,106 @@ check('a mode\'s glyph is its section\'s accent', /Color\.wardAccent\(WardSectio
 check('the thin progress bar is the accent', /WardGroove\(fraction: fraction, tint: \.wardPrimaryInk/.test(theme));
 const home = read('Features/Library/WardHome.swift');
 check('the New chip keeps the fixed blue', /case \.new: tone = \.info/.test(home));
+
+// --- the colours themselves ------------------------------------------------
+
+const palette = {};
+for (const m of read('Shared/Ward/WardPalette.swift').matchAll(/\.(\w+):\s*\(0x([0-9A-Fa-f]{6}),\s*0x([0-9A-Fa-f]{6})\)/g))
+  palette[m[1]] = [parseInt(m[2], 16), parseInt(m[3], 16)];
+const tiers = /static let tiers: \[WardToken\] = \[([^\]]*)\]/.exec(read('Shared/Ward/WardPalette.swift'))[1]
+  .split(',').map(t => t.trim().replace(/^\./, ''));
+check('the palette is read (16 tokens, 4 tiers)', Object.keys(palette).length === 16 && tiers.length === 4,
+      `${Object.keys(palette).length} ${tiers}`);
+const relief = read('Shared/Ward/WardRelief.swift');
+const num = name => parseFloat(new RegExp(`static let ${name} = ([0-9.]+)`).exec(relief)[1]);
+const edgeAlpha = [num('lightEdge'), num('darkEdge')], edgeContrast = num('edgeContrast');
+
+// Questions keep the palette's blue; the rest come from WardLook's table.
+const sections = { questions: { hue: 256, ink: [0x2868C4, 0x78AAF5], accent: palette.primaryInk, fill: palette.primary } };
+check('Questions\' ink is the paper\'s blue as WardLook draws it', /return \(0x2868C4, 0x78AAF5\)/.test(look));
+const pair = '\\(0x([0-9A-F]{6}), 0x([0-9A-F]{6})\\)';
+const row = new RegExp(`\\.(\\w+): WardSectionColours\\(hue: (\\d+), ink: ${pair}, accent: ${pair}, fill: ${pair}\\)`, 'g');
+for (const m of look.matchAll(row)) {
+  const hex = i => [parseInt(m[i], 16), parseInt(m[i + 1], 16)];
+  sections[m[1]] = { hue: Number(m[2]), ink: hex(3), accent: hex(5), fill: hex(7) };
+}
+const names = Object.keys(sections);
+check('seven sections are read', names.length === 7, names.join(' '));
+
+const channels = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map(c => c / 255);
+const linear = c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const luminance = h => { const [r, g, b] = channels(h).map(linear); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const ratio = (a, b) => { const [x, y] = [luminance(a), luminance(b)]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+// a control's edge: the ink laid on the ground at the edge's strength, in
+// sRGB, as WardRelief.composite does
+const composite = (top, alpha, base) => {
+  const [b, t] = [channels(base), channels(top)];
+  return b.reduce((out, x, i) => (out << 8) | Math.round((x + (t[i] - x) * alpha) * 255), 0);
+};
+const oklab = h => {
+  const [r, g, b] = channels(h).map(linear);
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+};
+const distance = (a, b) => Math.hypot(...oklab(a).map((v, i) => v - oklab(b)[i]));
+const hueOf = h => { const [, a, b] = oklab(h); return ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360; };
+const apart = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+const hex = h => '#' + h.toString(16).toUpperCase().padStart(6, '0');
+
+// told apart at a glance: 0.10 would be clearly apart; 0.076 is the most
+// these hue families give at text contrast (tools/ward_accents.py)
+const APART = 0.075;
+const meanings = ['success', 'danger', 'warning', 'ecg', 'beam'];
+for (const dark of [0, 1]) {
+  const mode = dark ? 'dark' : 'light';
+  for (const name of names) {
+    const s = sections[name];
+    const accent = s.accent[dark];
+    const low = Math.min(...tiers.map(t => ratio(accent, palette[t][dark])));
+    check(`${mode} ${name}: its words read 4.5:1 on every tier (AA body text)`, low >= 4.5, `${hex(accent)} ${low.toFixed(2)}`);
+    check(`${mode} ${name}: as large text or an icon, 3:1 on every tier`, low >= 3, low.toFixed(2));
+    const white = ratio(palette.onPrimary[dark], s.fill[dark]);
+    check(`${mode} ${name}: white words read 4.5:1 on its fill`, white >= 4.5, `${hex(s.fill[dark])} ${white.toFixed(2)}`);
+    for (const ground of ['background', 'surface']) {
+      const g = palette[ground][dark];
+      const edge = ratio(composite(s.ink[dark], edgeAlpha[dark], g), g);
+      check(`${mode} ${name}: its ink reads 3:1 as a control's edge on the ${ground}`, edge >= edgeContrast, edge.toFixed(2));
+    }
+    if (name === 'questions') continue;
+    // a section's colour is never a blue: not the New badge's, not the
+    // Questions paper's
+    for (const role of ['accent', 'fill', 'ink']) {
+      const h = hueOf(s[role][dark]);
+      check(`${mode} ${name}: its ${role} is its own hue (${s.hue})`, apart(h, s.hue) <= 2, h.toFixed(1));
+      const blue = Math.min(apart(h, hueOf(palette.primaryInk[dark])), apart(h, hueOf(sections.questions.ink[dark])));
+      check(`${mode} ${name}: its ${role} is not a blue`, blue >= 25, blue.toFixed(1));
+    }
+    let near = [9, ''];
+    for (const k of [...meanings, 'primaryInk']) {
+      const d = distance(accent, palette[k][dark]);
+      if (d < near[0]) near = [d, k === 'primaryInk' ? 'the New badge' : k];
+    }
+    check(`${mode} ${name}: told apart from what means something`, near[0] >= APART, `${near[1]} ${near[0].toFixed(3)}`);
+  }
+  let closest = [9, ''];
+  for (let i = 0; i < names.length; i++)
+    for (const b of names.slice(i + 1)) {
+      const d = distance(sections[names[i]].accent[dark], sections[b].accent[dark]);
+      if (d < closest[0]) closest = [d, `${names[i]}/${b}`];
+    }
+  check(`${mode}: every section is told apart from the others`, closest[0] >= APART, `${closest[1]} ${closest[0].toFixed(3)}`);
+}
+
+// The table is what the generator makes from today's palette, so a palette
+// change cannot leave the sections behind.
+const tool = new URL('../../tools/ward_accents.py', import.meta.url).pathname;
+let current = true, said = '';
+try { said = execFileSync('python3', [tool, '--check'], { encoding: 'utf8' }); } catch (e) { current = false; said = String(e.stdout || e.message); }
+check('WardLook\'s section table is what tools/ward_accents.py makes', current, said.trim());
 
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('all passed');
