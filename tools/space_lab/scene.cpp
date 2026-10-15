@@ -364,8 +364,17 @@ static void pulsar() {
     float period = 0.75f;
     float tt = T / period;
     float phase = (tt - std::floor(tt)) * 6.2831853f + 0.3f * 6.2831853f;
+    // LAB_PHASE: the beam's turn (0...1) whatever the clock, to put a beam
+    // facing the eye on a beat's peak
+    if (const char *ph = std::getenv("LAB_PHASE")) phase = (float)std::atof(ph) * 6.2831853f;
     float3 around = e1 * std::cos(phase) + e2 * std::sin(phase);
     float3 b = nrm(n * std::cos(0.61f) + around * std::sin(0.61f));
+    // LAB_EYE: a beam this many radians off the line of sight (0: end on)
+    if (const char *ey = std::getenv("LAB_EYE")) {
+        float a = (float)std::atof(ey);
+        float3 side = nrm(cross(toEye, v3(0, 1, 0)));
+        b = nrm(toEye * std::cos(a) + side * std::sin(a));
+    }
     float face = std::fabs(dot(b, toEye));
     float w = r * 0.9f * 2, lg = r * 6 * 2 * (1 + 0.35f * M);
     add(false, trs(BODY, facing(b, toEye), v3(w, lg, w * (1 + face))), sh_pulsarBeam::entry,

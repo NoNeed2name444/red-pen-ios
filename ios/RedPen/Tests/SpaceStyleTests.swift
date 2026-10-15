@@ -218,6 +218,9 @@ check("P7 every colour on screen's scale, every life positive",
 
 check("P8 the rocky terminator is the tested one", GraphStyleShaders.rockBody.contains("smoothstep(-0.08, 0.22, rp_ndl)"))
 check("P8 the ring shadow on the clouds only with a ring", GraphStyleShaders.gasBody.contains("* rpRinged"))
+check("P8 a pulsar's beam is never drawn over its core's disc as seen",
+      GraphStyleShaders.pulsarBeam.contains("rp_k = rp_k * smoothstep(1.0, 1.35, rp_off)")
+        && GraphStyleShaders.pulsarBeam.contains("* 6.0 / length(scn_node.modelViewTransform[0].xyz)"))
 check("P8 the disk's Kepler shear", GraphStyleShaders.bhDisk.contains("pow(rp_in / max(rp_r, rp_in), 1.5)")
       && close(0.43, SpaceOptics.diskInner))
 

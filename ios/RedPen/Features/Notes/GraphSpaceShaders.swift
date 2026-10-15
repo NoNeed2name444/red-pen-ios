@@ -1392,7 +1392,11 @@ nonisolated enum GraphStyleShaders {
     /// scale), but no more than 1.6 times, and starting at the core's limb,
     /// never across it; and the more it faces the eye, the dimmer its root
     /// (seen end on, the whole beam's light piles on the core), so a beam
-    /// facing the eye never blanks the core.
+    /// facing the eye never blanks the core. Nor is any of it drawn over the
+    /// core's disc as seen (its radius a sixth of the plane's width: the
+    /// core is 0.3 of the note's radius, the plane 1.8), clearing over a
+    /// third of a radius past the limb: a beam pointing nearly at the eye
+    /// cannot whiten the core, whose edge holds in every frame.
     static let pulsarBeam: String = """
     #pragma arguments
     float rpClock;
@@ -1416,6 +1420,10 @@ nonisolated enum GraphStyleShaders {
     float rp_f2 = rp_face * rp_face;
     float rp_k = (rp_prof * 0.85 + rp_spine * 0.9) * rp_fade * rp_flow * (0.6 + 1.0 * rp_f2 * rp_f2);
     rp_k = rp_k * (1.0 - 0.8 * rp_f2 * exp(-rp_ay / 0.25));
+    float3 rp_cc = scn_node.modelViewTransform[3].xyz;
+    float3 rp_ray = normalize(_surface.position);
+    float rp_off = length(rp_cc - rp_ray * dot(rp_ray, rp_cc)) * 6.0 / length(scn_node.modelViewTransform[0].xyz);
+    rp_k = rp_k * smoothstep(1.0, 1.35, rp_off);
     float3 rp_hue = mix(float3(0.9, 0.95, 1.0), float3(0.52, 0.45, 1.0), clamp(abs(rp_ac) * 0.7, 0.0, 1.0));
     float3 rp_col = rp_hue * rp_k;
 

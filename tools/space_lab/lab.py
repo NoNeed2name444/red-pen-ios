@@ -19,8 +19,10 @@ The rocky planet samples the Earth maps (ios/RedPen/Resources/Earth) packed
 as the app packs them (GraphEarth.swift): the day map with the clouds in its
 alpha (sRGB, read as linear), and the lights with the water mask. --smooth
 draws it as the Smooth tier does (no cloud shadows, the day map at 2048).
-LAB_SPIN (radians about its axis), LAB_TIME (the clock) and LAB_DETAIL
-override the scene's values.
+LAB_SPIN (radians about its axis), LAB_TIME (the clock), LAB_PHASE (the
+pulsar beam's turn, 0...1, whatever the clock), LAB_EYE (a pulsar beam that
+many radians off the line of sight: 0 is end on) and LAB_DETAIL override the
+scene's values.
 
 Writes <out>/<body>-<rest|dragged>.png and a labelled sheet.png. Needs
 swiftc and clang++ (the Swift toolchain) and Python's PIL.
@@ -98,7 +100,13 @@ def main():
         k = args.index("--out"); out = os.path.abspath(args[k + 1]); del args[k:k + 2]
     bodies = [a for a in args if a in BODIES] or BODIES
     os.makedirs(out, exist_ok=True)
-    work = tempfile.mkdtemp()
+    # the work folder holds the Earth maps as raw textures (some 40 MB): gone
+    # when the lab is done
+    with tempfile.TemporaryDirectory() as work:
+        render(work, out, size, bodies, smooth)
+
+
+def render(work, out, size, bodies, smooth):
     open(os.path.join(work, "shaders.h"), "w").write(shaders_header(work))
     exe = os.path.join(work, "lab")
     clang = shader_check.shutil.which("clang++") or "/opt/swift/usr/bin/clang++"
