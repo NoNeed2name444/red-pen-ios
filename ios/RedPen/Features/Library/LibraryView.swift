@@ -402,12 +402,15 @@ struct LibraryView: View {
             .navigationTitle(screenTitle)
             .diagnosticsScreen("screen:library")
             .navigationBarTitleDisplayMode(.inline)
-            // pinned in the bar's drawer at the top, so it never fights the
-            // dock at the bottom for the thumb
-            .searchable(text: searchText, placement: .navigationBarDrawer(displayMode: .automatic),
-                        prompt: searchPrompt)
-            .searchFocused($searchFocused)
-            .toolbar { toolbarItems }
+            // The search field and the account menu at the top, so they
+            // never fight the dock at the bottom for the thumb. Drawn by the
+            // page in Ward colours rather than in the system bar: the bar's
+            // glass search field and its items changed style on their own
+            // clock, a grey film over the page for most of a second after
+            // light and dark switched (the owner, 14 Oct). Here they shift
+            // with every other Ward colour (WardLookStore).
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) { topRow }
             // the wide iPad's rail, under the left hand
             .safeAreaInset(edge: .leading, spacing: 0) { rail }
             .safeAreaInset(edge: .bottom) { bottomBar }
@@ -844,27 +847,73 @@ struct LibraryView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbarItems: some ToolbarContent {
-        // One item, top-trailing: Progress, the lectures, the tour of
-        // examples, account, settings and help - the pages about the app
-        // rather than one category, and seldom needed, so up here out of
-        // the thumb's way. The studying itself is in the dock; Select is
-        // beside the sets it picks from.
-        ToolbarItem(placement: .topBarTrailing) {
-            // The Ward circle supplies this control's face; the toolbar's
-            // shared glass background stays hidden.
-            Menu {
-                SupportMenuItems(chosen: $support)
-            } label: {
-                Label("Account and settings", systemImage: "person.crop.circle")
-                .labelStyle(.iconOnly)
+    /// The top of home: the one search field, which searches whatever is on
+    /// show, and the account menu beside it. While typing, Cancel takes the
+    /// menu's place.
+    private var topRow: some View {
+        HStack(spacing: WardSpace.m) {
+            HStack(spacing: WardSpace.s) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .accessibilityHidden(true)
+                TextField(searchPrompt, text: searchText,
+                          prompt: Text(searchPrompt).foregroundStyle(Color.wardInkSecondary))
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .foregroundStyle(Color.wardInk)
+                    .accessibilityIdentifier("librarySearch")
+                if !searchText.wrappedValue.isEmpty {
+                    Button {
+                        searchText.wrappedValue = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.wardInkSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+                }
             }
-            .menuStyle(.button)
-            .buttonStyle(.wardCircle)
-            .accessibilityIdentifier("libraryMenu")
+            .wardField()
+            if searchFocused {
+                Button("Cancel") {
+                    searchText.wrappedValue = ""
+                    searchFocused = false
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.wardPrimaryInk)
+            } else {
+                accountMenu
+            }
         }
-        .sharedBackgroundVisibility(.hidden)
+        .padding(.horizontal, WardSpace.l)
+        .padding(.top, WardSpace.xs)
+        .padding(.bottom, WardSpace.s)
+        // over a category the header's paper band runs on behind it; in
+        // Ideas the plain base, so nothing scrolled shows through
+        .background {
+            if !bandShown && !underSky {
+                Color.wardBackground
+                    .ignoresSafeArea(edges: [.top, .horizontal])
+                    .transition(.identity)
+            }
+        }
+    }
+
+    /// Progress, the lectures, the tour of examples, account, settings and
+    /// help - the pages about the app rather than one category, and seldom
+    /// needed, so up here out of the thumb's way. The studying itself is in
+    /// the dock; Select is beside the sets it picks from.
+    private var accountMenu: some View {
+        Menu {
+            SupportMenuItems(chosen: $support)
+        } label: {
+            Label("Account and settings", systemImage: "person.crop.circle")
+                .labelStyle(.iconOnly)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.wardCircle)
+        .accessibilityIdentifier("libraryMenu")
     }
 
     /// Every delete - a swipe, a row's menu, the selection bar - comes
