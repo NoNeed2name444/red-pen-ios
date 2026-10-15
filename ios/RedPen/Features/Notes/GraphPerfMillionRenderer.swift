@@ -479,11 +479,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             if exposure.saturated >= 0 { saturations.append(exposure.saturated) }
             slot.measured = false
         }
-        // single links only round the focus and for the chosen note (the rest
-        // of the map shows as glows and its strongest bundles)
+        // single links only for the selected note (the map shows as glows
+        // and its strongest bundles)
         let chosenSlot: Int? = selected.flatMap { $0 >= 0 && $0 < map.bodyCount ? Int(octree.slotOf[$0]) : nil }
-        let linked = GraphPerfLinkFocus.leaves(drawLeaves: frame.drawLeaves, octree: octree, links: map.links,
-                                               focus: camera.target, distance: camera.distance,
+        let linked = GraphPerfLinkFocus.leaves(drawLeaves: frame.drawLeaves,
                                                chosenLeaf: chosenSlot.map { octree.leaf(ofSlot: $0) })
         let (pageCount, linkEntries) = slot.write(frame, linked: linked, cache: state.cache, links: map.links)
 

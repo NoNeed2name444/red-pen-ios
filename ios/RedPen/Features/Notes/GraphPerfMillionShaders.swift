@@ -15,11 +15,11 @@
 //                       as the leaf opens); shading and the lit ball grow
 //                       with the pixels it covers, a plain dot below two
 //   mil_chosen_vertex   the chosen body again, over everything, with a ring
-//   mil_link_vertex     every link of the leaves round the focus and the
-//                       chosen note's (GraphPerfLinkFocus), read from the
+//   mil_link_vertex     the selected note's own links only (none by
+//                       default: GraphPerfLinkFocus), read from its leaf's
 //                       link pages (1,024 a page); each end where its leaf
 //                       shows it, so a link into a closed leaf ends at its
-//                       summary point; drawn once when both leaves' are drawn
+//                       summary point
 //   mil_bundle_vertex   one faint band per bundle (the strongest 300 at most)
 //                       between two cut cells, as wide as
 //                       the log of the links it carries times the share of
@@ -364,6 +364,9 @@ nonisolated enum GraphPerfMillionShaders {
         o.position = float4(0.0, 0.0, -2.0, 1.0);
         o.colour = float4(0.0);
         if (pair.x == 0xFFFFFFFFu) { return o; }
+        // the selected note's own links only: its neighbourhood (a link
+        // inside one leaf is kept once, so the note may be either end)
+        if (f.pick.x >= 0.0 && pair.x != uint(f.pick.x) && pair.y != uint(f.pick.x)) { return o; }
         ushort4 qh = packed[pair.x];
         ushort4 qo = packed[pair.y];
         float4 sh = standIn[uint(qh.w)];

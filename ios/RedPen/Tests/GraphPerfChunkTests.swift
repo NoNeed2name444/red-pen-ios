@@ -5,8 +5,8 @@
 // within a frame's budget, nearest first (C10), a leaf that is not ready
 // showing its summary and morphing open once it is (C11), bundles giving way
 // to links (C12), bundle light shared where bundles meet (C14), planning a
-// frame ahead on its own thread (C15), single links only round the focus
-// (C16), and the million itself: built, and a
+// frame ahead on its own thread (C15), single links only for the selected
+// note (C16), and the million itself: built, and a
 // frame planned in a small share of a 120 Hz frame (C13).
 //
 // CI compiles this with -O (tools/swift_suites.py --release); a debug build
@@ -484,40 +484,22 @@ ahead.start(aheadState, view: view(whole), settings: settings, step: 0)
 check("C15 a plan made for a map since replaced is not used, and nothing waits once it is taken",
       ahead.finish(for: otherState) == nil && ahead.finish(for: aheadState) == nil)
 
-// MARK: - C16 single links only round the focus
+// MARK: - C16 single links only for the selected note
 
 var focusCam = whole
 focusCam.target = tree.cells[Int(tree.leafCell[tree.leafCount / 3])].centroid
 focusCam.distance = whole.distance / 6
 var focusPlanner = readyPlanner()
 let focusFrame = focusPlanner.plan(view(focusCam), settings: settings)
-var drawnSet = Set<Int>()
+var drawnLeafList: [Int] = []
 var fk = 0
-while fk < focusFrame.drawLeaves.count { drawnSet.insert(Int(focusFrame.drawLeaves[fk])); fk += 2 }
-let shownLeaves = GraphPerfLinkFocus.leaves(drawLeaves: focusFrame.drawLeaves, octree: tree, links: m.links,
-                                            focus: focusCam.target, distance: focusCam.distance, chosenLeaf: nil)
-let reachW = GraphPerfLinkFocus.reach * focusCam.distance
-func focusD(_ l: Int) -> Float {
-    let c = tree.cells[Int(tree.leafCell[l])].centroid - focusCam.target
-    return (c * c).sum().squareRoot()
-}
-check("C16 links are drawn for some leaves round the focus, fewer than all drawn",
-      !shownLeaves.isEmpty && shownLeaves.count < drawnSet.count, "\(shownLeaves.count) of \(drawnSet.count)")
-check("C16 every leaf with links is drawn and within reach of the focus, nearest first",
-      shownLeaves.allSatisfy { drawnSet.contains($0) && focusD($0) <= reachW }
-      && zip(shownLeaves, shownLeaves.dropFirst()).allSatisfy { focusD($0) <= focusD($1) })
-let capped = GraphPerfLinkFocus.leaves(drawLeaves: focusFrame.drawLeaves, octree: tree, links: m.links,
-                                       focus: focusCam.target, distance: focusCam.distance, chosenLeaf: nil,
-                                       reach: 100, cap: 3_000)
-check("C16 the links drawn one by one stay under the cap",
-      capped.count >= 1 && (capped.count == 1 || capped.reduce(0) { $0 + m.links.count($1) } <= 3_000),
-      "\(capped.reduce(0) { $0 + m.links.count($1) })")
-let farLeaf = drawnSet.max { focusD($0) < focusD($1) }!
-let withChosen = GraphPerfLinkFocus.leaves(drawLeaves: focusFrame.drawLeaves, octree: tree, links: m.links,
-                                           focus: focusCam.target, distance: focusCam.distance, chosenLeaf: farLeaf)
-check("C16 the chosen note's leaf shows its links first, even far from the focus",
-      withChosen.first == farLeaf && focusD(farLeaf) > reachW && Set(withChosen.dropFirst()) == Set(shownLeaves).subtracting([farLeaf]),
-      "\(focusD(farLeaf)) vs \(reachW)")
+while fk < focusFrame.drawLeaves.count { drawnLeafList.append(Int(focusFrame.drawLeaves[fk])); fk += 2 }
+let notDrawn = (0..<tree.leafCount).first { !drawnLeafList.contains($0) }
+check("C16 by default no link is drawn one by one, however close",
+      !drawnLeafList.isEmpty && GraphPerfLinkFocus.leaves(drawLeaves: focusFrame.drawLeaves, chosenLeaf: nil).isEmpty)
+check("C16 a selected note's leaf, once drawn, shows its links; one not drawn shows none",
+      GraphPerfLinkFocus.leaves(drawLeaves: focusFrame.drawLeaves, chosenLeaf: drawnLeafList.last!) == [drawnLeafList.last!]
+      && (notDrawn.map { GraphPerfLinkFocus.leaves(drawLeaves: focusFrame.drawLeaves, chosenLeaf: $0).isEmpty } ?? true))
 
 // MARK: - C13 a million
 
