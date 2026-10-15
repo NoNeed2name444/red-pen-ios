@@ -306,9 +306,7 @@ struct SkyRoot<Content: View>: View {
         let center = SpaceQualityCenter.shared
         let level: SpaceQuality = center.level
         let budget: GraphicsBudget = center.graphics
-        // the device's own mode is held explicitly (WardSystemLook), so a
-        // change of it switches in one frame rather than blending
-        let scheme: ColorScheme? = alwaysNight || center.skyCovered ? .dark : WardSystemLook.shared.scheme
+        let scheme: ColorScheme? = alwaysNight || center.skyCovered ? .dark : nil
         content
             // NavigationStack owns its safe area and can reset an inherited
             // safeAreaPadding. Reduce its actual layout bounds instead, so

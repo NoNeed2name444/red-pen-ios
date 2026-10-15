@@ -327,39 +327,8 @@ struct WardLookRoot: ViewModifier {
     }
 }
 
-/// The device's own light or dark, read from the window's scene. The app's
-/// window is held at an explicit style (SkyRoot) instead of following the
-/// system's: when the whole device changed mode, iOS blended the window
-/// across from the old look for about a fifth of a second (the system
-/// switch recording, r7). Held, the window has no change of its own for
-/// iOS to blend; this hears the scene's change, and the root switches the
-/// window in one frame, as the app's own switch (Always night sky) does.
-@MainActor @Observable
-final class WardSystemLook {
-    static let shared = WardSystemLook()
-
-    /// nil until a scene has been seen; the window follows the system then.
-    private(set) var dark: Bool?
-
-    /// The style to hold the window at, or nil to let it follow.
-    var scheme: ColorScheme? {
-        guard let dark else { return nil }
-        return dark ? .dark : .light
-    }
-
-    func follow(_ style: UIUserInterfaceStyle) {
-        guard style != .unspecified else { return }
-        let now: Bool = style == .dark
-        guard now != dark else { return }
-        var still = Transaction()
-        still.disablesAnimations = true
-        withTransaction(still) { dark = now }
-    }
-}
-
 /// Hears the window's light or dark change in UIKit, ahead of SwiftUI's
-/// redraw, so every Ward colour takes the new style in the same frame; and
-/// the scene's, the device's own mode, for WardSystemLook.
+/// redraw, so every Ward colour takes the new style in the same frame.
 private struct WardWindowWatch: UIViewRepresentable {
     func makeUIView(context: Context) -> WatchView { WatchView() }
     func updateUIView(_ view: WatchView, context: Context) {}
@@ -372,16 +341,7 @@ private struct WardWindowWatch: UIViewRepresentable {
             if let registration, let old = oldWindow { old.unregisterForTraitChanges(registration) }
             registration = nil
             oldWindow = window
-            if let sceneRegistration, let old = oldScene { old.unregisterForTraitChanges(sceneRegistration) }
-            sceneRegistration = nil
-            oldScene = window?.windowScene
             guard let window else { return }
-            if let scene = window.windowScene {
-                WardSystemLook.shared.follow(scene.traitCollection.userInterfaceStyle)
-                sceneRegistration = scene.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (scene: UIWindowScene, _: UITraitCollection) in
-                    WardSystemLook.shared.follow(scene.traitCollection.userInterfaceStyle)
-                }
-            }
             registration = window.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (window: UIWindow, _: UITraitCollection) in
                 let dark = window.traitCollection.userInterfaceStyle == .dark
                 let store = WardLookStore.shared
@@ -399,8 +359,6 @@ private struct WardWindowWatch: UIViewRepresentable {
         }
 
         private weak var oldWindow: UIWindow?
-        private var sceneRegistration: (any UITraitChangeRegistration)?
-        private weak var oldScene: UIWindowScene?
 
         /// Asks every screen in the window for its status bar style with
         /// no animation, so the clock and icons switch with the page
