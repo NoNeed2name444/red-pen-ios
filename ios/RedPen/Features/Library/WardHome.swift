@@ -71,9 +71,9 @@ extension LibraryView {
             let due: [ReviewPlan.Due] = reviews.dueAcross(store.library)
             // the card and the tiles stand as low as the rows below them,
             // so the cell never cuts their lights
-            Section { roundCard(due: due).launchEntrance(3).wardCardRow() }
+            Section { roundCard(due: due).launchEntrance(inOpening: true).wardCardRow() }
             if category == .questions {
-                Section { homeTiles(due: due.count).launchEntrance(4).wardCardRow() }
+                Section { homeTiles(due: due.count).launchEntrance(inOpening: true).wardCardRow() }
             }
         }
     }
@@ -270,16 +270,16 @@ struct HomeHeader: View {
         VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide)))
                 .wardSmallCaps()
-                .launchEntrance(1)
+                .launchEntrance()
             nameLine
             Text(greeting)
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)
-                .launchEntrance(2)
+                .launchEntrance()
             if let countdown {
                 WardPill(text: countdown, symbol: "calendar")
                     .padding(.top, WardSpace.xs)
-                    .launchEntrance(2)
+                    .launchEntrance()
             }
         }
         .padding(.top, WardSpace.xs)

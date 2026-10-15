@@ -6,21 +6,22 @@ import UIKit
 import AVFoundation
 #endif
 
-/// The opening: the owner's stethoscope on the home screen's base colour,
-/// exactly as the system launch screen drew it, and then, once the home
-/// screen's first real frame is up (the library read), one heartbeat:
+/// The opening: the owner's stethoscope on home's own ECG paper
+/// (LaunchPaper), exactly as the system launch screen drew it, and then,
+/// once the home screen's first real frame is up (the library read), one
+/// heartbeat:
 ///
 /// 1. the chest piece beats, lub then dub, and the heartbeat is heard
 ///    (Assets.xcassets/Heartbeat, if the app's sound is on);
 /// 2. one ECG complex is drawn under the mark (LaunchArt.trace), out from
 ///    the middle of a baseline, its R peak as the lub is heard and its T
 ///    wave ending as the dub is;
-/// 3. the hand-off, straight into home with no wipe: the splash's base gives
-///    way to home's own (the same colour, with nothing of home drawn yet),
-///    the ECG travels up and shrinks into the squiggle beside the title,
-///    the stethoscope glides up and shrinks away into the title as its
-///    letters settle in, home's ECG paper is drawn out from the trace, and
-///    home's parts spring into place in turn (LaunchStage).
+/// 3. the hand-off, straight into home with no wipe: the splash's paper
+///    gives way to home's own (the same paper, with nothing of home drawn
+///    on it yet), the ECG travels up and shrinks into the squiggle beside
+///    the title, the stethoscope glides up and shrinks away into the title
+///    as its letters settle in, and home's parts spring into place in one
+///    wave up the screen behind the ECG (LaunchStage).
 ///
 /// Nothing fades: everything is position, scale, stroke trims, a path
 /// morph and (when the app's light or dark differs from the phone's) a
@@ -34,9 +35,9 @@ import AVFoundation
 /// really started, so on a Bluetooth headset what is heard and what is drawn
 /// still meet. Muted or with the sound off, the ECG draws at the same times.
 ///
-/// The Xcode build has a real launch screen (`UILaunchScreen` in project.yml,
-/// the same image on the same colour), so this carries that picture on
-/// without a jump. The Swift Playgrounds package has none, so there this
+/// The Xcode build has a real launch screen (AppResources/LaunchScreen.storyboard:
+/// the same two pictures, laid the same way), so this carries that picture
+/// on without a jump. The Swift Playgrounds package has none, so there this
 /// *is* the launch screen.
 ///
 /// It never holds anything up: the app is running beneath it from the first
@@ -150,7 +151,8 @@ final class LaunchOpeningView: UIView {
     private let appDark: Bool
     private let side = CGFloat(LaunchArt.side)
 
-    private let ground = CALayer()         // the launch screen's base, until the hand-off
+    private let ground = CALayer()         // the launch screen's base and paper, until the hand-off
+    private let paper = CALayer()          // LaunchPaper, at the screen's top left at its own size
     private let mark = CALayer()           // scales about the chest piece
     private let logo = CALayer()
     private let chest = CALayer()          // the chest piece alone, for the beat
@@ -185,8 +187,16 @@ final class LaunchOpeningView: UIView {
         CATransaction.setDisableActions(true)
         layer.addSublayer(ground)
         ground.backgroundColor = LaunchSplash.baseCG(dark: appDark)
+        ground.masksToBounds = true
+        ground.addSublayer(paper)
+        let sheet = Self.paperImage(dark: appDark)
+        paper.contents = sheet?.cgImage
+        paper.contentsScale = sheet?.scale ?? UIScreen.main.scale
+        paper.contentsGravity = .resize
+        paper.magnificationFilter = .nearest
         if appDark != phoneDark {
-            // a colour shift, not a fade: from the phone's base to the app's
+            // a colour shift, not a fade: from the phone's base to the app's,
+            // the paper's lines turning over halfway
             let shift = CABasicAnimation(keyPath: "backgroundColor")
             shift.fromValue = LaunchSplash.baseCG(dark: phoneDark)
             shift.toValue = LaunchSplash.baseCG(dark: appDark)
@@ -194,6 +204,13 @@ final class LaunchOpeningView: UIView {
             shift.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             shift.fillMode = .backwards
             ground.add(shift, forKey: "shift")
+            let turn = CAKeyframeAnimation(keyPath: "contents")
+            turn.values = [Self.paperImage(dark: phoneDark)?.cgImage as Any, sheet?.cgImage as Any]
+            turn.keyTimes = [0, 0.5, 1]
+            turn.calculationMode = .discrete
+            turn.duration = LaunchSplash.shift
+            turn.fillMode = .backwards
+            paper.add(turn, forKey: "shift")
         }
 
         let traits = UITraitCollection(userInterfaceStyle: phoneDark ? .dark : .light)
@@ -236,10 +253,20 @@ final class LaunchOpeningView: UIView {
         CATransaction.commit()
     }
 
+    /// Home's ECG paper as the launch screen lays it (LaunchPaper, made by
+    /// tools/make_launch_paper.py), in light or dark.
+    private static func paperImage(dark: Bool) -> UIImage? {
+        UIImage(named: "LaunchPaper", in: nil,
+                compatibleWith: UITraitCollection(userInterfaceStyle: dark ? .dark : .light))
+    }
+
     private static func traceColor(dark: Bool) -> CGColor {
         let (cr, cg, cb) = WardPalette.rgb(LaunchArt.trace(dark: dark))
         return UIColor(red: cr, green: cg, blue: cb, alpha: 1).cgColor
     }
+
+    /// How long after home is still the splash goes.
+    private static let afterStill = 0.1
 
     /// Where the trace sits: under the mark, as wide as most of it.
     private static let traceWidth: CGFloat = 176
@@ -252,9 +279,14 @@ final class LaunchOpeningView: UIView {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         ground.frame = bounds
-        // centred in the safe area at its natural size, where UILaunchScreen
-        // puts the same image: the window's insets, since this view spans the
-        // whole screen (SwiftUI's ignoresSafeArea leaves its own at zero)
+        // the paper from the screen's top left at its own size, as the launch
+        // screen pins it, so its lines fall on home's
+        let sheet = (paper.contents != nil ? Self.paperImage(dark: appDark) : nil)?.size ?? .zero
+        paper.frame = CGRect(origin: convert(CGPoint.zero, from: nil), size: sheet)
+        // centred in the safe area at its natural size, where the launch
+        // screen puts the same image: the window's insets, since this view
+        // spans the whole screen (SwiftUI's ignoresSafeArea leaves its own
+        // at zero)
         let insets = window?.safeAreaInsets ?? safeAreaInsets
         let safe = bounds.inset(by: insets)
         let centre = CGPoint(x: safe.midX, y: safe.midY)
@@ -358,6 +390,10 @@ final class LaunchOpeningView: UIView {
     }
 
     private func animate(_ o: LaunchOpening, from zero: CFTimeInterval) {
+        // where the ECG starts, which the wave of home's parts follows up
+        let stage = LaunchStage.shared
+        stage.traceStart = convert(CGPoint(x: ecg.frame.midX, y: ecg.frame.minY + Self.traceTop), to: nil)
+        stage.window = window?.bounds.size ?? bounds.size
         let times = o.times()
         let keyTimes = times.map { NSNumber(value: $0 / o.duration) }
         let goal = o.reduced ? nil : targets
@@ -392,8 +428,8 @@ final class LaunchOpeningView: UIView {
                 return NSValue(cgPoint: CGPoint(x: x, y: y))
             }), forKey: "glide")
             mark.add(keys("transform.scale", times.map { o.markScale(at: $0) }), forKey: "shrink")
-            // the splash's base gives way to home's (the same colour, with
-            // nothing of home drawn yet): no pixel changes
+            // the splash's paper gives way to home's (the same paper, with
+            // nothing of home drawn on it yet): no pixel changes
             let gone = CAKeyframeAnimation(keyPath: "hidden")
             gone.values = [false, true]
             gone.keyTimes = [0, NSNumber(value: o.handoff / o.duration), 1]
@@ -420,18 +456,16 @@ final class LaunchOpeningView: UIView {
         }
         CATransaction.commit()
 
-        // home is posed from the same clock: its parts enter from the
-        // hand-off, and the paper is drawn out from the trace's middle
-        let stage = LaunchStage.shared
-        stage.gridOrigin = convert(CGPoint(x: ecg.frame.midX, y: ecg.frame.minY + Self.traceTop), to: nil)
-        stage.window = window?.bounds.size ?? bounds.size
+        // home is posed from the same clock: its parts arrive from the
+        // hand-off, in a wave that follows the ECG up from where it starts
         stage.play(reduced: o.reduced, handoffHost: zero + o.handoff)
         // The ECG stays on as the squiggle until home is still, then the
         // splash goes and home draws the squiggle in the same update: the
         // same line in the same place, so nothing changes, and the work of
-        // taking the splash away falls where nothing is moving. (With no
-        // title to land on, the splash has dropped away by `duration`.)
-        let end = goal == nil ? o.duration + 0.03 : o.settled + LaunchOpening.runOn
+        // taking the splash away falls where nothing is moving, a little
+        // after home has stopped. (With no title to land on, the splash has
+        // dropped away by `duration`.)
+        let end = goal == nil ? o.duration + 0.03 : o.settled + LaunchOpening.runOn + Self.afterStill
         let wait = max(0, zero + end - CACurrentMediaTime())
         DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
             LaunchStage.shared.land()
@@ -504,8 +538,10 @@ final class LaunchOpeningView: UIView {
     }
 
     /// The navigation bar (home's account button and search field) is
-    /// UIKit's, out of SwiftUI's reach: it enters first, on the same spring
-    /// as the rest of home, held at nothing until then.
+    /// UIKit's, out of SwiftUI's reach: it arrives whole, with all on it, as
+    /// the wave up the screen reaches it (after the ECG has landed: it is
+    /// above the title), on the same spring as the rest of home, held at
+    /// nothing until then.
     private func enterNavigationBars(_ o: LaunchOpening, from zero: CFTimeInterval) {
         guard let window else { return }
         var bars: [UINavigationBar] = []
@@ -520,11 +556,15 @@ final class LaunchOpeningView: UIView {
         let length = LaunchOpening.settleTime + LaunchOpening.runOn
         let n = max(2, Int((length * 120).rounded(.up)))
         let ts = (0...n).map { length * Double($0) / Double(n) }
-        let start = o.entranceStart(0)
+        let stage = LaunchStage.shared
         for bar in bars {
+            let middle = bar.convert(CGPoint(x: bar.bounds.midX, y: bar.bounds.midY), to: nil).y
+            let start = stage.squiggle.map {
+                o.arrival(y: Double(middle), from: Double(stage.traceStart.y), to: Double($0.midY))
+            } ?? o.openingArrives
             let a = CAKeyframeAnimation(keyPath: "transform")
             a.values = ts.map { t -> NSValue in
-                let e = o.entrance(0, at: start + t)
+                let e = o.entrance(from: start, at: start + t)
                 var m = CATransform3DMakeTranslation(0, CGFloat(e.drop), 0)
                 m = CATransform3DScale(m, CGFloat(e.scale), CGFloat(e.scale), 1)
                 return NSValue(caTransform3D: m)

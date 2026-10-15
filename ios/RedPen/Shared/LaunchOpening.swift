@@ -48,10 +48,12 @@ enum HeartbeatSound {
 /// beats in scale; with the sound, one ECG complex is drawn under the mark
 /// as a stroke trimming in (its R peak on the lub, its T wave ending on the
 /// dub); then the hand-off: the splash's ground gives way to home's own (the
-/// same base), the ECG travels up and shrinks into the squiggle beside the
-/// "Stethoscore" title, the stethoscope glides up and shrinks away into the
-/// title as its letters settle in, home's ECG paper is drawn outward from
-/// the trace, and home's parts spring into place one after another.
+/// same ECG paper, so nothing changes), the ECG travels up and shrinks into
+/// the squiggle beside the "Stethoscore" title, the stethoscope glides up
+/// and shrinks away into the title as its letters settle in, and home's
+/// parts spring into place in one wave that follows the ECG up the screen,
+/// each whole as it arrives (the page's opening with everything in it at
+/// once).
 ///
 /// Foundation only, so the curves are tested on Linux (LaunchOpeningTests);
 /// LaunchSplash samples them into Core Animation keyframes, so what plays is
@@ -107,24 +109,21 @@ struct LaunchOpening: Sendable {
     /// into the title.
     static let travel = 0.45
     static let markTravel = 0.40
-    /// Home's ECG paper, drawn outward from the trace.
-    static let gridLength = 0.40
-    /// Home's parts: the first starts this long into the hand-off, each next
-    /// one `stagger` later, rising `rise` points as it grows, on a spring.
+    /// Home's parts arrive in one wave that follows the ECG up the screen:
+    /// what is at or below where the ECG starts (the page's opening, with
+    /// the round card and everything else in it, the dock, New set) this
+    /// long into the hand-off, each part between there and the title as the
+    /// ECG's middle passes it, and what is above the title (the date, the
+    /// search field and the account button) after the ECG has landed, as if
+    /// the ECG had gone on up at its top speed, at most `topLead` after.
     static let entranceLead = 0.06
-    static let stagger = 0.04
+    static let topLead = 0.10
+    /// Each part arrives whole and nearly full size, at `contentScale`, a
+    /// few points (`rise`) below its place, and springs the rest of the
+    /// way: never a small copy of itself, never an empty frame.
+    static let contentScale = 0.94
     static let rise = 10.0
     static let spring = (response: 0.36, damping: 0.76)
-    /// How many parts enter in turn (LaunchEntrance's orders 0 ... last).
-    static let lastOrder = 5
-    /// Home's content under the header (orders `firstContent` on: the round
-    /// card, the rows, the tiles, the dock) waits until the ECG and the
-    /// stethoscope have gone up past it, then arrives nearly whole: from
-    /// `contentScale`, rising the last few points into place. A card is
-    /// never seen as a small copy of itself.
-    static let firstContent = 3
-    static let contentLead = 0.24
-    static let contentScale = 0.94
     /// The stethoscope perches on the title at about its letters' height,
     /// over the middle of the name, then shrinks into it while the letters
     /// spread out from under it, the middle first.
@@ -142,24 +141,43 @@ struct LaunchOpening: Sendable {
     /// The splash's own animation: until the ECG has landed and the
     /// stethoscope has gone into the title.
     var duration: Double { max(landed, markGone) }
-    /// When part `order` of home starts to enter.
-    func entranceStart(_ order: Int) -> Double {
-        if order < Self.firstContent { return handoff + Self.entranceLead + Self.stagger * Double(order) }
-        return handoff + Self.contentLead + Self.stagger * Double(order - Self.firstContent)
+    /// When the page's opening arrives, with everything in it: first.
+    var openingArrives: Double { reduced ? handoff : handoff + Self.entranceLead }
+    /// When a part of home whose middle is `y` down the window arrives, for
+    /// an ECG that starts with its baseline at `from` and lands on the
+    /// squiggle, whose middle is at `to` (window points, `to` above `from`).
+    func arrival(y: Double, from y0: Double, to y1: Double) -> Double {
+        let first = openingArrives
+        guard !reduced, y.isFinite, y0 - y1 > 1 else { return first }
+        if y >= y0 { return first }
+        if y > y1 {
+            // the moment the ECG's middle is level with it
+            let u = Self.easeInOutInverse((y0 - y) / (y0 - y1))
+            return max(first, handoff + Self.travel * u)
+        }
+        // smoothstep's top speed is one and a half times its mean
+        let top = 1.5 * (y0 - y1) / Self.travel
+        return landed + min(Self.topLead, (y1 - y) / top)
     }
-    /// Part `order` of home at time `t`: its scale (from nothing, a touch
-    /// over, to 1) and how far below its place it is, in points. Infinity is
-    /// at rest. Under Reduce Motion it is simply there from the hand-off.
-    func entrance(_ order: Int, at t: Double) -> (scale: Double, drop: Double) {
+    /// A part of home arriving at `start`, at time `t`: its scale and how
+    /// far below its place it is, in points. Before it arrives it is not
+    /// drawn (scale 0.0001); it arrives whole at `contentScale` and springs
+    /// into place. Infinity is at rest. Under Reduce Motion it is simply
+    /// there from the hand-off.
+    func entrance(from start: Double, at t: Double) -> (scale: Double, drop: Double) {
         guard t.isFinite else { return (1, 0) }
         if reduced { return t >= handoff ? (1, 0) : (0.0001, Self.rise) }
-        let since = t - entranceStart(order)
+        let since = t - start
         guard since > 0 else { return (0.0001, Self.rise) }
         let s = Self.spring(since)
-        if order >= Self.firstContent {
-            return (Self.contentScale + (1 - Self.contentScale) * s, Self.rise * (1 - s))
-        }
-        return (max(0.0001, s), Self.rise * (1 - s))
+        return (Self.contentScale + (1 - Self.contentScale) * s, Self.rise * (1 - s))
+    }
+    /// A part inside the page's opening moves as one piece with it: scaled
+    /// about the opening's middle `c`, not its own `r`. Drawn scaled about
+    /// its own middle, that is this much further across and down (points).
+    static func withOpening(scale: Double, drop: Double, opening c: (x: Double, y: Double),
+                            own r: (x: Double, y: Double)) -> (dx: Double, dy: Double) {
+        ((1 - scale) * (c.x - r.x), (1 - scale) * (c.y - r.y) + drop)
     }
     /// The longest home's clock may leap between two frames. When the main
     /// thread is held up longer than this (a first launch's work, say), home
@@ -178,7 +196,7 @@ struct LaunchOpening: Sendable {
     /// When the last of home is still (its spring within a point of rest).
     var settled: Double {
         if reduced { return handoff }
-        let last = entranceStart(Self.lastOrder) + Self.settleTime
+        let last = landed + Self.topLead + Self.settleTime
         let letters = markArrives - 0.02 + Self.letterStagger * Double(Self.titleLetters - 1) / 2
             + Self.letterLength
         return max(last, letters, landed, markGone)
@@ -190,6 +208,10 @@ struct LaunchOpening: Sendable {
     static func easeIn(_ x: Double) -> Double { let u = clamp(x); return u * u }
     static func easeOut(_ x: Double) -> Double { let u = 1 - clamp(x); return 1 - u * u * u }
     static func easeInOut(_ x: Double) -> Double { let u = clamp(x); return u * u * (3 - 2 * u) }
+    /// Where easeInOut reaches `y`.
+    static func easeInOutInverse(_ y: Double) -> Double {
+        0.5 - sin(asin(1 - 2 * clamp(y)) / 3)
+    }
     /// A slight overshoot and back, for a letter settling.
     static func easeOutBack(_ x: Double) -> Double {
         let u = clamp(x) - 1, c = 1.4
@@ -316,13 +338,6 @@ struct LaunchOpening: Sendable {
         if reduced { return max(0.0001, 1 - markTravel(at: t)) }
         if t <= markArrives { return 1 - (1 - Self.perch) * markTravel(at: t) }
         return max(0.0001, Self.perch * (1 - Self.easeIn((t - markArrives) / Self.markShrink)))
-    }
-
-    /// How far home's ECG paper has been drawn out from the trace, 0 to 1.
-    func gridReach(at t: Double) -> Double {
-        guard t.isFinite else { return 1 }
-        if reduced { return t >= handoff ? 1 : 0 }
-        return Self.easeOut((t - handoff) / Self.gridLength)
     }
 
     /// Letter `i` of the title's `n`: its scale (0 to 1, a touch over on the

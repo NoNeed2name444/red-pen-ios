@@ -23,6 +23,8 @@ on:
       - 'ios/RedPen/Features/Library/WardHome.swift'
       - 'ios/RedPen/Features/Library/LibraryView.swift'
       - 'ios/RedPen/Assets.xcassets/LaunchLogo*/**'
+      - 'ios/RedPen/Assets.xcassets/LaunchPaper*/**'
+      - 'ios/AppResources/LaunchScreen.storyboard'
       - 'ios/RedPen/Assets.xcassets/Heartbeat.dataset/**'
       - 'ios/RedPen/Assets.xcassets/AppIcon.appiconset/**'
       - 'ios/AppResources/AppIcon.icon/**'
@@ -152,6 +154,11 @@ jobs:
               stamp "take $take (attempt $attempt): recording empty ($size bytes), taking again"
             done
             readout $take
+            # home at rest, as a lossless still, to hold its paper against
+            # the launch screen's (ground-*-held.png)
+            if [ $take = 1 ]; then
+              xcrun simctl io "$UDID" screenshot --type=png "film/rest-$MODE.png" >/dev/null 2>&1 || true
+            fi
           done
           # the splash's first frame against the system launch screen, as
           # lossless screenshots: launched holding the first frame (marked
@@ -195,7 +202,7 @@ jobs:
           mkdir -p film
           grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -40 > "film/errors-$MODE.txt" || true
           # the asset compiler on the icon and the launch art: any complaint at all
-          grep -iE "actool|AppIcon|LaunchLogo|Heartbeat|\.icon" build.log 2>/dev/null \
+          grep -iE "actool|ibtool|AppIcon|LaunchLogo|LaunchPaper|LaunchScreen|storyboard|Heartbeat|\.icon" build.log 2>/dev/null \
             | grep -iE "warning|error|note" | sed -E 's#^.*/ios/##' | sort -u | head -40 > "film/assets-$MODE.txt" || true
           # the compiled icon as the build made it, to look at (once is enough)
           if [ "$MODE" = light ]; then

@@ -1,6 +1,6 @@
 // Stethoscore · the launch opening: the heartbeat's timing, the ECG drawn
-// in step with the sound, the hole that uncovers the home screen, and the
-// art and sound files the opening is built on.
+// in step with the sound, home arriving in one wave behind the ECG, and the
+// art, paper and sound files the opening is built on.
 import Foundation
 
 var failures: [String] = []
@@ -20,7 +20,9 @@ let still = LaunchOpening(reduced: true)
 for (name, o) in [("full", withSound), ("reduced", still)] {
     check("\(name): the mark starts at its launch-screen size", o.beat(at: 0) == 1 && o.markScale(at: 0) == 1)
     check("\(name): no ECG on the first frame", o.ecgDrawn(at: 0) == nil)
-    check("\(name): no paper drawn before the hand-off", o.gridReach(at: o.handoff - 0.001) == 0)
+    check("\(name): nothing of home is drawn before the hand-off",
+          o.entrance(from: o.openingArrives, at: o.handoff - 0.001).scale <= 0.0001
+          && o.entrance(from: o.arrival(y: 100, from: 600, to: 250), at: o.handoff - 0.001).scale <= 0.0001)
     check("\(name): the title's letters wait at nothing", (0..<11).allSatisfy { o.letter($0, at: 0).scale == 0 })
     let samples = o.times()
     check("\(name): key times run from 0 to the end", samples.first == 0 && near(samples.last!, o.duration))
@@ -31,9 +33,19 @@ for (name, o) in [("full", withSound), ("reduced", still)] {
 
 // MARK: length
 
-check("the opening, hand-off and all, is 1.2 to 1.5 s", (1.2...1.5).contains(withSound.settled), "\(withSound.settled)")
-check("the hand-off after the ECG is 0.6 to 0.8 s", (0.6...0.8).contains(withSound.settled - withSound.handoff),
+// the last part to arrive is the one above the title the farthest the wave
+// can reach; a part is done moving to the eye once it stays within half a
+// point of its place (its 10 pt rise, and a 200 pt part's scale)
+let lastArrival = withSound.landed + LaunchOpening.topLead
+let moving = stride(from: 0.0, through: 1, by: 0.001).first { t in
+    stride(from: t, through: t + 0.5, by: 0.005).allSatisfy { u in
+        let s = LaunchOpening.spring(u)
+        return LaunchOpening.rise * abs(1 - s) < 0.5 && 200 * (1 - LaunchOpening.contentScale) * abs(1 - s) < 0.5 } }!
+check("the hand-off moves for 0.6 to 0.8 s after the ECG", (0.6...0.8).contains(lastArrival + moving - withSound.handoff),
+      "\(lastArrival + moving - withSound.handoff)")
+check("and all is still within a second of it", withSound.settled - withSound.handoff <= 1.0,
       "\(withSound.settled - withSound.handoff)")
+check("the opening, hand-off and all, is still within 1.7 s", withSound.settled <= 1.7, "\(withSound.settled)")
 check("Reduce Motion is done within 0.2 s", still.settled <= 0.2 && still.duration <= 0.2, "\(still.settled)")
 
 // MARK: the heartbeat, in step with the sound
@@ -162,25 +174,44 @@ check("the ECG starts its journey at the hand-off and lands when the splash goes
 let journey = o.times().map { o.travel(at: $0) }
 check("and never goes back", zip(journey, journey.dropFirst()).allSatisfy { $0 <= $1 + 1e-12 })
 check("the mark is still whole when the hand-off starts", o.markScale(at: o.handoff) == 1)
-check("the paper is drawn out whole by the end", o.gridReach(at: o.handoff + LaunchOpening.gridLength) == 1)
-let reach = stride(from: o.handoff, through: o.settled, by: 0.005).map { o.gridReach(at: $0) }
-check("and only ever further", zip(reach, reach.dropFirst()).allSatisfy { $0 <= $1 + 1e-12 })
-check("home's parts follow one another 40 ms apart",
-      near(o.entranceStart(1) - o.entranceStart(0), 0.04) && o.entranceStart(0) > o.handoff)
-let content = o.entranceStart(LaunchOpening.firstContent)
-check("home's content waits until the ECG and the stethoscope are over half way up past it",
-      o.travel(at: content) > 0.5 && o.markTravel(at: content) > 0.6 && content < o.landed)
-check("the card, rows, tiles and dock arrive nearly whole, never as a small copy",
-      (LaunchOpening.firstContent...LaunchOpening.lastOrder).allSatisfy { k in
-          let s = o.entranceStart(k)
-          return stride(from: s + 0.001, through: o.settled, by: 0.005).allSatisfy { o.entrance(k, at: $0).scale >= 0.94 } })
-check("each part is nothing until it starts, and exactly in place at rest",
-      (0...LaunchOpening.lastOrder).allSatisfy { k in
-          o.entrance(k, at: o.entranceStart(k)).scale <= 0.0001 && o.entrance(k, at: .infinity) == (1, 0) })
+// the wave: an ECG starting at y 600 and landing on a squiggle at y 250
+let (y0, y1) = (600.0, 250.0)
+check("the page's opening, with all in it, arrives first, just into the hand-off",
+      o.openingArrives > o.handoff && o.openingArrives < o.handoff + 0.1
+      && o.arrival(y: 800, from: y0, to: y1) == o.openingArrives && o.arrival(y: y0, from: y0, to: y1) == o.openingArrives)
+let ys = stride(from: 900.0, through: 0, by: -10).map { $0 }
+let arrivals = ys.map { o.arrival(y: $0, from: y0, to: y1) }
+check("the wave goes up the screen: the higher a part, the later it arrives, never earlier",
+      zip(arrivals, arrivals.dropFirst()).allSatisfy { $0 <= $1 + 1e-12 })
+check("a part between the ECG's start and the title arrives as the ECG's middle passes it",
+      [300.0, 400.0, 500.0].allSatisfy { y in
+          let t = o.arrival(y: y, from: y0, to: y1)
+          return t <= o.openingArrives + 1e-9 || near(y0 + (y1 - y0) * o.travel(at: t), y, 0.01) })
+check("what is above the title arrives after the ECG has landed, at most topLead after",
+      [240.0, 150.0, 0.0].allSatisfy { y in
+          let t = o.arrival(y: y, from: y0, to: y1)
+          return t > o.landed && t <= o.landed + LaunchOpening.topLead + 1e-9 })
+check("easeInOut's inverse undoes it",
+      stride(from: 0.0, through: 1, by: 0.05).allSatisfy { near(LaunchOpening.easeInOut(LaunchOpening.easeInOutInverse($0)), $0, 1e-9) })
+let starts = [o.openingArrives, o.arrival(y: 400, from: y0, to: y1), o.arrival(y: 100, from: y0, to: y1)]
+check("every part arrives whole and nearly full size, never as a small copy",
+      starts.allSatisfy { s in
+          stride(from: s + 0.001, through: o.settled, by: 0.005).allSatisfy { o.entrance(from: s, at: $0).scale >= 0.94 } })
+check("each part is nothing until it arrives, and exactly in place at rest",
+      starts.allSatisfy { o.entrance(from: $0, at: $0).scale <= 0.0001 && o.entrance(from: $0, at: .infinity) == (1, 0) })
 check("after the run-on the springs are within a tenth of a point of a 400 pt card",
-      (0...LaunchOpening.lastOrder).allSatisfy { k in
-          let e = o.entrance(k, at: o.settled + LaunchOpening.runOn)
+      starts.allSatisfy { s in
+          let e = o.entrance(from: s, at: o.settled + LaunchOpening.runOn)
           return abs(e.scale - 1) * 400 < 0.1 && abs(e.drop) < 0.1 })
+check("the last part to arrive is still by `settled`",
+      o.settled >= o.landed + LaunchOpening.topLead + LaunchOpening.settleTime - 1e-9)
+// a part in the opening moves as one piece with it
+let card = (x: 200.0, y: 420.0), openingMiddle = (x: 201.0, y: 560.0)
+let shift = LaunchOpening.withOpening(scale: 0.94, drop: 10, opening: openingMiddle, own: card)
+check("a part in the opening is scaled about the opening's middle, not its own",
+      near(card.x + shift.dx, openingMiddle.x + 0.94 * (card.x - openingMiddle.x))
+      && near(card.y + shift.dy, openingMiddle.y + 0.94 * (card.y - openingMiddle.y) + 10)
+      && LaunchOpening.withOpening(scale: 1, drop: 0, opening: openingMiddle, own: card) == (0, 0))
 check("after a held-up main thread home carries on from where it was",
       near(o.carryOn(from: o.handoff + 0.1, to: o.handoff + 0.9, frame: 1.0 / 60), o.handoff + 0.1 + 1.0 / 60)
       && near(o.carryOn(from: o.handoff - 0.5, to: o.handoff + 0.5, frame: 0.01), o.handoff + 0.01)
@@ -205,8 +236,9 @@ let brandName = brand.components(separatedBy: "static let name = \"").dropFirst(
     .split(separator: "\"").first.map(String.init) ?? ""
 check("the title has the letters the timing allows for", brandName.count == LaunchOpening.titleLetters, brandName)
 check("under Reduce Motion home is simply there at the hand-off",
-      still.gridReach(at: still.handoff) == 1 && still.letter(3, at: still.handoff).scale == 1
-      && still.entrance(4, at: still.handoff) == (1, 0))
+      still.letter(3, at: still.handoff).scale == 1
+      && still.entrance(from: still.arrival(y: 100, from: 600, to: 250), at: still.handoff) == (1, 0)
+      && still.entrance(from: still.openingArrives, at: still.handoff) == (1, 0))
 
 // the ECG becoming the squiggle beside the title
 let pairs = o.morph(trace.points, width: 160)
@@ -243,8 +275,23 @@ check("home's title and squiggle tell the opening where they are",
 // MARK: the art the launch screen and the opening share
 
 let yml = (try? String(contentsOfFile: "ios/project.yml", encoding: .utf8)) ?? ""
-check("the Xcode launch screen shows the launch art",
-      yml.contains("UIImageName: \(LaunchArt.imageName)\n"), "project.yml UIImageName")
+let board = (try? String(contentsOfFile: "ios/AppResources/LaunchScreen.storyboard", encoding: .utf8)) ?? ""
+check("the Xcode launch screen is the storyboard",
+      yml.contains("UILaunchStoryboardName: LaunchScreen\n") && yml.contains("path: AppResources/LaunchScreen.storyboard"))
+check("it shows the launch art, at its own size, in the middle of the safe area",
+      board.contains("image=\"\(LaunchArt.imageName)\"") && board.contains("contentMode=\"center\"")
+      && board.contains("firstAttribute=\"centerX\" secondItem=\"Lch-sa-001\"")
+      && board.contains("firstAttribute=\"centerY\" secondItem=\"Lch-sa-001\""))
+check("on home's paper, pinned to the screen's top left at its own size",
+      board.contains("contentMode=\"topLeft\"") && board.contains("image=\"LaunchPaper\"")
+      && board.contains("firstItem=\"Lch-pp-001\" firstAttribute=\"top\" secondItem=\"Lch-vw-001\" secondAttribute=\"top\"")
+      && board.contains("firstItem=\"Lch-pp-001\" firstAttribute=\"left\" secondItem=\"Lch-vw-001\" secondAttribute=\"left\""))
+let paperSet = "ios/RedPen/Assets.xcassets/LaunchPaper.imageset"
+let paperFiles = (try? FileManager.default.contentsOfDirectory(atPath: paperSet)) ?? []
+check("the paper: iPhone at 2x and 3x, iPad at 2x, day and night",
+      ["paper-iphone@2x.png", "paper-iphone@3x.png", "paper-ipad@2x.png",
+       "paper-iphone-dark@2x.png", "paper-iphone-dark@3x.png", "paper-ipad-dark@2x.png"]
+        .allSatisfy(paperFiles.contains), "\(paperFiles)")
 let set = "ios/RedPen/Assets.xcassets/\(LaunchArt.imageName).imageset"
 let files = (try? FileManager.default.contentsOfDirectory(atPath: set)) ?? []
 check("launch art: day and night at 1x, 2x, 3x", files.filter { $0.hasSuffix(".png") }.count == 6, "\(files)")

@@ -6,7 +6,7 @@ the heartbeat laid in where the app plays it, and a strip of frames.
         [--handoff OUT.png] [--frames DIR]
 
 --strip is the whole opening every 0.1 s; --handoff the hand-off to home
-every 0.05 s (0.65 s to 1.55 s from the ECG's start), in rows; --frames
+every 0.05 s (0.60 s to 1.80 s from the ECG's start), in rows; --frames
 keeps those hand-off frames at full size, to look for seams and jumps.
 
 The simulator records no sound. The app starts the ECG's baseline at the
@@ -115,7 +115,7 @@ def main() -> int:
             picks = [start - 6] + [start + round(k * FPS * 0.1) for k in range(0, 17)]
             sheet(paths, picks, start, args.strip, per_row=len(picks))
         if args.handoff or args.frames:
-            picks = [start + round(k * FPS * 0.05) for k in range(13, 32)]
+            picks = [start + round(k * FPS * 0.05) for k in range(12, 37)]
             if args.handoff:
                 sheet(paths, picks, start, args.handoff, per_row=10, tw=200)
             if args.frames:

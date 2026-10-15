@@ -5,13 +5,16 @@ import QuartzCore
 /// Home's side of the opening's hand-off (LaunchSplash, LaunchOpening).
 ///
 /// While an opening is going to play, home is laid out but none of it is
-/// drawn except its base: every part waits at nothing, so when the splash's
-/// own ground gives way there is no change to see. At the hand-off, home's
-/// parts grow into place in turn (LaunchEntrance), the title's letters
-/// settle in (LetterSettle), the ECG paper is drawn outward from the trace
-/// (gridReach), and the splash's ECG lands as the squiggle beside the
-/// title, which home's own takes over once home is still. Nothing fades:
-/// every part moves and scales.
+/// drawn except its ECG paper, the same paper the launch screen and the
+/// splash stand on (LaunchPaper), with no opening cut in it yet: every part
+/// waits at nothing, so when the splash's own ground gives way there is no
+/// change to see. At the hand-off home's parts arrive in one wave up the
+/// screen behind the ECG (LaunchEntrance, LaunchOpening.arrival): first the
+/// page's opening with everything in it, as one piece, then the header's
+/// lines as the ECG passes them, the title's letters settling in under the
+/// stethoscope (LetterSettle), and the bar above. The splash's ECG lands as
+/// the squiggle beside the title, which home's own takes over once home is
+/// still. Nothing fades: every part moves and scales.
 ///
 /// Every part is posed from one clock, the splash's: the hand-off's moment
 /// on the host clock the Core Animation half runs on, read each display
@@ -36,13 +39,13 @@ final class LaunchStage {
     private(set) var now: Double
     /// The splash has gone: home draws the squiggle the ECG became.
     private(set) var landed: Bool
-    /// During the ECG, behind the splash's opaque ground, home is drawn
-    /// whole once, so its first full frame (text laid out, images decoded,
-    /// the paper drawn) is done before anyone can see it, not in the middle
-    /// of the hand-off. It goes back to its starting pose `warmLead`
-    /// before the hand-off, still well behind the ground.
+    /// From launch until the opening starts, behind the splash's opaque
+    /// ground, home is drawn whole, so its first full frame (text laid out,
+    /// images decoded, the paper drawn) is done before anyone can see it,
+    /// not in the middle of the hand-off; each part notes where it stands.
+    /// It goes back to its starting pose as the splash starts, the ECG's
+    /// whole length before the hand-off.
     private(set) var warm = false
-    static let warmLead = 0.35
 
     /// The time home is posed at: whole while it warms up.
     var poseTime: Double { warm ? .infinity : now }
@@ -61,10 +64,9 @@ final class LaunchStage {
     @ObservationIgnored private var longestGapAt: Double = 0
     @ObservationIgnored private var refreshes = 0
     @ObservationIgnored private var warmEnded: Double?
-    /// Where the paper is drawn out from, and the window it fills (window
-    /// points): set by the splash as it starts.
-    @ObservationIgnored var gridOrigin: CGPoint = .zero
-    @ObservationIgnored var window: CGSize = .zero
+    /// Where the ECG's baseline starts (window points), which the wave of
+    /// home's parts follows up: set by the splash as it starts.
+    @ObservationIgnored var traceStart: CGPoint = .zero
 
     /// Where home's title and the squiggle beside it are (window points),
     /// while they are on screen.
@@ -78,9 +80,11 @@ final class LaunchStage {
         let waiting = LaunchSplash.wanted
         now = waiting ? 0 : .infinity
         landed = !waiting
+        warm = waiting
         if waiting {
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.longestWait) { [weak self] in
                 guard let self, self.link == nil, self.now == 0 else { return }
+                self.warm = false
                 self.now = .infinity
                 self.landed = true
             }
@@ -95,9 +99,11 @@ final class LaunchStage {
         self.handoffHost = handoffHost
         let o = LaunchOpening(reduced: reduced)
         lastTime = o.handoff + (CACurrentMediaTime() - handoffHost)
-        // warm up only with room to: home must be back at its starting pose
-        // well before the ground gives way
-        warm = !reduced && handoffHost - CACurrentMediaTime() > Self.warmLead + 0.1
+        // home back at its starting pose, while the ground still covers it
+        if warm {
+            warm = false
+            warmEnded = lastTime
+        }
         let ticker = LaunchTicker { [weak self] link in self?.tick(link) }
         let link = CADisplayLink(target: ticker, selector: #selector(LaunchTicker.tick(_:)))
         link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
@@ -114,10 +120,6 @@ final class LaunchStage {
             refreshes += 1
         }
         lastStamp = link.timestamp
-        if warm && raw >= o.handoff - Self.warmLead {
-            warm = false
-            warmEnded = raw
-        }
         let t = lastTime.map { o.carryOn(from: $0, to: raw, frame: link.targetTimestamp - link.timestamp) } ?? raw
         if t != raw { handoffHost = link.targetTimestamp - (t - o.handoff) }
         lastTime = t
@@ -131,6 +133,48 @@ final class LaunchStage {
         } else {
             now = t
         }
+    }
+
+    /// Whether a part of home should note where it stands now: while it is
+    /// drawn whole (warming up, or at rest), not while it moves.
+    var measuring: Bool { warm || !now.isFinite }
+
+    /// The page's opening (window points): WardPaper's panel, its top under
+    /// home's header (WardPaperTop).
+    var opening: CGRect? {
+        guard window.width > 0, let p = WardPaper.panel(width: Double(window.width), height: Double(window.height),
+                                                        top: WardPaperTop.shared.y.map { Double($0) } ?? 0) else { return nil }
+        return CGRect(x: p.x, y: p.y, width: p.width, height: p.height)
+    }
+    /// The window home fills (window points): set by the splash as it starts.
+    @ObservationIgnored var window: CGSize = .zero
+
+    /// The page's opening at this frame: its scale and how far below its
+    /// place it is, or nil before it arrives; (1, 0) at rest.
+    func openingPose() -> (scale: CGFloat, drop: CGFloat)? {
+        let e = LaunchOpening(reduced: reduced).entrance(from: LaunchOpening(reduced: reduced).openingArrives,
+                                                         at: poseTime)
+        return e.scale < 0.5 ? nil : (CGFloat(e.scale), CGFloat(e.drop))
+    }
+
+    /// A part of home standing at `frame` (window points, when known) at
+    /// this frame: its scale about its own middle and how far it is moved.
+    /// One in the page's opening moves with it; any other arrives as the
+    /// wave reaches its middle.
+    func pose(_ frame: CGRect?, inOpening: Bool) -> (scale: CGFloat, dx: CGFloat, dy: CGFloat) {
+        let t = poseTime
+        guard t.isFinite else { return (1, 0, 0) }
+        let o = LaunchOpening(reduced: reduced)
+        var start = o.openingArrives
+        if !inOpening, let frame, let squiggle {
+            start = o.arrival(y: Double(frame.midY), from: Double(traceStart.y), to: Double(squiggle.midY))
+        }
+        let e = o.entrance(from: start, at: t)
+        guard inOpening, let frame, let c = opening else { return (CGFloat(e.scale), 0, CGFloat(e.drop)) }
+        let d = LaunchOpening.withOpening(scale: e.scale, drop: e.drop,
+                                          opening: (Double(c.midX), Double(c.midY)),
+                                          own: (Double(frame.midX), Double(frame.midY)))
+        return (CGFloat(e.scale), CGFloat(d.dx), CGFloat(d.dy))
     }
 
     /// For a recorded opening (`-uiPreviewSplash`), what the hand-off
@@ -150,16 +194,6 @@ final class LaunchStage {
     func land() {
         landed = true
     }
-
-    /// How far the ECG paper is drawn out: nil once whole, else the reach of
-    /// its lines, in window points, across (x) and down (y).
-    func gridReach() -> (x: ClosedRange<CGFloat>, y: ClosedRange<CGFloat>)? {
-        let f = CGFloat(LaunchOpening(reduced: reduced).gridReach(at: poseTime))
-        if f >= 1 { return nil }
-        let p = gridOrigin
-        let dx = max(p.x, window.width - p.x) + 2, dy = max(p.y, window.height - p.y) + 2
-        return ((p.x - f * dx)...(p.x + f * dx), (p.y - f * dy)...(p.y + f * dy))
-    }
 }
 
 /// The display link's target: CADisplayLink needs an NSObject, and holds it
@@ -171,17 +205,23 @@ private final class LaunchTicker: NSObject {
     @objc func tick(_ link: CADisplayLink) { action(link) }
 }
 
-/// A part of home that enters at the hand-off, `order`-th in turn: it grows
-/// from nothing and rises the last few points into place on a spring.
+/// A part of home that arrives at the hand-off: whole, nearly full size,
+/// rising the last few points into place on a spring, when the wave up the
+/// screen reaches it, or with the page's opening as one piece when it is
+/// in it (`inOpening`). It notes where it stands while home is drawn whole.
 struct LaunchEntrance: ViewModifier {
-    let order: Int
+    let inOpening: Bool
+    @State private var frame: CGRect?
 
     func body(content: Content) -> some View {
         let stage = LaunchStage.shared
-        let e = LaunchOpening(reduced: stage.reduced).entrance(order, at: stage.poseTime)
+        let p = stage.pose(frame, inOpening: inOpening)
         content
-            .scaleEffect(CGFloat(e.scale))
-            .offset(y: CGFloat(e.drop))
+            .scaleEffect(p.scale)
+            .offset(x: p.dx, y: p.dy)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { f in
+                if LaunchStage.shared.measuring { frame = f }
+            }
     }
 }
 
@@ -203,10 +243,11 @@ struct LaunchLetters: ViewModifier {
 }
 
 extension View {
-    /// Enters at the opening's hand-off, `order`-th in turn (0 first).
+    /// Arrives at the opening's hand-off as the wave up the screen reaches
+    /// it, or, `inOpening`, with the page's opening, as one piece with it.
     @MainActor
-    func launchEntrance(_ order: Int) -> some View {
-        modifier(LaunchEntrance(order: min(order, LaunchOpening.lastOrder)))
+    func launchEntrance(inOpening: Bool = false) -> some View {
+        modifier(LaunchEntrance(inOpening: inOpening))
     }
 
     /// Shown once the opening's ECG has landed here.
