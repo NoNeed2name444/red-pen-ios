@@ -189,6 +189,10 @@ struct LibraryView: View {
     /// The window, not the screen: an iPad app can be a third of one, and the
     /// rows read this to choose between selecting and pushing.
     @State var span: WindowSpan = .slim
+    /// A short window (HomeFit): New set stands up beside the account
+    /// button, and the round shows its first beds, so the card and its
+    /// button end above the dock.
+    @State var shortWindow = false
     /// At the accessibility text sizes the dock is one button over a list
     /// (CategoryDock), so it sits at the bottom even on a wide iPad.
     @Environment(\.dynamicTypeSize) var typeSize
@@ -196,10 +200,14 @@ struct LibraryView: View {
     var body: some View {
         layout
             .environment(\.windowSpan, span)
+            // the preview's fit check (HomeFitProbe); nothing outside it
+            .task { await HomeFitProbe.shared.report() }
             .background {
                 Color.clear
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                        let now = WindowSpan(width: w)
+                    .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+                        let now = WindowSpan(width: size.width)
+                        let short: Bool = HomeFit.isShort(height: Double(size.height), broad: now == .broad)
+                        if short != shortWindow { shortWindow = short }
                         // In iPadOS 26 this changes while the student drags
                         // the window's edge. Not animated: animating it would
                         // cross-fade one column into two, and nothing in the
@@ -564,7 +572,8 @@ struct LibraryView: View {
             // the dock steps aside while typing
             EmptyView()
         } else {
-            let newSet: Bool = !inIdeas && !store.library.isEmpty
+            // on a short window New set is up in the top row (HomeFit)
+            let newSet: Bool = newSetShown && !shortWindow
             VStack(spacing: 10) {
                 // An empty library has its own big button in the middle of
                 // the page, so this one stays away until there is something
@@ -588,10 +597,18 @@ struct LibraryView: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
+            // where the bar begins, for the preview's fit check
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                HomeFitProbe.shared.bar = $0
+            }
             .frame(maxWidth: .infinity)
             .transition(.slideIn(.bottom))
         }
     }
+
+    /// Whether this page has a New set button: an empty library has its
+    /// own big button in the middle, and Ideas its own capture row.
+    private var newSetShown: Bool { !inIdeas && !store.library.isEmpty }
 
     /// New set on its own row over the dock, at the trailing end - under the
     /// right thumb on a phone, bottom-right under the right hand on a wide
@@ -748,6 +765,26 @@ struct LibraryView: View {
         .accessibilityHint("Make questions or cards from a lecture")
         .accessibilityIdentifier("newSetButton")
         .keyboardShortcut("n", modifiers: .command)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.newSet = $0
+        }
+    }
+
+    /// New set on a short window: a round button in the top row, so the
+    /// bar at the bottom is the dock alone and the round card fits above it.
+    private var newSetCircle: some View {
+        Button { newSetKind = category.mainKind } label: {
+            Label("New set", systemImage: "plus")
+                .labelStyle(.iconOnly)
+                .foregroundStyle(Color.wardPrimaryInk)
+        }
+        .buttonStyle(.wardCircle)
+        .accessibilityHint("Make questions or cards from a lecture")
+        .accessibilityIdentifier("newSetButton")
+        .keyboardShortcut("n", modifiers: .command)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.newSet = $0
+        }
     }
 
     /// Over the category's loose sets: the heading, "See all" for a category
@@ -883,6 +920,8 @@ struct LibraryView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.wardPrimaryInk)
             } else {
+                // a short window's New set, beside the account button
+                if shortWindow && newSetShown { newSetCircle }
                 accountMenu
             }
         }

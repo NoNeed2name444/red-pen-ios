@@ -44,6 +44,16 @@ enum PreviewLaunch {
         return CGFloat(w)
     }
 
+    /// A pretend window height, with the pretend width: the iPhone SE's
+    /// 647 points under its status bar, so home is checked at the height
+    /// the smallest phone gives it, not the simulator's.
+    static var pretendHeight: CGFloat? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewHeight"), i + 1 < args.count,
+              let h = Double(args[i + 1]), h > 100 else { return nil }
+        return CGFloat(h)
+    }
+
     /// Asks the window to turn, and keeps asking until it does.
     ///
     /// One attempt in `.task` was not enough: the first landscape pass came
@@ -307,7 +317,7 @@ struct PreviewRoot: View {
                 ZStack {
                     Color(.systemGray4).ignoresSafeArea()
                     content
-                        .frame(width: w)
+                        .frame(width: w, height: PreviewLaunch.pretendHeight)
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 6)
                         .padding(.vertical, 28)

@@ -392,6 +392,10 @@ suite wardlook WardLookTests.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swi
 # the study rhythm read from StudyLog's days; the countdown and greeting
 suite bedplan BedPlanTests.swift $S/ExamTrack.swift $S/Learn/ExamWeekPlanner.swift \
       $S/Learn/BedPlan.swift $S/Learn/RhythmReading.swift $S/Learn/WardWords.swift
+# home on a short phone: which windows are short, how many beds the round
+# shows there, and the preview's check that the card and its button end
+# above the bar with New set off the card
+suite homefit HomeFitTests.swift $S/Learn/HomeFit.swift
 # fault injection: what an accuracy batch and a transcription chunk do
 # with a 500, a 429, a timeout, an unreadable answer and no network
 suite faults FaultTests.swift $S/NetworkFaults.swift

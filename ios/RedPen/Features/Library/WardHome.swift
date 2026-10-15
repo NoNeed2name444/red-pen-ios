@@ -89,7 +89,10 @@ extension LibraryView {
 
     private func roundCard(due: [ReviewPlan.Due]) -> some View {
         let input: BedPlan.Input = bedInput(due: due)
-        let beds: [BedPlan.Bed] = BedPlan.beds(input)
+        let all: [BedPlan.Bed] = BedPlan.beds(input)
+        // a short window's round is its first beds, so the card and its
+        // button end above the dock (HomeFit); Plan has the whole day
+        let beds: [BedPlan.Bed] = Array(all.prefix(HomeFit.shownBeds(all.count, short: shortWindow)))
         let note: String? = input.phase.holdsNewMaterial ? input.phase.headline : nil
         return HomeRoundCard(beds: beds, note: note,
                              onOpen: { bed in openBed(bed) },
@@ -415,6 +418,9 @@ struct HomeRoundCard: View {
         }
         // a List row: as low as the tiles round it, the button proud of it
         .wardCard(lift: .low)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.card = $0
+        }
     }
 
     private var heading: some View {
@@ -492,6 +498,9 @@ struct HomeRoundCard: View {
         .frame(maxWidth: .infinity, alignment: .trailing)
         .accessibilityHint(hint)
         .accessibilityIdentifier("missionLiftOff")
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.start = $0
+        }
     }
 
     // MARK: each bed's icon and chip
@@ -874,5 +883,43 @@ struct SetRow: View {
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityLabel("\(percent) percent done")
         }
+    }
+}
+
+// MARK: - The preview's fit check
+
+/// Where home's round card, its Start button, New set and the bar at the
+/// bottom were laid out, for the Ward preview: on the "library" screen it
+/// writes HomeFit's verdict to Documents/home-fit.txt, which the workflow
+/// reads after the picture and fails the run on.
+@MainActor
+final class HomeFitProbe {
+    static let shared = HomeFitProbe()
+    var card: CGRect?
+    var start: CGRect?
+    var newSet: CGRect?
+    var bar: CGRect?
+
+    private static func box(_ rect: CGRect?) -> HomeFit.Box? {
+        guard let rect, !rect.isEmpty else { return nil }
+        return HomeFit.Box(minX: Double(rect.minX), minY: Double(rect.minY),
+                           maxX: Double(rect.maxX), maxY: Double(rect.maxY))
+    }
+
+    /// Once the page has settled, the verdict, written for the workflow.
+    func report() async {
+        guard PreviewLaunch.screen == "library" else { return }
+        do { try await Task.sleep(for: .seconds(6)) } catch { return }
+        let faults: [String] = HomeFit.faults(card: Self.box(card), start: Self.box(start),
+                                              bar: Self.box(bar), newSet: Self.box(newSet))
+        func edges(_ rect: CGRect?) -> String {
+            guard let rect else { return "none" }
+            return "\(Int(rect.minY))-\(Int(rect.maxY))"
+        }
+        var lines: [String] = faults.isEmpty ? ["fits"] : faults.map { "FAULT " + $0 }
+        lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), bar \(edges(bar))")
+        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("home-fit.txt")
+        try? (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
     }
 }
