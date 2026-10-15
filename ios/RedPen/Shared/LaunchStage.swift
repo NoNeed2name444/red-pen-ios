@@ -152,9 +152,7 @@ final class LaunchStage {
     /// The page's opening at this frame: its scale and how far below its
     /// place it is, or nil before it arrives; (1, 0) at rest.
     func openingPose() -> (scale: CGFloat, drop: CGFloat)? {
-        let e = LaunchOpening(reduced: reduced).entrance(from: LaunchOpening(reduced: reduced).openingArrives,
-                                                         at: poseTime)
-        return e.scale < 0.5 ? nil : (CGFloat(e.scale), CGFloat(e.drop))
+        LaunchOpening(reduced: reduced).paperPose(at: poseTime).map { (CGFloat($0.scale), CGFloat($0.drop)) }
     }
 
     /// A part of home standing at `frame` (window points, when known) at
@@ -287,7 +285,7 @@ enum LaunchTarget { case title, squiggle }
 
 /// The title's letters, settling in one after another at the hand-off: each
 /// grows from nothing and rises the last few points into place. At rest it
-/// draws the text exactly as SwiftUI would, over an invisible box.
+/// draws the same glyph slices at identity, over an invisible box.
 ///
 /// The box is the most the letters ever cover (a letter at its overshoot,
 /// and its rise below), drawn at every moment, at rest too, so the layer
@@ -323,10 +321,10 @@ struct LetterSettle: TextRenderer {
             context.fill(Path(box), with: .color(.black.opacity(Self.boxOpacity)))
         }
         let o = LaunchOpening(reduced: reduced)
-        if time >= o.settled {
-            for line in layout { context.draw(line) }
-            return
-        }
+        // Use the slice renderer during warm-up and at rest too. Drawing
+        // whole lines there left slice drawing cold until the first letter
+        // appeared mid-hand-off. At infinity letter() returns (1, 0), so the
+        // same layout and drawing path also supplies the final home title.
         let n = layout.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
         var i = 0
         for line in layout {

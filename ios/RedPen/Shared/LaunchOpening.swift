@@ -172,6 +172,14 @@ struct LaunchOpening: Sendable {
         let s = Self.spring(since)
         return (Self.contentScale + (1 - Self.contentScale) * s, Self.rise * (1 - s))
     }
+    /// The paper's cut uses the content's pose. Infinity is also the warm-up
+    /// frame: the actual mask is drawn at rest before the reveal starts.
+    /// Before arrival, no hole is cut and the paper still covers the screen.
+    func paperPose(at t: Double) -> (scale: Double, drop: Double)? {
+        let e = entrance(from: openingArrives, at: t)
+        return e.scale < 0.5 ? nil : e
+    }
+
     /// A part inside the page's opening moves as one piece with it: scaled
     /// about the opening's middle `c`, not its own `r`. Drawn scaled about
     /// its own middle, that is this much further across and down (points).

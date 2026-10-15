@@ -240,6 +240,36 @@ check("under Reduce Motion home is simply there at the hand-off",
       && still.entrance(from: still.arrival(y: 100, from: 600, to: 250), at: still.handoff) == (1, 0)
       && still.entrance(from: still.openingArrives, at: still.handoff) == (1, 0))
 
+// The paper is now the same layer throughout, so warm-up must exercise its
+// open mask, then close it for the heartbeat, and leave it open at rest.
+for reduced in [false, true] {
+    let opening = LaunchOpening(reduced: reduced)
+    let label = reduced ? "reduced paper" : "full paper"
+    let warm = opening.paperPose(at: .infinity)
+    check("\(label): warm-up and rest both draw the actual open mask",
+          warm?.scale == 1 && warm?.drop == 0)
+    check("\(label): the heartbeat has a whole sheet, with no opening",
+          opening.paperPose(at: 0) == nil && opening.paperPose(at: opening.handoff - 0.001) == nil)
+    let first = opening.openingArrives + (reduced ? 0 : 0.001)
+    check("\(label): the first revealed frame arrives with the content",
+          opening.paperPose(at: first).map { p in
+              let content = opening.entrance(from: opening.openingArrives, at: first)
+              return p.scale >= 0.94 && p.scale == content.scale && p.drop == content.drop
+          } ?? false)
+    check("\(label): every visible cut follows the same spring as its content",
+          stride(from: first, through: opening.settled + LaunchOpening.runOn, by: 1.0 / 120).allSatisfy { t in
+              guard let p = opening.paperPose(at: t) else { return false }
+              let content = opening.entrance(from: opening.openingArrives, at: t)
+              return p.scale == content.scale && p.drop == content.drop
+          })
+    check("\(label): warm-up renders all the glyphs at their final positions",
+          (0..<LaunchOpening.titleLetters).allSatisfy { i in
+              let warm = opening.letter(i, at: .infinity)
+              let end = opening.letter(i, at: opening.settled + LaunchOpening.runOn)
+              return warm.scale == 1 && warm.drop == 0 && near(end.scale, warm.scale) && near(end.drop, warm.drop)
+          })
+}
+
 // the ECG becoming the squiggle beside the title
 let pairs = o.morph(trace.points, width: 160)
 check("every point of the trace is kept, in order",
@@ -272,33 +302,33 @@ let home = (try? String(contentsOfFile: "ios/RedPen/Features/Library/WardHome.sw
 check("home's title and squiggle tell the opening where they are",
       home.contains(".launchTarget(.title)") && home.contains(".launchTarget(.squiggle)") && home.contains(".launchLetters()"))
 
-// The hand-off's frames: home's paper, cut frame by frame at the opening's
-// pose, made SwiftUI redraw the whole window's layer at every refresh of the
-// hand-off, 18 to 53 ms each, off the main thread and then on it (runs
-// 38674454917, 38687683061, 38721011808's display census). Now the drawing
-// at rest never changes while the opening moves, and the cut is a Core
-// Animation sheet over it, posed by a mask's transform.
+// Source wiring checks, not a timing or pixel test: one persistent paper
+// renderer, warmed with the mask attached, and no outer ink ring. Runtime
+// timing and rasterization still have to be checked by the Mac recording.
 let surfaces = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardSurfaces.swift", encoding: .utf8)) ?? ""
 func section(_ text: String, from start: String, to end: String) -> String {
     guard let a = text.range(of: start), let b = text.range(of: end, range: a.upperBound..<text.endIndex) else { return "" }
     return String(text[a.lowerBound..<b.lowerBound])
 }
-let rest = section(surfaces, from: "private struct WardPaperRest: View {", to: "/// What the opening's hand-off asks")
+let frame = section(surfaces, from: "struct WardPaperFrame: View {", to: "/// What the opening's hand-off asks")
+let paperStage = section(surfaces, from: "private struct WardPaperCutStage: View {", to: "#if canImport(UIKit)\n/// Home's paper")
 let sheet = section(surfaces, from: "final class WardPaperCutView: UIView {", to: "/// The sheet's picture, band and opening")
-check("home's paper is drawn on the main thread (nothing for a frame to wait on)",
-      !surfaces.isEmpty && !surfaces.contains("rendersAsynchronously"))
-check("its grid is the launch screen's picture of it (the lines only where it does not cover)",
-      rest.contains("context.resolve(Image(\"LaunchPaper\"))")
-      && rest.components(separatedBy: "drawPaper(on: &layer)").count - 1 == 2
-      && rest.components(separatedBy: "WardPaperInk.drawPaper(in: &layer").count - 1 == 1)
-check("the paper at rest reads nothing that moves, so the hand-off never redraws it",
-      !rest.isEmpty && !rest.contains("LaunchStage") && !rest.contains("pose")
-      && surfaces.contains("WardPaperRest()\n            .overlay { WardPaperCutStage() }"))
-check("the moving cut is a sheet over it, posed by transforms, drawing nothing per frame",
-      sheet.contains("posed.transform = CATransform3DMakeScale(scale, scale, 1)")
-      && sheet.contains("cutHolder.mask = hole") && sheet.contains("root.isHidden = !cut.arriving")
+check("one paper renderer survives from warm-up through the final home frame",
+      frame.contains("WardPaperCutStage()") && !surfaces.contains("WardPaperRest")
+      && !frame.contains(".overlay"))
+check("warm-up poses the real paper mask without hiding or discarding its layer",
+      paperStage.contains("let pose = stage.openingPose()")
+      && !paperStage.contains("isFinite") && !sheet.contains("isHidden")
+      && !sheet.contains("sheet.contents = nil") && !sheet.contains("built = nil"))
+check("the moving cut is posed by transforms, drawing nothing per frame",
+      sheet.contains("hole.transform = CATransform3DMakeScale(scale, scale, 1)")
+      && sheet.contains("cutHolder.mask = hole")
       && sheet.contains("if built.map(") && !sheet.contains("setNeedsDisplay")
       && !sheet.contains(".path = "))
+let paper = section(surfaces, from: "struct WardPaperFrame: View {", to: "extension WardPaperInk {")
+check("neither a resting nor an animated paper outline draws the outer ring",
+      !paper.isEmpty && !paper.contains("stroke(") && !paper.contains("strokeColor")
+      && !paper.contains("private let edge ="))
 check("the sheet uses the same picture, from the window's top left at its own size",
       surfaces.contains("UIImage(named: \"LaunchPaper\", in: nil, compatibleWith: traits)")
       && surfaces.contains("sheet.frame = CGRect(origin: .zero, size: picture.size)"))
@@ -311,10 +341,11 @@ let settleDraw = section(stageSource, from: "func draw(layout: Text.Layout, in c
                          to: "let n = layout.reduce(0)")
 check("the title draws one invisible box around all its letters can reach, at every moment, at rest too",
       settleDraw.contains("context.fill(Path(box), with: .color(.black.opacity(Self.boxOpacity)))")
-      && settleDraw.range(of: "context.fill(Path(box)").map { box in
-          settleDraw.range(of: "if time >= o.settled").map { box.lowerBound < $0.lowerBound } ?? false } ?? false
       && stageSource.contains("var displayPadding: EdgeInsets { Self.reach }")
       && stageSource.contains("EdgeInsets(top: 4, leading: 4, bottom: 10, trailing: 4)"))
+check("the title warms and finishes with the same glyph renderer as the animation",
+      stageSource.contains("c.draw(slice)") && !settleDraw.contains("context.draw(line)")
+      && !settleDraw.contains("if time >= o.settled") && stageSource.contains("paperPose(at: poseTime)"))
 check("the box is never seen: under half a level of 255 on any background",
       stageSource.contains("static let boxOpacity = 0.001") && 0.001 * 255 < 0.5)
 let letterSamples = stride(from: 0.0, through: 3.0, by: 0.001).flatMap { t in

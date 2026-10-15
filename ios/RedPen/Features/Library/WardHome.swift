@@ -362,8 +362,8 @@ struct HomeBand: View {
 
     var body: some View {
         if let bottom = track.bottom {
-            // no edge of its own: the frame draws the opening's rounded top
-            // here (WardPaperTop)
+            // No ink outline: the paper's cut supplies the rounded corners
+            // here (WardPaperTop), continuous with the ringless outer frame.
             WardPaperBand(bottom: bottom, edge: false)
                 .padding(.horizontal, -WardPaper.sideInset)
                 .ignoresSafeArea()

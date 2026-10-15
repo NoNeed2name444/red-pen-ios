@@ -1933,6 +1933,19 @@ with the marks on the screens last.
   layer keeps one size (LetterSettle). Tick it when the push's Launch
   recording shows a gap of 100 ms or less in every light and dark take; if
   not, the next step is an advisor review, not more tuning.
+  - Attempt 4 (a3f7477e, Launch recording 38768221249): dark 51 and 64 ms,
+    light take 2 85 ms, but light take 1 303 ms at +1.22 s.
+  - Advisor review (task T0046), applied here together with the owner's
+    "remove the ring around the outer edge": the outer opening loses its ink
+    outline (button rings, shadows and the chest-piece ring stay); one Core
+    Animation paper sheet now runs from the warm-up frame through rest, so
+    the mask and picture are composed before the reveal instead of first at
+    +0.79 s; and the title draws its glyph slices at rest too, so slice
+    drawing is warm before the first letter moves. The cause of the 303 ms
+    take is a hypothesis until the recording shows it: if a take still
+    holds over 100 ms, sample that cold take before any further change.
+    The opening now ends on the ringless home with the same sheet, so
+    there is no renderer swap at the end.
 
 ### Waiting on the owner
 
