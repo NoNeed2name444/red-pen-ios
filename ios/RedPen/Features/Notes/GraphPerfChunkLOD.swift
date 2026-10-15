@@ -6,20 +6,34 @@
 //   `split` points (radius), fully by `split` x `span`. Opening is a morph,
 //   never a fade: the cell's summary point shrinks while its children (or,
 //   in a leaf, its bodies) move out from where it was drawn and grow to
-//   their own size. A link inside a closed leaf ends at the leaf's summary
-//   point, so links grow out with their bodies too.
+//   their own size. A child is never more open than its parent has grown,
+//   so nothing inside a cell shows before the cell has made room for it;
+//   and a cell opens or closes at a bounded pace (a quarter second end to
+//   end), so no body rushes through the depth fade.
+// - Depth shells (the owner: "the most surfaced is loaded and the deepest
+//   to u is faded until u turn and they load"; plan 4f's depth fade,
+//   GraphPerfDepthBand): each cell's fade f at its depth puts it in the
+//   front, middle or back shell, and every switch is where f is about 0.6
+//   or more (the cell already mostly faded), with hysteresis so a cell on a
+//   border does not flicker. Its detail (1 front, 0.5 middle, 0 back)
+//   moves there over `shellSeconds` (a fifth of a second), never at once:
+//   a back cell opens only once it is `backSplit` times bigger than a front
+//   one would, and the GPU draws its bodies smaller and flatter as well as
+//   faded; turning the map round brings the back to the front and its
+//   detail grows in. What lies past the band's end is culled (the view's
+//   far plane). The selected note's leaf and its neighbours' leaves are
+//   front whatever their depth.
 // - Culling: a cell outside the view (GraphPerfFrustum) is neither drawn
 //   nor opened. The guard band (GraphPerfGuardBand) is a wider frustum,
 //   widest on the side the camera is moving towards: a leaf in it about to
-//   open is prepared (laid out, its links streamed) before it is on screen.
-// - Streaming: the leaves wanted this frame, nearest first, are prepared
-//   within a per-frame budget (GraphPerfStreamer); a leaf not prepared yet
+//   open is prepared (laid out) before it is on screen.
+// - Streaming: the leaves wanted this frame, front and big first, are
+//   ordered here on the planning thread and prepared within a per-frame
+//   budget of bodies laid out (GraphPerfStreamer); a leaf not prepared yet
 //   keeps showing its summary, then morphs open over a quarter second once
-//   it is ready. Recently used leaves stay prepared (GraphPerfChunkCache, the
-//   least recently used goes first), so turning back is instant.
+//   it is ready. A laid-out leaf stays laid out, so turning back is instant.
 // - Bundles: the links between two cells of the bundle cut are one bundle,
-//   as wide as the share of both ends still closed: the links take over as
-//   either end opens.
+//   as wide as the share of both ends still closed.
 //
 // Foundation only: tested on Linux (Tests/GraphPerfChunkTests.swift).
 import Foundation
@@ -27,18 +41,40 @@ import Foundation
 /// What a frame needs from the camera.
 nonisolated struct GraphPerfChunkView: Sendable {
     var eye: SIMD3<Float>
+    /// Where the camera looks (unit length): depth is along it.
+    var forward: SIMD3<Float>
     /// Points per world unit at depth 1.
     var focal: Float
     var frustum: GraphPerfFrustum
     /// The view widened by the guard band.
     var guardFrustum: GraphPerfFrustum
+    /// The view volume's depths (the far one pulled in to the depth band's
+    /// end when the band culls).
+    var near: Float
+    var far: Float
+    /// The depth fade (GraphPerfDepthBand): its start and end depths, its
+    /// exponent and how far it fades at most (0: no fade, everything front).
+    var fade: SIMD4<Float>
 
     init(camera: GraphPerfCamera, width: Float, height: Float, near: Float, far: Float,
-         guardBand: GraphPerfGuardBand = GraphPerfGuardBand(), motion: SIMD2<Float> = .zero) {
+         guardBand: GraphPerfGuardBand = GraphPerfGuardBand(), motion: SIMD2<Float> = .zero,
+         band: GraphPerfDepthBand? = nil, pull: Float = 1) {
         eye = camera.eye
+        forward = camera.forward
+        var farthest = far
+        if let band {
+            let depths = band.depths(focus: camera.distance, pull: pull)
+            fade = SIMD4(depths.x, depths.y, band.k, band.most)
+            if band.culls { farthest = max(min(far, depths.y), near + 1e-3) }
+        } else {
+            fade = SIMD4(0, 1, 1, 0)
+        }
+        self.near = near
+        self.far = farthest
         focal = camera.focal(viewHeight: height)
-        frustum = camera.frustum(width: width, height: height, near: near, far: far)
-        guardFrustum = guardBand.frustum(camera, width: width, height: height, near: near, far: far, motion: motion)
+        frustum = camera.frustum(width: width, height: height, near: near, far: farthest)
+        guardFrustum = guardBand.frustum(camera, width: width, height: height, near: near, far: farthest,
+                                         motion: motion)
     }
 }
 
@@ -102,6 +138,56 @@ nonisolated struct GraphPerfChunkSettings: Sendable, Equatable {
     var want: Float = 0.55
     /// The smallest a summary point is drawn (points, radius).
     var summaryFloor: Float = 1.6
+    /// Depth shells, by the cell's fade f (GraphPerfDepthBand): it joins the
+    /// front below `frontIn` and leaves it past `frontOut`; joins the back
+    /// past `backIn` and leaves it below `backOut` (the gaps are the
+    /// hysteresis). Every switch is where f is about 0.6 or more: the cell
+    /// is already mostly faded, so the change does not show.
+    var frontIn: Float = 0.6
+    var frontOut: Float = 0.7
+    var backIn: Float = 0.85
+    var backOut: Float = 0.75
+    /// A middle cell opens at `split` x this, a back one at `split` x `backSplit`.
+    var middleSplit: Float = 1.7
+    var backSplit: Float = 3.2
+    /// Seconds a cell's detail takes from back (0) to front (1).
+    var shellSeconds: Float = 0.2
+    /// The fewest seconds a cell takes to open or close fully (a planner
+    /// never advanced, as in some tests, opens at once).
+    var openSeconds: Float = 0.25
+
+    init() {}
+
+    init(split: Float) {
+        self.split = split
+    }
+
+    /// The detail a shell asks for: front 1, middle 0.5, back 0.
+    static func detail(shell: UInt8) -> Float {
+        shell == 0 ? 1 : (shell == 1 ? 0.5 : 0)
+    }
+
+    /// How much later than a front cell a cell of this detail opens.
+    func splitFactor(detail q: Float) -> Float {
+        let t = min(max(q, 0), 1)
+        if t >= 0.5 { return middleSplit + (1 - middleSplit) * (2 * t - 1) }
+        return backSplit + (middleSplit - backSplit) * (2 * t)
+    }
+
+    /// The shell for a fade f (0 crisp ... 1 gone), from the shell a cell was in.
+    func shell(depth d: Float, was: UInt8) -> UInt8 {
+        switch was {
+        case 0:
+            if d <= frontOut { return 0 }
+            return d > backIn ? 2 : 1
+        case 2:
+            if d >= backOut { return 2 }
+            return d < frontIn ? 0 : 1
+        default:
+            if d < frontIn { return 0 }
+            return d > backIn ? 2 : 1
+        }
+    }
 }
 
 /// What one frame draws, in the arrays the GPU reads.
@@ -124,17 +210,30 @@ nonisolated struct GraphPerfChunkFrame: Sendable {
     var summaryCells: [Int32] = []
     /// Per bundle cut cell: where it is drawn, and its share still closed.
     var bundleCells: [SIMD4<Float>] = []
-    /// Leaves to prepare (in or near the view, about to open), with how
-    /// soon (smaller first).
+    /// Leaves to prepare (in or near the view, about to open), soonest
+    /// first: the selected neighbourhood's, then by depth and size on screen.
     var wanted: [(leaf: Int32, priority: Float)] = []
     var visibleLeaves: Int = 0
     var openLeaves: Int = 0
+    /// Per leaf: its detail, 0 (back) ... 1 (front), as last planned.
+    var leafDetail: [Float] = []
+    /// The depth fade this plan used: start and end depths, exponent, most
+    /// (GraphPerfChunkView.fade).
+    var fade = SIMD4<Float>(0, 1, 1, 0)
+    /// Cells in each shell this plan (front, middle, back), and how many
+    /// were still moving to their shell's detail.
+    var shellCounts = SIMD3<Int32>(0, 0, 0)
+    var ramping: Int = 0
+    /// Cells still opening or closing towards their size's share, and
+    /// leaves still growing ready: more frames are needed.
+    var morphing: Int = 0
 
     var summaryCount: Int { summaries.count / 2 }
 }
 
 /// Plans each frame: which cells are culled, closed (a summary point) or
-/// open, how far each is morphed, and which leaves to prepare.
+/// open, how far each is morphed, which shell each is in, and which leaves
+/// to prepare.
 nonisolated struct GraphPerfChunkPlanner: Sendable {
     let octree: GraphPerfOctree
     let bundles: GraphPerfBundles
@@ -144,6 +243,19 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
     static let readySeconds: Float = 0.25
     private(set) var frame = GraphPerfChunkFrame()
     private var expandedMass: [Float]
+    /// Per cell: its shell (0 front, 1 middle, 2 back), its detail (-1 not
+    /// yet planned), and the plan it was last walked in.
+    private var shell: [UInt8]
+    private var detail: [Float]
+    private var seen: [Int32]
+    /// Per cell: how far it was open (before its leaf's readiness).
+    private var opened: [Float]
+    private var planNumber: Int32 = 0
+    /// Seconds since the last plan (advance), for the shells' ramps.
+    private var step: Float = 0
+    /// Leaves shown at full detail whatever their depth (the selected
+    /// note's and its neighbours'), sorted.
+    private(set) var focusLeaves: [Int32] = []
     /// The octree flattened for the walk (made once, shared by copies).
     private let cells: GraphPerfPlanCells
 
@@ -153,8 +265,13 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
         cells = GraphPerfPlanCells(octree: octree, bundles: bundles)
         ready = [Float](repeating: 0, count: octree.leafCount)
         expandedMass = [Float](repeating: 0, count: bundles.cells.count)
+        shell = [UInt8](repeating: 1, count: octree.cells.count)
+        detail = [Float](repeating: -1, count: octree.cells.count)
+        seen = [Int32](repeating: -2, count: octree.cells.count)
+        opened = [Float](repeating: 0, count: octree.cells.count)
         frame.standIn = [SIMD4<Float>](repeating: .zero, count: octree.leafCount)
         frame.bundleCells = [SIMD4<Float>](repeating: .zero, count: bundles.cells.count)
+        frame.leafDetail = [Float](repeating: 0, count: octree.leafCount)
     }
 
     /// A leaf was prepared (true) or let go (false).
@@ -163,13 +280,17 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
         if !prepared { ready[leaf] = 0 } else if ready[leaf] == 0 { ready[leaf] = 1e-4 }
     }
 
-    /// Prepared leaves rise towards fully ready.
+    /// Whether a leaf has been prepared (laid out).
+    func isPrepared(_ leaf: Int) -> Bool { leaf >= 0 && leaf < ready.count && ready[leaf] > 0 }
+
+    /// Prepared leaves rise towards fully ready; the shells' ramps take the same step.
     mutating func advance(seconds: Float) {
-        let step = max(seconds, 0) / Self.readySeconds
+        step = max(seconds, 0)
+        let rise = step / Self.readySeconds
         ready.withUnsafeMutableBufferPointer { r in
             for l in 0..<r.count {
                 let v = r[l]
-                if v > 0 && v < 1 { r[l] = min(v + step, 1) }
+                if v > 0 && v < 1 { r[l] = min(v + rise, 1) }
             }
         }
     }
@@ -177,6 +298,12 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
     /// Makes every prepared leaf fully ready at once (tests; Reduce Motion).
     mutating func settleReady() {
         for l in 0..<ready.count where ready[l] > 0 { ready[l] = 1 }
+    }
+
+    /// The leaves shown at full detail whatever their depth: the selected
+    /// note's and its neighbours' (empty for none).
+    mutating func setFocus(leaves: [Int]) {
+        focusLeaves = Array(Set(leaves.filter { $0 >= 0 && $0 < ready.count }.map { Int32($0) })).sorted()
     }
 
     /// The frame for this view.
@@ -195,38 +322,87 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
         frame.drawnBodies = 0
         frame.visibleLeaves = 0
         frame.openLeaves = 0
+        frame.shellCounts = SIMD3(0, 0, 0)
+        frame.ramping = 0
+        frame.morphing = 0
         guard !octree.cells.isEmpty, octree.bodyCount > 0 else { return frame }
+        planNumber &+= 1
         // the arrays written, moved out of self so each has its own pointer
         var standIn = frame.standIn
         var cutAt = frame.bundleCells
+        var leafDetail = frame.leafDetail
         var mass = expandedMass
+        var shells = shell
+        var details = detail
+        var seenAt = seen
+        var openedAt = opened
         expandedMass = []
+        shell = []
+        detail = []
+        seen = []
+        opened = []
         var out = frame
         frame = GraphPerfChunkFrame()
         let readyNow = ready
-        var walk = GraphPerfPlanWalk(view: view, settings: settings, cells: cells)
+        let focus = focusLeaves
+        var walk = GraphPerfPlanWalk(view: view, settings: settings, cells: cells, step: step,
+                                     planNumber: planNumber)
         readyNow.withUnsafeBufferPointer { readyP in
             standIn.withUnsafeMutableBufferPointer { standP in
                 cutAt.withUnsafeMutableBufferPointer { cutP in
                     mass.withUnsafeMutableBufferPointer { massP in
-                        for k in 0..<massP.count { massP[k] = 0 }
-                        walk.run(ready: readyP, standIn: standP, cutAt: cutP, mass: massP, frame: &out)
-                        // a cut cell's bundle is as wide as its share still closed
-                        let cutCells = cells.cutCells, ints = cells.ints
-                        for k in 0..<cutP.count {
-                            let count = ints[Int(cutCells[k]) * GraphPerfPlanCells.intStride + 5]
-                            cutP[k].w = 1 - min(massP[k] / Float(max(count, 1)), 1)
+                        shells.withUnsafeMutableBufferPointer { shellP in
+                            details.withUnsafeMutableBufferPointer { detailP in
+                                seenAt.withUnsafeMutableBufferPointer { seenP in
+                                    openedAt.withUnsafeMutableBufferPointer { openedP in
+                                        leafDetail.withUnsafeMutableBufferPointer { leafDetailP in
+                                            focus.withUnsafeBufferPointer { focusP in
+                                                for k in 0..<massP.count { massP[k] = 0 }
+                                                let state = GraphPerfPlanWalk.State(
+                                                    ready: readyP, standIn: standP, cutAt: cutP, mass: massP,
+                                                    shell: shellP, detail: detailP, seen: seenP, opened: openedP,
+                                                    leafDetail: leafDetailP, focus: focusP)
+                                                walk.run(state, frame: &out)
+                                                // a cut cell's bundle is as wide as its share still closed
+                                                let cutCells = cells.cutCells, ints = cells.ints
+                                                for k in 0..<cutP.count {
+                                                    let count = ints[Int(cutCells[k]) * GraphPerfPlanCells.intStride + 5]
+                                                    cutP[k].w = 1 - min(massP[k] / Float(max(count, 1)), 1)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+        // the wanted leaves, soonest first: ordered here, on the planning
+        // thread, so the frame only takes them in turn
+        out.wanted.sort { $0.priority != $1.priority ? $0.priority < $1.priority : $0.leaf < $1.leaf }
         out.standIn = standIn
         out.bundleCells = cutAt
+        out.leafDetail = leafDetail
+        out.fade = view.fade
         frame = out
         expandedMass = mass
+        shell = shells
+        detail = details
+        seen = seenAt
+        opened = openedAt
         return frame
     }
+
+    /// The detail a cell was last planned at (-1 when never walked).
+    func cellDetail(_ c: Int) -> Float { c >= 0 && c < detail.count ? detail[c] : -1 }
+
+    /// The shell a cell was last planned in (0 front, 1 middle, 2 back).
+    func cellShell(_ c: Int) -> UInt8 { c >= 0 && c < shell.count ? shell[c] : 1 }
+
+    /// Whether the last plan reached a cell (its parent was open).
+    func wasWalked(_ c: Int) -> Bool { c >= 0 && c < seen.count && seen[c] == planNumber }
 
     /// The radius a summary point is drawn at (world): its bodies' spread,
     /// at least a body's own size.
@@ -254,36 +430,13 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
     }
 }
 
-/// Which drawn leaf shows links one by one (the owner, round 6: a million
-/// connections drawn at once is a web, not a map). By default no link is
-/// drawn singly: the map shows clusters as glows and its strongest bundles.
-/// A selected note's own links (its neighbourhood) are drawn, from its
-/// leaf's link pages, once that leaf is drawn body by body; the shader keeps
-/// only the links whose home is the selected note.
-nonisolated enum GraphPerfLinkFocus {
-    /// `drawLeaves` in the frame's pairs (leaf, first instance); returns the
-    /// leaves whose link pages are drawn: the chosen note's leaf when it is
-    /// drawn, else none.
-    static func leaves(drawLeaves: [UInt32], chosenLeaf: Int?) -> [Int] {
-        guard let chosen = chosenLeaf else { return [] }
-        var k = 0
-        while k + 1 < drawLeaves.count {
-            if Int(drawLeaves[k]) == chosen { return [chosen] }
-            k += 2
-        }
-        return []
-    }
-}
-
-/// The planner and the cache behind a reference, so a frame changes them in
-/// place (and the planning thread can work on them between frames).
+/// The planner behind a reference, so a frame changes it in place (and the
+/// planning thread can work on it between frames).
 nonisolated final class GraphPerfMillionState: @unchecked Sendable {
     var planner: GraphPerfChunkPlanner
-    var cache: GraphPerfChunkCache
 
-    init(planner: GraphPerfChunkPlanner, cache: GraphPerfChunkCache) {
+    init(planner: GraphPerfChunkPlanner) {
         self.planner = planner
-        self.cache = cache
     }
 }
 
@@ -409,22 +562,60 @@ nonisolated final class GraphPerfPlanCells: @unchecked Sendable {
 /// One plan's walk over GraphPerfPlanCells: depth first, children in order
 /// (the same order, and the same arithmetic, as walking the octree's cells).
 nonisolated struct GraphPerfPlanWalk {
+    /// The arrays a walk reads and writes, as raw buffers.
+    struct State {
+        var ready: UnsafeBufferPointer<Float>
+        var standIn: UnsafeMutableBufferPointer<SIMD4<Float>>
+        var cutAt: UnsafeMutableBufferPointer<SIMD4<Float>>
+        var mass: UnsafeMutableBufferPointer<Float>
+        /// Per cell.
+        var shell: UnsafeMutableBufferPointer<UInt8>
+        var detail: UnsafeMutableBufferPointer<Float>
+        var seen: UnsafeMutableBufferPointer<Int32>
+        var opened: UnsafeMutableBufferPointer<Float>
+        /// Per leaf.
+        var leafDetail: UnsafeMutableBufferPointer<Float>
+        /// The focus leaves, sorted.
+        var focus: UnsafeBufferPointer<Int32>
+    }
+
     private let ex: Float, ey: Float, ez: Float
+    private let fx: Float, fy: Float, fz: Float
     private let focal: Float
-    private let split: Float, fullSplit: Float, wantSize: Float
+    private let split: Float, span: Float, want: Float
+    private let settings: GraphPerfChunkSettings
+    /// The depth fade: start depth, 1 / its width, exponent, most (0: none).
+    private let fadeStart: Float, fadeScale: Float, fadeK: Float, fadeMost: Float
+    /// How far a cell's detail may move this plan (0...1).
+    private let ramp: Float
+    /// How far a cell may open or close this plan (-1: as far as it likes).
+    private let openStep: Float
+    private let planNumber: Int32
     /// Planes as (nx, ny, nz, d): the view's, then the guard band's.
     private var planes: [Float]
     private let viewPlanes: Int, guardPlanes: Int
     private let cells: GraphPerfPlanCells
 
-    init(view: GraphPerfChunkView, settings: GraphPerfChunkSettings, cells: GraphPerfPlanCells) {
+    init(view: GraphPerfChunkView, settings: GraphPerfChunkSettings, cells: GraphPerfPlanCells,
+         step: Float = 0, planNumber: Int32 = 1) {
         ex = view.eye.x
         ey = view.eye.y
         ez = view.eye.z
+        fx = view.forward.x
+        fy = view.forward.y
+        fz = view.forward.z
         focal = view.focal
         split = settings.split
-        fullSplit = settings.split * settings.span
-        wantSize = settings.split * settings.want
+        span = settings.span
+        want = settings.want
+        self.settings = settings
+        fadeStart = view.fade.x
+        fadeScale = 1 / max(view.fade.y - view.fade.x, 1e-6)
+        fadeK = max(view.fade.z, 0.05)
+        fadeMost = min(max(view.fade.w, 0), 1)
+        ramp = settings.shellSeconds > 0 ? max(step, 0) / settings.shellSeconds : 1
+        openStep = step > 0 && settings.openSeconds > 0 ? step / settings.openSeconds : -1
+        self.planNumber = planNumber
         self.cells = cells
         var p: [Float] = []
         p.reserveCapacity(4 * (view.frustum.planes.count + view.guardFrustum.planes.count))
@@ -456,18 +647,35 @@ nonisolated struct GraphPerfPlanWalk {
         return t * t * (3 - 2 * t)
     }
 
-    mutating func run(ready: UnsafeBufferPointer<Float>, standIn: UnsafeMutableBufferPointer<SIMD4<Float>>,
-                      cutAt: UnsafeMutableBufferPointer<SIMD4<Float>>, mass: UnsafeMutableBufferPointer<Float>,
-                      frame: inout GraphPerfChunkFrame) {
+    /// Whether any focus leaf lies in lo ..< hi (the focus is sorted).
+    @inline(__always)
+    private static func holdsFocus(_ focus: UnsafeBufferPointer<Int32>, _ lo: Int, _ hi: Int) -> Bool {
+        var a = 0, b = focus.count
+        while a < b {
+            let mid = (a + b) / 2
+            if Int(focus[mid]) < lo { a = mid + 1 } else { b = mid }
+        }
+        return a < focus.count && Int(focus[a]) < hi
+    }
+
+    /// Walks the octree.
+    mutating func run(_ st: State, frame: inout GraphPerfChunkFrame) {
         let n = cells.count
         guard n > 0 else { return }
         let ball = cells.ball, centroid = cells.centroid, looks = cells.looks
         let ints = cells.ints, children = cells.children, cutCells = cells.cutCells
         let stride = GraphPerfPlanCells.intStride
-        let ex = self.ex, ey = self.ey, ez = self.ez, focal = self.focal
-        let split = self.split, fullSplit = self.fullSplit, wantSize = self.wantSize
+        let ex = self.ex, ey = self.ey, ez = self.ez, fx = self.fx, fy = self.fy, fz = self.fz
+        let focal = self.focal, split = self.split, span = self.span, want = self.want
+        let fadeStart = self.fadeStart, fadeScale = self.fadeScale, fadeK = Double(self.fadeK)
+        let fadeMost = self.fadeMost, ramp = self.ramp, openStep = self.openStep
+        let settings = self.settings, planNumber = self.planNumber
         let viewPlanes = self.viewPlanes, guardPlanes = self.guardPlanes
-        // the stack: a cell, where it is drawn, and how far it has grown
+        let ready = st.ready, standIn = st.standIn, cutAt = st.cutAt, mass = st.mass
+        let shellP = st.shell, detailP = st.detail, seenP = st.seen, openedP = st.opened
+        let leafDetail = st.leafDetail, focus = st.focus
+        let anyFocus = focus.count > 0
+        // the stack: a cell, where it is drawn and how far it has grown
         let stackCell = UnsafeMutablePointer<Int32>.allocate(capacity: n + 1)
         let stackAt = UnsafeMutablePointer<Float>.allocate(capacity: 4 * (n + 1))
         defer {
@@ -475,6 +683,7 @@ nonisolated struct GraphPerfPlanWalk {
             stackAt.deallocate()
         }
         var drawn = frame.drawnBodies, visibleLeaves = frame.visibleLeaves, openLeaves = frame.openLeaves
+        var front: Int32 = 0, middle: Int32 = 0, back: Int32 = 0, ramping = 0, morphing = 0
         planes.withUnsafeBufferPointer { pl in
             var top = 0
             stackCell[0] = 0
@@ -494,16 +703,69 @@ nonisolated struct GraphPerfPlanWalk {
                 let dx = cx - ex, dy = cy - ey, dz = cz - ez
                 let dist = (dx * dx + dy * dy + dz * dz).squareRoot()
                 let size: Float = dist <= radius ? .infinity : radius * focal / dist
-                // opening follows size alone, on screen or off: a cell leaving
-                // the view never snaps shut, it is only not drawn
-                var open = Self.smoothstep(split, fullSplit, size)
                 let base = stride * c
                 let leaf = Int(ints[base])
+                // the cell's fade at its depth, 0 crisp ... 1 gone (GraphPerfDepthBand)
+                let depth = dx * fx + dy * fy + dz * fz
+                let t = min(max((depth - fadeStart) * fadeScale, 0), 1)
+                let d: Float = t > 0 && fadeMost > 0 ? Float(pow(Double(t), fadeK)) * fadeMost : 0
+                // its shell (with hysteresis) and its detail, moving there over
+                // shellSeconds; a cell reached for the first time since it was
+                // last hidden starts at its own shell's detail (its parent has
+                // only begun to open, so it is drawn at next to nothing)
+                let lo = Int(ints[base + 3]), hi = Int(ints[base + 4])
+                let focused = anyFocus && Self.holdsFocus(focus, lo, hi)
+                let walkedLast = seenP[c] == planNumber &- 1
+                var sh = shellP[c]
+                var q = detailP[c]
+                if !walkedLast || q < 0 {
+                    sh = focused ? 0 : settings.shell(depth: d, was: d < settings.frontOut ? 0 : 2)
+                    q = GraphPerfChunkSettings.detail(shell: sh)
+                } else {
+                    sh = settings.shell(depth: d, was: sh)
+                }
+                if focused { sh = 0 }
+                let target = GraphPerfChunkSettings.detail(shell: sh)
+                if q < target {
+                    q = min(q + ramp, target)
+                } else if q > target {
+                    q = max(q - ramp, target)
+                }
+                if q != target { ramping += 1 }
+                shellP[c] = sh
+                detailP[c] = q
+                seenP[c] = planNumber
+                if sh == 0 { front += 1 } else if sh == 1 { middle += 1 } else { back += 1 }
+                let factor = settings.splitFactor(detail: q)
+                let cellSplit = split * factor
+                // opening follows size alone, on screen or off: a cell leaving
+                // the view never snaps shut, it is only not drawn; and never
+                // past how far its parent has grown, so a cell never shows
+                // what is inside it before it has made room. It gets there at
+                // a bounded pace: a turn that changes its detail moves its
+                // bodies out (or in) over a quarter second, not in a frame
+                let wantOpen = min(Self.smoothstep(cellSplit, cellSplit * span, size), grow)
+                var open = wantOpen
+                if openStep >= 0 && walkedLast {
+                    let was = openedP[c]
+                    open = min(max(wantOpen, was - openStep), was + openStep)
+                    open = min(max(open, 0), grow)
+                    if open != wantOpen { morphing += 1 }
+                }
+                openedP[c] = open
                 if leaf >= 0 {
-                    if guarded && size >= wantSize {
-                        frame.wanted.append((Int32(leaf), dist * (visible ? 1 : 2)))
+                    leafDetail[leaf] = q
+                    if focused {
+                        // the selected neighbourhood is prepared first, however small
+                        if ready[leaf] == 0 { frame.wanted.append((Int32(leaf), 0)) }
+                    } else if guarded && size >= cellSplit * want {
+                        // sooner for the crisp and the big: fade, then size on screen
+                        let soon = (1 + 2 * d) * (visible ? 1 : 2) / max(size, 1e-3)
+                        frame.wanted.append((Int32(leaf), soon))
                     }
-                    open *= ready[leaf]
+                    let r = ready[leaf]
+                    if r > 0 && r < 1 { morphing += 1 }
+                    open *= r
                     if visible { visibleLeaves += 1 }
                 }
                 let cutLo = Int(ints[base + 6]), cutHi = Int(ints[base + 7]), own = Int(ints[base + 8])
@@ -511,7 +773,6 @@ nonisolated struct GraphPerfPlanWalk {
                 if own >= 0 { cutAt[own] = SIMD4(px, py, pz, 1) }
                 if open <= 0 {
                     if visible && grow > 0 { Self.summary(c, px, py, pz, grow, looks, &frame) }
-                    let lo = Int(ints[base + 3]), hi = Int(ints[base + 4])
                     var l = lo
                     while l < hi {
                         standIn[l] = SIMD4(px, py, pz, 0)
@@ -530,7 +791,7 @@ nonisolated struct GraphPerfPlanWalk {
                 }
                 if leaf >= 0 {
                     let count = Int(ints[base + 5])
-                    // drawn leaves carry 2 more: a link between two drawn leaves is drawn once
+                    // drawn leaves carry 2 more
                     standIn[leaf] = SIMD4(px, py, pz, open + (visible ? 2 : 0))
                     openLeaves += 1
                     if cutHi > cutLo { mass[cutLo] += Float(count) * open }
@@ -560,6 +821,9 @@ nonisolated struct GraphPerfPlanWalk {
         frame.drawnBodies = drawn
         frame.visibleLeaves = visibleLeaves
         frame.openLeaves = openLeaves
+        frame.shellCounts = SIMD3(front, middle, back)
+        frame.ramping = ramping
+        frame.morphing = morphing
     }
 
     @inline(__always)
@@ -571,155 +835,29 @@ nonisolated struct GraphPerfPlanWalk {
     }
 }
 
-/// The prepared leaves: their links live in a fixed pool of pages on the
-/// GPU (`pageSize` links a page); when it is full, the least recently used
-/// leaves go first - but never one used in the last `protect` frames, which
-/// a frame still on the GPU may be drawing.
-nonisolated struct GraphPerfChunkCache: Sendable {
-    static let none: Int32 = -1
-    let pageSize: Int
-    let pageCount: Int
-    var protect: Int = 3
-    /// Per leaf: its pages (empty when not prepared) and when it was last used.
-    private(set) var pages: [[Int32]]
-    private(set) var lastUsed: [Int]
-    private(set) var resident: [Bool]
-    private var free: [Int32]
-    /// Least recently used first: a doubly linked list over the leaves.
-    private var prev: [Int32]
-    private var next: [Int32]
-    private var head: Int32 = none
-    private var tail: Int32 = none
-    private(set) var evictions: Int = 0
-
-    init(leaves: Int, pageCount: Int, pageSize: Int = 1024) {
-        self.pageSize = max(pageSize, 1)
-        self.pageCount = max(pageCount, 0)
-        pages = [[Int32]](repeating: [], count: leaves)
-        lastUsed = [Int](repeating: -1_000_000, count: leaves)
-        resident = [Bool](repeating: false, count: leaves)
-        free = (0..<Int32(max(pageCount, 0))).reversed()
-        prev = [Int32](repeating: Self.none, count: leaves)
-        next = [Int32](repeating: Self.none, count: leaves)
-    }
-
-    var freePages: Int { free.count }
-    var residentCount: Int { resident.filter { $0 }.count }
-
-    /// Pages a leaf with `links` links needs (an empty one still takes none).
-    func pagesNeeded(_ links: Int) -> Int { (links + pageSize - 1) / pageSize }
-
-    /// The leaf was drawn or wanted this frame: most recently used.
-    mutating func touch(_ leaf: Int, frame: Int) {
-        guard resident[leaf] else { return }
-        lastUsed[leaf] = frame
-        unlink(leaf)
-        append(leaf)
-    }
-
-    /// Makes room for `leaf` with `links` links and keeps it, returning its
-    /// pages and the leaves let go for it; nil (nothing changed) when even
-    /// letting go of every unprotected leaf would not make room.
-    mutating func admit(_ leaf: Int, links: Int, frame: Int) -> (pages: [Int32], evicted: [Int])? {
-        if resident[leaf] {
-            touch(leaf, frame: frame)
-            return (pages[leaf], [])
-        }
-        let need = pagesNeeded(links)
-        guard need <= pageCount else { return nil }
-        // what letting go could free, oldest first, without touching the protected
-        var freeable = free.count
-        var victims: [Int] = []
-        var at = head
-        while freeable < need && at != Self.none {
-            let l = Int(at)
-            if lastUsed[l] < frame - protect {
-                victims.append(l)
-                freeable += pages[l].count
-            }
-            at = next[l]
-        }
-        guard freeable >= need else { return nil }
-        for v in victims { release(v) }
-        evictions += victims.count
-        var mine: [Int32] = []
-        mine.reserveCapacity(need)
-        for _ in 0..<need { mine.append(free.removeLast()) }
-        pages[leaf] = mine
-        resident[leaf] = true
-        lastUsed[leaf] = frame
-        append(leaf)
-        return (mine, victims)
-    }
-
-    /// Lets a leaf go (its pages back to the pool).
-    mutating func release(_ leaf: Int) {
-        guard resident[leaf] else { return }
-        free.append(contentsOf: pages[leaf].reversed())
-        pages[leaf] = []
-        resident[leaf] = false
-        unlink(leaf)
-    }
-
-    /// The leaves from least to most recently used (tests).
-    var orderOfUse: [Int] {
-        var out: [Int] = []
-        var at = head
-        while at != Self.none { out.append(Int(at)); at = next[Int(at)] }
-        return out
-    }
-
-    private mutating func unlink(_ leaf: Int) {
-        let p = prev[leaf], n = next[leaf]
-        if p != Self.none { next[Int(p)] = n } else if head == Int32(leaf) { head = n }
-        if n != Self.none { prev[Int(n)] = p } else if tail == Int32(leaf) { tail = p }
-        prev[leaf] = Self.none
-        next[leaf] = Self.none
-    }
-
-    private mutating func append(_ leaf: Int) {
-        prev[leaf] = tail
-        next[leaf] = Self.none
-        if tail != Self.none { next[Int(tail)] = Int32(leaf) } else { head = Int32(leaf) }
-        tail = Int32(leaf)
-    }
-}
-
-/// Prepares the wanted leaves, nearest first, within a budget of links
-/// copied and bodies laid out per frame - always at least one leaf, so a
-/// leaf bigger than the budget never waits for ever.
+/// Prepares the wanted leaves in the order the planner gave them (the
+/// selected neighbourhood first, then front and big first) within a budget
+/// of bodies laid out a frame - always at least one leaf, so a leaf bigger
+/// than the budget never waits for ever. A leaf once laid out stays laid
+/// out: its positions are on the GPU for the session.
 nonisolated struct GraphPerfStreamer: Sendable {
-    /// One leaf prepared this frame: copy its links into these pages and lay it out.
-    struct Job: Sendable, Equatable {
-        var leaf: Int
-        var pages: [Int32]
-    }
+    var bodyBudget: Int = 28_000
 
-    var linkBudget: Int = 96_000
-    var bodyBudget: Int = 48_000
-
-    /// This frame's jobs, and the leaves let go to make room.
-    func plan(wanted: [(leaf: Int32, priority: Float)], cache: inout GraphPerfChunkCache, links: GraphPerfLeafLinks,
-              bodies: (Int) -> Int, frame: Int) -> (jobs: [Job], evicted: [Int]) {
-        let sorted = wanted.sorted { $0.priority != $1.priority ? $0.priority < $1.priority : $0.leaf < $1.leaf }
-        var jobs: [Job] = []
-        var evicted: [Int] = []
-        var linksLeft = linkBudget, bodiesLeft = bodyBudget
-        for w in sorted {
+    /// This frame's leaves to lay out: wanted, not yet prepared, in order.
+    func plan(wanted: [(leaf: Int32, priority: Float)], isPrepared: (Int) -> Bool, bodies: (Int) -> Int) -> [Int] {
+        var jobs: [Int] = []
+        var bodiesLeft = bodyBudget
+        var taken = Set<Int>()
+        for w in wanted {
             let leaf = Int(w.leaf)
-            if cache.resident[leaf] {
-                cache.touch(leaf, frame: frame)
-                continue
-            }
-            let n = links.count(leaf), b = bodies(leaf)
-            if !jobs.isEmpty && (n > linksLeft || b > bodiesLeft) { continue }
-            guard let got = cache.admit(leaf, links: n, frame: frame) else { continue }
-            jobs.append(Job(leaf: leaf, pages: got.pages))
-            evicted += got.evicted
-            linksLeft -= n
+            if isPrepared(leaf) || taken.contains(leaf) { continue }
+            let b = bodies(leaf)
+            if !jobs.isEmpty && b > bodiesLeft { continue }
+            jobs.append(leaf)
+            taken.insert(leaf)
             bodiesLeft -= b
-            if linksLeft <= 0 || bodiesLeft <= 0 { break }
+            if bodiesLeft <= 0 { break }
         }
-        return (jobs, evicted)
+        return jobs
     }
 }

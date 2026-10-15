@@ -147,6 +147,11 @@ TTS_VOICES = "narrator:pandora,patient:draco"
 # workflow puts back what this line says, so a switch meant to stay off goes
 # here too.
 STETHOSCORE_OFF = ""
+# The vignette route (vignette-proof.js): "on" lets a clinical vignette whose
+# proof the checker accepts be backed by the CDC rules in server/criteria, at
+# Checked until the owner signs a rule off. Anything else leaves every verdict
+# as it was before the route. The owner turned it on, 14 Oct.
+VIGNETTE_ROUTE = "on"
 # Circuit breakers on the model chain's providers (breakers.js): this many
 # failures (a 5xx, a time-out) of one provider's model inside the window, and
 # the chain skips it for the cooldown, then tries it once. Kept in each

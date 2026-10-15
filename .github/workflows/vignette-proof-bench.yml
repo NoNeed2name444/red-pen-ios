@@ -1,0 +1,60 @@
+# The vignette route's benches (docs/verification/vignette-proof-research.md):
+# B1, the checker (server/vignette-proof.js) against millions of mutated
+# proofs, none of which may be accepted; and B6, what the registry review
+# catches of a rule transcribed wrongly. Free and deterministic: no network,
+# no model. B1 runs as four jobs side by side, each its own seed, beside the
+# server and Swift tests rather than after them.
+name: Vignette proof bench
+on:
+  workflow_dispatch:
+    inputs:
+      per_seed:
+        description: 'Mutations per seed (four seeds)'
+        required: false
+        default: '1000000'
+  push:
+    branches-ignore: ['claude/**']
+    paths:
+      - 'server/vignette-proof.js'
+      - 'server/lexicon.js'
+      - 'server/proof.js'
+      - 'server/criteria/**'
+      - 'tools/criteria/**'
+      - 'tools/verification-bench/vignette-proof-*.mjs'
+      - '.github/workflows/vignette-proof-bench.yml'
+permissions:
+  contents: read
+# a newer push makes an older run's numbers moot
+concurrency:
+  group: vignette-proof-bench-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  b1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: B1 mutations, seed ${{ matrix.seed }}
+        run: |
+          node tools/verification-bench/vignette-proof-mutations.mjs --n "${{ inputs.per_seed || '1000000' }}" --seconds 1500 --seed ${{ matrix.seed }} --out b1.json | tee b1.txt
+          { echo '### B1, seed ${{ matrix.seed }}'; echo '```'; cat b1.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+  b6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: B6 transcriptions, and the registry current
+        run: |
+          node tools/criteria/build-registry.mjs --check
+          node tools/verification-bench/vignette-proof-transcriptions.mjs | tee b6.txt
+          { echo '### B6'; echo '```'; cat b6.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

@@ -274,7 +274,7 @@ const has = (item, id) => rules(item).some(r => r.startsWith(id));
   ok(parseVotes('no json', 2).every(v => v === null), 'an unreadable reply is no vote');
   ok(disagree([{ risk: 1 }], [{ risk: 4 }]) && !disagree([{ risk: 1, answer: 'A' }], [{ risk: 2, answer: 'A' }]) && disagree([{ risk: 1, answer: 'A' }], [{ risk: 1, answer: 'B' }]), 'disagreement');
   const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {} };
-  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 4, 'the writing model never votes');
+  ok(!votersFor(keyed, 'gpt-oss-120b').some(v => v.includes('gpt-oss')) && votersFor(keyed, '').length === 7, 'the writing model never votes');
   ok(votersFor({}, '').length === 0 && votersFor({ AI: {} }, '').every(v => /^workers-ai:/.test(v)), 'a voter whose provider is not set up here is left out');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'A', risk: 3 }])?.value === 'A', 'voters agreeing on another answer suggest it as the key');
   ok(suggestedFix(mcq, [{ model: 'a', answer: 'A', risk: 4 }, { model: 'b', answer: 'B', risk: 1 }]) === null, 'a split does not');
@@ -342,7 +342,7 @@ const items = [
   ok(r.status === 200 && body.items.length === 2 && body.items[0].id === 'q1', 'a batch is checked');
   ok([...calls].sort().join() === 'gemini:gemini-3.5-flash-lite,workers:@cf/nvidia/nemotron-3-120b-a12b,workers:@cf/openai/gpt-oss-120b', `three free voters from three families, asked at once, one call each for the whole batch (${calls.join()})`);
   ok(body.items[0].votes.length === 3 && body.items[0].evidence.some(e => e.url.includes('medlineplus')), 'with all three votes and the evidence they were shown');
-  ok(body.items[0].verdict === 'check' && body.items[0].p > 0.85 && body.items[0].reasons.includes('No official source states it word for word yet.')
+  ok(body.items[0].verdict === 'check' && body.items[0].p > 0.85 && body.items[0].reasons.some(r => r.startsWith('Its question is a clinical vignette'))
      && body.items[0].proof?.v === PROOF_VERSION && body.items[0].proof.proven === 0,
      `agreeing votes with support but no official source stating it: Check this, with its proof attached (${body.items[0].p})`);
   ok(body.items[0].evidence.every(e => !('official' in e) && !('html' in e) && !('full' in e)), 'the official text read for the proof does not come back with the evidence');

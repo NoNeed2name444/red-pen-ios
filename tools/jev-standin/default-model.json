@@ -1,0 +1,8 @@
+{
+ "about": "The open NLI cross-encoder jev-standin.yml uses when neither its model input nor the TRIAGE_NLI_MODEL variable names one. Chosen 14 Oct 2026: biomedical (pretrained on PubMed abstracts and full text, then trained for entailment on MultiNLI), MIT licence, about 110 million parameters so it runs on the runner's CPU. Its config names its classes LABEL_0, LABEL_1, LABEL_2 only; its model card says LABEL_0 is entailment.",
+ "hub": "lighteternal/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext-finetuned-mnli",
+ "entailIndex": 0,
+ "licence": "MIT",
+ "licenceRead": "2026-10-14",
+ "comparedWith": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+}

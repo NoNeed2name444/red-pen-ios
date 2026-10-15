@@ -1,0 +1,45 @@
+{
+ "about": "Open-weight models run on GitHub's free CPU runners with no key, as blind voters on the owner's bench (server/runner-voters.js; the owner, 14 Oct: \"make free workers without apis\", \"use both\"). Each is a family none of the live voters is, small enough for a free runner (4 CPUs, 7 GB of memory assumed, under 6 hours a job), under a licence that allows commercial use, read on the date given. `name` is the voter's name in RUNNER_VOTERS; `file` the quantised weights fetched at run time, never committed.",
+ "engine": {
+  "repo": "https://github.com/ggml-org/llama.cpp",
+  "tag": "b11200",
+  "tagDate": "2026-09-26",
+  "licence": "MIT"
+ },
+ "models": [
+  {
+   "name": "granite-4.0-h-tiny",
+   "family": "ibm",
+   "base": "ibm-granite/granite-4.0-h-tiny",
+   "hub": "ibm-granite/granite-4.0-h-tiny-GGUF",
+   "file": "granite-4.0-h-tiny-Q4_K_M.gguf",
+   "bytes": 4230976352,
+   "licence": "Apache-2.0",
+   "licenceRead": "2026-10-14",
+   "dryRun": {
+    "run": 38606247012,
+    "questions": 40,
+    "answered": 40,
+    "right": 28,
+    "seconds": 100
+   }
+  },
+  {
+   "name": "phi-4-mini-instruct",
+   "family": "microsoft",
+   "base": "microsoft/Phi-4-mini-instruct",
+   "hub": "unsloth/Phi-4-mini-instruct-GGUF",
+   "file": "Phi-4-mini-instruct-Q4_K_M.gguf",
+   "bytes": 2491874272,
+   "licence": "MIT",
+   "licenceRead": "2026-10-14",
+   "dryRun": {
+    "run": 38606247012,
+    "questions": 40,
+    "answered": 35,
+    "right": 22,
+    "seconds": 379
+   }
+  }
+ ]
+}

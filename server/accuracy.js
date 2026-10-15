@@ -38,9 +38,14 @@ import { proGate, askModel, spend, refund, pinnedSource } from './ai.js';
 import { europePMC, medlinePlus, openFDA, forModels } from './evidence.js';
 import { prove, fullyProven, PROOF_VERSION, PROOF_CHARS } from './proof.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
-import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, isOath, oathClaims, familyOf, MIN_VERIFY_VOTERS } from './accuracy-model.js';
+import { DEFAULT_WEIGHTS, KINDS, features, predict, verdict, reasonsFor, validWeights, examWeights, oathClaims, familyOf, MIN_VERIFY_VOTERS } from './accuracy-model.js';
 import { exam as examById } from './exams.js';
 import { claimGate, MAX_WORK, remembering } from './claims.js';
+import { provenance, registryOf, HOLD_REASONS } from './provenance.js';
+import { oathCheck } from './oath.js';
+import { runnerBallots } from './runner-voters.js';
+import { checkVignette, vignetteProven, vignetteChecked, VIGNETTE_REASONS } from './vignette-proof.js';
+import { vignetteRoute } from './switches.js';
 
 export const BATCH = 4;
 /// Best by the checker bench: Flash-Lite (fast, reliable), gpt-oss-120b and
@@ -53,7 +58,11 @@ export const BATCH = 4;
 // Claude second: it answers reliably once its key is set (the owner's checks
 // only, ai.js askClaudeVoter), so a third family no longer waits on Workers
 // AI's free pool; without the key it is left out (votersFor)
-export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,claude:claude-opus-5-5,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
+// Since 14 Oct (the owner: "make free workers without apis"), three more
+// Workers AI families, through the same binding with no key, come last: not
+// yet measured by the checker bench, they stand in when an earlier voter
+// fails or its share of the pool is spent, and cost less of it per check.
+export const DEFAULT_VOTERS = 'gemini:gemini-3.5-flash-lite,claude:claude-opus-5-5,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it,workers-ai:@cf/qwen/qwen3-30b-a3b-fp8,workers-ai:@cf/zai-org/glm-4.7-flash,workers-ai:@cf/mistralai/mistral-small-3.1-24b-instruct';
 const MAX_ITEM_CHARS = 3500;
 const MAX_SOURCE_CHARS = 1400;
 const MAX_EVIDENCE_CHARS = 1500;
@@ -70,8 +79,10 @@ const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
 const letter = i => String.fromCharCode(65 + i);
 
 /// An item as the app sends it, cleaned: only the fields the engine reads,
-/// each kept to a sane length. Null when it cannot be an item.
-export function cleanItem(raw) {
+/// each kept to a sane length. Null when it cannot be an item. `packets`:
+/// keep a question's vignette proof packet (only while the vignette route is
+/// on; never part of its hash).
+export function cleanItem(raw, { packets = false } = {}) {
   if (!raw || typeof raw !== 'object' || !KINDS.includes(raw.kind)) return null;
   const item = { id: str(raw.id, 80), kind: raw.kind, source: str(raw.source, 20_000) };
   if (raw.kind === 'mcq') {
@@ -81,6 +92,7 @@ export function cleanItem(raw) {
     item.key = Number.isInteger(raw.key) ? raw.key : -1;
     item.explanation = str(raw.explanation, MAX_ITEM_CHARS);
     if (!item.stem.trim()) return null;
+    if (packets === true && raw.vignette && typeof raw.vignette === 'object' && !Array.isArray(raw.vignette)) item.vignette = raw.vignette;
   } else {
     item.text = str(raw.text, MAX_ITEM_CHARS);
     if (!item.text.trim()) return null;
@@ -149,7 +161,7 @@ export async function evidenceFor(item, fetcher, seen = new Map()) {
     const text = e.text.slice(0, 600);
     if (used + text.length > MAX_EVIDENCE_CHARS) break;
     used += text.length;
-    out.push({ ...forModels(e), text, id: `S${out.length + 1}` });
+    out.push({ ...forModels(e), text, id: `S${out.length + 1}`, ...(e.meta ? { meta: e.meta } : {}) });
   }
   return out;
 }
@@ -285,38 +297,80 @@ export function forgetWeights() { weightsCache = { value: null, until: 0 }; }
 /// `claims`: the claim gate's findings (claims.js), when there are any: an
 /// item that contradicts its own lecture is never Verified - Check this at
 /// best - and the findings go back with it.
-export function describe(item, hash, signals, weights, strictness = 0, rules = ruleHits(item), claims = null) {
+export function describe(item, hash, signals, weights, strictness = 0, rules = ruleHits(item), claims = null, { vignetteRoute: route = false } = {}) {
   const votes = signals?.votes || [];
   const keyLetter = item.kind === 'mcq' && item.key >= 0 ? letter(item.key) : null;
+  // the vignette route (vignette-proof.js), only while it is on: the item's
+  // proof packet checked here, pure and cheap, so nothing about it is cached
+  const vr = route === true && item.kind === 'mcq' && item.vignette ? checkVignette(item, item.vignette) : null;
   const f = features({ kind: item.kind, rules, votes, evidenceCount: (signals?.evidence || []).length,
                        sourceMatch: signals ? signals.sourceMatch : sourceMatch(item, item.source), keyLetter,
-                       sourceProof: fullyProven(signals?.proof) });
+                       sourceProof: fullyProven(signals?.proof),
+                       ...(route === true ? { vignette: { proven: vignetteProven(vr), checked: vignetteChecked(vr) } } : {}) });
   const p = predict(f, weights);
-  // the oath check: a dose, a diagnosis or a treatment needs evidence behind
-  // it; Jev's yes (jev.js, recorded with the votes) can only add one
+  // the oath check (oath.js: our own rules and the source proof, fail
+  // closed): a dose, a diagnosis or a treatment needs evidence behind it;
+  // Jev's yes (jev.js, recorded with the votes) can only add one
   const text = itemText(item);
-  const oath = oathWithJev(isOath(text), signals?.jevOath);
-  const graded = verdict(p, f, examWeights(weights, item, strictness), oath);
+  const sworn = oathCheck(item, signals?.proof);
+  const oath = oathWithJev(sworn.oath, signals?.jevOath);
+  const graded = verdict(p, f, examWeights(weights, item, strictness), oath, { vignetteRoute: route === true });
   const contradicted = Boolean(claims?.hard?.length);
-  const final = contradicted && graded === 'verified' ? 'check' : graded;
+  // provenance (provenance.js): each claim's chain, its sources' registry,
+  // and the five conditions; a condition that fails holds the item from
+  // Verified, as a contradiction of its lecture does
+  const prov = provenance(item, signals, { oath, ...(vr?.ok ? { vignette: vr } : {}) });
+  const held = Boolean(prov?.holds.length);
+  const final = (contradicted || held) && (graded === 'verified' || graded === 'checked') ? 'check' : graded;
   const fixed = suggestedFix(item, votes);
   const cut = signals?.proof?.why;
   // its key stated word for word, and another option a source may state too
   const other = cut === 'distractor' || cut === 'options';
-  const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null, other);
+  const reasons = reasonsFor(final, p, f, examWeights(weights, item, strictness), oath, fixed?.field === 'key' ? fixed.value : null, other || UNPROVABLE.has(cut));
   if (contradicted) reasons.push('It contradicts its own lecture.');
+  for (const code of new Set((prov?.holds || []).map(h => h.code))) reasons.push(HOLD_REASONS[code]);
   if (cut === 'lookup' || cut === 'timeout' || cut === 'error') reasons.push('An official source could not be read this time; it will be checked again.');
   else if (cut === 'budget') reasons.push('Its official sources were too long to read in this batch; it will be checked again on its own.');
   else if (cut === 'distractor') reasons.push('An official source may also state another of its options.');
   else if (cut === 'options') reasons.push('One of its other options could not be read for certain.');
+  else if (UNPROVABLE.has(cut) && !vr?.ok) reasons.push(UNPROVABLE_REASONS[cut] || UNPROVABLE_REASONS.other);
+  if (vr && !vr.ok) reasons.push(VIGNETTE_REASONS[vr.why] || VIGNETTE_REASONS.error);
+  // the lecture's findings and provenance's holds go back together, so the
+  // app (which keeps the hard findings' codes) holds the item as the server did
+  const lectured = claimsReply(claims);
+  const findings = held ? { claims: { hard: [...(lectured?.claims.hard || []), ...prov.holds], soft: lectured?.claims.soft || [],
+    ...(lectured?.claims.partial ? { partial: true } : {}) } } : lectured;
   return {
     id: item.id, hash, p: Math.round(p * 1000) / 1000, verdict: final, modelVersion: weights.version, reasons,
     features: f, rules, votes, evidence: signals?.evidence || [], fix: fixed,
-    ...(oath ? { oath: oathClaims(text) } : {}),
-    ...(claimsReply(claims) || {}),
+    ...(oath ? { oath: { ...oathClaims(text), why: sworn.why } } : {}),
+    ...(findings || {}),
     ...(signals?.proof ? { proof: signals.proof } : {}),
+    ...(vr ? { vignette: { ok: vr.ok, tier: vr.tier, why: vr.why, rules: vr.rules || [] } } : {}),
+    ...(prov ? { provenance: { tier: final === 'verified' ? prov.tier : null, gates: prov.gates, witnesses: prov.witnesses,
+      chains: prov.chains.map(chainReply), sources: prov.sources.map(sourceReply), flags: prov.flags } } : {}),
   };
 }
+
+/// Proof's reasons for an item it can never prove word for word, however
+/// long it waits: the item is not built from statements a source could make
+/// (a clinical vignette, a case, a checklist). Said as it is, not "yet"
+/// (Islamic brief §1 row 20, "la adri": not established is an honest
+/// answer; §3: always record the reason).
+export const UNPROVABLE = new Set(['stem', 'kind', 'options', 'mcq', 'card', 'many', 'claim', 'split', 'cut', 'item', 'empty']);
+const UNPROVABLE_REASONS = {
+  stem: 'Its question is a clinical vignette, not a statement a source can make, so no source can prove it word for word: it stays for a person to check.',
+  kind: 'A case, a checklist or a page says more than one source states, so no source can prove it word for word: it stays for a person to check.',
+  options: 'Its options cannot each be read as a statement, so it cannot be proven word for word.',
+  many: 'It makes more claims than one check proves; split it to have it proven.',
+  other: 'It cannot be read into statements a source could prove word for word.',
+};
+
+// a chain and a source as the reply carries them: no more than the app shows
+const sourceReply = r => ({ id: r.id, url: r.url, source: r.source, title: r.title, type: r.type, grade: r.grade,
+  publisher: r.publisher, date: r.date, edition: r.edition, retracted: r.retracted, corrections: r.corrections, sponsors: r.sponsors });
+const chainReply = c => ({ claim: c.claim, passage: c.passage, section: c.section || null, source: c.source?.url || null,
+  retrieval: c.retrieval, checkers: c.checkers, gap: c.gap });
 
 /// The claim gate's findings as the reply carries them: nothing when it found
 /// nothing (so a reply is what it was before the gate), else the hard and
@@ -555,7 +609,7 @@ export async function proofStage(items, fetcher, budget = BUDGETS.proof, seen = 
 /// voter that fails, sends nothing readable, or has not answered within its
 /// budget is no vote, and the next one is asked.
 /** @returns {Promise<StageResult<Votes>>} */
-export async function votesStage(env, account, owner, writer, entries, fetcher, budget = BUDGETS.votes) {
+export async function votesStage(env, account, owner, writer, entries, fetcher, budget = BUDGETS.votes, seed = []) {
   const started = Date.now();
   const messages = votePrompt(entries);
   const hasMcq = entries.some(e => e.item.kind === 'mcq');
@@ -578,8 +632,9 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
     && disagree([ballots[0].parsed[n]], [ballots[1].parsed[n]]));
   const familiesIn = list => new Set(list.map(b => familyOf(b.model))).size;
   const sightedWanted = () => hasMcq && (explained || otherSplit()) && !ballots.some(b => !b.blind);
-  // round one's answers as they come in, then the ballots
-  const got = [];
+  // round one's answers as they come in, then the ballots; a blind ballot
+  // from a runner (runner-voters.js) already holds its family's seat
+  const got = seed.map((b, n) => ({ ...b, order: -seed.length + n }));
   // which voter next: 'fresh', from a family that has neither answered nor
   // is being asked (two votes from one family are one witness); 'hedge', or
   // else one standing in for a family still being asked; 'any', or else
@@ -639,7 +694,8 @@ export async function votesStage(env, account, owner, writer, entries, fetcher, 
       });
       return true;
     };
-    for (let i = 0; i < need; i++) launch();
+    for (let i = familiesIn(got); i < need; i++) launch();
+    if (familiesIn(got) >= need) return finish();
     if (inFlight === 0) return finish();
     const timer = setTimeout(() => {
       if (finished || hedged || familiesIn(got) >= need) return;
@@ -679,7 +735,7 @@ export async function jevStage(env, entries, votes, fetcher, budget = BUDGETS.je
   const statuses = [];
   const answers = [];
   for (const [n, e] of entries.entries()) {
-    if (!votes[n].length || isOath(itemText(e.item))) { answers.push(null); continue; }
+    if (!votes[n].length || oathCheck(e.item, e.proof).oath) { answers.push(null); continue; }
     const asked = await within(budget, () => jevOath(env, itemText(e.item), fetcher), null);
     statuses.push(asked.status);
     answers.push(asked.value === null ? null : Math.round(asked.value * 1000) / 1000);
@@ -690,11 +746,11 @@ export async function jevStage(env, entries, votes, fetcher, budget = BUDGETS.je
 /// verdict: what the app is told about every item, from where its signals
 /// came: the cache, this check, or nowhere (and why).
 /** @returns {StageResult<object[]>} */
-export function verdictStage(items, hashes, outcomes, rules, weights, strict, budget = BUDGETS.verdict, claims = []) {
+export function verdictStage(items, hashes, outcomes, rules, weights, strict, budget = BUDGETS.verdict, claims = [], opts = {}) {
   const started = Date.now();
   const results = items.map((item, i) => {
     const o = outcomes[i];
-    const described = describe(item, hashes[i], o.signals, weights, strict, rules[i], claims[i] || null);
+    const described = describe(item, hashes[i], o.signals, weights, strict, rules[i], claims[i] || null, opts);
     if (o.from === 'cache') return { ...described, cached: true };
     return o.reason ? { ...described, reason: o.reason } : described;
   });
@@ -729,7 +785,9 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   }
   const raw = Array.isArray(body?.items) ? body.items : [];
   if (!raw.length || raw.length > BATCH) return fail(400, `Send 1 to ${BATCH} items.`);
-  const items = raw.map(cleanItem);
+  // the vignette route (switches.js), off unless the owner turns it on
+  const route = vignetteRoute(env);
+  const items = raw.map(r => cleanItem(r, { packets: route }));
   if (items.some(i => !i)) return fail(400, 'An item could not be read.');
   // the source is cut to the part the checker is shown, so the hash is of
   // what was actually checked
@@ -781,7 +839,7 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
     done(skipped('votes', budget.votes, { ballots: [], failures: [] }));
     done(skipped('jev', budget.jev, []));
     const graded = unchecked(extra.limit);
-    const results = done(verdictStage(items, hashes, graded, rules, weights, strict, budget.verdict, claims));
+    const results = done(verdictStage(items, hashes, graded, rules, weights, strict, budget.verdict, claims, { vignetteRoute: route }));
     done(writes.length ? await cacheStage(env, writes, budget.cache) : skipped('cache', budget.cache, []));
     return reply({ items: results, ...extra }, status);
   };
@@ -805,7 +863,11 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
   const found = done(await evidenceStage(todo.map(i => items[i]), fetcher, budget.evidence, seen));
   const proofs = await proved([...todo, ...reprove]);
   const entries = todo.map((i, n) => ({ i, item: items[i], evidence: found[n], proof: proofs[n] }));
-  const { ballots, failures } = done(await votesStage(env, account, owner, body.writer, entries, fetcher, budget.votes));
+  // the official sources each item was proven from, for the registry: the
+  // proof's own lookups, shared by key (`seen`), so nothing is fetched again
+  const officials = await Promise.all(entries.map(async e => (await within(budget.proof, () => officialFor(e.item, fetcher, seen), { entries: [] })).value.entries));
+  const seed = runnerBallots(env, body, entries, { owner, bench });
+  const { ballots, failures } = done(await votesStage(env, account, owner, body.writer, entries, fetcher, budget.votes, seed));
   const votes = entries.map((_, n) => votesOn(ballots, n));
   const jev = done(await jevStage(env, entries, votes, fetcher, budget.jev));
 
@@ -817,12 +879,15 @@ export async function checkBatch(env, account, body, fetcher = fetch, { owner = 
       kind: e.item.kind, votes: votes[n], sourceMatch: sourceMatch(e.item, e.item.source),
       evidence: e.evidence.map(({ id, source, title, url }) => ({ id, source, title, url })),
       proof: e.proof,
+      // each source's registry entry (provenance.js, rijal), kept with the
+      // verdict so a cached item's chains are read the same way again
+      sources: registryOf([...e.evidence, ...officials[n]]),
     };
     if (jev[n] !== null) signals.jevOath = jev[n];
     outcomes[e.i] = { from: 'check', signals };
     writes.push({ hash: hashes[e.i], signals });
   }
-  const results = done(verdictStage(items, hashes, outcomes, rules, weights, strict, budget.verdict, claims));
+  const results = done(verdictStage(items, hashes, outcomes, rules, weights, strict, budget.verdict, claims, { vignetteRoute: route }));
   done(await cacheStage(env, writes, budget.cache));
   // no voter answered: nothing was checked, so the allowance comes back and
   // the app is told to wait rather than send the next batch at once (audit #87)

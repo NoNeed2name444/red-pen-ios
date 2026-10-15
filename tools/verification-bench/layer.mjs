@@ -23,6 +23,7 @@ import { resetBreakers } from '../../server/breakers.js';
 import { familyOf } from '../../server/accuracy-model.js';
 import { fullyProven } from '../../server/proof.js';
 import { loadQuestions, benchCases } from './datasets.mjs';
+import { gateReport } from './gates.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -207,9 +208,13 @@ lines.push('', `## Each checker's own answers (its reliability as a witness)`, '
 for (const [m, p] of Object.entries(per).sort((a, b) => b[1].answered - a[1].answered)) {
   lines.push(`| ${m} | ${p.family} | ${p.answered} | ${pct(p.right, p.answered)} | ${pct(p.blindRight, p.blind)} |`);
 }
-writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
 // everything policy.mjs needs to replay a check under other verdict rules
-writeFileSync(join(outDir, 'results.json'), JSON.stringify(results.map(r => ({ id: r.item.id, source: r.item.source, truth: r.truth,
+const saved = results.map(r => ({ id: r.item.id, source: r.item.source, truth: r.truth,
   keyLetter: String.fromCharCode(65 + r.item.key), verdict: verdictOf(r), p: r.result?.p, reasons: r.result?.reasons,
-  rules: r.result?.rules, proof: r.result?.proof, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix })), null, 1));
+  rules: r.result?.rules, proof: r.result?.proof, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix,
+  provenance: r.result?.provenance ? { tier: r.result.provenance.tier, gates: r.result.provenance.gates, flags: r.result.provenance.flags } : undefined }));
+// what held each check back from Verified, condition by condition
+lines.push('', '## What held them back from Verified', '', gateReport(saved));
+writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
+writeFileSync(join(outDir, 'results.json'), JSON.stringify(saved, null, 1));
 console.log(lines.join('\n'));

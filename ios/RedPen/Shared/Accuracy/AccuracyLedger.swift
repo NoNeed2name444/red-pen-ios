@@ -28,6 +28,24 @@ struct AccuracyRecord: Codable, Hashable {
     /// How many checks in a row came back with the proof cut short: asked
     /// again a few times, then left at Check this.
     var proofTries: Int? = nil
+    /// The server's vignette proof check (server/vignette-proof.js), sent only
+    /// while its vignette route is on; nil otherwise, and cleared when a
+    /// reply comes back without one.
+    var vignette: AccuracyVignette? = nil
+}
+
+/// What server/vignette-proof.js found for a clinical vignette: whether its
+/// proof was accepted, and at which tier - "proven" (every rule it used
+/// signed off by the owner: may back Verified) or "checked" (at most
+/// Checked) - or why it was refused.
+struct AccuracyVignette: Codable, Hashable {
+    var ok: Bool?
+    var tier: String?
+    var why: String?
+    var rules: [String]?
+
+    var isProven: Bool { ok == true && tier == "proven" }
+    var isChecked: Bool { ok == true && tier == "checked" }
 }
 
 /// What server/proof.js found for one item. Only `isFull` lets an item be
@@ -81,6 +99,7 @@ struct AccuracyCheckReply: Decodable {
         var reason: String?
         var claims: Claims?
         var proof: AccuracyProof?
+        var vignette: AccuracyVignette?
     }
     var items: [Item]?
     var limit: String?
@@ -113,7 +132,9 @@ struct AccuracyAssessment: Hashable {
             let issue: String = v.issues.first ?? "Judged it likely to mislead (risk \(v.risk) of 4)."
             out.append(v.model + ": " + issue)
         }
-        if let record, !record.votes.isEmpty, grade != .verified {
+        if grade == .checked, let meaning = grade.meaning {
+            out.append(meaning)
+        } else if let record, !record.votes.isEmpty, grade != .verified {
             out.append(contentsOf: AccuracyAssessment.proofReasons(record.proof, oath: oath))
         }
         return out
@@ -150,20 +171,30 @@ struct AccuracyAssessment: Hashable {
         case "percentage": return "Gives a different percentage from its own lecture."
         case "direction": return "Says the other way from its own lecture."
         case AccuracyCheckReply.gateFailed: return "Couldn't be compared with its lecture yet; it will be checked again."
+        // the server's provenance holds (server/provenance.js): where its
+        // source came from and whether that chain can be trusted
+        case "retracted": return "A source it rests on was retracted or is under an expression of concern."
+        case "conflict": return "Only its sponsor's own source says this in its favour; it needs an independent source."
+        case "dabt": return "It doesn't copy its source faithfully: a number, unit, frequency, population or \"not\" differs, or a dose is written unsafely."
+        case "shadh": return "A stronger source was read against it."
+        case "tafarrud": return "Only one source supports it, and that source isn't strong enough on its own."
+        case "naskh": return "A published rule its proof rests on has been replaced by a newer one."
         default: return "Differs from its own lecture."
         }
     }
 }
 
-/// Counts of each grade in a set.
+/// Counts of each grade in a set. `checked` counts every item the models
+/// have looked at; `passed` counts the Checked grade alone.
 struct AccuracySummary: Hashable {
-    var verified = 0, check = 0, flagged = 0, unchecked = 0
-    var total: Int { verified + check + flagged + unchecked }
-    var checked: Int { verified + check + flagged }
+    var verified = 0, passed = 0, check = 0, flagged = 0, unchecked = 0
+    var total: Int { verified + passed + check + flagged + unchecked }
+    var checked: Int { verified + passed + check + flagged }
 
     mutating func add(_ grade: AccuracyGrade) {
         switch grade {
         case .verified: verified += 1
+        case .checked: passed += 1
         case .check: check += 1
         case .flagged: flagged += 1
         case .unchecked: unchecked += 1
@@ -175,6 +206,7 @@ struct AccuracySummary: Hashable {
         guard checked > 0 || flagged > 0 else { return nil }
         var parts: [String] = []
         if verified > 0 { parts.append("\(verified) verified") }
+        if passed > 0 { parts.append("\(passed) checked, not fully proven") }
         if check > 0 { parts.append("\(check) to check") }
         if flagged > 0 { parts.append("\(flagged) flagged") }
         if unchecked > 0 { parts.append("\(unchecked) not yet checked") }
@@ -182,10 +214,11 @@ struct AccuracySummary: Hashable {
     }
 
     /// The badge for the whole set: flagged if anything is, verified only
-    /// when everything is.
+    /// when everything is, checked when everything is at least that.
     var grade: AccuracyGrade {
         if flagged > 0 { return .flagged }
         if check > 0 { return .check }
+        if passed > 0 && unchecked == 0 { return .checked }
         if verified > 0 && unchecked == 0 { return .verified }
         return .unchecked
     }
@@ -213,7 +246,8 @@ struct AccuracyLedger: Codable {
         let f: [String: Double] = AccuracyModel.featureValues(kind: item.kind, rules: rules, votes: record?.votes ?? [],
                                                              evidenceCount: record?.evidence.count ?? 0,
                                                              sourceMatch: match, keyLetter: key,
-                                                             sourceProof: record?.proof?.isFull == true)
+                                                             sourceProof: record?.proof?.isFull == true,
+                                                             vignette: record?.vignette.map { (proven: $0.isProven, checked: $0.isChecked) })
         let p: Double = AccuracyModel.probability(f, weights: weights)
         // the chosen exam's management questions need more to be Verified
         var cutoffs: AccuracyWeights = weights
@@ -221,12 +255,14 @@ struct AccuracyLedger: Codable {
         if strict > 0 { cutoffs.thresholds = AccuracyModel.stricter(weights.thresholds, by: strict) }
         // the oath check: a dose, a diagnosis or a treatment needs evidence behind it
         let oath: Bool = AccuracyModel.isOath(item.checkedText)
-        var grade: AccuracyGrade = AccuracyModel.grade(p, f, weights: cutoffs, oath: oath)
-        // the student said it is wrong: never shown as Verified to them again
-        if record?.reported == true && grade == .verified { grade = .check }
-        // it contradicts its own lecture (or the claim gate could not tell):
-        // never Verified on the votes alone
-        if !(record?.claimHolds ?? []).isEmpty && grade == .verified { grade = .check }
+        // the vignette route is on when the server's reply carried its check
+        var grade: AccuracyGrade = AccuracyModel.grade(p, f, weights: cutoffs, oath: oath, vignetteRoute: record?.vignette != nil)
+        let passed: Bool = grade == .verified || grade == .checked
+        // the student said it is wrong: never shown as Verified (or Checked) to them again
+        if record?.reported == true && passed { grade = .check }
+        // it contradicts its own lecture (or the claim gate could not tell),
+        // or a provenance hold: never Verified or Checked on the votes alone
+        if !(record?.claimHolds ?? []).isEmpty && passed { grade = .check }
         return AccuracyAssessment(grade: grade, probability: p, rules: rules, record: record, features: f, oath: oath)
     }
 
@@ -271,7 +307,7 @@ struct AccuracyLedger: Codable {
     /// cut short counts a try (see isChecked).
     mutating func add(votes: [AccuracyVote], evidence: [AccuracyEvidence] = [], sourceMatch: Double? = nil,
                       fix: AccuracySuggestion? = nil, holds: [String]? = nil, proof: AccuracyProof? = nil,
-                      for hash: String, at now: Date = Date()) {
+                      vignette: AccuracyVignette? = nil, for hash: String, at now: Date = Date()) {
         var record: AccuracyRecord = records[hash] ?? AccuracyRecord(hash: hash)
         for v in votes {
             record.votes.removeAll { $0.model == v.model }
@@ -290,6 +326,9 @@ struct AccuracyLedger: Codable {
                 record.proofTries = nil
             }
         }
+        // the vignette route's check comes with every reply while it is on:
+        // one without it (the route off, or no packet) clears the last
+        record.vignette = vignette
         record.checkedAt = now
         records[hash] = record
         if !votes.isEmpty { failed[hash] = nil }
@@ -311,7 +350,7 @@ struct AccuracyLedger: Codable {
             let match: Double? = noSource ? nil : got.features?["source_match"]
             let holds: [String] = (got.claims?.hard ?? []).map { $0.code ?? AccuracyCheckReply.gateFailed }
             add(votes: votes, evidence: got.evidence ?? [], sourceMatch: match, fix: got.fix, holds: holds,
-                proof: got.proof, for: hash, at: now)
+                proof: got.proof, vignette: got.vignette, for: hash, at: now)
             // a server without the proof: asked a few times more, not for ever
             if got.proof == nil, var kept = records[hash] {
                 kept.proofTries = (kept.proofTries ?? 0) + 1

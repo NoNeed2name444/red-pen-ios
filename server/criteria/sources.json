@@ -1,0 +1,70 @@
+{
+  "kind": "sources",
+  "note": "Every source a registry rule, a worked example or a lexicon entry may quote. A source enters only with a recorded licence that allows commercial use (vignette-proof.js licenceAllows rejects anything else, StatPearls always). The snapshot is the text the quotes are proven against, pinned by its SHA-256; tools/criteria/fetch-sources.mjs fetches the live source and reports any change.",
+  "sources": [
+    {
+      "id": "cdc-tst-2025",
+      "title": "Clinical Testing Guidance for Tuberculosis: Tuberculin Skin Test",
+      "publisher": "Centers for Disease Control and Prevention, Division of Tuberculosis Elimination",
+      "url": "https://www.cdc.gov/tb/hcp/testing-diagnosis/tuberculin-skin-test.html",
+      "type": "guideline",
+      "date": "2025-01-31",
+      "edition": "2025-01-31",
+      "status": "current",
+      "licence": {
+        "id": "us-federal-public-domain",
+        "commercialUse": true,
+        "url": "https://www.cdc.gov/other/agencymaterials.html",
+        "grant": "Most of the information on the CDC and ATSDR websites is not subject to copyright, is in the public domain, and may be freely used or reproduced without obtaining copyright permission.",
+        "conditions": [
+          "Attribution to the agency that developed the material must be provided in your use of the materials.",
+          "You must utilize a disclaimer which clearly indicates that your use of the material, including any links to the materials on the CDC, ATSDR or HHS websites, does not imply endorsement by CDC, ATSDR, HHS or the United States Government of you, your company, product, facility, service or enterprise.",
+          "You may not change the substantive content of the materials; and",
+          "You must state that the material is otherwise available on the agency website for no charge."
+        ]
+      },
+      "snapshot": {
+        "file": "snapshots/cdc-tst-2025.txt",
+        "extract": "html-main",
+        "fetchedAt": "2026-10-14",
+        "sha256": "354435459ca8f49833ada010af7a9bf12a9472f19d8ad9bdc9df5de4f560e490"
+      }
+    },
+    {
+      "id": "cdc-tb-core-curriculum-2021",
+      "title": "Core Curriculum on Tuberculosis: What the Clinician Should Know, Seventh Edition 2021",
+      "publisher": "Centers for Disease Control and Prevention, Division of Tuberculosis Elimination",
+      "url": "https://www.cdc.gov/tb/media/Core_Curriculum_TB_eBook.pdf",
+      "type": "textbook",
+      "date": "2021",
+      "edition": "7th edition, 2021",
+      "status": "current",
+      "licence": {
+        "id": "us-federal-public-domain",
+        "commercialUse": true,
+        "url": "https://www.cdc.gov/other/agencymaterials.html",
+        "grant": "Most of the information on the CDC and ATSDR websites is not subject to copyright, is in the public domain, and may be freely used or reproduced without obtaining copyright permission.",
+        "conditions": [
+          "Attribution to the agency that developed the material must be provided in your use of the materials.",
+          "You must utilize a disclaimer which clearly indicates that your use of the material, including any links to the materials on the CDC, ATSDR or HHS websites, does not imply endorsement by CDC, ATSDR, HHS or the United States Government of you, your company, product, facility, service or enterprise.",
+          "You may not change the substantive content of the materials; and",
+          "You must state that the material is otherwise available on the agency website for no charge."
+        ]
+      },
+      "snapshot": {
+        "file": "snapshots/cdc-tb-core-curriculum-2021.txt",
+        "extract": "pdf-pages",
+        "pages": [
+          { "page": 14 },
+          { "page": 43 },
+          { "page": 44 },
+          { "page": 71 },
+          { "page": 72 },
+          { "page": 195, "crop": [40, 150, 210, 560] }
+        ],
+        "fetchedAt": "2026-10-14",
+        "sha256": "01bb47016bd9f94a6fed4e4c387f0c1ab385a1e98a3f712eadcb4ebe0a55cf69"
+      }
+    }
+  ]
+}

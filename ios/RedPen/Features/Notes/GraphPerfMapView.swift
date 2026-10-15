@@ -76,7 +76,27 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     var onStats: (GraphPerfStats) -> Void = { _ in }
     /// The part of the view under glass on each side (points); framing fits the rest.
     var insets: (top: Float, left: Float, bottom: Float, right: Float) = (0, 0, 0, 0)
-    var reduceMotion: Bool = false
+    var reduceMotion: Bool = false {
+        didSet { million?.reduceMotion = reduceMotion }
+    }
+    /// Increase Contrast (the depth fade starts later and stops short of the ground).
+    private var contrast: Bool = false
+    /// The depth fade on: off only under -graphPreviewPerfFade off (the before numbers).
+    static var depthFadeOn: Bool {
+        UserDefaults.standard.string(forKey: "graphPreviewPerfFade") != "off"
+    }
+    /// The proof tour (-graphPreviewPerfTour): its start, its last step, and
+    /// the user's Graphics level it may override.
+    static var tourOn: Bool { ProcessInfo.processInfo.arguments.contains("-graphPreviewPerfTour") }
+    private var tour: GraphPerfTour?
+    private var tourStart: CFTimeInterval = 0
+    private var tourStep: GraphPerfTourStep?
+    private var tourPhase: String = ""
+    /// The finished tour's summary, kept for the readout once the tour is gone.
+    private var tourSummary: String = ""
+    /// The last numbers the engine sent, to send again when the tour ends.
+    private var lastStats: GraphPerfStats?
+    private var userTier: GraphPerfTier = .high
     /// The rate asked for (0: the screen's own); never above the screen's.
     var preferredFPS: Int = 0 {
         didSet { applyRate() }
@@ -151,7 +171,18 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
 
     private func hook(_ engine: GraphPerfEngine?) {
         engine?.beforeFrame = { [weak self] seconds in self?.advance(seconds) }
-        engine?.onStats = { [weak self] stats in self?.onStats(stats) }
+        engine?.onStats = { [weak self] stats in self?.forward(stats) }
+    }
+
+    /// The readout's numbers, with the proof tour's phase and summary.
+    private func forward(_ stats: GraphPerfStats) {
+        lastStats = stats
+        var out = stats
+        if tour != nil || !tourPhase.isEmpty {
+            out.tourPhase = tourPhase
+            out.tourSummary = tour?.summary ?? tourSummary
+        }
+        onStats(out)
     }
 
     /// The screen's fastest rate, asked of the display link (and told to the
@@ -204,10 +235,88 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         let camera: GraphPerfCamera? = showsMillion ? nil : renderer?.camera
         million.tier = renderer?.tier ?? million.tier
         million.bold = renderer?.bold ?? million.bold
+        million.contrast = contrast
+        million.depthFade = Self.depthFadeOn
+        million.reduceMotion = reduceMotion
         switchTo(million: true)
         if let camera { million.camera = camera }
         million.load(map)
         reframe(bodies: map.bodyCount)
+        startTour(map, on: million)
+    }
+
+    // MARK: - The proof tour
+
+    /// Starts the proof tour on a million map, under -graphPreviewPerfTour.
+    private func startTour(_ map: GraphPerfMillionMap, on million: GraphPerfMillionRenderer) {
+        guard Self.tourOn, bounds.width > 1, bounds.height > 1 else { return }
+        var from = million.camera
+        from.yaw = Self.defaultYaw
+        from.pitch = Self.defaultPitch
+        let whole = from.framing(centre: map.centre, radius: map.radius, width: Float(bounds.width),
+                                 height: Float(bounds.height), insets: insets, fill: 0.9)
+        let hub = Self.frontHub(map, camera: whole, width: Float(bounds.width), height: Float(bounds.height))
+        let info = GraphPerfTourMap(centre: map.centre, radius: map.radius, width: Float(bounds.width),
+                                    height: Float(bounds.height), whole: whole, hub: hub,
+                                    hubPosition: hub.flatMap { million.position($0) })
+        let made = GraphPerfTour(map: info)
+        tour = made
+        tourStart = 0
+        tourStep = nil
+        tourSummary = ""
+        userTier = million.tier
+        million.onFrame = { [weak self] report in
+            guard let self, let tour = self.tour, let step = self.tourStep else { return }
+            tour.record(report, step: step)
+        }
+        wake()
+    }
+
+    /// A well-linked note near the front and the middle of the whole view:
+    /// the most linked of the leaves' label candidates there.
+    static func frontHub(_ map: GraphPerfMillionMap, camera: GraphPerfCamera, width: Float, height: Float) -> Int? {
+        var best: (body: Int, degree: Int)?
+        for s in map.leafTops where s >= 0 {
+            let slot = Int(s)
+            let body = map.body(ofSlot: slot)
+            guard let p = map.position(body) else { continue }
+            let at = camera.project(p, width: width, height: height)
+            let inMiddle = abs(at.x - width / 2) < width * 0.3 && abs(at.y - height / 2) < height * 0.3
+            guard at.depth > 0 && at.depth < camera.distance && inMiddle else { continue }
+            let degree = map.degree(ofSlot: slot)
+            if best == nil || degree > best?.degree ?? 0 { best = (body, degree) }
+        }
+        return best?.body
+    }
+
+    /// One frame of the tour: its pose, Graphics level, fade and choice.
+    private func advanceTour(_ now: CFTimeInterval) {
+        guard let tour, let million, showsMillion else { return }
+        if tourStart == 0 { tourStart = now }
+        guard let step = tour.step(at: now - tourStart) else {
+            // done: the user's level and the fade back; the summary stays in
+            // the readout, sent now in case the view pauses before the next numbers
+            tourPhase = "done"
+            tourSummary = tour.summary
+            tourStep = nil
+            million.tier = userTier
+            million.depthFade = Self.depthFadeOn
+            million.onFrame = nil
+            self.tour = nil
+            if let lastStats { forward(lastStats) }
+            return
+        }
+        glide = nil
+        spin = .zero
+        million.camera = step.camera
+        million.tier = step.tier ?? userTier
+        million.depthFade = step.fade && Self.depthFadeOn
+        if million.selected != step.select {
+            million.selected = step.select
+            updatePill()
+        }
+        tourStep = step
+        tourPhase = step.phase
     }
 
     private func switchTo(million on: Bool) {
@@ -275,8 +384,13 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         wake()
     }
 
-    func setTier(_ tier: GraphPerfTier, bold: Bool) {
+    func setTier(_ tier: GraphPerfTier, bold: Bool, contrast: Bool = false) {
+        userTier = tier
+        self.contrast = contrast
+        million?.contrast = contrast
         for e in [renderer as GraphPerfEngine?, million as GraphPerfEngine?] {
+            // the tour holds the million's level while it runs
+            if tour != nil && e === million { continue }
             guard let e, e.tier != tier || e.bold != bold else { continue }
             e.tier = tier
             e.bold = bold
@@ -335,6 +449,7 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     private func advance(_ seconds: Double) {
         guard let engine else { return }
         let now: CFTimeInterval = CACurrentMediaTime()
+        if tour != nil { advanceTour(now) }
         if let g = glide {
             let t: Float = Float((now - g.start) / g.duration)
             engine.camera = GraphPerfCamera.glide(g.from, g.to, t: t)
@@ -347,7 +462,7 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
             if abs(spin.x) < 0.02 && abs(spin.y) < 0.02 { spin = .zero }
         }
         updatePill()
-        let busy: Bool = touching > 0 || glide != nil || spin != .zero || engine.isSettling
+        let busy: Bool = touching > 0 || glide != nil || spin != .zero || engine.isSettling || tour != nil
         if busy {
             lastBusy = now
         } else if now - lastBusy > 0.6 {

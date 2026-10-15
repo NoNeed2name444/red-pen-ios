@@ -1,0 +1,170 @@
+{
+  "id": "cdc-tst-contraindication",
+  "kind": "denial",
+  "version": "1",
+  "title": "TB skin test: contraindicated only after a severe reaction to a previous one",
+  "summary": "A TB skin test is ruled out for someone who had necrosis, blistering, anaphylactic shock or ulcerations after a previous TB skin test.",
+  "source": "cdc-tst-2025",
+  "formal": {
+    "criteria": [
+      {
+        "id": "prior",
+        "slot": "prior_tst",
+        "op": "present",
+        "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test)."
+      },
+      {
+        "id": "reaction",
+        "slot": "prior_tst_reaction",
+        "op": "anyOf",
+        "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test).",
+        "values": [
+          "necrosis",
+          "blistering",
+          "anaphylactic_shock",
+          "ulceration"
+        ],
+        "items": {
+          "necrosis": "necrosis",
+          "blistering": "blistering",
+          "anaphylactic_shock": "anaphylactic shock",
+          "ulceration": "ulcerations"
+        }
+      }
+    ],
+    "together": [
+      [
+        "prior_tst",
+        "prior_tst_reaction"
+      ]
+    ],
+    "conclusion": {
+      "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test).",
+      "says": "TB skin tests are contraindicated",
+      "aliases": [
+        "TB skin test"
+      ]
+    }
+  },
+  "transcriptions": [
+    {
+      "by": "transcriber-a",
+      "at": "2026-10-14",
+      "how": "read from the pinned snapshot, first pass",
+      "formal": {
+        "criteria": [
+          {
+            "id": "prior",
+            "slot": "prior_tst",
+            "op": "present",
+            "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test)."
+          },
+          {
+            "id": "reaction",
+            "slot": "prior_tst_reaction",
+            "op": "anyOf",
+            "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test).",
+            "values": [
+              "necrosis",
+              "blistering",
+              "anaphylactic_shock",
+              "ulceration"
+            ],
+            "items": {
+              "necrosis": "necrosis",
+              "blistering": "blistering",
+              "anaphylactic_shock": "anaphylactic shock",
+              "ulceration": "ulcerations"
+            }
+          }
+        ],
+        "together": [
+          [
+            "prior_tst",
+            "prior_tst_reaction"
+          ]
+        ],
+        "conclusion": {
+          "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test).",
+          "says": "TB skin tests are contraindicated",
+          "aliases": [
+            "TB skin test"
+          ]
+        }
+      }
+    },
+    {
+      "by": "transcriber-b",
+      "at": "2026-10-14",
+      "how": "read again from the pinned snapshot, second pass, written without the first open; both passes are by the same agent session, so not yet independent people",
+      "formal": {
+        "criteria": [
+          {
+            "id": "prior",
+            "slot": "prior_tst",
+            "op": "present",
+            "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test)."
+          },
+          {
+            "id": "reaction",
+            "slot": "prior_tst_reaction",
+            "op": "anyOf",
+            "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test).",
+            "values": [
+              "necrosis",
+              "blistering",
+              "anaphylactic_shock",
+              "ulceration"
+            ],
+            "items": {
+              "necrosis": "necrosis",
+              "blistering": "blistering",
+              "anaphylactic_shock": "anaphylactic shock",
+              "ulceration": "ulcerations"
+            }
+          }
+        ],
+        "together": [
+          [
+            "prior_tst",
+            "prior_tst_reaction"
+          ]
+        ],
+        "conclusion": {
+          "quote": "TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test).",
+          "says": "TB skin tests are contraindicated",
+          "aliases": [
+            "TB skin test"
+          ]
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "source": "cdc-tb-core-curriculum-2021",
+      "format": "answer-key",
+      "chapter": 2,
+      "number": 4,
+      "key": "B",
+      "question": "4. Both the TB blood test (interferon-gamma release assay [IGRA] test) and TST are contraindicated for persons who have been vaccinated with BCG.",
+      "option": "B. False",
+      "answer": "Chapter 2: 1. A 2. E 3. A 4. B",
+      "note": "BCG vaccination is not a severe reaction to a previous skin test, so the contraindication does not apply.",
+      "cases": [
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            }
+          ],
+          "fires": false
+        }
+      ]
+    }
+  ],
+  "signedOffAt": null,
+  "signedOffBy": null,
+  "signedOffHash": null
+}

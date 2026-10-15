@@ -1,0 +1,466 @@
+{
+  "id": "cdc-tst-5mm",
+  "kind": "criteria",
+  "version": "1",
+  "title": "TB skin test: 5 mm is positive in the highest-risk groups",
+  "summary": "A TB skin test read 48 to 72 hours after it was placed, with 5 mm or more of induration, is positive in people with HIV, recent contacts, chest x-ray findings of previous TB, organ transplants or other immunosuppression.",
+  "source": "cdc-tst-2025",
+  "formal": {
+    "criteria": [
+      {
+        "id": "test",
+        "slot": "tst",
+        "op": "present",
+        "quote": "Classification of TB skin test reactions"
+      },
+      {
+        "id": "read",
+        "slot": "read_hours",
+        "op": "between",
+        "value": [
+          48,
+          72
+        ],
+        "unit": "hours",
+        "quote": "The skin test reaction should be read between 48 and 72 hours after administration by a health care worker trained to read TB skin results.",
+        "says": "between 48 and 72 hours"
+      },
+      {
+        "id": "size",
+        "slot": "induration_mm",
+        "op": ">=",
+        "value": 5,
+        "unit": "mm",
+        "quote": "An induration of 5 or more millimeters is considered positive in:",
+        "says": "5 or more millimeters"
+      },
+      {
+        "id": "group",
+        "slot": "tst_group",
+        "op": "anyOf",
+        "quote": "An induration of 5 or more millimeters is considered positive in:",
+        "leadIn": "An induration of 5 or more millimeters is considered positive in:",
+        "values": [
+          "hiv",
+          "recent_contact",
+          "cxr_prior_tb",
+          "organ_transplant",
+          "other_immunosuppressed"
+        ],
+        "items": {
+          "hiv": "People with HIV",
+          "recent_contact": "Recent contacts of people with infectious TB disease",
+          "cxr_prior_tb": "People with chest x-ray findings suggestive of previous TB disease",
+          "organ_transplant": "People with organ transplants",
+          "other_immunosuppressed": "Other immunosuppressed people (e.g., patients on prolonged therapy with corticosteroids equivalent to/greater than 15 mg per day of prednisone or those taking TNF-α antagonists)"
+        }
+      }
+    ],
+    "together": [
+      [
+        "tst",
+        "read_hours",
+        "induration_mm"
+      ]
+    ],
+    "conclusion": {
+      "quote": "An induration of 5 or more millimeters is considered positive in:",
+      "says": "is considered positive",
+      "aliases": [
+        "Positive"
+      ],
+      "asks": [
+        "interpretation of this result",
+        "interpretation of this TB skin test result",
+        "interpretation of the TB skin test"
+      ]
+    },
+    "exclusive": [
+      {
+        "aliases": [
+          "Negative"
+        ]
+      }
+    ]
+  },
+  "transcriptions": [
+    {
+      "by": "transcriber-a",
+      "at": "2026-10-14",
+      "how": "read from the pinned snapshot, first pass",
+      "formal": {
+        "criteria": [
+          {
+            "id": "test",
+            "slot": "tst",
+            "op": "present",
+            "quote": "Classification of TB skin test reactions"
+          },
+          {
+            "id": "read",
+            "slot": "read_hours",
+            "op": "between",
+            "value": [
+              48,
+              72
+            ],
+            "unit": "hours",
+            "quote": "The skin test reaction should be read between 48 and 72 hours after administration by a health care worker trained to read TB skin results.",
+            "says": "between 48 and 72 hours"
+          },
+          {
+            "id": "size",
+            "slot": "induration_mm",
+            "op": ">=",
+            "value": 5,
+            "unit": "mm",
+            "quote": "An induration of 5 or more millimeters is considered positive in:",
+            "says": "5 or more millimeters"
+          },
+          {
+            "id": "group",
+            "slot": "tst_group",
+            "op": "anyOf",
+            "quote": "An induration of 5 or more millimeters is considered positive in:",
+            "leadIn": "An induration of 5 or more millimeters is considered positive in:",
+            "values": [
+              "hiv",
+              "recent_contact",
+              "cxr_prior_tb",
+              "organ_transplant",
+              "other_immunosuppressed"
+            ],
+            "items": {
+              "hiv": "People with HIV",
+              "recent_contact": "Recent contacts of people with infectious TB disease",
+              "cxr_prior_tb": "People with chest x-ray findings suggestive of previous TB disease",
+              "organ_transplant": "People with organ transplants",
+              "other_immunosuppressed": "Other immunosuppressed people (e.g., patients on prolonged therapy with corticosteroids equivalent to/greater than 15 mg per day of prednisone or those taking TNF-α antagonists)"
+            }
+          }
+        ],
+        "together": [
+          [
+            "tst",
+            "read_hours",
+            "induration_mm"
+          ]
+        ],
+        "conclusion": {
+          "quote": "An induration of 5 or more millimeters is considered positive in:",
+          "says": "is considered positive",
+          "aliases": [
+            "Positive"
+          ],
+          "asks": [
+            "interpretation of this result",
+            "interpretation of this TB skin test result",
+            "interpretation of the TB skin test"
+          ]
+        },
+        "exclusive": [
+          {
+            "aliases": [
+              "Negative"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "by": "transcriber-b",
+      "at": "2026-10-14",
+      "how": "read again from the pinned snapshot, second pass, written without the first open; both passes are by the same agent session, so not yet independent people",
+      "formal": {
+        "criteria": [
+          {
+            "id": "test",
+            "slot": "tst",
+            "op": "present",
+            "quote": "Classification of TB skin test reactions"
+          },
+          {
+            "id": "read",
+            "slot": "read_hours",
+            "op": "between",
+            "value": [
+              48,
+              72
+            ],
+            "unit": "hours",
+            "quote": "The skin test reaction should be read between 48 and 72 hours after administration by a health care worker trained to read TB skin results.",
+            "says": "between 48 and 72 hours"
+          },
+          {
+            "id": "size",
+            "slot": "induration_mm",
+            "op": ">=",
+            "value": 5,
+            "unit": "mm",
+            "quote": "An induration of 5 or more millimeters is considered positive in:",
+            "says": "5 or more millimeters"
+          },
+          {
+            "id": "group",
+            "slot": "tst_group",
+            "op": "anyOf",
+            "quote": "An induration of 5 or more millimeters is considered positive in:",
+            "leadIn": "An induration of 5 or more millimeters is considered positive in:",
+            "values": [
+              "hiv",
+              "recent_contact",
+              "cxr_prior_tb",
+              "organ_transplant",
+              "other_immunosuppressed"
+            ],
+            "items": {
+              "hiv": "People with HIV",
+              "recent_contact": "Recent contacts of people with infectious TB disease",
+              "cxr_prior_tb": "People with chest x-ray findings suggestive of previous TB disease",
+              "organ_transplant": "People with organ transplants",
+              "other_immunosuppressed": "Other immunosuppressed people (e.g., patients on prolonged therapy with corticosteroids equivalent to/greater than 15 mg per day of prednisone or those taking TNF-α antagonists)"
+            }
+          }
+        ],
+        "together": [
+          [
+            "tst",
+            "read_hours",
+            "induration_mm"
+          ]
+        ],
+        "conclusion": {
+          "quote": "An induration of 5 or more millimeters is considered positive in:",
+          "says": "is considered positive",
+          "aliases": [
+            "Positive"
+          ],
+          "asks": [
+            "interpretation of this result",
+            "interpretation of this TB skin test result",
+            "interpretation of the TB skin test"
+          ]
+        },
+        "exclusive": [
+          {
+            "aliases": [
+              "Negative"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "examples": [
+    {
+      "source": "cdc-tb-core-curriculum-2021",
+      "format": "answer-key",
+      "chapter": 2,
+      "number": 3,
+      "key": "A",
+      "question": "3. For the following groups, what induration size is considered a positive reaction to the tuberculin skin test? (Choose only 1 answer for all 3 groups.)",
+      "option": "A. 5 millimeters or greater",
+      "answer": "Chapter 2: 1. A 2. E 3. A",
+      "givens": [
+        "Recent contacts of a TB case",
+        "HIV-positive persons",
+        "Persons with fibrotic changes on a chest radiograph consistent with prior TB"
+      ],
+      "note": "Each given group at the keyed cut-off, read inside the guideline's own 48 to 72 hour window: 5 mm is positive, 4 mm is not.",
+      "cases": [
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 48
+            },
+            {
+              "slot": "induration_mm",
+              "value": 5
+            },
+            {
+              "slot": "tst_group",
+              "value": "recent_contact"
+            }
+          ],
+          "fires": true
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 72
+            },
+            {
+              "slot": "induration_mm",
+              "value": 5
+            },
+            {
+              "slot": "tst_group",
+              "value": "recent_contact"
+            }
+          ],
+          "fires": true
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 48
+            },
+            {
+              "slot": "induration_mm",
+              "value": 5
+            },
+            {
+              "slot": "tst_group",
+              "value": "hiv"
+            }
+          ],
+          "fires": true
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 72
+            },
+            {
+              "slot": "induration_mm",
+              "value": 5
+            },
+            {
+              "slot": "tst_group",
+              "value": "hiv"
+            }
+          ],
+          "fires": true
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 48
+            },
+            {
+              "slot": "induration_mm",
+              "value": 5
+            },
+            {
+              "slot": "tst_group",
+              "value": "cxr_prior_tb"
+            }
+          ],
+          "fires": true
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 72
+            },
+            {
+              "slot": "induration_mm",
+              "value": 5
+            },
+            {
+              "slot": "tst_group",
+              "value": "cxr_prior_tb"
+            }
+          ],
+          "fires": true
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 72
+            },
+            {
+              "slot": "induration_mm",
+              "value": 4
+            },
+            {
+              "slot": "tst_group",
+              "value": "recent_contact"
+            }
+          ],
+          "fires": false
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 72
+            },
+            {
+              "slot": "induration_mm",
+              "value": 4
+            },
+            {
+              "slot": "tst_group",
+              "value": "hiv"
+            }
+          ],
+          "fires": false
+        },
+        {
+          "facts": [
+            {
+              "slot": "tst",
+              "value": true
+            },
+            {
+              "slot": "read_hours",
+              "value": 72
+            },
+            {
+              "slot": "induration_mm",
+              "value": 4
+            },
+            {
+              "slot": "tst_group",
+              "value": "cxr_prior_tb"
+            }
+          ],
+          "fires": false
+        }
+      ]
+    }
+  ],
+  "signedOffAt": null,
+  "signedOffBy": null,
+  "signedOffHash": null
+}

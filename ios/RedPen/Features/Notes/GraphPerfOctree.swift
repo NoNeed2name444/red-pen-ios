@@ -14,9 +14,9 @@
 //   colour - what a far chunk is drawn as.
 // - Positions go to the GPU as 16-bit numbers inside their leaf's box
 //   (GraphPerfQuantize): 8 bytes a body with its leaf, a million in 8 MB.
-// - Links are listed per leaf (a link between two leaves in both lists, its
-//   home end first), and summed into bundles between the cells of one cut
-//   across the tree (GraphPerfBundles) for far away.
+// - Links are summed into bundles between the cells of one cut across the
+//   tree (GraphPerfBundles) for far away; one note's own links are drawn
+//   only when it is selected, from the slots' adjacency.
 //
 // Foundation only, free of Stethoscore types: tested on Linux
 // (Tests/GraphPerfChunkTests.swift).
@@ -312,55 +312,6 @@ nonisolated enum GraphPerfQuantize {
 
     /// The most a packed position is off by, per axis.
     static func error(lo: SIMD3<Float>, hi: SIMD3<Float>) -> SIMD3<Float> { (hi - lo) / steps * 0.5 }
-}
-
-/// Every link listed under each leaf it touches, home end first: a leaf
-/// drawn in full draws its own list, so a link out of it reaches into its
-/// neighbour whatever that neighbour shows. A link between two leaves both
-/// drawn in full is drawn once (from the lower leaf; the shader folds the
-/// other copy to nothing).
-nonisolated struct GraphPerfLeafLinks: Sendable {
-    /// Per leaf: its entries are start[l] ..< start[l + 1].
-    let start: [Int32]
-    /// Per entry: home slot, other slot.
-    let pairs: [UInt32]
-
-    var entryCount: Int { pairs.count / 2 }
-    func count(_ leaf: Int) -> Int { Int(start[leaf + 1] - start[leaf]) }
-
-    /// From links as body pairs (a[k], b[k]); a link to itself or out of
-    /// range is left out.
-    init(octree t: GraphPerfOctree, a: [Int32], b: [Int32]) {
-        let leaves = t.leafCount
-        let n = t.bodyCount
-        var counts = [Int32](repeating: 0, count: leaves + 1)
-        let m = min(a.count, b.count)
-        func ok(_ k: Int) -> Bool {
-            a[k] >= 0 && b[k] >= 0 && Int(a[k]) < n && Int(b[k]) < n && a[k] != b[k]
-        }
-        for k in 0..<m where ok(k) {
-            let la = t.leaf(ofSlot: Int(t.slotOf[Int(a[k])]))
-            let lb = t.leaf(ofSlot: Int(t.slotOf[Int(b[k])]))
-            counts[la] += 1
-            if lb != la { counts[lb] += 1 }
-        }
-        var s = [Int32](repeating: 0, count: leaves + 1)
-        for l in 0..<leaves { s[l + 1] = s[l] + counts[l] }
-        var fill = Array(s[0..<leaves])
-        var out = [UInt32](repeating: 0, count: 2 * Int(s[leaves]))
-        for k in 0..<m where ok(k) {
-            let sa = Int(t.slotOf[Int(a[k])]), sb = Int(t.slotOf[Int(b[k])])
-            let la = t.leaf(ofSlot: sa), lb = t.leaf(ofSlot: sb)
-            var at = Int(fill[la]); fill[la] += 1
-            out[2 * at] = UInt32(sa); out[2 * at + 1] = UInt32(sb)
-            if lb != la {
-                at = Int(fill[lb]); fill[lb] += 1
-                out[2 * at] = UInt32(sb); out[2 * at + 1] = UInt32(sa)
-            }
-        }
-        start = s
-        pairs = out
-    }
 }
 
 /// Far links as bundles: one cut across the octree (the biggest cells

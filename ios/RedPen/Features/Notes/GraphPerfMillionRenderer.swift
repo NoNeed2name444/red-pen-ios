@@ -1,31 +1,39 @@
-// The million map's Metal renderer (plans 4b, 4c, 4e): a million bodies and
-// their links at the screen's own rate.
+// The million map's Metal renderer (plans 4b, 4c, 4e, 4f): a million bodies
+// at the screen's own rate, crisp near the camera's focus and dissolving
+// into the ground with depth.
 //
 // - Everything coarse stays on the GPU for the whole session (about 40 MB
 //   for a million): every body's 16-bit position with its leaf, its seed,
 //   colour and size, each leaf's box, the links' adjacency, and the bundles.
 //   "Loading" is only choosing detail: no disk, no waiting.
 // - Each frame is planned from the octree's few thousand cells, never the
-//   million bodies (GraphPerfChunkPlanner: culling, morphs, the guard band),
-//   on a planning thread a frame ahead (GraphPerfPlanAhead), so the plan is
-//   off the main thread's frame even in an unoptimised Playgrounds build.
-// - Links, bundles and summary glows add up as light in a half-float
-//   texture; the screen shows it through a tone curve whose exposure follows
-//   the picture's own 97th percentile (GraphPerfExposure), and the notes are
-//   drawn over it in their own colours, so crowded light reads as structure
-//   and notes stay shapes. A 64 x 64 grid measured on the GPU feeds the
-//   exposure and the readout's share of the screen at 250+.
-// - Leaves about to open, nearest first and ahead of the camera's motion,
-//   are prepared within the frame's budget (GraphPerfStreamer): their links
-//   copied into a fixed pool of pages (GraphPerfChunkCache, least recently
-//   used first out) and the leaf laid out by the GPU (mil_layout) in the
-//   same command buffer, before it is drawn.
-// - The frame budget (GraphPerfFrameBudget) reads each frame's CPU time and,
-//   when the GPU reports them, the GPU times of its stages (near: notes and
-//   links, with the screen pass; far: bundles and glows), and trims
-//   the stage that took the time - the split for the near one, the bundles
-//   drawn (lightest first) for the far one - never the frame rate, which is
-//   the screen's own.
+//   million bodies (GraphPerfChunkPlanner: culling, morphs, depth shells,
+//   the guard band), on a planning thread a frame ahead (GraphPerfPlanAhead),
+//   so the plan is off the main thread's frame even in an unoptimised
+//   Playgrounds build.
+// - The depth fade (GraphPerfDepthBand, docs/design/depth-fade.md): the
+//   band follows the camera's focus, set by the Graphics level and pulled
+//   in by the frame budget; past its end nothing is drawn, and detail drops
+//   only where a cell is already mostly faded.
+// - Bundles and summary glows add up as light in a half-float texture at a
+//   quarter of the pixels; the screen shows it through a tone curve whose
+//   exposure follows the picture's own 97th percentile (GraphPerfExposure),
+//   and the notes are drawn over it in their own colours, so crowded light
+//   reads as structure and notes stay shapes. A 64 x 64 grid measured on the
+//   GPU feeds the exposure and the readout's share of the screen at 250+.
+// - Links are hidden; choosing a note draws its own (from the adjacency),
+//   growing out to its neighbours while the rest steps back
+//   (GraphPerfFocusMotion), and its neighbourhood's leaves come to full
+//   detail first (D4).
+// - Leaves about to open, the crisp and big first, are prepared within the
+//   frame's budget (GraphPerfStreamer): laid out by the GPU (mil_layout) in
+//   the same command buffer, before they are drawn.
+// - The frame budget (GraphPerfFrameBudget) reads each frame's CPU time and
+//   the GPU times of its stages (near: layout, notes, the screen pass; far:
+//   bundles and glows) - from the GPU's own timestamps, or the wall clock
+//   where they are missing (the simulator) - and trims the stage that took
+//   the time (the split and the depth band for the near one, the bundles
+//   drawn for the far one), never the frame rate, which is the screen's own.
 //
 // Free of Stethoscore types: GraphPerfMapView drives it.
 #if canImport(Metal) && canImport(MetalKit) && canImport(UIKit)
@@ -74,71 +82,81 @@ final class GraphPerfGPUClock: @unchecked Sendable {
 }
 
 /// The GPU's time for each stage of a frame, each its own command buffer:
-/// the near stage (layout, the notes' depth, links) and the far stage
-/// (bundles, glows) add light; the screen stage tone-maps it and draws the
-/// notes over it. The screen stage scales with the notes drawn, so it counts
-/// as near. When a frame's screen stage is done, its near and far go to the
-/// lists and their sum to `total`.
+/// the near stage (layout, notes) and the far stage (bundles, glows), and
+/// the screen stage (tone-mapping the light, the notes over it), which
+/// counts as near. Taken from the GPU's own timestamps while they are
+/// believable, else from the wall clock (GraphPerfWallStages): the
+/// simulator reports about 0, and a budget blind to the GPU would never
+/// trim it.
 final class GraphPerfStageClock: @unchecked Sendable {
+    /// One frame's three command buffers.
+    final class Frame: @unchecked Sendable {
+        var commitNear: Double = 0
+        var gpu = SIMD3<Double>(0, 0, 0)
+        var done = SIMD3<Double>(0, 0, 0)
+        var finished = 0
+    }
+
     private let lock = NSLock()
     private var nearTimes: [Double] = []
     private var farTimes: [Double] = []
     private var latestNear: Double?
     private var latestFar: Double?
-    private var pendingNear: Double = 0
-    private var pendingFar: Double = 0
+    private var lastDone: Double = 0
+    /// Whether the last frame's times came from the wall clock.
+    private(set) var fromWall = false
     private let total: GraphPerfGPUClock
 
     init(total: GraphPerfGPUClock) {
         self.total = total
     }
 
-    private func usable(_ seconds: Double) -> Double? {
-        seconds.isFinite && seconds >= 0 && seconds < 1 ? seconds : nil
+    private static func usable(_ seconds: Double) -> Double {
+        seconds.isFinite && seconds >= 0 && seconds < 1 ? seconds : 0
     }
 
-    private func add(near seconds: Double) {
+    /// Times the frame's three command buffers (call before committing them).
+    func time(near: MTLCommandBuffer, far: MTLCommandBuffer, screen: MTLCommandBuffer) -> Frame {
+        let frame = Frame()
+        for (k, commands) in [near, far, screen].enumerated() {
+            commands.addCompletedHandler { [self] done in
+                let now = CACurrentMediaTime()
+                self.finish(frame, stage: k, gpu: Self.usable(done.gpuEndTime - done.gpuStartTime), at: now)
+            }
+        }
+        return frame
+    }
+
+    /// The near stage was committed (host time).
+    func committed(_ frame: Frame) {
         lock.lock()
-        pendingNear = usable(seconds) ?? 0
+        frame.commitNear = CACurrentMediaTime()
         lock.unlock()
     }
 
-    private func add(far seconds: Double) {
+    private func finish(_ frame: Frame, stage: Int, gpu: Double, at now: Double) {
         lock.lock()
-        pendingFar = usable(seconds) ?? 0
-        lock.unlock()
-    }
-
-    private func add(screen seconds: Double) {
-        lock.lock()
-        let near = pendingNear + (usable(seconds) ?? 0)
-        let far = pendingFar
+        frame.gpu[stage] = gpu
+        frame.done[stage] = now
+        frame.finished += 1
+        guard frame.finished == 3 else {
+            lock.unlock()
+            return
+        }
+        let wall = GraphPerfWallStages.stages(commitA: frame.commitNear, doneA: frame.done.x, doneB: frame.done.y,
+                                              doneC: frame.done.z, lastDoneC: lastDone)
+        lastDone = max(lastDone, frame.done.z)
+        let own = (near: frame.gpu.x + frame.gpu.z, far: frame.gpu.y)
+        let useWall = !GraphPerfWallStages.gpuTimesUsable(gpu: own.near + own.far, wall: wall.near + wall.far)
+        let near = useWall ? min(wall.near, 0.25) : own.near
+        let far = useWall ? min(wall.far, 0.25) : own.far
+        fromWall = useWall
         nearTimes.append(near)
         farTimes.append(far)
         latestNear = near
         latestFar = far
-        pendingNear = 0
-        pendingFar = 0
         lock.unlock()
         total.add(near + far)
-    }
-
-    func timeNear(_ commands: MTLCommandBuffer) {
-        commands.addCompletedHandler { [self] done in
-            self.add(near: done.gpuEndTime - done.gpuStartTime)
-        }
-    }
-
-    func timeFar(_ commands: MTLCommandBuffer) {
-        commands.addCompletedHandler { [self] done in
-            self.add(far: done.gpuEndTime - done.gpuStartTime)
-        }
-    }
-
-    func timeScreen(_ commands: MTLCommandBuffer) {
-        commands.addCompletedHandler { [self] done in
-            self.add(screen: done.gpuEndTime - done.gpuStartTime)
-        }
     }
 
     /// The last frame's two stages (nil until a frame has reported).
@@ -164,16 +182,22 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     static let slotCount: Int = 3
     /// The light's format: half floats, so light adds up past 1 without clipping.
     static let lightFormat: MTLPixelFormat = .rgba16Float
+    /// Leaves laid out in one frame at most (the jobs buffer's size).
+    static let maxJobs = 256
+    /// Seconds for the budget's depth band and bundle count to cover most
+    /// (63%) of a change: the fade's edge and the bundles move, never jump.
+    static let pullSeconds: Float = 0.4
+    static let bundleSeconds: Float = 0.2
 
     let device: MTLDevice
     private let queue: MTLCommandQueue
     /// Notes in their own colours, on the screen.
     private let nodePipeline: MTLRenderPipelineState
     private let chosenPipeline: MTLRenderPipelineState
-    /// Notes' depth only, in the light pass, so links behind a note are hidden.
-    private let nodeDepthPipeline: MTLRenderPipelineState
-    /// Light: links, bundles and glows add into the light texture.
-    private let linkPipeline: MTLRenderPipelineState
+    /// The chosen note's links and neighbours, over the rest.
+    private let focusLinkPipeline: MTLRenderPipelineState
+    private let focusNodePipeline: MTLRenderPipelineState
+    /// Light: bundles and glows add into the light texture.
     private let bundlePipeline: MTLRenderPipelineState
     private let summaryPipeline: MTLRenderPipelineState
     /// The tone curve, light to screen.
@@ -181,7 +205,6 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     private let layoutPipeline: MTLComputePipelineState
     private let measurePipeline: MTLComputePipelineState
     private let solidDepth: MTLDepthStencilState
-    private let glassDepth: MTLDepthStencilState
     private let overDepth: MTLDepthStencilState
     private let inFlight = DispatchSemaphore(value: GraphPerfMillionRenderer.slotCount)
     private let gpuClock = GraphPerfGPUClock()
@@ -191,16 +214,13 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     private(set) var map: GraphPerfMillionMap?
     private var statics: GraphPerfMillionStatics?
     private var slots: [GraphPerfMillionSlot] = []
-    /// The planner and the cache, mutated in place each frame (between
-    /// frames by the planning thread).
+    /// The planner, mutated in place each frame (between frames by the planning thread).
     private var state: GraphPerfMillionState?
     private var streamer = GraphPerfStreamer()
     private(set) var budget: GraphPerfFrameBudget
     private var exposure = GraphPerfExposure()
     private var light: MTLTexture?
-    private var lightDepth: MTLTexture?
     private var frameNumber: Int = 0
-    private let linkPages: Int
 
     // what the map view sets
     var camera = GraphPerfCamera()
@@ -208,6 +228,11 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         didSet { if tier != oldValue { budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier, warmUp: GraphPerfFrameBudget.warmUp) } }
     }
     var bold: Bool = false
+    /// Increase Contrast: the depth fade starts later and stops short of the ground.
+    var contrast: Bool = false
+    /// The depth fade on (off only for the before-and-after numbers).
+    var depthFade: Bool = true
+    var reduceMotion: Bool = false
     var selected: Int?
     var focus: Int?
     var screenFPS: Int = 60 {
@@ -215,6 +240,21 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     }
     var beforeFrame: ((Double) -> Void)?
     var onStats: ((GraphPerfStats) -> Void)?
+    /// Every drawn frame's numbers (the proof tour's).
+    var onFrame: ((GraphPerfFrameReport) -> Void)?
+
+    // the selection's motion, and the depth band and bundles as eased
+    private var focusMotion = GraphPerfFocusMotion()
+    private var focusSlot: Int?
+    private var focusReach: Float = 1
+    private var focusReachSlot: Int?
+    private var pull: Float = 1
+    private var bundlesShown: Float = -1
+    /// Cells moving to their shell's detail, cells or leaves still
+    /// morphing, and leaves laid out this frame: more frames are needed.
+    private var ramping = 0
+    private var morphing = 0
+    private var streaming = false
 
     // motion for the guard band, pacing and the readout
     private var lastCamera: GraphPerfCamera?
@@ -223,12 +263,14 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     private var lastMeasure: CFTimeInterval = 0
     private var startTime: CFTimeInterval = CACurrentMediaTime()
     private var intervals: [Double] = []
-    /// The last 3 s of frame intervals, for the readout's median and 5th percentile.
+    /// The last 3 s of frame intervals, for the readout's median, 5th percentile and 1% low.
     private var recentIntervals: [Double] = []
     private var cpuTimes: [Double] = []
     private var planTimes: [Double] = []
     private var saturations: [Double] = []
     private var drawnBundles: Int = 0
+    private var drawCalls: Int = 0
+    private var memoryPeak: Int = 0
     private var statsTime: CFTimeInterval = 0
 
     init?(view: MTKView) {
@@ -243,8 +285,9 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         }
         let screenFormat: MTLPixelFormat = view.colorPixelFormat
         let depthFormat: MTLPixelFormat = view.depthStencilPixelFormat
-        func pipeline(_ vertex: String, _ fragment: String, format: MTLPixelFormat, additive: Bool,
-                      colour writes: Bool = true) -> MTLRenderPipelineState? {
+        enum Blend { case none, additive, over }
+        func pipeline(_ vertex: String, _ fragment: String, format: MTLPixelFormat, blend: Blend,
+                      onScreen: Bool) -> MTLRenderPipelineState? {
             let d = MTLRenderPipelineDescriptor()
             guard let v = library.makeFunction(name: vertex), let f = library.makeFunction(name: fragment) else {
                 NSLog("GraphPerfMillion: no function %@ or %@", vertex, fragment)
@@ -252,12 +295,16 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             }
             d.vertexFunction = v
             d.fragmentFunction = f
-            d.depthAttachmentPixelFormat = depthFormat
-            d.rasterSampleCount = view.sampleCount
+            // the light pass has no depth: glows and bundles add up, and the
+            // notes, drawn opaque over the light, hide what is behind them
+            d.depthAttachmentPixelFormat = onScreen ? depthFormat : .invalid
+            d.rasterSampleCount = onScreen ? view.sampleCount : 1
             guard let colour = d.colorAttachments[0] else { return nil }
             colour.pixelFormat = format
-            if !writes { colour.writeMask = [] }
-            if additive {
+            switch blend {
+            case .none:
+                break
+            case .additive:
                 colour.isBlendingEnabled = true
                 colour.rgbBlendOperation = .add
                 colour.alphaBlendOperation = .add
@@ -265,6 +312,15 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
                 colour.destinationRGBBlendFactor = .one
                 colour.sourceAlphaBlendFactor = .zero
                 colour.destinationAlphaBlendFactor = .one
+            case .over:
+                // premultiplied: the focus links' smooth edges
+                colour.isBlendingEnabled = true
+                colour.rgbBlendOperation = .add
+                colour.alphaBlendOperation = .add
+                colour.sourceRGBBlendFactor = .one
+                colour.destinationRGBBlendFactor = .oneMinusSourceAlpha
+                colour.sourceAlphaBlendFactor = .one
+                colour.destinationAlphaBlendFactor = .oneMinusSourceAlpha
             }
             do {
                 return try device.makeRenderPipelineState(descriptor: d)
@@ -284,18 +340,23 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             return device.makeDepthStencilState(descriptor: d)
         }
         let lightFormat = Self.lightFormat
-        guard let node = pipeline("mil_node_vertex", "mil_node_fragment", format: screenFormat, additive: false),
-              let chosen = pipeline("mil_chosen_vertex", "mil_node_fragment", format: screenFormat, additive: false),
-              let nodeDepth = pipeline("mil_node_vertex", "mil_node_fragment", format: lightFormat, additive: false,
-                                       colour: false),
-              let link = pipeline("mil_link_vertex", "mil_line_fragment", format: lightFormat, additive: true),
-              let bundle = pipeline("mil_bundle_vertex", "mil_line_fragment", format: lightFormat, additive: true),
-              let summary = pipeline("mil_summary_vertex", "mil_summary_fragment", format: lightFormat, additive: true),
-              let resolve = pipeline("mil_resolve_vertex", "mil_resolve_fragment", format: screenFormat, additive: false),
+        guard let node = pipeline("mil_node_vertex", "mil_node_fragment", format: screenFormat, blend: .none,
+                                  onScreen: true),
+              let chosen = pipeline("mil_chosen_vertex", "mil_node_fragment", format: screenFormat, blend: .none,
+                                    onScreen: true),
+              let focusLink = pipeline("mil_focus_link_vertex", "mil_focus_link_fragment", format: screenFormat,
+                                       blend: .over, onScreen: true),
+              let focusNode = pipeline("mil_focus_node_vertex", "mil_node_fragment", format: screenFormat,
+                                       blend: .none, onScreen: true),
+              let bundle = pipeline("mil_bundle_vertex", "mil_line_fragment", format: lightFormat, blend: .additive,
+                                    onScreen: false),
+              let summary = pipeline("mil_summary_vertex", "mil_summary_fragment", format: lightFormat,
+                                     blend: .additive, onScreen: false),
+              let resolve = pipeline("mil_resolve_vertex", "mil_resolve_fragment", format: screenFormat, blend: .none,
+                                     onScreen: true),
               let layout = compute("mil_layout"),
               let measure = compute("mil_measure"),
               let solid = depth(.less, write: true),
-              let glass = depth(.lessEqual, write: false),
               let over = depth(.always, write: false) else {
             return nil
         }
@@ -303,17 +364,15 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         self.queue = queue
         nodePipeline = node
         chosenPipeline = chosen
-        nodeDepthPipeline = nodeDepth
-        linkPipeline = link
+        focusLinkPipeline = focusLink
+        focusNodePipeline = focusNode
         bundlePipeline = bundle
         summaryPipeline = summary
         resolvePipeline = resolve
         layoutPipeline = layout
         measurePipeline = measure
         solidDepth = solid
-        glassDepth = glass
         overDepth = over
-        linkPages = GraphPerfMemoryBudget.linkPages(physicalMemory: ProcessInfo.processInfo.physicalMemory)
         budget = GraphPerfFrameBudget(screenFPS: 60)
         super.init()
     }
@@ -322,10 +381,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
 
     /// Shows a newly built million map: its buffers once, for the session.
     func load(_ next: GraphPerfMillionMap) {
-        guard let made = GraphPerfMillionStatics(device: device, map: next, linkPages: linkPages) else { return }
+        guard let made = GraphPerfMillionStatics(device: device, map: next) else { return }
         var fresh: [GraphPerfMillionSlot] = []
         for _ in 0..<Self.slotCount {
-            guard let slot = GraphPerfMillionSlot(device: device, map: next, linkPages: linkPages) else { return }
+            guard let slot = GraphPerfMillionSlot(device: device, map: next) else { return }
             fresh.append(slot)
         }
         // the plan being made and the frames still on the GPU finish with the old map first
@@ -334,20 +393,26 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         map = next
         statics = made
         slots = fresh
-        state = GraphPerfMillionState(
-            planner: GraphPerfChunkPlanner(octree: next.octree, bundles: next.bundles),
-            cache: GraphPerfChunkCache(leaves: next.octree.leafCount, pageCount: linkPages,
-                                       pageSize: GraphPerfMillionShaders.pageSize))
+        state = GraphPerfMillionState(planner: GraphPerfChunkPlanner(octree: next.octree, bundles: next.bundles))
         budget = GraphPerfFrameBudget(screenFPS: screenFPS, tier: tier, warmUp: GraphPerfFrameBudget.warmUp)
         exposure = GraphPerfExposure()
         selected = nil
         focus = nil
+        focusMotion = GraphPerfFocusMotion()
+        focusSlot = nil
+        focusReachSlot = nil
+        pull = 1
+        bundlesShown = -1
         for _ in 0..<Self.slotCount { inFlight.signal() }
     }
 
     // MARK: - GraphPerfEngine
 
-    var isSettling: Bool { false }
+    /// Frames are still needed while a shell's detail, a leaf's morph or
+    /// the selection is moving.
+    var isSettling: Bool {
+        ramping > 0 || morphing > 0 || streaming || focusMotion.isMoving(towards: chosenSlot)
+    }
 
     var mapBounds: GraphPerfEngineBounds? {
         guard let map else { return nil }
@@ -355,7 +420,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
                                      bodies: map.bodyCount)
     }
 
-    func position(_ i: Int) -> SIMD3<Float>? { map?.position(i) }
+    func position(_ i: Int) -> SIMD3<Float>? {
+        guard let map, let s = map.slot(ofBody: i) else { return nil }
+        return laidOut(s) ?? map.position(i)
+    }
 
     func clusterBall(_ s: Int) -> SIMD4<Float>? { map?.cellBall(s) }
 
@@ -363,11 +431,24 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
 
     func setMask(_ mask: [Bool]?) {}
 
+    /// The depth band in force (the Graphics level's, or Increase Contrast's).
+    var band: GraphPerfDepthBand { GraphPerfDepthBand.of(tier, contrast: contrast) }
+
+    /// A slot where the GPU layout put it (the shared buffer's numbers).
+    private func laidOut(_ s: Int) -> SIMD3<Float>? {
+        guard let map, let statics, s >= 0 && s < map.bodyCount else { return nil }
+        let packed = statics.packed.contents().assumingMemoryBound(to: UInt16.self)
+        return GraphPerfMillionMap.unpack(UnsafePointer(packed), slot: s, boxes: map.leafBoxes)
+    }
+
     func pick(_ point: CGPoint, reach: Float, width: Float, height: Float) -> GraphPerfHit? {
-        guard let map, let state else { return nil }
+        guard let map, let statics, let state else { return nil }
         planAhead.wait()
-        return map.pick(x: Float(point.x), y: Float(point.y), reach: reach, frame: state.planner.frame, camera: camera,
-                        width: width, height: height)
+        let packed = UnsafePointer(statics.packed.contents().assumingMemoryBound(to: UInt16.self))
+        let boxes = map.leafBoxes
+        return map.pick(x: Float(point.x), y: Float(point.y), reach: reach, frame: state.planner.frame,
+                        camera: camera, width: width, height: height, focus: focusMotion.shown,
+                        at: { GraphPerfMillionMap.unpack(packed, slot: $0, boxes: boxes) })
     }
 
     /// Forget the frame clock (the view paused and comes back).
@@ -380,27 +461,39 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         statsTime = 0
     }
 
+    /// The chosen note's slot.
+    private var chosenSlot: Int? {
+        guard let map, let selected else { return nil }
+        return map.slot(ofBody: selected)
+    }
+
     // MARK: - MTKViewDelegate
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
-    /// The light texture and its depth, `lightScale` of the drawable a side.
-    private func lightTargets(width: Int, height: Int, depthFormat: MTLPixelFormat) -> (MTLTexture, MTLTexture)? {
+    /// The light texture, `lightScale` of the drawable a side.
+    private func lightTarget(width: Int, height: Int) -> MTLTexture? {
         let w = max(Int((Float(width) * GraphPerfMillionShaders.lightScale).rounded(.up)), 1)
         let h = max(Int((Float(height) * GraphPerfMillionShaders.lightScale).rounded(.up)), 1)
-        if let light, let lightDepth, light.width == w, light.height == h { return (light, lightDepth) }
+        if let light, light.width == w, light.height == h { return light }
         let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: Self.lightFormat, width: w, height: h,
                                                          mipmapped: false)
         d.usage = [.renderTarget, .shaderRead]
         d.storageMode = .private
-        let z = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: depthFormat, width: w, height: h,
-                                                         mipmapped: false)
-        z.usage = [.renderTarget]
-        z.storageMode = .private
         light = device.makeTexture(descriptor: d)
-        lightDepth = device.makeTexture(descriptor: z)
-        guard let light, let lightDepth else { return nil }
-        return (light, lightDepth)
+        return light
+    }
+
+    /// The longest of a slot's drawn links (world), the focus's reach.
+    private func reach(of s: Int, map: GraphPerfMillionMap) -> Float {
+        guard let from = laidOut(s) else { return 1 }
+        var longest: Float = 0
+        for n in map.neighbours(ofSlot: s).prefix(GraphPerfFocusLook.most) {
+            guard let to = laidOut(Int(n)) else { continue }
+            let d = to - from
+            longest = max(longest, (d * d).sum().squareRoot())
+        }
+        return max(longest, map.spacing * 0.1)
     }
 
     func draw(in view: MTKView) {
@@ -425,16 +518,20 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         let started: CFTimeInterval = CACurrentMediaTime()
         let size: CGSize = view.bounds.size
         let width = Float(max(size.width, 1)), height = Float(max(size.height, 1))
+        let seconds = Float(step)
 
         // where the view is heading, for the guard band (smoothed)
         if let last = lastCamera {
-            let raw = GraphPerfGuardBand.motion(from: last, to: camera, seconds: Float(step), aspect: width / height)
+            let raw = GraphPerfGuardBand.motion(from: last, to: camera, seconds: seconds, aspect: width / height)
             motion = motion * 0.6 + raw * 0.4
         }
         lastCamera = camera
+        // the depth band: the Graphics level's, as far as the budget allows (eased)
+        pull += (budget.pull - pull) * (1 - exp(-seconds / Self.pullSeconds))
+        if abs(pull - budget.pull) < 1e-3 { pull = budget.pull }
         let range = camera.depthRange(centre: map.centre, radius: map.radius)
         let here = GraphPerfChunkView(camera: camera, width: width, height: height, near: range.near, far: range.far,
-                                      motion: motion)
+                                      motion: motion, band: depthFade ? band : nil, pull: pull)
 
         // plan: the one made a frame ahead on the planning thread (from the
         // last frame's view; the guard band covers the motion), or now
@@ -445,24 +542,41 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             planned = ahead.seconds
         } else {
             let planStart: CFTimeInterval = CACurrentMediaTime()
-            state.planner.advance(seconds: Float(step))
+            state.planner.advance(seconds: seconds)
             frame = state.planner.plan(here, settings: budget.settings)
             planned = CACurrentMediaTime() - planStart
         }
         let planWait: Double = planAhead.waited
+        ramping = frame.ramping
+        morphing = frame.morphing
 
-        // stream: the wanted leaves, nearest first, within the budget
+        // the selection: its neighbourhood's leaves at full detail, first
+        // in the queue (D4); its links grow while the rest steps back
+        let chosen = chosenSlot
+        if chosen != focusSlot {
+            focusSlot = chosen
+            state.planner.setFocus(leaves: chosen.map { map.focusLeaves(ofSlot: $0) } ?? [])
+        }
+        focusMotion.step(towards: chosen, seconds: seconds, reduceMotion: reduceMotion)
+        let shown = focusMotion.shown
+        if let shown, shown != focusReachSlot {
+            focusReachSlot = shown
+            focusReach = reach(of: shown, map: map)
+        }
+        let focusLinks = shown.map { min(map.degree(ofSlot: $0), GraphPerfFocusLook.most) } ?? 0
+        let drawnFocus = GraphPerfMillionShaders.Focus(slot: shown, links: focusLinks, grow: focusMotion.grow,
+                                                       reach: focusReach, dim: focusMotion.dim)
+
+        // stream: the wanted leaves, the selection's and then the crisp and
+        // big first, within the budget
         frameNumber += 1
-        streamer.linkBudget = budget.linkBudget
         streamer.bodyBudget = budget.bodyBudget
         let octree = map.octree
-        let streamed = streamer.plan(wanted: frame.wanted, cache: &state.cache, links: map.links,
-                                     bodies: { Int(octree.cells[Int(octree.leafCell[$0])].count) }, frame: frameNumber)
-        for gone in streamed.evicted { state.planner.setPrepared(gone, false) }
-        for job in streamed.jobs {
-            statics.write(links: map.links, leaf: job.leaf, pages: job.pages)
-            state.planner.setPrepared(job.leaf, true)
-        }
+        var jobs = streamer.plan(wanted: frame.wanted, isPrepared: { state.planner.isPrepared($0) },
+                                 bodies: { Int(octree.cells[Int(octree.leafCell[$0])].count) })
+        if jobs.count > Self.maxJobs { jobs.removeLast(jobs.count - Self.maxJobs) }
+        for leaf in jobs { state.planner.setPrepared(leaf, true) }
+        streaming = !jobs.isEmpty
 
         // this slot, once the GPU is done with it; what it measured sets the exposure
         let waitStart: CFTimeInterval = CACurrentMediaTime()
@@ -479,21 +593,20 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             if exposure.saturated >= 0 { saturations.append(exposure.saturated) }
             slot.measured = false
         }
-        // single links only for the selected note (the map shows as glows
-        // and its strongest bundles)
-        let chosenSlot: Int? = selected.flatMap { $0 >= 0 && $0 < map.bodyCount ? Int(octree.slotOf[$0]) : nil }
-        let linked = GraphPerfLinkFocus.leaves(drawLeaves: frame.drawLeaves,
-                                               chosenLeaf: chosenSlot.map { octree.leaf(ofSlot: $0) })
-        let (pageCount, linkEntries) = slot.write(frame, linked: linked, cache: state.cache, links: map.links)
+        slot.write(frame)
+        let jobCount = slot.writeJobs(jobs, octree: octree)
 
         guard let commands = queue.makeCommandBuffer() else {
             inFlight.signal()
             return
         }
+        var calls = 0
 
-        // the GPU layout of the leaves prepared this frame, before they are drawn
-        if !streamed.jobs.isEmpty, let compute = commands.makeComputeCommandEncoder() {
+        // the GPU layout of the leaves prepared this frame, before they are
+        // drawn: one dispatch a step over all of them
+        if jobCount.jobs > 0, let compute = commands.makeComputeCommandEncoder() {
             compute.setComputePipelineState(layoutPipeline)
+            compute.setBuffer(slot.jobs, offset: 0, index: GraphPerfMillionShaders.LayoutSlot.jobs)
             compute.setBuffer(statics.packed, offset: 0, index: GraphPerfMillionShaders.LayoutSlot.packed)
             compute.setBuffer(statics.seed, offset: 0, index: GraphPerfMillionShaders.LayoutSlot.seed)
             compute.setBuffer(statics.boxes, offset: 0, index: GraphPerfMillionShaders.LayoutSlot.boxes)
@@ -504,18 +617,15 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
                                       GraphPerfMillionShaders.layoutReach * map.spacing, 0)
             compute.setBytes(&params, length: MemoryLayout<SIMD4<Float>>.stride,
                              index: GraphPerfMillionShaders.LayoutSlot.params)
+            var count = SIMD2<UInt32>(UInt32(jobCount.jobs), UInt32(jobCount.threads))
+            compute.setBytes(&count, length: MemoryLayout<SIMD2<UInt32>>.stride,
+                             index: GraphPerfMillionShaders.LayoutSlot.count)
             let wide = min(layoutPipeline.maxTotalThreadsPerThreadgroup, 64)
+            let groups = (jobCount.threads + wide - 1) / wide
             for _ in 0..<GraphPerfMillionShaders.layoutSteps {
-                for job in streamed.jobs {
-                    let cell = octree.cells[Int(octree.leafCell[job.leaf])]
-                    guard cell.count > 0 else { continue }
-                    var spec = SIMD4<UInt32>(UInt32(cell.first), UInt32(cell.count), UInt32(job.leaf), 0)
-                    compute.setBytes(&spec, length: MemoryLayout<SIMD4<UInt32>>.stride,
-                                     index: GraphPerfMillionShaders.LayoutSlot.job)
-                    let groups = (Int(cell.count) + wide - 1) / wide
-                    compute.dispatchThreadgroups(MTLSize(width: groups, height: 1, depth: 1),
-                                                 threadsPerThreadgroup: MTLSize(width: wide, height: 1, depth: 1))
-                }
+                compute.dispatchThreadgroups(MTLSize(width: groups, height: 1, depth: 1),
+                                             threadsPerThreadgroup: MTLSize(width: wide, height: 1, depth: 1))
+                calls += 1
             }
             compute.endEncoding()
         }
@@ -528,57 +638,36 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         let drawableWait: CFTimeInterval = CACurrentMediaTime() - drawableStart
         let done: DispatchSemaphore = inFlight
         guard let screenPass = passOrNil, let drawable = drawableOrNil,
-              let targets = lightTargets(width: drawable.texture.width, height: drawable.texture.height,
-                                         depthFormat: view.depthStencilPixelFormat),
+              let lightTexture = lightTarget(width: drawable.texture.width, height: drawable.texture.height),
               let farCommands = queue.makeCommandBuffer(),
               let screenCommands = queue.makeCommandBuffer() else {
             commands.addCompletedHandler { _ in done.signal() }
             commands.commit()
             return
         }
+        let timing = stageClock.time(near: commands, far: farCommands, screen: screenCommands)
 
-        // three passes, each its own command buffer so the GPU times each
-        // stage: near (the notes' depth, links: what the split opens) and
-        // far (bundles, glows: what the bundle share trims) add light into
-        // the half-float texture; the screen pass tone-maps it and draws the
-        // notes over it in their own colours
-        let (lightTexture, depthTexture) = targets
-        let nearPass = MTLRenderPassDescriptor()
-        nearPass.colorAttachments[0].texture = lightTexture
-        nearPass.colorAttachments[0].loadAction = .clear
-        nearPass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
-        nearPass.colorAttachments[0].storeAction = .store
-        nearPass.depthAttachment.texture = depthTexture
-        nearPass.depthAttachment.loadAction = .clear
-        nearPass.depthAttachment.clearDepth = 1
-        nearPass.depthAttachment.storeAction = .store
-        let farPass = MTLRenderPassDescriptor()
-        farPass.colorAttachments[0].texture = lightTexture
-        farPass.colorAttachments[0].loadAction = .load
-        farPass.colorAttachments[0].storeAction = .store
-        farPass.depthAttachment.texture = depthTexture
-        farPass.depthAttachment.loadAction = .load
-        farPass.depthAttachment.storeAction = .dontCare
-        // the screen: every pixel is the resolve's, then the notes on a fresh depth
-        screenPass.colorAttachments[0].loadAction = .dontCare
-        screenPass.colorAttachments[0].storeAction = .store
-        screenPass.depthAttachment.loadAction = .clear
-        screenPass.depthAttachment.clearDepth = 1
-        screenPass.depthAttachment.storeAction = .dontCare
-        guard let encoder = commands.makeRenderCommandEncoder(descriptor: nearPass) else {
-            commands.addCompletedHandler { _ in done.signal() }
-            commands.commit()
-            return
-        }
+        // the bundles drawn: the budget's count, eased, the last few narrowing away
+        let bundleCount = min(statics.bundleCount, GraphPerfMillionShaders.bundleCap)
+        let bundleTarget = Float(budget.bundleLimit(bundleCount))
+        if bundlesShown < 0 { bundlesShown = bundleTarget }
+        bundlesShown += (bundleTarget - bundlesShown) * (1 - exp(-seconds / Self.bundleSeconds))
+        if abs(bundlesShown - bundleTarget) < 0.05 { bundlesShown = bundleTarget }
+        let bundleRamp = GraphPerfMillionShaders.bundleRamp(limit: bundlesShown)
+        drawnBundles = min(Int((bundlesShown + bundleRamp).rounded(.up)), bundleCount)
+
         let numbers: [SIMD4<Float>] = GraphPerfMillionShaders.frame(
-            camera: camera, width: width, height: height, near: range.near, far: range.far, centre: map.centre,
-            radius: map.radius, tier: tier, bold: bold, chosenSlot: chosenSlot,
+            camera: camera, width: width, height: height, near: here.near, far: here.far, tier: tier, bold: bold,
+            focus: drawnFocus, fade: here.fade, bundleLimit: bundlesShown, sky: GraphPerfScene.background,
             pixelsPerPoint: Float(view.contentScaleFactor), time: Float(now - startTime))
         typealias S = GraphPerfMillionShaders.Slot
         var drawCount = UInt32(frame.drawLeaves.count / 2)
         func bind(_ encoder: MTLRenderCommandEncoder) {
             numbers.withUnsafeBytes { raw in
-                if let base = raw.baseAddress { encoder.setVertexBytes(base, length: raw.count, index: S.frame) }
+                if let base = raw.baseAddress {
+                    encoder.setVertexBytes(base, length: raw.count, index: S.frame)
+                    encoder.setFragmentBytes(base, length: raw.count, index: S.frame)
+                }
             }
             encoder.setVertexBuffer(statics.packed, offset: 0, index: S.packed)
             encoder.setVertexBuffer(statics.looks, offset: 0, index: S.looks)
@@ -586,79 +675,88 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             encoder.setVertexBuffer(slot.standIn, offset: 0, index: S.standIn)
             encoder.setVertexBuffer(slot.drawLeaves, offset: 0, index: S.drawLeaves)
             encoder.setVertexBytes(&drawCount, length: MemoryLayout<UInt32>.stride, index: S.drawCount)
-            encoder.setVertexBuffer(statics.pool, offset: 0, index: S.pool)
-            encoder.setVertexBuffer(slot.pages, offset: 0, index: S.pages)
+            encoder.setVertexBuffer(statics.adjacencyStart, offset: 0, index: S.adjacencyStart)
+            encoder.setVertexBuffer(statics.adjacency, offset: 0, index: S.adjacency)
             encoder.setVertexBuffer(statics.bundleEnds, offset: 0, index: S.bundleEnds)
             encoder.setVertexBuffer(statics.bundleWeights, offset: 0, index: S.bundleWeights)
             encoder.setVertexBuffer(slot.bundleCells, offset: 0, index: S.bundleCells)
             encoder.setVertexBuffer(statics.cutColours, offset: 0, index: S.cutColours)
             encoder.setVertexBuffer(slot.summaries, offset: 0, index: S.summaries)
             encoder.setVertexBuffer(statics.cutWeights, offset: 0, index: S.cutWeights)
-            encoder.setVertexBuffer(slot.linkLeaves, offset: 0, index: S.linkLeaves)
+            encoder.setVertexBuffer(slot.leafDetail, offset: 0, index: S.leafDetail)
         }
 
-        // near: the notes' depth (no colour), then the links' light behind it
-        bind(encoder)
-        if frame.drawnBodies > 0 {
-            encoder.setRenderPipelineState(nodeDepthPipeline)
-            encoder.setDepthStencilState(solidDepth)
-            encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4,
-                                   instanceCount: frame.drawnBodies)
-        }
-        if pageCount > 0 {
-            encoder.setRenderPipelineState(linkPipeline)
-            encoder.setDepthStencilState(glassDepth)
-            encoder.drawPrimitives(type: .line, vertexStart: 0,
-                                   vertexCount: 2 * pageCount * GraphPerfMillionShaders.pageSize)
-        }
-        encoder.endEncoding()
-        stageClock.timeNear(commands)
+        // two light passes, each its own command buffer so the GPU times
+        // each stage: near (the layout above) and far (bundles, glows: what
+        // the bundle share trims) add light into the half-float texture;
+        // the screen pass tone-maps it and draws the notes over it
+        let lightPass = MTLRenderPassDescriptor()
+        lightPass.colorAttachments[0].texture = lightTexture
+        lightPass.colorAttachments[0].loadAction = .clear
+        lightPass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        lightPass.colorAttachments[0].storeAction = .store
+        stageClock.committed(timing)
         commands.commit()
 
-        // far: the heaviest bundles the budget allows, and the glows
-        if let farEncoder = farCommands.makeRenderCommandEncoder(descriptor: farPass) {
+        if let farEncoder = farCommands.makeRenderCommandEncoder(descriptor: lightPass) {
             bind(farEncoder)
-            drawnBundles = budget.bundleLimit(min(statics.bundleCount, GraphPerfMillionShaders.bundleCap))
             if drawnBundles > 0 {
                 farEncoder.setRenderPipelineState(bundlePipeline)
-                farEncoder.setDepthStencilState(glassDepth)
                 farEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4,
                                           instanceCount: drawnBundles)
+                calls += 1
             }
             if frame.summaryCount > 0 {
                 farEncoder.setRenderPipelineState(summaryPipeline)
-                farEncoder.setDepthStencilState(glassDepth)
                 farEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4,
                                           instanceCount: frame.summaryCount)
+                calls += 1
             }
             farEncoder.endEncoding()
         }
-        stageClock.timeFar(farCommands)
         farCommands.commit()
 
-        // the screen: the light through the tone curve over the sky, the
-        // notes in their own colours, the chosen one on top; then the
-        // measure for the next exposure and the readout
+        // the screen: every pixel is the resolve's, then the notes on a
+        // fresh depth, the chosen neighbourhood over them, the chosen note
+        // on top; then the measure for the next exposure and the readout
+        screenPass.colorAttachments[0].loadAction = .dontCare
+        screenPass.colorAttachments[0].storeAction = .store
+        screenPass.depthAttachment.loadAction = .clear
+        screenPass.depthAttachment.clearDepth = 1
+        screenPass.depthAttachment.storeAction = .dontCare
         if let screenEncoder = screenCommands.makeRenderCommandEncoder(descriptor: screenPass) {
-            let sky = view.clearColor
-            var tone = SIMD4<Float>(exposure.k, Float(sky.red), Float(sky.green), Float(sky.blue))
+            let sky = GraphPerfScene.background
+            var tone = SIMD4<Float>(exposure.k, sky.x, sky.y, sky.z)
             screenEncoder.setRenderPipelineState(resolvePipeline)
             screenEncoder.setDepthStencilState(overDepth)
             screenEncoder.setFragmentTexture(lightTexture, index: GraphPerfMillionShaders.ResolveSlot.light)
             screenEncoder.setFragmentBytes(&tone, length: MemoryLayout<SIMD4<Float>>.stride,
                                            index: GraphPerfMillionShaders.ResolveSlot.tone)
             screenEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            calls += 1
             bind(screenEncoder)
             if frame.drawnBodies > 0 {
                 screenEncoder.setRenderPipelineState(nodePipeline)
                 screenEncoder.setDepthStencilState(solidDepth)
                 screenEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4,
                                              instanceCount: frame.drawnBodies)
+                calls += 1
             }
-            if chosenSlot != nil {
+            if shown != nil {
+                if focusLinks > 0 {
+                    screenEncoder.setRenderPipelineState(focusLinkPipeline)
+                    screenEncoder.setDepthStencilState(overDepth)
+                    screenEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4,
+                                                 instanceCount: focusLinks)
+                    screenEncoder.setRenderPipelineState(focusNodePipeline)
+                    screenEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4,
+                                                 instanceCount: focusLinks)
+                    calls += 2
+                }
                 screenEncoder.setRenderPipelineState(chosenPipeline)
                 screenEncoder.setDepthStencilState(overDepth)
                 screenEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+                calls += 1
             }
             screenEncoder.endEncoding()
         }
@@ -672,15 +770,15 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             measure.dispatchThreadgroups(MTLSize(width: (grid + side - 1) / side, height: (grid + side - 1) / side, depth: 1),
                                          threadsPerThreadgroup: MTLSize(width: side, height: side, depth: 1))
             measure.endEncoding()
+            calls += 1
             slot.measured = true
         }
         screenCommands.present(drawable)
         screenCommands.addCompletedHandler { _ in done.signal() }
-        stageClock.timeScreen(screenCommands)
         screenCommands.commit()
 
         // the next frame's plan, on the planning thread, while this one is drawn
-        planAhead.start(state, view: here, settings: budget.settings, step: Float(step))
+        planAhead.start(state, view: here, settings: budget.settings, step: seconds)
 
         // the CPU's own time: not the waits for a slot the GPU still had, for
         // a drawable, or for the planning thread; the planning runs beside it,
@@ -691,11 +789,18 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         let gpu = stageClock.latest
         budget.record(GraphPerfFrameStages(cpu: max(cpu, planned), near: gpu.near, far: gpu.far, plan: planned),
                       interval: interval)
-        report(now: now, map: map, frame: frame, links: linkEntries)
+        drawCalls = calls
+        let memory = device.currentAllocatedSize
+        memoryPeak = max(memoryPeak, memory)
+        let instances = frame.drawnBodies + frame.summaryCount + drawnBundles + (shown != nil ? 2 * focusLinks + 1 : 0)
+        onFrame?(GraphPerfFrameReport(interval: interval ?? step, cpu: max(cpu, planned),
+                                      gpu: (gpu.near ?? 0) + (gpu.far ?? 0), drawCalls: calls, instances: instances,
+                                      gpuMemory: memory, ramping: frame.ramping, shells: frame.shellCounts))
+        report(now: now, map: map, frame: frame)
     }
 
     /// Twice a second: the readout's numbers.
-    private func report(now: CFTimeInterval, map: GraphPerfMillionMap, frame: GraphPerfChunkFrame, links: Int) {
+    private func report(now: CFTimeInterval, map: GraphPerfMillionMap, frame: GraphPerfChunkFrame) {
         if statsTime == 0 { statsTime = now }
         guard now - statsTime >= 0.5 else { return }
         var stats = GraphPerfStats()
@@ -703,12 +808,15 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         stats.links = map.linkCount
         stats.drawnBodies = frame.drawnBodies
         stats.drawnGlows = frame.summaryCount
-        stats.drawnLines = links + drawnBundles
-        // the median and 5th percentile over the last 3 s, a fifth of a second at a time
+        stats.drawnLines = drawnBundles + (focusMotion.shown != nil ? min(map.degree(ofSlot: focusMotion.shown ?? 0),
+                                                                          GraphPerfFocusLook.most) : 0)
+        // the median and 5th percentile over the last 3 s, a fifth of a
+        // second at a time, and the 1% low (the slowest hundredth's rate)
         let rates = GraphPerfStats.rates(recentIntervals, group: max(screenFPS / 5, 1))
         let total: Double = intervals.reduce(0, +)
         stats.fps = rates.median > 0 ? rates.median : (total > 0 ? Double(intervals.count) / total : 0)
         stats.fpsLow = rates.low
+        stats.fpsOnePercent = GraphPerfStats.onePercentLow(recentIntervals)
         stats.screenFPS = screenFPS
         let gpu = gpuClock.drain()
         let stages = stageClock.drain()
@@ -722,6 +830,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         stats.cpuP95 = GraphPerfFrameStats(cpuTimes, target: target).p95
         stats.gpuP95 = GraphPerfFrameStats(gpu, target: target).p95
         stats.detail = budget.split
+        stats.drawCalls = drawCalls
+        stats.gpuMemoryPeak = memoryPeak
+        stats.shells = frame.shellCounts
+        stats.fadeOn = depthFade
         stats.settling = false
         intervals.removeAll(keepingCapacity: true)
         cpuTimes.removeAll(keepingCapacity: true)
@@ -745,11 +857,9 @@ final class GraphPerfMillionStatics {
     let cutColours: MTLBuffer
     /// Each cut cell's share of the bundle light where bundles meet.
     let cutWeights: MTLBuffer
-    /// The link pages: entries of (home slot, other slot).
-    let pool: MTLBuffer
     let bundleCount: Int
 
-    init?(device: MTLDevice, map: GraphPerfMillionMap, linkPages: Int) {
+    init?(device: MTLDevice, map: GraphPerfMillionMap) {
         let colours: [UInt32] = map.bundles.cells.map { map.octree.cells[Int($0)].colour }
         guard let packed = GraphPerfStatics.buffer(device, map.packed),
               let seed = GraphPerfStatics.buffer(device, map.packed),
@@ -760,9 +870,7 @@ final class GraphPerfMillionStatics {
               let bundleEnds = GraphPerfStatics.buffer(device, map.bundleEnds),
               let bundleWeights = GraphPerfStatics.buffer(device, map.bundleWeights),
               let cutColours = GraphPerfStatics.buffer(device, colours),
-              let cutWeights = GraphPerfStatics.buffer(device, map.bundleShares),
-              let pool = device.makeBuffer(length: max(linkPages, 1) * GraphPerfMillionShaders.pageSize * 8,
-                                           options: .storageModeShared) else {
+              let cutWeights = GraphPerfStatics.buffer(device, map.bundleShares) else {
             return nil
         }
         self.packed = packed
@@ -775,32 +883,7 @@ final class GraphPerfMillionStatics {
         self.bundleWeights = bundleWeights
         self.cutColours = cutColours
         self.cutWeights = cutWeights
-        self.pool = pool
         bundleCount = map.bundles.count
-    }
-
-    /// Copies a leaf's links into its pages, the rest of its last page empty.
-    func write(links: GraphPerfLeafLinks, leaf: Int, pages: [Int32]) {
-        let size = GraphPerfMillionShaders.pageSize
-        let base = pool.contents().assumingMemoryBound(to: UInt32.self)
-        let capacity = pool.length / 8
-        var entry = Int(links.start[leaf])
-        let end = Int(links.start[leaf + 1])
-        links.pairs.withUnsafeBufferPointer { pairs in
-            for page in pages {
-                let first = Int(page) * size
-                guard first + size <= capacity else { continue }
-                let n = min(size, end - entry)
-                if n > 0, let source = pairs.baseAddress {
-                    (base + 2 * first).update(from: source + 2 * entry, count: 2 * n)
-                }
-                if n < size {
-                    (base + 2 * (first + max(n, 0))).update(repeating: GraphPerfMillionShaders.emptyEntry,
-                                                            count: 2 * (size - max(n, 0)))
-                }
-                entry += max(n, 0)
-            }
-        }
     }
 }
 
@@ -808,65 +891,59 @@ final class GraphPerfMillionStatics {
 final class GraphPerfMillionSlot {
     let standIn: MTLBuffer
     let drawLeaves: MTLBuffer
-    let pages: MTLBuffer
     let summaries: MTLBuffer
     let bundleCells: MTLBuffer
+    let leafDetail: MTLBuffer
+    /// The layout's jobs: first slot, count, leaf, the threads before it.
+    let jobs: MTLBuffer
     /// The measure kernel's grid: (light, screen) luminance pairs.
     let samples: MTLBuffer
     /// The GPU wrote `samples` for the frame that last used this slot.
     var measured = false
-    /// Per leaf, 1 when its links are drawn one by one.
-    let linkLeaves: MTLBuffer
-    private var linkedLast: [Int] = []
 
-    init?(device: MTLDevice, map: GraphPerfMillionMap, linkPages: Int) {
+    init?(device: MTLDevice, map: GraphPerfMillionMap) {
         func make(_ bytes: Int) -> MTLBuffer? { device.makeBuffer(length: max(bytes, 16), options: .storageModeShared) }
         let leaves = map.octree.leafCount
         guard let standIn = make(leaves * 16),
               let drawLeaves = make(leaves * 8),
-              let pages = make(max(linkPages, 1) * 4),
               let summaries = make(map.octree.cells.count * 32),
               let bundleCells = make(map.bundles.cells.count * 16),
-              let samples = make(GraphPerfMillionShaders.measureGrid * GraphPerfMillionShaders.measureGrid * 8),
-              let linkLeaves = make(leaves) else {
+              let leafDetail = make(leaves * 4),
+              let jobs = make(GraphPerfMillionRenderer.maxJobs * 16),
+              let samples = make(GraphPerfMillionShaders.measureGrid * GraphPerfMillionShaders.measureGrid * 8) else {
             return nil
         }
         self.standIn = standIn
         self.drawLeaves = drawLeaves
-        self.pages = pages
         self.summaries = summaries
         self.bundleCells = bundleCells
+        self.leafDetail = leafDetail
+        self.jobs = jobs
         self.samples = samples
-        self.linkLeaves = linkLeaves
-        memset(linkLeaves.contents(), 0, linkLeaves.length)
     }
 
-    /// Writes this frame's plan, and the link pages of the leaves in
-    /// `linked` (marked in `linkLeaves`, so a link between two of them is
-    /// drawn once); returns how many link pages it draws, and the link
-    /// entries on them.
-    func write(_ frame: GraphPerfChunkFrame, linked: [Int], cache: GraphPerfChunkCache,
-               links: GraphPerfLeafLinks) -> (Int, Int) {
+    /// Writes this frame's plan.
+    func write(_ frame: GraphPerfChunkFrame) {
         GraphPerfSlot.copy(frame.standIn, into: standIn)
         GraphPerfSlot.copy(frame.drawLeaves, into: drawLeaves)
         GraphPerfSlot.copy(frame.summaries, into: summaries)
         GraphPerfSlot.copy(frame.bundleCells, into: bundleCells)
-        let marks = linkLeaves.contents().assumingMemoryBound(to: UInt8.self)
-        let leaves = linkLeaves.length
-        for leaf in linkedLast where leaf >= 0 && leaf < leaves { marks[leaf] = 0 }
-        for leaf in linked where leaf >= 0 && leaf < leaves { marks[leaf] = 1 }
-        linkedLast = linked
-        let out = pages.contents().assumingMemoryBound(to: UInt32.self)
-        let room = pages.length / 4
-        var n = 0, entries = 0
-        for leaf in linked {
-            entries += links.count(leaf)
-            for page in cache.pages[leaf] where n < room {
-                out[n] = UInt32(page)
-                n += 1
-            }
+        GraphPerfSlot.copy(frame.leafDetail, into: leafDetail)
+    }
+
+    /// Writes the layout's jobs for `leaves`; returns how many, and the threads they need.
+    func writeJobs(_ leaves: [Int], octree: GraphPerfOctree) -> (jobs: Int, threads: Int) {
+        let out = jobs.contents().assumingMemoryBound(to: SIMD4<UInt32>.self)
+        let room = jobs.length / 16
+        var n = 0, threads = 0
+        for leaf in leaves where n < room {
+            let cell = octree.cells[Int(octree.leafCell[leaf])]
+            guard cell.count > 0 else { continue }
+            out[n] = SIMD4(UInt32(cell.first), UInt32(cell.count), UInt32(leaf), UInt32(threads))
+            threads += Int(cell.count)
+            n += 1
         }
-        return (n, entries)
+        return (n, threads)
     }
 }
 
