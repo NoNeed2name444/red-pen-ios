@@ -518,6 +518,9 @@ enum IdeasPlace {
     /// Pager Amber: the tint of the 3D map's backdrop, the one place that
     /// keeps its own look.
     static var tint: Color { .wardBeam }
+    /// Ideas' accent (WardSection.ideas), for its glyph beside the
+    /// categories' own.
+    static var accent: Color { .wardAccent(.ideas) }
     /// Where Ideas sits along the dock: after the four categories.
     static var order: Int { StudyCategory.allCases.count }
 }
@@ -790,7 +793,7 @@ private struct DockListSheet: View {
                     }
                 }
                 row(title: L10n.lookup(IdeasPlace.title), detail: L10n.string("Your idea dump, board and 3D map"),
-                    symbol: IdeasPlace.symbol, tint: IdeasPlace.tint, chosen: inIdeas,
+                    symbol: IdeasPlace.symbol, tint: IdeasPlace.accent, chosen: inIdeas,
                     id: "dockCategory-ideas") {
                     inIdeas = true
                 }

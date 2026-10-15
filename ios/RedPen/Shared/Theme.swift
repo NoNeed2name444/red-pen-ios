@@ -9,15 +9,9 @@ import SwiftUI
 
 extension StudySetKind {
     var tint: Color {
-        switch self {
-        // each mode's glyph in a palette tone that reads on the base
-        case .mcq: return .wardPrimaryInk
-        case .anki: return .wardEcg
-        case .book: return .wardSuccess
-        case .osce: return .wardWarning
-        case .narrate: return .wardInkSecondary
-        case .cases: return .wardPrimaryInk
-        }
+        // each mode's glyph in its section's accent, the hue its screens
+        // take (WardSection), clear of the right, wrong and due colours
+        Color.wardAccent(WardSection(kindRaw: rawValue))
     }
 
     var symbol: String {
@@ -237,7 +231,7 @@ struct ThinProgress: View {
     let fraction: Double
 
     var body: some View {
-        WardGroove(fraction: fraction, tint: .wardBeam, height: 6)
+        WardGroove(fraction: fraction, tint: .wardPrimaryInk, height: 6)
             .animation(.easeOut(duration: 0.3), value: fraction)
     }
 }

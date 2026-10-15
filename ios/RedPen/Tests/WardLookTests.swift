@@ -163,8 +163,11 @@ check("a move to Cards starts in blue and ends in red",
 var cardsMid = toCards; cardsMid.progress = 0.5
 check("half way it is the linear-light mix, not either",
       cardsMid.ink(dark: false) == WardPalette.mix(WardSection.questions.ink.light, WardSection.cards.ink.light, 0.5))
-check("a move between sections leaves the palette alone",
-      tokens.allSatisfy { cardsMid.hex($0, dark: false) == WardPalette.hex($0, dark: false) })
+check("a move between sections leaves the palette alone, but for the accents",
+      tokens.filter { $0 != .primary && $0 != .primaryInk }
+        .allSatisfy { cardsMid.hex($0, dark: false) == WardPalette.hex($0, dark: false) })
+check("half way between sections the accents are the linear-light mix",
+      cardsMid.hex(.primaryInk, dark: false) == WardPalette.mix(WardSection.questions.accent.light, WardSection.cards.accent.light, 0.5))
 let both = WardGlide(from: day, to: WardLook(dark: true, section: .textbook), progress: 0.5)
 let n = both.night(dark: true)
 let expect = WardPalette.mix(WardPalette.mix(WardSection.questions.ink.light, WardSection.questions.ink.dark, n),
@@ -231,6 +234,103 @@ for hc in [false, true] {
     let l = WardPaper.ink(dark: false, highContrast: hc), d = WardPaper.ink(dark: true, highContrast: hc)
     check("paper (contrast \(hc)): its strengths run from light to dark, in the section's ink",
           p0.fine == l.fine && p0.bold == l.bold && p1.fine == d.fine && p1.bold == d.bold && p0.hex == 0x123456)
+}
+
+// MARK: - Each section's accents
+
+// Every accent role in every section and mode keeps its ratio: words and
+// glyphs 4.5:1 on each tier (the well to a sheet), 3:1 as a graphic or
+// large text (a progress beam, an icon) on the same; white words 4.5:1 on
+// the fill; and the accents read on the vitals monitor, which is dark in
+// both modes.
+for dark in [false, true] {
+    let mode = dark ? "dark" : "light"
+    for s in sections {
+        let accent = s.accent(dark: dark), fill = s.fill(dark: dark)
+        for tier in WardPalette.tiers {
+            let c = WardPalette.contrast(accent, WardPalette.hex(tier, dark: dark))
+            check("\(mode) \(s): accent words read 4.5:1 on the \(tier)", c >= 4.5, "\(h(accent)) \(f(c))")
+            check("\(mode) \(s): accent glyphs read 3:1 on the \(tier)", c >= 3, f(c))
+        }
+        let white = WardPalette.contrast(WardPalette.hex(.onPrimary, dark: dark), fill)
+        check("\(mode) \(s): white words read 4.5:1 on the fill", white >= 4.5, "\(h(fill)) \(f(white))")
+        if dark {
+            let m = WardPalette.contrast(accent, WardPalette.hex(.monitor, dark: true))
+            check("\(s): the accent reads 4.5:1 on the monitor", m >= 4.5, f(m))
+        }
+        // the glide hands out the section's accents for the palette's
+        // accent tokens
+        let rest = WardGlide.rest(WardLook(dark: dark, section: s))
+        check("\(mode) \(s): at rest the accent tokens are the section's",
+              rest.hex(.primaryInk, dark: dark) == accent && rest.hex(.primary, dark: dark) == fill)
+        check("\(mode) \(s): the New badge's blue stays the palette's",
+              rest.paletteHex(.primaryInk, dark: dark) == WardPalette.hex(.primaryInk, dark: dark))
+        // the hue is the section's, in all three roles
+        for (role, c) in [("ink", s.ink(dark: dark)), ("accent", accent), ("fill", fill)] where s != .questions {
+            check("\(mode) \(s): its \(role) is its hue", apart(hue(c), s.hue) <= 6, f(hue(c)))
+        }
+    }
+    // the sections apart from one another in their accents too
+    var closest = 360.0, pair = ""
+    for (i, a) in sections.enumerated() {
+        for b in sections[(i + 1)...] {
+            let d = apart(hue(a.accent(dark: dark)), hue(b.accent(dark: dark)))
+            if d < closest { closest = d; pair = "\(a)/\(b)" }
+        }
+    }
+    check("\(mode): every section's accent sits at least 25 degrees from the others", closest >= 25, "\(pair) \(f(closest))")
+    // and clear of what means something: right, wrong, due, and (away
+    // from Questions, whose own blue it is) the New badge
+    for s in sections where s != .questions {
+        for token in WardSection.semanticTokens {
+            let d = apart(hue(s.accent(dark: dark)), hue(WardPalette.hex(token, dark: dark)))
+            check("\(mode) \(s): the accent is clearly not \(token)'s colour (30 degrees)", d >= 30, f(d))
+        }
+        let blue = apart(hue(s.accent(dark: dark)), hue(WardPalette.hex(.primaryInk, dark: dark)))
+        check("\(mode) \(s): the accent is clearly not the New badge's blue (25 degrees)", blue >= 25, f(blue))
+    }
+}
+
+// Changing section shifts the accents over the glide with their contrast
+// never below the lower end (a mix in linear light moves luminance in a
+// straight line), and light and dark still swap them in one step.
+var worstAccent = Double.infinity, leastAccent = Double.infinity
+for dark in [false, true] {
+    for a in sections {
+        for b in sections where b != a {
+            let from = WardLook(dark: dark, section: a), to = WardLook(dark: dark, section: b)
+            var g = WardGlide.toward(to, from: .rest(from))
+            for tier in WardPalette.tiers {
+                let ground = WardPalette.hex(tier, dark: dark)
+                let floor = min(WardPalette.contrast(a.accent(dark: dark), ground),
+                                WardPalette.contrast(b.accent(dark: dark), ground))
+                for i in 0...20 {
+                    g.progress = Double(i) / 20
+                    let c = WardPalette.contrast(g.hex(.primaryInk, dark: dark), ground)
+                    worstAccent = min(worstAccent, c / floor)
+                    leastAccent = min(leastAccent, c)
+                }
+            }
+        }
+    }
+}
+// within a byte's rounding of the lower end, and never under 4.5:1
+check("a section's shift never drops the accent's contrast below either end", worstAccent >= 0.99, f(worstAccent))
+check("a section's shift keeps the accent at 4.5:1 on every frame", leastAccent >= 4.5, f(leastAccent))
+let accentSwap = WardGlide.toward(WardLook(dark: true, section: .cards), from: .rest(WardLook(dark: false, section: .cards)))
+check("light to dark swaps the accents in one step",
+      accentSwap.settled && accentSwap.hex(.primaryInk, dark: true) == WardSection.cards.accent.dark)
+
+// Audio's highlighted line: the line in the accent, pressed into the
+// page (a well), and the word being spoken washed in the accent's fill,
+// its words in Chart Ink, which keeps 4.5:1 on the wash.
+for dark in [false, true] {
+    for s in sections {
+        let well = WardPalette.hex(.well, dark: dark)
+        let wash = WardRelief.composite(WardReliefLight(hex: s.fill(dark: dark), alpha: WardWash.alpha, x: 0, y: 0, radius: 0), on: well)
+        let c = WardPalette.contrast(WardPalette.hex(.ink, dark: dark), wash)
+        check("\(dark ? "dark" : "light") \(s): words on the spoken word's wash read 4.5:1", c >= 4.5, f(c))
+    }
 }
 
 print(failures.isEmpty ? "\nall passed" : "\n\(failures.count) failed")

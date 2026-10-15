@@ -106,7 +106,7 @@ struct NarrateLine: View, Equatable {
         let speaking: Bool = spoken == w
         let wrong: Bool = misheard == w
         let wash: Color = wrong ? Color.wardDanger.opacity(0.12) : Color.clear
-        let mark: Color = speaking ? Color.wardBeam.opacity(0.24) : wash
+        let mark: Color = speaking ? Color.wardPrimary.opacity(WardWash.alpha) : wash
         let shown: Color = wrong ? Color.wardDanger : ink
         return Text(text)
             .font(.body)

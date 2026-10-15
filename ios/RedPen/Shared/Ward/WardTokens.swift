@@ -17,9 +17,25 @@ extension Color {
     /// Reading it in a view's body subscribes the view to the shift.
     static func ward(_ token: WardToken) -> Color {
         let glide = WardLookStore.shared.glide
-        if glide.settled { return WardRestColors.palette[token.index] }
+        if glide.settled { return WardRestColors.color(token, glide.to.section) }
         return Color(uiColor: UIColor { traits in
             Color.uiColor(glide.hex(token, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
+        })
+    }
+
+    /// A given section's accent ink (WardSection.accent), whatever section
+    /// is on show: a mode's own glyph on home. Light and dark only.
+    static func wardAccent(_ section: WardSection) -> Color {
+        WardRestColors.color(.primaryInk, section)
+    }
+
+    /// The palette's own blue, whatever the section: information that is
+    /// not the section's accent (the New badge), so it keeps its meaning.
+    static var wardInfo: Color {
+        let glide = WardLookStore.shared.glide
+        if glide.settled { return WardRestColors.palette[WardToken.primaryInk.index] }
+        return Color(uiColor: UIColor { traits in
+            Color.uiColor(glide.paletteHex(.primaryInk, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
         })
     }
 
@@ -88,6 +104,22 @@ enum WardRestColors {
             Color.uiColor(WardPalette.hex(token, dark: traits.userInterfaceStyle == .dark))
         })
     }
+    /// The section's accents at rest: its fill (.primary) and its accent
+    /// ink (.primaryInk), WardSection.fill and .accent.
+    private static let accents: [WardSection: (fill: Color, ink: Color)] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
+        (section, (Color(uiColor: UIColor { traits in
+            Color.uiColor(section.fill(dark: traits.userInterfaceStyle == .dark))
+        }), Color(uiColor: UIColor { traits in
+            Color.uiColor(section.accent(dark: traits.userInterfaceStyle == .dark))
+        })))
+    })
+    static func color(_ token: WardToken, _ section: WardSection) -> Color {
+        switch token {
+        case .primary: return accents[section]?.fill ?? palette[token.index]
+        case .primaryInk: return accents[section]?.ink ?? palette[token.index]
+        default: return palette[token.index]
+        }
+    }
     private static let inks: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
         (section, Color(uiColor: UIColor { traits in
             Color.uiColor(section.ink(dark: traits.userInterfaceStyle == .dark))
@@ -100,8 +132,8 @@ enum WardRestColors {
                                  alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
         }))
     })
-    static func ink(_ section: WardSection) -> Color { inks[section] ?? .blue }
-    static func edge(_ section: WardSection) -> Color { edges[section] ?? .blue }
+    static func ink(_ section: WardSection) -> Color { inks[section] ?? palette[WardToken.primaryInk.index] }
+    static func edge(_ section: WardSection) -> Color { edges[section] ?? palette[WardToken.hairline.index] }
 }
 
 // MARK: - The one animated value
@@ -403,6 +435,9 @@ private struct WardSectionMark: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // system controls (toggles, sliders, links, plain buttons) in
+            // the section's accent, moving with its hue
+            .tint(Color.wardPrimaryInk)
             .onAppear { WardLookStore.shared.push(section, id: id) }
             .onDisappear { WardLookStore.shared.pop(id: id) }
             .onChange(of: section) { _, now in WardLookStore.shared.push(now, id: id) }

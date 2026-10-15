@@ -2,12 +2,19 @@
 import SwiftUI
 
 /// The semantic tones a chip, an icon square or a ring can take.
-enum WardTone {
-    case blue, red, green, amber, warning, danger, grey
+/// `.blue` is the accent of the section on show (WardSection.accent), so a
+/// control follows the section's hue; `.accent` is a given section's (a
+/// mode's own glyph on home); `.info` is the palette's fixed blue, for a
+/// word that means the same everywhere (the New badge).
+enum WardTone: Equatable {
+    case blue, red, green, amber, warning, danger, grey, info
+    case accent(WardSection)
 
     var color: Color {
         switch self {
         case .blue: return .wardPrimaryInk
+        case .info: return .wardInfo
+        case .accent(let section): return .wardAccent(section)
         case .red: return .wardEcg
         case .green: return .wardSuccess
         case .amber: return .wardBeam
@@ -24,7 +31,7 @@ enum WardTone {
     var ink: Color {
         switch self {
         case .amber, .warning: return .wardWarning
-        case .blue, .red, .green, .danger, .grey: return color
+        case .blue, .red, .green, .danger, .grey, .info, .accent: return color
         }
     }
 }

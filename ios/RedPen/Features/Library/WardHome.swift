@@ -522,13 +522,13 @@ struct HomeRoundCard: View {
             case .examKit, .mock: return .warning
             default: return .blue
             }
-        case .dueCards: return .red
+        case .dueCards: return .accent(.cards)
         case .weakest: return .danger
         case .freshSet(let set):
             switch set.mode {
-            case .questions: return .blue
-            case .cards: return .red
-            case .textbook: return .green
+            case .questions: return .accent(.questions)
+            case .cards: return .accent(.cards)
+            case .textbook: return .accent(.textbook)
             }
         case .station: return .warning
         }
@@ -541,7 +541,7 @@ struct HomeRoundCard: View {
         let tone: WardTone
         switch status {
         case .due, .timed, .today: tone = .warning
-        case .new: tone = .blue
+        case .new: tone = .info
         case .weak: tone = .danger
         }
         return (text: status.rawValue, tone: tone)
