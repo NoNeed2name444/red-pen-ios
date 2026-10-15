@@ -162,7 +162,7 @@ Pencil was darkened so that it clears 4.5:1 over every bold line; it stays well 
 
 A chip is ink, or the hue of the item's own mode (the question-type chip in Questions); it never borrows another mode's hue. Status shows by form: solid for act now ("Due"), an outline for a state ("New", "Weak topic"), a tint for a fact ("34 y"). A hue chip is always an outline, never a tint, so its text keeps the hue's own ratios above (on a card: 7.57 light, 5.58 dark). Tints and solid fills are neutral: ink on steel 13.24 (light) and 8.69 (dark); the card colour on solid ink 15.29 (light) and 12.31 (dark).
 
-Correct and wrong are marked by material, not by green and red. A correct answer fills its row with the mode's own hue, the silicone: Plum here, with its text in the card colour (7.57:1) by day and in the paper colour (6.29:1) by night. A wrong answer turns its row to bare steel, a neutral plate with a steel disc and a cross, its text struck through in pencil. Steel is exactly neutral grey (OKLCH chroma 0), so it never reads as blue; the steel text token above is for the cross and other marks. A chosen option, before it is marked, shows only a filled letter disc; the whole row fills only once it is marked correct.
+Correct and wrong are marked by material, not by green and red. A correct answer fills its row with the mode's own hue, the silicone: Plum here, with its text in the card colour (7.57:1) by day and in the paper colour (6.29:1) by night. A wrong answer turns its row to bare steel, a neutral plate with a steel disc (darker by day, so its white letter clears 4.5:1) and a pencil cross, its text struck through in pencil. Steel is exactly neutral grey (OKLCH chroma 0), so it never reads as blue; the steel text token above is for marks on the card. A chosen option, before it is marked, shows only a filled letter disc; the whole row fills only once it is marked correct.
 
 Steel tokens:
 
@@ -170,6 +170,7 @@ Steel tokens:
 |---|---|---|---|
 | steel | `#CACACA` | `#929292` | Letter bezels, the progress track; the card edge by day |
 | steel2 | `#868686` | `#636363` | Hairline on a wrong row; the card edge by night |
+| steelDisc | `#696969` | `#636363` | The letter disc on a wrong row, with white (5.49:1) by day and the ink by night |
 | steelPlate | `#E4E3E4` | `#444144` | A wrong row; the neutral chip tint |
 
 On the steel plate: ink 13.26 (light) and 8.69 (dark); pencil 6.82 (light) and 5.03 (dark).
@@ -188,7 +189,7 @@ In the second review Plum (331°) sat only 29° from Lilac (302°), ΔE 0.094 by
 - Route A: correct is ticked in the mode's own ink, not in Pen Red in every mode.
 - Route B: the Correct green and Wrong red tokens are gone; correct is the mode's hue, wrong is pencil. The beam follows the mode's hue and a warning is pencil with a symbol.
 - Route C: Plum `#7E2A78` / `#DD83D3` to `#86266A` / `#E77FC2` (331° to 342°); Lilac `#7348A8` / `#B88EF4` to `#6F4AAB` / `#B290F8` (302° to 298°); Raspberry `#B02946` / `#FF7789` to `#B02A39` / `#FF787D` (14° to 20°). Steel is now exactly neutral (chroma 0), so the wrong token is `#5E5E5E` / `#A2A2A2`.
-- Every route: the soft rim is on buttons only (option rows count as answer buttons); fields and the tab bar are flat. The boards still show the old rims on fields and the tab bar and will change in the next render.
+- Every route: the soft rim is on buttons only (option rows count as answer buttons); fields and the tab bar are flat. The boards now show this, with the marking in B, the moved hues in C and neutral steel.
 
 ## Token names in the code
 

@@ -14,7 +14,7 @@ The owner has the three boards; they are not in the repo because they contain th
 
 The mocks are HTML and CSS rendered in Chromium, with the real marks composited, never redrawn. Inter stands in for SF Pro (and Nunito for SF Pro Rounded in Route C), and each board says so.
 
-The boards were revised the same day after an independent review. In every route, cards are now flat, chips follow one rule, and text set on the grid is measured over its bold lines. Route C was rebuilt around its two materials. A second review of these docs changed four things the boards do not show yet and will in their next render: the soft rim is on buttons only, so fields and the tab bar are flat; Route B marks correct in the mode's hue and wrong in pencil; Route C's Plum, Lilac and Raspberry move apart; and C's steel is exactly neutral. The rules that apply to all three routes are under [What every route shares](#what-every-route-shares).
+The boards were revised the same day after an independent review. In every route, cards are now flat, chips follow one rule, and text set on the grid is measured over its bold lines. Route C was rebuilt around its two materials. A second review of these docs changed four things, and the boards now show them: the soft rim is on buttons only, so fields and the tab bar are flat; Route B marks correct in the mode's hue and wrong in pencil; Route C's Plum, Lilac and Raspberry move apart; and C's steel is exactly neutral. The rules that apply to all three routes are under [What every route shares](#what-every-route-shares).
 
 | | A, Red Pen | B, Answer Sheet | C, Steel & Silicone |
 |---|---|---|---|
