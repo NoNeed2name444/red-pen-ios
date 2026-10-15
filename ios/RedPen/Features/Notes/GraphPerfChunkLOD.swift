@@ -58,12 +58,13 @@ nonisolated struct GraphPerfChunkView: Sendable {
 
     init(camera: GraphPerfCamera, width: Float, height: Float, near: Float, far: Float,
          guardBand: GraphPerfGuardBand = GraphPerfGuardBand(), motion: SIMD2<Float> = .zero,
-         band: GraphPerfDepthBand? = nil, pull: Float = 1) {
+         band: GraphPerfDepthBand? = nil, pull: Float = 1, mapRadius: Float = 0) {
         eye = camera.eye
         forward = camera.forward
         var farthest = far
         if let band {
-            let depths = band.depths(focus: camera.distance, pull: pull)
+            // as seen from here: inside the map every level fades over High's width
+            let depths = band.seen(from: camera.distance, mapRadius: mapRadius).depths(focus: camera.distance, pull: pull)
             fade = SIMD4(depths.x, depths.y, band.k, band.most)
             if band.culls { farthest = max(min(far, depths.y), near + 1e-3) }
         } else {

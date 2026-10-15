@@ -622,7 +622,7 @@ check("C17 a back cell opens later than a front one, a middle one between",
 func depthView(_ cam: GraphPerfCamera, tier: GraphPerfTier = .high, pull: Float = 1) -> GraphPerfChunkView {
     let r = cam.depthRange(centre: scene.centre, radius: scene.radius)
     return GraphPerfChunkView(camera: cam, width: width, height: height, near: r.near, far: r.far,
-                              band: GraphPerfDepthBand.of(tier), pull: pull)
+                              band: GraphPerfDepthBand.of(tier), pull: pull, mapRadius: scene.radius)
 }
 func cellDepth(_ c: Int, _ cam: GraphPerfCamera) -> Float { ((tree.cells[c].ballCentre - cam.eye) * cam.forward).sum() }
 func walkedLeaves(_ p: GraphPerfChunkPlanner) -> Set<Int> {
@@ -692,24 +692,16 @@ check("C17 detail moves by ramps (a fifth of a second end to end), never at once
 
 // MARK: - C18 a half turn: front and back swap detail, and no brightness jumps
 
-var turnCam = deep
-var turner = readyPlanner()
-var turnFrame = GraphPerfChunkFrame()
-for _ in 0..<20 {
-    turner.advance(seconds: 1.0 / 60)
-    turnFrame = turner.plan(depthView(turnCam), settings: settings)
+// the renderer's view: the Graphics level's band about the camera's focus
+func followView(_ cam: GraphPerfCamera, tier: GraphPerfTier) -> GraphPerfChunkView {
+    depthView(cam, tier: tier)
 }
 func axial(_ leaf: Int, _ cam: GraphPerfCamera) -> Float {
     ((tree.cells[Int(tree.leafCell[leaf])].ballCentre - cam.target) * cam.forward).sum()
 }
-// a half turn about the focus mirrors depth there: what was far is near
-let reachedBefore = walkedLeaves(turner)
-let wasBack = reachedBefore.filter { turner.cellShell(Int(tree.leafCell[$0])) == 2 }
-let wasFront = reachedBefore.filter {
-    turner.cellShell(Int(tree.leafCell[$0])) == 0 && axial($0, turnCam) < -0.38 * turnCam.distance
-}
-// bodies to watch: every 5th of each drawn leaf, their brightness through the turn
 let at: (Int) -> SIMD3<Float> = { scene.layout.positions[Int(tree.order[$0])] }
+// every 5th body of each drawn leaf: its brightness as a share of its
+// range (1 crisp, 0 the ground), drawn as the node shader draws it
 func brightness(_ f: GraphPerfChunkFrame, _ cam: GraphPerfCamera) -> [Int: Float] {
     var out: [Int: Float] = [:]
     let focal = cam.focal(viewHeight: height)
@@ -724,8 +716,12 @@ func brightness(_ f: GraphPerfChunkFrame, _ cam: GraphPerfCamera) -> [Int: Float
         let q = f.leafDetail[leaf]
         for s in stride(from: Int(cell.first), to: Int(cell.first + cell.count), by: 5) {
             let p = SIMD3(stand.x, stand.y, stand.z) + (at(s) - SIMD3(stand.x, stand.y, stand.z)) * open
-            let depth = ((p - cam.eye) * cam.forward).sum()
+            let v = p - cam.eye
+            let depth = (v * cam.forward).sum()
             guard depth > 1e-3 else { continue }
+            // seen: on the screen (the guard band's leaves are drawn off it)
+            let sx = (v * cam.right).sum() * focal / depth, sy = (v * cam.up).sum() * focal / depth
+            guard abs(sx) <= width / 2 && abs(sy) <= height / 2 else { continue }
             let fade = GraphPerfDepthBand.fade(depth, depths: band, k: f.fade.z, most: f.fade.w)
             let look = m.looks[s]
             let colour = SIMD3(Float(look & 0xFF), Float(look >> 8 & 0xFF), Float(look >> 16 & 0xFF)) / 255
@@ -735,45 +731,100 @@ func brightness(_ f: GraphPerfChunkFrame, _ cam: GraphPerfCamera) -> [Int: Float
             let now = GraphPerfDepthLook.luminance(GraphPerfDepthLook.centre(colour: colour, lit: lit, fade: fade, ground: ground))
             let range = full - GraphPerfDepthLook.luminance(ground)
             guard range > 1e-3 else { continue }
-            // a share of its range: 1 crisp, 0 the ground
             out[s] = (now - GraphPerfDepthLook.luminance(ground)) / range
         }
     }
     return out
 }
-var lastLight = brightness(turnFrame, turnCam)
-var worstJump: Float = 0
-// 180 degrees in a second, at 60 frames a second
-let turnFrames = 60
-for _ in 0..<turnFrames {
-    turnCam.orbit(yaw: Float.pi / Float(turnFrames), pitch: 0)
-    turner.advance(seconds: 1.0 / 60)
-    turnFrame = turner.plan(depthView(turnCam), settings: settings)
-    let light = brightness(turnFrame, turnCam)
-    for (s, v) in light { if let was = lastLight[s] { worstJump = max(worstJump, abs(v - was)) } }
-    lastLight = light
+struct HalfTurn {
+    var back = 0, backFull = true, frontBack = true
+    var settled = 0
+    var worstStep: Float = 0
 }
-var afterTurn = 0
-while turnFrame.ramping > 0 && afterTurn < 120 {
-    turner.advance(seconds: 1.0 / 60)
-    turnFrame = turner.plan(depthView(turnCam), settings: settings)
-    let light = brightness(turnFrame, turnCam)
-    for (s, v) in light { if let was = lastLight[s] { worstJump = max(worstJump, abs(v - was)) } }
-    lastLight = light
-    afterTurn += 1
+// 180 degrees about the focus in `turnFrames` frames at 60 a second, then
+// frames until nothing moves; a half turn mirrors depth there: what was
+// far is near
+func halfTurn(_ tier: GraphPerfTier, turnFrames: Int, from start: GraphPerfCamera = deep,
+              name: String = "the edge") -> HalfTurn {
+    var cam = start
+    var planner = readyPlanner()
+    var frame = GraphPerfChunkFrame()
+    for _ in 0..<20 {
+        planner.advance(seconds: 1.0 / 60)
+        frame = planner.plan(followView(cam, tier: tier), settings: settings)
+    }
+    let before = walkedLeaves(planner)
+    let wasBack = before.filter { planner.cellShell(Int(tree.leafCell[$0])) == 2 }
+    // front leaves that the turn puts well into the back shell: mirrored,
+    // past 0.95 of the band's width behind the focus (the band is wider inside)
+    let band = GraphPerfDepthBand.of(tier).seen(from: cam.distance, mapRadius: scene.radius)
+    let wasFront = before.filter {
+        planner.cellShell(Int(tree.leafCell[$0])) == 0
+            && axial($0, cam) < -0.95 * (band.end - band.start) * cam.distance
+    }
+    var out = HalfTurn()
+    var last = brightness(frame, cam)
+    func step() {
+        planner.advance(seconds: 1.0 / 60)
+        frame = planner.plan(followView(cam, tier: tier), settings: settings)
+        let light = brightness(frame, cam)
+        for (s, v) in light { if let was = last[s] { out.worstStep = max(out.worstStep, abs(v - was)) } }
+        last = light
+    }
+    for _ in 0..<turnFrames {
+        cam.orbit(yaw: Float.pi / Float(turnFrames), pitch: 0)
+        step()
+    }
+    while frame.ramping > 0 && out.settled < 240 {
+        step()
+        out.settled += 1
+    }
+    let after = walkedLeaves(planner)
+    let backNowFront = wasBack.intersection(after)
+    out.back = backNowFront.count
+    out.backFull = backNowFront.allSatisfy { frame.leafDetail[$0] == 1 }
+    out.frontBack = wasFront.intersection(after).allSatisfy {
+        planner.cellShell(Int(tree.leafCell[$0])) == 2 && frame.leafDetail[$0] == 0
+    }
+    print("     \(name), \(tier): 180 degrees in \(turnFrames) frames, \(wasBack.count) back leaves "
+          + "(\(backNowFront.count) still reached), settled \(out.settled) frames after, "
+          + "largest brightness step \(out.worstStep)")
+    return out
 }
-let reachedAfter = walkedLeaves(turner)
-let backNowFront = wasBack.intersection(reachedAfter)
-let frontNowBack = wasFront.intersection(reachedAfter)
-print("     half turn: \(wasBack.count) back leaves (\(backNowFront.count) still reached), \(wasFront.count) front "
-      + "(\(frontNowBack.count)); settled \(afterTurn) frames after; largest brightness step \(worstJump)")
+// the owner's case: a half turn in a second, from the map's edge through
+// its middle, swaps front and back within a quarter second of settling
+let highTurn = halfTurn(.high, turnFrames: 60)
 check("C18 after a half turn in a second, the back comes to full detail and the front drops back",
-      !backNowFront.isEmpty && backNowFront.allSatisfy { turnFrame.leafDetail[$0] == 1 }
-      && frontNowBack.allSatisfy { turner.cellShell(Int(tree.leafCell[$0])) == 2 && turnFrame.leafDetail[$0] == 0 },
-      "\(backNowFront.filter { turnFrame.leafDetail[$0] != 1 }.count) back leaves not full")
-check("C18 within a quarter second of settling (15 frames at 60)", afterTurn <= 15, "\(afterTurn) frames")
+      highTurn.back > 0 && highTurn.backFull && highTurn.frontBack, "\(highTurn.back) back leaves")
+check("C18 within a quarter second of settling (15 frames at 60)", highTurn.settled <= 15, "\(highTurn.settled) frames")
 check("C18 no body's brightness moves more than a sixth of its range in a frame",
-      worstJump <= 1.0 / 6, "\(worstJump)")
+      highTurn.worstStep <= 1.0 / 6, "\(highTurn.worstStep)")
+// at every level, from the edge, from the whole map and from inside it
+var wholeTurn = whole
+wholeTurn.pitch = 0
+var inside = deep
+inside.distance = 0.3 * scene.radius
+for (start, name) in [(deep, "the edge"), (wholeTurn, "the whole map"), (inside, "inside")] {
+    for tier in [GraphPerfTier.high, .smooth, .saver] where !(name == "the edge" && tier == .high) {
+        let turn = halfTurn(tier, turnFrames: 60, from: start, name: name)
+        check("C18 \(tier) from \(name): a half turn in a second steps no brightness over a sixth, "
+              + "swapping within a quarter second",
+              turn.worstStep <= 1.0 / 6 && turn.backFull && turn.frontBack && turn.settled <= 15,
+              "step \(turn.worstStep), settled \(turn.settled) frames, back full \(turn.backFull)")
+    }
+}
+let insideBands = [GraphPerfTier.smooth, .saver].map { GraphPerfDepthBand.of($0).seen(from: 0.3, mapRadius: 1) }
+let outsideBands = [GraphPerfTier.smooth, .saver].map { GraphPerfDepthBand.of($0).seen(from: 2, mapRadius: 1) }
+let contrastInside = GraphPerfDepthBand.of(.high, contrast: true).seen(from: 0.3, mapRadius: 1)
+check("C18 inside the map every level fades over the same, wider band; from outside each over its own",
+      insideBands.allSatisfy { abs($0.end - (1 + GraphPerfDepthBand.insideWidth)) < 1e-5 }
+      && outsideBands == [GraphPerfDepthBand.smooth, GraphPerfDepthBand.saver]
+      && GraphPerfDepthBand.high.seen(from: 2, mapRadius: 1) == GraphPerfDepthBand.high
+      && abs(contrastInside.end - contrastInside.start - GraphPerfDepthBand.insideWidth * GraphPerfDepthBand.contrastLater) < 1e-5,
+      "\(insideBands.map(\.end)) \(outsideBands.map(\.end))")
+// faster flicks are measured, not held to the sixth: a depth fade moves
+// with the bodies, so at twice the pace the steps about double
+for tier in [GraphPerfTier.high, .saver] { _ = halfTurn(tier, turnFrames: 30, name: "the edge, twice as fast") }
 
 // MARK: - C19 a faded body is picked, one past the band is not, and a choice comes to full detail
 
