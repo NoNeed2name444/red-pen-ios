@@ -1983,6 +1983,22 @@ with the marks on the screens last.
     accessibilityElements (the bodies) hide it; it now waits for the window
     (GraphDepth.place). Next: the Mac's pictures,
     recordings and numbers, then tuning the band.
+    The independent review of the first pictures (15 Oct): nothing fades.
+    Both maps are flat sheets facing the camera (Neurons' rows at z = ±0.3
+    of the biggest radius, Space's galaxy homes at z = 0, the default
+    framing turning only about z), so everything sits at about the focus's
+    depth, under every band's start: "after" is the same picture as
+    "before" (whole-picture light 0.96 to 1.06 of it), nothing is culled,
+    and Space's mean frame was 16 to 34 ms longer with the shader on (the
+    simulator, one take each: indicative only). testDepthMeasure turned the
+    map twice, back to face-on; it now turns once, so its pictures and
+    numbers show the fade where a turn tilts the sheet. Proposed values,
+    not applied: Neurons High end 1.6, Smooth 1.45; Space High end 1.9,
+    Smooth 1.6; k 1.0 (GraphDepthFade.swift:70-75), which breaks D4e
+    (end ≥ 2), a check whose premise the flat maps disprove. The owner
+    decides how far things should fade on a flat map: tilt the default
+    framing so the sheet recedes, fade by distance from the focus, or give
+    the maps real depth. Nothing goes to the owner as done before that.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner
     sees it.

@@ -481,7 +481,8 @@ final class GraphPreviewUITests: XCTestCase {
     /// The numbers: frame times (the meter, `-graphDepthMeter`) and
     /// SceneKit's statistics (draw calls, on each picture) in each theme at
     /// each Graphics level, whole and flown in close, after and before,
-    /// each over two slow turns. The meter's line says whether the fade was
+    /// each after one slow turn, which leaves the sheet tilted (a second
+    /// would bring it back face-on, where the fade is zero). The meter's line says whether the fade was
     /// on, off, or off because its shader failed the device's check
     /// ("fallback"), and how many bodies were drawn.
     func testDepthMeasure() {
@@ -493,7 +494,7 @@ final class GraphPreviewUITests: XCTestCase {
                         let app = depthApp(pair.0, fly: near ? pair.1 : nil, off: off,
                                            more: ["-graphDepthMeter", "-graphics" + level])
                         sleep(near ? 6 : 4)
-                        slowTurn(app, times: 2)
+                        slowTurn(app, times: 1)
                         usleep(700_000)
                         let meter = app.staticTexts["graphDepthMeter"]
                         let read: String = meter.waitForExistence(timeout: 5) ? meter.label : "no meter"
