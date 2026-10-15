@@ -1,0 +1,116 @@
+== mode-switch-app
+3 frames; content contrast light 34.3, dark 32.0; a frame under 25.6 has faded
+3 frames; status bar contrast light 45.4, dark 42.1; a frame under 33.7 has faded
+clean: every frame keeps its contrast
+== mode-switch-quiz
+83 frames; content contrast light 42.1, dark 38.9; a frame under 31.1 has faded
+83 frames; status bar contrast light 46.6, dark 42.7; a frame under 34.2 has faded
+FADED frame 44 (status bar): contrast 12.2, brightness 224
+FADED frame 45 (status bar): contrast 12.1, brightness 224
+FADED frame 46 (status bar): contrast 11.9, brightness 224
+FADED frame 47 (status bar): contrast 11.9, brightness 224
+FADED frame 48 (status bar): contrast 11.6, brightness 224
+FADED frame 49 (status bar): contrast 11.3, brightness 224
+FADED frame 50 (status bar): contrast 11.0, brightness 223
+FADED frame 51 (status bar): contrast 10.7, brightness 223
+FADED frame 52 (status bar): contrast 10.6, brightness 222
+FADED frame 53 (status bar): contrast 10.7, brightness 222
+FADED frame 54 (status bar): contrast 11.1, brightness 222
+FADED frame 55 (status bar): contrast 11.8, brightness 221
+FADED frame 56 (status bar): contrast 12.8, brightness 220
+FADED frame 57 (status bar): contrast 14.2, brightness 220
+FADED frame 58 (status bar): contrast 15.7, brightness 219
+FADED frame 59 (status bar): contrast 17.7, brightness 218
+FADED frame 60 (status bar): contrast 19.7, brightness 218
+FADED frame 61 (status bar): contrast 21.9, brightness 217
+FADED frame 62 (status bar): contrast 24.0, brightness 216
+FADED frame 63 (status bar): contrast 26.3, brightness 216
+FADED frame 64 (status bar): contrast 28.4, brightness 215
+FADED frame 65 (status bar): contrast 30.7, brightness 214
+FADED frame 66 (status bar): contrast 32.9, brightness 214
+23 faded frames
+== mode-switch (system, not gated)
+172 frames; content contrast light 7.6, dark 11.3; a frame under 6.1 has faded
+FADED frame 10 (content): contrast 5.2, brightness 149
+FADED frame 11 (content): contrast 4.0, brightness 142
+FADED frame 12 (content): contrast 4.6, brightness 135
+FADED frame 53 (content): contrast 4.8, brightness 134
+FADED frame 54 (content): contrast 4.1, brightness 141
+FADED frame 55 (content): contrast 4.7, brightness 147
+FADED frame 95 (content): contrast 5.9, brightness 152
+FADED frame 96 (content): contrast 4.3, brightness 145
+FADED frame 97 (content): contrast 4.2, brightness 138
+FADED frame 98 (content): contrast 5.6, brightness 131
+FADED frame 140 (content): contrast 4.8, brightness 134
+FADED frame 141 (content): contrast 4.1, brightness 141
+FADED frame 142 (content): contrast 4.7, brightness 147
+172 frames; status bar contrast light 28.3, dark 20.6; a frame under 16.5 has faded
+FADED frame 2 (status bar): contrast 13.9, brightness 191
+FADED frame 35 (status bar): contrast 10.8, brightness 45
+FADED frame 36 (status bar): contrast 10.8, brightness 45
+FADED frame 37 (status bar): contrast 10.9, brightness 45
+FADED frame 38 (status bar): contrast 11.3, brightness 47
+FADED frame 39 (status bar): contrast 11.6, brightness 49
+FADED frame 40 (status bar): contrast 12.1, brightness 52
+FADED frame 41 (status bar): contrast 12.7, brightness 55
+FADED frame 42 (status bar): contrast 13.4, brightness 59
+FADED frame 43 (status bar): contrast 14.0, brightness 62
+FADED frame 44 (status bar): contrast 14.9, brightness 66
+FADED frame 45 (status bar): contrast 15.7, brightness 70
+FADED frame 50 (status bar): contrast 15.4, brightness 98
+FADED frame 51 (status bar): contrast 11.9, brightness 106
+FADED frame 52 (status bar): contrast 7.0, brightness 114
+FADED frame 53 (status bar): contrast 1.3, brightness 122
+FADED frame 54 (status bar): contrast 4.4, brightness 131
+FADED frame 55 (status bar): contrast 9.4, brightness 139
+FADED frame 56 (status bar): contrast 13.6, brightness 148
+FADED frame 57 (status bar): contrast 16.3, brightness 156
+FADED frame 60 (status bar): contrast 14.2, brightness 190
+FADED frame 61 (status bar): contrast 14.2, brightness 190
+FADED frame 62 (status bar): contrast 13.3, brightness 194
+FADED frame 63 (status bar): contrast 12.1, brightness 201
+FADED frame 64 (status bar): contrast 11.3, brightness 206
+FADED frame 65 (status bar): contrast 9.9, brightness 213
+FADED frame 66 (status bar): contrast 6.9, brightness 220
+FADED frame 67 (status bar): contrast 6.9, brightness 220
+FADED frame 68 (status bar): contrast 6.9, brightness 220
+FADED frame 69 (status bar): contrast 8.0, brightness 218
+FADED frame 70 (status bar): contrast 8.0, brightness 218
+FADED frame 71 (status bar): contrast 9.0, brightness 218
+FADED frame 72 (status bar): contrast 12.8, brightness 216
+FADED frame 86 (status bar): contrast 10.5, brightness 211
+FADED frame 87 (status bar): contrast 10.5, brightness 211
+FADED frame 88 (status bar): contrast 11.9, brightness 202
+FADED frame 89 (status bar): contrast 13.3, brightness 194
+FADED frame 90 (status bar): contrast 14.9, brightness 186
+FADED frame 91 (status bar): contrast 16.5, brightness 178
+FADED frame 122 (status bar): contrast 10.9, brightness 45
+FADED frame 123 (status bar): contrast 10.9, brightness 45
+FADED frame 124 (status bar): contrast 10.9, brightness 45
+FADED frame 125 (status bar): contrast 11.3, brightness 47
+FADED frame 126 (status bar): contrast 11.6, brightness 49
+FADED frame 127 (status bar): contrast 12.1, brightness 52
+FADED frame 128 (status bar): contrast 12.7, brightness 55
+FADED frame 129 (status bar): contrast 13.4, brightness 59
+FADED frame 130 (status bar): contrast 14.1, brightness 62
+FADED frame 131 (status bar): contrast 14.9, brightness 66
+FADED frame 132 (status bar): contrast 15.7, brightness 70
+FADED frame 140 (status bar): contrast 14.7, brightness 118
+FADED frame 141 (status bar): contrast 10.0, brightness 127
+FADED frame 142 (status bar): contrast 4.1, brightness 136
+FADED frame 143 (status bar): contrast 2.2, brightness 145
+FADED frame 144 (status bar): contrast 7.1, brightness 155
+FADED frame 145 (status bar): contrast 11.0, brightness 164
+FADED frame 146 (status bar): contrast 13.5, brightness 172
+FADED frame 147 (status bar): contrast 14.0, brightness 179
+FADED frame 148 (status bar): contrast 12.3, brightness 200
+FADED frame 149 (status bar): contrast 12.3, brightness 200
+FADED frame 150 (status bar): contrast 11.8, brightness 202
+FADED frame 151 (status bar): contrast 11.0, brightness 209
+FADED frame 152 (status bar): contrast 10.6, brightness 211
+FADED frame 153 (status bar): contrast 9.2, brightness 218
+FADED frame 154 (status bar): contrast 8.0, brightness 221
+FADED frame 155 (status bar): contrast 6.6, brightness 220
+FADED frame 156 (status bar): contrast 7.0, brightness 219
+FADED frame 157 (status bar): contrast 10.8, brightness 217
+81 faded frames

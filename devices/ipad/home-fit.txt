@@ -1,0 +1,15 @@
+== ipad library-light
+fits
+card 236-589, start 517-573, new set 1118-1174, bar 1106-1190
+== ipad library-dark
+fits
+card 236-589, start 517-573, new set 1118-1174, bar 1106-1190
+== ipad xxl-library-light
+fits
+card 253-656, start 584-640, new set 1118-1174, bar 1106-1190
+== ipad xxl-library-dark
+fits
+card 253-656, start 584-640, new set 1118-1174, bar 1106-1190
+== ipad ax1-library-light
+fits
+card 282-989, start 915-973, new set 1032-1089, bar 1020-1190
