@@ -11,7 +11,14 @@ extension ShadowStyle {
     /// inside it when the surface is pressed in.
     static func ward(_ light: WardReliefLight, inner: Bool) -> ShadowStyle {
         let color = Color(relief: light)
-        let radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
+        var radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
+        if LaunchStage.noGlows {
+            // `-uiPreviewNoGlows` (a control take): no soft edge, the light
+            // falls as a 1-pt rim, same colour and side.
+            radius = 0
+            x = min(1, max(-1, x))
+            y = min(1, max(-1, y))
+        }
         return inner ? .inner(color: color, radius: radius, x: x, y: y)
                      : .drop(color: color, radius: radius, x: x, y: y)
     }
@@ -130,7 +137,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
                 }
             }
             .compositingGroup()
-            .blur(radius: unlit ? 0 : spec.blur)
+            .blur(radius: unlit || LaunchStage.noGlows ? 0 : spec.blur)
             if spec.edgeAlpha > 0 {
                 shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }

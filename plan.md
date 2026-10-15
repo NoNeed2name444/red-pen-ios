@@ -1989,6 +1989,13 @@ with the marks on the screens last.
     a control take (film/handoff-MODE-control.txt, not judged) after each
     judged one. The settle wait is replaced by a fixed 30 s sleep, and the
     timing file now has mdutil and the busiest processes round each launch.
+  - Glows experiment (launch only; no change without the argument): the
+    long gaps are not main-thread work and not home's loads, and dark mode
+    fails where light passes, so `-uiPreviewNoGlows` leaves out the Ward
+    faces' soft lights (drop-shadow blur and the press softening; each light
+    kept as a 1-pt rim, colours and ink edges unchanged). The opening itself
+    draws no shadow. The control take now uses it (three judged takes per
+    mode, raw-MODE-3.mp4 for the third); compare control against judged gaps.
 
 ### Waiting on the owner
 

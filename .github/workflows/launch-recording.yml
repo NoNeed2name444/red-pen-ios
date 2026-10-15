@@ -139,8 +139,8 @@ jobs:
           # whether a slow first one was the machine settling after boot. A
           # take whose recording came out empty (the recorder can fail on a
           # busy runner) is taken again, up to twice.
-          for take in 1 2; do
-            name="film/raw-$MODE.mp4"; [ $take = 2 ] && name="film/raw-$MODE-2.mp4"
+          for take in 1 2 3; do
+            name="film/raw-$MODE.mp4"; [ $take != 1 ] && name="film/raw-$MODE-$take.mp4"
             for attempt in 1 2 3; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               sleep 3
@@ -173,8 +173,9 @@ jobs:
               xcrun simctl io "$UDID" screenshot --type=png "film/rest-$MODE.png" >/dev/null 2>&1 || true
             fi
             # one control take after the judged one, the same way but with
-            # home's data stood in for (-uiPreviewStubHomeData): not judged,
-            # to show whether home's loads cause the long holds
+            # the glows left out (-uiPreviewNoGlows: no soft shadows, rims,
+            # edges and colours kept): not judged, to show whether the
+            # glows cause the long holds
             xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
             sleep 3
             sleep 30
@@ -182,7 +183,7 @@ jobs:
             stamp "take $take control: after 30 s quiet"
             readout clear
             busy "take $take control before launch"
-            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash -uiPreviewStubHomeData >> "film/launch-$MODE.log" 2>&1
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash -uiPreviewNoGlows >> "film/launch-$MODE.log" 2>&1
             sleep 20
             busy "take $take control after the take"
             readout "$take" control
