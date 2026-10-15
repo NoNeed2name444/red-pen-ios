@@ -1,0 +1,8 @@
+== library-light
+fits
+card 266-675, start 603-659, new set 700-756, tiles none, bar 700-840, cut 688, large text false
+words: 
+== library-dark
+fits
+card 266-675, start 603-659, new set 700-756, tiles none, bar 700-840, cut 688, large text false
+words: 

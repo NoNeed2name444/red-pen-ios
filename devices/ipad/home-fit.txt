@@ -1,0 +1,20 @@
+== ipad library-light
+fits
+card 236-589, start 517-573, new set 1118-1174, tiles 621-758, bar 1118-1190, cut 1106, large text false
+words: the Vitals tile's streak 84/40, the brain map's line 192/38
+== ipad library-dark
+fits
+card 236-589, start 517-573, new set 1118-1174, tiles 621-758, bar 1118-1190, cut 1106, large text false
+words: the Vitals tile's streak 84/40, the brain map's line 192/38
+== ipad xxl-library-light
+fits
+card 253-656, start 584-640, new set 1118-1174, tiles 688-829, bar 1118-1190, cut 1106, large text true
+words: the Vitals tile's streak 105/50, the brain map's line 241/48
+== ipad xxl-library-dark
+fits
+card 253-656, start 584-640, new set 1118-1174, tiles 688-829, bar 1118-1190, cut 1106, large text true
+words: the Vitals tile's streak 105/50, the brain map's line 241/48
+== ipad ax1-library-light
+fits
+card 334-881, start 807-865, new set 1032-1089, tiles 913-1225, bar 1032-1190, cut 1020, large text true
+words: the Vitals tile's streak 137/65, the brain map's line 313/64

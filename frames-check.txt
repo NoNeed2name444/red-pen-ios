@@ -1,0 +1,26 @@
+== mode-switch-app
+6 frames; content contrast light 34.2, dark 32.1; a frame under 25.7 has faded
+6 frames; status bar contrast light 45.3, dark 42.2; a frame under 33.7 has faded (reported, never fails: iOS's own transition)
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch-quiz
+80 frames; content contrast light 42.1, dark 38.9; a frame under 31.1 has faded
+80 frames; status bar contrast light 46.5, dark 42.8; a frame under 34.2 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 3-26 from 0.443 s, on screen 0.373 s; lowest contrast 10.6, brightness 222
+faded status bar, not gated: frames 42-64 from 5.530 s, on screen 0.343 s; lowest contrast 10.6, brightness 222
+faded status bar, not gated: frames 79-79 from 10.795 s, on screen 0.055 s; lowest contrast 11.3, brightness 224
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch (system, not gated)
+177 frames; content contrast light 8.0, dark 16.2; a frame under 6.4 has faded
+brief dip, allowed (content): frames 10-14 from 3.747 s, on screen 0.055 s; lowest contrast 4.0, brightness 139
+brief dip, allowed (content): frames 92-93 from 11.843 s, on screen 0.085 s; lowest contrast 4.3, brightness 136
+brief dip, allowed (content): frames 130-130 from 15.387 s, on screen 0.067 s; lowest contrast 4.9, brightness 134
+177 frames; status bar contrast light 26.0, dark 18.3; a frame under 14.6 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 2-4 from 3.618 s, on screen 0.058 s; lowest contrast 9.1, brightness 221
+faded status bar, not gated: frames 12-17 from 3.767 s, on screen 0.113 s; lowest contrast 2.1, brightness 112
+faded status bar, not gated: frames 21-26 from 3.995 s, on screen 0.137 s; lowest contrast 7.2, brightness 56
+faded status bar, not gated: frames 42-43 from 8.183 s, on screen 0.080 s; lowest contrast 11.7, brightness 50
+faded status bar, not gated: frames 45-54 from 8.278 s, on screen 0.120 s; lowest contrast 7.2, brightness 87
+faded status bar, not gated: frames 58-78 from 8.553 s, on screen 0.167 s; lowest contrast 6.4, brightness 219
+faded status bar, not gated: frames 125-127 from 15.150 s, on screen 0.168 s; lowest contrast 7.2, brightness 87
+faded status bar, not gated: frames 132-162 from 15.527 s, on screen 0.363 s; lowest contrast 6.4, brightness 219
+clean: the content keeps its contrast, or dips for 0.2 s at most

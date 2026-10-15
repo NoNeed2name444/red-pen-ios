@@ -1,0 +1,20 @@
+== promax library-light
+fits
+card 266-653, start 581-637, new set 782-838, tiles 685-863, bar 782-922, cut 770, large text false
+words: the Vitals tile's streak 84/40, the brain map's line 154/38
+== promax library-dark
+fits
+card 266-653, start 581-637, new set 782-838, tiles 685-863, bar 782-922, cut 770, large text false
+words: the Vitals tile's streak 84/40, the brain map's line 154/38
+== promax xxl-library-light
+fits
+card 283-686, start 614-670, new set 780-836, tiles 718-911, bar 780-922, cut 768, large text true
+words: the Vitals tile's streak 105/50, the brain map's line 144/48
+== promax xxl-library-dark
+fits
+card 283-686, start 614-670, new set 780-836, tiles 718-911, bar 780-922, cut 768, large text true
+words: the Vitals tile's streak 105/50, the brain map's line 144/48
+== promax ax1-library-light
+fits
+card 364-1123, start 1049-1107, new set 780-837, tiles none, bar 780-922, cut 768, large text true
+words: 
