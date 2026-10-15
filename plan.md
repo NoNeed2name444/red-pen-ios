@@ -1965,6 +1965,18 @@ with the marks on the screens last.
     refuses while the first attempt's worktree holds it; the retry now
     works detached and pushes HEAD. Next: the advisor judges app or host
     before any change to the app.
+  - The advisor's ruling: undetermined, leaning to the runner (the lost
+    refreshes are spread through the window, and the light takes rank by
+    load), though each long hold sits near an app event (just after the
+    hand-off, or as home goes still). So, before any change to the app,
+    each judged take now waits until the runner settles: the 1-minute load
+    under 3 x its cores, read every 15 s, at most 5 minutes, with the load
+    and "settled" or "unsettled" written beside each readout. The rule is
+    fixed in advance and the same for every take, and the 100 ms gate is
+    unchanged. The profiled take is gone (spindump can't time a hold). If a
+    hold over 100 ms survives on a settled runner with full refreshes, it
+    is the app's: then os_signpost intervals round the hand-off, read back
+    with log show --signpost.
 
 ### Waiting on the owner
 

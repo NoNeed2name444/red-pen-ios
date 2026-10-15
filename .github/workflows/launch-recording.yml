@@ -111,6 +111,25 @@ jobs:
           mkdir -p film
           T="film/timing-$MODE.txt"
           stamp() { echo "$(date -u +%H:%M:%S.%N | cut -c1-12) $*  | load $(sysctl -n vm.loadavg)" >> "$T"; }
+          # wait until the runner settles: fixed in advance, the same for every
+          # take, capped at 5 minutes and logged; the 100 ms gate is unchanged
+          settle() {
+            local limit waited
+            limit=$(( 3 * $(sysctl -n hw.ncpu) ))
+            waited=0
+            LOAD=$(sysctl -n vm.loadavg | awk '{print $2}')
+            while ! awk -v l="$LOAD" -v lim="$limit" 'BEGIN { exit !(l < lim) }' && [ "$waited" -lt 300 ]; do
+              sleep 15
+              waited=$(( waited + 15 ))
+              LOAD=$(sysctl -n vm.loadavg | awk '{print $2}')
+            done
+            if awk -v l="$LOAD" -v lim="$limit" 'BEGIN { exit !(l < lim) }'; then
+              SETTLE=settled
+            else
+              SETTLE=unsettled
+            fi
+            stamp "take $1: $SETTLE, load $LOAD (limit $limit) after ${waited} s"
+          }
           stamp "booted and installed"
           # one launch first, unrecorded: the first launch after install
           # spends seconds on caches that no real opening does
@@ -125,9 +144,9 @@ jobs:
             [ -n "$data" ] || return 0
             if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt"; return 0; fi
             if [ -f "$data/Library/Caches/launch-handoff.txt" ]; then
-              echo "take $1: $(cat "$data/Library/Caches/launch-handoff.txt")" >> "film/handoff-$MODE.txt"
+              echo "take $1: $(cat "$data/Library/Caches/launch-handoff.txt") load=${LOAD:-none} settle=${SETTLE:-none}" >> "film/handoff-$MODE.txt"
             else
-              echo "take $1: no readout" >> "film/handoff-$MODE.txt"
+              echo "take $1: no readout load=${LOAD:-none} settle=${SETTLE:-none}" >> "film/handoff-$MODE.txt"
             fi
           }
           # two recorded launches: the film is the first; the second shows
@@ -139,6 +158,7 @@ jobs:
             for attempt in 1 2 3; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               sleep 3
+              settle "$take"
               readout clear
               xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "$name" &
               REC=$!
@@ -160,34 +180,6 @@ jobs:
               xcrun simctl io "$UDID" screenshot --type=png "film/rest-$MODE.png" >/dev/null 2>&1 || true
             fi
           done
-          # a third take, profiled, to find a long hold without guessing:
-          # spindump keeps every thread's stack each 2 ms, with the sample
-          # numbers each stack covers, so a hold shows as one stack over a run
-          # of samples (sample(1) stands in if spindump will not start). Its
-          # readout is kept apart and not judged.
-          xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-          sleep 3
-          readout clear
-          xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "$RUNNER_TEMP/raw-profiled.mp4" &
-          REC=$!
-          sleep 3
-          stamp "take 3: launch, profiled"
-          out=$(xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash 2>&1 || true)
-          echo "$out" >> "film/launch-$MODE.log"
-          pid=$(echo "$out" | sed -nE 's/.*: ([0-9]+)$/\1/p' | tail -1)
-          if [ -z "$pid" ]; then
-            stamp "take 3: no process id from simctl launch"
-          elif ! sudo spindump "$pid" 15 2 -file "film/spindump-$MODE.txt" >> "$T" 2>&1; then
-            stamp "take 3: spindump failed, sampling instead"
-            sample "$pid" 12 2 -mayDie -file "film/sample-$MODE.txt" >> "$T" 2>&1 || stamp "take 3: sample failed too"
-          fi
-          sleep 3
-          kill -INT $REC 2>/dev/null || true
-          wait $REC || true
-          data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
-          echo "take 3 (profiled, not judged): $(cat "$data/Library/Caches/launch-handoff.txt" 2>/dev/null || echo no readout)" \
-            > "film/handoff-$MODE-profiled.txt"
-          stamp "take 3: done"
           # the splash's first frame against the system launch screen, as
           # lossless screenshots: launched holding the first frame (marked
           # with a red square), shot each second while it starts (the launch
