@@ -272,5 +272,16 @@ check("B10 the strength stays in its range",
       GraphPerfExposure.strength(for: 1e-6) == GraphPerfExposure.range.upperBound
       && GraphPerfExposure.strength(for: 1e6) == GraphPerfExposure.range.lowerBound)
 
+// MARK: - B11 a missed refresh opens nothing
+
+var blind = GraphPerfFrameBudget(screenFPS: 60)
+let blindStart = blind.split
+for _ in 0..<600 { blind.record(stages(0.001, 0, 0), interval: 2.0 / 60) }
+check("B11 cheap frames that miss refreshes (a GPU that reports 0) neither open nor close detail",
+      blind.split == blindStart && blind.bundleShare == 1, "split \(blind.split)")
+var seeing = GraphPerfFrameBudget(screenFPS: 60)
+for _ in 0..<600 { seeing.record(stages(0.001, 0, 0), interval: 1.0 / 60) }
+check("B11 the same frames on time open detail", seeing.split < blindStart, "split \(seeing.split)")
+
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

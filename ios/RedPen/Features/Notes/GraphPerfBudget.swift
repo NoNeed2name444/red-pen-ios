@@ -46,6 +46,8 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     static let stall: Double = 0.25
     /// Frames not counted after a map is shown (its first frames carry the build).
     static let warmUp: Int = 30
+    /// A frame interval past this many refreshes is a missed refresh.
+    static let missed: Double = 1.25
     /// Frames to wait after a change (the ones in flight still carry the old detail).
     static let settle: Int = 4
 
@@ -105,8 +107,9 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     /// coarser split, the far stage by fewer bundles, the CPU by a coarser
     /// split only when planning (which grows with what is open) is most of
     /// it. The split never coarsens for time it did not cost. Only the
-    /// frame's own cost counts: a refresh missed while it was within its
-    /// share is the system's (on the simulator, every few frames).
+    /// frame's own cost counts against it: a refresh missed while it was
+    /// within its share may be the system's (on the simulator, every few
+    /// frames), so it cuts nothing, but it opens nothing further either.
     mutating func record(_ stages: GraphPerfFrameStages, interval: Double?) {
         let cost = stages.cost
         lastCost = cost
@@ -131,6 +134,12 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
                     if stages.plan >= stages.cpu * 0.5 { setSplit(split * Self.coarser) }
                 }
             }
+        } else if let interval, interval > period * Self.missed {
+            // a refresh missed though the frame was cheap: where the GPU's
+            // time is not reported (the simulator says 0) this may be the
+            // GPU, so nothing opens further; nothing closes for it either
+            under = 0
+            farUnder = 0
         } else if cost < target * 0.5 {
             under += 1
             over = 0

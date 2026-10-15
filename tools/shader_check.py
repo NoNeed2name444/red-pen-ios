@@ -212,8 +212,12 @@ inline float3 clamp(float3 x, float a, float b) = delete;
 inline uint2 mk_uint2(float2 a) { uint2 v; v.x = (uint)a.x; v.y = (uint)a.y; return v; }
 inline uint2 min(uint2 a, uint2 b) { return mk_uint2(min(a.x, b.x), min(a.y, b.y)); }
 enum class access { read, write, read_write, sample };
+enum class filter { nearest, linear };
+enum class address { clamp_to_edge, repeat };
+struct sampler { constexpr sampler(filter f, address a) {} };
 template <class T, access A = access::sample> struct texture2d {
     float4 read(uint2 at) const { return mk_float4(0.0f); }
+    float4 sample(sampler s, float2 uv) const { return mk_float4(0.0f); }
     void write(float4 c, uint2 at) const {}
     uint get_width() const { return 1u; }
     uint get_height() const { return 1u; }

@@ -15,11 +15,13 @@
 //                       as the leaf opens); shading and the lit ball grow
 //                       with the pixels it covers, a plain dot below two
 //   mil_chosen_vertex   the chosen body again, over everything, with a ring
-//   mil_link_vertex     every link of every drawn leaf, read from the link
-//                       pages (1,024 a page); each end where its leaf shows
-//                       it, so a link into a closed leaf ends at its summary
-//                       point; drawn once when both leaves are drawn
-//   mil_bundle_vertex   one band per bundle between two cut cells, as wide as
+//   mil_link_vertex     every link of the leaves round the focus and the
+//                       chosen note's (GraphPerfLinkFocus), read from the
+//                       link pages (1,024 a page); each end where its leaf
+//                       shows it, so a link into a closed leaf ends at its
+//                       summary point; drawn once when both leaves' are drawn
+//   mil_bundle_vertex   one faint band per bundle (the strongest 300 at most)
+//                       between two cut cells, as wide as
 //                       the log of the links it carries times the share of
 //                       both ends still closed: it narrows to nothing as the
 //                       links take over, never fades
@@ -64,6 +66,8 @@ nonisolated enum GraphPerfMillionShaders {
         static let summaries = 13
         /// Per bundle cut cell: 1/sqrt(the bundles meeting there).
         static let cutWeights = 14
+        /// Per leaf, 1 when its links are drawn one by one (GraphPerfLinkFocus).
+        static let linkLeaves = 15
     }
 
     /// The resolve and measure passes' slots.
@@ -113,6 +117,12 @@ nonisolated enum GraphPerfMillionShaders {
     /// The frame's numbers, in Frame's order.
     /// The widest a bundle is drawn (points, before Bold).
     static let bundleWidthCap: Float = 2.5
+    /// At most this many bundles, the strongest: groups, not a web.
+    static let bundleCap = 300
+    /// The light is drawn at this share of the screen's pixels a side (a
+    /// quarter of the pixels), then filtered up by the resolve: glows and
+    /// bands are soft anyway, and it is most of the GPU's fill.
+    static let lightScale: Float = 0.5
     /// A link or bundle with an end off the screen is drawn at full
     /// strength up to this share of the screen's shorter side long, dimmer
     /// in proportion beyond it (never under `longFloor`): close in, the
@@ -133,7 +143,7 @@ nonisolated enum GraphPerfMillionShaders {
             SIMD4(eye.x, eye.y, eye.z, time),
             SIMD4(width, height, cam.focal(viewHeight: height), pixelsPerPoint),
             SIMD4(GraphPerfLOD.noteClamp.lowerBound, 1.6, base, bold ? 3 : 2.2),
-            SIMD4(Float(chosenSlot ?? -1), GraphPerfLOD.hubClamp.upperBound, min(base * 1.6, 0.6), tier == .saver ? 0.7 : 1),
+            SIMD4(Float(chosenSlot ?? -1), GraphPerfLOD.hubClamp.upperBound, min(base * 0.8, 0.3), tier == .saver ? 0.7 : 1),
             SIMD4(toCentre, toCentre + 2 * radius, bundleWidthCap * (bold ? 1.4 : 1),
                   longReach * min(width, height))
         ]
@@ -344,7 +354,8 @@ nonisolated enum GraphPerfMillionShaders {
                                    const device LeafBox* boxes [[buffer(3)]],
                                    const device float4* standIn [[buffer(4)]],
                                    const device uint2* pool [[buffer(7)]],
-                                   const device uint* pages [[buffer(8)]]) {
+                                   const device uint* pages [[buffer(8)]],
+                                   const device uchar* shownLinks [[buffer(15)]]) {
         LineOut o;
         uint e = vid >> 1u;
         uint page = pages[e >> 10u];
@@ -357,8 +368,8 @@ nonisolated enum GraphPerfMillionShaders {
         ushort4 qo = packed[pair.y];
         float4 sh = standIn[uint(qh.w)];
         float4 so = standIn[uint(qo.w)];
-        // both leaves drawn: the lower leaf's copy draws it
-        if (so.w >= 2.0 && qo.w < qh.w) { return o; }
+        // both leaves' links drawn: the lower leaf's copy draws it
+        if (shownLinks[uint(qo.w)] != 0u && qo.w < qh.w) { return o; }
         bool home = (vid & 1u) == 0u;
         float4 ch = f.viewProj * float4(shown(unpack_position(qh, boxes[uint(qh.w)]), sh), 1.0);
         float4 co = f.viewProj * float4(shown(unpack_position(qo, boxes[uint(qo.w)]), so), 1.0);
@@ -427,6 +438,9 @@ nonisolated enum GraphPerfMillionShaders {
         float4 clip = f.viewProj * float4(a.xyz, 1.0);
         float depth = max(clip.w, 1e-3);
         float pixels = max(a.w * f.screen.z / depth, f.look.y) * scale;
+        // never wider than a fifth of the screen: a cluster close by opens
+        // into notes, and a huge soft disc is only fill
+        pixels = min(pixels, 0.2 * min(f.screen.x, f.screen.y));
         float2 c = corner(vid);
         float4 moved = clip;
         moved.xy += c * (pixels * 2.0 / f.screen.xy) * clip.w;
@@ -449,6 +463,7 @@ nonisolated enum GraphPerfMillionShaders {
 
     struct ResolveOut {
         float4 position [[position]];
+        float2 uv;
     };
 
     vertex ResolveOut mil_resolve_vertex(uint vid [[vertex_id]]) {
@@ -456,15 +471,16 @@ nonisolated enum GraphPerfMillionShaders {
         float x = (vid == 1u) ? 3.0 : -1.0;
         float y = (vid == 2u) ? 3.0 : -1.0;
         o.position = float4(x, y, 0.0, 1.0);
+        o.uv = float2(x * 0.5 + 0.5, 0.5 - y * 0.5);
         return o;
     }
 
     fragment float4 mil_resolve_fragment(ResolveOut in [[stage_in]],
-                                         texture2d<float, access::read> light [[texture(0)]],
+                                         texture2d<float> light [[texture(0)]],
                                          constant float4& tone [[buffer(0)]]) {
-        uint2 at = uint2(in.position.xy);
-        at = min(at, uint2(light.get_width() - 1u, light.get_height() - 1u));
-        float3 x = light.read(at).rgb;
+        // the light is smaller than the screen: filtered up
+        constexpr sampler soft(filter::linear, address::clamp_to_edge);
+        float3 x = light.sample(soft, in.uv).rgb;
         float3 t = 1.0 - exp(-tone.x * max(x, float3(0.0)));
         return float4(tone.yzw + (1.0 - tone.yzw) * t, 1.0);
     }
@@ -478,7 +494,10 @@ nonisolated enum GraphPerfMillionShaders {
         float h = float(light.get_height());
         uint2 at = uint2(uint((float(gid.x) + 0.5) / 64.0 * w), uint((float(gid.y) + 0.5) / 64.0 * h));
         at = min(at, uint2(light.get_width() - 1u, light.get_height() - 1u));
-        uint2 shown_at = min(at, uint2(screen.get_width() - 1u, screen.get_height() - 1u));
+        float sw = float(screen.get_width());
+        float sh = float(screen.get_height());
+        uint2 shown_at = uint2(uint((float(gid.x) + 0.5) / 64.0 * sw), uint((float(gid.y) + 0.5) / 64.0 * sh));
+        shown_at = min(shown_at, uint2(screen.get_width() - 1u, screen.get_height() - 1u));
         float3 weights = float3(0.2126, 0.7152, 0.0722);
         samples[gid.y * 64u + gid.x] = float2(dot(light.read(at).rgb, weights),
                                               dot(screen.read(shown_at).rgb, weights));

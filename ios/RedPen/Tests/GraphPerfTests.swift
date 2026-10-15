@@ -476,6 +476,21 @@ readout.gpuP95 = 0.0061
 check("P7 the pace on ProMotion: the rate of the screen's 120, the slower of CPU and GPU against 8.3 ms",
       readout.pace == "120 of 120 fps \u{00B7} 6.1 ms a frame of 8.3", readout.pace)
 check("P7 the 100,000 map names no stages", readout.stages.isEmpty)
+var paced = readout
+paced.fpsLow = 112.4
+check("P7 once measured, the 5th percentile follows the rate",
+      paced.pace == "120 of 120 fps (low 112) \u{00B7} 6.1 ms a frame of 8.3", paced.pace)
+// 3 s at 60 with a jittered frame now and then, and one slow stretch
+var steadyRun: [Double] = Array(repeating: 1.0 / 60, count: 180)
+for k in stride(from: 3, to: 180, by: 7) { steadyRun[k] = 1.0 / 60 + 0.004; steadyRun[k + 1] = 1.0 / 60 - 0.004 }
+let calmRates = GraphPerfStats.rates(steadyRun)
+for k in 60..<66 { steadyRun[k] = 1.0 / 30 }
+let slowRates = GraphPerfStats.rates(steadyRun)
+check("P7 rates: jitter between neighbours reads as 60, median and 5th percentile",
+      abs(calmRates.median - 60) < 1 && calmRates.low > 58.5, "\(calmRates)")
+check("P7 rates: a tenth of a second at 30 shows in the 5th percentile of 15 fifths, not the median",
+      abs(slowRates.median - 60) < 1 && slowRates.low < 45, "\(slowRates)")
+check("P7 rates of nothing are zero", GraphPerfStats.rates([]).median == 0)
 var staged = readout
 staged.detail = 26
 staged.cpuMedian = 0.0009; staged.planMedian = 0.0003; staged.nearMedian = 0.0031; staged.farMedian = 0.0012

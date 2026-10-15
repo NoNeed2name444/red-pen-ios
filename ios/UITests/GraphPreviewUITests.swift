@@ -440,9 +440,11 @@ final class GraphPreviewUITests: XCTestCase {
 
     /// The Performance theme's million (plans 4b and 4e): the whole map, then
     /// pinched in twice and turned, each picture with the speed readout
-    /// (frames a second against the screen's fastest, a frame's time against
-    /// one refresh), and the readout's words kept beside them. The simulator
-    /// is not the device: the iPad's own readout is the proof.
+    /// (frames a second against the screen's fastest, the median and the 5th
+    /// percentile over the last 3 s, a frame's time against one refresh, and
+    /// the share of the screen at 250+), and the readout's words kept beside
+    /// them. Each zoom is held 3 s before its picture, so its readout is its
+    /// own. The simulator is not the device: the iPad's own readout is the proof.
     func testPerformanceMillion() {
         let app = XCUIApplication()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "performance",
@@ -459,15 +461,15 @@ final class GraphPreviewUITests: XCTestCase {
         for _ in 0..<3 {
             space.swipeLeft(velocity: .slow)
         }
-        sleep(1)
+        sleep(3)
         snap(app, "50-1-million-whole")
         keep(readout, "50-1-million-whole-readout")
         space.pinch(withScale: 3, velocity: 1.5)
-        sleep(2)
+        sleep(3)
         snap(app, "50-2-million-closer")
         keep(readout, "50-2-million-closer-readout")
         space.pinch(withScale: 4, velocity: 2)
-        sleep(2)
+        sleep(3)
         snap(app, "50-3-million-close")
         keep(readout, "50-3-million-close-readout")
         space.swipeRight(velocity: .slow)

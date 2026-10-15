@@ -198,6 +198,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     private(set) var budget: GraphPerfFrameBudget
     private var exposure = GraphPerfExposure()
     private var light: MTLTexture?
+    private var lightDepth: MTLTexture?
     private var frameNumber: Int = 0
     private let linkPages: Int
 
@@ -222,6 +223,8 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     private var lastMeasure: CFTimeInterval = 0
     private var startTime: CFTimeInterval = CACurrentMediaTime()
     private var intervals: [Double] = []
+    /// The last 3 s of frame intervals, for the readout's median and 5th percentile.
+    private var recentIntervals: [Double] = []
     private var cpuTimes: [Double] = []
     private var planTimes: [Double] = []
     private var saturations: [Double] = []
@@ -373,6 +376,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         lastMeasure = 0
         lastCamera = nil
         intervals.removeAll(keepingCapacity: true)
+        recentIntervals.removeAll(keepingCapacity: true)
         statsTime = 0
     }
 
@@ -380,22 +384,41 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
-    /// The light texture, the drawable's size.
-    private func lightTarget(width: Int, height: Int) -> MTLTexture? {
-        if let light, light.width == width, light.height == height { return light }
-        let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: Self.lightFormat, width: max(width, 1),
-                                                         height: max(height, 1), mipmapped: false)
+    /// The light texture and its depth, `lightScale` of the drawable a side.
+    private func lightTargets(width: Int, height: Int, depthFormat: MTLPixelFormat) -> (MTLTexture, MTLTexture)? {
+        let w = max(Int((Float(width) * GraphPerfMillionShaders.lightScale).rounded(.up)), 1)
+        let h = max(Int((Float(height) * GraphPerfMillionShaders.lightScale).rounded(.up)), 1)
+        if let light, let lightDepth, light.width == w, light.height == h { return (light, lightDepth) }
+        let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: Self.lightFormat, width: w, height: h,
+                                                         mipmapped: false)
         d.usage = [.renderTarget, .shaderRead]
         d.storageMode = .private
+        let z = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: depthFormat, width: w, height: h,
+                                                         mipmapped: false)
+        z.usage = [.renderTarget]
+        z.storageMode = .private
         light = device.makeTexture(descriptor: d)
-        return light
+        lightDepth = device.makeTexture(descriptor: z)
+        guard let light, let lightDepth else { return nil }
+        return (light, lightDepth)
     }
 
     func draw(in view: MTKView) {
         let now: CFTimeInterval = CACurrentMediaTime()
         let interval: Double? = lastTime > 0 ? now - lastTime : nil
         let step: Double = min(interval ?? 1.0 / Double(screenFPS), 0.25)
-        if let interval { intervals.append(interval) }
+        if let interval {
+            intervals.append(interval)
+            recentIntervals.append(interval)
+            // 3 s of them
+            var span = recentIntervals.reduce(0, +)
+            var drop = 0
+            while span > 3, drop < recentIntervals.count {
+                span -= recentIntervals[drop]
+                drop += 1
+            }
+            if drop > 0 { recentIntervals.removeFirst(drop) }
+        }
         lastTime = now
         beforeFrame?(step)
         guard let map, let statics, let state, slots.count == Self.slotCount else { return }
@@ -456,7 +479,13 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             if exposure.saturated >= 0 { saturations.append(exposure.saturated) }
             slot.measured = false
         }
-        let (pageCount, linkEntries) = slot.write(frame, cache: state.cache, links: map.links)
+        // single links only round the focus and for the chosen note (the rest
+        // of the map shows as glows and its strongest bundles)
+        let chosenSlot: Int? = selected.flatMap { $0 >= 0 && $0 < map.bodyCount ? Int(octree.slotOf[$0]) : nil }
+        let linked = GraphPerfLinkFocus.leaves(drawLeaves: frame.drawLeaves, octree: octree, links: map.links,
+                                               focus: camera.target, distance: camera.distance,
+                                               chosenLeaf: chosenSlot.map { octree.leaf(ofSlot: $0) })
+        let (pageCount, linkEntries) = slot.write(frame, linked: linked, cache: state.cache, links: map.links)
 
         guard let commands = queue.makeCommandBuffer() else {
             inFlight.signal()
@@ -500,8 +529,8 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         let drawableWait: CFTimeInterval = CACurrentMediaTime() - drawableStart
         let done: DispatchSemaphore = inFlight
         guard let screenPass = passOrNil, let drawable = drawableOrNil,
-              let depthTexture = screenPass.depthAttachment.texture,
-              let lightTexture = lightTarget(width: drawable.texture.width, height: drawable.texture.height),
+              let targets = lightTargets(width: drawable.texture.width, height: drawable.texture.height,
+                                         depthFormat: view.depthStencilPixelFormat),
               let farCommands = queue.makeCommandBuffer(),
               let screenCommands = queue.makeCommandBuffer() else {
             commands.addCompletedHandler { _ in done.signal() }
@@ -514,6 +543,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         // far (bundles, glows: what the bundle share trims) add light into
         // the half-float texture; the screen pass tone-maps it and draws the
         // notes over it in their own colours
+        let (lightTexture, depthTexture) = targets
         let nearPass = MTLRenderPassDescriptor()
         nearPass.colorAttachments[0].texture = lightTexture
         nearPass.colorAttachments[0].loadAction = .clear
@@ -541,7 +571,6 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             commands.commit()
             return
         }
-        let chosenSlot: Int? = selected.flatMap { $0 >= 0 && $0 < map.bodyCount ? Int(octree.slotOf[$0]) : nil }
         let numbers: [SIMD4<Float>] = GraphPerfMillionShaders.frame(
             camera: camera, width: width, height: height, near: range.near, far: range.far, centre: map.centre,
             radius: map.radius, tier: tier, bold: bold, chosenSlot: chosenSlot,
@@ -566,6 +595,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             encoder.setVertexBuffer(statics.cutColours, offset: 0, index: S.cutColours)
             encoder.setVertexBuffer(slot.summaries, offset: 0, index: S.summaries)
             encoder.setVertexBuffer(statics.cutWeights, offset: 0, index: S.cutWeights)
+            encoder.setVertexBuffer(slot.linkLeaves, offset: 0, index: S.linkLeaves)
         }
 
         // near: the notes' depth (no colour), then the links' light behind it
@@ -589,7 +619,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         // far: the heaviest bundles the budget allows, and the glows
         if let farEncoder = farCommands.makeRenderCommandEncoder(descriptor: farPass) {
             bind(farEncoder)
-            drawnBundles = budget.bundleLimit(statics.bundleCount)
+            drawnBundles = budget.bundleLimit(min(statics.bundleCount, GraphPerfMillionShaders.bundleCap))
             if drawnBundles > 0 {
                 farEncoder.setRenderPipelineState(bundlePipeline)
                 farEncoder.setDepthStencilState(glassDepth)
@@ -675,8 +705,11 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         stats.drawnBodies = frame.drawnBodies
         stats.drawnGlows = frame.summaryCount
         stats.drawnLines = links + drawnBundles
+        // the median and 5th percentile over the last 3 s, a fifth of a second at a time
+        let rates = GraphPerfStats.rates(recentIntervals, group: max(screenFPS / 5, 1))
         let total: Double = intervals.reduce(0, +)
-        stats.fps = total > 0 ? Double(intervals.count) / total : 0
+        stats.fps = rates.median > 0 ? rates.median : (total > 0 ? Double(intervals.count) / total : 0)
+        stats.fpsLow = rates.low
         stats.screenFPS = screenFPS
         let gpu = gpuClock.drain()
         let stages = stageClock.drain()
@@ -783,6 +816,9 @@ final class GraphPerfMillionSlot {
     let samples: MTLBuffer
     /// The GPU wrote `samples` for the frame that last used this slot.
     var measured = false
+    /// Per leaf, 1 when its links are drawn one by one.
+    let linkLeaves: MTLBuffer
+    private var linkedLast: [Int] = []
 
     init?(device: MTLDevice, map: GraphPerfMillionMap, linkPages: Int) {
         func make(_ bytes: Int) -> MTLBuffer? { device.makeBuffer(length: max(bytes, 16), options: .storageModeShared) }
@@ -792,7 +828,8 @@ final class GraphPerfMillionSlot {
               let pages = make(max(linkPages, 1) * 4),
               let summaries = make(map.octree.cells.count * 32),
               let bundleCells = make(map.bundles.cells.count * 16),
-              let samples = make(GraphPerfMillionShaders.measureGrid * GraphPerfMillionShaders.measureGrid * 8) else {
+              let samples = make(GraphPerfMillionShaders.measureGrid * GraphPerfMillionShaders.measureGrid * 8),
+              let linkLeaves = make(leaves) else {
             return nil
         }
         self.standIn = standIn
@@ -801,23 +838,29 @@ final class GraphPerfMillionSlot {
         self.summaries = summaries
         self.bundleCells = bundleCells
         self.samples = samples
+        self.linkLeaves = linkLeaves
+        memset(linkLeaves.contents(), 0, linkLeaves.length)
     }
 
-    /// Writes this frame's plan; returns how many link pages it draws, and
-    /// the link entries on them.
-    func write(_ frame: GraphPerfChunkFrame, cache: GraphPerfChunkCache, links: GraphPerfLeafLinks) -> (Int, Int) {
+    /// Writes this frame's plan, and the link pages of the leaves in
+    /// `linked` (marked in `linkLeaves`, so a link between two of them is
+    /// drawn once); returns how many link pages it draws, and the link
+    /// entries on them.
+    func write(_ frame: GraphPerfChunkFrame, linked: [Int], cache: GraphPerfChunkCache,
+               links: GraphPerfLeafLinks) -> (Int, Int) {
         GraphPerfSlot.copy(frame.standIn, into: standIn)
         GraphPerfSlot.copy(frame.drawLeaves, into: drawLeaves)
         GraphPerfSlot.copy(frame.summaries, into: summaries)
         GraphPerfSlot.copy(frame.bundleCells, into: bundleCells)
-        // the link pages of every leaf drawn body by body
+        let marks = linkLeaves.contents().assumingMemoryBound(to: UInt8.self)
+        let leaves = linkLeaves.length
+        for leaf in linkedLast where leaf >= 0 && leaf < leaves { marks[leaf] = 0 }
+        for leaf in linked where leaf >= 0 && leaf < leaves { marks[leaf] = 1 }
+        linkedLast = linked
         let out = pages.contents().assumingMemoryBound(to: UInt32.self)
         let room = pages.length / 4
         var n = 0, entries = 0
-        var k = 0
-        while k < frame.drawLeaves.count {
-            let leaf = Int(frame.drawLeaves[k])
-            k += 2
+        for leaf in linked {
             entries += links.count(leaf)
             for page in cache.pages[leaf] where n < room {
                 out[n] = UInt32(page)

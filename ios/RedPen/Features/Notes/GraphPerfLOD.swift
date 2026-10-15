@@ -113,8 +113,12 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     var drawnBodies: Int = 0
     var drawnGlows: Int = 0
     var drawnLines: Int = 0
-    /// Frames a second over the last half second, and the slowest twentieth's CPU time.
+    /// Frames a second (the million map: the median over the last 3 s), and
+    /// the slowest twentieth's CPU time.
     var fps: Double = 0
+    /// The million map: the 5th percentile of the rate over the last 3 s,
+    /// a fifth of a second at a time (0: not measured).
+    var fpsLow: Double = 0
     var cpuP95: Double = 0
     /// The slowest twentieth's GPU time (0 until the GPU reports).
     var gpuP95: Double = 0
@@ -148,6 +152,10 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     /// fastest, and what a frame costs against the time one refresh allows.
     var pace: String {
         let rate = String(Int(fps.rounded()))
+        if fpsLow > 0 && screenFPS > 0 {
+            return rate + " of " + String(screenFPS) + " fps (low " + String(Int(fpsLow.rounded())) + ") \u{00B7} "
+                + Self.millis(frameTime) + " ms a frame of " + Self.millis(1 / Double(screenFPS))
+        }
         guard screenFPS > 0 else { return rate + " fps \u{00B7} " + Self.millis(frameTime) + " ms a frame" }
         return rate + " of " + String(screenFPS) + " fps \u{00B7} " + Self.millis(frameTime) + " ms a frame of "
             + Self.millis(1 / Double(screenFPS))
@@ -184,6 +192,25 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     static func percent(_ share: Double) -> String {
         let tenths = Int((max(share, 0) * 1_000).rounded())
         return String(tenths / 10) + "." + String(tenths % 10) + "%"
+    }
+
+    /// The rate over a run of frame intervals (seconds): the median and the
+    /// 5th percentile of frames a second, each measured over `group`
+    /// intervals in a row (a fifth of a second at 60), so a frame's timing
+    /// jitter, which moves time between neighbours, does not read as a drop.
+    /// Over 3 s that is 15 windows, and the 5th percentile is the worst.
+    static func rates(_ intervals: [Double], group: Int = 12) -> (median: Double, low: Double) {
+        let n = max(group, 1)
+        var rates: [Double] = []
+        var k = 0
+        while k + n <= intervals.count {
+            let sum = intervals[k..<(k + n)].reduce(0, +)
+            if sum > 0 { rates.append(Double(n) / sum) }
+            k += n
+        }
+        guard !rates.isEmpty else { return (0, 0) }
+        rates.sort()
+        return (rates[rates.count / 2], rates[Int(0.05 * Double(rates.count - 1))])
     }
 
     /// The middle value (0 for none).

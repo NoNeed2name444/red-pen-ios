@@ -254,6 +254,54 @@ nonisolated struct GraphPerfChunkPlanner: Sendable {
     }
 }
 
+/// Which drawn leaves show their links one by one (the owner, round 6: a
+/// million connections drawn at once is a web, not a map). Far and middle
+/// views show clusters as glows and the strongest bundles; single links
+/// appear only round the focus point (the camera's target) and for the
+/// chosen note's leaf, nearest the focus first, up to `cap` links.
+nonisolated enum GraphPerfLinkFocus {
+    /// The focus reaches this share of the camera's distance from its target.
+    static let reach: Float = 0.35
+    /// At most this many links drawn one by one.
+    static let cap = 20_000
+
+    /// `drawLeaves` in the frame's pairs (leaf, first instance); returns the
+    /// leaves whose links are drawn, the chosen leaf first.
+    static func leaves(drawLeaves: [UInt32], octree: GraphPerfOctree, links: GraphPerfLeafLinks,
+                       focus: SIMD3<Float>, distance: Float, chosenLeaf: Int?,
+                       reach: Float = GraphPerfLinkFocus.reach, cap: Int = GraphPerfLinkFocus.cap) -> [Int] {
+        let within = max(reach * distance, 0)
+        var near: [(leaf: Int, d2: Float)] = []
+        var chosenDrawn = false
+        var k = 0
+        while k + 1 < drawLeaves.count {
+            let leaf = Int(drawLeaves[k])
+            k += 2
+            if leaf == chosenLeaf {
+                chosenDrawn = true
+                continue
+            }
+            let c = octree.cells[Int(octree.leafCell[leaf])].centroid - focus
+            let d2 = (c * c).sum()
+            if d2 <= within * within { near.append((leaf, d2)) }
+        }
+        near.sort { $0.d2 != $1.d2 ? $0.d2 < $1.d2 : $0.leaf < $1.leaf }
+        var out: [Int] = []
+        var total = 0
+        if chosenDrawn, let chosen = chosenLeaf {
+            out.append(chosen)
+            total += links.count(chosen)
+        }
+        for n in near {
+            let more = links.count(n.leaf)
+            if total + more > cap && !out.isEmpty { break }
+            out.append(n.leaf)
+            total += more
+        }
+        return out
+    }
+}
+
 /// The planner and the cache behind a reference, so a frame changes them in
 /// place (and the planning thread can work on them between frames).
 nonisolated final class GraphPerfMillionState: @unchecked Sendable {
