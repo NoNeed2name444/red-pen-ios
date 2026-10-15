@@ -1,0 +1,1 @@
+take 3 (profiled, not judged): gap_ms=69 at=+1.62 refreshes=55 handoff=+0.73 still=+1.98 warm_off=+0.04

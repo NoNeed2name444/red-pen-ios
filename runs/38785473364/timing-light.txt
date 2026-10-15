@@ -1,0 +1,14 @@
+18:36:01.508 booted and installed  | load { 374.75 157.38 72.89 }
+18:36:01.820 warm-up launch  | load { 374.75 157.38 72.89 }
+18:38:00.752 take 1 (attempt 1): launch (3 s into film/raw-light.mp4)  | load { 497.66 268.46 127.49 }
+18:38:58.320 take 2 (attempt 1): launch (3 s into film/raw-light-2.mp4)  | load { 424.13 292.98 145.82 }
+18:39:30.738 take 3: launch, profiled  | load { 303.22 278.35 146.49 }
+Sampling all processes for 15 seconds with 2 milliseconds of run time between samples
+Focusing on RedPen [22687]
+Unable to process samples fast enough, throttling sampling rate to avoid bloating memory. Use -noThrottle to avoid this.
+Sampling completed, processing symbols...
+spindump-stuck: Spindump has taken over a minute to process samples and may be stuck, try using -noIPC
+spindump-stuck: Wrote stackshot to /var/tmp/spindump-stuck-stackshot.2026-10-15-18:40:47.22771.buf
+Spindump analysis written to file film/spindump-light.txt
+18:41:48.637 take 3: done  | load { 85.40 200.96 134.90 }
+18:43:53.924 done  | load { 106.75 170.32 131.64 }
