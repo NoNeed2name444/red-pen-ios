@@ -1,0 +1,25 @@
+== logs/perf-proof-ipad-testPerfProofTour.log
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTour]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPerfProofUITests.swift:68: error: -[RedPenUITests.GraphPerfProofUITests testPerfProofTour] : failed - the million was not built within 15 minutes: 0 notes · 0 links, 0 fps · 0.0 ms a frame, 0 drawn · 0 glows · 0 lines
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTour]' failed (935.237 seconds).
+** TEST EXECUTE FAILED **
+== logs/perf-proof-ipad-testPerfProofTourFadeOff.log
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTourFadeOff]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPerfProofUITests.swift:68: error: -[RedPenUITests.GraphPerfProofUITests testPerfProofTourFadeOff] : failed - the million was not built within 15 minutes: 0 notes · 0 links, 0 fps · 0.0 ms a frame, 0 drawn · 0 glows · 0 lines
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTourFadeOff]' failed (921.145 seconds).
+** TEST EXECUTE FAILED **
+== logs/perf-proof-iphone-testPerfProofRecorded.log
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofRecorded]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPerfProofUITests.swift:68: error: -[RedPenUITests.GraphPerfProofUITests testPerfProofRecorded] : failed - the million was not built within 15 minutes: 0 notes · 0 links, 0 fps · 0.0 ms a frame, 0 drawn · 0 glows · 0 lines
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofRecorded]' failed (920.275 seconds).
+** TEST EXECUTE FAILED **
+== logs/perf-proof-iphone-testPerfProofTour.log
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTour]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPerfProofUITests.swift:68: error: -[RedPenUITests.GraphPerfProofUITests testPerfProofTour] : failed - the million was not built within 15 minutes: 0 notes · 0 links, 0 fps · 0.0 ms a frame, 0 drawn · 0 glows · 0 lines
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTour]' failed (936.538 seconds).
+** TEST EXECUTE FAILED **
+== logs/perf-proof-iphone-testPerfProofTourFadeOff.log
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTourFadeOff]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPerfProofUITests.swift:68: error: -[RedPenUITests.GraphPerfProofUITests testPerfProofTourFadeOff] : failed - the million was not built within 15 minutes: 0 notes · 0 links, 0 fps · 0.0 ms a frame, 0 drawn · 0 glows · 0 lines
+Test Case '-[RedPenUITests.GraphPerfProofUITests testPerfProofTourFadeOff]' failed (918.541 seconds).
+** TEST EXECUTE FAILED **
