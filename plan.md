@@ -1831,7 +1831,15 @@ with the marks on the screens last.
     difference.
   Built on design/vignette-proof and merged into personal (cdd74e81):
   checker, CDC rule set (3 admitted, 3 pending), Checked tier, benches B1 and
-  B6. The owner turned VIGNETTE_ROUTE on, 14 Oct. Still to do:
+  B6. The owner turned VIGNETTE_ROUTE on, 14 Oct.
+  - [x] Live: deployed on the owner's word ("u deploy the worker"), 15 Oct
+    at about 8:12 am Cairo (Deploy the worker run 38685298818, from personal
+    at bc611221, green). The same deploy took the keyless voters and the
+    proof ladder's day-one fixes live; everything merged into personal up
+    to bc611221 is live, including each step above marked "live only after
+    a Worker deploy". The day's proof ladder run was started on personal
+    right after it.
+  Still to do:
   - [ ] Truly independent second transcription of each rule (both passes so
     far came from one session).
   - [ ] One-tap owner sign-off in the app plus an owner-only endpoint in D1.
@@ -2002,7 +2010,8 @@ with the marks on the screens last.
 
 - The marks on the latest screens.
 - What they think of the voice itself, now that it plays.
-- Each Worker deploy.
+- Each Worker deploy (the last: 15 Oct, about 8:12 am Cairo, run
+  38685298818 from personal at bc611221).
 
 ## 6. Standing rules
 
