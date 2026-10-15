@@ -102,8 +102,11 @@ struct GraphPerfSpace: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(Color.wardInkSecondary)
                 }
-                if !stats.tour.isEmpty {
-                    Text(stats.tour)
+                // on screen the phase only; the tour's numbers stay in the
+                // accessibility value (the proof reads them there), so the
+                // readout never grows over the map it measures
+                if !stats.tourPhase.isEmpty {
+                    Text("tour: " + stats.tourPhase)
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(Color.wardInkSecondary)
                 }
