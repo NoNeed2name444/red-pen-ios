@@ -570,7 +570,10 @@ struct HomeTiles: View {
     let onIdeas: () -> Void
     @Environment(\.dynamicTypeSize) private var typeSize
 
-    var body: some View {
+    var body: some View { measured }
+
+    @ViewBuilder
+    private var tiles: some View {
         if typeSize.isAccessibilitySize {
             VStack(spacing: WardSpace.m) {
                 vitals
@@ -582,6 +585,14 @@ struct HomeTiles: View {
                 brainMap
             }
             .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Where the tiles were laid out, for the preview's fit check: no
+    /// sliver of them may peek over the page's cut (HomeFit).
+    private var measured: some View {
+        tiles.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.tiles = $0
         }
     }
 
@@ -636,10 +647,13 @@ private struct VitalsTileFace: View {
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
             Text("Vitals").wardSmallCaps()
+            // the figures beside the ring only where they fit whole: squeezed
+            // there, "No streak yet" broke inside its word ("No strea / k
+            // yet"); otherwise under the ring, at the tile's full width
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: WardSpace.m) {
                     ring
-                    figures
+                    figures.fixedSize(horizontal: true, vertical: false)
                 }
                 VStack(alignment: .leading, spacing: WardSpace.s) {
                     ring
@@ -667,6 +681,8 @@ private struct VitalsTileFace: View {
                 .foregroundStyle(Color.wardInkSecondary)
             Label {
                 Text(VitalsTileFace.streakText(streak))
+                    .homeWordFit("the Vitals tile's streak", VitalsTileFace.streakText(streak),
+                                 font: .footnote.weight(.semibold))
             } icon: {
                 Image(systemName: "heart.fill").foregroundStyle(Color.wardEcg)
             }
@@ -694,6 +710,7 @@ private struct BrainMapTileFace: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardInk)
                 .multilineTextAlignment(.leading)
+                .homeWordFit("the brain map's line", line, font: .footnote.weight(.semibold))
         }
         .homeTile()
     }
@@ -888,9 +905,10 @@ struct SetRow: View {
 
 // MARK: - The preview's fit check
 
-/// Where home's round card, its Start button, New set and the bar at the
-/// bottom were laid out, for the Ward preview: on the "library" screen it
-/// writes HomeFit's verdict to Documents/home-fit.txt, which the workflow
+/// Where home's round card, its Start button, New set, the tiles and the
+/// bar at the bottom were laid out, and how wide some of home's texts are
+/// beside their widest word, for the Ward preview: on the "library" screen
+/// it writes HomeFit's verdict to Documents/home-fit.txt, which the workflow
 /// reads after the picture and fails the run on.
 @MainActor
 final class HomeFitProbe {
@@ -899,6 +917,12 @@ final class HomeFitProbe {
     var start: CGRect?
     var newSet: CGRect?
     var bar: CGRect?
+    var tiles: CGRect?
+    /// The text size is above the standard ones: the page may scroll.
+    var large = false
+    /// Each probed text's laid-out width, and its widest word's on its own.
+    var widths: [String: Double] = [:]
+    var widest: [String: Double] = [:]
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -910,16 +934,67 @@ final class HomeFitProbe {
     func report() async {
         guard PreviewLaunch.screen == "library" else { return }
         do { try await Task.sleep(for: .seconds(6)) } catch { return }
+        let words: [HomeFit.Words] = widths.keys.sorted().compactMap { name in
+            guard let width = widths[name], let word = widest[name] else { return nil }
+            return HomeFit.Words(name: name, width: width, widest: word)
+        }
         let faults: [String] = HomeFit.faults(card: Self.box(card), start: Self.box(start),
-                                              bar: Self.box(bar), newSet: Self.box(newSet))
+                                              bar: Self.box(bar), newSet: Self.box(newSet),
+                                              tiles: Self.box(tiles), large: large, words: words)
         func edges(_ rect: CGRect?) -> String {
             guard let rect else { return "none" }
             return "\(Int(rect.minY))-\(Int(rect.maxY))"
         }
         var lines: [String] = faults.isEmpty ? ["fits"] : faults.map { "FAULT " + $0 }
-        lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), bar \(edges(bar))")
+        let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
+        lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
+                     + "tiles \(edges(tiles)), bar \(edges(bar)), cut \(cut), large text \(large)")
+        lines.append("words: " + words.map { "\($0.name) \(Int($0.width))/\(Int($0.widest))" }
+            .joined(separator: ", "))
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("home-fit.txt")
         try? (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+}
+
+/// For the preview's fit check: how wide a text was laid out, and how wide
+/// its widest word is on its own in the same font (HomeFit.Words). Only on
+/// the preview's "library" screen; elsewhere it adds nothing.
+private struct HomeWordFit: ViewModifier {
+    let name: String
+    let text: String
+    let font: Font
+
+    func body(content: Content) -> some View {
+        if PreviewLaunch.screen == "library" {
+            content
+                .onGeometryChange(for: Double.self) { Double($0.size.width) } action: {
+                    HomeFitProbe.shared.widths[name] = $0
+                }
+                .background(alignment: .topLeading) {
+                    // each word on its own, unbroken and unseen: the widest
+                    // is the least width the text can have without breaking
+                    // one
+                    ZStack(alignment: .topLeading) {
+                        ForEach(Array(text.split(separator: " ").enumerated()), id: \.offset) { _, word in
+                            Text(String(word)).font(font).fixedSize()
+                        }
+                    }
+                    .hidden()
+                    .accessibilityHidden(true)
+                    .onGeometryChange(for: Double.self) { Double($0.size.width) } action: {
+                        HomeFitProbe.shared.widest[name] = $0
+                    }
+                }
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// The preview's word check on this text (HomeWordFit).
+    fileprivate func homeWordFit(_ name: String, _ text: String, font: Font) -> some View {
+        modifier(HomeWordFit(name: name, text: text, font: font))
     }
 }

@@ -172,6 +172,12 @@ struct LibraryView: View {
     /// text size the reader chose, so the only reliable number is the one the
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
+    /// Where the bottom bar (New set over the dock, or the selection bar)
+    /// begins, in global points; nil while there is none (the keyboard has
+    /// put it away). The page ends a little above it (pageCutHeight).
+    @State private var barTop: CGFloat?
+    /// The room the page has, in global points, for its cut.
+    @State private var pageFrame: CGRect = .zero
 
     /// Where the home's grid band ends, followed through a scroll without
     /// redrawing the list (HomeBandTrack).
@@ -200,8 +206,12 @@ struct LibraryView: View {
     var body: some View {
         layout
             .environment(\.windowSpan, span)
-            // the preview's fit check (HomeFitProbe); nothing outside it
-            .task { await HomeFitProbe.shared.report() }
+            // the preview's fit check (HomeFitProbe); nothing outside it.
+            // Past the default text size the page may scroll (HomeFit).
+            .task {
+                HomeFitProbe.shared.large = typeSize > .large
+                await HomeFitProbe.shared.report()
+            }
             .background {
                 Color.clear
                     .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
@@ -423,6 +433,9 @@ struct LibraryView: View {
             .safeAreaInset(edge: .leading, spacing: 0) { rail }
             .safeAreaInset(edge: .bottom) { bottomBar }
             .modifier(KeyboardWatch(up: $keyboardUp))
+            // the dock steps aside while typing, and the page runs to the
+            // keyboard
+            .onChange(of: keyboardUp) { _, up in if up { barTop = nil } }
             // the category's hue (or Ideas') on the paper's grid and the
             // controls' edges, shifting with the dock
             .wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)
@@ -439,6 +452,14 @@ struct LibraryView: View {
                 .id(pageKey)
                 .transition(pageTransition)
         }
+            // The page ends at a clean cut a little above the bottom bar
+            // (pageCutHeight), its frame rather than a clip: past the cut a
+            // row is out of the list's bounds, so it is off screen to a tap,
+            // to VoiceOver and to the UI tests alike, and scrolls into view
+            // instead of hiding under New set or the dock.
+            .frame(height: pageCutHeight, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { pageFrame = $0 }
             // a new page's list starts at its top, its header not yet seen
             .onChange(of: pageKey) { bandTrack.reset() }
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
@@ -496,9 +517,27 @@ struct LibraryView: View {
     /// header steps aside), not in Ideas and never under the sky.
     private var bandShown: Bool { !inIdeas && !underSky && !searching }
 
-    /// How far Ideas' lists run on past their last row, to clear the dock -
-    /// nothing while the keyboard has put the dock away.
-    private var ideasClearance: CGFloat { keyboardUp ? 0 : dockHeight }
+    /// How far Ideas' lists run on past their last row: a little, when
+    /// the page ends at its cut above the dock; the dock's height when it
+    /// runs on under it; nothing while the keyboard has put the dock away.
+    private var ideasClearance: CGFloat {
+        if keyboardUp { return 0 }
+        return pageCutHeight == nil ? dockHeight : 16
+    }
+
+    /// How tall the page is, from its top to its cut (HomeFit.cut): a
+    /// little above the bottom bar, so nothing scrolled under New set or the
+    /// dock shows round or below them, with no strip or line under them, so
+    /// the page reads unbroken to the bottom (the owner, 9 and 14 Oct). The
+    /// backdrop is not cut: its grid runs on under the bar. Under the sky,
+    /// while the keyboard is up, and until the page and the bar have been
+    /// measured, no cut: the page has all its room.
+    private var pageCutHeight: CGFloat? {
+        guard !underSky, let barTop, pageFrame.height > 0 else { return nil }
+        let top: Double = Double(pageFrame.minY)
+        guard HomeFit.cut(barTop: Double(barTop), pageTop: top) != nil else { return nil }
+        return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height)))
+    }
 
     /// The base under every page, Ideas' list and board too, with the grid
     /// band under a category page's header; only the 3D map keeps the sky
@@ -560,11 +599,15 @@ struct LibraryView: View {
             // measured like the dock, so the rows can still be scrolled
             // clear of it
             selectionBar
-                // over the Ideas map it has no strip: no glow there
-                .wardUnlit(underSky)
-                .wardBarBase(shown: !underSky)
+                // it floats on the page as the dock does, with no strip
+                // under it, so no glow round it either (the owner, 9 Oct)
+                .wardUnlit()
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0
+                }
+                // where it begins: the page ends above it (pageCutHeight)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: {
+                    barTop = $0
                 }
                 .frame(maxWidth: .infinity)
                 .transition(.slideIn(.bottom))
@@ -585,21 +628,22 @@ struct LibraryView: View {
                         .environment(\.wardHeld, underSky)
                 }
             }
-            // New set and the dock stand on the page's own base, in the
-            // page's colour, so the page still reads unbroken to the bottom
-            // (the owner, 9 Oct) but nothing scrolled under them shows
-            // through or peeks out below the dock (the owner, 14 Oct); the
-            // paper frame's edge ink marks where the rows are cut. Without a
-            // glow round them, only their edges. The rows scroll clear of it
-            // by its measured height.
+            // New set and the dock float on the page itself, with no strip
+            // under them, so the page reads unbroken to the bottom (the
+            // owner, 9 Oct); the page's rows end at a clean cut above them
+            // (pageCutHeight), so nothing scrolled under them shows through
+            // or peeks out below the dock (the owner, 14 Oct). Without a glow
+            // round them, only their edges.
             .wardUnlit()
-            .wardBarBase(room: WardSpace.m, shown: !underSky)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
-            // where the bar begins, for the preview's fit check
+            // where the bar begins: the page's cut, and the preview's fit
+            // check. Beside the rail with no New set (Ideas) the bar holds
+            // nothing, and the page runs on to the bottom.
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
                 HomeFitProbe.shared.bar = $0
+                barTop = $0.height > 0 ? $0.minY : nil
             }
             .frame(maxWidth: .infinity)
             .transition(.slideIn(.bottom))
@@ -713,8 +757,11 @@ struct LibraryView: View {
         // contentMargins were supposed to keep the last card clear of the
         // floating bar and neither did; a row cannot be ignored, because
         // the list has to make room for it like any other.
+        // Once the page ends at its cut above the bar, the list already
+        // stops clear of it, and the row is only the room under the last
+        // card.
         Color.clear
-            .frame(height: dockHeight + 24)
+            .frame(height: (pageCutHeight == nil ? dockHeight : 0) + 24)
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
