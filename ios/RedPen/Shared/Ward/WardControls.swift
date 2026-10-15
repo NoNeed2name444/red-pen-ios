@@ -36,14 +36,36 @@ enum WardTone: Equatable {
     }
 }
 
+extension Color {
+    /// A disabled control's words, glyphs and switch track: Biro Grey,
+    /// solid (WardControlStates.disabledInk, the one place it is named).
+    static var wardDisabledInk: Color { .ward(WardControlStates.disabledInk) }
+}
+
+/// Draws the controls inside as held, with no finger on them: the states
+/// gallery (WardStatesGallery) shows each control's held look this way.
+/// Every face here, and PopTileStyle's, takes it as pressed; a disabled
+/// control ignores it, as it ignores a finger. Off everywhere else.
+private struct WardShowsPressedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var wardShowsPressed: Bool {
+        get { self[WardShowsPressedKey.self] }
+        set { self[WardShowsPressedKey.self] = newValue }
+    }
+}
+
 /// The buttons: soft capsules raised off the base, 56 points tall, at most
 /// 360 points wide on a broad iPad. The kind shows in the label's colour
-/// (Theatre Blue, Chart Ink, Resus Red), never a fill, and the primary
-/// stands a step higher; held, a button is pressed into the base; disabled,
-/// it sinks to the lowest step and says its word in Chart Ink, as solid as
-/// any other button: the owner wants nothing in the app to look faded.
-/// Compact and quiet are the small 44-point ones for a card or a panel:
-/// compact says its word in Theatre Blue, quiet in Chart Ink.
+/// (the section's accent, Chart Ink, Resus Red), never a fill, and the
+/// primary stands a step higher; held, a button is pressed into the base;
+/// disabled, it sinks to the lowest step and says its word in Biro Grey
+/// (Color.wardDisabledInk), solid, so it is told from an enabled one of any
+/// kind: the owner wants nothing in the app to look faded. Compact and
+/// quiet are the small 44-point ones for a card or a panel: compact says
+/// its word in the accent, quiet in Chart Ink.
 struct WardButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, destructive, compact, quiet }
     var kind: Kind = .primary
@@ -62,9 +84,13 @@ private struct WardButtonFace: View {
     @Environment(\.isEnabled) private var enabled
     @Environment(\.windowSpan) private var span
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.wardShowsPressed) private var showsPressed
+
+    /// Held, or drawn held by the states gallery.
+    private var down: Bool { pressed || showsPressed }
 
     private var ink: Color {
-        if !enabled { return .wardInk }
+        if !enabled { return .wardDisabledInk }
         switch kind {
         case .primary, .compact: return .wardPrimaryInk
         case .secondary, .quiet: return .wardInk
@@ -103,14 +129,14 @@ private struct WardButtonFace: View {
             .background {
                 // the main button's face is a tier up (a sheet's), so it
                 // stands out by a shade as well as by its rim
-                WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: enabled && pressed,
+                WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: enabled && down,
                               fill: kind == .primary && enabled ? Color.wardRaised : Color.wardSurface)
             }
             .contentShape(shape)
-            .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
+            .animation(reduceMotion ? nil : .wardShade(down: down), value: down)
             .contentShape(.hoverEffect, shape)
             .hoverEffect(.highlight)
-            .capPop(pressed)
+            .capPop(enabled && down)
     }
 
     private var framedLabel: some View {
@@ -158,7 +184,10 @@ extension ButtonStyle where Self == WardButtonStyle {
 /// A chip that is a button (Sure / Maybe / Guess, why, Flag, Hint, Timed, a
 /// choice on the map): WardChip's capsule, raised just off the base, with a
 /// 44-point target. Chosen, or held, it is pressed in; chosen, its words
-/// take `tone` (Theatre Blue when it has none). Never a fill.
+/// take `tone` (the section's accent when it has none) and a solid edge in
+/// the same colour goes round it. Disabled, its words go Biro Grey and it
+/// lies low; chosen and disabled, it stays pressed in with its edge, so it
+/// still reads as chosen. Never a fill.
 struct WardChipButtonStyle: ButtonStyle {
     var on = false
     var tone: WardTone?
@@ -175,36 +204,62 @@ private struct WardChipButtonFace: View {
     let tone: WardTone?
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.wardShowsPressed) private var showsPressed
+
+    /// The chosen colour: the tone's, or the section's accent.
+    private var chosenInk: Color { tone?.ink ?? .wardPrimaryInk }
 
     private var ink: Color {
-        if !enabled { return .wardInk }
-        if on { return tone?.ink ?? .wardPrimaryInk }
-        return .wardInk
+        if !enabled { return .wardDisabledInk }
+        return on ? chosenInk : .wardInk
     }
 
     var body: some View {
-        let down: Bool = on || pressed
+        let held: Bool = enabled && (pressed || showsPressed)
+        // chosen stays pressed in, disabled too
+        let down: Bool = on || held
         label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(ink)
             .padding(.horizontal, WardSpace.m)
             .padding(.vertical, WardSpace.s)
             .background {
-                WardPressFace(shape: Capsule(), lift: .low, pressed: enabled && down)
+                WardPressFace(shape: Capsule(), lift: .low, pressed: down)
+                    .wardChosenEdge(Capsule(), on, color: chosenInk)
             }
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())
             .animation(reduceMotion ? nil : .wardShade(down: down), value: down)
             .contentShape(.hoverEffect, Capsule())
             .hoverEffect(.highlight)
-            .capPop(pressed)
+            .capPop(held)
+    }
+}
+
+extension View {
+    /// A chosen control's mark: a solid edge in `color` (the section's
+    /// accent) round `shape`, WardControlStates.chosenEdgeWidth wide, at
+    /// full strength over the face's own edge. It comes and goes at once,
+    /// never fading in.
+    func wardChosenEdge<S: InsettableShape>(_ shape: S, _ chosen: Bool,
+                                            color: Color = .wardPrimaryInk) -> some View {
+        overlay {
+            if chosen {
+                shape.strokeBorder(color, lineWidth: CGFloat(WardControlStates.chosenEdgeWidth))
+                    .transition(.identity)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 }
 
 /// A round button for a glyph (a stepper's minus and plus, a send arrow): a
 /// soft circle raised off the base, 44 points across, the glyph in Chart
-/// Ink. Chosen, or held, it is pressed in a lift nearer the base; chosen,
-/// the glyph is Theatre Blue. Never a fill.
+/// Ink. Chosen, or held, it is pressed in; chosen, the glyph takes the
+/// section's accent and a solid edge in the accent goes round it.
+/// Disabled, the glyph goes Biro Grey and it lies low; chosen and disabled,
+/// it stays pressed in with its edge. Never a fill.
 struct WardCircleButtonStyle: ButtonStyle {
     var on = false
     var lift: WardLift = .low
@@ -221,27 +276,30 @@ private struct WardCircleButtonFace: View {
     let lift: WardLift
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.wardShowsPressed) private var showsPressed
 
     private var ink: Color {
-        if !enabled { return .wardInk }
-        if on { return .wardPrimaryInk }
-        return .wardInk
+        if !enabled { return .wardDisabledInk }
+        return on ? .wardPrimaryInk : .wardInk
     }
 
     var body: some View {
-        let down: Bool = on || pressed
+        let held: Bool = enabled && (pressed || showsPressed)
+        // chosen stays pressed in, disabled too
+        let down: Bool = on || held
         label
             .font(.body.weight(.semibold))
             .foregroundStyle(ink)
             .frame(minWidth: 44, minHeight: 44)
             .background {
-                WardPressFace(shape: Circle(), lift: enabled ? lift : .low, pressed: enabled && down)
+                WardPressFace(shape: Circle(), lift: enabled ? lift : .low, pressed: down)
+                    .wardChosenEdge(Circle(), on)
             }
             .contentShape(Circle())
             .animation(reduceMotion ? nil : .wardShade(down: down), value: down)
             .contentShape(.hoverEffect, Circle())
             .hoverEffect(.highlight)
-            .capPop(pressed)
+            .capPop(held)
     }
 }
 
