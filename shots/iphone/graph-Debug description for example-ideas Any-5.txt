@@ -1,0 +1,5 @@
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  ↪︎Find: Descendants matching type Any
+    ↪︎Find: Elements matching predicate '"example-ideas" IN identifiers'
+      ↪︎Find: First Match
