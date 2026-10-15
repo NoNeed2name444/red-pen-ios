@@ -1,0 +1,2 @@
+host-origin-s opening-gap-ms opening-time
+9.7208 0.0 0.000
