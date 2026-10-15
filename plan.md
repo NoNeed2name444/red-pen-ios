@@ -1998,6 +1998,25 @@ with the marks on the screens last.
   common-link independence for sources, the conflict-of-interest rule, and
   dabt (numbers, units, population and negation copied faithfully).
 
+### The identity (15 Oct, on design/identity)
+
+The owner asked for a real identity, exam wording instead of ward wording
+(they typed "an example"; read as "an exam"), and one detailed ECG line, the
+same colour beside the name and in the opening. Docs and boards only; the
+app does not change until the owner picks a route. Docs in
+docs/design/identity/; the route boards are images kept out of the repo.
+
+- [x] audit.md: what is generic today (pointing at shots/ward-r9) and the
+  nine-competitor table.
+- [x] palettes.md: the three routes' grounds, inks and mode hues, light and
+  dark, with every contrast ratio.
+- [ ] platform.md: the idea, three traits, audience, never-feel-like.
+- [ ] routes.md: A Red Pen, B Answer Sheet, C Steel & Silicone, each with why
+  it is ownable, its risks and what changes in the app.
+- [ ] wording.md: ward-to-exam glossary and the full string inventory, with
+  the strings the Swift tests assert on flagged.
+- [ ] The owner picks a route; then a separate phase applies it.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
