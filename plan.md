@@ -1904,6 +1904,19 @@ with the marks on the screens last.
     light highlight top-left and a shade bottom-right, a few points wide)
     that gives them their neumorphic shape and never darkens or blurs what
     lies behind or beside them.
+  - Every control's states (design/ward-states): rest, held, disabled and
+    chosen, the same in every section and mode. WardControlStates holds
+    them as colour roles, Foundation only, and the wardstates suite checks
+    all seven sections, light and dark (words 4.5:1 on their face; disabled
+    told apart from enabled, and chosen from unchosen, by more than relief;
+    no blue outside Questions). Disabled is Biro Grey, solid; chosen keeps
+    a 2 pt accent edge, disabled too; held sinks. WardControls, PopTileStyle
+    and its Playgrounds stand-in draw them; WardStatesGallery
+    (`-uiPreviewScreen states -uiPreviewSection <section>`) shows every
+    control in each state, shot by the Ward preview's states part. Done in
+    code (7028b485, 35590f7b, then the gallery's switches without their
+    words). Left: the gallery's pictures once the preview's fade gate is
+    fixed, then an independent review of code and pictures together.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

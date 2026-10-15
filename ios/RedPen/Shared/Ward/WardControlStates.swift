@@ -19,9 +19,10 @@ import Foundation
 /// - disabled, its words and glyphs go Biro Grey (`disabledInk`), solid, and
 ///   it lies at the lowest lift; a switch's on-track goes Biro Grey and its
 ///   knob lies flat;
-/// - chosen, it is pressed in, its words take the section's accent and a
-///   solid edge in that accent goes round it (a switch: the tint fills its
-///   track); chosen and disabled, it stays pressed in and keeps the edge.
+/// - chosen, it is pressed in, its words take the section's accent (a
+///   tile's stay its caller's) and a solid edge in that accent goes round
+///   it (a switch: the tint fills its track); chosen and disabled, it stays
+///   pressed in and keeps the edge.
 enum WardControlStates {
     /// A disabled control's words and glyphs, and a disabled switch's
     /// on-track: Biro Grey, solid, 4.5:1 on every tier, and told apart from
@@ -147,8 +148,10 @@ enum WardControl: String, CaseIterable, Sendable {
     case toggle
     /// One segment of WardSegmented: chosen is the selected one.
     case segment
-    /// PopTileStyle on the raised plane, with a label that takes its
-    /// colours from the tile (Chart Ink words, a glyph in the tint).
+    /// PopTileStyle on the raised plane. The tile leaves its label's colours
+    /// to the caller; these are the gallery's label, which colours itself
+    /// as a careful caller does: Chart Ink words and a glyph in the accent,
+    /// Biro Grey when disabled.
     case tile
 
     var isButton: Bool {

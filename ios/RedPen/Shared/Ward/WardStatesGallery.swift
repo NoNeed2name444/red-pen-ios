@@ -106,13 +106,14 @@ struct WardStatesGallery: View {
         }
     }
 
-    /// The switch alone, its label hidden: the track sits where it would at
-    /// the end of a row.
+    /// The switch alone, its words for VoiceOver only: a third of the
+    /// screen has no room for them beside it. WardToggleStyle draws its
+    /// label itself, so labelsHidden left the words in, spilling into the
+    /// next column (preview/ward-states-1).
     private func toggle(on: Bool) -> some View {
-        Toggle(isOn: .constant(on)) { Text("Timed") }
-            .labelsHidden()
+        Toggle(isOn: .constant(on)) { EmptyView() }
+            .accessibilityLabel("Timed")
             .fixedSize()
-            .frame(width: 52, alignment: .trailing)
     }
 
     /// A tile on the raised plane, chosen or not, with a label that colours
