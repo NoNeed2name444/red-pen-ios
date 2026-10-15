@@ -14,17 +14,17 @@ The name already says it: a stethoscope listens for what is wrong, and a score s
 
 The app is as exact as a mark scheme. Every mark has a reason, and every number means something.
 
-- **UI.** Everything sits on the 4 and 8 pt grid that the ECG paper already draws. Numbers use tabular figures, and scores are shown as numbers ("18 of 25 · 72%"), not as vague bars. Each answer is marked with its reason beside it (a margin note, a mark scheme or a "Why" box, depending on the route). Nothing is there only to decorate.
-- **Motion.** The ECG trace draws at a constant paper speed, with no bounce and no overshoot. A mark lands as one short, decisive stroke: a trim of 120 to 180 ms. As the owner set, nothing fades: motion is position, scale, trims, masks and morphs.
+- **UI.** Spacing follows a 4 and 8 pt scale (`WardSpace`). The ECG paper is a separate grid: 6 pt cells with a bold line every 30 pt (`WardRelief.swift:244-245`), like the 1 mm and 5 mm squares of real ECG paper. Numbers use tabular figures (every digit the same width, so columns and timers do not jitter), and scores are shown as numbers ("18 of 25 · 72%"), not as vague bars. Each answer is marked with its reason beside it (a margin note, a mark scheme or a "Why" box, depending on the route). Nothing is there only to decorate.
+- **Motion.** The ECG trace draws at a constant paper speed, with no bounce and no overshoot. A mark lands as one short, decisive stroke: a trim (the stroke drawing itself from start to end) of 120 to 180 ms. As the owner set, nothing fades: motion is position, scale, trims, masks (a shape revealing what is under it) and morphs (one shape turning into another).
 - **Sound.** Short, dry and tuned: a soft click to select, a quiet two-note tone for a correct answer. No fanfare. Sound follows the silent switch, and haptics do most of the work.
-- **Words.** Exam vocabulary used exactly: question, paper, station, mark scheme, score, pass mark, weak topics, results. A number comes before any adjective. Each thing has one name.
+- **Words.** Exam vocabulary used exactly: question, paper, station, mark scheme, score, pass mark, weak topics, results (the end of a paper), progress (the screen that tracks you). A number comes before any adjective. Each thing has one name.
 
 ### 2. Calm
 
 Revision is stressful enough. The app is the steady rhythm in the room, not the alarm.
 
 - **UI.** Warm paper, one hero colour, and room to breathe. Each screen has one primary action. A wrong answer is never painted in alarm red across the screen: it gets a mark, a word and the reason.
-- **Motion.** Slow enough to read: 200 to 320 ms with an ease-out. The opening is brief and never holds the app back. Nothing loops on screen, except the trace while the app is listening (Audio).
+- **Motion.** Slow enough to read: 200 to 320 ms with an ease-out (fast at the start, settling gently). The opening is brief and never holds the app back. Nothing loops on screen, except the trace while the app is listening (Audio).
 - **Sound.** Quiet by default. A light haptic in place of a sound wherever possible. No sound at all for a lost streak.
 - **Words.** Short, plain sentences. No exclamation marks, no countdown panic, no hype ("crush", "ace", "magic").
 
@@ -35,7 +35,7 @@ The good examiner wants you to pass, and says exactly what would get you there.
 - **UI.** Home starts with Today's revision, not with a search field. Weak topics appear as the next thing to do, not as a failure list. You are compared only with the pass mark and with yourself, never with other students: no ranks, levels, XP, badges, leaderboards or challenge-a-friend.
 - **Motion.** A correct mark lands with a little more weight (a scale from 0.96 to 1 under the tick's trim) than a wrong one (the cross's trim alone). Progress only moves forward; nothing drains away.
 - **Sound.** A correct answer sounds warm. A wrong answer is silent or a muted tap, never a buzzer.
-- **Words.** Second person, honest and kind: "below the pass mark for now", "Renal, the weakest, is in today's revision automatically", "4 blocks sat. Well done." Explain; don't scold.
+- **Words.** Second person, honest and kind: "below the pass mark for now", "Renal, the weakest, is in today's revision automatically", "All 4 sat. Well done." Explain; don't scold.
 
 ## The audience
 
@@ -62,14 +62,14 @@ They already know the clinical words, so the app does not need to dress up as a 
 
 - **The name:** Stethoscore.
 - **The mark:** the stethoscope with the A+ on its chest piece, used exactly as drawn. By day it is the white tube with the blue ring round the chest piece; by night it is always the grey tube. The two drawings are shown as they are.
-- **The paper:** the ECG grid, with a fine line every cell and a bold one every fifth, as on ECG paper, drawn in the mode's hue.
-- **The rims:** the soft neumorphic rim on every control, with the light from the top left and a 1 pt edge in the mode's hue.
-- **The mode hues:** each mode (Questions, Cards, Textbook, Cases, OSCE, Audio, Ideas) keeps its own hue for its grid, frame and rims. Within a mode, every accent follows that hue. The hues are retuned per route as one family around the hero ([palettes.md](palettes.md)). None of the heroes is blue.
+- **The paper:** the ECG grid, a fine line every 6 pt and a bold one every 30 pt, as on ECG paper, drawn in the mode's hue.
+- **The rims:** the soft neumorphic rim on buttons only (an option row is an answer button, so it has one), with the light from the top left and a 1 pt edge in the mode's hue. Fields and the tab bar are flat, with a 1 pt edge and no rim.
+- **The mode hues:** each mode (Questions, Cards, Textbook, Cases, OSCE, Audio, Ideas) keeps its own hue for its grid, frame and rims. Within a mode, every accent follows that hue, the correct mark included; a wrong answer is neutral. The hues are retuned per route as one family around the hero ([palettes.md](palettes.md)). None of the heroes is blue.
 
 ## The ECG line: its role and its colour
 
 The ECG trace is the brand's signature line. It is one complex (P wave, QRS, T wave) taken from the opening's own trace, not a separate icon.
 
-- **Where it appears:** beside the name in the lockup and on home's title; in the opening; as the listening state in Audio; and on Results, as the study-rhythm reading. It does not appear on every card. A signature used everywhere stops being one.
+- **Where it appears:** beside the name in the lockup and on home's title; in the opening; as the listening state in Audio, where it takes Audio's hue like every accent in that mode; and on Progress, as the study-rhythm reading. It does not appear on every card. A signature used everywhere stops being one.
 - **How it is drawn:** detailed, with a real P wave, a sharp QRS and a rounded T wave. It sits on the text baseline, and its R peak reaches the cap height. Each route sets the stroke (a tapered pen line, a calibrated pulse, or a weighty tube), but the shape is always the opening's.
-- **Its colour:** one token, Trace, equal to the hero, used for both the title and the opening, by day and by night. The title's line and the opening's line are then the same colour by definition, which is what the owner asked for. Today they differ: the squiggle beside the name is `wardEcg` (`#BA273B`), while the opening's line on `design/launch-anim` (at `202825ea`) is slate `#43566F` by day and grey `#A9A8A8` by night. That slate is the old slate tube's colour and another stray blue. The launch stream is moving both lines to one new `ecgLine` token (`#D32F45` by day); `ecgLine` should take the chosen route's Trace colour. On that branch the opening's ECG already travels up and lands as the title's squiggle, so one shape and one colour carry the whole journey.
+- **Its colour:** one token, Trace, equal to the hero, used for both the title and the opening, by day and by night. The title's line and the opening's line are then the same colour by definition, which is what the owner asked for. Today they differ: the squiggle beside the name is `wardEcg` (`#BA273B`), while the opening's line on `design/launch-anim` (at `202825ea`) is slate `#43566F` by day and grey `#A9A8A8` by night. That slate is the old slate tube's colour and another stray blue. The launch stream plans to move both lines to one new `ecgLine` token (`#D32F45` by day); it is planned, not yet on any pushed branch, and it should take the chosen route's Trace colour. On that branch the opening's ECG already travels up and lands as the title's squiggle, so one shape and one colour carry the whole journey.

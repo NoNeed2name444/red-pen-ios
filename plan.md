@@ -2026,10 +2026,28 @@ docs/design/identity/; the route boards are images kept out of the repo.
   crimson, #FF5D6D. C: rebuilt around steel and silicone (correct is the
   mode's hue, wrong is bare steel), Lilac moved to 302 degrees. The boards
   are re-checked by a new reviewer before the owner sees them.
-- [x] wording.md: ward-to-exam glossary and the full string inventory (69
-  strings to change, 20 of them asserted by tests, and the ward words that
+- [x] wording.md: ward-to-exam glossary and the full string inventory (77
+  strings to change, 21 of them asserted by tests, and the ward words that
   stay because they are the content).
-- [ ] The owner picks a route; then a separate phase applies it.
+- [x] Docs review 1 (15 Oct) fixed in the docs: the soft rim is on buttons
+  only (fields and the tab bar are flat); every accent follows the mode (A's
+  tick in the mode's ink; B's correct in the mode's hue, wrong in pencil,
+  no green or red); C's Plum, Lilac and Raspberry moved apart (342, 298 and
+  20 degrees) and steel is exactly neutral; the paper is a 6 pt grid with a
+  bold line every 30 pt; fonts reach the Playgrounds build as package
+  resources registered at launch, with system fallbacks; the progress
+  screen is Progress (Results is taken), the reference is Clinical
+  reference; Block/Item clash with USMLE and NBME usage, so the owner picks
+  those words; the Playgrounds stand-ins and the Arabic Health text are in
+  the inventory; a token map to the code on design/ward-polish; ecgLine is
+  planned, not yet pushed.
+- [ ] One combined board render: the docs-review changes above (flat fields
+  and tab bar, B's marking, C's hues and steel) and board review 2's
+  must-fixes (the phone frame clears the home indicator; B's "3x" label off
+  the clear-space line) and nits (C keeps the letter on a correct row; A's
+  lab flag in ink). Then a fresh review, round 3.
+- [ ] The owner picks a route, and the words for the timer's parts and the
+  plan's count; then a separate phase applies it.
 
 ### Waiting on the owner
 
