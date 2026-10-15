@@ -506,6 +506,9 @@ private struct WardToggleFace: View {
         let held: Bool = enabled && (touching || showsPressed)
         HStack(spacing: WardSpace.m) {
             configuration.label
+                // its words go Biro Grey with the track, like every other
+                // disabled control's (WardControlStates)
+                .foregroundStyle(enabled ? Color.wardInk : Color.wardDisabledInk)
                 .frame(maxWidth: .infinity, alignment: .leading)
             ZStack(alignment: on ? .trailing : .leading) {
                 // The tint is in the track at once, solid; only the knob

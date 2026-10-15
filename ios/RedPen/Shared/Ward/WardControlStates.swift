@@ -17,8 +17,8 @@ import Foundation
 /// 9 Oct: nothing in the app looks faded):
 /// - held, a control sinks into the base; a switch's knob sinks;
 /// - disabled, its words and glyphs go Biro Grey (`disabledInk`), solid, and
-///   it lies at the lowest lift; a switch's on-track goes Biro Grey and its
-///   knob lies flat;
+///   it lies at the lowest lift; a switch's words go Biro Grey, its on-track
+///   goes Biro Grey and its knob lies flat;
 /// - chosen, it is pressed in, its words take the section's accent (a
 ///   tile's stay its caller's) and a solid edge in that accent goes round
 ///   it (a switch: the tint fills its track); chosen and disabled, it stays
@@ -108,6 +108,9 @@ struct WardControlLook: Equatable, Sendable {
     /// A switch's knob, and how it stands on the track.
     var knob: WardToken?
     var knobStand: WardStand?
+    /// Where its words sit when that is not `face`: a switch's words stand
+    /// on the row beside its track.
+    var wordsFace: WardToken?
 
     /// What the eye reads first: the words, or else the glyph.
     var label: WardToken? { words ?? glyph }
@@ -118,7 +121,7 @@ struct WardControlLook: Equatable, Sendable {
         let glide = WardGlide.rest(WardLook(dark: dark, section: section))
         func hex(_ token: WardToken) -> UInt32 { glide.hex(token, dark: dark) }
         return WardControlColours(words: words.map(hex), glyph: glyph.map(hex), face: hex(face),
-                                  mark: mark.map(hex), knob: knob.map(hex))
+                                  mark: mark.map(hex), knob: knob.map(hex), wordsFace: wordsFace.map(hex))
     }
 }
 
@@ -129,11 +132,15 @@ struct WardControlColours: Equatable, Sendable {
     var face: UInt32
     var mark: UInt32?
     var knob: UInt32?
+    var wordsFace: UInt32?
 
     var label: UInt32? { words ?? glyph }
 
+    /// What its words and glyph are read against.
+    var readOn: UInt32 { wordsFace ?? face }
+
     /// Every colour the state draws.
-    var all: [UInt32] { [words, glyph, mark, knob].compactMap { $0 } + [face] }
+    var all: [UInt32] { [words, glyph, mark, knob, wordsFace].compactMap { $0 } + [face] }
 }
 
 /// The Ward controls the gallery shows, in its order.
@@ -216,11 +223,13 @@ enum WardControl: String, CaseIterable, Sendable {
         case .toggle:
             // the track is a well; on, the tint fills it, Biro Grey when
             // disabled; the knob sinks while held and lies flat, with an
-            // edge, when disabled
+            // edge, when disabled; its words, on the row beside it, go
+            // Biro Grey too
             let track: WardToken = state.isChosen ? (enabled ? .primaryInk : disabledInk) : .well
             let knobStand: WardStand = !enabled ? .flat : state.isHeld ? .pressedIn(.low) : .raised(.low)
-            return WardControlLook(face: track, stand: .pressedIn(.low), mark: enabled ? nil : disabledInk,
-                                   knob: .surface, knobStand: knobStand)
+            return WardControlLook(words: enabled ? .ink : disabledInk, face: track, stand: .pressedIn(.low),
+                                   mark: enabled ? nil : disabledInk, knob: .surface, knobStand: knobStand,
+                                   wordsFace: .surface)
         case .tile:
             return WardControlLook(words: enabled ? .ink : disabledInk, glyph: enabled ? .primaryInk : disabledInk,
                                    face: .surface, stand: stand, mark: chosenEdge)

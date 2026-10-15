@@ -135,8 +135,8 @@ for dark in modes {
                 // words and glyphs, 4.5:1 on their face in every state
                 for (what, ink) in [("words", c.words), ("glyph", c.glyph)] {
                     guard let ink else { continue }
-                    let r = WardPalette.contrast(ink, c.face)
-                    check("\(name): its \(what) read 4.5:1 on its face", r >= 4.5, "\(h(ink)) on \(h(c.face)) \(f(r))")
+                    let r = WardPalette.contrast(ink, c.readOn)
+                    check("\(name): its \(what) read 4.5:1 on its face", r >= 4.5, "\(h(ink)) on \(h(c.readOn)) \(f(r))")
                     if r < worstText.0 { worstText = (r, name) }
                 }
                 // what sits on a fill reads on it: white words on the
@@ -169,13 +169,20 @@ for dark in modes {
                     let twin = control.look(state.enabledTwin).colours(s, dark: dark)
                     let d: Double
                     if let label = c.label, let was = twin.label {
-                        let r = WardPalette.contrast(label, c.face)
+                        let r = WardPalette.contrast(label, c.readOn)
                         check("\(name): its label reads 3:1 on its face", r >= 3, f(r))
                         d = distance(label, was)
                         check("\(name): its label is told apart from enabled", d >= apart, "\(h(label)) vs \(h(was)) \(f(d))")
                     } else {
                         d = told(c, from: twin, unmarked: unmarked(twin))
                         check("\(name): told apart from enabled by more than relief", d >= apart, f(d))
+                    }
+                    if control == .toggle {
+                        // a switch with words: the track and the knob's edge
+                        // tell it apart as well as the words do (the review's B3)
+                        let dt = told(c, from: twin, unmarked: unmarked(twin))
+                        check("\(name): its track or knob edge is told apart from enabled by more than relief",
+                              dt >= apart, f(dt))
                     }
                     if d < worstDisabledApart.0 { worstDisabledApart = (d, name) }
                     if control != .toggle {
@@ -206,8 +213,20 @@ for dark in modes {
 // stays chosen.
 for control in WardControl.allCases {
     let off = control.look(.disabled)
-    check("\(control): disabled, its label is the disabled ink",
-          control == .toggle ? off.mark == WardControlStates.disabledInk : off.label == WardControlStates.disabledInk)
+    check("\(control): disabled, its label is the disabled ink", off.label == WardControlStates.disabledInk)
+    if control == .toggle {
+        // a switch with words: they go Biro Grey with the track and the
+        // knob's edge, in every state it can be disabled in
+        check("toggle: disabled, its words are the disabled ink", off.words == WardControlStates.disabledInk)
+        check("toggle: disabled, its knob edge is the disabled ink", off.mark == WardControlStates.disabledInk)
+        for state in control.states where !state.isEnabled {
+            check("toggle: \(state), its words are the disabled ink",
+                  control.look(state).words == WardControlStates.disabledInk)
+        }
+        for state in control.states where state.isEnabled {
+            check("toggle: \(state), its words are Chart Ink", control.look(state).words == .ink)
+        }
+    }
     if !control.isButton {
         let both = control.look(.selectedDisabled)
         check("\(control): chosen and disabled, still chosen",

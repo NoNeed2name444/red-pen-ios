@@ -1960,6 +1960,10 @@ with the marks on the screens last.
       parts/pageEnd) and faults if nothing was measured. HomeFitTests: the
       iPad at the default size (tiles 8 pt over the cut) and AX1 (the Due
       chip 4 pt over it).
+    - [x] B3: a disabled switch's words go Biro Grey like every other
+      disabled control (WardToggleFace); the states model's switch now has
+      words (WardControlLook.words, wordsFace) and WardStatesTests checks
+      them in every state, section and mode.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
