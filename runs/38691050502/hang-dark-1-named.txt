@@ -1,0 +1,1553 @@
+stall after 2.6271, at least 34 ms, opening 0.730, 2 samples
+  innermost app frame, by samples:
+       1/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/2  static MainActor.assumeIsolated<A>(_:file:line:) (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+       1/2  mach_msg2_trap (libsystem_kernel.dylib)
+       1/2  mach_msg2_internal (libsystem_kernel.dylib)
+       1/2  mach_msg (libsystem_kernel.dylib)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/2  @objc LaunchHangProbe.tick(_:) (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/2  LaunchHangProbe.tick(_:) (in RedPen.debug.dylib) (LaunchHangProbe.swift:42) [app]
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Display11DisplayLink31dispatch_deferred_display_ (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+       1/2  static MainActor.assumeIsolated<A>(_:file:line:) (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Display15DisplayLinkItem9dispatch_ERNS_8SignPost (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/swift/libswift_Concurrency.dylib swift_task_getMainExecutor (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Display11DisplayLink14dispatch_itemsEyyy (iOS)
+       1/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+  the middle sample, innermost first:
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/swift/libswift_Concurrency.dylib swift_task_getMainExecutor (iOS)
+    static MainActor.assumeIsolated<A>(_:file:line:) (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    LaunchHangProbe.tick(_:) (in RedPen.debug.dylib) (LaunchHangProbe.swift:42) [app]
+    @objc LaunchHangProbe.tick(_:) (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Display15DisplayLinkItem9dispatch_ERNS_8SignPost (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Display11DisplayLink14dispatch_itemsEyyy (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Display11DisplayLink31dispatch_deferred_display_ (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.6438, at least 32 ms, opening 0.747, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.6605, at least 33 ms, opening 0.764, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.6771, at least 32 ms, opening 0.780, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.6938, at least 32 ms, opening 0.797, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.7105, at least 32 ms, opening 0.814, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.7271, at least 34 ms, opening 0.830, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.7438, at least 32 ms, opening 0.847, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.7605, at least 32 ms, opening 0.864, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.7771, at least 32 ms, opening 0.880, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.7938, at least 33 ms, opening 0.897, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.8105, at least 32 ms, opening 0.914, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.8271, at least 33 ms, opening 0.930, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.8438, at least 31 ms, opening 0.947, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.8605, at least 34 ms, opening 0.964, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.8771, at least 32 ms, opening 0.980, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.8938, at least 33 ms, opening 0.997, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.9105, at least 33 ms, opening 1.014, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.9271, at least 32 ms, opening 1.030, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.9438, at least 33 ms, opening 1.047, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.9605, at least 33 ms, opening 1.064, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.9771, at least 32 ms, opening 1.080, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 2.9938, at least 33 ms, opening 1.097, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.0105, at least 34 ms, opening 1.114, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.0271, at least 32 ms, opening 1.130, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.0438, at least 84 ms, opening 1.147, 22 samples
+  innermost app frame, by samples:
+      22/22  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+      22/22  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+      22/22  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+      22/22  ? (?)
+      22/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+      16/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+      13/22  _pthread_mutex_firstfit_lock_wait (libsystem_pthread.dylib)
+      13/22  __psynch_mutexwait (libsystem_kernel.dylib)
+      13/22  _pthread_mutex_firstfit_lock_slow (libsystem_pthread.dylib)
+       6/22  mach_msg2_trap (libsystem_kernel.dylib)
+       6/22  mach_msg2_internal (libsystem_kernel.dylib)
+       6/22  mach_msg (libsystem_kernel.dylib)
+       6/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       6/22  mach_msg_overwrite (libsystem_kernel.dylib)
+       3/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction19run_commit_handlersE18CATransactio (iOS)
+       3/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_sync_f_slow (iOS)
+       2/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib __DISPATCH_WAIT_FOR_QUEUE__ (iOS)
+       2/22  kevent_id (libsystem_kernel.dylib)
+       2/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_kq_poll (iOS)
+       2/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_event_loop_wait_for_ownership (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_mach_send_msg (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libxpc.dylib xpc_connection_send_message (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB7TextureD0Ev (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB18SharedSurfaceGroup21render_updates_deviceE (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_mach_send_push_and_trydrain (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver _Z14sendXPCMessagePU24objcproto13OS_xpc_obje (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_client_callout (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_lane_barrier_sync_invoke_and_complete (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB10RenderPass21set_extra_attachmentsENS0_16Ex (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB6Device20alloc_shared_textureE14MTLPixelForm (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture6rend (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib dispatch_mach_send_with_result (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver -[MTLSimTexture dealloc] (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZZN2RB18SharedSurfaceGroup14render_updatesEvEN3$_ (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_sync_invoke_and_complete_recurse (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver _Z16_MTLDeleteObjectP12MTLSimDeviceU13block_ (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderStateD2Ev (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB18SharedSurfaceGroup14render_updatesEv (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11RenderFrame13alloc_textureE14MTLPixelForma (iOS)
+       1/22  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libxpc.dylib _xpc_connection_enqueue (iOS)
+  the middle sample, innermost first:
+    __psynch_mutexwait (libsystem_kernel.dylib)
+    _pthread_mutex_firstfit_lock_wait (libsystem_pthread.dylib)
+    _pthread_mutex_firstfit_lock_slow (libsystem_pthread.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.1271, at least 34 ms, opening 1.233, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.1438, at least 32 ms, opening 1.247, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.1605, at least 66 ms, opening 1.264, 15 samples
+  innermost app frame, by samples:
+      15/15  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+      15/15  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+      15/15  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+      15/15  ? (?)
+      15/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+       8/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+       7/15  _pthread_mutex_firstfit_lock_wait (libsystem_pthread.dylib)
+       7/15  __psynch_mutexwait (libsystem_kernel.dylib)
+       7/15  _pthread_mutex_firstfit_lock_slow (libsystem_pthread.dylib)
+       7/15  mach_msg2_internal (libsystem_kernel.dylib)
+       7/15  mach_msg (libsystem_kernel.dylib)
+       7/15  mach_msg2_trap (libsystem_kernel.dylib)
+       7/15  mach_msg_overwrite (libsystem_kernel.dylib)
+       6/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_client_callout (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer display] (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_lane_barrier_sync_invoke_and_complete (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver _Z27sendXPCMessageWithReplySyncPU24objcproto (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer displayWithBounds:callback:] (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB10RenderPass21set_extra_attachmentsENS0_16Ex (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB6Device20alloc_shared_textureE14MTLPixelForm (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture6rend (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList6renderERKNS0_8ContentsERKNS_12 (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver _Z24_MTLNewObject_DeprecatedPU24objcproto13O (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_mach_send_and_wait_for_reply (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB7Texture5allocEPNS_6DeviceE14MTLPixelFormatD (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver -[MTLSimDevice newTextureWithDescriptor:] (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA5Layer28layout_and_display_if_neededEPNS_11Transa (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11render_manyERKNS_12RenderPara (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderStateD2Ev (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib dispatch_mach_send_with_result_and_wait_for_reply (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libxpc.dylib xpc_connection_send_message_with_reply_sync (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11RenderFrame13alloc_textureE14MTLPixelForma (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI type metadata accessor for _UIHostingView.EnableVFDFeature (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/swift/libswiftCore.dylib _ZN5swift9RefCountsINS_13RefCountBitsTILNS_19RefCountInlinednessE1EEEE15doDecrem (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoObservers (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/swift/libswiftCore.dylib swift_arrayDestroy (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore @objc closure #1 in static NSRunLoop.addObserver(_:) (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/swift/libswiftCore.dylib _swift_release_dealloc (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore specialized static NSRunLoop.addObserver(_:) (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore specialized static NSRunLoop.flushObservers() (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/swift/libswiftCore.dylib _ContiguousArrayStorage.__deallocating_deinit (iOS)
+       1/15  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLB (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_mach_send_and_wait_for_reply (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib dispatch_mach_send_with_result_and_wait_for_reply (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libxpc.dylib xpc_connection_send_message_with_reply_sync (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver _Z27sendXPCMessageWithReplySyncPU24objcproto (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver _Z24_MTLNewObject_DeprecatedPU24objcproto13O (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/MTLSimDriver.framework/MTLSimDriver -[MTLSimDevice newTextureWithDescriptor:] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB7Texture5allocEPNS_6DeviceE14MTLPixelFormatD (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB6Device20alloc_shared_textureE14MTLPixelForm (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11RenderFrame13alloc_textureE14MTLPixelForma (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB10RenderPass21set_extra_attachmentsENS0_16Ex (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture6rend (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderStateD2Ev (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11render_manyERKNS_12RenderPara (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList6renderERKNS0_8ContentsERKNS_12 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_client_callout (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_lane_barrier_sync_invoke_and_complete (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer displayWithBounds:callback:] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer display] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA5Layer28layout_and_display_if_neededEPNS_11Transa (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.2115, at least 31 ms, opening 1.280, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.2271, at least 34 ms, opening 1.331, 2 samples
+  innermost app frame, by samples:
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       2/2  mach_msg2_trap (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       2/2  mach_msg2_internal (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       2/2  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       2/2  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       2/2  mach_msg (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       2/2  ? (?)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       2/2  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/2  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.2438, at least 33 ms, opening 1.347, 1 samples
+  innermost app frame, by samples:
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       1/1  mach_msg2_trap (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       1/1  mach_msg2_internal (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       1/1  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       1/1  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       1/1  mach_msg (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       1/1  ? (?)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       1/1  mach_msg_overwrite (libsystem_kernel.dylib)
+       1/1  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+  the middle sample, innermost first:
+    mach_msg2_trap (libsystem_kernel.dylib)
+    mach_msg2_internal (libsystem_kernel.dylib)
+    mach_msg_overwrite (libsystem_kernel.dylib)
+    mach_msg (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.2605, at least 65 ms, opening 1.364, 14 samples
+  innermost app frame, by samples:
+      14/14  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+      14/14  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+      14/14  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+      14/14  ? (?)
+      14/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_client_callout (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer display] (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_lane_barrier_sync_invoke_and_complete (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer displayWithBounds:callback:] (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA5Layer28layout_and_display_if_neededEPNS_11Transa (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+      12/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+      10/14  __semwait_signal (libsystem_kernel.dylib)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib usleep (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib nanosleep (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture12mak (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture6rend (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool16wait_image_queueEP13_CAImageQ (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList6renderERKNS0_8ContentsERKNS_12 (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11render_manyERKNS_12RenderPara (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderStateD2Ev (iOS)
+      10/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool5allocEPNS_6DeviceEDv2_i14MTLPi (iOS)
+       3/14  mach_msg2_internal (libsystem_kernel.dylib)
+       3/14  mach_msg (libsystem_kernel.dylib)
+       3/14  mach_msg2_trap (libsystem_kernel.dylib)
+       3/14  mach_msg_overwrite (libsystem_kernel.dylib)
+       2/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11RenderFrameD2Ev (iOS)
+       2/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopServiceMachPort (iOS)
+       1/14  _pthread_cond_wait (libsystem_pthread.dylib)
+       1/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/Metal.framework/Metal -[_MTLCommandBuffer waitUntilScheduled] (iOS)
+       1/14  __psynch_cvwait (libsystem_kernel.dylib)
+       1/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN18CAImageQueueCommitD2Ev (iOS)
+       1/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA6Render7Encoder12send_messageEjjPjm (iOS)
+       1/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB7Surface8queue_idEP13_CAImageQueue (iOS)
+       1/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB6Device27dispatch_frame_continuationEjPU27ob (iOS)
+       1/14  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN12_GLOBAL__N_115register_bufferEP13_CAImageQueuePN2C (iOS)
+  the middle sample, innermost first:
+    __semwait_signal (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib nanosleep (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib usleep (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool16wait_image_queueEP13_CAImageQ (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool5allocEPNS_6DeviceEDv2_i14MTLPi (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture12mak (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture6rend (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderStateD2Ev (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11render_manyERKNS_12RenderPara (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList6renderERKNS0_8ContentsERKNS_12 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_client_callout (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_lane_barrier_sync_invoke_and_complete (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer displayWithBounds:callback:] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer display] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA5Layer28layout_and_display_if_neededEPNS_11Transa (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFMachPortPerform (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource1 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
+stall after 3.3438, at least 49 ms, opening 1.440, 7 samples
+  innermost app frame, by samples:
+       7/7  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+  every frame, by samples it is in:
+       7/7  static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_client_callout (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer display] (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_lane_barrier_sync_invoke_and_complete (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource0 (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer displayWithBounds:callback:] (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA5Layer28layout_and_display_if_neededEPNS_11Transa (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+       7/7  __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+       7/7  ? (?)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSources0 (iOS)
+       7/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+       6/7  __semwait_signal (libsystem_kernel.dylib)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib usleep (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib nanosleep (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture12mak (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture6rend (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool16wait_image_queueEP13_CAImageQ (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList6renderERKNS0_8ContentsERKNS_12 (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11render_manyERKNS_12RenderPara (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderStateD2Ev (iOS)
+       6/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool5allocEPNS_6DeviceEDv2_i14MTLPi (iOS)
+       1/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN18CAImageQueueCommitD2Ev (iOS)
+       1/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA6Render7Encoder12send_messageEjjPjm (iOS)
+       1/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB7Surface8queue_idEP13_CAImageQueue (iOS)
+       1/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB6Device27dispatch_frame_continuationEjPU27ob (iOS)
+       1/7  mach_msg2_internal (libsystem_kernel.dylib)
+       1/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN12_GLOBAL__N_115register_bufferEP13_CAImageQueuePN2C (iOS)
+       1/7  26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11RenderFrameD2Ev (iOS)
+       1/7  mach_msg (libsystem_kernel.dylib)
+       1/7  mach_msg2_trap (libsystem_kernel.dylib)
+       1/7  mach_msg_overwrite (libsystem_kernel.dylib)
+  the middle sample, innermost first:
+    __semwait_signal (libsystem_kernel.dylib)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib nanosleep (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libsystem_c.dylib usleep (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool16wait_image_queueEP13_CAImageQ (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11SurfacePool5allocEPNS_6DeviceEDv2_i14MTLPi (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture12mak (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderState11RootTexture6rend (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11RenderStateD2Ev (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList11render_manyERKNS_12RenderPara (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox _ZN2RB11DisplayList6renderERKNS0_8ContentsERKNS_12 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox __38-[RBLayer displayWithBounds:callback:]_block_i (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_client_callout (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/usr/lib/system/libdispatch.dylib _dispatch_lane_barrier_sync_invoke_and_complete (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer displayWithBounds:callback:] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/RenderBox.framework/RenderBox -[RBLayer display] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA5Layer28layout_and_display_if_neededEPNS_11Transa (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA7Context18commit_transactionEPNS_11TransactionEdP (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction6commitEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/QuartzCore.framework/QuartzCore _ZN2CA11Transaction25flush_as_runloop_observerEb (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIApplicationFlushCATransaction (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore __setupUpdateSequence_block_invoke_2 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore _UIUpdateSequenceRunNext (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore schedulerStepScheduledMainSectionContinue (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UpdateCycle.framework/UpdateCycle _ZN2UC10DriverCore18continueProcessingEv (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSource0 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopDoSources0 (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation __CFRunLoopRun (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation _CFRunLoopRunSpecificWithOptions (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices GSEventRunModal (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore -[UIApplication _run] (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore UIApplicationMain (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI closure #1 in KitRendererCommon(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI runApp<A>(_:) (iOS)
+    26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUI.framework/SwiftUI static App.main() (iOS)
+    static RedPenApp.$main() (in RedPen.debug.dylib) (/<compiler-generated>:0) [app]
+    __debug_main_executable_dylib_entry_point (in RedPen.debug.dylib) (RedPenApp.swift:0) [app]
+    ? (?)
+    ? (?)
