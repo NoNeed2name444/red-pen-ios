@@ -2013,8 +2013,9 @@ docs/design/identity/; the route boards are images kept out of the repo.
 - [ ] platform.md: the idea, three traits, audience, never-feel-like.
 - [ ] routes.md: A Red Pen, B Answer Sheet, C Steel & Silicone, each with why
   it is ownable, its risks and what changes in the app.
-- [ ] wording.md: ward-to-exam glossary and the full string inventory, with
-  the strings the Swift tests assert on flagged.
+- [x] wording.md: ward-to-exam glossary and the full string inventory (69
+  strings to change, 20 of them asserted by tests, and the ward words that
+  stay because they are the content).
 - [ ] The owner picks a route; then a separate phase applies it.
 
 ### Waiting on the owner
