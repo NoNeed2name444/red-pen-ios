@@ -2010,7 +2010,8 @@ docs/design/identity/; the route boards are images kept out of the repo.
   nine-competitor table.
 - [x] palettes.md: the three routes' grounds, inks and mode hues, light and
   dark, with every contrast ratio.
-- [ ] platform.md: the idea, three traits, audience, never-feel-like.
+- [x] platform.md: the idea, three traits, audience, never-feel-like, and the
+  ECG line's role and colour (one Trace token, equal to the hero).
 - [ ] routes.md: A Red Pen, B Answer Sheet, C Steel & Silicone, each with why
   it is ownable, its risks and what changes in the app.
 - [x] wording.md: ward-to-exam glossary and the full string inventory (69
