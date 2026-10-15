@@ -1922,6 +1922,17 @@ with the marks on the screens last.
 - [ ] Sent back to be redrawn: the dark launch drawing's thin blue line
   where the grey tube meets the chest piece's stem (the day drawing has
   none); the blue-tube test allows only that line until it is fixed.
+- [x] One master ECG (design/launch-ecg): ios/RedPen/Shared/Brand/EcgTrace.swift
+  is one normal-sinus lead II beat at 60 a minute (PR 0.16, QRS 0.09, QT
+  0.40 s by the tangent), its landmarks, its heart sounds (S1 20 ms after
+  R, S2 on T's end, 0.36 s apart) and ECG paper (25 mm/s, 10 mm/mV) at any
+  size, every number cited in the file; suite ecgtrace. The heartbeat's
+  lub-dub gap is now that 0.36 s (tools/make_heartbeat.py SYSTOLE,
+  heartbeat.caf re-mastered: S1 0.0304 s, S2 0.3909 s, peak -1.0 dBFS).
+- [ ] The launch stream wires it in: HeartbeatSound.s2 to 0.3909, the
+  opening's trace and home's squiggle drawn from EcgTrace.points, S1 on
+  EcgTrace.s1 (just after R), and LaunchOpeningTests' 0.25-0.35 s systole
+  and 1.7 s bounds (the opening grows by 0.06 s, to about 1.72 s).
 
 ### Waiting on the owner
 

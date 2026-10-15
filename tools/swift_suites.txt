@@ -433,3 +433,6 @@ suite pictures LibraryPicturesTests.swift $S/LibraryPictures.swift $S/BlobRefs.s
 # the launch opening: the heartbeat in step with its sound, the ECG drawn
 # with it, the hole that uncovers home, the art and the sound it uses
 suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift
+# the master ECG: one lead II beat, its landmarks and heart sounds, and
+# paper scale, which the opening's trace and home's squiggle both draw
+suite ecgtrace EcgTraceTests.swift $S/Brand/EcgTrace.swift
