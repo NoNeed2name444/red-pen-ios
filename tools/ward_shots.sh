@@ -1,22 +1,31 @@
 #!/usr/bin/env bash
 # The Ward preview's pictures, recordings and fit reports, for
-# .github/workflows/ward-preview.yml. One simulator per call:
+# .github/workflows/ward-preview.yml. One simulator per call, each on a Mac
+# of its own so the parts run side by side:
 #
 #   tools/ward_shots.sh phone  <udid> <app>        the main iPhone, into out/
+#   tools/ward_shots.sh small  <udid> <app>        the same iPhone: the SE's
+#                                                  size and large text, into out/
 #   tools/ward_shots.sh device <udid> <app> <key>  another device, into out/devices/<key>/
+#   tools/ward_shots.sh states <udid> <app>        the controls' states, into out/shots/states/
 #
 # phone: the recordings of the colour shift (the app's own light/dark
 # switch, home stepping through its sections, the system's switch), then
 # home, a study screen, New set, Settings, a sheet and each section in both
-# modes; home and each section at the iPhone SE's size (375 x 647, the
+# modes.
+# small: home and each section at the iPhone SE's size (375 x 647, the
 # app's own frame inside this phone); and Dynamic Type at XXL (the largest
 # standard size) and AX1 (the first accessibility size).
-# device: home and each section in both modes, and home at XXL (Pro Max,
-# iPad).
+# device: home and each section in both modes, and home at XXL and AX1
+# (Pro Max, iPad).
+# states: the states gallery (every Ward control at rest, held, disabled
+# and chosen) in each section's hue, both modes.
 #
 # Home ("library") writes its fit report (HomeFit: the round card, its
-# Start button, New set and the bar at the bottom), filed in home-fit.txt
-# under the picture's name; the workflow fails on any FAULT line.
+# Start button, New set, the tiles, the bar at the bottom and whether any
+# of home's words would break), filed under the picture's name in
+# home-fit.txt (phone), home-fit-small.txt (small) or
+# devices/<key>/home-fit.txt; the workflow fails on any FAULT line.
 #
 # Needs xcrun simctl, sips and python3 (macOS); BID may be set to skip
 # reading the bundle identifier, which a dry run on Linux does with stand-in
@@ -24,22 +33,19 @@
 plan=$1; UDID=$2; APP=$3; KEY=${4:-}
 BID=${BID:-$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")}
 case "$plan" in
-  phone) OUT=out ;;
-  device) OUT="out/devices/$KEY" ;;
-  *) echo "usage: $0 phone|device <udid> <app> [key]" >&2; exit 64 ;;
+  phone) OUT=out; SHOTS=out/shots; LOG=out/shots.log; FIT=out/home-fit.txt ;;
+  small) OUT=out; SHOTS=out/shots; LOG=out/shots-small.log; FIT=out/home-fit-small.txt ;;
+  device) OUT="out/devices/$KEY"; SHOTS="$OUT"; LOG="$OUT/shots.log"; FIT="$OUT/home-fit.txt" ;;
+  states) OUT=out; SHOTS=out/shots; LOG=out/shots-states.log; FIT=/dev/null ;;
+  *) echo "usage: $0 phone|small|device|states <udid> <app> [key]" >&2; exit 64 ;;
 esac
-SHOTS="$OUT/shots"
-[ "$plan" = device ] && SHOTS="$OUT"
-LOG="$OUT/shots.log"
-FIT="out/home-fit.txt"
-[ "$plan" = device ] && FIT="out/devices/home-fit.txt"
 mkdir -p "$SHOTS"
 SE=(-uiPreviewWidth 375 -uiPreviewHeight 647)
 SECTIONS="anki book cases osce narrate home-ideas"
 
 # Whether a picture is still the launch screen: flat above and below the
 # logo. sips turns it into an uncompressed BMP to read.
-BLANK="$OUT/.blank.py"
+BLANK="$OUT/.blank-$plan.py"
 cat > "$BLANK" <<'PY'
 import struct, sys
 d = open(sys.argv[1], "rb").read()
@@ -106,8 +112,8 @@ shoot() {  # appearance, screen, picture name (may hold a folder), extra launch 
     xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$SHOTS/$name.png" >> "$LOG" 2>&1 \
       || echo "shot failed: $name" >> "$LOG"
     pgrep -f "RedPen.app/RedPen" >/dev/null || echo "not running after: $name" >> "$LOG"
-    sips -s format bmp "$SHOTS/$name.png" --out "$OUT/.shot.bmp" >/dev/null 2>&1 || break
-    [ "$(python3 "$BLANK" "$OUT/.shot.bmp")" = ok ] && break
+    sips -s format bmp "$SHOTS/$name.png" --out "$OUT/.shot-$plan.bmp" >/dev/null 2>&1 || break
+    [ "$(python3 "$BLANK" "$OUT/.shot-$plan.bmp")" = ok ] && break
     echo "still the launch screen, try $try: $name" >> "$LOG"
   done
 }
@@ -172,13 +178,25 @@ if [ "$plan" = phone ]; then
       shoot "$look" "$screen" "$screen-$look"
       if [ "$screen" = library ]; then fit "library-$look"; fi
     done
+    # each section in its hue: Cards, Textbook, Cases, OSCE, Audio and
+    # Ideas (Questions is the quiz above)
+    for screen in $SECTIONS; do
+      shoot "$look" "$screen" "section-$screen-$look"
+    done
+  done
+  system_switch
+elif [ "$plan" = states ]; then
+  for look in light dark; do
+    for section in questions cards textbook cases osce audio ideas; do
+      shoot "$look" states "states/$section-$look" -uiPreviewSection "$section"
+    done
+  done
+elif [ "$plan" = small ]; then
+  for look in light dark; do
     # the iPhone SE: 375 points wide, 647 under its status bar
     shoot "$look" library "library-se-$look" "${SE[@]}"
     fit "library-se-$look"
-    # each section in its hue: Cards, Textbook, Cases, OSCE, Audio and
-    # Ideas (Questions is the quiz above), here and at the SE's size
     for screen in $SECTIONS; do
-      shoot "$look" "$screen" "section-$screen-$look"
       shoot "$look" "$screen" "se/section-$screen-$look" "${SE[@]}"
     done
     shoot "$look" quiz "se/quiz-$look" "${SE[@]}"
@@ -197,10 +215,11 @@ if [ "$plan" = phone ]; then
   SIZE=accessibility-medium
   shoot light library "type/ax1-library-light"
   fit "ax1-library-light"
+  shoot dark library "type/ax1-library-dark"
+  fit "ax1-library-dark"
   shoot light quiz "type/ax1-quiz-light"
   SIZE=""
   xcrun simctl ui "$UDID" content_size large >> "$LOG" 2>&1 || true
-  system_switch
 else
   for look in light dark; do
     shoot "$look" library "library-$look"
@@ -214,10 +233,13 @@ else
     shoot "$look" library "xxl-library-$look"
     fit "$KEY xxl-library-$look"
   done
+  SIZE=accessibility-medium
+  shoot light library "ax1-library-light"
+  fit "$KEY ax1-library-light"
   SIZE=""
   xcrun simctl ui "$UDID" content_size large >> "$LOG" 2>&1 || true
   xcrun simctl shutdown "$UDID" >> "$LOG" 2>&1 || true
 fi
 crashes
-rm -f "$BLANK" "$OUT/.shot.bmp"
+rm -f "$BLANK" "$OUT/.shot-$plan.bmp"
 exit 0
