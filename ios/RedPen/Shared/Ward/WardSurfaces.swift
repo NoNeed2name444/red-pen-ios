@@ -240,7 +240,7 @@ struct WardPaperFrame: View {
         let arriving: Bool = stage.poseTime.isFinite
         let pose = arriving ? stage.openingPose() : nil
         // off the main thread while the opening moves
-        Canvas(rendersAsynchronously: arriving) { context, size in
+        Canvas(rendersAsynchronously: false) { context, size in
             let w = Double(size.width), h = Double(size.height)
             guard let panel = WardPaper.panel(width: w, height: h) else { return }
             let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
