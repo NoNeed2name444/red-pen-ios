@@ -226,27 +226,34 @@ final class WardPaperTop {
 /// corners as well, and its edge is drawn there instead of at the frame's
 /// top; the paper above it is the page's own band, under the content.
 struct WardPaperFrame: View {
+    var body: some View {
+        // The paper at rest is one still drawing that never changes during
+        // the opening's hand-off (LaunchStage): what moves, the opening
+        // being cut in it, is a Core Animation sheet over it (WardPaperCut),
+        // posed each frame by moving a mask, not by drawing. Cut frame by
+        // frame in this drawing, the paper made SwiftUI redraw the whole
+        // window's layer at every refresh of the hand-off, 18 to 53 ms each
+        // (run 38721011808, the display census): the hitches of A4.
+        WardPaperRest()
+            .overlay { WardPaperCutStage() }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The paper at rest: the frame, cut where the page's opening is. It reads
+/// nothing that moves, so it is drawn once, not with each frame of the
+/// hand-off.
+private struct WardPaperRest: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         let top: CGFloat? = WardPaperTop.shared.y
-        // During the opening's hand-off (LaunchStage) the page's opening is
-        // not cut in the paper until it arrives, with everything in it, as
-        // one piece: before that the paper runs whole over it, as on the
-        // launch screen; then it is cut at the opening's pose, frame by
-        // frame. At rest this is one still frame.
-        let stage = LaunchStage.shared
-        let arriving: Bool = stage.poseTime.isFinite
-        let pose = arriving ? stage.openingPose() : nil
         // On the main thread, and cheap: the grid is the launch screen's own
         // picture of it (LaunchPaper, the same lines in the same places), one
-        // image, not its few hundred lines, while the opening moves and at
-        // rest, so the hand-off's last frame is no dearer than the others.
-        // Redrawn every frame as lines, and off the main thread, the paper
-        // was what held the hand-off up: each frame's commit waited for the
-        // last frame's paper (runs 38674454917 and 38687683061, hitches of
-        // 67 to 253 ms).
+        // image, not its few hundred lines.
         Canvas { context, size in
             let w = Double(size.width), h = Double(size.height)
             guard let panel = WardPaper.panel(width: w, height: h) else { return }
@@ -268,54 +275,20 @@ struct WardPaperFrame: View {
                     WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
                 }
             }
-            func hole(_ p: WardPaperPanel) -> Path {
-                RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
-                    .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
-            }
-            let frameHole = hole(panel)
-            let moved: WardPaperPanel? = top.flatMap { WardPaper.panel(width: w, height: h, top: Double($0)) }
-                .flatMap { $0.y > panel.y ? $0 : nil }
-            if arriving {
-                // the paper over all but the page's own band above the
-                // opening (behind the page, under the header) and the
-                // opening, once it has arrived, at its pose
-                let opening = moved ?? panel
-                var paper = Path(rect)
-                if let moved {
-                    paper = paper.subtracting(frameHole.intersection(
-                        Path(CGRect(x: 0, y: 0, width: w, height: moved.y))))
-                }
-                var cut: Path?
-                if let pose {
-                    let mid = CGPoint(x: opening.x + opening.width / 2, y: opening.y + opening.height / 2)
-                    let posed = hole(opening).applying(
-                        CGAffineTransform(translationX: mid.x, y: mid.y + pose.drop)
-                            .scaledBy(x: pose.scale, y: pose.scale)
-                            .translatedBy(x: -mid.x, y: -mid.y))
-                    paper = paper.subtracting(posed)
-                    cut = posed
-                }
-                context.drawLayer { layer in
-                    layer.clip(to: paper)
-                    drawPaper(on: &layer)
-                }
-                if let cut {
-                    context.stroke(cut, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
-                }
-                return
-            }
+            let frameHole = WardPaperCut.hole(panel)
             var frame = Path(rect)
             frame.addPath(frameHole)
             context.drawLayer { layer in
                 layer.clip(to: frame, style: FillStyle(eoFill: true))
                 drawPaper(on: &layer)
             }
-            guard let moved else {
+            guard let moved = top.flatMap({ WardPaper.panel(width: w, height: h, top: Double($0)) })
+                .flatMap({ $0.y > panel.y ? $0 : nil }) else {
                 context.stroke(frameHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
                 return
             }
             // the opening's top corners, which the frame's paper leaves open
-            let movedHole = hole(moved)
+            let movedHole = WardPaperCut.hole(moved)
             let strip = Path(CGRect(x: moved.x, y: moved.y, width: moved.width, height: moved.radius))
             var corners = strip
             corners.addPath(movedHole)
@@ -326,11 +299,213 @@ struct WardPaperFrame: View {
             }
             context.stroke(movedHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }
+
+/// What the opening's hand-off asks of the paper at this frame.
+struct WardPaperCut: Equatable {
+    /// Home is still to arrive (warming up) or arriving: the sheet is kept
+    /// ready, its picture loaded.
+    var live: Bool
+    /// The opening is arriving: the sheet is shown.
+    var arriving: Bool
+    /// The opening's pose once it has arrived (scale about its middle, and
+    /// how far below its place); nil before, when the paper runs whole over
+    /// it, as on the launch screen.
+    var scale: CGFloat?
+    var drop: CGFloat = 0
+    /// The top of the page's opening (WardPaperTop).
+    var top: CGFloat?
+    var dark: Bool
+    var highContrast: Bool
+
+    /// The paper's opening, as a path in the window.
+    static func hole(_ p: WardPaperPanel) -> Path {
+        RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
+            .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
+    }
+}
+
+/// Reads the opening's frame from LaunchStage, for the sheet.
+private struct WardPaperCutStage: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        let stage = LaunchStage.shared
+        let arriving = stage.poseTime.isFinite
+        let pose = arriving ? stage.openingPose() : nil
+        #if canImport(UIKit)
+        WardPaperCutSheet(cut: WardPaperCut(live: arriving || stage.warm, arriving: arriving,
+                                            scale: pose?.scale, drop: pose?.drop ?? 0,
+                                            top: WardPaperTop.shared.y, dark: scheme == .dark,
+                                            highContrast: contrast == .increased))
+        #endif
+    }
+}
+
+#if canImport(UIKit)
+/// The paper while the opening arrives, in Core Animation: the same picture
+/// over all of the rest drawing but the page's own band, the opening cut out
+/// of it by a mask whose transform is the opening's pose, and the cut's edge
+/// posed the same way. Each frame moves two layers and draws nothing. Hidden
+/// at rest, where the drawing beneath is the same paper, still.
+private struct WardPaperCutSheet: UIViewRepresentable {
+    var cut: WardPaperCut
+
+    func makeUIView(context: Context) -> WardPaperCutView { WardPaperCutView() }
+
+    func updateUIView(_ view: WardPaperCutView, context: Context) {
+        view.cut = cut
+    }
+}
+
+final class WardPaperCutView: UIView {
+    var cut: WardPaperCut? {
+        didSet { if cut != oldValue { apply() } }
+    }
+
+    private let root = CALayer()         // the sheet and its edge: shown while the opening arrives
+    private let sheet = CALayer()        // the paper: holds the picture, masked by the band
+    private let band = CAShapeLayer()    // all of the window but the page's own band
+    private let cutHolder = CALayer()    // masked by the posed opening
+    private let hole = CAShapeLayer()    // everything but the opening, posed
+    private let edge = CAShapeLayer()    // the opening's edge, posed
+    /// What the sheet was last built for.
+    private var built: (size: CGSize, top: CGFloat?, dark: Bool, highContrast: Bool)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        backgroundColor = .clear
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        root.isHidden = true
+        sheet.mask = band
+        cutHolder.addSublayer(sheet)
+        root.addSublayer(cutHolder)
+        // the opening's two layers are posed about their position, the
+        // opening's middle: their paths are drawn around it, at no size
+        hole.fillRule = .evenOdd
+        hole.bounds = .zero
+        edge.bounds = .zero
+        edge.fillColor = nil
+        edge.lineWidth = CGFloat(WardPaper.edgeWidth)
+        root.addSublayer(edge)
+        layer.addSublayer(root)
+        CATransaction.commit()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        apply()
+    }
+
+    private func apply() {
+        guard let cut else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        root.isHidden = !cut.arriving
+        guard cut.live, bounds.width > 0, bounds.height > 0 else {
+            if built != nil { sheet.contents = nil; built = nil }
+            return
+        }
+        let w = Double(bounds.width), h = Double(bounds.height)
+        guard let panel = WardPaper.panel(width: w, height: h) else { return }
+        let moved: WardPaperPanel? = cut.top.flatMap { WardPaper.panel(width: w, height: h, top: Double($0)) }
+            .flatMap { $0.y > panel.y ? $0 : nil }
+        let opening = moved ?? panel
+        if built.map({ $0.size != bounds.size || $0.top != cut.top || $0.dark != cut.dark
+            || $0.highContrast != cut.highContrast }) ?? true {
+            build(panel: panel, moved: moved, opening: opening, cut: cut)
+        }
+        // the posed opening: scaled about its middle, dropped below its place
+        guard let scale = cut.scale else {
+            cutHolder.mask = nil
+            edge.isHidden = true
+            return
+        }
+        let mid = CGPoint(x: opening.x + opening.width / 2, y: opening.y + opening.height / 2)
+        for posed in [hole, edge] {
+            posed.position = CGPoint(x: mid.x, y: mid.y + cut.drop)
+            posed.transform = CATransform3DMakeScale(scale, scale, 1)
+        }
+        if cutHolder.mask !== hole { cutHolder.mask = hole }
+        edge.isHidden = false
+    }
+
+    /// The sheet's picture, band and opening, for this window and ink.
+    private func build(panel: WardPaperPanel, moved: WardPaperPanel?, opening: WardPaperPanel, cut: WardPaperCut) {
+        let size = bounds.size
+        built = (size, cut.top, cut.dark, cut.highContrast)
+        let ink = WardPaper.ink(dark: cut.dark, highContrast: cut.highContrast)
+        let rect = CGRect(origin: .zero, size: size)
+        root.frame = rect
+        cutHolder.frame = rect
+        // the picture from the window's top left at its own size, as the
+        // rest drawing places it; the lines drawn once where it falls short
+        let grid = ink.fine > 0 || ink.bold > 0
+        let traits = traitCollection.modifyingTraits { $0.userInterfaceStyle = cut.dark ? .dark : .light }
+        let picture = grid ? UIImage(named: "LaunchPaper", in: nil, compatibleWith: traits) : nil
+        if let picture, picture.size.width >= size.width, picture.size.height >= size.height {
+            sheet.frame = CGRect(origin: .zero, size: picture.size)
+            sheet.contents = picture.cgImage
+            sheet.contentsScale = picture.scale
+            sheet.backgroundColor = nil
+        } else if grid {
+            sheet.frame = rect
+            sheet.contents = Self.drawnPaper(size: size, ink: ink, dark: cut.dark,
+                                             scale: traitCollection.displayScale)
+            sheet.contentsScale = max(1, traitCollection.displayScale)
+            sheet.backgroundColor = nil
+        } else {
+            sheet.frame = rect
+            sheet.contents = nil
+            let (r, g, b) = WardPalette.rgb(WardPalette.hex(.background, dark: cut.dark))
+            sheet.backgroundColor = UIColor(red: r, green: g, blue: b, alpha: 1).cgColor
+        }
+        // all but the page's own band above the opening
+        var paper = Path(rect)
+        if let moved {
+            paper = paper.subtracting(WardPaperCut.hole(panel).intersection(
+                Path(CGRect(x: 0, y: 0, width: size.width, height: moved.y))))
+        }
+        band.frame = CGRect(origin: .zero, size: sheet.frame.size)
+        band.path = paper.cgPath
+        // the opening around its middle, so posing it is a transform; around
+        // it, a window's width and height more than the window on every
+        // side, which still covers it at the smallest pose (half size)
+        let mid = CGPoint(x: opening.x + opening.width / 2, y: opening.y + opening.height / 2)
+        let local = CGAffineTransform(translationX: -mid.x, y: -mid.y)
+        let opened = WardPaperCut.hole(opening).applying(local)
+        var around = Path(rect.insetBy(dx: -size.width, dy: -size.height).applying(local))
+        around.addPath(opened)
+        hole.path = around.cgPath
+        edge.path = opened.cgPath
+        let (r, g, b) = WardPalette.rgb(ink.hex)
+        edge.strokeColor = UIColor(red: r, green: g, blue: b, alpha: ink.edge).cgColor
+    }
+
+    /// The paper's lines, drawn once, for a window the picture does not
+    /// cover.
+    @MainActor
+    private static func drawnPaper(size: CGSize, ink: WardPaperInk, dark: Bool, scale: CGFloat) -> CGImage? {
+        let (r, g, b) = WardPalette.rgb(ink.hex)
+        let color = Color(red: r, green: g, blue: b)
+        let renderer = ImageRenderer(content: Canvas { context, size in
+            WardPaperInk.drawPaper(in: &context, size: size, from: .zero, ink: ink, color: color)
+        }
+        .frame(width: size.width, height: size.height)
+        .environment(\.colorScheme, dark ? .dark : .light))
+        renderer.scale = max(1, scale)
+        return renderer.cgImage
+    }
+}
+#endif
 
 extension WardPaperInk {
     /// The base, then the frame's grid over `size`, for a canvas whose top

@@ -287,13 +287,41 @@ enum LaunchTarget { case title, squiggle }
 
 /// The title's letters, settling in one after another at the hand-off: each
 /// grows from nothing and rises the last few points into place. At rest it
-/// draws the text exactly as SwiftUI would.
+/// draws the text exactly as SwiftUI would, over an invisible box.
+///
+/// The box is the most the letters ever cover (a letter at its overshoot,
+/// and its rise below), drawn at every moment, at rest too, so the layer
+/// SwiftUI draws the title into keeps one size. Drawn bare, the layer
+/// followed the letters as they spread out (148, 192, 196, then 194 points
+/// wide) and was made anew each time it grew: a 28 ms reallocation in the
+/// middle of the hand-off (run 38721011808's display census).
 struct LetterSettle: TextRenderer {
     /// The opening's time (LaunchOpening); infinity at rest.
     var time: Double
     var reduced: Bool
 
+    /// Around the text's own bounds: a letter scaled up to its overshoot
+    /// (LaunchOpening.easeOutBack, 1.07) about its middle, and dropped up to
+    /// 6 points below its place.
+    static var reach: EdgeInsets { EdgeInsets(top: 4, leading: 4, bottom: 10, trailing: 4) }
+    /// Below 1/255 in any channel on any background: never seen.
+    static let boxOpacity = 0.001
+
+    var displayPadding: EdgeInsets { Self.reach }
+
+    /// The box the letters stay within, for this layout.
+    static func box(_ layout: Text.Layout) -> CGRect? {
+        let bounds = layout.reduce(CGRect.null) { $0.union($1.typographicBounds.rect) }
+        guard !bounds.isNull, !bounds.isEmpty else { return nil }
+        return CGRect(x: bounds.minX - reach.leading, y: bounds.minY - reach.top,
+                      width: bounds.width + reach.leading + reach.trailing,
+                      height: bounds.height + reach.top + reach.bottom)
+    }
+
     func draw(layout: Text.Layout, in context: inout GraphicsContext) {
+        if let box = Self.box(layout) {
+            context.fill(Path(box), with: .color(.black.opacity(Self.boxOpacity)))
+        }
         let o = LaunchOpening(reduced: reduced)
         if time >= o.settled {
             for line in layout { context.draw(line) }

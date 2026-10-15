@@ -272,19 +272,59 @@ let home = (try? String(contentsOfFile: "ios/RedPen/Features/Library/WardHome.sw
 check("home's title and squiggle tell the opening where they are",
       home.contains(".launchTarget(.title)") && home.contains(".launchTarget(.squiggle)") && home.contains(".launchLetters()"))
 
-// The hand-off's frames: home's paper, redrawn every frame while the page's
-// opening is cut at its pose, was drawn off the main thread, and each
-// frame's commit waited for the last one's (runs 38674454917, 38687683061:
-// the main thread held 67 to 253 ms inside RenderBox's display). Now it is
-// drawn on the main thread, its grid one picture while the opening moves
-// and at rest, so the hand-off's last frame costs no more than the others.
+// The hand-off's frames: home's paper, cut frame by frame at the opening's
+// pose, made SwiftUI redraw the whole window's layer at every refresh of the
+// hand-off, 18 to 53 ms each, off the main thread and then on it (runs
+// 38674454917, 38687683061, 38721011808's display census). Now the drawing
+// at rest never changes while the opening moves, and the cut is a Core
+// Animation sheet over it, posed by a mask's transform.
 let surfaces = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardSurfaces.swift", encoding: .utf8)) ?? ""
+func section(_ text: String, from start: String, to end: String) -> String {
+    guard let a = text.range(of: start), let b = text.range(of: end, range: a.upperBound..<text.endIndex) else { return "" }
+    return String(text[a.lowerBound..<b.lowerBound])
+}
+let rest = section(surfaces, from: "private struct WardPaperRest: View {", to: "/// What the opening's hand-off asks")
+let sheet = section(surfaces, from: "final class WardPaperCutView: UIView {", to: "/// The sheet's picture, band and opening")
 check("home's paper is drawn on the main thread (nothing for a frame to wait on)",
       !surfaces.isEmpty && !surfaces.contains("rendersAsynchronously"))
-check("its grid is the launch screen's picture of it, moving and at rest (the lines only where it does not cover)",
-      surfaces.contains("context.resolve(Image(\"LaunchPaper\"))")
-      && surfaces.components(separatedBy: "drawPaper(on: &layer)").count - 1 == 3
-      && surfaces.components(separatedBy: "WardPaperInk.drawPaper(in: &layer").count - 1 == 1)
+check("its grid is the launch screen's picture of it (the lines only where it does not cover)",
+      rest.contains("context.resolve(Image(\"LaunchPaper\"))")
+      && rest.components(separatedBy: "drawPaper(on: &layer)").count - 1 == 2
+      && rest.components(separatedBy: "WardPaperInk.drawPaper(in: &layer").count - 1 == 1)
+check("the paper at rest reads nothing that moves, so the hand-off never redraws it",
+      !rest.isEmpty && !rest.contains("LaunchStage") && !rest.contains("pose")
+      && surfaces.contains("WardPaperRest()\n            .overlay { WardPaperCutStage() }"))
+check("the moving cut is a sheet over it, posed by transforms, drawing nothing per frame",
+      sheet.contains("posed.transform = CATransform3DMakeScale(scale, scale, 1)")
+      && sheet.contains("cutHolder.mask = hole") && sheet.contains("root.isHidden = !cut.arriving")
+      && sheet.contains("if built.map(") && !sheet.contains("setNeedsDisplay")
+      && !sheet.contains(".path = "))
+check("the sheet uses the same picture, from the window's top left at its own size",
+      surfaces.contains("UIImage(named: \"LaunchPaper\", in: nil, compatibleWith: traits)")
+      && surfaces.contains("sheet.frame = CGRect(origin: .zero, size: picture.size)"))
+
+// The title's layer kept one size: drawn bare, it followed the letters as
+// they spread (148 to 196 points wide) and was reallocated mid-hand-off
+// (28 ms, run 38721011808's display census).
+let stageSource = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchStage.swift", encoding: .utf8)) ?? ""
+let settleDraw = section(stageSource, from: "func draw(layout: Text.Layout, in context: inout GraphicsContext) {",
+                         to: "let n = layout.reduce(0)")
+check("the title draws one invisible box around all its letters can reach, at every moment, at rest too",
+      settleDraw.contains("context.fill(Path(box), with: .color(.black.opacity(Self.boxOpacity)))")
+      && settleDraw.range(of: "context.fill(Path(box)").map { box in
+          settleDraw.range(of: "if time >= o.settled").map { box.lowerBound < $0.lowerBound } ?? false } ?? false
+      && stageSource.contains("var displayPadding: EdgeInsets { Self.reach }")
+      && stageSource.contains("EdgeInsets(top: 4, leading: 4, bottom: 10, trailing: 4)"))
+check("the box is never seen: under half a level of 255 on any background",
+      stageSource.contains("static let boxOpacity = 0.001") && 0.001 * 255 < 0.5)
+let letterSamples = stride(from: 0.0, through: 3.0, by: 0.001).flatMap { t in
+    (0..<LaunchOpening.titleLetters).map { LaunchOpening(reduced: false).letter($0, at: t) }
+}
+let overshoot = letterSamples.map(\.scale).max() ?? 0
+let deepest = letterSamples.map(\.drop).max() ?? 0
+check("the box reaches past a letter at its overshoot (up to a 100-point letter) and its rise",
+      (overshoot - 1) / 2 * 100 <= 4 && deepest <= 10 - 4 && letterSamples.allSatisfy { $0.drop >= 0 },
+      "overshoot \(overshoot), drop \(deepest)")
 
 // MARK: the art the launch screen and the opening share
 

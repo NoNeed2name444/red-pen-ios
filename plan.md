@@ -1923,6 +1923,17 @@ with the marks on the screens last.
   where the grey tube meets the chest piece's stem (the day drawing has
   none); the blue-tube test allows only that line until it is fixed.
 
+- [ ] A4, the opening's hand-off hold (final attempt, task launch-a4): the
+  Launch recording 38723188012 on 446bbb36 measured gaps of 115 and 209 ms in
+  the dark takes. Cause: the paper frame's Canvas redrew every frame from
+  +0.73 s to +1.95 s, and the title's layer changed width as its letters
+  spread. Fix: the paper at rest is one drawing that never changes during
+  the hand-off (WardPaperRest), the cut is a Core Animation mask posed by a
+  transform (WardPaperCutView), and the title draws one invisible box so its
+  layer keeps one size (LetterSettle). Tick it when the push's Launch
+  recording shows a gap of 100 ms or less in every light and dark take; if
+  not, the next step is an advisor review, not more tuning.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
