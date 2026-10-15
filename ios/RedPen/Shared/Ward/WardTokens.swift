@@ -346,6 +346,10 @@ private struct WardWindowWatch: UIViewRepresentable {
                 let dark = window.traitCollection.userInterfaceStyle == .dark
                 let store = WardLookStore.shared
                 WardLookDriver.shared.go(WardLook(dark: dark, section: store.target.section))
+                // the status bar's words take the new style in this frame
+                // too, and again once every bar has taken its traits
+                WatchView.settleStatusBar(in: window)
+                DispatchQueue.main.async { WatchView.settleStatusBar(in: window) }
             }
             let dark = window.traitCollection.userInterfaceStyle == .dark
             let store = WardLookStore.shared
@@ -355,7 +359,29 @@ private struct WardWindowWatch: UIViewRepresentable {
         }
 
         private weak var oldWindow: UIWindow?
+
+        /// Asks every screen in the window for its status bar style with
+        /// no animation, so the clock and icons switch with the page
+        /// rather than fading across from the old style.
+        static func settleStatusBar(in window: UIWindow) {
+            UIView.performWithoutAnimation {
+                var stack: [UIViewController] = window.rootViewController.map { [$0] } ?? []
+                while let controller = stack.popLast() {
+                    controller.setNeedsStatusBarAppearanceUpdate()
+                    stack.append(contentsOf: controller.children)
+                    if let shown = controller.presentedViewController { stack.append(shown) }
+                }
+            }
+        }
     }
+}
+
+extension UINavigationController {
+    /// A study screen's bar (a navigation bar on show) has UIKit fade the
+    /// status bar's words for a third of a second when the app turns light,
+    /// leaving white words on the light page; nothing in the app hides or
+    /// shows the status bar, so its changes can all be immediate.
+    open override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation { .none }
 }
 
 /// A screen's section: its hue tints the paper's grid and the controls'

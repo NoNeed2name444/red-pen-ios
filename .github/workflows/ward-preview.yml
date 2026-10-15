@@ -5,7 +5,8 @@
 # own light/dark switch, home stepping through its sections, and the
 # system's switch. A picture that is still the launch screen is taken again,
 # and the run fails if any frame of the app's own switch has faded
-# (tools/ward_frames_check.py: content contrast under both end states).
+# (tools/ward_frames_check.py: content or status bar contrast under both
+# end states).
 #
 # A push to a preview/ward-<name> branch runs it (design-preview.yml leaves
 # those branches alone); the pictures land on the shots/ward-<name> branch.
@@ -124,6 +125,11 @@ jobs:
             kill -INT $REC
             wait $REC || true
           }
+          # a first launch on a fresh simulator brings a system banner over
+          # the top of the screen for a few seconds; let it come and go
+          # before anything is recorded
+          xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library >> out/shots.log 2>&1
+          sleep 12
           # the app's own switch first (Always night sky turning the window
           # dark and back every 2.5 s), then home stepping along its dock
           record mode-switch mode-switch-app.mp4 6 11
@@ -201,6 +207,12 @@ jobs:
             [ $? = 1 ] && code=1
             cat out/check.tmp >> out/frames-check.txt && rm out/check.tmp
           done
+          # the system's own switch, for the record only: iOS blends the
+          # screen across itself when the whole device changes mode
+          if [ -f out/mode-switch.mp4 ]; then
+            echo "== mode-switch (system, not gated)" >> out/frames-check.txt
+            python3 src/tools/ward_frames_check.py out/mode-switch.mp4 >> out/frames-check.txt
+          fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
       - name: Push to shots/ward-<name>
         env:
