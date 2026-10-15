@@ -219,10 +219,16 @@ jobs:
           set +e
           code=0
           for v in mode-switch-app mode-switch-quiz; do
-            [ -f "out/$v.mp4" ] || continue
+            if [ ! -f "out/$v.mp4" ]; then
+              echo "== $v: no recording" >> out/frames-check.txt
+              code=1
+              continue
+            fi
             echo "== $v" >> out/frames-check.txt
             python3 src/tools/ward_frames_check.py "out/$v.mp4" --report out/check.tmp
-            [ $? = 1 ] && code=1
+            # a fade fails, and so does a recording with no switch in it
+            # (r9's stayed dark throughout and passed)
+            [ $? != 0 ] && code=1
             cat out/check.tmp >> out/frames-check.txt && rm out/check.tmp
           done
           # the system's own switch, for the record only: iOS blends the
@@ -247,7 +253,7 @@ jobs:
           git add -A
           git commit -q -m "Ward preview of ${GITHUB_SHA::7}"
           git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "shots/$NAME:shots/$NAME"
-      - name: Fail on a faded frame
+      - name: Fail on a faded frame or a recording with no switch
         if: ${{ steps.fade.outputs.code == '1' }}
         run: |
           cat out/frames-check.txt
