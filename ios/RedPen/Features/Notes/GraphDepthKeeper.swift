@@ -418,7 +418,23 @@ enum GraphDepth {
         keeper.follow(view.defaultCameraController)
         guard metered else { return }
         view.showsStatistics = true
-        keeper.show(on: readout(over: view))
+        place(keeper, on: view, tries: 50)
+    }
+
+    /// The meter goes on the window, which the view has not reached when the
+    /// scene is first put on it (makeUIView): on the view itself its line
+    /// would be hidden from the UI tests, as the view's accessibility
+    /// elements are the bodies. So wait (a tenth of a second at a time, up to
+    /// five seconds) for the window.
+    private static func place(_ keeper: GraphDepthKeeper, on view: SCNView, tries: Int) {
+        if view.window != nil || tries <= 0 {
+            keeper.show(on: readout(over: view))
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak view, weak keeper] in
+            guard let view, let keeper else { return }
+            place(keeper, on: view, tries: tries - 1)
+        }
     }
 
     private static let readoutTag: Int = 0x4F_DE97

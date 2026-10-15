@@ -1977,7 +1977,11 @@ with the marks on the screens last.
     266 checks. Proof hooks: -graphDepthOff (before), -graphDepthMeter
     (SceneKit's statistics and the frame-time meter); preview tests
     testDepthBeforeAfter, testDepthTurnNeurons, testDepthTurnSpace,
-    testDepthMeasure and testDepthGlide. Next: the Mac's pictures,
+    testDepthMeasure and testDepthGlide. The first Mac run read "no meter"
+    for all 16 takes: GraphDepth.follow ran in makeUIView, before the view
+    had a window, so the meter label went onto the SCNView, whose
+    accessibilityElements (the bodies) hide it; it now waits for the window
+    (GraphDepth.place). Next: the Mac's pictures,
     recordings and numbers, then tuning the band.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner
