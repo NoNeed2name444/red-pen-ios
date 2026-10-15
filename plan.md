@@ -2041,11 +2041,13 @@ docs/design/identity/; the route boards are images kept out of the repo.
   those words; the Playgrounds stand-ins and the Arabic Health text are in
   the inventory; a token map to the code on design/ward-polish; ecgLine is
   planned, not yet pushed.
-- [ ] One combined board render: the docs-review changes above (flat fields
+- [x] One combined board render: the docs-review changes above (flat fields
   and tab bar, B's marking, C's hues and steel) and board review 2's
   must-fixes (the phone frame clears the home indicator; B's "3x" label off
-  the clear-space line) and nits (C keeps the letter on a correct row; A's
-  lab flag in ink). Then a fresh review, round 3.
+  the clear-space line) and nits (C keeps the letter on its correct and
+  wrong rows; the lab flag is ink). Checked at 1:1; all three boards are
+  5640 x 8964.
+- [ ] A fresh board review, round 3.
 - [ ] The owner picks a route, and the words for the timer's parts and the
   plan's count; then a separate phase applies it.
 
