@@ -145,6 +145,17 @@ struct LaunchOpening: Sendable {
         let s = Self.spring(t - entranceStart(order))
         return (max(0.0001, s), Self.rise * (1 - s))
     }
+    /// The longest home's clock may leap between two frames. When the main
+    /// thread is held up longer than this (a first launch's work, say), home
+    /// carries on from where it was rather than jumping its parts ahead; the
+    /// splash's ECG simply waits on the squiggle a little longer.
+    static let longestLeap = 0.1
+    /// Home's clock for a frame due at `raw` (the splash's time), the last
+    /// frame having been at `last`, a frame lasting `frame` seconds.
+    func carryOn(from last: Double, to raw: Double, frame: Double) -> Double {
+        guard raw > handoff, raw - last > Self.longestLeap else { return raw }
+        return min(raw, max(handoff, last) + frame)
+    }
     /// How long home keeps moving after `settled`, so the springs' last
     /// fraction of a point is played out rather than cut.
     static let runOn = 0.30

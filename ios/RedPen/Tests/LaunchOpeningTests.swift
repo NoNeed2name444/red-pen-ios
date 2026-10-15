@@ -177,6 +177,11 @@ check("after the run-on the springs are within a tenth of a point of a 400 pt ca
       (0...LaunchOpening.lastOrder).allSatisfy { k in
           let e = o.entrance(k, at: o.settled + LaunchOpening.runOn)
           return abs(e.scale - 1) * 400 < 0.1 && abs(e.drop) < 0.1 })
+check("after a held-up main thread home carries on from where it was",
+      near(o.carryOn(from: o.handoff + 0.1, to: o.handoff + 0.9, frame: 1.0 / 60), o.handoff + 0.1 + 1.0 / 60)
+      && near(o.carryOn(from: o.handoff - 0.5, to: o.handoff + 0.5, frame: 0.01), o.handoff + 0.01)
+      && o.carryOn(from: o.handoff + 0.1, to: o.handoff + 0.15, frame: 0.01) == o.handoff + 0.15
+      && o.carryOn(from: 0.1, to: 0.5, frame: 0.01) == 0.5)
 check("the spring starts at 0 and settles at 1",
       LaunchOpening.spring(0) == 0 && abs(LaunchOpening.spring(LaunchOpening.settleTime) - 1) < 0.01
       && abs(LaunchOpening.spring(3) - 1) < 1e-6)

@@ -9,14 +9,16 @@ import QuartzCore
 /// own ground gives way there is no change to see. At the hand-off, home's
 /// parts grow into place in turn (LaunchEntrance), the title's letters
 /// settle in (LetterSettle), the ECG paper is drawn outward from the trace
-/// (gridReach), and the squiggle beside the title appears the moment the
-/// splash's ECG lands on it. Nothing fades: every part moves and scales.
+/// (gridReach), and the splash's ECG lands as the squiggle beside the
+/// title, which home's own takes over once home is still. Nothing fades:
+/// every part moves and scales.
 ///
 /// Every part is posed from one clock, the splash's: the hand-off's moment
 /// on the host clock the Core Animation half runs on, read each display
-/// refresh for the moment that frame is shown, so a late main thread can
-/// drop a frame of home but never puts it out of step with the ECG and the
-/// stethoscope. (SwiftUI's own animations are not used: a List row does not
+/// refresh for the moment that frame is shown, so a late frame of home
+/// stays in step with the ECG and the stethoscope (a main thread held up
+/// for longer carries on from where it was: LaunchOpening.carryOn).
+/// (SwiftUI's own animations are not used: a List row does not
 /// always play them, and their delays start from when the main thread gets
 /// round to it. Nor is TimelineView: around a List's sections it would make
 /// them one row.)
@@ -39,6 +41,8 @@ final class LaunchStage {
     /// The hand-off's moment on the host clock (CACurrentMediaTime).
     @ObservationIgnored private var handoffHost: CFTimeInterval = 0
     @ObservationIgnored private var link: CADisplayLink?
+    /// Home's clock at the last display refresh.
+    @ObservationIgnored private var lastTime: Double?
     /// Where the paper is drawn out from, and the window it fills (window
     /// points): set by the splash as it starts.
     @ObservationIgnored var gridOrigin: CGPoint = .zero
@@ -71,6 +75,7 @@ final class LaunchStage {
         guard now == 0, link == nil else { return }
         self.reduced = reduced
         self.handoffHost = handoffHost
+        lastTime = LaunchOpening(reduced: reduced).handoff + (CACurrentMediaTime() - handoffHost)
         let ticker = LaunchTicker { [weak self] link in self?.tick(link) }
         let link = CADisplayLink(target: ticker, selector: #selector(LaunchTicker.tick(_:)))
         link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
@@ -80,7 +85,10 @@ final class LaunchStage {
 
     private func tick(_ link: CADisplayLink) {
         let o = LaunchOpening(reduced: reduced)
-        let t = o.handoff + (link.targetTimestamp - handoffHost)
+        let raw = o.handoff + (link.targetTimestamp - handoffHost)
+        let t = lastTime.map { o.carryOn(from: $0, to: raw, frame: link.targetTimestamp - link.timestamp) } ?? raw
+        if t != raw { handoffHost = link.targetTimestamp - (t - o.handoff) }
+        lastTime = t
         // before the hand-off home is wholly at nothing: nothing to redraw
         guard t >= o.handoff else { return }
         if t >= o.settled + LaunchOpening.runOn {
