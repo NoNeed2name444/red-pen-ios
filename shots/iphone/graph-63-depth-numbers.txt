@@ -1,0 +1,16 @@
+63-1-neurons-high-whole-after: on frame 27.93 p95 41.86 worst 99.73 n 240 drawn 4/4
+63-1-neurons-high-whole-before: off frame 24.97 p95 40.27 worst 114.80 n 240 drawn 4/4
+63-1-neurons-high-near-after: on frame 37.52 p95 57.14 worst 155.39 n 240 drawn 9/9
+63-1-neurons-high-near-before: off frame 30.55 p95 41.70 worst 58.46 n 240 drawn 9/9
+63-1-neurons-smooth-whole-after: on frame 21.38 p95 31.69 worst 63.60 n 240 drawn 4/4
+63-1-neurons-smooth-whole-before: off frame 23.55 p95 43.92 worst 109.21 n 240 drawn 4/4
+63-1-neurons-smooth-near-after: on frame 29.85 p95 37.71 worst 54.36 n 240 drawn 9/9
+63-1-neurons-smooth-near-before: off frame 27.46 p95 39.55 worst 56.62 n 240 drawn 9/9
+63-2-space-high-whole-after: on frame 66.59 p95 87.89 worst 574.60 n 171 drawn 35/35
+63-2-space-high-whole-before: off frame 44.91 p95 56.21 worst 62.41 n 240 drawn 35/35
+63-2-space-high-near-after: on frame 61.66 p95 91.45 worst 605.88 n 208 drawn 35/35
+63-2-space-high-near-before: off frame 40.94 p95 52.77 worst 71.41 n 240 drawn 35/35
+63-2-space-smooth-whole-after: on frame 60.85 p95 74.81 worst 769.21 n 240 drawn 35/35
+63-2-space-smooth-whole-before: off frame 45.32 p95 59.77 worst 69.78 n 240 drawn 35/35
+63-2-space-smooth-near-after: on frame 50.40 p95 64.98 worst 86.98 n 240 drawn 35/35
+63-2-space-smooth-near-before: off frame 39.51 p95 54.23 worst 79.23 n 240 drawn 35/35
