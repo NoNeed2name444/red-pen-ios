@@ -950,21 +950,29 @@ nonisolated enum GraphStyleShaders {
 
     // MARK: the rocky planet
 
-    /// A rocky world, lit by its own star (the terminator faces the light,
-    /// SpaceOptics.day). Continents from domain-warped value-noise fBm over
-    /// its own sphere (turned by GraphStyleAnimator, so the land rotates):
-    /// deep sea darkening away from the coasts, shallows, lowland and
-    /// highland ground varied by a wetter-or-drier field and by latitude
-    /// (green towards the wet, tan towards the dry), bare rock and snow on
-    /// the heights, ice caps; at full quality, relief lit from the sun's side
-    /// (the terrain compared with itself a step towards the light). Clouds:
-    /// thin warped fBm in streets and swirls, drifting faster than the
-    /// ground, broken into wisps, casting a faint shadow. A soft terminator
-    /// reddened along its band (sunset light), the sun's glint on open water
-    /// (Blinn-Phong, stronger towards the limb by Fresnel), city lights on
-    /// the night side clustered along coasts and lowlands in a fine network,
-    /// and Rayleigh-blue air thickening towards the limb on the day side.
-    /// Palette per folder: rpTintA sea, B shallows, C land, D high ground.
+    /// An Earth, lit by its own star (the terminator faces the light,
+    /// SpaceOptics.day). Continents from value-noise fBm over its own sphere
+    /// (turned by GraphStyleAnimator, so the land rotates), its domain
+    /// warped by two low noises so coasts run in long ragged lines with
+    /// bays and peninsulas rather than blobs; a finer noise on the height
+    /// frays the coastline into inlets and islands at close-up size (all
+    /// procedural: no texture to tile or blur). As many noise lookups as
+    /// before the rework (19 at full quality, 13 at Smooth). Biomes by latitude and height: green lowlands, darker
+    /// boreal forest and grey-brown tundra towards the poles, tan and ochre
+    /// deserts in a band round +-25 degrees (drier still where the moisture
+    /// field is low), darker rock on the mountains with snow on the
+    /// highest, white ice caps; at sea, turquoise shelves along the coasts
+    /// against deep blue ocean. At full quality, relief lit from the sun's
+    /// side (the terrain compared with itself a step towards the light).
+    /// Clouds: warped fBm twisted into swirls and streets, drifting faster
+    /// than the ground, casting slight shadows (the cloud field a step
+    /// towards the light). A soft terminator reddened along its band, the
+    /// sun's glint on open water only (Blinn-Phong, stronger towards the
+    /// limb by Fresnel; never on land or cloud), city lights on the night
+    /// side's land, clustered on coasts and lowlands, sparse in deserts, and
+    /// Rayleigh-blue air thickening towards the limb, reddening at the
+    /// terminator. Palette per folder (three Earths): rpTintA deep ocean, B
+    /// coastal shelf, C lowland green, D desert.
     static let rockBody: String = """
     #pragma arguments
     float rpClock;
@@ -983,27 +991,31 @@ nonisolated enum GraphStyleShaders {
     float rp_t = rpClock * rpMotion;
     int rp_oct = rpDetail > 0.5 ? 6 : 4;
 
-    """ + GraphShaderKit.noise("rp_wq", "rp_p * 1.3 + float3(7.0, 3.0, 1.0)") + """
-    float3 rp_sd = rp_p * 1.7 + float3(3.1 + rp_wq * 1.1, 7.4 - rp_wq * 0.8, 1.3 + rp_wq * 0.6);
+    """ + GraphShaderKit.noise("rp_wq", "rp_p * 1.25 + float3(7.0, 3.0, 1.0)")
+        + GraphShaderKit.noise("rp_wr", "rp_p * 1.25 + float3(2.0, 11.0, 5.0)") + """
+    float3 rp_sd = rp_p * 1.6 + float3(3.1, 7.4, 1.3) + float3(rp_wq - 0.5, rp_wr - 0.5, rp_wq - rp_wr) * 1.7;
 
-    """ + GraphShaderKit.fbm("rp_h", "rp_sd", octaves: "rp_oct") + """
-    float rp_land = smoothstep(0.622, 0.632, rp_h);
-    float rp_depth = smoothstep(0.45, 0.622, rp_h);
-    float rp_alt = smoothstep(0.632, 0.76, rp_h);
+    """ + GraphShaderKit.fbm("rp_h", "rp_sd", octaves: "rp_oct")
+        + GraphShaderKit.noise("rp_cn", "rp_sd * 7.0 + float3(5.0, 2.0, 8.0)") + """
+    rp_h = rp_h + (rp_cn - 0.5) * 0.06;
+    float rp_land = smoothstep(0.556, 0.562, rp_h);
+    float rp_alt = smoothstep(0.566, 0.92, rp_h);
+    float rp_shelf = smoothstep(0.49, 0.558, rp_h);
     float rp_lat = abs(rp_p.y);
-
-    """ + GraphShaderKit.noise("rp_wet", "rp_p * 3.1 + float3(11.0, 2.0, 5.0)") + """
-    float rp_dry = clamp((rp_wet - 0.5) * 1.6 + 0.35 - abs(rp_lat - 0.3) * 0.9, 0.0, 1.0);
-    float3 rp_green = rpTintC;
-    float3 rp_tan = mix(rpTintD, float3(0.72, 0.58, 0.38), 0.45);
-    float3 rp_ground = mix(rp_green, rp_tan, rp_dry);
-    rp_ground = mix(rp_ground, rpTintD * 0.85, smoothstep(0.25, 0.8, rp_alt));
-    rp_ground = rp_ground * (0.85 + 0.3 * rp_wq);
-    float3 rp_water = mix(rpTintA * 0.75, rpTintB, rp_depth * rp_depth * rp_depth);
+    float rp_dz = (rp_lat - 0.42) / 0.14;
+    float rp_desert = exp(-rp_dz * rp_dz);
+    float rp_dry = clamp(rp_desert * 1.15 + (0.5 - rp_wr) * 1.1 - rp_alt * 0.4 - 0.25, 0.0, 1.0);
+    float3 rp_green = rpTintC * (0.85 + 0.3 * rp_wq);
+    rp_green = mix(rp_green, rpTintC * float3(0.62, 0.78, 0.74), smoothstep(0.55, 0.75, rp_lat));
+    rp_green = mix(rp_green, float3(0.36, 0.34, 0.28), smoothstep(0.72, 0.84, rp_lat));
+    float3 rp_sand = mix(rpTintD, float3(0.8, 0.62, 0.4), rp_wq);
+    float3 rp_ground = mix(rp_green, rp_sand, smoothstep(0.25, 0.7, rp_dry));
+    rp_ground = mix(rp_ground, float3(0.27, 0.23, 0.19), smoothstep(0.35, 0.8, rp_alt));
+    float3 rp_water = mix(rpTintA, rpTintB, rp_shelf * rp_shelf * rp_shelf);
     float3 rp_alb = mix(rp_water, rp_ground, rp_land);
-    float rp_ice = smoothstep(0.8, 0.9, rp_lat + 0.22 * (rp_h - 0.5) + 0.05 * rp_wq);
-    float rp_snow = smoothstep(0.97, 1.1, rp_alt + rp_lat * 0.3) * rp_land;
-    rp_alb = mix(rp_alb, float3(0.9, 0.93, 0.97), max(rp_ice, rp_snow));
+    float rp_ice = smoothstep(0.86, 0.93, rp_lat + 0.12 * (rp_h - 0.5) + 0.06 * (rp_wq - 0.5));
+    float rp_snow = smoothstep(0.88, 1.0, rp_alt + rp_lat * 0.25) * rp_land;
+    rp_alb = mix(rp_alb, float3(0.92, 0.95, 0.98), max(rp_ice, rp_snow));
     float rp_relief = 0.5;
     if (rpDetail > 0.5) {
 
@@ -1017,12 +1029,19 @@ nonisolated enum GraphStyleShaders {
     """ + GraphShaderKit.noise("rp_cw", "rp_pc * 2.2 + float3(0.0, rp_t * 0.006, 0.0)") + """
     float rp_sw = (rp_cw - 0.5) * 3.0;
     float3 rp_pw = float3(rp_pc.x * cos(rp_sw) - rp_pc.z * sin(rp_sw), rp_pc.y, rp_pc.x * sin(rp_sw) + rp_pc.z * cos(rp_sw));
-    int rp_coct = rpDetail > 0.5 ? 5 : 3;
+    int rp_coct = rpDetail > 0.5 ? 4 : 3;
+    float3 rp_cq = float3(rp_pw.x * 4.2, rp_pw.y * 7.0, rp_pw.z * 4.2) + float3(rp_cw * 1.4, 0.0, 0.0);
 
-    """ + GraphShaderKit.fbm("rp_cf", "float3(rp_pw.x * 4.2, rp_pw.y * 7.0, rp_pw.z * 4.2) + float3(rp_cw * 1.4, 0.0, 0.0)", octaves: "rp_coct") + """
+    """ + GraphShaderKit.fbm("rp_cf", "rp_cq", octaves: "rp_coct") + """
     float rp_belt = 0.78 + 0.22 * cos(rp_p.y * 7.0) + 0.1 * smoothstep(0.6, 0.9, rp_lat);
     float rp_cloud = smoothstep(0.54, 0.74, rp_cf * rp_belt);
     rp_cloud = rp_cloud * (0.45 + 0.4 * smoothstep(0.35, 0.65, rp_cw));
+    float rp_shadow = 1.0 - 0.3 * smoothstep(0.45, 0.7, rp_cf * rp_belt) * (1.0 - rp_cloud);
+    if (rpDetail > 0.5) {
+
+    """ + GraphShaderKit.noise("rp_cl", "rp_cq - rp_Lo * 0.12") + """
+    rp_shadow = 1.0 - 0.38 * smoothstep(0.5, 0.72, rp_cl * rp_belt) * (1.0 - rp_cloud);
+    }
     float rp_ndl = dot(rp_N, rp_Lv);
     float rp_day = smoothstep(-0.08, 0.22, rp_ndl);
     float rp_sun = 1.15 * rp_day * pow(max(rp_ndl, 0.03), 0.7);
@@ -1030,7 +1049,6 @@ nonisolated enum GraphStyleShaders {
     float rp_dusk = exp(-rp_dk * rp_dk * 90.0);
     float3 rp_tint = mix(float3(1.0, 1.0, 1.0), float3(1.0, 0.55, 0.3), rp_dusk * 0.7);
     float rp_shape = mix(1.0, 0.75 + 0.5 * rp_relief, rp_land * (0.4 + 0.6 * rp_alt));
-    float rp_shadow = 1.0 - 0.35 * smoothstep(0.45, 0.7, rp_cf * rp_belt) * (1.0 - rp_cloud);
     float3 rp_col = rp_alb * rp_tint * (0.006 + rp_sun * rp_shape * rp_shadow);
     float rp_cdl = smoothstep(-0.12, 0.28, rp_ndl) * pow(max(rp_ndl + 0.1, 0.02), 0.6);
     float3 rp_cloudLit = float3(0.97, 0.97, 1.0) * rp_tint * (0.008 + 1.15 * rp_cdl);
@@ -1040,16 +1058,16 @@ nonisolated enum GraphStyleShaders {
     float rp_om = 1.0 - rp_mu;
     float rp_fres = 0.02 + 0.98 * rp_om * rp_om * rp_om * rp_om * rp_om;
     float rp_glint = pow(rp_nh, 140.0) * 2.2 + pow(rp_nh, 20.0) * 0.14;
-    rp_glint = rp_glint * (0.35 + rp_fres * 2.0) * (1.0 - rp_land) * (1.0 - rp_cloud) * rp_day;
+    rp_glint = rp_glint * (0.35 + rp_fres * 2.0) * (1.0 - rp_land) * (1.0 - max(rp_ice, rp_cloud)) * rp_day;
     rp_col = rp_col + float3(1.0, 0.93, 0.8) * rp_glint;
     float rp_night = 1.0 - smoothstep(-0.18, 0.04, rp_ndl);
     if (rp_night > 0.01) {
 
-    """ + GraphShaderKit.noise("rp_pop", "rp_p * 5.0 + float3(4.0, 1.0, 9.0)") + GraphShaderKit.noise("rp_town", "rp_p * 42.0") + GraphShaderKit.noise("rp_road", "rp_p * 110.0") + """
+    """ + GraphShaderKit.noise("rp_pop", "rp_p * 5.0 + float3(4.0, 1.0, 9.0)") + GraphShaderKit.noise("rp_town", "rp_p * 42.0") + """
     float rp_coast = 1.0 - smoothstep(0.0, 0.25, rp_alt);
     float rp_glow = smoothstep(0.55, 0.78, rp_town) * smoothstep(0.4, 0.66, rp_pop) * (0.4 + 0.6 * rp_coast);
-    rp_glow = rp_glow + 0.35 * smoothstep(0.72, 0.9, rp_road) * smoothstep(0.45, 0.62, rp_pop);
-    rp_glow = rp_glow * rp_land * (1.0 - max(rp_ice, rp_snow)) * (1.0 - 0.75 * rp_cloud) * rp_night;
+    rp_glow = rp_glow + 0.3 * smoothstep(0.62, 0.7, rp_town) * smoothstep(0.45, 0.62, rp_pop);
+    rp_glow = rp_glow * rp_land * (1.0 - max(rp_ice, rp_snow)) * (1.0 - 0.75 * rp_cloud) * (1.0 - 0.7 * rp_dry) * rp_night;
     rp_col = rp_col + float3(1.0, 0.66, 0.3) * (rp_glow * 0.9);
     }
     float rp_fr = rp_om * rp_om;

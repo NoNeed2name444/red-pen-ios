@@ -167,7 +167,7 @@ static void sun() {
         [] { COMMON(sh_sunCorona) sh_sunCorona::rpDetail = 1; }, 0.85f + 0.15f * M);
 }
 
-static float3 ROCK[4] = {v3(0.02f, 0.09f, 0.26f), v3(0.05f, 0.24f, 0.42f), v3(0.17f, 0.30f, 0.11f), v3(0.45f, 0.36f, 0.22f)};
+static float3 ROCK[4] = {v3(0.02f, 0.08f, 0.24f), v3(0.05f, 0.36f, 0.45f), v3(0.16f, 0.3f, 0.1f), v3(0.66f, 0.52f, 0.32f)};
 static float3 GAS[4] = {v3(0.93f, 0.85f, 0.68f), v3(0.78f, 0.56f, 0.36f), v3(0.6f, 0.33f, 0.2f), v3(0.5f, 0.56f, 0.62f)};
 
 static void rocky() {

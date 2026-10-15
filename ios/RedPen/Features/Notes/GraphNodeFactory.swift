@@ -866,19 +866,21 @@ nonisolated enum GraphStyleArt {
         return UIImage(cgImage: cg)
     }
 
-    /// Sea, shallows, land, high ground: an Earth, a desert world, an ice
-    /// world. As they show on screen (the shader takes them to linear).
+    /// Deep ocean, coastal shelf, lowland green, desert: three Earths,
+    /// a little apart in their seas and greens (the owner wants the rocky
+    /// planet to read as Earth). As they show on screen (the shader takes
+    /// them to linear).
     static func rockPalette(_ k: Int) -> [SIMD3<Float>] {
         switch k {
         case 1:
-            return [SIMD3<Float>(0.18, 0.08, 0.05), SIMD3<Float>(0.35, 0.16, 0.08),
-                    SIMD3<Float>(0.62, 0.32, 0.16), SIMD3<Float>(0.8, 0.55, 0.35)]
+            return [SIMD3<Float>(0.02, 0.07, 0.21), SIMD3<Float>(0.06, 0.33, 0.42),
+                    SIMD3<Float>(0.2, 0.32, 0.12), SIMD3<Float>(0.7, 0.5, 0.3)]
         case 2:
-            return [SIMD3<Float>(0.1, 0.2, 0.35), SIMD3<Float>(0.3, 0.5, 0.65),
-                    SIMD3<Float>(0.7, 0.8, 0.88), SIMD3<Float>(0.9, 0.93, 0.97)]
+            return [SIMD3<Float>(0.03, 0.1, 0.27), SIMD3<Float>(0.07, 0.4, 0.48),
+                    SIMD3<Float>(0.14, 0.28, 0.12), SIMD3<Float>(0.62, 0.54, 0.36)]
         default:
-            return [SIMD3<Float>(0.02, 0.09, 0.26), SIMD3<Float>(0.05, 0.24, 0.42),
-                    SIMD3<Float>(0.17, 0.30, 0.11), SIMD3<Float>(0.45, 0.36, 0.22)]
+            return [SIMD3<Float>(0.02, 0.08, 0.24), SIMD3<Float>(0.05, 0.36, 0.45),
+                    SIMD3<Float>(0.16, 0.3, 0.1), SIMD3<Float>(0.66, 0.52, 0.32)]
         }
     }
 
