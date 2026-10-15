@@ -1,0 +1,17 @@
+== promax library-light
+fits
+card 266-653, start 581-637, new set 782-838, bar 770-922
+== promax library-dark
+fits
+card 266-653, start 581-637, new set 782-838, bar 770-922
+== promax xxl-library-light
+FAULT the round card (283-776) runs under the bar from 769
+card 283-776, start 704-760, new set 780-836, bar 768-922
+== promax xxl-library-dark
+FAULT the round card (283-776) runs under the bar from 769
+card 283-776, start 704-760, new set 780-836, bar 768-922
+== promax ax1-library-light
+FAULT Start ward round (998-1055) is cut by the bar from 768
+FAULT the round card (312-1071) runs under the bar from 768
+FAULT New set (780-838) sits on the round card (312-1071)
+card 312-1071, start 997-1055, new set 780-837, bar 768-922
