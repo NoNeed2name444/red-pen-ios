@@ -1999,6 +1999,15 @@ with the marks on the screens last.
     decides how far things should fade on a flat map: tilt the default
     framing so the sheet recedes, fade by distance from the focus, or give
     the maps real depth. Nothing goes to the owner as done before that.
+    The meter's numbers (neurons-depth-3, 67fe38c2, one turn, simulator):
+    nothing is culled in any take (Neurons 4/4 whole, 9/9 near; Space
+    35/35), and the shader costs time in Space: the iPhone's mean frame
+    66.6 ms on against 44.9 off (High, whole), 61.7 against 40.9 (High,
+    near), 60.9 against 45.3 and 50.4 against 39.5 (Smooth); the iPad's
+    up to 80 against 40. Neurons is mixed (iPhone High near 37.5 against
+    30.6; Smooth whole 21.4 against 23.6). As built, the fade neither
+    shows on the flat maps nor makes anything smoother; it waits on the
+    owner's choice above.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner
     sees it.
