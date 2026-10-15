@@ -28,7 +28,7 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
 // MARK: reading a shader
 
 let types: Set<String> = ["float", "float2", "float3", "float4", "float3x3", "float4x4", "int", "int2", "int3",
-                          "int4", "uint", "uint2", "uint3", "bool", "half", "half3", "half4"]
+                          "int4", "uint", "uint2", "uint3", "bool", "half", "half3", "half4", "sampler"]
 
 /// The source without // comments.
 func stripComments(_ text: String) -> [String] {
@@ -95,8 +95,12 @@ func read(_ item: GraphShaderItem) -> ShaderReport {
         }
         if line.isEmpty { continue }
         if section == "args" {
-            let parts: [String] = tokens(line)
-            if parts.count == 3, types.contains(parts[0]), parts[2] == ";" {
+            var parts: [String] = tokens(line)
+            // a texture: texture2d<float> rpName;
+            if parts.count == 6, parts[0] == "texture2d", parts[1] == "<", parts[2] == "float", parts[3] == ">" {
+                parts = ["float", parts[4], parts[5]]
+            }
+            if parts.count == 3, types.contains(parts[0]), parts[0] != "sampler", parts[2] == ";" {
                 if args.contains(parts[1]) { report.problems.append(at + ": argument declared twice: " + parts[1]) }
                 args.insert(parts[1])
                 argOrder.append(parts[1])
@@ -267,6 +271,13 @@ check("S2 a broken shader is caught (undeclared, twice, arguments, brackets, GLS
 let fine: String = "#pragma arguments\nfloat rpProbe;\n#pragma body\nfloat rp_a = 1.0;\nif (rp_a > 0.5) {\nfloat rp_b = rp_a;\nrp_a = rp_b;\n}\nif (rp_a > 0.2) {\nfloat rp_b = 2.0;\nrp_a = rp_b;\n}\n_surface.diffuse = float4(float3(rp_a) + float3(rpProbe), 1.0);"
 let fineReport: ShaderReport = read(GraphShaderItem(name: "fine", entry: "surface", source: fine))
 check("S2 the same name in two sibling blocks is fine", fineReport.problems.isEmpty, "\(fineReport.problems)")
+let textured: String = "#pragma arguments\nfloat rpProbe;\ntexture2d<float> rpMap;\n#pragma body\nconstexpr sampler rp_smp(coord::normalized, filter::linear, mip_filter::linear, address::repeat);\nfloat2 rp_uv = float2(0.25, 0.5);\nfloat4 rp_c = rpMap.sample(rp_smp, rp_uv, gradient2d(dfdx(rp_uv), dfdy(rp_uv)));\n_surface.diffuse = float4(rp_c.rgb + float3(rpProbe), 1.0);"
+let texturedReport: ShaderReport = read(GraphShaderItem(name: "textured", entry: "surface", source: textured))
+check("S2 a texture argument and a sampler read clean", texturedReport.problems.isEmpty && texturedReport.notes.isEmpty,
+      "\(texturedReport.problems) \(texturedReport.notes)")
+let unbound: String = textured.replacingOccurrences(of: "texture2d<float> rpMap;\n", with: "")
+check("S2 a texture used but never declared is caught",
+      !read(GraphShaderItem(name: "unbound", entry: "surface", source: unbound)).problems.isEmpty)
 
 // MARK: S3 the shared noise (GraphShaderKit), on the CPU as on the GPU
 

@@ -148,6 +148,36 @@ inline float3 cross(float3 a, float3 b) { return mk_float3(a.y * b.z - a.z * b.y
 inline float3 reflect(float3 i, float3 n) { return i - n * (2.0f * dot(n, i)); }
 inline float2 reflect(float2 i, float2 n) { return i - n * (2.0f * dot(n, i)); }
 
+// textures and samplers, by Metal's names. The check only needs them to
+// exist; the lab (tools/space_lab) gives a texture its pixels and defines
+// rp_texture_sample and rp_derivative. A sampler is declared the way Metal
+// declares one (constexpr sampler s(coord::normalized, filter::linear, ...)).
+enum class coord { normalized, pixel };
+enum class filter { nearest, linear };
+enum class mip_filter { none, nearest, linear };
+enum class address { repeat, mirrored_repeat, clamp_to_edge, clamp_to_zero, clamp_to_border };
+struct max_anisotropy { int n; constexpr max_anisotropy(int k) : n(k) {} };
+struct sampler { template <typename... A> constexpr sampler(A...) {} };
+struct gradient2d { float2 dx, dy; gradient2d(float2 a, float2 b) : dx(a), dy(b) {} };
+struct level { float lod; explicit level(float l) : lod(l) {} };
+float4 rp_texture_sample(const void *pixels, float2 uv, float2 dx, float2 dy, int how);
+template <typename T, int A = 0> struct texture2d {
+    const void *rp_pixels = nullptr;
+    float4 sample(sampler, float2 uv) const { return rp_texture_sample(rp_pixels, uv, mk_float2(0.0f), mk_float2(0.0f), 0); }
+    float4 sample(sampler, float2 uv, gradient2d g) const { return rp_texture_sample(rp_pixels, uv, g.dx, g.dy, 1); }
+    float4 sample(sampler, float2 uv, level l) const { return rp_texture_sample(rp_pixels, uv, mk_float2(l.lod), mk_float2(0.0f), 2); }
+};
+// screen-space derivatives (a fragment's neighbours to the right and below)
+float4 rp_derivative(float4 v, int axis);
+inline float dfdx(float v) { return rp_derivative(mk_float4(v, 0.0f, 0.0f, 0.0f), 0).x; }
+inline float dfdy(float v) { return rp_derivative(mk_float4(v, 0.0f, 0.0f, 0.0f), 1).x; }
+inline float2 dfdx(float2 v) { float4 d = rp_derivative(mk_float4(v, mk_float2(0.0f)), 0); return mk_float2(d.x, d.y); }
+inline float2 dfdy(float2 v) { float4 d = rp_derivative(mk_float4(v, mk_float2(0.0f)), 1); return mk_float2(d.x, d.y); }
+inline float3 dfdx(float3 v) { float4 d = rp_derivative(mk_float4(v, 0.0f), 0); return mk_float3(d.x, d.y, d.z); }
+inline float3 dfdy(float3 v) { float4 d = rp_derivative(mk_float4(v, 0.0f), 1); return mk_float3(d.x, d.y, d.z); }
+inline float fwidth(float v) { return std::fabs(dfdx(v)) + std::fabs(dfdy(v)); }
+inline float2 fwidth(float2 v) { return abs(dfdx(v)) + abs(dfdy(v)); }
+
 struct SCNShaderSurface {
     float3 view; float3 position; float3 normal; float3 geometryNormal; float3 tangent; float3 bitangent;
     float2 ambientTexcoord; float2 diffuseTexcoord; float2 specularTexcoord; float2 emissionTexcoord;
