@@ -1,0 +1,34 @@
+== library-se-light
+fits
+card 350-684, start 612-668, new set 140-184, tiles none, bar 700-774, cut 688, large text false
+words: 
+== library-se-dark
+fits
+card 350-684, start 612-668, new set 140-184, tiles none, bar 700-774, cut 688, large text false
+words: 
+== xxl-library-light
+fits
+card 308-822, start 750-806, new set 708-764, tiles none, bar 708-840, cut 696, large text true
+words: 
+== xxl-library-dark
+fits
+card 308-822, start 750-806, new set 708-764, tiles none, bar 708-840, cut 696, large text true
+words: 
+== xxl-library-se-light
+fits
+card 374-798, start 726-782, new set 145-189, tiles none, bar 708-774, cut 696, large text true
+words: 
+== ax1-library-light
+fits
+card 413-1172, start 1098-1156, new set 698-755, tiles none, bar 698-840, cut 686, large text true
+words: 
+== ax1-library-dark
+fits
+card 413-1172, start 1098-1156, new set 698-755, tiles none, bar 698-840, cut 686, large text true
+words: 
+== ax5-library-light
+fits
+card 589-2444, start 2217-2428, new set 652-739, tiles none, bar 652-837, cut 640, large text true
+words: 
+== ax5-library-se-light
+FAULT no fit report was written

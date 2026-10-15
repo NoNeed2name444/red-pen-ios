@@ -1,0 +1,19 @@
+== mode-switch-app
+9 frames; content contrast light 34.3, dark 32.1; a frame under 25.7 has faded
+9 frames; status bar contrast light 45.4, dark 42.1; a frame under 33.7 has faded (reported, never fails: iOS's own transition)
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch-quiz
+only one mode in 43 frames: nothing to check
+== mode-switch (system, not gated)
+152 frames; content contrast light 7.5, dark 11.0; a frame under 6.0 has faded
+brief dip, allowed (content): frames 8-12 from 3.648 s, on screen 0.045 s; lowest contrast 4.0, brightness 138
+brief dip, allowed (content): frames 52-54 from 7.350 s, on screen 0.055 s; lowest contrast 4.1, brightness 141
+brief dip, allowed (content): frames 69-70 from 10.940 s, on screen 0.027 s; lowest contrast 4.0, brightness 138
+brief dip, allowed (content): frames 100-106 from 14.453 s, on screen 0.055 s; lowest contrast 4.1, brightness 142
+152 frames; status bar contrast light 28.1, dark 13.1; a frame under 10.5 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 50-53 from 7.317 s, on screen 0.073 s; lowest contrast 2.2, brightness 123
+faded status bar, not gated: frames 62-67 from 7.547 s, on screen 3.200 s; lowest contrast 9.2, brightness 221
+faded status bar, not gated: frames 85-86 from 11.135 s, on screen 0.055 s; lowest contrast 6.3, brightness 49
+faded status bar, not gated: frames 99-101 from 14.410 s, on screen 0.078 s; lowest contrast 4.6, brightness 122
+faded status bar, not gated: frames 126-138 from 14.648 s, on screen 0.160 s; lowest contrast 6.4, brightness 220
+clean: the content keeps its contrast, or dips for 0.2 s at most
