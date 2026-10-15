@@ -199,11 +199,12 @@ struct LetterSettle: TextRenderer {
             for line in layout { context.draw(line) }
             return
         }
+        let n = layout.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
         var i = 0
         for line in layout {
             for run in line {
                 for slice in run {
-                    let l = o.letter(i, at: time)
+                    let l = o.letter(i, of: n, at: time)
                     i += 1
                     guard l.scale > 0.001 else { continue }
                     let b = slice.typographicBounds.rect

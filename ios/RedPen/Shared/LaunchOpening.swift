@@ -118,19 +118,30 @@ struct LaunchOpening: Sendable {
     /// How many parts enter in turn (LaunchEntrance's orders 0 ... last).
     static let lastOrder = 5
     /// Home's content under the header (orders `firstContent` on: the round
-    /// card, the rows, the dock) waits until the ECG and the stethoscope
-    /// have gone up past it, so nothing grows underneath them.
+    /// card, the rows, the tiles, the dock) waits until the ECG and the
+    /// stethoscope have gone up past it, then arrives nearly whole: from
+    /// `contentScale`, rising the last few points into place. A card is
+    /// never seen as a small copy of itself.
     static let firstContent = 3
     static let contentLead = 0.24
-    /// The title's letters, left to right, as the stethoscope arrives.
-    static let letterLead = 0.22
-    static let letterStagger = 0.022
-    static let letterLength = 0.26
+    static let contentScale = 0.94
+    /// The stethoscope perches on the title at about its letters' height,
+    /// over the middle of the name, then shrinks into it while the letters
+    /// spread out from under it, the middle first.
+    static let perch = 0.17
+    static let markShrink = 0.12
+    static let titleLetters = 11
+    static let letterStagger = 0.025
+    static let letterLength = 0.24
 
-    /// When the ECG lands as the squiggle, and the splash goes.
+    /// When the ECG lands as the squiggle.
     var landed: Double { handoff + (reduced ? 0 : Self.travel) }
-    /// The splash's life.
-    var duration: Double { landed }
+    /// When the stethoscope reaches the title, and when it has gone into it.
+    var markArrives: Double { handoff + (reduced ? 0 : Self.markTravel) }
+    var markGone: Double { reduced ? handoff : markArrives + Self.markShrink }
+    /// The splash's own animation: until the ECG has landed and the
+    /// stethoscope has gone into the title.
+    var duration: Double { max(landed, markGone) }
     /// When part `order` of home starts to enter.
     func entranceStart(_ order: Int) -> Double {
         if order < Self.firstContent { return handoff + Self.entranceLead + Self.stagger * Double(order) }
@@ -142,7 +153,12 @@ struct LaunchOpening: Sendable {
     func entrance(_ order: Int, at t: Double) -> (scale: Double, drop: Double) {
         guard t.isFinite else { return (1, 0) }
         if reduced { return t >= handoff ? (1, 0) : (0.0001, Self.rise) }
-        let s = Self.spring(t - entranceStart(order))
+        let since = t - entranceStart(order)
+        guard since > 0 else { return (0.0001, Self.rise) }
+        let s = Self.spring(since)
+        if order >= Self.firstContent {
+            return (Self.contentScale + (1 - Self.contentScale) * s, Self.rise * (1 - s))
+        }
         return (max(0.0001, s), Self.rise * (1 - s))
     }
     /// The longest home's clock may leap between two frames. When the main
@@ -163,8 +179,9 @@ struct LaunchOpening: Sendable {
     var settled: Double {
         if reduced { return handoff }
         let last = entranceStart(Self.lastOrder) + Self.settleTime
-        let letters = handoff + Self.letterLead + Self.letterStagger * 10 + Self.letterLength
-        return max(last, letters, landed)
+        let letters = markArrives - 0.02 + Self.letterStagger * Double(Self.titleLetters - 1) / 2
+            + Self.letterLength
+        return max(last, letters, landed, markGone)
     }
 
         // MARK: easing
@@ -293,9 +310,12 @@ struct LaunchOpening: Sendable {
     }
 
     /// The whole mark's scale about the chest piece: 1 until the hand-off,
-    /// then shrinking away to nothing as it glides.
+    /// shrinking to `perch` as it glides onto the title, then into it as the
+    /// letters come out from under it.
     func markScale(at t: Double) -> Double {
-        max(0.0001, 1 - markTravel(at: t))
+        if reduced { return max(0.0001, 1 - markTravel(at: t)) }
+        if t <= markArrives { return 1 - (1 - Self.perch) * markTravel(at: t) }
+        return max(0.0001, Self.perch * (1 - Self.easeIn((t - markArrives) / Self.markShrink)))
     }
 
     /// How far home's ECG paper has been drawn out from the trace, 0 to 1.
@@ -305,12 +325,14 @@ struct LaunchOpening: Sendable {
         return Self.easeOut((t - handoff) / Self.gridLength)
     }
 
-    /// Letter `i` of the title: its scale (0 to 1, a touch over on the way)
-    /// and how far below its place it is.
-    func letter(_ i: Int, at t: Double) -> (scale: Double, drop: Double) {
+    /// Letter `i` of the title's `n`: its scale (0 to 1, a touch over on the
+    /// way) and how far below its place it is. They grow from the middle
+    /// out, the middle ones under the perched stethoscope as it shrinks.
+    func letter(_ i: Int, of n: Int = LaunchOpening.titleLetters, at t: Double) -> (scale: Double, drop: Double) {
         guard t.isFinite else { return (1, 0) }
         if reduced { return t >= handoff ? (1, 0) : (0, 0) }
-        let start = handoff + Self.letterLead + Self.letterStagger * Double(i)
+        let fromMiddle = abs(Double(i) - Double(n - 1) / 2)
+        let start = markArrives - 0.02 + Self.letterStagger * fromMiddle
         let p = Self.clamp((t - start) / Self.letterLength)
         return (Self.easeOutBack(p), (1 - Self.easeOut(p)) * 6)
     }

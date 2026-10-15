@@ -158,7 +158,7 @@ check("trim fractions run 0 to 1",
 
 check("the hand-off starts once the trace is whole", near(o.handoff, o.traceEnd))
 check("the ECG starts its journey at the hand-off and lands when the splash goes",
-      o.travel(at: o.handoff) == 0 && near(o.travel(at: o.landed), 1) && near(o.landed, o.duration))
+      o.travel(at: o.handoff) == 0 && near(o.travel(at: o.landed), 1) && o.landed <= o.duration)
 let journey = o.times().map { o.travel(at: $0) }
 check("and never goes back", zip(journey, journey.dropFirst()).allSatisfy { $0 <= $1 + 1e-12 })
 check("the mark is still whole when the hand-off starts", o.markScale(at: o.handoff) == 1)
@@ -170,6 +170,10 @@ check("home's parts follow one another 40 ms apart",
 let content = o.entranceStart(LaunchOpening.firstContent)
 check("home's content waits until the ECG and the stethoscope are over half way up past it",
       o.travel(at: content) > 0.5 && o.markTravel(at: content) > 0.6 && content < o.landed)
+check("the card, rows, tiles and dock arrive nearly whole, never as a small copy",
+      (LaunchOpening.firstContent...LaunchOpening.lastOrder).allSatisfy { k in
+          let s = o.entranceStart(k)
+          return stride(from: s + 0.001, through: o.settled, by: 0.005).allSatisfy { o.entrance(k, at: $0).scale >= 0.94 } })
 check("each part is nothing until it starts, and exactly in place at rest",
       (0...LaunchOpening.lastOrder).allSatisfy { k in
           o.entrance(k, at: o.entranceStart(k)).scale <= 0.0001 && o.entrance(k, at: .infinity) == (1, 0) })
@@ -189,7 +193,17 @@ let peakSpring = stride(from: 0.0, through: 1.0, by: 0.002).map { LaunchOpening.
 check("it rises past its place only a little (a few points of a 10 pt rise)", peakSpring > 1 && peakSpring < 1.06, "\(peakSpring)")
 check("every letter is in place, at full size, once all is still",
       (0..<11).allSatisfy { let l = o.letter($0, at: o.settled); return near(l.scale, 1) && near(l.drop, 0) })
-check("the letters settle left to right", o.letter(0, at: o.handoff + 0.3).scale > o.letter(5, at: o.handoff + 0.3).scale)
+check("the letters grow from the middle out", o.letter(5, at: o.markArrives + 0.1).scale > o.letter(0, at: o.markArrives + 0.1).scale
+      && near(o.letter(0, at: o.markArrives + 0.1).scale, o.letter(10, at: o.markArrives + 0.1).scale))
+check("the stethoscope perches on the title at about its letters' height",
+      near(o.markScale(at: o.markArrives), LaunchOpening.perch) && LaunchOpening.perch * LaunchArt.side > 25
+      && LaunchOpening.perch * LaunchArt.side < 45)
+check("and the middle letters start to grow under it before it has gone into them",
+      o.letter(5, at: o.markGone).scale > 0.3 && o.markScale(at: o.markArrives + 0.02) > 0.1)
+let brand = (try? String(contentsOfFile: "ios/RedPen/Shared/Brand.swift", encoding: .utf8)) ?? ""
+let brandName = brand.components(separatedBy: "static let name = \"").dropFirst().first?
+    .split(separator: "\"").first.map(String.init) ?? ""
+check("the title has the letters the timing allows for", brandName.count == LaunchOpening.titleLetters, brandName)
 check("under Reduce Motion home is simply there at the hand-off",
       still.gridReach(at: still.handoff) == 1 && still.letter(3, at: still.handoff).scale == 1
       && still.entrance(4, at: still.handoff) == (1, 0))
