@@ -132,7 +132,7 @@ function world(extra = {}, plan = {}) {
     if (url.includes('typesafe')) {
       const state = JSON.parse(init.body).state;
       log.push('jev');
-      const respond = () => new Response(JSON.stringify({ model: 'jev-1', answers: { oath: { type: 'noul', noul: state.includes('Start') ? 0.95 : 0.1 } } }), { status: 200 });
+      const respond = () => new Response(JSON.stringify({ model: 'jev-1', answers: { oath: { type: 'noul', noul: state.includes('covers') ? 0.95 : 0.1 } } }), { status: 200 });
       return plan.jev === 'hang' ? hang(respond) : respond();
     }
     log.push(`other:${url.split('?')[0]}`);
@@ -155,6 +155,10 @@ function world(extra = {}, plan = {}) {
   return { env, db, fetcher, log, prompts, release };
 }
 
+// the voters before the three Workers AI families added on 14 Oct, for the
+// tests that count every voter asked
+const FIRST_FOUR = 'gemini:gemini-3.5-flash-lite,workers-ai:@cf/openai/gpt-oss-120b,workers-ai:@cf/nvidia/nemotron-3-120b-a12b,gemini:gemma-4-31b-it';
+
 const dump = db => ({
   verdicts: db.prepare('SELECT hash, signals FROM accuracy_verdicts ORDER BY hash').all().map(r => ({ ...r })),
   usage: db.prepare('SELECT account_id, day, requests FROM ai_usage ORDER BY account_id, day').all().map(r => ({ ...r })),
@@ -167,7 +171,7 @@ const C1 = { id: 'c1', kind: 'card', text: 'Q: Antidote to warfarin?\nA: Vitamin
 const DOSE = { id: 'd1', kind: 'card', text: 'Q: Dose of amoxicillin for otitis media?\nA: 500 mg PO three times a day', source: 'Amoxicillin is first-line for acute otitis media.' };
 const MGMT = { id: 'm1', kind: 'mcq', stem: 'A 54-year-old has crushing chest pain with ST elevation. What is the most appropriate next step in management?',
   options: ['Aspirin and primary PCI', 'Discharge home'], key: 0, explanation: 'Primary PCI is the treatment of choice for STEMI.', source: '' };
-const TREAT = { id: 't1', kind: 'card', text: 'Start ceftriaxone for suspected bacterial meningitis. NOEVIDENCE', source: '' };
+const TREAT = { id: 't1', kind: 'card', text: 'Ceftriaxone covers suspected bacterial meningitis. NOEVIDENCE', source: '' };
 const WRONG = { id: 'w1', kind: 'card', text: 'Q: Antidote to heparin?\nA: Vitamin K WRONG', source: 'Protamine reverses heparin.' };
 const SPLIT = { id: 's1', kind: 'mcq', stem: 'Drug of choice for absence seizures? SPLIT', options: ['Ethosuximide', 'Phenytoin'], key: 1, explanation: 'Phenytoin.', source: '' };
 const SEVERE = { id: 'p1', kind: 'card', text: 'Give paracetamol 10 g orally for fever.', source: '' };
@@ -268,7 +272,8 @@ async function play(check, extra, plan, calls) {
   };
   const quiet = () => ({ hard: [], soft: [], checks: 0, work: 0, complete: true });
   const open = await run([FLIP, DOSED, Q1], { gate: quiet });
-  const onlyProof = i => i.verdict === 'check' && i.p > 0.9 && i.reasons.length === 1 && /no official source states/i.test(i.reasons[0]);
+  // the proof's one reason: none states it yet, or it cannot be put as a statement a source could make
+  const onlyProof = i => i.verdict === 'check' && i.p > 0.9 && i.reasons.length === 1 && /word for word/i.test(i.reasons[0]);
   ok(onlyProof(open.body.items[0]) && onlyProof(open.body.items[1]) && !('claims' in open.body.items[0]),
      'without the gate, only the missing source proof holds both back: the votes alone pass them');
   const gated = await run([FLIP, DOSED, Q1]);
@@ -402,7 +407,7 @@ async function play(check, extra, plan, calls) {
 
     forgetWeights();
     const all = new Set(['gemini-3.5-flash-lite', '@cf/openai/gpt-oss-120b', '@cf/nvidia/nemotron-3-120b-a12b', 'gemma-4-31b-it']);
-    const quiet = world({}, { hang: all });
+    const quiet = world({ ACCURACY_VOTERS: FIRST_FOUR }, { hang: all });
     started = Date.now();
     const r2 = await checkBatch(quiet.env, 'owner', { items: [Q1] }, quiet.fetcher, { owner: true, budgets: { votes: 25 } });
     const b2 = await r2.json();
@@ -533,8 +538,8 @@ async function play(check, extra, plan, calls) {
   const votes = body.items[0].votes;
   ok(votes.length === 3 && votes.every(v => v.blind === true && v.fix === null), 'their votes are marked blind and fix nothing');
   ok(new Set(votes.map(v => familyOf(v.model))).size === 3, 'and come from three model families');
-  ok(body.items[0].verdict === 'check' && body.items[0].reasons.includes('No official source states it word for word yet.'),
-     'three independent blind solves reaching the key, passing it, with no official source stating it: still Check this');
+  ok(body.items[0].verdict === 'check' && body.items[0].reasons.some(r => r.startsWith('Its question is a clinical vignette')),
+     'three independent blind solves reaching the key, passing it, with no official source stating it: still Check this, and said why it never can be');
   w.release();
   const said = world({}, { says: SAYS });
   forgetWeights();
@@ -631,7 +636,7 @@ async function play(check, extra, plan, calls) {
 {
   // nobody answers: the batch's allowance comes back and the app is told to wait
   const all = new Set(['gemini-3.5-flash-lite', '@cf/openai/gpt-oss-120b', '@cf/nvidia/nemotron-3-120b-a12b', 'gemma-4-31b-it']);
-  const w = world({}, { garbage: all });
+  const w = world({ ACCURACY_VOTERS: FIRST_FOUR }, { garbage: all });
   forgetWeights();
   const r = await checkBatch(w.env, 'a1', { items: [card('refund')] }, w.fetcher, { owner: false });
   const body = JSON.parse(await r.text());
@@ -670,7 +675,7 @@ async function play(check, extra, plan, calls) {
 }
 {
   // one checker hangs: after the hedge delay another of its family is asked, and the first answer from each family stands
-  const w = world({ ACCURACY_HEDGE_MS: '100' }, { hang: new Set(['gemini-3.5-flash-lite']) });
+  const w = world({ ACCURACY_HEDGE_MS: '100', ACCURACY_VOTERS: FIRST_FOUR }, { hang: new Set(['gemini-3.5-flash-lite']) });
   forgetWeights();
   const t0 = Date.now();
   const r = await Promise.race([checkBatch(w.env, 'owner', { items: [C1] }, w.fetcher, { owner: true }), sleep(3000).then(() => null)]);
@@ -680,6 +685,45 @@ async function play(check, extra, plan, calls) {
      `a hung checker is hedged: three families answer and the batch goes on (${took} ms)`);
   ok(item?.votes.some(v => v.model === 'gemma-4-31b-it'), 'the hedge asked Gemma, standing in for the slow Google voter');
   w.release();
+}
+
+// MARK: runner voters (the owner, 14 Oct: "make free workers without apis")
+{
+  const { runnerBallots, runnerVoters, DEFAULT_RUNNER_VOTERS } = await import('../runner-voters.js');
+  const runner = [{ model: 'phi-4-mini-instruct', votes: [{ answer: 'B', risk: 1 }] }, { model: 'granite-4.0-h-tiny', votes: [{ answer: 'B', risk: 1 }] }];
+  const w = world();
+  forgetWeights();
+  const r = await checkBatch(w.env, 'owner', { items: [{ ...Q1, id: 'r1' }], runner }, w.fetcher, { owner: true, bench: true });
+  const body = JSON.parse(await r.text());
+  const blind = w.prompts.filter(p => p.includes('Keyed answer and explanation withheld'));
+  const votes = body.items[0].votes || [];
+  ok(blind.length === 2 && votes.length === 3 && votes.some(v => v.model === 'granite-4.0-h-tiny' && v.blind === true),
+     "a runner's blind answer holds one family's seat on the owner's bench: two live voters are asked, not three");
+  ok(new Set(votes.map(v => familyOf(v.model))).size === 3, 'and the three witnesses are still three families');
+  ok(!votes.some(v => v.model === 'phi-4-mini-instruct'), 'one seat by default (RUNNER_SEATS), so the live families hold the rest');
+  w.release();
+
+  const w2 = world();
+  const r2 = JSON.parse(await (await checkBatch(w2.env, 'owner', { items: [{ ...Q1, id: 'r2', stem: Q1.stem + ' Now.' }], runner }, w2.fetcher, { owner: true })).text());
+  ok(!(r2.items[0].votes || []).some(v => /phi|granite/.test(v.model)), "outside the owner's bench a runner ballot is ignored");
+  w2.release();
+
+  const e = [{ i: 0, item: cleanItem(Q1) }];
+  const bench = { owner: true, bench: true };
+  ok(runnerBallots({}, { runner }, e, { owner: false, bench: true }).length === 0, "never on a student's check");
+  ok(runnerBallots({}, { runner: [{ model: 'some-other-model', votes: [{ answer: 'B' }] }] }, e, bench).length === 0, 'only the models RUNNER_VOTERS names');
+  ok(runnerBallots({}, { runner: [{ model: 'phi-4-mini-instruct', votes: [{ answer: 'E' }] }] }, e, bench).length === 0, 'an answer that is not among the options holds no seat');
+  ok(runnerBallots({}, { runner: [{ model: 'phi-4-mini-instruct', votes: [] }] }, [...e, { i: 1, item: cleanItem(Q1) }], bench).length === 0, 'nor a ballot that skipped a question');
+  ok(runnerBallots({}, { runner }, [{ i: 0, item: cleanItem(C1) }], bench).length === 0, 'cards are never answered blind, so a runner never votes on them');
+  ok(runnerBallots({}, { runner, writer: 'granite-4.0-h-tiny' }, e, bench)[0]?.model === 'phi-4-mini-instruct', 'never the model that wrote the items');
+  const two = runnerBallots({ RUNNER_SEATS: '2' }, { runner }, e, bench);
+  ok(two.length === 2 && two.every(b => b.blind && b.parsed[0].fix === null), 'RUNNER_SEATS=2 seats two families, each blind and fixing nothing');
+  ok(runnerBallots({ RUNNER_SEATS: '0' }, { runner }, e, bench).length === 0, 'and 0 turns them off');
+  ok(runnerBallots({}, { runner: [{ model: 'phi-4-mini-instruct', votes: [{ answer: 'B' }] }, { model: 'phi-4-mini-instruct', votes: [{ answer: 'A' }] }] }, e, { ...bench }).length === 1
+     && runnerBallots({ RUNNER_VOTERS: 'phi-4-mini-instruct,phi-4-mini-reasoning', RUNNER_SEATS: '2' }, { runner: [{ model: 'phi-4-mini-instruct', votes: [{ answer: 'B' }] }, { model: 'phi-4-mini-reasoning', votes: [{ answer: 'B' }] }] }, e, bench).length === 1,
+     'one family, one witness: a second model of the same family holds no second seat');
+  ok(new Set(runnerVoters({}).map(familyOf)).size === DEFAULT_RUNNER_VOTERS.split(',').length && !runnerVoters({}).some(m => ['google', 'anthropic', 'openai', 'nvidia', 'alibaba', 'zhipu', 'mistral'].includes(familyOf(m))),
+     "each default runner voter is a family of its own, none of the live voters' families");
 }
 
 console.log(failures ? `\n${failures} STAGE TEST FAILURE(S)` : '\nALL STAGE TESTS PASS');

@@ -1,0 +1,10 @@
+{
+ "about": "The daily proof ladder's settings (proof-ladder.yml reads them; change them by a commit). maxItems: items checked a day at most (the Worker allows the owner's bench 2,500 and all accounts 3,000 checks a day, so this leaves the app most of the day). share: dollars a month of the cloud checker's cap (CLAUDE_MONTHLY_USD, 90) the ladder may use, spread evenly over the month; the rest stays for the owner's own checks. all: false checks only questions the source proof can read (no other can reach Verified today); true once the vignette route is live. hours: how long one day's run may take. runnerSeats: how many runner voters' answers go with each batch (the Worker seats at most RUNNER_SEATS of them); raise it only once the ledger on the progress page shows the runners answer as well as the live families. runnerBar: a runner's answers go with a batch only once its own blind answers are at least this right by the 95% lower bound, on 200 or more (day one: the faster runner was 56% right, so it held a seat it had not earned). poolBatches: batches a day the Workers AI voters may answer for the ladder, about half the day's free pool, since the owner's bench is not held to an account's share.",
+ "maxItems": 600,
+ "share": 60,
+ "all": false,
+ "hours": 5,
+ "runnerSeats": 1,
+ "runnerBar": 0.8,
+ "poolBatches": 15
+}

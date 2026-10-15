@@ -27,6 +27,12 @@ Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8)
   reminder comes, answer with a few words of status and keep working.
 - Don't idle-wait, and don't ask what you can settle yourself: make the
   sensible choice and say what you chose.
+- Keep GitHub's free machines busy (the owner, 14 Oct: "make sure to always
+  use the free macs and machines in github so they don't stay free or failed
+  in background"): up to 5 macOS runners and the Linux ones at once. While a
+  run works, do the next independent step and dispatch independent runs
+  together. Read every failure at once and fix it, or re-run once if it died
+  before any test ran. Cancel superseded runs so they don't hold a Mac.
 - Send screenshots of every visual change with SendUserFile. No zip files.
 - Macaly is dropped: never mention it, its connector or its auth notices, and
   don't relay any other connector's auth notices either.
@@ -1787,8 +1793,62 @@ Google (Antigravity, Jules, Colab) is parked for now (owner, same day).
 Order of work: 1 to 3, then 7 and 8 (server, checkable here), then 4 and 5,
 with the marks on the screens last.
 
-- [ ] 1. Why nothing reaches Verified (the unchecked step above).
-- [ ] 2. #26, the 99.999% proof on the live Worker.
+- [x] 1. Why nothing reaches Verified (the unchecked step above). Done on
+  design/verify-mechanisms (merged 14 Oct): docs/verification/why-not-verified.md;
+  88 of 90 right keys stop at the verbatim proof, which cannot read
+  multi-sentence vignettes; only 36 of 90 got three checkers' answers.
+  Nothing loosened. The proof route for vignettes is the owner's call.
+- [ ] 2. #26, the 99.999% proof on the live Worker. Plan written
+  (docs/verification/proof-plan.md): 99.999% needs 299,572 error-free
+  Verified verdicts (about $5,400); staged 99.9% about $55, 99.99% about
+  $540. Waits on a deploy, a target and its spend, and labels.
+  The owner, 14 Oct (about 7 PM): "1-ok 2-99.999 3-make a deep search
+  4-do both 5-do it 6-look for one": deploy ok (run from personal);
+  target 99.999% within the existing caps (Claude $90/month, the rest
+  free), climbed in stages; a deep search for the vignette proof route;
+  a third free family and a wider Workers AI pool; labels from public
+  gold sets (commercial licence, never from the checking models); an
+  open NLI model as jev-standin's default. Running on
+  design/verify-mechanisms; the search reports to this session.
+  Vignette route (research: docs/verification/vignette-proof-research.md).
+  The owner, 14 Oct (about 7:20 PM): "1-proven means the medical facts
+  contained in the text is medically and clinically accurate by proven
+  100% open source free for commercial use sources 2-choose the best
+  option 3-ok 4-yes but add explanation to make users aware of the
+  difference". So:
+  - Proven: every medical fact in the item (findings-to-rule steps, each
+    rule, each ruled-out option) backed word for word by a source whose
+    licence allows commercial use; anything short stays at Check this.
+  - Rule review (chosen for the owner): a rule enters only after two
+    independent transcriptions agree exactly, its quote re-proves
+    verbatim, and the source's worked examples pass as tests; it backs
+    Verified only after the owner's one-tap sign-off (quote beside rule);
+    until then it can back Checked only.
+  - Sources: public-domain US federal guidelines and FDA labels first; a
+    society guideline only with a licence recorded that allows commercial
+    use; never StatPearls (non-commercial).
+  - A Checked tier below Verified, with an in-app explanation of the
+    difference.
+  Built on design/vignette-proof and merged into personal (cdd74e81):
+  checker, CDC rule set (3 admitted, 3 pending), Checked tier, benches B1 and
+  B6. The owner turned VIGNETTE_ROUTE on, 14 Oct.
+  - [x] Live: deployed on the owner's word ("u deploy the worker"), 15 Oct
+    at about 8:12 am Cairo (Deploy the worker run 38685298818, from personal
+    at bc611221, green). The same deploy took the keyless voters and the
+    proof ladder's day-one fixes live; everything merged into personal up
+    to bc611221 is live, including each step above marked "live only after
+    a Worker deploy". The day's proof ladder run was started on personal
+    right after it.
+  Still to do:
+  - [ ] Truly independent second transcription of each rule (both passes so
+    far came from one session).
+  - [ ] One-tap owner sign-off in the app plus an owner-only endpoint in D1.
+  - [ ] A real proposer, and the app sending proof packets (until then no
+    item reaches Checked).
+  - [ ] Denial rules so two-step and contraindication can rule out options.
+  - [ ] More sources (USPSTF, FDA labels, NIH); a weekly source-change check
+    (tools/criteria/fetch-sources.mjs).
+  - [ ] Benches B2 to B5.
 - [ ] 3. Launch logo round 3 (Claude-Code T0036): the swirl back as one
   real, continuous tube.
 - [ ] 4. #18, rebuild the Space node models from scratch from the owner's
@@ -1876,20 +1936,85 @@ with the marks on the screens last.
        so turning back is instant.
     5. Only the heavy extras (labels, glow textures) stream, on a
        background thread within a fixed slice of each frame.
+- [ ] 4f. Depth fade in every map theme, like deep-sea footage and cell
+  animation (the owner, 15 Oct, about 8:35 am: "u know how deep see videos
+  or cell 3d high quality videos have fade for far objects ? that's how i
+  want performance mode to be and also all other modes too to run
+  smoother"). The spec is docs/design/depth-fade.md: near is crisp, far
+  dissolves into the theme's own background along the view depth, the
+  band follows the camera's focus, additive light fades to nothing, name
+  pills never half-fade, what is fully faded is not drawn, detail drops
+  only inside the band, and the Graphics setting sets how far it reaches.
+  It is the owner's second exception to "no fading", and applies inside
+  the 3D scene only.
+  - [ ] Performance, on design/perf-million (with D1 to D5).
+  - [ ] Space, on design/space-bodies (after its current step).
+  - [ ] Neurons, on design/neurons-depth (a new stream).
+  - [ ] Frame time and draw calls before and after for each theme, at
+    each Graphics level, and the independent review, before the owner
+    sees it.
 - [ ] 4d. A full Android app of Stethoscore (the owner chose it over a web
   map, 14 Oct): a large, separate project, planned after M3 and 4b. The
   owner has no Android device, so it is tested on CI emulators; its
   performance map shares 4b and 4c's design (Vulkan, GLES 3 as the low-end
   floor).
-- [ ] 5. Merge design/voice-claude into personal (the owner said ok).
+  Progress 14 Oct (android/kotlin 8f7b8ab4, CI green 38593087418): the 3D
+  Ideas map on GLES 3 with 4e's chunks, LOD, morphing and refresh-rate
+  pacing, a 1M-node demo, FSRS-5 with daily limits, and PDF deck export.
+  Left: APKG import/export (needs zstd), Vulkan, widgets; out of scope so
+  far: cloud generation, sign-in and sync, recording, billing. Small: on
+  the 4-idea map the BNP label overlaps Pulmonary oedema, and the 1M demo
+  header reads 0 ideas.
+- [x] 5. Merge design/voice-claude into personal (the owner said ok):
+  personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
+  design/voice-claude and this plan.
+- Running in parallel from personal a6aa7be4 (the owner, 14 Oct: "run what
+  is left of the plan in parallel"), one writer per branch:
+  design/verify-mechanisms (1, 8, 7, then 2's proof plan; no deploy),
+  design/space-bodies (4), design/perf-million (4b, 4c, 4e on iOS),
+  android/kotlin (4d: the same map on Android, then parity gaps). The logo
+  stays on Claude-Code (T0037); the marks (6) wait for the owner.
+- [x] 3b. Launch logo chosen (the owner, 14 Oct, after rounds 4 and 5 on
+  Claude-Code, T0037 and T0038): "use the white in light mode and the grey
+  in dark mode": design/launch-logo/candidates-5/02-white-flat.png for
+  light and 06-slate-flat-dark.png for dark, both on the flat Ward base.
+  The animated opening (design/launch-anim) uses this pair, with a real
+  lub-dub (licence recorded, or synthesised) and an ECG drawn under the
+  stethoscope in step with it, also when muted.
+- [ ] 9. Ward design pass (the owner, 14 Oct: "the iOS design is a bit
+  cramped - lacks color difference for each mode and animations when
+  switching colors - also when we removed the fade some buttons became too
+  flat and lost their neumorphic shaping so u can add fade to the buttons
+  but only a very small rim around the buttons enough to make them have
+  neumorphism but doesn't affect elements behind them"). On
+  design/ward-polish:
+  - More room: spacing, padding and line height on a consistent scale.
+  - Light and dark each get their own character, not one palette inverted.
+  - The owner, 14 Oct (about 7:55 PM): "i also meant by modes not just
+    light and dark i meant colors for the grid and the button rims in other
+    modes like osce mcq cards ideas etc". Each section (Questions, Cards,
+    Cases, OSCE, Audio, Textbook, Ideas) gets its own hue for the grid
+    lines and button rims (light and dark versions), from its existing
+    icon colour; switching sections shifts the colour, never fades.
+  - First round (shots ward-r3): the mode switch was patchy (regions
+    changed at different moments, grey films on search, dock and tab bar)
+    and card text showed under the dock; the owner: "very bad". Fixing.
+  - Switching light/dark animates the colours (a colour shift, no opacity).
+  - The first exception to "no fading": a small soft rim on buttons only (a
+    light highlight top-left and a shade bottom-right, a few points wide)
+    that gives them their neumorphic shape and never darkens or blurs what
+    lies behind or beside them. The second, since 15 Oct: the depth fade
+    inside the 3D map (4f, docs/design/depth-fade.md).
 - [ ] 6. Last: the owner's marks on the screens.
-- [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
+- [x] 7. (Done 14 Oct: tools/jev-standin and jev-standin.yml; oath check 30 of
+  30, 0 false alarms; NLI model is the TRIAGE_NLI_MODEL repo variable.) An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
   our own rules and server/proof.js; Layer 6 as an open cross-encoder or NLI
   model scoring each option, run in batch on GitHub Actions, with its
   thresholds tuned on our own labelled items (§22a: tune on a few hundred
   own labels).
-- [ ] 8. The DNA (§16a) and Islamic (§17) briefs as working mechanisms, not
+- [x] 8. (Done 14 Oct: server/provenance.js and oath.js; dabt caught 38 of 38
+  changed statements; a 3,000-case fuzz found no new false Verified.) The DNA (§16a) and Islamic (§17) briefs as working mechanisms, not
   only cited principles. In use today: independent witnesses (one family is
   one witness), the blind second pass (kinetic proofreading), a sensor per
   error type, retired practice (abrogation), holding back when unsure
@@ -1903,7 +2028,8 @@ with the marks on the screens last.
 
 - The marks on the latest screens.
 - What they think of the voice itself, now that it plays.
-- Each Worker deploy.
+- Each Worker deploy (the last: 15 Oct, about 8:12 am Cairo, run
+  38685298818 from personal at bc611221).
 
 ## 6. Standing rules
 
@@ -1918,11 +2044,19 @@ Money and deploys
 - Free tiers only, and no paid AI outside Pro (PRO_PAYS).
 - Deploy the Worker only on the owner's word, each time.
 
+Macs
+- Use all five macOS runners and never leave one free (owner, 15 Oct,
+  8:28 am Cairo: "use all 5 macs don't leave any free to finish faster").
+  No stream has a Mac cap. Never cancel a build, test or preview just to
+  free a Mac; cancel only a run that a newer push replaces. Keep the next
+  useful run queued, so a free Mac starts it at once. Speed comes from
+  parallel Macs, never from skipping checks or the independent review.
+
 Git
 - Never force-push, and never delete remote branches.
 - No pull requests unless asked.
-- personal is the working branch; keep claude/new-session-013tes5v equal to
-  it. Build on design/<name> (app-build runs there) and take screenshots
+- personal is the working branch; keep the session branch (now
+  claude/repo-branch-status-check-4k6js8) equal to it. Build on design/<name> (app-build runs there) and take screenshots
   through preview/<name>.
 - Commit messages: a plain-English subject, a body saying why, and the
   session's trailer lines. No model names or IDs in commits, PRs or code.

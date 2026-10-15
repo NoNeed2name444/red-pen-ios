@@ -287,6 +287,11 @@ function phrases(t) {
   return out;
 }
 
+/// Whether a text has a number that cannot be read for certain: a
+/// superscript or subscript, or a power of ten whose superscript was lost
+/// (oath.js reads such a number as a possible dose: fail closed).
+export const unreadableNumber = text => typeof text === 'string' && (UNSAFE.test(text) || POWER.test(text));
+
 /// The token sequence two texts are compared by, or null when the text cannot
 /// be read for certain. Both the claim and the source go through this.
 export function normalize(text) {
@@ -1369,7 +1374,7 @@ function provenBy(alt, srcs, purse) {
         }
         if (seg.key === undefined) seg.key = keyOf(seg.text, src.seq);
         if (!seg.key || seg.key !== key || !seg.req.every(r => tokSet.has(r))) continue;
-        return { claim: alt, quote: seg.text, source: src.entry.source, title: src.entry.title, url: src.entry.url };
+        return { claim: alt, quote: seg.text, source: src.entry.source, title: src.entry.title, url: src.entry.url, section: sec.name };
       }
       // a section cut before its end may state it further on
       if (segs.cut) purse.short++;

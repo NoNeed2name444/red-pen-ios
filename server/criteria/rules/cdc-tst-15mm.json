@@ -1,0 +1,216 @@
+{
+  "id": "cdc-tst-15mm",
+  "kind": "criteria",
+  "version": "1",
+  "title": "TB skin test: 15 mm is positive with no known risk factor",
+  "summary": "A TB skin test with 15 mm or more of induration is positive in people with no known risk factors for TB.",
+  "source": "cdc-tst-2025",
+  "formal": {
+    "criteria": [
+      {
+        "id": "test",
+        "slot": "tst",
+        "op": "present",
+        "quote": "Classification of TB skin test reactions"
+      },
+      {
+        "id": "read",
+        "slot": "read_hours",
+        "op": "between",
+        "value": [
+          48,
+          72
+        ],
+        "unit": "hours",
+        "quote": "The skin test reaction should be read between 48 and 72 hours after administration by a health care worker trained to read TB skin results.",
+        "says": "between 48 and 72 hours"
+      },
+      {
+        "id": "size",
+        "slot": "induration_mm",
+        "op": ">=",
+        "value": 15,
+        "unit": "mm",
+        "quote": "An induration of 15 or more millimeters is considered positive in:",
+        "says": "15 or more millimeters"
+      },
+      {
+        "id": "group",
+        "slot": "tst_group",
+        "op": "judgment",
+        "quote": "People with no known risk factors for TB",
+        "note": "no known risk factor is an absence, which a vignette's findings cannot show"
+      }
+    ],
+    "together": [
+      [
+        "tst",
+        "read_hours",
+        "induration_mm"
+      ]
+    ],
+    "conclusion": {
+      "quote": "An induration of 15 or more millimeters is considered positive in:",
+      "says": "is considered positive",
+      "aliases": [
+        "Positive"
+      ],
+      "asks": [
+        "interpretation of this result",
+        "interpretation of this TB skin test result",
+        "interpretation of the TB skin test"
+      ]
+    },
+    "exclusive": [
+      {
+        "aliases": [
+          "Negative"
+        ]
+      }
+    ]
+  },
+  "transcriptions": [
+    {
+      "by": "transcriber-a",
+      "at": "2026-10-14",
+      "how": "read from the pinned snapshot, first pass",
+      "formal": {
+        "criteria": [
+          {
+            "id": "test",
+            "slot": "tst",
+            "op": "present",
+            "quote": "Classification of TB skin test reactions"
+          },
+          {
+            "id": "read",
+            "slot": "read_hours",
+            "op": "between",
+            "value": [
+              48,
+              72
+            ],
+            "unit": "hours",
+            "quote": "The skin test reaction should be read between 48 and 72 hours after administration by a health care worker trained to read TB skin results.",
+            "says": "between 48 and 72 hours"
+          },
+          {
+            "id": "size",
+            "slot": "induration_mm",
+            "op": ">=",
+            "value": 15,
+            "unit": "mm",
+            "quote": "An induration of 15 or more millimeters is considered positive in:",
+            "says": "15 or more millimeters"
+          },
+          {
+            "id": "group",
+            "slot": "tst_group",
+            "op": "judgment",
+            "quote": "People with no known risk factors for TB",
+            "note": "no known risk factor is an absence, which a vignette's findings cannot show"
+          }
+        ],
+        "together": [
+          [
+            "tst",
+            "read_hours",
+            "induration_mm"
+          ]
+        ],
+        "conclusion": {
+          "quote": "An induration of 15 or more millimeters is considered positive in:",
+          "says": "is considered positive",
+          "aliases": [
+            "Positive"
+          ],
+          "asks": [
+            "interpretation of this result",
+            "interpretation of this TB skin test result",
+            "interpretation of the TB skin test"
+          ]
+        },
+        "exclusive": [
+          {
+            "aliases": [
+              "Negative"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "by": "transcriber-b",
+      "at": "2026-10-14",
+      "how": "read again from the pinned snapshot, second pass, written without the first open; both passes are by the same agent session, so not yet independent people",
+      "formal": {
+        "criteria": [
+          {
+            "id": "test",
+            "slot": "tst",
+            "op": "present",
+            "quote": "Classification of TB skin test reactions"
+          },
+          {
+            "id": "read",
+            "slot": "read_hours",
+            "op": "between",
+            "value": [
+              48,
+              72
+            ],
+            "unit": "hours",
+            "quote": "The skin test reaction should be read between 48 and 72 hours after administration by a health care worker trained to read TB skin results.",
+            "says": "between 48 and 72 hours"
+          },
+          {
+            "id": "size",
+            "slot": "induration_mm",
+            "op": ">=",
+            "value": 15,
+            "unit": "mm",
+            "quote": "An induration of 15 or more millimeters is considered positive in:",
+            "says": "15 or more millimeters"
+          },
+          {
+            "id": "group",
+            "slot": "tst_group",
+            "op": "judgment",
+            "quote": "People with no known risk factors for TB",
+            "note": "no known risk factor is an absence, which a vignette's findings cannot show"
+          }
+        ],
+        "together": [
+          [
+            "tst",
+            "read_hours",
+            "induration_mm"
+          ]
+        ],
+        "conclusion": {
+          "quote": "An induration of 15 or more millimeters is considered positive in:",
+          "says": "is considered positive",
+          "aliases": [
+            "Positive"
+          ],
+          "asks": [
+            "interpretation of this result",
+            "interpretation of this TB skin test result",
+            "interpretation of the TB skin test"
+          ]
+        },
+        "exclusive": [
+          {
+            "aliases": [
+              "Negative"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "examples": [],
+  "signedOffAt": null,
+  "signedOffBy": null,
+  "signedOffHash": null
+}

@@ -198,7 +198,8 @@ struct CustomSessionSheet: View {
             }
             for item in items {
                 let grade: AccuracyGrade = engine.assessment(of: item).grade
-                guard grade == .flagged || grade == .check else { continue }
+                // Checked is not fully proven: practised with the uncertain ones
+                guard grade == .flagged || grade == .check || grade == .checked else { continue }
                 if let id = UUID(uuidString: item.id) { out.insert(id) }
             }
         }

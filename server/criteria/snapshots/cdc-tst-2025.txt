@@ -1,0 +1,156 @@
+January 31, 2025
+Clinical Testing Guidance for Tuberculosis: Tuberculin Skin Test
+Key points
+The TB skin test (also known as the Mantoux tuberculin skin test or TST) is one method of determining whether a person is infected with TB bacteria.
+Reliable administration and reading of the TB skin test requires standardization of procedures, training, supervision, and practice.
+Background
+About the TB skin test
+The TB skin test is a test used to determine if a person is infected with TB bacteria. In this test, a standardized solution made with purified protein derivative (PPD), which is derived from tuberculin, is injected under the skin.
+Typically, PPD produces a T-cell mediated delayed-type hypersensitivity reaction if the person has been infected with TB bacteria. In most people who have TB infection, the immune system will recognize the PPD because it is derived from proteins that are excreted by M. tuberculosis growing in specialized media under standardized conditions. PPD is diluted to standard concentration and potency in FDA-approved testing solutions. It takes 2 to 8 weeks after initial infection with TB bacteria for the immune system to be able to react to PPD and for the infection to be detected by the TB skin test.
+For Everyone:
+Testing for Tuberculosis: Skin Test
+Advantages and disadvantages of the TB skin test
+Advantages
+Simple to perform (e.g., no laboratory equipment required)
+Low cost
+No need for phlebotomy
+Well-established definitions of TB skin test conversions
+Legacy of decades of clinical and epidemiological research
+Disadvantages
+Requires trained personnel to administer and interpret
+Requires correct refrigeration and an inventory plan for the skin test solution
+Requires two or more patient visits
+Previous BCG vaccination or infection with nontuberculous mycobacteria can cause false-positive results
+Concurrent infections can cause false-negative results
+Rare adverse effects
+Can cause booster phenomenon
+Subject to biases and errors with TB skin test placement and reading
+Who can administer and read TB skin tests?
+The TB skin test should be placed (administered) and read by a designated, trained health care provider. Consult with your state and local public health authorities to determine who is authorized to place and read TB skin tests in your state.
+TB skin test training materials
+Training is essential for health care providers to gain proficiency in the administration and interpretation of the TB skin test.
+CDC has free training materials on reading and administering the TB skin test, including a fact sheet, wall chart, and video. Materials are available for download or to order (within the United States).
+Keep Reading:
+Mantoux Tuberculin Skin Test Toolkit
+Determining an approach
+CDC has resources to help health care providers talk to patients about TB testing and treatment.
+CDC guidelines recommend using TB blood tests to test for TB infection in most cases. However, TB skin tests are an acceptable alternative in situations where a TB blood test is not available, is too costly, or is too burdensome.
+Most people can receive a TB skin test. TB skin tests are contraindicated only for people who have had a severe reaction (e.g. necrosis, blistering, anaphylactic shock, or ulcerations to a previous TB skin test). TB skin tests are not contraindicated for any other persons, including infants, children, pregnant women, or people with HIV.
+TB skin tests should not be performed on people who have written documentation of a previous positive TB test result (TB blood test or TB skin test) or treatment for TB disease. Most people who have a positive TB test result will continue to have a positive test result. Additional TB skin tests will probably not contribute to medical care, regardless of the result.
+Health care providers should take into account the following factors when considering the TB skin test for a patient:
+Age
+Current CDC guidelines recommend the TB skin test as the method of testing for children younger than 5 years of age, while noting that some experts use TB blood tests in younger children. Health care providers may choose to consult the American Academy of Pediatrics (AAP) guidance on the use of TB blood tests in children.
+Bacille Calmette-Gu&eacute;rin (BCG) TB vaccine
+The BCG vaccine may cause a false-positive TB skin test reaction. There is no reliable way to distinguish a positive TB skin test reaction caused by BCG vaccination from a reaction caused by true TB infection.
+When using the TB skin test, people who have been vaccinated with BCG should always be further evaluated for latent TB infection or TB disease as if they were not vaccinated with BCG. TB skin test reactivity caused by BCG vaccine generally wanes with the passage of time, but periodic skin testing may prolong (boost) reactivity in vaccinated people. TB skin test reactions should be interpreted based on risk stratification regardless of BCG vaccination history.
+Health care providers treating children who have been vaccinated with BCG should also know that tuberculin reactivity is likely during the first two years after BCG administration to the newborn.
+Multiple BCG doses (as practiced in some countries) increases a person's sensitivity to the TB skin test and the duration of positive TB skin test results after BCG administration.
+BCG vaccination does not induce positive results when TB blood tests are used. TB blood tests are the preferred test for people who have received the BCG vaccine, including children.
+Boosted reactions and two-step testing
+A boosted reaction can occur in previously infected, older adults whose sensitivity to tuberculin has decreased over time. It also can occur in persons of any age who have been vaccinated with BCG or infected with mycobacteria besides M. tuberculosis complex. When given a TB skin test years after infection, these persons may have little or no reaction, giving a negative skin test result. However, the TB skin test may stimulate the immune system, causing a boosted reaction with a positive result after subsequent tests. The TB blood test does not boost subsequent test results.
+Two-step testing is a strategy used to reduce the likelihood that a boosted reaction will be misinterpreted as a recent infection if the person has to be tested again. Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically.
+If the TB skin test is used for baseline testing of U.S. health care personnel, use two-step testing.
+Two-step testing
+If the first TB skin test result is negative, a second TB skin test should be done 1 to 3 weeks later.
+If the second TB skin test result is positive, it is probably a boosted reaction.
+Based on this second test result, the person should be classified as previously infected. This would not be considered a skin test conversion or a new TB infection.
+However, the patient is a candidate for treatment for latent TB infection.
+If the second skin test result is negative, the baseline result is negative, and the person would be classified as uninfected.
+Vaccinations
+Live virus vaccination
+Vaccination with live viruses, including measles, mumps, rubella, oral polio, varicella, and yellow fever may interfere with TB skin test reactions. For persons scheduled to receive a TB skin test, testing should be done:
+Either on the same day as vaccination with live-virus vaccine or
+At least one month after the administration of the live-virus vaccine
+Other vaccinations
+Vaccination with inactivated viruses doesn't interfere with TB skin test reactions.
+COVID-19 vaccination should not be delayed because of testing for TB infection. TB skin tests are not expected to affect the safety or the effectiveness of COVID-19 vaccines. Testing for TB infection with a TB skin test can be done before, during, or after a COVID-19 vaccination visit.
+Administering the TB skin test
+The TB skin test is performed by injecting 0.1 ml of tuberculin purified protein derivative (PPD) into the inner surface of the forearm. The injection should be made with a disposable 27-gauge tuberculin syringe, with the needle bevel facing upward.
+The TB skin test is an intradermal injection. When placed correctly, the injection should produce a pale elevation of the skin (a wheal) 6 to 10 mm in diameter.
+View Larger
+On the first visit, a trained health care provider places a TB skin test.
+If an incorrect dose (more or less than 0.1 ml) of PPD tuberculin solution is administered during a TB skin test, or if the injection is too deep and does not form a wheal, the person administering the tuberculin should report the incident following the established policies and procedures of the facility or institution in which the incorrect dosage occurred. An incorrect dose or administration of tuberculin invalidates the TB skin test. The test must be repeated, with the new site being at least 2 inches from the previous site.
+Interpreting test results
+The skin test reaction should be read between 48 and 72 hours after administration by a health care worker trained to read TB skin results. If a patient has symptoms of TB disease, health care providers should not wait for TB skin test results before starting other diagnostic tests.
+A patient who does not return within 72 hours will need to be rescheduled for another skin test. There is no risk associated with repeated TB skin test placements. There is no contraindication to repeating the TB skin test unless a previous TB skin test was associated with a severe reaction. However, repeated skin test placements can cause boosting.
+The reaction should be measured in millimeters of the induration (firm swelling). The reader should not measure erythema (redness). The diameter of the indurated area should be measured across the forearm (perpendicular to the long axis).
+View Larger
+A trained health care provider reads a TB skin test between 48 and 72 hours after placement.
+Interpreting TB skin test reactions
+Skin test interpretation depends on two factors:
+Measurement in millimeters of the induration
+Person's risk of TB infection or the risk of progression to TB disease if infected
+Classification of TB skin test reactions
+An induration of 5 or more millimeters is considered positive in:
+People with HIV
+Recent contacts of people with infectious TB disease
+People with chest x-ray findings suggestive of previous TB disease
+People with organ transplants
+Other immunosuppressed people (e.g., patients on prolonged therapy with corticosteroids equivalent to/greater than 15 mg per day of prednisone or those taking TNF-α antagonists)
+An induration of 10 or more millimeters is considered positive in:
+People born in countries where TB disease is common, including some countries in Asia, Africa, and Latin America
+People who misuse drugs and alcohol
+People who live or work in high-risk congregate settings (e.g. nursing homes, homeless shelters, or correctional facilities)
+Mycobacteriology laboratory workers
+People with certain medical conditions that place them at high risk for TB (e.g. silicosis, diabetes mellitus, severe kidney disease, certain types of cancer, or certain intestinal conditions)
+People with a low body weight (<90% of ideal body weight)
+Children younger than 5 years of age
+Infants, children, and adolescents exposed to adults in high-risk categories
+An induration of 15 or more millimeters is considered positive in:
+People with no known risk factors for TB
+Test accuracy
+False-positive results
+Some persons may have a positive result from a TB skin test even though they are not infected with TB bacteria. The causes of these false-positive results may include, but are not limited to, the following:
+Previous TB vaccination with the bacille Calmette Gu&eacute;rin (BCG) vaccine
+Infection with nontuberculosis mycobacteria (mycobacteria other than M. tuberculosis)
+Incorrect measurement or interpretation of reaction
+Incorrect antigen used
+False-negative results
+Some persons may have a negative result from a TB skin test even though they are infected with TB bacteria. The reasons for these false-negative results may include, but are not limited to, the following:
+Anergy (inability to react to a TB skin test because of a weakened immune system)
+Recent TB infection (within the past 8 to 10 weeks)
+Very young age (younger than 6 months)
+Recent live-virus vaccination, for example, measles or varicella
+Recent viral illness, particularly measles
+Incorrect method of giving the TB skin test
+Incorrect measuring or interpretation of TST reaction
+Many life-threatening illnesses are associated with false-negative TB skin test results, such as protein-calorie malnutrition, advanced cancer, and TB disease itself, notably miliary TB and TB meningitis. If a false-negative TB skin test result is possible and TB is a concern in one of these situations, consult with a TB expert.
+What to do with test results
+A person with a positive result from a TB skin test or symptoms of TB disease should be evaluated for TB disease. This includes performing:
+A chest radiograph and
+Appropriate bacteriologic examinations of sputum specimens
+If latent TB infection is diagnosed, short and convenient treatment regimens are available. Treatment for latent TB infection is 90% effective for preventing the development of TB disease.
+It is important to note that a negative TB skin test results does not exclude the diagnosis of TB disease, especially for patients with severe TB illness or HIV.
+Reminder
+All persons with clinically active or presumed TB disease should be reported to the local or state health department.
+Latent TB infection is reportable in some states and localities. For information on reporting requirements in your jurisdiction, consult your state TB program.
+Keep Reading:
+Clinical and Laboratory Diagnosis for Tuberculosis
+Resources
+Official American Thoracic Society/Infectious Diseases Society of America/CDC Clinical Practice Guidelines: Diagnosis of Tuberculosis in Adults and Children
+Mantoux Tuberculin Skin Test Toolkit
+Health care providers can use this toolkit to learn how to read and administer the TB skin test.
+Core Curriculum on Tuberculosis: What the Clinician Should Know
+Core Curriculum on TB is a manual for clinicians caring for persons with or at risk for TB.
+Think. Test. Treat TB
+Think. Test. Treat TB aims to increase awareness and understanding about inactive tuberculosis.
+On This Page
+Background
+Determining an approach
+Administering the TB skin test
+Interpreting test results
+Test accuracy
+What to do with test results
+Resources
+January 31, 2025
+Sources
+Print
+Share
+Facebook
+LinkedIn
+Twitter
+Syndicate
+Content Source:
+Division of Tuberculosis Elimination ; National Center for HIV, Viral Hepatitis, STD, and Tuberculosis Prevention; Centers for Disease Control and Prevention
+Sources
+2024. "Tuberculosis", Red Book: 2024–2027 Report of the Committee on Infectious Diseases, Committee on Infectious Diseases, American Academy of Pediatrics, David W. Kimberlin, MD, FAAP, Ritu Banerjee, MD, PhD, FAAP, Elizabeth D. Barnett, MD, FAAP, Ruth Lynfield, MD, FAAP, Mark H. Sawyer, MD, FAAP. Available from: https://publications.aap.org/redbook/book/755/chapter/14083107/Tuberculosis

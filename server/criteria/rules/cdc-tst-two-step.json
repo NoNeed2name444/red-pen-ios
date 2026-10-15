@@ -1,0 +1,153 @@
+{
+  "id": "cdc-tst-two-step",
+  "kind": "criteria",
+  "version": "1",
+  "title": "TB skin test: two-step testing for a baseline before periodic retesting",
+  "summary": "Initial (baseline) skin testing of a person who will be retested periodically uses two-step testing.",
+  "source": "cdc-tst-2025",
+  "formal": {
+    "criteria": [
+      {
+        "id": "baseline",
+        "slot": "baseline",
+        "op": "present",
+        "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically."
+      },
+      {
+        "id": "periodic",
+        "slot": "periodic",
+        "op": "present",
+        "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically."
+      }
+    ],
+    "together": [
+      [
+        "baseline",
+        "periodic"
+      ]
+    ],
+    "conclusion": {
+      "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically.",
+      "says": "Two-step testing should be used",
+      "aliases": [
+        "Two-step testing"
+      ],
+      "asks": [
+        "which testing approach",
+        "which testing strategy",
+        "how should baseline testing be done"
+      ]
+    }
+  },
+  "transcriptions": [
+    {
+      "by": "transcriber-a",
+      "at": "2026-10-14",
+      "how": "read from the pinned snapshot, first pass",
+      "formal": {
+        "criteria": [
+          {
+            "id": "baseline",
+            "slot": "baseline",
+            "op": "present",
+            "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically."
+          },
+          {
+            "id": "periodic",
+            "slot": "periodic",
+            "op": "present",
+            "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically."
+          }
+        ],
+        "together": [
+          [
+            "baseline",
+            "periodic"
+          ]
+        ],
+        "conclusion": {
+          "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically.",
+          "says": "Two-step testing should be used",
+          "aliases": [
+            "Two-step testing"
+          ],
+          "asks": [
+            "which testing approach",
+            "which testing strategy",
+            "how should baseline testing be done"
+          ]
+        }
+      }
+    },
+    {
+      "by": "transcriber-b",
+      "at": "2026-10-14",
+      "how": "read again from the pinned snapshot, second pass, written without the first open; both passes are by the same agent session, so not yet independent people",
+      "formal": {
+        "criteria": [
+          {
+            "id": "baseline",
+            "slot": "baseline",
+            "op": "present",
+            "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically."
+          },
+          {
+            "id": "periodic",
+            "slot": "periodic",
+            "op": "present",
+            "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically."
+          }
+        ],
+        "together": [
+          [
+            "baseline",
+            "periodic"
+          ]
+        ],
+        "conclusion": {
+          "quote": "Two-step testing should be used for the initial (baseline) skin testing of persons who will be retested periodically.",
+          "says": "Two-step testing should be used",
+          "aliases": [
+            "Two-step testing"
+          ],
+          "asks": [
+            "which testing approach",
+            "which testing strategy",
+            "how should baseline testing be done"
+          ]
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "source": "cdc-tb-core-curriculum-2021",
+      "format": "answer-key",
+      "chapter": 2,
+      "number": 7,
+      "key": "A",
+      "question": "7. Which of the following is true about two-step testing?",
+      "option": "A. Two-step testing should be used for the initial skin testing of adults who will be retested periodically.",
+      "answer": "Chapter 2: 1. A 2. E 3. A 4. B 5. A 6. C 7. A",
+      "note": "The keyed option: initial testing of someone who will be retested periodically calls for two-step testing.",
+      "cases": [
+        {
+          "facts": [
+            {
+              "slot": "baseline",
+              "value": true
+            },
+            {
+              "slot": "periodic",
+              "value": true
+            }
+          ],
+          "fires": true
+        }
+      ]
+    }
+  ],
+  "signedOffAt": null,
+  "signedOffBy": null,
+  "signedOffHash": null
+}

@@ -788,5 +788,26 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(!votersFor(keyed, 'claude-opus-5-5', true).some(v => v.startsWith('claude:')), 'Claude never checks what Claude wrote');
 }
 
+// MARK: more checker families with no key (the owner, 14 Oct: "make free workers without apis")
+{
+  const ai = await import('../ai.js');
+  const { votersFor, DEFAULT_VOTERS } = await import('../accuracy.js');
+  const { familyOf } = await import('../accuracy-model.js');
+  ok(!('FREE_HOSTS' in ai) && ['mistral:mistral-large-latest', 'groq:qwen/qwen3-32b', 'cerebras:qwen-3-32b'].every(v => ai.pinnedSource({ MISTRAL_API_KEY: 'm', GROQ_API_KEY: 'g', CEREBRAS_API_KEY: 'c' }, v) === null),
+     'no checker needs a key of its own or a sign-up elsewhere: none of the declined hosts is known');
+  ok(!/mistral:|groq:|cerebras:/.test(DEFAULT_VOTERS), 'and none is in the default order');
+  const keyed = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, ANTHROPIC_API_KEY: 'ak' };
+  const student = votersFor(keyed, '', false);
+  const added = student.filter(v => /qwen3-30b|glm-4\.7|mistral-small/.test(v));
+  ok(added.length === 3 && added.every(v => v.startsWith('workers-ai:')), 'three more families through the Worker\'s own AI binding');
+  const fams = added.map(v => familyOf(v.slice(v.indexOf(':') + 1)));
+  const before = student.filter(v => !added.includes(v)).map(v => familyOf(v.slice(v.indexOf(':') + 1)));
+  ok(new Set(fams).size === 3 && !fams.some(f => before.includes(f)), `each a family none of the earlier voters is (${fams.join(', ')})`);
+  ok(Math.min(...added.map(v => student.indexOf(v))) > Math.max(...student.filter(v => !added.includes(v)).map(v => student.indexOf(v))),
+     'they come after the voters the checker bench measured, standing in when those fail');
+  ok(!votersFor({ ...keyed, AI: undefined }, '', false).some(v => added.includes(v)), 'and without the binding they are left out');
+  ok(ai.workersInput('@cf/qwen/qwen3-30b-a3b-fp8', [], 100, 0).chat_template_kwargs?.enable_thinking === false, 'the thinking one is asked to answer, not think aloud');
+}
+
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');
