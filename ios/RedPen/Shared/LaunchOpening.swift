@@ -38,8 +38,9 @@ enum HeartbeatSound {
     static let asset = "Heartbeat"
     /// S1, the "lub", starts here (seconds into the file).
     static let s1: Double = 0.0304
-    /// S2, the "dub".
-    static let s2: Double = 0.3305
+    /// S2, the "dub": 0.36 s after S1, the master ECG's S1 to S2
+    /// (Brand/EcgTrace.swift).
+    static let s2: Double = 0.3909
     static let length: Double = 0.56
 }
 
@@ -78,7 +79,9 @@ struct LaunchOpening: Sendable {
     /// The R peak, which is when S1 is heard.
     var r: Double {
         if reduced { return HeartbeatSound.s1 }
-        return 0.33
+        // 0.30 s, not 0.33 s: the dub is 0.06 s later than it was, and the
+        // opening stays within 1.7 s.
+        return 0.30
     }
     /// When S2 is heard (the T wave ends here).
     var s2: Double { r + HeartbeatSound.s2 - HeartbeatSound.s1 }
