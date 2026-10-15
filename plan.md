@@ -1946,6 +1946,13 @@ with the marks on the screens last.
     holds over 100 ms, sample that cold take before any further change.
     The opening now ends on the ringless home with the same sheet, so
     there is no renderer swap at the end.
+  - The advisor's fix (eb677f7c, Launch recording 38782361711): light 107
+    and 85 ms, dark 96 and 91 ms. The 303 ms hold is gone, but light take 1
+    still holds 107 ms, ending right as home goes still (+2.05 s). The
+    recording now adds a third take, profiled with spindump (every thread's
+    stack each 2 ms, not judged), and re-measures the two judged takes on
+    the same code. Next: read what the main thread does in that take's
+    longest hold, then fix that cause only.
 
 ### Waiting on the owner
 
