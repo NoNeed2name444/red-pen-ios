@@ -135,6 +135,10 @@ jobs:
             sleep "$4"
             kill -INT $REC
             wait $REC || true
+            # the switch previews leave Always night sky wherever their last
+            # step put it; the pictures after them start from the system's
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            xcrun simctl spawn "$UDID" defaults write "$BID" vignette.space.alwaysNight -bool NO || true
           }
           # a first launch on a fresh simulator brings a system banner over
           # the top of the screen for a few seconds; let it come and go

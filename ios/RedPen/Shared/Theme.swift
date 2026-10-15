@@ -146,6 +146,9 @@ extension View {
             .environment(\.modeTint, Color.wardPrimaryInk)
             // the mode's hue on the paper's grid and the controls' edges
             .wardSection(WardSection(kindRaw: kind.rawValue))
+            // the bar, and the status bar over it, named light or dark with
+            // the page, so they switch with it rather than fading
+            .modifier(WardBarScheme())
     }
 
     /// Slides up, solid, on first appearance, staggered by `index` so a
@@ -153,6 +156,15 @@ extension View {
     /// less than the rows' spacing, so a row never passes over its
     /// neighbour.
     func riseIn(index: Int = 0) -> some View { modifier(RiseIn(index: index)) }
+}
+
+/// The navigation bar's scheme, named outright as the page's.
+private struct WardBarScheme: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        content.toolbarColorScheme(scheme, for: .navigationBar)
+    }
 }
 
 extension View {

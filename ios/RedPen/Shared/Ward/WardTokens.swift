@@ -424,6 +424,16 @@ extension UINavigationController {
     /// leaving white words on the light page; nothing in the app hides or
     /// shows the status bar, so its changes can all be immediate.
     open override var preferredStatusBarUpdateAnimation: UIStatusBarAnimation { .none }
+
+    /// The status bar's words for the bar's own light or dark, named
+    /// outright. Left to the default style, the status bar worked the
+    /// colour out itself and faded to it (r8: still 22 frames of white
+    /// words on the light page); a named style changes when asked, with
+    /// the page. The bar's traits, not the controller's, so a bar held
+    /// dark over a light app (Bedtime review) keeps light words.
+    open override var preferredStatusBarStyle: UIStatusBarStyle {
+        navigationBar.traitCollection.userInterfaceStyle == .dark ? .lightContent : .darkContent
+    }
 }
 
 /// A screen's section: its hue tints the paper's grid and the controls'
