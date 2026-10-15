@@ -96,7 +96,9 @@ extension LibraryView {
         let note: String? = input.phase.holdsNewMaterial ? input.phase.headline : nil
         return HomeRoundCard(beds: beds, note: note,
                              onOpen: { bed in openBed(bed) },
-                             onStartFrame: { startFrame = $0 },
+                             // at rest only: Start's global frame moves with every scroll
+                             // step, and each write would re-run this whole view
+                             onStartFrame: { if bandTrack.isAtRest { startFrame = $0 } },
                              onPlan: { LearnRouter.shared.open(.examPlan) })
     }
 
@@ -321,6 +323,11 @@ final class HomeBandTrack {
 
     var bottom: CGFloat? { rest.map { $0 - scroll + Self.belowHeader } }
 
+    /// The list is at its top and not moving: where its rows stand is where
+    /// they rest. Phase changes come before the offset's, so a row seen
+    /// moving is never taken for one at rest.
+    var isAtRest: Bool { idle && abs(scroll) < 1 }
+
     /// The header reported where its bottom is. At rest that pairs with the
     /// scroll, so it fixes where the header stands with the list at its
     /// top; while the list moves, the scroll alone moves the band.
@@ -423,6 +430,7 @@ struct HomeRoundCard: View {
         }
         // a List row: as low as the tiles round it, the button proud of it
         .wardCard(lift: .low)
+        .wardPart("the round card")
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.card = $0
         }
@@ -483,6 +491,7 @@ struct HomeRoundCard: View {
         .accessibilityLabel(bed.spoken)
         .accessibilityHint("Opens this bed")
         .accessibilityIdentifier("wardBed-\(bed.number)")
+        .wardPart("bed \(bed.number)")
     }
 
     private func noteLine(_ text: String) -> some View {
@@ -597,7 +606,7 @@ struct HomeTiles: View {
     /// Where the tiles were laid out, for the preview's fit check: no
     /// sliver of them may peek over the page's cut (HomeFit).
     private var measured: some View {
-        tiles.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+        tiles.wardPart("the tiles").onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.tiles = $0
         }
     }
@@ -932,6 +941,9 @@ final class HomeFitProbe {
     var newSet: CGRect?
     var bar: CGRect?
     var tiles: CGRect?
+    /// Where the page was actually cut (its bottom), after the layout moved
+    /// the cut up for any part (HomeFit.settledCut).
+    var pageEnd: CGFloat?
     /// The text size is above the standard ones: the page may scroll.
     var large = false
     /// Each probed text's laid-out width, and its widest word's on its own.
@@ -952,9 +964,16 @@ final class HomeFitProbe {
             guard let width = widths[name], let word = widest[name] else { return nil }
             return HomeFit.Words(name: name, width: width, widest: word)
         }
-        let faults: [String] = HomeFit.faults(card: Self.box(card), start: Self.box(start),
+        // every row and part that reported itself at rest (wardPart)
+        let parts: [HomeFit.Part] = WardPartBook.shared.parts.values.compactMap { part in
+            Self.box(part.rect).map { HomeFit.Part(name: part.name, box: $0) }
+        }.sorted { ($0.box.minY, $0.name) < ($1.box.minY, $1.name) }
+        var faults: [String] = HomeFit.faults(card: Self.box(card), start: Self.box(start),
                                               bar: Self.box(bar), newSet: Self.box(newSet),
-                                              tiles: Self.box(tiles), large: large, words: words)
+                                              tiles: Self.box(tiles), large: large, words: words,
+                                              pageEnd: pageEnd.map { Double($0) }, parts: parts)
+        // a probe that measured nothing would call any home fitting
+        if parts.isEmpty { faults.append("no row or part of the page was measured") }
         func edges(_ rect: CGRect?) -> String {
             guard let rect else { return "none" }
             return "\(Int(rect.minY))-\(Int(rect.maxY))"
@@ -963,6 +982,8 @@ final class HomeFitProbe {
         let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
                      + "tiles \(edges(tiles)), bar \(edges(bar)), cut \(cut), large text \(large)")
+        lines.append("page ends \(pageEnd.map { String(Int($0)) } ?? "none"), \(parts.count) parts measured: "
+                     + parts.prefix(40).map { "\($0.name) \($0.box.text)" }.joined(separator: ", "))
         lines.append("words: " + words.map { "\($0.name) \(Int($0.width))/\(Int($0.widest))" }
             .joined(separator: ", "))
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]

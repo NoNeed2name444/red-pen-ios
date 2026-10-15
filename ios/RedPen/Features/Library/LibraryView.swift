@@ -178,6 +178,11 @@ struct LibraryView: View {
     @State private var barTop: CGFloat?
     /// The room the page has, in global points, for its cut.
     @State private var pageFrame: CGRect = .zero
+    /// The tops, in global points, of the rows and parts that stood where
+    /// the page's cut can fall, at rest (WardPartBook): the cut moves up to
+    /// any that it would leave a sliver of (HomeFit.settledCut). Written
+    /// only at rest, so a scroll never re-runs the page for it.
+    @State private var restTops: [Double] = []
 
     /// Where the home's grid band ends, followed through a scroll without
     /// redrawing the list (HomeBandTrack).
@@ -214,6 +219,8 @@ struct LibraryView: View {
             // the preview's fit check (HomeFitProbe); nothing outside it.
             // Past the default text size the page may scroll (HomeFit).
             .task {
+                WardPartBook.shared.atRest = { [bandTrack] in bandTrack.isAtRest }
+                WardPartBook.shared.changed = { restTops = $0 }
                 HomeFitProbe.shared.large = typeSize > .large
                 await HomeFitProbe.shared.report()
             }
@@ -469,10 +476,17 @@ struct LibraryView: View {
             // to VoiceOver and to the UI tests alike, and scrolls into view
             // instead of hiding under New set or the dock.
             .frame(height: pageCutHeight, alignment: .top)
+            // where the page really ends, for the preview's fit check
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
+                HomeFitProbe.shared.pageEnd = $0
+            }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { pageFrame = $0 }
             // a new page's list starts at its top, its header not yet seen
-            .onChange(of: pageKey) { bandTrack.reset() }
+            .onChange(of: pageKey) {
+                bandTrack.reset()
+                WardPartBook.shared.clear()
+            }
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             // Snapshotted when tapped rather than built live: a flag taken
             // off half way through the flagged quiz must not pull the
@@ -546,8 +560,9 @@ struct LibraryView: View {
     private var pageCutHeight: CGFloat? {
         guard !underSky, let barTop, pageFrame.height > 0 else { return nil }
         let top: Double = Double(pageFrame.minY)
-        guard HomeFit.cut(barTop: Double(barTop), pageTop: top) != nil else { return nil }
-        return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height)))
+        guard HomeFit.cut(barTop: Double(barTop), pageTop: top, tops: restTops) != nil else { return nil }
+        return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height),
+                                     tops: restTops))
     }
 
     /// At large text the round can run past the cut and scroll, but with
@@ -555,7 +570,7 @@ struct LibraryView: View {
     /// would show half a button. Then the round gives up a bed (Plan has the
     /// whole day) and Start rises clear. A page being scrolled is left alone.
     private func trimSlicedStart() {
-        guard typeSize > .large, bedsTrimmed < 8, bandTrack.scroll < 1,
+        guard typeSize > .large, bedsTrimmed < 8, bandTrack.isAtRest,
               let barTop, startFrame.height > 0 else { return }
         let cut: Double = Double(barTop) - HomeFit.cutRoom
         if HomeFit.slices(minY: Double(startFrame.minY), maxY: Double(startFrame.maxY), cut: cut) {
@@ -727,6 +742,9 @@ struct LibraryView: View {
             // the scale's 16, not a page's 24: Start ward round has to end
             // above New set, which floats over the list
             .listSectionSpacing(WardSpace.l)
+            // the rows and parts that report where they stand at rest, so the
+            // cut leaves no sliver of any (WardPartBook)
+            .environment(\.wardPartsProbed, true)
             .scrollContentBackground(.hidden)
             // the masthead stands in for iOS's soft top edge (categoryPage)
             .scrollEdgeEffectHidden(true, for: .top)

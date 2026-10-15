@@ -57,6 +57,89 @@ extension EnvironmentValues {
     }
 }
 
+// MARK: - Parts that can meet a page's cut
+
+/// Where the rows and parts of a page that can meet its cut stand at rest,
+/// by view (HomeFit.settledCut): a page that sets `wardPartsProbed` has each
+/// `wardPart` under it report its top here, and the page moves its cut up to
+/// any top that would leave a sliver over it. Only at rest: a scroll moves
+/// every row each step, and must not re-run the page for it.
+@MainActor
+final class WardPartBook {
+    static let shared = WardPartBook()
+
+    /// The page says whether it is at rest (its list at the top, not moving).
+    var atRest: @MainActor () -> Bool = { true }
+    /// Told the sorted tops (global points) whenever they change.
+    var changed: @MainActor ([Double]) -> Void = { _ in }
+
+    struct Part {
+        var name: String
+        var rect: CGRect
+    }
+
+    private(set) var parts: [UUID: Part] = [:]
+    private var tops: [Double] = []
+
+    /// One part's frame, kept only while the page is at rest. `reach` is how
+    /// far its face stands out above its frame (a row's tile).
+    func set(_ id: UUID, name: String, rect: CGRect, reach: CGFloat) {
+        guard atRest(), !rect.isEmpty else { return }
+        var face: CGRect = rect
+        face.origin.y -= reach
+        face.size.height += reach
+        parts[id] = Part(name: name, rect: face)
+        publish()
+    }
+
+    /// A new page: what the last one held is gone.
+    func clear() {
+        parts = [:]
+        publish()
+    }
+
+    private func publish() {
+        let now: [Double] = Array(Set(parts.values.map { Double(($0.rect.minY * 2).rounded() / 2) })).sorted()
+        guard now != tops else { return }
+        tops = now
+        changed(now)
+    }
+}
+
+private struct WardPartsProbedKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// A page that is moving its cut for its parts (WardPartBook).
+    var wardPartsProbed: Bool {
+        get { self[WardPartsProbedKey.self] }
+        set { self[WardPartsProbedKey.self] = newValue }
+    }
+}
+
+private struct WardPartModifier: ViewModifier {
+    let name: String
+    let reach: CGFloat
+    @Environment(\.wardPartsProbed) private var probed
+    @State private var id = UUID()
+
+    func body(content: Content) -> some View {
+        content.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { rect in
+            guard probed else { return }
+            WardPartBook.shared.set(id, name: name, rect: rect, reach: reach)
+        }
+    }
+}
+
+extension View {
+    /// This view can meet the page's cut: it reports where it stands, at
+    /// rest, to a page that asks (wardPartsProbed). Nothing elsewhere.
+    func wardPart(_ name: String, reach: CGFloat = 0) -> some View {
+        modifier(WardPartModifier(name: name, reach: reach))
+    }
+}
+
 /// The buttons: soft capsules raised off the base, 56 points tall, at most
 /// 360 points wide on a broad iPad. The kind shows in the label's colour
 /// (the section's accent, Chart Ink, Resus Red), never a fill, and the
@@ -638,7 +721,7 @@ struct WardRow: View {
             WardIconSquare(symbol: symbol, tone: tone)
             words
             Spacer(minLength: WardSpace.s)
-            if let chip { WardChip(text: chip.text, tone: chip.tone) }
+            if let chip { WardChip(text: chip.text, tone: chip.tone).wardPart("the \(chip.text) chip") }
             if chevron { chevronMark }
         }
     }
@@ -651,7 +734,7 @@ struct WardRow: View {
                 if chevron { chevronMark }
             }
             words
-            if let chip { WardChip(text: chip.text, tone: chip.tone) }
+            if let chip { WardChip(text: chip.text, tone: chip.tone).wardPart("the \(chip.text) chip") }
         }
     }
 

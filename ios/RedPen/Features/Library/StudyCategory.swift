@@ -504,6 +504,7 @@ struct CategoryHeading: View {
         Text(title)
             .wardSmallCaps()
             .accessibilityAddTraits(.isHeader)
+            .wardPart("the \(title) heading")
     }
 }
 

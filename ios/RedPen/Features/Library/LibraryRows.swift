@@ -47,6 +47,7 @@ extension LibraryView {
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("examplesBanner")
                 .frostedListRow()
+                .wardPart("the examples row", reach: WardSpace.s)
             }
         }
     }
@@ -135,6 +136,8 @@ extension LibraryView {
         // a long library stays quick to scan
         .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 16))
         .frostedListRow()
+        // the tile's face stands a little out of the content (WardRowTile)
+        .wardPart("a set row", reach: WardSpace.s)
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
             Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }

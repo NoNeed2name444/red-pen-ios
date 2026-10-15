@@ -1945,6 +1945,21 @@ with the marks on the screens last.
     ViewThatFits judged); at large text a bed comes off the round when the cut
     would slice Start ward round; the preview waits for a slow first frame
     instead of relaunching it. Check A: HomeFitTests; confirm on a Mac run.
+  - Independent review of design/ward-states (15 Oct) rejected it on seven
+    blocking defects; fixing them smallest first (the 16 nits are out of
+    scope):
+    - [x] B6: Start's frame is written to LibraryView only at rest
+      (HomeBandTrack.isAtRest), so a scroll step no longer re-runs the
+      library's body (WardHome.swift onStartFrame).
+    - [x] B1: no sliver under 12 pt of any row or part shows over home's
+      cut. Rows and parts report their tops at rest (`wardPart`,
+      WardPartBook: Practise tiles, set rows, headings, More rows, the card,
+      each bed and its chip) and the cut moves up to any top it would
+      sliver (HomeFit.settledCut, LibraryView.pageCutHeight); the probe
+      checks them all against where the page really ends (HomeFit.faults
+      parts/pageEnd) and faults if nothing was measured. HomeFitTests: the
+      iPad at the default size (tiles 8 pt over the cut) and AX1 (the Due
+      chip 4 pt over it).
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

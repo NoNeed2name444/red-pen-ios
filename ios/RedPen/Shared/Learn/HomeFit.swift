@@ -34,15 +34,36 @@ enum HomeFit {
     /// bar, however tall the page's own frame is (a list runs on past it,
     /// under the bar). Nil, no cut: there is no bar (the keyboard is up,
     /// the sky is behind) or it has not been measured. Global points in.
-    static func cut(barTop: Double?, pageTop: Double) -> Double? {
+    /// `tops` are the global tops, at rest, of the rows and parts that can
+    /// meet the cut (`settledCut`).
+    static func cut(barTop: Double?, pageTop: Double, tops: [Double] = []) -> Double? {
         guard let barTop, barTop.isFinite, barTop > pageTop else { return nil }
-        return max(0, barTop - cutRoom - pageTop)
+        return max(0, settledCut(barTop - cutRoom, tops: tops) - pageTop)
     }
 
     /// How tall a page with this much room is, from its top: down to the
     /// cut, or all of it.
-    static func shown(barTop: Double?, pageTop: Double, pageHeight: Double) -> Double {
-        cut(barTop: barTop, pageTop: pageTop).map { min(pageHeight, $0) } ?? pageHeight
+    static func shown(barTop: Double?, pageTop: Double, pageHeight: Double, tops: [Double] = []) -> Double {
+        cut(barTop: barTop, pageTop: pageTop, tops: tops).map { min(pageHeight, $0) } ?? pageHeight
+    }
+
+    /// The cut (global points) once no part shows less than `leastShown`
+    /// over it: where a part's top falls within `leastShown` above the cut,
+    /// the cut moves up to that top, so the part is wholly past it and no
+    /// stray sliver shows. A part's top at the cut, or `leastShown` or more
+    /// above it, leaves the cut where it is. Moving the cut up can bring
+    /// another top into that band, so it goes on until none is.
+    static func settledCut(_ cut: Double, tops: [Double]) -> Double {
+        var at: Double = cut
+        var moved: Bool = true
+        while moved {
+            moved = false
+            for top in tops where top.isFinite && top < at && at - top < leastShown {
+                at = top
+                moved = true
+            }
+        }
+        return at
     }
 
     /// Whether a window this tall is short. A wide iPad keeps New set at
@@ -80,6 +101,13 @@ enum HomeFit {
         var text: String { "\(Int(minY.rounded()))-\(Int(maxY.rounded()))" }
     }
 
+    /// A row or part of the page that can meet the cut, as laid out at rest:
+    /// a Practise tile, a set's row, the Due chip inside the round card.
+    struct Part: Equatable {
+        var name: String
+        var box: Box
+    }
+
     /// A text as laid out, and the width of its widest word on its own:
     /// narrower than that word, the text has to break inside it ("No
     /// strea / k yet" on the Vitals tile).
@@ -99,13 +127,20 @@ enum HomeFit {
     /// out of sight) and no sliver of the card or the tiles may peek over
     /// it. At any size New set sits on no part of the card that shows, and
     /// no word of home's text is broken across two lines.
+    ///
+    /// `pageEnd` is where the page was actually cut, when it was measured
+    /// (the layout may have moved the cut up, `settledCut`): the cut is the
+    /// higher of it and the one the bar gives. `parts` are the other rows
+    /// and parts that can meet the cut: none may show under `leastShown`
+    /// over it.
     static func faults(card: Box?, start: Box?, bar: Box?, newSet: Box?, tiles: Box? = nil,
-                       large: Bool = false, words: [Words] = []) -> [String] {
+                       large: Bool = false, words: [Words] = [],
+                       pageEnd: Double? = nil, parts: [Part] = []) -> [String] {
         guard let card else { return ["no round card was laid out"] }
         guard let start else { return ["no Start ward round button was laid out"] }
         guard let bar else { return ["no bottom bar was laid out"] }
         var out: [String] = []
-        let cut: Double = bar.minY - cutRoom
+        let cut: Double = min(bar.minY - cutRoom, pageEnd ?? .infinity)
         let at: String = "\(Int(cut.rounded()))"
         if large {
             if slices(minY: start.minY, maxY: start.maxY, cut: cut) {
@@ -119,9 +154,12 @@ enum HomeFit {
                 out.append("the round card (\(card.text)) runs past the page's cut at \(at)")
             }
         }
-        for (name, box) in [("the round card", card), ("the tiles", tiles)] {
+        var named: [(String, Box?)] = [("the round card", card), ("the tiles", tiles)]
+        named += parts.map { ($0.name, Optional($0.box)) }
+        for (name, box) in named {
             guard let box, box.minY < cut, cut - box.minY < leastShown else { continue }
-            out.append("a sliver of \(name) (\(box.text)) peeks over the page's cut at \(at)")
+            let line: String = "a sliver of \(name) (\(box.text)) peeks over the page's cut at \(at)"
+            if !out.contains(line) { out.append(line) }
         }
         // the part of the card that shows: down to the cut
         if let newSet, card.minY < cut {

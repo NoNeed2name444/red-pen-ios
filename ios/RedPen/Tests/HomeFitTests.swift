@@ -105,6 +105,54 @@ check("a text narrower than its widest word is caught, and only that one",
       broken.count == 1 && broken[0].hasPrefix("the Vitals tile's streak breaks inside a word"),
       broken.joined(separator: "; "))
 
+// MARK: - Slivers of any row or part (the review's B1)
+
+// the iPad at the default size: the PRACTISE tiles' tops at 1098, the bar
+// from 1118, so the cut at 1106 shows 8 points of them
+let ipadTiles = HomeFit.Part(name: "a Practise tile", box: box(1098, 1190))
+let ipadBar = box(1118, 1194)
+let ipadSliver = HomeFit.faults(card: box(300, 980), start: box(920, 976), bar: ipadBar, newSet: nil,
+                                parts: [ipadTiles])
+check("iPad at the default size: 8 points of the Practise tiles are caught",
+      ipadSliver.count == 1 && ipadSliver[0].contains("a Practise tile (1098-1190)")
+        && ipadSliver[0].contains("cut at 1106"), ipadSliver.joined(separator: "; "))
+check("the cut moves up to the tiles' top", HomeFit.settledCut(1106, tops: [1098]) == 1098)
+check("the page, cut there, shows none of them",
+      HomeFit.cut(barTop: 1118, pageTop: 0, tops: [1098]) == 1098)
+let ipadHonoured = HomeFit.faults(card: box(300, 980), start: box(920, 976), bar: ipadBar, newSet: nil,
+                                  pageEnd: 1098, parts: [ipadTiles])
+check("with the cut moved up, the tiles are no sliver", ipadHonoured.isEmpty, ipadHonoured.joined(separator: "; "))
+
+// AX1: the top of bed 1's Due chip, 682.3-700, over the cut at 686 (bar 698)
+let dueChip = HomeFit.Part(name: "bed 1's Due chip", box: box(682.3, 700, x0: 300, x1: 359))
+let ax1Bar = box(698, 860)
+let ax1Sliver = HomeFit.faults(card: box(283, 900), start: box(820, 876), bar: ax1Bar, newSet: nil,
+                               large: true, parts: [dueChip])
+check("AX1: 4 points of the Due chip over the cut are caught",
+      ax1Sliver.count == 1 && ax1Sliver[0].contains("bed 1's Due chip"), ax1Sliver.joined(separator: "; "))
+check("AX1: the cut moves up to the chip's top", HomeFit.settledCut(686, tops: [682.3]) == 682.3)
+let ax1Honoured = HomeFit.faults(card: box(283, 900), start: box(820, 876), bar: ax1Bar, newSet: nil,
+                                 large: true, pageEnd: 682.3, parts: [dueChip])
+check("AX1: with the cut moved up, the chip is no sliver", ax1Honoured.isEmpty, ax1Honoured.joined(separator: "; "))
+
+// the cut is left alone by tops at it, 12 or more over it, or past it
+check("a top at the cut leaves it", HomeFit.settledCut(686, tops: [686]) == 686)
+check("a top 12 points over the cut leaves it", HomeFit.settledCut(686, tops: [674]) == 686)
+check("a top past the cut leaves it", HomeFit.settledCut(686, tops: [690, 900]) == 686)
+check("no tops, no move", HomeFit.settledCut(686, tops: []) == 686)
+// moving up can bring another top into the band: it goes on until none is
+check("a chain of tops moves the cut to the last", HomeFit.settledCut(686, tops: [680, 670, 640]) == 670)
+check("tops in any order settle the same", HomeFit.settledCut(686, tops: [670, 640, 680]) == 670)
+// a part twice reported is one sliver
+let twice = HomeFit.faults(card: box(204, 480), start: box(420, 470), bar: box(557, 647), newSet: nil,
+                           tiles: box(539, 700), parts: [HomeFit.Part(name: "the tiles", box: box(539, 700))])
+check("the same sliver reported twice is one fault", twice.count == 1, twice.joined(separator: "; "))
+// a part wholly past the cut, or well over it, is fine
+let partsFine = HomeFit.faults(card: box(204, 480), start: box(420, 470), bar: box(557, 647), newSet: nil,
+                               parts: [HomeFit.Part(name: "a row", box: box(545, 600)),
+                                       HomeFit.Part(name: "a tile", box: box(400, 500))])
+check("parts wholly past the cut or well over it are fine", partsFine.isEmpty, partsFine.joined(separator: "; "))
+
 // MARK: - How much of the page shows
 
 check("no bar measured: all of the page", HomeFit.shown(barTop: nil, pageTop: 0, pageHeight: 874) == 874)
