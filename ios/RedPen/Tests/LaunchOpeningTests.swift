@@ -272,6 +272,20 @@ let home = (try? String(contentsOfFile: "ios/RedPen/Features/Library/WardHome.sw
 check("home's title and squiggle tell the opening where they are",
       home.contains(".launchTarget(.title)") && home.contains(".launchTarget(.squiggle)") && home.contains(".launchLetters()"))
 
+// The hand-off's frames: home's paper, redrawn every frame while the page's
+// opening is cut at its pose, was drawn off the main thread, and each
+// frame's commit waited for the last one's (runs 38674454917, 38687683061:
+// the main thread held 67 to 253 ms inside RenderBox's display). Now it is
+// drawn on the main thread, its grid one picture while the opening moves
+// and at rest, so the hand-off's last frame costs no more than the others.
+let surfaces = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardSurfaces.swift", encoding: .utf8)) ?? ""
+check("home's paper is drawn on the main thread (nothing for a frame to wait on)",
+      !surfaces.isEmpty && !surfaces.contains("rendersAsynchronously"))
+check("its grid is the launch screen's picture of it, moving and at rest (the lines only where it does not cover)",
+      surfaces.contains("context.resolve(Image(\"LaunchPaper\"))")
+      && surfaces.components(separatedBy: "drawPaper(on: &layer)").count - 1 == 3
+      && surfaces.components(separatedBy: "WardPaperInk.drawPaper(in: &layer").count - 1 == 1)
+
 // MARK: the art the launch screen and the opening share
 
 let yml = (try? String(contentsOfFile: "ios/project.yml", encoding: .utf8)) ?? ""

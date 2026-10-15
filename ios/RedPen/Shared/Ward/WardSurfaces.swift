@@ -239,14 +239,35 @@ struct WardPaperFrame: View {
         let stage = LaunchStage.shared
         let arriving: Bool = stage.poseTime.isFinite
         let pose = arriving ? stage.openingPose() : nil
-        // off the main thread while the opening moves
-        Canvas(rendersAsynchronously: arriving) { context, size in
+        // On the main thread, and cheap: the grid is the launch screen's own
+        // picture of it (LaunchPaper, the same lines in the same places), one
+        // image, not its few hundred lines, while the opening moves and at
+        // rest, so the hand-off's last frame is no dearer than the others.
+        // Redrawn every frame as lines, and off the main thread, the paper
+        // was what held the hand-off up: each frame's commit waited for the
+        // last frame's paper (runs 38674454917 and 38687683061, hitches of
+        // 67 to 253 ms).
+        Canvas { context, size in
             let w = Double(size.width), h = Double(size.height)
             guard let panel = WardPaper.panel(width: w, height: h) else { return }
             let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
             let (r, g, b) = WardPalette.rgb(ink.hex)
             let color = Color(red: r, green: g, blue: b)
             let rect = CGRect(origin: .zero, size: size)
+            // the picture covers any screen of its kind from the top left
+            // (tools/make_launch_paper.py); with no grid (Increase Contrast)
+            // the paper is the base alone, and a window the picture does not
+            // cover gets the lines
+            let grid = ink.fine > 0 || ink.bold > 0
+            let picture = grid ? context.resolve(Image("LaunchPaper")) : nil
+            let covers = picture.map { $0.size.width >= size.width && $0.size.height >= size.height } ?? false
+            func drawPaper(on layer: inout GraphicsContext) {
+                if let picture, covers {
+                    layer.draw(picture, in: CGRect(origin: .zero, size: picture.size))
+                } else {
+                    WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
+                }
+            }
             func hole(_ p: WardPaperPanel) -> Path {
                 RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
                     .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
@@ -276,7 +297,7 @@ struct WardPaperFrame: View {
                 }
                 context.drawLayer { layer in
                     layer.clip(to: paper)
-                    WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
+                    drawPaper(on: &layer)
                 }
                 if let cut {
                     context.stroke(cut, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
@@ -287,7 +308,7 @@ struct WardPaperFrame: View {
             frame.addPath(frameHole)
             context.drawLayer { layer in
                 layer.clip(to: frame, style: FillStyle(eoFill: true))
-                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
+                drawPaper(on: &layer)
             }
             guard let moved else {
                 context.stroke(frameHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
@@ -301,7 +322,7 @@ struct WardPaperFrame: View {
             context.drawLayer { layer in
                 layer.clip(to: strip)
                 layer.clip(to: corners, style: FillStyle(eoFill: true))
-                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color)
+                drawPaper(on: &layer)
             }
             context.stroke(movedHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
         }
