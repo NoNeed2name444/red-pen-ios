@@ -144,9 +144,10 @@ final class GraphStyleKit {
         node.addChildNode(tilt)
 
         let bodyRadius: Float = r * Self.bodyScale(style)
-        // a comet's sphere is its nucleus, a third of its head: the coma's
-        // glow round it is the rest
-        let shownRadius: Float = style == .comet ? bodyRadius * 0.35 : bodyRadius
+        // a comet's sphere is its nucleus, three fifths of its head (a
+        // third was a speck lost in the coma's light): the coma's glow
+        // round it is the rest
+        let shownRadius: Float = style == .comet ? bodyRadius * 0.6 : bodyRadius
         let body = SCNNode(geometry: bodyGeometry(style, palette: palette, look: look))
         body.categoryBitMask = 1
         body.simdScale = SIMD3<Float>(shownRadius, shownRadius, shownRadius)
@@ -485,6 +486,19 @@ final class GraphStyleKit {
             let made: SCNGeometry = plane(key, source: GraphStyleShaders.gasRing,
                                           fallback: GraphStyleArt.band, tint: cream)
             if fresh, support.has("gasRing"), let material = made.firstMaterial { markLit(material) }
+            // TEMPORARY ring diagnosis (close-up previews only; removed before
+            // the final push): depth test off, and the shader's own values as
+            // colours over a faint grey square - red the ring's density, green
+            // its light, blue how lit the face is
+            if fresh, GraphPreview.closeUp, support.has("gasRing"), let material = made.firstMaterial {
+                material.readsFromDepthBuffer = false
+                let probe: String = """
+                float3 rp_dbg = float3(0.2) + float3(clamp(rp_den, 0.0, 1.0), clamp(rp_k * 2.0, 0.0, 1.0), clamp(rp_lit, 0.0, 1.0));
+                _surface.diffuse = float4(rp_dbg + float3(rpProbe), 1.0);
+                """
+                material.shaderModifiers = [.surface: GraphStyleShaders.gasRing
+                    .replacingOccurrences(of: GraphStyleShaders.glowEnd, with: probe)]
+            }
             return made
         default: return nil
         }

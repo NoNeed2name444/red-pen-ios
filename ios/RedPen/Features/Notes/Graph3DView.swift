@@ -1944,6 +1944,7 @@ struct GraphSCNView: UIViewRepresentable {
                     camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
                 }
                 sim.namesShown = false
+                sim.closeUpSubject = i
                 let subject: SIMD3<Float> = sim.world.simdConvertPosition(sim.currentPosition(i), to: nil)
                 Self.logCloseUp(view, near: subject, when: "framed")
                 view.pointOfView = camera

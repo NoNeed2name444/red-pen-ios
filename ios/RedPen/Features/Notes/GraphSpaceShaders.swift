@@ -143,7 +143,8 @@ nonisolated enum GraphStyleShaders {
     ///
     /// - black hole: the beam narrows, reddens and fades into the horizon;
     ///   at a B end its core spirals in, its pulses speed up as they fall,
-    ///   and each one flashes on arrival where the photon ring is;
+    ///   and each one sparks small and gold on arrival where the photon
+    ///   ring is (a broad white flash read as a puff of smoke);
     /// - sun: hotter and whiter near it; at an A end pulses leave it fast
     ///   and swollen, like ejected plasma, then slow;
     /// - rocky planet: bluer near it, and each arriving pulse glints;
@@ -159,7 +160,11 @@ nonisolated enum GraphStyleShaders {
     /// square cut. Near each body the whole beam is dimmed (to a quarter at
     /// the limb, full strength from 0.9 of the reach out), so the body is
     /// the brightest thing there, and the colour saturates softly
-    /// (1 - e^-x) so no beam or overlap of beams clips to white.
+    /// (1 - e^-x) so no beam or overlap of beams clips to white. A small
+    /// body (a pulsar, a comet: a few pixels where a planet is a disc)
+    /// dims and narrows its links further and for longer - to 4% and a
+    /// sixth of the width at the end, full only from 1.6 reaches out - so
+    /// the many beams meeting there never outshine it or cover its coma.
     ///
     /// Every end but a black hole's flares where the beam leaves the body's
     /// limb (the strip starts inside the body, which hides the rest), the
@@ -205,6 +210,8 @@ nonisolated enum GraphStyleShaders {
     float rp_psB = step(3.5, rp_sB) - step(4.5, rp_sB);
     float rp_sunA = step(4.5, rp_sA);
     float rp_sunB = step(4.5, rp_sB);
+    float rp_smA = rp_cmA + rp_psA;
+    float rp_smB = rp_cmB + rp_psB;
     float rp_reach = max(rpReach, 0.05);
     float rp_nA = exp(-rp_along / rp_reach);
     float rp_nB = exp(-rp_toEnd / rp_reach);
@@ -222,9 +229,10 @@ nonisolated enum GraphStyleShaders {
     float rp_s = rp_s0 - rp_amp * sin(rp_turn);
     float rp_a = abs(rp_s);
     float rp_a2 = rp_a * rp_a * (1.0 + 2.5 * rp_bhW);
-    float rp_tpA = smoothstep(0.0, 0.6 * rp_reach, rp_along);
-    float rp_tpB = smoothstep(0.0, 0.6 * rp_reach, rp_toEnd);
-    float rp_wf = 0.3 + 0.7 * rp_tpA * rp_tpB;
+    float rp_tpA = smoothstep(0.0, (0.6 + 0.9 * rp_smA) * rp_reach, rp_along);
+    float rp_tpB = smoothstep(0.0, (0.6 + 0.9 * rp_smB) * rp_reach, rp_toEnd);
+    float rp_wlo = 0.3 - 0.14 * clamp(rp_smA + rp_smB, 0.0, 1.0);
+    float rp_wf = rp_wlo + (1.0 - rp_wlo) * rp_tpA * rp_tpB;
     rp_a2 = rp_a2 / (rp_wf * rp_wf);
     float rp_e = abs(rp_s0);
     float rp_w = clamp(1.0 - rp_e * rp_e, 0.0, 1.0);
@@ -450,9 +458,9 @@ nonisolated enum GraphStyleShaders {
     rp_ends = rp_ends * smoothstep(0.0, rp_fadeB, rp_toEnd);
     rp_col = rp_col * (rp_flicker * rp_boost * rp_ends);
 
-    float rp_dEnd = rp_toEnd / (0.3 * rp_reach);
-    float rp_flash = exp(-rp_dEnd * rp_dEnd) * rp_arrive * rp_w * rp_bhB;
-    rp_col = rp_col + rp_white * (rp_flash * 1.4);
+    float rp_dEnd = rp_toEnd / (0.12 * rp_reach);
+    float rp_flash = exp(-rp_dEnd * rp_dEnd) * rp_arrive * rp_w2 * rp_bhB;
+    rp_col = rp_col + mix(rp_gold, rp_white, 0.4) * (rp_flash * 0.6);
     float rp_gd = (rp_toEnd - 0.12) / (0.2 * rp_reach);
     float rp_gs = rp_s0 * 1.3;
     float rp_star = exp(-(rp_gd * rp_gd + rp_gs * rp_gs) * 3.0);
@@ -478,9 +486,10 @@ nonisolated enum GraphStyleShaders {
     float rp_cB = 1.0 - clamp(rp_toEnd / rp_capL, 0.0, 1.0);
     float rp_cw = sqrt(max(1.0 - max(rp_cA * rp_cA, rp_cB * rp_cB), 0.0));
     float rp_cap = 1.0 - smoothstep(0.55, 1.0, rp_e / max(rp_cw, 0.001));
-    float rp_dimA = smoothstep(0.1 * rp_reach, 0.9 * rp_reach, rp_along);
-    float rp_dimB = smoothstep(0.1 * rp_reach, 0.9 * rp_reach, rp_toEnd);
-    float rp_dim = 0.25 + 0.75 * rp_dimA * rp_dimB;
+    float rp_dimA = smoothstep(0.1 * rp_reach, (0.9 + 0.7 * rp_smA) * rp_reach, rp_along);
+    float rp_dimB = smoothstep(0.1 * rp_reach, (0.9 + 0.7 * rp_smB) * rp_reach, rp_toEnd);
+    float rp_dim = mix(0.25 - 0.21 * rp_smA, 1.0, mix(rp_dimA, rp_dimA * rp_dimA, rp_smA));
+    rp_dim = rp_dim * mix(0.25 - 0.21 * rp_smB, 1.0, mix(rp_dimB, rp_dimB * rp_dimB, rp_smB));
     rp_col = rp_col * rp_cap * rp_dim * rpEnergy;
     rp_col = (float3(1.0) - exp(-rp_col * 1.3)) * 0.92;
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
@@ -1293,7 +1302,8 @@ nonisolated enum GraphStyleShaders {
     // MARK: the pulsar
 
     /// The pulsar's tiny core: white-blue, brighter at the edge, flaring
-    /// as a beam sweeps by (two beats a turn).
+    /// a little as a beam sweeps by (two beats a turn) - never to white,
+    /// so its edge holds against the glare.
     static let pulsarCore: String = """
     #pragma arguments
     float rpClock;
@@ -1307,7 +1317,7 @@ nonisolated enum GraphStyleShaders {
     rp_b = rp_b * rp_b;
     rp_b = rp_b * rp_b;
     rp_b = rp_b * rp_b;
-    float rp_k = 0.78 + 0.32 * (1.0 - rp_mu) + 0.3 * rp_b;
+    float rp_k = 0.72 + 0.2 * (1.0 - rp_mu) + 0.1 * rp_b;
     float3 rp_col = float3(0.82, 0.9, 1.0) * rp_k;
 
     """ + bodyEnd
@@ -1383,7 +1393,8 @@ nonisolated enum GraphStyleShaders {
     /// outwards with a bright spine, plasma streaming out along them in
     /// fine striations, blue-white at the core and violet at the edges,
     /// brightest and widest as the beam sweeps towards the eye (its z
-    /// scale).
+    /// scale), but no more than 1.6 times, and starting at the core's limb,
+    /// never across it, so a beam facing the eye never blanks the core.
     static let pulsarBeam: String = """
     #pragma arguments
     float rpClock;
@@ -1400,12 +1411,12 @@ nonisolated enum GraphStyleShaders {
     float rp_ac = rp_qx / rp_wd;
     float rp_prof = exp(-rp_ac * rp_ac * 2.5);
     float rp_spine = exp(-rp_ac * rp_ac * 28.0);
-    float rp_fade = smoothstep(0.02, 0.1, rp_ay) * pow(max(1.0 - rp_ay, 0.0), 1.6);
+    float rp_fade = smoothstep(0.05, 0.14, rp_ay) * pow(max(1.0 - rp_ay, 0.0), 1.6);
 
     """ + GraphShaderKit.noise("rp_st", "float3(rp_ac * 2.5, rp_ay * 16.0 - rp_t * 7.0, step(0.0, rp_qy) * 7.0)") + """
     float rp_flow = 0.65 + 0.6 * rp_st;
     float rp_f2 = rp_face * rp_face;
-    float rp_k = (rp_prof * 0.85 + rp_spine * 0.9) * rp_fade * rp_flow * (0.6 + 1.9 * rp_f2 * rp_f2);
+    float rp_k = (rp_prof * 0.85 + rp_spine * 0.9) * rp_fade * rp_flow * (0.6 + 1.0 * rp_f2 * rp_f2);
     float3 rp_hue = mix(float3(0.9, 0.95, 1.0), float3(0.52, 0.45, 1.0), clamp(abs(rp_ac) * 0.7, 0.0, 1.0));
     float3 rp_col = rp_hue * rp_k;
 
@@ -1413,7 +1424,7 @@ nonisolated enum GraphStyleShaders {
 
     // MARK: the comet
 
-    /// The nucleus: small (a third of the head, GraphStyleKit), dark and
+    /// The nucleus: three fifths of the head (GraphStyleKit), dark and
     /// lumpy - its shading broken up by two noises, as an irregular body's
     /// would be - its sunward side lit. The coma's glow (cometComa) is
     /// added over it, so it sits inside a bright head.
@@ -1463,13 +1474,13 @@ nonisolated enum GraphStyleShaders {
 
     """ + GraphShaderKit.noise("rp_cn", "float3(cos(rp_ang) * 2.5, sin(rp_ang) * 2.5, rp_cr * 1.2 - rp_t * 0.08)") + """
     float rp_g = 0.5 / (rp_re + 0.22) * exp(-rp_re * 0.24) * (0.8 + 0.4 * rp_cn);
-    float rp_cd = (rp_re - 0.55) / 0.3;
+    float rp_cd = (rp_re - 0.85) / 0.3;
     float rp_core = exp(-rp_cd * rp_cd) * 0.45;
-    float rp_clear = 0.25 + 0.75 * smoothstep(0.3, 0.75, rp_cr);
+    float rp_clear = 0.2 + 0.8 * smoothstep(0.5, 1.05, rp_cr);
     float rp_spin = rp_ang + rp_cr * 0.18 - rp_t * 0.25;
     float rp_j1 = pow(0.5 + 0.5 * cos(rp_spin * 3.0 + 0.6), 6.0);
     float rp_j2 = pow(0.5 + 0.5 * cos(rp_spin * 5.0 + 2.1), 9.0) * 0.6;
-    float rp_fan = (rp_j1 + rp_j2) * smoothstep(-0.3, 0.6, rp_sw) * smoothstep(0.25, 0.7, rp_cr);
+    float rp_fan = (rp_j1 + rp_j2) * smoothstep(-0.3, 0.6, rp_sw) * smoothstep(0.5, 0.95, rp_cr);
     rp_fan = rp_fan * exp(-rp_cr * 0.5) * (0.7 + 0.6 * rp_cn) * 0.32;
     float3 rp_hue = mix(float3(1.0, 0.99, 0.95), float3(0.98, 0.94, 0.78), smoothstep(0.2, 1.0, rp_cr));
     rp_hue = mix(rp_hue, float3(0.36, 1.0, 0.66), smoothstep(0.7, 2.6, rp_cr));

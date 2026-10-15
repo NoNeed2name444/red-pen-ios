@@ -1049,10 +1049,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// aside), and of eight ways across the screen, the one it can be
     /// carried six radii along without passing over another body - so no
     /// neighbour overlaps the subject at rest or while it is dragged. Ties
-    /// go to the more-linked note, and to straight up.
+    /// go to the more-linked note, and to straight up. Judged from where
+    /// the notes rest (their homes), not where they are a second in, still
+    /// settling: so the rest and dragged shots, separate launches, pick
+    /// the same note (they had shown two different planets).
     func closeUpChoice() -> (note: Int, way: SIMD3<Float>)? {
         lock.lock()
-        let at: [SIMD3<Float>] = position
+        let at: [SIMD3<Float>] = home
         let size: [Float] = radius
         let shown: [Bool] = visible
         let ghosts: [Bool] = ghost
@@ -1145,6 +1148,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// off, so a name never covers the body: a grabbed note is also the
     /// pressed, named and chosen one). Set from the main thread.
     var namesShown: Bool = true
+
+    /// The design preview's close-up subject: every frame, any other body
+    /// whose disc on screen would cross the subject's (with a margin) is
+    /// moved sideways, at its own depth, to just outside it - so no
+    /// neighbour sits in front of or on the subject, however the drag pulls
+    /// them. Nil in the app. Set from the main thread.
+    var closeUpSubject: Int?
 
     /// A note's radius, in the space's own units.
     func noteRadius(_ i: Int) -> Float {
@@ -1518,6 +1528,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             fastest = universe ? integrateOrbits(h, first: piece == 0) : integrate(h)
         }
         if universe { swap(&offsets, &nextOffsets) }
+        if let s = closeUpSubject { keepClear(of: s, eye: eye) }
 
         for i in nodes.indices {
             nodes[i].simdPosition = position[i]
@@ -1544,6 +1555,36 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
         // still, and nothing will set it moving by itself: stop working
         if !lively && grabbed == nil && fastest < 0.000_01 { resting = true }
+    }
+
+    /// Moves every body whose disc on screen crosses the close-up subject's
+    /// (1.6 of its radius, the other's 1.2 of its own) sideways, at its own
+    /// depth, to just outside it, and stops it heading back in
+    /// (closeUpSubject).
+    private func keepClear(of s: Int, eye: SIMD3<Float>) {
+        guard s >= 0, s < position.count else { return }
+        let toSubject: SIMD3<Float> = position[s] - eye
+        let far: Float = simd_length(toSubject)
+        guard far > 0.0001 else { return }
+        let ahead: SIMD3<Float> = toSubject / far
+        var aside: SIMD3<Float> = simd_cross(ahead, SIMD3<Float>(0, 1, 0))
+        if simd_length_squared(aside) < 0.000_001 { aside = simd_cross(ahead, SIMD3<Float>(1, 0, 0)) }
+        aside = simd_normalize(aside)
+        for j in position.indices where j != s && visible[j] {
+            let rel: SIMD3<Float> = position[j] - eye
+            let depth: Float = simd_dot(rel, ahead)
+            guard depth > 0.0001 else { continue }
+            // where it sits across the screen, at the subject's distance
+            let scale: Float = far / depth
+            let side: SIMD3<Float> = (rel - ahead * depth) * scale
+            let need: Float = radius[s] * 1.6 + radius[j] * 1.2 * scale
+            let off: Float = simd_length(side)
+            guard off < need else { continue }
+            let out: SIMD3<Float> = off > 0.0001 ? side / off : aside
+            position[j] = eye + ahead * depth + out * (need / scale)
+            let inward: Float = simd_dot(velocity[j], out)
+            if inward < 0 { velocity[j] -= out * inward }
+        }
     }
 
     /// One semi-implicit Euler step of `h` seconds. Returns the largest
@@ -1861,8 +1902,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
     /// Points each emitter at a moving note - the dragged one first, then the
     /// fastest - keeping a note on the emitter it already has, dresses it in
-    /// that note's style (a black hole's plume of debris, a sun's plasma, a
-    /// comet's icy dust: GraphStyleAnimator.dressTrail), aims the sparks a
+    /// that note's style (a sun's plasma, a comet's icy dust, none for a
+    /// black hole: GraphStyleAnimator.dressTrail), aims the sparks a
     /// style throws back along its path, and sets how many it throws by how
     /// fast that note is going.
     private func updateTrails() {

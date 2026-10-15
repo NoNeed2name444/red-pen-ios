@@ -85,8 +85,8 @@ nonisolated struct GraphStyleFrame {
 ///   been - from its true motion, orbit and drag alike (SpaceOptics
 ///   .cometTails) - and both lengthen as it moves;
 /// - every style's sparks when it moves fast (GraphSim's trail emitters):
-///   a black hole's bright plume of debris thrown back along its path, a
-///   sun's plasma, a comet's icy dust (SpaceOptics.trail);
+///   a sun's plasma, a comet's icy dust (SpaceOptics.trail); a black hole
+///   throws none;
 /// - every note: glows dim with distance (haze);
 /// - the chosen note: an orbit ring, eased in.
 ///
@@ -198,9 +198,8 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
     }
 
     /// Dresses a trail emitter in body `i`'s style as it is handed to it
-    /// (SpaceOptics.trail): a black hole's long bright plume of debris,
-    /// streaking, white-gold cooling to ember red; a sun's plasma; a
-    /// comet's icy dust; the others' dust. Render thread.
+    /// (SpaceOptics.trail): a sun's plasma; a comet's icy dust; the
+    /// others' dust (a black hole's rate is 0). Render thread.
     func dressTrail(_ system: SCNParticleSystem, note i: Int) {
         guard i >= 0, i < rigs.count else { return }
         let look: SpaceOptics.Trail = SpaceOptics.trail(style: rigs[i].style.code)

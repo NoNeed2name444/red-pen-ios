@@ -16,8 +16,8 @@
 //   tail lags behind the motion, more the faster, never past square;
 // - a sun's corona carries its seed and motion in one number and gives
 //   them back;
-// - each style's sparks: a black hole's plume thrown back, longest and
-//   densest; a sun's plasma warm; a comet's dust icy.
+// - each style's sparks: none from a black hole; a pulsar's few and
+//   fine; a sun's plasma warm; a comet's dust icy.
 //
 // Compiled with GraphShaderKit.swift, GraphSpaceShaders.swift and
 // GraphSpaceOptics.swift (Foundation only).
@@ -205,10 +205,9 @@ let plume: SpaceOptics.Trail = SpaceOptics.trail(style: 0)
 let plasma: SpaceOptics.Trail = SpaceOptics.trail(style: 5)
 let ice: SpaceOptics.Trail = SpaceOptics.trail(style: 3)
 let others: [SpaceOptics.Trail] = (0...5).map { SpaceOptics.trail(style: $0) }
-check("P7 a black hole's plume is thrown back, narrow and streaking", plume.backward && plume.spread < 45
-      && plume.stretch > 0)
-check("P7 ... the longest-lived and densest", others.allSatisfy { $0.life <= plume.life && $0.rate <= plume.rate })
-check("P7 ... white-gold cooling to ember red", (plume.colours.first?.x ?? 0) > 0.9 && (plume.colours.last?.y ?? 1) < 0.2)
+check("P7 a black hole throws nothing off: it swallows", plume.rate == 0)
+check("P7 a pulsar's motes are few and fine, so its core keeps its edge",
+      SpaceOptics.trail(style: 4).rate <= 60 && SpaceOptics.trail(style: 4).size <= 0.015)
 check("P7 a sun's plasma is warm", plasma.colours.allSatisfy { $0.x >= $0.z })
 check("P7 a comet's dust is icy and left behind", ice.backward && (ice.colours.first?.z ?? 0) >= (ice.colours.first?.x ?? 1) - 0.2
       && (ice.colours.last?.z ?? 0) > (ice.colours.last?.x ?? 1))
