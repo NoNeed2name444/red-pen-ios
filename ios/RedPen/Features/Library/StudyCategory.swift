@@ -593,11 +593,11 @@ struct CategoryDock: View {
             .frame(maxWidth: .infinity, minHeight: 56)
             .contentShape(shape)
         }
-        .buttonStyle(.plain)
+        // raised, sinking under the finger like every Ward button
+        .buttonStyle(WardPanelButtonStyle(lift: .mid, shape: shape))
         .accessibilityLabel("Sections, now \(here)")
         .accessibilityHint("Lists every section to choose from")
         .accessibilityIdentifier("dockList")
-        .wardRaised(in: shape, control: true)
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
         // the preview's picture of the list, at the accessibility sizes
@@ -627,7 +627,7 @@ struct CategoryDock: View {
             Spacer(minLength: 8)
             Image(systemName: "chevron.up")
                 .font(.headline)
-                .foregroundStyle(Color.wardInkSecondary)
+                .foregroundStyle(Color.wardInk)
                 .accessibilityHidden(true)
         }
     }
@@ -664,12 +664,12 @@ struct CategoryDock: View {
             ideasFace(chosen: chosen)
                 .frame(width: 56)
                 .frame(minHeight: 56, maxHeight: .infinity)
-                .wardRelief(in: shape, lift: .high, pressed: chosen)
                 .contentShape(shape)
                 .contentShape(.hoverEffect, shape)
                 .hoverEffect(.highlight)
         }
-        .buttonStyle(.plain)
+        // pressed in with the accent edge when chosen, sinking when held
+        .buttonStyle(WardPanelButtonStyle(chosen: chosen, lift: .high, shape: shape))
         .accessibilityLabel(L10n.lookup(IdeasPlace.title))
         .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
@@ -707,6 +707,7 @@ struct CategoryDock: View {
                 .background {
                     if chosen {
                         WardReliefFace(shape: segment, lift: .low, inset: true)
+                            .wardChosenEdge(segment, true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                             .transition(.identity)
                     }
@@ -715,7 +716,7 @@ struct CategoryDock: View {
                 .contentShape(.hoverEffect, segment)
                 .hoverEffect(.highlight)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(WardItemButtonStyle(chosen: chosen, shape: segment))
         .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
         .accessibilityLabel(L10n.lookup(IdeasPlace.title))
         .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
@@ -735,20 +736,18 @@ struct CategoryDock: View {
     /// The lightbulb over the word Ideas, Theatre Blue when chosen.
     private func ideasFace(chosen: Bool) -> some View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
-        let ink: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
-        return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), ink: ink)
+        return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), chosen: chosen)
             .contentTransition(.identity)
     }
 
     private func item(_ category: StudyCategory) -> some View {
         let chosen: Bool = !inIdeas && category == selection
-        let ink: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
             withAnimation(change) { selection = category }
         } label: {
-            DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), ink: ink)
+            DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), chosen: chosen)
                 // Four points is eight pixels in the 2x preview. Keep this
                 // inside the pressed face, including at its minimum width.
                 .padding(.horizontal, 4)
@@ -761,6 +760,7 @@ struct CategoryDock: View {
                     // there.
                     if chosen {
                         WardReliefFace(shape: segment, lift: .low, inset: true)
+                            .wardChosenEdge(segment, true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                             .transition(.identity)
                     }
@@ -769,7 +769,7 @@ struct CategoryDock: View {
                 .contentShape(.hoverEffect, segment)
                 .hoverEffect(.highlight)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(WardItemButtonStyle(chosen: chosen, shape: segment))
         .keyboardShortcut(CategoryDock.digit(number), modifiers: .command)
         .accessibilityLabel(spoken(category))
         .accessibilityHint(L10n.string("Shows these sets and ways to practise"))
@@ -939,7 +939,15 @@ private struct DockSlots: Layout {
 private struct DockItemFace: View {
     let symbol: String
     let title: String
-    let ink: Color
+    let chosen: Bool
+    @Environment(\.isEnabled) private var enabled
+
+    /// The states every control keeps: Chart Ink, the section's accent when
+    /// chosen, Biro Grey when disabled.
+    private var ink: Color {
+        if !enabled { return .wardDisabledInk }
+        return chosen ? .wardPrimaryInk : .wardInk
+    }
 
     var body: some View {
         VStack(spacing: 3) {

@@ -1985,6 +1985,15 @@ with the marks on the screens last.
       contrast 6.8) and the same switches in one step that must pass. Run on
       a real recording with fades (before2/mode-switch.mp4) the old gate said
       light 3.8 and passed; this one says light 31.3 and fails four fades.
+    - [x] B2: the dock, the rail, the Ideas pill, the AX list button and
+      FloatingSwitcher follow the states: chosen keeps the pressed-in hollow
+      and adds the 2 pt accent edge (wardChosenEdge on the moving hollow),
+      unchosen enabled items are in Chart Ink (Biro Grey is disabled's),
+      held sinks with the Ward press (WardItemButtonStyle,
+      WardPanelButtonStyle, not `.buttonStyle(.plain)`), the collapse
+      chevron is in Chart Ink. Rings, shaping and Ideas' magenta stay.
+      tests/ward/dock-states.test.mjs reads the sources for it; the pictures
+      come from the next Ward preview.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

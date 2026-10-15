@@ -195,9 +195,10 @@ private struct SwitcherSegment<Value: Hashable>: View {
     let tint: Color
     let liftSpace: Namespace.ID
     let action: () -> Void
+    @Environment(\.isEnabled) private var enabled
 
     var body: some View {
-        let ink: Color = chosen ? tint : Color.wardInkSecondary
+        let ink: Color = !enabled ? Color.wardDisabledInk : chosen ? tint : Color.wardInk
         let shape = RoundedRectangle(cornerRadius: 21, style: .continuous)
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         Button(action: action) {
@@ -220,7 +221,7 @@ private struct SwitcherSegment<Value: Hashable>: View {
             }
             .contentShape(shape)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(WardItemButtonStyle(chosen: chosen, shape: shape))
         .hoverEffect(.highlight)
         .accessibilityLabel(L10n.lookup(item.title))
         .accessibilityAddTraits(traits)
@@ -239,6 +240,8 @@ private struct SwitcherLift: View {
     // well jumps rather than travels.
     var body: some View {
         WardReliefFace(shape: shape, lift: .low, inset: true)
+            // the chosen item's 2-point edge in its ink, moving with it
+            .wardChosenEdge(shape, true, color: tint)
             .matchedGeometryEffect(id: "switcherLift", in: liftSpace)
     }
 }
@@ -251,11 +254,11 @@ private struct SwitcherCollapseButton: View {
         Button(action: action) {
             Image(systemName: "chevron.down")
                 .scaledFont(14, relativeTo: .body, weight: .bold, maxSize: 24)
-                .foregroundStyle(Color.wardInkSecondary)
+                .foregroundStyle(Color.wardInk)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(WardItemButtonStyle(shape: Circle()))
         .hoverEffect(.highlight)
         .accessibilityLabel(L10n.string("Hide the switcher"))
         .accessibilityIdentifier(identifier)

@@ -322,6 +322,79 @@ private struct WardChipButtonFace: View {
     }
 }
 
+/// The buttons of a dock, a rail and a switcher: items that sit side by
+/// side on a panel, one of them chosen. They follow the states every other
+/// control keeps (WardControlStates): unchosen and enabled, the words are
+/// Chart Ink; chosen, they take the section's accent and the item stands
+/// pressed in with a 2-point accent edge (drawn by the item, which moves one
+/// hollow between them: `wardChosenEdge` on it); disabled, Biro Grey; held,
+/// the item sinks into the same hollow and the whole button sinks a little
+/// (CapPop), not the system's dimming a plain button gives.
+struct WardItemButtonStyle<S: InsettableShape>: ButtonStyle {
+    var chosen = false
+    let shape: S
+
+    func makeBody(configuration: Configuration) -> some View {
+        WardItemButtonFace(label: configuration.label, pressed: configuration.isPressed, chosen: chosen, shape: shape)
+    }
+}
+
+private struct WardItemButtonFace<S: InsettableShape>: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    let chosen: Bool
+    let shape: S
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.wardShowsPressed) private var showsPressed
+
+    var body: some View {
+        let held: Bool = enabled && (pressed || showsPressed)
+        label
+            .background {
+                // a chosen item already stands in its hollow
+                if held && !chosen {
+                    WardReliefFace(shape: shape, lift: .low, inset: true)
+                        .transition(.identity)
+                }
+            }
+            .capPop(held)
+    }
+}
+
+/// A button that is a raised panel of its own (the Ideas pill, the list
+/// button at the accessibility sizes): raised at rest; pressed in when
+/// chosen, with the 2-point accent edge; held, it sinks.
+struct WardPanelButtonStyle<S: InsettableShape>: ButtonStyle {
+    var chosen = false
+    var lift: WardLift = .mid
+    let shape: S
+
+    func makeBody(configuration: Configuration) -> some View {
+        WardPanelButtonFace(label: configuration.label, pressed: configuration.isPressed, chosen: chosen,
+                            lift: lift, shape: shape)
+    }
+}
+
+private struct WardPanelButtonFace<S: InsettableShape>: View {
+    let label: ButtonStyleConfiguration.Label
+    let pressed: Bool
+    let chosen: Bool
+    let lift: WardLift
+    let shape: S
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.wardShowsPressed) private var showsPressed
+
+    var body: some View {
+        let held: Bool = enabled && (pressed || showsPressed)
+        label
+            .background {
+                WardPressFace(shape: shape, lift: enabled ? lift : .low, pressed: chosen || held)
+                    .wardChosenEdge(shape, chosen)
+            }
+            .capPop(held)
+    }
+}
+
 extension View {
     /// A chosen control's mark: a solid edge in `color` (the section's
     /// accent) round `shape`, WardControlStates.chosenEdgeWidth wide, at
