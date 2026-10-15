@@ -1558,7 +1558,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     /// Moves every body whose disc on screen crosses the close-up subject's
-    /// (1.6 of its radius, the other's 1.2 of its own) sideways, at its own
+    /// (twice its radius, so a black hole's photon ring and the inner disk
+    /// are clear too; the other's 1.2 of its own) sideways, at its own
     /// depth, to just outside it, and stops it heading back in
     /// (closeUpSubject).
     private func keepClear(of s: Int, eye: SIMD3<Float>) {
@@ -1577,7 +1578,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             // where it sits across the screen, at the subject's distance
             let scale: Float = far / depth
             let side: SIMD3<Float> = (rel - ahead * depth) * scale
-            let need: Float = radius[s] * 1.6 + radius[j] * 1.2 * scale
+            let need: Float = radius[s] * 2.0 + radius[j] * 1.2 * scale
             let off: Float = simd_length(side)
             guard off < need else { continue }
             let out: SIMD3<Float> = off > 0.0001 ? side / off : aside

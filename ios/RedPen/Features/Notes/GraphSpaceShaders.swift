@@ -142,9 +142,9 @@ nonisolated enum GraphStyleShaders {
     /// code: suns and pulsars send, black holes swallow (GraphRibbons).
     ///
     /// - black hole: the beam narrows, reddens and fades into the horizon;
-    ///   at a B end its core spirals in, its pulses speed up as they fall,
-    ///   and each one sparks small and gold on arrival where the photon
-    ///   ring is (a broad white flash read as a puff of smoke);
+    ///   at a B end its core spirals in and its pulses speed up as they
+    ///   fall, and simply go into the dark (a flash on arrival read on
+    ///   screen as a grey smudge on the photon ring);
     /// - sun: hotter and whiter near it; at an A end pulses leave it fast
     ///   and swollen, like ejected plasma, then slow;
     /// - rocky planet: bluer near it, and each arriving pulse glints;
@@ -458,9 +458,6 @@ nonisolated enum GraphStyleShaders {
     rp_ends = rp_ends * smoothstep(0.0, rp_fadeB, rp_toEnd);
     rp_col = rp_col * (rp_flicker * rp_boost * rp_ends);
 
-    float rp_dEnd = rp_toEnd / (0.12 * rp_reach);
-    float rp_flash = exp(-rp_dEnd * rp_dEnd) * rp_arrive * rp_w2 * rp_bhB;
-    rp_col = rp_col + mix(rp_gold, rp_white, 0.4) * (rp_flash * 0.6);
     float rp_gd = (rp_toEnd - 0.12) / (0.2 * rp_reach);
     float rp_gs = rp_s0 * 1.3;
     float rp_star = exp(-(rp_gd * rp_gd + rp_gs * rp_gs) * 3.0);
@@ -1335,8 +1332,10 @@ nonisolated enum GraphStyleShaders {
     """ + bodyEnd
 
     /// The glow round the core and its wind nebula, after the Crab's: a
-    /// small, tight blue-white glare beating with the beams (the nebula,
-    /// not the glare, carries the look); in the equator, a
+    /// small, tight blue-white glare beating gently with the beams, never
+    /// near the core's own brightness even at a beat's peak, so the core's
+    /// edge holds in every frame (the nebula, not the glare, carries the
+    /// look); in the equator, a
     /// thin bright inner ring and the broader torus outside it, both broken
     /// into wisps that drift slowly outwards, the side coming towards the
     /// eye brighter; two jets along the spin axis; and round it all a
@@ -1365,8 +1364,8 @@ nonisolated enum GraphStyleShaders {
     rp_b = rp_b * rp_b;
     float rp_x = max(rp_r / rp_rl - 1.0, 0.0);
     float rp_h = 1.0 / (1.0 + rp_x * rp_x * 40.0) + 0.025 / (1.0 + rp_x * 1.5);
-    rp_h = rp_h * (0.5 + 0.9 * rp_b) * step(rp_rl * 0.95, rp_r);
-    float3 rp_col = float3(0.68, 0.8, 1.0) * (rp_h * 0.6);
+    rp_h = rp_h * (0.6 + 0.4 * rp_b) * step(rp_rl * 0.95, rp_r);
+    float3 rp_col = float3(0.68, 0.8, 1.0) * (rp_h * 0.42);
     float rp_ratio = sqrt(max(1.0 - rp_k * rp_k, 0.0));
     float rp_B = max(rp_ratio, 0.08);
     float rp_ex = rp_qx;
@@ -1395,7 +1394,7 @@ nonisolated enum GraphStyleShaders {
     float3 rp_syn = mix(float3(0.32, 0.42, 1.0), float3(0.55, 0.75, 1.0), rp_fm) * (rp_env * 0.46);
     float3 rp_warm = float3(1.0, 0.5, 0.32) * (rp_fil * rp_env * 0.4);
     float3 rp_wind = float3(0.62, 0.78, 1.0) * ((rp_ring + rp_torus) * rp_near + rp_jet);
-    rp_col = rp_col + (rp_wind + rp_syn + rp_warm) * (0.88 + 0.24 * rp_b);
+    rp_col = rp_col + (rp_wind + rp_syn + rp_warm) * (0.92 + 0.12 * rp_b);
     rp_col = rp_col * clamp((1.0 - rp_r) / 0.3, 0.0, 1.0);
 
     """ + glowEnd
@@ -1406,7 +1405,9 @@ nonisolated enum GraphStyleShaders {
     /// fine striations, blue-white at the core and violet at the edges,
     /// brightest and widest as the beam sweeps towards the eye (its z
     /// scale), but no more than 1.6 times, and starting at the core's limb,
-    /// never across it, so a beam facing the eye never blanks the core.
+    /// never across it; and the more it faces the eye, the dimmer its root
+    /// (seen end on, the whole beam's light piles on the core), so a beam
+    /// facing the eye never blanks the core.
     static let pulsarBeam: String = """
     #pragma arguments
     float rpClock;
@@ -1429,6 +1430,7 @@ nonisolated enum GraphStyleShaders {
     float rp_flow = 0.65 + 0.6 * rp_st;
     float rp_f2 = rp_face * rp_face;
     float rp_k = (rp_prof * 0.85 + rp_spine * 0.9) * rp_fade * rp_flow * (0.6 + 1.0 * rp_f2 * rp_f2);
+    rp_k = rp_k * (1.0 - 0.8 * rp_f2 * exp(-rp_ay / 0.25));
     float3 rp_hue = mix(float3(0.9, 0.95, 1.0), float3(0.52, 0.45, 1.0), clamp(abs(rp_ac) * 0.7, 0.0, 1.0));
     float3 rp_col = rp_hue * rp_k;
 
