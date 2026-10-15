@@ -15,7 +15,7 @@
 # modes.
 # small: home and each section at the iPhone SE's size (375 x 647, the
 # app's own frame inside this phone); and Dynamic Type at XXL (the largest
-# standard size) and AX1 (the first accessibility size).
+# standard size), AX1 (the first accessibility size) and AX5 (the largest).
 # device: home and each section in both modes, and home at XXL and AX1
 # (Pro Max, iPad).
 # states: the states gallery (every Ward control at rest, held, disabled
@@ -74,6 +74,7 @@ category() {
     extra-extra-large) echo UICTContentSizeCategoryXXL ;;
     extra-extra-extra-large) echo UICTContentSizeCategoryXXXL ;;
     accessibility-medium) echo UICTContentSizeCategoryAccessibilityM ;;
+    accessibility-extra-extra-extra-large) echo UICTContentSizeCategoryAccessibilityXXXL ;;
     *) echo UICTContentSizeCategoryL ;;
   esac
 }
@@ -218,6 +219,15 @@ elif [ "$plan" = small ]; then
   shoot dark library "type/ax1-library-dark"
   fit "ax1-library-dark"
   shoot light quiz "type/ax1-quiz-light"
+  # AX5, the largest: home (on the SE's frame too), the sections list and
+  # New set, where words broke and a row ran off the sheet (15 Oct)
+  SIZE=accessibility-extra-extra-extra-large
+  shoot light library "type/ax5-library-light"
+  fit "ax5-library-light"
+  shoot light library "type/ax5-library-se-light" "${SE[@]}"
+  fit "ax5-library-se-light"
+  shoot light sections "type/ax5-sections-light"
+  shoot light new "type/ax5-new-light"
   SIZE=""
   xcrun simctl ui "$UDID" content_size large >> "$LOG" 2>&1 || true
 else

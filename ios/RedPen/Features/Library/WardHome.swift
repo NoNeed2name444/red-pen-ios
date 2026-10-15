@@ -266,6 +266,8 @@ struct HomeHeader: View {
         VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide)))
                 .wardSmallCaps()
+                // every line it wraps to, whole, at the largest sizes
+                .fixedSize(horizontal: false, vertical: true)
             nameLine
             Text(greeting)
                 .font(.subheadline)

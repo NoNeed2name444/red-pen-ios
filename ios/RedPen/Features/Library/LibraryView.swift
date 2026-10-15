@@ -933,43 +933,20 @@ struct LibraryView: View {
 
     /// The top of home: the one search field, which searches whatever is on
     /// show, and the account menu beside it. While typing, Cancel takes the
-    /// menu's place.
+    /// menu's place. At the accessibility sizes the field has a row of its
+    /// own under them, so its prompt has the width to wrap whole.
     private var topRow: some View {
-        HStack(spacing: WardSpace.m) {
-            HStack(spacing: WardSpace.s) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(Color.wardInkSecondary)
-                    .accessibilityHidden(true)
-                TextField(searchPrompt, text: searchText,
-                          prompt: Text(searchPrompt).foregroundStyle(Color.wardInkSecondary))
-                    .focused($searchFocused)
-                    .submitLabel(.search)
-                    .autocorrectionDisabled()
-                    .foregroundStyle(Color.wardInk)
-                    .accessibilityIdentifier("librarySearch")
-                if !searchText.wrappedValue.isEmpty {
-                    Button {
-                        searchText.wrappedValue = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(Color.wardInkSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear search")
+        Group {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .trailing, spacing: WardSpace.s) {
+                    HStack(spacing: WardSpace.m) { topControls }
+                    searchField
                 }
-            }
-            .wardField()
-            if searchFocused {
-                Button("Cancel") {
-                    searchText.wrappedValue = ""
-                    searchFocused = false
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.wardPrimaryInk)
             } else {
-                // a short window's New set, beside the account button
-                if shortWindow && newSetShown { newSetCircle }
-                accountMenu
+                HStack(spacing: WardSpace.m) {
+                    searchField
+                    topControls
+                }
             }
         }
         .padding(.horizontal, WardSpace.l)
@@ -983,6 +960,63 @@ struct LibraryView: View {
                     .ignoresSafeArea(edges: [.top, .horizontal])
                     .transition(.identity)
             }
+        }
+    }
+
+    /// The search field: the magnifier, the field, and Clear once there is
+    /// something to clear. Its prompt is drawn over it (SearchPrompt) rather
+    /// than as its placeholder, which UIKit cut short on one line at every
+    /// size ("Search questions, cards, no..."); VoiceOver still hears the
+    /// field's own name.
+    private var searchField: some View {
+        HStack(spacing: WardSpace.s) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(Color.wardInkSecondary)
+                // a glyph, grown no further than AX1, leaving the prompt
+                // its width
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                .accessibilityHidden(true)
+            ZStack(alignment: .leading) {
+                // kept in the layout while typing, so the field keeps its
+                // height and the page does not jump
+                SearchPrompt(text: searchPrompt)
+                    .opacity(searchText.wrappedValue.isEmpty ? 1 : 0)
+                TextField(searchPrompt, text: searchText, prompt: Text(verbatim: ""))
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .foregroundStyle(Color.wardInk)
+                    .accessibilityIdentifier("librarySearch")
+            }
+            if !searchText.wrappedValue.isEmpty {
+                Button {
+                    searchText.wrappedValue = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .wardField()
+    }
+
+    /// Beside the search field (above it, at the accessibility sizes):
+    /// Cancel while typing; otherwise the account menu, and a short window's
+    /// New set beside it.
+    @ViewBuilder
+    private var topControls: some View {
+        if searchFocused {
+            Button("Cancel") {
+                searchText.wrappedValue = ""
+                searchFocused = false
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.wardPrimaryInk)
+        } else {
+            if shortWindow && newSetShown { newSetCircle }
+            accountMenu
         }
     }
 
@@ -1112,5 +1146,28 @@ private struct KeyboardWatch: ViewModifier {
             .onReceive(KeyboardWatch.hides) { _ in
                 withAnimation(.snappy) { up = false }
             }
+    }
+}
+
+/// The search field's prompt, whole: on one line in the field's own size
+/// where it fits, else a size or two smaller, else wrapped over two or more
+/// lines, never cut and never broken inside a word. Past AX1 it grows no
+/// further, so its longest word ("questions,") still fits the field; the
+/// words typed grow on. VoiceOver reads the field's name instead.
+private struct SearchPrompt: View {
+    let text: String
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(text).lineLimit(1)
+            Text(text).font(.callout).lineLimit(1)
+            Text(text).font(.subheadline).lineLimit(1)
+            Text(text).font(.footnote).lineLimit(1)
+            Text(text).fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(Color.wardInkSecondary)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
