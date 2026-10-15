@@ -1102,9 +1102,19 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
       trace is the same with it, and the tour's pictures would change. A
       new UI test calls it too (the perf streams' testPerformanceMillion
       and GraphPerfProofUITests when they land).
+    - The AX5 walk (AccessibilityUITests) failed the same day with "no
+      example mcq/anki set" and "could not choose audio/ideas" (runs
+      38689063193 and 38684974986): openSet() and choose() waited 8 s and
+      5 s for the row before any swipe, but at AX5 the header fills the
+      screen and the list makes a row only once it is scrolled to. Both
+      now scroll to find it (scrollToFind: up to 6 swipes down the
+      Sections sheet; up to 16 down the library, then 24 back up, as a
+      section chosen again keeps the page below the sets), then wait for
+      it to be pressable. Checks and messages unchanged.
     - [ ] Its check run: the two variables in the session log's launch
       environment, every test's console in the bundle small (the tour's
-      52 MB down to a few KB), and the suite green.
+      52 MB down to a few KB), the suite green, and the AX5 walk past
+      choose() and openSet().
 
 ## 4. M3: the Neurons rebuild
 
