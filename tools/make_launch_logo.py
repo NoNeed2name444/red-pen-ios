@@ -22,10 +22,11 @@ How the ground comes out (per pixel P, ground G, both known exactly):
   image gives P again, to the rounding of a byte: no halo and no jump when
   the launch screen hands over to the opening.
 
-The owner's pair (14 Oct): the white tube by day (02-white-flat.png) and the
-slate tube by night (06-slate-flat-dark.png), written as LaunchLogo's light
-and dark images, cropped the same way so the mark sits at the same place in
-both modes. It measures where the chest piece is in each (as fractions of the image)
+The owner's pair (14 Oct): the white tube by day and the slate tube by night,
+kept as design/launch-logo/light.png and dark.png (named by mode, not by
+colour, so a new tube for either is one file copied over the old), written
+as LaunchLogo's light and dark images, cropped the same way so the mark sits
+at the same place in both modes. It measures where the chest piece is in each (as fractions of the image)
 and writes that into LaunchArt.chest in ios/RedPen/Shared/LaunchOpening.swift.
 """
 
@@ -47,11 +48,11 @@ HOLE = 41              # enclosed pockets narrower than this (pixels) are the ma
 CLOSE = 9              # gaps inside the mark narrower than this (pixels) are closed
 NOISE = 2              # this close to the ground is the ground
 
-# The art: swapping it is replacing these two files in design/launch-logo
-# and running this script, which measures the chest piece itself and writes
+# The art: swapping it is copying a new picture over light.png or dark.png in
+# design/launch-logo and running this script (or tools/swap_art.sh), which measures the chest piece itself and writes
 # it into LaunchOpening.swift.
 VERSIONS = {
-    "launch": {"set": "LaunchLogo", "day": "02-white-flat.png", "night": "06-slate-flat-dark.png"},
+    "launch": {"set": "LaunchLogo", "day": "light.png", "night": "dark.png"},
 }
 
 
