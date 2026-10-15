@@ -432,4 +432,4 @@ suite storeload StoreLoadTests.swift ios/RedPen/Persistence/Store.swift ios/RedP
 suite pictures LibraryPicturesTests.swift $S/LibraryPictures.swift $S/BlobRefs.swift $S/RecoveryFiles.swift
 # the launch opening: the heartbeat in step with its sound, the ECG drawn
 # with it, the hole that uncovers home, the art and the sound it uses
-suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift
+suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift $S/LaunchDiagnostics.swift

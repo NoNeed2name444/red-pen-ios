@@ -258,7 +258,10 @@ struct LibraryView: View {
         }
         // Save to Ideas: the study screens' store, and a saved note's way
         // back to where it came from (LibrarySavedIdeas)
-        .onAppear { attachIdeaSaver() }
+        .onAppear {
+            LaunchStage.shared.mark("home", once: true)
+            attachIdeaSaver()
+        }
         .onReceive(PlatformNotice.publisher(PlatformNotice.openItem)) { note in
             if let source = note.userInfo?["source"] as? NoteSource { openSaved(source) }
         }

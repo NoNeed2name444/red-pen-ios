@@ -413,6 +413,41 @@ check("the Launch recording photographs every moment, in the storyboard's order"
       recording.contains("for m in " + full.moments.map(\.name).joined(separator: " ") + "; do")
       && recording.contains("-uiPreviewSplashAt \"$m\""))
 
+// MARK: the hand-off's diagnostics
+
+// A recorded opening lists each gap over 50 ms with the main thread's CPU
+// time across it, the link's interval, and the marks of home's loads
+// (LaunchDiagnostics); the judge reads gap_ms and ignores the rest.
+var diag = LaunchDiagnostics()
+// host clock: the opening's clock is 100 s behind it, hand-off at 0.73
+let toClock: (Double) -> Double = { $0 - 100 }
+diag.moment("handoff", at: 100.73)
+diag.moment("home", at: 100.75)
+diag.load("plan", from: 100.80, to: 101.38)
+diag.load("early", from: 90.0, to: 90.1)
+diag.load("late", from: 103.0, to: 103.2)
+diag.tick(end: 100.70, gap: nil, cpu: 1.000, interval: 1.0 / 60)
+diag.tick(end: 100.80, gap: 0.016, cpu: 1.010, interval: 1.0 / 60)
+diag.tick(end: 100.94, gap: 0.117, cpu: 1.108, interval: 1.0 / 60)
+diag.tick(end: 101.00, gap: 0.050, cpu: 1.120, interval: 1.0 / 60)
+diag.tick(end: 101.40, gap: 0.062, cpu: 1.128, interval: 1.0 / 60)
+check("only gaps over 50 ms are listed, with the CPU time across each",
+      diag.gaps.count == 2 && near(diag.gaps[0].length, 0.117) && near(diag.gaps[0].cpu, 0.098)
+      && near(diag.gaps[1].length, 0.062) && near(diag.gaps[1].cpu, 0.008), "\(diag.gaps)")
+let line = diag.fields(clock: toClock, from: 0.73, to: 1.97)
+check("the extra fields: gaps, interval and marks, led by a space",
+      line == " gaps=+0.94:117ms/cpu98ms,+1.40:62ms/cpu8ms interval_ms=16.7"
+        + " marks=handoff+0.73,home+0.75,plan+0.80..+1.38", line)
+check("a load outside the hand-off-to-still window is left out",
+      !line.contains("early") && !line.contains("late"), line)
+check("the gap_ms the judge reads is not in the extra fields", !line.contains("gap_ms"), line)
+let quiet = LaunchDiagnostics().fields(clock: toClock, from: 0.73, to: 1.97)
+check("with nothing noted the fields say so", quiet == " gaps=none interval_ms=none marks=none", quiet)
+var many = LaunchDiagnostics()
+for i in 0..<100 { many.load("plan", from: 100.8 + Double(i) * 0.001, to: 100.81 + Double(i) * 0.001) }
+check("the marks are capped",
+      many.fields(clock: toClock, from: 0.73, to: 1.97).components(separatedBy: "plan").count - 1 == LaunchDiagnostics.mostMarks)
+
 // MARK: no fading, anywhere in the opening
 
 let splash = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchSplash.swift", encoding: .utf8)) ?? ""

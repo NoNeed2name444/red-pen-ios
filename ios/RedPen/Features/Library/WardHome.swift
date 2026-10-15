@@ -61,14 +61,14 @@ extension LibraryView {
     var showsRound: Bool {
         guard !searching, !store.library.isEmpty else { return false }
         if category == .questions { return true }
-        return category == .cards && !reviews.dueAcross(store.library).isEmpty
+        return category == .cards && !homeDue().isEmpty
     }
 
     /// Today's ward round, and on Questions the two tiles under it.
     @ViewBuilder
     var homeRoundSections: some View {
         if showsRound {
-            let due: [ReviewPlan.Due] = reviews.dueAcross(store.library)
+            let due: [ReviewPlan.Due] = homeDue()
             // the card and the tiles stand as low as the rows below them,
             // so the cell never cuts their lights
             Section { roundCard(due: due).launchEntrance(inOpening: true).wardCardRow() }
@@ -87,8 +87,19 @@ extension LibraryView {
             .listRowSeparator(.hidden)
     }
 
+    /// The cards due across the library: one of home's loads, marked for a
+    /// recorded opening (LaunchStage.measure). A control take
+    /// (`-uiPreviewStubHomeData`) has none and skips the load; its stand-ins
+    /// (HomeStandIn) carry the count.
+    private func homeDue() -> [ReviewPlan.Due] {
+        if LaunchStage.stubHomeData { return [] }
+        return LaunchStage.shared.measure("due") { reviews.dueAcross(store.library) }
+    }
+
     private func roundCard(due: [ReviewPlan.Due]) -> some View {
-        let input: BedPlan.Input = bedInput(due: due)
+        let input: BedPlan.Input = LaunchStage.stubHomeData
+            ? HomeStandIn.bedInput
+            : LaunchStage.shared.measure("plan") { bedInput(due: due) }
         let beds: [BedPlan.Bed] = BedPlan.beds(input)
         let note: String? = input.phase.holdsNewMaterial ? input.phase.headline : nil
         return HomeRoundCard(beds: beds, note: note,
@@ -97,6 +108,16 @@ extension LibraryView {
     }
 
     private func homeTiles(due: Int) -> some View {
+        if LaunchStage.stubHomeData {
+            return HomeTiles(readiness: HomeStandIn.readiness, streak: 3, rhythm: HomeStandIn.rhythm,
+                             ideas: 12, links: 8,
+                             onVitals: { support = .analytics },
+                             onIdeas: { goToIdeas() })
+        }
+        return LaunchStage.shared.measure("tiles") { homeTilesLoaded(due: due) }
+    }
+
+    private func homeTilesLoaded(due: Int) -> HomeTiles {
         let readiness: ReadinessEstimate? = store.readiness(dueCards: due)
         let days: [String: Int] = StudyDays.merged(log: studyLog.days, answers: store.answerLog,
                                                    version: store.changeCount)
@@ -891,4 +912,32 @@ struct SetRow: View {
                 .accessibilityLabel("\(percent) percent done")
         }
     }
+}
+
+/// Cheap stand-in data for a control take (`-uiPreviewStubHomeData`, with
+/// `-uiPreviewSplash`): the same four beds and the same two tiles, filled
+/// from constants, so home's loads (due cards, the round's plan, the tiles'
+/// numbers) are out of the opening and nothing else changes. Never used in
+/// any other launch.
+enum HomeStandIn {
+    static let bedInput: BedPlan.Input = {
+        var input = BedPlan.Input()
+        input.dueCards = 12
+        input.dueFrom = ["Cardiology"]
+        input.topics = [BedPlan.Topic(name: "Cardiology", questions: 40, answered: 20, correct: 10)]
+        input.fresh = [BedPlan.FreshSet(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                                        name: "Respiratory", subject: "Respiratory", mode: .questions,
+                                        items: 30, createdAt: Date(timeIntervalSince1970: 0))]
+        input.stations = [BedPlan.Station(setID: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+                                          title: "Chest examination", resumes: false,
+                                          createdAt: Date(timeIntervalSince1970: 0))]
+        return input
+    }()
+
+    static let readiness = ReadinessEstimate(center: 0.62, low: 0.55, high: 0.69, answers: 60,
+                                             recentAccuracy: 0.65, coveragePenalty: 0.02, reviewPenalty: 0.01,
+                                             thinSubjects: [], dueCards: 12, passMark: 0.6, levers: [])
+
+    static let rhythm = RhythmReading.Reading(rhythm: .regular, beats: Array(repeating: true, count: 14),
+                                              activeDays: 14, span: 14)
 }

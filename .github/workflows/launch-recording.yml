@@ -111,25 +111,10 @@ jobs:
           mkdir -p film
           T="film/timing-$MODE.txt"
           stamp() { echo "$(date -u +%H:%M:%S.%N | cut -c1-12) $*  | load $(sysctl -n vm.loadavg)" >> "$T"; }
-          # wait until the runner settles: fixed in advance, the same for every
-          # take, capped at 5 minutes and logged; the 100 ms gate is unchanged
-          settle() {
-            local limit waited
-            limit=$(( 3 * $(sysctl -n hw.ncpu) ))
-            waited=0
-            LOAD=$(sysctl -n vm.loadavg | awk '{print $2}')
-            while ! awk -v l="$LOAD" -v lim="$limit" 'BEGIN { exit !(l < lim) }' && [ "$waited" -lt 300 ]; do
-              sleep 15
-              waited=$(( waited + 15 ))
-              LOAD=$(sysctl -n vm.loadavg | awk '{print $2}')
-            done
-            if awk -v l="$LOAD" -v lim="$limit" 'BEGIN { exit !(l < lim) }'; then
-              SETTLE=settled
-            else
-              SETTLE=unsettled
-            fi
-            stamp "take $1: $SETTLE, load $LOAD (limit $limit) after ${waited} s"
-          }
+          # the machine's state, for the timing file: Spotlight indexing, and
+          # the busiest processes just before and just after each launch
+          mdutil -a -s >> "$T" 2>&1 || true
+          busy() { { echo "--- $1: $(date -u +%H:%M:%S) busiest processes"; ps -Ao pcpu,comm -r | head -8; } >> "$T" 2>&1 || true; }
           stamp "booted and installed"
           # one launch first, unrecorded: the first launch after install
           # spends seconds on caches that no real opening does
@@ -139,14 +124,15 @@ jobs:
           # what the app measured of the hand-off (LaunchStage.writeReadout):
           # read back after each take, and cleared before the next
           readout() {
-            local data
+            local data OUT
+            OUT="film/handoff-$MODE.txt"; [ "${2:-}" = control ] && OUT="film/handoff-$MODE-control.txt"
             data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
             [ -n "$data" ] || return 0
             if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt"; return 0; fi
             if [ -f "$data/Library/Caches/launch-handoff.txt" ]; then
-              echo "take $1: $(cat "$data/Library/Caches/launch-handoff.txt") load=${LOAD:-none} settle=${SETTLE:-none}" >> "film/handoff-$MODE.txt"
+              echo "take $1: $(cat "$data/Library/Caches/launch-handoff.txt") load=${LOAD:-none}" >> "$OUT"
             else
-              echo "take $1: no readout load=${LOAD:-none} settle=${SETTLE:-none}" >> "film/handoff-$MODE.txt"
+              echo "take $1: no readout load=${LOAD:-none}" >> "$OUT"
             fi
           }
           # two recorded launches: the film is the first; the second shows
@@ -158,13 +144,19 @@ jobs:
             for attempt in 1 2 3; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               sleep 3
-              settle "$take"
+              # a fixed quiet period before every take, the same for each, with
+              # the load beside the readout; the 100 ms gate is unchanged
+              sleep 30
+              LOAD=$(sysctl -n vm.loadavg | awk '{print $2}')
+              stamp "take $take (attempt $attempt): after 30 s quiet"
               readout clear
               xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black --force "$name" &
               REC=$!
               sleep 3
               stamp "take $take (attempt $attempt): launch (3 s into $name)"
+              busy "take $take before launch"
               xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> "film/launch-$MODE.log" 2>&1
+              busy "take $take after launch"
               # a Debug build on a busy runner can sit on the launch screen ~10 s
               sleep 20
               kill -INT $REC
@@ -179,6 +171,20 @@ jobs:
             if [ $take = 1 ]; then
               xcrun simctl io "$UDID" screenshot --type=png "film/rest-$MODE.png" >/dev/null 2>&1 || true
             fi
+            # one control take after the judged one, the same way but with
+            # home's data stood in for (-uiPreviewStubHomeData): not judged,
+            # to show whether home's loads cause the long holds
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            sleep 3
+            sleep 30
+            LOAD=$(sysctl -n vm.loadavg | awk '{print $2}')
+            stamp "take $take control: after 30 s quiet"
+            readout clear
+            busy "take $take control before launch"
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash -uiPreviewStubHomeData >> "film/launch-$MODE.log" 2>&1
+            busy "take $take control after launch"
+            sleep 20
+            readout "$take" control
           done
           # the splash's first frame against the system launch screen, as
           # lossless screenshots: launched holding the first frame (marked

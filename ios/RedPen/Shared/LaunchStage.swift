@@ -64,6 +64,18 @@ final class LaunchStage {
     @ObservationIgnored private var longestGapAt: Double = 0
     @ObservationIgnored private var refreshes = 0
     @ObservationIgnored private var warmEnded: Double?
+    /// Diagnostics for a recorded opening only (LaunchDiagnostics): the long
+    /// gaps and what the main thread did in them, and the moments of home's
+    /// loads. `playHost` is the hand-off's moment as play() was given it,
+    /// which the marks are put on the opening's clock from.
+    @ObservationIgnored private var diag = LaunchDiagnostics()
+    @ObservationIgnored private var playHost: CFTimeInterval = 0
+    @ObservationIgnored private var readoutWritten = false
+    /// A recorded opening (`-uiPreviewSplash`) keeps the diagnostics.
+    static let recording = ProcessInfo.processInfo.arguments.contains("-uiPreviewSplash")
+    /// Control takes only (`-uiPreviewStubHomeData`): home uses cheap
+    /// stand-in data instead of its loads (WardHome).
+    static let stubHomeData = ProcessInfo.processInfo.arguments.contains("-uiPreviewStubHomeData")
     /// Where the ECG's baseline starts (window points), which the wave of
     /// home's parts follows up: set by the splash as it starts.
     @ObservationIgnored var traceStart: CGPoint = .zero
@@ -97,6 +109,8 @@ final class LaunchStage {
         guard now == 0, link == nil else { return }
         self.reduced = reduced
         self.handoffHost = handoffHost
+        playHost = handoffHost
+        mark("handoff", at: handoffHost)
         let o = LaunchOpening(reduced: reduced)
         lastTime = o.handoff + (CACurrentMediaTime() - handoffHost)
         // home back at its starting pose, while the ground still covers it
@@ -119,6 +133,14 @@ final class LaunchStage {
             if gap > longestGap { longestGap = gap; longestGapAt = raw }
             refreshes += 1
         }
+        if Self.recording, !readoutWritten {
+            // the main thread's CPU seconds: across a long gap, a thread that
+            // was working shows it, a thread that was waiting does not
+            let cpu = Double(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)) / 1e9
+            let counted = lastStamp != nil && raw >= o.handoff
+            diag.tick(end: link.targetTimestamp, gap: counted ? link.timestamp - (lastStamp ?? 0) : nil,
+                      cpu: cpu, interval: link.targetTimestamp - link.timestamp)
+        }
         lastStamp = link.timestamp
         let t = lastTime.map { o.carryOn(from: $0, to: raw, frame: link.targetTimestamp - link.timestamp) } ?? raw
         if t != raw { handoffHost = link.targetTimestamp - (t - o.handoff) }
@@ -133,6 +155,25 @@ final class LaunchStage {
         } else {
             now = t
         }
+    }
+
+    /// Notes a moment for the recorded opening's diagnostics (a no-op in any
+    /// other launch).
+    func mark(_ name: String, at host: CFTimeInterval = CACurrentMediaTime(), once: Bool = false) {
+        guard Self.recording, !readoutWritten else { return }
+        if once { guard marked.insert(name).inserted else { return } }
+        diag.moment(name, at: host)
+    }
+    @ObservationIgnored private var marked: Set<String> = []
+
+    /// Runs one of home's loads, noting when it starts and ends for the
+    /// recorded opening's diagnostics (a plain call in any other launch).
+    func measure<T>(_ name: String, _ work: () -> T) -> T {
+        guard Self.recording, !readoutWritten else { return work() }
+        let start = CACurrentMediaTime()
+        let result = work()
+        diag.load(name, from: start, to: CACurrentMediaTime())
+        return result
     }
 
     /// Whether a part of home should note where it stands now: while it is
@@ -179,12 +220,14 @@ final class LaunchStage {
     /// measured, in Caches/launch-handoff.txt, which the Launch recording
     /// workflow reads back after each take. Times are the opening's.
     private func writeReadout(_ o: LaunchOpening, still: Double) {
-        guard ProcessInfo.processInfo.arguments.contains("-uiPreviewSplash"),
+        readoutWritten = true
+        guard Self.recording,
               let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
         func s(_ x: Double) -> String { String(format: "%+.2f", x) }
         let line = "gap_ms=\(Int((longestGap * 1000).rounded())) at=\(s(longestGapAt))"
             + " refreshes=\(refreshes) handoff=\(s(o.handoff)) still=\(s(still))"
-            + " warm_off=\(warmEnded.map(s) ?? "none")\n"
+            + " warm_off=\(warmEnded.map(s) ?? "none")"
+            + diag.fields(clock: { o.handoff + ($0 - playHost) }, from: o.handoff, to: still) + "\n"
         try? line.write(to: dir.appendingPathComponent("launch-handoff.txt"), atomically: true, encoding: .utf8)
     }
 

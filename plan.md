@@ -1977,6 +1977,18 @@ with the marks on the screens last.
     hold over 100 ms survives on a settled runner with full refreshes, it
     is the app's: then os_signpost intervals round the hand-off, read back
     with log show --signpost.
+  - Diagnostics before any change to the app (no change to how the opening
+    or home look or behave, the 100 ms gate unchanged): a recorded opening
+    now also writes, after the old fields, `gaps=` (each gap over 50 ms:
+    its end, length and the main thread's CPU time across it), `interval_ms=`
+    and `marks=` (hand-off, home's first appearance, and the start..end of
+    home's loads: due cards, the round's plan, the tiles; LaunchDiagnostics,
+    WardHome). A gap with CPU near its length is the main thread working
+    (the loads or drawing); with CPU near 0 it was waiting (the runner, or a
+    lock). `-uiPreviewStubHomeData` stands constants in for those loads, for
+    a control take (film/handoff-MODE-control.txt, not judged) after each
+    judged one. The settle wait is replaced by a fixed 30 s sleep, and the
+    timing file now has mdutil and the busiest processes round each launch.
 
 ### Waiting on the owner
 
