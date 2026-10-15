@@ -58,6 +58,7 @@ final class GraphPerfProofUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "performance", "-graphPreviewPerfDemo", "1000000",
                                 "-graphPreviewPerfTour"] + arguments
+        app.keepTraceOffConsole()
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 120), "the map didn't open")
         let readout = app.descendants(matching: .any)["perfReadout"]

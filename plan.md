@@ -1978,6 +1978,12 @@ with the marks on the screens last.
       or more and 1% low 50 or more over a 10 s turn and zoom, the GPU
       memory's peak, before and after at each Graphics level, near and far
       stills, the slow-turn recording, and the independent review.
+      - 15 Oct, preview/perf-proof-1 (run 38724121848): every proof test
+        timed out at "the million was not built within 15 minutes: 0 notes
+        · 0 links, 0 fps", so the app's main thread was blocked, the known
+        console stall. fly() now calls app.keepTraceOffConsole() (taken
+        unchanged from design/ui-suite-fix, 0dbb1f74) before launch.
+        Rerun as preview/perf-proof-2.
   - [ ] Space, on design/space-bodies (after its current step).
   - [ ] Neurons, on design/neurons-depth (a new stream).
   - [ ] Frame time and draw calls before and after for each theme, at
