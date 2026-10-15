@@ -478,9 +478,9 @@ check("P7 the pace on ProMotion: the rate of the screen's 120, the slower of CPU
 check("P7 the 100,000 map names no stages", readout.stages.isEmpty)
 var staged = readout
 staged.detail = 26
-staged.cpuMedian = 0.0009; staged.nearMedian = 0.0031; staged.farMedian = 0.0012
+staged.cpuMedian = 0.0009; staged.planMedian = 0.0003; staged.nearMedian = 0.0031; staged.farMedian = 0.0012
 check("P7 the million map's readout: the split and the three stages",
-      staged.drawn.hasSuffix(" \u{00B7} opens at 26 pt") && staged.stages == "cpu 0.9 \u{00B7} near 3.1 \u{00B7} far 1.2 ms",
+      staged.drawn.hasSuffix(" \u{00B7} opens at 26 pt") && staged.stages == "cpu 0.9 (plan 0.3) \u{00B7} near 3.1 \u{00B7} far 1.2 ms",
       staged.drawn + " / " + staged.stages)
 check("P7 the median", GraphPerfStats.median([]) == 0 && GraphPerfStats.median([3, 1, 2]) == 2)
 readout.notes = 1; readout.links = 1; readout.drawnGlows = 1

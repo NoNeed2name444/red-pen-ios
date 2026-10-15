@@ -126,6 +126,8 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     /// where not measured): the CPU's own time, the GPU's near stage (notes,
     /// links) and far stage (bundles, glows).
     var cpuMedian: Double = 0
+    /// Of the CPU's, the planning.
+    var planMedian: Double = 0
     var nearMedian: Double = 0
     var farMedian: Double = 0
     /// The layout is still settling.
@@ -163,11 +165,12 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
             + (detail > 0 ? " \u{00B7} opens at " + String(Int(detail.rounded())) + " pt" : "")
     }
 
-    /// "cpu 0.9 · near 3.1 · far 1.2 ms", where the stages are measured
+    /// "cpu 0.9 (plan 0.3) · near 3.1 · far 1.2 ms", where the stages are measured
     /// (the million map); empty elsewhere.
     var stages: String {
-        guard nearMedian > 0 || farMedian > 0 else { return "" }
-        return "cpu " + Self.millis(cpuMedian) + " \u{00B7} near " + Self.millis(nearMedian)
+        guard cpuMedian > 0 || nearMedian > 0 || farMedian > 0 else { return "" }
+        return "cpu " + Self.millis(cpuMedian) + " (plan " + Self.millis(planMedian) + ") \u{00B7} near "
+            + Self.millis(nearMedian)
             + " \u{00B7} far " + Self.millis(farMedian) + " ms"
     }
 

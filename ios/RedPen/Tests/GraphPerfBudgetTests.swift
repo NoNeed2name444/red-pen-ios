@@ -85,8 +85,12 @@ check("B3 two in a row coarsen once, then it waits out the frames in flight",
 // MARK: - B4 missed refreshes count, a pause does not
 
 var missing = GraphPerfFrameBudget(screenFPS: 120)
-for _ in 0..<2 { missing.record(cpu: 0.001, gpu: 0.004, interval: 2.0 / 120) }
-check("B4 frames that are a real part of a missed refresh coarsen", missing.split > GraphPerfFrameBudget.startingSplit(.high))
+for _ in 0..<20 { missing.record(cpu: 0.001, gpu: 0.005, interval: 2.0 / 120) }
+check("B4 frames within their share that missed a refresh anyway (the system's, the simulator's) cut nothing",
+      missing.split == GraphPerfFrameBudget.startingSplit(.high) && missing.bundleShare == 1, "split \(missing.split)")
+var missedAndOver = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<2 { missedAndOver.record(cpu: 0.001, gpu: 0.008, interval: 2.0 / 120) }
+check("B4 frames over their share coarsen, missed refresh or not", missedAndOver.split > GraphPerfFrameBudget.startingSplit(.high))
 var notOurs = GraphPerfFrameBudget(screenFPS: 120)
 for _ in 0..<20 { notOurs.record(cpu: 0.001, gpu: 0.001, interval: 2.0 / 120) }
 check("B4 cheap frames that missed a refresh anyway are someone else's: nothing is cut",
@@ -164,8 +168,12 @@ for _ in 0..<2 { nearHeavy.record(stages(0.001, 0.02, 0.001), interval: 1.0 / 12
 check("B9 notes and links over budget: a coarser split, every bundle kept",
       nearHeavy.split > start && nearHeavy.bundleShare == 1)
 var cpuHeavy = GraphPerfFrameBudget(screenFPS: 120)
-for _ in 0..<2 { cpuHeavy.record(stages(0.02, 0.001, 0.001), interval: 1.0 / 120) }
+for _ in 0..<2 { cpuHeavy.record(GraphPerfFrameStages(cpu: 0.02, near: 0.001, far: 0.001, plan: 0.015), interval: 1.0 / 120) }
 check("B9 planning over budget: a coarser split (planning grows with what is open)", cpuHeavy.split > start)
+var cpuOther = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<2_000 { cpuOther.record(GraphPerfFrameStages(cpu: 0.02, near: 0, far: 0, plan: 0.002), interval: 1.0 / 120) }
+check("B9 CPU over budget but not in planning (encoding, a debug build): the split is not what costs, it stays",
+      cpuOther.split == start && cpuOther.bundleShare == 1, "split \(cpuOther.split)")
 check("B9 bundles drawn: all at first, at least one, none of none",
       GraphPerfFrameBudget(screenFPS: 120).bundleLimit(29_763) == 29_763
       && farHeavy.bundleLimit(29_763) == Int((29_763 * GraphPerfFrameBudget.fewestBundles).rounded(.up))

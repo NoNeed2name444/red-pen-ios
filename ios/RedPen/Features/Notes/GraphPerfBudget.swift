@@ -6,7 +6,8 @@
 // time of the near stage - notes and links - and of the far stage - bundles
 // and glows - once the GPU is done) and how long since the last one. A frame
 // over its share of the refresh (`share` of 1/rate: 6.25 ms of 8.33 at 120)
-// counts against the stage that took the time; two in a row and that stage
+// counts against the stage that took the time (a refresh missed by a frame
+// within its share is the system's, not the map's); two in a row and that stage
 // draws less: the near one opens cells later (`split` x 1.2, so a slow phone
 // shows summaries sooner), the far one draws fewer bundles (the narrowest
 // and faintest go first). The split is never coarsened for time it did not
@@ -93,18 +94,19 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     /// A frame's cost when only the total GPU time is known: all of it is
     /// taken as the near stage (the detail).
     mutating func record(cpu: Double, gpu: Double?, interval: Double?) {
-        record(GraphPerfFrameStages(cpu: cpu, near: gpu, far: nil), interval: interval)
+        record(GraphPerfFrameStages(cpu: cpu, near: gpu, far: nil, plan: cpu), interval: interval)
     }
 
     /// A frame's cost, stage by stage (seconds; a GPU stage is nil until the
     /// GPU reports it), and `interval`, the seconds since the frame before
     /// (nil for the first after a pause).
     ///
-    /// Over budget, the stage that took the time pays: the near stage (or
-    /// the CPU, whose planning grows with what is open) by a coarser split,
-    /// the far stage by fewer bundles. The split never coarsens for time it
-    /// did not cost. A refresh missed while this frame was cheap (under half
-    /// its share) is someone else's and changes nothing.
+    /// Over budget, the stage that took the time pays: the near stage by a
+    /// coarser split, the far stage by fewer bundles, the CPU by a coarser
+    /// split only when planning (which grows with what is open) is most of
+    /// it. The split never coarsens for time it did not cost. Only the
+    /// frame's own cost counts: a refresh missed while it was within its
+    /// share is the system's (on the simulator, every few frames).
     mutating func record(_ stages: GraphPerfFrameStages, interval: Double?) {
         let cost = stages.cost
         lastCost = cost
@@ -114,8 +116,7 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
             return
         }
         if cost >= Self.stall { return }
-        let missed = interval.map { $0 > period * 1.5 && $0 < Self.stall } ?? false
-        if cost > target || (missed && cost >= target * 0.5) {
+        if cost > target {
             over += 1
             under = 0
             farUnder = 0
@@ -124,8 +125,10 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
                 switch stages.heaviest {
                 case .far:
                     setBundleShare(bundleShare * Self.bundleCut)
-                case .near, .cpu:
+                case .near:
                     setSplit(split * Self.coarser)
+                case .cpu:
+                    if stages.plan >= stages.cpu * 0.5 { setSplit(split * Self.coarser) }
                 }
             }
         } else if cost < target * 0.5 {
@@ -198,13 +201,16 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
 }
 
 /// One frame's cost by stage (seconds): the CPU's (planning, streaming and
-/// encoding, not the wait for a free slot), the GPU's near stage (layout,
-/// notes, links: what the split opens) and far stage (bundles and summary
-/// glows). A GPU stage is nil until it reports.
+/// encoding; not the waits for a free slot or a drawable), the GPU's near
+/// stage (layout, notes, links: what the split opens) and far stage
+/// (bundles and summary glows), and of the CPU's, the planning. A GPU stage
+/// is nil until it reports.
 nonisolated struct GraphPerfFrameStages: Sendable, Equatable {
     var cpu: Double
     var near: Double?
     var far: Double?
+    /// The part of `cpu` spent planning (it grows with the split).
+    var plan: Double = 0
 
     enum Stage: Sendable, Equatable { case cpu, near, far }
 

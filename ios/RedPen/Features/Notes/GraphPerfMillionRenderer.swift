@@ -181,6 +181,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     private var startTime: CFTimeInterval = CACurrentMediaTime()
     private var intervals: [Double] = []
     private var cpuTimes: [Double] = []
+    private var planTimes: [Double] = []
     private var drawnBundles: Int = 0
     private var statsTime: CFTimeInterval = 0
 
@@ -342,8 +343,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
                                       motion: motion)
 
         // plan: what is open, drawn and wanted
+        let planStart: CFTimeInterval = CACurrentMediaTime()
         state.planner.advance(seconds: Float(step))
         let frame = state.planner.plan(here, settings: budget.settings)
+        let planned: CFTimeInterval = CACurrentMediaTime() - planStart
 
         // stream: the wanted leaves, nearest first, within the budget
         frameNumber += 1
@@ -399,7 +402,13 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             compute.endEncoding()
         }
 
-        guard let pass = view.currentRenderPassDescriptor, let drawable = view.currentDrawable,
+        // the drawable: on a busy screen (or the simulator) a wait for the
+        // compositor, not the map's work, so it is not counted as the CPU's
+        let drawableStart: CFTimeInterval = CACurrentMediaTime()
+        let passOrNil: MTLRenderPassDescriptor? = view.currentRenderPassDescriptor
+        let drawableOrNil: CAMetalDrawable? = view.currentDrawable
+        let drawableWait: CFTimeInterval = CACurrentMediaTime() - drawableStart
+        guard let pass = passOrNil, let drawable = drawableOrNil,
               let farCommands = queue.makeCommandBuffer() else {
             let done: DispatchSemaphore = inFlight
             commands.addCompletedHandler { _ in done.signal() }
@@ -500,11 +509,13 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         stageClock.timeFar(farCommands)
         farCommands.commit()
 
-        // the CPU's own time: not the wait for a slot the GPU still had
-        let cpu = max(CACurrentMediaTime() - started - waited, 0)
+        // the CPU's own time: not the waits for a slot the GPU still had or
+        // for a drawable
+        let cpu = max(CACurrentMediaTime() - started - waited - drawableWait, 0)
         cpuTimes.append(cpu)
+        planTimes.append(planned)
         let gpu = stageClock.latest
-        budget.record(GraphPerfFrameStages(cpu: cpu, near: gpu.near, far: gpu.far), interval: interval)
+        budget.record(GraphPerfFrameStages(cpu: cpu, near: gpu.near, far: gpu.far, plan: planned), interval: interval)
         report(now: now, map: map, frame: frame, links: linkEntries)
     }
 
@@ -524,6 +535,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         let gpu = gpuClock.drain()
         let stages = stageClock.drain()
         stats.cpuMedian = GraphPerfStats.median(cpuTimes)
+        stats.planMedian = GraphPerfStats.median(planTimes)
         stats.nearMedian = GraphPerfStats.median(stages.near)
         stats.farMedian = GraphPerfStats.median(stages.far)
         let target: Double = 1.0 / Double(max(screenFPS, 1))
@@ -533,6 +545,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         stats.settling = false
         intervals.removeAll(keepingCapacity: true)
         cpuTimes.removeAll(keepingCapacity: true)
+        planTimes.removeAll(keepingCapacity: true)
         statsTime = now
         onStats?(stats)
     }
