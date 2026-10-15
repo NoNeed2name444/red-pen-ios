@@ -1,0 +1,32 @@
+== mode-switch-app
+11 frames; content contrast light 34.0, dark 32.1; a frame under 25.6 has faded
+11 frames; status bar contrast light 45.4, dark 42.1; a frame under 33.7 has faded
+clean: every frame keeps its contrast
+== mode-switch-quiz
+117 frames; content contrast light 42.1, dark 38.8; a frame under 31.1 has faded
+117 frames; status bar contrast light 46.5, dark 42.8; a frame under 34.2 has faded
+FADED frame 5 (status bar): contrast 12.2, brightness 224
+FADED frame 6 (status bar): contrast 12.3, brightness 224
+FADED frame 7 (status bar): contrast 15.4, brightness 225
+FADED frame 8 (status bar): contrast 14.2, brightness 222
+FADED frame 9 (status bar): contrast 13.7, brightness 219
+FADED frame 10 (status bar): contrast 13.7, brightness 219
+FADED frame 11 (status bar): contrast 13.7, brightness 219
+FADED frame 12 (status bar): contrast 14.9, brightness 219
+FADED frame 13 (status bar): contrast 14.9, brightness 219
+FADED frame 14 (status bar): contrast 14.9, brightness 219
+FADED frame 15 (status bar): contrast 14.9, brightness 219
+FADED frame 16 (status bar): contrast 16.7, brightness 218
+FADED frame 17 (status bar): contrast 18.7, brightness 217
+FADED frame 18 (status bar): contrast 20.7, brightness 217
+FADED frame 19 (status bar): contrast 23.0, brightness 216
+FADED frame 20 (status bar): contrast 25.2, brightness 216
+FADED frame 21 (status bar): contrast 27.7, brightness 215
+FADED frame 22 (status bar): contrast 27.8, brightness 215
+FADED frame 23 (status bar): contrast 29.6, brightness 215
+FADED frame 24 (status bar): contrast 31.8, brightness 214
+FADED frame 25 (status bar): contrast 34.1, brightness 213
+FADED frame 95 (status bar): contrast 12.2, brightness 224
+22 faded frames
+== mode-switch (system, not gated)
+only one mode in 128 frames: nothing to check
