@@ -3,6 +3,11 @@
 the heartbeat laid in where the app plays it, and a strip of frames.
 
     python3 tools/launch_film.py RAW.mp4 light|dark OUT.mp4 [--strip OUT.png]
+        [--handoff OUT.png] [--frames DIR]
+
+--strip is the whole opening every 0.1 s; --handoff the hand-off to home
+every 0.05 s (0.65 s to 1.55 s from the ECG's start), in rows; --frames
+keeps those hand-off frames at full size, to look for seams and jumps.
 
 The simulator records no sound. The app starts the ECG's baseline at the
 opening's zero and plays the heartbeat LaunchOpening.audioAt later (S1 on the
@@ -62,10 +67,29 @@ def ecg_start(paths: list[Path], mode: str) -> int:
     raise SystemExit("no ECG found in the recording")
 
 
+def sheet(paths: list[Path], picks: list[int], start: int, out: str, per_row: int, tw: int = 180) -> None:
+    """Frames `picks` side by side, `per_row` to a row, each labelled with
+    its seconds from the opening's zero (the ECG's first frame)."""
+    picks = [p for p in picks if 0 <= p < len(paths)]
+    thumbs = [Image.open(paths[p]).convert("RGB") for p in picks]
+    th = int(thumbs[0].height * tw / thumbs[0].width)
+    rows = -(-len(thumbs) // per_row)
+    img = Image.new("RGB", (tw * min(per_row, len(thumbs)), (th + 18) * rows), "black")
+    draw = ImageDraw.Draw(img)
+    for i, (t, p) in enumerate(zip(thumbs, picks)):
+        x, y = (i % per_row) * tw, (i // per_row) * (th + 18)
+        img.paste(t.resize((tw, th), Image.LANCZOS), (x, y + 18))
+        draw.text((x + 6, y + 3), f"{(p - start) / FPS:+.2f} s", fill="white")
+    img.save(out)
+    print(out, [f"{(p - start) / FPS:+.2f}" for p in picks])
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("raw"); ap.add_argument("mode", choices=["light", "dark"]); ap.add_argument("out")
     ap.add_argument("--strip")
+    ap.add_argument("--handoff")
+    ap.add_argument("--frames")
     args = ap.parse_args()
     audio_at, _ = constants()
     with tempfile.TemporaryDirectory() as d:
@@ -87,20 +111,19 @@ def main() -> int:
                         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", args.out], check=True)
         print(f"{args.out}: ECG from frame {start} ({zero:.3f} s), heartbeat at {zero + audio_at:.3f} s")
         if args.strip:
-            # from just before the ECG to past the reveal, every 0.1 s
-            picks = [start - 6] + [start + int(k * FPS * 0.1) for k in range(0, 15)]
-            picks = [p for p in picks if 0 <= p < len(paths)]
-            thumbs = [Image.open(paths[p]).convert("RGB") for p in picks]
-            tw = 180
-            th = int(thumbs[0].height * tw / thumbs[0].width)
-            strip = Image.new("RGB", (tw * len(thumbs), th + 18), "black")
-            draw = ImageDraw.Draw(strip)
-            for i, (t, p) in enumerate(zip(thumbs, picks)):
-                strip.paste(t.resize((tw, th), Image.LANCZOS), (i * tw, 18))
-                # seconds from the opening's zero (the ECG's first frame)
-                draw.text((i * tw + 6, 3), f"{(p - start) / FPS:+.2f} s", fill="white")
-            strip.save(args.strip)
-            print(args.strip, [f"{(p - start) / FPS:+.2f}" for p in picks])
+            # from just before the ECG to past the hand-off, every 0.1 s
+            picks = [start - 6] + [start + round(k * FPS * 0.1) for k in range(0, 17)]
+            sheet(paths, picks, start, args.strip, per_row=len(picks))
+        if args.handoff or args.frames:
+            picks = [start + round(k * FPS * 0.05) for k in range(13, 32)]
+            if args.handoff:
+                sheet(paths, picks, start, args.handoff, per_row=10, tw=200)
+            if args.frames:
+                out = Path(args.frames)
+                out.mkdir(parents=True, exist_ok=True)
+                for p in picks:
+                    if 0 <= p < len(paths):
+                        Image.open(paths[p]).save(out / f"t{(p - start) / FPS:+.2f}.png")
     return 0
 
 

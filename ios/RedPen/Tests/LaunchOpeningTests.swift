@@ -167,6 +167,16 @@ let reach = stride(from: o.handoff, through: o.settled, by: 0.005).map { o.gridR
 check("and only ever further", zip(reach, reach.dropFirst()).allSatisfy { $0 <= $1 + 1e-12 })
 check("home's parts follow one another 40 ms apart",
       near(o.entranceStart(1) - o.entranceStart(0), 0.04) && o.entranceStart(0) > o.handoff)
+let content = o.entranceStart(LaunchOpening.firstContent)
+check("home's content waits until the ECG and the stethoscope are over half way up past it",
+      o.travel(at: content) > 0.5 && o.markTravel(at: content) > 0.6 && content < o.landed)
+check("each part is nothing until it starts, and exactly in place at rest",
+      (0...LaunchOpening.lastOrder).allSatisfy { k in
+          o.entrance(k, at: o.entranceStart(k)).scale <= 0.0001 && o.entrance(k, at: .infinity) == (1, 0) })
+check("after the run-on the springs are within a tenth of a point of a 400 pt card",
+      (0...LaunchOpening.lastOrder).allSatisfy { k in
+          let e = o.entrance(k, at: o.settled + LaunchOpening.runOn)
+          return abs(e.scale - 1) * 400 < 0.1 && abs(e.drop) < 0.1 })
 check("the spring starts at 0 and settles at 1",
       LaunchOpening.spring(0) == 0 && abs(LaunchOpening.spring(LaunchOpening.settleTime) - 1) < 0.01
       && abs(LaunchOpening.spring(3) - 1) < 1e-6)
@@ -176,7 +186,8 @@ check("every letter is in place, at full size, once all is still",
       (0..<11).allSatisfy { let l = o.letter($0, at: o.settled); return near(l.scale, 1) && near(l.drop, 0) })
 check("the letters settle left to right", o.letter(0, at: o.handoff + 0.3).scale > o.letter(5, at: o.handoff + 0.3).scale)
 check("under Reduce Motion home is simply there at the hand-off",
-      still.gridReach(at: still.handoff) == 1 && still.letter(3, at: still.handoff).scale == 1)
+      still.gridReach(at: still.handoff) == 1 && still.letter(3, at: still.handoff).scale == 1
+      && still.entrance(4, at: still.handoff) == (1, 0))
 
 // the ECG becoming the squiggle beside the title
 let pairs = o.morph(trace.points, width: 160)

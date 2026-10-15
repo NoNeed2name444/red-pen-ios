@@ -114,9 +114,14 @@ struct LaunchOpening: Sendable {
     static let entranceLead = 0.06
     static let stagger = 0.04
     static let rise = 10.0
-    static let spring = (response: 0.40, damping: 0.74)
+    static let spring = (response: 0.36, damping: 0.76)
     /// How many parts enter in turn (LaunchEntrance's orders 0 ... last).
     static let lastOrder = 5
+    /// Home's content under the header (orders `firstContent` on: the round
+    /// card, the rows, the dock) waits until the ECG and the stethoscope
+    /// have gone up past it, so nothing grows underneath them.
+    static let firstContent = 3
+    static let contentLead = 0.24
     /// The title's letters, left to right, as the stethoscope arrives.
     static let letterLead = 0.22
     static let letterStagger = 0.022
@@ -127,7 +132,22 @@ struct LaunchOpening: Sendable {
     /// The splash's life.
     var duration: Double { landed }
     /// When part `order` of home starts to enter.
-    func entranceStart(_ order: Int) -> Double { handoff + Self.entranceLead + Self.stagger * Double(order) }
+    func entranceStart(_ order: Int) -> Double {
+        if order < Self.firstContent { return handoff + Self.entranceLead + Self.stagger * Double(order) }
+        return handoff + Self.contentLead + Self.stagger * Double(order - Self.firstContent)
+    }
+    /// Part `order` of home at time `t`: its scale (from nothing, a touch
+    /// over, to 1) and how far below its place it is, in points. Infinity is
+    /// at rest. Under Reduce Motion it is simply there from the hand-off.
+    func entrance(_ order: Int, at t: Double) -> (scale: Double, drop: Double) {
+        guard t.isFinite else { return (1, 0) }
+        if reduced { return t >= handoff ? (1, 0) : (0.0001, Self.rise) }
+        let s = Self.spring(t - entranceStart(order))
+        return (max(0.0001, s), Self.rise * (1 - s))
+    }
+    /// How long home keeps moving after `settled`, so the springs' last
+    /// fraction of a point is played out rather than cut.
+    static let runOn = 0.30
     /// When the last of home is still (its spring within a point of rest).
     var settled: Double {
         if reduced { return handoff }
@@ -269,6 +289,7 @@ struct LaunchOpening: Sendable {
 
     /// How far home's ECG paper has been drawn out from the trace, 0 to 1.
     func gridReach(at t: Double) -> Double {
+        guard t.isFinite else { return 1 }
         if reduced { return t >= handoff ? 1 : 0 }
         return Self.easeOut((t - handoff) / Self.gridLength)
     }
@@ -276,6 +297,7 @@ struct LaunchOpening: Sendable {
     /// Letter `i` of the title: its scale (0 to 1, a touch over on the way)
     /// and how far below its place it is.
     func letter(_ i: Int, at t: Double) -> (scale: Double, drop: Double) {
+        guard t.isFinite else { return (1, 0) }
         if reduced { return t >= handoff ? (1, 0) : (0, 0) }
         let start = handoff + Self.letterLead + Self.letterStagger * Double(i)
         let p = Self.clamp((t - start) / Self.letterLength)

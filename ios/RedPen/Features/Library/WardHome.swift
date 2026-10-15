@@ -301,7 +301,7 @@ struct HomeHeader: View {
                                                           lineCap: .round, lineJoin: .round))
                 .frame(width: HomeHeader.squiggleSize.width, height: HomeHeader.squiggleSize.height)
                 // drawn the moment the opening's ECG lands on it
-                .scaleEffect(LaunchStage.shared.landed ? 1 : 0.0001)
+                .launchLanding()
                 .launchTarget(.squiggle)
                 .accessibilityHidden(true)
         }

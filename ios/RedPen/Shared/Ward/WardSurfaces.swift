@@ -232,10 +232,10 @@ struct WardPaperFrame: View {
     var body: some View {
         let top: CGFloat? = WardPaperTop.shared.y
         // at the opening's hand-off the paper is drawn outward from the ECG
-        // trace, frame by frame (LaunchStage); at rest this is one still frame
+        // trace, frame by frame (LaunchStage.now); at rest this is one still frame
         let stage = LaunchStage.shared
-        TimelineView(.animation(paused: !stage.gridDrawing)) { timeline in
-            let reach = stage.gridReach(at: timeline.date)
+        Group {
+            let reach = stage.gridReach()
             Canvas { context, size in
                 let w = Double(size.width), h = Double(size.height)
                 guard let panel = WardPaper.panel(width: w, height: h) else { return }
@@ -353,8 +353,8 @@ struct WardPaperBand: View {
 
     var body: some View {
         let stage = LaunchStage.shared
-        TimelineView(.animation(paused: !stage.gridDrawing)) { timeline in
-            let reach = stage.gridReach(at: timeline.date)
+        Group {
+            let reach = stage.gridReach()
             Canvas { context, size in
                 let height: CGFloat = min(size.height, bottom - origin.y)
                 guard height > 0 else { return }

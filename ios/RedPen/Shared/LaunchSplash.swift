@@ -420,20 +420,16 @@ final class LaunchOpeningView: UIView {
         }
         CATransaction.commit()
 
-        // home's parts start to enter as the hand-off starts; the paper is
-        // drawn out from the trace's middle
+        // home is posed from the same clock: its parts enter from the
+        // hand-off, and the paper is drawn out from the trace's middle
         let stage = LaunchStage.shared
         stage.gridOrigin = convert(CGPoint(x: ecg.frame.midX, y: ecg.frame.minY + Self.traceTop), to: nil)
         stage.window = window?.bounds.size ?? bounds.size
-        let toHandoff = max(0, zero + o.handoff - CACurrentMediaTime())
-        DispatchQueue.main.asyncAfter(deadline: .now() + toHandoff) {
-            LaunchStage.shared.enter(reduced: o.reduced)
-        }
+        stage.play(reduced: o.reduced, handoffHost: zero + o.handoff)
         // gone once the ECG is the squiggle (which home then draws, in the
         // same frame) and the stethoscope has shrunk to nothing
         let wait = max(0, zero + o.duration - CACurrentMediaTime()) + (goal == nil ? 0.03 : 0)
         DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
-            LaunchStage.shared.land()
             self?.done?()
         }
     }
@@ -516,21 +512,21 @@ final class LaunchOpeningView: UIView {
             v.subviews.forEach(walk)
         }
         walk(window)
-        let length = LaunchOpening.settleTime
+        let length = LaunchOpening.settleTime + LaunchOpening.runOn
         let n = max(2, Int((length * 120).rounded(.up)))
         let ts = (0...n).map { length * Double($0) / Double(n) }
+        let start = o.entranceStart(0)
         for bar in bars {
             let a = CAKeyframeAnimation(keyPath: "transform")
             a.values = ts.map { t -> NSValue in
-                let s = CGFloat(t >= length ? 1 : max(0.0001, LaunchOpening.spring(t)))
-                let rise = CGFloat(LaunchOpening.rise) * (1 - min(s, 1.2))
-                var m = CATransform3DMakeTranslation(0, rise, 0)
-                m = CATransform3DScale(m, s, s, 1)
+                let e = o.entrance(0, at: start + t)
+                var m = CATransform3DMakeTranslation(0, CGFloat(e.drop), 0)
+                m = CATransform3DScale(m, CGFloat(e.scale), CGFloat(e.scale), 1)
                 return NSValue(caTransform3D: m)
             }
             a.keyTimes = ts.map { NSNumber(value: $0 / length) }
             a.duration = length
-            a.beginTime = zero + o.entranceStart(0)
+            a.beginTime = zero + start
             // nothing of it shows until it enters, and it ends as it is
             a.fillMode = .backwards
             a.isRemovedOnCompletion = true
