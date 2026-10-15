@@ -37,6 +37,8 @@ struct RedPenApp: App {
     @ObservedObject private var llm = LocalLLMService.shared
 
     init() {
+        // the launch recording's diagnostic: what holds the main thread up
+        LaunchHangProbe.startIfRecording()
         // the background check for cloud jobs has to be registered before
         // launch finishes
         CloudJobCollector.registerRefresh()

@@ -123,7 +123,12 @@ jobs:
             local data
             data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
             [ -n "$data" ] || return 0
-            if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt"; return 0; fi
+            if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt" "$data/Library/Caches/launch-hang.txt" "$data/Library/Caches/launch-frames.txt"; return 0; fi
+            # the diagnostic's samples (LaunchHangProbe), written ~12 s in
+            sleep 2
+            for f in hang frames; do
+              [ -f "$data/Library/Caches/launch-$f.txt" ] && cp "$data/Library/Caches/launch-$f.txt" "film/$f-$MODE-$1.txt"
+            done
             if [ -f "$data/Library/Caches/launch-handoff.txt" ]; then
               echo "take $1: $(cat "$data/Library/Caches/launch-handoff.txt")" >> "film/handoff-$MODE.txt"
             else
@@ -176,6 +181,74 @@ jobs:
           stamp "done"
           ls -la film
           cat "film/handoff-$MODE.txt"
+
+      - name: Name the held-up work
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import collections, glob, os, re, subprocess
+          for path in sorted(glob.glob("film/hang-*.txt")):
+              if path.endswith("-named.txt"):
+                  continue
+              lines = open(path).read().splitlines()
+              frame = re.compile(r"\s+(0x[0-9a-f]+) (0x[0-9a-f]+) (\S+) (.*)$")
+              entries = [m.groups() for m in map(frame.match, lines) if m]
+              names = {}
+              by_image = collections.defaultdict(set)
+              for pc, base, image, sym in entries:
+                  if "/RedPen.app/" in image and base != "0x0":
+                      by_image[(image, base)].add(pc)
+              for (image, base), pcs in by_image.items():
+                  pcs = sorted(pcs)
+                  for i in range(0, len(pcs), 200):
+                      chunk = pcs[i:i + 200]
+                      out = subprocess.run(["xcrun", "atos", "-o", image, "-l", base] + chunk,
+                                           capture_output=True, text=True).stdout.splitlines()
+                      for pc, name in zip(chunk, out):
+                          names[pc] = name.strip() + " [app]"
+              mangled = sorted({sym for pc, base, image, sym in entries if pc not in names})
+              dem = subprocess.run(["xcrun", "swift-demangle", "--simplified", "--compact"],
+                                   input="\n".join(mangled) + "\n", capture_output=True, text=True).stdout.splitlines()
+              demap = dict(zip(mangled, dem)) if len(dem) >= len(mangled) else {}
+              def label(pc, image, sym):
+                  if pc in names:
+                      return names[pc]
+                  return f"{demap.get(sym, sym)[:160]} ({os.path.basename(image)})"
+              out = []
+              stalls = []
+              for ln in lines:
+                  if ln.startswith("stall "):
+                      stalls.append({"head": ln, "samples": []})
+                  elif ln.startswith("sample ") and stalls:
+                      stalls[-1]["samples"].append([])
+                  else:
+                      m = frame.match(ln)
+                      if m and stalls and stalls[-1]["samples"]:
+                          stalls[-1]["samples"][-1].append(label(m.group(1), m.group(3), m.group(4)))
+              for st in stalls:
+                  n = len(st["samples"])
+                  out.append(st["head"])
+                  counts = collections.Counter()
+                  inner = collections.Counter()
+                  for smp in st["samples"]:
+                      counts.update(set(smp))
+                      app = [f for f in smp if f.endswith("[app]")]
+                      if app:
+                          inner[app[0]] += 1
+                  out.append("  innermost app frame, by samples:")
+                  for f, c in inner.most_common(15):
+                      out.append(f"    {c:4d}/{n}  {f}")
+                  out.append("  every frame, by samples it is in:")
+                  for f, c in counts.most_common(60):
+                      out.append(f"    {c:4d}/{n}  {f}")
+                  if n:
+                      out.append("  the middle sample, innermost first:")
+                      out.extend("    " + f for f in st["samples"][n // 2])
+              named = path[:-4] + "-named.txt"
+              open(named, "w").write("\n".join(out) + "\n")
+              print(f"== {named}")
+              print("\n".join(out[:120]))
+          PY
 
       - name: Judge the hand-off
         env:
