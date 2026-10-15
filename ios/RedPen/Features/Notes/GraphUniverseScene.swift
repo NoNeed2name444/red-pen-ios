@@ -216,6 +216,15 @@ extension GraphSceneBuilder {
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines, looks: simLooks,
                            lively: lively, labelReach: 5.5)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
+        // far bodies dissolve into the sky's near-black, the band on the
+        // focus (plan 4f, GraphDepthKeeper): glows, beams and links fade to
+        // nothing, so no veil lies over the nebula or the stars
+        GraphDepth.install(theme: .space, scene: scene, world: world, camera: cameraNode, sky: sky,
+                           skyRadius: skyRadius, middle: GraphMapBounds.centre(plan.envelope), contrast: contrast,
+                           still: !lively, sim: sim,
+                           bodies: infos.map { GraphDepth.Made(node: $0.node, label: $0.label) },
+                           more: [linkMaterial, farMaterial, hotRingMaterial] + hotDisk.materials,
+                           tint: Self.depthTint)
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.systems = plan.systems
@@ -227,6 +236,11 @@ extension GraphSceneBuilder {
         built.galaxyOf = galaxyOf
         return built
     }
+
+    /// The sky's near-black between the stars (sRGB, between GraphSpace's
+    /// dome at its poles and along its middle), that a solid body fades
+    /// toward with depth.
+    static let depthTint = SIMD3<Float>(0.012, 0.02, 0.055)
 
     /// The depth-1 star with the most notes (ties: the lower index), for the
     /// design preview's drag; the busiest folder of any kind without one.

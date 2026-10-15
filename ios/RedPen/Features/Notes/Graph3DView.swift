@@ -2344,9 +2344,10 @@ struct GraphSCNView: UIViewRepresentable {
         /// The camera eases a little towards a chosen body - a third of the
         /// way to the middle of the part of the screen above the card, and
         /// a tenth closer - or, from a link chip (`glide`), all the way to
-        /// that middle. Never with Reduce Motion (or while the space holds
-        /// still): the body is chosen where it is, and a chip's body is
-        /// brought to the middle at once.
+        /// that middle, and never deeper than what the camera looks at.
+        /// Never with Reduce Motion (or while the space holds still): the
+        /// body is chosen where it is, and a chip's body is brought to the
+        /// middle at once.
         private func ease(to i: Int, glide: Bool) {
             guard let view, let camera, let sim else { return }
             let size: CGSize = view.bounds.size
@@ -2355,25 +2356,47 @@ struct GraphSCNView: UIViewRepresentable {
             if still && !glide { return }
             let local: SIMD3<Float> = sim.currentPosition(i)
             let world: SIMD3<Float> = sim.world.presentation.simdConvertPosition(local, to: nil)
-            let at: SCNVector3 = view.projectPoint(SCNVector3(x: world.x, y: world.y, z: world.z))
-            guard at.z > 0, at.z < 1 else { return }
             // the middle of what the card (about 40% of the height) leaves
             let goal = CGPoint(x: size.width / 2, y: size.height * 0.34)
-            let share: CGFloat = glide ? 1 : 0.34
-            let nx: CGFloat = CGFloat(at.x) + (goal.x - CGFloat(at.x)) * share
-            let ny: CGFloat = CGFloat(at.y) + (goal.y - CGFloat(at.y)) * share
+            if glide {
+                // from where the body is, not where it is drawn: past the
+                // depth fade's end it is not drawn, and it lands in the
+                // crisp zone (plan 4f, GraphDepthGlide)
+                let seen: SCNNode = camera.presentation
+                let eye: SIMD3<Float> = seen.simdWorldPosition
+                let sight: SCNVector3 = view.unprojectPoint(SCNVector3(x: Float(goal.x), y: Float(goal.y), z: 0.5))
+                let target: SCNVector3 = view.defaultCameraController.target
+                let old = SIMD3<Float>(target.x, target.y, target.z)
+                guard let move = GraphDepthGlide.move(body: world, eye: eye,
+                                                      sight: SIMD3<Float>(sight.x, sight.y, sight.z),
+                                                      forward: seen.simdWorldFront, target: old) else { return }
+                let aim: SIMD3<Float> = old + move
+                view.defaultCameraController.target = SCNVector3(x: aim.x, y: aim.y, z: aim.z)
+                sim.setFocus(aim)
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = still ? 0 : 0.7
+                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                camera.simdPosition = eye + move
+                SCNTransaction.commit()
+                wake()
+                return
+            }
+            let at: SCNVector3 = view.projectPoint(SCNVector3(x: world.x, y: world.y, z: world.z))
+            guard at.z > 0, at.z < 1 else { return }
+            let nx: CGFloat = CGFloat(at.x) + (goal.x - CGFloat(at.x)) * 0.34
+            let ny: CGFloat = CGFloat(at.y) + (goal.y - CGFloat(at.y)) * 0.34
             let from: SCNVector3 = view.unprojectPoint(SCNVector3(x: at.x, y: at.y, z: at.z))
             let to: SCNVector3 = view.unprojectPoint(SCNVector3(x: Float(nx), y: Float(ny), z: at.z))
             let shift = SIMD3<Float>(from.x - to.x, from.y - to.y, from.z - to.z)
             let eye: SIMD3<Float> = camera.simdPosition + shift
             let toward: SIMD3<Float> = (world + shift) - eye
-            let closer: SIMD3<Float> = glide ? SIMD3<Float>(0, 0, 0) : toward * 0.1
+            let closer: SIMD3<Float> = toward * 0.1
             let target: SCNVector3 = view.defaultCameraController.target
             let aim = SIMD3<Float>(target.x, target.y, target.z) + shift + closer
             view.defaultCameraController.target = SCNVector3(x: aim.x, y: aim.y, z: aim.z)
             sim.setFocus(aim)
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = still ? 0 : (glide ? 0.7 : 0.45)
+            SCNTransaction.animationDuration = 0.45
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             camera.simdPosition = eye + closer
             SCNTransaction.commit()

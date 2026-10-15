@@ -397,6 +397,9 @@ final class GraphNeuronLook: GraphThemeLook {
         var parts = GraphThemeParts(node: node, radius: size * 0.8, ringStretch: stretch, ringLeaf: leaf,
                                     ringGeometry: halo, diskLeaf: disk)
         parts.glow = glow
+        // deep in the depth fade the halo and the impulses' glow, and a
+        // small cell's dendrites, shrink away (GraphDepthDetail)
+        parts.extras = [holder] + (arbor.map { [$0] } ?? [])
         // the many small resting notes' halos go first in a crowded map
         parts.thinnable = body.kind == .note && state == .resting
         return parts
@@ -855,6 +858,10 @@ final class GraphNeuronLook: GraphThemeLook {
     func makeSky() -> SCNNode {
         NeuronTissue.makeSky()
     }
+
+    /// The tissue fluid: every Neurons material is light added to it, so
+    /// this is only for a solid one (GraphDepthMode).
+    var depthTint: SIMD3<Float> { NeuronPalette.deep }
 }
 
 // MARK: - Impulses on the render thread

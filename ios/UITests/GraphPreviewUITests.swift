@@ -438,6 +438,155 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
+    // MARK: the depth fade (plan 4f)
+
+    /// The depth fade in each SceneKit theme, after and before
+    /// (`-graphDepthOff`): the whole map, and flown in close (Neurons:
+    /// Examples opened; Space: Inguinal's system), where what is far
+    /// dissolves into the theme's background and nothing past the band's
+    /// end is drawn.
+    func testDepthBeforeAfter() {
+        for (k, pair) in Self.depthThemes.enumerated() {
+            for near in [false, true] {
+                for off in [false, true] {
+                    let app = depthApp(pair.0, fly: near ? pair.1 : nil, off: off)
+                    sleep(near ? 6 : 4)
+                    snap(app, "60-\(k + 1)-\(pair.0)-\(near ? "near" : "whole")-\(off ? "before" : "after")")
+                    app.terminate()
+                }
+            }
+        }
+    }
+
+    /// Slow turns flown in close, for the recording: what comes forward
+    /// sharpens, what goes back dissolves, with no popping.
+    func testDepthTurnNeurons() {
+        let app = depthApp("neurons", fly: "Examples", off: false)
+        sleep(6)
+        snap(app, "61-1-neurons-turn-start")
+        slowTurn(app, times: 3)
+        sleep(1)
+        snap(app, "61-2-neurons-turn-end")
+    }
+
+    func testDepthTurnSpace() {
+        let app = depthApp("space", fly: "Inguinal", off: false)
+        sleep(6)
+        snap(app, "62-1-space-turn-start")
+        slowTurn(app, times: 3)
+        sleep(1)
+        snap(app, "62-2-space-turn-end")
+    }
+
+    /// The numbers: frame times (the meter, `-graphDepthMeter`) and
+    /// SceneKit's statistics (draw calls, on each picture) in each theme at
+    /// each Graphics level, whole and flown in close, after and before,
+    /// each over two slow turns. The meter's line says whether the fade was
+    /// on, off, or off because its shader failed the device's check
+    /// ("fallback"), and how many bodies were drawn.
+    func testDepthMeasure() {
+        var lines: [String] = []
+        for (k, pair) in Self.depthThemes.enumerated() {
+            for level in ["High", "Smooth"] {
+                for near in [false, true] {
+                    for off in [false, true] {
+                        let app = depthApp(pair.0, fly: near ? pair.1 : nil, off: off,
+                                           more: ["-graphDepthMeter", "-graphics" + level])
+                        sleep(near ? 6 : 4)
+                        slowTurn(app, times: 2)
+                        usleep(700_000)
+                        let meter = app.staticTexts["graphDepthMeter"]
+                        let read: String = meter.waitForExistence(timeout: 5) ? meter.label : "no meter"
+                        let name = "63-\(k + 1)-\(pair.0)-\(level.lowercased())-\(near ? "near" : "whole")-"
+                            + (off ? "before" : "after")
+                        lines.append(name + ": " + read)
+                        snap(app, name)
+                        app.terminate()
+                    }
+                }
+            }
+        }
+        let table = XCTAttachment(string: lines.joined(separator: "\n"))
+        table.name = "63-depth-numbers"
+        table.lifetime = .keepAlways
+        add(table)
+    }
+
+    /// A link chip's glide to a body past the band's end: flown in to
+    /// Inguinal's system, Groin hernia chosen, and its chip for Atrial
+    /// fibrillation - a planet far off in Cardiology, not drawn - tapped.
+    /// The camera glides it to the middle above the card, into the crisp
+    /// zone, where VoiceOver finds it too.
+    func testDepthGlide() {
+        let app = depthApp("space", fly: "Inguinal", off: false, more: ["-graphPreviewSelect", "Groin hernia"])
+        let card = app.otherElements["graphPeekCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 20), "no peek card")
+        sleep(2)
+        var chip: XCUIElement = card.buttons["Atrial fibrillation"]
+        if !chip.waitForExistence(timeout: 5) {
+            // the card's chip, not the body of the same name: low on the screen
+            let named = app.buttons.matching(NSPredicate(format: "label == %@", "Atrial fibrillation"))
+            for element in named.allElementsBoundByIndex where element.frame.minY > app.frame.height * 0.5 {
+                chip = element
+            }
+        }
+        XCTAssertTrue(chip.exists, "no Atrial fibrillation chip")
+        let before: CGRect? = bodyFrame(app, "Atrial fibrillation")
+        snap(app, "64-1-space-glide-before")
+        chip.tap()
+        sleep(1)
+        snap(app, "64-2-space-glide-after")
+        let after: CGRect? = bodyFrame(app, "Atrial fibrillation")
+        let note = XCTAttachment(string: "before \(String(describing: before))\nafter \(String(describing: after))")
+        note.name = "64-3-space-glide-frames"
+        note.lifetime = .keepAlways
+        add(note)
+        let screen: CGRect = app.frame
+        guard let after else {
+            XCTFail("Atrial fibrillation is not drawn after its chip's glide")
+            return
+        }
+        XCTAssertEqual(after.midX, screen.width / 2, accuracy: screen.width * 0.2, "not glided to the middle")
+        XCTAssertEqual(after.midY, screen.height * 0.34, accuracy: screen.height * 0.2, "not glided above the card")
+    }
+
+    private static let depthThemes: [(String, String)] = [("neurons", "Examples"), ("space", "Inguinal")]
+
+    private func depthApp(_ theme: String, fly: String?, off: Bool, more: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme]
+        if let fly { app.launchArguments += ["-graphPreviewFly", fly] }
+        if off { app.launchArguments += ["-graphDepthOff"] }
+        app.launchArguments += more
+        app.launch()
+        XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
+        return app
+    }
+
+    /// Turns the map slowly, about two seconds each way, along the upper
+    /// part of the screen (a quick press, so no body is held).
+    private func slowTurn(_ app: XCUIApplication, times: Int) {
+        let left = app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.3))
+        let right = app.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.3))
+        for n in 0..<times {
+            let from = n % 2 == 0 ? left : right
+            let to = n % 2 == 0 ? right : left
+            from.press(forDuration: 0.05, thenDragTo: to, withVelocity: 120, thenHoldForDuration: 0.2)
+        }
+    }
+
+    /// Where a body is drawn, as VoiceOver has it (a 44-point square round
+    /// it; none when it is not drawn), told apart from a chip of the same
+    /// name by its size.
+    private func bodyFrame(_ app: XCUIApplication, _ name: String) -> CGRect? {
+        let named = app.buttons.matching(NSPredicate(format: "label == %@", name))
+        for element in named.allElementsBoundByIndex {
+            let frame: CGRect = element.frame
+            if abs(frame.width - 44) < 1, abs(frame.height - 44) < 1 { return frame }
+        }
+        return nil
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let shot = uprightShot()
         shot.name = name

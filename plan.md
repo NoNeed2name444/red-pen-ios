@@ -1951,16 +1951,34 @@ with the marks on the screens last.
   - [ ] Space, on design/space-bodies (after its current step). Moved, 15
     Oct (about 9:05 AM): built once for both SceneKit themes on
     design/neurons-depth, Space adopting it in GraphUniverseScene.swift
-    only.
+    only. Step 2 (15 Oct): adopted there, solid bodies fading toward the
+    sky's near-black and its glows, beams and links to nothing, so no veil
+    over the nebula or the stars; the sky's own shaders untouched.
   - [ ] Neurons, on design/neurons-depth (a new stream). Step 1 (15 Oct):
     the band's numbers and maths for both SceneKit themes, Foundation only
     (GraphDepthFade.swift, suite graphdepth), and SceneKit's fog on the
     Neurons scene toward black, its band on what the camera orbits each
     frame (GraphDepthKeeper.swift; Graph3DView hands over the camera
     controller in one line), the fluid's dome kept inside the fog's start.
-    Next: verify on the Mac that the fog reaches the shader and additive
-    materials, then the shader-side curve, culling past the end, detail
-    inside the band, pills and picking, Space, and the measurements.
+    Step 2 (15 Oct): SceneKit's fog replaced by a fragment shader of our
+    own on every material of the map (added by walking the built scene,
+    no theme's shader files touched; pills and the backdrop left alone):
+    depth along the view, the focus's depth found per pixel from the
+    point looked at, so zooming and turning write nothing; light fades to
+    nothing, see-through things go see-through, solid ones toward the
+    background. Nothing past the end is drawn or picked (the far plane and
+    a gate per body); pills show only in the crisp zone or when chosen;
+    the Neurons' halo and dendrites shrink away once mostly faded and grow
+    back (a quarter second, hysteresis); the shader is checked on the
+    device first and, if it fails, the map is drawn as before and the
+    meter says "fallback". A link chip's glide to a body past the end
+    (Graph3DView's ease(to:glide:), GraphDepthGlide) brings it to the
+    middle at the focus's depth instead of doing nothing. Suite graphdepth
+    266 checks. Proof hooks: -graphDepthOff (before), -graphDepthMeter
+    (SceneKit's statistics and the frame-time meter); preview tests
+    testDepthBeforeAfter, testDepthTurnNeurons, testDepthTurnSpace,
+    testDepthMeasure and testDepthGlide. Next: the Mac's pictures,
+    recordings and numbers, then tuning the band.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner
     sees it.
