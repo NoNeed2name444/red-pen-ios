@@ -550,13 +550,15 @@ struct HomeRoundCard: View {
     }
 
     /// The chip's words and tone: every tone here keeps its text at AA in
-    /// the chip's well (Caution Amber, Theatre Blue, Resus Red).
+    /// the chip's well (WardPaletteTests: Caution Amber, Resus Red, and the
+    /// section's accent, which is what New takes: no blue outside
+    /// Questions).
     static func chip(_ bed: BedPlan.Bed) -> (text: String, tone: WardTone)? {
         guard let status = bed.status else { return nil }
         let tone: WardTone
         switch status {
         case .due, .timed, .today: tone = .warning
-        case .new: tone = .info
+        case .new: tone = .blue
         case .weak: tone = .danger
         }
         return (text: status.rawValue, tone: tone)

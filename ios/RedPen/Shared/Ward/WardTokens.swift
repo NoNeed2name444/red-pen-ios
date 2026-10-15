@@ -29,16 +29,6 @@ extension Color {
         WardRestColors.color(.primaryInk, section)
     }
 
-    /// The palette's own blue, whatever the section: information that is
-    /// not the section's accent (the New badge), so it keeps its meaning.
-    static var wardInfo: Color {
-        let glide = WardLookStore.shared.glide
-        if glide.settled { return WardRestColors.palette[WardToken.primaryInk.index] }
-        return Color(uiColor: UIColor { traits in
-            Color.uiColor(glide.paletteHex(.primaryInk, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
-        })
-    }
-
     static var wardBackground: Color { ward(.background) }
     static var wardSurface: Color { ward(.surface) }
     static var wardRaised: Color { ward(.raised) }

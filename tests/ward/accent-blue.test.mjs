@@ -7,7 +7,7 @@
 // its words 4.5:1 on every tier, as large text or an icon 3:1, white words
 // 4.5:1 on its fill, its ink 3:1 as a control's edge; and it is told apart
 // from the other sections and from what means something (right, wrong,
-// due, the ECG red, the beam, the New badge's blue). This reads the Swift
+// due, the ECG red, the beam, the palette's blue). This reads the Swift
 // sources: WardPalette's table, WardLook's section table (written by
 // tools/ward_accents.py) and WardRelief's edge strengths.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -78,7 +78,7 @@ check('no Ward screen draws a blue that is not the section accent', hits.length 
 const read = rel => readFileSync(join(root, rel), 'utf8');
 const controls = read('Shared/Ward/WardControls.swift');
 check('WardTone .blue is the section accent', /case \.blue: return \.wardPrimaryInk/.test(controls));
-check('WardTone .info is the fixed New blue', /case \.info: return \.wardInfo/.test(controls));
+check('WardTone has no fixed blue of its own (no .info)', !/case \.info\b|wardInfo/.test(controls + read('Shared/Ward/WardTokens.swift')));
 const tokens = read('Shared/Ward/WardTokens.swift');
 check('Color.ward(.primaryInk) at rest is the section\'s', /WardRestColors\.color\(token, glide\.to\.section\)/.test(tokens));
 check('each section sets the tint to its accent',
@@ -92,7 +92,11 @@ const theme = read('Shared/Theme.swift');
 check('a mode\'s glyph is its section\'s accent', /Color\.wardAccent\(WardSection\(kindRaw: rawValue\)\)/.test(theme));
 check('the thin progress bar is the accent', /WardGroove\(fraction: fraction, tint: \.wardPrimaryInk/.test(theme));
 const home = read('Features/Library/WardHome.swift');
-check('the New chip keeps the fixed blue', /case \.new: tone = \.info/.test(home));
+check('the New chip takes the section\'s accent', /case \.new: tone = \.blue/.test(home));
+check('the Cases New chip takes the section\'s accent',
+      /case \.new: WardChip\(text: "New", tone: \.blue\)/.test(read('Features/Cases/CaseKit.swift')));
+check('no chip or pill is given a fixed blue tone', !/tone: \.info\b/.test(
+  swiftFiles(root).map(f => readFileSync(f, 'utf8')).join('\n')));
 
 // --- the colours themselves ------------------------------------------------
 

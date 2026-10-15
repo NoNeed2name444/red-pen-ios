@@ -1964,6 +1964,19 @@ with the marks on the screens last.
       disabled control (WardToggleFace); the states model's switch now has
       words (WardControlLook.words, wordsFace) and WardStatesTests checks
       them in every state, section and mode.
+    - [x] B5: no blue outside Questions: the New chip (CaseKit, the bed chip)
+      takes the section's accent (`.blue` tone); WardTone.info and
+      Color.wardInfo are gone. tests/ward/accent-blue.test.mjs now asserts
+      it (it asserted the opposite).
+    - [x] B4: every ink a chip or pill wears clears 4.5:1 on its well, light
+      and dark, with and without Increase Contrast (the inner shade
+      included, WardRelief.insetGround): Resus ECG red, Discharge Green
+      and Caution Amber are a shade darker in the light scheme (0xB6263A,
+      0x116D50, 0x8C5200; the green also moved a little towards teal so the
+      Textbook accent stays apart from it). WardPaletteTests holds the
+      semantic inks, Biro Grey, Chart Ink, Theatre Blue and every section's
+      accent on the well; the false promises in WardControls and WardHome
+      now point at it.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

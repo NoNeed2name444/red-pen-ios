@@ -126,7 +126,7 @@ struct CaseStateChip: View {
 
     var body: some View {
         switch state {
-        case .new: WardChip(text: "New", tone: .info)
+        case .new: WardChip(text: "New", tone: .blue)
         case .seen: WardChip(text: "Seen", tone: .warning)
         case .discharged(let score): WardChip(text: "Discharged \u{00B7} \(score)", tone: .green)
         }

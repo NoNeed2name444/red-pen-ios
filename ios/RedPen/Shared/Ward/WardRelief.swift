@@ -213,6 +213,26 @@ enum WardRelief {
         max(abs(light.x), abs(light.y)) + light.radius
     }
 
+    /// How much of a pressed-in face's inner shade reaches `depth` points in
+    /// from its edge, 0 to 1: the shade is cast `offset` in and blurred (a
+    /// SwiftUI radius is twice the blur's standard deviation), so it falls
+    /// away to nothing a few points inside.
+    static func shadeCoverage(_ lift: WardLift, depth: Double) -> Double {
+        let sigma: Double = radius(lift) / 2
+        return 0.5 * (1 - erf((depth - offset(lift)) / sigma / 2.0.squareRoot()))
+    }
+
+    /// What a pressed-in face of `fill` really is `depth` points in from its
+    /// edge: the fill with the inner shade over it, as strong as it is there
+    /// (Increase Contrast deepens it). This is the ground a chip's words sit
+    /// on, not the bare fill.
+    static func insetGround(_ fill: UInt32, lift: WardLift, dark: Bool, highContrast: Bool,
+                            depth: Double) -> UInt32 {
+        let alpha: Double = shadeAlpha(lift, dark: dark, highContrast: highContrast) * shadeCoverage(lift, depth: depth)
+        return composite(WardReliefLight(hex: dark ? 0x000000 : lightShade, alpha: alpha, x: 0, y: 0, radius: 0),
+                         on: fill)
+    }
+
     /// What a light looks like where it lies at full strength on `base`.
     static func composite(_ light: WardReliefLight, on base: UInt32) -> UInt32 {
         let (r0, g0, b0) = WardPalette.rgb(base), (r1, g1, b1) = WardPalette.rgb(light.hex)

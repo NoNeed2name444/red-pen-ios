@@ -4,16 +4,16 @@ import SwiftUI
 /// The semantic tones a chip, an icon square or a ring can take.
 /// `.blue` is the accent of the section on show (WardSection.accent), so a
 /// control follows the section's hue; `.accent` is a given section's (a
-/// mode's own glyph on home); `.info` is the palette's fixed blue, for a
-/// word that means the same everywhere (the New badge).
+/// mode's own glyph on home). There is no fixed blue: the New badge takes
+/// the section's accent like everything else (the owner's rule is no blue
+/// outside Questions).
 enum WardTone: Equatable {
-    case blue, red, green, amber, warning, danger, grey, info
+    case blue, red, green, amber, warning, danger, grey
     case accent(WardSection)
 
     var color: Color {
         switch self {
         case .blue: return .wardPrimaryInk
-        case .info: return .wardInfo
         case .accent(let section): return .wardAccent(section)
         case .red: return .wardEcg
         case .green: return .wardSuccess
@@ -24,14 +24,17 @@ enum WardTone: Equatable {
         }
     }
 
-    /// Small text in this tone, on the base or in a well pressed into it.
-    /// Every tone clears 4.5:1 there but Pager Amber (3.3:1 in the light
-    /// scheme), so amber words read in Caution Amber; a glyph keeps the
-    /// tone's own colour.
+    /// Small text in this tone, on the base or in a well pressed into it
+    /// (a chip, a pill). Every tone's words clear 4.5:1 there, in light and
+    /// dark, with and without Increase Contrast, but Pager Amber (3.3:1 in
+    /// the light scheme), so amber words read in Caution Amber; a glyph
+    /// keeps the tone's own colour. WardPaletteTests holds the ratios on
+    /// the well, shade included, for every ink here and every section's
+    /// accent.
     var ink: Color {
         switch self {
         case .amber, .warning: return .wardWarning
-        case .blue, .red, .green, .danger, .grey, .info, .accent: return color
+        case .blue, .red, .green, .danger, .grey, .accent: return color
         }
     }
 }

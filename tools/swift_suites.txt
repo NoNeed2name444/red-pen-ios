@@ -380,7 +380,7 @@ suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift $S/Ideas/IdeaE
 suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift
 # the Ward Round palette: contrast promises in light and dark, and the
 # AccentColor asset drawn from the same table
-suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift
+suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift
 # soft UI relief: the highlight and shade per mode and lift, visible but
 # soft, growing with the lift, no glare in dark, pressed in mirrors raised
 suite wardrelief WardReliefTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift

@@ -23,6 +23,33 @@ for dark in [false, true] {
               String(format: "%.2f", r))
     }
 }
+// The words of a chip or a pill sit on a well pressed into what is under
+// it, with the well's inner shade over its edge (the review's B4). Every ink
+// a chip can wear reads 4.5:1 on it, in light and dark, with and without
+// Increase Contrast (which deepens the shade): the semantic tones' words,
+// Biro Grey, Chart Ink and Theatre Blue, and every section's accent, which
+// is what the New chip and the bed chips take.
+check("the shade is there at a chip's edge and gone where its words start",
+      WardRelief.shadeCoverage(.low, depth: 0) > 0.5 && WardRelief.shadeCoverage(.low, depth: 6) < 0.01)
+let chipInks: [WardToken] = [.primaryInk, .ecg, .success, .warning, .danger, .inkSecondary, .ink]
+// the nearest a chip's words come to its edge: its vertical padding (4)
+// and the line's own leading above a capital (2 at least)
+let chipTextDepth = 6.0
+for dark in [false, true] {
+    for hc in [false, true] {
+        let mode = "\(dark ? "dark" : "light")\(hc ? " with Increase Contrast" : "")"
+        let well = WardPalette.hex(.well, dark: dark)
+        let ground = WardRelief.insetGround(well, lift: .low, dark: dark, highContrast: hc, depth: chipTextDepth)
+        for token in chipInks {
+            let r = WardPalette.contrast(WardPalette.hex(token, dark: dark), ground)
+            check("\(mode): \(token) reads 4.5:1 on a chip's well", r >= 4.5, String(format: "%.3f", r))
+        }
+        for section in WardSection.allCases {
+            let r = WardPalette.contrast(section.accent(dark: dark), ground)
+            check("\(mode): \(section)'s accent reads 4.5:1 on a chip's well", r >= 4.5, String(format: "%.3f", r))
+        }
+    }
+}
 check("the monitor card is dark in both modes",
       WardPalette.luminance(WardPalette.hex(.monitor, dark: false)) < 0.05 &&
       WardPalette.luminance(WardPalette.hex(.monitor, dark: true)) < 0.05)

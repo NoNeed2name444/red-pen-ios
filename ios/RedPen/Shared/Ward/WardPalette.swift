@@ -66,10 +66,10 @@ enum WardPalette {
         .primary:      (0x1D5FB0, 0x136F8E),
         .primaryInk:   (0x1D5FB0, 0x4FD8FF),
         .onPrimary:    (0xFFFFFF, 0xFFFFFF),
-        .ecg:          (0xBA273B, 0xFF97A9),
+        .ecg:          (0xB6263A, 0xFF97A9),
         .beam:         (0xC2620B, 0xFFAF57),
-        .success:      (0x137045, 0x5EE0A8),
-        .warning:      (0x8F5400, 0xFFC15A),
+        .success:      (0x116D50, 0x5EE0A8),
+        .warning:      (0x8C5200, 0xFFC15A),
         .danger:       (0xB8222A, 0xFF9A9F),
         .ink:          (0x0E1B2C, 0xF5F8FC),
         .inkSecondary: (0x4E5E73, 0xC4CEDA),
@@ -131,6 +131,12 @@ enum WardPalette {
         (.ecg, .surface, 4.5), (.success, .surface, 4.5),
         (.warning, .surface, 4.5), (.danger, .surface, 4.5),
         (.beam, .surface, 3),
+        // a chip or a pill is pressed into a well (WardChip, WardPill), so
+        // every ink they use is promised on it too: the semantic words in
+        // all four tones, Biro Grey, Chart Ink and Theatre Blue
+        (.ecg, .well, 4.5), (.success, .well, 4.5),
+        (.warning, .well, 4.5), (.danger, .well, 4.5),
+        (.beam, .well, 3),
         // soft UI tints labels and glyphs, not fills, so the accents sit on
         // the ground too
         (.ecg, .background, 4.5), (.success, .background, 4.5),
