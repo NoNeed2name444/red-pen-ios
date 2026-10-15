@@ -1,0 +1,31 @@
+== library-light
+fits
+card 266-675, start 603-659, new set 700-756, bar 688-840
+== library-se-light
+fits
+card 331-666, start 594-650, new set 131-175, bar 688-774
+== library-dark
+fits
+card 266-675, start 603-659, new set 700-756, bar 688-840
+== library-se-dark
+fits
+card 331-666, start 594-650, new set 131-175, bar 688-774
+== xxl-library-light
+FAULT Start ward round (725-781) is cut by the bar from 696
+FAULT the round card (283-797) runs under the bar from 696
+FAULT New set (708-764) sits on the round card (283-797)
+card 283-797, start 725-781, new set 708-764, bar 696-840
+== xxl-library-dark
+FAULT Start ward round (725-781) is cut by the bar from 696
+FAULT the round card (283-797) runs under the bar from 696
+FAULT New set (708-764) sits on the round card (283-797)
+card 283-797, start 725-781, new set 708-764, bar 696-840
+== xxl-library-se-light
+FAULT Start ward round (701-757) is cut by the bar from 697
+FAULT the round card (349-773) runs under the bar from 697
+card 348-773, start 701-757, new set 132-176, bar 696-774
+== ax1-library-light
+FAULT Start ward round (1040-1098) is cut by the bar from 686
+FAULT the round card (328-1114) runs under the bar from 686
+FAULT New set (698-756) sits on the round card (328-1114)
+card 327-1113, start 1040-1097, new set 698-755, bar 686-840

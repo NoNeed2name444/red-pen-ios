@@ -1,0 +1,24 @@
+== promax library-light
+fits
+card 266-653, start 581-637, new set 782-838, bar 770-922
+== promax library-dark
+fits
+card 266-653, start 581-637, new set 782-838, bar 770-922
+== promax xxl-library-light
+FAULT the round card (283-776) runs under the bar from 769
+card 283-776, start 704-760, new set 780-836, bar 768-922
+== promax xxl-library-dark
+FAULT the round card (283-776) runs under the bar from 769
+card 283-776, start 704-760, new set 780-836, bar 768-922
+== ipad library-light
+fits
+card 236-589, start 517-573, new set 1118-1174, bar 1106-1190
+== ipad library-dark
+fits
+card 236-589, start 517-573, new set 1118-1174, bar 1106-1190
+== ipad xxl-library-light
+fits
+card 253-656, start 584-640, new set 1118-1174, bar 1106-1190
+== ipad xxl-library-dark
+fits
+card 253-656, start 584-640, new set 1118-1174, bar 1106-1190
