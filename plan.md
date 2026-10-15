@@ -1936,6 +1936,23 @@ with the marks on the screens last.
        so turning back is instant.
     5. Only the heavy extras (labels, glow textures) stream, on a
        background thread within a fixed slice of each frame.
+- [ ] 4f. Depth fade in every map theme, like deep-sea footage and cell
+  animation (the owner, 15 Oct, about 8:35 am: "u know how deep see videos
+  or cell 3d high quality videos have fade for far objects ? that's how i
+  want performance mode to be and also all other modes too to run
+  smoother"). The spec is docs/design/depth-fade.md: near is crisp, far
+  dissolves into the theme's own background along the view depth, the
+  band follows the camera's focus, additive light fades to nothing, name
+  pills never half-fade, what is fully faded is not drawn, detail drops
+  only inside the band, and the Graphics setting sets how far it reaches.
+  It is the owner's second exception to "no fading", and applies inside
+  the 3D scene only.
+  - [ ] Performance, on design/perf-million (with D1 to D5).
+  - [ ] Space, on design/space-bodies (after its current step).
+  - [ ] Neurons, on design/neurons-depth (a new stream).
+  - [ ] Frame time and draw calls before and after for each theme, at
+    each Graphics level, and the independent review, before the owner
+    sees it.
 - [ ] 4d. A full Android app of Stethoscore (the owner chose it over a web
   map, 14 Oct): a large, separate project, planned after M3 and 4b. The
   owner has no Android device, so it is tested on CI emulators; its
@@ -1983,10 +2000,11 @@ with the marks on the screens last.
     changed at different moments, grey films on search, dock and tab bar)
     and card text showed under the dock; the owner: "very bad". Fixing.
   - Switching light/dark animates the colours (a colour shift, no opacity).
-  - The one exception to "no fading": a small soft rim on buttons only (a
+  - The first exception to "no fading": a small soft rim on buttons only (a
     light highlight top-left and a shade bottom-right, a few points wide)
     that gives them their neumorphic shape and never darkens or blurs what
-    lies behind or beside them.
+    lies behind or beside them. The second, since 15 Oct: the depth fade
+    inside the 3D map (4f, docs/design/depth-fade.md).
 - [ ] 6. Last: the owner's marks on the screens.
 - [x] 7. (Done 14 Oct: tools/jev-standin and jev-standin.yml; oath check 30 of
   30, 0 false alarms; NLI model is the TRIAGE_NLI_MODEL repo variable.) An open-source stand-in for Jev (§22a kept only Layer 7, the
