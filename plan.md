@@ -1904,6 +1904,17 @@ with the marks on the screens last.
     light highlight top-left and a shade bottom-right, a few points wide)
     that gives them their neumorphic shape and never darkens or blurs what
     lies behind or beside them.
+  - The fade rule, loosened (the owner, 15 Oct, 6:25 PM Cairo: "loosen the
+    no fade rule a bit"). Still banned: anything that looks washed out at
+    rest (faded buttons, text or cards), and a visible fade lasting longer
+    than 0.2 s used as a transition. Allowed, besides the buttons' rim and
+    the Neurons depth fade (4f): iOS's own brief transitions (the status
+    bar, sheet and alert dimming, the keyboard, menus), any change that
+    settles within 0.2 s, and crossfades under Reduce Motion. The Ward
+    preview's gate (tools/ward_frames_check.py) follows it: the status bar
+    is measured and reported but never fails, and the content fails only
+    when a faded stretch stays on screen longer than 0.2 s (a shorter one
+    is reported as a brief dip, allowed).
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

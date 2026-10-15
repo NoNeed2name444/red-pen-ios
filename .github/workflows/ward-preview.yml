@@ -16,13 +16,14 @@
 # A picture that is still the launch screen is taken again. Pictures are
 # kept at full size, to be read at 1:1.
 #
-# The run fails if any frame of the app's own switch has faded
-# (tools/ward_frames_check.py: content or status bar contrast under both
-# end states), or if home does not fit on any device or size (HomeFit,
-# written by the app on the "library" screen: at the default size the
-# round card and its button end above the page's cut over the bar; at any
-# size nothing sits on the card, no button is sliced by the cut, no sliver
-# peeks over it and no word of home's text is broken).
+# The run fails if the app's own switch leaves the content faded for
+# longer than 0.2 s (tools/ward_frames_check.py: its contrast under both
+# end states; a shorter dip is allowed, and the status bar is reported but
+# never fails, the owner's rule of 15 Oct), or if home does not fit on any
+# device or size (HomeFit, written by the app on the "library" screen: at
+# the default size the round card and its button end above the page's cut
+# over the bar; at any size nothing sits on the card, no button is sliced
+# by the cut, no sliver peeks over it and no word of home's text is broken).
 #
 # A push to a preview/ward-<name> branch runs it (design-preview.yml leaves
 # those branches alone); the pictures land on the shots/ward-<name> branch.
@@ -184,7 +185,8 @@ jobs:
             fi
             echo "== $v" >> out/frames-check.txt
             python3 src/tools/ward_frames_check.py "out/$v.mp4" --report out/check.tmp
-            # a fade fails, and so does a recording with no switch in it
+            # a fade of the content longer than 0.2 s fails, and so does
+            # a recording with no switch in it
             # (r9's stayed dark throughout and passed)
             [ $? != 0 ] && code=1
             cat out/check.tmp >> out/frames-check.txt && rm out/check.tmp
