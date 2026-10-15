@@ -1940,6 +1940,11 @@ with the marks on the screens last.
     in tools/ward_shots.sh asks the same launch-screen check as shoot()
     before record() and system_switch() start recording, every 3 s for
     up to 10 checks, then logs a FAULT line and records anyway.
+  - [x] Home's fit faults (the publish gate, ward-r14 on): the Vitals streak
+    is one line at its own width beside the ring (a Label drew it narrower than
+    ViewThatFits judged); at large text a bed comes off the round when the cut
+    would slice Start ward round; the preview waits for a slow first frame
+    instead of relaunching it. Check A: HomeFitTests; confirm on a Mac run.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

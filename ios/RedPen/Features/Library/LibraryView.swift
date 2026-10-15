@@ -199,6 +199,11 @@ struct LibraryView: View {
     /// button, and the round shows its first beds, so the card and its
     /// button end above the dock.
     @State var shortWindow = false
+    /// At large text, how many of the round's beds were taken off so the
+    /// page's cut does not slice Start ward round (HomeFit.slices), and
+    /// where Start was last laid out, in global points.
+    @State var bedsTrimmed = 0
+    @State var startFrame: CGRect = .zero
     /// At the accessibility text sizes the dock is one button over a list
     /// (CategoryDock), so it sits at the bottom even on a wide iPad.
     @Environment(\.dynamicTypeSize) var typeSize
@@ -436,6 +441,12 @@ struct LibraryView: View {
             // the dock steps aside while typing, and the page runs to the
             // keyboard
             .onChange(of: keyboardUp) { _, up in if up { barTop = nil } }
+            // Start ward round is whole above the page's cut or wholly past
+            // it, never sliced by it, at any text size
+            .onChange(of: startFrame) { trimSlicedStart() }
+            .onChange(of: barTop) { trimSlicedStart() }
+            .onChange(of: typeSize) { bedsTrimmed = 0 }
+            .onChange(of: span) { bedsTrimmed = 0 }
             // the category's hue (or Ideas') on the paper's grid and the
             // controls' edges, shifting with the dock
             .wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)
@@ -537,6 +548,19 @@ struct LibraryView: View {
         let top: Double = Double(pageFrame.minY)
         guard HomeFit.cut(barTop: Double(barTop), pageTop: top) != nil else { return nil }
         return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height)))
+    }
+
+    /// At large text the round can run past the cut and scroll, but with
+    /// the page at rest the cut must not fall through Start ward round: it
+    /// would show half a button. Then the round gives up a bed (Plan has the
+    /// whole day) and Start rises clear. A page being scrolled is left alone.
+    private func trimSlicedStart() {
+        guard typeSize > .large, bedsTrimmed < 8, bandTrack.scroll < 1,
+              let barTop, startFrame.height > 0 else { return }
+        let cut: Double = Double(barTop) - HomeFit.cutRoom
+        if HomeFit.slices(minY: Double(startFrame.minY), maxY: Double(startFrame.maxY), cut: cut) {
+            bedsTrimmed += 1
+        }
     }
 
     /// The base under every page, Ideas' list and board too, with the grid

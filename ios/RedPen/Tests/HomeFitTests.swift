@@ -34,6 +34,17 @@ check("a short window shows two of four beds", HomeFit.shownBeds(4, short: true)
 check("a short window shows a lone bed", HomeFit.shownBeds(1, short: true) == 1)
 check("a tall window shows every bed", HomeFit.shownBeds(4, short: false) == 4)
 check("no beds stay none", HomeFit.shownBeds(0, short: true) == 0)
+// large text: a bed comes off while the cut slices Start, one always stays
+check("a trim takes a bed off a tall window", HomeFit.shownBeds(3, short: false, trimmed: 1) == 2)
+check("a trim goes on from a short window's two", HomeFit.shownBeds(4, short: true, trimmed: 1) == 1)
+check("a trim leaves one bed", HomeFit.shownBeds(3, short: false, trimmed: 9) == 1)
+check("a trim leaves none as none", HomeFit.shownBeds(0, short: false, trimmed: 2) == 0)
+
+// the cut through a button (the iPad at AX1: Start 967-1025, cut 1020)
+check("a cut through the middle slices", HomeFit.slices(minY: 967, maxY: 1025, cut: 1020))
+check("a button wholly above the cut is not sliced", !HomeFit.slices(minY: 600, maxY: 656, cut: 1020))
+check("a button wholly past the cut is not sliced", !HomeFit.slices(minY: 1049, maxY: 1107, cut: 768))
+check("a button ending on the cut is not sliced", !HomeFit.slices(minY: 964, maxY: 1020, cut: 1020))
 
 // MARK: - The preview's check
 

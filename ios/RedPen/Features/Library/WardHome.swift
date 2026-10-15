@@ -92,10 +92,11 @@ extension LibraryView {
         let all: [BedPlan.Bed] = BedPlan.beds(input)
         // a short window's round is its first beds, so the card and its
         // button end above the dock (HomeFit); Plan has the whole day
-        let beds: [BedPlan.Bed] = Array(all.prefix(HomeFit.shownBeds(all.count, short: shortWindow)))
+        let beds: [BedPlan.Bed] = Array(all.prefix(HomeFit.shownBeds(all.count, short: shortWindow, trimmed: bedsTrimmed)))
         let note: String? = input.phase.holdsNewMaterial ? input.phase.headline : nil
         return HomeRoundCard(beds: beds, note: note,
                              onOpen: { bed in openBed(bed) },
+                             onStartFrame: { startFrame = $0 },
                              onPlan: { LearnRouter.shared.open(.examPlan) })
     }
 
@@ -405,6 +406,8 @@ struct HomeRoundCard: View {
     /// The exam-week line, while new material is held back.
     let note: String?
     let onOpen: (BedPlan.Bed) -> Void
+    /// Where Start ward round is, in global points, as it is laid out.
+    var onStartFrame: (CGRect) -> Void = { _ in }
     let onPlan: () -> Void
 
     var body: some View {
@@ -502,6 +505,7 @@ struct HomeRoundCard: View {
         .accessibilityIdentifier("missionLiftOff")
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.start = $0
+            onStartFrame($0)
         }
     }
 
@@ -655,11 +659,11 @@ private struct VitalsTileFace: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: WardSpace.m) {
                     ring
-                    figures.fixedSize(horizontal: true, vertical: false)
+                    figures(besideRing: true)
                 }
                 VStack(alignment: .leading, spacing: WardSpace.s) {
                     ring
-                    figures
+                    figures(besideRing: false)
                 }
             }
             RhythmTrace(beats: rhythm.beats)
@@ -676,17 +680,25 @@ private struct VitalsTileFace: View {
             .frame(width: 56, height: 56)
     }
 
-    private var figures: some View {
-        VStack(alignment: .leading, spacing: WardSpace.xs) {
+    /// Beside the ring the streak is one line at its own width, set on the
+    /// text itself: a Label's icon-and-title row kept its title at the
+    /// width of "Readiness" above it (18 pt of 40 for "streak") although
+    /// ViewThatFits had judged the row by the title's whole width, so the
+    /// row was picked and then drawn narrower than it was judged. Under
+    /// the ring it takes the tile's width and may wrap between words.
+    private func figures(besideRing: Bool) -> some View {
+        let text: String = VitalsTileFace.streakText(streak)
+        return VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text("Readiness")
                 .font(.caption)
                 .foregroundStyle(Color.wardInkSecondary)
-            Label {
-                Text(VitalsTileFace.streakText(streak))
-                    .homeWordFit("the Vitals tile's streak", VitalsTileFace.streakText(streak),
-                                 font: .footnote.weight(.semibold))
-            } icon: {
-                Image(systemName: "heart.fill").foregroundStyle(Color.wardEcg)
+            HStack(alignment: .firstTextBaseline, spacing: WardSpace.xs) {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(Color.wardEcg)
+                    .accessibilityHidden(true)
+                Text(text)
+                    .homeWordFit("the Vitals tile's streak", text, font: .footnote.weight(.semibold))
+                    .fixedSize(horizontal: besideRing, vertical: true)
             }
             .font(.footnote.weight(.semibold))
             .foregroundStyle(Color.wardInk)

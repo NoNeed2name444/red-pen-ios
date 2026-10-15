@@ -116,6 +116,16 @@ shoot() {  # appearance, screen, picture name (may hold a folder), extra launch 
     sips -s format bmp "$SHOTS/$name.png" --out "$OUT/.shot-$plan.bmp" >/dev/null 2>&1 || break
     [ "$(python3 "$BLANK" "$OUT/.shot-$plan.bmp")" = ok ] && break
     echo "still the launch screen, try $try: $name" >> "$LOG"
+    # a slow first frame (AX5 on the SE's size takes about half a minute on a
+    # busy Mac) is waited for where it stands: relaunching threw the nearly
+    # ready app away and began the same slow launch again, three times over,
+    # so no screen and no fit report ever came
+    for _ in $(seq 8); do
+      sleep 5
+      xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$SHOTS/$name.png" >> "$LOG" 2>&1 || true
+      sips -s format bmp "$SHOTS/$name.png" --out "$OUT/.shot-$plan.bmp" >/dev/null 2>&1 || break 2
+      [ "$(python3 "$BLANK" "$OUT/.shot-$plan.bmp")" = ok ] && break 2
+    done
   done
 }
 
@@ -139,6 +149,11 @@ wait_up() {  # file
 fit() {  # the name the report is filed under: home's fit, as the app wrote it
   local data
   data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null) || true
+  # the app writes its report 6 s after the screen is up (HomeFitProbe)
+  for _ in $(seq 8); do
+    [ -f "$data/Documents/home-fit.txt" ] && break
+    sleep 2
+  done
   {
     echo "== $1"
     cat "$data/Documents/home-fit.txt" 2>/dev/null || echo "FAULT no fit report was written"

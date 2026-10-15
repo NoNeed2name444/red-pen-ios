@@ -52,8 +52,18 @@ enum HomeFit {
     }
 
     /// How many of the round's beds are shown.
-    static func shownBeds(_ count: Int, short: Bool) -> Int {
-        short ? min(count, shortBeds) : count
+    /// `trimmed` is how many more were taken off, one at a time, while the
+    /// page's cut sliced Start ward round at large text (`slices`); one
+    /// bed always stays.
+    static func shownBeds(_ count: Int, short: Bool, trimmed: Int = 0) -> Int {
+        let base: Int = short ? min(count, shortBeds) : count
+        return max(min(base, 1), base - max(0, trimmed))
+    }
+
+    /// Whether a cut at `cut` falls inside something spanning `minY` to
+    /// `maxY`: neither wholly above it nor wholly below.
+    static func slices(minY: Double, maxY: Double, cut: Double) -> Bool {
+        minY < cut && maxY > cut
     }
 
     /// A laid-out thing's edges, in one coordinate space.
@@ -98,7 +108,7 @@ enum HomeFit {
         let cut: Double = bar.minY - cutRoom
         let at: String = "\(Int(cut.rounded()))"
         if large {
-            if start.minY < cut && start.maxY > cut {
+            if slices(minY: start.minY, maxY: start.maxY, cut: cut) {
                 out.append("Start ward round (\(start.text)) is sliced by the page's cut at \(at)")
             }
         } else {
