@@ -2012,8 +2012,13 @@ docs/design/identity/; the route boards are images kept out of the repo.
   dark, with every contrast ratio.
 - [x] platform.md: the idea, three traits, audience, never-feel-like, and the
   ECG line's role and colour (one Trace token, equal to the hero).
-- [ ] routes.md: A Red Pen, B Answer Sheet, C Steel & Silicone, each with why
-  it is ownable, its risks and what changes in the app.
+- [x] routes.md: A Red Pen, B Answer Sheet, C Steel & Silicone, each with why
+  it is ownable, its risks and what changes in the app; the shared lockup,
+  Trace token, marks and font licences; the recommendation (A, with B's mono
+  readouts) and three questions for the owner.
+- [ ] Before any route ships: cut the dark LaunchLogo from the grey tube
+  (candidates-8/06-grey-flat-dark.png); design/launch-anim still has the
+  slate-blue one.
 - [x] wording.md: ward-to-exam glossary and the full string inventory (69
   strings to change, 20 of them asserted by tests, and the ward words that
   stay because they are the content).
