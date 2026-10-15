@@ -79,6 +79,16 @@ struct WardGlide: Equatable, Sendable {
         return WardGlide(from: to, to: look, progress: 0)
     }
 
+    /// Where the look goes next, from `now`. Light and dark change in one
+    /// step, every colour at once: text and its base swap brightness, so any
+    /// mix of the two palettes passes through grey on grey (about 1.2:1 at
+    /// half way), which reads as a fade. A move between sections, which
+    /// touches only the grid's and the edges' hue, shifts over `duration`.
+    static func toward(_ look: WardLook, from now: WardGlide) -> WardGlide {
+        if look.dark != now.to.dark { return .rest(look) }
+        return now.retargeted(look)
+    }
+
     /// How dark the palette is, 0 to 1, for something drawn in `dark`
     /// (the trait it resolves in). The page follows the app's look and
     /// moves with the shift. A part `held` in one mode (the vitals monitor,

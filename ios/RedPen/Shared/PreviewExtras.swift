@@ -13,7 +13,7 @@ enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
                           "quiz-folded", "library-end", "library-loading", "signin", "account-deleted",
-                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas"]
+                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz"]
 
     /// Posted by the "section-switch" preview: home moves one place along
     /// its dock (LibraryView).
@@ -62,7 +62,10 @@ enum PreviewExtras {
         case "mode-switch":
             // home turning dark and back every 2.5 s through Always night
             // sky, the app's own switch, for a recording of the shift
-            PreviewModeSwitch()
+            PreviewModeSwitch { LibraryView() }
+        case "mode-switch-quiz":
+            // the same switch on a study screen, whose bar carries buttons
+            PreviewModeSwitch { NavigationStack { MCQQuizView(set: SampleData.nephrology) } }
         case "section-switch":
             // home stepping along its dock every 2 s, each place's hue
             // shifting to the next, for a recording
@@ -169,11 +172,12 @@ enum PreviewDecks {
 /// through the app's own path: the Always night sky setting, which turns
 /// the window dark at the root (SkyRoot), so the window's bars, the search
 /// field and every Ward colour take the same switch a user's would.
-private struct PreviewModeSwitch: View {
+private struct PreviewModeSwitch<Content: View>: View {
+    @ViewBuilder var content: Content
     @AppStorage(SpaceSettings.alwaysNightKey) private var night = false
 
     var body: some View {
-        LibraryView()
+        content
             .task {
                 night = false
                 while !Task.isCancelled {

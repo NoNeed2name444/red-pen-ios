@@ -3,7 +3,9 @@
 # each section's screen in its hue, in both modes on an iPhone, home at the
 # iPhone SE's 375-point width, and recordings of the colour shift: the app's
 # own light/dark switch, home stepping through its sections, and the
-# system's switch. A picture that is still the launch screen is taken again.
+# system's switch. A picture that is still the launch screen is taken again,
+# and the run fails if any frame of the app's own switch has faded
+# (tools/ward_frames_check.py: content contrast under both end states).
 #
 # A push to a preview/ward-<name> branch runs it (design-preview.yml leaves
 # those branches alone); the pictures land on the shots/ward-<name> branch.
@@ -125,6 +127,7 @@ jobs:
           # the app's own switch first (Always night sky turning the window
           # dark and back every 2.5 s), then home stepping along its dock
           record mode-switch mode-switch-app.mp4 6 11
+          record mode-switch-quiz mode-switch-quiz.mp4 6 11
           record section-switch section-switch.mp4 5 13
           for mode in light dark; do
             for screen in library quiz new settings sheet; do
@@ -178,6 +181,27 @@ jobs:
         with:
           name: ward-preview
           path: out
+      - uses: actions/checkout@v4
+        with:
+          path: src
+          persist-credentials: false
+          sparse-checkout: tools/ward_frames_check.py
+          sparse-checkout-cone-mode: false
+      - name: Check the light/dark switch for a fade
+        id: fade
+        run: |
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install -y -qq ffmpeg python3-pil >/dev/null
+          set +e
+          code=0
+          for v in mode-switch-app mode-switch-quiz; do
+            [ -f "out/$v.mp4" ] || continue
+            echo "== $v" >> out/frames-check.txt
+            python3 src/tools/ward_frames_check.py "out/$v.mp4" --report out/check.tmp
+            [ $? = 1 ] && code=1
+            cat out/check.tmp >> out/frames-check.txt && rm out/check.tmp
+          done
+          echo "code=$code" >> "$GITHUB_OUTPUT"
       - name: Push to shots/ward-<name>
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -193,3 +217,8 @@ jobs:
           git add -A
           git commit -q -m "Ward preview of ${GITHUB_SHA::7}"
           git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "shots/$NAME:shots/$NAME"
+      - name: Fail on a faded frame
+        if: ${{ steps.fade.outputs.code == '1' }}
+        run: |
+          cat out/frames-check.txt
+          exit 1

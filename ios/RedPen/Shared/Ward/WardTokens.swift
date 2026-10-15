@@ -159,8 +159,9 @@ final class WardLookStore: Observable, @unchecked Sendable {
     }
 }
 
-/// Runs the shift: a display link steps the glide's progress each frame,
-/// for WardGlide.duration, then leaves it at rest. Under Reduce Motion a
+/// Runs the shift: light and dark arrive in one step, every Ward colour in
+/// the same frame; a new section's hue is stepped by a display link each
+/// frame for WardGlide.duration, then left at rest. Under Reduce Motion a
 /// new look arrives at once.
 @MainActor
 final class WardLookDriver: NSObject {
@@ -180,8 +181,13 @@ final class WardLookDriver: NSObject {
             WardLookDriver.still { store.set(.rest(look)) }
             return
         }
-        let next = now.retargeted(look)
+        // light and dark in one step; a section's hue shifts (WardGlide.toward)
+        let next = WardGlide.toward(look, from: now)
         WardLookDriver.still { store.set(next) }
+        if next.settled {
+            stop()
+            return
+        }
         startProgress = next.progress
         start = CACurrentMediaTime()
         if link == nil {
@@ -296,10 +302,9 @@ enum WardRadius {
 /// The root of the shift: the window's light or dark (the system's, or
 /// Always night sky's) is handed to WardLookDriver the moment it changes,
 /// both from UIKit's trait change on the window (before SwiftUI redraws)
-/// and from SwiftUI's own scheme, whichever comes first. The window and its
-/// bars change style at once; every Ward colour shifts from the old palette
-/// to the new one over WardGlide.duration. Under Reduce Motion the switch
-/// is immediate. Set once at the root, outside the paper and the base.
+/// and from SwiftUI's own scheme, whichever comes first. The window and
+/// every Ward colour change together, in one step (WardGlide.toward). Set
+/// once at the root, outside the paper and the base.
 struct WardLookRoot: ViewModifier {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -323,8 +328,7 @@ struct WardLookRoot: ViewModifier {
 }
 
 /// Hears the window's light or dark change in UIKit, ahead of SwiftUI's
-/// redraw, so the first frame of the new style is already the shift's
-/// first frame (the old palette), never a frame of the new one.
+/// redraw, so every Ward colour takes the new style in the same frame.
 private struct WardWindowWatch: UIViewRepresentable {
     func makeUIView(context: Context) -> WatchView { WatchView() }
     func updateUIView(_ view: WatchView, context: Context) {}

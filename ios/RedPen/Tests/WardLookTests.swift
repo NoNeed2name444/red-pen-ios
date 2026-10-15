@@ -171,6 +171,39 @@ let expect = WardPalette.mix(WardPalette.mix(WardSection.questions.ink.light, Wa
                              WardPalette.mix(WardSection.textbook.ink.light, WardSection.textbook.ink.dark, n), both.eased)
 check("mode and section move together, at the same point", both.ink(dark: true) == expect)
 
+// MARK: - What moves, and what changes in one step
+
+let swap = WardGlide.toward(night, from: .rest(day))
+check("light to dark arrives in one step, every colour at once",
+      swap.settled && swap.to == night && tokens.allSatisfy { swap.hex($0, dark: true) == WardPalette.hex($0, dark: true) })
+let swapBack = WardGlide.toward(WardLook(dark: true, section: .cards), from: cardsMid)
+check("a mode change mid-way through a section's shift lands at once too",
+      swapBack.settled && swapBack.to == WardLook(dark: true, section: .cards))
+let toOsce = WardGlide.toward(WardLook(dark: true, section: .osce), from: .rest(night))
+check("a move between sections shifts, from the start", !toOsce.settled && toOsce.progress == 0)
+
+// Text keeps its contrast on every frame the app can show: never below
+// the lower of the two ends (a mix of light and dark falls to about 1.2:1).
+func inkOnBase(_ g: WardGlide, dark: Bool) -> Double {
+    WardPalette.contrast(g.hex(.ink, dark: dark), g.hex(.background, dark: dark))
+}
+var worstText = Double.infinity
+for (from, to) in [(day, night), (night, day), (day, WardLook(dark: false, section: .audio)),
+                   (night, WardLook(dark: true, section: .ideas)), (day, WardLook(dark: true, section: .cases))] {
+    var g = WardGlide.toward(to, from: .rest(from))
+    let floor = min(inkOnBase(.rest(from), dark: from.dark), inkOnBase(.rest(to), dark: to.dark))
+    for i in 0...20 {
+        if !g.settled { g.progress = Double(i) / 20 }
+        let c = inkOnBase(g, dark: to.dark)
+        worstText = min(worstText, c / floor)
+    }
+}
+check("text never loses contrast in any shift the app makes", worstText >= 0.999, f(worstText))
+var mixed = WardGlide(from: day, to: night, progress: 0.5)
+check("(the mix it avoids: text half way between the palettes is grey on grey)",
+      inkOnBase(mixed, dark: true) < 2, f(inkOnBase(mixed, dark: true)))
+mixed.progress = 1
+
 // MARK: - Relief, press and paper move with it
 
 for lift in WardLift.allCases {
