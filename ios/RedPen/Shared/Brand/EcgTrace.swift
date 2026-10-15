@@ -23,7 +23,7 @@ import Foundation
 //     R              0.200      1.000
 //     S (lowest)     0.22645   -0.238
 //     J              0.250      0
-//     T peak         0.520      0.300
+//     T peak         0.475      0.300
 //     T end          0.580      0
 //     S1 (the lub)   0.220      R + 0.020
 //     S2 (the dub)   0.580      T end, S1 + 0.360
@@ -31,7 +31,11 @@ import Foundation
 // Why each number:
 // - Rate 60 a minute (RR 1.000 s): normal sinus rhythm both as conventionally
 //   bounded (60-100 a minute) and by Spodick's 50-90 (South Med J
-//   1996;89(7):666-7, doi:10.1097/00007611-199607000-00003). At RR 1 s every
+//   1996;89(7):666-7, doi:10.1097/00007611-199607000-00003). Runs keep the
+//   beat's QT at any rate, so they are held to 55-68 a minute, inside
+//   Spodick's range, where its QTc stays normal (0.36 s up to, not
+//   reaching, the 0.45 s that is prolonged; below) by Bazett and by
+//   Framingham, read by the tangent or to T's drawn end. At RR 1 s every
 //   QT correction leaves QT as it is, Bazett's QT / sqrt(RR) and the
 //   Framingham QT + 0.154 (1 - RR) alike (Sagie et al., Am J Cardiol
 //   1992;70(7):797-801, doi:10.1016/0002-9149(92)90562-D), so QT is QTc.
@@ -48,8 +52,9 @@ import Foundation
 //   Surawicz et al., Circulation 2009;119(10):e235-40,
 //   doi:10.1161/CIRCULATIONAHA.108.191095).
 // - R 0.040 s after QRS onset: under the 45 ms upper limit of the R-peak time
-//   over the left ventricle (Perez-Riera et al., Ann Noninvasive
-//   Electrocardiol 2016;21(1):10-9, doi:10.1111/anec.12323).
+//   (Perez-Riera et al., Ann Noninvasive Electrocardiol 2016;21(1):10-9,
+//   doi:10.1111/anec.12323). That limit is for V5-V6, over the left
+//   ventricle; it is borrowed here for lead II, which has none of its own.
 // - R 1.000 mV and S -0.238 mV: 1.24 mV from R's top to S's bottom, inside
 //   Guyton and Hall's 1.0-1.5 mV for the limb leads.
 // - q 0.019 s wide and 0.087 mV deep, a normal septal q: in lead II a Q wave
@@ -58,16 +63,22 @@ import Foundation
 //   2018;138(20):e618-51, doi:10.1161/CIR.0000000000000617).
 // - J and the ST segment on the baseline: ST elevation counts from 0.1 mV at
 //   the J point in leads other than V2-V3 (the same definition).
-// - T 0.300 mV: inside Guyton and Hall's 0.2-0.3 mV. Asymmetric, as the T
-//   wave is in health (di Bernardo and Murray, Nature 2000;403(6765):40,
-//   doi:10.1038/47409); the slower rise out of the ST segment (0.15 s, width
-//   0.05 s) and the steeper fall (0.06 s, width 0.02 s) are this file's
-//   choice, which ends T where S2 is heard (below).
-// - QT 0.40 s as a reader measures it: the tangent to T's steepest fall meets
-//   the baseline at 0.5585 s, 0.3985 s after QRS onset (the tangent method,
-//   in lead II: Postema and Wilde, Curr Cardiol Rev 2014;10(3):287-94,
-//   doi:10.2174/1573403X10666140514103612); the T wave itself meets the
-//   baseline 0.42 s after QRS onset. Both are normal QTc: 350-450 ms in men
+// - T 0.300 mV: inside Guyton and Hall's 0.2-0.3 mV. Asymmetric, a slower
+//   rise than fall, as the T wave is in health (di Bernardo and Murray,
+//   Nature 2000;403(6765):40, doi:10.1038/47409): it rises over 0.135 s
+//   (width 0.045 s) from the end of a 0.09 s ST segment and falls over
+//   0.105 s (width 0.035 s), so its steepest fall (5.4 mV/s) is only a
+//   little steeper than its steepest rise (4.2 mV/s), and the curvature
+//   either side of the peak differs by (0.045 / 0.035)^2, 1.65 times. The
+//   fall's width sets T peak to T end (Tp-e) against QT: 0.18 read by the
+//   tangent and 0.25 to T's drawn end, either side of the about 0.21 of
+//   health (Gupta et al., J Electrocardiol 2008;41(6):567-74,
+//   doi:10.1016/j.jelectrocard.2008.07.016).
+// - QT about 0.38 s as a reader measures it: the tangent to T's steepest
+//   fall meets the baseline at 0.5424 s, 0.3824 s after QRS onset (the
+//   tangent method, in lead II: Postema and Wilde, Curr Cardiol Rev
+//   2014;10(3):287-94, doi:10.2174/1573403X10666140514103612); the T wave
+//   itself meets the baseline 0.42 s after QRS onset. Both are normal QTc: 350-450 ms in men
 //   and 360-460 ms in women (the same review), prolonged only from 450 and
 //   460 ms (AHA/ACCF/HRS part IV, Rautaharju et al., Circulation
 //   2009;119(10):e241-50, doi:10.1161/CIRCULATIONAHA.108.191096).
@@ -79,7 +90,7 @@ import Foundation
 // - S2 where the T wave meets the baseline, 0.360 s after S1: in health QT
 //   ends 26 +/- 13 ms before S2 (Boudoulas et al., Am J Cardiol
 //   1982;50(6):1229-35, doi:10.1016/0002-9149(82)90454-4); here the
-//   tangent-read end of T is 21 ms before it. tools/make_heartbeat.py's
+//   tangent-read end of T is 38 ms before it. tools/make_heartbeat.py's
 //   SYSTOLE is this 0.360 s.
 //
 // The shape: each wave is a Gaussian, as in McSharry et al.'s model (IEEE
@@ -160,19 +171,23 @@ nonisolated struct EcgPaper: Sendable, Equatable {
 
     /// The largest paper on which the trace from `start` to `end` seconds, at
     /// the beat's full height (from S, its lowest point, to R, its highest),
-    /// fits a `width` x `height` box, centred in it. The same window fitted
-    /// to two boxes gives the same drawing at two sizes. An empty window or
-    /// box gives a paper of scale 0.
-    static func fitting(from start: Double, to end: Double, width: Double, height: Double) -> EcgPaper {
+    /// fits a `width` x `height` box, centred in it, with `lineWidth / 2`
+    /// left clear on every side so a line of that width stays inside the
+    /// box. The same window fitted to two boxes gives the same drawing at two
+    /// sizes. An empty window or box gives a paper of scale 0.
+    static func fitting(from start: Double, to end: Double, width: Double, height: Double,
+                        lineWidth: Double = 0) -> EcgPaper {
         let across = (end - start) * millimetresPerSecond
         let tall = (EcgTrace.highest - EcgTrace.lowest) * millimetresPerMillivolt
-        guard across.isFinite, width.isFinite, height.isFinite,
-              across > 0, tall > 0, width > 0, height > 0 else {
+        let inset = lineWidth.isFinite ? max(0, lineWidth) / 2 : 0
+        let w = width - 2 * inset, h = height - 2 * inset
+        guard across.isFinite, w.isFinite, h.isFinite,
+              across > 0, tall > 0, w > 0, h > 0 else {
             return EcgPaper(scale: 0, start: start.isFinite ? start : 0)
         }
-        let scale = min(width / across, height / tall)
-        let top = (height - tall * scale) / 2
-        return EcgPaper(scale: scale, start: start, left: (width - across * scale) / 2,
+        let scale = min(w / across, h / tall)
+        let top = inset + (h - tall * scale) / 2
+        return EcgPaper(scale: scale, start: start, left: inset + (w - across * scale) / 2,
                         baseline: top + EcgTrace.highest * millimetresPerMillivolt * scale)
     }
 }
@@ -184,10 +199,11 @@ nonisolated enum EcgTrace {
 
     /// The beat's own rate: at RR 1 s, QT is QTc.
     static let heartRate = 60.0
-    /// The rates a run can be drawn at. The beat keeps its shape at any rate,
-    /// so only the baseline between beats changes; up to 100 a minute (RR
-    /// 0.6 s) there is baseline between every T end and the next P onset.
-    static let rates: ClosedRange<Double> = 40...100
+    /// The rates a run can be drawn at. The beat keeps its shape, QT
+    /// included, at any rate, so only the baseline between beats changes;
+    /// held to 55-68 a minute, where that QT's QTc stays normal (see the
+    /// notes at the top).
+    static let rates: ClosedRange<Double> = 55...68
 
     /// The time from one beat's P onset to the next (RR), in seconds, at
     /// `heartRate` held within `rates`.
@@ -209,7 +225,7 @@ nonisolated enum EcgTrace {
         case .r: 0.200
         case .s: 0.22645
         case .j: 0.250
-        case .tPeak: 0.520
+        case .tPeak: 0.475
         case .tEnd: 0.580
         }
     }
@@ -268,36 +284,34 @@ nonisolated enum EcgTrace {
 
     // MARK: points to draw
 
+    /// The most points one call gives: a longer window is sampled more
+    /// coarsely, so no window can ask for more memory than this.
+    static let maxPoints = 100_000
+    /// The finest step: 0.01 ms.
+    static let minStep = 0.000_01
+
     /// The trace from `start` to `end` seconds on `paper`: one beat when
     /// `heartRate` is nil (the baseline either side of it), or a run at
-    /// `heartRate`. A point every `step` seconds or less, from `start` to
-    /// `end` exactly, plus one at every landmark inside, so the peaks and the
-    /// wave ends are drawn exactly; in time order. The same window and step
-    /// give the same times at any size, so two drawings pair point for point.
-    /// A window longer than an hour, or not finite, gives no points.
+    /// `heartRate`. Evenly spaced points, about `step` seconds apart (no
+    /// finer than `minStep`, and no more than `maxPoints` + 1 of them), from
+    /// `start` to `end` exactly, in time order, and nothing else: two windows
+    /// of the same length give the same number of points, the same distance
+    /// apart, so two drawings pair point for point, wherever their windows
+    /// start and at any size. At 1 ms a peak is drawn within 0.2% of its
+    /// height; the landmarks' own times are `time(of:)`. A window longer
+    /// than an hour, or not finite, gives no points.
     static func points(from start: Double, to end: Double, heartRate: Double? = nil,
                        on paper: EcgPaper, step: Double = 0.001) -> [EcgPoint] {
         guard start.isFinite, end.isFinite, end > start, end - start <= 3600,
               abs(start) < 1e6, abs(end) < 1e6 else { return [] }
-        let step = step.isFinite && step > 0 ? step : 0.001
-        let n = max(1, Int(((end - start) / step).rounded(.up)))
-        func grid(_ i: Double) -> Double { i >= Double(n) ? end : start + (end - start) * i / Double(n) }
-        var times = (0...n).map { grid(Double($0)) }
-        let marks: [Double]
-        if let rate = heartRate {
-            let rr = period(heartRate: rate)
-            let first = Int(((start - duration) / rr).rounded(.down))
-            let last = Int((end / rr).rounded(.up))
-            marks = (first...last).flatMap { k in EcgLandmark.allCases.map { time(of: $0, beat: k, heartRate: rate) } }
-        } else {
-            marks = EcgLandmark.allCases.map { time(of: $0) }
-        }
-        for m in marks where m > start && m < end {
-            let nearest = grid(((m - start) / (end - start) * Double(n)).rounded())
-            if abs(nearest - m) > 1e-9 { times.append(m) }
-        }
-        times.sort()
-        return times.map { t in
+        let step = step.isFinite ? max(step, minStep) : 0.001
+        // the count from the window's length alone, a hair under a whole
+        // number of steps counting as that number, so equal lengths that
+        // differ in their last bit still agree
+        let count = ((end - start) / step - 1e-6).rounded(.up)
+        let n = Int(min(max(count, 1), Double(maxPoints)))
+        return (0...n).map { i in
+            let t = i == n ? end : start + (end - start) * Double(i) / Double(n)
             let v = heartRate.map { millivolts(at: t, heartRate: $0) } ?? millivolts(at: t)
             return EcgPoint(t: t, x: paper.x(t), y: paper.y(v))
         }
@@ -307,8 +321,9 @@ nonisolated enum EcgTrace {
     /// (`EcgPaper.fitting`), with that paper, so a landmark can be placed:
     /// `paper.x(EcgTrace.time(of: .r))`.
     static func points(from start: Double, to end: Double, heartRate: Double? = nil,
-                       width: Double, height: Double, step: Double = 0.001) -> (paper: EcgPaper, points: [EcgPoint]) {
-        let paper = EcgPaper.fitting(from: start, to: end, width: width, height: height)
+                       width: Double, height: Double, lineWidth: Double = 0,
+                       step: Double = 0.001) -> (paper: EcgPaper, points: [EcgPoint]) {
+        let paper = EcgPaper.fitting(from: start, to: end, width: width, height: height, lineWidth: lineWidth)
         return (paper, points(from: start, to: end, heartRate: heartRate, on: paper, step: step))
     }
 
@@ -339,7 +354,7 @@ nonisolated enum EcgTrace {
         Wave(centre: 0.175, millivolts: -0.10, rise: 0.005, fall: 0.005),
         Wave(centre: 0.200, millivolts: 1.00, rise: 0.010, fall: 0.010),
         Wave(centre: 0.225, millivolts: -0.25, rise: 0.025 / 3, fall: 0.025 / 3),
-        Wave(centre: 0.520, millivolts: 0.30, rise: 0.05, fall: 0.02),
+        Wave(centre: 0.475, millivolts: 0.30, rise: 0.045, fall: 0.035),
     ]
 
     /// How many widths out a wave ends.

@@ -136,7 +136,10 @@ def heartbeat(seed: int = 7) -> np.ndarray:
 
 def write_caf(path: Path, x: np.ndarray) -> None:
     """Mono 16-bit big-endian linear PCM in a Core Audio Format file."""
-    pcm = np.round(np.clip(x, -1, 1) * 32767).astype(">i2").tobytes()
+    # rounded to the nearest count, but never past -1 dBFS of 32767: the
+    # loudest sample is rounded down, not up
+    cap = np.floor(32767 * 10 ** (-1 / 20))
+    pcm = np.clip(np.round(np.clip(x, -1, 1) * 32767), -cap, cap).astype(">i2").tobytes()
     desc = struct.pack(">dIIIIII", float(RATE), int.from_bytes(b"lpcm", "big"), 0, 2, 1, 1, 16)
     data = struct.pack(">I", 0) + pcm
     path.write_bytes(b"caff" + struct.pack(">HH", 1, 0)

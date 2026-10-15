@@ -1924,15 +1924,37 @@ with the marks on the screens last.
   none); the blue-tube test allows only that line until it is fixed.
 - [x] One master ECG (design/launch-ecg): ios/RedPen/Shared/Brand/EcgTrace.swift
   is one normal-sinus lead II beat at 60 a minute (PR 0.16, QRS 0.09, QT
-  0.40 s by the tangent), its landmarks, its heart sounds (S1 20 ms after
-  R, S2 on T's end, 0.36 s apart) and ECG paper (25 mm/s, 10 mm/mV) at any
-  size, every number cited in the file; suite ecgtrace. The heartbeat's
-  lub-dub gap is now that 0.36 s (tools/make_heartbeat.py SYSTOLE,
-  heartbeat.caf re-mastered: S1 0.0304 s, S2 0.3909 s, peak -1.0 dBFS).
-- [ ] The launch stream wires it in: HeartbeatSound.s2 to 0.3909, the
-  opening's trace and home's squiggle drawn from EcgTrace.points, S1 on
-  EcgTrace.s1 (just after R), and LaunchOpeningTests' 0.25-0.35 s systole
-  and 1.7 s bounds (the opening grows by 0.06 s, to about 1.72 s).
+  0.38 s by the tangent, Tp-e/QT about 0.2), runs of it at 55-68 a minute
+  (where its QTc stays normal), its landmarks, its heart sounds (S1 20 ms
+  after R, S2 on T's end, 0.36 s apart) and ECG paper (25 mm/s, 10 mm/mV)
+  at any size, evenly sampled so equal windows pair point for point, every
+  number cited in the file; suite ecgtrace. The heartbeat's lub-dub gap is
+  now that 0.36 s (tools/make_heartbeat.py SYSTOLE, heartbeat.caf
+  re-mastered: S1 0.0304 s, S2 0.3909 s, peak 29203 counts, -1.0 dBFS).
+- [ ] The launch stream wires it in (lines as at design/launch-ecg):
+  1. LaunchOpening.swift:42 HeartbeatSound.s2 0.3305 to 0.3909.
+  2. LaunchOpening.swift:78-88: S1 is heard EcgTrace.s1AfterR after R, so
+     s2 = r + s1AfterR + (HeartbeatSound.s2 - HeartbeatSound.s1) and
+     audioAt = r + s1AfterR - HeartbeatSound.s1, and the :78 comment ("the
+     R peak, which is when S1 is heard") changes. With the lub kept at
+     0.33 s, r is 0.31 and S2 lands 0.5 ms after T's end.
+  3. LaunchOpening.swift:262-271 ecgHeight: EcgTrace.millivolts(at: t -
+     (r - EcgTrace.time(of: .r))).
+  4. LaunchOpening.swift:275-291 trace: EcgTrace.points. Decide the scale
+     first: in LaunchSplash's 176 x 36 box (LaunchSplash.swift:271-272) one
+     beat at paper scale is about 58 pt wide; fill the width with a window
+     of about 2.4 s, or keep one beat across 176 pt with R about 90 pt tall.
+  5. LaunchOpening.swift:364-367 and 375-413 (squiggle, morph) and
+     WardVitals.swift:94-108 (EcgSquiggle): draw EcgTrace.points over
+     windows of the same length and pair them by index.
+  6. LaunchOpeningTests.swift: :121 passes after 1; :123 to about 0.36 s;
+     :48 fails at 1.7205 s (needs 1.75 s or a 0.03 s trim); :131 and
+     :146-147 to S1 = R + 0.020; :136's "on S1"; :162 (full width) and :163
+     (R 30 pt) under paper scale; :244-269 (morph, squiggle). :132 and
+     :137-142 hold.
+  7. tools/swift_suites.txt:435: add $S/Brand/EcgTrace.swift to launchopening.
+  8. tools/launch_film.py:41-45: :44's regex needs a literal r, and
+     audioAt becomes r + 0.020 - s1.
 
 ### Waiting on the owner
 
