@@ -1,0 +1,6 @@
+build/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build
+build/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --filter-for-thinning-device-configuration iPhone18,1 --filter-for-device-os-version 26.5 --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 26.0 --platform iphonesimulator
+build/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+build/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/LaunchScreen.storyboardc
+build/Build/Products/Debug-iphonesimulator/RedPen.app/AppIcon60x60@2x.png (in target 'RedPen' from project 'RedPen')
+build/Build/Products/Debug-iphonesimulator/RedPen.app/AppIcon76x76@2x~ipad.png (in target 'RedPen' from project 'RedPen')

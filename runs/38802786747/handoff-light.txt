@@ -1,0 +1,2 @@
+take 1: gap_ms=89 at=+0.91 refreshes=55 handoff=+0.73 still=+1.98 warm_off=+0.00 gaps=+0.91:89ms/cpu8ms interval_ms=16.7 marks=home-1.09,handoff+0.73 load=268.61
+take 2: gap_ms=52 at=+1.56 refreshes=64 handoff=+0.73 still=+1.96 warm_off=-0.02 gaps=+1.56:52ms/cpu7ms interval_ms=16.7 marks=home-1.08,handoff+0.73 load=60.52
