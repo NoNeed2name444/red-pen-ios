@@ -1,0 +1,10 @@
+== library-light
+fits
+card 266-675, start 603-659, new set 700-756, tiles none, bar 700-840, cut 688, large text false
+page ends 688, 6 parts measured: the round card 266-675, bed 1 327-400, the Due chip 353-375, bed 2 402-517, the New chip 448-471, bed 3 519-591
+words: 
+== library-dark
+fits
+card 266-675, start 603-659, new set 700-756, tiles none, bar 700-840, cut 688, large text false
+page ends 688, 6 parts measured: the round card 266-675, bed 1 327-400, the Due chip 353-375, bed 2 402-517, the New chip 448-471, bed 3 519-591
+words: 
