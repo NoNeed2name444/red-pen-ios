@@ -1,0 +1,12 @@
+== library-light
+fits
+card 266-675, start 603-659, new set 700-756, bar 688-840
+== library-se-light
+fits
+card 331-666, start 594-650, new set 131-175, bar 688-774
+== library-dark
+fits
+card 266-675, start 603-659, new set 700-756, bar 688-840
+== library-se-dark
+fits
+card 331-666, start 594-650, new set 131-175, bar 688-774
