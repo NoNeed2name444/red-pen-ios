@@ -236,7 +236,8 @@ struct WardPaperFrame: View {
         let stage = LaunchStage.shared
         Group {
             let reach = stage.gridReach()
-            Canvas { context, size in
+            // off the main thread while the opening draws it out frame by frame
+            Canvas(rendersAsynchronously: stage.now.isFinite) { context, size in
                 let w = Double(size.width), h = Double(size.height)
                 guard let panel = WardPaper.panel(width: w, height: h) else { return }
                 let ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
@@ -355,7 +356,8 @@ struct WardPaperBand: View {
         let stage = LaunchStage.shared
         Group {
             let reach = stage.gridReach()
-            Canvas { context, size in
+            // off the main thread while the opening draws it out frame by frame
+            Canvas(rendersAsynchronously: stage.now.isFinite) { context, size in
                 let height: CGFloat = min(size.height, bottom - origin.y)
                 guard height > 0 else { return }
                 var ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)

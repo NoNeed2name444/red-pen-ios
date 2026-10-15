@@ -32,6 +32,8 @@ final class LaunchStage {
     /// drawn: 0 while home waits for the hand-off, infinity once home is at
     /// rest. Every part of home is posed from it.
     private(set) var now: Double
+    /// The splash has gone: home draws the squiggle the ECG became.
+    private(set) var landed: Bool
 
     @ObservationIgnored private(set) var reduced = false
     /// The hand-off's moment on the host clock (CACurrentMediaTime).
@@ -53,10 +55,12 @@ final class LaunchStage {
     init() {
         let waiting = LaunchSplash.wanted
         now = waiting ? 0 : .infinity
+        landed = !waiting
         if waiting {
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.longestWait) { [weak self] in
                 guard let self, self.link == nil, self.now == 0 else { return }
                 self.now = .infinity
+                self.landed = true
             }
         }
     }
@@ -86,6 +90,11 @@ final class LaunchStage {
         } else {
             now = t
         }
+    }
+
+    /// The splash has gone (taking its ECG with it).
+    func land() {
+        landed = true
     }
 
     /// How far the ECG paper is drawn out: nil once whole, else the reach of
@@ -122,12 +131,11 @@ struct LaunchEntrance: ViewModifier {
     }
 }
 
-/// The squiggle beside the title: there from the moment the splash's ECG
-/// lands on it.
+/// The squiggle beside the title: the splash's ECG lands on it and stays as
+/// it until the splash goes, when home's own takes over in the same frame.
 struct LaunchLanding: ViewModifier {
     func body(content: Content) -> some View {
-        let stage = LaunchStage.shared
-        content.scaleEffect(stage.now >= LaunchOpening(reduced: stage.reduced).landed ? 1 : 0.0001)
+        content.scaleEffect(LaunchStage.shared.landed ? 1 : 0.0001)
     }
 }
 

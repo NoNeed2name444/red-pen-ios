@@ -41,7 +41,7 @@ import AVFoundation
 ///
 /// It never holds anything up: the app is running beneath it from the first
 /// frame, it ignores touches, it is hidden from VoiceOver, and it goes as
-/// soon as the ECG has landed on the title. If the library takes longer than
+/// soon as home is still (its ECG is the title's squiggle by then). If the library takes longer than
 /// `longestHold`, it opens anyway, onto the screen saying the library is
 /// opening (LibraryLoadingView): with no title to go to, the splash drops
 /// away down the screen instead.
@@ -426,10 +426,15 @@ final class LaunchOpeningView: UIView {
         stage.gridOrigin = convert(CGPoint(x: ecg.frame.midX, y: ecg.frame.minY + Self.traceTop), to: nil)
         stage.window = window?.bounds.size ?? bounds.size
         stage.play(reduced: o.reduced, handoffHost: zero + o.handoff)
-        // gone once the ECG is the squiggle (which home then draws, in the
-        // same frame) and the stethoscope has shrunk to nothing
-        let wait = max(0, zero + o.duration - CACurrentMediaTime()) + (goal == nil ? 0.03 : 0)
+        // The ECG stays on as the squiggle until home is still, then the
+        // splash goes and home draws the squiggle in the same update: the
+        // same line in the same place, so nothing changes, and the work of
+        // taking the splash away falls where nothing is moving. (With no
+        // title to land on, the splash has dropped away by `duration`.)
+        let end = goal == nil ? o.duration + 0.03 : o.settled + LaunchOpening.runOn
+        let wait = max(0, zero + end - CACurrentMediaTime())
         DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            LaunchStage.shared.land()
             self?.done?()
         }
     }
