@@ -242,6 +242,11 @@ suite graphchunks GraphPerfChunkTests.swift $F/Notes/GraphPerfOctree.swift $F/No
 suite graphbudget GraphPerfBudgetTests.swift $F/Notes/GraphPerfBudget.swift $F/Notes/GraphPerfChunkLOD.swift \
       $F/Notes/GraphPerfOctree.swift $F/Notes/GraphPerfCamera.swift $F/Notes/GraphPerfLOD.swift \
       $S/Space/GraphicsQuality.swift $F/Notes/GraphLinkCurve.swift
+# the million map's proof tour (plan 4f, D5): its phases in order and on
+# time, a path with no jump but the cut to the whole map, the hub kept on
+# screen, and the frame rate, swap and summary worked out from known frames
+suite graphtour GraphPerfTourTests.swift $F/Notes/GraphPerfTour.swift $F/Notes/GraphPerfCamera.swift \
+      $F/Notes/GraphPerfLOD.swift
 # the accuracy engine: dose, lab and contradiction rules (the same
 # cases as the server's), the accuracy model's grades, the cache key,
 # the order background checks run in, and one-tap corrections
