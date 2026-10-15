@@ -1750,6 +1750,8 @@ struct GraphSCNView: UIViewRepresentable {
             view.scene = built.scene
             view.pointOfView = built.camera
             view.defaultCameraController.target = SCNVector3(x: 0, y: 0, z: 0)
+            // the depth fade follows what the camera orbits (plan 4f)
+            GraphDepth.follow(view)
             // the theme's lens at this Graphics tier (Smooth: none)
             let lens: GraphLens = GraphLens.of(built.theme, tier: GraphQuality.current.tier)
             if let camera = built.camera.camera { lens.apply(to: camera) }

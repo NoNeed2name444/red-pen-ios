@@ -1948,8 +1948,19 @@ with the marks on the screens last.
   It is the owner's second exception to "no fading", and applies inside
   the 3D scene only.
   - [ ] Performance, on design/perf-million (with D1 to D5).
-  - [ ] Space, on design/space-bodies (after its current step).
-  - [ ] Neurons, on design/neurons-depth (a new stream).
+  - [ ] Space, on design/space-bodies (after its current step). Moved, 15
+    Oct (about 9:05 AM): built once for both SceneKit themes on
+    design/neurons-depth, Space adopting it in GraphUniverseScene.swift
+    only.
+  - [ ] Neurons, on design/neurons-depth (a new stream). Step 1 (15 Oct):
+    the band's numbers and maths for both SceneKit themes, Foundation only
+    (GraphDepthFade.swift, suite graphdepth), and SceneKit's fog on the
+    Neurons scene toward black, its band on what the camera orbits each
+    frame (GraphDepthKeeper.swift; Graph3DView hands over the camera
+    controller in one line), the fluid's dome kept inside the fog's start.
+    Next: verify on the Mac that the fog reaches the shader and additive
+    materials, then the shader-side curve, culling past the end, detail
+    inside the band, pills and picking, Space, and the measurements.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner
     sees it.

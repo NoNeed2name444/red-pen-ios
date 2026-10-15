@@ -221,6 +221,12 @@ suite anatomy GraphAnatomyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/Grap
 # depth of field only at High, lensing with the shaders' detail, and
 # the same blur at every zoom
 suite graphlens GraphLensTests.swift $F/Notes/GraphLens.swift $F/Notes/GraphTheme.swift $S/Space/GraphicsQuality.swift
+# the depth fade in the SceneKit themes (plan 4f): SceneKit's fog curve
+# along the view, the band following the focus at every zoom, Smooth
+# pulling it in, Increase Contrast fading less, nothing drawn or picked
+# past the end, detail dropping only where mostly faded, pills never
+# half-faded
+suite graphdepth GraphDepthTests.swift $F/Notes/GraphDepthFade.swift $F/Notes/GraphTheme.swift $S/Space/GraphicsQuality.swift
 # the Performance theme's engine at 100,000 notes and 300,000: the
 # graph, the seed and the force layout a slice a frame, cluster level of
 # detail (fewer bodies and lines as the camera goes back), picks against

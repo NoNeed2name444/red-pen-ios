@@ -248,6 +248,10 @@ extension GraphSceneBuilder {
         cameraNode.camera = camera
         cameraNode.simdPosition = SIMD3<Float>(0, 0, distance)
         scene.rootNode.addChildNode(cameraNode)
+        // far things dissolve into the background, the band on the focus
+        // (plan 4f, GraphDepthKeeper)
+        GraphDepth.install(theme: look.theme, scene: scene, world: world, camera: cameraNode, sky: sky,
+                           skyRadius: skyRadius, middle: GraphMapBounds.centre(plan.envelope), contrast: contrast)
 
         var universe = GraphUniverseLooks(shells: [], shellOwner: [], linkKinds: kinds, farLines: farLines,
                                           farMaterial: look.farMaterial)
