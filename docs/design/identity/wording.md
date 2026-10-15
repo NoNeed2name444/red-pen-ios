@@ -9,7 +9,7 @@ Written 15 Oct 2026 against `personal` at bc611221. Every file:line below was ch
 - **The exam is the setting; medicine is the content.** Ward words go wherever they dress up the app’s own furniture: the daily plan, the progress screen, the timer, the question screen. They stay wherever they *are* the content: a case’s patient, the OSCE’s talking patient, a clinical score’s own wording, and every safety notice about real patients.
 - **Exam vocabulary, plain and warm:** paper, question, station, mark scheme, score, mock, revision, topic, weak topics, results, pass mark, SBA, viva. No role-play and no jargon jokes.
 - **One word per thing.** The daily plan is *Today’s revision*. The timer is a *focus session* made of *blocks*. The progress screen is *Results*. What to revise next is *weak topics*.
-- **The words already right stay:** Best answer, Timed, Reveal, Step 1 of 8, Finish paper, See results, Spaced review, Due, New, "on track for a pass", "below the pass mark for now", streak.
+- **The words already right stay:** Second try, Timed, Reveal, Step 1 of 8, Finish paper, See results, Spaced review, Due, New, "on track for a pass", "below the pass mark for now", streak.
 
 ## Glossary
 
@@ -23,7 +23,7 @@ Written 15 Oct 2026 against `personal` at bc611221. Every file:line below was ch
 | Round 1 of 4 (parts of the timer) | Block 1 of 4 | "Block" is the question-bank and exam word for a timed run of work; "4 blocks sat" keeps the exam’s "sat". |
 | Patient 7 of 20 (the question header) | Question 7 of 20 | The thing on screen is a question. The patient lives inside its stem, where the clinical words stay. |
 | Next patient | Next question | Pairs with "Finish paper" and "See results", which are already exam words. |
-| Patient chart (label over the stem) | Question | With the "Best answer" (SBA) chip beside it, the label says what kind of question it is. |
+| Patient chart (label over the stem) | Single best answer | The header already says "Question 7 of 20", so the label names the kind of question; the "Best answer" chip then shows only on a retest ("Second try"). |
 | Vitals (the progress screen) | Results | An exam ends in results, and "See results" already leads there. Vitals are a patient’s, not a student’s. |
 | Needs a consult | Weak topics | The exam phrase for what to revise next; it also names the list on the boards. |
 | Sinus · regular, irregular, resting | Steady, Patchy, Resting | "Study rhythm" stays as plain English, and the ECG stays as the brand’s picture; the jargon "Sinus" goes. |
@@ -64,7 +64,7 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 | 17 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:18` | Patient 7 of 20 | Question 7 of 20 | The header. A question is a question; the patient is inside its stem. | **ChartQuizTests.swift:18** |
 | 18 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:134` | Next patient (in a paper) | Next question | Beside "Finish paper" and "Skip for now", which stay. | **ChartQuizTests.swift:111** |
 | 19 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:137` | Next patient | Next question | Beside "See results", which stays. | **ChartQuizTests.swift:109** |
-| 20 | `ios/RedPen/Features/MCQ/MCQQuizView.swift:606` | Patient chart | Question | Small-caps label over the stem, beside the "Best answer" chip (an SBA). Its chip is tinted blue today (tone .blue); it should follow the mode hue. |  |
+| 20 | `ios/RedPen/Features/MCQ/MCQQuizView.swift:606` | Patient chart | Single best answer | Small-caps label over the stem. The header already says "Question 7 of 20", so the label names the kind of question instead of repeating it. The "Best answer" chip beside it (line 607) would then repeat the label, so it shows only on a retest, as "Second try". The chip is tinted blue today (tone .blue); it should follow the chip rule in routes.md. |  |
 
 ### Results (today “Vitals”) and weak topics
 

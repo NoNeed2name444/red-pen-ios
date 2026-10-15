@@ -2016,9 +2016,16 @@ docs/design/identity/; the route boards are images kept out of the repo.
   it is ownable, its risks and what changes in the app; the shared lockup,
   Trace token, marks and font licences; the recommendation (A, with B's mono
   readouts) and three questions for the owner.
-- [ ] Before any route ships: cut the dark LaunchLogo from the grey tube
-  (candidates-8/06-grey-flat-dark.png); design/launch-anim still has the
-  slate-blue one.
+- [x] The dark LaunchLogo is the grey tube on design/launch-anim at
+  202825ea; the boards composite both marks from that commit, as they are.
+- [x] Review 1 (15 Oct) fixed on all three boards: flat cards (no soft lift),
+  no rule across home, chips are ink or the item's own mode hue with status
+  shown by form, pencil darkened so text on the grid clears 4.5:1 over its
+  bold lines (worst case printed), A's margin note on a plain paper plate.
+  A: Pen Red's reason over #D32F45 and the ecgLine note; dark Pen Red is a
+  crimson, #FF5D6D. C: rebuilt around steel and silicone (correct is the
+  mode's hue, wrong is bare steel), Lilac moved to 302 degrees. The boards
+  are re-checked by a new reviewer before the owner sees them.
 - [x] wording.md: ward-to-exam glossary and the full string inventory (69
   strings to change, 20 of them asserted by tests, and the ward words that
   stay because they are the content).

@@ -14,15 +14,17 @@ The owner has the three boards; they are not in the repo because they contain th
 
 The mocks are HTML and CSS rendered in Chromium, with the real marks composited, never redrawn. Inter stands in for SF Pro (and Nunito for SF Pro Rounded in Route C), and each board says so.
 
+The boards were revised the same day after an independent review. In every route, cards are now flat, chips follow one rule, and text set on the grid is measured over its bold lines. Route C was rebuilt around its two materials. The rules that apply to all three routes are under [What every route shares](#what-every-route-shares).
+
 | | A, Red Pen | B, Answer Sheet | C, Steel & Silicone |
 |---|---|---|---|
 | Idea | Revision, marked the way a good examiner marks a paper: a red pen on ECG paper. | Every mark counts: the clean logic of an answer sheet, read by a calibrated instrument. | The instrument you carry into every exam: soft silicone, bright steel, a tube in every colour. |
-| Hero (and Trace) | Pen Red `#BE0222`, dark `#FF6F6C` | Signal Orange: text `#9A4703`, graphics `#C75A0C`, dark `#EF7107` | Plum `#802C6D`, dark `#E083C6` |
+| Hero (and Trace) | Pen Red `#BE0222`, dark `#FF5D6D` | Signal Orange: text `#9A4703`, graphics `#C75A0C`, dark `#EF7107` | Plum `#7E2A78`, dark `#DD83D3` |
 | Ground | Warm paper `#EAE5DD`, dark `#211D1A` | Neutral paper `#E8E8E6`, dark `#181716` | Rose-grey silicone `#EBE5E9`, dark `#242023` |
 | Display type | Newsreader SemiBold, a serif | Archivo Expanded Bold, with IBM Plex Mono for numbers | SF Pro Rounded Heavy |
 | ECG stroke | A pen line that tapers and thins with speed | The trace after a calibration pulse | A tube-weight line, 3 pt, round joins |
-| Marking | Ticks, circled scores, margin notes | Answer-sheet lozenges, timing marks, a mark scheme | Steel discs, a ring, a "Why" box |
-| Correct / wrong | Red tick / pencil, struck through | Green / red, as their own tokens | Hunter green / Raspberry |
+| Marking | Ticks, circled scores, margin notes | Answer-sheet lozenges, timing marks, a mark scheme | Steel bezels, silicone fills, a steel-tracked ring |
+| Correct / wrong | Red tick / pencil, struck through | Green / red, as their own tokens | The mode's own hue (silicone) / bare steel, struck through |
 | Shape | Pill buttons, 20 pt cards | 12 pt buttons, 14 pt cards, 4 pt chips | Pill buttons, 28 pt cards, 24 pt rows |
 
 ## Route A: Red Pen (the seed, developed)
@@ -31,10 +33,10 @@ The mocks are HTML and CSS rendered in Chromium, with the real marks composited,
 
 **On the board.**
 
-- **Colour.** Pen Red is the hero, the Questions hue and the Trace, on a warm paper ground. The other modes become inks: Rust (Cards), Green ink (Textbook), Teal ink (Cases), Ochre (OSCE), Violet ink (Audio) and Magenta ink (Ideas). A correct answer gets the red pen's tick and the words "Correct answer". A wrong answer is struck through in pencil with "Your answer"; it is never painted red.
+- **Colour.** Pen Red is the hero, the Questions hue and the Trace, on a warm paper ground. It replaces the brief's ECG Red `#D32F45`, which is 3.93:1 on paper and 3.48:1 in wells, too light for text. By night it is the crimson `#FF5D6D`, the most vivid red that clears 4.5:1 on every dark ground. The other modes become inks: Rust (Cards), Green ink (Textbook), Teal ink (Cases), Ochre (OSCE), Violet ink (Audio) and Magenta ink (Ideas). A correct answer gets the red pen's tick and the words "Correct answer". A wrong answer is struck through in pencil with "Your answer"; it is never painted red.
 - **Type.** Newsreader carries the wordmark, screen titles, the small-caps labels ("TODAY'S REVISION"), scores and margin notes, which are set in its italic. SF Pro carries everything you read in the interface. Newsreader has an optical-size axis, so its small sizes stay sturdy.
 - **ECG.** A pen stroke: round caps, a slight taper at both ends, and thinner where the pen moves fast (the QRS). It is the opening's own complex, 2.2x the cap height wide.
-- **Marking.** A tick for right; a circled score ("72%" in a hand-drawn ring); a red margin note under the answers giving the reason ("FSGS is the commonest primary cause in Black adults. Spikes on silver stain mean membranous.").
+- **Marking.** A tick for right; a circled score ("72%" in a hand-drawn ring); a red margin note under the answers giving the reason ("FSGS is the commonest primary cause in Black adults. Spikes on silver stain mean membranous."). The note sits on a plain paper plate, unruled, so red text never meets the grid's red lines.
 
 **Why it is ownable.**
 
@@ -57,6 +59,8 @@ The mocks are HTML and CSS rendered in Chromium, with the real marks composited,
 - **Type.** Bundle Newsreader (the TTF from google/fonts `ofl/newsreader`, with its OFL text in the acknowledgements) and register it in `UIAppFonts`. `WardType.display`, `title` and the small-caps style move to Newsreader, scaled with Dynamic Type through `UIFontMetrics`.
 - **Components.** Option rows with circle badges and pen marks; a circled-score view; a margin-note view; pencil strike-through for wrong answers.
 - **ECG.** `EcgSquiggle` draws the opening's complex (the `ecgHeight` function in `LaunchOpening.swift` on `design/launch-anim`) with the pen-stroke renderer.
+- **`ecgLine`.** The launch stream's new token is the one line colour for the opening's trace and the title squiggle, and it is `#D32F45` by day today. Lines need only 3:1, so `#D32F45` would pass as a line. Route A still sets `ecgLine` to Pen Red, `#BE0222` by day and `#FF5D6D` by night, because it keeps one red for lines and text.
+- **The "Best answer" chip** (`MCQQuizView.swift:607`) is tinted blue today (tone `.blue`). It becomes a Pen Red outline, and shows only on a retest ("Second try"); see [wording.md](wording.md).
 - **Wording.** As listed in [wording.md](wording.md).
 
 ## Route B: Answer Sheet
@@ -91,38 +95,46 @@ The mocks are HTML and CSS rendered in Chromium, with the real marks composited,
 - **Type.** Bundle Archivo (variable, with a width axis) and IBM Plex Mono, both OFL. `WardType.obs` moves from the system mono to Plex Mono.
 - **Components.** Lozenge letters, the timing-mark progress, square chips, the mark-scheme well, and an indicator bar under the selected tab.
 - **ECG.** The calibration pulse is added in both the title and the opening, so the two stay one shape.
+- **The "Best answer" chip** (`MCQQuizView.swift:607`) is tinted blue today (tone `.blue`). It becomes a square Signal Orange outline in mono caps, and shows only on a retest ("Second try").
 - **Wording.** As listed in [wording.md](wording.md).
 
 ## Route C: Steel & Silicone
 
 **Idea.** The instrument you carry into every exam: soft silicone, bright steel, a tube in every colour.
 
+The first board was the A and B template recoloured in plum, with steel only as grey rings round the letters. A route that is not distinct is no use to the owner, so this one was either to be rebuilt or replaced. It is rebuilt: the stethoscope is the one thing every student carries into every exam, and its two materials can carry a whole interface. Silicone is colour, soft and filled. Steel is neutral, crisp and engineered. They now decide every surface, every control, and how answers are marked.
+
 **On the board.**
 
-- **Colour.** Plum is the hero, the Questions hue and the Trace, on a rose-grey silicone ground. The modes are named like tubing colours: Raspberry (Cards), Hunter (Textbook), Caribbean (Cases), Mustard (OSCE), Lilac (Audio) and Orange (Ideas). Correct borrows Hunter and wrong borrows Raspberry. Option letters sit on steel discs, echoing the chest piece.
-- **Type.** SF Pro Rounded (an Apple system font, so nothing to bundle) for the wordmark, titles, labels, numbers and buttons; SF Pro for body text.
+- **Silicone is the mode's hue, as a solid fill.** It is used for the primary button ("Start revision"), the chosen tab, the chosen letter, and the whole row of a correct answer. Plum is the hero, the Questions hue and the Trace, on a rose-grey ground. The other modes are named like tubing colours: Raspberry (Cards), Hunter (Textbook), Caribbean (Cases), Mustard (OSCE), Lilac (Audio) and Orange (Ideas). Lilac now sits at OKLCH 302°, a violet; at 290° it read as periwinkle. Plum (331°) and Raspberry (14°) were moved further apart.
+- **Steel is neutral grey, and is never tinted blue.** It forms the bezel round every letter, as on the chest piece, the 1 pt edge of every card, the track of the progress ring, and the neutral chips.
+- **Tactility follows the material.** Controls are silicone or steel-rimmed and carry the soft rim. Cards are flat steel-edged plates.
+- **Correct and wrong are marked by material, not by green and red.** A correct answer fills with the mode's own hue, with its text in the card colour (7.60:1) and a tick. A wrong pick turns to bare steel: a neutral plate, a steel disc with a cross, and the text struck through in pencil. The words "Correct answer" and "Your answer" keep the meaning clear without colour.
+- **Type.** SF Pro Rounded (an Apple system font, so nothing to bundle) is used for the wordmark, titles, labels, numbers and buttons; SF Pro for body text. The board shows Nunito ExtraBold in its place and labels each specimen that way.
 - **ECG.** A tube-weight line (3 pt, round joins and caps), drawn from the opening's complex at 2.2x the cap height.
-- **Marking.** A progress ring like the chest piece's diaphragm, filled discs with a tick or a cross, and a raised "Why" box for the reason.
 
 **Why it is ownable.**
 
-- It takes the mark itself as the system: steel for the chrome, tube colours for the modes. Nothing could feel more continuous with the stethoscope.
+- It takes the mark itself as the system. Steel and silicone are in every control, and a right answer lights up in the tube's colour. Nothing could feel more continuous with the stethoscope.
+- It marks right and wrong by material, which leaves behind "the same green and red every quiz app uses" ([audit.md](audit.md), item 9).
 - The rounded system face costs nothing to ship, scales fully with Dynamic Type, and matches the soft rims.
 - Plum is unused in the category.
 
 **Risks.**
 
-- **The least distinctive type.** Many iOS apps use SF Pro Rounded, so the identity rests on colour and material, and could drift towards generic-friendly.
-- **Soft, rounded and neumorphic together can feel toy-like,** against the "exacting" trait.
-- **Plum has no natural tie to the ECG or to marking,** so the Trace colour is a brand choice rather than a reference. It also sits closer to Audio's Lilac than the other routes' heroes sit to any mode.
-- **Steel discs need care in dark mode** to keep their letters at 4.5:1.
+- **The least distinctive type.** Many iOS apps use SF Pro Rounded, so the identity rests on colour and material.
+- **Soft and rounded can feel toy-like,** against the "exacting" trait. The flat steel-edged cards and the neutral steel are there to hold it back.
+- **Wrong is quiet.** Bare steel tells you less at a glance than red. The cross and the words have to do that work, and it should be tried on students.
+- **Plum has no natural tie to the ECG or to marking,** so the Trace colour is a brand choice rather than a reference.
+- **Solid fills need care in dark mode.** On the light Plum, text is set in the dark paper colour (6.33:1).
 
 **What changes in the app.**
 
-- **Colour.** The tokens per [palettes.md](palettes.md).
+- **Colour.** The tokens per [palettes.md](palettes.md), plus neutral steel tokens (OKLCH chroma 0.004).
 - **Type.** No font files: `.fontDesign(.rounded)` on the display, title, label, number and button styles.
-- **Components.** Steel letter discs, ring progress, the "Why" box, and the largest radii of the three routes (28 pt cards, 24 pt rows).
+- **Components.** Steel-bezelled letter discs; silicone fills for the primary button, the chosen tab and a correct answer; a steel plate for a wrong one; steel card edges; a steel-tracked progress ring; the largest radii of the three routes (28 pt cards, 24 pt rows).
 - **ECG.** A 3 pt tube stroke for the opening's complex.
+- **The "Best answer" chip** (`MCQQuizView.swift:607`) is tinted blue today (tone `.blue`). It becomes a Plum outline, and shows only on a retest ("Second try").
 - **Wording.** As listed in [wording.md](wording.md).
 
 ## What every route shares
@@ -136,15 +148,20 @@ The mocks are HTML and CSS rendered in Chromium, with the real marks composited,
 - **Smallest size:** with the mark, 24 pt type; below that, the wordmark and trace alone, never under 17 pt.
 - Home's title is the wordmark and trace without the mark, because the mark has just been seen in the opening.
 
+### Cards, chips and the grid
+
+- **Cards are flat:** a tonal fill and a 1 pt edge, with no blur, no glow and no lift. The soft rim is kept for controls only (buttons, fields, option rows, the tab bar), as the owner's rule allows. Plates (the countdown, a lab value, B's mark scheme) are flat tonal fills.
+- **Chips:** a chip is ink, or the hue of the item's own mode (the question-type chip in Questions). It never borrows another mode's hue. Status shows by form: solid for act now ("Due"), an outline for a state ("New", "Weak topic"), a tint for a fact ("34 y", "Male"). A hue chip is always an outline, so its text keeps the hue's own contrast.
+- **Text on the grid** clears 4.5:1 over the grid's bold lines, which WardPaper fills twice (25% of the hue by day, 20% by night). Pencil was darkened in every route to clear them. Hero text is never set on the grid. Each board prints its worst case, and [palettes.md](palettes.md) has the tables.
+- **No line under the dock.** The rule that crossed the home screens above "New set" is gone.
+
 ### One Trace token
 
-Trace equals the hero, by day and by night. It is used for the squiggle beside the name and for the opening's line, so the two are the same colour by definition. Today they differ: `wardEcg` `#BA273B` beside the name, and slate `#43566F` / `#6584AE` in the opening on `design/launch-anim`. That slate is a stray blue.
+Trace equals the hero, by day and by night. It is used for the squiggle beside the name and for the opening's line, so the two are the same colour by definition. Today they differ: `wardEcg` `#BA273B` beside the name, and in the opening on `design/launch-anim` (at `202825ea`) slate `#43566F` by day and grey `#A9A8A8` by night. That slate is a stray blue. The launch stream is moving both lines to one new `ecgLine` token, `#D32F45` by day; whichever route is chosen, `ecgLine` takes its Trace colour.
 
 ### The marks
 
-The light mark is `LaunchLogo` from `design/launch-anim`. On `personal`, that asset path still holds the old blue tile with "LISTEN · LEARN · SCORE".
-
-The dark asset on `design/launch-anim` is still the slate-blue tube. The owner's rule is that dark mode always shows the grey tube (`candidates-8/06-grey-flat-dark.png`), so the dark asset should be cut from that file before any route ships. The boards use the grey tube, cut from its flat ground with no redrawing.
+Both marks come from `LaunchLogo` on `design/launch-anim` at `202825ea`, used as they are: `launch-logo@3x.png`, the white tube with the blue ring, by day, and `launch-logo-dark@3x.png`, the grey tube, by night. On `personal`, and on `design/identity`, that asset path still holds the old blue tile with "LISTEN · LEARN · SCORE".
 
 ### Stray blue to remove, whichever route
 
