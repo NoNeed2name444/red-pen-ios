@@ -206,10 +206,10 @@ Its main risk, a red tick for a correct answer in Questions, is cheap to test an
 
 ## Open questions for the owner
 
-Questions 1, 2, 3 and 5 were answered on 15 Oct 2026 (about 7:50 pm Cairo); question 4 was not asked again, and its answer is inferred from question 1, as noted.
+All five questions were answered on 15 Oct 2026 (about 7:50 pm Cairo).
 
 1. **Red for correct (Route A).** Answered, 15 Oct 2026: "the wrong should be faded and what is right gets the color of the mode used". A correct answer takes the active mode's hue (red only in Questions); a wrong answer is faded grey, struck through, with a cross. Green is not used.
 2. **Cards losing its red (Route A).** Answered, 15 Oct 2026: "idont like that color", about Rust. Cards is now a bright Sky blue.
 3. **Two words in [wording.md](wording.md).** Answered, 15 Oct 2026: "make it block" and "3 to do". The timer's parts stay "Block" (Block 1 of 4), and the plan's count is "3 to do" (for example "3 to do · 22 min").
-4. **Route B and C marking without green.** Not asked in the 15 Oct message, so not answered; the owner's marking rule for Route A (the active mode's hue for right, faded for wrong) applies the same idea, and B and C are left as they are.
+4. **Route B and C marking without green.** Answered, 15 Oct 2026: "same as 1". B and C mark the way A does: a correct answer takes the active mode's hue, and a wrong answer is faded grey, struck through, with a cross. Their boards are redrawn to match if the owner picks B or C.
 5. **Ideas turning orange (Route C).** Answered, 15 Oct 2026: "no". Ideas stays magenta in every route; the Route C board is to change when it is next redone.
