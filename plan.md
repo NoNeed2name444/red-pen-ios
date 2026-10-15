@@ -1915,6 +1915,11 @@ with the marks on the screens last.
     is measured and reported but never fails, and the content fails only
     when a faded stretch stays on screen longer than 0.2 s (a shorter one
     is reported as a brief dip, allowed).
+  - [x] The Ward preview no longer hangs on a recording: ward-r15's phone
+    job waited 80 minutes for simctl's recordVideo to stop and timed out.
+    tools/ward_shots.sh stop_rec gives it 20 s after the stop signal, then
+    kills it and logs a FAULT line, so a stuck recorder costs 20 s, not
+    the run.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

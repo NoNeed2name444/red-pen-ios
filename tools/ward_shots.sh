@@ -129,6 +129,21 @@ fit() {  # the name the report is filed under: home's fit, as the app wrote it
   if [ -n "$data" ]; then rm -f "$data/Documents/home-fit.txt"; fi
 }
 
+# Stops a recordVideo started in the background. simctl can hang while it
+# finishes the file (ward-r15's phone job waited 80 minutes on one), so it
+# gets 20 s, then is killed and the gap is logged; the frames check then
+# reports the missing or short video instead of the job timing out.
+stop_rec() {  # pid, file
+  kill -INT "$1" 2>/dev/null || true
+  for _ in $(seq 40); do
+    if ! kill -0 "$1" 2>/dev/null; then wait "$1" || true; return 0; fi
+    sleep 0.5
+  done
+  echo "FAULT recording $2 did not stop in 20 s; killed" >> "$LOG"
+  kill -KILL "$1" 2>/dev/null || true
+  wait "$1" 2>/dev/null || true
+}
+
 record() {  # screen, file, seconds to wait, seconds to record
   xcrun simctl ui "$UDID" appearance light
   xcrun simctl ui "$UDID" content_size large >> "$LOG" 2>&1 || true
@@ -138,8 +153,7 @@ record() {  # screen, file, seconds to wait, seconds to record
   xcrun simctl io "$UDID" recordVideo --codec=h264 --mask=black "$OUT/$2" &
   local rec=$!
   sleep "$4"
-  kill -INT $rec
-  wait $rec || true
+  stop_rec $rec "$2"
   # the pictures after a switch start from the device's own mode: the
   # app turns Always night sky off on any other preview screen
   xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
@@ -157,8 +171,7 @@ system_switch() {  # home while the system turns dark and back
     xcrun simctl ui "$UDID" appearance "$look"
     sleep 2.5
   done
-  kill -INT $rec
-  wait $rec || true
+  stop_rec $rec mode-switch.mp4
 }
 
 crashes() {
