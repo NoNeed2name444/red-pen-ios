@@ -1,0 +1,2 @@
+take 1: gap_ms=106 at=+1.33 refreshes=44 handoff=+0.73 still=+1.97 warm_off=+0.14
+take 2: gap_ms=92 at=+1.36 refreshes=37 handoff=+0.73 still=+1.98 warm_off=+0.03
