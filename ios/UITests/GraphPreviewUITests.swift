@@ -456,7 +456,10 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(readout.waitForExistence(timeout: 30), "no speed readout")
         let built = NSPredicate(format: "value CONTAINS %@", "1,000,000 notes")
         expectation(for: built, evaluatedWith: readout)
-        waitForExpectations(timeout: 180)
+        // the Debug build makes the million on the simulator's 3 cores; on
+        // the iPhone part the screen is being recorded too, and the build
+        // took past 180 s there (preview 38677846380), so it has 7 minutes
+        waitForExpectations(timeout: 420)
         // keep it drawing for a few seconds so the readout measures frames
         for _ in 0..<3 {
             space.swipeLeft(velocity: .slow)

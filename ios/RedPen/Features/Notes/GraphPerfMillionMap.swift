@@ -39,60 +39,73 @@ nonisolated struct GraphPerfMillionMap: Sendable {
     var spacing: Float { scene.layout.spacing }
 
     /// The map for `scene`, or nil once `isCancelled` says a newer one is wanted.
+    ///
+    /// After the octree, its parts do not depend on each other, so they are
+    /// made at once, one a core (the links per leaf, the bundles, the slots'
+    /// positions, their looks, their adjacency): on a phone's or an iPad's
+    /// unoptimised Playgrounds build that is most of the wait.
     static func build(_ scene: GraphPerfScene, leafSize: Int = 384,
                       isCancelled: () -> Bool = { false }) -> GraphPerfMillionMap? {
         let positions = scene.layout.positions
         let t = GraphPerfOctree(positions: positions, colours: scene.colours, leafSize: leafSize)
         if isCancelled() { return nil }
+        let (a, b) = lineEnds(scene)
+        let parts = Parts()
+        DispatchQueue.concurrentPerform(iterations: 5) { part in
+            switch part {
+            case 0: parts.links = GraphPerfLeafLinks(octree: t, a: a, b: b)
+            case 1: parts.bundles = GraphPerfBundles(octree: t, a: a, b: b)
+            case 2: parts.packed = t.packedPositions(positions)
+            case 3:
+                parts.looks = slotLooks(t, scene)
+                parts.boxes = t.leafBoxes()
+            default: parts.adjacency = slotAdjacency(t, a: a, b: b)
+            }
+        }
+        guard let links = parts.links, let bundles = parts.bundles, !isCancelled() else { return nil }
+        return GraphPerfMillionMap(scene: scene, octree: t, links: links, bundles: bundles, packed: parts.packed,
+                                   looks: parts.looks, adjacency: parts.adjacency, boxes: parts.boxes)
+    }
+
+    /// The parts made at once: each written by one thread, read after all are done.
+    private final class Parts: @unchecked Sendable {
+        var links: GraphPerfLeafLinks?
+        var bundles: GraphPerfBundles?
+        var packed: [UInt16] = []
+        var looks: [UInt32] = []
+        var boxes: [SIMD4<Float>] = []
+        var adjacency: (start: [UInt32], items: [UInt32]) = ([], [])
+    }
+
+    /// Every line's two bodies (links, then the folder tree's lines).
+    static func lineEnds(_ scene: GraphPerfScene) -> (a: [Int32], b: [Int32]) {
         let lines = scene.lineCount
         var a = [Int32](repeating: 0, count: lines), b = [Int32](repeating: 0, count: lines)
-        for k in 0..<lines {
-            a[k] = Int32(scene.lineEnds[2 * k])
-            b[k] = Int32(scene.lineEnds[2 * k + 1])
+        scene.lineEnds.withUnsafeBufferPointer { ends in
+            a.withUnsafeMutableBufferPointer { pa in
+                b.withUnsafeMutableBufferPointer { pb in
+                    for k in 0..<lines {
+                        pa[k] = Int32(truncatingIfNeeded: ends[2 * k])
+                        pb[k] = Int32(truncatingIfNeeded: ends[2 * k + 1])
+                    }
+                }
+            }
         }
-        let leafLinks = GraphPerfLeafLinks(octree: t, a: a, b: b)
-        if isCancelled() { return nil }
-        let bundles = GraphPerfBundles(octree: t, a: a, b: b)
-        if isCancelled() { return nil }
-        return GraphPerfMillionMap(scene: scene, octree: t, links: leafLinks, bundles: bundles, a: a, b: b)
+        return (a, b)
     }
 
     private init(scene: GraphPerfScene, octree t: GraphPerfOctree, links: GraphPerfLeafLinks,
-                 bundles: GraphPerfBundles, a: [Int32], b: [Int32]) {
+                 bundles: GraphPerfBundles, packed: [UInt16], looks: [UInt32],
+                 adjacency: (start: [UInt32], items: [UInt32]), boxes: [SIMD4<Float>]) {
         self.scene = scene
         octree = t
         self.links = links
         self.bundles = bundles
-        let n = t.bodyCount
-        packed = t.packedPositions(scene.layout.positions)
-        var look = [UInt32](repeating: 0, count: n)
-        for s in 0..<n {
-            let body = Int(t.order[s])
-            let r = scene.layout.radius[body]
-            let code = UInt32(min(max((r * 100).rounded(), 1), 255))
-            look[s] = scene.colours[body] & 0x00FF_FFFF | code << 24
-        }
-        looks = look
-        // adjacency in slots, both ways
-        var degree = [UInt32](repeating: 0, count: n + 1)
-        let m = min(a.count, b.count)
-        func ok(_ k: Int) -> Bool { a[k] >= 0 && b[k] >= 0 && Int(a[k]) < n && Int(b[k]) < n && a[k] != b[k] }
-        for k in 0..<m where ok(k) {
-            degree[Int(t.slotOf[Int(a[k])])] += 1
-            degree[Int(t.slotOf[Int(b[k])])] += 1
-        }
-        var start = [UInt32](repeating: 0, count: n + 1)
-        for s in 0..<n { start[s + 1] = start[s] + degree[s] }
-        var fill = Array(start[0..<n])
-        var adj = [UInt32](repeating: 0, count: Int(start[n]))
-        for k in 0..<m where ok(k) {
-            let sa = Int(t.slotOf[Int(a[k])]), sb = Int(t.slotOf[Int(b[k])])
-            adj[Int(fill[sa])] = UInt32(sb); fill[sa] += 1
-            adj[Int(fill[sb])] = UInt32(sa); fill[sb] += 1
-        }
-        adjacencyStart = start
-        adjacency = adj
-        leafBoxes = t.leafBoxes()
+        self.packed = packed
+        self.looks = looks
+        adjacencyStart = adjacency.start
+        self.adjacency = adjacency.items
+        leafBoxes = boxes
         // heaviest first, so a frame short of time draws a prefix and the
         // narrowest, faintest bundles are the ones left out
         let heaviest = (0..<bundles.count).sorted {
@@ -108,6 +121,66 @@ nonisolated struct GraphPerfMillionMap: Sendable {
         bundleEnds = ends
         bundleWeights = weights
         bundleShares = Self.overlapShares(ends: ends, cells: bundles.cells.count)
+    }
+
+    /// Per slot: the body's colour and, in the top byte, its radius in hundredths.
+    static func slotLooks(_ t: GraphPerfOctree, _ scene: GraphPerfScene) -> [UInt32] {
+        let n = t.bodyCount
+        var look = [UInt32](repeating: 0, count: n)
+        t.order.withUnsafeBufferPointer { order in
+            scene.layout.radius.withUnsafeBufferPointer { radius in
+                scene.colours.withUnsafeBufferPointer { colours in
+                    look.withUnsafeMutableBufferPointer { out in
+                        for s in 0..<n {
+                            let body = Int(order[s])
+                            let code = UInt32(min(max((radius[body] * 100).rounded(), 1), 255))
+                            out[s] = colours[body] & 0x00FF_FFFF | code << 24
+                        }
+                    }
+                }
+            }
+        }
+        return look
+    }
+
+    /// The links' adjacency in slots, both ways (the GPU layout's neighbours).
+    static func slotAdjacency(_ t: GraphPerfOctree, a: [Int32], b: [Int32]) -> (start: [UInt32], items: [UInt32]) {
+        let n = t.bodyCount
+        let m = min(a.count, b.count)
+        var start = [UInt32](repeating: 0, count: n + 1)
+        var adj: [UInt32] = []
+        t.slotOf.withUnsafeBufferPointer { slotOf in
+            a.withUnsafeBufferPointer { pa in
+                b.withUnsafeBufferPointer { pb in
+                    start.withUnsafeMutableBufferPointer { st in
+                        // counts at s + 1, then the running total
+                        for k in 0..<m {
+                            let x = Int(pa[k]), y = Int(pb[k])
+                            guard x >= 0 && y >= 0 && x < n && y < n && x != y else { continue }
+                            st[Int(slotOf[x]) + 1] += 1
+                            st[Int(slotOf[y]) + 1] += 1
+                        }
+                        for s in 0..<n { st[s + 1] += st[s] }
+                    }
+                    adj = [UInt32](repeating: 0, count: Int(start[n]))
+                    var fill = Array(start[0..<n])
+                    fill.withUnsafeMutableBufferPointer { fp in
+                        adj.withUnsafeMutableBufferPointer { out in
+                            for k in 0..<m {
+                                let x = Int(pa[k]), y = Int(pb[k])
+                                guard x >= 0 && y >= 0 && x < n && y < n && x != y else { continue }
+                                let sa = Int(slotOf[x]), sb = Int(slotOf[y])
+                                out[Int(fp[sa])] = UInt32(sb)
+                                fp[sa] += 1
+                                out[Int(fp[sb])] = UInt32(sa)
+                                fp[sb] += 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return (start, adj)
     }
 
     /// Each cut cell's share of the light where bundles meet: 1/sqrt of how
