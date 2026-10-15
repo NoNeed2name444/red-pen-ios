@@ -107,9 +107,23 @@ final class GraphStyleKit {
     /// A note in the graph look: every piece as it has always been.
     func make(note: Note, style: GraphNodeStyle, radius r: Float,
               random: inout SplitMix64) -> GraphStyledParts {
-        let palette: Int = GraphStyleChoice.palette(for: note.folderId)
+        let palette: Int = GraphPreview.isOn ? previewPalette(note.folderId)
+            : GraphStyleChoice.palette(for: note.folderId)
         return make(name: "note:\(note.id.uuidString)", folder: note.folderId, style: style, radius: r,
                     random: &random, look: .plain, light: .shared, palette: palette)
+    }
+
+    /// The design preview's planet family for a folder: from its name, as
+    /// the preview's store makes new folder ids every launch (so the rest
+    /// and dragged shots, separate launches, showed one planet in two
+    /// families). The app keys it by id, which never changes.
+    private func previewPalette(_ folder: UUID?) -> Int {
+        guard let folder, let name = store.folders.first(where: { $0.id == folder })?.name else {
+            return GraphStyleChoice.palette(for: folder)
+        }
+        var total: Int = 0
+        for scalar in name.unicodeScalars { total = (total &* 31) &+ Int(scalar.value) }
+        return Int(UInt(bitPattern: total) % 3)
     }
 
     /// Any body: a note, a folder's star or black hole, or the home star.
@@ -486,19 +500,6 @@ final class GraphStyleKit {
             let made: SCNGeometry = plane(key, source: GraphStyleShaders.gasRing,
                                           fallback: GraphStyleArt.band, tint: cream)
             if fresh, support.has("gasRing"), let material = made.firstMaterial { markLit(material) }
-            // TEMPORARY ring diagnosis (close-up previews only; removed before
-            // the final push): depth test off, and the shader's own values as
-            // colours over a faint grey square - red the ring's density, green
-            // its light, blue how lit the face is
-            if fresh, GraphPreview.closeUp, support.has("gasRing"), let material = made.firstMaterial {
-                material.readsFromDepthBuffer = false
-                let probe: String = """
-                float3 rp_dbg = float3(0.2) + float3(clamp(rp_den, 0.0, 1.0), clamp(rp_k * 2.0, 0.0, 1.0), clamp(rp_lit, 0.0, 1.0));
-                _surface.diffuse = float4(rp_dbg + float3(rpProbe), 1.0);
-                """
-                material.shaderModifiers = [.surface: GraphStyleShaders.gasRing
-                    .replacingOccurrences(of: GraphStyleShaders.glowEnd, with: probe)]
-            }
             return made
         default: return nil
         }

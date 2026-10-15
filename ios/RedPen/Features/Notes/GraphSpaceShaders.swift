@@ -163,7 +163,7 @@ nonisolated enum GraphStyleShaders {
     /// (1 - e^-x) so no beam or overlap of beams clips to white. A small
     /// body (a pulsar, a comet: a few pixels where a planet is a disc)
     /// dims and narrows its links further and for longer - to 4% and a
-    /// sixth of the width at the end, full only from 1.6 reaches out - so
+    /// sixth of the width at the end, full only from 2.2 reaches out - so
     /// the many beams meeting there never outshine it or cover its coma.
     ///
     /// Every end but a black hole's flares where the beam leaves the body's
@@ -229,8 +229,8 @@ nonisolated enum GraphStyleShaders {
     float rp_s = rp_s0 - rp_amp * sin(rp_turn);
     float rp_a = abs(rp_s);
     float rp_a2 = rp_a * rp_a * (1.0 + 2.5 * rp_bhW);
-    float rp_tpA = smoothstep(0.0, (0.6 + 0.9 * rp_smA) * rp_reach, rp_along);
-    float rp_tpB = smoothstep(0.0, (0.6 + 0.9 * rp_smB) * rp_reach, rp_toEnd);
+    float rp_tpA = smoothstep(0.0, (0.6 + 1.8 * rp_smA) * rp_reach, rp_along);
+    float rp_tpB = smoothstep(0.0, (0.6 + 1.8 * rp_smB) * rp_reach, rp_toEnd);
     float rp_wlo = 0.3 - 0.14 * clamp(rp_smA + rp_smB, 0.0, 1.0);
     float rp_wf = rp_wlo + (1.0 - rp_wlo) * rp_tpA * rp_tpB;
     rp_a2 = rp_a2 / (rp_wf * rp_wf);
@@ -486,8 +486,8 @@ nonisolated enum GraphStyleShaders {
     float rp_cB = 1.0 - clamp(rp_toEnd / rp_capL, 0.0, 1.0);
     float rp_cw = sqrt(max(1.0 - max(rp_cA * rp_cA, rp_cB * rp_cB), 0.0));
     float rp_cap = 1.0 - smoothstep(0.55, 1.0, rp_e / max(rp_cw, 0.001));
-    float rp_dimA = smoothstep(0.1 * rp_reach, (0.9 + 0.7 * rp_smA) * rp_reach, rp_along);
-    float rp_dimB = smoothstep(0.1 * rp_reach, (0.9 + 0.7 * rp_smB) * rp_reach, rp_toEnd);
+    float rp_dimA = smoothstep(0.1 * rp_reach, (0.9 + 1.3 * rp_smA) * rp_reach, rp_along);
+    float rp_dimB = smoothstep(0.1 * rp_reach, (0.9 + 1.3 * rp_smB) * rp_reach, rp_toEnd);
     float rp_dim = mix(0.25 - 0.21 * rp_smA, 1.0, mix(rp_dimA, rp_dimA * rp_dimA, rp_smA));
     rp_dim = rp_dim * mix(0.25 - 0.21 * rp_smB, 1.0, mix(rp_dimB, rp_dimB * rp_dimB, rp_smB));
     rp_col = rp_col * rp_cap * rp_dim * rpEnergy;
@@ -765,7 +765,9 @@ nonisolated enum GraphStyleShaders {
     /// dark lanes, every cell's centre wandering so the surface boils; under
     /// a slower supergranular mottling (value noise), with finer cells at
     /// full quality. A sunspot group: dark umbrae in penumbrae of radial
-    /// filaments. Faculae: bright patches towards the limb. Limb darkening
+    /// filaments, shallower towards the limb (foreshortened there; a full
+    /// black umbra on the edge read as a dark body in front of the sun).
+    /// Faculae: bright patches towards the limb. Limb darkening
     /// that also reddens the edge (I = 1 - 0.56 (1 - mu) - 0.22 (1 - mu)^2,
     /// the colour from the temperature it leaves). A flare beside the spots
     /// brightens and dies back on its own clock. Moving (its z scale), it
@@ -785,7 +787,9 @@ nonisolated enum GraphStyleShaders {
     float rp_limb = 1.0 - 0.56 * rp_lm - 0.22 * rp_lm * rp_lm;
 
     """ + GraphShaderKit.noise("rp_sg", "rp_p * 4.0 + float3(0.0, rp_t * 0.015, 0.0)") + """
-    float rp_depth = max(-_surface.position.z, 0.001);
+    float3 rp_cv = scn_node.modelViewTransform[3].xyz;
+    float rp_depth = max(length(rp_cv), 0.001);
+    float3 rp_eye = -rp_cv / rp_depth;
     float rp_px = 2600.0 * length(scn_node.modelTransform[0].xyz) / rp_depth;
     float rp_near = smoothstep(120.0, 420.0, rp_px);
     float3 rp_gp = rp_p * 46.0 + float3(rp_sg * 1.2, 0.0, rp_sg * 0.8);
@@ -817,6 +821,7 @@ nonisolated enum GraphStyleShaders {
     float rp_spot = (rp_pen - rp_um) * rp_fil * 0.45 + rp_um * 0.78;
     rp_spot = rp_spot + (rp_pen2 - rp_um2) * 0.4 + rp_um2 * 0.72;
     rp_spot = rp_spot + (rp_pen3 - rp_um3) * 0.38 + rp_um3 * 0.7;
+    rp_spot = rp_spot * (0.3 + 0.55 * smoothstep(0.15, 0.6, rp_mu));
     float rp_fac = smoothstep(0.62, 0.8, rp_sg) * smoothstep(0.35, 0.85, rp_lm) * 0.3;
     float rp_fc = rp_t / 11.0;
     float rp_fl = fract(rp_fc);
@@ -1255,7 +1260,12 @@ nonisolated enum GraphStyleShaders {
     /// side from the sun (SpaceOptics.planetShadowsRing). The planet dims
     /// what the ring hides of it (gasBody), so here the ring only adds its
     /// own light. Its z scale carries the planet's motion: it shimmers
-    /// brighter.
+    /// brighter. Which face the eye sees, and how far it is, come from the
+    /// ring's centre in view space, never `_surface.view` or
+    /// `_surface.position`: on a constant-lit plane those are not filled
+    /// in on the device, so the face test flickered in blocks and the ring
+    /// drew as its dim back face, crushed to nothing (found by drawing its
+    /// terms as colours in a preview).
     static let gasRing: String = """
     #pragma arguments
     float rpProbe;
@@ -1268,7 +1278,9 @@ nonisolated enum GraphStyleShaders {
     float rp_py = rp_qy * 2.4;
     float rp_rho = sqrt(rp_px * rp_px + rp_py * rp_py);
     """ + ringDensity("rp") + """
-    float rp_depth = max(-_surface.position.z, 0.001);
+    float3 rp_cv = scn_node.modelViewTransform[3].xyz;
+    float rp_depth = max(length(rp_cv), 0.001);
+    float3 rp_eye = -rp_cv / rp_depth;
     float rp_near = smoothstep(150.0, 600.0, 2600.0 * rp_zx / 4.8 / rp_depth);
     float rp_q1 = rp_rho * 46.0;
     float rp_i1 = floor(rp_q1);
@@ -1286,7 +1298,7 @@ nonisolated enum GraphStyleShaders {
     float rp_d = rp_den * rp_band * rp_encke;
     float3 rp_hue = mix(float3(0.46, 0.41, 0.36), float3(0.96, 0.87, 0.7), smoothstep(1.44, 1.6, rp_rho));
     rp_hue = mix(rp_hue, float3(0.8, 0.76, 0.69), smoothstep(1.98, 2.06, rp_rho));
-    float3 rp_Vo = float3(dot(rp_v0, _surface.view), dot(rp_v1, _surface.view), dot(rp_v2, _surface.view));
+    float3 rp_Vo = float3(dot(rp_v0, rp_eye), dot(rp_v1, rp_eye), dot(rp_v2, rp_eye));
     float rp_face = rp_Lo.z * rp_Vo.z >= 0.0 ? 1.0 : 0.0;
     float rp_lit = (0.3 + 0.7 * abs(rp_Lo.z)) * mix(0.3, 1.0, rp_face);
     float rp_fw = pow(max(-dot(rp_Lo, rp_Vo), 0.0), 6.0) * (1.0 - rp_face) * rp_d * (1.0 - min(rp_d, 1.0)) * 1.6;
