@@ -156,9 +156,10 @@ jobs:
               stamp "take $take (attempt $attempt): launch (3 s into $name)"
               busy "take $take before launch"
               xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash >> "film/launch-$MODE.log" 2>&1
-              busy "take $take after launch"
               # a Debug build on a busy runner can sit on the launch screen ~10 s
               sleep 20
+              # after the take, not during it: ps would add load to the window
+              busy "take $take after the take"
               kill -INT $REC
               wait $REC || true
               size=$(stat -f %z "$name" 2>/dev/null || echo 0)
@@ -182,8 +183,8 @@ jobs:
             readout clear
             busy "take $take control before launch"
             xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash -uiPreviewStubHomeData >> "film/launch-$MODE.log" 2>&1
-            busy "take $take control after launch"
             sleep 20
+            busy "take $take control after the take"
             readout "$take" control
           done
           # the splash's first frame against the system launch screen, as
