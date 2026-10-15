@@ -1,5 +1,6 @@
 import Foundation
 import QuartzCore
+import ObjectiveC
 #if canImport(Darwin)
 import Darwin
 #endif
@@ -25,6 +26,7 @@ final class LaunchHangProbe: NSObject {
     static func startIfRecording() {
         let args = ProcessInfo.processInfo.arguments
         guard args.contains("-uiPreviewSplash"), !args.contains("-uiPreviewSplashHold") else { return }
+        LaunchDisplayCensus.install()
         shared.start()
     }
 
@@ -53,6 +55,9 @@ final class LaunchHangProbe: NSObject {
         guard let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
         let text = "host-origin-s opening-gap-ms opening-time\n" + lines.joined(separator: "\n") + "\n"
         try? text.write(to: dir.appendingPathComponent("launch-frames.txt"), atomically: true, encoding: .utf8)
+        let census = "host-s opening ms kind frame-in-window scale owners\n"
+            + LaunchDisplayCensus.lines.joined(separator: "\n") + "\n"
+        try? census.write(to: dir.appendingPathComponent("launch-census.txt"), atomically: true, encoding: .utf8)
     }
 }
 
@@ -179,5 +184,58 @@ final class HangSampler: @unchecked Sendable {
             }
         }
         try? out.write(to: dir.appendingPathComponent("launch-hang.txt"), atomically: true, encoding: .utf8)
+    }
+}
+
+/// The census half: every display of a RenderBox layer (what SwiftUI draws
+/// with) on the main thread, with how long it held the thread, the layer's
+/// frame in the window, its scale and the views it belongs to. A layer's
+/// first display is noted however short; after that, displays of 1 ms or
+/// more. Written beside the frames (launch-census.txt).
+enum LaunchDisplayCensus {
+    nonisolated(unsafe) static var lines: [String] = []
+    nonisolated(unsafe) private static var seen = Set<ObjectIdentifier>()
+    nonisolated(unsafe) private static var origin: CFTimeInterval = 0
+
+    static func install() {
+        origin = CACurrentMediaTime()
+        let display = NSSelectorFromString("display")
+        guard let cls = NSClassFromString("RBLayer"),
+              let method = class_getInstanceMethod(cls, display),
+              let base = class_getInstanceMethod(CALayer.self, display),
+              method_getImplementation(method) != method_getImplementation(base) else {
+            lines.append("no display of RBLayer's own to time")
+            return
+        }
+        typealias Display = @convention(c) (CALayer, Selector) -> Void
+        let original = unsafeBitCast(method_getImplementation(method), to: Display.self)
+        let timed: @convention(block) (CALayer) -> Void = { layer in
+            let start = CACurrentMediaTime()
+            original(layer, display)
+            let ms = (CACurrentMediaTime() - start) * 1000
+            if Thread.isMainThread { note(layer, start: start, ms: ms) }
+        }
+        method_setImplementation(method, imp_implementationWithBlock(timed))
+    }
+
+    private static func note(_ layer: CALayer, start: CFTimeInterval, ms: Double) {
+        guard start - origin < 10 else { return }
+        let first = seen.insert(ObjectIdentifier(layer)).inserted
+        guard first || ms >= 1 else { return }
+        let opening = MainActor.assumeIsolated { LaunchStage.shared.now }
+        var root = layer
+        while let up = root.superlayer { root = up }
+        let f = layer.convert(layer.bounds, to: root)
+        var owners: [String] = []
+        var at: CALayer? = layer
+        while let l = at, owners.count < 6 {
+            owners.append(l.delegate.map { String(describing: type(of: $0)) } ?? String(describing: type(of: l)))
+            at = l.superlayer
+        }
+        let when = opening.isFinite ? String(format: "%.3f", opening) : "rest"
+        lines.append(String(format: "%.4f ", start - origin) + when
+                     + String(format: " %.1f ", ms) + (first ? "new" : "draw")
+                     + String(format: " x%.0f y%.0f w%.0f h%.0f s%.0f ", f.minX, f.minY, f.width, f.height, layer.contentsScale)
+                     + owners.joined(separator: " < "))
     }
 }

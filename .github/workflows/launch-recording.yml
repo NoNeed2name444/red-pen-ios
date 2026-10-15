@@ -123,10 +123,10 @@ jobs:
             local data
             data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
             [ -n "$data" ] || return 0
-            if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt" "$data/Library/Caches/launch-hang.txt" "$data/Library/Caches/launch-frames.txt"; return 0; fi
+            if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt" "$data/Library/Caches/launch-hang.txt" "$data/Library/Caches/launch-frames.txt" "$data/Library/Caches/launch-census.txt"; return 0; fi
             # the diagnostic's samples (LaunchHangProbe), written ~12 s in
             sleep 2
-            for f in hang frames; do
+            for f in hang frames census; do
               [ -f "$data/Library/Caches/launch-$f.txt" ] && cp "$data/Library/Caches/launch-$f.txt" "film/$f-$MODE-$1.txt"
             done
             if [ -f "$data/Library/Caches/launch-handoff.txt" ]; then
