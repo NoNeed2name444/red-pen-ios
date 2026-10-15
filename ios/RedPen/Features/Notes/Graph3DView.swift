@@ -1855,48 +1855,77 @@ struct GraphSCNView: UIViewRepresentable {
         /// pass their check, and how the first gas giant rings stand (found
         /// by their shader), so a piece missing from the pictures can be
         /// traced.
-        private static func logCloseUp(_ view: SCNView) {
+        private static func logCloseUp(_ view: SCNView, near subject: SIMD3<Float>, when: String) {
             let support: GraphStyleSupport = GraphStyleProbe.latest
             let missing: [String] = GraphStyleProbe.all.map(\.0).filter { !support.has($0) }
-            NSLog("graphPreview close-up: shaders not passed: [%@]", missing.joined(separator: ","))
+            NSLog("graphPreview close-up %@: shaders not passed: [%@]", when, missing.joined(separator: ","))
             guard let root = view.scene?.rootNode else { return }
-            let rings: [SCNNode] = root.childNodes { node, _ in
-                guard let text = node.geometry?.firstMaterial?.shaderModifiers?[.surface] else { return false }
-                return text.contains("rp_encke")
-            }
-            NSLog("graphPreview close-up: %ld ring planes", rings.count)
-            for node in rings.prefix(3) {
-                let t: simd_float4x4 = node.presentation.simdWorldTransform
-                let n: SIMD3<Float> = simd_normalize(SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z))
-                let side: Float = simd_length(SIMD3<Float>(t.columns.0.x, t.columns.0.y, t.columns.0.z))
-                var shown: CGFloat = 1
-                var hidden: Bool = false
-                var up: SCNNode? = node
-                while let at = up {
-                    shown *= at.presentation.opacity
-                    hidden = hidden || at.isHidden
-                    up = at.parent
+            func nearest(_ token: String) -> SCNNode? {
+                let found: [SCNNode] = root.childNodes { node, _ in
+                    node.geometry?.firstMaterial?.shaderModifiers?[.surface]?.contains(token) ?? false
                 }
-                let material: SCNMaterial? = node.geometry?.firstMaterial
-                let blend: Int = material?.blendMode.rawValue ?? -1
-                let box = node.boundingBox
-                NSLog("graphPreview close-up: ring side %.3f normal %.2f %.2f %.2f at %.2f %.2f %.2f opacity %.2f hidden %ld mask %ld order %ld blend %ld box %.2f..%.2f",
-                      side, n.x, n.y, n.z, t.columns.3.x, t.columns.3.y, t.columns.3.z, shown, hidden ? 1 : 0,
-                      node.categoryBitMask, node.renderingOrder, blend, box.min.x, box.max.x)
+                return found.min { a, b in
+                    simd_distance(a.presentation.simdWorldPosition, subject)
+                        < simd_distance(b.presentation.simdWorldPosition, subject)
+                }
             }
+            func side(_ node: SCNNode) -> Float {
+                let t: simd_float4x4 = node.presentation.simdWorldTransform
+                return simd_length(SIMD3<Float>(t.columns.0.x, t.columns.0.y, t.columns.0.z))
+            }
+            func number(_ material: SCNMaterial?, _ key: String) -> String {
+                guard let value = material?.value(forKey: key) else { return "-" }
+                if let n = value as? NSNumber { return String(format: "%.3f", n.doubleValue) }
+                if let v = value as? NSValue {
+                    let q: SCNVector4 = v.scnVector4Value
+                    return String(format: "%.2f,%.2f,%.2f,%.2f", q.x, q.y, q.z, q.w)
+                }
+                return "?"
+            }
+            if let body = nearest("rp_veil") {
+                let material: SCNMaterial? = body.geometry?.firstMaterial
+                NSLog("graphPreview close-up %@: gas body radius %.3f rpRinged %@ rpSun0 %@ rpKey %@ at %.2f away",
+                      when, side(body), number(material, "rpRinged"), number(material, "rpSun0"),
+                      number(material, "rpKey"), simd_distance(body.presentation.simdWorldPosition, subject))
+            }
+            guard let ring = nearest("rp_encke") else {
+                NSLog("graphPreview close-up %@: no ring plane", when)
+                return
+            }
+            let t: simd_float4x4 = ring.presentation.simdWorldTransform
+            let n: SIMD3<Float> = simd_normalize(SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z))
+            var shown: CGFloat = 1
+            var hidden: Bool = false
+            var up: SCNNode? = ring
+            while let at = up {
+                shown *= at.presentation.opacity
+                hidden = hidden || at.isHidden
+                up = at.parent
+            }
+            let material: SCNMaterial? = ring.geometry?.firstMaterial
+            let zs: Float = simd_length(SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z))
+            NSLog("graphPreview close-up %@: ring side %.3f z %.3f normal %.2f %.2f %.2f opacity %.2f hidden %ld order %ld blend %ld sided %ld depth r%ld w%ld rpSun0 %@ rpKey %@ multiply %@ at %.2f away",
+                  when, side(ring), zs, n.x, n.y, n.z, shown, hidden ? 1 : 0, ring.renderingOrder,
+                  material?.blendMode.rawValue ?? -1, (material?.isDoubleSided ?? false) ? 1 : 0,
+                  (material?.readsFromDepthBuffer ?? false) ? 1 : 0, (material?.writesToDepthBuffer ?? false) ? 1 : 0,
+                  number(material, "rpSun0"), number(material, "rpKey"),
+                  String(describing: material?.multiply.contents ?? "none"),
+                  simd_distance(ring.presentation.simdWorldPosition, subject))
         }
 
         /// For the design preview (`-graphPreviewCloseUp`): a second after
-        /// the space appears, frames the busiest note close, straight on;
-        /// with `-graphPreviewDrag` too, half a second later carries it
-        /// steadily up the screen for nine seconds, the camera following
-        /// (for ten seconds either way), so the body is caught moving at the
-        /// same framing.
+        /// the space appears, frames a well-linked note standing clear of
+        /// its neighbours (GraphSim.closeUpChoice) close, straight on; with
+        /// `-graphPreviewDrag` too, half a second later carries it steadily
+        /// the clearest way across the screen for nine seconds, the camera
+        /// following (for ten seconds either way), so the body is caught
+        /// moving at the same framing.
         private func runPreviewCloseUp() {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard let self, let sim = self.sim, let view = self.view, let camera = self.camera,
-                      let i = sim.busiestNote() else { return }
+                      let choice = sim.closeUpChoice() else { return }
+                let i: Int = choice.note
                 // near enough that the body and its inner glow (2.8 radii
                 // each side) fill the narrower side of the screen
                 let r: Float = sim.noteRadius(i)
@@ -1915,7 +1944,8 @@ struct GraphSCNView: UIViewRepresentable {
                     camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
                 }
                 sim.namesShown = false
-                Self.logCloseUp(view)
+                let subject: SIMD3<Float> = sim.world.simdConvertPosition(sim.currentPosition(i), to: nil)
+                Self.logCloseUp(view, near: subject, when: "framed")
                 view.pointOfView = camera
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0
@@ -1924,13 +1954,17 @@ struct GraphSCNView: UIViewRepresentable {
                 self.wake()
                 // the camera keeps following (a settling layout moves the
                 // note a little; a drag carries it)
-                let pov: simd_float4x4 = camera.simdWorldTransform
-                let screenUp = SIMD3<Float>(pov.columns.1.x, pov.columns.1.y, pov.columns.1.z)
-                let up: SIMD3<Float> = sim.world.simdConvertVector(screenUp, from: nil)
+                // carried the clearest way across the screen (the camera
+                // looks along the space's -z)
+                let up: SIMD3<Float> = choice.way
                 var start: SIMD3<Float> = sim.currentPosition(i)
                 var held: Bool = false
                 for k in 1...600 {
                     try? await Task.sleep(nanoseconds: 16_666_667)
+                    if k == 150 {
+                        let now: SIMD3<Float> = sim.world.simdConvertPosition(sim.currentPosition(i), to: nil)
+                        Self.logCloseUp(view, near: now, when: "settled")
+                    }
                     if GraphPreview.drags && k > 30 {
                         if !held {
                             held = true

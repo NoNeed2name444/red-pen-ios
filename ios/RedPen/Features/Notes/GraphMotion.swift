@@ -1043,6 +1043,57 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return best
     }
 
+    /// For the design preview's close-ups: among the most-linked notes
+    /// (at least half the busiest one's links), the one standing clearest
+    /// of its neighbours as the camera sees it (across the screen, depth
+    /// aside), and of eight ways across the screen, the one it can be
+    /// carried six radii along without passing over another body - so no
+    /// neighbour overlaps the subject at rest or while it is dragged. Ties
+    /// go to the more-linked note, and to straight up.
+    func closeUpChoice() -> (note: Int, way: SIMD3<Float>)? {
+        lock.lock()
+        let at: [SIMD3<Float>] = position
+        let size: [Float] = radius
+        let shown: [Bool] = visible
+        let ghosts: [Bool] = ghost
+        lock.unlock()
+        let notes: [Int] = nodes.indices.filter { shown[$0] && !ghosts[$0] && bodyKind[$0] == .note }
+        guard let top = notes.map({ degree[$0] }).max() else { return nil }
+        let pool: [Int] = notes.filter { degree[$0] * 2 >= top }
+        func gap(_ p: SIMD3<Float>, _ i: Int) -> Float {
+            var least: Float = .greatestFiniteMagnitude
+            for j in notes where j != i {
+                let d: SIMD2<Float> = SIMD2<Float>(p.x - at[j].x, p.y - at[j].y)
+                least = min(least, (simd_length(d) - (size[i] + size[j]) * 1.3) / max(size[i], 0.001))
+            }
+            return least
+        }
+        var best: (note: Int, way: SIMD3<Float>, clear: Float, links: Int)?
+        for i in pool {
+            let rest: Float = gap(at[i], i)
+            var way = SIMD3<Float>(0, 1, 0)
+            var wayClear: Float = -.greatestFiniteMagnitude
+            for k in 0..<8 {
+                let angle: Float = Float.pi / 2 + Float(k) * Float.pi / 4
+                let d = SIMD3<Float>(cos(angle), sin(angle), 0)
+                var clear: Float = .greatestFiniteMagnitude
+                for step in 1...6 { clear = min(clear, gap(at[i] + d * (Float(step) * size[i]), i)) }
+                if clear > wayClear + 0.01 {
+                    wayClear = clear
+                    way = d
+                }
+            }
+            let score: Float = min(min(rest, wayClear), 1.5)
+            if let b = best, score < b.clear - 0.01 || (abs(score - b.clear) <= 0.01 && degree[i] <= b.links) {
+                continue
+            }
+            best = (i, way, score, degree[i])
+        }
+        guard let best else { return nil }
+        return (best.note, best.way)
+    }
+
+    // MARK: leaving
     // MARK: leaving
 
     /// The bodies shown now whose ids are not in `keeping` - deleted, as a

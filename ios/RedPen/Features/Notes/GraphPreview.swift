@@ -33,11 +33,12 @@ import SwiftUI
 /// - `-graphPreviewStyle <name>` (blackHole, sun, rocky, gasGiant, pulsar,
 ///   comet) shows every note in that one style in today's force layout
 ///   instead.
-/// - `-graphPreviewCloseUp`, with it, frames the busiest note close up
-///   a second after the space appears, so its body fills the middle of the
-///   screen; with `-graphPreviewDrag` as well, that note is then carried
-///   steadily upwards for eight seconds with the camera following, so a
-///   screenshot catches the body moving, framed the same.
+/// - `-graphPreviewCloseUp`, with it, frames a well-linked note that
+///   stands clear of its neighbours close up a second after the space
+///   appears, so its body fills the middle of the screen, names off; with
+///   `-graphPreviewDrag` as well, that note is then carried steadily the
+///   clearest way across the screen for eight seconds with the camera
+///   following, so a screenshot catches the body moving, framed the same.
 /// - `-graphPreviewTheme neurons` shows the Neurons theme (GraphNeurons):
 ///   Cardiology and Examples as two cells, Inguinal and Femoral as parts
 ///   inside Examples with Anatomy inside Inguinal, pages as vesicles and

@@ -156,7 +156,10 @@ nonisolated enum GraphStyleShaders {
     /// Near each end the beam narrows (to a third of its width at the end),
     /// and the strip itself ends in a rounded cap (an eighth of the reach
     /// long), so its glow meets the body as a point of light, never a
-    /// square cut.
+    /// square cut. Near each body the whole beam is dimmed (to a quarter at
+    /// the limb, full strength from 0.9 of the reach out), so the body is
+    /// the brightest thing there, and the colour saturates softly
+    /// (1 - e^-x) so no beam or overlap of beams clips to white.
     ///
     /// Every end but a black hole's flares where the beam leaves the body's
     /// limb (the strip starts inside the body, which hides the rest), the
@@ -252,10 +255,10 @@ nonisolated enum GraphStyleShaders {
 
     float rp_core = exp(-rp_a2 * 300.0) * rp_w;
     rp_core = max(rp_core, exp(-rp_a2 * 40.0) * rp_w * rpSolid);
-    float rp_inner = exp(-rp_a2 * 14.0) * rp_w2;
+    float rp_inner = exp(-rp_a2 * 22.0) * rp_w2;
     float rp_breath = 1.0 + 0.1 * rp_m * sin(rp_t * 1.0471976 + rp_seed * 2.3);
     float rp_thick = (0.7 + 0.5 * rp_nH) * rp_breath * (1.0 + 0.8 * rp_gsW);
-    float rp_haze = exp(-rp_a2 * 3.0 / (rp_thick * rp_thick)) * rp_w3;
+    float rp_haze = exp(-rp_a2 * 6.0 / (rp_thick * rp_thick)) * rp_w3;
     rp_haze = rp_haze * (0.16 + 0.22 * rp_nD);
     rp_haze = rp_haze * (1.0 + 1.5 * rp_sunW + 1.5 * rp_gsW);
 
@@ -373,7 +376,7 @@ nonisolated enum GraphStyleShaders {
     float3 rp_hotC = mix(rp_gold, rp_white, clamp(rp_haC * 2.0 - 1.0, 0.0, 1.0));
     float3 rp_hueC = mix(rp_warmC, rp_hotC, rp_haC);
     rp_fl = rp_fl + rp_hueC * (rp_profC * rp_glC * 0.45);
-    rp_col = rp_col + rp_fl * (rp_w2 * 0.4 * (1.0 + rp_sunW));
+    rp_col = rp_col + rp_fl * (rp_w2 * 0.4 * (1.0 + rp_sunW) * exp(-rp_a2 * 3.0));
 
     float rp_ph1 = rp_x * 3.1 - rp_t * 2.3 + rp_seed * 1.3;
     rp_ph1 = rp_ph1 + rp_nH * 2.0;
@@ -475,7 +478,11 @@ nonisolated enum GraphStyleShaders {
     float rp_cB = 1.0 - clamp(rp_toEnd / rp_capL, 0.0, 1.0);
     float rp_cw = sqrt(max(1.0 - max(rp_cA * rp_cA, rp_cB * rp_cB), 0.0));
     float rp_cap = 1.0 - smoothstep(0.55, 1.0, rp_e / max(rp_cw, 0.001));
-    rp_col = rp_col * rp_cap * rpEnergy;
+    float rp_dimA = smoothstep(0.1 * rp_reach, 0.9 * rp_reach, rp_along);
+    float rp_dimB = smoothstep(0.1 * rp_reach, 0.9 * rp_reach, rp_toEnd);
+    float rp_dim = 0.25 + 0.75 * rp_dimA * rp_dimB;
+    rp_col = rp_col * rp_cap * rp_dim * rpEnergy;
+    rp_col = (float3(1.0) - exp(-rp_col * 1.3)) * 0.92;
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
 
@@ -818,7 +825,8 @@ nonisolated enum GraphStyleShaders {
     """ + bodyEnd
 
     /// The corona round the sun, on the lifted billboard (the limb at a
-    /// quarter of the half side): a bright inner corona falling off fast,
+    /// quarter of the half side): a soft inner corona falling off gently
+    /// out to the billboard's edge,
     /// helmet streamers whose strength wanders round the limb (value noise
     /// of the angle, drifting), fine polar plumes, and a thin rosy
     /// chromosphere on the limb with spicules. Three prominences: arches of
@@ -855,11 +863,11 @@ nonisolated enum GraphStyleShaders {
     float rp_helm = 0.25 + 1.1 * rp_sn * rp_sn;
     float rp_rw = sin(rp_a * 5.0 + rp_seed) * 1.5;
     float rp_ray = 0.5 + 0.5 * sin(rp_a * 23.0 + rp_rw + rp_out * 0.8);
-    rp_ray = rp_ray * rp_ray * rp_ray;
+    rp_ray = rp_ray * rp_ray;
     float rp_flow = 0.8 + 0.2 * sin(rp_out * 9.0 - rp_t * (0.8 + 4.0 * rp_mv) + rp_a * 2.0);
-    float rp_inner = exp(-rp_out / (0.09 * (1.0 + 0.5 * rp_mv))) * 0.95;
-    float rp_k = exp(-rp_out / (0.35 * (1.0 + 0.8 * rp_mv))) * 0.4 * rp_helm;
-    float rp_far = exp(-rp_out / (1.1 * (1.0 + 1.2 * rp_mv))) * 0.14 * rp_helm * (0.6 + 0.8 * rp_ray) * rp_flow;
+    float rp_inner = exp(-rp_out / (0.15 * (1.0 + 0.5 * rp_mv))) * 0.62;
+    float rp_k = exp(-rp_out / (0.6 * (1.0 + 0.8 * rp_mv))) * 0.36 * rp_helm;
+    float rp_far = exp(-rp_out / (1.8 * (1.0 + 1.2 * rp_mv))) * 0.2 * rp_helm * (0.65 + 0.7 * rp_ray) * rp_flow;
     float rp_cor = (rp_inner + rp_k + rp_far) * step(1.0, rp_x);
     float3 rp_hue = mix(float3(1.0, 0.86, 0.6), float3(1.0, 0.55, 0.2), clamp(rp_out * 0.8, 0.0, 1.0));
     float3 rp_col = rp_hue * rp_cor;
@@ -924,7 +932,7 @@ nonisolated enum GraphStyleShaders {
     float rp_shell = exp(-(rp_dF - 1.0) * (rp_dF - 1.0) * 30.0) * step(rp_rl, rp_r) * step(rp_go - rp_sz * 0.2, rp_xF + rp_sz * 0.7);
     float3 rp_fh = mix(float3(1.0, 0.95, 0.84), float3(1.0, 0.45, 0.12), rp_fl);
     rp_col = rp_col + rp_fh * (rp_shell * 0.45 * rpMotion * (0.6 + 0.6 * rp_pf));
-    float rp_e = clamp((1.0 - rp_r) / 0.25, 0.0, 1.0);
+    float rp_e = clamp((1.0 - rp_r) / 0.5, 0.0, 1.0);
     rp_col = rp_col * (rp_e * rp_e * (3.0 - 2.0 * rp_e));
 
     """ + glowEnd
@@ -1299,13 +1307,14 @@ nonisolated enum GraphStyleShaders {
     rp_b = rp_b * rp_b;
     rp_b = rp_b * rp_b;
     rp_b = rp_b * rp_b;
-    float rp_k = 1.0 + 0.6 * (1.0 - rp_mu) + 0.5 * rp_b;
+    float rp_k = 0.78 + 0.32 * (1.0 - rp_mu) + 0.3 * rp_b;
     float3 rp_col = float3(0.82, 0.9, 1.0) * rp_k;
 
     """ + bodyEnd
 
     /// The glow round the core and its wind nebula, after the Crab's: a
-    /// tight blue-white glare beating with the beams; in the equator, a
+    /// small, tight blue-white glare beating with the beams (the nebula,
+    /// not the glare, carries the look); in the equator, a
     /// thin bright inner ring and the broader torus outside it, both broken
     /// into wisps that drift slowly outwards, the side coming towards the
     /// eye brighter; two jets along the spin axis; and round it all a
@@ -1333,9 +1342,9 @@ nonisolated enum GraphStyleShaders {
     rp_b = rp_b * rp_b;
     rp_b = rp_b * rp_b;
     float rp_x = max(rp_r / rp_rl - 1.0, 0.0);
-    float rp_h = 1.0 / (1.0 + rp_x * rp_x * 9.0) + 0.06 / (1.0 + rp_x * 0.6);
+    float rp_h = 1.0 / (1.0 + rp_x * rp_x * 40.0) + 0.025 / (1.0 + rp_x * 1.5);
     rp_h = rp_h * (0.5 + 0.9 * rp_b) * step(rp_rl * 0.95, rp_r);
-    float3 rp_col = float3(0.68, 0.8, 1.0) * (rp_h * 0.9);
+    float3 rp_col = float3(0.68, 0.8, 1.0) * (rp_h * 0.6);
     float rp_ratio = sqrt(max(1.0 - rp_k * rp_k, 0.0));
     float rp_B = max(rp_ratio, 0.08);
     float rp_ex = rp_qx;
@@ -1347,11 +1356,11 @@ nonisolated enum GraphStyleShaders {
     float rp_near = 1.0 + 0.45 * rp_k * (-rp_ey / rp_er);
     float rp_d1 = (rp_er - 0.21) / 0.022;
     float rp_d2 = (rp_er - 0.4) / 0.085;
-    float rp_ring = exp(-rp_d1 * rp_d1) * (0.4 + 0.9 * rp_wn) * 0.55;
-    float rp_torus = exp(-rp_d2 * rp_d2) * (0.3 + 0.9 * rp_wn) * 0.38;
+    float rp_ring = exp(-rp_d1 * rp_d1) * (0.4 + 0.9 * rp_wn) * 0.8;
+    float rp_torus = exp(-rp_d2 * rp_d2) * (0.3 + 0.9 * rp_wn) * 0.6;
     float rp_ay = abs(rp_qy);
     float rp_jet = exp(-rp_qx * rp_qx / (0.0012 + 0.008 * rp_ay)) * smoothstep(0.08, 0.2, rp_ay);
-    rp_jet = rp_jet * exp(-rp_ay / (0.1 + 0.45 * rp_k)) * (0.6 + 0.4 * rp_wn) * 0.5;
+    rp_jet = rp_jet * exp(-rp_ay / (0.1 + 0.45 * rp_k)) * (0.6 + 0.4 * rp_wn) * 0.7;
     float rp_ne = length(float2(rp_qx / 0.72, rp_qy / 0.6));
 
     """ + GraphShaderKit.noise("rp_fm", "float3(rp_qx * 2.4 + 3.0, rp_qy * 2.4, rp_t * 0.01)")
@@ -1361,8 +1370,8 @@ nonisolated enum GraphStyleShaders {
     float rp_rb = 1.0 - abs(rp_fb * 2.0 - 1.0);
     float rp_fil = pow(rp_ra, 5.0) * (0.6 + 0.6 * rp_rb);
     float rp_env = exp(-rp_ne * rp_ne * 2.2) * (0.5 + 0.9 * rp_fm);
-    float3 rp_syn = mix(float3(0.32, 0.42, 1.0), float3(0.55, 0.75, 1.0), rp_fm) * (rp_env * 0.28);
-    float3 rp_warm = float3(1.0, 0.5, 0.32) * (rp_fil * rp_env * 0.22);
+    float3 rp_syn = mix(float3(0.32, 0.42, 1.0), float3(0.55, 0.75, 1.0), rp_fm) * (rp_env * 0.46);
+    float3 rp_warm = float3(1.0, 0.5, 0.32) * (rp_fil * rp_env * 0.4);
     float3 rp_wind = float3(0.62, 0.78, 1.0) * ((rp_ring + rp_torus) * rp_near + rp_jet);
     rp_col = rp_col + (rp_wind + rp_syn + rp_warm) * (0.88 + 0.24 * rp_b);
     rp_col = rp_col * clamp((1.0 - rp_r) / 0.3, 0.0, 1.0);
@@ -1423,11 +1432,12 @@ nonisolated enum GraphStyleShaders {
 
     """ + bodyEnd
 
-    /// The coma, over the head and round it: bright and nearly white at the
-    /// middle, falling off as gas does (about one over the distance) into a
-    /// wide green glow, squashed on the sunward side and drawn out away
-    /// from it, with a fan of jets on the sunward side turning slowly as
-    /// the nucleus spins. Measured in body radii from the head (the limb
+    /// The coma, round the head: thin over the nucleus itself, so the small
+    /// dark body shows through, brightest in a white ring just off it,
+    /// falling off as gas does (about one over the distance) through pale
+    /// yellow into a wide green glow, mottled, squashed on the sunward side
+    /// and drawn out away from it, with jets - narrow, gently curving,
+    /// mostly sunward - turning slowly as the nucleus spins. Measured in body radii from the head (the limb
     /// sits at 0.1875 of the plane's half side).
     static let cometComa: String = """
     #pragma arguments
@@ -1449,13 +1459,22 @@ nonisolated enum GraphStyleShaders {
     float rp_ca = (rp_cx * rp_lx + rp_cy * rp_ly) / (rp_cr * rp_lp);
     float rp_sw = rp_ca * min(rp_lp * 1.5, 1.0);
     float rp_re = rp_cr * (1.0 + 0.5 * max(rp_sw, 0.0)) * (1.0 + 0.3 * min(rp_sw, 0.0));
-    float rp_g = 0.6 / (rp_re + 0.45) * exp(-rp_re * 0.2);
     float rp_ang = atan2(rp_cy, rp_cx);
-    float rp_jw = 0.5 + 0.5 * sin(rp_ang * 6.0 + rp_t * 0.4 + rp_cr * 0.6);
-    rp_jw = rp_jw * rp_jw;
-    float rp_fan = smoothstep(0.1, 0.8, rp_sw) * (0.4 + 0.6 * rp_jw) * exp(-rp_cr * 0.6) * 0.3;
-    float3 rp_hue = mix(float3(1.0, 0.98, 0.92), float3(0.36, 1.0, 0.66), smoothstep(0.2, 2.2, rp_cr));
-    float3 rp_col = rp_hue * ((rp_g + rp_fan) * clamp((1.0 - rp_r) / 0.3, 0.0, 1.0));
+
+    """ + GraphShaderKit.noise("rp_cn", "float3(cos(rp_ang) * 2.5, sin(rp_ang) * 2.5, rp_cr * 1.2 - rp_t * 0.08)") + """
+    float rp_g = 0.5 / (rp_re + 0.22) * exp(-rp_re * 0.24) * (0.8 + 0.4 * rp_cn);
+    float rp_cd = (rp_re - 0.55) / 0.3;
+    float rp_core = exp(-rp_cd * rp_cd) * 0.45;
+    float rp_clear = 0.25 + 0.75 * smoothstep(0.3, 0.75, rp_cr);
+    float rp_spin = rp_ang + rp_cr * 0.18 - rp_t * 0.25;
+    float rp_j1 = pow(0.5 + 0.5 * cos(rp_spin * 3.0 + 0.6), 6.0);
+    float rp_j2 = pow(0.5 + 0.5 * cos(rp_spin * 5.0 + 2.1), 9.0) * 0.6;
+    float rp_fan = (rp_j1 + rp_j2) * smoothstep(-0.3, 0.6, rp_sw) * smoothstep(0.25, 0.7, rp_cr);
+    rp_fan = rp_fan * exp(-rp_cr * 0.5) * (0.7 + 0.6 * rp_cn) * 0.32;
+    float3 rp_hue = mix(float3(1.0, 0.99, 0.95), float3(0.98, 0.94, 0.78), smoothstep(0.2, 1.0, rp_cr));
+    rp_hue = mix(rp_hue, float3(0.36, 1.0, 0.66), smoothstep(0.7, 2.6, rp_cr));
+    float rp_edge = clamp((1.0 - rp_r) / 0.3, 0.0, 1.0);
+    float3 rp_col = (rp_hue * (rp_g * rp_clear + rp_core) + float3(1.0, 0.97, 0.9) * rp_fan) * rp_edge;
 
     """ + glowEnd
 
@@ -1496,7 +1515,9 @@ nonisolated enum GraphStyleShaders {
     /// (top), turned by GraphStyleAnimator to lie between the light's away
     /// direction and where the comet has been, its +x towards the side it
     /// lags (SpaceOptics.cometTails): broad, pale gold, curving towards +x
-    /// as it goes, with faint striae fanning from the head. Its z scale
+    /// as it goes, with fine streaks fanning from the head and crossed by
+    /// curved striae (bands of dust released together, each its own
+    /// strength, bowing as the tail curves, drifting slowly out). Its z scale
     /// carries how fast the comet is moving: brighter, and shedding puffs
     /// of dust that stream away down the tail.
     static let cometDust: String = """
@@ -1516,7 +1537,13 @@ nonisolated enum GraphStyleShaders {
     float rp_dx = (rp_tx - rp_xc) / rp_wd;
     float rp_fan = exp(-rp_dx * rp_dx) * pow(max(1.0 - rp_ty, 0.0), 1.6);
     float rp_sa = atan2(rp_tx - rp_xc * 0.5, rp_ty + 0.05);
-    float rp_striae = 0.8 + 0.2 * sin(rp_sa * 34.0 + rp_t * 0.2);
+    float rp_striae = 0.72 + 0.28 * sin(rp_sa * 34.0 + rp_t * 0.2);
+    float rp_bq = rp_dx * 0.35 + rp_ty * 7.0 - rp_ty * rp_ty * 3.0 - rp_t * 0.05;
+    float rp_bi = floor(rp_bq);
+    float rp_bf = fract(rp_bq) - 0.5;
+    float rp_bh = fract(sin(rp_bi * 7.31 + 1.7) * 43758.5453);
+    float rp_band = exp(-rp_bf * rp_bf * 18.0) * (0.3 + 0.7 * rp_bh);
+    rp_striae = rp_striae * (0.6 + 1.0 * rp_band * smoothstep(0.08, 0.3, rp_ty));
     float rp_head = exp(-rp_ty * 7.0) * exp(-rp_tx * rp_tx * 25.0);
     float3 rp_col = float3(1.0, 0.92, 0.74) * (rp_fan * 1.05 * rp_striae);
     rp_col = rp_col + float3(1.0, 0.97, 0.88) * (rp_head * 0.45);
