@@ -318,6 +318,30 @@ check("the two modes' chest pieces are near the same place (no jump between mode
       abs(LaunchArt.chest(dark: true).x - LaunchArt.chest(dark: false).x) < 0.02
       && abs(LaunchArt.chest(dark: true).y - LaunchArt.chest(dark: false).y) < 0.02)
 
+// MARK: the storyboard's moments
+
+// The Launch recording holds the opening at each named moment and
+// photographs it (`-uiPreviewSplashAt`): in order, from the launch screen
+// (A1's first frame) to home at rest, each where the timeline puts it.
+for reduced in [false, true] {
+    let o = LaunchOpening(reduced: reduced)
+    let m = o.moments
+    let label = reduced ? "Reduce Motion" : "the opening"
+    check("\(label): its moments start at the launch screen and end with home at rest",
+          m.first?.name == "launch" && m.first?.t == 0 && m.last?.name == "still"
+          && abs((m.last?.t ?? 0) - (o.settled + LaunchOpening.runOn)) < 1e-9)
+    check("\(label): its moments are in order and each named once",
+          zip(m, m.dropFirst()).allSatisfy { $0.t < $1.t } && Set(m.map(\.name)).count == m.count)
+}
+let full = LaunchOpening()
+check("a moment is found by name, or given in seconds",
+      full.moment("lub") == full.r && full.moment("handoff") == full.handoff && full.moment("0.5") == 0.5
+      && full.moment("later") == nil && full.moment("-1") == nil)
+let recording = (try? String(contentsOfFile: ".github/workflows/launch-recording.yml", encoding: .utf8)) ?? ""
+check("the Launch recording photographs every moment, in the storyboard's order",
+      recording.contains("for m in " + full.moments.map(\.name).joined(separator: " ") + "; do")
+      && recording.contains("-uiPreviewSplashAt \"$m\""))
+
 // MARK: no fading, anywhere in the opening
 
 let splash = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchSplash.swift", encoding: .utf8)) ?? ""

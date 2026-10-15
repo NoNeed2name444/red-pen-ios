@@ -173,6 +173,17 @@ jobs:
           done
           sleep 12
           xcrun simctl io "$UDID" screenshot --type=png "film/ground-$MODE-held.png" >/dev/null 2>&1 || true
+          # the storyboard's moments (LaunchOpening.moments, the same names in
+          # the same order), each launch held at one and photographed: the
+          # opening's key frames, lossless
+          for m in launch baseline lub dub handoff arc perch landed letters still; do
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash -uiPreviewSplashAt "$m" >/dev/null || true
+            sleep 6
+            xcrun simctl io "$UDID" screenshot --type=png "film/key-$MODE-$m.png" >/dev/null 2>&1 || true
+          done
+          xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
           stamp "done"
           ls -la film
           cat "film/handoff-$MODE.txt"

@@ -352,6 +352,35 @@ struct LaunchOpening: Sendable {
         return (Self.easeOutBack(p), (1 - Self.easeOut(p)) * 6)
     }
 
+    // MARK: the storyboard's moments
+
+    /// The opening's named moments, in order (docs/design/opening-storyboard.md):
+    /// the Launch recording holds the opening at each and photographs it
+    /// (`-uiPreviewSplashAt <name>`), from the launch screen to home at rest.
+    var moments: [(name: String, t: Double)] {
+        if reduced {
+            return [("launch", 0), ("shrink", handoff / 2), ("handoff", handoff), ("still", settled + Self.runOn)]
+        }
+        let letters = markArrives - 0.02 + Self.letterStagger * Double(Self.titleLetters - 1) / 2
+        return [
+            ("launch", 0),
+            ("baseline", Self.baselineGrow),
+            ("lub", r),
+            ("dub", s2),
+            ("handoff", handoff),
+            ("arc", handoff + Self.markTravel / 2),
+            ("perch", markArrives),
+            ("landed", landed),
+            ("letters", letters + Self.letterLength / 2),
+            ("still", settled + Self.runOn),
+        ]
+    }
+
+    /// The time of a named moment, or of a number of seconds given instead.
+    func moment(_ name: String) -> Double? {
+        moments.first { $0.name == name }?.t ?? Double(name).flatMap { $0 >= 0 && $0.isFinite ? $0 : nil }
+    }
+
     // MARK: the ECG becoming the squiggle
 
     /// The line of the squiggle beside home's title, in points: the ECG's

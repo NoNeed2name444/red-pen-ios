@@ -83,7 +83,7 @@ final class LaunchStage {
         warm = waiting
         if waiting {
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.longestWait) { [weak self] in
-                guard let self, self.link == nil, self.now == 0 else { return }
+                guard let self, self.link == nil, self.now == 0, !self.held else { return }
                 self.warm = false
                 self.now = .infinity
                 self.landed = true
@@ -189,6 +189,18 @@ final class LaunchStage {
             + " warm_off=\(warmEnded.map(s) ?? "none")\n"
         try? line.write(to: dir.appendingPathComponent("launch-handoff.txt"), atomically: true, encoding: .utf8)
     }
+
+    /// A held preview (`-uiPreviewSplashAt`): home posed at the opening's
+    /// time `t` and kept there, for a photograph of that moment.
+    func hold(at t: Double, reduced: Bool) {
+        guard link == nil else { return }
+        self.reduced = reduced
+        held = true
+        let o = LaunchOpening(reduced: reduced)
+        warm = false
+        now = t < o.handoff ? 0 : (t >= o.settled + LaunchOpening.runOn ? .infinity : t)
+    }
+    @ObservationIgnored private var held = false
 
     /// The splash has gone (taking its ECG with it).
     func land() {

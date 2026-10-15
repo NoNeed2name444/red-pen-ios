@@ -87,6 +87,14 @@ struct LaunchSplash: View {
     /// memory warning, is not a launch.
     @MainActor fileprivate static var shown = false
 
+    /// A preview launch held at one of the opening's moments, to photograph
+    /// it (`-uiPreviewSplashAt <name or seconds>`, LaunchOpening.moments).
+    @MainActor static var holdAt: Double? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewSplashAt"), i + 1 < args.count else { return nil }
+        return LaunchOpening(reduced: UIAccessibility.isReduceMotionEnabled).moment(args[i + 1])
+    }
+
     /// No splash for CI screenshots, the graph design preview, or a launch
     /// that asks for none (`-noSplash`). `-uiPreviewSplash` keeps it on a
     /// preview launch, to record the opening (`-uiPreviewSplashHold` with it
@@ -325,7 +333,8 @@ final class LaunchOpeningView: UIView {
 
     private func prepareSound() {
         #if canImport(AVFoundation)
-        guard LaunchSplash.soundOn, let data = NSDataAsset(name: HeartbeatSound.asset)?.data else { return }
+        guard LaunchSplash.soundOn, LaunchSplash.holdAt == nil,
+              let data = NSDataAsset(name: HeartbeatSound.asset)?.data else { return }
         // off the main thread: the audio session and the player's buffers
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let session = AVAudioSession.sharedInstance()
@@ -374,7 +383,7 @@ final class LaunchOpeningView: UIView {
         // zero on the host clock: when the file's start would be heard, less
         // `audioAt`; held back by the latency only when the sound is started
         let zero = CACurrentMediaTime() + lead + latency
-        animate(opening, from: zero)
+        animate(opening, from: zero, holdAt: LaunchSplash.holdAt)
     }
 
     // MARK: the opening
@@ -389,7 +398,7 @@ final class LaunchOpeningView: UIView {
         return (t, q)
     }
 
-    private func animate(_ o: LaunchOpening, from zero: CFTimeInterval) {
+    private func animate(_ o: LaunchOpening, from zero: CFTimeInterval, holdAt: Double? = nil) {
         // where the ECG starts, which the wave of home's parts follows up
         let stage = LaunchStage.shared
         stage.traceStart = convert(CGPoint(x: ecg.frame.midX, y: ecg.frame.minY + Self.traceTop), to: nil)
@@ -456,6 +465,21 @@ final class LaunchOpeningView: UIView {
         }
         CATransaction.commit()
 
+        let end = goal == nil ? o.duration + 0.03 : o.settled + LaunchOpening.runOn + Self.afterStill
+        if let t = holdAt {
+            // held at one moment: Core Animation's clock stopped there for the
+            // whole window (the splash and the bars), home posed at it
+            if let root = window?.layer {
+                root.speed = 0
+                root.timeOffset = zero + t
+            }
+            stage.hold(at: t, reduced: o.reduced)
+            if t >= end {
+                stage.land()
+                done?()
+            }
+            return
+        }
         // home is posed from the same clock: its parts arrive from the
         // hand-off, in a wave that follows the ECG up from where it starts
         stage.play(reduced: o.reduced, handoffHost: zero + o.handoff)
@@ -465,7 +489,6 @@ final class LaunchOpeningView: UIView {
         // taking the splash away falls where nothing is moving, a little
         // after home has stopped. (With no title to land on, the splash has
         // dropped away by `duration`.)
-        let end = goal == nil ? o.duration + 0.03 : o.settled + LaunchOpening.runOn + Self.afterStill
         let wait = max(0, zero + end - CACurrentMediaTime())
         DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
             LaunchStage.shared.land()
