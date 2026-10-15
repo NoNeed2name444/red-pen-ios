@@ -84,6 +84,9 @@ nonisolated enum GraphPerfMillionShaders {
     ]
 
     /// The frame's numbers, in Frame's order.
+    /// The widest a bundle is drawn (points, before Bold).
+    static let bundleWidthCap: Float = 2.5
+
     static func frame(camera cam: GraphPerfCamera, width: Float, height: Float, near: Float, far: Float,
                       centre: SIMD3<Float>, radius: Float, tier: GraphPerfTier, bold: Bool, chosenSlot: Int?,
                       pixelsPerPoint: Float, time: Float) -> [SIMD4<Float>] {
@@ -98,7 +101,7 @@ nonisolated enum GraphPerfMillionShaders {
             SIMD4(width, height, cam.focal(viewHeight: height), pixelsPerPoint),
             SIMD4(GraphPerfLOD.noteClamp.lowerBound, 1.6, base, bold ? 3 : 2.2),
             SIMD4(Float(chosenSlot ?? -1), GraphPerfLOD.hubClamp.upperBound, min(base * 1.6, 0.6), tier == .saver ? 0.7 : 1),
-            SIMD4(toCentre, toCentre + 2 * radius, 0, 0)
+            SIMD4(toCentre, toCentre + 2 * radius, bundleWidthCap * (bold ? 1.4 : 1), 0)
         ]
     }
 
@@ -333,7 +336,9 @@ nonisolated enum GraphPerfMillionShaders {
         float4 ca = f.viewProj * float4(a.xyz, 1.0);
         float4 cb = f.viewProj * float4(b.xyz, 1.0);
         if (closed <= 0.0 || ca.w <= 1e-3 || cb.w <= 1e-3) { return o; }
-        float width = f.look.w * (0.5 + 0.3 * log2(1.0 + weights[iid])) * closed;
+        // wider for more links, but never past the cap (fog.z, points): a
+        // bundle of thousands is a line, not a band across the screen
+        float width = min(f.look.w * (0.5 + 0.3 * log2(1.0 + weights[iid])), f.fog.z) * closed;
         float2 half_screen = f.screen.xy * 0.5;
         float2 sa = ca.xy / ca.w * half_screen;
         float2 sb = cb.xy / cb.w * half_screen;

@@ -91,6 +91,11 @@ struct GraphPerfSpace: View {
                 Text(stats.drawn)
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(Color.wardInkSecondary)
+                if !stats.stages.isEmpty {
+                    Text(stats.stages)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
@@ -98,7 +103,7 @@ struct GraphPerfSpace: View {
         }
         .foregroundStyle(Color.wardInk)
         .accessibilityLabel("Speed")
-        .accessibilityValue(stats.line + ", " + stats.pace)
+        .accessibilityValue([stats.line, stats.pace, stats.drawn, stats.stages].filter { !$0.isEmpty }.joined(separator: ", "))
         .accessibilityHint("How fast the map draws. Opens the demo maps of 100,000, 300,000 and 1,000,000 notes.")
         .accessibilityIdentifier("perfReadout")
     }

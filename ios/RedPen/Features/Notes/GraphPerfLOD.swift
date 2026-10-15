@@ -122,6 +122,12 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     var screenFPS: Int = 0
     /// The frame budget's split size (points; 0 where there is none).
     var detail: Float = 0
+    /// The million map's stages, medians over the last readout (seconds; 0
+    /// where not measured): the CPU's own time, the GPU's near stage (notes,
+    /// links) and far stage (bundles, glows).
+    var cpuMedian: Double = 0
+    var nearMedian: Double = 0
+    var farMedian: Double = 0
     /// The layout is still settling.
     var settling: Bool = false
 
@@ -155,6 +161,21 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
         Self.grouped(drawnBodies) + " drawn \u{00B7} " + Self.grouped(drawnGlows)
             + (drawnGlows == 1 ? " glow" : " glows") + " \u{00B7} " + Self.grouped(drawnLines) + " lines"
             + (detail > 0 ? " \u{00B7} opens at " + String(Int(detail.rounded())) + " pt" : "")
+    }
+
+    /// "cpu 0.9 · near 3.1 · far 1.2 ms", where the stages are measured
+    /// (the million map); empty elsewhere.
+    var stages: String {
+        guard nearMedian > 0 || farMedian > 0 else { return "" }
+        return "cpu " + Self.millis(cpuMedian) + " \u{00B7} near " + Self.millis(nearMedian)
+            + " \u{00B7} far " + Self.millis(farMedian) + " ms"
+    }
+
+    /// The middle value (0 for none).
+    static func median(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sorted = values.sorted()
+        return sorted[sorted.count / 2]
     }
 
     /// Thousands with commas, the same in every locale (the readout is a meter).

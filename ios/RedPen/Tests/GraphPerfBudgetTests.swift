@@ -4,7 +4,8 @@
 // slowly and without see-sawing (B3); missed refreshes count (B4); the
 // streaming budget follows the room left (B5); the link pages follow memory
 // (B6); the Graphics setting no longer caps the rate (B7); and a stall
-// is not load, while detail lost comes back within seconds (B8).
+// is not load, while detail lost comes back within seconds (B8); and the
+// stage that takes the time pays for it, bundles before notes (B9).
 import Foundation
 
 var failures: [String] = []
@@ -84,8 +85,12 @@ check("B3 two in a row coarsen once, then it waits out the frames in flight",
 // MARK: - B4 missed refreshes count, a pause does not
 
 var missing = GraphPerfFrameBudget(screenFPS: 120)
-for _ in 0..<2 { missing.record(cpu: 0.001, gpu: 0.001, interval: 2.0 / 120) }
-check("B4 cheap frames that still missed a refresh coarsen", missing.split > GraphPerfFrameBudget.startingSplit(.high))
+for _ in 0..<2 { missing.record(cpu: 0.001, gpu: 0.004, interval: 2.0 / 120) }
+check("B4 frames that are a real part of a missed refresh coarsen", missing.split > GraphPerfFrameBudget.startingSplit(.high))
+var notOurs = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<20 { notOurs.record(cpu: 0.001, gpu: 0.001, interval: 2.0 / 120) }
+check("B4 cheap frames that missed a refresh anyway are someone else's: nothing is cut",
+      notOurs.split <= GraphPerfFrameBudget.startingSplit(.high) && notOurs.bundleShare == 1, "split \(notOurs.split)")
 var paused = GraphPerfFrameBudget(screenFPS: 120)
 for _ in 0..<4 { paused.record(cpu: 0.001, gpu: nil, interval: 3) }
 check("B4 a long gap (the map was still, then woken) is not a miss", paused.split == GraphPerfFrameBudget.startingSplit(.high))
@@ -136,6 +141,71 @@ while lost.split > 40 && frames < 10_000 {
 }
 check("B8 from the coarsest, a quick device is back to fine detail within three seconds at 120",
       lost.split <= 40 && frames <= 360, "\(frames) frames, split \(lost.split)")
+
+// MARK: - B9 the stage that takes the time pays for it
+
+let start = GraphPerfFrameBudget.startingSplit(.high)
+func stages(_ cpu: Double, _ near: Double, _ far: Double) -> GraphPerfFrameStages {
+    GraphPerfFrameStages(cpu: cpu, near: near, far: far)
+}
+check("B9 the heaviest stage", stages(0.001, 0.002, 0.009).heaviest == .far
+      && stages(0.001, 0.009, 0.002).heaviest == .near && stages(0.009, 0.002, 0.002).heaviest == .cpu
+      && abs(stages(0.003, 0.004, 0.005).cost - 0.009) < 1e-12)
+var farHeavy = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<2 { farHeavy.record(stages(0.001, 0.001, 0.02), interval: 1.0 / 120) }
+check("B9 bundles over budget: fewer bundles, the split untouched",
+      farHeavy.bundleShare < 1 && farHeavy.split == start, "share \(farHeavy.bundleShare), split \(farHeavy.split)")
+for _ in 0..<2_000 { farHeavy.record(stages(0.001, 0.001, 0.2), interval: 1.0 / 120) }
+check("B9 however costly the bundles, the notes are not hidden for them",
+      farHeavy.split == start && farHeavy.bundleShare == GraphPerfFrameBudget.fewestBundles,
+      "share \(farHeavy.bundleShare), split \(farHeavy.split)")
+var nearHeavy = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<2 { nearHeavy.record(stages(0.001, 0.02, 0.001), interval: 1.0 / 120) }
+check("B9 notes and links over budget: a coarser split, every bundle kept",
+      nearHeavy.split > start && nearHeavy.bundleShare == 1)
+var cpuHeavy = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<2 { cpuHeavy.record(stages(0.02, 0.001, 0.001), interval: 1.0 / 120) }
+check("B9 planning over budget: a coarser split (planning grows with what is open)", cpuHeavy.split > start)
+check("B9 bundles drawn: all at first, at least one, none of none",
+      GraphPerfFrameBudget(screenFPS: 120).bundleLimit(29_763) == 29_763
+      && farHeavy.bundleLimit(29_763) == Int((29_763 * GraphPerfFrameBudget.fewestBundles).rounded(.up))
+      && farHeavy.bundleLimit(3) == 1 && farHeavy.bundleLimit(0) == 0)
+
+// a device whose bundles are costly: the far stage scales with the share drawn
+func runStaged(_ budget: inout GraphPerfFrameBudget, speed: Double, bundles: Double, frames: Int) -> [Double] {
+    var costs: [Double] = []
+    for _ in 0..<frames {
+        let split = Double(budget.split)
+        let near = (0.0008 + 2.4 / (split * split)) / speed
+        let far = bundles * budget.bundleShare
+        let s = stages(0.0009, near, far)
+        budget.record(s, interval: 1.0 / 120)
+        costs.append(s.cost)
+    }
+    return costs
+}
+var heavy = GraphPerfFrameBudget(screenFPS: 120)
+let heavyCosts = runStaged(&heavy, speed: 2, bundles: 0.03, frames: 1_500)
+check("B9 costly bundles (30 ms all drawn): it settles under the share with the notes still opening at the tier's split",
+      heavy.split == start && heavyCosts.suffix(100).allSatisfy { $0 <= heavy.target * 1.0001 },
+      "split \(heavy.split), share \(heavy.bundleShare), worst \(heavyCosts.suffix(100).max()! * 1000) ms")
+
+// coming back: the notes first, then the bundles
+var both = GraphPerfFrameBudget(screenFPS: 120)
+for _ in 0..<40 { both.record(stages(0.001, 0.02, 0.001), interval: 1.0 / 120) }
+for _ in 0..<40 { both.record(stages(0.001, 0.001, 0.02), interval: 1.0 / 120) }
+let cutBoth = both.split > start && both.bundleShare < 1
+var order: [String] = []
+for _ in 0..<3_000 {
+    let before = (both.split, both.bundleShare)
+    both.record(stages(0.0005, 0.0005, 0.0005), interval: 1.0 / 120)
+    if both.split < before.0 { order.append("split") }
+    if both.bundleShare > before.1 { order.append("bundles") }
+}
+let firstBundle = order.firstIndex(of: "bundles") ?? order.count
+check("B9 with room again, the split returns to the tier's before any bundle comes back, then every bundle",
+      cutBoth && !order[..<firstBundle].isEmpty && order[firstBundle...].allSatisfy { $0 != "split" || both.bundleShare == 1 }
+      && both.bundleShare == 1 && both.split <= start, "\(order.prefix(12))")
 
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

@@ -202,6 +202,15 @@ func readyPlanner() -> GraphPerfChunkPlanner {
 
 let settings = GraphPerfChunkSettings()
 
+let sortedWeights = m.bundleWeights
+var pairsKept = Set<UInt64>()
+for k in 0..<m.bundles.count { pairsKept.insert(UInt64(m.bundles.a[k]) << 32 | UInt64(m.bundles.b[k])) }
+var pairsSent = Set<UInt64>()
+for k in 0..<m.bundles.count { pairsSent.insert(UInt64(m.bundleEnds[2 * k]) << 32 | UInt64(m.bundleEnds[2 * k + 1])) }
+check("C5 the GPU gets the bundles heaviest first (a frame short of time draws a prefix), every one of them",
+      zip(sortedWeights, sortedWeights.dropFirst()).allSatisfy { $0 >= $1 } && pairsSent == pairsKept
+      && abs(sortedWeights.reduce(0, +) - m.bundles.weight.reduce(0, +)) <= 1e-4 * max(m.bundles.weight.reduce(0, +), 1))
+
 // MARK: - C6 frustum culling
 
 var planner = readyPlanner()

@@ -26,7 +26,7 @@ nonisolated struct GraphPerfMillionMap: Sendable {
     let adjacency: [UInt32]
     /// Per leaf: low corner and first slot; extent and count (GraphPerfOctree.leafBoxes).
     let leafBoxes: [SIMD4<Float>]
-    /// Per bundle: its two cut cells; and how many links it carries.
+    /// Per bundle, heaviest first: its two cut cells; and how many links it carries.
     let bundleEnds: [UInt32]
     let bundleWeights: [Float]
 
@@ -91,13 +91,20 @@ nonisolated struct GraphPerfMillionMap: Sendable {
         adjacencyStart = start
         adjacency = adj
         leafBoxes = t.leafBoxes()
+        // heaviest first, so a frame short of time draws a prefix and the
+        // narrowest, faintest bundles are the ones left out
+        let heaviest = (0..<bundles.count).sorted {
+            bundles.weight[$0] != bundles.weight[$1] ? bundles.weight[$0] > bundles.weight[$1] : $0 < $1
+        }
         var ends = [UInt32](repeating: 0, count: 2 * bundles.count)
-        for k in 0..<bundles.count {
-            ends[2 * k] = bundles.a[k]
-            ends[2 * k + 1] = bundles.b[k]
+        var weights = [Float](repeating: 0, count: bundles.count)
+        for (k, from) in heaviest.enumerated() {
+            ends[2 * k] = bundles.a[from]
+            ends[2 * k + 1] = bundles.b[from]
+            weights[k] = bundles.weight[from]
         }
         bundleEnds = ends
-        bundleWeights = bundles.weight
+        bundleWeights = weights
     }
 
     /// Where body `i` is (its seed; the GPU layout moves it by under a third

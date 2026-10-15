@@ -2,11 +2,15 @@
 // screen's own rate - 120 frames a second on ProMotion, 60 elsewhere - and a
 // device that cannot keep it draws less, never slower.
 //
-// Each frame reports what it cost (its CPU time, and its GPU time once the
-// GPU is done) and how long since the last one. A frame over its share of
-// the refresh (`share` of 1/rate: 6.25 ms of 8.33 at 120), or a refresh
-// missed, counts against the detail; two in a row and cells open later
-// (`split` x 1.2, so a slow phone shows summaries sooner). A long run of
+// Each frame reports what it cost, stage by stage (its CPU time, and the GPU
+// time of the near stage - notes and links - and of the far stage - bundles
+// and glows - once the GPU is done) and how long since the last one. A frame
+// over its share of the refresh (`share` of 1/rate: 6.25 ms of 8.33 at 120)
+// counts against the stage that took the time; two in a row and that stage
+// draws less: the near one opens cells later (`split` x 1.2, so a slow phone
+// shows summaries sooner), the far one draws fewer bundles (the narrowest
+// and faintest go first). The split is never coarsened for time it did not
+// cost, so a costly far stage cannot hide every note. A long run of
 // cheap frames opens them sooner again, slowly (/ 1.05 after 45 frames
 // under half the share), so the detail never see-saws. After a change the
 // controller waits out the frames already on their way to the GPU before
@@ -44,6 +48,15 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     /// Frames to wait after a change (the ones in flight still carry the old detail).
     static let settle: Int = 4
 
+    /// The share of the bundles drawn, heaviest first (the far stage's detail).
+    private(set) var bundleShare: Double = 1
+    static let bundleCut: Double = 0.7
+    static let fewestBundles: Double = 0.05
+    /// Where the split starts (the tier's), the first thing room buys back.
+    private let startSplit: Float
+    /// The last frame's stages, for the readout.
+    private(set) var lastStages = GraphPerfFrameStages(cpu: 0, near: nil, far: nil)
+
     private var over: Int = 0
     private var under: Int = 0
     private var farUnder: Int = 0
@@ -66,6 +79,7 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     init(screenFPS: Int, tier: GraphPerfTier = .high, warmUp: Int = 0) {
         self.screenFPS = Self.rate(screenFPS)
         split = Self.startingSplit(tier)
+        startSplit = split
         wait = max(warmUp, 0)
     }
 
@@ -76,36 +90,54 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
     var period: Double { 1 / Double(screenFPS) }
     var target: Double { period * share }
 
-    /// A frame's cost: `cpu` and `gpu` seconds (nil while the GPU has not
-    /// reported), and `interval`, the seconds since the frame before (nil
-    /// for the first after a pause).
+    /// A frame's cost when only the total GPU time is known: all of it is
+    /// taken as the near stage (the detail).
     mutating func record(cpu: Double, gpu: Double?, interval: Double?) {
-        let cost = max(cpu, gpu ?? 0)
+        record(GraphPerfFrameStages(cpu: cpu, near: gpu, far: nil), interval: interval)
+    }
+
+    /// A frame's cost, stage by stage (seconds; a GPU stage is nil until the
+    /// GPU reports it), and `interval`, the seconds since the frame before
+    /// (nil for the first after a pause).
+    ///
+    /// Over budget, the stage that took the time pays: the near stage (or
+    /// the CPU, whose planning grows with what is open) by a coarser split,
+    /// the far stage by fewer bundles. The split never coarsens for time it
+    /// did not cost. A refresh missed while this frame was cheap (under half
+    /// its share) is someone else's and changes nothing.
+    mutating func record(_ stages: GraphPerfFrameStages, interval: Double?) {
+        let cost = stages.cost
         lastCost = cost
+        lastStages = stages
         if wait > 0 {
             wait -= 1
             return
         }
         if cost >= Self.stall { return }
         let missed = interval.map { $0 > period * 1.5 && $0 < Self.stall } ?? false
-        if cost > target || missed {
+        if cost > target || (missed && cost >= target * 0.5) {
             over += 1
             under = 0
             farUnder = 0
             if over >= Self.overRun {
-                setSplit(split * Self.coarser)
                 over = 0
+                switch stages.heaviest {
+                case .far:
+                    setBundleShare(bundleShare * Self.bundleCut)
+                case .near, .cpu:
+                    setSplit(split * Self.coarser)
+                }
             }
         } else if cost < target * 0.5 {
             under += 1
             over = 0
             farUnder = cost < target * 0.25 ? farUnder + 1 : 0
             if farUnder >= Self.farUnderRun {
-                setSplit(split / Self.farFiner)
+                finer(Self.farFiner)
                 under = 0
                 farUnder = 0
             } else if under >= Self.underRun {
-                setSplit(split / Self.finer)
+                finer(Self.finer)
                 under = 0
             }
         } else {
@@ -113,6 +145,32 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
             under = 0
             farUnder = 0
         }
+    }
+
+    /// Room to spare: the notes come back first (down to where the tier
+    /// starts), then the bundles, then finer detail still.
+    private mutating func finer(_ step: Float) {
+        if split > startSplit {
+            setSplit(max(split / step, startSplit))
+        } else if bundleShare < 1 {
+            setBundleShare(min(bundleShare / Self.bundleCut, 1))
+        } else {
+            setSplit(split / step)
+        }
+    }
+
+    private mutating func setBundleShare(_ next: Double) {
+        let clamped = min(max(next, Self.fewestBundles), 1)
+        guard clamped != bundleShare else { return }
+        bundleShare = clamped
+        wait = Self.settle
+        changes += 1
+    }
+
+    /// How many of `count` bundles to draw (heaviest first): at least one.
+    func bundleLimit(_ count: Int) -> Int {
+        guard count > 0 else { return 0 }
+        return min(max(Int((Double(count) * bundleShare).rounded(.up)), 1), count)
     }
 
     private mutating func setSplit(_ next: Float) {
@@ -136,6 +194,28 @@ nonisolated struct GraphPerfFrameBudget: Sendable, Equatable {
         var s = GraphPerfChunkSettings()
         s.split = split
         return s
+    }
+}
+
+/// One frame's cost by stage (seconds): the CPU's (planning, streaming and
+/// encoding, not the wait for a free slot), the GPU's near stage (layout,
+/// notes, links: what the split opens) and far stage (bundles and summary
+/// glows). A GPU stage is nil until it reports.
+nonisolated struct GraphPerfFrameStages: Sendable, Equatable {
+    var cpu: Double
+    var near: Double?
+    var far: Double?
+
+    enum Stage: Sendable, Equatable { case cpu, near, far }
+
+    /// The frame's cost: the CPU and the GPU run side by side.
+    var cost: Double { max(cpu, (near ?? 0) + (far ?? 0)) }
+
+    /// The stage that took the most.
+    var heaviest: Stage {
+        let n = near ?? 0, f = far ?? 0
+        if f > n && f > cpu { return .far }
+        return n >= cpu ? .near : .cpu
     }
 }
 

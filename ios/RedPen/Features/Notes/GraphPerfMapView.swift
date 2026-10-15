@@ -112,6 +112,8 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         let view = MTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
         view.colorPixelFormat = .bgra8Unorm
         view.depthStencilPixelFormat = .depth32Float
+        // kept between passes: the million map draws its far stage over the near one
+        view.depthStencilStorageMode = .private
         view.clearDepth = 1
         let sky: SIMD3<Float> = GraphPerfScene.background
         view.clearColor = MTLClearColor(red: Double(sky.x), green: Double(sky.y), blue: Double(sky.z), alpha: 1)

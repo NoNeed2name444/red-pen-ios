@@ -475,6 +475,14 @@ readout.screenFPS = 120
 readout.gpuP95 = 0.0061
 check("P7 the pace on ProMotion: the rate of the screen's 120, the slower of CPU and GPU against 8.3 ms",
       readout.pace == "120 of 120 fps \u{00B7} 6.1 ms a frame of 8.3", readout.pace)
+check("P7 the 100,000 map names no stages", readout.stages.isEmpty)
+var staged = readout
+staged.detail = 26
+staged.cpuMedian = 0.0009; staged.nearMedian = 0.0031; staged.farMedian = 0.0012
+check("P7 the million map's readout: the split and the three stages",
+      staged.drawn.hasSuffix(" \u{00B7} opens at 26 pt") && staged.stages == "cpu 0.9 \u{00B7} near 3.1 \u{00B7} far 1.2 ms",
+      staged.drawn + " / " + staged.stages)
+check("P7 the median", GraphPerfStats.median([]) == 0 && GraphPerfStats.median([3, 1, 2]) == 2)
 readout.notes = 1; readout.links = 1; readout.drawnGlows = 1
 check("P7 one of each is singular, and small numbers have no commas",
       readout.line == "1 note \u{00B7} 1 link" && GraphPerfStats.grouped(999) == "999"
