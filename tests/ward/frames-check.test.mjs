@@ -17,7 +17,38 @@ function check(label, ok, detail = '') {
 const L = [220, 40], D = [60, 38], F = [200, 10];   // light, dark, faded content
 const SL = [225, 46], SD = [70, 43], SF = [223, 11]; // the same for the status bar
 const frames = (...list) => ({ times: list.map((f) => f[0]), rows: list.map((f) => [f[1], f[2]]) });
+// a crossfade of `seconds` between two settled states, one frame every 0.05 s:
+// the mean moves from one to the other and the spread sags in the middle, the
+// grey-on-grey of words and cards washing out
+function crossfade(from, to, start, seconds, bar) {
+  const out = [];
+  const n = Math.round(seconds / 0.05);
+  for (let k = 1; k < n; k++) {
+    const t = k / n;
+    const mean = from[0] + (to[0] - from[0]) * t;
+    const mid = Math.abs(2 * t - 1) ** 2;                 // 1 at the ends, 0 in the middle
+    const spread = 8 + (Math.min(from[1], to[1]) - 8) * mid;
+    out.push([start + k * 0.05, [mean, spread], bar]);
+  }
+  return out;
+}
+const fading = (seconds) => {
+  const list = [[0, L, SL]];
+  let t = 1;
+  for (const [a, b] of [[L, D], [D, L], [L, D]]) {
+    list.push(...crossfade(a, b, t, seconds, SL));
+    t += seconds;
+    list.push([t, b, b === L ? SL : SD]);
+    t += 1;
+  }
+  return { ...frames(...list), end: t + 1 };
+};
 const cases = {
+  // the review's B7: three 0.5 s crossfades; a frame caught half way through
+  // one, last above or below brightness 120, must not set the floor
+  crossfade: fading(0.5),
+  // the same three in one step each (a frame or two): allowed
+  stepped: fading(0.05),
   clean: { ...frames([0, L, SL], [1, D, SD], [2, L, SL], [3, D, SD]), end: 4 },
   brief: { ...frames([0, L, SL], [1, D, SD], [2, F, SL], [2.1, L, SL], [3, D, SD]), end: 4 },
   edge: { ...frames([0, L, SL], [1, D, SD], [2, F, SL], [2.2, L, SL], [3, D, SD]), end: 4 },
@@ -64,6 +95,10 @@ check('faded to an end of unknown time fails too', got.restUnknown.code === 1 &&
 check("the status bar's 0.38 s fade is reported and passes", got.statusBar.code === 0
   && /faded status bar, not gated: frames 1-2 from 1\.700 s, on screen 0\.383 s/.test(text('statusBar'))
   && !/FADED/.test(text('statusBar')), text('statusBar'));
+check('three 0.5 s crossfades fail, whatever frame ends each run of a mode',
+  got.crossfade.code === 1 && /FADED content, longer than 0\.2 s/.test(text('crossfade'))
+  && /content contrast light 40\.0, dark 38\.0/.test(text('crossfade')), text('crossfade'));
+check('the same switches in one step stay clean', got.stepped.code === 0, text('stepped'));
 check('one mode only has nothing to check', got.oneMode.code === 2, text('oneMode'));
 check('frames without times cannot be measured', got.mismatch.code === 2 && /cannot be measured/.test(text('mismatch')), text('mismatch'));
 

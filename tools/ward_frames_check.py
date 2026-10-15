@@ -25,9 +25,11 @@ stretch is reported as a brief dip, allowed.
 The status bar (where the clock is) is measured and reported the same way
 but never fails: its words changing style is iOS's own transition.
 
-An end state is a mode at rest: the last frame of each stretch in that mode
-(the recorder keeps a frame only when the screen changes, so a slow fade
-leaves many frames and the last one is the settled look). A frame's time is
+An end state is a mode at rest: the highest spread among that mode's frames
+that stay on screen for REST (0.5 s) or more. The recorder keeps a frame
+only when the screen changes, so a settled look is one long frame and a
+fade is many short ones; the last frame of a run in one mode is no end
+state, it can be caught half way through a crossfade. A frame's time is
 ffprobe's best_effort_timestamp_time, matched one to one to the frames
 ffmpeg writes with -vsync 0.
 
@@ -47,6 +49,8 @@ import tempfile
 FADED = 0.8
 # a faded stretch on screen longer than this, in seconds, fails
 BRIEF = 0.2
+# a frame on screen this long, in seconds, is at rest, not part of a fade
+REST = 0.5
 # a frame this dark (mean brightness of the middle, 0-255) is the dark state
 DARK = 120
 
@@ -111,16 +115,26 @@ def probe(video):
     return times, end[0] if end else None
 
 
-def ends(rows, name):
-    """The typical spread of each mode at rest, (light, dark)."""
-    settled = {True: [], False: []}
+def ends(rows, times, end, name):
+    """The spread of each mode at rest, (light, dark).
+
+    A frame is at rest when it stays on screen for REST seconds or more: the
+    recorder keeps a frame only when the screen changes, so a settled look is
+    one long frame, and a fade is many short ones. Each mode's end state is
+    the highest spread among its frames at rest, so a frame caught half way
+    through a crossfade (grey on grey, the lowest spread of the lot) can
+    never set the floor and let the fade pass. A mode with no frame at rest
+    takes the highest spread of any of its frames."""
+    best = {True: [], False: []}
+    rest = {True: [], False: []}
     for i, row in enumerate(rows):
         dark = row["content"][0] < DARK
-        last = i + 1 == len(rows) or (rows[i + 1]["content"][0] < DARK) != dark
-        if last:
-            settled[dark].append(row[name][1])
-    light, dark = sorted(settled[False]), sorted(settled[True])
-    return light[len(light) // 2], dark[len(dark) // 2]
+        best[dark].append(row[name][1])
+        until = times[i + 1] if i + 1 < len(rows) else end
+        if until is None or until - times[i] >= REST - 1e-9:
+            rest[dark].append(row[name][1])
+    light, dark = (max(rest[m] or best[m]) for m in (False, True))
+    return light, dark
 
 
 def stretches(rows, times, end, name, floor):
@@ -156,7 +170,7 @@ def judge(rows, times, end):
     lines = []
     failed = 0
     for name in REGIONS:
-        light, dark = ends(rows, name)
+        light, dark = ends(rows, times, end, name)
         floor = FADED * min(light, dark)
         note = "" if GATED[name] else " (reported, never fails: iOS's own transition)"
         lines.append(f"{len(rows)} frames; {name} contrast light {light:.1f}, dark {dark:.1f}; "

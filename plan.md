@@ -1977,6 +1977,14 @@ with the marks on the screens last.
       semantic inks, Biro Grey, Chart Ink, Theatre Blue and every section's
       accent on the well; the false promises in WardControls and WardHome
       now point at it.
+    - [x] B7: the fade gate takes each mode's end state from frames at rest
+      (on screen 0.5 s or more; the highest spread among them), not the
+      last frame of a run on one side of brightness 120, which can be
+      caught mid-crossfade. tests/ward/frames-check.test.mjs has three
+      0.5 s crossfades that must fail (the old gate called them clean, end
+      contrast 6.8) and the same switches in one step that must pass. Run on
+      a real recording with fades (before2/mode-switch.mp4) the old gate said
+      light 3.8 and passed; this one says light 31.3 and fails four fades.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
