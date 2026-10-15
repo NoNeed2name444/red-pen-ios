@@ -11,14 +11,7 @@ extension ShadowStyle {
     /// inside it when the surface is pressed in.
     static func ward(_ light: WardReliefLight, inner: Bool) -> ShadowStyle {
         let color = Color(relief: light)
-        var radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
-        if LaunchStage.noGlows {
-            // `-uiPreviewNoGlows` (a control take): no soft edge, the light
-            // falls as a 1-pt rim, same colour and side.
-            radius = 0
-            x = min(1, max(-1, x))
-            y = min(1, max(-1, y))
-        }
+        let radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
         return inner ? .inner(color: color, radius: radius, x: x, y: y)
                      : .drop(color: color, radius: radius, x: x, y: y)
     }
@@ -82,29 +75,47 @@ extension View {
 /// Controls soften the base-colour face and active lights together as they glide
 /// into the page; labels stay sharp, as does the ink edge. A face that only
 /// shows a choice (an icon tile) passes `control: false` and has no edge.
+///
+/// At rest the lights are drawn once and shown from an image (WardLightImages);
+/// while the face is pressed, held or moving between the two, they are live.
 struct WardPressFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
     var pressed: Bool
-    var fill = AnyShapeStyle(Color.wardSurface)
+    var fill: AnyShapeStyle
+    /// The fill when it is a plain colour, the only fill the images cover.
+    var fillColor: Color?
     var control = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardUnlit) private var unlit
 
+    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color = .wardSurface, control: Bool = true) {
+        self.shape = shape
+        self.lift = lift
+        self.pressed = pressed
+        self.fill = AnyShapeStyle(fill)
+        self.fillColor = fill
+        self.control = control
+    }
+
+    /// Any fill: drawn live, since the images cover colours only.
+    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: AnyShapeStyle, control: Bool = true) {
+        self.shape = shape
+        self.lift = lift
+        self.pressed = pressed
+        self.fill = fill
+        self.fillColor = nil
+        self.control = control
+    }
+
     var body: some View {
-        WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill,
+        WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill, fillColor: fillColor,
                         dark: scheme == .dark, strong: contrast == .increased, control: control,
                         unlit: unlit)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .preference(key: WardHoldsControl.self, value: true)
-    }
-}
-
-extension WardPressFace {
-    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color, control: Bool = true) {
-        self.init(shape: shape, lift: lift, pressed: pressed, fill: AnyShapeStyle(fill), control: control)
     }
 }
 
@@ -113,15 +124,47 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     let lift: WardLift
     var depth: Double
     let fill: AnyShapeStyle
+    let fillColor: Color?
     let dark: Bool
     let strong: Bool
     let control: Bool
     var unlit = false
 
+    /// Below this a face counts as at rest: the picture is the same to the eye.
+    private static var rest: Double { 0.001 }
+
     var animatableData: Double {
         get { depth }
         set { depth = newValue }
     }
+
+    var body: some View {
+        let live = WardPressDrawing(shape: shape, lift: lift, depth: depth, fill: fill,
+                                    dark: dark, strong: strong, control: control, unlit: unlit)
+        if depth <= Self.rest, !unlit, let fillColor, let kind = WardFaceShape(shape) {
+            let spec = WardPress.spec(lift, depth: 0, dark: dark, highContrast: strong, control: control)
+            WardLitFace(kind: kind, look: .press, lift: lift, control: control, dark: dark, strong: strong,
+                        fill: fillColor, reach: WardLightSlice.reach(spec), inner: false, live: live) { outline, dark in
+                AnyView(WardPressDrawing(shape: outline, lift: lift, depth: 0, fill: fill,
+                                         dark: dark, strong: strong, control: control, unlit: false))
+            }
+        } else {
+            live
+        }
+    }
+}
+
+/// A pressable face's drawing at `depth`: the one drawing code, run live or
+/// into an image (WardLitFace).
+private struct WardPressDrawing<S: InsettableShape>: View {
+    let shape: S
+    let lift: WardLift
+    let depth: Double
+    let fill: AnyShapeStyle
+    let dark: Bool
+    let strong: Bool
+    let control: Bool
+    let unlit: Bool
 
     var body: some View {
         let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong, control: control)
@@ -137,7 +180,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
                 }
             }
             .compositingGroup()
-            .blur(radius: unlit || LaunchStage.noGlows ? 0 : spec.blur)
+            .blur(radius: unlit ? 0 : spec.blur)
             if spec.edgeAlpha > 0 {
                 shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }
@@ -163,21 +206,82 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
 /// base; a card's or a slab's has one only under Increase Contrast, which
 /// also deepens the shade. Flat containers keep only the fill (and that
 /// edge), so their controls stand just one level high.
+///
+/// Its lights are drawn once and shown from an image (WardLightImages) when
+/// the shape and the fill are ones the images cover; otherwise live.
 struct WardReliefFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
     var inset = false
     var flat = false
-    var fill = AnyShapeStyle(Color.wardSurface)
+    var fill: AnyShapeStyle
+    /// The fill when it is a plain colour, the only fill the images cover.
+    var fillColor: Color?
     var control = false
 
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardUnlit) private var unlit
 
+    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color = .wardSurface,
+         control: Bool = false) {
+        self.shape = shape
+        self.lift = lift
+        self.inset = inset
+        self.flat = flat
+        self.fill = AnyShapeStyle(fill)
+        self.fillColor = fill
+        self.control = control
+    }
+
+    /// Any fill: drawn live, since the images cover colours only.
+    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: AnyShapeStyle,
+         control: Bool = false) {
+        self.shape = shape
+        self.lift = lift
+        self.inset = inset
+        self.flat = flat
+        self.fill = fill
+        self.fillColor = nil
+        self.control = control
+    }
+
     var body: some View {
         let dark: Bool = scheme == .dark
         let strong: Bool = contrast == .increased
+        let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong, control: control)
+                                         : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
+        let live = WardReliefDrawing(shape: shape, lift: lift, inset: inset, flat: flat, fill: fill, control: control,
+                                     dark: dark, strong: strong, unlit: unlit)
+        // lit: it has lights to draw, and draws them
+        let lit: Bool = !(flat || (unlit && !spec.inner)) && (spec.highlight.lit || spec.shade.lit)
+        if lit, let fillColor, let kind = WardFaceShape(shape) {
+            WardLitFace(kind: kind, look: inset ? .inset : .raised, lift: lift, control: control,
+                        dark: dark, strong: strong, fill: fillColor, reach: WardLightSlice.reach(spec),
+                        inner: spec.inner, live: live) { outline, dark in
+                AnyView(WardReliefDrawing(shape: outline, lift: lift, inset: inset, flat: flat, fill: fill,
+                                          control: control, dark: dark, strong: strong, unlit: unlit))
+            }
+        } else {
+            live
+        }
+    }
+}
+
+/// A raised or inset face's drawing: the one drawing code, run live or into
+/// an image (WardLitFace).
+private struct WardReliefDrawing<S: InsettableShape>: View {
+    let shape: S
+    let lift: WardLift
+    let inset: Bool
+    let flat: Bool
+    let fill: AnyShapeStyle
+    let control: Bool
+    let dark: Bool
+    let strong: Bool
+    let unlit: Bool
+
+    var body: some View {
         let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong, control: control)
                                          : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
         ZStack {
@@ -196,13 +300,6 @@ struct WardReliefFace<S: InsettableShape>: View {
             }
         }
         .compositingGroup()
-    }
-}
-
-extension WardReliefFace {
-    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color,
-         control: Bool = false) {
-        self.init(shape: shape, lift: lift, inset: inset, flat: flat, fill: AnyShapeStyle(fill), control: control)
     }
 }
 

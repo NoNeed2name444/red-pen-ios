@@ -47,6 +47,11 @@ final class LaunchStage {
     /// whole length before the hand-off.
     private(set) var warm = false
 
+    /// From the splash starting the opening until home is still: the hand-off
+    /// window, in which nothing may be rendered that could be made before it
+    /// (WardLightImages draws live instead and makes its images afterwards).
+    var handingOff: Bool { link != nil }
+
     /// The time home is posed at: whole while it warms up.
     var poseTime: Double { warm ? .infinity : now }
 
@@ -73,14 +78,6 @@ final class LaunchStage {
     @ObservationIgnored private var readoutWritten = false
     /// A recorded opening (`-uiPreviewSplash`) keeps the diagnostics.
     static let recording = ProcessInfo.processInfo.arguments.contains("-uiPreviewSplash")
-    /// Control takes only (`-uiPreviewStubHomeData`): home uses cheap
-    /// stand-in data instead of its loads (WardHome).
-    static let stubHomeData = ProcessInfo.processInfo.arguments.contains("-uiPreviewStubHomeData")
-    /// Control takes only (`-uiPreviewNoGlows`): the Ward faces' soft lights
-    /// (their blurred drop shadows and the softening of a pressable face)
-    /// are left out, the 1-pt rim, the ink edge and every colour kept
-    /// (WardSurfaces). Read once.
-    static let noGlows = ProcessInfo.processInfo.arguments.contains("-uiPreviewNoGlows")
     /// Where the ECG's baseline starts (window points), which the wave of
     /// home's parts follows up: set by the splash as it starts.
     @ObservationIgnored var traceStart: CGPoint = .zero
@@ -157,6 +154,8 @@ final class LaunchStage {
             link.invalidate()
             self.link = nil
             writeReadout(o, still: raw)
+            // the hand-off is over: the soft lights asked for during it
+            WardLightImages.shared.catchUp()
         } else {
             now = t
         }

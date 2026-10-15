@@ -448,6 +448,46 @@ for i in 0..<100 { many.load("plan", from: 100.8 + Double(i) * 0.001, to: 100.81
 check("the marks are capped",
       many.fields(clock: toClock, from: 0.73, to: 1.97).components(separatedBy: "plan").count - 1 == LaunchDiagnostics.mostMarks)
 
+// MARK: the experiments are over; the soft lights are drawn once
+
+// The control takes (home's data stood in for, the glows left out) answered
+// what they were for: the per-frame blur of the buttons' relief held the
+// hand-off up. They are gone; the judged takes, the fixed pause, the
+// snapshots after each take and the 100 ms gate are what the recording keeps.
+func source(_ path: String) -> String { (try? String(contentsOfFile: path, encoding: .utf8)) ?? "" }
+let gone = ["-uiPreviewNoGlows", "-uiPreviewStubHomeData", "HomeStandIn", "homeDue", "noGlows", "stubHomeData"]
+let touched = ["ios/RedPen/Shared/LaunchStage.swift", "ios/RedPen/Shared/Ward/WardSurfaces.swift",
+               "ios/RedPen/Features/Library/WardHome.swift", "ios/RedPen/Features/Library/LibraryView.swift",
+               ".github/workflows/launch-recording.yml"]
+for path in touched {
+    let text = source(path)
+    check("\(path) reads", !text.isEmpty)
+    check("\(path) has no control-take scaffolding", gone.allSatisfy { !text.contains($0) })
+}
+check("the recording keeps three judged takes, the fixed 30 s pause and a snapshot after each take",
+      recording.contains("for take in 1 2 3; do") && recording.contains("sleep 30")
+      && recording.contains("busy \"take $take before launch\"")
+      && recording.contains("busy \"take $take after the take\"") && !recording.contains("control"))
+check("the recording's gate is unchanged: every take has a readout, none holds over 100 ms",
+      recording.contains("[ -z \"$gap\" ]") && recording.contains("[ \"$gap\" -gt 100 ]")
+      && recording.contains("no hand-off readout"))
+let stage = source("ios/RedPen/Shared/LaunchStage.swift")
+check("the readout keeps its gaps, cpu and marks fields",
+      stage.contains("gap_ms=") && stage.contains("refreshes=") && stage.contains("diag.fields("))
+
+// No image is made inside the hand-off window: the cache looks at the window
+// before it makes anything, and sends a miss to the live drawing.
+let images = source("ios/RedPen/Shared/Ward/WardLightImages.swift")
+check("WardLightImages reads", !images.isEmpty)
+if let window = images.range(of: "LaunchStage.shared.handingOff"), let make = images.range(of: "let made = store(request)") {
+    check("a style asked for in the hand-off is not made there", window.lowerBound < make.lowerBound)
+} else { check("the cache checks the hand-off window before it makes an image", false) }
+check("the styles asked for in the hand-off are made once it is over",
+      stage.contains("WardLightImages.shared.catchUp()") && stage.contains("var handingOff: Bool { link != nil }"))
+let wardSurfaces = source("ios/RedPen/Shared/Ward/WardSurfaces.swift")
+check("a pressable face draws from its image only at rest",
+      wardSurfaces.contains("if depth <= Self.rest, !unlit, let fillColor, let kind = WardFaceShape(shape)"))
+
 // MARK: no fading, anywhere in the opening
 
 let splash = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchSplash.swift", encoding: .utf8)) ?? ""

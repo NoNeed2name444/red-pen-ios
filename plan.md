@@ -1985,17 +1985,58 @@ with the marks on the screens last.
     home's loads: due cards, the round's plan, the tiles; LaunchDiagnostics,
     WardHome). A gap with CPU near its length is the main thread working
     (the loads or drawing); with CPU near 0 it was waiting (the runner, or a
-    lock). `-uiPreviewStubHomeData` stands constants in for those loads, for
-    a control take (film/handoff-MODE-control.txt, not judged) after each
-    judged one. The settle wait is replaced by a fixed 30 s sleep, and the
-    timing file now has mdutil and the busiest processes round each launch.
-  - Glows experiment (launch only; no change without the argument): the
-    long gaps are not main-thread work and not home's loads, and dark mode
-    fails where light passes, so `-uiPreviewNoGlows` leaves out the Ward
-    faces' soft lights (drop-shadow blur and the press softening; each light
-    kept as a 1-pt rim, colours and ink edges unchanged). The opening itself
-    draws no shadow. The control take now uses it (three judged takes per
-    mode, raw-MODE-3.mp4 for the third); compare control against judged gaps.
+    lock). A control take with home's loads stood in for (since removed) ran
+    after each judged one. The settle wait is replaced by a fixed 30 s sleep,
+    and the timing file now has mdutil and the busiest processes round each
+    launch.
+  - Glows experiment (run 38812510377; the flags are removed again, see
+    the next item): the control take after each judged one drew every Ward
+    light as a 1-pt rim with no blur, three judged takes per mode. Gap in
+    ms / refreshes, by take:
+
+    | take | relief on | relief off |
+    |---|---|---|
+    | light | no readout; 42/62; 83/46 | 33/74; 48/59; 65/71 |
+    | dark | 128/56; 54/61; 61/57 | 38/70; 33/73; 44/71 |
+
+    All six relief-off takes passed with 59-74 refreshes, even at a higher
+    runner load than the relief-on takes; relief-on failed twice (in the
+    no-readout take the app still used 92% CPU 23 s after launch). So the
+    per-frame blur of the relief lights is the cost: SwiftUI redraws every
+    face's shadow blur each frame while home's parts change scale.
+  - The ruling: draw the relief lights once, with the same look, instead of
+    every frame. Done in this change (not yet seen in a recording):
+    - [x] Each relief face is drawn by one drawing code (WardReliefDrawing,
+      WardPressDrawing in WardSurfaces) that runs live or into an image
+      (ImageRenderer, at the display scale, padded by the lights' reach;
+      WardLightImages). A raised or inset face, and a press face at depth 0,
+      show that image as a stretchable slice; the live drawing stays for a
+      press in motion or held, a fill that is not a colour, a shape that is
+      not a rounded rectangle, capsule or circle, and wardUnlit / flat faces.
+    - [x] The slicing and the key are Foundation-only (WardLightSlice) with
+      Linux tests (suite wardlightslice): reach per look, caps = pad + the
+      corner's curve (1.53 x the radius, continuous) + reach, a capsule keyed
+      by its height, a circle by its diameter, a side shorter than two caps
+      and a core drawn whole and keyed by its size; the tests draw both with
+      a Gaussian and check the stretched slice equals the larger drawing to
+      within one 8-bit step, at every lift, raised and press.
+    - [x] No image is made in the hand-off window (LaunchStage.handingOff,
+      from the splash starting the opening until home is still): home is
+      drawn whole under the splash (warm), which makes its styles; a style
+      asked for in the window draws live and is made when it ends
+      (WardLightImages.catchUp); the readout's marks show `relief-late` if
+      that ever happens on a normal launch. A light/dark switch finds the
+      other scheme's images made at rest (or makes them in the same frame);
+      the swap is one step, no opacity.
+    - [x] The experiment scaffolding is removed: `-uiPreviewStubHomeData`,
+      HomeStandIn, homeDue, `-uiPreviewNoGlows`, and the workflow's control
+      takes. Kept: three judged takes per mode, the fixed 30 s pause, the
+      readout's gaps/cpu and marks (now also `relief` loads), the snapshots
+      after each take, and the 100 ms gate as it was.
+    - [ ] Tick the item when the push's Launch recording shows 100 ms or
+      less in every light and dark take. Check by eye that raised and inset
+      faces, and buttons at rest, look as before (the image sits where the
+      live face was; a Mac run was not possible here).
 
 ### Waiting on the owner
 

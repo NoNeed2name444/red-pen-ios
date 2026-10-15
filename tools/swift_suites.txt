@@ -384,6 +384,11 @@ suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift
 # soft UI relief: the highlight and shade per mode and lift, visible but
 # soft, growing with the lift, no glare in dark, pressed in mirrors raised
 suite wardrelief WardReliefTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+# the relief's lights drawn once: how far each look reaches, the cut that lets
+# one image serve every size of a rounded rectangle, the key, and that
+# stretching the cut image gives the picture the larger drawing gives
+suite wardlightslice WardLightSliceTests.swift $S/Ward/WardLightSlice.swift $S/Ward/WardRelief.swift \
+      $S/Ward/WardPalette.swift
 # today's ward round on the home: which beds and in what order, the weak
 # spots that need a consult (the weakest always has a bed), the minutes;
 # the study rhythm read from StudyLog's days; the countdown and greeting
