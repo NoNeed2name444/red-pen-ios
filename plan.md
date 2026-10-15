@@ -2026,11 +2026,19 @@ Money and deploys
 - Free tiers only, and no paid AI outside Pro (PRO_PAYS).
 - Deploy the Worker only on the owner's word, each time.
 
+Macs
+- Use all five macOS runners and never leave one free (owner, 15 Oct,
+  8:28 am Cairo: "use all 5 macs don't leave any free to finish faster").
+  No stream has a Mac cap. Never cancel a build, test or preview just to
+  free a Mac; cancel only a run that a newer push replaces. Keep the next
+  useful run queued, so a free Mac starts it at once. Speed comes from
+  parallel Macs, never from skipping checks or the independent review.
+
 Git
 - Never force-push, and never delete remote branches.
 - No pull requests unless asked.
-- personal is the working branch; keep claude/new-session-013tes5v equal to
-  it. Build on design/<name> (app-build runs there) and take screenshots
+- personal is the working branch; keep the session branch (now
+  claude/repo-branch-status-check-4k6js8) equal to it. Build on design/<name> (app-build runs there) and take screenshots
   through preview/<name>.
 - Commit messages: a plain-English subject, a body saying why, and the
   session's trailer lines. No model names or IDs in commits, PRs or code.
