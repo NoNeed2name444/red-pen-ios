@@ -1,0 +1,20 @@
+== logs/iphone-graph-testNeuronsAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (42.812 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsFlyIn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' passed (25.788 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsOpenInTurn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' passed (39.597 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/ipad.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (21.316 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' passed (13.184 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' passed (17.628 seconds).
+** TEST EXECUTE SUCCEEDED **
