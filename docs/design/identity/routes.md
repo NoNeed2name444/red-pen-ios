@@ -2,7 +2,7 @@
 
 Written 15 Oct 2026. Three routes for Stethoscore's identity, all built on the [platform](platform.md), with palettes and contrast in [palettes.md](palettes.md) and wording from [wording.md](wording.md).
 
-The owner has the three boards; they are not in the repo because they contain the owner's mark images. Each board is an 1880 pt page rendered at 3x, with phone screens at 393 × 852 pt. Each one shows:
+The owner has the three boards; they are not in the repo because they contain the owner's mark images. Each board is a page 1880 pt wide, rendered at 3x, with phone screens at 393 × 852 pt. Each one shows:
 
 - the lockup and its spacing rules;
 - the palette in light and dark, with the WCAG ratios printed;
