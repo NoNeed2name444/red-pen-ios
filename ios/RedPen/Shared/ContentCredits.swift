@@ -95,8 +95,25 @@ enum ContentSources {
         changes: nil,
         home: "https://open.fda.gov/")
 
+    // MARK: imagery the app draws with (Resources/Earth)
+
+    /// The credit line the Earth maps' SOURCES.md gives, word for word; a
+    /// test keeps the two the same.
+    static let nasaEarthCredit = "Earth imagery: NASA Earth Observatory (Blue Marble: Next Generation, Black Marble); clouds: NASA Goddard Space Flight Center; water mask: NASA GPM."
+
+    static let nasaEarth = ContentSource(
+        id: "nasa-earth", name: "NASA Earth imagery",
+        use: "The Earth in the Ideas map's Space theme: its land and seas, clouds, city lights and coastlines",
+        licences: [ContentLicence(name: "NASA images and media: not subject to U.S. copyright",
+                                  url: "https://www.nasa.gov/nasa-brand-center/images-and-media/"),
+                   ContentLicence(name: "GPM data: freely available, source acknowledged",
+                                  url: "https://gpm.nasa.gov/data/policy")],
+        attribution: nasaEarthCredit + " No endorsement by NASA is implied.",
+        changes: "Resized to 4096 by 2048 and 2048 by 1024 pixels and recompressed; the clouds, lights and water kept as grey maps.",
+        home: "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/")
+
     /// Every source of content the app brings, for Settings.
-    static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA]
+    static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth]
 
     /// The bank behind an exam's style examples (ExemplarSource's raw value).
     static func styleBank(_ raw: String) -> ContentSource? {

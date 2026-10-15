@@ -156,6 +156,8 @@ enum class coord { normalized, pixel };
 enum class filter { nearest, linear };
 enum class mip_filter { none, nearest, linear };
 enum class address { repeat, mirrored_repeat, clamp_to_edge, clamp_to_zero, clamp_to_border };
+enum class s_address { repeat, mirrored_repeat, clamp_to_edge, clamp_to_zero, clamp_to_border };
+enum class t_address { repeat, mirrored_repeat, clamp_to_edge, clamp_to_zero, clamp_to_border };
 struct max_anisotropy { int n; constexpr max_anisotropy(int k) : n(k) {} };
 struct sampler { template <typename... A> constexpr sampler(A...) {} };
 struct gradient2d { float2 dx, dy; gradient2d(float2 a, float2 b) : dx(a), dy(b) {} };

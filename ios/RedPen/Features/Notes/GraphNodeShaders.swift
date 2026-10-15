@@ -189,5 +189,12 @@ nonisolated enum GraphStyleUniforms {
         for name in ["rpTintA", "rpTintB", "rpTintC", "rpTintD"] {
             material.setValue(NSValue(scnVector3: grey), forKey: name)
         }
+        // the Earth's maps (rockBody): never left unbound, black until
+        // GraphStyleKit sets the real ones (GraphEarth)
+        if let source = material.shaderModifiers?[.surface], source.contains("texture2d<float> rpEarthDay") {
+            for name in ["rpEarthDay", "rpEarthAux"] {
+                material.setValue(SCNMaterialProperty(contents: GraphStyleProbe.blackContents), forKey: name)
+            }
+        }
     }
 }

@@ -15,6 +15,13 @@ beams and tails, all additive, and a few links. It is a stand-in, not
 SceneKit: no bloom, no particles, no stars behind. Colours are converted
 from SceneKit's linear space to sRGB as the screen shows them.
 
+The rocky planet samples the Earth maps (ios/RedPen/Resources/Earth) packed
+as the app packs them (GraphEarth.swift): the day map with the clouds in its
+alpha (sRGB, read as linear), and the lights with the water mask. --smooth
+draws it as the Smooth tier does (no cloud shadows, the day map at 2048).
+LAB_SPIN (radians about its axis), LAB_TIME (the clock) and LAB_DETAIL
+override the scene's values.
+
 Writes <out>/<body>-<rest|dragged>.png and a labelled sheet.png. Needs
 swiftc and clang++ (the Swift toolchain) and Python's PIL.
 """
@@ -25,6 +32,27 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 import shader_check  # noqa: E402
 
 BODIES = ["blackHole", "sun", "rocky", "gasGiant", "pulsar", "comet"]
+EARTH = os.path.join(HERE, "..", "..", "ios", "RedPen", "Resources", "Earth")
+
+
+def earth_maps(work, smooth):
+    """The Earth maps as raw textures for scene.cpp: "W H C\n" then the
+    bytes, rows from the top. earth-day.raw: day RGB, clouds in A (the app's
+    RGBA8 sRGB texture); earth-aux.raw: lights, water (its RG8 texture)."""
+    from PIL import Image
+    day = Image.open(os.path.join(EARTH, "earth-day.jpg")).convert("RGB")
+    clouds = Image.open(os.path.join(EARTH, "earth-clouds.jpg")).convert("L")
+    if smooth:
+        day = day.resize((2048, 1024), Image.LANCZOS)
+        clouds = clouds.resize((2048, 1024), Image.LANCZOS)
+    lights = Image.open(os.path.join(EARTH, "earth-lights.jpg")).convert("L")
+    water = Image.open(os.path.join(EARTH, "earth-water.png")).convert("L")
+    packed = (("earth-day.raw", Image.merge("RGBA", (*day.split(), clouds)), 4),
+              ("earth-aux.raw", Image.merge("LA", (lights, water)), 2))
+    for name, image, channels in packed:
+        with open(os.path.join(work, name), "wb") as f:
+            f.write(f"{image.size[0]} {image.size[1]} {channels}\n".encode())
+            f.write(image.tobytes())
 
 
 def metal(text):
@@ -61,6 +89,9 @@ def shaders_header(work):
 def main():
     args = sys.argv[1:]
     size, out = 420, os.path.join(os.getcwd(), "build", "space_lab")
+    smooth = "--smooth" in args
+    if smooth:
+        args.remove("--smooth")
     if "--size" in args:
         k = args.index("--size"); size = int(args[k + 1]); del args[k:k + 2]
     if "--out" in args:
@@ -77,11 +108,16 @@ def main():
         print(built.stderr[:4000])
         sys.exit("the lab did not build")
     from PIL import Image, ImageDraw
+    env = dict(os.environ)
+    if "rocky" in bodies:
+        earth_maps(work, smooth)
+    if smooth:
+        env["LAB_DETAIL"] = "0"
     tiles = []
     for b in bodies:
         for state in ("rest", "dragged"):
             ppm = os.path.join(work, f"{b}-{state}.ppm")
-            subprocess.run([exe, b, state, str(size), ppm], check=True)
+            subprocess.run([exe, b, state, str(size), ppm, work], check=True, env=env)
             png = os.path.join(out, f"{b}-{state}.png")
             Image.open(ppm).save(png)
             tiles.append((f"{b} {state}", png))

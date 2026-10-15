@@ -954,130 +954,93 @@ nonisolated enum GraphStyleShaders {
 
     // MARK: the rocky planet
 
-    /// An Earth, lit by its own star (the terminator faces the light,
-    /// SpaceOptics.day). Continents from value-noise fBm over its own sphere
-    /// (turned by GraphStyleAnimator, so the land rotates), its domain
-    /// warped by two low noises so coasts run in long ragged lines with
-    /// bays and peninsulas rather than blobs; a finer noise on the height
-    /// frays the coastline into inlets and islands at close-up size (all
-    /// procedural: no texture to tile or blur). As many noise lookups as
-    /// before the rework (19 at full quality, 13 at Smooth). Biomes by latitude and height: green lowlands, darker
-    /// boreal forest and grey-brown tundra towards the poles, tan and ochre
-    /// deserts in a band round +-25 degrees (drier still where the moisture
-    /// field is low), darker rock on the mountains with snow on the
-    /// highest, white ice caps; at sea, turquoise shelves along the coasts
-    /// against deep blue ocean. At full quality, relief lit from the sun's
-    /// side (the terrain compared with itself a step towards the light).
-    /// Clouds: warped fBm twisted into swirls and streets, drifting faster
-    /// than the ground, casting slight shadows (the cloud field a step
-    /// towards the light). A soft terminator reddened along its band, the
-    /// sun's glint on open water only (Blinn-Phong, stronger towards the
-    /// limb by Fresnel; never on land or cloud), city lights on the night
-    /// side's land, clustered on coasts and lowlands, sparse in deserts, and
-    /// Rayleigh-blue air thickening towards the limb, reddening at the
-    /// terminator. Palette per folder (three Earths): rpTintA deep ocean, B
-    /// coastal shelf, C lowland green, D desert.
+    /// The Earth, from NASA's maps (Resources/Earth; where each comes from,
+    /// its credit and licence: SOURCES.md), bound by GraphEarth: Blue
+    /// Marble: Next Generation's ground with The Blue Marble's clouds in its
+    /// alpha (rpEarthDay, sRGB), Black Marble's city lights and the GPM
+    /// land-sea mask (rpEarthAux). Equirectangular over the planet's own
+    /// sphere, which GraphStyleAnimator turns (y the spin axis, north up,
+    /// east to the right seen from outside), sampled with the footprint's
+    /// gradients taken before the seam's wrap (so the seam meridian never
+    /// drops to a blurred mip) and up to 8x anisotropy towards the limb.
+    /// Shaded in linear light by its own star (the terminator faces the
+    /// light, SpaceOptics.day): sunlight on the ground reddened by its path
+    /// through the air (Rayleigh's optical depths), so the soft terminator
+    /// burns orange; the sun's glint on open water only (GGX, Schlick's
+    /// Fresnel; never on land, ice or cloud); clouds drifting slowly
+    /// eastwards over the ground (one turn in the clock's period, so its
+    /// wrap never jumps), lit on past the ground's terminator (they stand
+    /// higher) and, at High, casting their shadows away from the sun; the
+    /// air's own light (single scattering, Rayleigh's phase), blue,
+    /// thickening towards the limb, where the halo's rim takes it on, and
+    /// glowing into twilight past the terminator; and on the night side the
+    /// city lights, warm, dimmed under cloud. The sum rolls off softly above
+    /// 0.75, so no cloud or glint clips flat. Three texture reads (four with
+    /// the cloud shadows).
     static let rockBody: String = """
     #pragma arguments
     float rpClock;
     float rpMotion;
     float rpProbe;
     float rpDetail;
-    float3 rpTintA;
-    float3 rpTintB;
-    float3 rpTintC;
-    float3 rpTintD;
+    texture2d<float> rpEarthDay;
+    texture2d<float> rpEarthAux;
 
     """ + lightArguments + """
     #pragma body
 
     """ + light + sphere + """
     float rp_t = rpClock * rpMotion;
-    int rp_oct = rpDetail > 0.5 ? 6 : 4;
-
-    """ + GraphShaderKit.noise("rp_wq", "rp_p * 1.25 + float3(7.0, 3.0, 1.0)")
-        + GraphShaderKit.noise("rp_wr", "rp_p * 1.25 + float3(2.0, 11.0, 5.0)") + """
-    float3 rp_sd = rp_p * 1.6 + float3(3.1, 7.4, 1.3) + float3(rp_wq - 0.5, rp_wr - 0.5, rp_wq - rp_wr) * 1.7;
-
-    """ + GraphShaderKit.fbm("rp_h", "rp_sd", octaves: "rp_oct")
-        + GraphShaderKit.noise("rp_cn", "rp_sd * 7.0 + float3(5.0, 2.0, 8.0)") + """
-    rp_h = rp_h + (rp_cn - 0.5) * 0.06;
-    float rp_land = smoothstep(0.556, 0.562, rp_h);
-    float rp_alt = smoothstep(0.566, 0.92, rp_h);
-    float rp_shelf = smoothstep(0.49, 0.558, rp_h);
-    float rp_lat = abs(rp_p.y);
-    float rp_dz = (rp_lat - 0.42) / 0.14;
-    float rp_desert = exp(-rp_dz * rp_dz);
-    float rp_dry = clamp(rp_desert * 1.15 + (0.5 - rp_wr) * 1.1 - rp_alt * 0.4 - 0.25, 0.0, 1.0);
-    float3 rp_green = rpTintC * (0.85 + 0.3 * rp_wq);
-    rp_green = mix(rp_green, rpTintC * float3(0.62, 0.78, 0.74), smoothstep(0.55, 0.75, rp_lat));
-    rp_green = mix(rp_green, float3(0.36, 0.34, 0.28), smoothstep(0.72, 0.84, rp_lat));
-    float3 rp_sand = mix(rpTintD, float3(0.8, 0.62, 0.4), rp_wq);
-    float3 rp_ground = mix(rp_green, rp_sand, smoothstep(0.25, 0.7, rp_dry));
-    rp_ground = mix(rp_ground, float3(0.27, 0.23, 0.19), smoothstep(0.35, 0.8, rp_alt));
-    float3 rp_water = mix(rpTintA, rpTintB, rp_shelf * rp_shelf * rp_shelf);
-    float3 rp_alb = mix(rp_water, rp_ground, rp_land);
-    float rp_ice = smoothstep(0.86, 0.93, rp_lat + 0.12 * (rp_h - 0.5) + 0.06 * (rp_wq - 0.5));
-    float rp_snow = smoothstep(0.88, 1.0, rp_alt + rp_lat * 0.25) * rp_land;
-    rp_alb = mix(rp_alb, float3(0.92, 0.95, 0.98), max(rp_ice, rp_snow));
-    float rp_relief = 0.5;
-    if (rpDetail > 0.5) {
-
-    """ + GraphShaderKit.noise("rp_r0", "rp_p * 19.0") + GraphShaderKit.noise("rp_r1", "rp_p * 19.0 + rp_Lo * 0.4") + """
-    rp_relief = clamp(0.5 + (rp_r0 - rp_r1) * 3.0, 0.0, 1.0);
-    }
-    float rp_cc = cos(rp_t * 0.03);
-    float rp_cs = sin(rp_t * 0.03);
-    float3 rp_pc = float3(rp_p.x * rp_cc - rp_p.z * rp_cs, rp_p.y, rp_p.x * rp_cs + rp_p.z * rp_cc);
-
-    """ + GraphShaderKit.noise("rp_cw", "rp_pc * 2.2 + float3(0.0, rp_t * 0.006, 0.0)") + """
-    float rp_sw = (rp_cw - 0.5) * 3.0;
-    float3 rp_pw = float3(rp_pc.x * cos(rp_sw) - rp_pc.z * sin(rp_sw), rp_pc.y, rp_pc.x * sin(rp_sw) + rp_pc.z * cos(rp_sw));
-    int rp_coct = rpDetail > 0.5 ? 4 : 3;
-    float3 rp_cq = float3(rp_pw.x * 4.2, rp_pw.y * 7.0, rp_pw.z * 4.2) + float3(rp_cw * 1.4, 0.0, 0.0);
-
-    """ + GraphShaderKit.fbm("rp_cf", "rp_cq", octaves: "rp_coct") + """
-    float rp_belt = 0.78 + 0.22 * cos(rp_p.y * 7.0) + 0.1 * smoothstep(0.6, 0.9, rp_lat);
-    float rp_cloud = smoothstep(0.54, 0.74, rp_cf * rp_belt);
-    rp_cloud = rp_cloud * (0.45 + 0.4 * smoothstep(0.35, 0.65, rp_cw));
-    float rp_shadow = 1.0 - 0.3 * smoothstep(0.45, 0.7, rp_cf * rp_belt) * (1.0 - rp_cloud);
-    if (rpDetail > 0.5) {
-
-    """ + GraphShaderKit.noise("rp_cl", "rp_cq - rp_Lo * 0.12") + """
-    rp_shadow = 1.0 - 0.38 * smoothstep(0.5, 0.72, rp_cl * rp_belt) * (1.0 - rp_cloud);
-    }
+    float rp_ce = max(sqrt(rp_p.x * rp_p.x + rp_p.z * rp_p.z), 0.02);
+    float2 rp_uv = float2(0.5 + atan2(rp_p.x, rp_p.z) * 0.15915494, 0.5 - asin(clamp(rp_p.y, -1.0, 1.0)) * 0.31830989);
+    float2 rp_gx = dfdx(rp_uv);
+    float2 rp_gy = dfdy(rp_uv);
+    rp_gx.x = rp_gx.x - round(rp_gx.x);
+    rp_gy.x = rp_gy.x - round(rp_gy.x);
+    constexpr sampler rp_smp(coord::normalized, filter::linear, mip_filter::linear, s_address::repeat, t_address::clamp_to_edge, max_anisotropy(8));
+    float3 rp_alb = rpEarthDay.sample(rp_smp, rp_uv, gradient2d(rp_gx, rp_gy)).xyz;
+    float4 rp_aux = rpEarthAux.sample(rp_smp, rp_uv, gradient2d(rp_gx, rp_gy));
+    float2 rp_cuv = float2(rp_uv.x - rp_t / 3000.0, rp_uv.y);
+    float rp_cloud = smoothstep(0.1, 0.82, rpEarthDay.sample(rp_smp, rp_cuv, gradient2d(rp_gx, rp_gy)).w);
     float rp_ndl = dot(rp_N, rp_Lv);
     float rp_day = smoothstep(-0.08, 0.22, rp_ndl);
-    float rp_sun = 1.15 * rp_day * pow(max(rp_ndl, 0.03), 0.7);
-    float rp_dk = rp_ndl - 0.04;
-    float rp_dusk = exp(-rp_dk * rp_dk * 90.0);
-    float3 rp_tint = mix(float3(1.0, 1.0, 1.0), float3(1.0, 0.55, 0.3), rp_dusk * 0.7);
-    float rp_shape = mix(1.0, 0.75 + 0.5 * rp_relief, rp_land * (0.4 + 0.6 * rp_alt));
-    float3 rp_col = rp_alb * rp_tint * (0.006 + rp_sun * rp_shape * rp_shadow);
-    float rp_cdl = smoothstep(-0.12, 0.28, rp_ndl) * pow(max(rp_ndl + 0.1, 0.02), 0.6);
-    float3 rp_cloudLit = float3(0.97, 0.97, 1.0) * rp_tint * (0.008 + 1.15 * rp_cdl);
-    rp_col = mix(rp_col, rp_cloudLit, rp_cloud * 0.92);
-    float3 rp_hv = normalize(rp_Lv + rp_V);
-    float rp_nh = max(dot(rp_N, rp_hv), 0.0);
-    float rp_om = 1.0 - rp_mu;
-    float rp_fres = 0.02 + 0.98 * rp_om * rp_om * rp_om * rp_om * rp_om;
-    float rp_glint = pow(rp_nh, 140.0) * 2.2 + pow(rp_nh, 20.0) * 0.14;
-    rp_glint = rp_glint * (0.35 + rp_fres * 2.0) * (1.0 - rp_land) * (1.0 - max(rp_ice, rp_cloud)) * rp_day;
-    rp_col = rp_col + float3(1.0, 0.93, 0.8) * rp_glint;
-    float rp_night = 1.0 - smoothstep(-0.18, 0.04, rp_ndl);
-    if (rp_night > 0.01) {
-
-    """ + GraphShaderKit.noise("rp_pop", "rp_p * 5.0 + float3(4.0, 1.0, 9.0)") + GraphShaderKit.noise("rp_town", "rp_p * 42.0") + """
-    float rp_coast = 1.0 - smoothstep(0.0, 0.25, rp_alt);
-    float rp_glow = smoothstep(0.55, 0.78, rp_town) * smoothstep(0.4, 0.66, rp_pop) * (0.4 + 0.6 * rp_coast);
-    rp_glow = rp_glow + 0.3 * smoothstep(0.62, 0.7, rp_town) * smoothstep(0.45, 0.62, rp_pop);
-    rp_glow = rp_glow * rp_land * (1.0 - max(rp_ice, rp_snow)) * (1.0 - 0.75 * rp_cloud) * (1.0 - 0.7 * rp_dry) * rp_night;
-    rp_col = rp_col + float3(1.0, 0.66, 0.3) * (rp_glow * 0.9);
+    float rp_shade = 1.0;
+    if (rpDetail > 0.5) {
+    float3 rp_off = (rp_Lo - rp_p * dot(rp_Lo, rp_p)) * (0.006 / max(dot(rp_Lo, rp_p), 0.2));
+    float2 rp_suv = rp_cuv + float2(dot(rp_off, float3(rp_p.z, 0.0, -rp_p.x)) / (6.2831853 * rp_ce * rp_ce), -rp_off.y / (3.1415927 * rp_ce));
+    rp_shade = 1.0 - 0.55 * smoothstep(0.1, 0.82, rpEarthDay.sample(rp_smp, rp_suv, gradient2d(rp_gx, rp_gy)).w);
     }
-    float rp_fr = rp_om * rp_om;
-    float3 rp_sky = mix(float3(0.28, 0.55, 1.0), float3(1.0, 0.45, 0.25), rp_dusk * 0.75);
-    float rp_air = rp_fr * (0.04 + 0.9 * smoothstep(-0.25, 0.45, rp_ndl));
-    rp_col = rp_col * (1.0 - rp_fr * 0.45 * rp_day) + rp_sky * rp_air;
+    float3 rp_tau = float3(0.05, 0.12, 0.33);
+    float rp_mv = 1.0 / (rp_mu + 0.035);
+    float rp_ms = 1.0 / (max(rp_ndl, 0.0) + 0.035);
+    float3 rp_Ts = exp(-rp_tau * (rp_ms * 0.5));
+    float3 rp_Tv = exp(-rp_tau * (rp_mv * 0.5));
+    float rp_sunE = rp_day * max(rp_ndl + 0.04, 0.0) * 0.96;
+    float rp_lum = dot(rp_alb, float3(0.2126, 0.7152, 0.0722));
+    float rp_sea = rp_aux.y * (1.0 - smoothstep(0.05, 0.2, rp_lum));
+    float3 rp_H = normalize(rp_Lv + rp_V);
+    float rp_nh = max(dot(rp_N, rp_H), 0.0);
+    float rp_dd = rp_nh * rp_nh * (0.06 - 1.0) + 1.0;
+    float rp_ggx = 0.06 / (3.1415927 * rp_dd * rp_dd);
+    float rp_vh = 1.0 - max(dot(rp_V, rp_H), 0.0);
+    float rp_fr = 0.02 + 0.98 * rp_vh * rp_vh * rp_vh * rp_vh * rp_vh;
+    float rp_glint = 3.1415927 * rp_ggx * rp_fr * max(rp_ndl, 0.0) / (4.0 * max(max(rp_ndl, rp_mu), 0.05));
+    rp_glint = rp_glint * rp_sea * (1.0 - rp_cloud) * 1.6;
+    float rp_night = 1.0 - smoothstep(-0.16, 0.04, rp_ndl);
+    float rp_city = rp_aux.x * rp_aux.x * rp_night * (1.0 - 0.85 * rp_cloud);
+    float3 rp_surf = (rp_alb * (rp_sunE * rp_shade) + float3(rp_glint)) * rp_Ts + float3(1.0, 0.62, 0.3) * (rp_city * 0.9);
+    rp_surf = rp_surf * rp_Tv;
+    float rp_cE = smoothstep(-0.14, 0.24, rp_ndl) * (max(rp_ndl, 0.0) * 0.85 + 0.15);
+    float3 rp_cl = float3(0.82, 0.82, 0.82) * rp_cE * exp(-rp_tau * ((rp_ms + rp_mv) * 0.2));
+    float rp_cosT = dot(rp_Lv, rp_V);
+    float rp_msa = 1.0 / (max(rp_ndl + 0.1, 0.0) * 0.91 + 0.035);
+    float3 rp_air = float3(1.0) - exp(-rp_tau * (rp_msa + rp_mv));
+    rp_air = rp_air * (0.1875 * (1.0 + rp_cosT * rp_cosT) * rp_mv / (rp_msa + rp_mv) * smoothstep(-0.12, 0.08, rp_ndl));
+    float3 rp_col = mix(rp_surf, rp_cl, rp_cloud) + rp_air * (1.0 - 0.55 * rp_cloud);
+    rp_col = max(rp_col, float3(0.0));
+    float3 rp_over = max(rp_col - float3(0.75), float3(0.0));
+    rp_col = min(rp_col, float3(0.75)) + (float3(1.0) - exp(-rp_over * 4.0)) * 0.25;
+    rp_col = pow(rp_col, float3(0.45454545));
 
     """ + bodyEnd
 

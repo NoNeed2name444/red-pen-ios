@@ -431,7 +431,7 @@ final class GraphStyleKit {
         let ringed: Bool = style == .gasGiant && Self.hasDisk(style, look: look)
         let key: String
         switch style {
-        case .rocky: key = "body-rocky-\(palette)" + lightKey
+        case .rocky: key = "body-rocky" + lightKey
         case .gasGiant: key = "body-gasGiant-\(palette)" + (ringed ? "" : "-bare") + lightKey
         case .comet: key = "body-comet" + lightKey
         case .sun: key = "body-sun" + Self.tierKey(tier, dark: dark)
@@ -439,7 +439,8 @@ final class GraphStyleKit {
         }
         if let made = cache[key] { return made }
         let sphere = SCNSphere(radius: 1)
-        sphere.segmentCount = style == .blackHole ? 28 : 36
+        // the Earth's limb carries its thin air: rounder at close range
+        sphere.segmentCount = style == .blackHole ? 28 : (style == .rocky ? 64 : 36)
         let material: SCNMaterial = bodyMaterial(style, palette: palette)
         if style == .sun { material.multiply.contents = Self.tierColour(tier, dark: dark) }
         if style == .gasGiant && material.shaderModifiers != nil {
@@ -463,8 +464,18 @@ final class GraphStyleKit {
         let name: String = pick.0
         let source: String = pick.1
         guard support.has(name) else { return material }
+        // the Earth is drawn from NASA's maps, made before the build
+        // (GraphEarth); without them, in its flat colour
+        var earth: GraphEarthMaps?
+        if style == .rocky {
+            earth = GraphEarth.shared.ready(large: GraphEarth.large(detail: detail))
+            if earth == nil { return material }
+        }
         attach(material, source)
-        if style == .rocky { tints(material, GraphStyleArt.rockPalette(palette)) }
+        if let earth {
+            material.setValue(SCNMaterialProperty(contents: earth.day), forKey: "rpEarthDay")
+            material.setValue(SCNMaterialProperty(contents: earth.aux), forKey: "rpEarthAux")
+        }
         if style == .gasGiant { tints(material, GraphStyleArt.gasPalette(palette)) }
         if style == .rocky || style == .gasGiant || style == .comet { markLit(material) }
         return material
@@ -869,24 +880,6 @@ nonisolated enum GraphStyleArt {
                                intent: .defaultIntent)
         else { return UIImage() }
         return UIImage(cgImage: cg)
-    }
-
-    /// Deep ocean, coastal shelf, lowland green, desert: three Earths,
-    /// a little apart in their seas and greens (the owner wants the rocky
-    /// planet to read as Earth). As they show on screen (the shader takes
-    /// them to linear).
-    static func rockPalette(_ k: Int) -> [SIMD3<Float>] {
-        switch k {
-        case 1:
-            return [SIMD3<Float>(0.02, 0.07, 0.21), SIMD3<Float>(0.06, 0.33, 0.42),
-                    SIMD3<Float>(0.2, 0.32, 0.12), SIMD3<Float>(0.7, 0.5, 0.3)]
-        case 2:
-            return [SIMD3<Float>(0.03, 0.1, 0.27), SIMD3<Float>(0.07, 0.4, 0.48),
-                    SIMD3<Float>(0.14, 0.28, 0.12), SIMD3<Float>(0.62, 0.54, 0.36)]
-        default:
-            return [SIMD3<Float>(0.02, 0.08, 0.24), SIMD3<Float>(0.05, 0.36, 0.45),
-                    SIMD3<Float>(0.16, 0.3, 0.1), SIMD3<Float>(0.66, 0.52, 0.32)]
-        }
     }
 
     /// Cream, tan, rust, poles: Jupiter, Saturn, Neptune.

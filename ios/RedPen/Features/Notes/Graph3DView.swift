@@ -887,6 +887,8 @@ struct Graph3DView: View {
         // in the store's own order, so every launch has the same shape (a
         // close-up's rest and dragged shots, two launches, frame one note)
         let stand: GraphStandIns = GraphPreview.isOn ? GraphStandIns(ids, folders: notes.folders.map(\.id)) : .none
+        // the rocky planets' Earth maps, made here off the main thread (GraphEarth)
+        let largeEarth: Bool = GraphEarth.largeNow
         // the layout, and a check that the shaders work (kept once it can be
         // trusted: GraphProbeMemo), then packed into one constellation and
         // turned to show its broadest face (GraphFraming)
@@ -903,6 +905,7 @@ struct Graph3DView: View {
             for (id, p) in packed { positions[stand.from(id)] = p }
             let support: GraphShaderSupport = GraphShaderProbe.support
             _ = GraphStyleProbe.support
+            GraphEarth.shared.prefetch(large: largeEarth)
             return (positions, support, radius)
         }
         guard !Task.isCancelled else { return }
@@ -921,10 +924,12 @@ struct Graph3DView: View {
     private func rebuildUniverse() async {
         let edges = notes.allEdges()
         let input: UniverseInput = universeInput(edges: edges)
+        let largeEarth: Bool = GraphEarth.largeNow
         let worked = await GraphWork.offMain {
             let plan: UniversePlan = GraphUniverse.plan(input)
             let support: GraphShaderSupport = GraphShaderProbe.support
             _ = GraphStyleProbe.support
+            GraphEarth.shared.prefetch(large: largeEarth)
             return (plan, support)
         }
         guard !Task.isCancelled else { return }

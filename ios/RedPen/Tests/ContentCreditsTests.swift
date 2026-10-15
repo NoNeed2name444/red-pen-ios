@@ -111,6 +111,22 @@ if let data = ExamExemplarData.json.data(using: .utf8),
     check("the bundled exemplars can be read", false)
 }
 
+// the Earth's imagery is credited in Settings with the line its maps'
+// SOURCES.md gives, word for word
+var earthRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+while !FileManager.default.fileExists(atPath: earthRoot.appendingPathComponent("ios/RedPen").path),
+      earthRoot.path != "/" {
+    earthRoot.deleteLastPathComponent()
+}
+let earthSources: String = (try? String(contentsOf: earthRoot.appendingPathComponent("ios/RedPen/Resources/Earth/SOURCES.md"),
+                                         encoding: .utf8)) ?? ""
+let earthFlat: String = earthSources.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+check("the Earth imagery's credit is its SOURCES.md's, word for word",
+      earthFlat.contains("\"" + ContentSources.nasaEarthCredit + "\"")
+        && ContentSources.nasaEarth.attribution.hasPrefix(ContentSources.nasaEarthCredit),
+      ContentSources.nasaEarthCredit)
+check("the Earth imagery is in Settings' list", ContentSources.all.contains(ContentSources.nasaEarth))
+
 print(failures.isEmpty ? "\nALL CREDITS TESTS PASS"
                        : "\n\(failures.count) CREDITS TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)
