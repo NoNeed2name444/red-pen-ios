@@ -14,6 +14,15 @@ on:
       - 'server/**'
       - 'governance/**'
       - 'tests/**'
+      # the art the tests in tests/art measure, and the tools that cut it
+      - 'design/launch-logo/**'
+      - 'design/icon/**'
+      - 'ios/RedPen/Assets.xcassets/LaunchLogo.imageset/**'
+      - 'ios/RedPen/Assets.xcassets/AppIcon.appiconset/**'
+      - 'ios/AppResources/AppIcon.icon/**'
+      - 'tools/make_launch_logo.py'
+      - 'tools/icon_layers.py'
+      - 'tools/make_icon.py'
       - 'tools/question-bank/**'
       - '.github/workflows/server-tests.yml'
       # the transcription benchmark's scorer, and the app prompt it rebuilds

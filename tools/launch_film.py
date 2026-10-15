@@ -30,7 +30,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import make_heartbeat  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-TRACE = {"light": (0x43, 0x56, 0x6F), "dark": (0x65, 0x84, 0xAE)}
+# the ECG's colours, as LaunchArt.trace has them
+_trace = re.search(r"dark \? 0x([0-9A-Fa-f]{6}) : 0x([0-9A-Fa-f]{6})",
+                   (ROOT / "ios/RedPen/Shared/LaunchOpening.swift").read_text())
+TRACE = {mode: tuple(int(_trace.group(g)[i:i + 2], 16) for i in (0, 2, 4)) for mode, g in (("light", 2), ("dark", 1))}
 FPS = 60
 
 

@@ -1907,6 +1907,22 @@ with the marks on the screens last.
   common-link independence for sources, the conflict-of-interest rule, and
   dabt (numbers, units, population and negation copied faithfully).
 
+### The launch mark (design/launch-anim), 15 Oct
+
+- The owner, correcting an earlier relay: "i meant only the diaphragm i want
+  the jagged parts fixed in both". Decided: only the light mark's blue
+  chest-piece ring stays. Still open: the two drawings' shapes, which stay
+  as they are for now (not the owner's choice).
+- [x] The grey tube by night (Claude-Code 33f282f: 06-grey-flat-dark for
+  the launch, icon-dark for the icon) and clean cuts for both marks and
+  both icon layers: tools/make_launch_logo.py reads the mark by its colour,
+  the chrome's rim included, and draws the outline with sub-pixel coverage.
+  tests/art/clean-edges.test.mjs (fails on fb24d0e0's art) and
+  tests/art/no-blue-tube.test.mjs check every size.
+- [ ] Sent back to be redrawn: the dark launch drawing's thin blue line
+  where the grey tube meets the chest piece's stem (the day drawing has
+  none); the blue-tube test allows only that line until it is fixed.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.

@@ -2,7 +2,7 @@
 """Make Stethoscore's app icon from the owner's chosen art.
 
 The icon is a picture, not a drawing: the owner's stethoscope (14 Oct), drawn
-with depth, the white tube on the pale Ward base by day and the slate tube on
+with depth, the white tube on the pale Ward base by day and the grey tube on
 the dark base by night, plus a grey-on-black version for the tinted home
 screen. Those three pictures are kept in design/icon/source/ (icon-light.png,
 icon-dark.png, icon-tinted.png); this script turns them into what the app

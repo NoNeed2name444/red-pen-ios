@@ -520,9 +520,9 @@ final class LaunchOpeningView: UIView {
         ecg.add(keys("strokeEnd", ends), forKey: "end")
         let traits = UITraitCollection(userInterfaceStyle: appDark ? .dark : .light)
         let red = UIColor(Color.wardEcg).resolvedColor(with: traits).cgColor
-        let slate = Self.traceColor(dark: phoneDark)
+        let ink = Self.traceColor(dark: phoneDark)
         ecg.add(keys("strokeColor", times.map { t -> CGColor in
-            Self.mix(slate, red, CGFloat(o.travel(at: t)))
+            Self.mix(ink, red, CGFloat(o.travel(at: t)))
         }), forKey: "tint")
         ecg.add(keys("lineWidth", times.map { t -> CGFloat in
             2.5 + (CGFloat(LaunchOpening.squiggleLine) - 2.5) * CGFloat(o.travel(at: t))

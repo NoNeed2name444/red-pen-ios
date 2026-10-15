@@ -1,7 +1,7 @@
 import Foundation
 
 /// The launch mark: the owner's stethoscope (14 Oct), the white tube by day
-/// and the slate tube by night, cut from their flat grounds by
+/// and the grey tube by night, cut from their flat grounds by
 /// tools/make_launch_logo.py into the LaunchLogo image set, so the system
 /// launch screen and the animated opening (LaunchSplash) draw the same
 /// picture on the home screen's base.
@@ -18,15 +18,15 @@ enum LaunchArt {
     /// and the home screen opens out from here. The two drawings differ a
     /// little, so each has its own.
     static func chest(dark: Bool) -> (x: Double, y: Double, r: Double) {
-        dark ? (0.7750, 0.3065, 0.1108) : (0.7764, 0.3022, 0.1113)
+        dark ? (0.7728, 0.2924, 0.1098) : (0.7770, 0.3022, 0.1123)
     }
 
-    /// The ECG's colour (0xRRGGBB). By night the slate tube's lit side, which
-    /// reads on the dark base; by day the slate-blue of the night tube, since
-    /// the white tube's own colour is too faint as a thin line on the pale
-    /// base (about 1.2:1).
+    /// The ECG's colour (0xRRGGBB). By night the grey tube's lit side, which
+    /// reads on the dark base (about 5.8:1); by day a dark slate, since the
+    /// white tube's own colour is too faint as a thin line on the pale base
+    /// (about 1.2:1).
     static func trace(dark: Bool) -> UInt32 {
-        dark ? 0x6584AE : 0x43566F
+        dark ? 0xA9A8A8 : 0x43566F
     }
 }
 
