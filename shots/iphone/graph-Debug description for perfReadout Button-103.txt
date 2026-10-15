@@ -1,0 +1,50 @@
+Attributes: Button, 0x107d27840, {{16.0, 118.0}, {160.3, 60.0}}, identifier: 'perfReadout', label: 'Speed', value: 0 notes · 0 links,...
+Element subtree:
+ →Button, 0x107d27840, {{16.0, 118.0}, {160.3, 60.0}}, identifier: 'perfReadout', label: 'Speed', value: 0 notes · 0 links,...
+Path to element:
+ →Application, 0x107d24f00, pid: 24373, label: 'Stethoscore'
+  ↳Window (Main), 0x107d26a80, {{0.0, 0.0}, {402.0, 874.0}}
+   ↳Other, 0x107d27480, {{0.0, 0.0}, {402.0, 874.0}}
+    ↳Other, 0x107d24c80, {{0.0, 0.0}, {402.0, 874.0}}
+     ↳Other, 0x107d275c0, {{0.0, 0.0}, {402.0, 874.0}}
+      ↳Other, 0x107d27980, {{0.0, 0.0}, {402.0, 874.0}}
+       ↳Button, 0x107d27840, {{16.0, 118.0}, {160.3, 60.0}}, identifier: 'perfReadout', label: 'Speed', value: 0 notes · 0 links,...
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  Output: {
+    Application, 0x107c40f00, pid: 24373, label: 'Stethoscore'
+  }
+  ↪︎Find: Descendants matching type Any
+    Output: {
+      Window (Main), 0x107c43980, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x107c42f80, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x107c43700, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x107c41e00, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x107c41400, {{0.0, 0.0}, {402.0, 874.0}}
+      Other, 0x107c41540, {{0.0, 62.0}, {402.0, 778.0}}
+      Other, 0x107c42d00, {{0.0, 62.0}, {402.0, 778.0}}
+      Other, 0x107c40000, {{0.0, 0.0}, {402.0, 874.0}}, identifier: 'graph3D', label: 'Fast map of ideas'
+      Button, 0x107c41040, {{16.0, 118.0}, {160.3, 60.0}}, identifier: 'perfReadout', label: 'Speed', value: 0 notes · 0 links,...
+      Other, 0x107c426c0, {{342.0, 660.0}, {44.0, 44.0}}, label: 'Filter'
+      Button, 0x107c40280, {{342.0, 660.0}, {44.0, 44.0}}, label: 'Filter'
+      Other, 0x107c43480, {{342.0, 720.0}, {44.0, 44.0}}, label: 'Look'
+      Button, 0x107c40640, {{342.0, 720.0}, {44.0, 44.0}}, label: 'Look'
+      Button, 0x107c41900, {{342.0, 780.0}, {44.0, 44.0}}, label: 'Recentre'
+      StaticText, 0x107c40a00, {{161.7, 69.0}, {79.0, 38.3}}, label: 'Ideas'
+      Button, 0x107c41cc0, {{32.3, 80.7}, {9.0, 15.0}}, identifier: 'chevron.left', label: 'Back'
+      Other, 0x107c42440, {{201.0, 451.0}, {0.0, 0.0}}
+      Button, 0x107c42bc0, {{16.0, 118.0}, {160.3, 60.0}}
+      Button, 0x107c41b80, {{342.0, 660.0}, {44.0, 44.0}}
+      Button, 0x107c40dc0, {{342.0, 720.0}, {44.0, 44.0}}
+      Other, 0x107c43200, {{342.0, 780.0}, {44.0, 44.0}}
+      Image, 0x107c42940, {{342.0, 780.0}, {44.0, 44.0}}, identifier: 'smallcircle.filled.circle', label: 'smallcircle.filled.circle'
+      StaticText, 0x107c40c80, {{28.0, 125.0}, {93.0, 14.3}}, label: '0 notes · 0 links'
+      StaticText, 0x107c40b40, {{28.0, 141.3}, {128.7, 14.3}}, label: '0 fps · 0.0 ms a frame'
+      StaticText, 0x107c43ac0, {{28.0, 157.7}, {136.3, 13.3}}, label: '0 drawn · 0 glows · 0 lines'
+      Image, 0x107c42300, {{342.0, 660.0}, {44.0, 44.0}}, identifier: 'line.3.horizontal.decrease', label: 'Filter'
+      Image, 0x107c41a40, {{342.0, 720.0}, {44.0, 44.0}}, identifier: 'sparkles', label: 'Sparkle'
+    }
+    ↪︎Find: Elements matching predicate '"perfReadout" IN identifiers'
+      Output: {
+        Button, 0x107d252c0, {{16.0, 118.0}, {160.3, 60.0}}, identifier: 'perfReadout', label: 'Speed', value: 0 notes · 0 links,...
+      }
