@@ -157,7 +157,12 @@ private struct WardBarScheme: ViewModifier {
     @Environment(\.colorScheme) private var scheme
 
     func body(content: Content) -> some View {
-        content.toolbarColorScheme(scheme, for: .navigationBar)
+        content
+            .toolbarColorScheme(scheme, for: .navigationBar)
+            // the bar's own base, always shown: with it the bar, not iOS's
+            // guess from the content under it, owns the status bar's style
+            .toolbarBackground(Color.wardBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 

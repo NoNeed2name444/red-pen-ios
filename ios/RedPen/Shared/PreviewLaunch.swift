@@ -311,6 +311,17 @@ enum SampleData {
 struct PreviewRoot: View {
     let screen: String
 
+    init(screen: String) {
+        self.screen = screen
+        // Always night sky is kept between launches, so a mode-switch
+        // recording that turned it on left every later still dark (r10).
+        // A still starts from the device's own mode; the recordings that
+        // turn it on do so themselves.
+        if !screen.hasPrefix("mode-switch") {
+            UserDefaults.standard.set(false, forKey: "vignette.space.alwaysNight") // SpaceSettings.alwaysNightKey
+        }
+    }
+
     var body: some View {
         Group {
             if let w = PreviewLaunch.pretendWidth {
