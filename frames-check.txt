@@ -1,0 +1,6 @@
+== mode-switch-app
+only one mode in 8 frames: nothing to check
+== mode-switch-quiz
+only one mode in 3 frames: nothing to check
+== mode-switch (system, not gated)
+only one mode in 146 frames: nothing to check
