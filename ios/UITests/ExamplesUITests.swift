@@ -27,7 +27,10 @@ final class ExamplesUITests: XCTestCase {
 
         // at the bottom of the library page
         let banner = app.buttons["examplesBanner"]
-        XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 20), "the library didn't open")
+        // home draws its own top row (search and the account menu), with no
+        // navigation bar: its account menu says the library is open
+        let home = app.descendants(matching: .any)["libraryMenu"]
+        XCTAssertTrue(home.waitForExistence(timeout: 20), "the library didn't open")
         var scrolls = 0
         while !(banner.exists && banner.isHittable) && scrolls < 16 { app.swipeUp(); scrolls += 1 }
         XCTAssertTrue(banner.exists, "the 'Try every feature' link isn't at the bottom of the library")
