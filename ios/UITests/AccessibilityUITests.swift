@@ -232,6 +232,7 @@ final class AccessibilityUITests: XCTestCase {
             return false
         }
         app = XCUIApplication()
+        app.keepTraceOffConsole()
         // the example sets to open, and a still sky so a busy simulator does
         // not drop taps
         app.launchArguments += ["-personalBuild", "-stillSky"] + Self.largestText

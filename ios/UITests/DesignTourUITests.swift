@@ -50,6 +50,7 @@ final class DesignTourUITests: XCTestCase {
             return false
         }
         app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-personalBuild"]
         app.launch()
         signIn()

@@ -18,6 +18,7 @@ final class TurnIntoUITests: XCTestCase {
 
     func testMCQTurnsIntoCardsAndOpens() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         // a still sky, so the simulator's main thread has time for the taps
         app.launchArguments += ["-personalBuild", "-stillSky"]
         app.launch()

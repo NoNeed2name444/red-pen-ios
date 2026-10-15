@@ -6,6 +6,7 @@ import XCTest
 final class LocalSignInUITests: XCTestCase {
     func testThisDeviceOnlyOpensTheLibrary() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launch()
         let door = app.buttons["localSignIn"]
         XCTAssertTrue(door.waitForExistence(timeout: 20), "the button isn't on screen")
