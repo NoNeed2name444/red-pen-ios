@@ -231,7 +231,8 @@ export async function askModel(env, account, owner, use, messages, maxTokens, fe
 /// 14 Oct: "use the api key from claude platform that has 100$ worth of api
 /// calls ... each month"). It votes on the owner's checks only - students'
 /// checks stay on the free models until Pro pays (PRO_PAYS) - and within
-/// CLAUDE_MONTHLY_USD a month (90 by default, under the allowance), counted
+/// CLAUDE_MONTHLY_USD a month (90 by default, under the allowance; set to 60
+/// in wrangler.toml since 16 Oct, when the owner moved 30 to Opus jobs), counted
 /// in ai_cost under "claude:owner" whatever PRO_PAYS says: each call holds
 /// back its worst case first, so calls at once cannot spend past the cap.
 /// A model from another family is a separate witness (accuracy-model.js

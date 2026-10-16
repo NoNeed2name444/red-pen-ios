@@ -4,7 +4,7 @@
 //
 //   node tools/proof-ladder/ladder.mjs --state progress.json --pick items.json [--max-items 600] [--all]
 //   WORKER=https://... KEY=<owner key> node tools/proof-ladder/ladder.mjs \
-//     --state progress.json --out DIR [--items items.json] [--ballots DIR] [--runner-seats 1] [--runner-bar 0.8] [--pool-batches 15] [--max-items 600] [--hours 5] [--share 60] [--all]
+//     --state progress.json --out DIR [--items items.json] [--ballots DIR] [--runner-seats 1] [--runner-bar 0.8] [--pool-batches 15] [--max-items 600] [--hours 5] [--share 40] [--all]
 //
 // --pick chooses the day's questions only; the runner voters answer them
 // blind on GitHub's CPU (tools/runner-voter), and the climb sends each batch
@@ -129,7 +129,7 @@ async function main() {
   }
 
   const until = Date.now() + Number(arg('hours', '5')) * 3600_000;
-  const share = Number(arg('share', '60'));
+  const share = Number(arg('share', '40'));
   const worker = String(process.env.WORKER || '').replace(/\/+$/, '');
   const auth = { authorization: `Bearer ${process.env.KEY}` };
   if (!worker || !process.env.KEY) { console.error('WORKER and KEY are needed (the live Worker, the owner key).'); process.exit(2); }
