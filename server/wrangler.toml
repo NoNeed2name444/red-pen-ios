@@ -107,8 +107,8 @@ STETHOSCORE_DEFAULT_MODEL = "claude-opus-5-5"
 # only, on the owner's own Anthropic key, within this many dollars a month
 # (the key's plan includes about 100). 0 switches it off. The owner (16 Oct)
 # moved 30 of the 90 to Opus jobs (opus-job.yml), which spend outside this
-# count, so the checks keep 60.
-CLAUDE_MONTHLY_USD = "60"
+# count, then 20 more, so the checks keep 40.
+CLAUDE_MONTHLY_USD = "40"
 # Jev (jev.js), the oath check's second opinion: asked only while PRO_PAYS is
 # "on" and the JEV_API_KEY secret is set, so it is inert until then. It can
 # only add the oath check to an item, never take one away.

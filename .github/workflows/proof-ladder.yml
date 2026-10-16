@@ -12,7 +12,7 @@
 # ledger of each family's blind answers against the gold key.
 #
 # Spend: no key but the owner's own. The runner voters cost nothing; the
-# cloud checker is held by the Worker to CLAUDE_MONTHLY_USD (60), and by the
+# cloud checker is held by the Worker to CLAUDE_MONTHLY_USD (40), and by the
 # ladder to its share (tools/proof-ladder/config.json), paced over the month.
 # Needs the AI_API_KEY secret (the owner key), as the verification bench does.
 #
