@@ -249,7 +249,8 @@ struct LibraryView: View {
 
     /// With `-uiPreviewPushBack` on the "library" preview, once home is up
     /// with its parts booked and a set to open, notes the book's part names,
-    /// pushes the first set onto `opened` and pops it about 1.5 s later. A
+    /// pushes the first set onto `opened` and pops it once a part of home
+    /// has left the book (1.5 s at the soonest, 10 s at the most). A
     /// slow launch (AX5 on the SE's size takes about half a minute on a busy
     /// Mac) is waited for, up to 30 s, instead of being reported as no set.
     private func previewPushBack() async {
@@ -262,9 +263,29 @@ struct LibraryView: View {
             HomeFitProbe.shared.pushBackNoSet = true
             return
         }
-        HomeFitProbe.shared.beforePush = WardPartBook.shared.parts.values.map(\.name)
+        let before = WardPartBook.shared.parts
+        HomeFitProbe.shared.beforePush = before.values.map(\.name)
+        WardPartBook.shared.resetDropCounts()
         opened = [set]
-        do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
+        // Home's parts leave the book once the pushed page covers it. A busy
+        // Mac can take longer than 1.5 s to get there (one look then missed
+        // it at random), so watch for it, up to 10 s, and pop no sooner
+        // than 1.5 s in, as before.
+        var lost = false
+        var lastLookCount = before.count
+        for tick in 1...100 {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            let duringPush = WardPartBook.shared.parts
+            lastLookCount = duringPush.count
+            lost = lost || WardPartBook.shared.dropsRemoved > 0 || before.keys.contains { duringPush[$0] == nil }
+            if lost && tick >= 15 { break }
+        }
+        HomeFitProbe.shared.pushLostParts = lost
+        HomeFitProbe.shared.pushDropsRemoved = WardPartBook.shared.dropsRemoved
+        HomeFitProbe.shared.pushDropsKept = WardPartBook.shared.dropsKept
+        HomeFitProbe.shared.pushLastKeptCut = WardPartBook.shared.lastKeptCut
+        HomeFitProbe.shared.pushBookCountBefore = before.count
+        HomeFitProbe.shared.pushBookCountLastLook = lastLookCount
         opened = []
         HomeFitProbe.shared.pushBackDone = true
     }

@@ -375,6 +375,109 @@ do {
           first && !sameId && !secondSameTop && !dropOneOfTwo && !rebookSame && dropLast && !dropEmpty)
 }
 
+// MARK: - T0060: the fourth review's ledger regressions
+
+// Nit 1: multiplication and division can land on opposite sides of a 3x
+// pixel line. A holder on that line must stay hidden through drop/rebook.
+do {
+    var keptEveryHolder = true
+    var roundedApart = 0
+    for pixel in 1800..<2100 {
+        var book = WardPartLedger<Int>()
+        let y = Double(pixel) * (1.0 / 3)
+        let cut = Double(pixel) / 3
+        if y < cut { roundedApart += 1 }
+        book.cut = cut
+        book.set(1, name: "holder", rect: CGRect(x: 0, y: y, width: 100, height: 44), reach: 0, scale: 3)
+        let dropped = book.drop(1)
+        let rebooked = book.rebook()
+        keptEveryHolder = keptEveryHolder && !dropped && !rebooked && book.entries[1]?.top == cut
+    }
+    check("T0060 nit 1: every 3x holder survives roundoff at the cut", roundedApart > 0 && keptEveryHolder)
+}
+
+// Nit 2: only disappeared parts below the current cut may be retained.
+// Live parts above it still count, and a sighting makes a retained part live.
+do {
+    var book = WardPartLedger<Int>()
+    book.cut = 682
+    book.set(1, name: "old holder", rect: CGRect(x: 0, y: 682, width: 100, height: 44), reach: 0, scale: 3)
+    book.set(2, name: "live row", rect: CGRect(x: 0, y: 600, width: 100, height: 44), reach: 0, scale: 3)
+    book.drop(1)
+    book.cut = 686
+    let pruned = book.rebook()
+    let prunedGhost = pruned && book.entries[1] == nil && book.sightings[1] == nil && book.told == [600]
+        && HomeFit.settledCut(686, tops: book.tops) == 686
+    book.set(3, name: "reappeared", rect: CGRect(x: 0, y: 690, width: 100, height: 44), reach: 0, scale: 3)
+    book.drop(3)
+    book.set(3, name: "reappeared", rect: CGRect(x: 0, y: 680, width: 100, height: 44), reach: 0, scale: 3)
+    book.rebook()
+    let reappeared = book.entries[3]?.top == 680
+    book.set(4, name: "hidden", rect: CGRect(x: 0, y: 700, width: 100, height: 44), reach: 0, scale: 3)
+    book.drop(4)
+    book.cut = nil
+    book.rebook()
+    check("T0060 nit 2: rebook prunes ghosts above or without a cut, keeping live and reappeared rows",
+          prunedGhost && reappeared && book.entries[4] == nil && book.sightings[4] == nil)
+}
+
+// Nit 3: the holder hides on the last moving frame, before the rest event.
+// No intermediate publication or later onAppear should be needed.
+do {
+    var book = WardPartLedger<Int>()
+    book.cut = 680
+    book.set(1, name: "More ways to practise", rect: CGRect(x: 0, y: 680, width: 300, height: 44), reach: 0, scale: 3)
+    var publishedWhileMoving = false
+    for y in [620.0, 650, 680] {
+        publishedWhileMoving = book.set(1, name: "More ways to practise",
+            rect: CGRect(x: 0, y: y, width: 300, height: 44), reach: 0, scale: 3, atRest: false)
+            || publishedWhileMoving
+    }
+    let dropped = book.drop(1, atRest: false)
+    let rested = book.rebook()
+    let keptHolder = !publishedWhileMoving && !dropped && !rested && book.entries[1]?.top == 680
+        && book.sightings[1] != nil && book.told == [680]
+        && HomeFit.settledCut(686, tops: book.tops) == 680
+    // The previous rest frame must not protect a row that is now above the
+    // cut (including a real fraction of a pixel, beyond floating slack).
+    book.set(1, name: "More ways to practise", rect: CGRect(x: 0, y: 679.9, width: 300, height: 44),
+             reach: 0, scale: 3, atRest: false)
+    book.drop(1, atRest: false)
+    book.rebook()
+    check("T0060 nit 3: keep a self-topped holder through moving drop/rest, but recycle above-cut rows",
+          keptHolder && book.entries.isEmpty && book.sightings.isEmpty && book.told.isEmpty)
+}
+
+// Nit 4: switching sections may leave pageCut numerically unchanged, so
+// clear must not depend on another onChange to restore the loop guard.
+do {
+    var book = WardPartLedger<Int>()
+    book.cut = 682
+    book.set(1, name: "old page", rect: CGRect(x: 0, y: 682, width: 100, height: 44), reach: 0, scale: 3)
+    book.drop(1)
+    book.clear()
+    book.rebook()
+    let cleared = book.entries.isEmpty && book.sightings.isEmpty && book.told.isEmpty
+    book.set(2, name: "new page", rect: CGRect(x: 0, y: 682, width: 100, height: 44), reach: 0, scale: 3)
+    let dropped = book.drop(2)
+    check("T0060 nit 4: clear empties the book while preserving an unchanged cut",
+          cleared && book.cut == 682 && !dropped && book.entries[2]?.top == 682)
+}
+
+// MARK: - Drop outcomes: removed, kept below cut, and no such part
+do {
+    var book = WardPartLedger<Int>()
+    book.cut = 680
+    book.set(1, name: "chip", rect: CGRect(x: 0, y: 690, width: 60, height: 18), reach: 0, scale: 3)
+    book.set(2, name: "row", rect: CGRect(x: 0, y: 600, width: 300, height: 50), reach: 0, scale: 3)
+    let keptDrop: WardPartLedger<Int>.Drop = book.drop(1)
+    let removedDrop: WardPartLedger<Int>.Drop = book.drop(2)
+    let missingDrop: WardPartLedger<Int>.Drop = book.drop(99)
+    check("drop reports kept below cut", keptDrop == .kept && book.entries[1]?.top == 690)
+    check("drop reports removed", removedDrop == .removed && book.entries[2] == nil)
+    check("drop reports no such part", missingDrop == .none)
+}
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {

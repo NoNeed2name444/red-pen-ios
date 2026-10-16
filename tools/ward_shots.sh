@@ -95,8 +95,20 @@ prepare() {
   sleep 12
 }
 
+wait_push_back() {  # app data directory, picture name
+  local data="$1" name="$2" check
+  for check in $(seq 30); do
+    if [ -n "$data" ] && grep -Fxq 'push and back: done' "$data/Documents/home-fit.txt" 2>/dev/null; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "FAULT $name: push and back did not finish; no screenshot taken" >> "$LOG"
+  return 1
+}
+
 shoot() {  # appearance, screen, picture name (may hold a folder), extra launch arguments
-  local look="$1" screen="$2" name="$3" try size
+  local look="$1" screen="$2" name="$3" try size data
   local push=()
   shift 3
   [ "$screen" = library ] && push=(-uiPreviewPushBack)
@@ -106,12 +118,18 @@ shoot() {  # appearance, screen, picture name (may hold a folder), extra launch 
   xcrun simctl ui "$UDID" content_size "$size" >> "$LOG" 2>&1 || echo "content size failed: $size" >> "$LOG"
   for try in 1 2 3; do
     xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+    if [ "$screen" = library ]; then
+      data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null) || true
+      # Only this launch's completed report can release its screenshot.
+      if [ -n "$data" ]; then rm -f "$data/Documents/home-fit.txt"; fi
+    fi
     # the size as a launch argument too, which UIKit reads before the
     # first frame
     xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" "${push[@]}" \
       -UIPreferredContentSizeCategoryName "$(category "$size")" "$@" >> "$LOG" 2>&1 \
       || echo "launch failed: $name" >> "$LOG"
     sleep $((10 + 6 * try))
+    if [ "$screen" = library ]; then wait_push_back "$data" "$name" || return 1; fi
     xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$SHOTS/$name.png" >> "$LOG" 2>&1 \
       || echo "shot failed: $name" >> "$LOG"
     pgrep -f "RedPen.app/RedPen" >/dev/null || echo "not running after: $name" >> "$LOG"

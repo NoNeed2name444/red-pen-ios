@@ -47,10 +47,17 @@ struct WardPartLedger<Key: Hashable> {
             self.rect = face
             self.top = wardBookedTop(Double(face.minY), scale: sighting.scale)
         }
+
+        func isHidden(by cut: Double?) -> Bool {
+            guard let cut else { return false }
+            return Double(rect.minY) + 1e-6 >= cut
+        }
     }
 
     private(set) var entries: [Key: Entry] = [:]
     private(set) var sightings: [Key: Sighting] = [:]
+    /// Disappeared parts kept only because their last face was below the cut.
+    private var kept: Set<Key> = []
     /// The tops last published at rest.
     private(set) var told: [Double] = []
     /// The page's settled cut (global points), for the at-rest drop loop guard.
@@ -66,6 +73,7 @@ struct WardPartLedger<Key: Hashable> {
     mutating func set(_ key: Key, _ sighting: Sighting, atRest: Bool = true) -> Bool {
         guard !sighting.rect.isEmpty else { return false }
         sightings[key] = sighting
+        kept.remove(key)
         guard atRest else { return false }
         entries[key] = Entry(sighting: sighting)
         return publish()
@@ -89,35 +97,73 @@ struct WardPartLedger<Key: Hashable> {
     /// rest) and reports whether the published tops changed.
     @discardableResult
     mutating func rebook() -> Bool {
+        // A hidden part's old frame cannot hold the cut up after the cut
+        // moves below it. Live sightings above the cut still belong here.
+        for key in kept {
+            if let sighting = sightings[key], Entry(sighting: sighting).isHidden(by: cut) { continue }
+            sightings[key] = nil
+            kept.remove(key)
+        }
         entries = sightings.mapValues(Entry.init)
         return publish()
     }
 
-    /// Drops a part that went away. At rest, a part whose booked face lies
+    /// What dropping a part did.
+    enum Drop: Equatable {
+        case removed
+        case kept
+        case none
+    }
+
+    /// Drops a part that went away and reports what happened: removed, kept
+    /// because its last face was below the cut, or no such part.
+    @_disfavoredOverload
+    @discardableResult
+    mutating func drop(_ key: Key, atRest: Bool = true, cut: Double? = nil) -> Drop {
+        if let sighting = sightings[key], Entry(sighting: sighting).isHidden(by: cut ?? self.cut) {
+            kept.insert(key)
+            return .kept
+        }
+        guard sightings[key] != nil || entries[key] != nil || kept.contains(key) else {
+            return .none
+        }
+        kept.remove(key)
+        sightings[key] = nil
+        entries[key] = nil
+        if atRest {
+            publish()
+        }
+        return .removed
+    }
+
+    /// Drops a part that went away. A part whose latest sighted face lies
     /// wholly at or below the page's current cut is hidden by the cut rather
     /// than gone, so it keeps its entry and its sighting: the next rest books
     /// it where it was, and the cut never falls back to show it again (a
-    /// cut/drop loop at rest). While moving, the book changes without
-    /// publishing; the next rest publishes.
+    /// cut/drop loop at rest). This also holds a self-topped row that hides
+    /// just before scrolling back to rest. Use its latest sighting, not its
+    /// old rest frame; a row recycled above the cut still leaves the book.
+    /// While moving nothing publishes; the next rest publishes.
     @discardableResult
     mutating func drop(_ key: Key, atRest: Bool = true, cut: Double? = nil) -> Bool {
-        if atRest, let activeCut = cut ?? self.cut, let entry = entries[key],
-           Double(entry.rect.minY) >= activeCut, Double(entry.rect.maxY) >= activeCut {
+        if let sighting = sightings[key], Entry(sighting: sighting).isHidden(by: cut ?? self.cut) {
+            kept.insert(key)
             return false
         }
+        kept.remove(key)
         sightings[key] = nil
         entries[key] = nil
         guard atRest else { return false }
         return publish()
     }
 
-    /// A new page: empties entries, sightings and the cut, and reports whether
-    /// the published tops changed.
+    /// A new page: empties the book and reports whether the tops changed.
+    /// Keep the cut: an unchanged pageCut will not be reported again.
     @discardableResult
     mutating func clear() -> Bool {
         entries = [:]
         sightings = [:]
-        cut = nil
+        kept = []
         return publish()
     }
 

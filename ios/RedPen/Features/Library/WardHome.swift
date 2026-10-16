@@ -967,8 +967,14 @@ final class HomeFitProbe {
     /// pushed a set, whether the push-and-back ran, and whether it gave up
     /// with no set to open.
     var beforePush: [String] = []
+    var pushLostParts = false
     var pushBackDone = false
     var pushBackNoSet = false
+    var pushDropsRemoved = 0
+    var pushDropsKept = 0
+    var pushLastKeptCut: Double?
+    var pushBookCountBefore = 0
+    var pushBookCountLastLook = 0
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -986,9 +992,9 @@ final class HomeFitProbe {
             for _ in 0..<350 where !pushBackDone && !pushBackNoSet {
                 do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
             }
-            if pushBackDone {
-                do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
-            }
+        }
+        if PreviewLaunch.pushBack, pushBackDone {
+            do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
         }
         let words: [HomeFit.Words] = widths.keys.sorted().compactMap { name in
             guard let width = widths[name], let word = widest[name] else { return nil }
@@ -1010,6 +1016,11 @@ final class HomeFitProbe {
             } else if !pushBackDone {
                 faults.append("push and back: not finished")
             } else {
+                if !pushLostParts {
+                    faults.append("push and back: no part left the book during the push")
+                }
+                // Consume each occurrence: one returned set row cannot
+                // stand in for two rows with the same name before the push.
                 var remaining: [String: Int] = [:]
                 for part in parts {
                     remaining[part.name, default: 0] += 1
@@ -1034,6 +1045,9 @@ final class HomeFitProbe {
         var lines: [String] = faults.isEmpty ? ["fits"] : faults.map { "FAULT " + $0 }
         if PreviewLaunch.pushBack && pushBackDone {
             lines.append("push and back: done")
+            lines.append("push and back: parts left the book: \(pushLostParts ? "yes" : "no")")
+            let cutStr = pushLastKeptCut.map { $0.rounded() == $0 ? "\(Int($0))" : "\($0)" } ?? "none"
+            lines.append("push and back: drops removed \(pushDropsRemoved), kept \(pushDropsKept) (cut \(cutStr)), book \(pushBookCountBefore) parts before the push, \(pushBookCountLastLook) at its last look")
         }
         let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
