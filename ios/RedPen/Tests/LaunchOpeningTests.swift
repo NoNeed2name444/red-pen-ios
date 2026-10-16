@@ -450,43 +450,61 @@ check("the marks are capped",
 
 // MARK: the experiments are over; the soft lights are drawn once
 
-// The control takes (home's data stood in for, the glows left out) answered
-// what they were for: the per-frame blur of the buttons' relief held the
-// hand-off up. They are gone; the judged takes, the fixed pause, the
-// snapshots after each take and the 100 ms gate are what the recording keeps.
+// The stand-in home data is gone for good; the relief-off switch
+// (-uiPreviewNoGlows) is back for the recording only, as the control take that
+// follows each judged one (cached, relief off, three of each). The judged
+// takes, the fixed pause, the snapshots after each take and the 100 ms gate
+// are as they were.
 func source(_ path: String) -> String { (try? String(contentsOfFile: path, encoding: .utf8)) ?? "" }
-let gone = ["-uiPreviewNoGlows", "-uiPreviewStubHomeData", "HomeStandIn", "homeDue", "noGlows", "stubHomeData"]
+let gone = ["-uiPreviewStubHomeData", "HomeStandIn", "homeDue", "stubHomeData"]
 let touched = ["ios/RedPen/Shared/LaunchStage.swift", "ios/RedPen/Shared/Ward/WardSurfaces.swift",
                "ios/RedPen/Features/Library/WardHome.swift", "ios/RedPen/Features/Library/LibraryView.swift",
                ".github/workflows/launch-recording.yml"]
 for path in touched {
     let text = source(path)
     check("\(path) reads", !text.isEmpty)
-    check("\(path) has no control-take scaffolding", gone.allSatisfy { !text.contains($0) })
+    check("\(path) has no stand-in home data", gone.allSatisfy { !text.contains($0) })
 }
 check("the recording keeps three judged takes, the fixed 30 s pause and a snapshot after each take",
       recording.contains("for take in 1 2 3; do") && recording.contains("sleep 30")
       && recording.contains("busy \"take $take before launch\"")
-      && recording.contains("busy \"take $take after the take\"") && !recording.contains("control"))
+      && recording.contains("busy \"take $take after the take\""))
+check("a relief-off take follows each judged one, launched with the switch, read back to its own file",
+      recording.contains("-uiPreviewScreen library -uiPreviewSplash -uiPreviewNoGlows")
+      && recording.contains("readout \"$take\" control")
+      && recording.contains("film/handoff-$MODE-control.txt")
+      && recording.contains("busy \"take $take control after the take\""))
+check("only the judged takes are gated: the gate reads handoff-$MODE.txt and never the control file",
+      recording.contains("f=\"film/handoff-$MODE.txt\"") && !recording.contains("f=\"film/handoff-$MODE-control.txt\""))
+let surfacesText = source("ios/RedPen/Shared/Ward/WardSurfaces.swift")
+check("the switch sets every light to radius 0 as a 1-pt rim, and the faces draw live under it",
+      surfacesText.contains("if LaunchStage.noGlows {") && surfacesText.contains("radius = 0")
+      && surfacesText.contains("x = min(1, max(-1, x))")
+      && surfacesText.contains("unlit || LaunchStage.noGlows ? 0 : spec.blur")
+      && surfacesText.components(separatedBy: "if LaunchStage.noGlows { face.note(.live(.off)); return nil }").count == 3)
+
 check("the recording's gate is unchanged: every take has a readout, none holds over 100 ms",
       recording.contains("[ -z \"$gap\" ]") && recording.contains("[ \"$gap\" -gt 100 ]")
       && recording.contains("no hand-off readout"))
 let stage = source("ios/RedPen/Shared/LaunchStage.swift")
 check("the readout keeps its gaps, cpu and marks fields",
       stage.contains("gap_ms=") && stage.contains("refreshes=") && stage.contains("diag.fields("))
+check("the readout ends with the relief count (WardReliefCensus)",
+      stage.contains("WardReliefCensus.shared.field()"))
 
 // No image is made inside the hand-off window: the cache looks at the window
 // before it makes anything, and sends a miss to the live drawing.
 let images = source("ios/RedPen/Shared/Ward/WardLightImages.swift")
 check("WardLightImages reads", !images.isEmpty)
-if let window = images.range(of: "LaunchStage.shared.handingOff"), let make = images.range(of: "let made = store(request)") {
+if let window = images.range(of: "LaunchStage.shared.handingOff"), let make = images.range(of: "guard let made = store(request)") {
     check("a style asked for in the hand-off is not made there", window.lowerBound < make.lowerBound)
 } else { check("the cache checks the hand-off window before it makes an image", false) }
 check("the styles asked for in the hand-off are made once it is over",
       stage.contains("WardLightImages.shared.catchUp()") && stage.contains("var handingOff: Bool { link != nil }"))
 let wardSurfaces = source("ios/RedPen/Shared/Ward/WardSurfaces.swift")
 check("a pressable face draws from its image only at rest",
-      wardSurfaces.contains("if depth <= Self.rest, !unlit, let fillColor, let kind = WardFaceShape(shape)"))
+      wardSurfaces.contains("if depth > Self.rest { face.note(.live(.press)); return nil }")
+      && wardSurfaces.contains("if let kind = cachedKind(), let fillColor {"))
 
 // MARK: no fading, anywhere in the opening
 

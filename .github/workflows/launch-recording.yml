@@ -20,6 +20,7 @@ on:
       - 'ios/RedPen/Shared/LaunchOpening.swift'
       - 'ios/RedPen/Shared/LaunchStage.swift'
       - 'ios/RedPen/Shared/Ward/WardSurfaces.swift'
+      - 'ios/RedPen/Shared/Ward/WardLight*.swift'
       - 'ios/RedPen/Features/Library/WardHome.swift'
       - 'ios/RedPen/Features/Library/LibraryView.swift'
       - 'ios/RedPen/Assets.xcassets/LaunchLogo*/**'
@@ -125,7 +126,7 @@ jobs:
           # read back after each take, and cleared before the next
           readout() {
             local data OUT
-            OUT="film/handoff-$MODE.txt"
+            OUT="film/handoff-$MODE.txt"; [ "${2:-}" = control ] && OUT="film/handoff-$MODE-control.txt"
             data=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
             [ -n "$data" ] || return 0
             if [ "$1" = clear ]; then rm -f "$data/Library/Caches/launch-handoff.txt"; return 0; fi
@@ -138,7 +139,8 @@ jobs:
           # three recorded launches: the film is the first; the others show
           # whether a slow first one was the machine settling after boot. A
           # take whose recording came out empty (the recorder can fail on a
-          # busy runner) is taken again, up to twice.
+          # busy runner) is taken again, up to twice. After each, one
+          # relief-off take (below), so cached and relief-off alternate.
           for take in 1 2 3; do
             name="film/raw-$MODE.mp4"; [ $take != 1 ] && name="film/raw-$MODE-$take.mp4"
             for attempt in 1 2 3; do
@@ -172,6 +174,24 @@ jobs:
             if [ $take = 1 ]; then
               xcrun simctl io "$UDID" screenshot --type=png "film/rest-$MODE.png" >/dev/null 2>&1 || true
             fi
+            # one relief-off take after the judged one (cached, then relief
+            # off, three of each): the same way, without a recording, but
+            # with every Ward light at radius 0 as a 1-pt rim and drawn live
+            # (-uiPreviewNoGlows; ink edges and colours kept). Its readout
+            # goes to handoff-$MODE-control.txt and is not judged: it shows
+            # whether the cached takes' holds are the relief's, and whether
+            # the runner is fit to judge (the control must pass).
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            sleep 3
+            sleep 30
+            LOAD=$(sysctl -n vm.loadavg | awk '{print $2}')
+            stamp "take $take control: after 30 s quiet"
+            readout clear
+            busy "take $take control before launch"
+            xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library -uiPreviewSplash -uiPreviewNoGlows >> "film/launch-$MODE.log" 2>&1
+            sleep 20
+            busy "take $take control after the take"
+            readout "$take" control
           done
           # the splash's first frame against the system launch screen, as
           # lossless screenshots: launched holding the first frame (marked
@@ -200,6 +220,7 @@ jobs:
           stamp "done"
           ls -la film
           cat "film/handoff-$MODE.txt"
+          cat "film/handoff-$MODE-control.txt" || true
 
       - name: Judge the hand-off
         env:

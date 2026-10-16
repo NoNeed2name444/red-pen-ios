@@ -1,6 +1,7 @@
 #if canImport(SwiftUI)
 import SwiftUI
 import UIKit
+import QuartzCore
 
 // The Ward relief's soft lights, drawn once (the maths: WardLightSlice).
 //
@@ -11,14 +12,16 @@ import UIKit
 // rest draws itself with the very same SwiftUI code into an image, once per
 // style, and shows that: a rounded rectangle as a stretchable slice, so one
 // image serves every size, a capsule keyed by its height, a circle by its
-// diameter. What the images do not cover keeps the live drawing: a fill that
-// is not a colour, a shape that is not a rounded rectangle, capsule or
-// circle, a press in motion or held, and any face whose style is not ready
-// while the opening hands off (see `image`).
+// diameter, a readiness ring's groove by its box. What the images do not
+// cover keeps the live drawing: a fill that is not a colour, a shape that is
+// not a rounded rectangle, capsule, circle or ring, a press in motion or
+// held, and any face whose style is not ready while the opening hands off
+// (see `image`). A recorded opening counts every face and how it was drawn
+// (WardReliefCensus, WardFaceToken), so a fallback is never silent.
 
 /// The outline of a covered shape, so the one drawing code can be run on it:
-/// it delegates to SwiftUI's own RoundedRectangle, Capsule and Circle, so its
-/// path (and its inset) is theirs.
+/// it delegates to SwiftUI's own RoundedRectangle, Capsule and Circle (and
+/// WardAnnulus), so its path (and its inset) is theirs.
 struct WardOutline: InsettableShape {
     var kind: WardFaceShape
     var amount: CGFloat = 0
@@ -32,6 +35,8 @@ struct WardOutline: InsettableShape {
             return Capsule(style: continuous ? .continuous : .circular).inset(by: amount).path(in: rect)
         case .circle:
             return Circle().inset(by: amount).path(in: rect)
+        case let .annulus(width):
+            return WardAnnulus(width: CGFloat(width)).inset(by: amount).path(in: rect)
         }
     }
 
@@ -52,6 +57,8 @@ extension WardFaceShape {
             self = .capsule(continuous: capsule.style == .continuous)
         } else if shape is Circle {
             self = .circle
+        } else if let ring = shape as? WardAnnulus, ring.insetAmount == 0 {
+            self = .annulus(width: Double(ring.width))
         } else {
             return nil
         }
@@ -74,10 +81,40 @@ extension Color {
     }
 }
 
+/// A relief face's place in the census (WardReliefCensus): held as the
+/// face's @State, so it lives as long as the face does and is dropped from
+/// the count when the face goes. Inert (no number, nothing noted) outside a
+/// recorded opening.
+final class WardFaceToken {
+    private let id: UInt64
+
+    init() {
+        id = LaunchStage.recording ? WardReliefCensus.shared.newFace() : 0
+    }
+
+    deinit {
+        if id != 0 { WardReliefCensus.shared.forget(id) }
+    }
+
+    /// How the face was drawn this time.
+    func note(_ path: WardReliefPath) {
+        if id != 0 { WardReliefCensus.shared.note(id, path) }
+    }
+}
+
 /// An image to be made: what it is kept under, and how to draw it.
 struct WardLightRequest {
     var key: WardLightKey
     var make: @MainActor () -> UIImage?
+}
+
+/// What asking for an image gives.
+enum WardLightOutcome {
+    case image(UIImage)
+    /// Asked for inside the hand-off: made once it is over.
+    case late
+    /// Could not be drawn (yet): the face draws live.
+    case failed
 }
 
 /// The images, kept for the life of the app.
@@ -99,8 +136,11 @@ final class WardLightImages {
     private(set) var revision = 0
 
     @ObservationIgnored private var images: [WardLightKey: UIImage] = [:]
-    /// Styles that could not be drawn: left to the live drawing for good.
+    /// Styles that could not be drawn `attemptsAllowed` times: left to the
+    /// live drawing for good.
     @ObservationIgnored private var failed: Set<WardLightKey> = []
+    @ObservationIgnored private var attempts: [WardLightKey: Int] = [:]
+    @ObservationIgnored private var catchUpScheduled = false
     /// Styles asked for during the hand-off, made once it is over.
     @ObservationIgnored private var late: [WardLightKey: WardLightRequest] = [:]
     /// The other colour scheme's styles for what is on screen, made at rest
@@ -111,45 +151,80 @@ final class WardLightImages {
 
     /// More than this many images are dropped and made again as needed.
     static let most = 256
+    /// A style that fails to draw is tried again (outside any drawing of a
+    /// face) this many times in all before it is left live.
+    static let attemptsAllowed = 3
 
-    /// The image for a style, or nil if the face should draw live.
-    func image(_ request: WardLightRequest, other: () -> WardLightRequest?) -> UIImage? {
+    /// The image for a style, or why the face should draw live.
+    func image(_ request: WardLightRequest, other: () -> WardLightRequest?) -> WardLightOutcome {
         _ = revision
         if let hit = images[request.key] {
-            return hit
+            return .image(hit)
         }
-        if failed.contains(request.key) { return nil }
+        if failed.contains(request.key) { return .failed }
         if LaunchStage.shared.handingOff {
             // never inside the hand-off window: made once it is over
             late[request.key] = request
             LaunchStage.shared.mark("relief-late", once: true)
-            return nil
+            return .late
         }
-        let made = store(request)
+        guard let made = store(request) else {
+            // tried again on the next turn of the main queue, not here
+            if !failed.contains(request.key) {
+                late[request.key] = request
+                scheduleCatchUp()
+            }
+            return .failed
+        }
         if let other = other(), images[other.key] == nil, !failed.contains(other.key) {
             spare[other.key] = other
             scheduleSpare()
         }
-        return made
+        return .image(made)
     }
 
-    /// The hand-off is over (LaunchStage): make what it asked for.
+    /// The hand-off is over (LaunchStage): make what it asked for. What
+    /// fails again stays asked for until its attempts are used up.
     func catchUp() {
         var any = false
-        for request in late.values where images[request.key] == nil {
-            if store(request) != nil { any = true }
+        var again: [WardLightKey: WardLightRequest] = [:]
+        for request in late.values where images[request.key] == nil && !failed.contains(request.key) {
+            if store(request) != nil {
+                any = true
+            } else if !failed.contains(request.key) {
+                again[request.key] = request
+            }
         }
-        late.removeAll()
+        late = again
         if any { revision += 1 }
+        if !again.isEmpty { scheduleCatchUp() }
         scheduleSpare()
+    }
+
+    private func scheduleCatchUp() {
+        guard !catchUpScheduled else { return }
+        catchUpScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.catchUpScheduled = false
+                // inside the hand-off, LaunchStage calls catchUp when it is over
+                if !LaunchStage.shared.handingOff { self.catchUp() }
+            }
+        }
     }
 
     private func store(_ request: WardLightRequest) -> UIImage? {
         if images.count >= Self.most { images.removeAll() }
+        let start = CACurrentMediaTime()
         guard let image = LaunchStage.shared.measure("relief", { request.make() }) else {
-            failed.insert(request.key)
+            WardReliefCensus.shared.failure()
+            let tried = (attempts[request.key] ?? 0) + 1
+            attempts[request.key] = tried
+            if tried >= Self.attemptsAllowed { failed.insert(request.key) }
             return nil
         }
+        WardReliefCensus.shared.made(seconds: CACurrentMediaTime() - start)
         images[request.key] = image
         return image
     }
@@ -185,7 +260,9 @@ final class WardLightImages {
             .padding(CGFloat(plan.pad))
             .environment(\.colorScheme, dark ? .dark : .light))
         renderer.scale = CGFloat(scale)
-        return renderer.uiImage
+        if let image = renderer.uiImage { return image }
+        // the other way ImageRenderer hands a picture over
+        return renderer.cgImage.map { UIImage(cgImage: $0, scale: CGFloat(scale), orientation: .up) }
     }
 }
 
@@ -206,12 +283,13 @@ struct WardLitFace<Live: View>: View {
     let reach: Int
     let inner: Bool
     let live: Live
+    let face: WardFaceToken
     let draw: @MainActor (WardOutline, Bool) -> AnyView
 
     @Environment(\.displayScale) private var displayScale
 
     init(kind: WardFaceShape, look: WardLightLook, lift: WardLift, control: Bool, dark: Bool, strong: Bool,
-         fill: Color, reach: Int, inner: Bool, live: Live,
+         fill: Color, reach: Int, inner: Bool, live: Live, face: WardFaceToken,
          draw: @escaping @MainActor (WardOutline, Bool) -> AnyView) {
         self.kind = kind
         self.look = look
@@ -223,6 +301,7 @@ struct WardLitFace<Live: View>: View {
         self.reach = reach
         self.inner = inner
         self.live = live
+        self.face = face
         self.draw = draw
     }
 
@@ -237,31 +316,65 @@ struct WardLitFace<Live: View>: View {
 
     @ViewBuilder
     private func picture(in size: CGSize, revision: Int) -> some View {
-        if let lit = litImage(in: size) {
-            // The image is the shape and the room its lights reach, drawn
-            // over the shape's own frame: nothing it adds takes layout room,
-            // or a tap.
-            Image(uiImage: lit.image)
-                .resizable(capInsets: EdgeInsets(top: CGFloat(lit.plan.capY), leading: CGFloat(lit.plan.capX),
-                                                 bottom: CGFloat(lit.plan.capY), trailing: CGFloat(lit.plan.capX)),
-                           resizingMode: .stretch)
-                .padding(-CGFloat(lit.plan.pad))
-                .contentShape(WardOutline(kind: lit.plan.shape))
-                .accessibilityHidden(true)
-        } else {
+        switch outcome(in: size) {
+        case let .lit(plan, image):
+            if plan.centred {
+                // a circle in a box that is not square: its own size, in the
+                // middle, the lights reaching past the box as they do live
+                Image(uiImage: image)
+                    .resizable()
+                    .frame(width: CGFloat(plan.imageWidth), height: CGFloat(plan.imageHeight))
+                    .frame(width: CGFloat(plan.width), height: CGFloat(plan.height))
+                    .contentShape(WardOutline(kind: plan.shape))
+                    .position(x: size.width / 2, y: size.height / 2)
+                    .accessibilityHidden(true)
+            } else {
+                // The image is the shape and the room its lights reach, drawn
+                // over the shape's own frame: nothing it adds takes layout
+                // room, or a tap.
+                Image(uiImage: image)
+                    .resizable(capInsets: EdgeInsets(top: CGFloat(plan.capY), leading: CGFloat(plan.capX),
+                                                     bottom: CGFloat(plan.capY), trailing: CGFloat(plan.capX)),
+                               resizingMode: .stretch)
+                    .padding(-CGFloat(plan.pad))
+                    .contentShape(WardOutline(kind: plan.shape))
+                    .accessibilityHidden(true)
+            }
+        case .live:
             live
         }
     }
 
-    private func litImage(in size: CGSize) -> (plan: WardLightPlan, image: UIImage)? {
+    private enum Outcome {
+        case lit(WardLightPlan, UIImage)
+        case live(WardLiveReason)
+    }
+
+    /// The image to show, or why the face draws live; noted for the census.
+    private func outcome(in size: CGSize) -> Outcome {
+        let result = resolve(in: size)
+        switch result {
+        case .lit: face.note(.cached)
+        case let .live(reason): face.note(.live(reason))
+        }
+        return result
+    }
+
+    private func resolve(in size: CGSize) -> Outcome {
+        guard size.width.isFinite, size.height.isFinite, size.width > 0, size.height > 0 else {
+            return .live(.empty)
+        }
         let scale = Double(displayScale)
         guard let plan = WardLightSlice.plan(kind, width: Double(size.width), height: Double(size.height),
-                                             reach: reach, inner: inner, scale: scale),
-              let request = makeRequest(plan, dark: dark, scale: scale) else { return nil }
-        guard let image = WardLightImages.shared.image(request, other: {
-            makeRequest(plan, dark: !dark, scale: scale)
-        }) else { return nil }
-        return (plan, image)
+                                             reach: reach, inner: inner, scale: scale) else {
+            return .live(.plan(width: Int(size.width.rounded()), height: Int(size.height.rounded())))
+        }
+        guard let request = makeRequest(plan, dark: dark, scale: scale) else { return .live(.fill) }
+        switch WardLightImages.shared.image(request, other: { makeRequest(plan, dark: !dark, scale: scale) }) {
+        case let .image(image): return .lit(plan, image)
+        case .late: return .live(.late)
+        case .failed: return .live(.failed)
+        }
     }
 
     private func makeRequest(_ plan: WardLightPlan, dark: Bool, scale: Double) -> WardLightRequest? {

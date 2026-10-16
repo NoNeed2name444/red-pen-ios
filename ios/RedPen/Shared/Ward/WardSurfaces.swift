@@ -11,7 +11,14 @@ extension ShadowStyle {
     /// inside it when the surface is pressed in.
     static func ward(_ light: WardReliefLight, inner: Bool) -> ShadowStyle {
         let color = Color(relief: light)
-        let radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
+        var radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
+        if LaunchStage.noGlows {
+            // `-uiPreviewNoGlows` (the recording's relief-off take): no soft
+            // edge, the light falls as a 1-pt rim, same colour and side.
+            radius = 0
+            x = min(1, max(-1, x))
+            y = min(1, max(-1, y))
+        }
         return inner ? .inner(color: color, radius: radius, x: x, y: y)
                      : .drop(color: color, radius: radius, x: x, y: y)
     }
@@ -129,6 +136,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     let strong: Bool
     let control: Bool
     var unlit = false
+    @State private var face = WardFaceToken()
 
     /// Below this a face counts as at rest: the picture is the same to the eye.
     private static var rest: Double { 0.001 }
@@ -141,16 +149,28 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     var body: some View {
         let live = WardPressDrawing(shape: shape, lift: lift, depth: depth, fill: fill,
                                     dark: dark, strong: strong, control: control, unlit: unlit)
-        if depth <= Self.rest, !unlit, let fillColor, let kind = WardFaceShape(shape) {
+        if let kind = cachedKind(), let fillColor {
             let spec = WardPress.spec(lift, depth: 0, dark: dark, highContrast: strong, control: control)
             WardLitFace(kind: kind, look: .press, lift: lift, control: control, dark: dark, strong: strong,
-                        fill: fillColor, reach: WardLightSlice.reach(spec), inner: false, live: live) { outline, dark in
+                        fill: fillColor, reach: WardLightSlice.reach(spec), inner: false, live: live,
+                        face: face) { outline, dark in
                 AnyView(WardPressDrawing(shape: outline, lift: lift, depth: 0, fill: fill,
                                          dark: dark, strong: strong, control: control, unlit: false))
             }
         } else {
             live
         }
+    }
+
+    /// The shape to show the face's lights from an image as, or nil, noting
+    /// why the face draws live (WardReliefCensus).
+    private func cachedKind() -> WardFaceShape? {
+        if LaunchStage.noGlows { face.note(.live(.off)); return nil }
+        if depth > Self.rest { face.note(.live(.press)); return nil }
+        if unlit { face.note(.live(.bare)); return nil }
+        if fillColor == nil { face.note(.live(.fill)); return nil }
+        guard let kind = WardFaceShape(shape) else { face.note(.live(.shape)); return nil }
+        return kind
     }
 }
 
@@ -180,7 +200,7 @@ private struct WardPressDrawing<S: InsettableShape>: View {
                 }
             }
             .compositingGroup()
-            .blur(radius: unlit ? 0 : spec.blur)
+            .blur(radius: unlit || LaunchStage.noGlows ? 0 : spec.blur)
             if spec.edgeAlpha > 0 {
                 shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
             }
@@ -222,6 +242,7 @@ struct WardReliefFace<S: InsettableShape>: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardUnlit) private var unlit
+    @State private var face = WardFaceToken()
 
     init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color = .wardSurface,
          control: Bool = false) {
@@ -255,16 +276,26 @@ struct WardReliefFace<S: InsettableShape>: View {
                                      dark: dark, strong: strong, unlit: unlit)
         // lit: it has lights to draw, and draws them
         let lit: Bool = !(flat || (unlit && !spec.inner)) && (spec.highlight.lit || spec.shade.lit)
-        if lit, let fillColor, let kind = WardFaceShape(shape) {
+        if let kind = cachedKind(lit: lit), let fillColor {
             WardLitFace(kind: kind, look: inset ? .inset : .raised, lift: lift, control: control,
                         dark: dark, strong: strong, fill: fillColor, reach: WardLightSlice.reach(spec),
-                        inner: spec.inner, live: live) { outline, dark in
+                        inner: spec.inner, live: live, face: face) { outline, dark in
                 AnyView(WardReliefDrawing(shape: outline, lift: lift, inset: inset, flat: flat, fill: fill,
                                           control: control, dark: dark, strong: strong, unlit: unlit))
             }
         } else {
             live
         }
+    }
+
+    /// The shape to show the face's lights from an image as, or nil, noting
+    /// why the face draws live (WardReliefCensus).
+    private func cachedKind(lit: Bool) -> WardFaceShape? {
+        if LaunchStage.noGlows { face.note(.live(.off)); return nil }
+        if !lit { face.note(.live(.bare)); return nil }
+        if fillColor == nil { face.note(.live(.fill)); return nil }
+        guard let kind = WardFaceShape(shape) else { face.note(.live(.shape)); return nil }
+        return kind
     }
 }
 

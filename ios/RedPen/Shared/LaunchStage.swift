@@ -78,6 +78,10 @@ final class LaunchStage {
     @ObservationIgnored private var readoutWritten = false
     /// A recorded opening (`-uiPreviewSplash`) keeps the diagnostics.
     static let recording = ProcessInfo.processInfo.arguments.contains("-uiPreviewSplash")
+    /// The recording's relief-off take (`-uiPreviewNoGlows`): every Ward
+    /// face draws live, its lights at radius 0 as a 1-pt rim, the ink edge
+    /// and every colour kept (WardSurfaces). Read once.
+    static let noGlows = ProcessInfo.processInfo.arguments.contains("-uiPreviewNoGlows")
     /// Where the ECG's baseline starts (window points), which the wave of
     /// home's parts follows up: set by the splash as it starts.
     @ObservationIgnored var traceStart: CGPoint = .zero
@@ -222,7 +226,10 @@ final class LaunchStage {
 
     /// For a recorded opening (`-uiPreviewSplash`), what the hand-off
     /// measured, in Caches/launch-handoff.txt, which the Launch recording
-    /// workflow reads back after each take. Times are the opening's.
+    /// workflow reads back after each take. Times are the opening's. The last
+    /// field counts the relief faces on screen when home is still, each once,
+    /// by how it was drawn, and the images made before the hand-off
+    /// (`relief=cached:12,live:plan@0x0:1 made=15/42ms`, WardReliefCensus).
     private func writeReadout(_ o: LaunchOpening, still: Double) {
         readoutWritten = true
         guard Self.recording,
@@ -231,7 +238,8 @@ final class LaunchStage {
         let line = "gap_ms=\(Int((longestGap * 1000).rounded())) at=\(s(longestGapAt))"
             + " refreshes=\(refreshes) handoff=\(s(o.handoff)) still=\(s(still))"
             + " warm_off=\(warmEnded.map(s) ?? "none")"
-            + diag.fields(clock: { o.handoff + ($0 - playHost) }, from: o.handoff, to: still) + "\n"
+            + diag.fields(clock: { o.handoff + ($0 - playHost) }, from: o.handoff, to: still)
+            + WardReliefCensus.shared.field() + "\n"
         try? line.write(to: dir.appendingPathComponent("launch-handoff.txt"), atomically: true, encoding: .utf8)
     }
 

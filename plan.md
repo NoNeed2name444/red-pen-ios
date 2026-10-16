@@ -2037,6 +2037,43 @@ with the marks on the screens last.
       less in every light and dark take. Check by eye that raised and inset
       faces, and buttons at rest, look as before (the image sits where the
       live face was; a Mac run was not possible here).
+  - Ruling #4 (the judge, after run 38826276378, whose cached takes did no
+    better than the live relief: light 106/57, 64/56, 55/48 ms/refreshes,
+    dark 129/50, 66/43, 90/51; no `relief-late` mark, home's pictures
+    identical before and after, so nobody could tell whether the cache drew
+    at all): count, fix, then one decisive run.
+    - [x] Count. The readout's last field counts every relief face on screen
+      when home is still, once per take, by how it was drawn, and the images
+      made before the hand-off: `relief=cached:12,live:plan@0x0:1 made=15/42ms`
+      (`failed=N` after it if an image could not be drawn). Live tags:
+      `shape` (uncovered shape), `fill` (not a colour, or no RGB), `plan@WxH`
+      (no slice plan for that size), `failed` (render failed), `late` (asked
+      for inside the hand-off), `press` (in motion or held), `none` (no
+      lights to draw: flat, unlit, or lights not lit), `empty` (a box of no
+      size), `off` (the relief-off take). WardReliefCensus (Foundation-only,
+      tested), WardFaceToken, WardLitFace; LaunchStage.writeReadout.
+    - [x] Fix. Covered now: a readiness ring's groove (WardAnnulus, the one
+      shape on home that fell through as `shape`), and a circle in a box
+      that is not square (drawn at its shorter side, in the middle, as live).
+      A face smaller than its slices was already drawn whole at its own size
+      (keyed by its pixels). A render that fails is no longer left live for
+      good: it falls back to the renderer's CGImage, is tried again outside
+      any face's drawing (three attempts) and counted in `failed=`. Not seen
+      on a Mac: whether ImageRenderer ever fails here is for the run to say.
+    - [x] The relief-off switch is back for the recording only
+      (`-uiPreviewNoGlows`: every Ward light at radius 0 as a 1-pt rim, the
+      ink edge and colours kept, drawn live, the cache bypassed). The Launch
+      recording alternates, per mode, a cached take and a relief-off take,
+      three of each. Cached readouts: film/handoff-$MODE.txt, gated as
+      before; relief-off: film/handoff-$MODE-control.txt, not gated.
+    - [ ] The decisive run, and the decision rule, fixed in advance: a cached
+      take counts only if every relief face with lights in the window drew
+      from the cache (no `live:` tag but `none` and `empty`, no `failed=`);
+      the relief-off takes must pass as in 38812510377 (59-74 refreshes, no
+      gap over 100 ms) or the run is void. Three light and three dark
+      counted passes (gap 100 ms or less, 55+ refreshes, same look) close
+      the task and keep the cache. Otherwise the cache is reverted in one
+      commit and the main-thread rule (narrower) is tried.
 
 ### Waiting on the owner
 

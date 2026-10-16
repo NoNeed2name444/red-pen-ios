@@ -86,8 +86,46 @@ check("a capsule too short to cut is drawn and keyed at its own size",
 let dot = WardLightSlice.plan(.circle, width: 44, height: 44, reach: lowReach, inner: false, scale: scale)
 check("a circle is drawn at its diameter and keyed by it",
       dot?.stretchX == false && dot?.stretchY == false && dot?.keyWidth == px(44) && dot?.keyHeight == px(44))
-check("a box that is not square is left to the live drawing",
-      WardLightSlice.plan(.circle, width: 44, height: 60, reach: lowReach, inner: false, scale: scale) == nil)
+let basePlan0 = WardLightSlice.plan(.rounded(radius: 16, continuous: true), width: 300, height: 120, reach: 8,
+                                    inner: false, scale: 3)
+// a circle in a box that is not square is its shorter side across, in the middle
+let offSquare = WardLightSlice.plan(.circle, width: 44, height: 60, reach: lowReach, inner: false, scale: scale)
+check("a circle in a box that is not square is drawn at the shorter side and shown in the middle",
+      offSquare?.width == 44 && offSquare?.height == 44 && offSquare?.centred == true
+      && offSquare?.keyWidth == px(44) && offSquare?.keyHeight == px(44), "\(String(describing: offSquare))")
+check("so a tall and a wide box of the same diameter share a key", offSquare.flatMap { a in
+    WardLightSlice.plan(.circle, width: 70, height: 44, reach: lowReach, inner: false, scale: scale).map { b in
+        let key = { (p: WardLightPlan) in
+            WardLightSlice.key(p, look: .raised, lift: .low, control: true, dark: false, strong: false,
+                               fill: 0xF2F4F8FF, scale: scale)
+        }
+        return key(a) == key(b)
+    }
+} == true)
+check("a rounded rectangle and a capsule fill their box", basePlan0?.centred == false && pillTall?.centred == false)
+
+// a readiness ring's groove: a ring `width` wide in the box's circle, pressed in
+let groove = WardLightSlice.plan(.annulus(width: 10), width: 72, height: 72, reach: lowReach, inner: true, scale: scale)
+check("a ring is drawn at its box, keyed by it, with no room round it for inset lights",
+      groove?.shape == .annulus(width: 10) && groove?.centred == true && groove?.pad == 0
+      && groove?.stretchX == false && groove?.keyWidth == px(72), "\(String(describing: groove))")
+let thinner = WardLightSlice.plan(.annulus(width: 8), width: 72, height: 72, reach: lowReach, inner: true, scale: scale)
+check("a ring's width and a circle each change the key", groove.flatMap { g in
+    thinner.flatMap { t in
+        WardLightSlice.plan(.circle, width: 72, height: 72, reach: lowReach, inner: true, scale: scale).map { c in
+            let key = { (p: WardLightPlan) in
+                WardLightSlice.key(p, look: .inset, lift: .low, control: false, dark: false, strong: false,
+                                   fill: 0xF2F4F8FF, scale: scale)
+            }
+            return key(g) != key(t) && key(g) != key(c) && key(t) != key(c)
+        }
+    }
+} == true)
+check("a ring in a box that is not square is its shorter side across",
+      WardLightSlice.plan(.annulus(width: 10), width: 72, height: 90, reach: lowReach, inner: true, scale: scale)?.width == 72)
+check("no plan for a ring that is not one",
+      WardLightSlice.plan(.annulus(width: -1), width: 72, height: 72, reach: 8, inner: true, scale: scale) == nil
+      && WardLightSlice.plan(.annulus(width: .nan), width: 72, height: 72, reach: 8, inner: true, scale: scale) == nil)
 
 // an inset face's lights fall inside it: nothing is drawn round it
 let well = WardLightSlice.plan(.rounded(radius: 12, continuous: true), width: 300, height: 56, reach: lowReach,
@@ -262,6 +300,41 @@ do {
     }
     check("a shape smaller than the cut needs is not the same picture (so it is drawn whole)", differs)
 }
+
+// MARK: counting the faces
+
+check("a path's tag says how it was drawn",
+      WardReliefPath.cached.tag == "cached" && WardReliefPath.live(.shape).tag == "live:shape"
+      && WardReliefPath.live(.plan(width: 12, height: 40)).tag == "live:plan@12x40"
+      && WardReliefPath.live(.bare).tag == "live:none" && WardReliefPath.live(.late).tag == "live:late"
+      && WardReliefPath.live(.fill).tag == "live:fill" && WardReliefPath.live(.failed).tag == "live:failed"
+      && WardReliefPath.live(.press).tag == "live:press" && WardReliefPath.live(.off).tag == "live:off"
+      && WardReliefPath.live(.empty).tag == "live:empty")
+check("a face with lights that drew live is a miss; cached, lightless and empty ones are not",
+      WardReliefPath.live(.shape).missed && WardReliefPath.live(.late).missed && WardReliefPath.live(.press).missed
+      && WardReliefPath.live(.plan(width: 1, height: 1)).missed && WardReliefPath.live(.failed).missed
+      && !WardReliefPath.cached.missed && !WardReliefPath.live(.bare).missed && !WardReliefPath.live(.empty).missed)
+let sample: [WardReliefPath] = [.live(.plan(width: 0, height: 0)), .cached, .live(.shape), .cached, .live(.plan(width: 0, height: 0)),
+                                .cached, .live(.plan(width: 0, height: 0))]
+check("the field counts the faces by tag, cached first, then the images made",
+      WardReliefCensus.field(paths: sample, made: 15, seconds: 0.0424)
+      == " relief=cached:3,live:plan@0x0:3,live:shape:1 made=15/42ms",
+      WardReliefCensus.field(paths: sample, made: 15, seconds: 0.0424))
+check("with no faces it says none; failures are added after",
+      WardReliefCensus.field(paths: [], made: 0, seconds: 0) == " relief=none made=0/0ms"
+      && WardReliefCensus.field(paths: [.cached], made: 1, seconds: 0.002, failures: 2) == " relief=cached:1 made=1/2ms failed=2")
+check("the field is one line", !WardReliefCensus.field(paths: sample, made: 1, seconds: 1).contains("\n"))
+
+let census = WardReliefCensus()
+let first = census.newFace(), second = census.newFace()
+check("faces are numbered from 1, each its own", first >= 1 && second == first + 1)
+census.note(first, .live(.late)); census.note(second, .cached)
+census.note(first, .cached)
+census.made(seconds: 0.010); census.made(seconds: 0.005); census.failure()
+check("a face redrawn counts once, as it was last drawn",
+      census.field() == " relief=cached:2 made=2/15ms failed=1", census.field())
+census.forget(second)
+check("a face that goes is dropped from the count", census.field() == " relief=cached:1 made=2/15ms failed=1", census.field())
 
 print(failures.isEmpty ? "\nALL WARD LIGHT SLICE TESTS PASS"
                        : "\n\(failures.count) WARD LIGHT SLICE TEST FAILURE(S)")

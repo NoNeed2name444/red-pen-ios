@@ -12,12 +12,15 @@ import Foundation
 // slice so one image serves every size of a rounded rectangle, and what the
 // images are keyed by. WardLightImages draws and shows them.
 
-/// The shapes whose lights can be drawn once. Anything else (an annulus, a
-/// shape inset by hand, a non-colour fill) keeps the live drawing.
+/// The shapes whose lights can be drawn once. Anything else (a shape inset
+/// by hand, a non-colour fill) keeps the live drawing.
 enum WardFaceShape: Equatable, Sendable {
     case rounded(radius: Double, continuous: Bool)
     case capsule(continuous: Bool)
     case circle
+    /// A ring `width` wide just inside the box's circle (WardAnnulus): the
+    /// groove of a readiness ring.
+    case annulus(width: Double)
 }
 
 /// How a face is lit, which sets what its image holds.
@@ -60,6 +63,16 @@ struct WardLightPlan: Equatable, Sendable {
     /// The image's size: the shape and the room its lights reach.
     var imageWidth: Double { width + Double(2 * pad) }
     var imageHeight: Double { height + Double(2 * pad) }
+
+    /// Whether the shape sits in the middle of its box at its own size, as a
+    /// circle does in a box that is not square (its diameter is the shorter
+    /// side), rather than filling it.
+    var centred: Bool {
+        switch shape {
+        case .circle, .annulus: return true
+        case .rounded, .capsule: return false
+        }
+    }
 
     /// The size the image is shown at for a shape of this size: the shape
     /// and its reach on every side.
@@ -142,9 +155,9 @@ enum WardLightSlice {
 
     // MARK: the cut
 
-    /// The layout of the image for a shape of this size, or nil when the
-    /// shape is not covered (a circle in a box that is not square, or a size
-    /// that is not a size). `reach` is how far the lights fall (see
+    /// The layout of the image for a shape of this size, or nil for a size
+    /// that is not a size (or a scale or radius that is not one). `reach` is
+    /// how far the lights fall (see
     /// `reach(_:)`), `inner` whether they all fall inside the shape, which
     /// then needs no room around it.
     ///
@@ -154,8 +167,10 @@ enum WardLightSlice {
     /// curve, the lights' offset and the spread of their soft edge, so each
     /// cap is the pad, the curve and the reach, and a side shorter than two
     /// caps and a core is not cut: it is drawn at its own size and keyed by
-    /// it. A capsule is the same with its radius half its short side, a
-    /// circle is drawn at its own size.
+    /// it. A capsule is the same with its radius half its short side. A
+    /// circle or a ring is drawn at its own size, its diameter the shorter
+    /// side, and shown in the middle of the box (`centred`), as SwiftUI
+    /// draws it in a box that is not square.
     static func plan(_ shape: WardFaceShape, width: Double, height: Double, reach: Int, inner: Bool,
                      scale: Double) -> WardLightPlan? {
         guard width.isFinite, height.isFinite, width > 0, height > 0, scale.isFinite,
@@ -167,12 +182,15 @@ enum WardLightSlice {
         let radius: Double, curve: Double
         var drawn = shape
         switch shape {
-        case .circle:
-            // a circle fills the shorter side; a box that is not square is
-            // left to the live drawing
-            guard abs(width - height) <= 1 / scale else { return nil }
+        case .circle, .annulus:
+            // a circle fills the shorter side, in the middle of the box
+            var ring = shape
+            if case let .annulus(w) = shape {
+                guard w.isFinite, w >= 0 else { return nil }
+                ring = .annulus(width: (w * 100).rounded() / 100)
+            }
             let d = min(qw, qh)
-            return WardLightPlan(shape: .circle, pad: pad, width: d, height: d,
+            return WardLightPlan(shape: ring, pad: pad, width: d, height: d,
                                  stretchX: false, stretchY: false, capX: 0, capY: 0,
                                  keyWidth: pixels(d, scale: scale), keyHeight: pixels(d, scale: scale))
         case let .rounded(r, continuous):
@@ -205,6 +223,7 @@ enum WardLightSlice {
         case let .rounded(r, continuous): kind = continuous ? 1 : 0; radius = Int((r * 100).rounded())
         case let .capsule(continuous): kind = continuous ? 3 : 2; radius = 0
         case .circle: kind = 4; radius = 0
+        case let .annulus(width): kind = 5; radius = Int((width * 100).rounded())
         }
         return WardLightKey(shape: kind, radius: radius, keyWidth: plan.keyWidth, keyHeight: plan.keyHeight,
                             look: look, lift: lift.rawValue, control: control, dark: dark, strong: strong,
@@ -220,5 +239,135 @@ enum WardLightSlice {
         if i < cap { return i }
         if i >= shown - cap { return source - (shown - i) }
         return cap
+    }
+}
+
+// MARK: - counting the faces (for a recorded opening)
+
+/// Why a relief face drew live instead of from its image.
+enum WardLiveReason: Equatable, Hashable, Sendable {
+    /// A shape the images do not cover.
+    case shape
+    /// A fill that is not a colour, or has no RGB to key by.
+    case fill
+    /// No plan for a size, a scale or a radius that is not one (whole points).
+    case plan(width: Int, height: Int)
+    /// The image could not be drawn.
+    case failed
+    /// Asked for inside the hand-off, where nothing is drawn.
+    case late
+    /// A press in motion or held.
+    case press
+    /// Nothing to light: flat, unlit, or lights that are not lit.
+    case bare
+    /// No area: a box of no size (yet).
+    case empty
+    /// The relief-off take (`-uiPreviewNoGlows`) draws everything live.
+    case off
+
+    var tag: String {
+        switch self {
+        case .shape: return "shape"
+        case .fill: return "fill"
+        case let .plan(w, h): return "plan@\(w)x\(h)"
+        case .failed: return "failed"
+        case .late: return "late"
+        case .press: return "press"
+        case .bare: return "none"
+        case .empty: return "empty"
+        case .off: return "off"
+        }
+    }
+
+    /// Whether the face draws no lights at all, so that nothing is left to
+    /// cache (a face with no lights costs no blur).
+    var isLightless: Bool { self == .bare || self == .empty }
+}
+
+/// How a relief face was last drawn.
+enum WardReliefPath: Equatable, Hashable, Sendable {
+    case cached
+    case live(WardLiveReason)
+
+    var tag: String {
+        switch self {
+        case .cached: return "cached"
+        case let .live(reason): return "live:" + reason.tag
+        }
+    }
+
+    /// Whether the face has lights and drew them live: what the cache was
+    /// meant to take over.
+    var missed: Bool {
+        if case let .live(reason) = self { return !reason.isLightless }
+        return false
+    }
+}
+
+/// Every relief face on screen and how it was last drawn, for the recorded
+/// opening's readout: whether the cache drew at all, and what fell through.
+/// A face counts once, however often it is redrawn; it is dropped when it
+/// goes (its token is released). Thread-safe, since a token is released
+/// wherever SwiftUI releases it.
+final class WardReliefCensus: @unchecked Sendable {
+    static let shared = WardReliefCensus()
+
+    private let lock = NSLock()
+    private var last: UInt64 = 0
+    private var faces: [UInt64: WardReliefPath] = [:]
+    private var imagesMade = 0
+    private var madeSeconds = 0.0
+    private var failures = 0
+
+    /// A new face's number (never 0).
+    func newFace() -> UInt64 {
+        lock.lock(); defer { lock.unlock() }
+        last += 1
+        return last
+    }
+
+    func note(_ face: UInt64, _ path: WardReliefPath) {
+        lock.lock(); defer { lock.unlock() }
+        faces[face] = path
+    }
+
+    func forget(_ face: UInt64) {
+        lock.lock(); defer { lock.unlock() }
+        faces[face] = nil
+    }
+
+    /// An image was drawn, taking `seconds`.
+    func made(seconds: Double) {
+        lock.lock(); defer { lock.unlock() }
+        imagesMade += 1
+        madeSeconds += seconds
+    }
+
+    /// An image could not be drawn.
+    func failure() {
+        lock.lock(); defer { lock.unlock() }
+        failures += 1
+    }
+
+    /// The readout's field, led by a space.
+    func field() -> String {
+        lock.lock(); defer { lock.unlock() }
+        return Self.field(paths: Array(faces.values), made: imagesMade, seconds: madeSeconds, failures: failures)
+    }
+
+    /// ` relief=cached:12,live:plan@0x0:2,live:shape:1 made=15/42ms`: the
+    /// faces by how they were drawn (cached first, the rest by name), then
+    /// the images drawn so far and their total time; ` failed=N` after it
+    /// when any image could not be drawn.
+    static func field(paths: [WardReliefPath], made: Int, seconds: Double, failures: Int = 0) -> String {
+        var counts: [String: Int] = [:]
+        for path in paths { counts[path.tag, default: 0] += 1 }
+        let tags = counts.keys.sorted { a, b in
+            if (a == "cached") != (b == "cached") { return a == "cached" }
+            return a < b
+        }
+        let faces = tags.isEmpty ? "none" : tags.map { "\($0):\(counts[$0] ?? 0)" }.joined(separator: ",")
+        let ms = Int((seconds * 1000).rounded())
+        return " relief=\(faces) made=\(made)/\(ms)ms" + (failures > 0 ? " failed=\(failures)" : "")
     }
 }
