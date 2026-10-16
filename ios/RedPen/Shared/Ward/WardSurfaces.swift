@@ -244,11 +244,13 @@ struct WardPaperFrame: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
+    /// read so the end of every shift redraws it (WardRestLookTrait)
+    @Environment(\.wardRestLook) private var restLook
 
     var body: some View {
         let top: CGFloat? = WardPaperTop.shared.y
         // the section's ink and the base, this frame of the shift
-        let ink = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
+        let ink = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                 highContrast: contrast == .increased)
         let base: Color = .wardBackground
         Canvas { context, size in
@@ -332,11 +334,13 @@ struct WardPaperBand: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
+    /// read so the end of every shift redraws it (WardRestLookTrait)
+    @Environment(\.wardRestLook) private var restLook
     @State private var origin: CGPoint = .zero
 
     var body: some View {
         // the section's ink and the base, this frame of the shift
-        let paper = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
+        let paper = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                   highContrast: contrast == .increased)
         let ink = WardPaperInk(hex: paper.hex, fine: grid ? paper.fine : 0, bold: grid ? paper.bold : 0, edge: paper.edge)
         let base: Color = .wardBackground
@@ -458,9 +462,11 @@ struct WardScrollEdgeLine: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
+    /// read so the end of every shift redraws it (WardRestLookTrait)
+    @Environment(\.wardRestLook) private var restLook
 
     var body: some View {
-        let ink = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
+        let ink = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                 highContrast: contrast == .increased)
         let (r, g, b) = WardPalette.rgb(ink.hex)
         Rectangle()

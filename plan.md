@@ -2250,6 +2250,17 @@ with the marks on the screens last.
     Follow-ups: 46 comment lines in 29 files still name Theatre Blue; the
     launch logo still draws "score" in Theatre Blue; the Lens sheet has no
     preview case.
+  - [ ] Press depth (16 Oct, the owner on the checked quiz, light and dark:
+    "the color here doesn't match the mode color", raised and pressed
+    buttons read alike, and a wrong pick reads like a right one). Each
+    waits for its Ward preview (quiz, quiz-checked, library, new, settings,
+    sheet; phone, SE, Pro Max, iPad; light and dark):
+    1. The right answer in the mode's colour: Color.ward fixed the section
+       into a colour when a view's body ran, so the quiz rows, drawn while
+       the app was still outside any section, kept Cards' indigo by day.
+       Every Ward colour now reads the look as it is drawn (WardLookNow),
+       the root hands the look at rest down as a trait so each is resolved
+       again when a shift ends, and the paper reads it too.
 
 ### Waiting on the owner
 

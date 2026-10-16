@@ -195,6 +195,47 @@ struct WardGlide: Equatable, Sendable {
     }
 }
 
+/// The look the app is at this moment, read where a colour is drawn. A
+/// colour that took its section when a view's body ran kept it: the quiz's
+/// rows ran their bodies while the app was still outside any section, so
+/// once the screen set its own, a right answer's letter and check stayed
+/// Cards' indigo by day while the edges, redrawn on their own, turned the
+/// section's colour (the owner, 16 Oct: "the color here doesn't match the
+/// mode color"). Every Ward colour now asks here, as it is drawn, so one
+/// made before the section was set still shows the section on show.
+/// WardLookStore keeps the value and tells the views it has changed.
+final class WardLookNow: @unchecked Sendable {
+    static let shared = WardLookNow()
+
+    private let lock = NSLock()
+    private var current: WardGlide
+
+    init(_ glide: WardGlide = .rest(WardLook(dark: false, section: WardSection.outside))) {
+        current = glide
+    }
+
+    var glide: WardGlide { lock.withLock { current } }
+
+    func set(_ glide: WardGlide) { lock.withLock { current = glide } }
+
+    /// A palette colour as it is drawn now, in a trait of `dark`.
+    func hex(_ token: WardToken, dark: Bool, held: Bool = false) -> UInt32 {
+        glide.hex(token, dark: dark, held: held)
+    }
+
+    /// The section's ink (grid and edges) as it is drawn now.
+    func ink(dark: Bool, held: Bool = false) -> UInt32 {
+        glide.ink(dark: dark, held: held)
+    }
+}
+
+extension WardGlide {
+    /// The look a face or the paper draws this frame: the look at rest the
+    /// root last handed down (`rest`, nil while a shift is under way or
+    /// where the root has not set it), else this frame of the shift.
+    static func drawn(rest: WardLook?, live: WardGlide) -> WardGlide { rest.map(WardGlide.rest) ?? live }
+}
+
 extension WardRelief {
     /// A control's edge in `section`'s ink as it lands on `base`.
     static func edgeColor(_ section: WardSection, dark: Bool, highContrast: Bool = false,

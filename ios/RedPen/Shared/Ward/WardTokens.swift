@@ -10,23 +10,26 @@ import UIKit
 // (WardRelief) is drawn by WardSurfaces.
 
 extension Color {
-    /// A palette colour. At rest it resolves from the trait it is drawn in,
-    /// as it always has. While the look shifts (WardLookStore), it is this
-    /// frame's colour, taken from the one glide every Ward colour shares,
-    /// so the whole app is at one point of the shift on every frame.
-    /// Reading it in a view's body subscribes the view to the shift.
+    /// A palette colour, in the look the app is at when it is drawn
+    /// (WardLookNow), never the one it was at when a view's body ran, so a
+    /// colour made before a screen set its section still shows the
+    /// section's. At rest it is one colour per token and section; while
+    /// the look shifts (WardLookStore), a new one each frame, so a view
+    /// redrawn on that frame draws it afresh and the whole app is at one
+    /// point of the shift. Reading it in a view's body subscribes the view
+    /// to the shift, and the start and end of every shift reach every
+    /// colour through the traits (WardRestLookTrait), whether its view was
+    /// redrawn or not.
     static func ward(_ token: WardToken) -> Color {
         let glide = WardLookStore.shared.glide
         if glide.settled { return WardRestColors.color(token, glide.to.section) }
-        return Color(uiColor: UIColor { traits in
-            Color.uiColor(glide.hex(token, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
-        })
+        return Color(uiColor: WardRestColors.live(token))
     }
 
     /// A given section's accent ink (WardSection.accent), whatever section
     /// is on show: a mode's own glyph on home. Light and dark only.
     static func wardAccent(_ section: WardSection) -> Color {
-        WardRestColors.color(.primaryInk, section)
+        WardRestColors.accent(section)
     }
 
     static var wardBackground: Color { ward(.background) }
@@ -54,9 +57,7 @@ extension Color {
     static var wardEdgeInk: Color {
         let glide = WardLookStore.shared.glide
         if glide.settled { return WardRestColors.ink(glide.to.section) }
-        return Color(uiColor: UIColor { traits in
-            Color.uiColor(glide.ink(dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
-        })
+        return Color(uiColor: WardRestColors.liveInk(edge: false))
     }
 
     /// A control's edge: the section's ink at WardRelief.edgeAlpha, at
@@ -64,11 +65,7 @@ extension Color {
     static var wardEdge: Color {
         let glide = WardLookStore.shared.glide
         if glide.settled { return WardRestColors.edge(glide.to.section) }
-        return Color(uiColor: UIColor { traits in
-            let dark = traits.userInterfaceStyle == .dark
-            return Color.uiColor(glide.ink(dark: dark, held: traits.wardHeld),
-                           alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
-        })
+        return Color(uiColor: WardRestColors.liveInk(edge: true))
     }
 
     static func uiColor(_ hex: UInt32, alpha: Double = 1) -> UIColor {
@@ -87,8 +84,11 @@ extension WardToken {
     var index: Int { WardRestColors.tokens.firstIndex(of: self) ?? 0 }
 }
 
-/// The colours at rest, made once: the dynamic ones every screen drew
-/// before the shift existed, resolved by the trait alone.
+/// The colours at rest, made once and resolved by the trait. The section's
+/// colours (its fill, accent, ink and edge) are one per section, so a view
+/// redrawn in a new section is handed a new colour, and each reads the look
+/// the app is at as it is drawn (WardLookNow), so one handed out before the
+/// section was set shows the section on show all the same.
 enum WardRestColors {
     static let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary,
                                       .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor,
@@ -98,15 +98,35 @@ enum WardRestColors {
             Color.uiColor(WardPalette.hex(token, dark: traits.userInterfaceStyle == .dark))
         })
     }
+    /// A token as it is drawn now, in the trait it resolves in.
+    static func live(_ token: WardToken) -> UIColor {
+        UIColor { traits in
+            Color.uiColor(WardLookNow.shared.hex(token, dark: traits.userInterfaceStyle == .dark, held: traits.wardHeld))
+        }
+    }
+
+    /// The section's ink as it is drawn now; with `edge`, at a control's
+    /// edge strength.
+    static func liveInk(edge: Bool) -> UIColor {
+        UIColor { traits in
+            let dark = traits.userInterfaceStyle == .dark
+            let hex = WardLookNow.shared.ink(dark: dark, held: traits.wardHeld)
+            return Color.uiColor(hex, alpha: edge ? WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high) : 1)
+        }
+    }
+
     /// The section's accents at rest: its fill (.primary) and its accent
     /// ink (.primaryInk), WardSection.fill and .accent.
     private static let accents: [WardSection: (fill: Color, ink: Color)] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
-        (section, (Color(uiColor: UIColor { traits in
-            Color.uiColor(section.fill(dark: traits.userInterfaceStyle == .dark))
-        }), Color(uiColor: UIColor { traits in
-            Color.uiColor(section.accent(dark: traits.userInterfaceStyle == .dark))
-        })))
+        (section, (Color(uiColor: live(.primary)), Color(uiColor: live(.primaryInk))))
     })
+    /// Each section's own accent ink, whatever section is on show.
+    private static let fixedAccents: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
+        (section, Color(uiColor: UIColor { traits in
+            Color.uiColor(section.accent(dark: traits.userInterfaceStyle == .dark))
+        }))
+    })
+    static func accent(_ section: WardSection) -> Color { fixedAccents[section] ?? palette[WardToken.primaryInk.index] }
     static func color(_ token: WardToken, _ section: WardSection) -> Color {
         switch token {
         case .primary: return accents[section]?.fill ?? palette[token.index]
@@ -115,16 +135,10 @@ enum WardRestColors {
         }
     }
     private static let inks: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
-        (section, Color(uiColor: UIColor { traits in
-            Color.uiColor(section.ink(dark: traits.userInterfaceStyle == .dark))
-        }))
+        (section, Color(uiColor: liveInk(edge: false)))
     })
     private static let edges: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
-        (section, Color(uiColor: UIColor { traits in
-            let dark = traits.userInterfaceStyle == .dark
-            return Color.uiColor(section.ink(dark: dark),
-                                 alpha: WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high))
-        }))
+        (section, Color(uiColor: liveInk(edge: true)))
     })
     static func ink(_ section: WardSection) -> Color { inks[section] ?? palette[WardToken.primaryInk.index] }
     static func edge(_ section: WardSection) -> Color { edges[section] ?? palette[WardToken.hairline.index] }
@@ -141,25 +155,24 @@ final class WardLookStore: Observable, @unchecked Sendable {
     static let shared = WardLookStore()
 
     private let registrar = ObservationRegistrar()
-    private let lock = NSLock()
-    private var current = WardGlide.rest(WardLook(dark: false, section: WardSection.outside))
+    /// The look itself, kept where the colours read it as they are drawn.
+    private var now: WardLookNow { WardLookNow.shared }
     /// The sections asked for, newest last: a study screen's on top of
     /// home's, so going back returns to home's hue.
     private var sections: [(id: UUID, section: WardSection)] = []
 
     var glide: WardGlide {
         registrar.access(self, keyPath: \.glide)
-        return lock.withLock { current }
+        return now.glide
     }
 
     /// The look the app is at, or heading to.
-    var target: WardLook { lock.withLock { current.to } }
+    var target: WardLook { now.glide.to }
 
     func set(_ glide: WardGlide) {
-        let changed: Bool = lock.withLock { current != glide }
-        guard changed else { return }
+        guard now.glide != glide else { return }
         registrar.withMutation(of: self, keyPath: \.glide) {
-            lock.withLock { current = glide }
+            now.set(glide)
         }
     }
 
@@ -283,6 +296,41 @@ extension EnvironmentValues {
     }
 }
 
+/// The look at rest, carried to every colour through the traits (set at
+/// the root, WardLookRoot): when a shift starts and when it ends, every
+/// Ward colour is resolved again and every face and the paper are redrawn,
+/// in the views whose bodies ran again and in those that did not, so none
+/// keeps the look it was made in. nil while the look shifts, and where the
+/// root has not set it.
+struct WardRestLookTrait: UITraitDefinition {
+    static let defaultValue: WardLook? = nil
+    static let affectsColorAppearance = true
+}
+
+extension UITraitCollection {
+    var wardRestLook: WardLook? { self[WardRestLookTrait.self] }
+}
+
+extension UIMutableTraits {
+    var wardRestLook: WardLook? {
+        get { self[WardRestLookTrait.self] }
+        set { self[WardRestLookTrait.self] = newValue }
+    }
+}
+
+struct WardRestLookKey: EnvironmentKey, UITraitBridgedEnvironmentKey {
+    static let defaultValue: WardLook? = nil
+    static func read(from traitCollection: UITraitCollection) -> WardLook? { traitCollection.wardRestLook }
+    static func write(to mutableTraits: inout any UIMutableTraits, value: WardLook?) { mutableTraits.wardRestLook = value }
+}
+
+extension EnvironmentValues {
+    var wardRestLook: WardLook? {
+        get { self[WardRestLookKey.self] }
+        set { self[WardRestLookKey.self] = newValue }
+    }
+}
+
 extension View {
     /// Drawn in `scheme` whatever the app's look, and kept out of the shift.
     func wardHeld(_ scheme: ColorScheme) -> some View {
@@ -336,7 +384,10 @@ struct WardLookRoot: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
+        // the look at rest, to every colour and face below (WardRestLookTrait)
+        let glide = WardLookStore.shared.glide
         content
+            .environment(\.wardRestLook, glide.settled ? glide.to : nil)
             .background { WardWindowWatch().frame(width: 0, height: 0).accessibilityHidden(true) }
             .onAppear {
                 WardLookDriver.shared.reduceMotion = reduceMotion
