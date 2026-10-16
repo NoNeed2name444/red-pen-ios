@@ -2017,8 +2017,9 @@ with the marks on the screens last.
     - U5: No tint: see-through dissolution, depthTint and solid mode removed, opaque materials switched to blended with no depth write.
     - U6: Space bodies sit in tiltFrame turned by Rx(θ) always (on and off) to preserve disk lean seen face-on.
     - U7: Faster by construction: Space culls far strip (High b=0.85, Smooth b=0.75; Neurons High b=1.05, Smooth b=0.90); glow holders shrink at f ≥ 0.62 via depthExtra node untouched by GraphSim.
-    - U8: Probe checks node opacity on additive and solid planes at 0.5 reading 0.5 ± 0.1; falls back to on/glowpx if additive check fails.
-    - U9: Double tap on empty map re-frames the default view via frame(animated: true).
+    - U8: Probe checks node opacity on additive and solid planes at 0.5 reading 0.5 ± 0.1, read as linear light (the snapshot is sRGB); falls back to on/glowpx if additive check fails, and on/glowpx shades Space's added-light materials per pixel while see-through bodies stay on gate opacity.
+    - U9: Double tap on empty map re-frames the default view via recentre(), which also ends a fly-in.
+    Independent review (16 Oct, R-T0062): REPAIR, five items, all in: the glow fallback's two halves (R1, R2), the double tap during a fly-in (R3), and wording (R4, R5). Open for the owner: Space gets no real depth (A = 0 on all three Space sample maps), because the legibility rule takes each galaxy's whole reach as a sphere while the 45° pitch foreshortens the sheet; the choice is foreshortened discs, a smaller cluster radius, or spreading the galaxies.
     What the Mac proof must show: 70-* pose-matched pairs with -stillSky -graphFreeze -graphDepthMeter; 74-depth-numbers with ablation takes; 75-body-frames analyzed by tools/depth_crops.py; 72-*/73-* spin and tilt reads; 71-* lively stills without freeze.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner

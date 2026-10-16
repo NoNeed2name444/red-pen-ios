@@ -2333,7 +2333,7 @@ struct GraphSCNView: UIViewRepresentable {
             wake()
             let point: CGPoint = gesture.location(in: view)
             guard let i = pick(at: point, radius: 28, in: view), i < sim.ids.count else {
-                frame(animated: true)
+                recentre()
                 return
             }
             touch.double(sim.ids[i])

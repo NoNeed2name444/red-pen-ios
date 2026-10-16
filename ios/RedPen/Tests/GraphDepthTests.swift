@@ -138,7 +138,7 @@ for theme in themes {
     // rewritten (T0057): the band is now in shares of the framing's reach,
     // so the whole map's far side is the reach itself; the old rule (end at
     // least twice the focus) was for the turned sheet seen face-on
-    check("D4e \(name): the band's end at least 0.75 of the reach past its start, and k 1 (a straight ramp)",
+    check("D4e \(name): the band ends at least 0.75 of the reach past the focus (0.55 past its start), and k 1",
           high.b - high.a >= 0.55 && smooth.b - smooth.a >= 0.55 && high.k == 1 && smooth.k == 1)
 }
 // rewritten (T0057): Space no longer reaches further; it culls its far strip

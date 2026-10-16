@@ -11,15 +11,16 @@ import simd
 // theme's own shaders changes.
 //
 // - A shader of our own (GraphDepthShader) is added, at the fragment entry
-//   point, to every material of the map as built (GraphDepth.install walks
-//   the scene; the name pills and the backdrop are left alone). Each pixel
-//   finds its own depth along the view and the focus's depth from the
-//   point the camera looks at, and fades by the band's curve: light added
-//   to what is behind it fades to nothing, see-through things go
-//   see-through, solid ones mix toward the background's colour
-//   (GraphDepthMode). The band's numbers are given to each material once;
-//   the point looked at only when it moves along the view (a fly-in, a
-//   recentre), so zooming and turning write nothing.
+//   point, to the map's materials (GraphDepth.install walks the scene; the
+//   name pills and the backdrop are left alone). The CPU works out the
+//   band's span from the focus and writes it to each shaded material as
+//   `rpDepthSpan`, only when the focus or the framing moves, so zooming and
+//   turning write nothing. Each pixel then fades by its own depth along the
+//   band's curve: light added to what is behind it fades to nothing, and
+//   see-through things go see-through, and nothing is mixed toward a tint
+//   (GraphDepthMode). The Neurons fade per pixel this way; Space fades per
+//   body, through each body's gate opacity, and only what is not a body
+//   gets the shader.
 // - Past the band's end nothing is drawn: the camera's far plane is the
 //   end, and each body past it is hidden (a gate node holding everything it
 //   draws), so it cannot be picked either.
@@ -177,7 +178,9 @@ nonisolated enum GraphDepthProbe {
         }
         guard drawn else { return 0 }
         let top: UInt8 = max(pixel[0], max(pixel[1], pixel[2]))
-        return Float(top) / 255
+        // SceneKit blends in linear light and the snapshot is sRGB: read it as light
+        let v: Float = Float(top) / 255
+        return v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
     }
 }
 
@@ -465,8 +468,7 @@ enum GraphDepth {
     /// is the backdrop as built, of radius `skyRadius`, `middle` the map's
     /// middle in the world node's space, `bodies` in GraphSim's order,
     /// `more` the materials not on the map yet (the links', the chosen
-    /// body's ring), `tint` the background's colour (sRGB) that solid
-    /// things fade toward. Called once the scene is whole, before it is on
+    /// body's ring). Called once the scene is whole, before it is on
     /// screen.
     static func install(theme: GraphTheme, scene: SCNScene, world: SCNNode, camera: SCNNode, sky: SCNNode,
                         skyRadius: Float, middle: SIMD3<Float>, contrast: Bool, still: Bool, sim: GraphSim,
@@ -487,11 +489,11 @@ enum GraphDepth {
             // Space fades per body (gate opacity): only what is not a body -
             // links, far lines, the hot ring and disk (`more`) - gets the
             // shader, unless the ablation or the probe asks for it per pixel
-            let shaded: [SCNMaterial] = space && !perPixel ? Self.materials(under: nil, more: more)
-                                                            : Self.materials(under: world, more: more)
+            let shaded: [SCNMaterial] = space && !perPixel && !glowPixel ? Self.materials(under: nil, more: more)
+                                                                          : Self.materials(under: world, more: more)
             for material in shaded {
                 guard let mode = GraphDepthShader.mode(of: material) else { continue }
-                if space, glowPixel == false, perPixel == false, mode == .light, !more.contains(material) { continue }
+                if space, !perPixel, mode == .see, !more.contains(material) { continue }
                 // one with a fragment shader of its own is left as it is
                 if material.shaderModifiers?[.fragment] != nil, !GraphDepthShader.own(material) { continue }
                 GraphDepthShader.dress(material, band: band, mode: mode)
