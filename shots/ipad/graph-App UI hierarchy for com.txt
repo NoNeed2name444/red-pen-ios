@@ -1,0 +1,137 @@
+Application, 0x11989c640, pid: 81248, label: 'Stethoscore' <App element pid: 81248>
+  Window (Main), 0x11989fd40, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4415801344.3>
+    Other, 0x11989f5c0, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4463839872.71>
+    Other, 0x11989f700, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4464805888.4>
+      Other, 0x11989f840, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4464061056.5>
+        Other, 0x11989fac0, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4464266304.6>
+          Other, 0x11989f980, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4415800320.7>
+            Other, 0x11989f340, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4463720896.8>
+              Other, 0x11989f480, {{0.0, 32.0}, {1032.0, 1324.0}} <AX element pid: 81248, elementOrHash.elementID: 4464269440.9>
+              Other, 0x11989c8c0, {{0.0, 32.0}, {1032.0, 1324.0}} <AX element pid: 81248, elementOrHash.elementID: 4464270784.10>
+              Other, 0x11989c780, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4466368768.11>
+                Other, 0x11989c500, {{0.0, 0.0}, {1032.0, 1376.0}}, identifier: 'graph3D', label: 'Space of ideas', value: 2 galaxies, 3 star... <AX element pid: 81248, elementOrHash.elementID: 4464018816.21>
+                Button, 0x11989c3c0, {{586.2, 353.7}, {44.0, 44.0}}, label: 'Cardiology · 14 notes', value: Black hole <AX element pid: 81248, elementOrHash.elementID: 4466522016.22>
+                Button, 0x11989c280, {{546.5, 274.0}, {44.0, 44.0}}, label: 'ACE inhibitors', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466522096.23>
+                Button, 0x11989c000, {{518.1, 322.8}, {44.0, 44.0}}, label: 'Hypokalaemia', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466522176.24>
+                Button, 0x11989fe80, {{530.7, 391.1}, {44.0, 44.0}}, label: 'Loop diuretics', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466522256.25>
+                Button, 0x10a390c80, {{576.0, 435.5}, {44.0, 44.0}}, label: 'NSTEMI', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466522656.26>
+                Button, 0x10a391040, {{624.9, 430.3}, {44.0, 44.0}}, label: 'STEMI', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466522496.27>
+                Button, 0x10a3921c0, {{649.4, 381.9}, {44.0, 44.0}}, label: 'Troponin', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466522416.28>
+                Button, 0x10a391f40, {{637.5, 318.1}, {44.0, 44.0}}, label: 'Heart sounds', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466523536.29>
+                Button, 0x10a392440, {{595.4, 273.5}, {44.0, 44.0}}, label: 'Syncope', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4466523696.30>
+                Button, 0x10a392800, {{653.9, 261.5}, {44.0, 44.0}}, label: 'Heart failure', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4466523776.31>
+                Button, 0x10a391900, {{642.2, 243.3}, {44.0, 44.0}}, label: 'BNP', value: Moon <AX element pid: 81248, elementOrHash.elementID: 4466523856.32>
+                Button, 0x10a391a40, {{484.6, 242.0}, {44.0, 44.0}}, label: 'Acute coronary syndrome', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4466523936.33>
+                Button, 0x10a391b80, {{511.9, 455.3}, {44.0, 44.0}}, label: 'Atrial fibrillation', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4795908096.34>
+                Button, 0x10a391cc0, {{519.3, 443.5}, {44.0, 44.0}}, label: 'CHA2DS2-VASc', value: Moon <AX element pid: 81248, elementOrHash.elementID: 4795908176.35>
+                Button, 0x10a391e00, {{680.5, 457.3}, {44.0, 44.0}}, label: 'Murmurs', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4795908576.36>
+                Button, 0x10a392300, {{540.6, 874.6}, {44.0, 44.0}}, label: 'Examples · 14 notes', value: Black hole <AX element pid: 81248, elementOrHash.elementID: 4795908416.37>
+                Button, 0x10a392580, {{482.1, 784.7}, {44.0, 44.0}}, label: 'Groin hernia', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4795908336.38>
+                Button, 0x10a390b40, {{468.4, 780.0}, {44.0, 44.0}}, label: 'Hernia repair', value: Moon <AX element pid: 81248, elementOrHash.elementID: 4796248816.39>
+                Button, 0x10a392e40, {{602.3, 969.0}, {44.0, 44.0}}, label: 'Expansile cough impulse', value: Pulsar <AX element pid: 81248, elementOrHash.elementID: 4796248896.40>
+                Button, 0x10a392940, {{424.4, 665.9}, {44.0, 44.0}}, label: 'Inguinal · 8 notes', value: Star <AX element pid: 81248, elementOrHash.elementID: 4796248976.41>
+                Button, 0x10a393840, {{459.8, 651.9}, {44.0, 44.0}}, label: 'Inferior epigastric vessels', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4796249056.42>
+                Button, 0x10a393ac0, {{387.7, 680.8}, {44.0, 44.0}}, label: 'Internal ring test', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4796249136.43>
+                Button, 0x10a393980, {{352.7, 636.7}, {44.0, 44.0}}, label: 'Inguinal canal', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4796249536.44>
+                Button, 0x10a3930c0, {{448.1, 735.6}, {44.0, 44.0}}, label: 'Indirect inguinal hernia', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4796249376.45>
+                Button, 0x10a3917c0, {{470.2, 627.7}, {44.0, 44.0}}, label: 'Direct inguinal hernia', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4796249296.46>
+                Button, 0x10a393480, {{347.4, 509.9}, {44.0, 44.0}}, label: 'Anatomy · 3 notes', value: Star <AX element pid: 81248, elementOrHash.elementID: 4796250016.47>
+                Button, 0x10a392080, {{398.7, 516.4}, {44.0, 44.0}}, label: 'Canal boundaries', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4796250096.48>
+                Button, 0x10a392d00, {{395.0, 523.1}, {44.0, 44.0}}, label: 'LA/PM mnemonic', value: Moon <AX element pid: 81248, elementOrHash.elementID: 4796250176.49>
+                Button, 0x10a393700, {{294.0, 503.7}, {44.0, 44.0}}, label: 'Spermatic cord coverings', value: Rocky planet <AX element pid: 81248, elementOrHash.elementID: 4796250256.50>
+                Button, 0x10a392a80, {{478.1, 1128.5}, {44.0, 44.0}}, label: 'Femoral · 3 notes', value: Star <AX element pid: 81248, elementOrHash.elementID: 4796250336.51>
+                Button, 0x10a391400, {{540.9, 1098.1}, {44.0, 44.0}}, label: 'Femoral hernia', value: Gas giant <AX element pid: 81248, elementOrHash.elementID: 4796250736.52>
+                Button, 0x10a3912c0, {{548.3, 1085.0}, {44.0, 44.0}}, label: 'Femoral canal', value: Moon <AX element pid: 81248, elementOrHash.elementID: 4796250576.53>
+                Button, 0x10a393c00, {{533.3, 1111.4}, {44.0, 44.0}}, label: 'Saphena varix', value: Moon <AX element pid: 81248, elementOrHash.elementID: 4796250496.54>
+                Button, 0x10a392bc0, {{529.5, 530.7}, {44.0, 44.0}}, label: 'Pericarditis', value: Comet <AX element pid: 81248, elementOrHash.elementID: 4796251136.55>
+                Button, 0x10a393340, {{584.8, 799.4}, {44.0, 44.0}}, label: 'Richter's hernia', value: Comet <AX element pid: 81248, elementOrHash.elementID: 4796251296.56>
+              Image, 0x10a3935c0, {{972.0, 1176.0}, {44.0, 44.0}}, label: 'Filter' <AX element pid: 81248, elementOrHash.elementID: 4463709696.12>
+              Button, 0x10a393e80, {{972.0, 1176.0}, {44.0, 44.0}}, label: 'Filter' <AX element pid: 81248, elementOrHash.elementID: 4463711488.13>
+                Button, 0x10a391540, {{972.0, 1176.0}, {44.0, 44.0}} <AX element pid: 81248, elementOrHash.elementID: 4415766528.57>
+                  Image, 0x10a392f80, {{972.0, 1176.0}, {44.0, 44.0}}, identifier: 'line.3.horizontal.decrease', label: 'Filter' <AX element pid: 81248, elementOrHash.elementID: 4463710144.63>
+              Image, 0x10a391180, {{972.0, 1236.0}, {44.0, 44.0}}, label: 'Look' <AX element pid: 81248, elementOrHash.elementID: 4463712832.14>
+              Button, 0x10a390f00, {{972.0, 1236.0}, {44.0, 44.0}}, label: 'Look' <AX element pid: 81248, elementOrHash.elementID: 4463715072.15>
+                Button, 0x10a3926c0, {{972.0, 1236.0}, {44.0, 44.0}} <AX element pid: 81248, elementOrHash.elementID: 4415767424.58>
+                  Image, 0x10a393d40, {{972.0, 1236.0}, {44.0, 44.0}}, identifier: 'sparkles', label: 'Sparkle' <AX element pid: 81248, elementOrHash.elementID: 4463713280.66>
+              Button, 0x10a393200, {{972.0, 1296.0}, {44.0, 44.0}}, label: 'Recentre' <AX element pid: 81248, elementOrHash.elementID: 4463716416.16>
+                Image, 0x1198a4000, {{972.0, 1296.0}, {44.0, 44.0}} <AX element pid: 81248, elementOrHash.elementID: 4463715520.59>
+                Image, 0x1198a4140, {{972.0, 1296.0}, {44.0, 44.0}}, identifier: 'smallcircle.filled.circle', label: 'smallcircle.filled.circle' <AX element pid: 81248, elementOrHash.elementID: 4463715968.60>
+              Image, 0x1198a4280, {{476.5, 39.0}, {79.0, 38.5}} <AX element pid: 81248, elementOrHash.elementID: 4463717312.17>
+              StaticText, 0x1198a43c0, {{476.5, 39.0}, {79.0, 38.5}}, label: 'Ideas' <AX element pid: 81248, elementOrHash.elementID: 4463717760.18>
+              Button, 0x1198a4500, {{32.5, 50.5}, {9.0, 15.0}}, identifier: 'chevron.left', label: 'Back' <AX element pid: 81248, elementOrHash.elementID: 4463718208.19>
+              Other, 0x1198a4640, {{516.0, 694.0}, {0.0, 0.0}} <AX element pid: 81248, elementOrHash.elementID: 4463719552.20>
+    Other, 0x1198a4780, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4847537152.72>
+      Other, 0x1198a48c0, {{0.0, 0.0}, {1032.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4463840768.73>
+        Other, 0x1198a4a00, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4468365568.74>
+          Other, 0x1198a4b40, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4415768320.75>
+            Other, 0x1198a4c80, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4463843008.76>
+              Other, 0x1198a4dc0, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4468366208.78>
+              CollectionView, 0x1198a4f00, {{780.0, 760.0}, {236.0, 1376.0}} <AX element pid: 81248, elementOrHash.elementID: 4469038080.79>
+                Cell, 0x1198a5040, {{780.0, 768.0}, {236.0, 56.0}} <AX element pid: 81248, elementOrHash.elementID: 4816643072.81>
+                  Button, 0x1198a5180, {{780.0, 768.0}, {236.0, 56.0}}, identifier: 'info.circle', label: 'How your universe is built' <AX element pid: 81248, elementOrHash.elementID: 5005494784.70>
+                    Image, 0x1198a52c0, {{816.0, 787.5}, {18.0, 17.0}}, identifier: 'info.circle', label: 'info' <AX element pid: 81248, elementOrHash.elementID: 5005341184.121>
+                Cell, 0x1198a5400, {{780.0, 824.0}, {236.0, 56.0}} <AX element pid: 81248, elementOrHash.elementID: 4816637696.82>
+                  Button, 0x1198a5540, {{780.0, 824.0}, {236.0, 56.0}}, identifier: 'lookLinkLength', label: 'Link length: 1.8× longer' <AX element pid: 81248, elementOrHash.elementID: 5005495424.103>
+                    Image, 0x1198a5680, {{816.0, 846.0}, {18.5, 11.5}}, identifier: 'arrow.left.and.right', label: 'arrow.left.and.right' <AX element pid: 81248, elementOrHash.elementID: 5005341696.122>
+                Cell, 0x1198a57c0, {{780.0, 897.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816642304.83>
+                  Button, 0x1198a5900, {{780.0, 897.0}, {236.0, 38.0}}, identifier: 'lookLines-straight', label: 'Straight' <AX element pid: 81248, elementOrHash.elementID: 5005496064.104>
+                    Image, 0x1198a5a40, {{817.5, 909.0}, {15.0, 14.0}}, identifier: 'line.diagonal', label: 'line.diagonal' <AX element pid: 81248, elementOrHash.elementID: 5005342208.123>
+                Other, 0x1198a5b80, {{800.0, 888.0}, {196.0, 1.0}} <AX element pid: 81248, elementOrHash.elementID: 5006742528.84>
+                Cell, 0x1198a5cc0, {{780.0, 935.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816643840.85>
+                  Button, 0x1198a5e00, {{780.0, 935.0}, {236.0, 38.0}}, identifier: 'lookLines-curved', label: 'Curved', Selected <AX element pid: 81248, elementOrHash.elementID: 5005496704.105>
+                    Image, 0x1198a5f40, {{796.0, 949.0}, {12.5, 11.0}}, identifier: 'checkmark', label: 'selected' <AX element pid: 81248, elementOrHash.elementID: 5005343232.124>
+                    Image, 0x1198a6080, {{816.5, 945.0}, {17.0, 18.0}}, identifier: 'point.topleft.down.to.point.bottomright.curvepath', label: 'point.topleft.down.to.point.bottomright.curvepath' <AX element pid: 81248, elementOrHash.elementID: 5005342720.125>
+                Cell, 0x1198a61c0, {{780.0, 990.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816644608.86>
+                  Button, 0x1198a6300, {{780.0, 990.0}, {236.0, 38.0}}, label: 'Folder looks' <AX element pid: 81248, elementOrHash.elementID: 5005497344.106>
+                    Image, 0x1198a6440, {{987.5, 1002.5}, {9.0, 13.0}}, identifier: 'chevron.forward', label: 'Forward' <AX element pid: 81248, elementOrHash.elementID: 5005343744.126>
+                Other, 0x1198a6580, {{800.0, 981.0}, {196.0, 1.0}} <AX element pid: 81248, elementOrHash.elementID: 5006743040.87>
+                Cell, 0x1198a66c0, {{780.0, 1045.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816646912.88>
+                  Button, 0x1198a6800, {{780.0, 1045.0}, {236.0, 38.0}}, identifier: 'sparkle', label: 'Comets' <AX element pid: 81248, elementOrHash.elementID: 5005497984.107>
+                    Image, 0x1198a6940, {{816.5, 1056.0}, {17.5, 16.5}}, identifier: 'sparkle', label: 'sparkle' <AX element pid: 81248, elementOrHash.elementID: 5005344256.127>
+                Other, 0x1198a6a80, {{800.0, 1036.0}, {196.0, 1.0}} <AX element pid: 81248, elementOrHash.elementID: 5006743552.89>
+                Cell, 0x1198a6bc0, {{780.0, 1083.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816640768.90>
+                  Button, 0x1198a6d00, {{780.0, 1083.0}, {236.0, 38.0}}, identifier: 'dot.radiowaves.left.and.right', label: 'Pulsars' <AX element pid: 81248, elementOrHash.elementID: 5005498624.108>
+                    Image, 0x1198a6e40, {{814.0, 1094.5}, {22.5, 15.5}}, identifier: 'dot.radiowaves.left.and.right', label: 'radio' <AX element pid: 81248, elementOrHash.elementID: 4847534592.128>
+                Cell, 0x1198a6f80, {{780.0, 1121.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816647680.91>
+                  Button, 0x1198a70c0, {{780.0, 1121.0}, {236.0, 38.0}}, identifier: 'circle.lefthalf.filled', label: 'Gas giants' <AX element pid: 81248, elementOrHash.elementID: 5005499264.109>
+                    Image, 0x1198a7200, {{816.0, 1131.5}, {18.0, 17.0}}, identifier: 'circle.lefthalf.filled', label: 'circle.lefthalf.filled' <AX element pid: 81248, elementOrHash.elementID: 5006737408.129>
+                Cell, 0x1198a7340, {{780.0, 1159.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816648448.92>
+                  Button, 0x1198a7480, {{780.0, 1159.0}, {236.0, 38.0}}, identifier: 'globe.europe.africa.fill', label: 'Rocky planets' <AX element pid: 81248, elementOrHash.elementID: 5005499904.110>
+                    Image, 0x1198a75c0, {{816.0, 1169.5}, {18.0, 17.0}}, identifier: 'globe.europe.africa.fill', label: 'globe.europe.africa.fill' <AX element pid: 81248, elementOrHash.elementID: 5006737920.130>
+                Cell, 0x1198a7700, {{780.0, 1197.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816649216.93>
+                  Button, 0x1198a7840, {{780.0, 1197.0}, {236.0, 38.0}}, identifier: 'sun.max.fill', label: 'Suns' <AX element pid: 81248, elementOrHash.elementID: 5005500544.111>
+                    Image, 0x1198a7980, {{815.5, 1207.0}, {19.0, 18.0}}, identifier: 'sun.max.fill', label: 'brightness higher' <AX element pid: 81248, elementOrHash.elementID: 5006738432.131>
+                Cell, 0x1198a7ac0, {{780.0, 1235.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816641536.94>
+                  Button, 0x1198a7c00, {{780.0, 1235.0}, {236.0, 38.0}}, identifier: 'circle.circle.fill', label: 'Black holes' <AX element pid: 81248, elementOrHash.elementID: 5005501184.112>
+                    Image, 0x1198a7d40, {{816.0, 1245.5}, {18.0, 17.0}}, identifier: 'circle.circle.fill', label: 'circle.circle.fill' <AX element pid: 81248, elementOrHash.elementID: 5006738944.132>
+                Cell, 0x1198a7e80, {{780.0, 1273.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4816646144.95>
+                  Button, 0x10aadc000, {{780.0, 1273.0}, {236.0, 38.0}}, identifier: 'sparkles', label: 'Universe', Selected <AX element pid: 81248, elementOrHash.elementID: 5005501824.113>
+                    Image, 0x10aadc140, {{796.0, 1287.0}, {12.5, 11.0}}, identifier: 'checkmark', label: 'selected' <AX element pid: 81248, elementOrHash.elementID: 5006739968.133>
+                    Image, 0x10aadc280, {{816.5, 1282.0}, {17.0, 19.0}}, identifier: 'sparkles', label: 'sparkle' <AX element pid: 81248, elementOrHash.elementID: 5006739456.134>
+                Cell, 0x10aadc3c0, {{780.0, 1328.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4466374912.96>
+                  Button, 0x10aadc500, {{780.0, 1328.0}, {236.0, 38.0}}, identifier: 'speedometer', label: 'Performance' <AX element pid: 81248, elementOrHash.elementID: 5005502464.114>
+                    Image, 0x10aadc640, {{816.0, 1338.5}, {18.0, 17.0}}, identifier: 'gauge.with.dots.needle.67percent', label: 'gauge.with.dots.needle.67percent' <AX element pid: 81248, elementOrHash.elementID: 5006740480.135>
+                Other, 0x10aadc780, {{800.0, 1319.0}, {196.0, 1.0}} <AX element pid: 81248, elementOrHash.elementID: 5006744064.97>
+                Cell, 0x10aadc8c0, {{780.0, 1366.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4466375680.98>
+                  Button, 0x10aadca00, {{780.0, 1366.0}, {236.0, 38.0}}, identifier: 'brain.head.profile', label: 'Neurons' <AX element pid: 81248, elementOrHash.elementID: 5005503104.115>
+                    Image, 0x10aadcb40, {{815.5, 1375.5}, {19.0, 19.5}}, identifier: 'brain.head.profile', label: 'brain.head.profile' <AX element pid: 81248, elementOrHash.elementID: 5006740992.136>
+                Cell, 0x10aadcc80, {{780.0, 1404.0}, {236.0, 38.0}} <AX element pid: 81248, elementOrHash.elementID: 4466369536.99>
+                  Button, 0x10aadcdc0, {{780.0, 1404.0}, {236.0, 38.0}}, identifier: 'sparkles', label: 'Space', Selected <AX element pid: 81248, elementOrHash.elementID: 5005503744.116>
+                    Image, 0x10aadcf00, {{796.0, 1418.0}, {12.5, 11.0}}, identifier: 'checkmark', label: 'selected' <AX element pid: 81248, elementOrHash.elementID: 5006742016.137>
+                    Image, 0x10aadd040, {{816.5, 1413.0}, {17.0, 19.0}}, identifier: 'sparkles', label: 'sparkle' <AX element pid: 81248, elementOrHash.elementID: 5006741504.138>
+                Other, 0x10aadd180, {{983.0, 784.0}, {30.0, 472.0}}, label: 'Vertical scroll bar, 2 pages', value: 0% <AX element pid: 81248, elementOrHash.elementID: 5005340160.100>
+                  Other, 0x10aadd2c0, {{1010.0, 787.0}, {3.0, 415.0}} <AX element pid: 81248, elementOrHash.elementID: 4463916160.117>
+                Other, 0x10aadd400, {{780.0, 1223.0}, {220.0, 30.0}}, label: 'Horizontal scroll bar, 1 page', value: 0% <AX element pid: 81248, elementOrHash.elementID: 5005339136.101>
+                  Other, 0x10aadd540, {{783.0, 1250.0}, {214.0, 3.0}} <AX element pid: 81248, elementOrHash.elementID: 4463915712.118>
+                Other, 0x10aadd680, {{983.0, 784.0}, {30.0, 472.0}}, label: 'Vertical scroll bar, 2 pages', value: 0% <AX element pid: 81248, elementOrHash.elementID: 5005340160.100>
+                  Other, 0x10aadd7c0, {{1010.0, 787.0}, {3.0, 415.0}} <AX element pid: 81248, elementOrHash.elementID: 4463916160.117>
+                Other, 0x10aadd900, {{780.0, 1223.0}, {220.0, 30.0}}, label: 'Horizontal scroll bar, 1 page', value: 0% <AX element pid: 81248, elementOrHash.elementID: 5005339136.101>
+                  Other, 0x10aadda40, {{783.0, 1250.0}, {214.0, 3.0}} <AX element pid: 81248, elementOrHash.elementID: 4463915712.118>
+            Other, 0x10aaddb80, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4847543808.77>
+              Other, 0x10aaddcc0, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4415769216.80>
+                Other, 0x10aadde00, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4463845696.102>
+                  Other, 0x10aaddf40, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4463846144.119>
+                    Other, 0x10aade080, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4847544320.139>
+                      Other, 0x10aade1c0, {{780.0, 760.0}, {236.0, 44.0}} <AX element pid: 81248, elementOrHash.elementID: 4463846592.141>
+                  Other, 0x10aade300, {{780.0, 760.0}, {236.0, 520.0}} <AX element pid: 81248, elementOrHash.elementID: 4847544832.120>
+                    Other, 0x10aade440, {{780.0, 760.0}, {236.0, 44.0}} <AX element pid: 81248, elementOrHash.elementID: 4463847936.140>

@@ -1,0 +1,5 @@
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  ↪︎Find: Descendants matching type Button
+    ↪︎Find: Elements matching predicate 'label BEGINSWITH "Link length"'
+      ↪︎Find: First Match
