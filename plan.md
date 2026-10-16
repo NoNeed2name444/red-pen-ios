@@ -1737,6 +1737,13 @@ They answer four questions, in order:
    once the owner adds the repository secret ANTHROPIC_API_KEY and says to
    deploy; then run the verification bench (live mode) for the three-family
    numbers.
+   - [x] 16 Oct, design/claude-cap: a second way to Claude had no cap. The
+     owner key's `use: 'claude:…'` pin on the chat route got an Anthropic
+     source with no `paid` flag, and complete() holds money back only for
+     Gemini and paid sources. chat() now refuses that pin with 400 before
+     any spend or fetch (ai.test.mjs), so askClaudeVoter, under this cap,
+     is the only way to Claude outside Pro's paid lane. Live with the next
+     Worker deploy the owner has allowed.
 3. Explained in chat: a Worker deploy (the server going live) and the
    launch splash colour.
 4. No Apple Developer account: no TestFlight or App Store for now; the

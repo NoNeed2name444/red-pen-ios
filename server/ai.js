@@ -94,9 +94,13 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   }
   // The owner's benchmarks: one named model and nothing else, so models can
   // be compared ("gemini:gemini-3.5-flash", "workers-ai:@cf/...", "hf:org/model").
+  // Never Claude: a pinned `claude:` source is not marked `paid`, so pinning it
+  // here would call Anthropic with neither the monthly checker cap nor the Pro
+  // wallet holding anything back.
   if (owner && typeof body.use === 'string') {
     const pinned = pinnedSource(env, body.use);
     if (!pinned) return fail(400, 'That model is not available on this server.');
+    if (pinned.kind === 'anthropic') return fail(400, 'Claude is reached only as a checker, under its monthly cap.');
     route.sources = [pinned];
   }
 

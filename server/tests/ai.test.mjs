@@ -786,6 +786,14 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(!votersFor(keyed, '', false).some(v => v.startsWith('claude:')), "and not on students'");
   ok(!votersFor({ ...keyed, ANTHROPIC_API_KEY: undefined }, '', true).some(v => v.startsWith('claude:')), 'nor anywhere without its key');
   ok(!votersFor(keyed, 'claude-opus-5-5', true).some(v => v.startsWith('claude:')), 'Claude never checks what Claude wrote');
+
+  const pinned = freshEnv({ ...keyed, OWNER_DAILY_LIMIT: '1', AI: { run: async model => ({ response: `from ${model}` }) } });
+  const unpinnedClaude = await chat(pinned, 'owner', { ...request, use: 'claude:claude-opus-5-5' }, async () => { throw new Error('no call'); }, { owner: true });
+  ok(unpinnedClaude.status === 400 && !(await pinned.DB.prepare('SELECT * FROM ai_usage WHERE account_id = ?').bind('owner').first()),
+     'pinning claude: on chat is refused (400), makes no fetch, and spends no daily allowance');
+  const pinnedWorkers = await chat(pinned, 'owner', { ...request, use: 'workers-ai:@cf/openai/gpt-oss-120b' }, async () => { throw new Error('no call'); }, { owner: true });
+  ok(pinnedWorkers.status === 200 && (await pinnedWorkers.json()).choices[0].message.content === 'from @cf/openai/gpt-oss-120b',
+     'pinning workers-ai: on chat behaves as before');
 }
 
 // MARK: more checker families with no key (the owner, 14 Oct: "make free workers without apis")
