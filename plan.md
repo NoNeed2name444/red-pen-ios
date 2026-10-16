@@ -2176,7 +2176,13 @@ with the marks on the screens last.
         wording. Open for the next review: a row that slides below the cut
         while scrolling is now kept, and in a scratch simulation one later
         held the page's end 3 pt high; with no set to open, ward_shots.sh
-        finishes but takes no library pictures. Waits for its Ward preview.
+        finishes but takes no library pictures. Ward preview 10 (2972ebdf):
+        no screen errors, but the new FAULT came up at random (xxl light
+        but not xxl dark; SE light and dark; AX5 SE), because the trip
+        looked at the book once, 1.5 s after the push, and a busy Mac had
+        not always covered home by then. The trip now watches the book up
+        to 10 s for a part to leave and pops no sooner than 1.5 s in; the
+        FAULT still stands if none leaves. Waits for its Ward preview.
 - [ ] 6. Last: the owner's marks on the screens.
 - [x] 7. (Done 14 Oct: tools/jev-standin and jev-standin.yml; oath check 30 of
   30, 0 false alarms; NLI model is the TRIAGE_NLI_MODEL repo variable.) An open-source stand-in for Jev (§22a kept only Layer 7, the
