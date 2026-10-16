@@ -10,14 +10,16 @@ import Foundation
 /// colour, never by an edge.
 ///
 /// The two modes are two characters, not one palette inverted (the owner,
-/// 14 Oct: "lacks color difference for each mode"). Day is the ward at
-/// noon: Theatre Blue on clean grey paper, navy Chart Ink, cards a touch
-/// lighter than the ground. Night is the ward's monitors after lights out:
-/// a monitor cyan accent, warmer reds and greens that glow without
-/// glaring, near-white ink with a brighter secondary grey, and cards that
-/// lift by lightening, as a dark room shows depth. The bases stay
-/// #E0E5EC and #2A2E35: the launch screen and the launch logo are drawn
-/// on them.
+/// 14 Oct: "lacks color difference for each mode"). The neutrals and the
+/// indigo primary are the owner's palette direction 3 (16 Oct): day is cool
+/// grey paper (#E9EDF2) with slate Chart Ink and cards a touch lighter than
+/// the ground; night is a deep blue-black ward (#171C24) with near-white
+/// ink, a brighter secondary grey, warmer reds and greens that glow without
+/// glaring, and cards that lift by lightening, as a dark room shows depth.
+/// The primary is Cards' indigo (WardSection.outside), the look outside any
+/// section; there is no Theatre Blue or cyan night any more. A wrong answer
+/// is the faded row (`faded`, `fadedInk`), drawn in colours, never with
+/// opacity. The launch screen and the launch logo are drawn on the bases.
 ///
 /// Foundation only, so the promises are tested on Linux (WardPaletteTests);
 /// WardTokens turns the table into SwiftUI colours.
@@ -30,9 +32,10 @@ enum WardToken: String, CaseIterable {
     case raised
     /// Wells pressed into the base: fields, tracks, a chosen segment
     case well
-    /// Theatre Blue as a fill: a switch that is on, the app's tint
+    /// The primary as a fill: a switch that is on, the app's tint (Cards'
+    /// fill, the look outside any section)
     case primary
-    /// Theatre Blue as text and glyphs on a surface
+    /// The primary as text and glyphs on a surface (Cards' accent)
     case primaryInk
     /// White on a primary fill
     case onPrimary
@@ -54,27 +57,34 @@ enum WardToken: String, CaseIterable {
     case hairline
     /// The vitals monitor's well, dark in both modes
     case monitor
+    /// A wrong answer's row: a ground that has stepped back (the owner, 15
+    /// Oct: "the wrong should be faded")
+    case faded
+    /// The words, strike and cross on the faded row
+    case fadedInk
 }
 
 enum WardPalette {
     /// (light, dark) as 0xRRGGBB.
     static let table: [WardToken: (light: UInt32, dark: UInt32)] = [
-        .background:   (0xE0E5EC, 0x2A2E35),
-        .surface:      (0xEBEFF4, 0x353A44),
-        .raised:       (0xF4F6F9, 0x3C424E),
-        .well:         (0xD5DCE5, 0x1F2228),
-        .primary:      (0x1D5FB0, 0x136F8E),
-        .primaryInk:   (0x1D5FB0, 0x4FD8FF),
+        .background:   (0xE9EDF2, 0x171C24),
+        .surface:      (0xEEF1F5, 0x242B35),
+        .raised:       (0xF1F4F8, 0x2E353F),
+        .well:         (0xDDE2E8, 0x090E15),
+        .primary:      (0x5260BC, 0x5A68C5),
+        .primaryInk:   (0x4046C2, 0xA5B6FE),
         .onPrimary:    (0xFFFFFF, 0xFFFFFF),
         .ecg:          (0xB6263A, 0xFF97A9),
         .beam:         (0xC2620B, 0xFFAF57),
         .success:      (0x116D50, 0x5EE0A8),
         .warning:      (0x8C5200, 0xFFC15A),
         .danger:       (0xB8222A, 0xFF9A9F),
-        .ink:          (0x0E1B2C, 0xF5F8FC),
-        .inkSecondary: (0x4E5E73, 0xC4CEDA),
-        .hairline:     (0xC8D0DA, 0x1B1E23),
+        .ink:          (0x232C39, 0xF1F4F8),
+        .inkSecondary: (0x536171, 0xB8C2D0),
+        .hairline:     (0xCFD7E2, 0x04070B),
         .monitor:      (0x0E1B2C, 0x0E1B2C),
+        .faded:        (0xDDE2E8, 0x353E4A),
+        .fadedInk:     (0x52606F, 0xBEC8D3),
     ]
 
     /// The tiers from deepest to highest: a well, the base, a card, a sheet.
@@ -133,7 +143,7 @@ enum WardPalette {
         (.beam, .surface, 3),
         // a chip or a pill is pressed into a well (WardChip, WardPill), so
         // every ink they use is promised on it too: the semantic words in
-        // all four tones, Biro Grey, Chart Ink and Theatre Blue
+        // all four tones, Biro Grey, Chart Ink and the primary
         (.ecg, .well, 4.5), (.success, .well, 4.5),
         (.warning, .well, 4.5), (.danger, .well, 4.5),
         (.beam, .well, 3),
@@ -142,6 +152,8 @@ enum WardPalette {
         (.ecg, .background, 4.5), (.success, .background, 4.5),
         (.warning, .background, 4.5), (.danger, .background, 4.5),
         (.beam, .background, 3),
+        // a wrong answer's words, strike and cross on its faded row
+        (.fadedInk, .faded, 4.5),
     ]
 
     /// The monitor's well wears the dark values in both modes (MonitorCard

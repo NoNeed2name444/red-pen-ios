@@ -320,9 +320,10 @@ struct LensAnswerBody: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // a well pressed into the base with a green rim: the answer
+        // a well pressed into the base with a rim in the section's accent:
+        // the answer
         .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous).strokeBorder(Color.wardSuccess.opacity(0.55), lineWidth: 1.5))
+        .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous).strokeBorder(Color.wardPrimaryInk, lineWidth: 1.5))
         .accessibilityElement(children: .combine)
     }
 
@@ -354,7 +355,9 @@ struct LensAnswerBody: View {
 
 /// One option: its letter, its words, and - once answered - whether it is
 /// the answer and why. A plate pressed into the card, since it is read and
-/// not tapped; the answer is pressed in deeper, its letter and tick in green.
+/// not tapped; the answer is pressed in deeper, its letter and tick in the
+/// section's accent; a wrong one is the faded plate, its words struck
+/// through and its cross in the faded ink (colours, never opacity).
 struct LensOptionRow: View {
     enum Mark { case plain, right, wrong }
 
@@ -366,7 +369,8 @@ struct LensOptionRow: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         let right: Bool = state == .right
-        let letterInk: Color = right ? Color.wardSuccess : Color.wardInk
+        let wrong: Bool = state == .wrong
+        let letterInk: Color = right ? Color.wardPrimaryInk : (wrong ? Color.wardFadedInk : Color.wardInk)
         let depth: WardLift = right ? .mid : .low
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
@@ -377,19 +381,20 @@ struct LensOptionRow: View {
                     .accessibilityHidden(true)
                 Text(text)
                     .font(.body)
-                    .foregroundStyle(Color.wardInk)
+                    .foregroundStyle(wrong ? Color.wardFadedInk : Color.wardInk)
+                    .strikethrough(wrong, color: Color.wardFadedInk)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 if right {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardSuccess)
-                } else if state == .wrong {
-                    Image(systemName: "xmark").foregroundStyle(Color.wardInkSecondary).font(.caption.weight(.bold))
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardPrimaryInk)
+                } else if wrong {
+                    Image(systemName: "xmark").foregroundStyle(Color.wardFadedInk).font(.caption.weight(.bold))
                 }
             }
             if !note.isEmpty {
                 Text(note)
                     .font(.callout)
-                    .foregroundStyle(Color.wardInkSecondary)
+                    .foregroundStyle(wrong ? Color.wardFadedInk : Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.leading, 44)
             }
@@ -397,7 +402,7 @@ struct LensOptionRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .wardInset(in: shape, lift: depth)
+        .wardInset(in: shape, lift: depth, fill: wrong ? Color.wardFaded : Color.wardWell)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(spoken)
     }

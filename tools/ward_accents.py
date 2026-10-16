@@ -7,9 +7,9 @@ ios/RedPen/Shared/Ward/WardLook.swift (the table between the
   tools/ward_accents.py --write   rewrite the table in WardLook.swift
   tools/ward_accents.py --check   exit 1 if WardLook.swift's table differs
 
-A section (Questions keeps the palette's own blue) has a hue in OKLCH
-degrees, its identity in both modes, and a lightness (OKLab L) for its
-words in each mode. For each mode it gets three colours of that hue:
+A section has a hue in OKLCH degrees, its identity in both modes, a
+lightness (OKLab L) for its words in each mode, and its fill in each mode,
+pinned. For each mode it has three colours of that hue:
 
   accent  words and glyphs (button labels, links, icons, the chosen tab,
           progress): the most chroma, between the mode's floor (so it
@@ -17,7 +17,9 @@ words in each mode. For each mode it gets three colours of that hue:
           sRGB and reads 4.6:1 (AA's 4.5 with a margin, so rounding never
           tips it) on every tier, the well to a sheet.
   fill    under white words (a switch that is on, a chosen segment): the
-          most chroma at the fill's lightness with white at 4.6:1.
+          owner's colour as given, checked, never searched: white reads
+          4.6:1 on it and its hue is within 2 degrees of the section's, or
+          the tool exits 1.
   ink     the paper's grid and the controls' edges: the most chroma at the
           ink's lightness that, laid on at a control edge's strength
           (WardRelief.edgeAlpha), reads 3.1:1 on the base and on a card.
@@ -26,13 +28,20 @@ When no chroma in that range keeps the promise, the lightness steps away
 from the page (darker in light mode, lighter in dark) until one does: the
 shade moves, never the hue. The palette (WardPalette.swift) and the edge
 strengths (WardRelief.swift) are read from the source, so a palette or
-route change is one edit there (or of the hues below) and a --write.
+route change is one edit there (or of the rows below) and a --write.
 
-The hues and lightnesses below were chosen (15 Oct) by searching each
-section's hue family for the set that keeps the sections, and the colours
-that mean something (right, wrong, due, the ECG red, the beam, the New
-badge's blue), furthest apart in OKLab: at least 0.076 everywhere, in both
-modes. tests/ward/accent-blue.test.mjs and WardLookTests hold them to it.
+The hues and fills are the owner's palette direction 3 (16 Oct): seven
+section colours, Cards' indigo also the primary (the look outside any
+section). The fills are the owner's colours exactly, but OSCE's, turned 3
+degrees (387D4D and 3D8253 to 3D7C49 and 42814F, about 0.006 in OKLab,
+not visible) to keep its words apart from Textbook's. The words'
+lightnesses were then chosen, one section at a time inside the bands
+below, so that every accent stays at least 0.076 in OKLab from every other
+and from the colours that mean something (right, wrong, due, the ECG red,
+the beam), in both modes, with no meaning colour moved: the least gaps are
+0.078 by day (textbook/osce, textbook/success) and 0.084 by night
+(questions/danger). tests/ward/accent-blue.test.mjs and WardLookTests hold
+them to it.
 """
 import math, os, re, sys
 
@@ -40,20 +49,25 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 WARD = os.path.join(ROOT, "ios/RedPen/Shared/Ward")
 LOOK = os.path.join(WARD, "WardLook.swift")
 
-# section: (hue, words' lightness in light, in dark). Light words sit
-# between 0.42 and 0.52 (darker is muddy, lighter fails the well); dark
-# words between 0.74 and 0.88.
+# section, in WardSection's order: (hue, words' lightness in light, in dark,
+# fill in light, in dark). Light words sit between 0.36 and 0.55 (darker is
+# muddy, lighter fails the well); dark words between 0.66 and 0.94.
 SECTIONS = [
-    ("cards", 320, 0.42, 0.77),      # orchid
-    ("textbook", 132, 0.42, 0.84),   # leaf
-    ("cases", 284, 0.42, 0.76),      # indigo, kept off blue
-    ("osce", 92, 0.44, 0.76),        # brass
-    ("audio", 302, 0.47, 0.83),      # violet
-    ("ideas", 340, 0.48, 0.83),      # magenta
+    ("questions", 20, 0.43, 0.71, 0xC03946, 0xCB3E4B),   # red, as ECG paper
+    ("cards", 274, 0.47, 0.79, 0x5260BC, 0x5A68C5),      # indigo, the primary
+    ("textbook", 186, 0.41, 0.75, 0x227D75, 0x258279),   # teal
+    ("cases", 51, 0.42, 0.74, 0xAC5A21, 0xB05C23),       # rust
+    ("osce", 149, 0.36, 0.74, 0x3D7C49, 0x42814F),       # green, turned 3 degrees
+    ("audio", 307, 0.47, 0.77, 0x8150AD, 0x8B57B8),      # violet
+    ("ideas", 346, 0.47, 0.73, 0xB23E86, 0xBA438E),      # magenta
 ]
 CAP = (0.19, 0.15)        # chroma in light and dark: vivid, not neon
-FLOOR = (0.085, 0.10)     # and at least this, so every colour reads as its hue
-FILL_L = (0.56, 0.52)     # a fill's lightness before it steps darker
+FLOOR = (0.07, 0.10)      # and at least this, so every colour reads as its hue.
+                          # By day 0.07, not 0.085: at hue 186 no teal with
+                          # 0.085 of chroma reads 4.6:1 on the paler tiers, so
+                          # the search found nothing; at 0.07 every hue stays
+                          # within 2 degrees and every promise holds
+HUE_SLACK = 2             # a pinned fill's hue, at most this far from its section's
 INK_LIFT = (0.12, 0.0)    # the grid's ink: the words' lightness and this (a
                           # finer line wants a lighter ink by day), before it
                           # steps away from the page; following the words keeps
@@ -168,9 +182,25 @@ def settle(hue, L, dark, ok, step):
     raise SystemExit("no colour of hue %s keeps its promise" % hue)
 
 
+def hue_apart(a, b):
+    d = abs(a - b) % 360
+    return min(d, 360 - d)
+
+
+def pinned_fill(name, hue, fill, white):
+    """The owner's fill as given, once it keeps its promises: white words
+    4.6:1 on it, and the section's hue. Exits 1 if it does not."""
+    ratio, h = contrast(white, fill), oklch(fill)[2]
+    if ratio < 4.5 + MARGIN or hue_apart(h, hue) > HUE_SLACK:
+        print("%s fill %06X: white %.2f:1 (needs %.1f), hue %.1f (section %d, within %d)"
+              % (name, fill, ratio, 4.5 + MARGIN, h, hue, HUE_SLACK))
+        sys.exit(1)
+    return fill
+
+
 def section_colours(table, tiers, edge_alpha, edge_contrast):
     out, notes = {}, []
-    for name, hue, light_L, dark_L in SECTIONS:
+    for name, hue, light_L, dark_L, fill_light, fill_dark in SECTIONS:
         row = {}
         for dark in (0, 1):
             grounds = [table[t][dark] for t in tiers]
@@ -178,14 +208,13 @@ def section_colours(table, tiers, edge_alpha, edge_contrast):
             base = [table["background"][dark], table["surface"][dark]]
             away = L_STEP if dark else -L_STEP
             words = lambda c: all(contrast(c, g) >= 4.5 + MARGIN for g in grounds)
-            under = lambda c: contrast(white, c) >= 4.5 + MARGIN
             edge = lambda c: all(contrast(composite(c, edge_alpha[dark], g), g) >= edge_contrast + MARGIN
                                  for g in base)
             words_L = dark_L if dark else light_L
             accent, m1 = settle(hue, words_L, dark, words, away)
-            fill, m2 = settle(hue, FILL_L[dark], dark, under, -L_STEP)
+            fill = pinned_fill(name, hue, fill_dark if dark else fill_light, white)
             ink, m3 = settle(hue, words_L + INK_LIFT[dark], dark, edge, away)
-            for role, moved in (("accent", m1), ("fill", m2), ("ink", m3)):
+            for role, moved in (("accent", m1), ("ink", m3)):
                 if moved:
                     notes.append("%s %s %s: lightness moved %+.2f to keep its promise"
                                  % (name, "dark" if dark else "light", role, moved))
@@ -214,7 +243,6 @@ def report(colours, table):
         mode = "dark" if dark else "light"
         print("==", mode)
         accents = {n: r[dark]["accent"] for n, (_, r) in colours.items()}
-        accents["questions"] = table["primaryInk"][dark]
         for n, (hue, r) in colours.items():
             c = r[dark]
             L, C, H = oklch(c["accent"])
@@ -223,9 +251,10 @@ def report(colours, table):
         pairs = sorted((delta(accents[a], accents[b]), a, b)
                        for i, a in enumerate(accents) for b in list(accents)[i + 1:])
         print("  closest sections:", ", ".join("%s/%s %.3f" % (a, b, d) for d, a, b in pairs[:4]))
-        sem = sorted((delta(accents[a], table[s][dark]), a, s) for a in accents for s in semantic + ["primaryInk"]
-                     if not (a == "questions" and s == "primaryInk"))
+        sem = sorted((delta(accents[a], table[s][dark]), a, s) for a in accents for s in semantic)
         print("  closest to a meaning:", ", ".join("%s/%s %.3f" % (a, s, d) for d, a, s in sem[:4]))
+        least = min(pairs[0], sem[0])
+        print("  least gap: %.3f (%s/%s)" % least)
 
 
 def main():

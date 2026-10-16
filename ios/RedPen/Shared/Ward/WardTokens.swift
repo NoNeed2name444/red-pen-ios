@@ -45,6 +45,9 @@ extension Color {
     static var wardInkSecondary: Color { ward(.inkSecondary) }
     static var wardHairline: Color { ward(.hairline) }
     static var wardMonitor: Color { ward(.monitor) }
+    /// A wrong answer's row, and its words, strike and cross
+    static var wardFaded: Color { ward(.faded) }
+    static var wardFadedInk: Color { ward(.fadedInk) }
 
     /// The ink of an edge and of the paper's grid: the section's own hue
     /// (WardSection.ink), drawn at a spec's edge strength.
@@ -88,7 +91,8 @@ extension WardToken {
 /// before the shift existed, resolved by the trait alone.
 enum WardRestColors {
     static let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary,
-                                      .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor]
+                                      .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor,
+                                      .faded, .fadedInk]
     static let palette: [Color] = tokens.map { token in
         Color(uiColor: UIColor { traits in
             Color.uiColor(WardPalette.hex(token, dark: traits.userInterfaceStyle == .dark))
@@ -138,7 +142,7 @@ final class WardLookStore: Observable, @unchecked Sendable {
 
     private let registrar = ObservationRegistrar()
     private let lock = NSLock()
-    private var current = WardGlide.rest(WardLook(dark: false, section: .questions))
+    private var current = WardGlide.rest(WardLook(dark: false, section: WardSection.outside))
     /// The sections asked for, newest last: a study screen's on top of
     /// home's, so going back returns to home's hue.
     private var sections: [(id: UUID, section: WardSection)] = []
@@ -176,7 +180,7 @@ final class WardLookStore: Observable, @unchecked Sendable {
     }
 
     @MainActor private func settleSection() {
-        let section = sections.last?.section ?? .questions
+        let section = sections.last?.section ?? WardSection.outside
         WardLookDriver.shared.go(WardLook(dark: target.dark, section: section))
     }
 }
