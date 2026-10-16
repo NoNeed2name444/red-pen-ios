@@ -38,6 +38,11 @@ const AUDIO_TIMEOUT_MS = 240_000;
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
 const ANTHROPIC_THINKING_ROOM = 4_000;
+/// The max_tokens a call to Claude asks for, given the reply wanted: the reply
+/// and room to think, at most 16,000. askAnthropic sends it and the paid hold
+/// in complete() prices it, so what is held back and what can be billed come
+/// from one figure.
+const anthropicMaxTokens = reply => Math.min(reply + ANTHROPIC_THINKING_ROOM, 16_000);
 /// How long a confirmed subscription is trusted before Apple is asked again.
 const RECHECK_SECONDS = 6 * 60 * 60;
 // A lapsed or never-valid subscription is asked about again sooner (a renewal
@@ -389,9 +394,17 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   let reserved = 0, actual = 0;
   const gemini = route.sources.find(s => s.kind === 'gemini');
   if (route.canPay && route.wallet) {
-    const models = [...(gemini?.models || []), ...route.sources.filter(s => s.paid).map(s => s.model)];
+    // Each paid model at the output it is really asked for: Claude gets the
+    // reply and its thinking room (anthropicMaxTokens, the figure askAnthropic
+    // sends), every other model twice the reply. Held any lower, calls running
+    // together could pass the wallet's cap by the difference.
+    const models = [
+      ...(gemini?.models || []).map(model => ({ model, output: maxTokens * 2 })),
+      ...route.sources.filter(s => s.paid).map(s => ({
+        model: s.model, output: s.kind === 'anthropic' ? anthropicMaxTokens(maxTokens) : maxTokens * 2 })),
+    ];
     const inputTokens = Math.ceil(messages.reduce((n, m) => n + m.content.length, 0) / 3);
-    reserved = worstCase(env, models, inputTokens, 0, maxTokens * 2);
+    reserved = Math.max(0, ...models.map(({ model, output }) => worstCase(env, [model], inputTokens, 0, output)));
     if (!await reserve(env, route.wallet, reserved)) {
       reserved = 0;
       route.canPay = false;
@@ -524,7 +537,7 @@ async function askAnthropic(env, source, messages, maxTokens, fetcher, trace = n
       headers: { 'content-type': 'application/json', 'x-api-key': source.key, 'anthropic-version': '2023-06-01',
                  'anthropic-beta': 'server-side-fallback-2026-07-01' },
       body: JSON.stringify({
-        model: source.model, max_tokens: Math.min(maxTokens + ANTHROPIC_THINKING_ROOM, 16_000),
+        model: source.model, max_tokens: anthropicMaxTokens(maxTokens),
         ...(system ? { system } : {}), messages: turns,
         output_config: { effort }, fallbacks: 'default',
       }),
@@ -1232,8 +1245,17 @@ export function routeFor(env, name) {
   const sources = [];
   // Claude Opus on Anthropic, the Pro frontier model: first while Pro money
   // covers it (paid), and only when its key is set, so a server without the
-  // key answers from the free chain exactly as before
-  if (env.ANTHROPIC_API_KEY) {
+  // key answers from the free chain exactly as before.
+  //
+  // And only while Pro itself pays (PRO_PAYS "on"), not whenever the paid lane
+  // is open: GEMINI_BILLING "on" or a bill having been seen (billingSeen) open
+  // it too (proPays, paysNow), and that is Google's bill, not Pro's income. The
+  // lane's wallet then gives the owner OWNER_MONTHLY_USD, so the owner's own
+  // chats would spend the Anthropic key outside CLAUDE_MONTHLY_USD, the limit
+  // set on that key. Claude's other way in, askClaudeVoter, takes its source
+  // from pinnedSource and never from here, so it keeps its own cap and this
+  // gate leaves it alone.
+  if (env.ANTHROPIC_API_KEY && env.PRO_PAYS === 'on') {
     sources.push({ kind: 'anthropic', key: env.ANTHROPIC_API_KEY, paid: true,
                    model: env.STETHOSCORE_DEFAULT_MODEL || DEFAULT_ANTHROPIC_MODEL });
   }

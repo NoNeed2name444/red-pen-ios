@@ -676,10 +676,10 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 {
   const { routeFor, costOf } = await import('../ai.js');
   const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
-  const r = routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak' }, 'cramdown-writer');
+  const r = routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on' }, 'cramdown-writer');
   ok(r.sources[0].kind === 'anthropic' && r.sources[0].paid === true && r.sources[0].model === 'claude-opus-5-5',
-     'with its key set, Claude Opus 5.5 is the first source, and a paid one');
-  ok(routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', STETHOSCORE_DEFAULT_MODEL: 'claude-x' }, 'cramdown-writer').sources[0].model === 'claude-x',
+     'with its key set and Pro paying, Claude is the first source, and a paid one');
+  ok(routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', STETHOSCORE_DEFAULT_MODEL: 'claude-x' }, 'cramdown-writer').sources[0].model === 'claude-x',
      'STETHOSCORE_DEFAULT_MODEL names the model');
   ok(!routeFor(firebase, 'cramdown-writer').sources.some(s => s.kind === 'anthropic'), 'without the key there is no Claude source at all');
 
