@@ -212,6 +212,8 @@ struct LibraryView: View {
     /// At the accessibility text sizes the dock is one button over a list
     /// (CategoryDock), so it sits at the bottom even on a wide iPad.
     @Environment(\.dynamicTypeSize) var typeSize
+    /// Pixels to a point, so the page's cut can sit on the pixel grid (HomeFit.shown).
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         layout
@@ -562,7 +564,7 @@ struct LibraryView: View {
         let top: Double = Double(pageFrame.minY)
         guard HomeFit.cut(barTop: Double(barTop), pageTop: top, tops: restTops) != nil else { return nil }
         return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height),
-                                     tops: restTops))
+                                     tops: restTops, scale: Double(displayScale)))
     }
 
     /// At large text the round can run past the cut and scroll, but with

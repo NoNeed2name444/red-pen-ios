@@ -1994,6 +1994,10 @@ with the marks on the screens last.
       chevron is in Chart Ink. Rings, shaping and Ideas' magenta stay.
       tests/ward/dock-states.test.mjs reads the sources for it; the pictures
       come from the next Ward preview.
+    - [x] B3: AX1 home-fit sliver (run 38820624486): SwiftUI snapped the page
+      frame to the 3x grid, up, so the end (682.67) fell below the chip's top
+      (682.3). HomeFit.shown now settles the cut onto the pixel grid at or
+      above itself (scale from displayScale); gate unchanged; HomeFitTests.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

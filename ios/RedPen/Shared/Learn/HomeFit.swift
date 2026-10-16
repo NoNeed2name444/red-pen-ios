@@ -43,8 +43,25 @@ enum HomeFit {
 
     /// How tall a page with this much room is, from its top: down to the
     /// cut, or all of it.
-    static func shown(barTop: Double?, pageTop: Double, pageHeight: Double, tops: [Double] = []) -> Double {
-        cut(barTop: barTop, pageTop: pageTop, tops: tops).map { min(pageHeight, $0) } ?? pageHeight
+    ///
+    /// `scale` is the screen's pixels to a point (2 or 3), 0 when unknown.
+    /// SwiftUI snaps a frame to the pixel grid, and it snaps up as readily as
+    /// down: the AX1 phone's chip top, 682.3, became a page end of 682.67 and
+    /// a hairline of the chip showed over the cut. So the cut is settled onto
+    /// the grid at or above itself, and the height onto the grid again, so
+    /// the page's end falls at or above the cut however the frame is snapped.
+    static func shown(barTop: Double?, pageTop: Double, pageHeight: Double, tops: [Double] = [],
+                      scale: Double = 0) -> Double {
+        guard let cut = cut(barTop: barTop, pageTop: pageTop, tops: tops) else { return pageHeight }
+        guard scale > 0, scale.isFinite else { return min(pageHeight, cut) }
+        let end: Double = onGrid(pageTop + cut, scale: scale)
+        return min(pageHeight, max(0, onGrid(end - pageTop, scale: scale)))
+    }
+
+    /// The pixel line at or above `value` (a hair of slack for the float
+    /// error of a value already on the grid).
+    static func onGrid(_ value: Double, scale: Double) -> Double {
+        (value * scale + 1e-6).rounded(.down) / scale
     }
 
     /// The cut (global points) once no part shows less than `leastShown`

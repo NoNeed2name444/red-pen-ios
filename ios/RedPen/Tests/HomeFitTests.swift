@@ -135,6 +135,24 @@ let ax1Honoured = HomeFit.faults(card: box(283, 900), start: box(820, 876), bar:
                                  large: true, pageEnd: 682.3, parts: [dueChip])
 check("AX1: with the cut moved up, the chip is no sliver", ax1Honoured.isEmpty, ax1Honoured.joined(separator: "; "))
 
+// AX1 phone, preview run 38820624486: the chip's top 682.3, the bar 698, the page
+// 0 to 874 from a top at 0. The cut moved up to 682.3, yet the frame was snapped
+// to the 3x grid and ended at 682.67: 0.37 of the chip showed. On the grid at or
+// above the cut, the end is 682.0 (and likewise from an off-grid page top).
+let ax1Height = HomeFit.shown(barTop: 698, pageTop: 0, pageHeight: 874, tops: [682.3], scale: 3)
+check("AX1: the page ends on the 3x grid at or above the chip's top", ax1Height <= 682.3 && ax1Height > 682.3 - 1.0 / 3
+      && (ax1Height * 3).rounded() == ax1Height * 3, "\(ax1Height)")
+for top in [0.0, 0.17, 59.4, 62.5] {
+    let h = HomeFit.shown(barTop: 698, pageTop: top, pageHeight: 874, tops: [682.3], scale: 3)
+    let grid = (top + h) * 3
+    check("AX1: from a page top at \(top), an end snapped to the grid either way is not below the chip",
+          top + h <= 682.3 + 1e-9 && (grid.rounded() / 3) <= 682.3 + 1e-9, "\(top + h)")
+}
+let ax1Snapped = HomeFit.faults(card: box(413, 1173), start: box(1098, 1156), bar: box(698, 840), newSet: box(698, 755),
+                                large: true, pageEnd: 682 + 0.0, parts: [dueChip])
+check("AX1: the snapped page end clears the chip in the gate", ax1Snapped.isEmpty, ax1Snapped.joined(separator: "; "))
+check("no scale known: the cut as it was", HomeFit.shown(barTop: 698, pageTop: 0, pageHeight: 874, tops: [682.3]) == 682.3)
+
 // the cut is left alone by tops at it, 12 or more over it, or past it
 check("a top at the cut leaves it", HomeFit.settledCut(686, tops: [686]) == 686)
 check("a top 12 points over the cut leaves it", HomeFit.settledCut(686, tops: [674]) == 686)
