@@ -93,11 +93,13 @@ const calls = [
      'PRO_PAYS off or unset: Claude is not a source of the route, key or no key');
   ok(!claudeIn({ ...lane, GEMINI_BILLING: 'on' }) && !claudeIn({ ...lane, PRO_PAYS: undefined, GEMINI_BILLING: 'on' }),
      'and GEMINI_BILLING on does not bring it in');
-  const on = routeFor({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07', AI: {}, AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' }, 'cramdown-writer');
+  const on = routeFor({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07,claude-opus-5-5:4/20', AI: {}, AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' }, 'cramdown-writer');
   ok(on.sources.map(s => s.kind).join('>') === 'anthropic>openai>gemini>workers-ai' && on.sources[0].paid === true,
      'PRO_PAYS on: Claude is the first source and a paid one, ahead of the rest as before');
   ok(!routeFor({ ...lane, PRO_PAYS: 'on', ANTHROPIC_API_KEY: undefined }, 'cramdown-writer').sources.some(s => s.kind === 'anthropic'),
      'and still only with its key');
+  ok(!claudeIn({ ...lane, PRO_PAYS: 'on' }) && !claudeIn({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' }),
+     'PRO_PAYS on but GEMINI_PRICES missing or not naming Claude: Claude is left out');
 }
 
 // PRO_PAYS off, the paid lane opened another way: nothing reaches Anthropic
@@ -125,7 +127,7 @@ for (const [how, make] of Object.entries(opened)) {
 // PRO_PAYS on with room in the wallet: Claude is asked first, as before
 for (const [who, body, options] of calls) {
   const log = upstream();
-  const r = await chat(freshEnv({ ...lane, PRO_PAYS: 'on' }), 'a1', body, log.fetcher, options);
+  const r = await chat(freshEnv({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20' }), 'a1', body, log.fetcher, options);
   const said = await r.json();
   ok(r.status === 200 && log.asked[0] === 'claude' && said.choices[0].message.content === 'claude' && said.source === 'claude-opus-5-5',
      `PRO_PAYS on: Claude is asked first for ${who}, and answers`);

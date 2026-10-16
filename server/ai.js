@@ -1240,6 +1240,14 @@ export function usedNeurons(usage, rateIn, rateOut) {
   return input * rateIn / 1e6 + output * rateOut / 1e6;
 }
 
+/// Whether GEMINI_PRICES itself prices `model` above nothing. A paid source
+/// joins a route only then: priceOf's Opus 5.5 rate for a claude- model it
+/// does not name keeps the Claude checks' hold honest, but is not a price.
+const pricedIn = (env, model) => list(env.GEMINI_PRICES || '').some(entry => {
+  const [name, rates = ''] = entry.split(':');
+  return name === model && rates.split('/').some(rate => Number(rate) > 0);
+});
+
 /// Where each of the app's model names goes: which server, which key, which
 /// model name that server expects. Unknown names get nothing.
 export function routeFor(env, name) {
@@ -1258,8 +1266,7 @@ export function routeFor(env, name) {
   // gate leaves it alone.
   if (env.ANTHROPIC_API_KEY && env.PRO_PAYS === 'on') {
     const claudeModel = env.STETHOSCORE_DEFAULT_MODEL || DEFAULT_ANTHROPIC_MODEL;
-    const claudePrice = priceOf(env, claudeModel);
-    if (claudePrice.input > 0 || claudePrice.output > 0) {
+    if (pricedIn(env, claudeModel)) {
       sources.push({ kind: 'anthropic', key: env.ANTHROPIC_API_KEY, paid: true,
                      model: claudeModel });
     }
@@ -1268,8 +1275,7 @@ export function routeFor(env, name) {
   // (PRO_PAYS "on"), not Google's bill, and only when priced in GEMINI_PRICES
   // so an unpriced paid model never runs unheld and uncounted.
   const writerModel = env.AI_WRITER_MODEL || 'baichuan/baichuan-m2-32b';
-  const writerPrice = priceOf(env, writerModel);
-  const writerPriced = writerPrice.input > 0 || writerPrice.output > 0;
+  const writerPriced = pricedIn(env, writerModel);
   if (env.AI_WRITER_URL && env.AI_WRITER_KEY && env.PRO_PAYS === 'on' && writerPriced) {
     sources.push({ kind: 'openai', base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY, paid: true,
                    model: writerModel });
