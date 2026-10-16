@@ -970,6 +970,11 @@ final class HomeFitProbe {
     var pushLostParts = false
     var pushBackDone = false
     var pushBackNoSet = false
+    var pushDropsRemoved = 0
+    var pushDropsKept = 0
+    var pushLastKeptCut: Double?
+    var pushBookCountBefore = 0
+    var pushBookCountLastLook = 0
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -1041,6 +1046,8 @@ final class HomeFitProbe {
         if PreviewLaunch.pushBack && pushBackDone {
             lines.append("push and back: done")
             lines.append("push and back: parts left the book: \(pushLostParts ? "yes" : "no")")
+            let cutStr = pushLastKeptCut.map { $0.rounded() == $0 ? "\(Int($0))" : "\($0)" } ?? "none"
+            lines.append("push and back: drops removed \(pushDropsRemoved), kept \(pushDropsKept) (cut \(cutStr)), book \(pushBookCountBefore) parts before the push, \(pushBookCountLastLook) at its last look")
         }
         let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "

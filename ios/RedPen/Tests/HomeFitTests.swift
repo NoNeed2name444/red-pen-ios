@@ -464,6 +464,20 @@ do {
           cleared && book.cut == 682 && !dropped && book.entries[2]?.top == 682)
 }
 
+// MARK: - Drop outcomes: removed, kept below cut, and no such part
+do {
+    var book = WardPartLedger<Int>()
+    book.cut = 680
+    book.set(1, name: "chip", rect: CGRect(x: 0, y: 690, width: 60, height: 18), reach: 0, scale: 3)
+    book.set(2, name: "row", rect: CGRect(x: 0, y: 600, width: 300, height: 50), reach: 0, scale: 3)
+    let keptDrop: WardPartLedger<Int>.Drop = book.drop(1)
+    let removedDrop: WardPartLedger<Int>.Drop = book.drop(2)
+    let missingDrop: WardPartLedger<Int>.Drop = book.drop(99)
+    check("drop reports kept below cut", keptDrop == .kept && book.entries[1]?.top == 690)
+    check("drop reports removed", removedDrop == .removed && book.entries[2] == nil)
+    check("drop reports no such part", missingDrop == .none)
+}
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {

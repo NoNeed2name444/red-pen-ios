@@ -94,6 +94,19 @@ final class WardPartBook {
     private var ledger = WardPartLedger<UUID>()
     private var told: [Double] = []
 
+    /// Drops since the preview's reset: removed parts, parts kept below the cut,
+    /// and the cut when the last part was kept.
+    private(set) var dropsRemoved = 0
+    private(set) var dropsKept = 0
+    private(set) var lastKeptCut: Double?
+
+    /// Resets drop counts for the preview push-and-back check.
+    func resetDropCounts() {
+        dropsRemoved = 0
+        dropsKept = 0
+        lastKeptCut = nil
+    }
+
     var parts: [UUID: Part] {
         ledger.entries.mapValues { Part(name: $0.name, rect: $0.rect) }
     }
@@ -117,8 +130,18 @@ final class WardPartBook {
 
     /// A part whose view went away leaves the book.
     func drop(_ id: UUID) {
-        if ledger.drop(id, atRest: atRest()) {
-            publish()
+        let outcome: WardPartLedger<UUID>.Drop = ledger.drop(id, atRest: atRest())
+        switch outcome {
+        case .removed:
+            dropsRemoved += 1
+            if atRest() {
+                publish()
+            }
+        case .kept:
+            dropsKept += 1
+            lastKeptCut = ledger.cut
+        case .none:
+            break
         }
     }
 

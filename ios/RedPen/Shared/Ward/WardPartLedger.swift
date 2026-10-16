@@ -108,6 +108,34 @@ struct WardPartLedger<Key: Hashable> {
         return publish()
     }
 
+    /// What dropping a part did.
+    enum Drop: Equatable {
+        case removed
+        case kept
+        case none
+    }
+
+    /// Drops a part that went away and reports what happened: removed, kept
+    /// because its last face was below the cut, or no such part.
+    @_disfavoredOverload
+    @discardableResult
+    mutating func drop(_ key: Key, atRest: Bool = true, cut: Double? = nil) -> Drop {
+        if let sighting = sightings[key], Entry(sighting: sighting).isHidden(by: cut ?? self.cut) {
+            kept.insert(key)
+            return .kept
+        }
+        guard sightings[key] != nil || entries[key] != nil || kept.contains(key) else {
+            return .none
+        }
+        kept.remove(key)
+        sightings[key] = nil
+        entries[key] = nil
+        if atRest {
+            publish()
+        }
+        return .removed
+    }
+
     /// Drops a part that went away. A part whose latest sighted face lies
     /// wholly at or below the page's current cut is hidden by the cut rather
     /// than gone, so it keeps its entry and its sighting: the next rest books
