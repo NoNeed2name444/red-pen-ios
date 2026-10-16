@@ -1737,6 +1737,13 @@ They answer four questions, in order:
    once the owner adds the repository secret ANTHROPIC_API_KEY and says to
    deploy; then run the verification bench (live mode) for the three-family
    numbers.
+   - [x] 16 Oct, design/checks-cap: the owner split the key's 90 dollars into
+     40 for these checks (CLAUDE_MONTHLY_USD "40", the proof ladder's share
+     27) and 50 for Opus jobs. Review S-1016 hardened opus-job.yml: the run
+     step ends in exec, so no process the model can read holds the key (R2);
+     the push job takes the base from the work job's output, not the
+     artifact (R3), checks each commit and its message, not the net diff
+     (R4), and a budget with a second line no longer passes (R5).
    - [x] 16 Oct, design/claude-cap: a second way to Claude had no cap. The
      owner key's `use: 'claude:…'` pin on the chat route got an Anthropic
      source with no `paid` flag, and complete() holds money back only for

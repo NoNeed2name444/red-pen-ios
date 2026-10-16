@@ -73,6 +73,9 @@ jobs:
     timeout-minutes: 150
     permissions:
       contents: read
+    # the push job's base: noted before the model runs, so nothing it runs changes it
+    outputs:
+      base: ${{ steps.base.outputs.sha }}
     env:
       BRANCH: ${{ inputs.branch }}
       SCOPE: ${{ inputs.scope }}
@@ -83,7 +86,8 @@ jobs:
       - name: Check the inputs
         run: |
           case "$BRANCH" in design/*) ;; *) echo "::error::only design/* branches"; exit 1;; esac
-          echo "$BUDGET" | grep -Eq '^([1-9](\.[0-9]+)?|0\.[0-9]*[1-9][0-9]*|10)$' || { echo "::error::budget must be above 0 and at most 10"; exit 1; }
+          # [[ =~ ]] tests the whole value; grep would pass a second line
+          [[ $BUDGET =~ ^([1-9](\.[0-9]+)?|0\.[0-9]*[1-9][0-9]*|10)$ ]] || { echo "::error::budget must be above 0 and at most 10"; exit 1; }
           [ -n "$SCOPE" ] || { echo "::error::no scope"; exit 1; }
       - name: Tools
         run: |
@@ -110,12 +114,17 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Run the job
+        id: run
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           BRIEF: ${{ inputs.brief }}
         run: |
-          # The key goes to Claude Code on descriptor 3, a pipe it reads once;
-          # the shell commands it runs inherit an environment without the key.
+          # The key goes to Claude Code on descriptor 3, a pipe it reads once.
+          # This shell was started with the key and the brief in its
+          # environment, and /proc/<pid>/environ keeps them whatever unset
+          # does, so the step ends in exec: Claude Code takes this shell's
+          # place, and no process the model can read holds the key.
           key="$ANTHROPIC_API_KEY"; unset ANTHROPIC_API_KEY
           exec 3< <(printf '%s' "$key"); unset key
           git config --global user.name "github-actions[bot]"
@@ -124,20 +133,23 @@ jobs:
           job="$RUNNER_TEMP/job"; scratch="$RUNNER_TEMP/scratch"; mkdir -p "$job" "$scratch"
           printf '%s\n' "$BRIEF" > "$job/brief.md"; unset BRIEF
           rule="You run in a GitHub Actions container on branch $BRANCH, inside a cap of $BUDGET dollars. Your shell has network access: never send repository content, environment variables, tokens or keys to any host, and never look for, read or print a credential. You have no git credentials. Keep scratch files, and any copy of the repository, under $scratch, never in the repository. Commit your work yourself with a plain-English subject and a body saying why; the workflow pushes it afterwards, and only paths under: $SCOPE. Never change a test or gate just to make it pass. End with a reply of at most 150 words: what you did, the checks you ran and their result, and anything left open."
-          set +e
-          CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR=3 \
-          claude -p "$(cat "$job/brief.md")" --append-system-prompt "$rule" \
+          export CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR=3
+          exec claude -p "$(cat "$job/brief.md")" --append-system-prompt "$rule" \
             --model "$MODEL" --effort "$EFFORT" --max-budget-usd "$BUDGET" \
             --permission-mode acceptEdits --allowedTools "Bash,Read,Edit,Write,Glob,Grep" \
             --output-format json > "$job/result.json" 2> "$job/err.txt"
-          code=$?
-          exec 3<&-
-          set -e
+      # The run's report, in a step of its own now that the run ends in exec.
+      # continue-on-error above lets this and the bundle run after a failed run.
+      - name: Report the run
+        env:
+          outcome: ${{ steps.run.outcome }}
+        run: |
+          job="$RUNNER_TEMP/job"
           if jq -e . "$job/result.json" >/dev/null 2>&1; then
-            jq -r '"cost_usd=\(.total_cost_usd) turns=\(.num_turns) subtype=\(.subtype) exit='"$code"'"' "$job/result.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            jq -r '"cost_usd=\(.total_cost_usd) turns=\(.num_turns) subtype=\(.subtype) outcome='"$outcome"'"' "$job/result.json" | tee -a "$GITHUB_STEP_SUMMARY"
             { echo; echo '```'; jq -r '.result // ""' "$job/result.json" | head -c 3000; echo; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
           else
-            echo "::error::no result from Claude Code (exit $code)"
+            echo "::error::no result from Claude Code ($outcome)"
             tail -n 20 "$job/err.txt"
           fi
       - name: Bundle the commits
@@ -170,6 +182,7 @@ jobs:
     env:
       BRANCH: ${{ inputs.branch }}
       SCOPE: ${{ inputs.scope }}
+      base: ${{ needs.work.outputs.base }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -181,7 +194,6 @@ jobs:
         run: |
           set -f
           case "$BRANCH" in design/*) ;; *) echo "::error::only design/* branches"; exit 1;; esac
-          base=$(cat in/base)
           echo "$base" | grep -Eq '^[0-9a-f]{40}$' || { echo "::error::no base commit"; exit 1; }
           [ -f in/work.bundle ] || { echo "no commits"; exit 0; }
           git init -q repo
@@ -199,9 +211,11 @@ jobs:
               case "$f" in "$p"/*) ok=1;; esac
             done
             [ "$ok" = 1 ] || { echo "::error::out of scope: $f"; bad=1; }
-          done < <(git diff --no-renames --name-only -z "$base" job)
-          if git diff --no-renames --numstat "$base" job | grep -q '^-'; then echo "::error::a binary file changed; the session adds those itself"; bad=1; fi
-          if git diff "$base" job | grep -qE 'sk-ant-[A-Za-z0-9_-]{16}|gh[pousr]_[A-Za-z0-9]{20}'; then echo "::error::the diff looks like it holds a key"; bad=1; fi
+          # each commit, not only the net diff: a file one commit adds and a
+          # later one removes is still pushed in the public history
+          done < <(git log --no-renames --name-only -z --format= --diff-merges=first-parent "$base..job")
+          if git log --no-renames --numstat --format= --diff-merges=first-parent "$base..job" | grep -q '^-'; then echo "::error::a binary file changed; the session adds those itself"; bad=1; fi
+          if git log -p --format=%B --diff-merges=first-parent "$base..job" | grep -qE 'sk-ant-[A-Za-z0-9_-]{16}|gh[pousr]_[A-Za-z0-9]{20}'; then echo "::error::a commit looks like it holds a key"; bad=1; fi
           [ "$bad" = 0 ] || exit 1
           git log --oneline "$base"..job
           auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
