@@ -1978,8 +1978,8 @@ struct GraphSCNView: UIViewRepresentable {
             guard let view else { return }
             let settings = GraphTilt.cameraSettings(tilt: tilt)
             view.defaultCameraController.worldUp = SCNVector3(settings.worldUp.x, settings.worldUp.y, settings.worldUp.z)
-            view.defaultCameraController.minimumVerticalAngle = CGFloat(settings.minimumVerticalAngle)
-            view.defaultCameraController.maximumVerticalAngle = CGFloat(settings.maximumVerticalAngle)
+            view.defaultCameraController.minimumVerticalAngle = settings.minimumVerticalAngle
+            view.defaultCameraController.maximumVerticalAngle = settings.maximumVerticalAngle
         }
 
         /// Fits the whole graph to the screen (GraphFraming): its longest
