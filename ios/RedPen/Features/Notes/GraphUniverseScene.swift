@@ -223,8 +223,7 @@ extension GraphSceneBuilder {
                            skyRadius: skyRadius, middle: GraphMapBounds.centre(plan.envelope), contrast: contrast,
                            still: !lively, sim: sim,
                            bodies: infos.map { GraphDepth.Made(node: $0.node, label: $0.label) },
-                           more: [linkMaterial, farMaterial, hotRingMaterial] + hotDisk.materials,
-                           tint: Self.depthTint)
+                           more: [linkMaterial, farMaterial, hotRingMaterial] + hotDisk.materials)
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.systems = plan.systems

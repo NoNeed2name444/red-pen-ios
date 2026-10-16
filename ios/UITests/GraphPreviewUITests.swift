@@ -440,21 +440,45 @@ final class GraphPreviewUITests: XCTestCase {
 
     // MARK: the depth fade (plan 4f)
 
-    /// The depth fade in each SceneKit theme, after and before
-    /// (`-graphDepthOff`): the whole map, and flown in close (Neurons:
-    /// Examples opened; Space: Inguinal's system), where what is far
-    /// dissolves into the theme's background and nothing past the band's
-    /// end is drawn.
+    /// The depth fade in each SceneKit theme, on and off (`-graphDepthOff`),
+    /// as pose-matched pairs: the map frozen (`-graphFreeze`, so the camera
+    /// is the same in both), the whole map and flown in close (Neurons:
+    /// Examples opened; Space: Inguinal's system) on High, the whole map on
+    /// Smooth. What is far dissolves into the theme's background and nothing
+    /// past the band's end is drawn. Stills are named
+    /// `70-<theme>-<tier>-<view>-<on|off>`; with them goes `75-body-frames`
+    /// (JSON, in points) for tools/depth_crops.py: for each still the window's
+    /// size, the meter's frame and line, and a 44-point square round each
+    /// body drawn on the screen.
     func testDepthBeforeAfter() {
-        for (k, pair) in Self.depthThemes.enumerated() {
-            for near in [false, true] {
-                for off in [false, true] {
-                    let app = depthApp(pair.0, fly: near ? pair.1 : nil, off: off)
-                    sleep(near ? 6 : 4)
-                    snap(app, "60-\(k + 1)-\(pair.0)-\(near ? "near" : "whole")-\(off ? "before" : "after")")
-                    app.terminate()
+        var stills: [String: Any] = [:]
+        defer { attachFrames(stills) }
+        for pair in Self.depthThemes {
+            for level in ["High", "Smooth"] {
+                for near in [false, true] where level == "High" || !near {
+                    for off in [false, true] {
+                        let name = "70-\(pair.0)-\(level.lowercased())-\(near ? "near" : "whole")-\(off ? "off" : "on")"
+                        let app = depthApp(pair.0, fly: near ? pair.1 : nil, off: off,
+                                           more: ["-stillSky", "-graphFreeze", "-graphDepthMeter", "-graphics" + level])
+                        sleep(6)
+                        snap(app, name)
+                        stills[name] = stillRecord(app)
+                        app.terminate()
+                    }
                 }
             }
+        }
+    }
+
+    /// The map as the owner sees it, moving on its own (no `-graphFreeze`,
+    /// and no `-stillSky`, as the file's other lively pictures), in each
+    /// theme, whole.
+    func testDepthLively() {
+        for pair in Self.depthThemes {
+            let app = depthApp(pair.0, fly: nil, off: false, more: ["-graphicsHigh"])
+            sleep(6)
+            snap(app, "71-\(pair.0)-whole")
+            app.terminate()
         }
     }
 
@@ -478,39 +502,90 @@ final class GraphPreviewUITests: XCTestCase {
         snap(app, "62-2-space-turn-end")
     }
 
-    /// The numbers: frame times (the meter, `-graphDepthMeter`) and
-    /// SceneKit's statistics (draw calls, on each picture) in each theme at
-    /// each Graphics level, whole and flown in close, after and before,
-    /// each after one slow turn, which leaves the sheet tilted (a second
-    /// would bring it back face-on, where the fade is zero). The meter's line says whether the fade was
-    /// on, off, or off because its shader failed the device's check
-    /// ("fallback"), and how many bodies were drawn.
+    /// The numbers: frame times (the meter, `-graphDepthMeter`) in each
+    /// theme at each Graphics level, whole and flown in close, on and off,
+    /// each take after one slow turn from the default (tilted) view. Space
+    /// has three takes of each, alternating on and off, Neurons one; then
+    /// the ablation, Space on High, whole, with the per-pixel shader on its
+    /// bodies (`-graphDepthPerPixel`), three takes. The meter's line says
+    /// whether the fade was on, off, or off because its shader failed the
+    /// device's check ("fallback"), the frame times, how many bodies were
+    /// drawn, the tilt and whether the fade broke its protocol (bad).
     func testDepthMeasure() {
         var lines: [String] = []
-        for (k, pair) in Self.depthThemes.enumerated() {
+        defer { attachText(lines.joined(separator: "\n"), named: "74-depth-numbers") }
+        func cells(_ pair: (String, String), takes: Int) {
             for level in ["High", "Smooth"] {
                 for near in [false, true] {
-                    for off in [false, true] {
-                        let app = depthApp(pair.0, fly: near ? pair.1 : nil, off: off,
-                                           more: ["-graphDepthMeter", "-graphics" + level])
-                        sleep(near ? 6 : 4)
-                        slowTurn(app, times: 1)
-                        usleep(700_000)
-                        let meter = app.staticTexts["graphDepthMeter"]
-                        let read: String = meter.waitForExistence(timeout: 5) ? meter.label : "no meter"
-                        let name = "63-\(k + 1)-\(pair.0)-\(level.lowercased())-\(near ? "near" : "whole")-"
-                            + (off ? "before" : "after")
-                        lines.append(name + ": " + read)
-                        snap(app, name)
-                        app.terminate()
+                    for k in 1...takes {
+                        for mode in ["on", "off"] {
+                            lines.append(measureTake(pair, level, near: near, mode: mode, take: k))
+                        }
                     }
                 }
             }
         }
-        let table = XCTAttachment(string: lines.joined(separator: "\n"))
-        table.name = "63-depth-numbers"
-        table.lifetime = .keepAlways
-        add(table)
+        cells(Self.depthThemes[1], takes: 3)
+        cells(Self.depthThemes[0], takes: 1)
+        for k in 1...3 {
+            lines.append(measureTake(Self.depthThemes[1], "High", near: false, mode: "pixel", take: k))
+        }
+    }
+
+    /// Turning and tilting by hand in each theme, whole, with the meter read
+    /// after each gesture: three turns one way, 300 points down, 600 points
+    /// up, then a double tap on empty map, which frames the default view
+    /// again. Soft checks: the tilt stays within 10...75, nothing bad, and
+    /// the double tap brings the tilt back to the theme's own (35 in
+    /// Neurons, 45 in Space) within 3 degrees.
+    func testDepthSpin() {
+        for pair in Self.depthThemes {
+            let theme: String = pair.0
+            let home: Int = theme == "space" ? 45 : 35
+            var reads: [String] = []
+            let app = depthApp(theme, fly: nil, off: false,
+                               more: ["-stillSky", "-graphFreeze", "-graphDepthMeter", "-graphicsHigh"])
+            _ = waitForMeter(app, frames: 0, seconds: 20)
+            /// A read after a gesture, checked softly.
+            @discardableResult
+            func read(_ label: String, settle: Bool = true) -> DepthRead? {
+                if settle { usleep(700_000) }
+                let line: String = meterLine(app)
+                reads.append("\(label): \(line)")
+                guard let seen = DepthRead(line) else {
+                    XCTFail("\(theme) \(label): no readable meter line: \(line)")
+                    return nil
+                }
+                XCTAssertTrue((10...75).contains(seen.tilt), "\(theme) \(label): tilt \(seen.tilt) is outside 10...75")
+                XCTAssertEqual(seen.bad, 0, "\(theme) \(label): bad \(seen.bad), not 0")
+                return seen
+            }
+            for k in 1...3 {
+                drag(app, from: CGVector(dx: 0.2, dy: 0.3), by: CGVector(dx: 0.6 * app.frame.width, dy: 0), velocity: 120)
+                read("spin-\(k)")
+                snap(app, "72-\(theme)-spin-\(k)")
+            }
+            drag(app, from: CGVector(dx: 0.9, dy: 0.25), by: CGVector(dx: 0, dy: 300), velocity: 200)
+            read("down")
+            snap(app, "73-\(theme)-down")
+            // from low on the screen, so that all of it fits
+            let low: CGFloat = min(app.frame.height - 60, 690) / app.frame.height
+            drag(app, from: CGVector(dx: 0.9, dy: low), by: CGVector(dx: 0, dy: -min(600, low * app.frame.height - 60)),
+                 velocity: 300)
+            read("up")
+            snap(app, "73-\(theme)-up")
+            app.coordinate(withNormalizedOffset: emptySpot(app)).doubleTap()
+            // the framing flies back: up to eight seconds for it
+            for _ in 0..<16 {
+                usleep(500_000)
+                if let seen = DepthRead(meterLine(app)), abs(seen.tilt - home) <= 3 { break }
+            }
+            if let seen = read("double-tap", settle: false) {
+                XCTAssertTrue(abs(seen.tilt - home) <= 3, "\(theme): tilt \(seen.tilt) after the double tap, not \(home)")
+            }
+            attachText(reads.joined(separator: "\n"), named: "72-\(theme)-reads")
+            app.terminate()
+        }
     }
 
     /// A link chip's glide to a body past the band's end: flown in to
@@ -534,6 +609,7 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(chip.exists, "no Atrial fibrillation chip")
         let before: CGRect? = bodyFrame(app, "Atrial fibrillation")
         snap(app, "64-1-space-glide-before")
+        XCTAssertNil(before, "Atrial fibrillation must start past the band's end (not drawn), but it is drawn at \(String(describing: before))")
         chip.tap()
         sleep(1)
         snap(app, "64-2-space-glide-after")
@@ -588,10 +664,187 @@ final class GraphPreviewUITests: XCTestCase {
         return nil
     }
 
+    /// A one-finger drag from a place on the screen (a fraction of its size)
+    /// by so many points, after a quick press, so no body is held.
+    private func drag(_ app: XCUIApplication, from start: CGVector, by move: CGVector, velocity: XCUIGestureVelocity) {
+        let from = app.coordinate(withNormalizedOffset: start)
+        let to = from.withOffset(move)
+        from.press(forDuration: 0.05, thenDragTo: to, withVelocity: velocity, thenHoldForDuration: 0.2)
+    }
+
+    /// The depth meter's line (`-graphDepthMeter`, on the window), or "no meter".
+    private func meterLine(_ app: XCUIApplication) -> String {
+        let meter = app.staticTexts["graphDepthMeter"]
+        return meter.waitForExistence(timeout: 5) ? meter.label : "no meter"
+    }
+
+    /// The meter's line once it has numbers and at least `frames` frame gaps
+    /// (it ignores them for a few seconds after the first frame and after
+    /// each framing), waiting up to about `seconds`; whatever it says by
+    /// then if not.
+    private func waitForMeter(_ app: XCUIApplication, frames: Int, seconds: Int) -> String {
+        var line: String = meterLine(app)
+        for _ in 0..<(seconds * 2) {
+            if let seen = DepthRead(line), seen.n >= frames { break }
+            usleep(500_000)
+            line = meterLine(app)
+        }
+        return line
+    }
+
+    /// One take of the numbers (`testDepthMeasure`): launched, given up to
+    /// twenty seconds to have a frame time, turned slowly once, read.
+    private func measureTake(_ pair: (String, String), _ level: String, near: Bool, mode: String, take: Int) -> String {
+        var more: [String] = ["-graphDepthMeter", "-graphics" + level]
+        if mode == "pixel" { more += ["-graphDepthPerPixel"] }
+        let app = depthApp(pair.0, fly: near ? pair.1 : nil, off: mode == "off", more: more)
+        _ = waitForMeter(app, frames: 1, seconds: 20)
+        slowTurn(app, times: 1)
+        usleep(700_000)
+        let line: String = meterLine(app)
+        app.terminate()
+        return "\(pair.0) \(level.lowercased()) \(near ? "near" : "whole") \(mode) take \(take): \(line)"
+    }
+
+    /// The centre of each body drawn on the screen, as VoiceOver has it: the
+    /// map's accessibility elements are its bodies, each a button with a
+    /// 44-point frame and a value saying what it is (the interface's own
+    /// 44-point buttons, Back, have none). A body not drawn has no frame,
+    /// and one whose centre is off the screen is left out.
+    private func bodyCentres(_ app: XCUIApplication, within screen: CGRect) -> [CGPoint] {
+        var centres: [CGPoint] = []
+        for element in app.buttons.allElementsBoundByIndex {
+            let frame: CGRect = element.frame
+            guard abs(frame.width - 44) < 1, abs(frame.height - 44) < 1 else { continue }
+            let centre = CGPoint(x: frame.midX, y: frame.midY)
+            guard screen.contains(centre) else { continue }
+            let value: String = (element.value as? String) ?? ""
+            if !value.isEmpty { centres.append(centre) }
+        }
+        return centres
+    }
+
+    /// A place on the map with no body near it, as a fraction of the screen,
+    /// for a tap that must land on empty map: of a grid between the top bar
+    /// and the bottom tools, the one farthest from every body.
+    private func emptySpot(_ app: XCUIApplication) -> CGVector {
+        let screen: CGRect = app.frame
+        let centres: [CGPoint] = bodyCentres(app, within: screen)
+        var best = CGPoint(x: screen.width * 0.5, y: screen.height * 0.5)
+        var room: CGFloat = -1
+        for y in stride(from: screen.height * 0.22, through: screen.height * 0.72, by: screen.height * 0.05) {
+            for x in stride(from: screen.width * 0.1, through: screen.width * 0.9, by: screen.width * 0.1) {
+                var nearest: CGFloat = .greatestFiniteMagnitude
+                for centre in centres {
+                    let across: CGFloat = centre.x - x
+                    let down: CGFloat = centre.y - y
+                    nearest = min(nearest, (across * across + down * down).squareRoot())
+                }
+                if nearest > room {
+                    room = nearest
+                    best = CGPoint(x: x, y: y)
+                }
+            }
+        }
+        return CGVector(dx: best.x / screen.width, dy: best.y / screen.height)
+    }
+
+    /// What tools/depth_crops.py needs of one still, all in points: the
+    /// window's size, the meter's frame and line, and a 44-point square
+    /// round each body drawn on the screen.
+    private func stillRecord(_ app: XCUIApplication) -> [String: Any] {
+        let window: XCUIElement = app.windows.firstMatch
+        let screen: CGRect = (window.exists && window.frame.width > 0) ? window.frame : app.frame
+        let meter: XCUIElement = app.staticTexts["graphDepthMeter"]
+        let found: Bool = meter.waitForExistence(timeout: 5)
+        let strip: CGRect = found ? meter.frame : .zero
+        var squares: [[Double]] = []
+        for centre in bodyCentres(app, within: screen) {
+            squares.append([Double(centre.x - 22), Double(centre.y - 22), 44, 44])
+        }
+        return [
+            "size": [Double(screen.width), Double(screen.height)],
+            "meter": [Double(strip.minX), Double(strip.minY), Double(strip.width), Double(strip.height)],
+            "line": found ? meter.label : "no meter",
+            "bodies": squares,
+        ]
+    }
+
+    /// `75-body-frames`: {"stills": {<still's name>: <stillRecord>, ...}} as
+    /// JSON text.
+    private func attachFrames(_ stills: [String: Any]) {
+        let root: [String: Any] = ["stills": stills]
+        guard JSONSerialization.isValidJSONObject(root),
+              let data = try? JSONSerialization.data(withJSONObject: root, options: [.sortedKeys, .withoutEscapingSlashes])
+        else {
+            XCTFail("the body frames could not be written as JSON")
+            return
+        }
+        attachText(String(decoding: data, as: UTF8.self), named: "75-body-frames")
+    }
+
+    /// A text attachment, kept.
+    private func attachText(_ text: String, named name: String) {
+        let attachment = XCTAttachment(string: text)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let shot = uprightShot()
         shot.name = name
         shot.lifetime = .keepAlways
         add(shot)
+    }
+}
+
+/// The depth meter's line (GraphDepthKeeper's readout) as numbers:
+/// `<state> frame %.2f p95 %.2f worst %.2f n %d drawn X/Y dim K out K tilt NN
+/// bad K`, where the state is on, on/pixel, on/glowpx, off or fallback; "waiting"
+/// before the first numbers is no read.
+private struct DepthRead {
+    var state: String = ""
+    var frame: Double = 0
+    var p95: Double = 0
+    var worst: Double = 0
+    var n: Int = 0
+    var drawn: Int = 0
+    var total: Int = 0
+    var dim: Int = 0
+    var out: Int = 0
+    var tilt: Int = 0
+    var bad: Int = 0
+
+    init?(_ line: String) {
+        let words: [Substring] = line.split(whereSeparator: { $0 == " " || $0 == "\n" })
+        guard words.count >= 3 else { return nil }
+        state = String(words[0])
+        var seen = 0
+        var at = 1
+        while at + 1 < words.count {
+            let value: Substring = words[at + 1]
+            switch words[at] {
+            case "frame": if let v = Double(value) { frame = v; seen += 1 }
+            case "p95": if let v = Double(value) { p95 = v; seen += 1 }
+            case "worst": if let v = Double(value) { worst = v; seen += 1 }
+            case "n": if let v = Int(value) { n = v; seen += 1 }
+            case "dim": if let v = Int(value) { dim = v; seen += 1 }
+            case "out": if let v = Int(value) { out = v; seen += 1 }
+            case "tilt": if let v = Int(value) { tilt = v; seen += 1 }
+            case "bad": if let v = Int(value) { bad = v; seen += 1 }
+            case "drawn":
+                let parts: [Substring] = value.split(separator: "/")
+                if parts.count == 2, let a = Int(parts[0]), let b = Int(parts[1]) {
+                    drawn = a
+                    total = b
+                    seen += 1
+                }
+            default: break
+            }
+            at += 2
+        }
+        // frame, p95, worst, n, drawn, dim, out, tilt and bad
+        guard seen == 9 else { return nil }
     }
 }

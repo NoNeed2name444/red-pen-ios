@@ -45,64 +45,42 @@ import simd
 // after whether the fade is on, off, or off because the shader failed its
 // check (GraphDepthState).
 
-/// The depth fade's shader, added at the fragment entry point beside a
-/// material's own shaders. `rpDepthBand` is the band (start, end, k, most:
-/// GraphDepthBand.uniform), `rpDepthAim` the point the camera looks at in
-/// the scene's space, `rpDepthTint` the background's colour (linear) and
-/// the material's GraphDepthMode code in w.
+/// The depth fade's shader on a material: the specialised text
+/// (GraphDepthShaderText, marked "// rp-depth") and its one uniform,
+/// `rpDepthSpan` = (from, 1/width, most), written by the keeper when the
+/// focus or the framing moves.
 nonisolated enum GraphDepthShader {
-    static let fragment: String = """
-    #pragma arguments
-    float4 rpDepthBand;
-    float4 rpDepthTint;
-    float3 rpDepthAim;
-
-    #pragma body
-    float4 rpDepthAt = scn_frame.viewTransform * float4(rpDepthAim, 1.0);
-    float rpDepthFocus = max(-rpDepthAt.z, 0.0005);
-    float rpDepthFrom = rpDepthBand.x * rpDepthFocus;
-    float rpDepthWidth = max((rpDepthBand.y - rpDepthBand.x) * rpDepthFocus, 0.000001);
-    float rpDepthAlong = clamp((-_surface.position.z - rpDepthFrom) / rpDepthWidth, 0.0, 1.0);
-    float rpDepthFade = rpDepthAlong > 0.0 ? pow(rpDepthAlong, rpDepthBand.z) * rpDepthBand.w : 0.0;
-    if (rpDepthTint.w < 0.5) {
-        _output.color.rgb = _output.color.rgb * (1.0 - rpDepthFade);
-    } else if (rpDepthTint.w < 1.5) {
-        _output.color = _output.color * (1.0 - rpDepthFade);
-    } else {
-        _output.color.rgb = mix(_output.color.rgb, rpDepthTint.rgb * _output.color.a, rpDepthFade);
-    }
-    """
-
-    /// Gives `material` the shader and its numbers.
-    static func dress(_ material: SCNMaterial, band: GraphDepthBand, mode: GraphDepthMode,
-                      tint: SIMD3<Float>, aim: SIMD3<Float>) {
+    /// Gives `material` the shader. An opaque material is first made
+    /// blended with no depth write (T0057 ruling 5), so it can dissolve
+    /// into what is behind it rather than be mixed toward a tint.
+    static func dress(_ material: SCNMaterial, band: GraphDepthBand, mode: GraphDepthMode) {
+        if mode == .see, material.blendMode == .replace || material.writesToDepthBuffer {
+            material.blendMode = .alpha
+            material.writesToDepthBuffer = false
+        }
         var modifiers: [SCNShaderModifierEntryPoint: String] = material.shaderModifiers ?? [:]
-        modifiers[.fragment] = fragment
+        modifiers[.fragment] = GraphDepthShaderText.fragment(mode: mode, most: band.most, k: band.k)
         material.shaderModifiers = modifiers
-        let b: SIMD4<Float> = band.uniform
-        material.setValue(NSValue(scnVector4: SCNVector4(x: b.x, y: b.y, z: b.z, w: b.w)), forKey: "rpDepthBand")
-        material.setValue(NSValue(scnVector4: SCNVector4(x: tint.x, y: tint.y, z: tint.z, w: mode.rawValue)),
-                          forKey: "rpDepthTint")
-        point(material, at: aim)
     }
 
-    /// Points `material`'s fade at `aim`.
-    static func point(_ material: SCNMaterial, at aim: SIMD3<Float>) {
-        material.setValue(NSValue(scnVector3: SCNVector3(x: aim.x, y: aim.y, z: aim.z)), forKey: "rpDepthAim")
+    /// Writes the span to `material`.
+    static func span(_ material: SCNMaterial, _ span: SIMD3<Float>) {
+        material.setValue(NSValue(scnVector3: SCNVector3(x: span.x, y: span.y, z: span.z)), forKey: "rpDepthSpan")
+    }
+
+    /// Whether `material`'s fragment shader is the fade's own (its marker).
+    static func own(_ material: SCNMaterial) -> Bool {
+        material.shaderModifiers?[.fragment]?.hasPrefix(GraphDepthShaderText.marker) ?? false
     }
 
     /// How `material` fades, from how it is drawn; nil for one the fade
     /// leaves alone (multiplied over what is behind it).
     static func mode(of material: SCNMaterial) -> GraphDepthMode? {
         switch material.blendMode {
-        case .add, .screen, .subtract, .max:
-            return .light
-        case .multiply:
-            return nil
-        case .alpha, .replace:
-            return GraphDepthMode.of(adds: false, writesDepth: material.writesToDepthBuffer)
-        @unknown default:
-            return nil
+        case .add, .screen, .subtract, .max: return .light
+        case .multiply: return nil
+        case .alpha, .replace: return .see
+        @unknown default: return nil
         }
     }
 }
@@ -126,20 +104,31 @@ nonisolated enum GraphDepthProbe {
 
     private static func run() -> Bool {
         guard let device = MTLCreateSystemDefaultDevice() else { return false }
-        // the probe's camera is 3 in front of the plane: aimed at the plane
-        // it is the focus, so crisp; aimed half a unit ahead of the eye the
-        // band ends at 1.3, so the plane is gone
-        let crisp: Bool = renders(aim: SIMD3<Float>(0, 0, 0), device: device)
-        let gone: Bool = renders(aim: SIMD3<Float>(0, 0, 2.5), device: device)
+        // the probe's camera is 3 in front of the plane: a span starting at
+        // 10 leaves it crisp; one ending at 1 has it gone
+        let crisp: Bool = renders(span: SIMD3<Float>(10, 1, 1), device: device)
+        let gone: Bool = renders(span: SIMD3<Float>(0.5, 2, 1), device: device)
         return crisp && !gone
     }
 
-    private static func renders(aim: SIMD3<Float>, device: MTLDevice) -> Bool {
-        GraphStyleProbe.renders([.fragment: GraphDepthShader.fragment], on: SCNPlane(width: 4, height: 4),
-                                device: device) { material in
+    private static func renders(span: SIMD3<Float>, device: MTLDevice) -> Bool {
+        let text: String = GraphDepthShaderText.fragment(mode: .light, most: 1, k: 1)
+        return GraphStyleProbe.renders([.fragment: text], on: SCNPlane(width: 4, height: 4), device: device) { material in
             material.diffuse.contents = UIColor.white
-            GraphDepthShader.dress(material, band: .neuronsHigh, mode: .light, tint: SIMD3<Float>(0, 0, 0),
-                                   aim: aim)
+            GraphDepthShader.dress(material, band: .neuronsHigh, mode: .light)
+            GraphDepthShader.span(material, span)
+        }
+    }
+
+    /// Whether node opacity fades added light here (Space's per-body fade
+    /// leans on it): an added plane at node opacity 0.5 must still draw.
+    /// Kept as the probe's second answer; where it fails Space's glows get
+    /// the per-pixel shader (on/glowpx).
+    static var opacityFadesLight: Bool {
+        guard let device = MTLCreateSystemDefaultDevice() else { return false }
+        return GraphStyleProbe.renders([:], on: SCNPlane(width: 4, height: 4), device: device) { material in
+            material.diffuse.contents = UIColor(white: 1, alpha: 0.5)
+            material.blendMode = .add
         }
     }
 }
@@ -153,8 +142,10 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
     struct Body {
         let gate: SCNNode
         let pill: SCNNode
+        let label: SCNNode
         let extras: [(node: SCNNode, scale: SIMD3<Float>)]
         var hidden: Bool = false
+        var opacity: Float = 1
         var named: Bool = true
         var kept: Bool = true
         var grown: Float = 1
@@ -164,6 +155,9 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
     let band: GraphDepthBand?
     /// Which of those, for the meter's label.
     let state: GraphDepthState
+    /// Space: each body's gate goes to opacity 1 - f; the Neurons fade
+    /// per pixel.
+    let perBody: Bool
     private weak var world: SCNNode?
     private weak var camera: SCNNode?
     private weak var sky: SCNNode?
@@ -176,31 +170,31 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
     /// Reduce Motion or a still space: extras change size at once.
     private let still: Bool
     private let lock = NSLock()
-    /// The view's camera controller: what the camera orbits. Under the lock.
+    /// Under the lock: what the camera orbits, where the meter's numbers
+    /// go, the framing's reach, the window, and a restart asked for.
     private weak var controller: SCNCameraController?
-    /// Where the meter's numbers go (main thread).
     private weak var readout: UILabel?
-    /// How many bodies the map has, and how many are hidden past the end
-    /// (the meter's "drawn").
+    private var framing: GraphDepthFrame = .whole(0.4)
+    private var window = GraphWindow(aspect: 0.5, share: 1, across: 0, up: 0)
+    private var restartAsked: Bool = false
     private let total: Int
-    private var hiddenCount: Int = 0
 
     // the render thread's own
     private var bodies: [Body]
-    /// The point the shader is aimed at, and whether it has been written.
-    private var aim: SIMD3<Float> = .zero
-    private var aimed: Bool = false
+    private var shownSpan: SIMD3<Float> = .zero
     private var lastFar: Float = -1
     private var lastSky: Float = -1
     private var lastTime: Double = -1
     private var meter: GraphDepthMeter?
+    private var counts = GraphDepthMeter.Counts()
     private var lastRead: Double = 0
 
-    init(band: GraphDepthBand?, state: GraphDepthState, world: SCNNode, camera: SCNNode, sky: SCNNode,
+    init(band: GraphDepthBand?, state: GraphDepthState, perBody: Bool, world: SCNNode, camera: SCNNode, sky: SCNNode,
          sim: GraphSim, builtSky: Float, middle: SIMD3<Float>, materials: [SCNMaterial], bodies: [Body],
          still: Bool, metered: Bool, total: Int) {
         self.band = band
         self.state = state
+        self.perBody = perBody
         self.total = total
         self.world = world
         self.camera = camera
@@ -212,6 +206,16 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
         self.bodies = bodies
         self.still = still
         self.meter = metered ? GraphDepthMeter() : nil
+    }
+
+    /// A framing done (Graph3DView): its reach, the window, and the meter
+    /// starts again (main thread).
+    func framed(_ frame: GraphDepthFrame, window: GraphWindow?) {
+        lock.lock()
+        framing = frame
+        if let window { self.window = window }
+        restartAsked = true
+        lock.unlock()
     }
 
     /// What the camera orbits from now on (main thread).
@@ -233,28 +237,40 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
         let now: Double = CACurrentMediaTime()
         let dt: Float = lastTime < 0 ? 0 : Float(now - lastTime)
         lastTime = now
+        lock.lock()
+        let frame: GraphDepthFrame = framing
+        let seen: GraphWindow = window
+        let restart: Bool = restartAsked
+        restartAsked = false
+        lock.unlock()
+        if restart { meter?.restart() }
         if meter != nil { measure(now) }
-        guard let band, let camera, let world else { return }
+        guard let camera, let world else { return }
         let pose: simd_float4x4 = camera.presentation.simdWorldTransform
         let eye = SIMD3<Float>(pose.columns.3.x, pose.columns.3.y, pose.columns.3.z)
         let forward = SIMD3<Float>(-pose.columns.2.x, -pose.columns.2.y, -pose.columns.2.z)
         let toScene: simd_float4x4 = world.presentation.simdWorldTransform
+        // the pitch from face-on: the camera's back axis against the map's
+        // normal (the world's z)
+        let normal: SIMD4<Float> = toScene * SIMD4<Float>(0, 0, 1, 0)
+        let back = SIMD3<Float>(pose.columns.2.x, pose.columns.2.y, pose.columns.2.z)
+        let up = simd_normalize(SIMD3<Float>(normal.x, normal.y, normal.z))
+        counts.tilt = Int((acos(min(max(simd_dot(simd_normalize(back), up), -1), 1)) * 180 / Float.pi).rounded())
+        guard let band else { return }
         let target: SIMD3<Float> = focusPoint(eye: eye, forward: forward, toScene: toScene)
         let focus: Float = GraphDepthFocus.depth(eye: eye, forward: forward, target: target)
 
-        // the shader finds the focus from the point it is aimed at: aimed
-        // again only once that point's depth no longer matches the focus's
-        let shown: Float = GraphDepthFocus.depth(eye: eye, forward: forward, target: aim)
-        if !aimed || GraphDepthBand.moved(from: shown, to: focus) {
-            aim = target
-            aimed = true
-            for material in materials { GraphDepthShader.point(material, at: target) }
+        // the shader's span, written only when it moves by 0.2% or more
+        let span: SIMD3<Float> = band.uniform(focus: focus, frame: frame)
+        if GraphDepthBand.moved(from: shownSpan.x, to: span.x) || GraphDepthBand.moved(from: shownSpan.y, to: span.y) {
+            shownSpan = span
+            for material in materials { GraphDepthShader.span(material, span) }
         }
 
         // nothing drawn past the end; the backdrop inside the far plane
         if let lens = camera.camera {
             let near = Float(lens.zNear)
-            let far: Float? = band.far(focus: focus, near: near)
+            let far: Float? = band.far(focus: focus, near: near, frame: frame)
             if let far, GraphDepthBand.moved(from: lastFar, to: far) || Float(lens.zFar) != lastFar {
                 lens.zFar = Double(far)
                 lastFar = Float(lens.zFar)
@@ -269,27 +285,50 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
         guard let sim else { return }
         let chosen: Int? = sim.selectedNote
         let toView: simd_float4x4 = pose.inverse * toScene
+        let tanHalf: Float = Float(tan((camera.camera?.fieldOfView ?? 55) * .pi / 360))
+        var tally = GraphDepthMeter.Counts(total: total, tilt: counts.tilt)
         for (i, local, _, _) in sim.pickables() where i < bodies.count {
             let inView: SIMD4<Float> = toView * SIMD4<Float>(local.x, local.y, local.z, 1)
             let z: Float = -inView.z
             let isChosen: Bool = chosen == i
-            // past the end: not drawn, so not picked
-            let gone: Bool = !band.pickable(depth: z, focus: focus)
+            let f: Float = band.fade(depth: z, focus: focus, frame: frame)
+            // past the end (fully faded): not drawn, so not picked
+            let gone: Bool = !band.pickable(depth: z, focus: focus, frame: frame) || (band.culls && f >= 1)
             if gone != bodies[i].hidden {
                 bodies[i].hidden = gone
                 bodies[i].gate.isHidden = gone
-                hiddenCount += gone ? 1 : -1
             }
-            // its name: in the crisp zone, or chosen
-            let named: Bool = GraphDepthPills.shows(depth: z, focus: focus, band: band, chosen: isChosen,
+            // Space: the body's gate at 1 - f, in steps of 1/255
+            if perBody, !gone {
+                let opacity: Float = GraphDepthBand.opacity(fade: f)
+                if GraphDepthBand.stepped(from: bodies[i].opacity, to: opacity) {
+                    bodies[i].opacity = opacity
+                    bodies[i].gate.opacity = CGFloat(opacity)
+                }
+            }
+            // its name: no fade at all, or chosen; never half-faded
+            let named: Bool = GraphDepthPills.shows(depth: z, focus: focus, frame: frame, band: band, chosen: isChosen,
                                                     was: bodies[i].named)
             if named != bodies[i].named {
                 bodies[i].named = named
                 bodies[i].pill.isHidden = !named
             }
+            if meter != nil, !gone {
+                tally.drawn += 1
+                if f >= 0.5 { tally.dim += 1 }
+                if f >= 1 { tally.bad += 1 }
+                let depth: Float = max(z, 0.000_001)
+                let x: Float = inView.x / depth - seen.across * 2 * tanHalf
+                let y: Float = inView.y / depth - seen.up * 2 * tanHalf
+                if abs(y) > tanHalf * seen.share || abs(x) > tanHalf * seen.share * seen.aspect { tally.out += 1 }
+                if named {
+                    let o = Float(bodies[i].label.presentation.opacity)
+                    if o > 0, o < 1 { tally.bad += 1 }
+                    if !isChosen, f >= GraphDepthPills.lingerFade { tally.bad += 1 }
+                }
+            }
             // its extras: gone once mostly faded, back once crisper
             guard !bodies[i].extras.isEmpty, !gone else { continue }
-            let f: Float = band.fade(depth: z, focus: focus)
             let keep: Bool = isChosen || GraphDepthDetail.keeps(fade: f, had: bodies[i].kept)
             bodies[i].kept = keep
             let grown: Float = GraphDepthDetail.grown(bodies[i].grown, keep: keep, dt: dt, still: still)
@@ -301,6 +340,7 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
                 node.simdScale = scale * max(size, 0.001)
             }
         }
+        if meter != nil { counts = tally }
     }
 
     /// What the camera orbits, in the scene's space: the controller's
@@ -325,7 +365,9 @@ nonisolated final class GraphDepthKeeper: @unchecked Sendable {
         meter?.tick(now)
         guard now - lastRead >= 0.5, let meter else { return }
         lastRead = now
-        let text: String = meter.label(state, drawn: total - hiddenCount, of: total)
+        var shown: GraphDepthMeter.Counts = counts
+        if band == nil { shown.drawn = total; shown.total = total }
+        let text: String = meter.label(state, shown)
         lock.lock()
         let label: UILabel? = readout
         lock.unlock()
@@ -380,34 +422,52 @@ enum GraphDepth {
     /// screen.
     static func install(theme: GraphTheme, scene: SCNScene, world: SCNNode, camera: SCNNode, sky: SCNNode,
                         skyRadius: Float, middle: SIMD3<Float>, contrast: Bool, still: Bool, sim: GraphSim,
-                        bodies: [Made], more: [SCNMaterial], tint: SIMD3<Float>) {
+                        bodies: [Made], more: [SCNMaterial]) {
         guard let planned = GraphDepthBand.of(theme, tier: GraphQuality.current.tier, contrast: contrast)
         else { return }
-        // where the shader failed its check the map is drawn as before, and
-        // the meter says so ("fallback")
-        let state: GraphDepthState = GraphDepthState.of(asked: !off, works: off || GraphDepthProbe.latest)
-        let band: GraphDepthBand? = state == .on ? planned : nil
+        let works: Bool = off || GraphDepthProbe.latest
+        let space: Bool = theme == .space
+        let glowPixel: Bool = space && works && !off && !GraphDepthProbe.opacityFadesLight
+        let state: GraphDepthState = GraphDepthState.of(asked: !off, works: works, pixel: space && perPixel,
+                                                        glowPixel: glowPixel)
+        let band: GraphDepthBand? = state.fades ? planned : nil
         guard band != nil || metered else { return }
         var kept: [GraphDepthKeeper.Body] = []
         var materials: [SCNMaterial] = []
         if let band {
             kept = bodies.map(gate)
-            let aim: SIMD3<Float> = world.simdConvertPosition(middle, to: nil)
-            let background: SIMD3<Float> = linear(tint)
-            for material in Self.materials(under: world, more: more) {
+            // Space fades per body (gate opacity): only what is not a body -
+            // links, far lines, the hot ring and disk (`more`) - gets the
+            // shader, unless the ablation or the probe asks for it per pixel
+            let shaded: [SCNMaterial] = space && !perPixel ? Self.materials(under: nil, more: more)
+                                                            : Self.materials(under: world, more: more)
+            for material in shaded {
                 guard let mode = GraphDepthShader.mode(of: material) else { continue }
+                if space, glowPixel == false, perPixel == false, mode == .light, !more.contains(material) { continue }
                 // one with a fragment shader of its own is left as it is
-                if let own = material.shaderModifiers?[.fragment], own != GraphDepthShader.fragment { continue }
-                GraphDepthShader.dress(material, band: band, mode: mode, tint: background, aim: aim)
+                if material.shaderModifiers?[.fragment] != nil, !GraphDepthShader.own(material) { continue }
+                GraphDepthShader.dress(material, band: band, mode: mode)
                 materials.append(material)
             }
         }
-        let keeper = GraphDepthKeeper(band: band, state: state, world: world, camera: camera, sky: sky, sim: sim,
-                                      builtSky: skyRadius, middle: middle, materials: materials, bodies: kept,
-                                      still: still, metered: metered, total: bodies.count)
+        let keeper = GraphDepthKeeper(band: band, state: state, perBody: space && !perPixel, world: world,
+                                      camera: camera, sky: sky, sim: sim, builtSky: skyRadius, middle: middle,
+                                      materials: materials, bodies: kept, still: still, metered: metered,
+                                      total: bodies.count)
         held = held.filter { $0.value.keeper != nil }
         held[ObjectIdentifier(scene)] = Held(keeper)
         GraphDepthKeeper.start(keeper, in: scene)
+    }
+
+    /// `-graphDepthPerPixel`: the per-pixel shader on Space's bodies too
+    /// (on/pixel), for the ablation only.
+    static let perPixel: Bool = ProcessInfo.processInfo.arguments.contains("-graphDepthPerPixel")
+
+    /// A framing or fly-in done on `view` (Graph3DView): the band follows its
+    /// reach, `out` counts against `window`, and the meter starts again.
+    static func framed(_ frame: GraphDepthFrame, on view: SCNView, window: GraphWindow?) {
+        guard let scene = view.scene, let keeper = held[ObjectIdentifier(scene)]?.keeper else { return }
+        keeper.framed(frame, window: window)
     }
 
     /// The scene on `view` follows what its camera orbits (nothing for a
@@ -471,12 +531,12 @@ enum GraphDepth {
         made.node.addChildNode(pill)
         pill.addChildNode(made.label)
         let extras = made.extras.map { (node: $0, scale: $0.simdScale) }
-        return GraphDepthKeeper.Body(gate: gate, pill: pill, extras: extras)
+        return GraphDepthKeeper.Body(gate: gate, pill: pill, label: made.label, extras: extras)
     }
 
     /// Every material under `world` (not the name pills', which are
     /// interface), and `more`, each once.
-    private static func materials(under world: SCNNode, more: [SCNMaterial]) -> [SCNMaterial] {
+    private static func materials(under world: SCNNode?, more: [SCNMaterial]) -> [SCNMaterial] {
         var seen = Set<ObjectIdentifier>()
         var found: [SCNMaterial] = []
         func add(_ material: SCNMaterial) {
@@ -489,13 +549,8 @@ enum GraphDepth {
             }
             for child in node.childNodes { visit(child) }
         }
-        visit(world)
+        if let world { visit(world) }
         for material in more { add(material) }
         return found
-    }
-
-    /// sRGB to linear, as the shader mixes.
-    private static func linear(_ c: SIMD3<Float>) -> SIMD3<Float> {
-        SIMD3<Float>(pow(max(c.x, 0), 2.2), pow(max(c.y, 0), 2.2), pow(max(c.z, 0), 2.2))
     }
 }

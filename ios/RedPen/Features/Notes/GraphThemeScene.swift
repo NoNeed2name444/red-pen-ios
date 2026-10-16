@@ -300,8 +300,7 @@ extension GraphSceneBuilder {
         GraphDepth.install(theme: look.theme, scene: scene, world: world, camera: cameraNode, sky: sky,
                            skyRadius: skyRadius, middle: GraphMapBounds.centre(plan.envelope), contrast: contrast,
                            still: !lively, sim: sim, bodies: made,
-                           more: [look.linkMaterial, look.farMaterial] + look.hotRing.materials,
-                           tint: look.depthTint)
+                           more: [look.linkMaterial, look.farMaterial] + look.hotRing.materials)
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.theme = look.theme
