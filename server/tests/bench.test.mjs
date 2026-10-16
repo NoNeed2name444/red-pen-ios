@@ -60,7 +60,8 @@ console.log('all passed');
 // MARK: the verification bench (tools/verification-bench): T0, docs/verification/rag-plan.md
 // Offline: no network, no model. A bench that miscounts is worse than none.
 {
-  const { spawnSync } = await import('node:child_process');
+  const { spawnSync, execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
   const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, statSync, readdirSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
@@ -70,6 +71,7 @@ console.log('all passed');
   const G = await import(new URL('gates.mjs', bench));
   const L = await import(new URL('lookup-cache.mjs', bench));
   const P = await import(new URL('proof-only.mjs', bench));
+  const Y = await import(new URL('layer.mjs', bench));
   const { DEFAULT_VOTERS } = await import('../accuracy.js');
   let failed = 0;
   const check = (c, w) => { console.log((c ? 'ok   ' : 'FAIL ') + w); if (!c) failed++; };
@@ -262,7 +264,7 @@ console.log('all passed');
   check(G.GATES.length === 8 && G.GATES.filter(([n]) => !/checker answered/.test(n)).length === 7, 'the seven conditions of verdict() and the checker that answered');
   const rep = G.gateReport(rows, run);
   check(/Verified, by truth \| right 1, wrong 0/.test(rep) && /evidence: none"[^|]*\| 62\.5% \(5 of 8\)/.test(rep) && /mean 3\.00; 3 families: 2/.test(rep) && /neurons per check \| mean 24\.8/.test(rep)
-    && /CPU per batch \(ms\) \| median 4\.0, p95 8\.0, max 8\.0 \(2 batches\)/.test(rep) && /external fetches per batch \| median 3, p95 9, max 9: lookups max 6, model calls max 3/.test(rep) && /Brier score 0\.063 over 3 checks/.test(rep), 'the whole report on the fragment: every item of the list');
+    && /CPU per batch \(ms\) \| median 4\.0, p95 8\.0, max 8\.0 \(2 batches; live run, context only\)/.test(rep) && /external fetches per batch \| median 3, p95 9, max 9: lookups max 6, model calls max 3/.test(rep) && /Brier score 0\.063 over 3 checks/.test(rep) && /Checked, by truth \| right 0, wrong 0/.test(rep), 'the whole report on the fragment: every item of the list');
 
   // --- the lookup cache and P's failed lookups
   const dir = mkdtempSync(join(tmpdir(), 'bench-cache-'));
@@ -293,5 +295,61 @@ console.log('all passed');
     && sum.wrong.notProven === 1 && sum.wrong.lookupFailed === 1 && sum.wrongProven.length === 0, 'P: the report by truth, failed lookups apart from not proven');
   check(P.summarize([{ id: 'x', truth: 'wrong', group: 'g', proven: true, failed: false, why: null }]).wrongProven.join() === 'x', 'P: a wrong key proven is named (a false proof)');
   check(P.interleave(['a', 'b', 'c', 'd'], ['X', 'Y']).join('') === 'aXbcYd' && P.interleave(['a', 'b'], ['X'], 4, 1).join('') === 'abX', 'P: the two lists merged in proportion');
+
+  // --- A9: Checked verdicts counted by truth, wrong key checked is not caught
+  const casesA9 = [
+    { truth: 'right', result: { verdict: 'checked' } },
+    { truth: 'wrong', result: { verdict: 'checked' } },
+    { truth: 'wrong', result: { verdict: 'flagged' } },
+  ];
+  const mA9 = Y.measures(casesA9);
+  check(mA9.checked.right === 1 && mA9.checked.wrong === 1 && mA9.checked.n === 2 && mA9.caught.n === 1 && mA9.caught.of === 2, 'A9: measures counts Checked by truth; wrong key checked is not caught');
+  const repA9 = G.gateReport(casesA9.map(c => ({ truth: c.truth, verdict: c.result.verdict })));
+  check(/Checked, by truth \| right 1, wrong 1/.test(repA9), 'A9: gateReport includes Checked by truth');
+
+  // --- A10: worst-batch CPU fixture
+  const cpuWorst = await G.measureWorstBatchCpu();
+  check(Number.isFinite(cpuWorst.warm) && cpuWorst.warm > 0 && Number.isFinite(cpuWorst.cold) && cpuWorst.cold > 0, 'A10: worst-batch CPU fixture measures warm and cold CPU time');
+  check(/CPU per batch \(ms\) \| [^|]*\(2 batches; live run, context only\)/.test(rep), 'A10: live run CPU labelled context only');
+
+  // --- A11: P counts lookups per batch of 4
+  const batchOf4 = [
+    { truth: 'right', group: 'ladder', item: { id: 'p1', kind: 'mcq', stem: 'S1', options: ['Metformin', 'Insulin'], key: 0 } },
+    { truth: 'right', group: 'ladder', item: { id: 'p2', kind: 'mcq', stem: 'S2', options: ['Aspirin', 'Warfarin'], key: 0 } },
+    { truth: 'right', group: 'ladder', item: { id: 'p3', kind: 'mcq', stem: 'S3', options: ['Lisinopril', 'Losartan'], key: 0 } },
+    { truth: 'right', group: 'ladder', item: { id: 'p4', kind: 'mcq', stem: 'S4', options: ['Atorvastatin', 'Simvastatin'], key: 0 } },
+  ];
+  let tally4 = 0;
+  const fetcher4 = async () => { tally4++; return new Response('', { status: 404 }); };
+  const records4 = await P.proveBatch(batchOf4, fetcher4);
+  check(records4.lookups === tally4 && records4.length === 4 && records4.every(r => r.lookups === tally4), 'A11: P counts lookups per batch of 4');
+  const sum4 = P.summarize(records4);
+  check(sum4.lookupsPerBatch && sum4.lookupsPerBatch.max === tally4 && sum4.lookupsPerBatch.mean === tally4, 'A11: P summarize includes lookupsPerBatch');
+
+  // --- A12: proxy mode neuron label
+  const proxyRep = G.gateReport(rows, { ...run, mode: 'proxy' });
+  check(/neurons per check \(upper bound\) \| [^|]*\(upper bound: every call there is the reservation estimate\)/.test(proxyRep), 'A12: in proxy mode gateReport labels neurons as upper bound');
+  check(!/neurons per check \(upper bound\)/.test(rep), 'A12: live run does not label neurons as upper bound');
+
+  // --- A13: P counts network failures per item apart from budget skips
+  const [netFailRec] = await P.proveBatch([{ truth: 'right', group: 'ladder', item: mcq }], async () => new Response('error', { status: 500 }));
+  const fdaOkFetcher = async url => {
+    if (String(url).includes('api.fda.gov')) {
+      return new Response(JSON.stringify({ results: [{ openfda: { generic_name: ['metformin'] }, description: ['metformin treats type 2 diabetes'] }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return new Response('', { status: 404 });
+  };
+  const [budgetSkipRec] = await P.proveBatch([{ truth: 'right', group: 'ladder', item: mcq }], fdaOkFetcher, { chars: 0 });
+  check(netFailRec.failed === true && P.outcomeOf(netFailRec) === 'lookup failed', 'A13: network failure counts as lookup failed');
+  check(budgetSkipRec.failed === false && budgetSkipRec.why === 'budget' && P.outcomeOf(budgetSkipRec) === 'not proven', 'A13: budget skip counts as not proven, not lookup failed');
+
+  // --- A14: question bank fake worker parses path with new URL(url).pathname
+  const bankPath = fileURLToPath(new URL('../../tests/question-bank/bank.test.mjs', import.meta.url));
+  const bankOut = execFileSync(process.execPath, [bankPath], {
+    env: { ...process.env, WORKER: 'http://127.0.0.1:9', KEY: 'dummy' },
+    encoding: 'utf8',
+  });
+  check(bankOut.includes('all question bank tests pass'), 'A14: bank.test.mjs passes with WORKER=http://127.0.0.1:9 and KEY=dummy');
+
   if (failed) { console.error(`${failed} bench checks failed`); process.exit(1); }
 }

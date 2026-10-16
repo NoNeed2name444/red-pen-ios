@@ -131,6 +131,101 @@ export function neuronSummary(batches, rates = NEURON_RATES) {
 
 // MARK: CPU and fetches
 
+export const WORST_BATCH = [
+  { id: 'wb1', kind: 'mcq', stem: 'A 65-year-old patient with type 2 diabetes and hypertension presents with fatigue. Blood glucose is elevated. Which medication should be initiated first line?', options: ['Metformin', 'Insulin glargine', 'Glipizide', 'Empagliflozin', 'Pioglitazone'], key: 0, explanation: 'Metformin is first-line pharmacotherapy for type 2 diabetes mellitus.' },
+  { id: 'wb2', kind: 'mcq', stem: 'A 58-year-old woman with chronic kidney disease stage 3 presents for medication review. Her eGFR is 45 mL/min/1.73m2. Which drug requires dose adjustment or caution?', options: ['Metformin 500 mg daily', 'Lisinopril 10 mg daily', 'Atorvastatin 20 mg', 'Amlodipine 5 mg', 'Aspirin 81 mg'], key: 0, explanation: 'Metformin dosing should be evaluated when eGFR is between 30 and 45.' },
+  { id: 'wb3', kind: 'mcq', stem: 'A 45-year-old man presents with acute chest pain following exertion. ECG reveals ST elevations in leads II, III, and aVF. What is the diagnosis?', options: ['Inferior myocardial infarction', 'Acute pericarditis', 'Aortic dissection', 'Pulmonary embolism', 'Costochondritis'], key: 0, explanation: 'ST-segment elevation in leads II, III, and aVF indicates acute inferior wall myocardial infarction.' },
+  { id: 'wb4', kind: 'mcq', stem: 'A 70-year-old male with atrial fibrillation is evaluated for anticoagulation. CHA2DS2-VASc score is 4. Which agent is indicated?', options: ['Warfarin', 'Aspirin', 'Clopidogrel', 'Dipyridamole', 'Heparin'], key: 0, explanation: 'Oral anticoagulation such as warfarin or direct oral anticoagulants is indicated for stroke prevention.' },
+];
+
+export const cannedCheckBatchFetcher = async (url, init = {}) => {
+  const u = String(url);
+  if (u.includes('api.fda.gov')) {
+    return new Response(JSON.stringify({ results: [{
+      set_id: 'canned-fda-1',
+      effective_time: '20240821',
+      openfda: { generic_name: ['METFORMIN HYDROCHLORIDE'] },
+      indications_and_usage: ['Metformin is indicated as an adjunct to diet and exercise to improve glycemic control in adults with type 2 diabetes mellitus.'],
+      dosage_and_administration: ['The recommended starting dose of metformin is 500 mg orally twice a day with meals.'],
+      contraindications: ['Severe renal impairment (eGFR below 30 mL/min/1.73 m2).'],
+    }] }), { status: 200 });
+  }
+  if (u.includes('wsearch.nlm.nih.gov')) {
+    return new Response('<nlmSearchResult><list><document url="https://medlineplus.gov/heartattack.html"><content name="title">Heart Attack</content><content name="FullSummary">A heart attack happens when blood flow to the heart is blocked.</content></document></list></nlmSearchResult>', { status: 200 });
+  }
+  if (u.includes('europepmc') || u.includes('ebi.ac.uk')) {
+    return new Response(JSON.stringify({ resultList: { result: [] } }), { status: 200 });
+  }
+  if (u.includes('/chat/completions')) {
+    const body = JSON.parse(init.body || '{}');
+    const n = (body.messages?.at(-1)?.content?.match(/### Item /g) || []).length || 4;
+    const items = Array.from({ length: n }, (_, i) => ({ i: i + 1, answer: 'A', risk: 1, evidence: 'supports', cites: ['S1'], issues: [], fix: null }));
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ items }) } }] }), { status: 200 });
+  }
+  return new Response('{}', { status: 404 });
+};
+
+export async function runWorstBatchOnce() {
+  const { DatabaseSync } = await import('node:sqlite');
+  const { checkBatch } = await import('../../server/accuracy.js');
+  const { resetBreakers } = await import('../../server/breakers.js');
+  const db = new DatabaseSync(':memory:');
+  const schemaPath = new URL('../../server/schema.sql', import.meta.url);
+  const schema = readFileSync(schemaPath, 'utf8').split('\n').map(l => l.replace(/--.*$/, '')).join('\n');
+  for (const statement of schema.split(';')) if (statement.trim()) db.exec(statement);
+  db.prepare('INSERT INTO accounts (id, provider, subject, created_at) VALUES (?, ?, ?, ?)').run('bench', 'apple', 'bench', 0);
+  const d1 = d => ({
+    prepare(sql) {
+      const stmt = d.prepare(sql);
+      let args = [];
+      const api = {
+        bind(...a) { args = a; return api; },
+        first: async () => stmt.get(...args) ?? null,
+        all: async () => ({ results: stmt.all(...args) }),
+        run: async () => { const r = stmt.run(...args); return { meta: { changes: Number(r.changes) } }; },
+      };
+      return api;
+    },
+  });
+  const env = {
+    DB: d1(db),
+    BENCH_MODELS: 'on',
+    BENCH_BASE_URL: 'http://stub.invalid/v1',
+    BENCH_API_KEY: 'stub',
+    ACCURACY_VOTERS: 'bench:gemini:gemini-3.5-flash-lite,bench:workers-ai:@cf/openai/gpt-oss-120b',
+    OWNER_ACCOUNT_IDS: 'bench',
+    OWNER_BENCH_DAILY_LIMIT: '100000',
+    ACCURACY_DAILY_CEILING: '100000',
+  };
+  resetBreakers();
+  return checkBatch(env, 'bench', { items: WORST_BATCH }, cannedCheckBatchFetcher, {
+    owner: true,
+    bench: true,
+    budgets: { votes: 240_000, evidence: 30_000, jev: 5_000 },
+  });
+}
+
+export async function measureWorstBatchCpu() {
+  const { execFileSync } = await import('node:child_process');
+  for (let i = 0; i < 20; i++) await runWorstBatchOnce();
+  const t = [];
+  for (let i = 0; i < 30; i++) {
+    const a = cpuMs();
+    await runWorstBatchOnce();
+    t.push(cpuMs() - a);
+  }
+  const warm = t.sort((x, y) => x - y)[15];
+  const gatesUrl = new URL('./gates.mjs', import.meta.url).href;
+  const coldScript = `import { runWorstBatchOnce, cpuMs } from ${JSON.stringify(gatesUrl)}; const a = cpuMs(); await runWorstBatchOnce(); console.log(cpuMs() - a);`;
+  const coldOnce = () => {
+    const out = execFileSync(process.execPath, ['--input-type=module', '-e', coldScript], { encoding: 'utf8' });
+    const lines = out.trim().split('\n');
+    return Number(lines[lines.length - 1]);
+  };
+  const cold = Math.min(coldOnce(), coldOnce(), coldOnce());
+  return { warm: Math.round(warm * 100) / 100, cold: Math.round(cold * 100) / 100 };
+}
+
 /// The batches' CPU (ms) and external fetches (lookups and model calls),
 /// as the median, the 95th percentile and the largest.
 export function costSummary(batches) {
@@ -193,11 +288,13 @@ export function calibration(rows, bins = 5) {
 export function gateReport(rows, run = null) {
   const out = [conditionsReport(rows)];
   const verified = rows.filter(r => r.verdict === 'verified');
+  const checked = rows.filter(r => r.verdict === 'checked');
   const kept = rows.filter(r => r.truth === 'right' || r.truth === 'wrong');
   const none = evidenceNone(rows);
   out.push('## Cost and quality of this run', '');
   out.push('| measure | result |', '|---|---|');
   out.push(`| Verified, by truth | right ${verified.filter(r => r.truth === 'right').length}, wrong ${verified.filter(r => r.truth === 'wrong').length} |`);
+  out.push(`| Checked, by truth | right ${checked.filter(r => r.truth === 'right').length}, wrong ${checked.filter(r => r.truth === 'wrong').length} |`);
   out.push(`| votes saying "evidence: none" | ${pct(none.none, none.votes)} (${none.none} of ${none.votes}) |`);
   for (const truth of ['right', 'wrong']) {
     const f = familiesPerCheck(rows.filter(r => r.truth === truth));
@@ -208,8 +305,16 @@ export function gateReport(rows, run = null) {
   if (batches.length) {
     const nu = neuronSummary(batches);
     const c = costSummary(batches);
-    out.push(`| neurons per check | mean ${fmt(nu.mean)}, p95 ${fmt(nu.p95)}; ${fmt(nu.total, 0)} in all over ${nu.checks} checks (${nu.fromUsage} calls from a reply's usage, ${nu.estimated} estimated as the Worker does) |`);
-    out.push(`| CPU per batch (ms) | median ${fmt(c.cpu.median)}, p95 ${fmt(c.cpu.p95)}, max ${fmt(c.cpu.max)} (${c.batches} batches) |`);
+    const isProxy = run?.mode === 'proxy';
+    const neuronLabel = isProxy ? 'neurons per check (upper bound)' : 'neurons per check';
+    const neuronDetail = isProxy
+      ? 'upper bound: every call there is the reservation estimate'
+      : `${nu.fromUsage} calls from a reply's usage, ${nu.estimated} estimated as the Worker does`;
+    out.push(`| ${neuronLabel} | mean ${fmt(nu.mean)}, p95 ${fmt(nu.p95)}; ${fmt(nu.total, 0)} in all over ${nu.checks} checks (${neuronDetail}) |`);
+    out.push(`| CPU per batch (ms) | median ${fmt(c.cpu.median)}, p95 ${fmt(c.cpu.p95)}, max ${fmt(c.cpu.max)} (${c.batches} batches; live run, context only) |`);
+    if (run?.worstBatchCpu) {
+      out.push(`| worst-batch CPU (ms) | warm ${fmt(run.worstBatchCpu.warm)}, cold ${fmt(run.worstBatchCpu.cold)} (offline fixture) |`);
+    }
     out.push(`| external fetches per batch | median ${fmt(c.fetches.median, 0)}, p95 ${fmt(c.fetches.p95, 0)}, max ${fmt(c.fetches.max, 0)}: lookups max ${fmt(c.lookups.max, 0)}, model calls max ${fmt(c.models.max, 0)} |`);
   } else {
     out.push('| neurons, CPU and fetches per batch | n/a (no per-batch record: the live Worker checked these) |');

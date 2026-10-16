@@ -51,13 +51,14 @@ export function interleave(a, b, totalA = a.length, totalB = b.length) {
 export async function proveBatch(batch, fetcher, { chars = PROOF_CHARS } = {}) {
   const seen = new Map();
   const looked = await Promise.all(batch.map(x => officialFor(x.item, fetcher, seen).catch(() => null)));
+  const lookups = seen.size;
   let left = chars;
   const kept = Math.floor(chars / batch.length / 2);
   const paid = new Map();
-  return batch.map((x, n) => {
+  const out = batch.map((x, n) => {
     const terms = itemTerms(x.item);
-    const base = { id: x.item.id, truth: x.truth, group: x.group, queries: terms.queries, drugs: terms.drugs };
-    if (!looked[n]) return { ...base, entries: 0, unread: 0, failed: true, proven: false, why: 'error' };
+    const base = { id: x.item.id, truth: x.truth, group: x.group, queries: terms.queries, drugs: terms.drugs, lookups };
+    if (!looked[n]) return { ...base, entries: 0, unread: 1, failed: true, proven: false, why: 'error' };
     const { entries, unread } = looked[n];
     const share = Math.max(0, left - kept * (batch.length - n - 1));
     let proof;
@@ -67,8 +68,13 @@ export async function proveBatch(batch, fetcher, { chars = PROOF_CHARS } = {}) {
       proof = p;
     } catch { return { ...base, entries: entries.length, unread, failed: true, proven: false, why: 'error' }; }
     const proven = fullyProven(proof);
-    return { ...base, entries: entries.length, unread, failed: unread > 0, proven, why: proven ? null : proof.why || 'unproven' };
+    const why = proven ? null : proof.why || 'unproven';
+    // A13: network failures alone count as failed lookup, apart from budget skips
+    const failed = unread > 0 && why !== 'budget';
+    return { ...base, entries: entries.length, unread, failed, proven, why };
   });
+  out.lookups = lookups;
+  return out;
 }
 
 /// Where an unproven item's story ends: proven; a failed lookup (its source
@@ -91,12 +97,18 @@ export function summarize(records) {
     return out;
   };
   const groups = [...new Set(records.map(r => r.group))];
+  const batchLookups = [];
+  for (let i = 0; i < records.length; i += BATCH) {
+    const chunk = records.slice(i, i + BATCH);
+    if (chunk.length && typeof chunk[0].lookups === 'number') batchLookups.push(chunk[0].lookups);
+  }
   return {
     all: part(records),
     right: part(records.filter(r => r.truth === 'right')),
     wrong: part(records.filter(r => r.truth === 'wrong')),
     byGroup: Object.fromEntries(groups.map(g => [g, { right: part(records.filter(r => r.group === g && r.truth === 'right')), wrong: part(records.filter(r => r.group === g && r.truth === 'wrong')) }])),
     wrongProven: records.filter(r => r.truth === 'wrong' && r.proven).map(r => r.id),
+    ...(batchLookups.length ? { lookupsPerBatch: { mean: batchLookups.reduce((a, b) => a + b, 0) / batchLookups.length, max: Math.max(...batchLookups) } } : {}),
   };
 }
 
@@ -115,7 +127,9 @@ export function reportFor(records, tally, notes = []) {
     const hist = Object.entries(p.why).sort((a, b) => b[1] - a[1]).map(([w, n]) => `${w} ${n}`).join(', ');
     lines.push('', `${label}: proof.why when not proven: ${hist || 'none'}.`);
   }
-  lines.push('', `Lookups: ${tally.lookups} (${tally.disk} from the disk cache, ${tally.network} network calls, ${tally.retried} retried, ${tally.failed} failed ${JSON.stringify(tally.byStatus)}).`, ...notes, '');
+  lines.push('', `Lookups: ${tally.lookups} (${tally.disk} from the disk cache, ${tally.network} network calls, ${tally.retried} retried, ${tally.failed} failed ${JSON.stringify(tally.byStatus)}).`);
+  if (s.lookupsPerBatch) lines.push(`Lookups per batch of ${BATCH}: mean ${s.lookupsPerBatch.mean.toFixed(1)}, max ${s.lookupsPerBatch.max}.`);
+  lines.push(...notes, '');
   return lines.join('\n');
 }
 

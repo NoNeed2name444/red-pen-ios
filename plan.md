@@ -2053,7 +2053,7 @@ independent review, a merge into personal, then the Worker deploy.
   recall@5 0 of 2; 0 of 3; label-2 documents outside the oracle 0; 0. P
   proved 0 of 20 (no failed lookups, no false proofs). In independent
   review; then the full R and P runs and the proxy baseline (at most one a
-  day).
+  day). Part B (A9-A14) done; worst-batch CPU fixture measured warm 3.6 ms, cold 78 ms.
 - [ ] T1. D0: official recall for proof and a per-source quota in fusion
   (design/official-recall; 0 neurons).
 - [ ] T2. D6: fact chains, the vignette route's real proposer generalised

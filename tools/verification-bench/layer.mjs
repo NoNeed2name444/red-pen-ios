@@ -39,6 +39,41 @@ import { gateReport, cpuMs } from './gates.mjs';
 import { proxyFetcher, proxyEnv, freeVoterPins, usePin, PinRefused } from './proxy.mjs';
 import { stubQuestions } from './stub-questions.mjs';
 
+// MARK: the measures
+
+export const pct = (a, b) => (b ? `${(100 * a / b).toFixed(1)}%` : 'n/a');
+export const verdictOf = r => r.result?.verdict || 'unchecked';
+export const by = (list, f) => list.filter(f).length;
+export function measures(list) {
+  const right = list.filter(r => r.truth === 'right'), wrong = list.filter(r => r.truth === 'wrong');
+  const verified = list.filter(r => verdictOf(r) === 'verified'), flagged = list.filter(r => verdictOf(r) === 'flagged');
+  const checked = list.filter(r => verdictOf(r) === 'checked');
+  const committed = verified.length + flagged.length;
+  const correctCommitted = by(verified, r => r.truth === 'right') + by(flagged, r => r.truth === 'wrong');
+  const rightChecked = by(right, r => verdictOf(r) === 'checked');
+  const wrongChecked = by(wrong, r => verdictOf(r) === 'checked');
+  return {
+    items: list.length,
+    accuracy: { n: correctCommitted, of: committed, text: pct(correctCommitted, committed) },
+    dependability: { n: by(verified, r => r.truth === 'right'), of: verified.length, text: pct(by(verified, r => r.truth === 'right'), verified.length) },
+    caught: { n: by(wrong, r => verdictOf(r) !== 'verified' && verdictOf(r) !== 'checked'), of: wrong.length, text: pct(by(wrong, r => verdictOf(r) !== 'verified' && verdictOf(r) !== 'checked'), wrong.length) },
+    rightVerified: { n: by(right, r => verdictOf(r) === 'verified'), of: right.length, text: pct(by(right, r => verdictOf(r) === 'verified'), right.length) },
+    rightFlagged: { n: by(right, r => verdictOf(r) === 'flagged'), of: right.length, text: pct(by(right, r => verdictOf(r) === 'flagged'), right.length) },
+    checked: { right: rightChecked, wrong: wrongChecked, n: checked.length, text: `right ${rightChecked}, wrong ${wrongChecked}` },
+    rightChecked: { n: rightChecked, of: right.length, text: pct(rightChecked, right.length) },
+    wrongChecked,
+    binary: { n: by(right, r => verdictOf(r) === 'verified') + by(wrong, r => verdictOf(r) !== 'verified'), of: list.length,
+      text: pct(by(right, r => verdictOf(r) === 'verified') + by(wrong, r => verdictOf(r) !== 'verified'), list.length) },
+    abstained: { n: by(list, r => verdictOf(r) === 'check'), of: list.length, text: pct(by(list, r => verdictOf(r) === 'check'), list.length) },
+    unchecked: by(list, r => verdictOf(r) === 'unchecked'),
+    // stated word for word by an official source (the only way to Verified):
+    // a wrong key proven would be a false proof
+    proven: { n: by(right, r => fullyProven(r.result?.proof)), of: right.length, text: pct(by(right, r => fullyProven(r.result?.proof)), right.length) },
+    wrongProven: by(wrong, r => fullyProven(r.result?.proof)),
+  };
+}
+
+export async function main() {
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
 const stubbed = process.argv.includes('--stub');
@@ -220,33 +255,6 @@ for (let b = 0; b < cases.length; b += perBatch) {
 }
 console.log('');
 
-// MARK: the measures
-
-const pct = (a, b) => (b ? `${(100 * a / b).toFixed(1)}%` : 'n/a');
-const verdictOf = r => r.result?.verdict || 'unchecked';
-const by = (list, f) => list.filter(f).length;
-function measures(list) {
-  const right = list.filter(r => r.truth === 'right'), wrong = list.filter(r => r.truth === 'wrong');
-  const verified = list.filter(r => verdictOf(r) === 'verified'), flagged = list.filter(r => verdictOf(r) === 'flagged');
-  const committed = verified.length + flagged.length;
-  const correctCommitted = by(verified, r => r.truth === 'right') + by(flagged, r => r.truth === 'wrong');
-  return {
-    items: list.length,
-    accuracy: { n: correctCommitted, of: committed, text: pct(correctCommitted, committed) },
-    dependability: { n: by(verified, r => r.truth === 'right'), of: verified.length, text: pct(by(verified, r => r.truth === 'right'), verified.length) },
-    caught: { n: by(wrong, r => verdictOf(r) !== 'verified'), of: wrong.length, text: pct(by(wrong, r => verdictOf(r) !== 'verified'), wrong.length) },
-    rightVerified: { n: by(right, r => verdictOf(r) === 'verified'), of: right.length, text: pct(by(right, r => verdictOf(r) === 'verified'), right.length) },
-    rightFlagged: { n: by(right, r => verdictOf(r) === 'flagged'), of: right.length, text: pct(by(right, r => verdictOf(r) === 'flagged'), right.length) },
-    binary: { n: by(right, r => verdictOf(r) === 'verified') + by(wrong, r => verdictOf(r) !== 'verified'), of: list.length,
-      text: pct(by(right, r => verdictOf(r) === 'verified') + by(wrong, r => verdictOf(r) !== 'verified'), list.length) },
-    abstained: { n: by(list, r => verdictOf(r) === 'check'), of: list.length, text: pct(by(list, r => verdictOf(r) === 'check'), list.length) },
-    unchecked: by(list, r => verdictOf(r) === 'unchecked'),
-    // stated word for word by an official source (the only way to Verified):
-    // a wrong key proven would be a false proof
-    proven: { n: by(right, r => fullyProven(r.result?.proof)), of: right.length, text: pct(by(right, r => fullyProven(r.result?.proof)), right.length) },
-    wrongProven: by(wrong, r => fullyProven(r.result?.proof)),
-  };
-}
 const overall = measures(results);
 const lines = [];
 lines.push(`# The verification layer on hard questions`, '');
@@ -254,8 +262,9 @@ lines.push(`${chosen.length} real questions (${wanted.map(s => `${s} ${chosen.fi
 lines.push(`| measure | what it means | result |`, `|---|---|---|`);
 lines.push(`| accuracy | of the checks that gave a verdict (Verified or Flagged), the share that were right | ${overall.accuracy.text} (${overall.accuracy.n}/${overall.accuracy.of}) |`);
 lines.push(`| dependability | of the items marked Verified, the share that really were right | ${overall.dependability.text} (${overall.dependability.n}/${overall.dependability.of}) |`);
-lines.push(`| errors caught | wrong keys not marked Verified | ${overall.caught.text} (${overall.caught.n}/${overall.caught.of}) |`);
+lines.push(`| errors caught | wrong keys not marked Verified or Checked | ${overall.caught.text} (${overall.caught.n}/${overall.caught.of}) |`);
 lines.push(`| right items Verified | correct questions passed | ${overall.rightVerified.text} (${overall.rightVerified.n}/${overall.rightVerified.of}) |`);
+lines.push(`| Checked, by truth | right and wrong keys marked Checked | right ${overall.checked.right}, wrong ${overall.checked.wrong} |`);
 lines.push(`| right items Flagged | correct questions wrongly flagged | ${overall.rightFlagged.text} (${overall.rightFlagged.n}/${overall.rightFlagged.of}) |`);
 lines.push(`| Check this | left for a person (no verdict either way) | ${overall.abstained.text} |`);
 lines.push(`| pass/fail accuracy | Verified only when right, not Verified when wrong, over every check | ${overall.binary.text} |`);
@@ -294,3 +303,8 @@ writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
 writeFileSync(join(outDir, 'results.json'), JSON.stringify(saved, null, 1));
 writeFileSync(join(outDir, 'run.json'), JSON.stringify(run, null, 1));
 console.log(lines.join('\n'));
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(e => { console.error(e); process.exit(1); });
+}
