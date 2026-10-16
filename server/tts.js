@@ -26,7 +26,7 @@
 //
 // Each account may ask for TTS_DAILY_LIMIT lines a day (300 by default) of
 // at most 1,500 characters each; the app splits longer text into sentences.
-import { proGate, spend, refund, wallet, canPay, reserve, settle, proPays, takeNeurons, giveNeurons } from './ai.js';
+import { proGate, spend, refund, wallet, canPay, reserve, settle, takeNeurons, giveNeurons } from './ai.js';
 
 export const MAX_TTS_CHARS = 1500;
 const DEFAULT_DAILY_LIMIT = 300;
@@ -199,7 +199,9 @@ export async function speech(env, accountId, body, fetcher = fetch, { owner = fa
       auraNeurons = 0;
     }
   }
-  if (!useAura && proPays(env)) {
+  // Deepgram Aura on Workers AI is paid from Pro revenue (PRO_PAYS "on"),
+  // never opened by Google's bill (GEMINI_BILLING or seen billing).
+  if (!useAura && env.PRO_PAYS === 'on') {
     payer = await wallet(env, accountId, owner);
     if (payer && await canPay(env, accountId, owner, payer)) {
       reserved = text.length * AURA_MICRO_PER_CHAR;

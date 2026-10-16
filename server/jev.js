@@ -8,7 +8,7 @@
 // unreadable changes nothing: the patterns' answer stands.
 //
 // Every call is paid, so it runs only when its key is set AND Pro money
-// covers paid calls (PRO_PAYS = "on", ai.js proPays); until then this module
+// covers paid calls (PRO_PAYS = "on"); until then this module
 // is inert. Its threshold is the brief's starting point and must be tuned on
 // a few hundred of Stethoscore's own labelled items before it is trusted for
 // anything more than adding checks.
@@ -16,8 +16,6 @@
 // Request and response follow https://api.typesafe.ai/openapi.json: POST
 // /v1/systemone {state, model, questions: {name: {type: 'noul', instructions}}}
 // -> {model, answers: {name: {type: 'noul', noul: 0-1}}}, bearer key.
-
-import { proPays } from './ai.js';
 
 export const DEFAULT_ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 export const DEFAULT_MODEL = 'jev-latest';
@@ -31,8 +29,9 @@ const MAX_STATE_CHARS = 12_000;
 export const OATH_QUESTION = 'This medical study item gives a specific drug dose, states a diagnosis, or recommends a treatment or management step.';
 
 /// Whether Jev may be asked at all: its key, and Pro money for paid calls.
+/// TypeSafe is paid only from Pro revenue (PRO_PAYS "on"), never Google's bill.
 export async function jevAvailable(env) {
-  return !!env.JEV_API_KEY && await proPays(env);
+  return !!env.JEV_API_KEY && env.PRO_PAYS === 'on';
 }
 
 /// P(yes) for the oath question about `text`, or null: not available, too
