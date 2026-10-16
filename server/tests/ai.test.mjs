@@ -678,10 +678,10 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 {
   const { routeFor, costOf } = await import('../ai.js');
   const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
-  const r = routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on' }, 'cramdown-writer');
+  const r = routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20' }, 'cramdown-writer');
   ok(r.sources[0].kind === 'anthropic' && r.sources[0].paid === true && r.sources[0].model === 'claude-opus-5-5',
      'with its key set and Pro paying, Claude is the first source, and a paid one');
-  ok(routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', STETHOSCORE_DEFAULT_MODEL: 'claude-x' }, 'cramdown-writer').sources[0].model === 'claude-x',
+  ok(routeFor({ ...firebase, ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', STETHOSCORE_DEFAULT_MODEL: 'claude-x', GEMINI_PRICES: 'claude-x:4/20' }, 'cramdown-writer').sources[0].model === 'claude-x',
      'STETHOSCORE_DEFAULT_MODEL names the model');
   ok(!routeFor(firebase, 'cramdown-writer').sources.some(s => s.kind === 'anthropic'), 'without the key there is no Claude source at all');
 
@@ -696,7 +696,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(r1.status === 200 && claude === 0 && (await r1.json()).choices[0].message.content === 'gemini', 'PRO_PAYS off: Claude is never called, the free model answers');
 
   // Pro pays: Claude answers, asked the way the Messages API wants
-  const on = () => freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on',
+  const on = () => freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20',
                               PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5' });
   let sent = null, headers = null;
   const answer = { model: 'claude-opus-5-5', stop_reason: 'end_turn', content: [{ type: 'text', text: 'claude' }],

@@ -302,7 +302,7 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 {
   resetBreakers(clock);
   const env = freshEnv({ ...firebase, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', ANTHROPIC_API_KEY: 'ak',
-                         GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50' });
+                         GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,claude-opus-5-5:4/20' });
   const asked = [];
   const fetcher = async url => {
     if (url.includes('anthropic')) { asked.push('claude'); return down(529); }
