@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       source:
-        description: 'The branch to build (personal, or a design/<name> branch)'
+        description: 'The branch to build (main, personal, or a design/<name> branch)'
         required: true
         default: 'personal'
       configuration:
@@ -39,7 +39,7 @@ jobs:
     steps:
       - name: Check the inputs
         run: |
-          case "$SOURCE" in personal|design/*) ;; *) echo "::error::only personal or design/* branches"; exit 1;; esac
+          case "$SOURCE" in main|personal|design/*) ;; *) echo "::error::only main, personal or design/* branches"; exit 1;; esac
           case "$CONFIG" in Release|Debug) ;; *) echo "::error::Release or Debug"; exit 1;; esac
       - uses: actions/checkout@v4
         with:
