@@ -1,0 +1,128 @@
+# One job by Claude Code on the owner's Anthropic key, run by hand from the
+# session: Opus at max effort, on one design branch, inside a dollar cap.
+#
+# The owner (16 Oct) set 30 dollars a month for these jobs, inside the key's
+# 90: the Worker's own Claude checks drop to 60 (CLAUDE_MONTHLY_USD), and the
+# session keeps the jobs' tally from each run's cost line. Each run is capped
+# by --max-budget-usd (at most 10) and pushes only paths inside its scope.
+#
+# The repository is public: the brief, the reply and the log can be read by
+# anyone, so nothing private goes into a brief. Nothing is uploaded as an
+# artifact. The job itself holds no write credential: the checkout keeps no
+# token, it gets no GitHub token and no web tools, and only the last step,
+# after the scope and secret checks, pushes with the workflow's token.
+#
+# A push made with the workflow's token starts no other workflow, so the
+# session runs the checks on the branch afterwards (preflight, and a dispatch
+# of swift-tests and server-tests).
+name: Opus job
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The design/<name> branch to work on and push to'
+        required: true
+      brief:
+        description: 'The task, in full'
+        required: true
+      scope:
+        description: 'Space-separated path prefixes the job may change'
+        required: true
+      budget:
+        description: 'Dollar cap for this run (at most 10)'
+        required: true
+        default: '6'
+      model:
+        description: 'Model'
+        required: false
+        default: 'claude-opus-5-5'
+      effort:
+        description: 'Effort'
+        required: false
+        default: 'max'
+  # A push of this file only registers it; the job runs on dispatch alone.
+  push:
+    paths: ['.github/workflows/opus-job.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: opus-job-${{ inputs.branch || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  job:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # Swift 6.4 is on the PATH here, so tools/preflight.sh runs as it does locally.
+    container: swift:6.4-noble
+    timeout-minutes: 150
+    env:
+      BRANCH: ${{ inputs.branch }}
+      SCOPE: ${{ inputs.scope }}
+      BUDGET: ${{ inputs.budget }}
+      MODEL: ${{ inputs.model }}
+      EFFORT: ${{ inputs.effort }}
+    steps:
+      - name: Check the inputs
+        run: |
+          case "$BRANCH" in design/*) ;; *) echo "::error::only design/* branches"; exit 1;; esac
+          echo "$BUDGET" | grep -Eq '^([0-9](\.[0-9]+)?|10)$' || { echo "::error::budget must be at most 10"; exit 1; }
+          [ -n "$SCOPE" ] || { echo "::error::no scope"; exit 1; }
+      - name: Tools
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git curl jq python3 zip unzip ca-certificates >/dev/null
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Claude Code
+        run: npm install -g @anthropic-ai/claude-code@2.1.301 >/dev/null
+      - name: Run the job
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRIEF: ${{ inputs.brief }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rev-parse HEAD > "$RUNNER_TEMP/base"
+          printf '%s\n' "$BRIEF" > "$RUNNER_TEMP/brief.md"
+          rule="You run in a GitHub Actions container on branch $BRANCH, inside a cap of $BUDGET dollars, with no network tools and no git credentials. Keep scratch files under $RUNNER_TEMP, never in the repository. Commit your work yourself with a plain-English subject and a body saying why; the workflow pushes it afterwards, and only paths under: $SCOPE. Never print or write any key or token, and never change a test or gate just to make it pass. End with a reply of at most 150 words: what you did, the checks you ran and their result, and anything left open."
+          set +e
+          claude -p "$(cat "$RUNNER_TEMP/brief.md")" --append-system-prompt "$rule" \
+            --model "$MODEL" --effort "$EFFORT" --max-budget-usd "$BUDGET" \
+            --permission-mode acceptEdits --allowedTools "Bash,Read,Edit,Write,Glob,Grep" \
+            --output-format json > "$RUNNER_TEMP/result.json"
+          code=$?
+          set -e
+          jq -r '"cost_usd=\(.total_cost_usd) turns=\(.num_turns) subtype=\(.subtype) exit='"$code"'"' "$RUNNER_TEMP/result.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          jq -r '.result // ""' "$RUNNER_TEMP/result.json" | head -c 3000 > "$RUNNER_TEMP/reply.txt"
+          if grep -qF "$ANTHROPIC_API_KEY" "$RUNNER_TEMP/reply.txt"; then echo "::error::the reply held the key; not shown"; : > "$RUNNER_TEMP/reply.txt"; fi
+          { echo; echo '```'; cat "$RUNNER_TEMP/reply.txt"; echo; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Push what is in scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          base=$(cat "$RUNNER_TEMP/base")
+          if [ -n "$(git status --porcelain)" ]; then echo "::warning::uncommitted changes left behind (not pushed):"; git status --short; fi
+          [ "$(git rev-parse HEAD)" != "$base" ] || { echo "no commits"; exit 0; }
+          git merge-base --is-ancestor "$base" HEAD || { echo "::error::history was rewritten"; exit 1; }
+          bad=0
+          for f in $(git diff --no-renames --name-only "$base" HEAD); do
+            ok=0; for p in $SCOPE; do case "$f" in "$p"*) ok=1;; esac; done
+            [ $ok = 1 ] || { echo "::error::out of scope: $f"; bad=1; }
+          done
+          if git diff "$base" HEAD | grep -qE 'sk-ant-[A-Za-z0-9_-]{16}|gh[pousr]_[A-Za-z0-9]{20}'; then echo "::error::the diff looks like it holds a key"; bad=1; fi
+          [ $bad = 0 ] || exit 1
+          git log --oneline "$base"..HEAD
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" \
+            push "https://github.com/$GITHUB_REPOSITORY.git" HEAD:"refs/heads/$BRANCH"
