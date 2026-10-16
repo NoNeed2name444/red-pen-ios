@@ -247,17 +247,19 @@ struct LibraryView: View {
             }
     }
 
-    /// With `-uiPreviewPushBack` on the "library" preview, once home is up,
-    /// notes the book's part names, pushes the first set onto `opened` and
-    /// pops it about 1.5 s later, finishing within 4.5 s of launch.
+    /// With `-uiPreviewPushBack` on the "library" preview, once home is up
+    /// with its parts booked and a set to open, notes the book's part names,
+    /// pushes the first set onto `opened` and pops it about 1.5 s later. A
+    /// slow launch (AX5 on the SE's size takes about half a minute on a busy
+    /// Mac) is waited for, up to 30 s, instead of being reported as no set.
     private func previewPushBack() async {
         guard PreviewLaunch.screen == "library", PreviewLaunch.pushBack else { return }
         do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
-        for _ in 0..<10 where WardPartBook.shared.parts.isEmpty {
+        for _ in 0..<300 where WardPartBook.shared.parts.isEmpty || (loose.first ?? shown.first) == nil {
             do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
         }
-        guard let set = loose.first ?? shown.first else {
-            HomeFitProbe.shared.pushBackDone = false
+        guard let set = loose.first ?? shown.first, !WardPartBook.shared.parts.isEmpty else {
+            HomeFitProbe.shared.pushBackNoSet = true
             return
         }
         HomeFitProbe.shared.beforePush = WardPartBook.shared.parts.values.map(\.name)

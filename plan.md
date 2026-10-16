@@ -2035,6 +2035,14 @@ with the marks on the screens last.
         Nit 2: part-traits.test.mjs knows the other row traits and a `}.`
         line; server-tests.yml runs on the folders it reads.
       - [ ] Confirmed on the next Ward preview, then the fourth review.
+        Ward preview 8 (dfb9a921): every fit report says "fits" and "push
+        and back: done" on every device and size but AX5 (phone and SE),
+        where the push and back gave up at 2.5 s with no set to open; an
+        AX5 launch takes about half a minute. The trip now waits up to 30
+        s for its parts and a set, the report waits for the trip and the
+        rest after its pop, and a trip that never ended says "not
+        finished" apart from "no set to open". Preview only; the gate is
+        unchanged.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

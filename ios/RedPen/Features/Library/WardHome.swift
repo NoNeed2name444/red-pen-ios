@@ -964,9 +964,11 @@ final class HomeFitProbe {
     var widths: [String: Double] = [:]
     var widest: [String: Double] = [:]
     /// The part names (as a multiset) in the book before `-uiPreviewPushBack`
-    /// pushed a set, and whether the push-and-back ran.
+    /// pushed a set, whether the push-and-back ran, and whether it gave up
+    /// with no set to open.
     var beforePush: [String] = []
     var pushBackDone = false
+    var pushBackNoSet = false
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -978,6 +980,16 @@ final class HomeFitProbe {
     func report() async {
         guard PreviewLaunch.screen == "library" else { return }
         do { try await Task.sleep(for: .seconds(6)) } catch { return }
+        // a push and back still under way after a slow launch ends first, and
+        // the page comes to rest after its pop before anything is read
+        if PreviewLaunch.pushBack, !pushBackDone, !pushBackNoSet {
+            for _ in 0..<350 where !pushBackDone && !pushBackNoSet {
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            }
+            if pushBackDone {
+                do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
+            }
+        }
         let words: [HomeFit.Words] = widths.keys.sorted().compactMap { name in
             guard let width = widths[name], let word = widest[name] else { return nil }
             return HomeFit.Words(name: name, width: width, widest: word)
@@ -993,8 +1005,10 @@ final class HomeFitProbe {
         // a probe that measured nothing would call any home fitting
         if parts.isEmpty { faults.append("no row or part of the page was measured") }
         if PreviewLaunch.pushBack {
-            if !pushBackDone {
+            if pushBackNoSet {
                 faults.append("push and back: no set to open")
+            } else if !pushBackDone {
+                faults.append("push and back: not finished")
             } else {
                 var remaining: [String: Int] = [:]
                 for part in parts {
