@@ -241,6 +241,140 @@ check("two parts at one top book it once", ledger.tops == [500])
 ledger.drop(4)
 check("the top stays while another part holds it", ledger.tops == [500])
 
+// MARK: - N4 & N5: push and pop, scroll settlement, and the cut loop guard
+
+// 1. Push and pop with no movement (onAppear re-booking from the remembered spot)
+do {
+    var book = WardPartLedger<Int>()
+    var changes: [[Double]] = []
+    let rect = CGRect(x: 16, y: 1098, width: 300, height: 92)
+    if book.set(1, name: "a Practise tile", rect: rect, reach: 3, scale: 2, atRest: true) {
+        changes.append(book.told)
+    }
+    check("initial rest sighting books the tile and publishes once",
+          book.entries[1] != nil && book.sightings[1] != nil && book.tops == [1095] && changes == [[1095]])
+    if book.drop(1, atRest: true) {
+        changes.append(book.told)
+    }
+    check("push disappear drops both entry and sighting",
+          book.entries[1] == nil && book.sightings[1] == nil && book.tops.isEmpty && changes == [[1095], []])
+    // On pop, onGeometryChange is silent because the rect is unchanged; onAppear hands the spot back.
+    if book.set(1, name: "a Practise tile", rect: rect, reach: 3, scale: 2, atRest: true) {
+        changes.append(book.told)
+    }
+    check("onAppear re-books the identical rect and publishes once",
+          book.entries[1]?.top == 1095 && book.tops == [1095] && changes == [[1095], [], [1095]])
+}
+
+// 2. Push and pop during a transition (atRest: false then rebook())
+do {
+    var book = WardPartLedger<Int>()
+    var changes: [[Double]] = []
+    let rect = CGRect(x: 16, y: 682.3, width: 60, height: 18)
+    if book.set(1, name: "bed 1's Due chip", rect: rect, reach: 0, scale: 3, atRest: true) {
+        changes.append(book.told)
+    }
+    let chipTop = wardBookedTop(682.3, scale: 3)
+    check("chip booked at rest before transition", book.tops == [chipTop] && changes.count == 1)
+    let droppedWhileMoving = book.drop(1, atRest: false)
+    check("mid-push drop clears entry without publishing mid-transition",
+          !droppedWhileMoving && book.entries[1] == nil && book.sightings[1] == nil && book.told == [chipTop])
+    let sightedWhileMoving = book.set(1, name: "bed 1's Due chip", rect: rect, reach: 0, scale: 3, atRest: false)
+    check("mid-pop sighting is kept in sightings without booking or publishing",
+          !sightedWhileMoving && book.sightings[1] != nil && book.entries[1] == nil && book.told == [chipTop])
+    // Because told is still [chipTop] from before the mid-transition drop, verify rebook restores entries
+    // and when tops differ from told, rebook publishes once.
+    let secondRect = CGRect(x: 16, y: 740, width: 300, height: 56)
+    _ = book.set(2, name: "a set row", rect: secondRect, reach: 4, scale: 3, atRest: false)
+    if book.rebook() {
+        changes.append(book.told)
+    }
+    check("rebook on rest restores the popped part and publishes once",
+          book.entries[1]?.top == chipTop && book.entries[2]?.top == 736
+            && book.tops == [chipTop, 736] && changes.count == 2)
+}
+
+// 3. Scroll settlement (atRest: false -> rebook())
+do {
+    var book = WardPartLedger<Int>()
+    var changes: [[Double]] = []
+    if book.set(1, name: "row 1", rect: CGRect(x: 0, y: 500, width: 300, height: 50), reach: 4, scale: 2, atRest: true) {
+        changes.append(book.told)
+    }
+    for y in [480.0, 440.0, 410.0] {
+        if book.set(1, name: "row 1", rect: CGRect(x: 0, y: y, width: 300, height: 50), reach: 4, scale: 2, atRest: false) {
+            changes.append(book.told)
+        }
+    }
+    check("scrolling updates sightings without changing entries or told",
+          book.entries[1]?.top == 496 && book.told == [496] && changes.count == 1)
+    if book.rebook() {
+        changes.append(book.told)
+    }
+    check("rebook at scroll settlement updates entries to final sighting and fires once",
+          book.entries[1]?.top == 406 && book.tops == [406] && changes == [[496], [406]])
+    if book.rebook() {
+        changes.append(book.told)
+    }
+    check("a second rebook with no change does not fire again", changes.count == 2)
+}
+
+// 4. Row recycled off-screen while scrolling (drop + rebook)
+do {
+    var book = WardPartLedger<Int>()
+    var changes: [[Double]] = []
+    _ = book.set(1, name: "row 1", rect: CGRect(x: 0, y: 300, width: 300, height: 50), reach: 0, scale: 2, atRest: true)
+    if book.set(2, name: "row 2", rect: CGRect(x: 0, y: 600, width: 300, height: 50), reach: 0, scale: 2, atRest: true) {
+        changes.append(book.told)
+    }
+    let midDrop = book.drop(1, atRest: false)
+    check("row recycled mid-scroll does not publish until settlement",
+          !midDrop && book.entries[1] == nil && book.sightings[1] == nil && book.told == [300, 600])
+    if book.rebook() {
+        changes.append(book.told)
+    }
+    check("settlement after mid-scroll recycle publishes remaining row once",
+          book.entries[1] == nil && book.entries[2]?.top == 600 && book.tops == [600] && book.told == [600]
+            && changes.last == [600])
+}
+
+// 5. Cut moves above a part at rest (loop guard) vs normal removal above the cut
+do {
+    var book = WardPartLedger<Int>()
+    book.cut = 686
+    _ = book.set(1, name: "chip", rect: CGRect(x: 0, y: 682, width: 60, height: 18), reach: 0, scale: 2, atRest: true)
+    _ = book.set(2, name: "upper row", rect: CGRect(x: 0, y: 400, width: 300, height: 50), reach: 0, scale: 2, atRest: true)
+    let movedCut = HomeFit.settledCut(686, tops: book.tops)
+    check("the chip at 682 moves the cut from 686 to 682", movedCut == 682)
+    book.cut = movedCut
+    let loopDrop = book.drop(1, atRest: true, cut: 682)
+    check("dropping a part at or below the settled cut keeps its entry so settledCut stays at 682",
+          !loopDrop && book.entries[1]?.top == 682 && book.sightings[1] != nil
+            && HomeFit.settledCut(686, tops: book.tops) == 682)
+    // the next rest books the hidden part where it was: nothing published,
+    // so the cut never falls back to show it and hide it again
+    let restAfterHide = book.rebook()
+    check("a part hidden by the cut stays booked through the next rest",
+          !restAfterHide && book.entries[1]?.top == 682 && book.tops.contains(682))
+    let normalDrop = book.drop(2, atRest: true, cut: 682)
+    check("dropping a part above the cut removes it from entries and tops",
+          normalDrop && book.entries[2] == nil && book.sightings[2] == nil && book.tops == [682])
+}
+
+// 6. Dedup across set / drop / rebook
+do {
+    var book = WardPartLedger<Int>()
+    let first = book.set(1, name: "a", rect: CGRect(x: 0, y: 500, width: 100, height: 40), reach: 0, scale: 2, atRest: true)
+    let sameId = book.set(1, name: "a", rect: CGRect(x: 10, y: 500, width: 120, height: 40), reach: 0, scale: 2, atRest: true)
+    let secondSameTop = book.set(2, name: "b", rect: CGRect(x: 140, y: 500, width: 100, height: 40), reach: 0, scale: 2, atRest: true)
+    let dropOneOfTwo = book.drop(1, atRest: true)
+    let rebookSame = book.rebook()
+    let dropLast = book.drop(2, atRest: true)
+    let dropEmpty = book.drop(99, atRest: true)
+    check("told deduplicates identical sorted tops across set, drop and rebook",
+          first && !sameId && !secondSameTop && !dropOneOfTwo && !rebookSame && dropLast && !dropEmpty)
+}
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {

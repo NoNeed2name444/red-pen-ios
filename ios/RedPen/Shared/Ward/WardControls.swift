@@ -73,6 +73,12 @@ final class WardPartBook {
 
     /// The page says whether it is at rest (its list at the top, not moving).
     var atRest: @MainActor () -> Bool = { true }
+    /// The page's settled cut, in the same global points as the booked tops,
+    /// for the loop guard.
+    var cut: Double? {
+        get { ledger.cut }
+        set { ledger.cut = newValue }
+    }
     /// Told the sorted tops (global points) whenever they change. Installed
     /// late (the page's .task), so it is told what the book already holds
     /// the moment it arrives: an early publish is not lost.
@@ -92,24 +98,35 @@ final class WardPartBook {
         ledger.entries.mapValues { Part(name: $0.name, rect: $0.rect) }
     }
 
-    /// One part's frame, kept only while the page is at rest. `reach` is how
-    /// far its face stands out above its frame (a row's tile).
+    /// One part's frame: its sighting is always recorded, and it is booked
+    /// only while the page is at rest. `reach` is how far its face stands out
+    /// above its frame (a row's tile).
     func set(_ id: UUID, name: String, rect: CGRect, reach: CGFloat, scale: CGFloat) {
-        guard atRest() else { return }
-        ledger.set(id, name: name, rect: rect, reach: Double(reach), scale: Double(scale))
-        publish()
+        if ledger.set(id, name: name, rect: rect, reach: Double(reach), scale: Double(scale),
+                      atRest: atRest()) {
+            publish()
+        }
+    }
+
+    /// Books every live sighting again once the page comes to rest.
+    func rebook() {
+        if ledger.rebook() {
+            publish()
+        }
     }
 
     /// A part whose view went away leaves the book.
     func drop(_ id: UUID) {
-        ledger.drop(id)
-        publish()
+        if ledger.drop(id, atRest: atRest()) {
+            publish()
+        }
     }
 
     /// A new page: what the last one held is gone.
     func clear() {
-        ledger.clear()
-        publish()
+        if ledger.clear() {
+            publish()
+        }
     }
 
     private func publish() {
@@ -132,17 +149,30 @@ extension EnvironmentValues {
     }
 }
 
+/// The last frame a `wardPart` saw, kept in a plain object so writing it from
+/// geometry never redraws the list.
+@MainActor
+private final class WardPartSpot {
+    var rect: CGRect?
+}
+
 private struct WardPartModifier: ViewModifier {
     let name: String
     let reach: CGFloat
     @Environment(\.wardPartsProbed) private var probed
     @Environment(\.displayScale) private var displayScale
     @State private var id = UUID()
+    @State private var spot = WardPartSpot()
 
     func body(content: Content) -> some View {
         content
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { rect in
+                spot.rect = rect
                 guard probed else { return }
+                WardPartBook.shared.set(id, name: name, rect: rect, reach: reach, scale: displayScale)
+            }
+            .onAppear {
+                guard probed, let rect = spot.rect else { return }
                 WardPartBook.shared.set(id, name: name, rect: rect, reach: reach, scale: displayScale)
             }
             .onDisappear { WardPartBook.shared.drop(id) }

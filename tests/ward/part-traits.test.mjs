@@ -16,7 +16,7 @@ function check(label, ok, detail = '') {
   if (!ok) failed++;
 }
 
-const TRAIT = /\.(listRow[A-Za-z]*|frostedListRow|wardRowBackground|wardCardRow|wardButtonRow)\(/;
+const TRAIT = /\.(listRow[A-Za-z]*|frostedListRow|wardRowBackground|wardCardRow|wardButtonRow|wardWellRow|swipeActions|tag|badge|listItemTint)(\(|\s*\{)/;
 
 /// Lines (1-based) of a row trait that sits before a wardPart in one chain.
 export function misplaced(text) {
@@ -31,9 +31,14 @@ export function misplaced(text) {
     for (let j = i - 1; j >= 0; j--) {
       const t = lines[j].trimStart();
       const ind = lines[j].length - t.length;
-      if (t === '' || ind !== indent) break;
+      if (t === '') break;
       if (t.startsWith('//')) continue;
-      if (!t.startsWith('.')) break;
+      if (t.startsWith('}.') && ind <= indent) {
+        if (TRAIT.test(t)) found.add(j + 1);
+        if (ind < indent) break;
+        continue;
+      }
+      if (ind !== indent || !t.startsWith('.')) break;
       if (TRAIT.test(t)) found.add(j + 1);
     }
   });
@@ -57,6 +62,15 @@ const old = `
         .contextMenu { }
 `;
 const oneLine = `        row.frostedListRow().wardPart("x")`;
+const extraTraits = [
+  ['wardWellRow', `        .wardWellRow()\n        .wardPart("x")`],
+  ['swipeActions(', `        .swipeActions(edge: .trailing) { }\n        .wardPart("x")`],
+  ['swipeActions {', `        .swipeActions { }\n        .wardPart("x")`],
+  ['tag', `        .tag(1)\n        .wardPart("x")`],
+  ['badge', `        .badge(2)\n        .wardPart("x")`],
+  ['listItemTint', `        .listItemTint(.red)\n        .wardPart("x")`],
+  ['}.frostedListRow()', `        Button {\n        }.frostedListRow()\n            .wardPart("x")`],
+];
 const fixed = `
         .wardPart("a set row", reach: 4)
         // the tile
@@ -69,6 +83,9 @@ const plain = `
 `;
 check('traits before wardPart are caught', misplaced(old).length === 2, misplaced(old).join());
 check('traits before wardPart on one line are caught', misplaced(oneLine).length === 1);
+for (const [name, sample] of extraTraits) {
+  check(`${name} before wardPart is caught`, misplaced(sample).length === 1, misplaced(sample).join());
+}
 check('traits after wardPart pass', misplaced(fixed).length === 0);
 check('a part with no traits passes', misplaced(plain).length === 0);
 

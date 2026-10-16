@@ -224,7 +224,9 @@ struct LibraryView: View {
                 WardPartBook.shared.atRest = { [bandTrack] in bandTrack.isAtRest }
                 WardPartBook.shared.changed = { restTops = $0 }
                 HomeFitProbe.shared.large = typeSize > .large
+                async let trip: Void = previewPushBack()
                 await HomeFitProbe.shared.report()
+                _ = await trip
             }
             .background {
                 Color.clear
@@ -243,6 +245,26 @@ struct LibraryView: View {
                         span = now
                     }
             }
+    }
+
+    /// With `-uiPreviewPushBack` on the "library" preview, once home is up,
+    /// notes the book's part names, pushes the first set onto `opened` and
+    /// pops it about 1.5 s later, finishing within 4.5 s of launch.
+    private func previewPushBack() async {
+        guard PreviewLaunch.screen == "library", PreviewLaunch.pushBack else { return }
+        do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
+        for _ in 0..<10 where WardPartBook.shared.parts.isEmpty {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+        }
+        guard let set = loose.first ?? shown.first else {
+            HomeFitProbe.shared.pushBackDone = false
+            return
+        }
+        HomeFitProbe.shared.beforePush = WardPartBook.shared.parts.values.map(\.name)
+        opened = [set]
+        do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
+        opened = []
+        HomeFitProbe.shared.pushBackDone = true
     }
 
     /// One stack on every shape of window: the dock (or the rail) chooses
@@ -478,6 +500,7 @@ struct LibraryView: View {
             // to VoiceOver and to the UI tests alike, and scrolls into view
             // instead of hiding under New set or the dock.
             .frame(height: pageCutHeight, alignment: .top)
+            .onChange(of: pageCut, initial: true) { _, cut in WardPartBook.shared.cut = cut }
             // where the page really ends, for the preview's fit check
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
                 HomeFitProbe.shared.pageEnd = $0
@@ -565,6 +588,11 @@ struct LibraryView: View {
         guard HomeFit.cut(barTop: Double(barTop), pageTop: top, tops: restTops) != nil else { return nil }
         return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height),
                                      tops: restTops, scale: Double(displayScale)))
+    }
+
+    /// The page's cut y in global points, or nil when the page is not cut.
+    private var pageCut: Double? {
+        pageCutHeight.map { Double(pageFrame.minY + $0) }
     }
 
     /// At large text the round can run past the cut and scroll, but with

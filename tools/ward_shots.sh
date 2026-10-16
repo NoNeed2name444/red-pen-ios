@@ -97,7 +97,9 @@ prepare() {
 
 shoot() {  # appearance, screen, picture name (may hold a folder), extra launch arguments
   local look="$1" screen="$2" name="$3" try size
+  local push=()
   shift 3
+  [ "$screen" = library ] && push=(-uiPreviewPushBack)
   mkdir -p "$(dirname "$SHOTS/$name.png")"
   size=${SIZE:-large}
   xcrun simctl ui "$UDID" appearance "$look"
@@ -106,7 +108,7 @@ shoot() {  # appearance, screen, picture name (may hold a folder), extra launch 
     xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
     # the size as a launch argument too, which UIKit reads before the
     # first frame
-    xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+    xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" "${push[@]}" \
       -UIPreferredContentSizeCategoryName "$(category "$size")" "$@" >> "$LOG" 2>&1 \
       || echo "launch failed: $name" >> "$LOG"
     sleep $((10 + 6 * try))

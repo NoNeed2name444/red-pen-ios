@@ -312,11 +312,14 @@ final class HomeBandTrack {
     /// The header's bottom with the list at its top, once seen.
     private(set) var rest: CGFloat?
     /// How far the list has scrolled from its top.
-    var scroll: CGFloat = 0
+    var scroll: CGFloat = 0 {
+        didSet { noteRest() }
+    }
     /// The bottom of the bar area (HomeMasthead).
     var barBottom: CGFloat = 0
     @ObservationIgnored private var seen: CGFloat?
     @ObservationIgnored private var idle = true
+    @ObservationIgnored private var wasAtRest = true
 
     /// Clear of the header's last line: the band's edge sits this far under it.
     static let belowHeader: CGFloat = 10
@@ -341,14 +344,23 @@ final class HomeBandTrack {
     func settle(idle now: Bool) {
         idle = now
         if now, let seen, (rest ?? .infinity) - scroll > 0 { rest = seen + scroll }
+        noteRest()
+    }
+
+    private func noteRest() {
+        let now: Bool = isAtRest
+        guard now != wasAtRest else { return }
+        wasAtRest = now
+        if now { WardPartBook.shared.rebook() }
     }
 
     /// Another page's list: at its top, its header not yet seen.
     func reset() {
         rest = nil
         seen = nil
-        scroll = 0
         idle = true
+        wasAtRest = true
+        scroll = 0
     }
 }
 
@@ -951,6 +963,10 @@ final class HomeFitProbe {
     /// Each probed text's laid-out width, and its widest word's on its own.
     var widths: [String: Double] = [:]
     var widest: [String: Double] = [:]
+    /// The part names (as a multiset) in the book before `-uiPreviewPushBack`
+    /// pushed a set, and whether the push-and-back ran.
+    var beforePush: [String] = []
+    var pushBackDone = false
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -976,11 +992,35 @@ final class HomeFitProbe {
                                               pageEnd: pageEnd.map { Double($0) }, parts: parts)
         // a probe that measured nothing would call any home fitting
         if parts.isEmpty { faults.append("no row or part of the page was measured") }
+        if PreviewLaunch.pushBack {
+            if !pushBackDone {
+                faults.append("push and back: no set to open")
+            } else {
+                var remaining: [String: Int] = [:]
+                for part in parts {
+                    remaining[part.name, default: 0] += 1
+                }
+                var lost: [String] = []
+                for name in beforePush.sorted() {
+                    if let count = remaining[name], count > 0 {
+                        remaining[name] = count - 1
+                    } else {
+                        lost.append(name)
+                    }
+                }
+                if !lost.isEmpty {
+                    faults.append("parts lost after a push and back: " + lost.joined(separator: ", "))
+                }
+            }
+        }
         func edges(_ rect: CGRect?) -> String {
             guard let rect else { return "none" }
             return "\(Int(rect.minY))-\(Int(rect.maxY))"
         }
         var lines: [String] = faults.isEmpty ? ["fits"] : faults.map { "FAULT " + $0 }
+        if PreviewLaunch.pushBack && pushBackDone {
+            lines.append("push and back: done")
+        }
         let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
                      + "tiles \(edges(tiles)), bar \(edges(bar)), cut \(cut), large text \(large)")

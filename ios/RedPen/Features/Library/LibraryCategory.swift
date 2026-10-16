@@ -95,7 +95,8 @@ extension LibraryView {
         // the page this tile opens zooms out of it (featurePageView)
         .skyZoomSource(Self.zoomID(feature))
         .accessibilityIdentifier("feature-\(feature.rawValue)")
-        .wardPart("the \(feature.rawValue) tile")
+        .wardPart("the \(feature.rawValue) tile",
+                  reach: CGFloat(WardRelief.rimOffset(.low) + WardRelief.rimBlur(.low)))
     }
 
     /// The shared id of a tile and the page it zooms into.

@@ -2012,8 +2012,29 @@ with the marks on the screens last.
         and the book tells `changed` what it already holds the moment the
         page installs it, so an early publish is kept. The book's logic is
         WardPartLedger (Foundation-only, Shared/Ward/WardPartLedger.swift), tested for drop, clear and
-        shared tops in HomeFitTests; the onDisappear and the late-install
-        replay are SwiftUI and are confirmed on the next Mac run.
+        shared tops in HomeFitTests. The Mac run (ward-states-7) confirmed
+        the drop only: nothing in it returned to a page, and the late-install
+        replay cannot be told apart from a later publish.
+    - Third review (REJECT on N4):
+      - [x] N4: a part dropped when its view went away was never booked
+        again (set() books only at rest, and onGeometryChange reports only
+        changes), so after a page was pushed over home and popped the iPad's
+        cut showed 8 pt of the Practise tiles again. The ledger now keeps
+        each live part's latest sighting, booked at the next rest; a part
+        hands its last frame back on onAppear (kept in a plain object, never
+        view state); HomeBandTrack rebooks when the list comes to rest. A
+        part that disappears at rest wholly below the cut is hidden by it,
+        not gone: it keeps its entry and sighting, so the cut cannot fall
+        back, show it and hide it again (a loop at rest). HomeFitTests.
+      - [x] N5: a drop while the list moves no longer re-runs the page; the
+        next rest publishes.
+      - [x] The gate: on the library preview, -uiPreviewPushBack pushes the
+        first set and comes back before the fit report, which flags any part
+        lost on the way (tools/ward_shots.sh passes it on home's shots).
+      - [x] Nit 1: the Practise tiles book their low lift's rim (3 pt).
+        Nit 2: part-traits.test.mjs knows the other row traits and a `}.`
+        line; server-tests.yml runs on the folders it reads.
+      - [ ] Confirmed on the next Ward preview, then the fourth review.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

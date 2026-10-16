@@ -64,6 +64,12 @@ enum PreviewLaunch {
         return CGFloat(h)
     }
 
+    /// On the "library" preview, pushes the first set and comes back before
+    /// the fit check (`-uiPreviewPushBack`).
+    static var pushBack: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiPreviewPushBack")
+    }
+
     /// Asks the window to turn, and keeps asking until it does.
     ///
     /// One attempt in `.task` was not enough: the first landscape pass came
