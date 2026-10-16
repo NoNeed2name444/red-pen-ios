@@ -2088,7 +2088,7 @@ with the marks on the screens last.
       fell back live), and differ from shots/relief-before only where those
       did (the date, and Start's edge under the dock). The cache stays; the
       relief-off take stays in the recording as its standing control.
-- [ ] Before design/launch-anim goes to personal: testDesignTour loses the
+- [x] Before design/launch-anim goes to personal: testDesignTour loses the
   app on its first attempt, at the dock switch (DesignTourUITests.swift:483;
   an assertion in UICollectionView's nested visible-cells update, called from
   SwiftUI's list), in all three Design previews of this branch (2465e89a,
@@ -2137,7 +2137,14 @@ with the marks on the screens last.
   on eaac1d87 (38869778510, attempt 2): every gap 17-89 ms, controls
   included, and that readout on every take. A busier Mac had failed the
   first attempt with relief off too, so the runner, not the change, was at
-  fault.
+  fault. Design preview 38869779008 (eaac1d87): the iPhone tour passed on
+  its first attempt, with 03-library-osce and 04-library-audio not merged
+  (the example set on its own tile, PRACTISE and TOOLS left-aligned, the
+  iPhone's tools two across); testStraightLines found the banner on both
+  devices; the iPad passed both. The accessibility tree is only published
+  when a test fails, so those screenshots stand for "one cell per row".
+  The iPad's testLinkLength failed once there (a simulator tap
+  cancellation; a test-only follow-up, below).
 - [ ] After that, from the same reviews, each with a Launch recording:
   WardRowTile's entrance only on home, not on the thirty other screens that
   use the row background; WardLightImages evicting its oldest images
@@ -2146,6 +2153,9 @@ with the marks on the screens last.
   WardReliefFace) as one structure with both layers and an opacity switch,
   so a face never becomes a new view, with a new accessibility node, in the
   middle of a tap.
+- [ ] Test only: GraphPreviewUITests (about :357) taps the Look menu's item
+  again when linkLengthBar has not appeared, the way the tour retries its
+  taps; the iPad's one failure there was the simulator cancelling the tap.
 
 ### Waiting on the owner
 
