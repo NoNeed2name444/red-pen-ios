@@ -120,8 +120,8 @@ for (alpha, expected) in [(0.0, false), (1e-4, false), (2e-4, true)] {
 // The retro press has separate click and shade tracks, with no overshoot.
 func near(_ a: Double, _ b: Double) -> Bool { abs(a - b) <= 1e-9 }
 check("press constants", WardPress.sinkScale == 0.985 && WardPress.press == 0.05 &&
-      WardPress.release == 0.07 && WardPress.shadePress == 0.15 &&
-      WardPress.shadeRelease == 0.18 && WardPress.depth == 0.7 &&
+      WardPress.release == 0.07 && WardPress.shadePress == 0.21 &&
+      WardPress.shadeRelease == 0.26 && WardPress.depth == 1 &&
       WardPress.softKeep == 0.6 && WardPress.hollowSoft == 1)
 let curve = WardPress.quickCurve
 check("quick curve controls", near(curve.x1, 1.0 / 3) && curve.y1 == 0.5 &&
@@ -167,10 +167,12 @@ for (lift, expected) in zip(WardLift.allCases, [1.0, 1.5, 2.0, 2.5]) {
             let rim = WardRelief.rim(lift, dark: dark, highContrast: strong)
             var previous = spec(0)
             for i in 0...100 {
-                let q = Double(i) / 100, up = 1 - q, down = 0.7 * q
+                let q = Double(i) / 100, up = 1 - q, down = q
                 let current = spec(q)
                 let lights = [current.outerHighlight, current.outerShade, current.innerShade, current.innerHighlight]
-                let originals = [rim.highlight, rim.shade, raised.shade, raised.highlight]
+                var deeper = raised.shade
+                deeper.alpha = min(1, raised.shade.alpha * 1.25)
+                let originals = [rim.highlight, rim.shade, deeper, raised.highlight]
                 let weights = [up, up, down, down]
                 for j in 0..<4 {
                     let light = lights[j], original = originals[j], w = weights[j]
@@ -195,8 +197,8 @@ for (lift, expected) in zip(WardLift.allCases, [1.0, 1.5, 2.0, 2.5]) {
 }
 
 // The rim: the one soft light the app keeps, on buttons only (the owner,
-// 14 Oct). Small: 2 to 3 points of blur and at most 2 of offset, the whole
-// of it within rimReach, which is less than the smallest gap between two
+// 14 Oct). Small: 2 points of blur and at most 3 of offset, the whole of it
+// within rimReach, which is less than the smallest gap between two
 // controls, so it never reaches another control or the words beside it.
 check("the rim's reach is under the scale's smallest gap between controls",
       WardRelief.rimReach < WardScale.s && WardRelief.rimReach <= WardRelief.rimMaxOffset + WardRelief.rimMaxBlur)
@@ -208,7 +210,7 @@ for dark in [false, true] {
             let tag = "rim \(dark ? "dark" : "light") \(lift)\(strong ? " strong" : "")"
             let rim = WardRelief.rim(lift, dark: dark, highContrast: strong)
             let wide = WardRelief.raised(lift, dark: dark, highContrast: strong)
-            check("\(tag): blur 2 to 3 points", (2...WardRelief.rimMaxBlur).contains(rim.highlight.radius) &&
+            check("\(tag): a blur of 2 points", (2...WardRelief.rimMaxBlur).contains(rim.highlight.radius) &&
                   rim.shade.radius == rim.highlight.radius)
             check("\(tag): a small offset, up and left then down and right",
                   rim.highlight.x < 0 && rim.highlight.y < 0 && rim.shade.x > 0 && rim.shade.y > 0 &&
@@ -323,6 +325,48 @@ for origin in stride(from: -37.5, through: 211.0, by: 3.25) {
     }
 }
 check("paper band lines sit on the frame's grid", aligned)
+
+// Raised and pressed in read apart at a glance, in light and dark, at every
+// lift (the owner, 16 Oct: buttons "can't be distinguished between pushed
+// and not"). Raised, the rim stands at the largest offset its reach allows
+// (2, 2.5, 3, 3), with a crisp blur of 2 and a darker shade (0.9 by day,
+// 0.85 at night), and reaches 4 to 5 points, still under the smallest gap
+// between two controls. Pressed in, the face sinks the whole of its lift's
+// lights, the inner shade a quarter stronger. The shade still starts in at
+// the speed it had at the old depth (0.7 over 0.15 and 0.18 seconds).
+for (lift, offset) in zip(WardLift.allCases, [2.0, 2.5, 3, 3]) {
+    check("raised \(lift): offset \(offset), blur 2", WardRelief.rimOffset(lift) == offset && WardRelief.rimBlur(lift) == 2)
+    for dark in [false, true] {
+        for strong in [false, true] {
+            let tag = "\(lift) \(dark ? "dark" : "light")\(strong ? " strong" : "")"
+            let rim = WardRelief.rim(lift, dark: dark, highContrast: strong)
+            let shade = min(1, (dark ? 0.85 : 0.9) + (strong ? 0.15 : 0))
+            check("raised \(tag): the rim's lights", near(rim.shade.alpha, shade) &&
+                  rim.highlight.alpha == (dark ? 0.1 : 0.95) && rim.shade.x == offset && rim.shade.y == offset &&
+                  rim.highlight.x == -offset && rim.shade.radius == 2 && rim.highlight.radius == 2,
+                  "\(rim.shade.alpha) \(rim.shade.x) \(rim.shade.radius)")
+            for light in [rim.highlight, rim.shade] {
+                check("raised \(tag): reaches \(offset + 2), within rimReach, under the gap between controls",
+                      near(WardRelief.reach(light), offset + 2) && WardRelief.reach(light) <= WardRelief.rimReach &&
+                      WardRelief.rimReach == 5 && WardRelief.rimReach < WardScale.s)
+            }
+            let raised = WardRelief.raised(lift, dark: dark, highContrast: strong, control: true)
+            let pressed = WardPress.spec(lift, depth: 1, dark: dark, highContrast: strong)
+            check("pressed \(tag): the whole of the lift's shade, a quarter stronger",
+                  near(pressed.innerShade.alpha, min(1, raised.shade.alpha * 1.25)) &&
+                  near(pressed.innerShade.x, WardRelief.offset(lift)) && near(pressed.innerShade.y, WardRelief.offset(lift)) &&
+                  near(pressed.innerShade.radius, WardRelief.radius(lift)),
+                  "\(pressed.innerShade.alpha) \(pressed.innerShade.x) \(pressed.innerShade.radius)")
+            check("pressed \(tag): and the whole of its highlight",
+                  near(pressed.innerHighlight.alpha, raised.highlight.alpha) &&
+                  near(pressed.innerHighlight.x, -WardRelief.offset(lift)))
+        }
+    }
+}
+check("the shade starts in as fast as at the old depth",
+      abs(WardPress.depth / WardPress.shadePress - 0.7 / 0.15) <= 0.03 * 0.7 / 0.15 &&
+      abs(WardPress.depth / WardPress.shadeRelease - 0.7 / 0.18) <= 0.03 * 0.7 / 0.18 &&
+      WardPress.press == 0.05 && WardPress.release == 0.07)
 
 print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
                        : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")

@@ -160,28 +160,24 @@ enum WardRelief {
     /// A button's rim (the owner, 14 Oct: "add fade to the buttons but only
     /// a very small rim around the buttons enough to make them have
     /// neumorphism but doesn't affect elements behind them"): a highlight
-    /// up and left and a shade down and right, offset 1 to 2 points with a
-    /// blur of 2 to 3, so the whole light stays within `rimReach` of the
+    /// up and left and a shade down and right, offset 2 to 3 points with a
+    /// crisp blur of 2, so the whole light stays within `rimReach` of the
     /// face. That is less than the smallest gap the scale puts between two
     /// controls (WardScale.s), so a rim never reaches another control or
     /// the words beside it, and it is drawn under the face only, never over
     /// what lies behind. Nothing else in the app casts a soft light outward
     /// any more than it did: cards and slabs keep their own relief, and
     /// what floats over a page stays unlit (wardUnlit) except its buttons'
-    /// rims.
+    /// rims. Raised and pressed in read alike at the old 1 to 2 points
+    /// (the owner, 16 Oct: buttons "can't be distinguished between pushed
+    /// and not because the button highte is a bit low"), so the rim now
+    /// stands at the largest offset its reach allows, with less blur, so
+    /// its edge is crisp, and a darker shade.
     static let rimReach = 5.0
-    static let rimMaxBlur = 3.0
-    static let rimMaxOffset = 2.0
+    static let rimMaxBlur = 2.0
+    static let rimMaxOffset = 3.0
 
     static func rimOffset(_ lift: WardLift) -> Double {
-        switch lift {
-        case .low: return 1
-        case .mid: return 1.5
-        case .high, .peak: return 2
-        }
-    }
-
-    static func rimBlur(_ lift: WardLift) -> Double {
         switch lift {
         case .low: return 2
         case .mid: return 2.5
@@ -189,12 +185,15 @@ enum WardRelief {
         }
     }
 
+    static func rimBlur(_ lift: WardLift) -> Double { rimMaxBlur }
+
     /// A small rim reads only when it is strong: stronger than the wide
-    /// relief, which spreads the same light over far more of the base.
+    /// relief, which spreads the same light over far more of the base. The
+    /// dark highlight stays at 0.1, the most it can be without glaring.
     static let rimLightHighlight = 0.95
-    static let rimLightShade = 0.75
+    static let rimLightShade = 0.9
     static let rimDarkHighlight = 0.1
-    static let rimDarkShade = 0.6
+    static let rimDarkShade = 0.85
 
     /// A button's face raised by its rim, with the control's ink edge.
     static func rim(_ lift: WardLift, dark: Bool, highContrast: Bool = false) -> WardReliefSpec {
@@ -257,9 +256,19 @@ enum WardPress {
     static let sinkScale = 0.985
     static let press = 0.05
     static let release = 0.07
-    static let shadePress = 0.15
-    static let shadeRelease = 0.18
-    static let depth = 0.7
+    /// The shade's glide in and out. At the old depth of 0.7 a pressed face
+    /// sank too little to tell from a raised one (the owner, 16 Oct: "the
+    /// pressed doesn't have much depress"), so it now sinks the whole of
+    /// its lift's lights, with the inner shade a quarter stronger. Over the
+    /// old times that would sink half as fast again, a snap rather than a
+    /// press, so the times grow with the depth (0.15 and 0.18 at 0.7):
+    /// the shade starts in at the speed it always had and goes on to the
+    /// new depth. The click (press, release) keeps its time, so the face
+    /// still dips at once under the finger.
+    static let shadePress = 0.21
+    static let shadeRelease = 0.26
+    static let depth = 1.0
+    static let innerShadeGain = 1.25
     static let softKeep = 0.6
     static let hollowSoft = 1.0
 
@@ -298,10 +307,12 @@ enum WardPress {
                             radius: original.radius * (softKeep + (1 - softKeep) * weight))
         }
         let none = WardReliefLight(hex: 0xFFFFFF, alpha: 0, x: 0, y: 0, radius: 0)
+        var deeper = raised.shade
+        deeper.alpha = min(1, deeper.alpha * innerShadeGain)
         return WardPressSpec(blur: control ? 0 : soft(lift) + hollowSoft * q,
                              outerHighlight: control ? light(rim.highlight, weight: up) : none,
                              outerShade: light(control ? rim.shade : raised.shade, weight: up),
-                             innerShade: light(raised.shade, weight: down),
+                             innerShade: light(deeper, weight: down),
                              innerHighlight: light(raised.highlight, weight: down),
                              edgeAlpha: raised.edgeAlpha)
     }

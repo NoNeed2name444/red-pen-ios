@@ -2261,6 +2261,12 @@ with the marks on the screens last.
        Every Ward colour now reads the look as it is drawn (WardLookNow),
        the root hands the look at rest down as a trait so each is resolved
        again when a shift ends, and the paper reads it too.
+    2. Raised and pressed apart: the rim stands at 2, 2.5, 3, 3 points with
+       a crisp blur of 2 (reach 4 to 5, under the gap of 8) and a darker
+       shade (0.9 by day, 0.85 at night); pressed in sinks the whole of its
+       lift's lights (depth 1, was 0.7) with the inner shade a quarter
+       stronger; the shade's glide takes 0.21 and 0.26 s (was 0.15 and
+       0.18), so it starts in at the speed it had.
 
 ### Waiting on the owner
 
