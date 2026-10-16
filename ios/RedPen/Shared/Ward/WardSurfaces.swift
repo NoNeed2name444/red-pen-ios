@@ -560,10 +560,10 @@ extension View {
 
     /// Raised at rest; glides into a hollow at the same lift while held or
     /// chosen. A control, with its ink edge, unless `control` is false (an
-    /// icon tile that only shows a choice).
+    /// icon tile that only shows a choice). `edge` overrides the ring ink.
     func wardRelief<S: InsettableShape>(in shape: S, lift: WardLift = .low, pressed: Bool,
-                                        control: Bool = true) -> some View {
-        background { WardPressFace(shape: shape, lift: lift, pressed: pressed, control: control) }
+                                        control: Bool = true, edge: Color? = nil) -> some View {
+        background { WardPressFace(shape: shape, lift: lift, pressed: pressed, control: control, edge: edge) }
     }
 
     /// The soft UI's controls: the Theatre Blue that reads on the base as

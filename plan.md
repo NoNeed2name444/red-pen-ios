@@ -2276,6 +2276,11 @@ with the marks on the screens last.
     Done (16 Oct): the ward suites 4 of 4 and tools/preflight.sh,
     PREFLIGHT OK; on 33b60aea the new tests fail (wardrelief 3,269 of
     12,135 checks, wardpalette 2 of 206, wardlook does not build).
+  - [ ] Mode tile rings (16 Oct, the owner on New set: "make each button ring
+    has the color of its corresponding mode"). Each kind's tile on New set
+    rings in its own mode's section ink (Questions red, Cards indigo,
+    Textbook teal, Cases orange, OSCE green, Narrate purple), light and dark;
+    waits for its Ward preview (new; phone, SE, Pro Max, iPad; light and dark).
 
 ### Waiting on the owner
 
