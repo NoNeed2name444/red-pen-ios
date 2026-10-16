@@ -58,7 +58,10 @@ enum WardToken: String, CaseIterable {
     /// The vitals monitor's well, dark in both modes
     case monitor
     /// A wrong answer's row: a ground that has stepped back (the owner, 15
-    /// Oct: "the wrong should be faded")
+    /// Oct: "the wrong should be faded"). At night a plain grey, plainly
+    /// lighter than the cards (asked, 16 Oct, darker or lighter: "lighter"),
+    /// where the old blue-grey #353E4A, a little lighter, read like a card;
+    /// by day as it was.
     case faded
     /// The words, strike and cross on the faded row
     case fadedInk
@@ -83,7 +86,7 @@ enum WardPalette {
         .inkSecondary: (0x536171, 0xB8C2D0),
         .hairline:     (0xCFD7E2, 0x04070B),
         .monitor:      (0x0E1B2C, 0x0E1B2C),
-        .faded:        (0xDDE2E8, 0x353E4A),
+        .faded:        (0xDDE2E8, 0x40444B),
         .fadedInk:     (0x52606F, 0xBEC8D3),
     ]
 

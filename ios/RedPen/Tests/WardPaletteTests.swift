@@ -150,6 +150,44 @@ for dark in [false, true] {
               c >= 4.5, String(format: "%.2f", c))
     }
 }
+// Once checked, a wrong pick reads faded, never like the right answer
+// (the owner, 16 Oct: "the faded buttons aren't distinguishable from
+// correct answers"): its face is plainly grey against the cards, at night
+// plainly lighter than them (asked darker or lighter: "lighter") and by day
+// as it was, and it is ringed in the faded ink, not the section's, which
+// reads 3:1 against the face, the cards and the base at a control's edge
+// strength, with and without Increase Contrast.
+func chroma(_ x: UInt32) -> Double {
+    func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+    let (r0, g0, b0) = WardPalette.rgb(x)
+    let (r, g, b) = (linear(r0), linear(g0), linear(b0))
+    let l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+    let m = cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+    let s = cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+    let a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s
+    let bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+    return (a * a + bb * bb).squareRoot()
+}
+let nightFace = WardPalette.hex(.faded, dark: true), nightCard = WardPalette.hex(.surface, dark: true)
+check("night: the faded face is plainly lighter than the cards",
+      WardPalette.luminance(nightFace) > WardPalette.luminance(nightCard) &&
+      WardPalette.contrast(nightFace, nightCard) >= 1.4, String(format: "%.2f", WardPalette.contrast(nightFace, nightCard)))
+check("night: the faded face is grey, greyer than the cards",
+      chroma(nightFace) <= 0.015 && chroma(nightFace) < chroma(nightCard), String(format: "%.4f", chroma(nightFace)))
+check("day: the faded face is as it was", WardPalette.hex(.faded, dark: false) == 0xDDE2E8)
+for dark in [false, true] {
+    let face = WardPalette.hex(.faded, dark: dark)
+    for hc in [false, true] {
+        let ring = WardRelief.composite(WardReliefLight(hex: WardPalette.hex(.fadedInk, dark: dark),
+                                                        alpha: WardRelief.edgeAlpha(dark: dark, highContrast: hc),
+                                                        x: 0, y: 0, radius: 0), on: face)
+        for ground in [WardToken.faded, .surface, .background] {
+            let r = WardPalette.contrast(ring, WardPalette.hex(ground, dark: dark))
+            check("\(dark ? "dark" : "light")\(hc ? " with Increase Contrast" : ""): a wrong pick's ring reads 3:1 on the \(ground)",
+                  r >= WardRelief.edgeContrast, String(format: "%.2f", r))
+        }
+    }
+}
 for p in WardPalette.monitorPromises {
     let r = WardPalette.contrast(WardPalette.hex(p.text, dark: true), WardPalette.hex(.monitor, dark: true))
     check("monitor: \(p.text) at least \(p.ratio)", r >= p.ratio, String(format: "%.2f", r))

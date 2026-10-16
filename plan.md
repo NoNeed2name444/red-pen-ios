@@ -2284,6 +2284,32 @@ with the marks on the screens last.
     Follow-ups: 46 comment lines in 29 files still name Theatre Blue; the
     launch logo still draws "score" in Theatre Blue; the Lens sheet has no
     preview case.
+  - [ ] Press depth (16 Oct, the owner on the checked quiz, light and dark:
+    "the color here doesn't match the mode color", raised and pressed
+    buttons read alike, and a wrong pick reads like a right one). Each
+    waits for its Ward preview (quiz, quiz-checked, library, new, settings,
+    sheet; phone, SE, Pro Max, iPad; light and dark):
+    1. The right answer in the mode's colour: Color.ward fixed the section
+       into a colour when a view's body ran, so the quiz rows, drawn while
+       the app was still outside any section, kept Cards' indigo by day.
+       Every Ward colour now reads the look as it is drawn (WardLookNow),
+       the root hands the look at rest down as a trait so each is resolved
+       again when a shift ends, and the paper reads it too.
+    2. Raised and pressed apart: the rim stands at 2, 2.5, 3, 3 points with
+       a crisp blur of 2 (reach 4 to 5, under the gap of 8) and a darker
+       shade (0.9 by day, 0.85 at night); pressed in sinks the whole of its
+       lift's lights (depth 1, was 0.7) with the inner shade a quarter
+       stronger; the shade's glide takes 0.21 and 0.26 s (was 0.15 and
+       0.18), so it starts in at the speed it had.
+    3. A wrong pick against the right answer: it lies flat (no rim) on the
+       faded face, ringed in the faded ink (3.70:1 or more on the face, the
+       cards and the base); at night the face is a plain grey #40444B,
+       1.46:1 lighter than the cards (was blue-grey #353E4A, 1.32:1), the
+       faded ink 5.77:1 on it; by day as it was. The right answer keeps its
+       section's ring, pressed in at the new depth.
+    Done (16 Oct): the ward suites 4 of 4 and tools/preflight.sh,
+    PREFLIGHT OK; on 33b60aea the new tests fail (wardrelief 3,269 of
+    12,135 checks, wardpalette 2 of 206, wardlook does not build).
 
 ### Waiting on the owner
 

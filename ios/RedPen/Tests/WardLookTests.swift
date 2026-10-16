@@ -378,5 +378,43 @@ for dark in [false, true] {
     }
 }
 
+// A colour reads the look as it is drawn (WardLookNow), not as it was
+// when a view's body ran: the quiz's right answer, made while the app was
+// still outside any section, shows the section the screen set after it,
+// in both modes (the owner, 16 Oct: "the color here doesn't match the mode
+// color"), and so does every other Ward colour.
+do {
+    let now = WardLookNow()
+    let outside = WardLook(dark: false, section: WardSection.outside)
+    check("the look starts outside any section", now.glide == .rest(outside) && WardLookNow.shared.glide == .rest(outside))
+    now.set(.rest(WardLook(dark: false, section: .questions)))
+    check("a right answer made outside any section shows Questions' accent by day",
+          now.hex(.primaryInk, dark: false) == 0x970525, h(now.hex(.primaryInk, dark: false)))
+    check("and at night", now.hex(.primaryInk, dark: true) == 0xD98888, h(now.hex(.primaryInk, dark: true)))
+    check("and its edges Questions' ink", now.ink(dark: false) == 0xC82D40 && now.ink(dark: true) == 0xF0777A)
+    for section in WardSection.allCases {
+        for dark in [false, true] {
+            now.set(.rest(WardLook(dark: dark, section: section)))
+            for token in WardToken.allCases {
+                let want: UInt32 = token == .primaryInk ? section.accent(dark: dark)
+                    : token == .primary ? section.fill(dark: dark) : WardPalette.hex(token, dark: dark)
+                check("drawn now: \(section) \(dark ? "dark" : "light") \(token)", now.hex(token, dark: dark) == want,
+                      h(now.hex(token, dark: dark)) + " vs " + h(want))
+            }
+            check("drawn now: \(section) \(dark ? "dark" : "light") ink", now.ink(dark: dark) == section.ink(dark: dark))
+        }
+    }
+    let shift = WardGlide(from: outside, to: WardLook(dark: false, section: .questions), progress: 0.5)
+    now.set(shift)
+    check("mid-shift, a colour is this frame's", now.hex(.primaryInk, dark: false) == shift.hex(.primaryInk, dark: false) &&
+          now.ink(dark: false) == shift.ink(dark: false))
+    check("a part held in one mode keeps it mid-shift",
+          now.hex(.primaryInk, dark: true, held: true) == shift.hex(.primaryInk, dark: true, held: true))
+    let rest = WardLook(dark: true, section: .audio)
+    check("a face or the paper draws the look at rest it was handed",
+          WardGlide.drawn(rest: rest, live: shift) == .rest(rest))
+    check("and the shift's frame where it was handed none", WardGlide.drawn(rest: nil, live: shift) == shift)
+}
+
 print(failures.isEmpty ? "\nall passed" : "\n\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

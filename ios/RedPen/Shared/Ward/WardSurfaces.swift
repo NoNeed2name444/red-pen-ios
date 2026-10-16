@@ -81,6 +81,12 @@ struct WardPressFace<S: InsettableShape>: View {
     var pressed: Bool
     var fill = AnyShapeStyle(Color.wardSurface)
     var control = true
+    /// Lies flat, with no rim: a face that must never read as lifted (a
+    /// wrong pick, whose face is lighter than the cards at night).
+    var flat = false
+    /// The ring's ink, where it is not the section's (a wrong pick's, in
+    /// the faded ink).
+    var edge: Color?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -92,15 +98,17 @@ struct WardPressFace<S: InsettableShape>: View {
         let night: Double = WardLookStore.shared.glide.night(dark: scheme == .dark, held: held)
         WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill,
                         night: night, strong: contrast == .increased, control: control,
-                        unlit: unlit)
+                        unlit: unlit, flat: flat, edge: edge)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .preference(key: WardHoldsControl.self, value: true)
     }
 }
 
 extension WardPressFace {
-    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color, control: Bool = true) {
-        self.init(shape: shape, lift: lift, pressed: pressed, fill: AnyShapeStyle(fill), control: control)
+    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color, control: Bool = true,
+         flat: Bool = false, edge: Color? = nil) {
+        self.init(shape: shape, lift: lift, pressed: pressed, fill: AnyShapeStyle(fill), control: control,
+                  flat: flat, edge: edge)
     }
 }
 
@@ -113,6 +121,8 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     let strong: Bool
     let control: Bool
     var unlit = false
+    var flat = false
+    var edge: Color?
 
     var animatableData: Double {
         get { depth }
@@ -123,7 +133,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
         let spec = WardPress.spec(lift, depth: depth, night: night, highContrast: strong, control: control)
         // a button keeps its small rim even where the page is unlit: the
         // one soft light the app allows (WardRelief.rim)
-        let lit: Bool = control || !unlit
+        let lit: Bool = (control || !unlit) && !flat
         ZStack {
             ZStack {
                 if lit && (spec.outerShade.lit || spec.outerHighlight.lit) {
@@ -141,7 +151,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
             .compositingGroup()
             .blur(radius: unlit || spec.blur == 0 ? 0 : spec.blur)
             if spec.edgeAlpha > 0 {
-                shape.strokeBorder(Color.wardEdgeInk.opacity(spec.edgeAlpha), lineWidth: 1)
+                shape.strokeBorder((edge ?? Color.wardEdgeInk).opacity(spec.edgeAlpha), lineWidth: 1)
             }
         }
     }
@@ -244,11 +254,13 @@ struct WardPaperFrame: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
+    /// read so the end of every shift redraws it (WardRestLookTrait)
+    @Environment(\.wardRestLook) private var restLook
 
     var body: some View {
         let top: CGFloat? = WardPaperTop.shared.y
         // the section's ink and the base, this frame of the shift
-        let ink = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
+        let ink = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                 highContrast: contrast == .increased)
         let base: Color = .wardBackground
         Canvas { context, size in
@@ -332,11 +344,13 @@ struct WardPaperBand: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
+    /// read so the end of every shift redraws it (WardRestLookTrait)
+    @Environment(\.wardRestLook) private var restLook
     @State private var origin: CGPoint = .zero
 
     var body: some View {
         // the section's ink and the base, this frame of the shift
-        let paper = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
+        let paper = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                   highContrast: contrast == .increased)
         let ink = WardPaperInk(hex: paper.hex, fine: grid ? paper.fine : 0, bold: grid ? paper.bold : 0, edge: paper.edge)
         let base: Color = .wardBackground
@@ -458,9 +472,11 @@ struct WardScrollEdgeLine: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
+    /// read so the end of every shift redraws it (WardRestLookTrait)
+    @Environment(\.wardRestLook) private var restLook
 
     var body: some View {
-        let ink = WardPaper.ink(look: WardLookStore.shared.glide, dark: scheme == .dark, held: held,
+        let ink = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                 highContrast: contrast == .increased)
         let (r, g, b) = WardPalette.rgb(ink.hex)
         Rectangle()
