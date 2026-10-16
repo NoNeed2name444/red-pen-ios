@@ -1,6 +1,7 @@
 // The Ward Round palette: every text colour keeps its promised contrast on
 // the surface it sits on, in light and in dark, and the app's AccentColor
-// asset is Theatre Blue from the same table.
+// and LaunchBackground assets are the primary (Cards' indigo) and the bases
+// from the same table.
 import Foundation
 
 var failures: [String] = []
@@ -27,7 +28,7 @@ for dark in [false, true] {
 // it, with the well's inner shade over its edge (the review's B4). Every ink
 // a chip can wear reads 4.5:1 on it, in light and dark, with and without
 // Increase Contrast (which deepens the shade): the semantic tones' words,
-// Biro Grey, Chart Ink and Theatre Blue, and every section's accent, which
+// Biro Grey, Chart Ink and the primary, and every section's accent, which
 // is what the New chip and the bed chips take.
 check("the shade is there at a chip's edge and gone where its words start",
       WardRelief.shadeCoverage(.low, depth: 0) > 0.5 && WardRelief.shadeCoverage(.low, depth: 6) < 0.01)
@@ -68,25 +69,21 @@ for dark in [false, true] {
     check("\(mode): a groove shows but stays soft", groove >= 1.1 && groove < 1.6,
           String(format: "%.2f", groove))
 }
+// palette direction 3's grounds (16 Oct): the launch screen is drawn on them
 check("the bases the launch screen is drawn on are kept",
-      WardPalette.hex(.background, dark: false) == 0xE0E5EC && WardPalette.hex(.background, dark: true) == 0x2A2E35)
+      WardPalette.hex(.background, dark: false) == 0xE9EDF2 && WardPalette.hex(.background, dark: true) == 0x171C24)
 
-// two characters, not one palette inverted: the night accent is its own hue,
-// and every text colour differs between the modes
-func hue(_ hex: UInt32) -> Double {
-    let (r, g, b) = WardPalette.rgb(hex)
-    let mx = max(r, g, b), mn = min(r, g, b), d = mx - mn
-    guard d > 0 else { return 0 }
-    var h: Double
-    if mx == r { h = ((g - b) / d).truncatingRemainder(dividingBy: 6) }
-    else if mx == g { h = (b - r) / d + 2 }
-    else { h = (r - g) / d + 4 }
-    h *= 60
-    return h < 0 ? h + 360 : h
+// two characters, not one palette inverted: every text colour differs
+// between the modes. (The check that the night accent sits 12 degrees or
+// more from the day's is retired: it pinned the old cyan night, and the
+// owner's indigo is one hue in both modes, 8.7 degrees apart.) The primary
+// is the look outside any section: Cards' fill and accent.
+for dark in [false, true] {
+    check("\(dark ? "dark" : "light"): primary and primaryInk are Cards' fill and accent",
+          WardPalette.hex(.primary, dark: dark) == WardSection.cards.fill(dark: dark) &&
+          WardPalette.hex(.primaryInk, dark: dark) == WardSection.cards.accent(dark: dark) &&
+          WardSection.outside == .cards)
 }
-let dayHue = hue(WardPalette.hex(.primaryInk, dark: false)), nightHue = hue(WardPalette.hex(.primaryInk, dark: true))
-check("the night accent is a different hue from the day's", abs(dayHue - nightHue) >= 12,
-      String(format: "%.0f vs %.0f", dayHue, nightHue))
 for token in [WardToken.primaryInk, .ecg, .success, .warning, .danger, .ink, .inkSecondary, .beam] {
     check("\(token) has a value of its own in each mode",
           WardPalette.hex(token, dark: false) != WardPalette.hex(token, dark: true))
@@ -132,8 +129,27 @@ check("the scale is 4, 8, 12, 16, 24, 32", WardScale.steps == [4, 8, 12, 16, 24,
 check("on the scale", WardScale.onScale(12) && !WardScale.onScale(10) && !WardScale.onScale(20))
 
 check("light: the base is a light grey", WardPalette.luminance(WardPalette.hex(.background, dark: false)) > 0.7)
+// 0.010, not 0.015: the owner's #171C24 measures 0.0114, still far from black
 check("dark: the base is a dark grey, not black",
-      (0.015...0.06).contains(WardPalette.luminance(WardPalette.hex(.background, dark: true))))
+      (0.010...0.06).contains(WardPalette.luminance(WardPalette.hex(.background, dark: true))))
+
+// A wrong answer is the faded row (the owner, 15 Oct: "the wrong should be
+// faded"), in colours, never opacity: its ink reads 4.5:1 on its face, on
+// the quiz's raised row and on the Lens's row pressed into the card (the
+// inner shade included, at the chip's text depth), with and without
+// Increase Contrast.
+for dark in [false, true] {
+    let mode = dark ? "dark" : "light"
+    let ink = WardPalette.hex(.fadedInk, dark: dark), face = WardPalette.hex(.faded, dark: dark)
+    let r = WardPalette.contrast(ink, face)
+    check("\(mode): the faded ink reads 4.5:1 on the faded row", r >= 4.5, String(format: "%.2f", r))
+    for hc in [false, true] {
+        let ground = WardRelief.insetGround(face, lift: .low, dark: dark, highContrast: hc, depth: chipTextDepth)
+        let c = WardPalette.contrast(ink, ground)
+        check("\(mode)\(hc ? " with Increase Contrast" : ""): the faded ink reads 4.5:1 on its inset row",
+              c >= 4.5, String(format: "%.2f", c))
+    }
+}
 for p in WardPalette.monitorPromises {
     let r = WardPalette.contrast(WardPalette.hex(p.text, dark: true), WardPalette.hex(.monitor, dark: true))
     check("monitor: \(p.text) at least \(p.ratio)", r >= p.ratio, String(format: "%.2f", r))
@@ -147,8 +163,8 @@ while !FileManager.default.fileExists(atPath: root.appendingPathComponent("ios/R
 }
 let accent = root.appendingPathComponent("ios/RedPen/Assets.xcassets/AccentColor.colorset/Contents.json")
 check("the AccentColor asset is found", FileManager.default.fileExists(atPath: accent.path), accent.path)
-func components(_ appearance: String?) -> UInt32? {
-    guard let data = try? Data(contentsOf: accent),
+func components(_ appearance: String?, in asset: URL = accent) -> UInt32? {
+    guard let data = try? Data(contentsOf: asset),
           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
           let colors = json["colors"] as? [[String: Any]] else { return nil }
     for entry in colors {
@@ -161,10 +177,15 @@ func components(_ appearance: String?) -> UInt32? {
     }
     return nil
 }
-check("AccentColor (light) is Theatre Blue", components(nil) == WardPalette.hex(.primary, dark: false),
+check("AccentColor (light) is the primary, Cards' indigo", components(nil) == WardPalette.hex(.primary, dark: false),
       String(components(nil) ?? 0, radix: 16))
-check("AccentColor (dark) is the night-shift primary", components("dark") == WardPalette.hex(.primaryInk, dark: true),
+check("AccentColor (dark) is the night primary ink, Cards' indigo", components("dark") == WardPalette.hex(.primaryInk, dark: true),
       String(components("dark") ?? 0, radix: 16))
+let launch = root.appendingPathComponent("ios/RedPen/Assets.xcassets/LaunchBackground.colorset/Contents.json")
+check("LaunchBackground (light) is the base", components(nil, in: launch) == WardPalette.hex(.background, dark: false),
+      String(components(nil, in: launch) ?? 0, radix: 16))
+check("LaunchBackground (dark) is the base", components("dark", in: launch) == WardPalette.hex(.background, dark: true),
+      String(components("dark", in: launch) ?? 0, radix: 16))
 
 print(failures.isEmpty ? "\nALL WARD PALETTE TESTS PASS"
                        : "\n\(failures.count) WARD PALETTE TEST FAILURE(S)")

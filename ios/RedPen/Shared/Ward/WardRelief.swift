@@ -53,7 +53,7 @@ struct WardReliefSpec: Equatable, Sendable {
 /// Light mode: white at 0.75 to 0.9 and a cool grey shade (#A3B1C6) at 0.5
 /// to 0.65. Dark mode: white at 0.05 to 0.08, so nothing glares, and black
 /// at 0.45 to 0.6. A control's face (a button, a chip, a tile to tap, a
-/// field) has a 1-pt edge in the ECG paper's blue that reads at least 3:1
+/// field) has a 1-pt edge in the ECG paper's ink that reads at least 3:1
 /// on the base (the owner, 9 Oct: buttons "not visually distinct in
 /// borders", then "make the line around the buttons match the grid
 /// color"), so what can
@@ -64,7 +64,7 @@ struct WardReliefSpec: Equatable, Sendable {
 enum WardRelief {
     static let lightShade: UInt32 = 0xA3B1C6
     static let highContrastShadeGain = 0.15
-    /// A control's edge, light and dark, in the paper's blue: about 3.3:1
+    /// A control's edge, light and dark, in the paper's ink: about 3.3:1
     /// on the base in both (the grid's own strength would be about 2:1).
     static let lightEdge = 0.85
     static let darkEdge = 0.7
@@ -84,8 +84,8 @@ enum WardRelief {
         highContrast ? containerHighContrastEdge : 0
     }
 
-    /// The ink of a control's edge: the ECG paper's blue, so the edges
-    /// carry on the grid and its frame line.
+    /// The ink of a control's edge: the ECG paper's ink outside any
+    /// section, so the edges carry on the grid and its frame line.
     static func edgeHex(dark: Bool) -> UInt32 {
         WardPaper.ink(dark: dark, highContrast: false).hex
     }
@@ -334,7 +334,8 @@ enum WardPaper {
     static let cornerShare = 53.33 / 428
 
     static func ink(dark: Bool, highContrast: Bool) -> WardPaperInk {
-        WardPaperInk(hex: dark ? 0x78AAF5 : 0x2868C4,
+        // the ink outside any section (WardSection.outside, Cards' indigo)
+        WardPaperInk(hex: dark ? 0xA5B6FE : 0x5866E5,
                      fine: highContrast ? 0 : (dark ? 0.07 : 0.09),
                      bold: highContrast ? 0 : (dark ? 0.14 : 0.18),
                      edge: dark ? 0.5 : 0.55)

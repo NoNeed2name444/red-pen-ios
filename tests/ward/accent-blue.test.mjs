@@ -1,13 +1,13 @@
 // No Ward screen draws a blue of its own: every accent (button words and
 // icons, links, toggles, progress, the chosen tab and chip, focus rings) is
 // the section's (WardSection.accent, through Color.wardPrimaryInk and the
-// .tint each section sets), so a screen in Cards or OSCE never shows the
-// Questions blue. The owner saw exactly that (14 Oct): blue words in other
-// sections. And every section's colour reads (WCAG AA) in light and dark:
-// its words 4.5:1 on every tier, as large text or an icon 3:1, white words
-// 4.5:1 on its fill, its ink 3:1 as a control's edge; and it is told apart
-// from the other sections and from what means something (right, wrong,
-// due, the ECG red, the beam, the palette's blue). This reads the Swift
+// .tint each section sets), so a screen in OSCE never shows the primary's
+// indigo (Cards' own since palette direction 3). The owner saw exactly that
+// (14 Oct): blue words in other sections. And every section's colour reads
+// (WCAG AA) in light and dark: its words 4.5:1 on every tier, as large text
+// or an icon 3:1, white words 4.5:1 on its fill, its ink 3:1 as a control's
+// edge; and it is told apart from the other sections and from what means
+// something (right, wrong, due, the ECG red, the beam). This reads the Swift
 // sources: WardPalette's table, WardLook's section table (written by
 // tools/ward_accents.py) and WardRelief's edge strengths.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -37,7 +37,7 @@ function swiftFiles(dir) {
 }
 
 // A blue that is not the section's: the system blue, the app's AccentColor
-// asset (Questions' blue in every section), or a colour argument of .blue.
+// asset (the primary's indigo in every section), or a colour argument of .blue.
 // WardTone's own `.blue` case (tone: .blue) is the section accent, so it is
 // not matched.
 const banned = [
@@ -105,15 +105,15 @@ for (const m of read('Shared/Ward/WardPalette.swift').matchAll(/\.(\w+):\s*\(0x(
   palette[m[1]] = [parseInt(m[2], 16), parseInt(m[3], 16)];
 const tiers = /static let tiers: \[WardToken\] = \[([^\]]*)\]/.exec(read('Shared/Ward/WardPalette.swift'))[1]
   .split(',').map(t => t.trim().replace(/^\./, ''));
-check('the palette is read (16 tokens, 4 tiers)', Object.keys(palette).length === 16 && tiers.length === 4,
+// 18 tokens since direction 3 added the wrong answer's faded and fadedInk
+check('the palette is read (18 tokens, 4 tiers)', Object.keys(palette).length === 18 && tiers.length === 4,
       `${Object.keys(palette).length} ${tiers}`);
 const relief = read('Shared/Ward/WardRelief.swift');
 const num = name => parseFloat(new RegExp(`static let ${name} = ([0-9.]+)`).exec(relief)[1]);
 const edgeAlpha = [num('lightEdge'), num('darkEdge')], edgeContrast = num('edgeContrast');
 
-// Questions keep the palette's blue; the rest come from WardLook's table.
-const sections = { questions: { hue: 256, ink: [0x2868C4, 0x78AAF5], accent: palette.primaryInk, fill: palette.primary } };
-check('Questions\' ink is the paper\'s blue as WardLook draws it', /return \(0x2868C4, 0x78AAF5\)/.test(look));
+// Every section, Questions too since direction 3, comes from WardLook's table.
+const sections = {};
 const pair = '\\(0x([0-9A-F]{6}), 0x([0-9A-F]{6})\\)';
 const row = new RegExp(`\\.(\\w+): WardSectionColours\\(hue: (\\d+), ink: ${pair}, accent: ${pair}, fill: ${pair}\\)`, 'g');
 for (const m of look.matchAll(row)) {
@@ -122,6 +122,9 @@ for (const m of look.matchAll(row)) {
 }
 const names = Object.keys(sections);
 check('seven sections are read', names.length === 7, names.join(' '));
+check('Questions is in the table, at hue 20', sections.questions?.hue === 20, String(sections.questions?.hue));
+check('the primary is Cards\' fill and accent (the look outside any section)',
+      [0, 1].every(d => palette.primary[d] === sections.cards.fill[d] && palette.primaryInk[d] === sections.cards.accent[d]));
 
 const channels = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map(c => c / 255);
 const linear = c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -166,19 +169,20 @@ for (const dark of [0, 1]) {
       const edge = ratio(composite(s.ink[dark], edgeAlpha[dark], g), g);
       check(`${mode} ${name}: its ink reads 3:1 as a control's edge on the ${ground}`, edge >= edgeContrast, edge.toFixed(2));
     }
-    if (name === 'questions') continue;
-    // a section's colour is never a blue: not the New badge's, not the
-    // Questions paper's
+    // a section's colour is its own hue, and never a blue: away from Cards,
+    // whose indigo the primary is, it keeps 25 degrees from the primary's hue
     for (const role of ['accent', 'fill', 'ink']) {
       const h = hueOf(s[role][dark]);
       check(`${mode} ${name}: its ${role} is its own hue (${s.hue})`, apart(h, s.hue) <= 2, h.toFixed(1));
-      const blue = Math.min(apart(h, hueOf(palette.primaryInk[dark])), apart(h, hueOf(sections.questions.ink[dark])));
+      if (name === 'cards') continue;
+      const blue = apart(h, sections.cards.hue);
       check(`${mode} ${name}: its ${role} is not a blue`, blue >= 25, blue.toFixed(1));
     }
+    // the primary's indigo is Cards' accent, so it is no longer a meaning
     let near = [9, ''];
-    for (const k of [...meanings, 'primaryInk']) {
+    for (const k of meanings) {
       const d = distance(accent, palette[k][dark]);
-      if (d < near[0]) near = [d, k === 'primaryInk' ? 'the New badge' : k];
+      if (d < near[0]) near = [d, k];
     }
     check(`${mode} ${name}: told apart from what means something`, near[0] >= APART, `${near[1]} ${near[0].toFixed(3)}`);
   }

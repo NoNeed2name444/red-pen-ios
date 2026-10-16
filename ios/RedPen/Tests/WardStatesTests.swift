@@ -3,7 +3,7 @@
 // A disabled label reads 3:1 or more and is told apart from the enabled one.
 // Chosen is told apart from unchosen by more than relief (an ink, a fill or a
 // solid mark), disabled too. What sits on a fill reads on it. No state is a
-// blue outside Questions. Held, every control sinks. And the disabled ink
+// blue outside Cards (the primary's indigo). Held, every control sinks. And the disabled ink
 // itself reads on every tier and is apart from every colour with a meaning.
 // The states gallery (WardStatesGallery) draws the real styles in these
 // states.
@@ -59,8 +59,9 @@ let apart = 0.075
 // A colour rather than one of the palette's greys, whose chroma is 0.04 at
 // most (Chart Ink, Biro Grey and the tiers are all faintly blue).
 let colourful = 0.06
-// A blue: within this many degrees of the palette's blue or the
-// Questions paper's (tests/ward/accent-blue.test.mjs).
+// A blue: within this many degrees of the primary's indigo (Cards' own, the
+// look outside any section) or the paper's ink outside any section
+// (tests/ward/accent-blue.test.mjs).
 let blueReach = 25.0
 
 let sections = WardSection.allCases
@@ -115,7 +116,7 @@ var worstDisabledApart = (9.0, ""), worstChosenApart = (9.0, ""), worstText = (9
 for dark in modes {
     let mode = modeName(dark)
     let blues: [UInt32] = [WardPalette.hex(.primaryInk, dark: dark), WardPalette.hex(.primary, dark: dark),
-                           WardSection.questions.ink(dark: dark)]
+                           WardSection.outside.ink(dark: dark)]
     for s in sections {
         // a chosen state that stands on the section's fill has white words
         let white = WardPalette.contrast(WardPalette.hex(.onPrimary, dark: dark), s.fill(dark: dark))
@@ -148,8 +149,9 @@ for dark in modes {
                     let r = WardPalette.contrast(knob, c.face)
                     check("\(name): the knob reads 3:1 on the filled track", r >= 3, "\(h(knob)) on \(h(c.face)) \(f(r))")
                 }
-                // no state is a blue outside Questions
-                if s != .questions {
+                // no state is a blue outside Cards, whose indigo the
+                // primary is (Questions is red since direction 3)
+                if s != WardSection.outside {
                     for x in c.all {
                         check("\(name): \(h(x)) is not the palette's blue", !blues.contains(x))
                         guard chroma(x) >= colourful else { continue }

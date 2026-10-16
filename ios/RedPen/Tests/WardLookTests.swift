@@ -17,9 +17,12 @@ func f(_ x: Double) -> String { String(format: "%.3f", x) }
 func h(_ x: UInt32) -> String { String(format: "#%06X", x) }
 
 let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary,
-                           .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor]
-let day = WardLook(dark: false, section: .questions)
-let night = WardLook(dark: true, section: .questions)
+                           .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor,
+                           .faded, .fadedInk]
+// the look outside any section, whose accents are the palette's own (Cards'
+// since direction 3; Questions' were, when they were Theatre Blue)
+let day = WardLook(dark: false, section: WardSection.outside)
+let night = WardLook(dark: true, section: WardSection.outside)
 
 // MARK: - Ends and rest
 
@@ -88,9 +91,9 @@ check("the always-dark monitor stays dark while the app turns light",
       toDay.night(dark: true) == 1 && toDay.hex(.monitor, dark: true) == WardPalette.hex(.monitor, dark: true))
 check("a part marked held stays put, even in the mode the app is heading to",
       mid.night(dark: true, held: true) == 1 && mid.hex(.surface, dark: true, held: true) == WardPalette.hex(.surface, dark: true) &&
-      mid.ink(dark: true, held: true) == WardSection.questions.ink.dark)
+      mid.ink(dark: true, held: true) == WardSection.outside.ink.dark)
 check("the app's own page moves while it turns light", toDay.night(dark: false) > 0 && toDay.night(dark: false) < 1)
-let sideways = WardGlide(from: day, to: WardLook(dark: false, section: .cards), progress: 0.5)
+let sideways = WardGlide(from: day, to: WardLook(dark: false, section: .questions), progress: 0.5)
 check("a move between sections keeps the palette where it is",
       sideways.night(dark: false) == 0 && sideways.night(dark: true) == 1)
 
@@ -116,9 +119,20 @@ check("somewhere new starts from where it was headed",
 
 let sections = WardSection.allCases
 check("seven sections", sections.count == 7)
-check("questions keep the paper's blue",
-      WardSection.questions.ink.light == WardPaper.ink(dark: false, highContrast: false).hex &&
-      WardSection.questions.ink.dark == WardPaper.ink(dark: true, highContrast: false).hex)
+// outside any section the look is Cards (not Questions, or every screen
+// without a section would turn red), and the default paper ink is its ink
+check("outside any section the look is Cards", WardSection.outside == .cards)
+check("the default paper ink is the outside look's",
+      WardPaper.ink(dark: false, highContrast: false).hex == WardSection.outside.ink(dark: false) &&
+      WardPaper.ink(dark: true, highContrast: false).hex == WardSection.outside.ink(dark: true))
+check("Questions: hue 20 and the pinned fills",
+      WardSection.questions.hue == 20 && WardSection.questions.fill.light == 0xC03946 &&
+      WardSection.questions.fill.dark == 0xCB3E4B)
+for dark in [false, true] {
+    check("\(dark ? "dark" : "light"): primary and primaryInk equal Cards' fill and accent",
+          WardPalette.hex(.primary, dark: dark) == WardSection.cards.fill(dark: dark) &&
+          WardPalette.hex(.primaryInk, dark: dark) == WardSection.cards.accent(dark: dark))
+}
 
 // OKLab (Ottosson), perceptual: equal distances look about equally
 // different, and the hue is the one the eye sees (an HSL hue drifts with
@@ -161,7 +175,7 @@ for dark in [false, true] {
         }
     }
     check("\(mode): every section's ink is told apart from the others' (0.06)", closest >= 0.06, "\(pair) \(f(closest))")
-    for s in sections where s != .questions {
+    for s in sections {
         check("\(mode) \(s): light and dark inks share a hue",
               apart(hue(s.ink.light), hue(s.ink.dark)) <= 4, f(apart(hue(s.ink.light), hue(s.ink.dark))))
     }
@@ -178,21 +192,22 @@ check("set kinds find their section",
       WardSection(kindRaw: "cases") == .cases && WardSection(kindRaw: "osce") == .osce &&
       WardSection(kindRaw: "narrate") == .audio && WardSection(kindRaw: "mcq") == .questions)
 
-let toCards = WardGlide(from: day, to: WardLook(dark: false, section: .cards), progress: 0)
+// (from the outside look, Cards, so the move is to Questions)
+let toCards = WardGlide(from: day, to: WardLook(dark: false, section: .questions), progress: 0)
 var cardsEnd = toCards; cardsEnd.progress = 1
-check("a move to Cards starts in blue and ends in red",
-      toCards.ink(dark: false) == WardSection.questions.ink.light && cardsEnd.ink(dark: false) == WardSection.cards.ink.light)
+check("a move to Questions starts in indigo and ends in red",
+      toCards.ink(dark: false) == WardSection.cards.ink.light && cardsEnd.ink(dark: false) == WardSection.questions.ink.light)
 var cardsMid = toCards; cardsMid.progress = 0.5
 check("half way it is the linear-light mix, not either",
-      cardsMid.ink(dark: false) == WardPalette.mix(WardSection.questions.ink.light, WardSection.cards.ink.light, 0.5))
+      cardsMid.ink(dark: false) == WardPalette.mix(WardSection.cards.ink.light, WardSection.questions.ink.light, 0.5))
 check("a move between sections leaves the palette alone, but for the accents",
       tokens.filter { $0 != .primary && $0 != .primaryInk }
         .allSatisfy { cardsMid.hex($0, dark: false) == WardPalette.hex($0, dark: false) })
 check("half way between sections the accents are the linear-light mix",
-      cardsMid.hex(.primaryInk, dark: false) == WardPalette.mix(WardSection.questions.accent.light, WardSection.cards.accent.light, 0.5))
+      cardsMid.hex(.primaryInk, dark: false) == WardPalette.mix(WardSection.cards.accent.light, WardSection.questions.accent.light, 0.5))
 let both = WardGlide(from: day, to: WardLook(dark: true, section: .textbook), progress: 0.5)
 let n = both.night(dark: true)
-let expect = WardPalette.mix(WardPalette.mix(WardSection.questions.ink.light, WardSection.questions.ink.dark, n),
+let expect = WardPalette.mix(WardPalette.mix(WardSection.outside.ink.light, WardSection.outside.ink.dark, n),
                              WardPalette.mix(WardSection.textbook.ink.light, WardSection.textbook.ink.dark, n), both.eased)
 check("mode and section move together, at the same point", both.ink(dark: true) == expect)
 
@@ -201,9 +216,9 @@ check("mode and section move together, at the same point", both.ink(dark: true) 
 let swap = WardGlide.toward(night, from: .rest(day))
 check("light to dark arrives in one step, every colour at once",
       swap.settled && swap.to == night && tokens.allSatisfy { swap.hex($0, dark: true) == WardPalette.hex($0, dark: true) })
-let swapBack = WardGlide.toward(WardLook(dark: true, section: .cards), from: cardsMid)
+let swapBack = WardGlide.toward(WardLook(dark: true, section: .questions), from: cardsMid)
 check("a mode change mid-way through a section's shift lands at once too",
-      swapBack.settled && swapBack.to == WardLook(dark: true, section: .cards))
+      swapBack.settled && swapBack.to == WardLook(dark: true, section: .questions))
 let toOsce = WardGlide.toward(WardLook(dark: true, section: .osce), from: .rest(night))
 check("a move between sections shifts, from the start", !toOsce.settled && toOsce.progress == 0)
 
@@ -285,10 +300,10 @@ for dark in [false, true] {
         let rest = WardGlide.rest(WardLook(dark: dark, section: s))
         check("\(mode) \(s): at rest the accent tokens are the section's",
               rest.hex(.primaryInk, dark: dark) == accent && rest.hex(.primary, dark: dark) == fill)
-        check("\(mode) \(s): the New badge's blue stays the palette's",
+        check("\(mode) \(s): the palette's own primaryInk stays the palette's",
               rest.paletteHex(.primaryInk, dark: dark) == WardPalette.hex(.primaryInk, dark: dark))
         // the hue is the section's, in all three roles
-        for (role, c) in [("ink", s.ink(dark: dark)), ("accent", accent), ("fill", fill)] where s != .questions {
+        for (role, c) in [("ink", s.ink(dark: dark)), ("accent", accent), ("fill", fill)] {
             check("\(mode) \(s): its \(role) is its hue", apart(hue(c), s.hue) <= 2, f(hue(c)))
         }
     }
@@ -302,19 +317,22 @@ for dark in [false, true] {
     }
     check("\(mode): every section's accent is told apart from the others'", closest >= sectionsApart, "\(pair) \(f(closest))")
     // and from what means something: right, wrong, due, the ECG red, the
-    // beam, and (away from Questions, whose own blue it is) the New badge
+    // beam, and (away from Cards, whose own indigo it is) the primary
     for s in sections {
         var near = 9.0, what = ""
         for token in WardSection.semanticTokens {
             let d = distance(s.accent(dark: dark), WardPalette.hex(token, dark: dark))
             if d < near { near = d; what = "\(token)" }
         }
-        if s != .questions {
+        if s != .cards {
             let d = distance(s.accent(dark: dark), WardPalette.hex(.primaryInk, dark: dark))
-            if d < near { near = d; what = "the New badge's blue" }
+            if d < near { near = d; what = "the primary's indigo" }
         }
         check("\(mode) \(s): the accent is not mistaken for a colour that means something", near >= sectionsApart,
               "\(what) \(f(near))")
+        // a wrong answer's faded ink is a grey, never taken for an accent
+        let faded = distance(s.accent(dark: dark), WardPalette.hex(.fadedInk, dark: dark))
+        check("\(mode) \(s): the faded ink is 0.095 or more from the accent", faded >= 0.095, f(faded))
     }
 }
 

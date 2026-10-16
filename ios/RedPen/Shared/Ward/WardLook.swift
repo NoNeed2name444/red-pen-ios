@@ -2,78 +2,73 @@ import Foundation
 
 /// The parts of the app, each with a colour of its own (the owner, 14 Oct:
 /// "colour difference for each mode"; 15 Oct: the buttons, links and
-/// other accents were still blue in every section). Each section has a
-/// hue, and every accent is drawn from it: the paper's grid and the
-/// controls' edges (`ink`), the words and glyphs of buttons, links, the
-/// chosen dock tab and progress (`accent`), and the fills under white
-/// words (`fill`). The base, the cards and the body text stay the Ward
-/// palette's, and so do the colours that mean something: Discharge green
-/// for right, Resus red for wrong, Caution amber for due, the ECG red, the
-/// beam's orange, the blue New badge. The sections keep apart from those
-/// and from each other (at least 0.076 in OKLab, both modes).
+/// other accents were still blue in every section; 16 Oct: palette
+/// direction 3, seven section colours). Each section has a hue, and every
+/// accent is drawn from it: the paper's grid and the controls' edges
+/// (`ink`), the words and glyphs of buttons, links, the chosen dock tab,
+/// progress and a right answer (`accent`), and the fills under white words
+/// (`fill`). The base, the cards and the body text stay the Ward palette's,
+/// and so do the colours that mean something: Discharge green, Resus red,
+/// Caution amber for due, the ECG red and the beam's orange. The sections
+/// keep apart from those and from each other (at least 0.076 in OKLab,
+/// both modes).
 enum WardSection: String, CaseIterable, Sendable {
     case questions, cards, textbook, cases, osce, audio, ideas
 
+    /// The look outside any section (a screen that sets none, and home
+    /// before a section is asked for): Cards' indigo, which is also the
+    /// palette's primary. Not Questions, or every screen without a section
+    /// would turn red; and the default paper ink and the control edges
+    /// follow it, so the app keeps no blue of its own.
+    static let outside: WardSection = .cards
+
     /// The hue, in OKLCH degrees (perceptual, so equal steps look equal).
-    /// Questions keep the palette's own blue, as drawn: Theatre Blue by
-    /// day and its cyan at night.
-    var hue: Double {
-        if self == .questions { return 256 }
-        return WardSection.table[self]!.hue
-    }
+    var hue: Double { WardSection.table[self]!.hue }
 
     /// The section's ink (light, dark) as 0xRRGGBB: the grid's lines and
     /// the controls' edges. Each reads at least 3:1 on the base and on a
-    /// card at a control's edge strength (WardRelief.edgeAlpha).
-    var ink: (light: UInt32, dark: UInt32) {
-        if self == .questions { return (0x2868C4, 0x78AAF5) }   // Theatre Blue paper
-        return WardSection.table[self]!.ink
-    }
+    /// card at a control's edge strength (WardRelief.edgeAlpha). Questions'
+    /// is red, and its grid red at the paper's own strengths, like real ECG
+    /// paper.
+    var ink: (light: UInt32, dark: UInt32) { WardSection.table[self]!.ink }
 
     /// Words and glyphs in the section's colour (buttons' labels, links,
-    /// icons, the chosen tab, progress), light and dark: 4.5:1 on every
-    /// tier of its mode, the well to a sheet.
-    var accent: (light: UInt32, dark: UInt32) {
-        if self == .questions {
-            return (WardPalette.hex(.primaryInk, dark: false), WardPalette.hex(.primaryInk, dark: true))
-        }
-        return WardSection.table[self]!.accent
-    }
+    /// icons, the chosen tab, progress, a right answer), light and dark:
+    /// 4.5:1 on every tier of its mode, the well to a sheet.
+    var accent: (light: UInt32, dark: UInt32) { WardSection.table[self]!.accent }
 
     /// A fill in the section's colour, under white words (a switch that
     /// is on, a chosen segment): white reads 4.5:1 on it.
-    var fill: (light: UInt32, dark: UInt32) {
-        if self == .questions {
-            return (WardPalette.hex(.primary, dark: false), WardPalette.hex(.primary, dark: true))
-        }
-        return WardSection.table[self]!.fill
-    }
+    var fill: (light: UInt32, dark: UInt32) { WardSection.table[self]!.fill }
 
     func accent(dark: Bool) -> UInt32 { dark ? accent.dark : accent.light }
     func fill(dark: Bool) -> UInt32 { dark ? fill.dark : fill.light }
     func ink(dark: Bool) -> UInt32 { dark ? ink.dark : ink.light }
 
     /// The colours that mean something, which no section's accent may
-    /// look like (and the New badge's blue, which only Questions shares).
+    /// look like.
     static let semanticTokens: [WardToken] = [.success, .danger, .warning, .ecg, .beam]
 
-    /// Every section's colours but Questions', worked out from its hue by
-    /// tools/ward_accents.py, which reads the palette and the edges'
-    /// strength from the source: a palette or hue change is one edit there
-    /// and a --write. (ink, accent, fill) as (light, dark) 0xRRGGBB.
+    /// Every section's colours, worked out from its hue by
+    /// tools/ward_accents.py (the fills are the owner's, pinned and
+    /// checked there), which reads the palette and the edges' strength
+    /// from the source: a palette or hue change is one edit there and a
+    /// --write. (ink, accent, fill) as (light, dark) 0xRRGGBB.
     // ward_accents.py: begin
     private static let table: [WardSection: WardSectionColours] = [
-        .cards: WardSectionColours(hue: 320, ink: (0x9D3EB1, 0xDE93EF), accent: (0x77108B, 0xDA97EA), fill: (0xA344B8, 0x8E479D)),
-        .textbook: WardSectionColours(hue: 132, ink: (0x4A7C05, 0xA6DF74), accent: (0x345902, 0xA6DF74), fill: (0x4F8207, 0x49780A)),
-        .cases: WardSectionColours(hue: 284, ink: (0x6656D7, 0xA8A6FE), accent: (0x482EAE, 0xA9A9EF), fill: (0x6C5CDD, 0x6158BB)),
-        .osce: WardSectionColours(hue: 92, ink: (0x866C02, 0xD3AD1B), accent: (0x645000, 0xD3AD1B), fill: (0x8C7210, 0x7F6604)),
-        .audio: WardSectionColours(hue: 302, ink: (0x8B50CF, 0xD3B8FE), accent: (0x7132B1, 0xD3B8FE), fill: (0x8B50CF, 0x7A4FAF)),
-        .ideas: WardSectionColours(hue: 340, ink: (0xBE409D, 0xFEA7E1), accent: (0x9D1A7E, 0xFEA7E1), fill: (0xB83997, 0x9E3F84)),
+        .questions: WardSectionColours(hue: 20, ink: (0xC82D40, 0xF0777A), accent: (0x970525, 0xD98888), fill: (0xC03946, 0xCB3E4B)),
+        .cards: WardSectionColours(hue: 274, ink: (0x5866E5, 0xA5B6FE), accent: (0x4046C2, 0xA5B6FE), fill: (0x5260BC, 0x5A68C5)),
+        .textbook: WardSectionColours(hue: 186, ink: (0x0E7C74, 0x0FC8BA), accent: (0x065650, 0x0FC8BA), fill: (0x227D75, 0x258279)),
+        .cases: WardSectionColours(hue: 51, ink: (0xAC5102, 0xF48C49), accent: (0x783907, 0xF48C49), fill: (0xAC5A21, 0xB05C23)),
+        .osce: WardSectionColours(hue: 149, ink: (0x01712E, 0x5DC474), accent: (0x024B1D, 0x5DC474), fill: (0x3D7C49, 0x42814F)),
+        .audio: WardSectionColours(hue: 307, ink: (0x9853D0, 0xCD99FE), accent: (0x772FAB, 0xCD99FE), fill: (0x8150AD, 0x8B57B8)),
+        .ideas: WardSectionColours(hue: 346, ink: (0xC74195, 0xE97EBB), accent: (0x9E1071, 0xE97EBB), fill: (0xB23E86, 0xBA438E)),
     ]
     // ward_accents.py: end
 
     /// Where a kind of set lives, by StudySetKind's raw value (Foundation
-    /// only, so the model's enum is not needed here).
+    /// only, so the model's enum is not needed here). A kind not listed is
+    /// a question set, so it is Questions, not the outside look.
     init(kindRaw: String) {
         switch kindRaw {
         case "anki": self = .cards
@@ -169,8 +164,8 @@ struct WardGlide: Equatable, Sendable {
         }
     }
 
-    /// The palette's own colour this frame, whatever the section: the New
-    /// badge's blue, which means something and so stays put.
+    /// The palette's own colour this frame, whatever the section (for the
+    /// accent tokens, Cards': the look outside any section).
     func paletteHex(_ token: WardToken, dark: Bool, held: Bool = false) -> UInt32 {
         let n = night(dark: dark, held: held)
         if n <= 0 { return WardPalette.hex(token, dark: false) }

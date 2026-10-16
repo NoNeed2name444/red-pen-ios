@@ -2182,6 +2182,74 @@ with the marks on the screens last.
   type, date, edition, retraction, funding), shadh and tafarrud flags,
   common-link independence for sources, the conflict-of-interest rule, and
   dabt (numbers, units, population and negation copied faithfully).
+- [x] 10. Palette direction 3 (the owner, 16 Oct; task T0055, on
+  design/palette-3 from design/ward-states 53ca8795): the owner's neutrals,
+  seven section colours, an indigo primary and faded wrong answers, keeping
+  the design, every promise and the 0.076 separation gate. An independent
+  judge's rulings:
+  - Separation: the gate holds accents (words, glyphs, the right-answer
+    mark), not fills, and stays whole. The fills are exactly the owner's;
+    each section has its own word lightness inside the bands (0.36 to 0.55
+    by day, 0.66 to 0.94 by night); OSCE turns -3 degrees (387D4D / 3D8253
+    to 3D7C49 / 42814F, about 0.006 in OKLab); no meaning colour moves.
+    Least gaps 0.078 by day (textbook/osce, textbook/success) and 0.084 by
+    night (questions/danger).
+  - tools/ward_accents.py: each row is (name, hue, light L, dark L, fill
+    light, fill dark), Questions included; a pinned fill is checked (white
+    4.6:1, hue within 2 degrees), never searched; FLOOR (0.07, 0.10), since
+    no teal at hue 186 with 0.085 chroma reads 4.6:1 on the paler tiers.
+  - Outside any section the look is Cards (WardSection.outside), not
+    Questions, or every screen without a section would turn red. The
+    default paper ink (5866E5 / A5B6FE) and the control edges follow it, so
+    Theatre Blue leaves the app. Questions joins the table at hue 20: its
+    ECG grid turns red at the paper's own strengths; the trace keeps the
+    ECG red.
+  - Two test pins moved: the 12-degree night-hue test is retired (the
+    indigo is 8.7 degrees apart in the two modes), and the dark base floor
+    goes from 0.015 to 0.010 (#171C24 is 0.0114).
+  - Marking follows the owner's rule of 15 Oct ("the wrong should be faded
+    and what is right gets the color of the mode used",
+    docs/design/identity/routes.md on design/identity): in the quiz's and
+    the Lens's option rows, right is in the section's accent, wrong is the
+    faded row, struck through, with a small cross, in colours and never
+    opacity. The Lens True/False verdict keeps its meaning colours; the
+    other success and danger uses (about 30 files) are left as they are.
+  - The night relief reads weaker on the darker ground (shade on the base
+    1.12, was 1.29; lift-1 highlight against shade 1.28, floor 1.25; rim
+    1.55, floor 1.3), and every test passes; the strengths are unchanged.
+    If it looks flat in the pictures, that is for the owner.
+  - Values, light / dark: background E9EDF2 / 171C24, surface EEF1F5 /
+    242B35, raised F1F4F8 / 2E353F, well DDE2E8 / 090E15, hairline CFD7E2 /
+    04070B, ink 232C39 / F1F4F8, inkSecondary 536171 / B8C2D0, primary
+    5260BC / 5A68C5, primaryInk 4046C2 / A5B6FE, faded DDE2E8 / 353E4A,
+    fadedInk 52606F / BEC8D3; AccentColor 5260BC / A5B6FE,
+    LaunchBackground E9EDF2 / 171C24. Sections (hue; fill; accent; ink):
+    questions 20, C03946 / CB3E4B, 970525 / D98888, C82D40 / F0777A; cards
+    274, 5260BC / 5A68C5, 4046C2 / A5B6FE, 5866E5 / A5B6FE; textbook 186,
+    227D75 / 258279, 065650 / 0FC8BA, 0E7C74 / 0FC8BA; cases 51, AC5A21 /
+    B05C23, 783907 / F48C49, AC5102 / F48C49; osce 149, 3D7C49 / 42814F,
+    024B1D / 5DC474, 01712E / 5DC474; audio 307, 8150AD / 8B57B8, 772FAB /
+    CD99FE, 9853D0 / CD99FE; ideas 346, B23E86 / BA438E, 9E1071 / E97EBB,
+    C74195 / E97EBB.
+  - Left outside this task's files: comments naming Theatre Blue in
+    WardControls, WardStates and WardSurfaces; tools/make_icon.py, whose
+    notes name the old bases (the launch logo is not re-made here);
+    LibraryView's `?? .questions` section fallback. The session's Mac run
+    takes the pictures.
+  - Done (16 Oct): `tools/ward_accents.py --check` up to date (least gaps
+    0.078 by day, 0.084 by night); the ward suites and homefit, 7 of 7;
+    tests/ward/*.test.mjs, all four; tools/preflight.sh, PREFLIGHT OK.
+    design/ward-states had moved to afcbc0b1 (this file only, its step 5
+    items), so this step sits after step 8 and the merge stays trivial.
+  - Independent review (16 Oct): ACCEPT, no repairs. Ward preview
+    38892166844: every device and the states sheets clean, no errors. Its
+    pictures could not show the review's item 2 (Questions, C picked and B
+    right: B pressed in the accent, C low on the faded face, and by night
+    #353E4A reading as stepped back, not lifted), so the Ward preview now
+    also shoots quiz-checked. If C reads as lifted, the owner decides.
+    Follow-ups: 46 comment lines in 29 files still name Theatre Blue; the
+    launch logo still draws "score" in Theatre Blue; the Lens sheet has no
+    preview case.
 
 ### Waiting on the owner
 
