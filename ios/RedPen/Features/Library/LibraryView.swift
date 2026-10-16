@@ -262,9 +262,12 @@ struct LibraryView: View {
             HomeFitProbe.shared.pushBackNoSet = true
             return
         }
-        HomeFitProbe.shared.beforePush = WardPartBook.shared.parts.values.map(\.name)
+        let before = WardPartBook.shared.parts
+        HomeFitProbe.shared.beforePush = before.values.map(\.name)
         opened = [set]
         do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
+        let duringPush = WardPartBook.shared.parts
+        HomeFitProbe.shared.pushLostParts = before.keys.contains { duringPush[$0] == nil }
         opened = []
         HomeFitProbe.shared.pushBackDone = true
     }

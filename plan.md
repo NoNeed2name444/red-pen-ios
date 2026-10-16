@@ -2164,6 +2164,14 @@ with the marks on the screens last.
         end of a scroll back; and the gate never proves a real push (FAULT
         unless the book lost parts between push and pop), its lost check
         goes by name, and a slow launch can shoot during the trip.
+        16 Oct, design/ward-nits: all five fixed (half-pixel slack on the
+        guard, entries above the cut pruned at each rebook, a hidden holder
+        kept through the drop while moving, the cut kept on clear, and the
+        report FAULTs unless home lost parts during the trip; the lost
+        check already counted per name, now pinned by a duplicate test;
+        ward_shots.sh waits for the trip before the shot). Four new
+        homefit tests fail on 0d5a5472 and pass. Waits for its Ward
+        preview and a review.
 - [ ] 6. Last: the owner's marks on the screens.
 - [x] 7. (Done 14 Oct: tools/jev-standin and jev-standin.yml; oath check 30 of
   30, 0 false alarms; NLI model is the TRIAGE_NLI_MODEL repo variable.) An open-source stand-in for Jev (§22a kept only Layer 7, the
