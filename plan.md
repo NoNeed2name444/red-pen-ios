@@ -2034,7 +2034,7 @@ with the marks on the screens last.
       - [x] Nit 1: the Practise tiles book their low lift's rim (3 pt).
         Nit 2: part-traits.test.mjs knows the other row traits and a `}.`
         line; server-tests.yml runs on the folders it reads.
-      - [ ] Confirmed on the next Ward preview, then the fourth review.
+      - [x] Confirmed on the next Ward preview, then the fourth review.
         Ward preview 8 (dfb9a921): every fit report says "fits" and "push
         and back: done" on every device and size but AX5 (phone and SE),
         where the push and back gave up at 2.5 s with no set to open; an
@@ -2042,7 +2042,20 @@ with the marks on the screens last.
         s for its parts and a set, the report waits for the trip and the
         rest after its pop, and a trip that never ended says "not
         finished" apart from "no set to open". Preview only; the gate is
-        unchanged.
+        unchanged. Ward preview 9 (53ca8795): all 21 reports say "fits"
+        and "push and back: done". The fourth independent review (16 Oct)
+        accepted it: N4 and N5 fixed, the gate would have caught N4, no
+        new blocking defect.
+      - [ ] The fourth review's nits, each with a Ward preview: the loop
+        guard compares raw doubles (WardPartLedger.swift:104-105), so on a
+        3x screen about 1 in 9 holders is not kept and could loop at rest
+        if the cut hides its cell (slack as in onGrid, drop the maxY half,
+        a 3x test); clear() leaves the cut nil until pageCut changes; kept
+        entries go stale (prune those above the cut at each rebook); a
+        self-topped holder ("More ways to practise") flashes once at the
+        end of a scroll back; and the gate never proves a real push (FAULT
+        unless the book lost parts between push and pop), its lost check
+        goes by name, and a slow launch can shoot during the trip.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from
