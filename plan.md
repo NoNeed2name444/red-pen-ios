@@ -1748,6 +1748,17 @@ They answer four questions, in order:
    launch splash colour.
 4. No Apple Developer account: no TestFlight or App Store for now; the
    Playgrounds zip stays the route.
+   - 16 Oct, the owner: "when u finish give me a .ipa file". The IPA
+     workflow (.github/workflows/ipa.yml, by hand: a source branch and
+     Release or Debug) builds an unsigned .ipa, which the owner's
+     sideloading app signs on install. The session sends it once this
+     round's fixes are in personal, then deletes the run's artifact.
+   - 16 Oct, the owner: "commit everything to main after this finishes and
+     make out of it a new ipa of the full app". After this round, personal
+     is merged into main and the .ipa is built from main (ipa.yml takes
+     main as a source). Once on main, the three scheduled workflows run on
+     their own: the proof ladder and diagnostics triage daily, the accuracy
+     model weekly.
 5. Finding 79, on design/voice-claude: no HFP (VoiceAccess: A2DP plus iOS
    26's high-quality Bluetooth recording), and VoiceTone: each line said in
    a tone for what it is (asking, listing, praise, correcting, explaining,
