@@ -179,6 +179,16 @@ struct WardGlide: Equatable, Sendable {
         sectioned(dark: dark, held: held) { $0.ink }
     }
 
+    /// A given section's ink this frame (grid and edges), for something
+    /// drawn in `dark`: the night mixed as ink(dark:held:) does, but with
+    /// no hue shift with the section on show.
+    func ink(_ section: WardSection, dark: Bool, held: Bool = false) -> UInt32 {
+        let n = night(dark: dark, held: held)
+        if n <= 0 { return section.ink.light }
+        if n >= 1 { return section.ink.dark }
+        return WardPalette.mix(section.ink.light, section.ink.dark, n)
+    }
+
     /// One of a section's colours this frame: the mode's value of it, and
     /// part way to the next section's while the hue shifts.
     func sectioned(dark: Bool, held: Bool = false,
@@ -226,6 +236,11 @@ final class WardLookNow: @unchecked Sendable {
     /// The section's ink (grid and edges) as it is drawn now.
     func ink(dark: Bool, held: Bool = false) -> UInt32 {
         glide.ink(dark: dark, held: held)
+    }
+
+    /// A given section's ink (grid and edges) as it is drawn now.
+    func ink(_ section: WardSection, dark: Bool, held: Bool = false) -> UInt32 {
+        glide.ink(section, dark: dark, held: held)
     }
 }
 

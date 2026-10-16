@@ -68,6 +68,13 @@ extension Color {
         return Color(uiColor: WardRestColors.liveInk(edge: true))
     }
 
+    /// A given section's ink (WardSection.ink), whatever section is on
+    /// show: a mode's own ring on New set. Follows the light and dark
+    /// shift without shifting its hue with the section on show.
+    static func wardEdgeInk(_ section: WardSection) -> Color {
+        WardRestColors.sectionInk(section)
+    }
+
     static func uiColor(_ hex: UInt32, alpha: Double = 1) -> UIColor {
         let (r, g, b) = WardPalette.rgb(hex)
         return UIColor(red: r, green: g, blue: b, alpha: alpha)
@@ -115,6 +122,16 @@ enum WardRestColors {
         }
     }
 
+    /// A given section's ink as it is drawn now; with `edge`, at a
+    /// control's edge strength.
+    static func liveInk(_ section: WardSection, edge: Bool) -> UIColor {
+        UIColor { traits in
+            let dark = traits.userInterfaceStyle == .dark
+            let hex = WardLookNow.shared.ink(section, dark: dark, held: traits.wardHeld)
+            return Color.uiColor(hex, alpha: edge ? WardRelief.edgeAlpha(dark: dark, highContrast: traits.accessibilityContrast == .high) : 1)
+        }
+    }
+
     /// The section's accents at rest: its fill (.primary) and its accent
     /// ink (.primaryInk), WardSection.fill and .accent.
     private static let accents: [WardSection: (fill: Color, ink: Color)] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
@@ -142,6 +159,13 @@ enum WardRestColors {
     })
     static func ink(_ section: WardSection) -> Color { inks[section] ?? palette[WardToken.primaryInk.index] }
     static func edge(_ section: WardSection) -> Color { edges[section] ?? palette[WardToken.hairline.index] }
+
+    /// Each section's own ink, whatever section is on show: a mode tile's
+    /// ring on New set.
+    private static let sectionInks: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
+        (section, Color(uiColor: liveInk(section, edge: false)))
+    })
+    static func sectionInk(_ section: WardSection) -> Color { sectionInks[section] ?? palette[WardToken.primaryInk.index] }
 }
 
 // MARK: - The one animated value

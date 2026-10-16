@@ -449,7 +449,8 @@ struct NewSetView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .wardRelief(in: shape, lift: .mid, pressed: chosen)
+            .wardRelief(in: shape, lift: .mid, pressed: chosen,
+                        edge: Color.wardEdgeInk(WardSection(kindRaw: option.rawValue)))
             .contentShape(shape)
         }
         .buttonStyle(.plain)

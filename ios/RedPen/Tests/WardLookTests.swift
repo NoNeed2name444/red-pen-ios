@@ -416,5 +416,49 @@ do {
     check("and the shift's frame where it was handed none", WardGlide.drawn(rest: nil, live: shift) == shift)
 }
 
+// MARK: - A given section's ink (mode tile ring)
+
+// Each mode tile's ring takes the ink of its own mode's section, following
+// the light/dark shift without shifting its hue with the section on show.
+for section in [WardSection.questions, WardSection.cards] {
+    // A glide between two completely different sections (textbook -> osce)
+    // shifting from light to dark:
+    let shift = WardGlide(from: WardLook(dark: false, section: .textbook),
+                          to: WardLook(dark: true, section: .osce),
+                          progress: 0)
+    check("\(section): at night 0, ink is the section's light ink",
+          shift.ink(section, dark: true) == section.ink.light &&
+          shift.ink(section, dark: false) == section.ink.light)
+
+    var shiftEnd = shift; shiftEnd.progress = 1
+    check("\(section): at night 1, ink is the section's dark ink",
+          shiftEnd.ink(section, dark: true) == section.ink.dark)
+
+    for i in 1...9 {
+        var mid = shift; mid.progress = Double(i) / 10
+        let n = mid.night(dark: true)
+        let expected = WardPalette.mix(section.ink.light, section.ink.dark, n)
+        check("\(section): frame \(i)/10 is the light/dark mix without hue shift",
+              mid.ink(section, dark: true) == expected)
+    }
+
+    // At rest in another section (cases)
+    let restLight = WardGlide.rest(WardLook(dark: false, section: .cases))
+    check("\(section): at rest in another section (light), ink is section's light ink",
+          restLight.ink(section, dark: false) == section.ink.light)
+    let restDark = WardGlide.rest(WardLook(dark: true, section: .cases))
+    check("\(section): at rest in another section (dark), ink is section's dark ink",
+          restDark.ink(section, dark: true) == section.ink.dark)
+}
+
+do {
+    let now = WardLookNow()
+    now.set(.rest(WardLook(dark: false, section: .textbook)))
+    check("WardLookNow: Questions ink in Textbook section is Questions' light ink",
+          now.ink(.questions, dark: false) == WardSection.questions.ink.light)
+    check("WardLookNow: Cards ink in Textbook section is Cards' light ink",
+          now.ink(.cards, dark: false) == WardSection.cards.ink.light)
+}
+
 print(failures.isEmpty ? "\nall passed" : "\n\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)
