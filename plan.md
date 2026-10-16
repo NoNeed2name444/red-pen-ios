@@ -2118,6 +2118,15 @@ with the marks on the screens last.
     tests/ward/*.test.mjs, all four; tools/preflight.sh, PREFLIGHT OK.
     design/ward-states had moved to afcbc0b1 (this file only, its step 5
     items), so this step sits after step 8 and the merge stays trivial.
+  - Independent review (16 Oct): ACCEPT, no repairs. Ward preview
+    38892166844: every device and the states sheets clean, no errors. Its
+    pictures could not show the review's item 2 (Questions, C picked and B
+    right: B pressed in the accent, C low on the faded face, and by night
+    #353E4A reading as stepped back, not lifted), so the Ward preview now
+    also shoots quiz-checked. If C reads as lifted, the owner decides.
+    Follow-ups: 46 comment lines in 29 files still name Theatre Blue; the
+    launch logo still draws "score" in Theatre Blue; the Lens sheet has no
+    preview case.
 
 ### Waiting on the owner
 
