@@ -1843,11 +1843,13 @@ with the marks on the screens last.
   - [ ] Truly independent second transcription of each rule (both passes so
     far came from one session).
   - [ ] One-tap owner sign-off in the app plus an owner-only endpoint in D1.
+    Optional and later (the owner, 16 Oct): a fully proven fact chain backs
+    Checked without it; only Verified waits on it.
   - [ ] A real proposer, and the app sending proof packets (until then no
-    item reaches Checked).
+    item reaches Checked). This is T2 of the retrieval plan below.
   - [ ] Denial rules so two-step and contraindication can rule out options.
-  - [ ] More sources (USPSTF, FDA labels, NIH); a weekly source-change check
-    (tools/criteria/fetch-sources.mjs).
+  - [ ] More sources (FDA labels, NIH; USPSTF stays out, the owner, 16 Oct);
+    a weekly source-change check (tools/criteria/fetch-sources.mjs).
   - [ ] Benches B2 to B5.
 - [ ] 3. Launch logo round 3 (Claude-Code T0036): the swirl back as one
   real, continuous tube.
@@ -2024,12 +2026,45 @@ with the marks on the screens last.
   common-link independence for sources, the conflict-of-interest rule, and
   dabt (numbers, units, population and negation copied faithfully).
 
+### The owner's answers of 16 Oct: retrieval for proof, and fact chains
+
+The owner asked for advanced retrieval (RAG) and for a layer that turns a
+patient story into small facts, each one checkable (D6). The brief, with
+acceptance A1-A27 and gates G1-G10 fixed before any change, is
+docs/verification/rag-plan.md. The owner's answers to it: deploys "if they
+pass then go"; the proposer "its ok"; USPSTF stays out; D6's grade "make it
+checked and the human step optional for later as it takes so much money and
+effort"; the openFDA key "remind me later after all tasks finish".
+
+Each phase: tools/preflight.sh, its bench against the fixed gates, an
+independent review, a merge into personal, then the Worker deploy.
+- [ ] T0. The bench first (design/rag-bench, no engine change): proxy mode
+  (branch code without a deploy), retrieval set R with mechanical labels,
+  the proof-only bench P, and the baseline at 2b7ef11e.
+- [ ] T1. D0: official recall for proof and a per-source quota in fusion
+  (design/official-recall; 0 neurons).
+- [ ] T2. D6: fact chains, the vignette route's real proposer generalised
+  (design/fact-chain). FACT_PROPOSER stays off until A14-A16 pass, then on.
+  A fully proven chain backs Checked; Verified also needs the owner's
+  sign-off by content hash, which is optional and later (no sign-off screen
+  now, but the hash binding stays).
+- [ ] T3. D1-lite and D3: a BM25 filter, then one keyless corrective
+  rewrite (design/evidence-filter; 0 neurons).
+- [ ] T4. D2: lecture passages per claim, on the device
+  (design/lecture-passages). They never back anything.
+- T5 (a model reranker) and T6 (a dense leg) only when their triggers fire
+  (A26).
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
 - What they think of the voice itself, now that it plays.
 - Each Worker deploy (the last: 15 Oct, about 8:12 am Cairo, run
-  38685298818 from personal at bc611221).
+  38685298818 from personal at bc611221). Given on 16 Oct for each retrieval
+  phase that passes its gates and the independent review.
+- After all current tasks: the free openFDA key, as the Worker secret
+  OPENFDA_API_KEY (120,000 label lookups a day instead of 1,000 per
+  address).
 
 ## 6. Standing rules
 
