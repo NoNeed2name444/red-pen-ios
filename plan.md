@@ -1923,7 +1923,7 @@ with the marks on the screens last.
   where the grey tube meets the chest piece's stem (the day drawing has
   none); the blue-tube test allows only that line until it is fixed.
 
-- [ ] A4, the opening's hand-off hold (final attempt, task launch-a4): the
+- [x] A4, the opening's hand-off hold (final attempt, task launch-a4): the
   Launch recording 38723188012 on 446bbb36 measured gaps of 115 and 209 ms in
   the dark takes. Cause: the paper frame's Canvas redrew every frame from
   +0.73 s to +1.95 s, and the title's layer changed width as its letters
@@ -2033,7 +2033,7 @@ with the marks on the screens last.
       takes. Kept: three judged takes per mode, the fixed 30 s pause, the
       readout's gaps/cpu and marks (now also `relief` loads), the snapshots
       after each take, and the 100 ms gate as it was.
-    - [ ] Tick the item when the push's Launch recording shows 100 ms or
+    - [x] Tick the item when the push's Launch recording shows 100 ms or
       less in every light and dark take. Check by eye that raised and inset
       faces, and buttons at rest, look as before (the image sits where the
       live face was; a Mac run was not possible here).
@@ -2066,7 +2066,7 @@ with the marks on the screens last.
       recording alternates, per mode, a cached take and a relief-off take,
       three of each. Cached readouts: film/handoff-$MODE.txt, gated as
       before; relief-off: film/handoff-$MODE-control.txt, not gated.
-    - [ ] The decisive run, and the decision rule, fixed in advance: a cached
+    - [x] The decisive run, and the decision rule, fixed in advance: a cached
       take counts only if every relief face with lights in the window drew
       from the cache (no `live:` tag but `none` and `empty`, no `failed=`);
       the relief-off takes must pass as in 38812510377 (59-74 refreshes, no
@@ -2074,6 +2074,28 @@ with the marks on the screens last.
       counted passes (gap 100 ms or less, 55+ refreshes, same look) close
       the task and keep the cache. Otherwise the cache is reverted in one
       commit and the main-thread rule (narrower) is tried.
+    - Closed by Launch recording 38837815702 on 52d7e26b (38835807482 before
+      it was void: a relief-off light take at 102 ms / 66). Every cached take
+      read `relief=cached:12`. Gap in ms / refreshes, by take:
+
+      | take | cached | relief off |
+      |---|---|---|
+      | light | 37/74; 33/74; 55/59 | 34/73; 17/75; 74/56 |
+      | dark | 40/66; 41/65; 51/55 | 17/75; 64/62; 47/63 |
+
+      Same look: home's pictures on shots/relief-after-2 (the cache drawing)
+      are byte-identical to shots/relief-after's (ca93de8b, where faces still
+      fell back live), and differ from shots/relief-before only where those
+      did (the date, and Start's edge under the dock). The cache stays; the
+      relief-off take stays in the recording as its standing control.
+- [ ] Before design/launch-anim goes to personal: testDesignTour loses the
+  app on its first attempt, at the dock switch (DesignTourUITests.swift:483;
+  an assertion in UICollectionView's nested visible-cells update, called from
+  SwiftUI's list), in all three Design previews of this branch (2465e89a,
+  ca93de8b, 52d7e26b), and testStraightLines finds no examples banner
+  (GraphPreviewUITests.swift:424) in all three. Neither fails on the Design
+  previews of design/neurons-depth, which comes from personal. Root cause
+  first, then the fix.
 
 ### Waiting on the owner
 
