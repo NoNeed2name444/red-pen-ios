@@ -520,7 +520,6 @@ struct StudyActionBar<Content: View>: View {
     var body: some View {
         if shown {
             let broad: Bool = span == .broad
-            let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
             let innerCap: CGFloat? = broad ? nil : 700
             let side: Alignment = broad ? .trailing : .center
             Group {
@@ -554,7 +553,7 @@ struct StudyActionBar<Content: View>: View {
                     }
                     .fixedSize(horizontal: broad, vertical: false)
                     .frame(maxWidth: innerCap)
-                    .wardRaised(in: shape, lift: .high)
+                    .modifier(WardDeckSlab())
                     .frame(maxWidth: .infinity, alignment: side)
                     .frame(maxWidth: broad ? 1000 : 700, alignment: side)
                     .frame(maxWidth: .infinity)
@@ -583,18 +582,22 @@ private struct DeckFoldBand: View {
     let label: ButtonStyleConfiguration.Label
     let pressed: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.wardFoldInset) private var inset
 
     var body: some View {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
             label
-                .font(.body.weight(.semibold))
+                // The joined deck's icon stays within its measured pill at
+                // accessibility sizes; the band's hit target is still 44 pt.
+                .font(inset > 0 ? .system(size: 17, weight: .semibold) : .body.weight(.semibold))
                 .foregroundStyle(Color.wardInk)
                 .frame(width: 44, height: 28)
                 .background { WardPressFace(shape: Capsule(), lift: .low, pressed: pressed) }
                 .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
                 .capPop(pressed)
                 .frame(width: 56, height: 44)
+                .padding(.trailing, inset)
         }
         .contentShape(Rectangle())
     }

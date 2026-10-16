@@ -2322,6 +2322,17 @@ with the marks on the screens last.
     rings in its own mode's section ink (Questions red, Cards indigo,
     Textbook teal, Cases orange, OSCE green, Narrate purple), light and dark;
     waits for its Ward preview (new; phone, SE, Pro Max, iPad; light and dark).
+  - Deck island continuity and rounded corners (the owner, 16 Oct; task
+    T0065): any place with a line across the opening (quiz bottom deck,
+    header line) turns down into the outer line along a circular arc
+    tangent to both with the panel's corner radius, matching the iPhone
+    corner radius, with deck slab top corners rounded to meet the arc.
+    The Foundation geometry (`WardEdgeCorner`, `WardEdgeJoin`, `WardEdge`)
+    is in and tested (`wardrelief` suite); its drawing is the next task.
+    - T0066 draws every deck and scroll edge into the frame, with clipped
+      island strips, base-filled header pockets and rounded slab tops.
+      An iPad's frame, moved home opening and islands take its 18 pt
+      corners, including in multitasking windows. Awaiting the Ward preview.
 
 ### Waiting on the owner
 

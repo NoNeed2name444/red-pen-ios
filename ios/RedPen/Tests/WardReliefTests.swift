@@ -368,6 +368,278 @@ check("the shade starts in as fast as at the old depth",
       abs(WardPress.depth / WardPress.shadeRelease - 0.7 / 0.18) <= 0.03 * 0.7 / 0.18 &&
       WardPress.press == 0.05 && WardPress.release == 0.07)
 
+// Island geometry: continuous arcs joining horizontal lines to the paper frame outline
+func nearTol(_ a: Double, _ b: Double, within eps: Double = 0.01) -> Bool {
+    abs(a - b) <= eps
+}
+
+func joinTangencyDevDeg(corner: WardEdgeCorner, poly: [SIMD2<Double>]) -> Double {
+    let radiusV = corner.join - corner.center
+    let radiusLen = hypot(radiusV.x, radiusV.y)
+    guard radiusLen > 1e-9 else { return 0 }
+    let radiusN = radiusV / radiusLen
+
+    var bestDist = Double.infinity
+    var bestSegIndex = 0
+    for k in 0..<(poly.count - 1) {
+        let a = poly[k], b = poly[k + 1]
+        let ab = b - a
+        let abLenSq = ab.x * ab.x + ab.y * ab.y
+        if abLenSq < 1e-12 { continue }
+        let t = max(0.0, min(1.0, ((corner.join.x - a.x) * ab.x + (corner.join.y - a.y) * ab.y) / abLenSq))
+        let proj = a + t * ab
+        let d = hypot(corner.join.x - proj.x, corner.join.y - proj.y)
+        if d < bestDist {
+            bestDist = d
+            bestSegIndex = k
+        }
+    }
+    let segV = poly[bestSegIndex + 1] - poly[bestSegIndex]
+    let segLen = hypot(segV.x, segV.y)
+    guard segLen > 1e-9 else { return 0 }
+    let segT = segV / segLen
+    let dot = abs(radiusN.x * segT.x + radiusN.y * segT.y)
+    return asin(min(1.0, dot)) * 180.0 / .pi
+}
+
+func minPolylineDist(pt: SIMD2<Double>, poly: [SIMD2<Double>]) -> Double {
+    var dMin = Double.infinity
+    for k in 0..<(poly.count - 1) {
+        let a = poly[k], b = poly[k + 1]
+        let ab = b - a
+        let abLenSq = ab.x * ab.x + ab.y * ab.y
+        if abLenSq < 1e-12 {
+            dMin = min(dMin, hypot(pt.x - a.x, pt.y - a.y))
+        } else {
+            let t = max(0.0, min(1.0, ((pt.x - a.x) * ab.x + (pt.y - a.y) * ab.y) / abLenSq))
+            let proj = a + t * ab
+            dMin = min(dMin, hypot(pt.x - proj.x, pt.y - proj.y))
+        }
+    }
+    return dMin
+}
+
+func pointInPoly(_ pt: SIMD2<Double>, poly: [SIMD2<Double>]) -> Bool {
+    var inside = false
+    var prev = poly.count - 1
+    for curr in 0..<poly.count {
+        let pi = poly[curr], pj = poly[prev]
+        if ((pi.y > pt.y) != (pj.y > pt.y)) &&
+            (pt.x < (pj.x - pi.x) * (pt.y - pi.y) / (pj.y - pi.y) + pi.x) {
+            inside.toggle()
+        }
+        prev = curr
+    }
+    return inside
+}
+
+// A1 (h): The outline
+if let p = WardPaper.panel(width: 402, height: 874) {
+    let poly = WardEdge.outline(p)
+    let r = p.radius
+    let t1 = SIMD2<Double>(p.x + 1.52866483 * r, p.y)
+    let t2 = SIMD2<Double>(p.x, p.y + 1.52866483 * r)
+    let d1 = poly.map { hypot($0.x - t1.x, $0.y - t1.y) }.min() ?? 1
+    let d2 = poly.map { hypot($0.x - t2.x, $0.y - t2.y) }.min() ?? 1
+    let minX = p.x, maxX = p.x + p.width, minY = p.y, maxY = p.y + p.height
+    var insideAll = true
+    for pt in poly {
+        if pt.x < minX - 1e-6 || pt.x > maxX + 1e-6 || pt.y < minY - 1e-6 || pt.y > maxY + 1e-6 {
+            insideAll = false
+        }
+    }
+    let closed = poly.first == poly.last
+    check("outline: closed", closed)
+    check("outline: all inside rect", insideAll)
+    check("outline: passes through (x + 1.52866483 r, y) within 0.001", d1 <= 0.001, "\(d1)")
+    check("outline: passes through (x, y + 1.52866483 r) within 0.001", d2 <= 0.001, "\(d2)")
+} else {
+    check("outline: panel exists", false)
+}
+
+// A1 (a): Window 402 x 874, y 733
+if let p = WardPaper.panel(width: 402, height: 874) {
+    let poly = WardEdge.outline(p)
+    if let j = WardEdge.join(outline: poly, y: 733, radius: p.radius) {
+        check("join 402x874 y 733: radius 47.10", nearTol(j.left?.radius ?? 0, 47.10) && nearTol(j.right?.radius ?? 0, 47.10))
+        check("join 402x874 y 733: left center (59.10, 780.10)", nearTol(j.left?.center.x ?? 0, 59.10) && nearTol(j.left?.center.y ?? 0, 780.10))
+        check("join 402x874 y 733: right center (342.90, 780.10)", nearTol(j.right?.center.x ?? 0, 342.90) && nearTol(j.right?.center.y ?? 0, 780.10))
+        check("join 402x874 y 733: left join (12, 780.10)", nearTol(j.left?.join.x ?? 0, 12.0) && nearTol(j.left?.join.y ?? 0, 780.10))
+        check("join 402x874 y 733: right join (390, 780.10)", nearTol(j.right?.join.x ?? 0, 390.0) && nearTol(j.right?.join.y ?? 0, 780.10))
+        check("join 402x874 y 733: fromX 59.10 toX 342.90", nearTol(j.fromX ?? 0, 59.10) && nearTol(j.toX ?? 0, 342.90))
+
+        if let lc = j.left, let rc = j.right {
+            let dLineL = abs(hypot(lc.lineX - lc.center.x, 733.0 - lc.center.y) - lc.radius)
+            let dJoinL = abs(hypot(lc.join.x - lc.center.x, lc.join.y - lc.center.y) - lc.radius)
+            let dLineR = abs(hypot(rc.lineX - rc.center.x, 733.0 - rc.center.y) - rc.radius)
+            let dJoinR = abs(hypot(rc.join.x - rc.center.x, rc.join.y - rc.center.y) - rc.radius)
+            check("join 402x874 y 733: arc points on circle within 0.01",
+                  dLineL <= 0.01 && dJoinL <= 0.01 && dLineR <= 0.01 && dJoinR <= 0.01)
+
+            let degL = joinTangencyDevDeg(corner: lc, poly: poly)
+            let degR = joinTangencyDevDeg(corner: rc, poly: poly)
+            check("join 402x874 y 733: join tangent within 0.5 degrees", degL <= 0.5 && degR <= 0.5, "\(degL), \(degR)")
+        }
+    } else {
+        check("join 402x874 y 733: join exists", false)
+    }
+}
+
+// A1 (b): Windows 834 x 1194, 1194 x 834 and 1032 x 1376, y 128 pt above opening bottom
+for (w, h) in [(834.0, 1194.0), (1194.0, 834.0), (1032.0, 1376.0)] {
+    if let p = WardPaper.panel(width: w, height: h) {
+        let poly = WardEdge.outline(p)
+        let maxY = poly.map { $0.y }.max() ?? (p.y + p.height)
+        let y = maxY - 128.0
+        if let j = WardEdge.join(outline: poly, y: y, radius: p.radius) {
+            check("join \(Int(w))x\(Int(h)) y=\(Int(y)): r = 64", nearTol(j.left?.radius ?? 0, 64.0) && nearTol(j.right?.radius ?? 0, 64.0))
+            for (side, cOpt) in [("left", j.left), ("right", j.right)] {
+                if let c = cOpt {
+                    let dJoin = minPolylineDist(pt: c.join, poly: poly)
+                    check("join \(Int(w))x\(Int(h)) \(side): join on polyline within 0.1", dJoin <= 0.1, "\(dJoin)")
+
+                    let deg = joinTangencyDevDeg(corner: c, poly: poly)
+                    check("join \(Int(w))x\(Int(h)) \(side): tangent within 1 degree", deg <= 1.0, "\(deg)")
+
+                    var maxOut = 0.0
+                    for k in 0..<360 {
+                        let rad = Double(k) * 2.0 * .pi / 360.0
+                        let pt = SIMD2<Double>(c.center.x + c.radius * cos(rad), c.center.y + c.radius * sin(rad))
+                        if !pointInPoly(pt, poly: poly) {
+                            maxOut = max(maxOut, minPolylineDist(pt: pt, poly: poly))
+                        }
+                    }
+                    check("join \(Int(w))x\(Int(h)) \(side): 360 points inside outline within 0.1", maxOut <= 0.1, "\(maxOut)")
+                }
+            }
+        } else {
+            check("join \(Int(w))x\(Int(h)): join exists", false)
+        }
+    }
+}
+
+// A1 (c): Window 402 x 874: y 800 gives r = 31 within 0.01, tangent as in (b); y 840 gives no arcs
+if let p = WardPaper.panel(width: 402, height: 874) {
+    let poly = WardEdge.outline(p)
+    if let j800 = WardEdge.join(outline: poly, y: 800, radius: p.radius) {
+        check("join 402x874 y 800: r = 31", nearTol(j800.left?.radius ?? 0, 31.0) && nearTol(j800.right?.radius ?? 0, 31.0))
+        if let lc = j800.left {
+            let dJoin = minPolylineDist(pt: lc.join, poly: poly)
+            let deg = joinTangencyDevDeg(corner: lc, poly: poly)
+            check("join 402x874 y 800: tangent as in (b)", dJoin <= 0.1 && deg <= 1.0, "dJoin=\(dJoin), deg=\(deg)")
+        }
+    } else {
+        check("join 402x874 y 800: join exists", false)
+    }
+
+    if let j840 = WardEdge.join(outline: poly, y: 840, radius: p.radius) {
+        check("join 402x874 y 840: no arcs", j840.left == nil && j840.right == nil)
+        if let fx = j840.fromX, let tx = j840.toX {
+            let dFrom = minPolylineDist(pt: SIMD2<Double>(fx, 840), poly: poly)
+            let dTo = minPolylineDist(pt: SIMD2<Double>(tx, 840), poly: poly)
+            check("join 402x874 y 840: fromX and toX on outline within 0.1", dFrom <= 0.1 && dTo <= 0.1, "\(dFrom), \(dTo)")
+        } else {
+            check("join 402x874 y 840: fromX and toX exist", false)
+        }
+    } else {
+        check("join 402x874 y 840: join exists", false)
+    }
+}
+
+// A1 (d): In every case above, left and right mirror each other about the window's middle within 0.01 pt.
+for (w, h, yVal) in [(402.0, 874.0, 733.0), (834.0, 1194.0, 1194.0 - 12 - 128.0), (402.0, 874.0, 800.0), (402.0, 874.0, 840.0)] {
+    if let p = WardPaper.panel(width: w, height: h) {
+        let poly = WardEdge.outline(p)
+        if let j = WardEdge.join(outline: poly, y: yVal, radius: p.radius) {
+            let mid = w / 2.0
+            if let lc = j.left, let rc = j.right {
+                check("mirroring \(Int(w))x\(Int(h)) y=\(Int(yVal)): centers", nearTol(lc.center.x + rc.center.x, 2 * mid))
+                check("mirroring \(Int(w))x\(Int(h)) y=\(Int(yVal)): joins", nearTol(lc.join.x + rc.join.x, 2 * mid))
+            }
+            if let fx = j.fromX, let tx = j.toX {
+                check("mirroring \(Int(w))x\(Int(h)) y=\(Int(yVal)): fromX and toX", nearTol(fx + tx, 2 * mid))
+            }
+        }
+    }
+}
+
+// A1 (e): Window 402 x 874, y 733, slab sides at x 28 and 374: slabTopRadius is 31.10 on both sides within 0.01;
+// no sampled point of slab's top edge or top corner arcs is above line or outside island's arcs by > 0.01 pt.
+// Slab sides at x 120 and 282: 24.
+if let p = WardPaper.panel(width: 402, height: 874) {
+    let poly = WardEdge.outline(p)
+    if let j = WardEdge.join(outline: poly, y: 733, radius: p.radius) {
+        let rL = WardEdge.slabTopRadius(j.left, slabSide: 28, leading: true)
+        let rR = WardEdge.slabTopRadius(j.right, slabSide: 374, leading: false)
+        check("slabTopRadius 28 and 374: 31.10", nearTol(rL, 31.10) && nearTol(rR, 31.10))
+
+        let rL_in = WardEdge.slabTopRadius(j.left, slabSide: 120, leading: true)
+        let rR_in = WardEdge.slabTopRadius(j.right, slabSide: 282, leading: false)
+        check("slabTopRadius 120 and 282: 24", rL_in == 24 && rR_in == 24)
+
+        // Sample top edge and top corner arcs
+        var slabOk = true
+        if let lc = j.left, let rc = j.right {
+            // Left corner arc
+            for k in 0...100 {
+                let phi = Double(k) * (.pi / 2.0) / 100.0
+                let pt = SIMD2<Double>(28 + rL - rL * sin(phi), 733 + rL - rL * cos(phi))
+                if pt.y < 733.0 - 0.01 { slabOk = false }
+                if hypot(pt.x - lc.center.x, pt.y - lc.center.y) > lc.radius + 0.01 { slabOk = false }
+            }
+            // Top edge straight run
+            let xStart = 28 + rL, xEnd = 374 - rR
+            for k in 0...100 {
+                let x = xStart + Double(k) * (xEnd - xStart) / 100.0
+                let pt = SIMD2<Double>(x, 733.0)
+                if pt.y < 733.0 - 0.01 { slabOk = false }
+            }
+            // Right corner arc
+            for k in 0...100 {
+                let phi = Double(k) * (.pi / 2.0) / 100.0
+                let pt = SIMD2<Double>(374 - rR + rR * sin(phi), 733 + rR - rR * cos(phi))
+                if pt.y < 733.0 - 0.01 { slabOk = false }
+                if hypot(pt.x - rc.center.x, pt.y - rc.center.y) > rc.radius + 0.01 { slabOk = false }
+            }
+        }
+        check("slab top edge and corner arcs inside island within 0.01", slabOk)
+    } else {
+        check("slabTopRadius join exists", false)
+    }
+}
+
+// A1 (f): Lines under a header: window 402 x 874, y 116: r 47.10, joins (12, 163.10) and (390, 163.10);
+// window 834 x 1194, y 90: r = the panel's radius (100.93) within 0.01, tangent as in (b).
+if let p = WardPaper.panel(width: 402, height: 874) {
+    let poly = WardEdge.outline(p)
+    if let j = WardEdge.join(outline: poly, y: 116, radius: p.radius) {
+        check("header 402x874 y 116: r 47.10", nearTol(j.left?.radius ?? 0, 47.10))
+        check("header 402x874 y 116: joins (12, 163.10) and (390, 163.10)",
+              nearTol(j.left?.join.x ?? 0, 12.0) && nearTol(j.left?.join.y ?? 0, 163.10) &&
+              nearTol(j.right?.join.x ?? 0, 390.0) && nearTol(j.right?.join.y ?? 0, 163.10))
+    }
+}
+if let p = WardPaper.panel(width: 834, height: 1194) {
+    let poly = WardEdge.outline(p)
+    if let j = WardEdge.join(outline: poly, y: 90, radius: p.radius) {
+        check("header 834x1194 y 90: r = 100.93", nearTol(j.left?.radius ?? 0, 100.93))
+        if let lc = j.left {
+            let dJoin = minPolylineDist(pt: lc.join, poly: poly)
+            let deg = joinTangencyDevDeg(corner: lc, poly: poly)
+            check("header 834x1194 y 90: tangent as in (b)", dJoin <= 0.1 && deg <= 1.0, "\(dJoin), \(deg)")
+        }
+    }
+}
+
+// A1 (g): left: false gives no left arc and fromX nil; the right side is as with both.
+if let p = WardPaper.panel(width: 402, height: 874) {
+    let poly = WardEdge.outline(p)
+    let jBoth = WardEdge.join(outline: poly, y: 733, radius: p.radius, left: true, right: true)
+    let jRightOnly = WardEdge.join(outline: poly, y: 733, radius: p.radius, left: false, right: true)
+    check("left: false gives no left arc and fromX nil", jRightOnly?.left == nil && jRightOnly?.fromX == nil)
+    check("left: false keeps right side identical", jRightOnly?.right == jBoth?.right && jRightOnly?.toX == jBoth?.toX)
+}
+
 print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
                        : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

@@ -1,5 +1,8 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // Soft UI: one matte base, and every surface shaped out of it by two lights
 // from the top left. Raised, a highlight falls up and left of the shape and
@@ -246,56 +249,316 @@ final class WardPaperTop {
     var y: CGFloat?
 }
 
+/// Each window owns this store. A sheet inherits it, but its edges do not
+/// match the root page, so it never borrows the window's frame.
+@MainActor
+@Observable
+final class WardEdgeStore {
+    struct Entry: Identifiable {
+        let id: UUID
+        let host: CGRect
+        let page: CGRect
+        let panel: WardPaperPanel
+        let sides: WardIsland.Sides
+        let join: WardEdgeJoin
+
+        var local: WardEdgeJoin {
+            WardIsland.local(join, origin: SIMD2(Double(host.minX), Double(host.minY)))
+        }
+    }
+
+    private struct Request: Equatable {
+        var frame: CGRect
+        var shown: Bool
+    }
+
+    private(set) var entries: [UUID: Entry] = [:]
+    private(set) var window: CGRect = .zero
+    private(set) var page: CGRect = .zero
+    @ObservationIgnored private var requests: [UUID: Request] = [:]
+    @ObservationIgnored private var panel: WardPaperPanel?
+    @ObservationIgnored private var outline: [SIMD2<Double>] = []
+    @ObservationIgnored private var covered = false
+
+    func setPage(_ frame: CGRect, covered: Bool) {
+        guard page != frame || self.covered != covered else { return }
+        page = frame
+        self.covered = covered
+        refresh()
+    }
+
+    func setWindow(_ frame: CGRect, pad: Bool, top: CGFloat?) {
+        let next = WardPaper.panel(width: frame.width, height: frame.height,
+                                   top: Double(top ?? 0) - frame.minY, pad: pad)
+        guard window != frame || panel != next else { return }
+        window = frame
+        panel = next
+        // The solver sees the very path the frame strokes, including the
+        // system's continuous corners. Flattening is only for the solver.
+        outline = next.map { WardPanelPath.flatten(WardPanelPath.hole($0)) } ?? []
+        refresh()
+    }
+
+    func update(_ id: UUID, frame: CGRect, shown: Bool, transaction: Transaction) {
+        let request = Request(frame: frame, shown: shown)
+        guard requests[id] != request else { return }
+        requests[id] = request
+        var t = transaction
+        if !shown || entries[id] == nil { t.animation = nil; t.disablesAnimations = true }
+        withTransaction(t) { resolve(id, request) }
+    }
+
+    func remove(_ id: UUID) {
+        requests[id] = nil
+        var t = Transaction(animation: nil)
+        t.disablesAnimations = true
+        withTransaction(t) { entries[id] = nil }
+    }
+
+    private func refresh() {
+        for (id, request) in requests { resolve(id, request) }
+    }
+
+    private func resolve(_ id: UUID, _ request: Request) {
+        let sides = WardIsland.sides(host: request.frame, page: page, covered: covered)
+        guard request.shown, sides.any, let panel else { entries[id] = nil; return }
+        let host = request.frame.offsetBy(dx: -window.minX, dy: -window.minY)
+        let page = page.offsetBy(dx: -window.minX, dy: -window.minY)
+        // No geometry is solved by a Canvas or an animation's draw callback.
+        let previous = entries[id]
+        let unchanged = previous?.panel == panel && previous?.sides == sides &&
+            previous?.host.minY == host.minY && previous?.host.minX == host.minX && previous?.host.maxX == host.maxX
+        let solved = unchanged ? previous?.join : WardEdge.join(outline: outline,
+            y: host.minY + WardPaper.edgeWidth / 2, radius: panel.radius, left: sides.left, right: sides.right)
+        guard let join = solved else {
+            entries[id] = nil
+            return
+        }
+        entries[id] = Entry(id: id, host: host, page: page, panel: panel, sides: sides, join: join)
+    }
+}
+
+private enum WardEdgeStoreKey: EnvironmentKey {
+    static let defaultValue: WardEdgeStore? = nil
+}
+private enum WardIslandEntryKey: EnvironmentKey {
+    static let defaultValue: WardEdgeStore.Entry? = nil
+}
+private enum WardFoldInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+extension EnvironmentValues {
+    var wardEdgeStore: WardEdgeStore? {
+        get { self[WardEdgeStoreKey.self] }
+        set { self[WardEdgeStoreKey.self] = newValue }
+    }
+    var wardIslandEntry: WardEdgeStore.Entry? {
+        get { self[WardIslandEntryKey.self] }
+        set { self[WardIslandEntryKey.self] = newValue }
+    }
+    var wardFoldInset: CGFloat {
+        get { self[WardFoldInsetKey.self] }
+        set { self[WardFoldInsetKey.self] = newValue }
+    }
+}
+
+private enum WardPanelPath {
+    @MainActor
+    static var pad: Bool {
+        #if canImport(UIKit)
+        UIDevice.current.userInterfaceIdiom == .pad
+        #else
+        false
+        #endif
+    }
+
+    static func hole(_ panel: WardPaperPanel) -> Path {
+        RoundedRectangle(cornerRadius: panel.radius, style: .continuous)
+            .path(in: CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height))
+    }
+
+    static func flatten(_ path: Path) -> [SIMD2<Double>] {
+        var points: [SIMD2<Double>] = [], current = SIMD2<Double>.zero, first = current
+        func point(_ p: CGPoint) -> SIMD2<Double> { SIMD2(Double(p.x), Double(p.y)) }
+        path.cgPath.applyWithBlock { pointer in
+            let e = pointer.pointee
+            switch e.type {
+            case .moveToPoint:
+                current = point(e.points[0]); first = current; points.append(current)
+            case .addLineToPoint:
+                current = point(e.points[0]); points.append(current)
+            case .addQuadCurveToPoint:
+                let start = current, control = point(e.points[0]), end = point(e.points[1])
+                for i in 1...64 {
+                    let t = Double(i) / 64, u = 1 - t
+                    points.append(u * u * start + 2 * u * t * control + t * t * end)
+                }
+                current = end
+            case .addCurveToPoint:
+                let start = current, a = point(e.points[0]), b = point(e.points[1]), end = point(e.points[2])
+                for i in 1...64 {
+                    let t = Double(i) / 64, u = 1 - t
+                    points.append(u * u * u * start + 3 * u * u * t * a + 3 * u * t * t * b + t * t * t * end)
+                }
+                current = end
+            case .closeSubpath: points.append(first); current = first
+            @unknown default: break
+            }
+        }
+        return points
+    }
+}
+
+/// All thirteen coordinates interpolate together. Both canvases and the
+/// strip mask receive the same solved endpoints and the same transaction.
+private struct WardEdgeVector: VectorArithmetic {
+    var values: [Double]
+    static var zero: Self { Self(values: Array(repeating: 0, count: 13)) }
+    static func + (lhs: Self, rhs: Self) -> Self { Self(values: zip(lhs.values, rhs.values).map(+)) }
+    static func - (lhs: Self, rhs: Self) -> Self { Self(values: zip(lhs.values, rhs.values).map(-)) }
+    mutating func scale(by rhs: Double) { values = values.map { $0 * rhs } }
+    var magnitudeSquared: Double { values.reduce(0) { $0 + $1 * $1 } }
+}
+
+private struct WardIslandPath: Shape {
+    var data: WardEdgeVector
+    var left: Bool
+    var right: Bool
+    var filled = false
+
+    init(join: WardEdgeJoin, from: Double, to: Double, filled: Bool = false) {
+        func numbers(_ c: WardEdgeCorner?) -> [Double] {
+            guard let c else { return [0, 0, 0, 0, 0] }
+            return [c.center.x, c.center.y, c.radius, c.join.x, c.join.y]
+        }
+        data = WardEdgeVector(values: [join.y, join.fromX ?? from, join.toX ?? to] + numbers(join.left) + numbers(join.right))
+        left = join.left != nil; right = join.right != nil; self.filled = filled
+    }
+
+    var animatableData: WardEdgeVector {
+        get { data }
+        set { data = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let v = data.values
+        var p = Path()
+        let start = CGPoint(x: left ? v[6] : v[1], y: left ? v[7] : v[0])
+        p.move(to: start)
+        if left {
+            p.addArc(center: CGPoint(x: v[3], y: v[4]), radius: v[5],
+                     startAngle: .radians(atan2(v[7] - v[4], v[6] - v[3])),
+                     endAngle: .radians(3 * .pi / 2), clockwise: false)
+        }
+        p.addLine(to: CGPoint(x: v[2], y: v[0]))
+        if right {
+            p.addArc(center: CGPoint(x: v[8], y: v[9]), radius: v[10],
+                     startAngle: .radians(-.pi / 2),
+                     endAngle: .radians(atan2(v[12] - v[9], v[11] - v[8])), clockwise: false)
+        }
+        if filled {
+            p.addLine(to: CGPoint(x: right ? v[11] : v[2], y: rect.maxY))
+            p.addLine(to: CGPoint(x: start.x, y: rect.maxY))
+            p.closeSubpath()
+        }
+        return p
+    }
+}
+
+/// Only the four-point clearance, never over the page or the frame stroke.
+/// The enclosing group applies the edge opacity once to the resulting ink.
+private struct WardClearanceInk: View, Animatable {
+    var shape: WardIslandPath
+    let entry: WardEdgeStore.Entry
+    let color: Color
+    var animatableData: WardEdgeVector {
+        get { shape.data }
+        set { shape.data = newValue }
+    }
+
+    var body: some View {
+        Canvas { context, size in
+            let rect = CGRect(origin: .zero, size: size)
+            var bands = Path()
+            for band in WardIsland.clearance(panel: entry.panel, page: entry.page, sides: entry.sides) {
+                bands.addRect(band)
+            }
+            context.clip(to: bands, style: FillStyle(antialiased: false))
+            var outsideStroke = Path(rect)
+            outsideStroke.addPath(WardPanelPath.hole(entry.panel).strokedPath(StrokeStyle(lineWidth: WardPaper.edgeWidth)))
+            context.clip(to: outsideStroke, style: FillStyle(eoFill: true, antialiased: false))
+            context.stroke(shape.path(in: rect), with: .color(color), lineWidth: WardPaper.edgeWidth)
+        }
+        .transition(.identity)
+    }
+}
+
 /// Still ECG paper around the screen; content scrolls beneath the open panel.
 /// With the opening moved down (WardPaperTop), the paper fills its top
 /// corners as well, and its edge is drawn there instead of at the frame's
 /// top; the paper above it is the page's own band, under the content.
 struct WardPaperFrame: View {
+    let edges: WardEdgeStore
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
     /// read so the end of every shift redraws it (WardRestLookTrait)
     @Environment(\.wardRestLook) private var restLook
+    @State private var window: CGRect = .zero
 
     var body: some View {
-        let top: CGFloat? = WardPaperTop.shared.y
+        let top = WardPaperTop.shared.y
         // the section's ink and the base, this frame of the shift
         let ink = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                 highContrast: contrast == .increased)
+        let (r, g, b) = WardPalette.rgb(ink.hex)
+        let color = Color(red: r, green: g, blue: b)
         let base: Color = .wardBackground
-        Canvas { context, size in
-            let w = Double(size.width), h = Double(size.height)
-            guard let panel = WardPaper.panel(width: w, height: h) else { return }
-            let (r, g, b) = WardPalette.rgb(ink.hex)
-            let color = Color(red: r, green: g, blue: b)
-            let rect = CGRect(origin: .zero, size: size)
-            func hole(_ p: WardPaperPanel) -> Path {
-                RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
-                    .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
+        GeometryReader { geometry in
+            let size = geometry.size
+            if let panel = WardPaper.panel(width: size.width, height: size.height, pad: WardPanelPath.pad),
+               let moved = WardPaper.panel(width: size.width, height: size.height,
+                                          top: Double(top ?? 0) - window.minY, pad: WardPanelPath.pad) {
+                let frameHole = WardPanelPath.hole(panel)
+                let hole = WardPanelPath.hole(moved)
+                ZStack {
+                    Canvas { context, _ in
+                        var frame = Path(CGRect(origin: .zero, size: size))
+                        frame.addPath(frameHole)
+                        context.drawLayer { layer in
+                            layer.clip(to: frame, style: FillStyle(eoFill: true))
+                            WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color, base: base)
+                        }
+                        if moved.y > panel.y {
+                            let strip = Path(CGRect(x: moved.x, y: moved.y, width: moved.width, height: moved.radius))
+                            var corners = strip
+                            corners.addPath(hole)
+                            context.drawLayer { layer in
+                                layer.clip(to: strip)
+                                layer.clip(to: corners, style: FillStyle(eoFill: true))
+                                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color, base: base)
+                            }
+                        }
+                    }
+                    ZStack {
+                        Canvas { context, _ in
+                            context.stroke(hole, with: .color(color), lineWidth: WardPaper.edgeWidth)
+                        }
+                        ForEach(edges.entries.values.sorted { $0.id.uuidString < $1.id.uuidString }) { entry in
+                            WardClearanceInk(shape: WardIslandPath(join: entry.join,
+                                                                  from: entry.host.minX, to: entry.host.maxX),
+                                             entry: entry, color: color)
+                        }
+                    }
+                    .compositingGroup()
+                    .opacity(ink.edge)
+                }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+                    window = frame
+                    edges.setWindow(frame, pad: WardPanelPath.pad, top: top)
+                }
+                .onChange(of: top) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: now) }
             }
-            let frameHole = hole(panel)
-            var frame = Path(rect)
-            frame.addPath(frameHole)
-            context.drawLayer { layer in
-                layer.clip(to: frame, style: FillStyle(eoFill: true))
-                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color, base: base)
-            }
-            guard let top, let moved = WardPaper.panel(width: w, height: h, top: Double(top)),
-                  moved.y > panel.y else {
-                context.stroke(frameHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
-                return
-            }
-            // the opening's top corners, which the frame's paper leaves open
-            let movedHole = hole(moved)
-            let strip = Path(CGRect(x: moved.x, y: moved.y, width: moved.width, height: moved.radius))
-            var corners = strip
-            corners.addPath(movedHole)
-            context.drawLayer { layer in
-                layer.clip(to: strip)
-                layer.clip(to: corners, style: FillStyle(eoFill: true))
-                WardPaperInk.drawPaper(in: &layer, size: size, from: .zero, ink: ink, color: color, base: base)
-            }
-            context.stroke(movedHole, with: .color(color.opacity(ink.edge)), lineWidth: WardPaper.edgeWidth)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
@@ -464,11 +727,61 @@ struct WardRowTile: View {
     }
 }
 
-/// The line where what scrolls is cut by a solid bar: the paper frame's edge
-/// ink across the panel, out to the frame's line on both sides, as the
-/// home's grid band ends. Without it a card cut there read as two things
-/// overlapping (the owner, 9 Oct: "some ui elements overlap").
+/// A transaction is captured without publishing state during view updates.
+/// Geometry callbacks forward it to the window's copy of the same curve.
+private final class WardEdgeTransaction {
+    var value = Transaction(animation: nil)
+}
+
+private struct WardEdgeHost: ViewModifier {
+    let shown: Bool
+    let strip: Bool
+    @Environment(\.wardEdgeStore) private var store
+    @State private var id = UUID()
+    @State private var frame: CGRect = .zero
+    @State private var clock = WardEdgeTransaction()
+
+    func body(content: Content) -> some View {
+        let entry = store?.entries[id]
+        content
+            .environment(\.wardIslandEntry, entry)
+            .background(alignment: .top) {
+                if strip && shown {
+                    if let entry {
+                        GeometryReader { geometry in
+                            WardIslandPath(join: entry.local, from: -WardPaper.sideInset,
+                                           to: entry.host.width + WardPaper.sideInset, filled: true)
+                                .fill(Color.wardBackground)
+                                .frame(height: max(geometry.size.height, entry.panel.y + entry.panel.height - entry.host.minY + WardPaper.frame))
+                        }
+                        .transition(.identity)
+                    } else {
+                        Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom]).transition(.identity)
+                    }
+                }
+            }
+            .overlay(alignment: .top) {
+                if shown {
+                    WardScrollEdgeLine(entry: entry, pockets: !strip).transition(.identity)
+                }
+            }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { now in
+                frame = now
+                store?.update(id, frame: now, shown: shown, transaction: clock.value)
+            }
+            .onChange(of: shown, initial: true) { _, now in
+                store?.update(id, frame: frame, shown: now, transaction: clock.value)
+            }
+            .onDisappear { store?.remove(id) }
+            .transaction { clock.value = $0 }
+    }
+}
+
+/// One stroked path, including its true circular arcs, in the frame's ink.
+/// The pockets under a header are the complement of the island's fill.
 struct WardScrollEdgeLine: View {
+    var entry: WardEdgeStore.Entry?
+    var pockets = false
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
@@ -479,33 +792,169 @@ struct WardScrollEdgeLine: View {
         let ink = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                 highContrast: contrast == .increased)
         let (r, g, b) = WardPalette.rgb(ink.hex)
-        Rectangle()
-            .fill(Color(red: r, green: g, blue: b).opacity(ink.edge))
-            .frame(height: CGFloat(WardPaper.edgeWidth))
-            // the page sits sideInset in from the window (SkyRoot); the
-            // frame covers what runs on past its line
-            .padding(.horizontal, -WardPaper.sideInset)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+        let color = Color(red: r, green: g, blue: b).opacity(ink.edge)
+        Group {
+            if let entry {
+                WardPageEdge(shape: WardIslandPath(join: WardIsland.local(entry.local, origin: SIMD2(-WardPaper.sideInset, 0)),
+                                                   from: 0, to: entry.host.width + 2 * WardPaper.sideInset),
+                             panel: entry.panel,
+                             origin: CGPoint(x: entry.host.minX - WardPaper.sideInset, y: entry.host.minY),
+                             pockets: pockets, color: color)
+                    .frame(height: max(entry.local.left?.join.y ?? 0, entry.local.right?.join.y ?? 0) + WardPaper.edgeWidth)
+                    .padding(.horizontal, -WardPaper.sideInset)
+            } else {
+                Rectangle().fill(color)
+                    .frame(height: WardPaper.edgeWidth)
+                    .padding(.horizontal, -WardPaper.sideInset)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
-/// The scroll edge's line along the top of what scrolls, once any of it has
-/// gone under what stands above it (the bar area, a study header); at rest
-/// at its top, no line.
+private struct WardPageEdge: View, Animatable {
+    var shape: WardIslandPath
+    let panel: WardPaperPanel
+    var origin: CGPoint
+    let pockets: Bool
+    let color: Color
+    var animatableData: AnimatablePair<WardEdgeVector, AnimatablePair<CGFloat, CGFloat>> {
+        get { AnimatablePair(shape.data, AnimatablePair(origin.x, origin.y)) }
+        set {
+            shape.data = newValue.first
+            origin = CGPoint(x: newValue.second.first, y: newValue.second.second)
+        }
+    }
+
+    var body: some View {
+        let base = Color.wardBackground
+        Canvas { context, size in
+            let rect = CGRect(origin: .zero, size: size)
+            if pockets {
+                var island = shape
+                island.filled = true
+                var outside = Path(rect)
+                outside.addPath(island.path(in: rect))
+                context.drawLayer { layer in
+                    layer.clip(to: Path(rect))
+                    layer.clip(to: outside, style: FillStyle(eoFill: true))
+                    layer.fill(Path(rect), with: .color(base))
+                }
+            }
+            // A low deck can meet a bottom corner inside the page itself.
+            // The frame owns its stroke there, just as it does in the gap.
+            let hole = WardPanelPath.hole(panel).applying(CGAffineTransform(translationX: -origin.x, y: -origin.y))
+            var outsideStroke = Path(rect)
+            outsideStroke.addPath(hole.strokedPath(StrokeStyle(lineWidth: WardPaper.edgeWidth)))
+            context.clip(to: outsideStroke, style: FillStyle(eoFill: true, antialiased: false))
+            context.stroke(shape.path(in: rect), with: .color(color), lineWidth: WardPaper.edgeWidth)
+        }
+    }
+}
+
 private struct WardScrollTopEdge: ViewModifier {
     @State private var scrolled = false
 
     func body(content: Content) -> some View {
         content
             .onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y + $0.contentInsets.top > 0.5 } action: { _, now in
-                scrolled = now
+                var t = Transaction(animation: nil)
+                t.disablesAnimations = true
+                withTransaction(t) { scrolled = now }
             }
-            .overlay(alignment: .top) {
-                if scrolled { WardScrollEdgeLine().transition(.identity) }
-            }
+            .modifier(WardEdgeHost(shown: scrolled, strip: false))
     }
 }
+
+/// Circular top corners stay inside the island. The bottom keeps the
+/// continuous 24-point corners of the original slab, including its relief.
+private struct WardDeckShape: InsettableShape {
+    var left: CGFloat
+    var right: CGFloat
+    var joined: Bool
+    var insetAmount: CGFloat = 0
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(left, right) }
+        set { left = newValue.first; right = newValue.second }
+    }
+    func inset(by amount: CGFloat) -> Self {
+        var copy = self; copy.insetAmount += amount; return copy
+    }
+    func path(in rect: CGRect) -> Path {
+        guard joined else {
+            return RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
+                .inset(by: insetAmount).path(in: rect)
+        }
+        let b = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        let top = b.minY + WardPaper.edgeWidth / 2
+        let l = max(0, min(left - insetAmount, b.width / 2))
+        let r = max(0, min(right - insetAmount, b.width / 2))
+        let bottom = max(0, min(WardRadius.bar - insetAmount, b.width / 3.05732966))
+        var p = Path()
+        p.move(to: CGPoint(x: b.minX, y: top + l))
+        p.addArc(center: CGPoint(x: b.minX + l, y: top + l), radius: l,
+                 startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        p.addLine(to: CGPoint(x: b.maxX - r, y: top))
+        p.addArc(center: CGPoint(x: b.maxX - r, y: top + r), radius: r,
+                 startAngle: .degrees(270), endAngle: .degrees(360), clockwise: false)
+        p.addLine(to: CGPoint(x: b.maxX, y: b.maxY - 1.52866483 * bottom))
+        // The same continuous bottom corners used by WardEdge's outline.
+        for rightSide in [true, false] {
+            let x = rightSide ? b.maxX : b.minX
+            let sign: CGFloat = rightSide ? -1 : 1
+            func q(_ u: CGFloat, _ v: CGFloat) -> CGPoint {
+                CGPoint(x: x + sign * u * bottom, y: b.maxY - v * bottom)
+            }
+            if rightSide {
+                p.addCurve(to: q(0.074911, 0.63149399), control1: q(0, 1.08849299), control2: q(0, 0.86840701))
+                p.addCurve(to: q(0.63149399, 0.074911), control1: q(0.16905501, 0.37282401), control2: q(0.37282401, 0.16905501))
+                p.addCurve(to: q(1.52866483, 0), control1: q(0.86840701, 0), control2: q(1.08849299, 0))
+                p.addLine(to: CGPoint(x: b.minX + 1.52866483 * bottom, y: b.maxY))
+            } else {
+                p.addCurve(to: q(0.63149399, 0.074911), control1: q(1.08849299, 0), control2: q(0.86840701, 0))
+                p.addCurve(to: q(0.074911, 0.63149399), control1: q(0.37282401, 0.16905501), control2: q(0.16905501, 0.37282401))
+                p.addCurve(to: q(0, 1.52866483), control1: q(0, 0.86840701), control2: q(0, 1.08849299))
+            }
+        }
+        p.closeSubpath()
+        return p
+    }
+}
+
+struct WardDeckSlab: ViewModifier {
+    @Environment(\.wardIslandEntry) private var entry
+    @Environment(\.wardEdgeStore) private var store
+    @State private var frame: CGRect = .zero
+
+    func body(content: Content) -> some View {
+        let slab = frame.offsetBy(dx: -(store?.window.minX ?? 0), dy: -(store?.window.minY ?? 0))
+        let join = frame.width > 0 ? entry?.join : nil
+        let left = WardEdge.slabTopRadius(join?.left, slabSide: slab.minX, leading: true)
+        let right = WardEdge.slabTopRadius(join?.right, slabSide: slab.maxX, leading: false)
+        let shape = WardDeckShape(left: left, right: right, joined: join != nil)
+        let inset = join.map { WardIsland.foldInset(slab: slab, join: $0) } ?? 0
+        let face = content
+            .environment(\.wardFoldInset, CGFloat(inset))
+            .wardRaised(in: shape, lift: .high)
+        Group {
+            if let join {
+                face.clipShape(shape)
+                    .mask {
+                        // Near the bottom corner the join can pass the circle's
+                        // widest point; the island, too, must cut the slab there.
+                        WardIslandPath(join: WardIsland.local(join, origin: SIMD2(slab.minX, slab.minY)),
+                                       from: -WardPaper.sideInset, to: slab.width + WardPaper.sideInset, filled: true)
+                    }
+                    .transition(.identity)
+            } else {
+                face.transition(.identity)
+            }
+        }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+    }
+}
+
 
 extension View {
     /// A line where what scrolls is cut at the top of its frame, once it
@@ -524,16 +973,7 @@ extension View {
     /// or hidden, the bar keeps its identity, so a fold never cross-fades it.
     func wardBarBase(room: CGFloat = 24, shown: Bool = true) -> some View {
         self.padding(.top, shown ? room : 0)
-            .background {
-                if shown {
-                    Color.wardBackground
-                        .ignoresSafeArea(edges: [.horizontal, .bottom])
-                        .transition(.identity)
-                }
-            }
-            .overlay(alignment: .top) {
-                if shown { WardScrollEdgeLine().transition(.identity) }
-            }
+            .modifier(WardEdgeHost(shown: shown, strip: true))
     }
 
     func wardCard(padding: CGFloat = WardSpace.gutter, lift: WardLift = .mid) -> some View {
