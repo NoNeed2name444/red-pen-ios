@@ -1,0 +1,22 @@
+== mode-switch-app
+8 frames; content contrast light 34.3, dark 32.1; a frame under 25.6 has faded
+8 frames; status bar contrast light 45.4, dark 42.1; a frame under 33.7 has faded (reported, never fails: iOS's own transition)
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch-quiz
+80 frames; content contrast light 42.1, dark 38.9; a frame under 31.1 has faded
+80 frames; status bar contrast light 46.6, dark 42.9; a frame under 34.3 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 3-26 from 0.960 s, on screen 0.380 s; lowest contrast 10.6, brightness 223
+faded status bar, not gated: frames 42-65 from 6.047 s, on screen 0.367 s; lowest contrast 10.6, brightness 223
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch (system, not gated)
+167 frames; content contrast light 34.3, dark 32.1; a frame under 25.7 has faded
+FADED content, longer than 0.2 s: frames 2-15 from 3.458 s, on screen 0.283 s; lowest contrast 7.6, brightness 125
+FADED content, longer than 0.2 s: frames 40-63 from 6.733 s, on screen 0.343 s; lowest contrast 4.1, brightness 142
+FADED content, longer than 0.2 s: frames 85-105 from 9.797 s, on screen 0.307 s; lowest contrast 3.9, brightness 142
+FADED content, longer than 0.2 s: frames 126-145 from 12.892 s, on screen 0.337 s; lowest contrast 4.0, brightness 141
+167 frames; status bar contrast light 45.4, dark 42.1; a frame under 33.7 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 2-23 from 3.458 s, on screen 0.445 s; lowest contrast 4.0, brightness 52
+faded status bar, not gated: frames 32-78 from 6.647 s, on screen 0.737 s; lowest contrast 3.0, brightness 68
+faded status bar, not gated: frames 84-100 from 9.773 s, on screen 0.245 s; lowest contrast 12.1, brightness 200
+faded status bar, not gated: frames 118-161 from 12.790 s, on screen 0.827 s; lowest contrast 3.0, brightness 91
+4 faded stretches longer than 0.2 s
