@@ -356,7 +356,8 @@ nonisolated struct NeuronPlanner: Sendable {
     /// The cells in rows facing the camera, read like text that snakes
     /// back on every other row, a partial last row centred, each row
     /// nudged sideways and each cell jittered a little (all in the pitch,
-    /// so the whole sheet grows with the link length), and a little depth.
+    /// so the whole sheet grows with the link length), then each lifted to its
+    /// own bounded depth (GraphTilt).
     mutating func placeTops() {
         cSphere = [Double](repeating: 0, count: tree.cCount)
         cWorld = [SIMD3<Double>](repeating: SIMD3<Double>(0, 0, 0), count: tree.cCount)
@@ -380,9 +381,20 @@ nonisolated struct NeuronPlanner: Sendable {
             if rows > 1 { x += row % 2 == 0 ? 0.18 : -0.18 }
             x += random.signed() * 0.03
             let y: Double = Double(rows - 1) * 0.5 - Double(row) + random.signed() * 0.03
-            let z: Double = random.signed() * 0.3 * biggest
-            cWorld[c] = SIMD3<Double>(x * pitch, y * pitch, z)
+            cWorld[c] = SIMD3<Double>(x * pitch, y * pitch, 0)
         }
+        // real depth (T0057): each cell lifted to A·u(id) (GraphTilt), in
+        // place of the old random jitter; its parts and notes are put from
+        // its home (emitContainer's base) and drift with it
+        // judged on the sheet at the standard link length, so the depth is
+        // the map's own and the link-length setting only spreads the sheet
+        let standard: Double = (2 * biggest + GraphNeurons.sheetGap * biggest) / max(pitch, 0.000_001)
+        let clusters: [GraphTilt.Cluster] = tops.map { c in
+            (id: tree.liftKey(c), centre: SIMD2<Float>(Float(cWorld[c].x * standard), Float(cWorld[c].y * standard)),
+             radius: Float(cSphere[c]))
+        }
+        let lift: Float = GraphTilt.amplitude(clusters: clusters, theme: .neurons)
+        for c in tops { cWorld[c].z = Double(GraphTilt.z(tree.liftKey(c), amplitude: lift)) }
     }
 
     /// How far a top cell's processes reach, drifting.
