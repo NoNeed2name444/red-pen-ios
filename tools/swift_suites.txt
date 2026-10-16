@@ -226,7 +226,13 @@ suite graphlens GraphLensTests.swift $F/Notes/GraphLens.swift $F/Notes/GraphThem
 # pulling it in, Increase Contrast fading less, nothing drawn or picked
 # past the end, detail dropping only where mostly faded, pills never
 # half-faded
-suite graphdepth GraphDepthTests.swift $F/Notes/GraphDepthFade.swift $F/Notes/GraphTheme.swift $S/Space/GraphicsQuality.swift
+suite graphdepth GraphDepthTests.swift $F/Notes/GraphDepthFade.swift $F/Notes/GraphTilt.swift $F/Notes/GraphTheme.swift \
+      $S/Space/GraphicsQuality.swift
+# the tilted default view (T0057): the tilted fit against its closed form,
+# the least distance, u(id) stable and order-free, the amplitude rule, the
+# discs' overlap, and the band and shader text the tilt hands over to
+suite graphtilt GraphTiltTests.swift $F/Notes/GraphTilt.swift $F/Notes/GraphDepthFade.swift $F/Notes/GraphTheme.swift \
+      $S/Space/GraphicsQuality.swift
 # the Performance theme's engine at 100,000 notes and 300,000: the
 # graph, the seed and the force layout a slice a frame, cluster level of
 # detail (fewer bodies and lines as the camera goes back), picks against
