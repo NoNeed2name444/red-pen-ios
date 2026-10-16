@@ -2127,6 +2127,13 @@ with the marks on the screens last.
     Follow-ups: 46 comment lines in 29 files still name Theatre Blue; the
     launch logo still draws "score" in Theatre Blue; the Lens sheet has no
     preview case.
+  - Deck island continuity and rounded corners (the owner, 16 Oct; task
+    T0065): any place with a line across the opening (quiz bottom deck,
+    header line) turns down into the outer line along a circular arc
+    tangent to both with the panel's corner radius, matching the iPhone
+    corner radius, with deck slab top corners rounded to meet the arc.
+    The Foundation geometry (`WardEdgeCorner`, `WardEdgeJoin`, `WardEdge`)
+    is in and tested (`wardrelief` suite); its drawing is the next task.
 
 ### Waiting on the owner
 

@@ -385,3 +385,306 @@ enum WardPaper {
         return result
     }
 }
+
+/// One end of a line across the frame's opening: the circular arc from the
+/// line down to the opening's outline, tangent to both.
+struct WardEdgeCorner: Equatable, Sendable {
+    var center: SIMD2<Double>
+    var radius: Double
+    /// where the arc leaves the line: center.x
+    var lineX: Double
+    /// where the arc meets the outline, tangent to it
+    var join: SIMD2<Double>
+}
+
+/// A line across the opening at `y`, with its ends joined to the outline.
+struct WardEdgeJoin: Equatable, Sendable {
+    var y: Double
+    var left: WardEdgeCorner?
+    var right: WardEdgeCorner?
+    /// the straight line's ends: an arc's lineX, or, on a joined side with
+    /// no room for an arc, where the line meets the outline; nil on a side
+    /// that is not joined (the caller keeps its own end there)
+    var fromX: Double?
+    var toX: Double?
+}
+
+enum WardEdge {
+    static let minRadius = 12.0
+
+    private static func cubicPoint(p0: SIMD2<Double>, p1: SIMD2<Double>, p2: SIMD2<Double>, p3: SIMD2<Double>, t: Double) -> SIMD2<Double> {
+        let u = 1.0 - t
+        let tt = t * t
+        let uu = u * u
+        let uuu = uu * u
+        let ttt = tt * t
+        return uuu * p0 + 3.0 * uu * t * p1 + 3.0 * u * tt * p2 + ttt * p3
+    }
+
+    private static func sampleCubic(p0: SIMD2<Double>, p1: SIMD2<Double>, p2: SIMD2<Double>, p3: SIMD2<Double>, n: Int) -> [SIMD2<Double>] {
+        guard n > 0 else { return [p3] }
+        var points: [SIMD2<Double>] = []
+        points.reserveCapacity(n)
+        for i in 1...n {
+            let t = Double(i) / Double(n)
+            points.append(cubicPoint(p0: p0, p1: p1, p2: p2, p3: p3, t: t))
+        }
+        return points
+    }
+
+    /// The panel's outline with iOS continuous corners, a closed polyline,
+    /// clockwise from the top edge's left end of straight run.
+    static func outline(_ panel: WardPaperPanel, pointsPerCurve: Int = 24) -> [SIMD2<Double>] {
+        guard pointsPerCurve > 0 else { return [] }
+        let minX = panel.x
+        let maxX = panel.x + panel.width
+        let minY = panel.y
+        let maxY = panel.y + panel.height
+        let r = panel.radius
+        let c = 1.52866483
+
+        // Start at top edge's left end of straight run
+        var poly: [SIMD2<Double>] = [SIMD2<Double>(minX + c * r, minY)]
+
+        // 1. Top straight run to top-right corner start
+        poly.append(SIMD2<Double>(maxX - c * r, minY))
+
+        // 2. Top-right corner (3 cubics)
+        let tr_c1_p0 = SIMD2<Double>(maxX - 1.52866483 * r, minY)
+        let tr_c1_p1 = SIMD2<Double>(maxX - 1.08849299 * r, minY)
+        let tr_c1_p2 = SIMD2<Double>(maxX - 0.86840701 * r, minY)
+        let tr_c1_p3 = SIMD2<Double>(maxX - 0.63149399 * r, minY + 0.07491100 * r)
+
+        let tr_c2_p0 = tr_c1_p3
+        let tr_c2_p1 = SIMD2<Double>(maxX - 0.37282401 * r, minY + 0.16905501 * r)
+        let tr_c2_p2 = SIMD2<Double>(maxX - 0.16905501 * r, minY + 0.37282401 * r)
+        let tr_c2_p3 = SIMD2<Double>(maxX - 0.07491100 * r, minY + 0.63149399 * r)
+
+        let tr_c3_p0 = tr_c2_p3
+        let tr_c3_p1 = SIMD2<Double>(maxX, minY + 0.86840701 * r)
+        let tr_c3_p2 = SIMD2<Double>(maxX, minY + 1.08849299 * r)
+        let tr_c3_p3 = SIMD2<Double>(maxX, minY + 1.52866483 * r)
+
+        poly.append(contentsOf: sampleCubic(p0: tr_c1_p0, p1: tr_c1_p1, p2: tr_c1_p2, p3: tr_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tr_c2_p0, p1: tr_c2_p1, p2: tr_c2_p2, p3: tr_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tr_c3_p0, p1: tr_c3_p1, p2: tr_c3_p2, p3: tr_c3_p3, n: pointsPerCurve))
+
+        // 3. Right straight run
+        poly.append(SIMD2<Double>(maxX, maxY - c * r))
+
+        // 4. Bottom-right corner (mirroring TR)
+        func brPoint(u: Double, v: Double) -> SIMD2<Double> {
+            SIMD2<Double>(maxX - r * v, maxY + r * u)
+        }
+        let br_c1_p0 = brPoint(u: -1.52866483, v: 0)
+        let br_c1_p1 = brPoint(u: -1.08849299, v: 0)
+        let br_c1_p2 = brPoint(u: -0.86840701, v: 0)
+        let br_c1_p3 = brPoint(u: -0.63149399, v: 0.07491100)
+
+        let br_c2_p0 = br_c1_p3
+        let br_c2_p1 = brPoint(u: -0.37282401, v: 0.16905501)
+        let br_c2_p2 = brPoint(u: -0.16905501, v: 0.37282401)
+        let br_c2_p3 = brPoint(u: -0.07491100, v: 0.63149399)
+
+        let br_c3_p0 = br_c2_p3
+        let br_c3_p1 = brPoint(u: 0, v: 0.86840701)
+        let br_c3_p2 = brPoint(u: 0, v: 1.08849299)
+        let br_c3_p3 = brPoint(u: 0, v: 1.52866483)
+
+        poly.append(contentsOf: sampleCubic(p0: br_c1_p0, p1: br_c1_p1, p2: br_c1_p2, p3: br_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: br_c2_p0, p1: br_c2_p1, p2: br_c2_p2, p3: br_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: br_c3_p0, p1: br_c3_p1, p2: br_c3_p2, p3: br_c3_p3, n: pointsPerCurve))
+
+        // 5. Bottom straight run
+        poly.append(SIMD2<Double>(minX + c * r, maxY))
+
+        // 6. Bottom-left corner (mirroring TR)
+        func blPoint(u: Double, v: Double) -> SIMD2<Double> {
+            SIMD2<Double>(minX - r * u, maxY - r * v)
+        }
+        let bl_c1_p0 = blPoint(u: -1.52866483, v: 0)
+        let bl_c1_p1 = blPoint(u: -1.08849299, v: 0)
+        let bl_c1_p2 = blPoint(u: -0.86840701, v: 0)
+        let bl_c1_p3 = blPoint(u: -0.63149399, v: 0.07491100)
+
+        let bl_c2_p0 = bl_c1_p3
+        let bl_c2_p1 = blPoint(u: -0.37282401, v: 0.16905501)
+        let bl_c2_p2 = blPoint(u: -0.16905501, v: 0.37282401)
+        let bl_c2_p3 = blPoint(u: -0.07491100, v: 0.63149399)
+
+        let bl_c3_p0 = bl_c2_p3
+        let bl_c3_p1 = blPoint(u: 0, v: 0.86840701)
+        let bl_c3_p2 = blPoint(u: 0, v: 1.08849299)
+        let bl_c3_p3 = blPoint(u: 0, v: 1.52866483)
+
+        poly.append(contentsOf: sampleCubic(p0: bl_c1_p0, p1: bl_c1_p1, p2: bl_c1_p2, p3: bl_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: bl_c2_p0, p1: bl_c2_p1, p2: bl_c2_p2, p3: bl_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: bl_c3_p0, p1: bl_c3_p1, p2: bl_c3_p2, p3: bl_c3_p3, n: pointsPerCurve))
+
+        // 7. Left straight run
+        poly.append(SIMD2<Double>(minX, minY + c * r))
+
+        // 8. Top-left corner (mirroring TR)
+        func tlPoint(u: Double, v: Double) -> SIMD2<Double> {
+            SIMD2<Double>(minX + r * v, minY - r * u)
+        }
+        let tl_c1_p0 = tlPoint(u: -1.52866483, v: 0)
+        let tl_c1_p1 = tlPoint(u: -1.08849299, v: 0)
+        let tl_c1_p2 = tlPoint(u: -0.86840701, v: 0)
+        let tl_c1_p3 = tlPoint(u: -0.63149399, v: 0.07491100)
+
+        let tl_c2_p0 = tl_c1_p3
+        let tl_c2_p1 = tlPoint(u: -0.37282401, v: 0.16905501)
+        let tl_c2_p2 = tlPoint(u: -0.16905501, v: 0.37282401)
+        let tl_c2_p3 = tlPoint(u: -0.07491100, v: 0.63149399)
+
+        let tl_c3_p0 = tl_c2_p3
+        let tl_c3_p1 = tlPoint(u: 0, v: 0.86840701)
+        let tl_c3_p2 = tlPoint(u: 0, v: 1.08849299)
+        let tl_c3_p3 = tlPoint(u: 0, v: 1.52866483)
+
+        poly.append(contentsOf: sampleCubic(p0: tl_c1_p0, p1: tl_c1_p1, p2: tl_c1_p2, p3: tl_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tl_c2_p0, p1: tl_c2_p1, p2: tl_c2_p2, p3: tl_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tl_c3_p0, p1: tl_c3_p1, p2: tl_c3_p2, p3: tl_c3_p3, n: pointsPerCurve))
+
+        return poly
+    }
+
+    private static func closestPointOnSegment(p: SIMD2<Double>, a: SIMD2<Double>, b: SIMD2<Double>) -> (point: SIMD2<Double>, dist: Double) {
+        let ab = b - a
+        let abLenSq = ab.x * ab.x + ab.y * ab.y
+        if abLenSq < 1e-12 {
+            let d = hypot(p.x - a.x, p.y - a.y)
+            return (a, d)
+        }
+        let t = max(0.0, min(1.0, ((p.x - a.x) * ab.x + (p.y - a.y) * ab.y) / abLenSq))
+        let proj = a + t * ab
+        let d = hypot(p.x - proj.x, p.y - proj.y)
+        return (proj, d)
+    }
+
+    private static func horizontalCrossing(poly: [SIMD2<Double>], y: Double, left: Bool) -> Double? {
+        guard poly.count >= 2 else { return nil }
+        var xs: [Double] = []
+        for i in 0..<(poly.count - 1) {
+            let p1 = poly[i]
+            let p2 = poly[i + 1]
+            let minY = min(p1.y, p2.y)
+            let maxY = max(p1.y, p2.y)
+            if y >= minY && y <= maxY && p1.y != p2.y {
+                let t = (y - p1.y) / (p2.y - p1.y)
+                let x = p1.x + t * (p2.x - p1.x)
+                xs.append(x)
+            }
+        }
+        if xs.isEmpty { return nil }
+        return left ? xs.min() : xs.max()
+    }
+
+    private static func solveLeftCorner(outline: [SIMD2<Double>], y: Double, radius: Double,
+                                        midX: Double, maxY: Double) -> (WardEdgeCorner?, fromX: Double?) {
+        let room = maxY - y
+        let r = min(radius, room / 2.0)
+        guard r >= minRadius else {
+            let fromX = horizontalCrossing(poly: outline, y: y, left: true)
+            return (nil, fromX)
+        }
+        let cy = y + r
+        guard let lowX = horizontalCrossing(poly: outline, y: cy, left: true) else {
+            return (nil, nil)
+        }
+
+        func distToOuter(c: SIMD2<Double>) -> (dist: Double, nearest: SIMD2<Double>) {
+            var bestDist = Double.infinity
+            var bestPoint = c
+            for i in 0..<(outline.count - 1) {
+                let (proj, d) = closestPointOnSegment(p: c, a: outline[i], b: outline[i + 1])
+                // Outer side is x < c.x (touching the bottom edge straight below has x == c.x, which is not the join)
+                if proj.x < c.x - 1e-9 {
+                    if d < bestDist {
+                        bestDist = d
+                        bestPoint = proj
+                    }
+                }
+            }
+            return (bestDist, bestPoint)
+        }
+
+        var lo = lowX
+        var hi = midX
+        for _ in 0..<60 {
+            let mid = (lo + hi) / 2.0
+            let (d, _) = distToOuter(c: SIMD2<Double>(mid, cy))
+            if d < r {
+                lo = mid
+            } else {
+                hi = mid
+            }
+        }
+        let cx = (lo + hi) / 2.0
+        let (_, join) = distToOuter(c: SIMD2<Double>(cx, cy))
+        let corner = WardEdgeCorner(center: SIMD2<Double>(cx, cy), radius: r, lineX: cx, join: join)
+        return (corner, cx)
+    }
+
+    /// The line at `y` across the opening whose outline is `outline`, its
+    /// ends joined on the sides asked for, with arcs of `radius` or the
+    /// largest that fits. nil when y is not inside the opening.
+    static func join(outline: [SIMD2<Double>], y: Double, radius: Double,
+                     left: Bool = true, right: Bool = true) -> WardEdgeJoin? {
+        guard outline.count >= 3 else { return nil }
+        var minY = Double.infinity
+        var maxY = -Double.infinity
+        var minX = Double.infinity
+        var maxX = -Double.infinity
+        for pt in outline {
+            if pt.y < minY { minY = pt.y }
+            if pt.y > maxY { maxY = pt.y }
+            if pt.x < minX { minX = pt.x }
+            if pt.x > maxX { maxX = pt.x }
+        }
+
+        guard y > minY, y < maxY else { return nil }
+        let midX = (minX + maxX) / 2.0
+
+        var leftCorner: WardEdgeCorner? = nil
+        var rightCorner: WardEdgeCorner? = nil
+        var fromX: Double? = nil
+        var toX: Double? = nil
+
+        if left {
+            let res = solveLeftCorner(outline: outline, y: y, radius: radius, midX: midX, maxY: maxY)
+            leftCorner = res.0
+            fromX = res.fromX
+        }
+
+        if right {
+            // Mirror outline horizontally about midX so the left solver solves the right side symmetrically
+            let mirroredOutline = outline.map { SIMD2<Double>(2.0 * midX - $0.x, $0.y) }
+            let res = solveLeftCorner(outline: mirroredOutline, y: y, radius: radius, midX: midX, maxY: maxY)
+            if let mc = res.0 {
+                let rx = 2.0 * midX - mc.center.x
+                let jx = 2.0 * midX - mc.join.x
+                rightCorner = WardEdgeCorner(center: SIMD2<Double>(rx, mc.center.y),
+                                             radius: mc.radius,
+                                             lineX: rx,
+                                             join: SIMD2<Double>(jx, mc.join.y))
+                toX = rx
+            } else if let mFromX = res.fromX {
+                toX = 2.0 * midX - mFromX
+            }
+        }
+
+        return WardEdgeJoin(y: y, left: leftCorner, right: rightCorner, fromX: fromX, toX: toX)
+    }
+
+    /// The slab's top corner radius on one side (`leading`: its left side
+    /// at x `slabSide`; otherwise its right side): `base` unless its top edge
+    /// would run past where the arc leaves the line.
+    static func slabTopRadius(_ corner: WardEdgeCorner?, slabSide: Double,
+                              leading: Bool, base: Double = 24) -> Double {
+        guard let corner else { return base }
+        let diff = leading ? (corner.lineX - slabSide) : (slabSide - corner.lineX)
+        return max(base, diff)
+    }
+}
