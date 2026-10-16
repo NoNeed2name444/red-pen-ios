@@ -192,6 +192,55 @@ check("nothing laid out is a fault", HomeFit.faults(card: nil, start: nil, bar: 
 check("a card with no button is a fault",
       HomeFit.faults(card: box(0, 1), start: nil, bar: nil, newSet: nil).count == 1)
 
+// MARK: - The parts book (WardPartBook's ledger)
+
+// N3: a top is booked floored onto the pixel grid, never rounded to a half
+// point: 682.78 at 3x is 682.667 (a half-point round gave 683, below the
+// real top, so a pixel of the part showed over a cut at 683)
+let booked682: Double = wardBookedTop(682.78, scale: 3)
+check("682.78 at 3x books at the pixel line above, 682.667", abs(booked682 - 2048.0 / 3) < 1e-9, "\(booked682)")
+check("a booked top is never below the real one",
+      booked682 <= 682.78 && (682.78 - booked682) < 1.0 / 3)
+check("a top already on the grid keeps its place", wardBookedTop(683, scale: 3) == 683)
+check("a top on a 2x pixel line keeps its place", wardBookedTop(100.5, scale: 2) == 100.5)
+var neverBelow: Bool = true
+for scale in [1.0, 2, 3] {
+    for step in 0..<3000 {
+        let y: Double = 600 + Double(step) * 0.0137
+        let top: Double = wardBookedTop(y, scale: scale)
+        if top > y + 1e-9 || y - top >= 1 / scale + 1e-9 { neverBelow = false }
+    }
+}
+check("every booked top is at or above the real one, within a pixel", neverBelow)
+check("an unknown scale floors to a whole point", wardBookedTop(682.78, scale: 0) == 682)
+
+// the ledger books that top, and the cut moves up to it
+var ledger = WardPartLedger<Int>()
+ledger.set(1, name: "chip", rect: CGRect(x: 0, y: 682.78, width: 80, height: 24), reach: 0, scale: 3)
+check("the ledger lists the floored top", ledger.tops.count == 1 && abs(ledger.tops[0] - 2048.0 / 3) < 1e-9,
+      "\(ledger.tops)")
+check("a cut at 683 settles on the chip's pixel line",
+      abs(HomeFit.settledCut(683, tops: ledger.tops) - 2048.0 / 3) < 1e-9)
+// a row's tile stands out above its frame
+ledger.set(2, name: "row", rect: CGRect(x: 0, y: 700, width: 300, height: 60), reach: 8, scale: 2)
+check("reach lifts a row's top", ledger.entries[2]?.top == 692 && ledger.entries[2]?.rect.height == 68)
+
+// N2: a part whose view went away leaves the book; a new page clears it
+ledger.drop(1)
+check("a dropped part leaves the book", ledger.entries[1] == nil && ledger.tops == [692])
+ledger.drop(99)
+check("dropping a part that is not there changes nothing", ledger.tops == [692])
+ledger.set(3, name: "gone", rect: .zero, reach: 4, scale: 2)
+check("an empty frame is not kept", ledger.entries[3] == nil)
+ledger.clear()
+check("a new page empties the ledger", ledger.entries.isEmpty && ledger.tops.isEmpty)
+// the same top from two parts counts once, and survives one of them going
+ledger.set(4, name: "a", rect: CGRect(x: 0, y: 500, width: 10, height: 10), reach: 0, scale: 2)
+ledger.set(5, name: "b", rect: CGRect(x: 0, y: 500, width: 10, height: 10), reach: 0, scale: 2)
+check("two parts at one top book it once", ledger.tops == [500])
+ledger.drop(4)
+check("the top stays while another part holds it", ledger.tops == [500])
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {

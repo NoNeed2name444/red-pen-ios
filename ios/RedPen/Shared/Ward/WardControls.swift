@@ -73,38 +73,49 @@ final class WardPartBook {
 
     /// The page says whether it is at rest (its list at the top, not moving).
     var atRest: @MainActor () -> Bool = { true }
-    /// Told the sorted tops (global points) whenever they change.
-    var changed: @MainActor ([Double]) -> Void = { _ in }
+    /// Told the sorted tops (global points) whenever they change. Installed
+    /// late (the page's .task), so it is told what the book already holds
+    /// the moment it arrives: an early publish is not lost.
+    var changed: @MainActor ([Double]) -> Void = { _ in } {
+        didSet { if !told.isEmpty { changed(told) } }
+    }
 
     struct Part {
         var name: String
         var rect: CGRect
     }
 
-    private(set) var parts: [UUID: Part] = [:]
-    private var tops: [Double] = []
+    private var ledger = WardPartLedger<UUID>()
+    private var told: [Double] = []
+
+    var parts: [UUID: Part] {
+        ledger.entries.mapValues { Part(name: $0.name, rect: $0.rect) }
+    }
 
     /// One part's frame, kept only while the page is at rest. `reach` is how
     /// far its face stands out above its frame (a row's tile).
-    func set(_ id: UUID, name: String, rect: CGRect, reach: CGFloat) {
-        guard atRest(), !rect.isEmpty else { return }
-        var face: CGRect = rect
-        face.origin.y -= reach
-        face.size.height += reach
-        parts[id] = Part(name: name, rect: face)
+    func set(_ id: UUID, name: String, rect: CGRect, reach: CGFloat, scale: CGFloat) {
+        guard atRest() else { return }
+        ledger.set(id, name: name, rect: rect, reach: Double(reach), scale: Double(scale))
+        publish()
+    }
+
+    /// A part whose view went away leaves the book.
+    func drop(_ id: UUID) {
+        ledger.drop(id)
         publish()
     }
 
     /// A new page: what the last one held is gone.
     func clear() {
-        parts = [:]
+        ledger.clear()
         publish()
     }
 
     private func publish() {
-        let now: [Double] = Array(Set(parts.values.map { Double(($0.rect.minY * 2).rounded() / 2) })).sorted()
-        guard now != tops else { return }
-        tops = now
+        let now: [Double] = ledger.tops
+        guard now != told else { return }
+        told = now
         changed(now)
     }
 }
@@ -125,13 +136,16 @@ private struct WardPartModifier: ViewModifier {
     let name: String
     let reach: CGFloat
     @Environment(\.wardPartsProbed) private var probed
+    @Environment(\.displayScale) private var displayScale
     @State private var id = UUID()
 
     func body(content: Content) -> some View {
-        content.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { rect in
-            guard probed else { return }
-            WardPartBook.shared.set(id, name: name, rect: rect, reach: reach)
-        }
+        content
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { rect in
+                guard probed else { return }
+                WardPartBook.shared.set(id, name: name, rect: rect, reach: reach, scale: displayScale)
+            }
+            .onDisappear { WardPartBook.shared.drop(id) }
     }
 }
 

@@ -1998,6 +1998,22 @@ with the marks on the screens last.
       frame to the 3x grid, up, so the end (682.67) fell below the chip's top
       (682.3). HomeFit.shown now settles the cut onto the pixel grid at or
       above itself (scale from displayScale); gate unchanged; HomeFitTests.
+    - Second review (N1-N3):
+      - [x] N1: set rows, the examples row and the More rows had lost their
+        Ward tile because `.wardPart` wrapped the row after its list-row
+        traits, so the List no longer read them. `wardPart` now comes before
+        the traits (LibraryRows, LibraryCategory); no other List row had it
+        the wrong way round. tests/ward/part-traits.test.mjs fails if a row
+        trait sits before a `.wardPart` in a chain (it flags the old order).
+      - [x] N3: a part's top is booked floored onto the pixel grid
+        (wardBookedTop), not rounded to half a point: 682.78 at 3x books
+        682.667, never 683. HomeFitTests.
+      - [x] N2: a part whose view goes away leaves the book (onDisappear),
+        and the book tells `changed` what it already holds the moment the
+        page installs it, so an early publish is kept. The book's logic is
+        WardPartLedger (Foundation-only, Shared/Ward/WardPartLedger.swift), tested for drop, clear and
+        shared tops in HomeFitTests; the onDisappear and the late-install
+        replay are SwiftUI and are confirmed on the next Mac run.
 - [ ] 6. Last: the owner's marks on the screens.
 - [ ] 7. An open-source stand-in for Jev (§22a kept only Layer 7, the
   fail-closed oath check, and Layer 6's card/MCQ triage). Plan: Layer 7 from

@@ -124,8 +124,8 @@ extension LibraryView {
                         .foregroundStyle(Color.wardInk)
                 }
                 .accessibilityIdentifier("more-\(page.rawValue)")
-                .frostedListRow()
                 .wardPart("a More row", reach: WardSpace.s)
+                .frostedListRow()
             }
         } header: {
             CategoryHeading(title: "Across the app")

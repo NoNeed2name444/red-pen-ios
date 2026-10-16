@@ -46,8 +46,8 @@ extension LibraryView {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("examplesBanner")
-                .frostedListRow()
                 .wardPart("the examples row", reach: WardSpace.s)
+                .frostedListRow()
             }
         }
     }
@@ -132,12 +132,14 @@ extension LibraryView {
                 .transition(.identity)
             }
         }
+        // the tile's face stands a little out of the content (WardRowTile);
+        // the part goes inside the row's traits, which the List reads off
+        // the row's outermost modifiers
+        .wardPart("a set row", reach: WardSpace.s)
         // a soft tile, a little tighter above and below than a form's, so
         // a long library stays quick to scan
         .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 16))
         .frostedListRow()
-        // the tile's face stands a little out of the content (WardRowTile)
-        .wardPart("a set row", reach: WardSpace.s)
         .contextMenu { rowMenu(set) }
         .swipeActions(edge: .leading) {
             Button { export(set) } label: { Label(set.kind == .anki ? "Export deck" : "Export PDF", systemImage: "arrow.down.doc") }
