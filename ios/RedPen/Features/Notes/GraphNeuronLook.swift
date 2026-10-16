@@ -858,10 +858,6 @@ final class GraphNeuronLook: GraphThemeLook {
     func makeSky() -> SCNNode {
         NeuronTissue.makeSky()
     }
-
-    /// The tissue fluid: every Neurons material is light added to it, so
-    /// this is only for a solid one (GraphDepthMode).
-    var depthTint: SIMD3<Float> { NeuronPalette.deep }
 }
 
 // MARK: - Impulses on the render thread

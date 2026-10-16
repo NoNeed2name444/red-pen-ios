@@ -164,5 +164,29 @@ let shader: String = GraphDepthShaderText.fragment(mode: .light, most: 1, k: 1)
 check("G4b the shader text carries the marker, no pow, no matrix", shader.hasPrefix(GraphDepthShaderText.marker)
       && !shader.contains("pow") && !shader.contains("viewTransform") && shader.contains("rpDepthSpan"))
 
+// MARK: G5 - camera controller settings for a tilt (T0062)
+
+let zero = GraphTilt.cameraSettings(tilt: 0)
+check("G5a θ = 0 gives worldUp (0,1,0) and limits 0 and 0",
+      zero.worldUp == SIMD3<Float>(0, 1, 0)
+      && zero.minimumVerticalAngle == 0
+      && zero.maximumVerticalAngle == 0)
+
+for theme: GraphTheme in [.neurons, .space] {
+    let theta: Float = GraphTilt.angle(theme)
+    let s = GraphTilt.cameraSettings(tilt: theta)
+    check("G5b \(theme.rawValue) at θ gives worldUp (0,0,1) and limits 15 and 80",
+          s.worldUp == SIMD3<Float>(0, 0, 1)
+          && near(s.minimumVerticalAngle, 15, 1e-5)
+          && near(s.maximumVerticalAngle, 80, 1e-5))
+}
+
+let neuronsSettings = GraphTilt.cameraSettings(tilt: GraphTilt.angle(.neurons))
+check("G5c the limits keep every tilt between 10° and 75°",
+      90 - neuronsSettings.maximumVerticalAngle == GraphTilt.lowestDegrees
+      && 90 - neuronsSettings.minimumVerticalAngle == GraphTilt.highestDegrees
+      && GraphTilt.lowestDegrees == 10
+      && GraphTilt.highestDegrees == 75)
+
 print(failures.isEmpty ? "ALL PASS" : "FAILURES: \(failures.count)")
 if !failures.isEmpty { exit(1) }

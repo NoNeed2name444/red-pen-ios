@@ -2010,6 +2010,7 @@ with the marks on the screens last.
     owner's choice above.
     Step 3 (16 Oct, T0057/T0062): depth completed with rulings and user requirements U1–U9:
     - U1: Graph3DView: worldUp (0,0,1) normal to the map, turntable horizontal drag, vertical drag limits keeping tilt within 10–75° (SceneKit elevation 15° to 80°).
+    - θ = 0 keeps SceneKit's camera defaults.
     - U2: Bands follow reach R = (deepest/F) - 1 in [0.15, 1.0], crisp reach c = a·R (whole) or R + 0.02 (fly-in), span F·(1+c) to F·(1+c+(b-a)·R).
     - U3: Bounded real depth: cluster z = A·u(id) with FNV-1a 64, A from {0.35, 0.25, 0.15, 0} × H passing legibility rule (overlap/cover ≤ 15%).
     - U4: Space fades per body (gate opacity 1 - f in steps ≥ 1/255, hidden at f ≥ 1); Neurons stays per pixel.

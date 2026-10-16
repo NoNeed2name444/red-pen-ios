@@ -67,6 +67,13 @@ nonisolated struct GraphTiltFit: Equatable {
     let reach: Float
 }
 
+/// The camera controller's settings for a tilt: worldUp and vertical-angle limits.
+nonisolated struct GraphCameraSettings: Equatable {
+    let worldUp: SIMD3<Float>
+    let minimumVerticalAngle: Float
+    let maximumVerticalAngle: Float
+}
+
 nonisolated enum GraphTilt {
     /// The camera's vertical field of view (GraphFraming.fieldOfView).
     static let fieldOfView: Float = 55
@@ -113,6 +120,30 @@ nonisolated enum GraphTilt {
     /// The camera's place for a fit, from the middle: Rx(θ)·(cx, cy, D).
     static func offset(_ fit: GraphTiltFit, tilt: Float) -> SIMD3<Float> {
         rotX(tilt, SIMD3<Float>(fit.shift.x, fit.shift.y, fit.distance))
+    }
+
+    // MARK: camera controller settings (T0062)
+
+    // SceneKit's SCNCameraController measures vertical angles as elevation above
+    // the plane perpendicular to worldUp (-90° nadir, 0° horizon, +90° zenith).
+    // With worldUp (0,0,1), tilt θ from face-on (+Z) gives elevation = 90° - θ.
+    // To keep tilt within 10–75° (GraphTilt.lowestDegrees...highestDegrees):
+    // minimumVerticalAngle is 90° - 75° = 15°, maximumVerticalAngle is 90° - 10° = 80° (U1).
+    // For θ = 0, SceneKit's defaults: worldUp (0,1,0) and both vertical angles 0 (unconstrained).
+    static func cameraSettings(tilt: Float) -> GraphCameraSettings {
+        if tilt > 0 {
+            return GraphCameraSettings(
+                worldUp: SIMD3<Float>(0, 0, 1),
+                minimumVerticalAngle: 90 - highestDegrees,
+                maximumVerticalAngle: 90 - lowestDegrees
+            )
+        } else {
+            return GraphCameraSettings(
+                worldUp: SIMD3<Float>(0, 1, 0),
+                minimumVerticalAngle: 0,
+                maximumVerticalAngle: 0
+            )
+        }
     }
 
     // MARK: the window

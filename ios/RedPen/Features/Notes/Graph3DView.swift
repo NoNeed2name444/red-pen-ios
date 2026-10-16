@@ -1523,14 +1523,6 @@ struct GraphSCNView: UIViewRepresentable {
         view.isJitteringEnabled = false
         view.defaultCameraController.interactionMode = .orbitTurntable
         view.defaultCameraController.inertiaEnabled = true
-        view.defaultCameraController.worldUp = SCNVector3(0, 0, 1)
-        // SceneKit's SCNCameraController measures vertical angles as elevation above
-        // the plane perpendicular to worldUp (-90° nadir, 0° horizon, +90° zenith).
-        // With worldUp (0,0,1), tilt θ from face-on (+Z) gives elevation = 90° - θ.
-        // To keep tilt within 10–75° (GraphTilt.lowestDegrees...highestDegrees):
-        // minimumVerticalAngle is 90° - 75° = 15°, maximumVerticalAngle is 90° - 10° = 80° (U1).
-        view.defaultCameraController.minimumVerticalAngle = 90 - GraphTilt.highestDegrees
-        view.defaultCameraController.maximumVerticalAngle = 90 - GraphTilt.lowestDegrees
 
         let coordinator = context.coordinator
         coordinator.view = view
@@ -1979,6 +1971,17 @@ struct GraphSCNView: UIViewRepresentable {
             return simd_quatf(angle: angle, axis: SIMD3<Float>(0, 0, 1))
         }
 
+        /// The drag's up and its tilt limits for this tilt: a tilted map
+        /// turns about its own normal, kept 10-75° from face-on; a face-on
+        /// one keeps SceneKit's defaults, as before the tilt came in.
+        private func applyCameraSettings(tilt: Float) {
+            guard let view else { return }
+            let settings = GraphTilt.cameraSettings(tilt: tilt)
+            view.defaultCameraController.worldUp = SCNVector3(settings.worldUp.x, settings.worldUp.y, settings.worldUp.z)
+            view.defaultCameraController.minimumVerticalAngle = CGFloat(settings.minimumVerticalAngle)
+            view.defaultCameraController.maximumVerticalAngle = CGFloat(settings.maximumVerticalAngle)
+        }
+
         /// Fits the whole graph to the screen (GraphFraming): its longest
         /// spread along the screen's long side, filling 80% of the shorter
         /// one of the part not under glass (a theme's own share of the
@@ -2002,6 +2005,7 @@ struct GraphSCNView: UIViewRepresentable {
                                                           height: Float(size.height), insets: insets)
             let fit: GraphFit = GraphFit.of(theme, universe: universe)
             let theta: Float = GraphTilt.angle(theme, wide: wide)
+            applyCameraSettings(tilt: theta)
             if theta > 0 {
                 let counted: [SIMD3<Float>] = fit.counted(around)
                 let pads = [Float](repeating: pad, count: counted.count)
@@ -2084,6 +2088,7 @@ struct GraphSCNView: UIViewRepresentable {
             view.defaultCameraController.target = SCNVector3(x: centre.x, y: centre.y, z: centre.z)
             sim.setFocus(centre)
             let theta: Float = GraphTilt.angle(theme, wide: wide)
+            applyCameraSettings(tilt: theta)
             if theta > 0 {
                 let pads = [Float](repeating: 0.25, count: turned.count)
                 let tiltFit: GraphTiltFit = GraphTilt.fit(points: turned, pads: pads, window: window, fill: 0.88, tilt: theta)
