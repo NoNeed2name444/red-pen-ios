@@ -236,7 +236,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const old = routeFor({ AI_API_KEY: 'hf' }, 'cramdown-writer');
   ok(old.sources.length === 1 && old.sources[0].base.includes('huggingface'), 'with nothing else set it is the old Hugging Face route');
   const all = routeFor({ AI_API_KEY: 'hf', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
-                         FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', AI: {} }, 'cramdown-checker');
+                         FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', AI: {},
+                         PRO_PAYS: 'on', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' }, 'cramdown-checker');
   ok(all.sources.map(x => x.kind).join('>') === 'openai>gemini>workers-ai', 'Baichuan, then Gemini, then Workers AI');
   ok(all.sources[0].model === 'baichuan/baichuan-m2-32b' && all.sources[0].key === 'bk', 'Baichuan-M2-32B by default, with its own key');
 
@@ -247,7 +248,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'from gemini' }] } }] }), { status: 200 });
   };
   const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
-                         FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' });
+                         FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' });
   const r = await chat(env, 'a1', request, fetcher);
   ok(r.status === 200 && (await r.json()).choices[0].message.content === 'from gemini' && seen[0].includes('baichuan'),
      'Baichuan busy or out of credit: Gemini answers instead');
@@ -608,7 +609,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   // the paid writer (Novita) refusing its key or out of credit: Gemini answers
   for (const status of [402, 403]) {
     const paid = freshEnv({ ...firebase, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5',
-      AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' });
+      AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk',
+      GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' });
     const hosts = [];
     const f = async url => { hosts.push(url.includes('novita') ? 'novita' : 'gemini');
       return url.includes('novita') ? new Response(JSON.stringify({ code: status, message: 'invalid API key' }), { status })

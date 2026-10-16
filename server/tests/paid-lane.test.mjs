@@ -16,6 +16,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { chat, routeFor, costOf, paysNow, canPay, askModel, claudeVoterSpent } from '../ai.js';
+import { jevAvailable, jevOath } from '../jev.js';
+import { speech, AURA, MELO } from '../tts.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -91,7 +93,7 @@ const calls = [
      'PRO_PAYS off or unset: Claude is not a source of the route, key or no key');
   ok(!claudeIn({ ...lane, GEMINI_BILLING: 'on' }) && !claudeIn({ ...lane, PRO_PAYS: undefined, GEMINI_BILLING: 'on' }),
      'and GEMINI_BILLING on does not bring it in');
-  const on = routeFor({ ...lane, PRO_PAYS: 'on', AI: {}, AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' }, 'cramdown-writer');
+  const on = routeFor({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07', AI: {}, AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' }, 'cramdown-writer');
   ok(on.sources.map(s => s.kind).join('>') === 'anthropic>openai>gemini>workers-ai' && on.sources[0].paid === true,
      'PRO_PAYS on: Claude is the first source and a paid one, ahead of the rest as before');
   ok(!routeFor({ ...lane, PRO_PAYS: 'on', ANTHROPIC_API_KEY: undefined }, 'cramdown-writer').sources.some(s => s.kind === 'anthropic'),
@@ -172,6 +174,172 @@ for (const [who, body, options] of calls) {
   ok(Math.abs(await claudeVoterSpent(env) - (100 * 4 + 50 * 20) / 1e6) < 1e-9
      && env.db.prepare("SELECT 1 AS x FROM ai_cost WHERE account_id = 'owner'").get() === undefined,
      "counted under claude:owner, and not in the owner's wallet");
+}
+
+// Novita (the paid writer), Jev and the paid voice in the paid lane:
+// they answer only while Pro itself pays (PRO_PAYS "on").
+// GEMINI_BILLING "on" or a seen bill opens Google's wallet, not Pro's income.
+// And an unpriced paid model is never asked.
+const writerReply = { choices: [{ message: { content: 'writer' } }], usage: { prompt_tokens: 100, completion_tokens: 50 } };
+function upstreamWithWriter() {
+  const log = { asked: [], sent: null };
+  log.fetcher = async (url, init) => {
+    if (url.includes('anthropic')) {
+      log.asked.push('claude');
+      log.sent = JSON.parse(init.body);
+      return new Response(JSON.stringify(claudeReply), { status: 200 });
+    }
+    if (url.includes('novita') || url.includes('baichuan') || url.includes('writer')) {
+      log.asked.push('writer');
+      log.sent = JSON.parse(init.body);
+      return new Response(JSON.stringify(writerReply), { status: 200 });
+    }
+    log.asked.push('gemini');
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'gemini' }] } }] }), { status: 200 });
+  };
+  return log;
+}
+
+const jevReply = { model: 'jev-latest', answers: { oath: { type: 'noul', noul: 0.95 } } };
+const jevFetcher = log => async () => {
+  log.calls++;
+  return new Response(JSON.stringify(jevReply), { status: 200 });
+};
+
+function fakeVoiceAI() {
+  const calls = [];
+  return {
+    calls,
+    async run(model, input) {
+      calls.push({ model, input });
+      if (model === AURA) return new Response(new Uint8Array(2000)).body;
+      if (model === MELO) return { audio: Buffer.from(new Uint8Array(2000)).toString('base64') };
+      throw new Error('unknown model');
+    },
+  };
+}
+function fakeVoiceR2() {
+  const store = new Map();
+  return {
+    store,
+    async get(key) {
+      const b = store.get(key);
+      return b ? { body: new Response(b).body, arrayBuffer: async () => b.buffer } : null;
+    },
+    async put(key, value) {
+      const buf = value instanceof Uint8Array ? value : new Uint8Array(await new Response(value).arrayBuffer());
+      store.set(key, buf);
+    },
+  };
+}
+
+// 1. The paid writer route and unpriced model checks
+{
+  const writerIn = env => routeFor(env, 'cramdown-writer').sources.some(s => s.kind === 'openai' && s.paid);
+  const novita = { ...lane, ANTHROPIC_API_KEY: undefined, AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' };
+  ok(!writerIn({ ...novita }) && !writerIn({ ...novita, PRO_PAYS: undefined }),
+     'PRO_PAYS off or unset: the paid writer is not a source of the route');
+  ok(!writerIn({ ...novita, GEMINI_BILLING: 'on' }) && !writerIn({ ...novita, PRO_PAYS: undefined, GEMINI_BILLING: 'on' }),
+     'and GEMINI_BILLING on does not bring the paid writer in');
+  ok(writerIn({ ...novita, PRO_PAYS: 'on' }),
+     'PRO_PAYS on: the paid writer joins the route');
+  ok(!writerIn({ ...novita, PRO_PAYS: 'on', GEMINI_PRICES: undefined }),
+     'missing GEMINI_PRICES: the paid writer is left out of the route');
+  ok(!writerIn({ ...novita, PRO_PAYS: 'on', GEMINI_PRICES: 'gemini-3.5-flash:0.3/2.5' }),
+     'an unpriced default writer model is left out of the route');
+  ok(writerIn({ ...novita, PRO_PAYS: 'on', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' }),
+     'a priced default writer model joins the route');
+  ok(!writerIn({ ...novita, PRO_PAYS: 'on', AI_WRITER_MODEL: 'custom-writer', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' }),
+     'an unpriced custom writer model is left out of the route');
+  ok(writerIn({ ...novita, PRO_PAYS: 'on', AI_WRITER_MODEL: 'custom-writer', GEMINI_PRICES: 'custom-writer:0.1/0.1' }),
+     'a priced custom writer model joins the route');
+
+  // Both cases from attempt 2:
+  const rCase1 = routeFor({ AI_WRITER_URL: 'https://w.example/v1', AI_WRITER_KEY: 'k', FIREBASE_API_KEY: 'f', FIREBASE_PROJECT_ID: 'p', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' }, 'cramdown-checker');
+  ok(rCase1.sources.map(s => s.kind).join('>') === 'gemini',
+     'cramdown-checker without PRO_PAYS: does not reach the paid writer, Gemini answers');
+  const rCase2 = routeFor({ AI_WRITER_URL: 'https://w.example/v1', AI_WRITER_KEY: 'k', FIREBASE_API_KEY: 'f', FIREBASE_PROJECT_ID: 'p', PRO_PAYS: 'on' }, 'cramdown-checker');
+  ok(rCase2.sources.map(s => s.kind).join('>') === 'gemini',
+     'cramdown-checker with PRO_PAYS on but no GEMINI_PRICES: does not reach the unpriced writer, Gemini answers');
+}
+
+// 2. PRO_PAYS off, paid lane opened by GEMINI_BILLING on or a seen bill:
+// no request reaches the writer URL, Jev or the paid voice
+for (const [how, make] of Object.entries(opened)) {
+  // writer
+  const envWriter = { ...make(), ANTHROPIC_API_KEY: undefined, AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' };
+  const wLog = upstreamWithWriter();
+  const wr = await chat(envWriter, 'a1', writer, wLog.fetcher, { owner: true });
+  const wSaid = await wr.json();
+  ok(wr.status === 200 && !wLog.asked.includes('writer') && wSaid.choices[0].message.content === 'gemini',
+     `PRO_PAYS off, ${how}: chat never reaches the writer URL, Gemini answers`);
+
+  // Jev
+  const envJev = { ...make(), JEV_API_KEY: 'jk' };
+  const jLog = { calls: 0 };
+  const jAvail = await jevAvailable(envJev);
+  const jP = await jevOath(envJev, 'Give 1 g ceftriaxone stat', jevFetcher(jLog));
+  ok(!jAvail && jP === null && jLog.calls === 0,
+     `PRO_PAYS off, ${how}: Jev is not available and never called`);
+
+  // paid voice
+  const envVoice = { ...make(), BLOBS: fakeVoiceR2(), AI: fakeVoiceAI(), TTS_FREE_DAILY_CHARS: '0' };
+  const vr = await speech(envVoice, 'a1', { text: 'Voice line.' }, () => {}, { owner: true });
+  ok(vr.status === 200 && vr.headers.get('x-voice-model') === 'melotts' && envVoice.AI.calls[0]?.model === MELO,
+     `PRO_PAYS off, ${how}: paid voice (Aura) is not opened, MeloTTS answers`);
+}
+
+// 3. PRO_PAYS on: each is used as before, and unpriced paid model is never asked
+{
+  // writer
+  const envWriterOn = freshEnv({ ...lane, PRO_PAYS: 'on', ANTHROPIC_API_KEY: undefined,
+                                 AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk',
+                                 GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' });
+  const wLogOn = upstreamWithWriter();
+  const wrOn = await chat(envWriterOn, 'a1', writer, wLogOn.fetcher, { owner: true });
+  const wSaidOn = await wrOn.json();
+  ok(wrOn.status === 200 && wLogOn.asked[0] === 'writer' && wSaidOn.choices[0].message.content === 'writer',
+     'PRO_PAYS on: the paid writer is asked first, and answers');
+
+  // unpriced vs priced writer in chat
+  const noPricesEnv = freshEnv({ ...lane, PRO_PAYS: 'on', ANTHROPIC_API_KEY: undefined,
+                                 AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk' });
+  const noPricesLog = upstreamWithWriter();
+  const noPricesRes = await chat(noPricesEnv, 'a1', writer, noPricesLog.fetcher, { owner: true });
+  const noPricesSaid = await noPricesRes.json();
+  ok(noPricesRes.status === 200 && !noPricesLog.asked.includes('writer') && noPricesSaid.choices[0].message.content === 'gemini',
+     'unpriced paid writer (missing GEMINI_PRICES) is never asked in chat: falls through to Gemini');
+  const unpricedEnv = freshEnv({ ...lane, PRO_PAYS: 'on', ANTHROPIC_API_KEY: undefined,
+                                 AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk',
+                                 GEMINI_PRICES: 'gemini-3.5-flash:0.3/2.5' });
+  const unpricedLog = upstreamWithWriter();
+  const unpricedRes = await chat(unpricedEnv, 'a1', writer, unpricedLog.fetcher, { owner: true });
+  const unpricedSaid = await unpricedRes.json();
+  ok(unpricedRes.status === 200 && !unpricedLog.asked.includes('writer') && unpricedSaid.choices[0].message.content === 'gemini',
+     'unpriced paid writer is never asked in chat: falls through to Gemini');
+
+  const pricedEnv = freshEnv({ ...lane, PRO_PAYS: 'on', ANTHROPIC_API_KEY: undefined,
+                               AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk',
+                               GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' });
+  const pricedLog = upstreamWithWriter();
+  const pricedRes = await chat(pricedEnv, 'a1', writer, pricedLog.fetcher, { owner: true });
+  const pricedSaid = await pricedRes.json();
+  ok(pricedRes.status === 200 && pricedLog.asked[0] === 'writer' && pricedSaid.choices[0].message.content === 'writer',
+     'priced paid writer is asked in chat and answers');
+
+  // Jev
+  const envJevOn = { ...lane, PRO_PAYS: 'on', JEV_API_KEY: 'jk' };
+  const jLogOn = { calls: 0 };
+  const jAvailOn = await jevAvailable(envJevOn);
+  const jPOn = await jevOath(envJevOn, 'Give 1 g ceftriaxone stat', jevFetcher(jLogOn));
+  ok(jAvailOn && jPOn === 0.95 && jLogOn.calls === 1,
+     'PRO_PAYS on: Jev is available and answers');
+
+  // paid voice
+  const envVoiceOn = freshEnv({ ...lane, PRO_PAYS: 'on', BLOBS: fakeVoiceR2(), AI: fakeVoiceAI(), TTS_FREE_DAILY_CHARS: '0' });
+  const vrOn = await speech(envVoiceOn, 'a1', { text: 'Voice line.' }, () => {}, { owner: true });
+  ok(vrOn.status === 200 && vrOn.headers.get('x-voice-model') === 'aura-2' && envVoiceOn.AI.calls[0]?.model === AURA,
+     'PRO_PAYS on: paid voice (Aura) is used when free chars are exhausted');
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

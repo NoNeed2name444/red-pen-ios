@@ -1256,13 +1256,22 @@ export function routeFor(env, name) {
   // from pinnedSource and never from here, so it keeps its own cap and this
   // gate leaves it alone.
   if (env.ANTHROPIC_API_KEY && env.PRO_PAYS === 'on') {
-    sources.push({ kind: 'anthropic', key: env.ANTHROPIC_API_KEY, paid: true,
-                   model: env.STETHOSCORE_DEFAULT_MODEL || DEFAULT_ANTHROPIC_MODEL });
+    const claudeModel = env.STETHOSCORE_DEFAULT_MODEL || DEFAULT_ANTHROPIC_MODEL;
+    const claudePrice = priceOf(env, claudeModel);
+    if (claudePrice.input > 0 || claudePrice.output > 0) {
+      sources.push({ kind: 'anthropic', key: env.ANTHROPIC_API_KEY, paid: true,
+                     model: claudeModel });
+    }
   }
-  // Baichuan-M2-32B on Novita, or any OpenAI-compatible server, when set
-  if (env.AI_WRITER_URL && env.AI_WRITER_KEY) {
+  // Novita (or any OpenAI-compatible writer): joins only while Pro itself pays
+  // (PRO_PAYS "on"), not Google's bill, and only when priced in GEMINI_PRICES
+  // so an unpriced paid model never runs unheld and uncounted.
+  const writerModel = env.AI_WRITER_MODEL || 'baichuan/baichuan-m2-32b';
+  const writerPrice = priceOf(env, writerModel);
+  const writerPriced = writerPrice.input > 0 || writerPrice.output > 0;
+  if (env.AI_WRITER_URL && env.AI_WRITER_KEY && env.PRO_PAYS === 'on' && writerPriced) {
     sources.push({ kind: 'openai', base: env.AI_WRITER_URL, key: env.AI_WRITER_KEY, paid: true,
-                   model: env.AI_WRITER_MODEL || 'baichuan/baichuan-m2-32b' });
+                   model: writerModel });
   }
   if (env.FIREBASE_API_KEY && env.FIREBASE_PROJECT_ID) sources.push({ kind: 'gemini' });
   if (env.AI) sources.push({ kind: 'workers-ai' });

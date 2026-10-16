@@ -1745,6 +1745,7 @@ They answer four questions, in order:
      is the only way to Claude outside Pro's paid lane. Live with the next
      Worker deploy the owner has allowed.
    - [x] 16 Oct, design/paid-lane: Claude is in the paid lane only while PRO_PAYS is "on" (GEMINI_BILLING or a seen bill no longer open it for Claude), and the hold covers its thinking room; the Worker deploy waits for the owner's word.
+   - [x] 16 Oct, design/paid-lane: the paid writer, Jev and the paid voice open only on PRO_PAYS (closing the wallet opened by GEMINI_BILLING or a seen bill), and an unpriced paid model is never asked; the Worker deploy waits for the owner's word.
 3. Explained in chat: a Worker deploy (the server going live) and the
    launch splash colour.
 4. No Apple Developer account: no TestFlight or App Store for now; the
