@@ -999,6 +999,15 @@ struct MCQQuizView: View {
                     proxy.scrollTo(Self.answerRowID, anchor: .bottom)
                 }
             }
+            .task {
+                guard PreviewLaunch.screen == "quiz-scrolled" else { return }
+                // Keep the deck open and leave choices under both curved cuts.
+                for _ in 0..<12 {
+                    do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+                    guard !Task.isCancelled else { return }
+                    proxy.scrollTo("\(current)-1", anchor: .center)
+                }
+            }
             .onChange(of: current) { _, _ in proxy.scrollTo(Self.chartTop, anchor: .top) }
         }
     }

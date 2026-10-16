@@ -332,6 +332,8 @@ enum WardPaper {
     static let line = 1.0
     static let edgeWidth = 1.5
     static let cornerShare = 53.33 / 428
+    /// The rounded iPad screen, including its smaller multitasking windows.
+    static let padRadius = 18.0
 
     static func ink(dark: Bool, highContrast: Bool) -> WardPaperInk {
         // the ink outside any section (WardSection.outside, Cards' indigo)
@@ -341,11 +343,11 @@ enum WardPaper {
                      edge: dark ? 0.5 : 0.55)
     }
 
-    static func panel(width: Double, height: Double) -> WardPaperPanel? {
+    static func panel(width: Double, height: Double, pad: Bool = false) -> WardPaperPanel? {
         guard width > 4 * frame, height > 4 * frame else { return nil }
         return WardPaperPanel(x: frame, y: frame,
                               width: width - 2 * frame, height: height - 2 * frame,
-                              radius: (min(width, height) - 2 * frame) * cornerShare)
+                              radius: pad ? padRadius : (min(width, height) - 2 * frame) * cornerShare)
     }
 
     /// The panel with its top moved down to `top` (window points): the home
@@ -354,8 +356,8 @@ enum WardPaper {
     /// header "with the roundedness of it and continuity with the rest of
     /// the grid line"). A `top` above the frame's, or too low to leave room
     /// for both corners, is held to what fits.
-    static func panel(width: Double, height: Double, top: Double) -> WardPaperPanel? {
-        guard var p = panel(width: width, height: height) else { return nil }
+    static func panel(width: Double, height: Double, top: Double, pad: Bool = false) -> WardPaperPanel? {
+        guard var p = panel(width: width, height: height, pad: pad) else { return nil }
         let bottom = p.y + p.height
         let y = min(max(top, p.y), bottom - 2 * p.radius)
         guard y > p.y else { return p }

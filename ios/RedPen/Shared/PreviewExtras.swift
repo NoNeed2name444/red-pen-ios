@@ -12,7 +12,7 @@ import SwiftUI
 enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
-                          "quiz-folded", "library-end", "library-loading", "signin", "account-deleted",
+                          "quiz-folded", "quiz-scrolled", "library-end", "library-loading", "signin", "account-deleted",
                           "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz"]
 
     /// Posted by the "section-switch" preview: home moves one place along
@@ -31,8 +31,8 @@ enum PreviewExtras {
             NavigationStack { AnkiReviewView(set: PreviewDecks.lupus) }
         case "quiz-from-cards":
             NavigationStack { MCQQuizView(set: PreviewDecks.lupusQuiz) }
-        case "quiz-folded":
-            // The quiz scrolled to its answer row above the folded round deck button.
+        case "quiz-folded", "quiz-scrolled":
+            // The quiz with its folded button, or rows under both open-deck edges.
             NavigationStack { MCQQuizView(set: SampleData.nephrology) }
         case "narrate-fixing":
             // a real Egyptian-mix lecture line, with the fix sheet open on the

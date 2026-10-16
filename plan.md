@@ -2134,6 +2134,10 @@ with the marks on the screens last.
     corner radius, with deck slab top corners rounded to meet the arc.
     The Foundation geometry (`WardEdgeCorner`, `WardEdgeJoin`, `WardEdge`)
     is in and tested (`wardrelief` suite); its drawing is the next task.
+    - T0066 draws every deck and scroll edge into the frame, with clipped
+      island strips, base-filled header pockets and rounded slab tops.
+      An iPad's frame, moved home opening and islands take its 18 pt
+      corners, including in multitasking windows. Awaiting the Ward preview.
 
 ### Waiting on the owner
 
