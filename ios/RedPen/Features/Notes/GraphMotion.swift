@@ -285,7 +285,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let rest: [Float]
     private let lines: SCNNode
     private let lineMaterial: SCNMaterial
-    /// False with Reduce Motion or SpaceQuality .still: nothing animates.
+    /// `-graphFreeze`: stops GraphSim's own motion (orbits, spins, pulses)
+    /// but not the keeper (ruling 7, brief step 7).
+    static let freeze: Bool = ProcessInfo.processInfo.arguments.contains("-graphFreeze")
+    /// False with Reduce Motion, SpaceQuality .still or -graphFreeze: nothing animates.
     let lively: Bool
 
     // the black holes
@@ -536,7 +539,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         self.rig = rig
         self.lines = lines
         self.lineMaterial = looks.linkMaterial
-        self.lively = lively
+        self.lively = lively && !Self.freeze
         self.hotRing = looks.hotRing
         self.hotDisk = looks.hotDisk
         self.clocked = looks.clocked

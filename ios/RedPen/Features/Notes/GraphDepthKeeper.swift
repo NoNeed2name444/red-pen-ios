@@ -121,15 +121,63 @@ nonisolated enum GraphDepthProbe {
     }
 
     /// Whether node opacity fades added light here (Space's per-body fade
-    /// leans on it): an added plane at node opacity 0.5 must still draw.
-    /// Kept as the probe's second answer; where it fails Space's glows get
-    /// the per-pixel shader (on/glowpx).
+    /// leans on it): an additive plane and a solid plane at node opacity 0.5
+    /// must read 0.5 ± 0.1 of full (ruling 6, brief step 3). Kept as the probe's
+    /// second answer; where it fails Space's glows get the per-pixel shader
+    /// (on/glowpx).
     static var opacityFadesLight: Bool {
         guard let device = MTLCreateSystemDefaultDevice() else { return false }
-        return GraphStyleProbe.renders([:], on: SCNPlane(width: 4, height: 4), device: device) { material in
-            material.diffuse.contents = UIColor(white: 1, alpha: 0.5)
-            material.blendMode = .add
+        let additive: Float = planeBrightness(blendMode: .add, opacity: 0.5, device: device)
+        let solid: Float = planeBrightness(blendMode: .alpha, opacity: 0.5, device: device)
+        return abs(additive - 0.5) <= 0.1 && abs(solid - 0.5) <= 0.1
+    }
+
+    private static func planeBrightness(blendMode: SCNBlendMode, opacity: CGFloat, device: MTLDevice) -> Float {
+        let scene = SCNScene()
+        scene.background.contents = UIColor.black
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = UIColor.white
+        material.isDoubleSided = true
+        material.blendMode = blendMode
+        let plane = SCNPlane(width: 4, height: 4)
+        plane.materials = [material]
+        let node = SCNNode(geometry: plane)
+        node.opacity = opacity
+        scene.rootNode.addChildNode(node)
+        let camera = SCNCamera()
+        camera.fieldOfView = 40
+        let eye = SCNNode()
+        eye.camera = camera
+        eye.simdPosition = SIMD3<Float>(0, 0, 3)
+        scene.rootNode.addChildNode(eye)
+        let renderer = SCNRenderer(device: device, options: nil)
+        renderer.scene = scene
+        renderer.pointOfView = eye
+        let size = CGSize(width: 8, height: 8)
+        let shot: UIImage = renderer.snapshot(atTime: 0, with: size, antialiasingMode: .none)
+        return centreBrightness(shot)
+    }
+
+    private static func centreBrightness(_ image: UIImage) -> Float {
+        guard let cg = image.cgImage else { return 0 }
+        var pixel: [UInt8] = [0, 0, 0, 0]
+        let space = CGColorSpaceCreateDeviceRGB()
+        let info: UInt32 = CGImageAlphaInfo.premultipliedLast.rawValue
+        let drawn: Bool = pixel.withUnsafeMutableBytes { raw -> Bool in
+            guard let context = CGContext(data: raw.baseAddress, width: 1, height: 1,
+                                          bitsPerComponent: 8, bytesPerRow: 4,
+                                          space: space, bitmapInfo: info) else { return false }
+            let middleX: CGFloat = CGFloat(cg.width) / 2
+            let middleY: CGFloat = CGFloat(cg.height) / 2
+            let rect = CGRect(x: -middleX, y: -middleY,
+                              width: CGFloat(cg.width), height: CGFloat(cg.height))
+            context.draw(cg, in: rect)
+            return true
         }
+        guard drawn else { return 0 }
+        let top: UInt8 = max(pixel[0], max(pixel[1], pixel[2]))
+        return Float(top) / 255
     }
 }
 

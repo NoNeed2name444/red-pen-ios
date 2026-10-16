@@ -95,10 +95,6 @@ protocol GraphThemeLook: AnyObject {
     /// GraphThemeParts.radius): GraphShape.linkTrim, its rim, by default;
     /// the Neurons start theirs under the membrane.
     var linkTrim: Float { get }
-    /// The background's colour (sRGB) that a solid body fades toward with
-    /// depth (GraphDepthMode.solid); light added to it fades to nothing
-    /// instead. Black by default.
-    var depthTint: SIMD3<Float> { get }
 }
 
 extension GraphThemeLook {
@@ -107,7 +103,6 @@ extension GraphThemeLook {
     var farArbor: GraphLinkArbor? { nil }
     var bridge: GraphLinkBridge? { nil }
     func mouths(parts: [GraphThemeParts], plan: ThemePlan) -> GraphLinkMouthKeeper? { nil }
-    var depthTint: SIMD3<Float> { SIMD3<Float>(0, 0, 0) }
 }
 
 /// Which planner and look each theme has.

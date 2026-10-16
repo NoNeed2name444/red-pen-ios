@@ -1523,6 +1523,14 @@ struct GraphSCNView: UIViewRepresentable {
         view.isJitteringEnabled = false
         view.defaultCameraController.interactionMode = .orbitTurntable
         view.defaultCameraController.inertiaEnabled = true
+        view.defaultCameraController.worldUp = SCNVector3(0, 0, 1)
+        // SceneKit's SCNCameraController measures vertical angles as elevation above
+        // the plane perpendicular to worldUp (-90° nadir, 0° horizon, +90° zenith).
+        // With worldUp (0,0,1), tilt θ from face-on (+Z) gives elevation = 90° - θ.
+        // To keep tilt within 10–75° (GraphTilt.lowestDegrees...highestDegrees):
+        // minimumVerticalAngle is 90° - 75° = 15°, maximumVerticalAngle is 90° - 10° = 80° (U1).
+        view.defaultCameraController.minimumVerticalAngle = 90 - GraphTilt.highestDegrees
+        view.defaultCameraController.maximumVerticalAngle = 90 - GraphTilt.lowestDegrees
 
         let coordinator = context.coordinator
         coordinator.view = view
@@ -1993,21 +2001,45 @@ struct GraphSCNView: UIViewRepresentable {
             let window: GraphWindow = GraphFraming.window(width: Float(size.width),
                                                           height: Float(size.height), insets: insets)
             let fit: GraphFit = GraphFit.of(theme, universe: universe)
-            let distance: Float = GraphFraming.distance(points: fit.counted(around), pad: pad, window: window,
-                                                        fill: fit.fill)
-            let home: SIMD3<Float> = middle + GraphFraming.cameraHome(distance: distance, window: window)
-            reach(distance, around: around)
-            view.pointOfView = camera
-            view.defaultCameraController.target = SCNVector3(x: middle.x, y: middle.y, z: middle.z)
-            sim.setFocus(middle)
-            SCNTransaction.begin()
-            // Reduce Motion: the camera jumps to its framing, as fly(to:) does
-            SCNTransaction.animationDuration = animated && !UIAccessibility.isReduceMotionEnabled ? 0.6 : 0
-            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            sim.world.simdOrientation = turn
-            camera.simdPosition = home
-            camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
-            SCNTransaction.commit()
+            let theta: Float = GraphTilt.angle(theme, wide: wide)
+            if theta > 0 {
+                let counted: [SIMD3<Float>] = fit.counted(around)
+                let pads = [Float](repeating: pad, count: counted.count)
+                let tiltFit: GraphTiltFit = GraphTilt.fit(points: counted, pads: pads, window: window, fill: fit.fill, tilt: theta)
+                let home: SIMD3<Float> = middle + GraphTilt.offset(tiltFit, tilt: theta)
+                reach(tiltFit.deepest, around: around)
+                view.pointOfView = camera
+                view.defaultCameraController.target = SCNVector3(x: middle.x, y: middle.y, z: middle.z)
+                sim.setFocus(middle)
+                GraphDepth.framed(.whole(tiltFit.reach), on: view, window: window)
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = animated && !UIAccessibility.isReduceMotionEnabled ? 0.6 : 0
+                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                SCNTransaction.completionBlock = { [weak view] in
+                    guard let view else { return }
+                    GraphDepth.framed(.whole(tiltFit.reach), on: view, window: window)
+                }
+                sim.world.simdOrientation = turn
+                camera.simdPosition = home
+                camera.simdOrientation = simd_quatf(angle: theta, axis: SIMD3<Float>(1, 0, 0))
+                SCNTransaction.commit()
+            } else {
+                let distance: Float = GraphFraming.distance(points: fit.counted(around), pad: pad, window: window,
+                                                            fill: fit.fill)
+                let home: SIMD3<Float> = middle + GraphFraming.cameraHome(distance: distance, window: window)
+                reach(distance, around: around)
+                view.pointOfView = camera
+                view.defaultCameraController.target = SCNVector3(x: middle.x, y: middle.y, z: middle.z)
+                sim.setFocus(middle)
+                SCNTransaction.begin()
+                // Reduce Motion: the camera jumps to its framing, as fly(to:) does
+                SCNTransaction.animationDuration = animated && !UIAccessibility.isReduceMotionEnabled ? 0.6 : 0
+                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                sim.world.simdOrientation = turn
+                camera.simdPosition = home
+                camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+                SCNTransaction.commit()
+            }
             framedPose = camera.simdTransform
             wake()
         }
@@ -2040,8 +2072,6 @@ struct GraphSCNView: UIViewRepresentable {
             let turned: [SIMD3<Float>] = points.map { turn.act($0) }
             let window: GraphWindow = GraphFraming.window(width: Float(size.width),
                                                           height: Float(size.height), insets: insets)
-            let distance: Float = GraphFraming.distance(points: turned, pad: 0.25, window: window, fill: 0.88)
-            let offset: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
             let local: SIMD3<Float> = sim.homePosition(i)
             let centre: SIMD3<Float> = turn.act(local)
             flown = i
@@ -2053,13 +2083,35 @@ struct GraphSCNView: UIViewRepresentable {
             view.pointOfView = camera
             view.defaultCameraController.target = SCNVector3(x: centre.x, y: centre.y, z: centre.z)
             sim.setFocus(centre)
-            SCNTransaction.begin()
-            SCNTransaction.animationDuration = animated && !still ? 0.8 : 0
-            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            sim.world.simdOrientation = turn
-            camera.simdPosition = centre + offset
-            camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
-            SCNTransaction.commit()
+            let theta: Float = GraphTilt.angle(theme, wide: wide)
+            if theta > 0 {
+                let pads = [Float](repeating: 0.25, count: turned.count)
+                let tiltFit: GraphTiltFit = GraphTilt.fit(points: turned, pads: pads, window: window, fill: 0.88, tilt: theta)
+                let offset: SIMD3<Float> = GraphTilt.offset(tiltFit, tilt: theta)
+                reach(tiltFit.deepest, around: turned)
+                GraphDepth.framed(.fly(tiltFit.reach), on: view, window: window)
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = animated && !still ? 0.8 : 0
+                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                SCNTransaction.completionBlock = { [weak view] in
+                    guard let view else { return }
+                    GraphDepth.framed(.fly(tiltFit.reach), on: view, window: window)
+                }
+                sim.world.simdOrientation = turn
+                camera.simdPosition = centre + offset
+                camera.simdOrientation = simd_quatf(angle: theta, axis: SIMD3<Float>(1, 0, 0))
+                SCNTransaction.commit()
+            } else {
+                let distance: Float = GraphFraming.distance(points: turned, pad: 0.25, window: window, fill: 0.88)
+                let offset: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = animated && !still ? 0.8 : 0
+                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                sim.world.simdOrientation = turn
+                camera.simdPosition = centre + offset
+                camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+                SCNTransaction.commit()
+            }
             framedPose = camera.simdTransform
             wake()
         }
@@ -2270,12 +2322,15 @@ struct GraphSCNView: UIViewRepresentable {
             touch.select(sim.ids[i])
         }
 
-        /// Two taps on a body: open it at once (a shortcut for tap, Open).
+        /// Two taps: open a body if one was tapped, or re-frame the default view (U9).
         @objc func opened(_ gesture: UITapGestureRecognizer) {
             guard let view, let sim else { return }
             wake()
             let point: CGPoint = gesture.location(in: view)
-            guard let i = pick(at: point, radius: 28, in: view), i < sim.ids.count else { return }
+            guard let i = pick(at: point, radius: 28, in: view), i < sim.ids.count else {
+                frame(animated: true)
+                return
+            }
             touch.double(sim.ids[i])
         }
 

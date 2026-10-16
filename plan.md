@@ -2008,6 +2008,17 @@ with the marks on the screens last.
     30.6; Smooth whole 21.4 against 23.6). As built, the fade neither
     shows on the flat maps nor makes anything smoother; it waits on the
     owner's choice above.
+    Step 3 (16 Oct, T0057/T0062): depth completed with rulings and user requirements U1–U9:
+    - U1: Graph3DView: worldUp (0,0,1) normal to the map, turntable horizontal drag, vertical drag limits keeping tilt within 10–75° (SceneKit elevation 15° to 80°).
+    - U2: Bands follow reach R = (deepest/F) - 1 in [0.15, 1.0], crisp reach c = a·R (whole) or R + 0.02 (fly-in), span F·(1+c) to F·(1+c+(b-a)·R).
+    - U3: Bounded real depth: cluster z = A·u(id) with FNV-1a 64, A from {0.35, 0.25, 0.15, 0} × H passing legibility rule (overlap/cover ≤ 15%).
+    - U4: Space fades per body (gate opacity 1 - f in steps ≥ 1/255, hidden at f ≥ 1); Neurons stays per pixel.
+    - U5: No tint: see-through dissolution, depthTint and solid mode removed, opaque materials switched to blended with no depth write.
+    - U6: Space bodies sit in tiltFrame turned by Rx(θ) always (on and off) to preserve disk lean seen face-on.
+    - U7: Faster by construction: Space culls far strip (High b=0.85, Smooth b=0.75; Neurons High b=1.05, Smooth b=0.90); glow holders shrink at f ≥ 0.62 via depthExtra node untouched by GraphSim.
+    - U8: Probe checks node opacity on additive and solid planes at 0.5 reading 0.5 ± 0.1; falls back to on/glowpx if additive check fails.
+    - U9: Double tap on empty map re-frames the default view via frame(animated: true).
+    What the Mac proof must show: 70-* pose-matched pairs with -stillSky -graphFreeze -graphDepthMeter; 74-depth-numbers with ablation takes; 75-body-frames analyzed by tools/depth_crops.py; 72-*/73-* spin and tilt reads; 71-* lively stills without freeze.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner
     sees it.

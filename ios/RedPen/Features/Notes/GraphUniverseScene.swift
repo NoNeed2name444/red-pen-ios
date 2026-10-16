@@ -78,6 +78,7 @@ extension GraphSceneBuilder {
         for note in store.notes { noteByID[note.id] = note }
         var random = SplitMix64(seed: 0x6A26)
         var infos: [GraphNodeInfo] = []
+        var depthExtras: [SCNNode] = []
         var styles: [UUID: GraphNodeStyle] = [:]
         var folders: [UUID: Int] = [:]
         var titles: [String: Int] = [:]
@@ -105,6 +106,27 @@ extension GraphSceneBuilder {
                                                   palette: body.palette)
             let node: SCNNode = made.node
             node.simdPosition = body.home
+
+            // Space bodies keep their look under the tilt in tiltFrame (ruling 8)
+            let tiltFrame = SCNNode()
+            tiltFrame.name = "tiltFrame"
+            let theta: Float = GraphTilt.angle(.space)
+            tiltFrame.simdOrientation = simd_quatf(angle: theta, axis: SIMD3<Float>(1, 0, 0))
+
+            // Space's glow holder in a depthExtra node that GraphSim never touches (ruling 6)
+            let depthExtra = SCNNode()
+            depthExtra.name = "depthExtra"
+            if let holder = made.ringStretch.parent {
+                depthExtra.addChildNode(holder)
+            }
+            tiltFrame.addChildNode(depthExtra)
+
+            for child in node.childNodes {
+                tiltFrame.addChildNode(child)
+            }
+            node.addChildNode(tiltFrame)
+            depthExtras.append(depthExtra)
+
             let rim: UIColor? = galaxyTone[body.galaxy].map { Self.rim(tone: $0) }
             let label: SCNNode = Self.label(body.label, color: textColor, height: 1, contrast: contrast, rim: rim,
                                             cut: dress.kind == .note)
@@ -222,7 +244,7 @@ extension GraphSceneBuilder {
         GraphDepth.install(theme: .space, scene: scene, world: world, camera: cameraNode, sky: sky,
                            skyRadius: skyRadius, middle: GraphMapBounds.centre(plan.envelope), contrast: contrast,
                            still: !lively, sim: sim,
-                           bodies: infos.map { GraphDepth.Made(node: $0.node, label: $0.label) },
+                           bodies: zip(infos, depthExtras).map { GraphDepth.Made(node: $0.node, label: $0.label, extras: [$1]) },
                            more: [linkMaterial, farMaterial, hotRingMaterial] + hotDisk.materials)
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
@@ -235,11 +257,6 @@ extension GraphSceneBuilder {
         built.galaxyOf = galaxyOf
         return built
     }
-
-    /// The sky's near-black between the stars (sRGB, between GraphSpace's
-    /// dome at its poles and along its middle), that a solid body fades
-    /// toward with depth.
-    static let depthTint = SIMD3<Float>(0.012, 0.02, 0.055)
 
     /// The depth-1 star with the most notes (ties: the lower index), for the
     /// design preview's drag; the busiest folder of any kind without one.

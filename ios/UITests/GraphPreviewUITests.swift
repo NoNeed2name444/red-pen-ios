@@ -627,6 +627,19 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertEqual(after.midY, screen.height * 0.34, accuracy: screen.height * 0.2, "not glided above the card")
     }
 
+    /// The probe's node-opacity check: the meter reports whether node opacity
+    /// fades light on this device (on or on/glowpx), never failing silently.
+    func testDepthProbeOpacity() {
+        let app = depthApp("space", fly: nil, off: false, more: ["-stillSky", "-graphFreeze", "-graphDepthMeter"])
+        let line = waitForMeter(app, frames: 0, seconds: 15)
+        guard let seen = DepthRead(line) else {
+            XCTFail("no readable meter line: \(line)")
+            return
+        }
+        XCTAssertTrue(["on", "on/glowpx"].contains(seen.state), "unexpected probe state: \(seen.state)")
+        app.terminate()
+    }
+
     private static let depthThemes: [(String, String)] = [("neurons", "Examples"), ("space", "Inguinal")]
 
     private func depthApp(_ theme: String, fly: String?, off: Bool, more: [String] = []) -> XCUIApplication {
