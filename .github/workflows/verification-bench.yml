@@ -9,7 +9,16 @@
 # - else BENCH_API_KEY + BENCH_BASE_URL (secrets) and BENCH_VOTERS (variable,
 #   "bench:<model>,..." from at least two model families): this repository's
 #   checkBatch with a free OpenAI-compatible provider's models.
-# Results: the run summary, and runs/<run id>/ on verification-bench-results.
+# The `mode` input picks what a manual run does (a push runs `layer`, as before):
+# - layer:     the whole layer, as above
+# - proxy:     this branch's own checkBatch (layer.mjs --proxy), with the live
+#              Worker (AI_API_KEY) only as a model proxy: the free voters pinned
+#              in the live order, one named model a call, x-bench: 1. Spends the
+#              Worker's bench allowance and Workers AI neurons: at most one a UTC day
+# - retrieval: the retrieval set R (retrieval-set.mjs): no model, no neurons
+# - proof:     the proof-only bench P (proof-only.mjs): no model, no neurons
+# Results: the run summary, and runs/<run id>/ on verification-bench-results
+# (every report and results file of the mode, with run.json: the cost of each batch).
 name: Verification bench
 on:
   push:
@@ -20,6 +29,18 @@ on:
         description: 'Questions per source (each checked twice)'
         required: false
         default: '30'
+      mode:
+        description: 'What to run: layer, proxy, retrieval or proof'
+        required: false
+        type: choice
+        options: [layer, proxy, retrieval, proof]
+        default: 'layer'
+      route:
+        description: 'proxy mode: the vignette route (on, as live, or off)'
+        required: false
+        type: choice
+        options: ['on', 'off']
+        default: 'on'
 permissions:
   contents: write
 concurrency:
@@ -37,8 +58,10 @@ jobs:
       - name: Questions
         run: tools/verification-bench/fetch.sh data
       - name: Sensors on every question
+        if: (inputs.mode || 'layer') == 'layer' || inputs.mode == 'proxy'
         run: node tools/verification-bench/sensors.mjs data/*.json --out out/sensors > /dev/null
       - name: The whole layer on hard questions
+        if: (inputs.mode || 'layer') == 'layer'
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           BENCH_API_KEY: ${{ secrets.BENCH_API_KEY }}
@@ -55,10 +78,32 @@ jobs:
           else
             echo "No checkers: add the AI_API_KEY secret (the live Worker), or BENCH_API_KEY and BENCH_BASE_URL secrets with a BENCH_VOTERS variable." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
+      - name: This branch's checkBatch, the live Worker as the models' proxy
+        if: inputs.mode == 'proxy'
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          n="${{ inputs.per_source || '30' }}"
+          if [ -z "$AI_API_KEY" ]; then
+            echo "Proxy mode needs the AI_API_KEY secret (the live Worker's owner key)." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          export WORKER=https://redpen-auth.vv7sh4rnnw.workers.dev
+          export BENCH_BASE_URL="$WORKER/v1"
+          export BENCH_API_KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          node tools/verification-bench/layer.mjs --proxy --route "${{ inputs.route || 'on' }}" --data data --out out/layer --per-source "$n"
+      - name: Retrieval set R (no model)
+        if: inputs.mode == 'retrieval'
+        run: node tools/verification-bench/retrieval-set.mjs --set both --data data --cache "$RUNNER_TEMP/ragbench-cache" --out out/retrieval
+      - name: Proof-only bench P (no model)
+        if: inputs.mode == 'proof'
+        run: node tools/verification-bench/proof-only.mjs --data data --cache "$RUNNER_TEMP/ragbench-cache" --out out/proof
       - name: Summary
         if: always()
         run: |
           [ -f out/layer/report.md ] && cat out/layer/report.md >> "$GITHUB_STEP_SUMMARY"
+          [ -f out/retrieval/retrieval-report.md ] && cat out/retrieval/retrieval-report.md >> "$GITHUB_STEP_SUMMARY"
+          [ -f out/proof/proof-report.md ] && cat out/proof/proof-report.md >> "$GITHUB_STEP_SUMMARY"
           [ -f out/sensors/report.md ] && sed -n '1,40p' out/sensors/report.md >> "$GITHUB_STEP_SUMMARY"
           true
       - name: Publish
@@ -78,7 +123,9 @@ jobs:
           git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
           find "$dest" -mindepth 1 -maxdepth 1 ! -name .git ! -name runs -exec rm -rf {} +
           mkdir -p "$dest/runs/${{ github.run_id }}"
-          cp out/layer/report.md out/layer/results.json "$dest/runs/${{ github.run_id }}/" 2>/dev/null || true
+          cp out/layer/report.md out/layer/results.json out/layer/run.json "$dest/runs/${{ github.run_id }}/" 2>/dev/null || true
+          cp out/retrieval/retrieval-report.md out/retrieval/retrieval-results.json "$dest/runs/${{ github.run_id }}/" 2>/dev/null || true
+          cp out/proof/proof-report.md out/proof/proof-results.json "$dest/runs/${{ github.run_id }}/" 2>/dev/null || true
           cp out/sensors/report.md "$dest/runs/${{ github.run_id }}/sensors.md" 2>/dev/null || true
           git -C "$dest" add -A
           git -C "$dest" commit -q -m "Verification bench run ${{ github.run_id }} (${{ github.sha }})" || exit 0

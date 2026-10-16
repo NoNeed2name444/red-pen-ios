@@ -1,0 +1,2909 @@
+{
+ "v": 1,
+ "set": "r-dev",
+ "about": "R-dev, for tuning only: 150 items from the proof ladder training splits (MedMCQA Apache-2.0, MedQA CC-BY-4.0): the first that qualify from each plan row.",
+ "plan": [
+  {
+   "src": "medmcqa-train",
+   "dataset": "openlifescienceai/medmcqa",
+   "split": "train",
+   "start": 100000,
+   "want": 100,
+   "kind": "one-sentence"
+  },
+  {
+   "src": "medqa-train",
+   "dataset": "GBaker/MedQA-USMLE-4-options",
+   "split": "train",
+   "start": 5000,
+   "want": 25,
+   "kind": "vignette"
+  },
+  {
+   "src": "medmcqa-train",
+   "dataset": "openlifescienceai/medmcqa",
+   "split": "train",
+   "start": 120000,
+   "want": 25,
+   "kind": "vignette"
+  }
+ ],
+ "labels": "mechanical (retrieval-set.mjs header): keyWords, drugs and mesh are the label inputs; oracle is the official documents that exist for the item (label 2), looked up once; a passage's label 1 is computed from the item and these inputs at run time.",
+ "lookedUp": "2026-10-16",
+ "items": [
+  {
+   "id": "medmcqa-train:6e01cc1d-a96a-4ffe-9d74-c436a70607c7",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100127
+   },
+   "sha": "5367d91a58f4963f",
+   "keyWords": [
+    "plasma",
+    "colloid",
+    "osmotic",
+    "pressure"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:4f75f332-99fe-4a3c-9cd0-10265340c97e",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100176
+   },
+   "sha": "1c116363eae41b5b",
+   "keyWords": [
+    "h",
+    "file"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:acf56383-97de-400e-85a5-e0bc9a1e6e3c",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100191
+   },
+   "sha": "9f94b7c54e231c3e",
+   "keyWords": [
+    "biliary",
+    "atresia"
+   ],
+   "mesh": "Biliary Atresia",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:66f6decc-7c6d-4735-b577-973758d3e083",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100251
+   },
+   "sha": "1bed31e68b386499",
+   "keyWords": [
+    "osteosarcoma"
+   ],
+   "mesh": "Osteosarcoma",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/bonecancer.html",
+     "title": "Bone Cancer"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:f5497397-21f7-417d-9540-5edc9be54ee4",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100262
+   },
+   "sha": "ba57d5b04f28c18f",
+   "keyWords": [
+    "oculomotor",
+    "nerve"
+   ],
+   "mesh": "Oculomotor Nerve",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:1282b8a3-eb85-4be6-b0ea-2a940703ee2a",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100300
+   },
+   "sha": "0448e338c77d5f95",
+   "keyWords": [
+    "e",
+    "coli"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:2f0171b7-b1d9-4601-9f13-947a4d482ffe",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100369
+   },
+   "sha": "eb92e637d84c0cd6",
+   "keyWords": [
+    "translucency",
+    "of",
+    "root"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:703969c2-bfc5-4498-a526-9be96d4e6f22",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100380
+   },
+   "sha": "32680638ca5bb8b7",
+   "keyWords": [
+    "elimination"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:ddb19411-155c-4fdb-9158-01e319078b8b",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100381
+   },
+   "sha": "6b0f885e5f015db0",
+   "keyWords": [
+    "cisplatin"
+   ],
+   "mesh": "Cisplatin",
+   "drugs": [
+    "imatinib",
+    "methotrexate",
+    "sunitinib"
+   ],
+   "oracle": [
+    {
+     "id": "fda:imatinib",
+     "title": "imatinib (FDA label, effective 20260908)"
+    },
+    {
+     "id": "fda:methotrexate",
+     "title": "methotrexate (FDA label, effective 20260518)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:fcbd059e-fd07-42e8-a429-91c895262f86",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100435
+   },
+   "sha": "0b1fccece7f0f475",
+   "keyWords": [
+    "chloroquine"
+   ],
+   "mesh": "Chloroquine",
+   "drugs": [
+    "sulfamethaxazole"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:c88e418b-bd38-4e95-af35-ec1414e8193e",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100475
+   },
+   "sha": "4a898098de76afa7",
+   "keyWords": [
+    "highly",
+    "selective",
+    "vagotomy"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:bb02116c-4f06-4a5b-8ff4-d175fa49475c",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100511
+   },
+   "sha": "1e52af51063d5f92",
+   "keyWords": [
+    "congestive",
+    "cardiac",
+    "failure"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:38ef0f84-bf52-46ca-81d0-82fe9208fc95",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100530
+   },
+   "sha": "b9b7b510c532cc78",
+   "keyWords": [
+    "cover",
+    "overhead",
+    "tank"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:760f2693-5476-45fa-a232-8f7f1f1a5050",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100542
+   },
+   "sha": "7710092c39815847",
+   "keyWords": [
+    "dual",
+    "energy",
+    "x",
+    "ray",
+    "absorptiometry"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:8febe093-4bbf-430e-b5ad-946bfaa601f2",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100543
+   },
+   "sha": "39f20433d41d8824",
+   "keyWords": [
+    "rop"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:404bc94b-9ee3-48a2-9bca-f8a5df81ce0b",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100563
+   },
+   "sha": "59ef49569ab9ec80",
+   "keyWords": [
+    "sputum",
+    "microscopy"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:e972f5c9-cb3a-4de1-8fbe-4c4776f15f88",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100589
+   },
+   "sha": "c060d424c8e13cc5",
+   "keyWords": [
+    "pecam"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:75564ef5-cdf5-42fe-bbda-83d6944d595d",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100627
+   },
+   "sha": "f3e964e0428e0d78",
+   "keyWords": [
+    "progesterone",
+    "containing",
+    "iucd"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:2b06d3e5-4283-4b39-8ece-70c0b9036191",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100628
+   },
+   "sha": "2fcc412dc8a15158",
+   "keyWords": [
+    "transvaginal",
+    "usg"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:aceeb1f5-e730-4ea2-aef1-29093660ecbf",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100680
+   },
+   "sha": "111cbab1fd7a4959",
+   "keyWords": [
+    "parastomal",
+    "hernia"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:2899754a-f4e4-4506-9f02-16749de368ac",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100770
+   },
+   "sha": "20661d33fba7fb83",
+   "keyWords": [
+    "intracanalicular"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:937d10a9-8aa9-4d91-91e4-5df7822f14b4",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100773
+   },
+   "sha": "c37906563c5dec9d",
+   "keyWords": [
+    "delusion",
+    "of",
+    "persecution"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:6e8e4aef-b0ab-4fef-ab93-3309531ff9d4",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100814
+   },
+   "sha": "16f35e68b277f6bc",
+   "keyWords": [
+    "diabete",
+    "mellitus"
+   ],
+   "mesh": "Diabetes Mellitus",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/diabetes.html",
+     "title": "Diabetes"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:47bacc5e-9811-44a5-824b-a11e9a170ce1",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100819
+   },
+   "sha": "36e9bf492e2ca839",
+   "keyWords": [
+    "medulloblastoma"
+   ],
+   "mesh": "Medulloblastoma",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:f3972a34-66a3-4a68-86cc-e7276f8e927f",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100831
+   },
+   "sha": "0a16e4930d9a6958",
+   "keyWords": [
+    "staphylococcus",
+    "aureus"
+   ],
+   "mesh": "Staphylococcus aureus",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:13bb6736-31a5-4af9-9cdd-408338ce4bfa",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100845
+   },
+   "sha": "05032ccdc28a8491",
+   "keyWords": [
+    "dribbling",
+    "of",
+    "saliva"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:adcea677-f5f7-4121-b914-2c2dfec185a0",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100848
+   },
+   "sha": "a06bb565a7e11f77",
+   "keyWords": [
+    "pulmonary",
+    "thromboembolism"
+   ],
+   "mesh": "Pulmonary Embolism",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/pulmonaryembolism.html",
+     "title": "Pulmonary Embolism"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:220a1bea-e882-4fbb-adb2-2276211dc65d",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100853
+   },
+   "sha": "e9317824d2e70558",
+   "keyWords": [
+    "secondary",
+    "from",
+    "lung"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:e30be587-4aca-4b61-9208-482a1913ceff",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100965
+   },
+   "sha": "94a111cf57dce451",
+   "keyWords": [
+    "throat",
+    "swab",
+    "culture"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:490d9bc2-5223-44ea-848f-2202ed398af0",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 100995
+   },
+   "sha": "102125ea43243147",
+   "keyWords": [
+    "ketamine"
+   ],
+   "mesh": "Ketamine",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/clubdrugs.html",
+     "title": "Club Drugs"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:650f79f9-25f6-49ec-b9c9-11e4931b8db7",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101009
+   },
+   "sha": "a75f5fa96ba82afe",
+   "keyWords": [
+    "bicarbonate"
+   ],
+   "mesh": "Bicarbonates",
+   "drugs": [
+    "histidine"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:440393cd-96aa-4dea-8b14-fde6c8e09787",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101039
+   },
+   "sha": "55e797e81a24aae2",
+   "keyWords": [
+    "nitrate"
+   ],
+   "mesh": "Nitrates",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:483808e8-3ac7-4156-8640-4f921171762b",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101067
+   },
+   "sha": "e892b490b9acb138",
+   "keyWords": [
+    "chlordiazepoxide"
+   ],
+   "mesh": "Chlordiazepoxide",
+   "drugs": [
+    "lithium",
+    "haloperidol"
+   ],
+   "oracle": [
+    {
+     "id": "fda:haloperidol",
+     "title": "haloperidol (FDA label, effective 20241115)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:cb2fac72-02ba-434a-94c4-c6d7c40f1ca9",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101087
+   },
+   "sha": "6f5cafc777fc72bb",
+   "keyWords": [
+    "duodenum"
+   ],
+   "mesh": "Duodenum",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:8786fbe7-4cd9-4921-a207-8444769729e9",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101094
+   },
+   "sha": "1b74620756c1f28a",
+   "keyWords": [
+    "dilatation",
+    "and",
+    "evacuation"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:ba57391c-3c59-4cb0-97a4-1512a88c48c6",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101216
+   },
+   "sha": "e52f7e6e3c6bcddf",
+   "keyWords": [
+    "glucocorticoid",
+    "use"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:fa29a192-ce9c-4e5a-9445-9de62cd12266",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101258
+   },
+   "sha": "d4e2f02ddc1ce192",
+   "keyWords": [
+    "arginine"
+   ],
+   "mesh": "Arginine",
+   "drugs": [
+    "histidine"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:2fa93feb-edea-42da-80fe-9464dfd73f5c",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101262
+   },
+   "sha": "1c8e91fa40c34eb2",
+   "keyWords": [
+    "h",
+    "2",
+    "co",
+    "3",
+    "plus",
+    "nahco",
+    "3"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:6dff0c3f-c0f1-464d-9df8-26f443b37a2b",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101281
+   },
+   "sha": "0726c24d2d01cd7b",
+   "keyWords": [
+    "gi",
+    "toxicity"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:eb22398a-29db-41f6-8f4b-ec3eb9ee0e6d",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101359
+   },
+   "sha": "2daf5adf0d4975a4",
+   "keyWords": [
+    "posteromedial",
+    "extension"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:8d00de02-ec35-4852-ab68-bf3082e143c6",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101389
+   },
+   "sha": "cef1e3500888303e",
+   "keyWords": [
+    "papillary"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:a56c0ffb-b054-418c-bd49-a2edc94cb956",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101400
+   },
+   "sha": "4c81ce8b45cb847a",
+   "keyWords": [
+    "depressive",
+    "disorder"
+   ],
+   "mesh": "Depressive Disorder",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:63a54066-92ed-4d36-bb0c-c06f638ee65b",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101444
+   },
+   "sha": "cf8a5547e76560e5",
+   "keyWords": [
+    "maternal",
+    "non",
+    "disjunction"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:f94c1600-c418-44f1-b1ef-e321b57f89a4",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101447
+   },
+   "sha": "8ec41fbac22101a7",
+   "keyWords": [
+    "venlafaxine"
+   ],
+   "mesh": "Venlafaxine Hydrochloride",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:60cbeb71-3c76-413f-a843-5ed3681f364d",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101460
+   },
+   "sha": "9ef891525577b541",
+   "keyWords": [
+    "rh",
+    "negative",
+    "mother",
+    "with",
+    "rh",
+    "positive",
+    "in",
+    "second",
+    "child"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:8bf2f731-7159-4026-96ab-ed2212d33146",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101463
+   },
+   "sha": "2a36840c197a888a",
+   "keyWords": [
+    "meperidine"
+   ],
+   "mesh": "Meperidine",
+   "drugs": [
+    "morphine",
+    "fentanyl"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:c6fab3a8-66ac-4919-a58e-cae2955432e7",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101542
+   },
+   "sha": "244710a444c21f09",
+   "keyWords": [
+    "salt",
+    "of",
+    "gontrez"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:ef038d68-07bc-4802-bf64-3bbf1e7e70ae",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101570
+   },
+   "sha": "a09abafec740878a",
+   "keyWords": [
+    "adenosine"
+   ],
+   "mesh": "Adenosine",
+   "drugs": [
+    "digoxin",
+    "propranolol",
+    "adenosine"
+   ],
+   "oracle": [
+    {
+     "id": "fda:digoxin",
+     "title": "digoxin (FDA label, effective 20240904)"
+    },
+    {
+     "id": "fda:propranolol",
+     "title": "propranolol (FDA label, effective 20240809)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:3764af1d-ff6f-43b9-bb8d-84994ec01642",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101592
+   },
+   "sha": "db5934970ab19e9e",
+   "keyWords": [
+    "thickened",
+    "nuchal",
+    "fold"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:442d8efd-bec7-4ce5-89fd-78ca61a223af",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101647
+   },
+   "sha": "2ddd1616fc0479c6",
+   "keyWords": [
+    "lowdose",
+    "ocps"
+   ],
+   "mesh": null,
+   "drugs": [
+    "metformin",
+    "spironolactone"
+   ],
+   "oracle": [
+    {
+     "id": "fda:spironolactone",
+     "title": "spironolactone (FDA label, effective 20251229)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:217c97a5-f387-4230-b443-383ee82f84d0",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101669
+   },
+   "sha": "ecb68b199c7db035",
+   "keyWords": [
+    "rizatriptan"
+   ],
+   "mesh": "rizatriptan",
+   "drugs": [
+    "sumatriptan",
+    "almotriptan",
+    "rizatriptan",
+    "naratriptan"
+   ],
+   "oracle": [
+    {
+     "id": "fda:sumatriptan",
+     "title": "sumatriptan (FDA label, effective 20240928)"
+    },
+    {
+     "id": "fda:almotriptan",
+     "title": "almotriptan (FDA label, effective 20170509)"
+    },
+    {
+     "id": "fda:naratriptan",
+     "title": "naratriptan (FDA label, effective 20251030)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:e8a5ee12-d791-41a2-9d4d-f65e43974055",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101708
+   },
+   "sha": "8198312d6e414159",
+   "keyWords": [
+    "o",
+    "2",
+    "release"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:c6e6056f-4f5f-47c8-a79e-3998b2a4cd48",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101717
+   },
+   "sha": "0c7ac9e65c440d23",
+   "keyWords": [
+    "kimmelstein",
+    "wilson",
+    "disease"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:6d3e9cb0-916d-4782-857c-56a41c7a8f7e",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101757
+   },
+   "sha": "d9d8dba51dfa35d0",
+   "keyWords": [
+    "rsv"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/respiratorysyncytialvirusinfections.html",
+     "title": "Respiratory Syncytial Virus Infections"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:4e5b1eeb-2eb7-4ffc-aca9-e37a631c8aa7",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101832
+   },
+   "sha": "f5c1312671c17104",
+   "keyWords": [
+    "erythrocyte",
+    "cast"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:25ac98e8-84fa-4c87-bd46-7667623e58af",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101838
+   },
+   "sha": "bb0cb66ef5b2e0a5",
+   "keyWords": [
+    "hemochromatosis"
+   ],
+   "mesh": "Hemochromatosis",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/hemochromatosis.html",
+     "title": "Hemochromatosis"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:1ed45efe-bd2c-43d6-ab87-4c5b6239a4fc",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101961
+   },
+   "sha": "ab661dc3e2545290",
+   "keyWords": [
+    "liposomal",
+    "amphotericin",
+    "b"
+   ],
+   "mesh": "liposomal amphotericin B",
+   "drugs": [
+    "ketoconazole"
+   ],
+   "oracle": [
+    {
+     "id": "fda:ketoconazole",
+     "title": "ketoconazole (FDA label, effective 20260129)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:f247b3b2-9de3-4e86-a379-3bb7118e7007",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 101975
+   },
+   "sha": "2646252016c36018",
+   "keyWords": [
+    "mp",
+    "joint",
+    "of",
+    "the",
+    "big",
+    "toe"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:126d6f19-0671-4a18-bc78-930d2db0c076",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102002
+   },
+   "sha": "c5e035df6c24ba2c",
+   "keyWords": [
+    "ketamine"
+   ],
+   "mesh": "Ketamine",
+   "drugs": [
+    "propanolol"
+   ],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/clubdrugs.html",
+     "title": "Club Drugs"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:6f7381f9-6bab-4e6e-b9a4-56ee51e6746e",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102016
+   },
+   "sha": "d57ea76a7266f625",
+   "keyWords": [
+    "subcoracoid"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:77a0c6e4-1a31-4f63-aac6-38de760f6858",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102022
+   },
+   "sha": "342228b377fd351c",
+   "keyWords": [
+    "propylthiouracil"
+   ],
+   "mesh": "Propylthiouracil",
+   "drugs": [
+    "propylthiouracil",
+    "carbimazole",
+    "propranolol"
+   ],
+   "oracle": [
+    {
+     "id": "fda:propylthiouracil",
+     "title": "propylthiouracil (FDA label, effective 20231226)"
+    },
+    {
+     "id": "fda:propranolol",
+     "title": "propranolol (FDA label, effective 20240809)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:14c0e8f5-7f7f-4b61-a9de-cd275a2d38f6",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102037
+   },
+   "sha": "1785e33f3e975948",
+   "keyWords": [
+    "ivermectin"
+   ],
+   "mesh": "Ivermectin",
+   "drugs": [
+    "albendazole",
+    "metronidazole"
+   ],
+   "oracle": [
+    {
+     "id": "fda:albendazole",
+     "title": "albendazole (FDA label, effective 20190930)"
+    },
+    {
+     "id": "fda:metronidazole",
+     "title": "metronidazole (FDA label, effective 20260318)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:ef074498-5686-401e-b84b-f71ffe27c456",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102310
+   },
+   "sha": "3f362528b5c6f522",
+   "keyWords": [
+    "streptococcus",
+    "agaiactiae"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:f4eceea3-d1f9-48ce-8f0a-05a14412b442",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102366
+   },
+   "sha": "dff4c6d4ae729726",
+   "keyWords": [
+    "vestibular",
+    "part",
+    "of",
+    "viii",
+    "nerve"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:2e3c9ef3-7d7d-4ecb-8b55-c0b04a27d9ef",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102476
+   },
+   "sha": "ad92b3f03c28daca",
+   "keyWords": [
+    "folic",
+    "acid"
+   ],
+   "mesh": "Folic Acid",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/folicacid.html",
+     "title": "Folic Acid"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:a60261f2-780b-48a7-a0e1-17074628f8ce",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102489
+   },
+   "sha": "670d05f20d5dc127",
+   "keyWords": [
+    "membranous",
+    "glomerulopathy"
+   ],
+   "mesh": "Glomerulonephritis, Membranous",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:f5be1eef-a628-4a35-a30b-4e05c7907719",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102510
+   },
+   "sha": "de0232fbf2dd2676",
+   "keyWords": [
+    "scoliosis"
+   ],
+   "mesh": "Scoliosis",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/scoliosis.html",
+     "title": "Scoliosis"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:24877349-63c4-4c90-b422-7755767d1548",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102559
+   },
+   "sha": "bc56206a1b7f07dd",
+   "keyWords": [
+    "substance",
+    "use",
+    "disorder"
+   ],
+   "mesh": "Substance-Related Disorders",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:e53a6ad7-6b58-4800-abb2-a4952afcfc85",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102566
+   },
+   "sha": "8402691cd72ea17c",
+   "keyWords": [
+    "simple",
+    "cyst"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:9c59aa24-b7f3-4a5c-b567-9f33a97869c8",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102578
+   },
+   "sha": "0849e387c03326e7",
+   "keyWords": [
+    "spleen",
+    "and",
+    "the",
+    "lymph",
+    "node"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:16f538c8-dbc1-499a-a268-85fc793cb1dd",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102615
+   },
+   "sha": "b676c4a14abd4321",
+   "keyWords": [
+    "neurocysticercosis"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:87fcd479-1b2f-4cfd-817a-76e13a8db1cd",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102618
+   },
+   "sha": "be4f9a9d1e1c1ee6",
+   "keyWords": [
+    "anovulation"
+   ],
+   "mesh": "Anovulation",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:4b64a6f5-2ca8-4aa6-a281-3bda5b779e2c",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102671
+   },
+   "sha": "55bebf8ca80c48c7",
+   "keyWords": [
+    "positive",
+    "edrophonium",
+    "test"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:fa65eb78-5950-4cea-89d9-ff611c8645a9",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102699
+   },
+   "sha": "e68102c0b3c599ba",
+   "keyWords": [
+    "gonad"
+   ],
+   "mesh": "Gonads",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:cc19a227-630e-431a-bc58-c479e7d19b70",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102717
+   },
+   "sha": "92f38032dcc0a929",
+   "keyWords": [
+    "chlamydia"
+   ],
+   "mesh": "Chlamydia",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:75711498-139c-4f28-a1ab-61f3aa2a564a",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102724
+   },
+   "sha": "423f4329f3f662ef",
+   "keyWords": [
+    "diazoxide"
+   ],
+   "mesh": "Diazoxide",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:0c3100f0-f725-46de-9472-fd302158f476",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102768
+   },
+   "sha": "eae82c3cc96301e6",
+   "keyWords": [
+    "cochlear",
+    "aqueduct"
+   ],
+   "mesh": "Cochlear Aqueduct",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:3b42efc9-9a17-4939-aec0-b1082a1d9059",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102771
+   },
+   "sha": "6e53958e2d52bdae",
+   "keyWords": [
+    "primaquine"
+   ],
+   "mesh": "Primaquine",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:fbab2538-8371-4b05-99dd-aec404e5e35b",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102796
+   },
+   "sha": "42c31df87d8c385e",
+   "keyWords": [
+    "leukemia"
+   ],
+   "mesh": "Leukemia",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/leukemia.html",
+     "title": "Leukemia"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:584f2f39-8ca8-4f5c-ade3-2e5b50cc09b6",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102810
+   },
+   "sha": "96618e2658da2af6",
+   "keyWords": [
+    "craniopharyngioma"
+   ],
+   "mesh": "Craniopharyngioma",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:091b2f4b-bd12-4aa6-8c01-4a35fdfa93e6",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102813
+   },
+   "sha": "522b78fd27d0a4fb",
+   "keyWords": [
+    "staph",
+    "aureus"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:209e48a1-ac3c-4c4c-a638-72869389cfb5",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102817
+   },
+   "sha": "0900dbe5fb49c8c0",
+   "keyWords": [
+    "retinal",
+    "detachment"
+   ],
+   "mesh": "Retinal Detachment",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/retinaldetachment.html",
+     "title": "Retinal Detachment"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:acb81776-9551-4593-8c05-37e93d300d5f",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102835
+   },
+   "sha": "e0d75f515c38b3bb",
+   "keyWords": [
+    "neuroblastoma"
+   ],
+   "mesh": "Neuroblastoma",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/neuroblastoma.html",
+     "title": "Neuroblastoma"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:41bad4d9-90b0-454f-909d-e56f9d76e439",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102870
+   },
+   "sha": "82084ee3e433708b",
+   "keyWords": [
+    "penicillin"
+   ],
+   "mesh": "Penicillins",
+   "drugs": [
+    "penicillin",
+    "azithromycin",
+    "ceftriaxone"
+   ],
+   "oracle": [
+    {
+     "id": "fda:azithromycin",
+     "title": "azithromycin (FDA label, effective 20260316)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:183a31aa-ac7f-452e-8903-2b8bf10c53d8",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102885
+   },
+   "sha": "9d7d0ae14f6b66b4",
+   "keyWords": [
+    "intramucosal",
+    "nevi"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:b16c6d8c-a737-4393-aa56-00513c2524b3",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102887
+   },
+   "sha": "e57c66e9a32fb06e",
+   "keyWords": [
+    "asbestosis"
+   ],
+   "mesh": "Asbestosis",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/asbestos.html",
+     "title": "Asbestos"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:7818c1ec-5109-4d2e-bd92-2f999bc7ee93",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102953
+   },
+   "sha": "b61181cfec9acb8d",
+   "keyWords": [
+    "down"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:347fdef5-ff9f-46e5-a601-7c09d5589c2b",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102954
+   },
+   "sha": "0481238ba956d5e1",
+   "keyWords": [
+    "meniscal",
+    "tear"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:8da3de02-aaf6-4f08-b23f-093ed9475c54",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 102961
+   },
+   "sha": "0654618ee916315b",
+   "keyWords": [
+    "simple",
+    "cyst"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:e7be6379-64dd-4e55-beca-9ea41f6c9d43",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103070
+   },
+   "sha": "ac8329fc536c4db6",
+   "keyWords": [
+    "azithromycin"
+   ],
+   "mesh": "Azithromycin",
+   "drugs": [
+    "penicillin",
+    "erythromycin",
+    "ampicillin",
+    "azithromycin"
+   ],
+   "oracle": [
+    {
+     "id": "fda:erythromycin",
+     "title": "erythromycin (FDA label, effective 20241011)"
+    },
+    {
+     "id": "fda:azithromycin",
+     "title": "azithromycin (FDA label, effective 20260316)"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:8400d420-7351-45bf-a02a-50dac1e1e318",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103113
+   },
+   "sha": "57c7c22e0bdfef98",
+   "keyWords": [
+    "pericarditis"
+   ],
+   "mesh": "Pericarditis",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/pericardialdisorders.html",
+     "title": "Pericardial Disorders"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:4c9bc0a5-07b4-408d-81aa-8e26e728deae",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103126
+   },
+   "sha": "36ae702671c9d6eb",
+   "keyWords": [
+    "512",
+    "hz"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:3b9e30d1-49e7-46ad-91de-0f7213976909",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103139
+   },
+   "sha": "4d82980c34cd3fb4",
+   "keyWords": [
+    "radicular",
+    "cyst"
+   ],
+   "mesh": "Radicular Cyst",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:58411df3-5021-4355-b3a5-870f4512397e",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103156
+   },
+   "sha": "28cd0ad8e23a99dc",
+   "keyWords": [
+    "rsv"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/respiratorysyncytialvirusinfections.html",
+     "title": "Respiratory Syncytial Virus Infections"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:4e706483-277a-4346-9096-7528e30b8b4e",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103157
+   },
+   "sha": "368c5414c9b43191",
+   "keyWords": [
+    "insulinoma"
+   ],
+   "mesh": "Insulinoma",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:d76d483c-9391-4c52-bd42-75d589440dd0",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103161
+   },
+   "sha": "da7aab397c6b8248",
+   "keyWords": [
+    "lung"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:eb7bcee3-67a0-4298-a72b-c8b5a9278935",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103200
+   },
+   "sha": "2390dbbb77b33fb9",
+   "keyWords": [
+    "500",
+    "ml",
+    "of",
+    "0.9",
+    "percent",
+    "saline",
+    "over",
+    "15",
+    "minute",
+    "with",
+    "potassium",
+    "chloride",
+    "and",
+    "a",
+    "fixed",
+    "rate",
+    "insulin",
+    "infusion"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:fa20054b-05de-4e53-a0c7-1404ee848f74",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103243
+   },
+   "sha": "3b7e5a6afedb5b78",
+   "keyWords": [
+    "suicide"
+   ],
+   "mesh": "Suicide",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/suicide.html",
+     "title": "Suicide"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:3899dacd-ada6-4ad5-8541-8a8c6a9dca33",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103248
+   },
+   "sha": "7b226b75d1fd5f59",
+   "keyWords": [
+    "colpotomy"
+   ],
+   "mesh": "Colpotomy",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:5b15da45-8dd0-4d27-81f0-8ed2e6d7fb76",
+   "group": "one-sentence",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 103254
+   },
+   "sha": "573095e9d7634c51",
+   "keyWords": [
+    "misoprostol"
+   ],
+   "mesh": "Misoprostol",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5000",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5000
+   },
+   "sha": "6af33ae8ebf83129",
+   "keyWords": [
+    "neisseria",
+    "meningitidis",
+    "prophylaxis"
+   ],
+   "mesh": null,
+   "drugs": [
+    "methicillin"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5001",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5001
+   },
+   "sha": "3ee73537ec98642e",
+   "keyWords": [
+    "troponin",
+    "i"
+   ],
+   "mesh": "Troponin I",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5002",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5002
+   },
+   "sha": "7cb131bf51a6bebb",
+   "keyWords": [
+    "ret"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5003",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5003
+   },
+   "sha": "83bf9dc2d861335c",
+   "keyWords": [
+    "skin",
+    "biopsy",
+    "and",
+    "histopathologic",
+    "analysis"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5004",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5004
+   },
+   "sha": "9344b5e580d32755",
+   "keyWords": [
+    "defect",
+    "in",
+    "calcium",
+    "sensing",
+    "receptor"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5005",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5005
+   },
+   "sha": "3946a97cb1154fac",
+   "keyWords": [
+    "bone",
+    "marrow",
+    "biopsy",
+    "with",
+    "gt",
+    "25",
+    "percent",
+    "lymphoblast"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5006",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5006
+   },
+   "sha": "aef7a48c003c5d4c",
+   "keyWords": [
+    "esmolol",
+    "and",
+    "glucagon"
+   ],
+   "mesh": null,
+   "drugs": [
+    "epinephrine",
+    "esmolol"
+   ],
+   "oracle": [
+    {
+     "id": "fda:epinephrine",
+     "title": "epinephrine (FDA label, effective 20260608)"
+    },
+    {
+     "id": "fda:esmolol",
+     "title": "esmolol (FDA label, effective 20230623)"
+    }
+   ]
+  },
+  {
+   "id": "medqa-train:5007",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5007
+   },
+   "sha": "b7aca68fdf1c959e",
+   "keyWords": [
+    "internal",
+    "capsule"
+   ],
+   "mesh": "Internal Capsule",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5008",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5008
+   },
+   "sha": "7424db74c26ebd3c",
+   "keyWords": [
+    "moraxella",
+    "catarrhalis"
+   ],
+   "mesh": "Moraxella catarrhalis",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5009",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5009
+   },
+   "sha": "c5e5e652b066eb37",
+   "keyWords": [
+    "delayed",
+    "tubal",
+    "ovum",
+    "transit"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5010",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5010
+   },
+   "sha": "124e9ed7bbfb5478",
+   "keyWords": [
+    "lfa",
+    "1",
+    "integrin"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5011",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5011
+   },
+   "sha": "463987c5df2edca6",
+   "keyWords": [
+    "cerebral",
+    "edema"
+   ],
+   "mesh": "Brain Edema",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5012",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5012
+   },
+   "sha": "28b3c1c73a12be08",
+   "keyWords": [
+    "translocation",
+    "t",
+    "15",
+    "17"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5013",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5013
+   },
+   "sha": "c25db52da5e81fa6",
+   "keyWords": [
+    "increased",
+    "igm",
+    "and",
+    "decreased",
+    "iga",
+    "igg",
+    "and",
+    "ige"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5014",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5014
+   },
+   "sha": "5ef9a801727ac55f",
+   "keyWords": [
+    "reduced",
+    "fluid",
+    "intake"
+   ],
+   "mesh": null,
+   "drugs": [
+    "metformin"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5015",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5015
+   },
+   "sha": "eed8f83c80b3b493",
+   "keyWords": [
+    "metastatic",
+    "colorectal",
+    "cancer"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5016",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5016
+   },
+   "sha": "ffe1b5468f02de42",
+   "keyWords": [
+    "elevated",
+    "level",
+    "of",
+    "il",
+    "6"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5017",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5017
+   },
+   "sha": "81b8d053d2bb0efa",
+   "keyWords": [
+    "cryotherapy",
+    "or",
+    "podophyllotoxin",
+    "0.15",
+    "percent",
+    "topically"
+   ],
+   "mesh": null,
+   "drugs": [
+    "acyclovir"
+   ],
+   "oracle": [
+    {
+     "id": "fda:acyclovir",
+     "title": "acyclovir (FDA label, effective 20240905)"
+    }
+   ]
+  },
+  {
+   "id": "medqa-train:5018",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5018
+   },
+   "sha": "7e32cd3d9242748d",
+   "keyWords": [
+    "superior",
+    "temporal",
+    "gyrus"
+   ],
+   "mesh": "Temporal Lobe",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5019",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5019
+   },
+   "sha": "66b7fb4af5ef1e6d",
+   "keyWords": [
+    "18",
+    "percent"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5020",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5020
+   },
+   "sha": "2cb6fd9cfacabfae",
+   "keyWords": [
+    "acyclovir"
+   ],
+   "mesh": "Acyclovir",
+   "drugs": [
+    "acyclovir"
+   ],
+   "oracle": [
+    {
+     "id": "fda:acyclovir",
+     "title": "acyclovir (FDA label, effective 20240905)"
+    }
+   ]
+  },
+  {
+   "id": "medqa-train:5021",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5021
+   },
+   "sha": "ad13a5ea59328fed",
+   "keyWords": [
+    "stop",
+    "antihypertensive",
+    "medicine"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5022",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5022
+   },
+   "sha": "8b79a046bde96b09",
+   "keyWords": [
+    "ascorbic",
+    "acid"
+   ],
+   "mesh": "Ascorbic Acid",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/vitaminc.html",
+     "title": "Vitamin C"
+    }
+   ]
+  },
+  {
+   "id": "medqa-train:5023",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5023
+   },
+   "sha": "164c7845b6b1627b",
+   "keyWords": [
+    "low",
+    "molecular",
+    "weight",
+    "heparin"
+   ],
+   "mesh": "Heparin, Low-Molecular-Weight",
+   "drugs": [
+    "penicillin"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medqa-train:5024",
+   "group": "vignette",
+   "row": {
+    "dataset": "GBaker/MedQA-USMLE-4-options",
+    "split": "train",
+    "offset": 5024
+   },
+   "sha": "cc12c511b312b7a9",
+   "keyWords": [
+    "a",
+    "spirochete"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:ba2e996b-5b30-43c1-8f26-300d5e7a6982",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120000
+   },
+   "sha": "53b0c8762f1f7c91",
+   "keyWords": [
+    "bastedo",
+    "sign"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:3b028019-ea90-44ae-9f8c-198615e46a4e",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120001
+   },
+   "sha": "863eadef8397e1ae",
+   "keyWords": [
+    "natural",
+    "raby"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:4a754f32-407b-400b-ac2e-1ba79f048d08",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120003
+   },
+   "sha": "20c91ce62a0668bd",
+   "keyWords": [
+    "cromolyn",
+    "sodium"
+   ],
+   "mesh": "Cromolyn Sodium",
+   "drugs": [
+    "salbutamol"
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:b56ad393-d045-4024-a3d7-31113989acf1",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120008
+   },
+   "sha": "5604f3eac2411b34",
+   "keyWords": [
+    "a",
+    "ie",
+    "ratio",
+    "1",
+    "2.5"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:7414156f-aa5c-40a3-aaba-031e071135a8",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120009
+   },
+   "sha": "33b642a36f475742",
+   "keyWords": [
+    "hair",
+    "cell"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:6977cf01-b692-4aec-9a3f-a7f989eda02d",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120012
+   },
+   "sha": "55989d8c691f65f8",
+   "keyWords": [
+    "hypoglycemia"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/hypoglycemia.html",
+     "title": "Hypoglycemia"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:4cc51de8-3ee2-426e-98d2-31d653f42b71",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120013
+   },
+   "sha": "f91a6e1186f030f9",
+   "keyWords": [
+    "mdt",
+    "plus",
+    "steroid"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:614800d6-9ae3-4f27-b926-edbffe76074d",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120014
+   },
+   "sha": "11b6b4269744c3e0",
+   "keyWords": [
+    "filaria"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:1504095a-bc13-4001-b4d0-83863cbfda81",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120015
+   },
+   "sha": "1252d00283b03d43",
+   "keyWords": [
+    "lipogenesis"
+   ],
+   "mesh": "Lipogenesis",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:e5f88d2b-f62a-4c60-a3f1-42921e0d22b9",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120016
+   },
+   "sha": "c7ed450ceebfa2c1",
+   "keyWords": [
+    "3.4",
+    "mm",
+    "and",
+    "greater",
+    "in",
+    "mandible"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:294e90d1-b744-46d7-83f6-e23768ca93e2",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120017
+   },
+   "sha": "7993b2ad7c0ae646",
+   "keyWords": [
+    "sickle",
+    "cell",
+    "anemia"
+   ],
+   "mesh": "Anemia, Sickle Cell",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/sicklecelldisease.html",
+     "title": "Sickle Cell Disease"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:58a4b4ad-6dc3-43be-ae02-bef2e7a87b34",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120018
+   },
+   "sha": "fe96b6bb6686fb5f",
+   "keyWords": [
+    "demyelination"
+   ],
+   "mesh": "Demyelinating Diseases",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:a531615c-c927-41f4-bcac-2c2332cb3d47",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120019
+   },
+   "sha": "da0836ba5f989540",
+   "keyWords": [
+    "amoebic",
+    "liver",
+    "abscess"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:f02e42cc-00ef-4128-8f38-188f8a7ff151",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120023
+   },
+   "sha": "15598d6f1dacf336",
+   "keyWords": [
+    "ioxaglate"
+   ],
+   "mesh": "Ioxaglic Acid",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:fb9fd5a0-b025-4597-a45a-310a3cc269da",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120024
+   },
+   "sha": "09c4c3f6c0ddc9aa",
+   "keyWords": [
+    "usg"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:8cf6c0ff-76ab-4d65-a5db-2e8e74e67dcf",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120028
+   },
+   "sha": "94799a60240afe07",
+   "keyWords": [
+    "dental",
+    "plaster"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:4aae9a0a-73d5-4a7a-9613-01ff0482e1bc",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120030
+   },
+   "sha": "9721121b0ff6c9e4",
+   "keyWords": [
+    "increase",
+    "sense",
+    "of",
+    "restlessness",
+    "and",
+    "anxiety"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:6858e15c-5d4d-403a-b108-65f53a582f85",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120032
+   },
+   "sha": "c09af1d2706811d7",
+   "keyWords": [
+    "decor",
+    "mgc"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:14809ca8-b7ad-41d3-a42c-ec4dd0d20bac",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120035
+   },
+   "sha": "ae309d507232fe93",
+   "keyWords": [
+    "infrared",
+    "radiation"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:890bd68d-91e7-4433-b78b-997fdfee2550",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120036
+   },
+   "sha": "4b0e988fd9469221",
+   "keyWords": [
+    "neurofibromatosis"
+   ],
+   "mesh": "Neurofibromatoses",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/neurofibromatosis.html",
+     "title": "Neurofibromatosis"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:7b3a5644-e752-4ec2-9e5c-63f01d442f6a",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120038
+   },
+   "sha": "5b00218a6ddfcab7",
+   "keyWords": [
+    "raby"
+   ],
+   "mesh": "Rabies",
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/rabies.html",
+     "title": "Rabies"
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:3a671255-4de9-41f4-8fcb-9fbe8750c25c",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120041
+   },
+   "sha": "d681192e4eb40558",
+   "keyWords": [
+    "squamous",
+    "cell",
+    "carcinoma"
+   ],
+   "mesh": "Carcinoma, Squamous Cell",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:9f541caa-5c79-4d28-9493-40000d567245",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120043
+   },
+   "sha": "3409412c36a0316e",
+   "keyWords": [
+    "5",
+    "percent",
+    "dextrose"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:de0e452b-b5d8-465f-8e1f-a7ac943ea5f3",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120044
+   },
+   "sha": "6536c31c108eda3d",
+   "keyWords": [
+    "wpw",
+    "syndrome"
+   ],
+   "mesh": "Wolff-Parkinson-White Syndrome",
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:71b47bfb-8f2c-48c4-b384-bfe2f9cd2452",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120045
+   },
+   "sha": "dea4ff2262c21cc9",
+   "keyWords": [
+    "superficial",
+    "spreading"
+   ],
+   "mesh": null,
+   "drugs": [],
+   "oracle": []
+  }
+ ]
+}

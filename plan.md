@@ -2041,6 +2041,11 @@ independent review, a merge into personal, then the Worker deploy.
 - [ ] T0. The bench first (design/rag-bench, no engine change): proxy mode
   (branch code without a deploy), retrieval set R with mechanical labels,
   the proof-only bench P, and the baseline at 2b7ef11e.
+  Built 16 Oct (tools/verification-bench: proxy.mjs, retrieval-set.mjs,
+  proof-only.mjs, labels/ with SHA256SUMS; tests in bench.test.mjs); A1-A8
+  pass on Linux. Samples of 20: R found 12.5% to 33% of the official
+  documents, P proved 0 of 20, no failed lookups. In independent review;
+  then the full R and P runs and the proxy baseline (at most one a day).
 - [ ] T1. D0: official recall for proof and a per-source quota in fusion
   (design/official-recall; 0 neurons).
 - [ ] T2. D6: fact chains, the vignette route's real proposer generalised

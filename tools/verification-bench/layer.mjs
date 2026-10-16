@@ -13,8 +13,19 @@
 //   provider: BENCH_BASE_URL=<OpenAI-compatible url> BENCH_API_KEY=<key> ...
 //             --voters bench:<model>,bench:<model>,... - this repository's
 //             checkBatch, run here, with a free provider's models voting
+//   proxy:    BENCH_BASE_URL=$WORKER/v1 BENCH_API_KEY=<owner key> ... --proxy [--route on|off] [--packets DIR]
+//             this branch's own checkBatch, run here, with the live Worker only as
+//             a model proxy (proxy.mjs): each checker call goes to the Worker's
+//             owner benchmark route, one free model pinned, `x-bench: 1`. The
+//             voters are the live free order (never Claude); --route is the
+//             vignette route (on, as live); --packets DIR holds <question id>.json
+//             proof packets to send with the questions (none by default)
 //   options:  [--per-source 30] [--sources MedXpertQA,MedQA,CareQA Medicine] [--seed 7] [--stub]
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+//   --stub needs no data and no network: it makes its own questions when
+//   there is no --data directory, and writes to a temporary directory when
+//   there is no --out
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
@@ -23,20 +34,46 @@ import { resetBreakers } from '../../server/breakers.js';
 import { familyOf } from '../../server/accuracy-model.js';
 import { fullyProven } from '../../server/proof.js';
 import { loadQuestions, benchCases } from './datasets.mjs';
-import { gateReport } from './gates.mjs';
+import { gateReport, cpuMs } from './gates.mjs';
+import { proxyFetcher, proxyEnv, freeVoterPins, usePin, PinRefused } from './proxy.mjs';
+import { stubQuestions } from './stub-questions.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
+const stubbed = process.argv.includes('--stub');
+const proxy = process.argv.includes('--proxy');
 const dataDir = arg('data', 'verification-bench-data');
-const outDir = arg('out', 'verification-bench-out');
+const outDir = arg('out', stubbed ? mkdtempSync(join(tmpdir(), 'verification-bench-stub-')) : 'verification-bench-out');
 const perSource = Number(arg('per-source', '30'));
 const wanted = arg('sources', 'MedXpertQA,MedQA,CareQA Medicine').split(',');
-const voters = arg('voters', process.env.BENCH_VOTERS || '').split(',').filter(Boolean);
 const perBatch = Number(arg('batch', '2'));
 const seed = Number(arg('seed', '7'));
-const live = Boolean(process.env.WORKER && process.env.KEY);
-const stubbed = process.argv.includes('--stub');
-if (!live && !stubbed && !(process.env.BENCH_BASE_URL && process.env.BENCH_API_KEY)) {
+const route = arg('route', 'on');
+const packetsDir = arg('packets', '');
+if (!['on', 'off'].includes(route)) { console.error('--route is on or off'); process.exit(2); }
+if (packetsDir && !proxy) { console.error('--packets goes with --proxy'); process.exit(2); }
+// proxy mode: the Worker's /v1 and the owner key, from BENCH_* or from the
+// WORKER and KEY the live mode takes
+const proxyBase = process.env.BENCH_BASE_URL || (process.env.WORKER ? `${process.env.WORKER.replace(/\/+$/, '')}/v1` : '');
+// the stub asks no one, but the engine wants the provider set up to pin a voter
+const stubBase = 'http://stub.invalid/v1';
+const proxyKey = process.env.BENCH_API_KEY || process.env.KEY || '';
+// the live free order, as `bench:` pins, unless --voters says otherwise (the
+// stub, which asks no one, takes it too)
+let voters;
+try {
+  voters = (proxy || stubbed) && !arg('voters', '') && !process.env.BENCH_VOTERS ? freeVoterPins()
+    : arg('voters', process.env.BENCH_VOTERS || '').split(',').filter(Boolean);
+  if (proxy) voters = voters.map(v => `bench:${usePin(v)}`);
+} catch (e) {
+  if (e instanceof PinRefused) { console.error(e.message); process.exit(2); }
+  throw e;
+}
+const live = !proxy && Boolean(process.env.WORKER && process.env.KEY);
+if (proxy && !stubbed && !(proxyBase && proxyKey)) {
+  console.error('--proxy needs BENCH_BASE_URL (the Worker\'s /v1) and BENCH_API_KEY (the owner key), or WORKER and KEY.'); process.exit(2);
+}
+if (!live && !stubbed && !proxy && !(process.env.BENCH_BASE_URL && process.env.BENCH_API_KEY)) {
   console.error('Set WORKER and KEY (the live Worker), or BENCH_BASE_URL and BENCH_API_KEY (a free provider).'); process.exit(2);
 }
 if (!live && voters.length < 2) { console.error('give at least two --voters (bench:<model>)'); process.exit(2); }
@@ -44,8 +81,19 @@ mkdirSync(outDir, { recursive: true });
 
 // MARK: the questions, right and wrong
 
-const all = loadQuestions(readdirSync(dataDir).filter(f => f.endsWith('.json')).map(f => join(dataDir, f)));
+const all = stubbed && !existsSync(dataDir) ? stubQuestions(wanted) : loadQuestions(readdirSync(dataDir).filter(f => f.endsWith('.json')).map(f => join(dataDir, f)));
 const { chosen, cases } = benchCases(all, { wanted, perSource, seed });
+// --packets: a question's vignette proof packet, DIR/<its id, safe>.json,
+// sent with the question in both its keys (the packet is about the question)
+if (packetsDir) {
+  const safe = id => id.replace(/[^A-Za-z0-9._-]/g, '_');
+  let attached = 0;
+  for (const c of cases) {
+    const file = join(packetsDir, `${safe(c.item.id.replace(/#(?:right|wrong)$/, ''))}.json`);
+    if (existsSync(file)) { c.item.vignette = JSON.parse(readFileSync(file, 'utf8')); attached++; }
+  }
+  console.error(`${attached} of ${cases.length} checks carry a proof packet`);
+}
 
 // MARK: the Worker's world: an in-memory database, the bench's voters
 
@@ -84,18 +132,34 @@ const stubReply = init => {
   const items = Array.from({ length: n }, (_, i) => ({ i: i + 1, answer: 'A', risk: 1, evidence: 'none', cites: [], issues: [], fix: null }));
   return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ items }) } }] }), { status: 200 });
 };
+// what one batch cost, counted here in the fetcher (gates.mjs reads it): the
+// lookups (Europe PMC, MedlinePlus, openFDA) and each model call, with its
+// reply's usage when the reply says
+let meter = { lookups: 0, calls: [] };
+const sender = proxy ? proxyFetcher() : fetch;
+const chars = init => { try { return JSON.parse(init.body).messages.reduce((n, m) => n + String(m.content || '').length, 0); } catch { return 0; } };
+const usageOf = async res => { try { return (await res.clone().json())?.usage; } catch { return undefined; } };
 const fetcher = async (url, init) => {
-  if (stub) return String(url).includes('/chat/completions') ? stubReply(init) : new Response('{}', { status: 404 });
+  const chat = String(url).includes('/chat/completions');
+  if (stub) {
+    if (!chat) { meter.lookups++; return new Response('{}', { status: 404 }); }
+    const body = JSON.parse(init.body);
+    meter.calls.push({ model: body.model, chars: chars(init), maxTokens: body.max_tokens });
+    return stubReply(init);
+  }
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, init);
-    if (String(url).includes('/chat/completions')) {
+    const res = await sender(url, init);
+    if (!chat) meter.lookups++;
+    if (chat) {
       modelCalls++;
+      const body = JSON.parse(init.body);
+      meter.calls.push({ model: body.model, chars: chars(init), maxTokens: body.max_tokens, status: res.status, ...(res.ok ? { usage: await usageOf(res) } : {}) });
       // the first replies, and any refusal, word for word: a run whose every
       // call fails says why
       if (shown < 3 || (res.status !== 200 && shown < 8)) {
         shown++;
         const text = await res.clone().text();
-        console.error(`${JSON.parse(init.body).model} -> ${res.status}: ${text.slice(0, 500).replace(/\s+/g, ' ')}`);
+        console.error(`${body.model} -> ${res.status}: ${text.slice(0, 500).replace(/\s+/g, ' ')}`);
       }
     }
     if (res.status !== 429 || attempt >= 5) return res;
@@ -108,13 +172,18 @@ const fetcher = async (url, init) => {
 // MARK: run
 
 const results = [];
+const batchRuns = [];
 const started = Date.now();
 for (let b = 0; b < cases.length; b += perBatch) {
   const batch = cases.slice(b, b + perBatch);
   resetBreakers();
   // the first voter turns over each batch, so no one model carries the run
-  const order = voters.slice((b / perBatch) % voters.length).concat(voters.slice(0, (b / perBatch) % voters.length));
+  // (in proxy mode it does not: the live order, as a student's check asks it)
+  const turn = proxy ? 0 : (b / perBatch) % voters.length;
+  const order = voters.slice(turn).concat(voters.slice(0, turn));
   let res;
+  meter = { lookups: 0, calls: [] };
+  const cpu0 = cpuMs();
   if (live) {
     // the deployed Worker, signed in as the owner, counted apart as a bench
     for (let attempt = 0; ; attempt++) {
@@ -129,12 +198,16 @@ for (let b = 0; b < cases.length; b += perBatch) {
       await sleep(30_000 * (attempt + 1));
     }
   } else {
-    const env = { DB: d1(db), BENCH_MODELS: 'on', BENCH_BASE_URL: process.env.BENCH_BASE_URL, BENCH_API_KEY: process.env.BENCH_API_KEY,
-      ACCURACY_VOTERS: order.join(','), OWNER_ACCOUNT_IDS: 'bench', OWNER_BENCH_DAILY_LIMIT: '100000', ACCURACY_DAILY_CEILING: '100000' };
+    const env = proxy ? proxyEnv({ base: proxyBase || stubBase, key: proxyKey || 'stub', voters: order, route, db: d1(db) })
+      : { DB: d1(db), BENCH_MODELS: 'on', BENCH_BASE_URL: process.env.BENCH_BASE_URL || (stubbed ? stubBase : undefined), BENCH_API_KEY: process.env.BENCH_API_KEY || (stubbed ? 'stub' : undefined),
+        ACCURACY_VOTERS: order.join(','), OWNER_ACCOUNT_IDS: 'bench', OWNER_BENCH_DAILY_LIMIT: '100000', ACCURACY_DAILY_CEILING: '100000' };
     res = await checkBatch(env, 'bench', { items: batch.map(c => c.item) }, fetcher,
       { owner: true, bench: true, budgets: { votes: 240_000, evidence: 30_000, jev: 5_000 } });
   }
   const body = await res.json();
+  // the batch's cost: CPU over the check (the lookups' and models' waits do
+  // not count), and what the fetcher counted. The live Worker's are its own.
+  if (!live) batchRuns.push({ items: batch.length, cpuMs: Math.round((cpuMs() - cpu0) * 100) / 100, lookups: meter.lookups, calls: meter.calls });
   (body.items || []).forEach((r, n) => results.push({ ...batch[n], result: r }));
   if (body.failures) console.error('failures:', body.failures.join(' | '));
   // nobody answered the first batches: stop and say so, rather than spend the run
@@ -176,7 +249,7 @@ function measures(list) {
 const overall = measures(results);
 const lines = [];
 lines.push(`# The verification layer on hard questions`, '');
-lines.push(`${chosen.length} real questions (${wanted.map(s => `${s} ${chosen.filter(q => q.source === s).length}`).join(', ')}), each checked with its true key and with a wrong key planted: ${results.length} checks. Checkers: ${live ? `the live Worker's own (${process.env.WORKER})` : voters.join(', ')}. ${modelCalls} ${live ? 'batches sent' : 'model calls'}, ${throttled} rate-limit waits, ${Math.round((Date.now() - started) / 60000)} min.`, '');
+lines.push(`${chosen.length} real questions (${wanted.map(s => `${s} ${chosen.filter(q => q.source === s).length}`).join(', ')}), each checked with its true key and with a wrong key planted: ${results.length} checks. Checkers: ${live ? `the live Worker's own (${process.env.WORKER})` : `${proxy ? `this branch's own checkBatch, the live Worker as the models' proxy (route ${route}), ` : ''}${voters.join(', ')}`}. ${modelCalls} ${live ? 'batches sent' : 'model calls'}, ${throttled} rate-limit waits, ${Math.round((Date.now() - started) / 60000)} min.`, '');
 lines.push(`| measure | what it means | result |`, `|---|---|---|`);
 lines.push(`| accuracy | of the checks that gave a verdict (Verified or Flagged), the share that were right | ${overall.accuracy.text} (${overall.accuracy.n}/${overall.accuracy.of}) |`);
 lines.push(`| dependability | of the items marked Verified, the share that really were right | ${overall.dependability.text} (${overall.dependability.n}/${overall.dependability.of}) |`);
@@ -214,7 +287,9 @@ const saved = results.map(r => ({ id: r.item.id, source: r.item.source, truth: r
   rules: r.result?.rules, proof: r.result?.proof, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix,
   provenance: r.result?.provenance ? { tier: r.result.provenance.tier, gates: r.result.provenance.gates, flags: r.result.provenance.flags } : undefined }));
 // what held each check back from Verified, condition by condition
-lines.push('', '## What held them back from Verified', '', gateReport(saved));
+const run = { mode: live ? 'live' : proxy ? 'proxy' : 'provider', route: proxy ? route : undefined, voters: live ? undefined : voters, seed, perSource, batch: perBatch, batches: batchRuns };
+lines.push('', '## What held them back from Verified', '', gateReport(saved, run));
 writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
 writeFileSync(join(outDir, 'results.json'), JSON.stringify(saved, null, 1));
+writeFileSync(join(outDir, 'run.json'), JSON.stringify(run, null, 1));
 console.log(lines.join('\n'));
