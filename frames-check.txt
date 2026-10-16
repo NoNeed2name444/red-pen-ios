@@ -1,0 +1,23 @@
+== mode-switch-app
+5 frames; content contrast light 34.2, dark 32.1; a frame under 25.7 has faded
+5 frames; status bar contrast light 45.4, dark 42.2; a frame under 33.7 has faded (reported, never fails: iOS's own transition)
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch-quiz
+75 frames; content contrast light 42.1, dark 38.9; a frame under 31.1 has faded
+75 frames; status bar contrast light 46.6, dark 42.8; a frame under 34.2 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 2-23 from 4.120 s, on screen 0.262 s; lowest contrast 10.7, brightness 222
+faded status bar, not gated: frames 38-60 from 9.045 s, on screen 0.350 s; lowest contrast 10.6, brightness 223
+clean: the content keeps its contrast, or dips for 0.2 s at most
+== mode-switch (system, not gated)
+159 frames; content contrast light 34.3, dark 32.1; a frame under 25.7 has faded
+FADED content, longer than 0.2 s: frames 14-35 from 4.635 s, on screen 0.330 s; lowest contrast 4.0, brightness 139
+FADED content, longer than 0.2 s: frames 68-84 from 9.700 s, on screen 0.318 s; lowest contrast 7.3, brightness 156
+FADED content, longer than 0.2 s: frames 88-103 from 13.053 s, on screen 0.257 s; lowest contrast 6.8, brightness 155
+FADED content, longer than 0.2 s: frames 121-137 from 16.407 s, on screen 0.358 s; lowest contrast 4.8, brightness 147
+159 frames; status bar contrast light 45.4, dark 42.2; a frame under 33.7 has faded (reported, never fails: iOS's own transition)
+faded status bar, not gated: frames 1-4 from 4.133 s, on screen 0.097 s; lowest contrast 8.1, brightness 221
+faded status bar, not gated: frames 19-60 from 4.692 s, on screen 0.568 s; lowest contrast 4.4, brightness 47
+faded status bar, not gated: frames 67-95 from 9.568 s, on screen 3.647 s; lowest contrast 9.2, brightness 221
+faded status bar, not gated: frames 100-111 from 13.260 s, on screen 0.293 s; lowest contrast 4.5, brightness 47
+faded status bar, not gated: frames 120-151 from 16.285 s, on screen 0.992 s; lowest contrast 3.5, brightness 156
+4 faded stretches longer than 0.2 s
