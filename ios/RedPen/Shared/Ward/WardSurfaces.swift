@@ -14,7 +14,14 @@ extension ShadowStyle {
     /// inside it when the surface is pressed in.
     static func ward(_ light: WardReliefLight, inner: Bool) -> ShadowStyle {
         let color = Color(relief: light)
-        let radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
+        var radius = CGFloat(light.radius), x = CGFloat(light.x), y = CGFloat(light.y)
+        if LaunchStage.noGlows {
+            // `-uiPreviewNoGlows` (the recording's relief-off take): no soft
+            // edge, the light falls as a 1-pt rim, same colour and side.
+            radius = 0
+            x = min(1, max(-1, x))
+            y = min(1, max(-1, y))
+        }
         return inner ? .inner(color: color, radius: radius, x: x, y: y)
                      : .drop(color: color, radius: radius, x: x, y: y)
     }
@@ -78,11 +85,16 @@ extension View {
 /// Controls soften the base-colour face and active lights together as they glide
 /// into the page; labels stay sharp, as does the ink edge. A face that only
 /// shows a choice (an icon tile) passes `control: false` and has no edge.
+///
+/// At rest the lights are drawn once and shown from an image (WardLightImages);
+/// while the face is pressed, held or moving between the two, they are live.
 struct WardPressFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
     var pressed: Bool
-    var fill = AnyShapeStyle(Color.wardSurface)
+    var fill: AnyShapeStyle
+    /// The fill when it is a plain colour, the only fill the images cover.
+    var fillColor: Color?
     var control = true
     /// Lies flat, with no rim: a face that must never read as lifted (a
     /// wrong pick, whose face is lighter than the cards at night).
@@ -96,17 +108,43 @@ struct WardPressFace<S: InsettableShape>: View {
     @Environment(\.wardUnlit) private var unlit
     @Environment(\.wardHeld) private var held
 
+    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color = .wardSurface, control: Bool = true) {
+        self.shape = shape
+        self.lift = lift
+        self.pressed = pressed
+        self.fill = AnyShapeStyle(fill)
+        self.fillColor = fill
+        self.control = control
+    }
+
+    /// Any fill: drawn live, since the images cover colours only.
+    init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: AnyShapeStyle, control: Bool = true) {
+        self.shape = shape
+        self.lift = lift
+        self.pressed = pressed
+        self.fill = fill
+        self.fillColor = nil
+        self.control = control
+    }
+
     var body: some View {
+<<<<<<< HEAD
         // how far to dark the shift is, this frame (WardLookStore)
         let night: Double = WardLookStore.shared.glide.night(dark: scheme == .dark, held: held)
         WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill,
                         night: night, strong: contrast == .increased, control: control,
                         unlit: unlit, flat: flat, edge: edge)
+=======
+        WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill, fillColor: fillColor,
+                        dark: scheme == .dark, strong: contrast == .increased, control: control,
+                        unlit: unlit)
+>>>>>>> 4540bc9e
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .preference(key: WardHoldsControl.self, value: true)
     }
 }
 
+<<<<<<< HEAD
 extension WardPressFace {
     init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color, control: Bool = true,
          flat: Bool = false, edge: Color? = nil) {
@@ -115,17 +153,31 @@ extension WardPressFace {
     }
 }
 
+=======
+>>>>>>> 4540bc9e
 private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     let shape: S
     let lift: WardLift
     var depth: Double
     let fill: AnyShapeStyle
+<<<<<<< HEAD
     let night: Double
     let strong: Bool
     let control: Bool
     var unlit = false
     var flat = false
     var edge: Color?
+=======
+    let fillColor: Color?
+    let dark: Bool
+    let strong: Bool
+    let control: Bool
+    var unlit = false
+    @State private var face = WardFaceToken()
+
+    /// Below this a face counts as at rest: the picture is the same to the eye.
+    private static var rest: Double { 0.001 }
+>>>>>>> 4540bc9e
 
     var animatableData: Double {
         get { depth }
@@ -133,10 +185,54 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     }
 
     var body: some View {
+<<<<<<< HEAD
         let spec = WardPress.spec(lift, depth: depth, night: night, highContrast: strong, control: control)
         // a button keeps its small rim even where the page is unlit: the
         // one soft light the app allows (WardRelief.rim)
         let lit: Bool = (control || !unlit) && !flat
+=======
+        let live = WardPressDrawing(shape: shape, lift: lift, depth: depth, fill: fill,
+                                    dark: dark, strong: strong, control: control, unlit: unlit)
+        if let kind = cachedKind(), let fillColor {
+            let spec = WardPress.spec(lift, depth: 0, dark: dark, highContrast: strong, control: control)
+            WardLitFace(kind: kind, look: .press, lift: lift, control: control, dark: dark, strong: strong,
+                        fill: fillColor, reach: WardLightSlice.reach(spec), inner: false, live: live,
+                        face: face) { outline, dark in
+                AnyView(WardPressDrawing(shape: outline, lift: lift, depth: 0, fill: fill,
+                                         dark: dark, strong: strong, control: control, unlit: false))
+            }
+        } else {
+            live
+        }
+    }
+
+    /// The shape to show the face's lights from an image as, or nil, noting
+    /// why the face draws live (WardReliefCensus).
+    private func cachedKind() -> WardFaceShape? {
+        if LaunchStage.noGlows { face.note(.live(.off)); return nil }
+        if depth > Self.rest { face.note(.live(.press)); return nil }
+        if unlit { face.note(.live(.bare)); return nil }
+        if fillColor == nil { face.note(.live(.fill)); return nil }
+        guard let kind = WardFaceShape(shape) else { face.note(.live(.shape)); return nil }
+        return kind
+    }
+}
+
+/// A pressable face's drawing at `depth`: the one drawing code, run live or
+/// into an image (WardLitFace).
+private struct WardPressDrawing<S: InsettableShape>: View {
+    let shape: S
+    let lift: WardLift
+    let depth: Double
+    let fill: AnyShapeStyle
+    let dark: Bool
+    let strong: Bool
+    let control: Bool
+    let unlit: Bool
+
+    var body: some View {
+        let spec = WardPress.spec(lift, depth: depth, dark: dark, highContrast: strong, control: control)
+>>>>>>> 4540bc9e
         ZStack {
             ZStack {
                 if lit && (spec.outerShade.lit || spec.outerHighlight.lit) {
@@ -152,7 +248,11 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
                 }
             }
             .compositingGroup()
+<<<<<<< HEAD
             .blur(radius: unlit || spec.blur == 0 ? 0 : spec.blur)
+=======
+            .blur(radius: unlit || LaunchStage.noGlows ? 0 : spec.blur)
+>>>>>>> 4540bc9e
             if spec.edgeAlpha > 0 {
                 shape.strokeBorder((edge ?? Color.wardEdgeInk).opacity(spec.edgeAlpha), lineWidth: 1)
             }
@@ -178,29 +278,109 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
 /// base; a card's or a slab's has one only under Increase Contrast, which
 /// also deepens the shade. Flat containers keep only the fill (and that
 /// edge), so their controls stand just one level high.
+///
+/// Its lights are drawn once and shown from an image (WardLightImages) when
+/// the shape and the fill are ones the images cover; otherwise live.
 struct WardReliefFace<S: InsettableShape>: View {
     let shape: S
     var lift: WardLift = .mid
     var inset = false
     var flat = false
-    var fill = AnyShapeStyle(Color.wardSurface)
+    var fill: AnyShapeStyle
+    /// The fill when it is a plain colour, the only fill the images cover.
+    var fillColor: Color?
     var control = false
 
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardUnlit) private var unlit
+<<<<<<< HEAD
     @Environment(\.wardHeld) private var held
+=======
+    @State private var face = WardFaceToken()
+
+    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color = .wardSurface,
+         control: Bool = false) {
+        self.shape = shape
+        self.lift = lift
+        self.inset = inset
+        self.flat = flat
+        self.fill = AnyShapeStyle(fill)
+        self.fillColor = fill
+        self.control = control
+    }
+
+    /// Any fill: drawn live, since the images cover colours only.
+    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: AnyShapeStyle,
+         control: Bool = false) {
+        self.shape = shape
+        self.lift = lift
+        self.inset = inset
+        self.flat = flat
+        self.fill = fill
+        self.fillColor = nil
+        self.control = control
+    }
+>>>>>>> 4540bc9e
 
     var body: some View {
         // how far to dark the shift is, this frame (WardLookStore)
         let night: Double = WardLookStore.shared.glide.night(dark: scheme == .dark, held: held)
         let strong: Bool = contrast == .increased
+<<<<<<< HEAD
         // a raised control (a row to tap, a segmented control) stands on its
         // small rim, as a button does, lit or not; a card keeps its relief
         let rim: Bool = control && !inset && !flat
         let spec: WardReliefSpec = inset ? WardRelief.inset(lift, night: night, highContrast: strong, control: control)
                                  : rim ? WardRelief.rim(lift, night: night, highContrast: strong)
                                        : WardRelief.raised(lift, night: night, highContrast: strong, control: control)
+=======
+        let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong, control: control)
+                                         : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
+        let live = WardReliefDrawing(shape: shape, lift: lift, inset: inset, flat: flat, fill: fill, control: control,
+                                     dark: dark, strong: strong, unlit: unlit)
+        // lit: it has lights to draw, and draws them
+        let lit: Bool = !(flat || (unlit && !spec.inner)) && (spec.highlight.lit || spec.shade.lit)
+        if let kind = cachedKind(lit: lit), let fillColor {
+            WardLitFace(kind: kind, look: inset ? .inset : .raised, lift: lift, control: control,
+                        dark: dark, strong: strong, fill: fillColor, reach: WardLightSlice.reach(spec),
+                        inner: spec.inner, live: live, face: face) { outline, dark in
+                AnyView(WardReliefDrawing(shape: outline, lift: lift, inset: inset, flat: flat, fill: fill,
+                                          control: control, dark: dark, strong: strong, unlit: unlit))
+            }
+        } else {
+            live
+        }
+    }
+
+    /// The shape to show the face's lights from an image as, or nil, noting
+    /// why the face draws live (WardReliefCensus).
+    private func cachedKind(lit: Bool) -> WardFaceShape? {
+        if LaunchStage.noGlows { face.note(.live(.off)); return nil }
+        if !lit { face.note(.live(.bare)); return nil }
+        if fillColor == nil { face.note(.live(.fill)); return nil }
+        guard let kind = WardFaceShape(shape) else { face.note(.live(.shape)); return nil }
+        return kind
+    }
+}
+
+/// A raised or inset face's drawing: the one drawing code, run live or into
+/// an image (WardLitFace).
+private struct WardReliefDrawing<S: InsettableShape>: View {
+    let shape: S
+    let lift: WardLift
+    let inset: Bool
+    let flat: Bool
+    let fill: AnyShapeStyle
+    let control: Bool
+    let dark: Bool
+    let strong: Bool
+    let unlit: Bool
+
+    var body: some View {
+        let spec: WardReliefSpec = inset ? WardRelief.inset(lift, dark: dark, highContrast: strong, control: control)
+                                         : WardRelief.raised(lift, dark: dark, highContrast: strong, control: control)
+>>>>>>> 4540bc9e
         ZStack {
             if flat || (unlit && !spec.inner && !rim) {
                 shape.fill(fill)
@@ -217,13 +397,6 @@ struct WardReliefFace<S: InsettableShape>: View {
             }
         }
         .compositingGroup()
-    }
-}
-
-extension WardReliefFace {
-    init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color,
-         control: Bool = false) {
-        self.init(shape: shape, lift: lift, inset: inset, flat: flat, fill: AnyShapeStyle(fill), control: control)
     }
 }
 
@@ -495,10 +668,47 @@ private struct WardClearanceInk: View, Animatable {
 
 /// Still ECG paper around the screen; content scrolls beneath the open panel.
 /// With the opening moved down (WardPaperTop), the paper fills its top
-/// corners as well, and its edge is drawn there instead of at the frame's
-/// top; the paper above it is the page's own band, under the content.
+/// corners as well; the paper above it is the page's own band, under the
+/// content. The outer opening has no ink outline; controls keep theirs.
 struct WardPaperFrame: View {
+<<<<<<< HEAD
     let edges: WardEdgeStore
+=======
+    var body: some View {
+        // One sheet from the first full warm-up frame through home at rest.
+        // Warming a separate Canvas left the animated mask unrendered until
+        // the reveal. Keeping this sheet also avoids swapping renderers when
+        // the opening ends. Its picture and paths change only with geometry
+        // or appearance; the hand-off changes only the mask's transform.
+        WardPaperCutStage()
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// What the opening's hand-off asks of the paper at this frame.
+struct WardPaperCut: Equatable {
+    /// The opening's pose once it has arrived (scale about its middle, and
+    /// how far below its place); (1, 0) while warming and at rest, nil before
+    /// the reveal, when the paper runs whole over it as on the launch screen.
+    var scale: CGFloat?
+    var drop: CGFloat = 0
+    /// The top of the page's opening (WardPaperTop).
+    var top: CGFloat?
+    var dark: Bool
+    var highContrast: Bool
+
+    /// The paper's opening, as a path in the window.
+    static func hole(_ p: WardPaperPanel) -> Path {
+        RoundedRectangle(cornerRadius: CGFloat(p.radius), style: .continuous)
+            .path(in: CGRect(x: p.x, y: p.y, width: p.width, height: p.height))
+    }
+}
+
+/// Reads the opening's frame from LaunchStage, for the sheet.
+private struct WardPaperCutStage: View {
+>>>>>>> 4540bc9e
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
@@ -507,6 +717,7 @@ struct WardPaperFrame: View {
     @State private var window: CGRect = .zero
 
     var body: some View {
+<<<<<<< HEAD
         let top = WardPaperTop.shared.y
         // the section's ink and the base, this frame of the shift
         let ink = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
@@ -563,13 +774,170 @@ struct WardPaperFrame: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+=======
+        let stage = LaunchStage.shared
+        // Infinity is the full, masked home in BOTH warm-up and rest. Do not
+        // hide this layer during warm-up: assigning contents alone does not
+        // exercise the reveal's mask and image composition.
+        let pose = stage.openingPose()
+        #if canImport(UIKit)
+        WardPaperCutSheet(cut: WardPaperCut(scale: pose?.scale, drop: pose?.drop ?? 0,
+                                            top: WardPaperTop.shared.y, dark: scheme == .dark,
+                                            highContrast: contrast == .increased))
+        #endif
+>>>>>>> 4540bc9e
     }
 }
+
+#if canImport(UIKit)
+/// Home's paper in Core Animation, including warm-up and rest: the picture
+/// covers all but the page's own band, with the opening cut out by a mask.
+/// Each animation frame poses that mask without drawing another picture.
+private struct WardPaperCutSheet: UIViewRepresentable {
+    var cut: WardPaperCut
+
+    func makeUIView(context: Context) -> WardPaperCutView { WardPaperCutView() }
+
+    func updateUIView(_ view: WardPaperCutView, context: Context) {
+        view.cut = cut
+    }
+}
+
+final class WardPaperCutView: UIView {
+    var cut: WardPaperCut? {
+        didSet { if cut != oldValue { apply() } }
+    }
+
+    private let root = CALayer()         // the same sheet throughout warm-up, reveal and rest
+    private let sheet = CALayer()        // the paper: holds the picture, masked by the band
+    private let band = CAShapeLayer()    // all of the window but the page's own band
+    private let cutHolder = CALayer()    // masked by the posed opening
+    private let hole = CAShapeLayer()    // everything but the opening, posed
+    /// What the sheet was last built for.
+    private var built: (size: CGSize, top: CGFloat?, dark: Bool, highContrast: Bool)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        backgroundColor = .clear
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        sheet.mask = band
+        cutHolder.addSublayer(sheet)
+        root.addSublayer(cutHolder)
+        // The mask is posed about the opening's middle; its path is drawn
+        // around that position, at no size.
+        hole.fillRule = .evenOdd
+        hole.bounds = .zero
+        layer.addSublayer(root)
+        CATransaction.commit()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        apply()
+    }
+
+    private func apply() {
+        guard let cut else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let w = Double(bounds.width), h = Double(bounds.height)
+        guard let panel = WardPaper.panel(width: w, height: h) else { return }
+        let moved: WardPaperPanel? = cut.top.flatMap { WardPaper.panel(width: w, height: h, top: Double($0)) }
+            .flatMap { $0.y > panel.y ? $0 : nil }
+        let opening = moved ?? panel
+        if built.map({ $0.size != bounds.size || $0.top != cut.top || $0.dark != cut.dark
+            || $0.highContrast != cut.highContrast }) ?? true {
+            build(panel: panel, moved: moved, opening: opening, cut: cut)
+        }
+        // the posed opening: scaled about its middle, dropped below its place
+        guard let scale = cut.scale else {
+            cutHolder.mask = nil
+            return
+        }
+        let mid = CGPoint(x: opening.x + opening.width / 2, y: opening.y + opening.height / 2)
+        hole.position = CGPoint(x: mid.x, y: mid.y + cut.drop)
+        hole.transform = CATransform3DMakeScale(scale, scale, 1)
+        if cutHolder.mask !== hole { cutHolder.mask = hole }
+    }
+
+    /// The sheet's picture, band and opening, for this window and ink.
+    private func build(panel: WardPaperPanel, moved: WardPaperPanel?, opening: WardPaperPanel, cut: WardPaperCut) {
+        let size = bounds.size
+        built = (size, cut.top, cut.dark, cut.highContrast)
+        let ink = WardPaper.ink(dark: cut.dark, highContrast: cut.highContrast)
+        let rect = CGRect(origin: .zero, size: size)
+        root.frame = rect
+        cutHolder.frame = rect
+        // the picture from the window's top left at its own size, as the
+        // rest drawing places it; the lines drawn once where it falls short
+        let grid = ink.fine > 0 || ink.bold > 0
+        let traits = traitCollection.modifyingTraits { $0.userInterfaceStyle = cut.dark ? .dark : .light }
+        let picture = grid ? UIImage(named: "LaunchPaper", in: nil, compatibleWith: traits) : nil
+        if let picture, picture.size.width >= size.width, picture.size.height >= size.height {
+            sheet.frame = CGRect(origin: .zero, size: picture.size)
+            sheet.contents = picture.cgImage
+            sheet.contentsScale = picture.scale
+            sheet.backgroundColor = nil
+        } else if grid {
+            sheet.frame = rect
+            sheet.contents = Self.drawnPaper(size: size, ink: ink, dark: cut.dark,
+                                             scale: traitCollection.displayScale)
+            sheet.contentsScale = max(1, traitCollection.displayScale)
+            sheet.backgroundColor = nil
+        } else {
+            sheet.frame = rect
+            sheet.contents = nil
+            let (r, g, b) = WardPalette.rgb(WardPalette.hex(.background, dark: cut.dark))
+            sheet.backgroundColor = UIColor(red: r, green: g, blue: b, alpha: 1).cgColor
+        }
+        // all but the page's own band above the opening
+        var paper = Path(rect)
+        if let moved {
+            paper = paper.subtracting(WardPaperCut.hole(panel).intersection(
+                Path(CGRect(x: 0, y: 0, width: size.width, height: moved.y))))
+        }
+        band.frame = CGRect(origin: .zero, size: sheet.frame.size)
+        band.path = paper.cgPath
+        // the opening around its middle, so posing it is a transform; around
+        // it, a window's width and height more than the window on every
+        // side, which still covers it at the smallest pose (half size)
+        let mid = CGPoint(x: opening.x + opening.width / 2, y: opening.y + opening.height / 2)
+        let local = CGAffineTransform(translationX: -mid.x, y: -mid.y)
+        let opened = WardPaperCut.hole(opening).applying(local)
+        var around = Path(rect.insetBy(dx: -size.width, dy: -size.height).applying(local))
+        around.addPath(opened)
+        hole.path = around.cgPath
+    }
+
+    /// The paper's lines, drawn once, for a window the picture does not
+    /// cover.
+    @MainActor
+    private static func drawnPaper(size: CGSize, ink: WardPaperInk, dark: Bool, scale: CGFloat) -> CGImage? {
+        let (r, g, b) = WardPalette.rgb(ink.hex)
+        let color = Color(red: r, green: g, blue: b)
+        let renderer = ImageRenderer(content: Canvas { context, size in
+            WardPaperInk.drawPaper(in: &context, size: size, from: .zero, ink: ink, color: color)
+        }
+        .frame(width: size.width, height: size.height)
+        .environment(\.colorScheme, dark ? .dark : .light))
+        renderer.scale = max(1, scale)
+        return renderer.cgImage
+    }
+}
+#endif
 
 extension WardPaperInk {
     /// The base, then the frame's grid over `size`, for a canvas whose top
     /// left corner sits at `origin` in the window, so its lines fall on the
-    /// frame's.
+    /// frame's. tools/make_launch_paper.py draws the same paper, line for
+    /// line, for the launch screen (LaunchPaper): a change here goes there.
     static func drawPaper(in context: inout GraphicsContext, size: CGSize, from origin: CGPoint,
                           ink: WardPaperInk, color: Color, base: Color) {
         context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(base))
@@ -582,13 +950,12 @@ extension WardPaperInk {
                 context.fill(line, with: .color(color.opacity(ink.bold)))
             }
         }
+        // the down lines, then the across ones over them
         for line in WardPaper.lines(Double(size.width), from: Double(origin.x)) {
-            drawLine(Path(CGRect(x: line.at, y: 0, width: WardPaper.line, height: size.height)),
-                     bold: line.bold)
+            drawLine(Path(CGRect(x: line.at, y: 0, width: WardPaper.line, height: size.height)), bold: line.bold)
         }
         for line in WardPaper.lines(Double(size.height), from: Double(origin.y)) {
-            drawLine(Path(CGRect(x: 0, y: line.at, width: size.width, height: WardPaper.line)),
-                     bold: line.bold)
+            drawLine(Path(CGRect(x: 0, y: line.at, width: size.width, height: WardPaper.line)), bold: line.bold)
         }
     }
 }
@@ -612,6 +979,7 @@ struct WardPaperBand: View {
     @State private var origin: CGPoint = .zero
 
     var body: some View {
+<<<<<<< HEAD
         // the section's ink and the base, this frame of the shift
         let paper = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                   highContrast: contrast == .increased)
@@ -630,6 +998,25 @@ struct WardPaperBand: View {
                 let w = CGFloat(WardPaper.edgeWidth)
                 context.fill(Path(CGRect(x: 0, y: height - w, width: size.width, height: w)),
                              with: .color(color.opacity(ink.edge)))
+=======
+        Group {
+            Canvas { context, size in
+                let height: CGFloat = min(size.height, bottom - origin.y)
+                guard height > 0 else { return }
+                var ink = WardPaper.ink(dark: scheme == .dark, highContrast: contrast == .increased)
+                if !grid { ink.fine = 0; ink.bold = 0 }
+                let (r, g, b) = WardPalette.rgb(ink.hex)
+                let color = Color(red: r, green: g, blue: b)
+                var band = context
+                band.clip(to: Path(CGRect(x: 0, y: 0, width: size.width, height: height)))
+                WardPaperInk.drawPaper(in: &band, size: CGSize(width: size.width, height: height),
+                                       from: origin, ink: ink, color: color)
+                if edge {
+                    let w = CGFloat(WardPaper.edgeWidth)
+                    context.fill(Path(CGRect(x: 0, y: height - w, width: size.width, height: w)),
+                              with: .color(color.opacity(ink.edge)))
+                }
+>>>>>>> 4540bc9e
             }
         }
         .onGeometryChange(for: CGPoint.self) { $0.frame(in: .global).origin } action: { origin = $0 }
@@ -722,8 +1109,15 @@ struct WardRowTile: View {
     var body: some View {
         WardReliefFace(shape: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous),
                        lift: .low, inset: inset, control: true)
+<<<<<<< HEAD
             .padding(.horizontal, WardSpace.s)
             .padding(.vertical, WardSpace.s)
+=======
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            // with its row, at the opening's hand-off (LaunchStage)
+            .launchEntrance(inOpening: true)
+>>>>>>> 4540bc9e
     }
 }
 

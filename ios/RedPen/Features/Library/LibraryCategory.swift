@@ -45,6 +45,7 @@ extension LibraryView {
                         Text("More ways to practise")
                             .font(.subheadline.weight(.semibold))
                             .frame(minHeight: 44, alignment: .leading)
+                            .launchEntrance(inOpening: true)
                     }
                     .accessibilityIdentifier("morePractise")
                     .wardPart("More ways to practise")
@@ -55,6 +56,7 @@ extension LibraryView {
                 }
             } header: {
                 CategoryHeading(title: FeatureGroup.practise.title)
+                    .launchEntrance(inOpening: true)
             }
         }
     }
@@ -67,6 +69,7 @@ extension LibraryView {
                 tileGrid(features)
             } header: {
                 CategoryHeading(title: group.title)
+                    .launchEntrance(inOpening: true)
             }
         }
     }
@@ -80,6 +83,7 @@ extension LibraryView {
                 tileButton(feature)
             }
         }
+        .launchEntrance(inOpening: true)
         .wardCardRow()
     }
 
@@ -125,11 +129,16 @@ extension LibraryView {
                         .foregroundStyle(Color.wardInk)
                 }
                 .accessibilityIdentifier("more-\(page.rawValue)")
+<<<<<<< HEAD
                 .wardPart("a More row", reach: WardSpace.s)
+=======
+                .launchEntrance(inOpening: true)
+>>>>>>> 4540bc9e
                 .frostedListRow()
             }
         } header: {
             CategoryHeading(title: "Across the app")
+                .launchEntrance(inOpening: true)
         }
     }
 
@@ -176,6 +185,7 @@ extension LibraryView {
                 .buttonStyle(.wardCompact)
         }
         .frame(minHeight: 56)
+        .launchEntrance(inOpening: true)
         .frostedListRow()
     }
 

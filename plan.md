@@ -2334,6 +2334,256 @@ with the marks on the screens last.
       An iPad's frame, moved home opening and islands take its 18 pt
       corners, including in multitasking windows. Awaiting the Ward preview.
 
+### The launch mark (design/launch-anim), 15 Oct
+
+- The owner, correcting an earlier relay: "i meant only the diaphragm i want
+  the jagged parts fixed in both". Decided: only the light mark's blue
+  chest-piece ring stays. Still open: the two drawings' shapes, which stay
+  as they are for now (not the owner's choice).
+- [x] The grey tube by night (Claude-Code 33f282f: 06-grey-flat-dark for
+  the launch, icon-dark for the icon) and clean cuts for both marks and
+  both icon layers: tools/make_launch_logo.py reads the mark by its colour,
+  the chrome's rim included, and draws the outline with sub-pixel coverage.
+  tests/art/clean-edges.test.mjs (fails on fb24d0e0's art) and
+  tests/art/no-blue-tube.test.mjs check every size.
+- [ ] Sent back to be redrawn: the dark launch drawing's thin blue line
+  where the grey tube meets the chest piece's stem (the day drawing has
+  none); the blue-tube test allows only that line until it is fixed.
+
+- [x] A4, the opening's hand-off hold (final attempt, task launch-a4): the
+  Launch recording 38723188012 on 446bbb36 measured gaps of 115 and 209 ms in
+  the dark takes. Cause: the paper frame's Canvas redrew every frame from
+  +0.73 s to +1.95 s, and the title's layer changed width as its letters
+  spread. Fix: the paper at rest is one drawing that never changes during
+  the hand-off (WardPaperRest), the cut is a Core Animation mask posed by a
+  transform (WardPaperCutView), and the title draws one invisible box so its
+  layer keeps one size (LetterSettle). Tick it when the push's Launch
+  recording shows a gap of 100 ms or less in every light and dark take; if
+  not, the next step is an advisor review, not more tuning.
+  - Attempt 4 (a3f7477e, Launch recording 38768221249): dark 51 and 64 ms,
+    light take 2 85 ms, but light take 1 303 ms at +1.22 s.
+  - Advisor review (task T0046), applied here together with the owner's
+    "remove the ring around the outer edge": the outer opening loses its ink
+    outline (button rings, shadows and the chest-piece ring stay); one Core
+    Animation paper sheet now runs from the warm-up frame through rest, so
+    the mask and picture are composed before the reveal instead of first at
+    +0.79 s; and the title draws its glyph slices at rest too, so slice
+    drawing is warm before the first letter moves. The cause of the 303 ms
+    take is a hypothesis until the recording shows it: if a take still
+    holds over 100 ms, sample that cold take before any further change.
+    The opening now ends on the ringless home with the same sheet, so
+    there is no renderer swap at the end.
+  - The advisor's fix (eb677f7c, Launch recording 38782361711): light 107
+    and 85 ms, dark 96 and 91 ms. The 303 ms hold is gone, but light take 1
+    still holds 107 ms, ending right as home goes still (+2.05 s). The
+    recording now adds a third take, profiled with spindump (every thread's
+    stack each 2 ms, not judged), and re-measures the two judged takes on
+    the same code. Next: read what the main thread does in that take's
+    longest hold, then fix that cause only.
+  - The profiled recording (1a4fa025, 38785473364): light 117 ms at +0.94
+    (35 refreshes, the Mac's load average 497) and 87 ms at +1.40 (load
+    424); dark 50 ms at +1.56 and 126 ms at +1.03; the profiled take 69 ms
+    at +1.62 (load 303). The holds now fall at a different moment each
+    take. spindump came too late to show them: it attached 2 s after the
+    app started and prints no time per stack. It does show the first frame
+    (UIApplication's first commit, laying out the hosting view) taking
+    about 139 of 820 samples on that busy Mac. The dark film was lost: the
+    publish retry tried to check out the branch a second time, which git
+    refuses while the first attempt's worktree holds it; the retry now
+    works detached and pushes HEAD. Next: the advisor judges app or host
+    before any change to the app.
+  - The advisor's ruling: undetermined, leaning to the runner (the lost
+    refreshes are spread through the window, and the light takes rank by
+    load), though each long hold sits near an app event (just after the
+    hand-off, or as home goes still). So, before any change to the app,
+    each judged take now waits until the runner settles: the 1-minute load
+    under 3 x its cores, read every 15 s, at most 5 minutes, with the load
+    and "settled" or "unsettled" written beside each readout. The rule is
+    fixed in advance and the same for every take, and the 100 ms gate is
+    unchanged. The profiled take is gone (spindump can't time a hold). If a
+    hold over 100 ms survives on a settled runner with full refreshes, it
+    is the app's: then os_signpost intervals round the hand-off, read back
+    with log show --signpost.
+  - Diagnostics before any change to the app (no change to how the opening
+    or home look or behave, the 100 ms gate unchanged): a recorded opening
+    now also writes, after the old fields, `gaps=` (each gap over 50 ms:
+    its end, length and the main thread's CPU time across it), `interval_ms=`
+    and `marks=` (hand-off, home's first appearance, and the start..end of
+    home's loads: due cards, the round's plan, the tiles; LaunchDiagnostics,
+    WardHome). A gap with CPU near its length is the main thread working
+    (the loads or drawing); with CPU near 0 it was waiting (the runner, or a
+    lock). A control take with home's loads stood in for (since removed) ran
+    after each judged one. The settle wait is replaced by a fixed 30 s sleep,
+    and the timing file now has mdutil and the busiest processes round each
+    launch.
+  - Glows experiment (run 38812510377; the flags are removed again, see
+    the next item): the control take after each judged one drew every Ward
+    light as a 1-pt rim with no blur, three judged takes per mode. Gap in
+    ms / refreshes, by take:
+
+    | take | relief on | relief off |
+    |---|---|---|
+    | light | no readout; 42/62; 83/46 | 33/74; 48/59; 65/71 |
+    | dark | 128/56; 54/61; 61/57 | 38/70; 33/73; 44/71 |
+
+    All six relief-off takes passed with 59-74 refreshes, even at a higher
+    runner load than the relief-on takes; relief-on failed twice (in the
+    no-readout take the app still used 92% CPU 23 s after launch). So the
+    per-frame blur of the relief lights is the cost: SwiftUI redraws every
+    face's shadow blur each frame while home's parts change scale.
+  - The ruling: draw the relief lights once, with the same look, instead of
+    every frame. Done in this change (not yet seen in a recording):
+    - [x] Each relief face is drawn by one drawing code (WardReliefDrawing,
+      WardPressDrawing in WardSurfaces) that runs live or into an image
+      (ImageRenderer, at the display scale, padded by the lights' reach;
+      WardLightImages). A raised or inset face, and a press face at depth 0,
+      show that image as a stretchable slice; the live drawing stays for a
+      press in motion or held, a fill that is not a colour, a shape that is
+      not a rounded rectangle, capsule or circle, and wardUnlit / flat faces.
+    - [x] The slicing and the key are Foundation-only (WardLightSlice) with
+      Linux tests (suite wardlightslice): reach per look, caps = pad + the
+      corner's curve (1.53 x the radius, continuous) + reach, a capsule keyed
+      by its height, a circle by its diameter, a side shorter than two caps
+      and a core drawn whole and keyed by its size; the tests draw both with
+      a Gaussian and check the stretched slice equals the larger drawing to
+      within one 8-bit step, at every lift, raised and press.
+    - [x] No image is made in the hand-off window (LaunchStage.handingOff,
+      from the splash starting the opening until home is still): home is
+      drawn whole under the splash (warm), which makes its styles; a style
+      asked for in the window draws live and is made when it ends
+      (WardLightImages.catchUp); the readout's marks show `relief-late` if
+      that ever happens on a normal launch. A light/dark switch finds the
+      other scheme's images made at rest (or makes them in the same frame);
+      the swap is one step, no opacity.
+    - [x] The experiment scaffolding is removed: `-uiPreviewStubHomeData`,
+      HomeStandIn, homeDue, `-uiPreviewNoGlows`, and the workflow's control
+      takes. Kept: three judged takes per mode, the fixed 30 s pause, the
+      readout's gaps/cpu and marks (now also `relief` loads), the snapshots
+      after each take, and the 100 ms gate as it was.
+    - [x] Tick the item when the push's Launch recording shows 100 ms or
+      less in every light and dark take. Check by eye that raised and inset
+      faces, and buttons at rest, look as before (the image sits where the
+      live face was; a Mac run was not possible here).
+  - Ruling #4 (the judge, after run 38826276378, whose cached takes did no
+    better than the live relief: light 106/57, 64/56, 55/48 ms/refreshes,
+    dark 129/50, 66/43, 90/51; no `relief-late` mark, home's pictures
+    identical before and after, so nobody could tell whether the cache drew
+    at all): count, fix, then one decisive run.
+    - [x] Count. The readout's last field counts every relief face on screen
+      when home is still, once per take, by how it was drawn, and the images
+      made before the hand-off: `relief=cached:12,live:plan@0x0:1 made=15/42ms`
+      (`failed=N` after it if an image could not be drawn). Live tags:
+      `shape` (uncovered shape), `fill` (not a colour, or no RGB), `plan@WxH`
+      (no slice plan for that size), `failed` (render failed), `late` (asked
+      for inside the hand-off), `press` (in motion or held), `none` (no
+      lights to draw: flat, unlit, or lights not lit), `empty` (a box of no
+      size), `off` (the relief-off take). WardReliefCensus (Foundation-only,
+      tested), WardFaceToken, WardLitFace; LaunchStage.writeReadout.
+    - [x] Fix. Covered now: a readiness ring's groove (WardAnnulus, the one
+      shape on home that fell through as `shape`), and a circle in a box
+      that is not square (drawn at its shorter side, in the middle, as live).
+      A face smaller than its slices was already drawn whole at its own size
+      (keyed by its pixels). A render that fails is no longer left live for
+      good: it falls back to the renderer's CGImage, is tried again outside
+      any face's drawing (three attempts) and counted in `failed=`. Not seen
+      on a Mac: whether ImageRenderer ever fails here is for the run to say.
+    - [x] The relief-off switch is back for the recording only
+      (`-uiPreviewNoGlows`: every Ward light at radius 0 as a 1-pt rim, the
+      ink edge and colours kept, drawn live, the cache bypassed). The Launch
+      recording alternates, per mode, a cached take and a relief-off take,
+      three of each. Cached readouts: film/handoff-$MODE.txt, gated as
+      before; relief-off: film/handoff-$MODE-control.txt, not gated.
+    - [x] The decisive run, and the decision rule, fixed in advance: a cached
+      take counts only if every relief face with lights in the window drew
+      from the cache (no `live:` tag but `none` and `empty`, no `failed=`);
+      the relief-off takes must pass as in 38812510377 (59-74 refreshes, no
+      gap over 100 ms) or the run is void. Three light and three dark
+      counted passes (gap 100 ms or less, 55+ refreshes, same look) close
+      the task and keep the cache. Otherwise the cache is reverted in one
+      commit and the main-thread rule (narrower) is tried.
+    - Closed by Launch recording 38837815702 on 52d7e26b (38835807482 before
+      it was void: a relief-off light take at 102 ms / 66). Every cached take
+      read `relief=cached:12`. Gap in ms / refreshes, by take:
+
+      | take | cached | relief off |
+      |---|---|---|
+      | light | 37/74; 33/74; 55/59 | 34/73; 17/75; 74/56 |
+      | dark | 40/66; 41/65; 51/55 | 17/75; 64/62; 47/63 |
+
+      Same look: home's pictures on shots/relief-after-2 (the cache drawing)
+      are byte-identical to shots/relief-after's (ca93de8b, where faces still
+      fell back live), and differ from shots/relief-before only where those
+      did (the date, and Start's edge under the dock). The cache stays; the
+      relief-off take stays in the recording as its standing control.
+- [x] Before design/launch-anim goes to personal: testDesignTour loses the
+  app on its first attempt, at the dock switch (DesignTourUITests.swift:483;
+  an assertion in UICollectionView's nested visible-cells update, called from
+  SwiftUI's list), in all three Design previews of this branch (2465e89a,
+  ca93de8b, 52d7e26b), and testStraightLines finds no examples banner
+  (GraphPreviewUITests.swift:424) in all three. Neither fails on the Design
+  previews of design/neurons-depth, which comes from personal. Root cause
+  first, then the fix.
+  Root cause (independent review): LaunchEntrance wrote its frame to view
+  state from onGeometryChange for good once home was at rest, and it wraps
+  whole groups of the list's rows, so each write redrew every row, which
+  re-sized and moved them and wrote again: a loop from geometry to state to
+  layout. The fix keeps the frame in a plain object (LaunchSpot), with a
+  source check in LaunchOpeningTests. Tick when the Design preview of the
+  fix passes the tour on its first attempt and testStraightLines finds the
+  banner, and the Launch recording shows the readout and gate unchanged.
+  The Design preview of that fix (6dd59b90, run 38846916363): the iPhone
+  still loses the app after the dock's OSCE tab and still finds no banner
+  (the iPad passed both, as it had before), and the Launch recording is
+  unchanged. A second fix (183932ad: WardLightImages making a missing
+  image on the next turn instead of inside a face's layout) made the iPad
+  fail as well and changed the relief count from cached:12 to cached:11,
+  so it is reverted.
+  Root cause (a second independent review, 16 Oct): LibraryView put
+  LaunchEntrance around modesSection and listBody, and each of those yields
+  several Sections, so SwiftUI stacked every Section below the round card
+  into one List row (the accessibility tree shows one cell from the set
+  rows to examplesBanner, and the screenshots one tile with centred
+  headings). On the iPhone that row is about five screens tall and its
+  self-sizing never settles: the tour dies at the first accessibility
+  snapshot after the dock switches page, and the swipes stall before the
+  banner. On the iPad the row is short enough to settle. Fix 2's iPad
+  failure was something else: a face switching from live to cached
+  re-created the recording terms' agree button mid-tap, and the test kept
+  tapping its corner, outside the capsule.
+  The fix: the entrance comes off the two builders and goes on each row's
+  own view (the set rows, each grid, the section headers, the build-session
+  and examples buttons, the "Across the app" rows), never on a Section, a
+  ForEach or a builder of several rows, with source checks in
+  LaunchOpeningTests. Tick when one Design preview of it
+  passes the iPhone tour on its first attempt (03-library-osce and
+  04-library-audio), testStraightLines finds the banner, the accessibility
+  tree shows one cell per row, the iPad passes both, and the Launch
+  recording keeps every gap at 100 ms or less with the relief readout
+  cached:18, live:empty:1, live:none:5, made=12 (each row now draws its own
+  tile; the 16 Oct review set this readout). Recording: passed, run alone
+  on eaac1d87 (38869778510, attempt 2): every gap 17-89 ms, controls
+  included, and that readout on every take. A busier Mac had failed the
+  first attempt with relief off too, so the runner, not the change, was at
+  fault. Design preview 38869779008 (eaac1d87): the iPhone tour passed on
+  its first attempt, with 03-library-osce and 04-library-audio not merged
+  (the example set on its own tile, PRACTISE and TOOLS left-aligned, the
+  iPhone's tools two across); testStraightLines found the banner on both
+  devices; the iPad passed both. The accessibility tree is only published
+  when a test fails, so those screenshots stand for "one cell per row".
+  The iPad's testLinkLength failed once there (a simulator tap
+  cancellation; a test-only follow-up, below).
+- [ ] After that, from the same reviews, each with a Launch recording:
+  WardRowTile's entrance only on home, not on the thirty other screens that
+  use the row background; WardLightImages evicting its oldest images
+  instead of clearing all 256 at once, and caching no size while it
+  animates; and each live/cached switch (WardLitFace, WardPressRelief,
+  WardReliefFace) as one structure with both layers and an opacity switch,
+  so a face never becomes a new view, with a new accessibility node, in the
+  middle of a tap.
+- [ ] Test only: GraphPreviewUITests (about :357) taps the Look menu's item
+  again when linkLengthBar has not appeared, the way the tour retries its
+  taps; the iPad's one failure there was the simulator cancelling the tap.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
