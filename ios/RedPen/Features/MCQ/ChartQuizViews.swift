@@ -9,9 +9,12 @@ import SwiftUI
 /// text. Chosen, the row is pressed into the base with letter and text in the
 /// section's accent; once checked (the owner, 15 Oct: "the wrong should be
 /// faded and what is right gets the color of the mode used"), the right one
-/// is pressed in with its letter and check in the section's accent, and a
-/// wrong pick lies low on the faded face, its letter, words, strike and small
-/// cross in the faded ink. Crossed out, it is struck through and lies low, as
+/// is pressed in with its letter and check in the section's accent and its
+/// ring in the section's ink, and a wrong pick lies flat on the faded face,
+/// ringed, lettered, worded, struck and crossed in the faded ink, so it
+/// reads as stepped back, never as lifted or as the right answer (the
+/// owner, 16 Oct: "the faded buttons aren't distinguishable from correct
+/// answers"). Crossed out, it is struck through and lies low, as
 /// do the options neither picked nor right once checked: solid colours, never
 /// dimmed. For the quiz and the mock paper.
 struct WardOptionRow: View {
@@ -74,12 +77,16 @@ struct WardOptionRow: View {
         .padding(.horizontal, WardSpace.l)
         .padding(.vertical, WardSpace.l)
         .frame(minHeight: 56)
-        // a wrong pick lies low on the faded face, not pressed in
+        // a wrong pick lies flat on the faded face, in the faded ink's ring,
+        // not pressed in: its face is lighter than the cards at night, and a
+        // rim would lift it
         .background {
             WardPressFace(shape: shape,
                           lift: mark == .wrong || ChartQuiz.liesLow(struck: struck, mark: mark) ? .low : .mid,
                           pressed: mark == .chosen || mark == .right,
-                          fill: mark == .wrong ? Color.wardFaded : Color.wardSurface)
+                          fill: mark == .wrong ? Color.wardFaded : Color.wardSurface,
+                          flat: mark == .wrong,
+                          edge: mark == .wrong ? Color.wardFadedInk : nil)
         }
         // Differentiate Without Colour: the chosen one also ringed
         .overlay { if noColour && mark == .chosen { shape.strokeBorder(letterInk, lineWidth: 3).transition(.identity) } }

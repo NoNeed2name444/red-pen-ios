@@ -2267,6 +2267,12 @@ with the marks on the screens last.
        lift's lights (depth 1, was 0.7) with the inner shade a quarter
        stronger; the shade's glide takes 0.21 and 0.26 s (was 0.15 and
        0.18), so it starts in at the speed it had.
+    3. A wrong pick against the right answer: it lies flat (no rim) on the
+       faded face, ringed in the faded ink (3.70:1 or more on the face, the
+       cards and the base); at night the face is a plain grey #40444B,
+       1.46:1 lighter than the cards (was blue-grey #353E4A, 1.32:1), the
+       faded ink 5.77:1 on it; by day as it was. The right answer keeps its
+       section's ring, pressed in at the new depth.
 
 ### Waiting on the owner
 
