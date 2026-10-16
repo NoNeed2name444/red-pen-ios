@@ -2131,8 +2131,13 @@ with the marks on the screens last.
   passes the iPhone tour on its first attempt (03-library-osce and
   04-library-audio), testStraightLines finds the banner, the accessibility
   tree shows one cell per row, the iPad passes both, and the Launch
-  recording keeps every gap at 100 ms or less with the relief readout as at
-  6dd59b90 (cached:12, live:empty:1, live:none:5, made=8).
+  recording keeps every gap at 100 ms or less with the relief readout
+  cached:18, live:empty:1, live:none:5, made=12 (each row now draws its own
+  tile; the 16 Oct review set this readout). Recording: passed, run alone
+  on eaac1d87 (38869778510, attempt 2): every gap 17-89 ms, controls
+  included, and that readout on every take. A busier Mac had failed the
+  first attempt with relief off too, so the runner, not the change, was at
+  fault.
 - [ ] After that, from the same reviews, each with a Launch recording:
   WardRowTile's entrance only on home, not on the thirty other screens that
   use the row background; WardLightImages evicting its oldest images
