@@ -2104,9 +2104,17 @@ with the marks on the screens last.
   source check in LaunchOpeningTests. Tick when the Design preview of the
   fix passes the tour on its first attempt and testStraightLines finds the
   banner, and the Launch recording shows the readout and gate unchanged.
-- [ ] After that, from the same review, each with a Launch recording:
-  WardLightImages.image() returns .late on a miss and makes the image in
-  scheduleCatchUp, never inside a cell's layout; WardRowTile's entrance only
+  The Design preview of that fix (6dd59b90, run 38846916363): the iPad now
+  passes the tour and testStraightLines, the iPhone still loses the app
+  after the dock's OSCE tab and still finds no banner, and the Launch
+  recording is unchanged. Next, the review's first follow-up, moved up:
+  WardLightImages.image() made a missing image with ImageRenderer inside a
+  face's layout, in the list's cell; now a miss is only noted, the face
+  draws live once, and catchUp makes it on the next turn of the main
+  queue (source check in LaunchOpeningTests). Same tick condition.
+- [ ] After that, from the same review, each with a Launch recording
+  (its first, WardLightImages making no image inside a cell's layout,
+  moved up into the item above): WardRowTile's entrance only
   on home, not on the thirty other screens that use the row background; and
   each row its own entrance, so the rows of one group scale about the
   opening's middle as one piece instead of taking the last writer's offset.
