@@ -1,0 +1,6 @@
+spin-1: on frame 17.84 p95 26.83 worst 63.69 n 456 drawn 34/35 dim 12 out 0 tilt 45 bad 0
+spin-2: on frame 17.35 p95 26.11 worst 89.51 n 600 drawn 34/35 dim 12 out 0 tilt 45 bad 0
+spin-3: on frame 17.65 p95 30.33 worst 89.51 n 600 drawn 34/35 dim 12 out 0 tilt 45 bad 0
+down: on frame 16.84 p95 21.77 worst 51.79 n 600 drawn 34/35 dim 12 out 0 tilt 45 bad 0
+up: on frame 17.56 p95 26.63 worst 69.20 n 600 drawn 34/35 dim 12 out 0 tilt 45 bad 0
+double-tap: on frame 23.41 p95 51.07 worst 274.82 n 600 drawn 34/35 dim 12 out 0 tilt 45 bad 0

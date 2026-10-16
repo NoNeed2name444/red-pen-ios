@@ -1,0 +1,6 @@
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  ↪︎Find: Descendants matching type Other
+    ↪︎Find: Elements matching predicate '"graphPeekCard" IN identifiers'
+      ↪︎Find: Descendants matching type Button
+        ↪︎Find: Elements matching predicate '"Atrial fibrillation" IN identifiers'
