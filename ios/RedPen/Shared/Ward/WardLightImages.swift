@@ -155,30 +155,32 @@ final class WardLightImages {
     /// face) this many times in all before it is left live.
     static let attemptsAllowed = 3
 
-    /// The image for a style, or why the face should draw live. A miss is
-    /// never made here: this runs inside a face's layout, in a list's cell,
-    /// and rendering an image there runs a second view update in the middle
-    /// of the list's own (the iPhone tour lost the app at the dock switch).
-    /// The face draws live this once; the image is made on the next turn of
-    /// the main queue (`catchUp`), and the face, having read `revision`,
-    /// picks it up.
+    /// The image for a style, or why the face should draw live.
     func image(_ request: WardLightRequest, other: () -> WardLightRequest?) -> WardLightOutcome {
         _ = revision
         if let hit = images[request.key] {
             return .image(hit)
         }
         if failed.contains(request.key) { return .failed }
-        late[request.key] = request
         if LaunchStage.shared.handingOff {
             // never inside the hand-off window: made once it is over
+            late[request.key] = request
             LaunchStage.shared.mark("relief-late", once: true)
             return .late
         }
+        guard let made = store(request) else {
+            // tried again on the next turn of the main queue, not here
+            if !failed.contains(request.key) {
+                late[request.key] = request
+                scheduleCatchUp()
+            }
+            return .failed
+        }
         if let other = other(), images[other.key] == nil, !failed.contains(other.key) {
             spare[other.key] = other
+            scheduleSpare()
         }
-        scheduleCatchUp()
-        return .late
+        return .image(made)
     }
 
     /// The hand-off is over (LaunchStage): make what it asked for. What

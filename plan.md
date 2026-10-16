@@ -2104,20 +2104,41 @@ with the marks on the screens last.
   source check in LaunchOpeningTests. Tick when the Design preview of the
   fix passes the tour on its first attempt and testStraightLines finds the
   banner, and the Launch recording shows the readout and gate unchanged.
-  The Design preview of that fix (6dd59b90, run 38846916363): the iPad now
-  passes the tour and testStraightLines, the iPhone still loses the app
-  after the dock's OSCE tab and still finds no banner, and the Launch
-  recording is unchanged. Next, the review's first follow-up, moved up:
-  WardLightImages.image() made a missing image with ImageRenderer inside a
-  face's layout, in the list's cell; now a miss is only noted, the face
-  draws live once, and catchUp makes it on the next turn of the main
-  queue (source check in LaunchOpeningTests). Same tick condition.
-- [ ] After that, from the same review, each with a Launch recording
-  (its first, WardLightImages making no image inside a cell's layout,
-  moved up into the item above): WardRowTile's entrance only
-  on home, not on the thirty other screens that use the row background; and
-  each row its own entrance, so the rows of one group scale about the
-  opening's middle as one piece instead of taking the last writer's offset.
+  The Design preview of that fix (6dd59b90, run 38846916363): the iPhone
+  still loses the app after the dock's OSCE tab and still finds no banner
+  (the iPad passed both, as it had before), and the Launch recording is
+  unchanged. A second fix (183932ad: WardLightImages making a missing
+  image on the next turn instead of inside a face's layout) made the iPad
+  fail as well and changed the relief count from cached:12 to cached:11,
+  so it is reverted.
+  Root cause (a second independent review, 16 Oct): LibraryView put
+  LaunchEntrance around modesSection and listBody, and each of those yields
+  several Sections, so SwiftUI stacked every Section below the round card
+  into one List row (the accessibility tree shows one cell from the set
+  rows to examplesBanner, and the screenshots one tile with centred
+  headings). On the iPhone that row is about five screens tall and its
+  self-sizing never settles: the tour dies at the first accessibility
+  snapshot after the dock switches page, and the swipes stall before the
+  banner. On the iPad the row is short enough to settle. Fix 2's iPad
+  failure was something else: a face switching from live to cached
+  re-created the recording terms' agree button mid-tap, and the test kept
+  tapping its corner, outside the capsule.
+  Next: the entrance comes off the two builders and goes on each row's own
+  view, never on a Section, a ForEach or a builder of several rows, with a
+  source check in LaunchOpeningTests. Tick when one Design preview of it
+  passes the iPhone tour on its first attempt (03-library-osce and
+  04-library-audio), testStraightLines finds the banner, the accessibility
+  tree shows one cell per row, the iPad passes both, and the Launch
+  recording keeps every gap at 100 ms or less with the relief readout as at
+  6dd59b90 (cached:12, live:empty:1, live:none:5, made=8).
+- [ ] After that, from the same reviews, each with a Launch recording:
+  WardRowTile's entrance only on home, not on the thirty other screens that
+  use the row background; WardLightImages evicting its oldest images
+  instead of clearing all 256 at once, and caching no size while it
+  animates; and each live/cached switch (WardLitFace, WardPressRelief,
+  WardReliefFace) as one structure with both layers and an opacity switch,
+  so a face never becomes a new view, with a new accessibility node, in the
+  middle of a tap.
 
 ### Waiting on the owner
 

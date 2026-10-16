@@ -496,14 +496,9 @@ check("the readout ends with the relief count (WardReliefCensus)",
 // before it makes anything, and sends a miss to the live drawing.
 let images = source("ios/RedPen/Shared/Ward/WardLightImages.swift")
 check("WardLightImages reads", !images.isEmpty)
-// Nor inside any face's layout: a miss is only noted and made on the next
-// turn of the main queue (a render inside a list cell's layout lost the app).
-let asked = section(images, from: "func image(_ request: WardLightRequest", to: "func catchUp()")
-check("a style asked for in the hand-off is not made there",
-      asked.contains("LaunchStage.shared.handingOff") && asked.contains("return .late"))
-check("a miss is never made inside a face's layout, only in catchUp",
-      !asked.isEmpty && !asked.contains("store(") && asked.contains("scheduleCatchUp()")
-      && section(images, from: "func catchUp()", to: "private func scheduleCatchUp()").contains("store(request)"))
+if let window = images.range(of: "LaunchStage.shared.handingOff"), let make = images.range(of: "guard let made = store(request)") {
+    check("a style asked for in the hand-off is not made there", window.lowerBound < make.lowerBound)
+} else { check("the cache checks the hand-off window before it makes an image", false) }
 check("the styles asked for in the hand-off are made once it is over",
       stage.contains("WardLightImages.shared.catchUp()") && stage.contains("var handingOff: Bool { link != nil }"))
 let wardSurfaces = source("ios/RedPen/Shared/Ward/WardSurfaces.swift")
