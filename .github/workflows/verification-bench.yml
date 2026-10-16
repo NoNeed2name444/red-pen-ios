@@ -91,6 +91,7 @@ jobs:
           export WORKER=https://redpen-auth.vv7sh4rnnw.workers.dev
           export BENCH_BASE_URL="$WORKER/v1"
           export BENCH_API_KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          echo "::add-mask::$BENCH_API_KEY"
           node tools/verification-bench/layer.mjs --proxy --route "${{ inputs.route || 'on' }}" --data data --out out/layer --per-source "$n"
       - name: Retrieval set R (no model)
         if: inputs.mode == 'retrieval'
