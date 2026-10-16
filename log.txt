@@ -1,0 +1,129 @@
+== logs/build-ipad.log (the build failed)
+RedPen/Features/Notes/Graph3DView.swift:1981:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+RedPen/Features/Notes/Graph3DView.swift:1982:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GenerationRules.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlanceDigest.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlancePublisher.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift:1981:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+            view.defaultCameraController.minimumVerticalAngle = CGFloat(settings.minimumVerticalAngle)
+                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                Float(                                )
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift:1982:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+            view.defaultCameraController.maximumVerticalAngle = CGFloat(settings.maximumVerticalAngle)
+                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                Float(                                )
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphAnatomy.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling ReaderBar.swift, Readiness.swift, ReasoningExamples.swift, ReasoningModels.swift, ReasoningStore.swift, ReasoningView.swift, ReasoningWriter.swift, RecallAttempts.swift, RecallExamples.swift, RecordingTermsView.swift, RecoveryFiles.swift, RedPenApp.swift, RedPenOCR.swift, RetentionForecast.swift, ReviewCardActions.swift, ReviewDueIntent.swift, ReviewOptions.swift, ReviewPlan.swift, ReviewPromptModifier.swift, ReviewSettingsSection.swift, ReviewStore.swift, RhythmReading.swift, RuleSheetView.swift, RuleWriter.swift, SampleLectures.swift (in target 'RedPen' from project 'RedPen')
+
+SwiftCompile normal arm64 Compiling\ CloudJobCollector.swift,\ CloudJobRules.swift,\ CloudJobs.swift,\ CloudTranscriber.swift,\ CloudTranscript.swift,\ CloudVoice.swift,\ CommuteModeView.swift,\ CommuteSession.swift,\ ContentCredits.swift,\ Corrections.swift,\ CountField.swift,\ CoverageChecker.swift,\ CoverageCloudCheck.swift,\ CoverageEngine.swift,\ CoverageExamples.swift,\ CoverageView.swift,\ CustomSession.swift,\ CustomSessionSheet.swift,\ DailyGoal.swift,\ DeckCard.swift,\ DeckExportIntents.swift,\ DeckPDF.swift,\ DeckPDFBlocks.swift,\ DeckPDFPages.swift,\ DeckPalette.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/CloudJobCollector.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/CloudJobRules.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LLM/CloudJobs.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/CloudTranscriber.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/CloudTranscript.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Voice/CloudVoice.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Voice/CommuteModeView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Voice/CommuteSession.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/ContentCredits.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Corrections.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/CountField.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Coverage/CoverageChecker.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Coverage/CoverageCloudCheck.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Coverage/CoverageEngine.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Coverage/CoverageExamples.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Coverage/CoverageView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/CustomSession.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Library/CustomSessionSheet.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/DailyGoal.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/DeckCard.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Library/DeckExportIntents.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/DeckPDF.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/DeckPDFBlocks.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/DeckPDFPages.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/DeckPalette.swift (in target 'RedPen' from project 'RedPen')
+
+** TEST BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 Compiling\ ExamTools.swift,\ ExamTrack.swift,\ ExamWeekPlanner.swift,\ ExamplesHubView.swift,\ ExplainBackView.swift,\ Explanation.swift,\ FSRS.swift,\ FigureFinder.swift,\ FigureGrid.swift,\ FileReads.swift,\ FirstRunRules.swift,\ FirstRunView.swift,\ FixWordSheet.swift,\ FloatingAction.swift,\ FloatingSwitcher.swift,\ ForceLayout3D.swift,\ GemmaDownload.swift,\ GemmaGenerate.swift,\ GemmaModel.swift,\ GenerationCenter.swift,\ GenerationRules.swift,\ GlanceDigest.swift,\ GlancePublisher.swift,\ Graph3DView.swift,\ GraphAnatomy.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Exam/ExamTools.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/ExamTrack.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Learn/ExamWeekPlanner.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Examples/ExamplesHubView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Voice/ExplainBackView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Explanation.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FSRS.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FigureFinder.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FigureGrid.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Library/FileReads.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FirstRunRules.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Onboarding/FirstRunView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Narrate/FixWordSheet.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FloatingAction.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FloatingSwitcher.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/ForceLayout3D.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaDownload.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaGenerate.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaModel.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GenerationCenter.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GenerationRules.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlanceDigest.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlancePublisher.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphAnatomy.swift (in target 'RedPen' from project 'RedPen')
+	SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift (in target 'RedPen' from project 'RedPen')
+	Building project RedPen for testing with scheme RedPen
+(3 failures)
+== logs/build-iphone-graph.log (the build failed)
+RedPen/Features/Notes/Graph3DView.swift:1981:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+RedPen/Features/Notes/Graph3DView.swift:1982:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlanceDigest.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlancePublisher.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift:1981:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+            view.defaultCameraController.minimumVerticalAngle = CGFloat(settings.minimumVerticalAngle)
+                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                Float(                                )
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift:1982:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+            view.defaultCameraController.maximumVerticalAngle = CGFloat(settings.maximumVerticalAngle)
+                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                Float(                                )
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphAnatomy.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftMergeGeneratedHeaders /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/DerivedSources/RedPen-Swift.h /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/Objects-normal/arm64/RedPen-Swift.h (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    builtin-swiftHeaderTool -arch arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/Objects-normal/arm64/RedPen-Swift.h -o /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/DerivedSources/RedPen-Swift.h
+
+Copy /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Products/Debug-iphonesimulator/RedPen.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/Objects-normal/arm64/RedPen.swiftmodule (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Intermediates.noindex/RedPen.build/Debug-iphonesimulator/RedPen.build/Objects-normal/arm64/RedPen.swiftmodule /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Products/Debug-iphonesimulator/RedPen.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+** TEST BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 Compiling\ ExamTools.swift,\ ExamTrack.swift,\ ExamWeekPlanner.swift,\ ExamplesHubView.swift,\ ExplainBackView.swift,\ Explanation.swift,\ FSRS.swift,\ FigureFinder.swift,\ FigureGrid.swift,\ FileReads.swift,\ FirstRunRules.swift,\ FirstRunView.swift,\ FixWordSheet.swift,\ FloatingAction.swift,\ FloatingSwitcher.swift,\ ForceLayout3D.swift,\ GemmaDownload.swift,\ GemmaGenerate.swift,\ GemmaModel.swift,\ GenerationCenter.swift,\ GenerationRules.swift,\ GlanceDigest.swift,\ GlancePublisher.swift,\ Graph3DView.swift,\ GraphAnatomy.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Exam/ExamTools.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/ExamTrack.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Learn/ExamWeekPlanner.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Examples/ExamplesHubView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Voice/ExplainBackView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Explanation.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FSRS.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FigureFinder.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FigureGrid.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Library/FileReads.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FirstRunRules.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Onboarding/FirstRunView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Narrate/FixWordSheet.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FloatingAction.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FloatingSwitcher.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/ForceLayout3D.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaDownload.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaGenerate.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaModel.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GenerationCenter.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GenerationRules.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlanceDigest.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlancePublisher.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphAnatomy.swift (in target 'RedPen' from project 'RedPen')
+	SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift (in target 'RedPen' from project 'RedPen')
+	Building project RedPen for testing with scheme RedPen
+(3 failures)
+== logs/build-iphone-tour.log (the build failed)
+RedPen/Features/Notes/Graph3DView.swift:1981:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+RedPen/Features/Notes/Graph3DView.swift:1982:65: error: cannot assign value of type 'CGFloat' to type 'Float'
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LLM/LectureWriter.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Library/LectureWriterSection.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/LegalLinks.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Lens/LensAddSheet.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Lens/LensAnswer.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Lens/LensAnswerSheet.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Lens/LensCamera.swift (in target 'RedPen' from project 'RedPen')
+    cd /Users/runner/work/red-pen-ios/red-pen-ios/ios
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling VoiceParts.swift, VoiceSpeaker.swift, VoiceTone.swift, WardControls.swift, WardHome.swift, WardPalette.swift, WardPocket.swift, WardPocketScores.swift, WardPocketView.swift, WardRelief.swift, WardRoundAttributes.swift, WardRoundClock.swift, WardRoundOverlay.swift, WardRoundView.swift, WardStates.swift, WardSurfaces.swift, WardTokens.swift, WardVitals.swift, WardWords.swift, WarpEffect.swift, WordTiming.swift, Zip.swift, Zstd.swift, GeneratedAssetSymbols.swift (in target 'RedPen' from project 'RedPen')
+
+SwiftCompile normal arm64 Compiling\ GraphDeath.swift,\ GraphDeathScene.swift,\ GraphDepthFade.swift,\ GraphDepthKeeper.swift,\ GraphFrameSync.swift,\ GraphFraming.swift,\ GraphHangReporter.swift,\ GraphLabelContrast.swift,\ GraphLegend.swift,\ GraphLens.swift,\ GraphLineStyle.swift,\ GraphLinkBridge.swift,\ GraphLinkCurve.swift,\ GraphLook.swift,\ GraphMapPanels.swift,\ GraphMotion.swift,\ GraphNeuronImpulses.swift,\ GraphNeuronLook.swift,\ GraphNeuronMembrane.swift,\ GraphNeuronShaders.swift,\ GraphNeuronStates.swift,\ GraphNeurons.swift,\ GraphNodeFactory.swift,\ GraphNodeShaders.swift,\ GraphNodeStyles.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphDeath.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphDeathScene.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphDepthFade.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphDepthKeeper.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphFrameSync.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphFraming.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphHangReporter.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphLabelContrast.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphLegend.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphLens.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphLineStyle.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphLinkBridge.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphLinkCurve.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphLook.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphMapPanels.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphMotion.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNeuronImpulses.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNeuronLook.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNeuronMembrane.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNeuronShaders.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNeuronStates.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNeurons.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNodeFactory.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNodeShaders.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphNodeStyles.swift (in target 'RedPen' from project 'RedPen')
+
+** TEST BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift (in target 'RedPen' from project 'RedPen')
+	SwiftCompile normal arm64 Compiling\ ExamTools.swift,\ ExamTrack.swift,\ ExamWeekPlanner.swift,\ ExamplesHubView.swift,\ ExplainBackView.swift,\ Explanation.swift,\ FSRS.swift,\ FigureFinder.swift,\ FigureGrid.swift,\ FileReads.swift,\ FirstRunRules.swift,\ FirstRunView.swift,\ FixWordSheet.swift,\ FloatingAction.swift,\ FloatingSwitcher.swift,\ ForceLayout3D.swift,\ GemmaDownload.swift,\ GemmaGenerate.swift,\ GemmaModel.swift,\ GenerationCenter.swift,\ GenerationRules.swift,\ GlanceDigest.swift,\ GlancePublisher.swift,\ Graph3DView.swift,\ GraphAnatomy.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Exam/ExamTools.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/ExamTrack.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Learn/ExamWeekPlanner.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Examples/ExamplesHubView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Voice/ExplainBackView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Explanation.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FSRS.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FigureFinder.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FigureGrid.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Library/FileReads.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FirstRunRules.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Onboarding/FirstRunView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Narrate/FixWordSheet.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FloatingAction.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/FloatingSwitcher.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/ForceLayout3D.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaDownload.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaGenerate.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GemmaModel.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GenerationCenter.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/GenerationRules.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlanceDigest.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Shared/Platform/GlancePublisher.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/Graph3DView.swift /Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/Features/Notes/GraphAnatomy.swift (in target 'RedPen' from project 'RedPen')
+	Building project RedPen for testing with scheme RedPen
+(3 failures)
