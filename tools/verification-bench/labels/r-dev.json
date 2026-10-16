@@ -1,6 +1,7 @@
 {
  "v": 1,
  "set": "r-dev",
+ "words": "bench-words-1",
  "about": "R-dev, for tuning only: 150 items from the proof ladder training splits (MedMCQA Apache-2.0, MedQA CC-BY-4.0): the first that qualify from each plan row.",
  "plan": [
   {
@@ -9,7 +10,8 @@
    "split": "train",
    "start": 100000,
    "want": 100,
-   "kind": "one-sentence"
+   "kind": "one-sentence",
+   "rule": "the source proof reads it (claimsFor gives no why) and it is no vignette"
   },
   {
    "src": "medqa-train",
@@ -17,7 +19,8 @@
    "split": "train",
    "start": 5000,
    "want": 25,
-   "kind": "vignette"
+   "kind": "vignette",
+   "rule": "isVignette: two or more sentences with a patient presentation"
   },
   {
    "src": "medmcqa-train",
@@ -25,10 +28,23 @@
    "split": "train",
    "start": 120000,
    "want": 25,
-   "kind": "vignette"
+   "kind": "vignette",
+   "rule": "isVignette: two or more sentences with a patient presentation"
   }
  ],
- "labels": "mechanical (retrieval-set.mjs header): keyWords, drugs and mesh are the label inputs; oracle is the official documents that exist for the item (label 2), looked up once; a passage's label 1 is computed from the item and these inputs at run time.",
+ "vignettes": {
+  "medqa": 25,
+  "medmcqa": 25,
+  "leastSentences": 2,
+  "medianSentences": 5
+ },
+ "labels": "mechanical (retrieval-set.mjs header): keyWords and meshWords are the key's and the MeSH term's words (benchWords); drugs are the drugs named (drugsNamed: found by RxNav, openFDA or the engine's list; key: named in the key; fda: its FDA label, fdaOracle); oracle is the official documents that exist for the item (label 2), looked up once and never pooled from a run (an FDA label as fda:<drug tokens> with its set_id, a MedlinePlus topic by its address; key: the key's own); a passage's label 1 is computed at run time from the item, these inputs and the bench's words.",
+ "sources": {
+  "rxnav": "rxcui.json search=2, then the concept's term type (IN, PIN, MIN)",
+  "openFDA": "keyless: counts of openfda.generic_name.exact, then generic_name.exact searches",
+  "medlinePlus": "mplus_topics_2026-10-16.xml",
+  "mesh": "id.nlm.nih.gov/mesh lookup"
+ },
  "lookedUp": "2026-10-16",
  "items": [
   {
@@ -47,6 +63,7 @@
     "pressure"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -64,6 +81,7 @@
     "file"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -81,6 +99,10 @@
     "atresia"
    ],
    "mesh": "Biliary Atresia",
+   "meshWords": [
+    "biliary",
+    "atresia"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -97,13 +119,11 @@
     "osteosarcoma"
    ],
    "mesh": "Osteosarcoma",
+   "meshWords": [
+    "osteosarcoma"
+   ],
    "drugs": [],
-   "oracle": [
-    {
-     "id": "https://medlineplus.gov/bonecancer.html",
-     "title": "Bone Cancer"
-    }
-   ]
+   "oracle": []
   },
   {
    "id": "medmcqa-train:f5497397-21f7-417d-9540-5edc9be54ee4",
@@ -119,6 +139,10 @@
     "nerve"
    ],
    "mesh": "Oculomotor Nerve",
+   "meshWords": [
+    "oculomotor",
+    "nerve"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -136,8 +160,23 @@
     "coli"
    ],
    "mesh": null,
-   "drugs": [],
-   "oracle": []
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "escherichia coli",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:escherichia coli",
+     "title": "ESCHERICHIA COLI",
+     "setId": "85411aca-0ef1-9d48-e053-2991aa0a0790",
+     "key": true
+    }
+   ]
   },
   {
    "id": "medmcqa-train:2f0171b7-b1d9-4601-9f13-947a4d482ffe",
@@ -154,6 +193,7 @@
     "root"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -170,6 +210,7 @@
     "elimination"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -186,19 +227,53 @@
     "cisplatin"
    ],
    "mesh": "Cisplatin",
+   "meshWords": [
+    "cisplatin"
+   ],
    "drugs": [
-    "imatinib",
-    "methotrexate",
-    "sunitinib"
+    {
+     "name": "imatinib",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "methotrexate",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "sunitinib",
+     "by": "rxnav",
+     "key": false,
+     "fda": "salt-only"
+    },
+    {
+     "name": "cisplatin",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:imatinib",
-     "title": "imatinib (FDA label, effective 20260908)"
+     "title": "IMATINIB MESYLATE",
+     "setId": "0291eca5-7a1d-4a79-30be-252224d96509",
+     "key": false
     },
     {
      "id": "fda:methotrexate",
-     "title": "methotrexate (FDA label, effective 20260518)"
+     "title": "METHOTREXATE",
+     "setId": "04a95db9-a124-4b97-bd71-1c37a6b3b0c8",
+     "key": false
+    },
+    {
+     "id": "fda:cisplatin",
+     "title": "CISPLATIN",
+     "setId": "00396546-6a80-4b9f-a5f8-c22c1d1bb173",
+     "key": true
     }
    ]
   },
@@ -215,10 +290,49 @@
     "chloroquine"
    ],
    "mesh": "Chloroquine",
-   "drugs": [
-    "sulfamethaxazole"
+   "meshWords": [
+    "chloroquine"
    ],
-   "oracle": []
+   "drugs": [
+    {
+     "name": "sulfamethaxazole",
+     "by": "dictionary",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "quinine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "mefloquine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "chloroquine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "salt-only"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:quinine",
+     "title": "QUININE",
+     "setId": "f567d5c7-ea5d-49a7-a035-b47208135f73",
+     "key": false
+    },
+    {
+     "id": "fda:mefloquine",
+     "title": "MEFLOQUINE HYDROCHLORIDE",
+     "setId": "09716a24-d7da-42b2-af29-c03a1b6670bd",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medmcqa-train:c88e418b-bd38-4e95-af35-ec1414e8193e",
@@ -235,6 +349,7 @@
     "vagotomy"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -253,6 +368,7 @@
     "failure"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -271,6 +387,7 @@
     "tank"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -291,6 +408,7 @@
     "absorptiometry"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -307,6 +425,7 @@
     "rop"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -324,6 +443,7 @@
     "microscopy"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -340,6 +460,7 @@
     "pecam"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -358,6 +479,7 @@
     "iucd"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -375,6 +497,7 @@
     "usg"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -392,6 +515,7 @@
     "hernia"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -408,6 +532,7 @@
     "intracanalicular"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -426,6 +551,7 @@
     "persecution"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -439,15 +565,20 @@
    },
    "sha": "16f35e68b277f6bc",
    "keyWords": [
-    "diabete",
+    "diabetes",
     "mellitus"
    ],
    "mesh": "Diabetes Mellitus",
+   "meshWords": [
+    "diabetes",
+    "mellitus"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/diabetes.html",
-     "title": "Diabetes"
+     "title": "Diabetes",
+     "key": true
     }
    ]
   },
@@ -464,6 +595,9 @@
     "medulloblastoma"
    ],
    "mesh": "Medulloblastoma",
+   "meshWords": [
+    "medulloblastoma"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -481,7 +615,30 @@
     "aureus"
    ],
    "mesh": "Staphylococcus aureus",
-   "drugs": [],
+   "meshWords": [
+    "staphylococcus",
+    "aureus"
+   ],
+   "drugs": [
+    {
+     "name": "staphylococcus aureus",
+     "by": "rxnav",
+     "key": true,
+     "fda": "combination-only"
+    },
+    {
+     "name": "streptococcus viridan group",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "candida albican",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    }
+   ],
    "oracle": []
   },
   {
@@ -499,6 +656,7 @@
     "saliva"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -516,11 +674,16 @@
     "thromboembolism"
    ],
    "mesh": "Pulmonary Embolism",
+   "meshWords": [
+    "pulmonary",
+    "embolism"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/pulmonaryembolism.html",
-     "title": "Pulmonary Embolism"
+     "title": "Pulmonary Embolism",
+     "key": true
     }
    ]
   },
@@ -534,11 +697,12 @@
    },
    "sha": "e9317824d2e70558",
    "keyWords": [
-    "secondary",
+    "secondaries",
     "from",
-    "lung"
+    "lungs"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -557,6 +721,7 @@
     "culture"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -573,11 +738,53 @@
     "ketamine"
    ],
    "mesh": "Ketamine",
-   "drugs": [],
+   "meshWords": [
+    "ketamine"
+   ],
+   "drugs": [
+    {
+     "name": "ketamine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "thiopental",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "propofol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "etomidate",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
    "oracle": [
     {
-     "id": "https://medlineplus.gov/clubdrugs.html",
-     "title": "Club Drugs"
+     "id": "fda:ketamine",
+     "title": "KETAMINE HYDROCHLORIDE",
+     "setId": "14e8f864-8b8a-4e7e-8439-e510d3107063",
+     "key": true
+    },
+    {
+     "id": "fda:propofol",
+     "title": "PROPOFOL",
+     "setId": "28d7ba00-f824-4e55-139a-03f509c099db",
+     "key": false
+    },
+    {
+     "id": "fda:etomidate",
+     "title": "ETOMIDATE",
+     "setId": "0820f15a-046b-4185-a2b3-2e4051ee3d82",
+     "key": false
     }
    ]
   },
@@ -594,8 +801,22 @@
     "bicarbonate"
    ],
    "mesh": "Bicarbonates",
+   "meshWords": [
+    "bicarbonates"
+   ],
    "drugs": [
-    "histidine"
+    {
+     "name": "phosphate ion",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "histidine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    }
    ],
    "oracle": []
   },
@@ -609,11 +830,34 @@
    },
    "sha": "55e797e81a24aae2",
    "keyWords": [
-    "nitrate"
+    "nitrates"
    ],
    "mesh": "Nitrates",
-   "drugs": [],
-   "oracle": []
+   "meshWords": [
+    "nitrates"
+   ],
+   "drugs": [
+    {
+     "name": "oxygen",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "nitrate ion",
+     "by": "rxnav",
+     "key": true,
+     "fda": "none"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:oxygen",
+     "title": "OXYGEN",
+     "setId": "01a2d234-eac6-4cdd-a736-adce7268865b",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medmcqa-train:483808e8-3ac7-4156-8640-4f921171762b",
@@ -628,14 +872,47 @@
     "chlordiazepoxide"
    ],
    "mesh": "Chlordiazepoxide",
+   "meshWords": [
+    "chlordiazepoxide"
+   ],
    "drugs": [
-    "lithium",
-    "haloperidol"
+    {
+     "name": "chlordiazepoxide",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "lithium",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "haloperidol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
+     "id": "fda:chlordiazepoxide",
+     "title": "CHLORDIAZEPOXIDE HYDROCHLORIDE",
+     "setId": "2e198c16-a929-4028-8f96-25dd23f74b10",
+     "key": true
+    },
+    {
+     "id": "fda:lithium",
+     "title": "LITHIUM",
+     "setId": "59d0e8e3-bc0b-0cc1-e063-6394a90a0a6d",
+     "key": false
+    },
+    {
      "id": "fda:haloperidol",
-     "title": "haloperidol (FDA label, effective 20241115)"
+     "title": "HALOPERIDOL",
+     "setId": "00bb61c8-db35-4c04-9ef7-47d447d2496b",
+     "key": false
     }
    ]
   },
@@ -652,6 +929,9 @@
     "duodenum"
    ],
    "mesh": "Duodenum",
+   "meshWords": [
+    "duodenum"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -670,6 +950,7 @@
     "evacuation"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -687,6 +968,7 @@
     "use"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -703,10 +985,43 @@
     "arginine"
    ],
    "mesh": "Arginine",
-   "drugs": [
-    "histidine"
+   "meshWords": [
+    "arginine"
    ],
-   "oracle": []
+   "drugs": [
+    {
+     "name": "alanine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "arginine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "histidine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "lysine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:arginine",
+     "title": "ARGININE HYDROCHLORIDE",
+     "setId": "6accf33f-9841-4327-8923-93c42020ef12",
+     "key": true
+    }
+   ]
   },
   {
    "id": "medmcqa-train:2fa93feb-edea-42da-80fe-9464dfd73f5c",
@@ -718,15 +1033,11 @@
    },
    "sha": "1c8e91fa40c34eb2",
    "keyWords": [
-    "h",
-    "2",
-    "co",
-    "3",
-    "plus",
-    "nahco",
-    "3"
+    "h2co3",
+    "nahco3"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -740,10 +1051,12 @@
    },
    "sha": "0726c24d2d01cd7b",
    "keyWords": [
-    "gi",
+    "g",
+    "i",
     "toxicity"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -761,6 +1074,7 @@
     "extension"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -777,6 +1091,7 @@
     "papillary"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -794,6 +1109,10 @@
     "disorder"
    ],
    "mesh": "Depressive Disorder",
+   "meshWords": [
+    "depressive",
+    "disorder"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -812,6 +1131,7 @@
     "disjunction"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -828,8 +1148,50 @@
     "venlafaxine"
    ],
    "mesh": "Venlafaxine Hydrochloride",
-   "drugs": [],
-   "oracle": []
+   "meshWords": [
+    "venlafaxine",
+    "hydrochloride"
+   ],
+   "drugs": [
+    {
+     "name": "vilazodone",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "venlafaxine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "imipramine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:vilazodone",
+     "title": "VILAZODONE HYDROCHLORIDE",
+     "setId": "0374fbb1-b0fb-4150-b1e7-92e2b0d32ecf",
+     "key": false
+    },
+    {
+     "id": "fda:venlafaxine",
+     "title": "VENLAFAXINE HYDROCHLORIDE",
+     "setId": "04340ccb-c3b3-41ab-a4bc-101d8b6bc1a9",
+     "key": true
+    },
+    {
+     "id": "fda:imipramine",
+     "title": "IMIPRAMINE HYDROCHLORIDE",
+     "setId": "02c19a0a-3d9d-4881-ad14-1687aafd87b5",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medmcqa-train:60cbeb71-3c76-413f-a843-5ed3681f364d",
@@ -848,10 +1210,11 @@
     "rh",
     "positive",
     "in",
-    "second",
+    "2nd",
     "child"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -868,11 +1231,55 @@
     "meperidine"
    ],
    "mesh": "Meperidine",
-   "drugs": [
-    "morphine",
-    "fentanyl"
+   "meshWords": [
+    "meperidine"
    ],
-   "oracle": []
+   "drugs": [
+    {
+     "name": "heroin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "morphine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "meperidine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "fentanyl",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:morphine",
+     "title": "MORPHINE",
+     "setId": "8a77894b-2137-4f46-8dff-5c7b773d4d16",
+     "key": false
+    },
+    {
+     "id": "fda:meperidine",
+     "title": "MEPERIDINE HYDROCHLORIDE",
+     "setId": "15bc51a8-1e24-4d33-9a2f-05a41c29acf0",
+     "key": true
+    },
+    {
+     "id": "fda:fentanyl",
+     "title": "FENTANYL",
+     "setId": "242759ef-cb6d-4e3e-9f8d-5e31efa1f289",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medmcqa-train:c6fab3a8-66ac-4919-a58e-cae2955432e7",
@@ -884,11 +1291,12 @@
    },
    "sha": "244710a444c21f09",
    "keyWords": [
-    "salt",
+    "salts",
     "of",
     "gontrez"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -905,19 +1313,59 @@
     "adenosine"
    ],
    "mesh": "Adenosine",
-   "drugs": [
-    "digoxin",
-    "propranolol",
+   "meshWords": [
     "adenosine"
+   ],
+   "drugs": [
+    {
+     "name": "digoxin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "propranolol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "adenosine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "diltiazem",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:digoxin",
-     "title": "digoxin (FDA label, effective 20240904)"
+     "title": "DIGOXIN",
+     "setId": "03612934-62f4-4002-85af-6c66cd172acb",
+     "key": false
     },
     {
      "id": "fda:propranolol",
-     "title": "propranolol (FDA label, effective 20240809)"
+     "title": "PROPRANOLOL HYDROCHLORIDE",
+     "setId": "013a485a-4227-46ae-b19f-c550302fcb96",
+     "key": false
+    },
+    {
+     "id": "fda:adenosine",
+     "title": "ADENOSINE",
+     "setId": "0c71d3f0-949d-4c00-8758-4ae7c9fd11ed",
+     "key": true
+    },
+    {
+     "id": "fda:diltiazem",
+     "title": "DILTIAZEM HYDROCHLORIDE",
+     "setId": "0089fc7a-a7aa-4873-b699-39a1b21616ca",
+     "key": false
     }
    ]
   },
@@ -936,6 +1384,7 @@
     "fold"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -953,14 +1402,45 @@
     "ocps"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [
-    "metformin",
-    "spironolactone"
+    {
+     "name": "metformin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "spironolactone",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "danazol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
+     "id": "fda:metformin",
+     "title": "METFORMIN HYDROCHLORIDE",
+     "setId": "011de1a5-1ac0-4831-9e8d-26ec79ba2205",
+     "key": false
+    },
+    {
      "id": "fda:spironolactone",
-     "title": "spironolactone (FDA label, effective 20251229)"
+     "title": "SPIRONOLACTONE",
+     "setId": "0c45d793-6f2f-4622-b5ed-6875acfbc02b",
+     "key": false
+    },
+    {
+     "id": "fda:danazol",
+     "title": "DANAZOL",
+     "setId": "55ad6325-16f6-4f0c-a1dc-734847052d0b",
+     "key": false
     }
    ]
   },
@@ -977,24 +1457,59 @@
     "rizatriptan"
    ],
    "mesh": "rizatriptan",
+   "meshWords": [
+    "rizatriptan"
+   ],
    "drugs": [
-    "sumatriptan",
-    "almotriptan",
-    "rizatriptan",
-    "naratriptan"
+    {
+     "name": "sumatriptan",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "almotriptan",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "rizatriptan",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "naratriptan",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:sumatriptan",
-     "title": "sumatriptan (FDA label, effective 20240928)"
+     "title": "SUMATRIPTAN",
+     "setId": "01293e09-d49a-411d-9647-6f23318ac201",
+     "key": false
     },
     {
      "id": "fda:almotriptan",
-     "title": "almotriptan (FDA label, effective 20170509)"
+     "title": "ALMOTRIPTAN",
+     "setId": "35617039-9f33-401b-bac3-8f85c65fa2c7",
+     "key": false
+    },
+    {
+     "id": "fda:rizatriptan",
+     "title": "RIZATRIPTAN",
+     "setId": "27bc2cfc-fefb-4b50-a0dc-6268c69b4902",
+     "key": true
     },
     {
      "id": "fda:naratriptan",
-     "title": "naratriptan (FDA label, effective 20251030)"
+     "title": "NARATRIPTAN",
+     "setId": "41c29652-32f8-48dc-9038-0e2195aa2084",
+     "key": false
     }
    ]
   },
@@ -1008,11 +1523,11 @@
    },
    "sha": "8198312d6e414159",
    "keyWords": [
-    "o",
-    "2",
+    "o2",
     "release"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1031,6 +1546,7 @@
     "disease"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1047,11 +1563,13 @@
     "rsv"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/respiratorysyncytialvirusinfections.html",
-     "title": "Respiratory Syncytial Virus Infections"
+     "title": "Respiratory Syncytial Virus Infections",
+     "key": true
     }
    ]
   },
@@ -1066,9 +1584,10 @@
    "sha": "f5c1312671c17104",
    "keyWords": [
     "erythrocyte",
-    "cast"
+    "casts"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1085,11 +1604,15 @@
     "hemochromatosis"
    ],
    "mesh": "Hemochromatosis",
+   "meshWords": [
+    "hemochromatosis"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/hemochromatosis.html",
-     "title": "Hemochromatosis"
+     "title": "Hemochromatosis",
+     "key": true
     }
    ]
   },
@@ -1108,13 +1631,43 @@
     "b"
    ],
    "mesh": "liposomal amphotericin B",
+   "meshWords": [
+    "liposomal",
+    "amphotericin",
+    "b"
+   ],
    "drugs": [
-    "ketoconazole"
+    {
+     "name": "pentamidine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "salt-only"
+    },
+    {
+     "name": "amphotericin b liposomal",
+     "by": "rxnav",
+     "key": true,
+     "fda": "none"
+    },
+    {
+     "name": "sodium stibogluconate",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "ketoconazole",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:ketoconazole",
-     "title": "ketoconazole (FDA label, effective 20260129)"
+     "title": "KETOCONAZOLE",
+     "setId": "00c1cac8-a865-4583-aaba-3a0f21fb31e6",
+     "key": false
     }
    ]
   },
@@ -1136,6 +1689,7 @@
     "toe"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1152,13 +1706,53 @@
     "ketamine"
    ],
    "mesh": "Ketamine",
+   "meshWords": [
+    "ketamine"
+   ],
    "drugs": [
-    "propanolol"
+    {
+     "name": "thiopental",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "propranolol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "propanolol",
+     "by": "dictionary",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "ethyl ether",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "ketamine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
-     "id": "https://medlineplus.gov/clubdrugs.html",
-     "title": "Club Drugs"
+     "id": "fda:propranolol",
+     "title": "PROPRANOLOL HYDROCHLORIDE",
+     "setId": "013a485a-4227-46ae-b19f-c550302fcb96",
+     "key": false
+    },
+    {
+     "id": "fda:ketamine",
+     "title": "KETAMINE HYDROCHLORIDE",
+     "setId": "14e8f864-8b8a-4e7e-8439-e510d3107063",
+     "key": true
     }
    ]
   },
@@ -1175,6 +1769,7 @@
     "subcoracoid"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1191,19 +1786,41 @@
     "propylthiouracil"
    ],
    "mesh": "Propylthiouracil",
+   "meshWords": [
+    "propylthiouracil"
+   ],
    "drugs": [
-    "propylthiouracil",
-    "carbimazole",
-    "propranolol"
+    {
+     "name": "propylthiouracil",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "carbimazole",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "propranolol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:propylthiouracil",
-     "title": "propylthiouracil (FDA label, effective 20231226)"
+     "title": "PROPYLTHIOURACIL",
+     "setId": "53c5f586-3e72-479d-89ba-379683c8f6ba",
+     "key": true
     },
     {
      "id": "fda:propranolol",
-     "title": "propranolol (FDA label, effective 20240809)"
+     "title": "PROPRANOLOL HYDROCHLORIDE",
+     "setId": "013a485a-4227-46ae-b19f-c550302fcb96",
+     "key": false
     }
    ]
   },
@@ -1220,18 +1837,47 @@
     "ivermectin"
    ],
    "mesh": "Ivermectin",
+   "meshWords": [
+    "ivermectin"
+   ],
    "drugs": [
-    "albendazole",
-    "metronidazole"
+    {
+     "name": "albendazole",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "ivermectin",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "metronidazole",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:albendazole",
-     "title": "albendazole (FDA label, effective 20190930)"
+     "title": "ALBENDAZOLE",
+     "setId": "06b5eefc-0b95-4862-b9b6-770063f2adf0",
+     "key": false
+    },
+    {
+     "id": "fda:ivermectin",
+     "title": "IVERMECTIN",
+     "setId": "014e33e7-c07d-4feb-a2cf-7cd160b1facd",
+     "key": true
     },
     {
      "id": "fda:metronidazole",
-     "title": "metronidazole (FDA label, effective 20260318)"
+     "title": "METRONIDAZOLE",
+     "setId": "02046a22-a5eb-4bb7-bec7-e5a2aa55e142",
+     "key": false
     }
    ]
   },
@@ -1249,7 +1895,15 @@
     "agaiactiae"
    ],
    "mesh": null,
-   "drugs": [],
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "streptococcus pyogene",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    }
+   ],
    "oracle": []
   },
   {
@@ -1269,6 +1923,7 @@
     "nerve"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1286,11 +1941,59 @@
     "acid"
    ],
    "mesh": "Folic Acid",
-   "drugs": [],
+   "meshWords": [
+    "folic",
+    "acid"
+   ],
+   "drugs": [
+    {
+     "name": "pyridoxine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "vitamin b 12",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "vitamin",
+     "by": "openFDA",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "folic acid",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
+   ],
    "oracle": [
     {
+     "id": "fda:pyridoxine",
+     "title": "PYRIDOXINE HYDROCHLORIDE",
+     "setId": "a56d11c0-b033-4201-85ff-fc710506481a",
+     "key": false
+    },
+    {
+     "id": "fda:vitamin",
+     "title": "VITAMIN",
+     "setId": "7d409065-112d-4bc7-bae6-d558aeb7c0e4",
+     "key": false
+    },
+    {
+     "id": "fda:folic acid",
+     "title": "FOLIC ACID",
+     "setId": "03b0aee4-804a-de63-e063-6394a90a6635",
+     "key": true
+    },
+    {
      "id": "https://medlineplus.gov/folicacid.html",
-     "title": "Folic Acid"
+     "title": "Folic Acid",
+     "key": true
     }
    ]
   },
@@ -1308,6 +2011,10 @@
     "glomerulopathy"
    ],
    "mesh": "Glomerulonephritis, Membranous",
+   "meshWords": [
+    "glomerulonephritis",
+    "membranous"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1324,11 +2031,15 @@
     "scoliosis"
    ],
    "mesh": "Scoliosis",
+   "meshWords": [
+    "scoliosis"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/scoliosis.html",
-     "title": "Scoliosis"
+     "title": "Scoliosis",
+     "key": true
     }
    ]
   },
@@ -1347,6 +2058,11 @@
     "disorder"
    ],
    "mesh": "Substance-Related Disorders",
+   "meshWords": [
+    "substance",
+    "related",
+    "disorders"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1364,6 +2080,7 @@
     "cyst"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1381,9 +2098,10 @@
     "and",
     "the",
     "lymph",
-    "node"
+    "nodes"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1400,6 +2118,7 @@
     "neurocysticercosis"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1416,6 +2135,9 @@
     "anovulation"
    ],
    "mesh": "Anovulation",
+   "meshWords": [
+    "anovulation"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1434,6 +2156,7 @@
     "test"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1447,10 +2170,20 @@
    },
    "sha": "e68102c0b3c599ba",
    "keyWords": [
-    "gonad"
+    "gonads"
    ],
    "mesh": "Gonads",
-   "drugs": [],
+   "meshWords": [
+    "gonads"
+   ],
+   "drugs": [
+    {
+     "name": "liver extract",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    }
+   ],
    "oracle": []
   },
   {
@@ -1466,6 +2199,9 @@
     "chlamydia"
    ],
    "mesh": "Chlamydia",
+   "meshWords": [
+    "chlamydia"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1482,8 +2218,61 @@
     "diazoxide"
    ],
    "mesh": "Diazoxide",
-   "drugs": [],
-   "oracle": []
+   "meshWords": [
+    "diazoxide"
+   ],
+   "drugs": [
+    {
+     "name": "glucagon",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "sodium nitroprusside",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "diazoxide",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "mecasermin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:glucagon",
+     "title": "GLUCAGON",
+     "setId": "15b49500-0aae-4e25-9a1d-709983233cc6",
+     "key": false
+    },
+    {
+     "id": "fda:sodium nitroprusside",
+     "title": "SODIUM NITROPRUSSIDE",
+     "setId": "01841345-bed3-458f-8e99-911fbd286512",
+     "key": false
+    },
+    {
+     "id": "fda:diazoxide",
+     "title": "DIAZOXIDE",
+     "setId": "abe317a5-6c63-469c-89c8-9fedfe859c3d",
+     "key": true
+    },
+    {
+     "id": "fda:mecasermin",
+     "title": "MECASERMIN",
+     "setId": "a8b27a1b-a611-4f91-ad22-76d4b390c3ae",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medmcqa-train:0c3100f0-f725-46de-9472-fd302158f476",
@@ -1499,6 +2288,10 @@
     "aqueduct"
    ],
    "mesh": "Cochlear Aqueduct",
+   "meshWords": [
+    "cochlear",
+    "aqueduct"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1515,8 +2308,43 @@
     "primaquine"
    ],
    "mesh": "Primaquine",
-   "drugs": [],
-   "oracle": []
+   "meshWords": [
+    "primaquine"
+   ],
+   "drugs": [
+    {
+     "name": "chloroquine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "salt-only"
+    },
+    {
+     "name": "primaquine",
+     "by": "rxnav",
+     "key": true,
+     "fda": "salt-only"
+    },
+    {
+     "name": "proguanil",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "mefloquine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:mefloquine",
+     "title": "MEFLOQUINE HYDROCHLORIDE",
+     "setId": "09716a24-d7da-42b2-af29-c03a1b6670bd",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medmcqa-train:fbab2538-8371-4b05-99dd-aec404e5e35b",
@@ -1531,11 +2359,15 @@
     "leukemia"
    ],
    "mesh": "Leukemia",
+   "meshWords": [
+    "leukemia"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/leukemia.html",
-     "title": "Leukemia"
+     "title": "Leukemia",
+     "key": true
     }
    ]
   },
@@ -1552,6 +2384,9 @@
     "craniopharyngioma"
    ],
    "mesh": "Craniopharyngioma",
+   "meshWords": [
+    "craniopharyngioma"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1569,8 +2404,23 @@
     "aureus"
    ],
    "mesh": null,
-   "drugs": [],
-   "oracle": []
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "escherichia coli",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:escherichia coli",
+     "title": "ESCHERICHIA COLI",
+     "setId": "85411aca-0ef1-9d48-e053-2991aa0a0790",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medmcqa-train:209e48a1-ac3c-4c4c-a638-72869389cfb5",
@@ -1586,11 +2436,16 @@
     "detachment"
    ],
    "mesh": "Retinal Detachment",
+   "meshWords": [
+    "retinal",
+    "detachment"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/retinaldetachment.html",
-     "title": "Retinal Detachment"
+     "title": "Retinal Detachment",
+     "key": true
     }
    ]
   },
@@ -1607,11 +2462,15 @@
     "neuroblastoma"
    ],
    "mesh": "Neuroblastoma",
+   "meshWords": [
+    "neuroblastoma"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/neuroblastoma.html",
-     "title": "Neuroblastoma"
+     "title": "Neuroblastoma",
+     "key": true
     }
    ]
   },
@@ -1628,15 +2487,53 @@
     "penicillin"
    ],
    "mesh": "Penicillins",
+   "meshWords": [
+    "penicillins"
+   ],
    "drugs": [
-    "penicillin",
-    "azithromycin",
-    "ceftriaxone"
+    {
+     "name": "penicillin",
+     "by": "dictionary",
+     "key": true,
+     "fda": "salt-only"
+    },
+    {
+     "name": "azithromycin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "tetracycline",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "ceftriaxone",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:azithromycin",
-     "title": "azithromycin (FDA label, effective 20260316)"
+     "title": "AZITHROMYCIN",
+     "setId": "003307c5-3f73-4a5d-a704-bfdea3c656e8",
+     "key": false
+    },
+    {
+     "id": "fda:tetracycline",
+     "title": "TETRACYCLINE HYDROCHLORIDE",
+     "setId": "00acf413-c5d2-4a54-9d0d-56266cbc9edc",
+     "key": false
+    },
+    {
+     "id": "fda:ceftriaxone",
+     "title": "CEFTRIAXONE",
+     "setId": "1f8776bd-4f5b-427a-849a-6b8338f7997d",
+     "key": false
     }
    ]
   },
@@ -1654,6 +2551,7 @@
     "nevi"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1670,11 +2568,23 @@
     "asbestosis"
    ],
    "mesh": "Asbestosis",
-   "drugs": [],
+   "meshWords": [
+    "asbestosis"
+   ],
+   "drugs": [
+    {
+     "name": "beryllium",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
    "oracle": [
     {
-     "id": "https://medlineplus.gov/asbestos.html",
-     "title": "Asbestos"
+     "id": "fda:beryllium",
+     "title": "BERYLLIUM",
+     "setId": "687fca4c-11bb-fda9-e053-2a91aa0a146b",
+     "key": false
     }
    ]
   },
@@ -1688,9 +2598,11 @@
    },
    "sha": "b61181cfec9acb8d",
    "keyWords": [
-    "down"
+    "down",
+    "s"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1708,6 +2620,7 @@
     "tear"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1725,6 +2638,7 @@
     "cyst"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1741,20 +2655,53 @@
     "azithromycin"
    ],
    "mesh": "Azithromycin",
-   "drugs": [
-    "penicillin",
-    "erythromycin",
-    "ampicillin",
+   "meshWords": [
     "azithromycin"
+   ],
+   "drugs": [
+    {
+     "name": "penicillin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "salt-only"
+    },
+    {
+     "name": "erythromycin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "ampicillin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "azithromycin",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:erythromycin",
-     "title": "erythromycin (FDA label, effective 20241011)"
+     "title": "ERYTHROMYCIN",
+     "setId": "00c4f27e-59e2-4173-99b1-59dd295e83de",
+     "key": false
+    },
+    {
+     "id": "fda:ampicillin",
+     "title": "AMPICILLIN",
+     "setId": "0a66c5c3-63bf-46e3-835e-26b555ab6954",
+     "key": false
     },
     {
      "id": "fda:azithromycin",
-     "title": "azithromycin (FDA label, effective 20260316)"
+     "title": "AZITHROMYCIN",
+     "setId": "003307c5-3f73-4a5d-a704-bfdea3c656e8",
+     "key": true
     }
    ]
   },
@@ -1771,13 +2718,11 @@
     "pericarditis"
    ],
    "mesh": "Pericarditis",
+   "meshWords": [
+    "pericarditis"
+   ],
    "drugs": [],
-   "oracle": [
-    {
-     "id": "https://medlineplus.gov/pericardialdisorders.html",
-     "title": "Pericardial Disorders"
-    }
-   ]
+   "oracle": []
   },
   {
    "id": "medmcqa-train:4c9bc0a5-07b4-408d-81aa-8e26e728deae",
@@ -1793,6 +2738,7 @@
     "hz"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1810,6 +2756,10 @@
     "cyst"
    ],
    "mesh": "Radicular Cyst",
+   "meshWords": [
+    "radicular",
+    "cyst"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1826,11 +2776,13 @@
     "rsv"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/respiratorysyncytialvirusinfections.html",
-     "title": "Respiratory Syncytial Virus Infections"
+     "title": "Respiratory Syncytial Virus Infections",
+     "key": true
     }
    ]
   },
@@ -1847,6 +2799,9 @@
     "insulinoma"
    ],
    "mesh": "Insulinoma",
+   "meshWords": [
+    "insulinoma"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1860,10 +2815,18 @@
    },
    "sha": "da7aab397c6b8248",
    "keyWords": [
-    "lung"
+    "lungs"
    ],
    "mesh": null,
-   "drugs": [],
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "liver extract",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    }
+   ],
    "oracle": []
   },
   {
@@ -1876,15 +2839,14 @@
    },
    "sha": "2390dbbb77b33fb9",
    "keyWords": [
-    "500",
-    "ml",
+    "500ml",
     "of",
-    "0.9",
-    "percent",
+    "0",
+    "9",
     "saline",
     "over",
     "15",
-    "minute",
+    "minutes",
     "with",
     "potassium",
     "chloride",
@@ -1896,6 +2858,7 @@
     "infusion"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -1912,11 +2875,15 @@
     "suicide"
    ],
    "mesh": "Suicide",
+   "meshWords": [
+    "suicide"
+   ],
    "drugs": [],
    "oracle": [
     {
      "id": "https://medlineplus.gov/suicide.html",
-     "title": "Suicide"
+     "title": "Suicide",
+     "key": true
     }
    ]
   },
@@ -1933,6 +2900,9 @@
     "colpotomy"
    ],
    "mesh": "Colpotomy",
+   "meshWords": [
+    "colpotomy"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -1949,28 +2919,25 @@
     "misoprostol"
    ],
    "mesh": "Misoprostol",
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medqa-train:5000",
-   "group": "vignette",
-   "row": {
-    "dataset": "GBaker/MedQA-USMLE-4-options",
-    "split": "train",
-    "offset": 5000
-   },
-   "sha": "6af33ae8ebf83129",
-   "keyWords": [
-    "neisseria",
-    "meningitidis",
-    "prophylaxis"
+   "meshWords": [
+    "misoprostol"
    ],
-   "mesh": null,
    "drugs": [
-    "methicillin"
+    {
+     "name": "misoprostol",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
    ],
-   "oracle": []
+   "oracle": [
+    {
+     "id": "fda:misoprostol",
+     "title": "MISOPROSTOL",
+     "setId": "14f73ae3-7d8d-4d10-b668-8bd5adf8032c",
+     "key": true
+    }
+   ]
   },
   {
    "id": "medqa-train:5001",
@@ -1986,6 +2953,10 @@
     "i"
    ],
    "mesh": "Troponin I",
+   "meshWords": [
+    "troponin",
+    "i"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -2002,6 +2973,7 @@
     "ret"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2022,6 +2994,7 @@
     "analysis"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2039,9 +3012,10 @@
     "in",
     "calcium",
     "sensing",
-    "receptor"
+    "receptors"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2059,12 +3033,11 @@
     "marrow",
     "biopsy",
     "with",
-    "gt",
     "25",
-    "percent",
-    "lymphoblast"
+    "lymphoblasts"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2083,18 +3056,33 @@
     "glucagon"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [
-    "epinephrine",
-    "esmolol"
+    {
+     "name": "epinephrine",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "esmolol",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:epinephrine",
-     "title": "epinephrine (FDA label, effective 20260608)"
+     "title": "EPINEPHRINE",
+     "setId": "0172280c-f7d6-4613-9dbd-f94d3ae5825a",
+     "key": false
     },
     {
      "id": "fda:esmolol",
-     "title": "esmolol (FDA label, effective 20230623)"
+     "title": "ESMOLOL HYDROCHLORIDE",
+     "setId": "017023a9-00f0-4284-861f-a3634d4fdb17",
+     "key": true
     }
    ]
   },
@@ -2112,6 +3100,10 @@
     "capsule"
    ],
    "mesh": "Internal Capsule",
+   "meshWords": [
+    "internal",
+    "capsule"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -2129,7 +3121,30 @@
     "catarrhalis"
    ],
    "mesh": "Moraxella catarrhalis",
-   "drugs": [],
+   "meshWords": [
+    "moraxella",
+    "catarrhalis"
+   ],
+   "drugs": [
+    {
+     "name": "pseudomona aeruginosa",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "staphylococcus aureus",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "streptococcus pyogene",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    }
+   ],
    "oracle": []
   },
   {
@@ -2148,6 +3163,7 @@
     "transit"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2166,6 +3182,7 @@
     "integrin"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2183,6 +3200,10 @@
     "edema"
    ],
    "mesh": "Brain Edema",
+   "meshWords": [
+    "brain",
+    "edema"
+   ],
    "drugs": [],
    "oracle": []
   },
@@ -2202,6 +3223,7 @@
     "17"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2225,6 +3247,7 @@
     "ige"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2243,10 +3266,23 @@
     "intake"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [
-    "metformin"
+    {
+     "name": "metformin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
    ],
-   "oracle": []
+   "oracle": [
+    {
+     "id": "fda:metformin",
+     "title": "METFORMIN HYDROCHLORIDE",
+     "setId": "011de1a5-1ac0-4831-9e8d-26ec79ba2205",
+     "key": false
+    }
+   ]
   },
   {
    "id": "medqa-train:5015",
@@ -2263,6 +3299,7 @@
     "cancer"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2277,12 +3314,13 @@
    "sha": "ffe1b5468f02de42",
    "keyWords": [
     "elevated",
-    "level",
+    "levels",
     "of",
     "il",
     "6"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2299,18 +3337,26 @@
     "cryotherapy",
     "or",
     "podophyllotoxin",
-    "0.15",
-    "percent",
+    "0",
+    "15",
     "topically"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [
-    "acyclovir"
+    {
+     "name": "acyclovir",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:acyclovir",
-     "title": "acyclovir (FDA label, effective 20240905)"
+     "title": "ACYCLOVIR",
+     "setId": "01ae85df-d1a0-44f7-b4c0-0ac74d2216d4",
+     "key": false
     }
    ]
   },
@@ -2329,23 +3375,10 @@
     "gyrus"
    ],
    "mesh": "Temporal Lobe",
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medqa-train:5019",
-   "group": "vignette",
-   "row": {
-    "dataset": "GBaker/MedQA-USMLE-4-options",
-    "split": "train",
-    "offset": 5019
-   },
-   "sha": "66b7fb4af5ef1e6d",
-   "keyWords": [
-    "18",
-    "percent"
+   "meshWords": [
+    "temporal",
+    "lobe"
    ],
-   "mesh": null,
    "drugs": [],
    "oracle": []
   },
@@ -2362,13 +3395,23 @@
     "acyclovir"
    ],
    "mesh": "Acyclovir",
-   "drugs": [
+   "meshWords": [
     "acyclovir"
+   ],
+   "drugs": [
+    {
+     "name": "acyclovir",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
    ],
    "oracle": [
     {
      "id": "fda:acyclovir",
-     "title": "acyclovir (FDA label, effective 20240905)"
+     "title": "ACYCLOVIR",
+     "setId": "01ae85df-d1a0-44f7-b4c0-0ac74d2216d4",
+     "key": true
     }
    ]
   },
@@ -2384,33 +3427,12 @@
    "keyWords": [
     "stop",
     "antihypertensive",
-    "medicine"
+    "medicines"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
-  },
-  {
-   "id": "medqa-train:5022",
-   "group": "vignette",
-   "row": {
-    "dataset": "GBaker/MedQA-USMLE-4-options",
-    "split": "train",
-    "offset": 5022
-   },
-   "sha": "8b79a046bde96b09",
-   "keyWords": [
-    "ascorbic",
-    "acid"
-   ],
-   "mesh": "Ascorbic Acid",
-   "drugs": [],
-   "oracle": [
-    {
-     "id": "https://medlineplus.gov/vitaminc.html",
-     "title": "Vitamin C"
-    }
-   ]
   },
   {
    "id": "medqa-train:5023",
@@ -2428,8 +3450,25 @@
     "heparin"
    ],
    "mesh": "Heparin, Low-Molecular-Weight",
+   "meshWords": [
+    "heparin",
+    "low",
+    "molecular",
+    "weight"
+   ],
    "drugs": [
-    "penicillin"
+    {
+     "name": "penicillin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "salt-only"
+    },
+    {
+     "name": "vitamin k",
+     "by": "rxnav",
+     "key": false,
+     "fda": "salt-only"
+    }
    ],
    "oracle": []
   },
@@ -2447,261 +3486,88 @@
     "spirochete"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:ba2e996b-5b30-43c1-8f26-300d5e7a6982",
+   "id": "medqa-train:5025",
    "group": "vignette",
    "row": {
-    "dataset": "openlifescienceai/medmcqa",
+    "dataset": "GBaker/MedQA-USMLE-4-options",
     "split": "train",
-    "offset": 120000
+    "offset": 5025
    },
-   "sha": "53b0c8762f1f7c91",
+   "sha": "e1dcaf0c3924dc70",
    "keyWords": [
-    "bastedo",
-    "sign"
+    "human",
+    "t",
+    "lymphotropic",
+    "virus",
+    "1"
    ],
-   "mesh": null,
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:3b028019-ea90-44ae-9f8c-198615e46a4e",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120001
-   },
-   "sha": "863eadef8397e1ae",
-   "keyWords": [
-    "natural",
-    "raby"
+   "mesh": "Human T-lymphotropic virus 1",
+   "meshWords": [
+    "human",
+    "t",
+    "lymphotropic",
+    "virus",
+    "1"
    ],
-   "mesh": null,
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:4a754f32-407b-400b-ac2e-1ba79f048d08",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120003
-   },
-   "sha": "20c91ce62a0668bd",
-   "keyWords": [
-    "cromolyn",
-    "sodium"
-   ],
-   "mesh": "Cromolyn Sodium",
    "drugs": [
-    "salbutamol"
-   ],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:b56ad393-d045-4024-a3d7-31113989acf1",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120008
-   },
-   "sha": "5604f3eac2411b34",
-   "keyWords": [
-    "a",
-    "ie",
-    "ratio",
-    "1",
-    "2.5"
-   ],
-   "mesh": null,
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:7414156f-aa5c-40a3-aaba-031e071135a8",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120009
-   },
-   "sha": "33b642a36f475742",
-   "keyWords": [
-    "hair",
-    "cell"
-   ],
-   "mesh": null,
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:6977cf01-b692-4aec-9a3f-a7f989eda02d",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120012
-   },
-   "sha": "55989d8c691f65f8",
-   "keyWords": [
-    "hypoglycemia"
-   ],
-   "mesh": null,
-   "drugs": [],
-   "oracle": [
     {
-     "id": "https://medlineplus.gov/hypoglycemia.html",
-     "title": "Hypoglycemia"
+     "name": "hepatitis c virus",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
     }
-   ]
-  },
-  {
-   "id": "medmcqa-train:4cc51de8-3ee2-426e-98d2-31d653f42b71",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120013
-   },
-   "sha": "f91a6e1186f030f9",
-   "keyWords": [
-    "mdt",
-    "plus",
-    "steroid"
    ],
-   "mesh": null,
-   "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:614800d6-9ae3-4f27-b926-edbffe76074d",
+   "id": "medqa-train:5026",
    "group": "vignette",
    "row": {
-    "dataset": "openlifescienceai/medmcqa",
+    "dataset": "GBaker/MedQA-USMLE-4-options",
     "split": "train",
-    "offset": 120014
+    "offset": 5026
    },
-   "sha": "11b6b4269744c3e0",
+   "sha": "6c48e1e5f103df05",
    "keyWords": [
-    "filaria"
-   ],
-   "mesh": null,
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:1504095a-bc13-4001-b4d0-83863cbfda81",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120015
-   },
-   "sha": "1252d00283b03d43",
-   "keyWords": [
-    "lipogenesis"
-   ],
-   "mesh": "Lipogenesis",
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:e5f88d2b-f62a-4c60-a3f1-42921e0d22b9",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120016
-   },
-   "sha": "c7ed450ceebfa2c1",
-   "keyWords": [
-    "3.4",
+    "blood",
+    "pressure",
+    "of",
+    "165",
+    "90",
     "mm",
-    "and",
-    "greater",
-    "in",
-    "mandible"
+    "hg",
+    "reassessed",
+    "4",
+    "hours",
+    "later"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:294e90d1-b744-46d7-83f6-e23768ca93e2",
+   "id": "medqa-train:5027",
    "group": "vignette",
    "row": {
-    "dataset": "openlifescienceai/medmcqa",
+    "dataset": "GBaker/MedQA-USMLE-4-options",
     "split": "train",
-    "offset": 120017
+    "offset": 5027
    },
-   "sha": "7993b2ad7c0ae646",
+   "sha": "772c881fccb78824",
    "keyWords": [
-    "sickle",
-    "cell",
-    "anemia"
-   ],
-   "mesh": "Anemia, Sickle Cell",
-   "drugs": [],
-   "oracle": [
-    {
-     "id": "https://medlineplus.gov/sicklecelldisease.html",
-     "title": "Sickle Cell Disease"
-    }
-   ]
-  },
-  {
-   "id": "medmcqa-train:58a4b4ad-6dc3-43be-ae02-bef2e7a87b34",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120018
-   },
-   "sha": "fe96b6bb6686fb5f",
-   "keyWords": [
-    "demyelination"
-   ],
-   "mesh": "Demyelinating Diseases",
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:a531615c-c927-41f4-bcac-2c2332cb3d47",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120019
-   },
-   "sha": "da0836ba5f989540",
-   "keyWords": [
-    "amoebic",
-    "liver",
-    "abscess"
+    "oligoarticular",
+    "juvenile",
+    "idiopathic",
+    "arthritis"
    ],
    "mesh": null,
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:f02e42cc-00ef-4128-8f38-188f8a7ff151",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120023
-   },
-   "sha": "15598d6f1dacf336",
-   "keyWords": [
-    "ioxaglate"
-   ],
-   "mesh": "Ioxaglic Acid",
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
@@ -2718,190 +3584,569 @@
     "usg"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:8cf6c0ff-76ab-4d65-a5db-2e8e74e67dcf",
+   "id": "medmcqa-train:2b919ae0-17ba-40e9-a009-d3cb5844dc02",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120028
+    "offset": 120046
    },
-   "sha": "94799a60240afe07",
+   "sha": "bdc07f22cec0baed",
    "keyWords": [
-    "dental",
-    "plaster"
+    "hypocalcemia"
    ],
-   "mesh": null,
+   "mesh": "Hypocalcemia",
+   "meshWords": [
+    "hypocalcemia"
+   ],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:4aae9a0a-73d5-4a7a-9613-01ff0482e1bc",
+   "id": "medmcqa-train:16580a1f-8821-4be4-ac12-e24b51cf02fd",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120030
+    "offset": 120065
    },
-   "sha": "9721121b0ff6c9e4",
+   "sha": "6e04c1e85ceb4ff4",
    "keyWords": [
-    "increase",
-    "sense",
+    "mesangial",
+    "deposits",
     "of",
-    "restlessness",
-    "and",
-    "anxiety"
+    "iga"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:6858e15c-5d4d-403a-b108-65f53a582f85",
+   "id": "medmcqa-train:c120d6f0-e3cd-428c-a459-c9dd9fc886c8",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120032
+    "offset": 120092
    },
-   "sha": "c09af1d2706811d7",
+   "sha": "97350ed63a8509d6",
    "keyWords": [
-    "decor",
-    "mgc"
+    "laparoscopy"
    ],
-   "mesh": null,
+   "mesh": "Laparoscopy",
+   "meshWords": [
+    "laparoscopy"
+   ],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:14809ca8-b7ad-41d3-a42c-ec4dd0d20bac",
+   "id": "medmcqa-train:d70082d0-21b9-4d13-8850-aa0f0199863b",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120035
+    "offset": 120099
    },
-   "sha": "ae309d507232fe93",
+   "sha": "766d3a48c084e260",
    "keyWords": [
-    "infrared",
-    "radiation"
+    "the",
+    "patient",
+    "is",
+    "taking",
+    "phenytoin"
    ],
    "mesh": null,
-   "drugs": [],
-   "oracle": []
-  },
-  {
-   "id": "medmcqa-train:890bd68d-91e7-4433-b78b-997fdfee2550",
-   "group": "vignette",
-   "row": {
-    "dataset": "openlifescienceai/medmcqa",
-    "split": "train",
-    "offset": 120036
-   },
-   "sha": "4b0e988fd9469221",
-   "keyWords": [
-    "neurofibromatosis"
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "phenytoin",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    }
    ],
-   "mesh": "Neurofibromatoses",
-   "drugs": [],
    "oracle": [
     {
-     "id": "https://medlineplus.gov/neurofibromatosis.html",
-     "title": "Neurofibromatosis"
+     "id": "fda:phenytoin",
+     "title": "PHENYTOIN",
+     "setId": "08a9d26b-4419-43ec-98f3-43d4534c2e76",
+     "key": true
     }
    ]
   },
   {
-   "id": "medmcqa-train:7b3a5644-e752-4ec2-9e5c-63f01d442f6a",
+   "id": "medmcqa-train:b17a33e6-f350-47e0-8f3c-eb09ac52eb44",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120038
+    "offset": 120191
    },
-   "sha": "5b00218a6ddfcab7",
+   "sha": "a3e4ca922cb4be47",
    "keyWords": [
-    "raby"
+    "schizophrenia"
    ],
-   "mesh": "Rabies",
+   "mesh": "Schizophrenia",
+   "meshWords": [
+    "schizophrenia"
+   ],
    "drugs": [],
    "oracle": [
     {
-     "id": "https://medlineplus.gov/rabies.html",
-     "title": "Rabies"
+     "id": "https://medlineplus.gov/schizophrenia.html",
+     "title": "Schizophrenia",
+     "key": true
     }
    ]
   },
   {
-   "id": "medmcqa-train:3a671255-4de9-41f4-8fcb-9fbe8750c25c",
+   "id": "medmcqa-train:0614e881-5fd5-4aaf-9053-9f622c76b29b",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120041
+    "offset": 120198
    },
-   "sha": "d681192e4eb40558",
+   "sha": "cb0e10a77218d2c9",
    "keyWords": [
-    "squamous",
-    "cell",
+    "hepatocellular",
     "carcinoma"
    ],
-   "mesh": "Carcinoma, Squamous Cell",
+   "mesh": "Carcinoma, Hepatocellular",
+   "meshWords": [
+    "carcinoma",
+    "hepatocellular"
+   ],
    "drugs": [],
-   "oracle": []
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/livercancer.html",
+     "title": "Liver Cancer",
+     "key": true
+    }
+   ]
   },
   {
-   "id": "medmcqa-train:9f541caa-5c79-4d28-9493-40000d567245",
+   "id": "medmcqa-train:bad3ac66-7e31-4ac8-a470-2a86c85d1aa0",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120043
+    "offset": 120209
    },
-   "sha": "3409412c36a0316e",
+   "sha": "6ffc472acf71178e",
    "keyWords": [
-    "5",
-    "percent",
-    "dextrose"
+    "delay",
+    "immunization",
+    "come",
+    "back",
+    "in",
+    "2",
+    "3",
+    "days"
    ],
    "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:de0e452b-b5d8-465f-8e1f-a7ac943ea5f3",
+   "id": "medmcqa-train:ad4f326c-f635-47d5-ae46-e565a4c89292",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120044
+    "offset": 120235
    },
-   "sha": "6536c31c108eda3d",
+   "sha": "9af4c3820e5406e5",
    "keyWords": [
-    "wpw",
+    "neurohypophysis"
+   ],
+   "mesh": "Pituitary Gland, Posterior",
+   "meshWords": [
+    "pituitary",
+    "gland",
+    "posterior"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:35af702f-b6d7-4ff9-b3d6-382eaf726d5c",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120271
+   },
+   "sha": "c5f8367eb97e8761",
+   "keyWords": [
+    "hyperkalemia"
+   ],
+   "mesh": "Hyperkalemia",
+   "meshWords": [
+    "hyperkalemia"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:f070fe87-3a27-4ed6-b54b-3d5a118f77d2",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120310
+   },
+   "sha": "311611bc52dd2924",
+   "keyWords": [
+    "d"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "aspartic acid",
+     "by": "rxnav",
+     "key": true,
+     "fda": "combination-only"
+    }
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:1e67af82-9c03-40c6-a0a7-4ba98d917787",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120319
+   },
+   "sha": "a055ec634a8e893b",
+   "keyWords": [
+    "pemphigus",
+    "vulgaris"
+   ],
+   "mesh": "Pemphigus",
+   "meshWords": [
+    "pemphigus"
+   ],
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/pemphigus.html",
+     "title": "Pemphigus",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:30a1e57b-ea6c-4c7b-85d3-1ee976c4429d",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120323
+   },
+   "sha": "60aeaed7226dac0e",
+   "keyWords": [
+    "nodular",
+    "sclerosis",
+    "hodgkin",
+    "lymphoma"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:900e295b-ba3d-4561-8e6a-428736815893",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120334
+   },
+   "sha": "11cbce5645357f2e",
+   "keyWords": [
+    "cpr",
+    "until",
+    "a",
+    "defibrillator",
+    "is",
+    "present"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "adrenaline",
+     "by": "dictionary",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "amiodarone",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:amiodarone",
+     "title": "AMIODARONE HYDROCHLORIDE",
+     "setId": "02f4a736-63ed-4ad4-a1f1-b21a71e928bd",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:e42e0bab-dd56-4452-bdf7-51d1644c3950",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120338
+   },
+   "sha": "84713e0fd5a7db6e",
+   "keyWords": [
+    "nonsense",
+    "mutation"
+   ],
+   "mesh": "Codon, Nonsense",
+   "meshWords": [
+    "codon",
+    "nonsense"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:d1ce1e01-9d81-4fec-ba97-7655f2dbdfa0",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120352
+   },
+   "sha": "853f2fe8b95a9dfb",
+   "keyWords": [
+    "carcinoma",
+    "of",
+    "urinary",
+    "bladder"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:9c9b9c34-e94d-4cf3-934e-7a2bb10d97d5",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120360
+   },
+   "sha": "ab5e80bce8df249e",
+   "keyWords": [
+    "sheehan",
+    "s",
     "syndrome"
    ],
-   "mesh": "Wolff-Parkinson-White Syndrome",
+   "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   },
   {
-   "id": "medmcqa-train:71b47bfb-8f2c-48c4-b384-bfe2f9cd2452",
+   "id": "medmcqa-train:dde38dd1-b2f8-40a3-bc62-a22c2685207e",
    "group": "vignette",
    "row": {
     "dataset": "openlifescienceai/medmcqa",
     "split": "train",
-    "offset": 120045
+    "offset": 120380
    },
-   "sha": "dea4ff2262c21cc9",
+   "sha": "f877b0ba49c21706",
    "keyWords": [
-    "superficial",
-    "spreading"
+    "prostate",
+    "carcinoma"
    ],
    "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:338b306f-e979-400b-a964-4a69a035e13f",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120431
+   },
+   "sha": "c5f6bb89c00d1c9b",
+   "keyWords": [
+    "ophthalmic",
+    "division",
+    "of",
+    "the",
+    "trigeminal",
+    "nerve"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:31422883-0a99-487e-af6d-7cf9b21af9d7",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120447
+   },
+   "sha": "722c0fd1e82be1aa",
+   "keyWords": [
+    "colposcopy",
+    "directed",
+    "biopsy"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:d0090064-efaf-41b3-8638-aab4690a1d52",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120462
+   },
+   "sha": "b1bd64dd6fc50d2b",
+   "keyWords": [
+    "45",
+    "x",
+    "46",
+    "xx"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:0907f054-5339-4600-9f23-573024c84d9b",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120463
+   },
+   "sha": "fdeca72ad239f3fd",
+   "keyWords": [
+    "emergency",
+    "lscs"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "nifedipine",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "dexamethasone",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:nifedipine",
+     "title": "NIFEDIPINE",
+     "setId": "09a04e5f-d3b0-4ee3-b12d-f74203262179",
+     "key": false
+    },
+    {
+     "id": "fda:dexamethasone",
+     "title": "DEXAMETHASONE",
+     "setId": "01cfaa3e-5e30-18fa-e063-6394a90a084e",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medmcqa-train:dac690e8-cee4-40f7-9b8d-b0ea42242a5d",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120487
+   },
+   "sha": "4fb69f4e4fb3306e",
+   "keyWords": [
+    "adenocarcinoma"
+   ],
+   "mesh": "Adenocarcinoma",
+   "meshWords": [
+    "adenocarcinoma"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:518549d3-1499-471e-98e0-6f31ebef532f",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120529
+   },
+   "sha": "0f950d2babe79ed5",
+   "keyWords": [
+    "loeffler",
+    "s",
+    "serum",
+    "slope"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medmcqa-train:9464a116-22d1-44ac-9eaa-c8a1a2817760",
+   "group": "vignette",
+   "row": {
+    "dataset": "openlifescienceai/medmcqa",
+    "split": "train",
+    "offset": 120531
+   },
+   "sha": "4cd5c6eef401ce6c",
+   "keyWords": [
+    "left",
+    "coronary",
+    "aery"
+   ],
+   "mesh": null,
+   "meshWords": [],
    "drugs": [],
    "oracle": []
   }

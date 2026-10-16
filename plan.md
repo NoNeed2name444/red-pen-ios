@@ -2042,10 +2042,18 @@ independent review, a merge into personal, then the Worker deploy.
   (branch code without a deploy), retrieval set R with mechanical labels,
   the proof-only bench P, and the baseline at 2b7ef11e.
   Built 16 Oct (tools/verification-bench: proxy.mjs, retrieval-set.mjs,
-  proof-only.mjs, labels/ with SHA256SUMS; tests in bench.test.mjs); A1-A8
-  pass on Linux. Samples of 20: R found 12.5% to 33% of the official
-  documents, P proved 0 of 20, no failed lookups. In independent review;
-  then the full R and P runs and the proxy baseline (at most one a day).
+  proof-only.mjs, labels/ with SHA256SUMS; tests in bench.test.mjs).
+  Repaired 16 Oct after review (T0054): drugs by the bench's own RxNav and
+  openFDA test, the FDA oracle past the first hit (salt-only drugs counted
+  apart), MedlinePlus from its full XML, real vignettes (25 MedQA and 25
+  MedMCQA case stems), nDCG@5's ideal holds the oracle, runs read the stored
+  label inputs, --stub never goes live. An official document exists for 44
+  of R-dev's 150 items and 21 of R-test's 90. Samples of 20 (R-dev; R-test):
+  official recall@5 micro 16.7%; 16.7%, macro 11.1%; 38.9%; key-document
+  recall@5 0 of 2; 0 of 3; label-2 documents outside the oracle 0; 0. P
+  proved 0 of 20 (no failed lookups, no false proofs). In independent
+  review; then the full R and P runs and the proxy baseline (at most one a
+  day).
 - [ ] T1. D0: official recall for proof and a per-source quota in fusion
   (design/official-recall; 0 neurons).
 - [ ] T2. D6: fact chains, the vignette route's real proposer generalised

@@ -23,7 +23,8 @@
 //   options:  [--per-source 30] [--sources MedXpertQA,MedQA,CareQA Medicine] [--seed 7] [--stub]
 //   --stub needs no data and no network: it makes its own questions when
 //   there is no --data directory, and writes to a temporary directory when
-//   there is no --out
+//   there is no --out; it never goes live (nor asks a proxy or a provider),
+//   whatever WORKER, KEY or BENCH_* say
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -69,7 +70,7 @@ try {
   if (e instanceof PinRefused) { console.error(e.message); process.exit(2); }
   throw e;
 }
-const live = !proxy && Boolean(process.env.WORKER && process.env.KEY);
+const live = !proxy && !stubbed && Boolean(process.env.WORKER && process.env.KEY);
 if (proxy && !stubbed && !(proxyBase && proxyKey)) {
   console.error('--proxy needs BENCH_BASE_URL (the Worker\'s /v1) and BENCH_API_KEY (the owner key), or WORKER and KEY.'); process.exit(2);
 }
@@ -198,8 +199,8 @@ for (let b = 0; b < cases.length; b += perBatch) {
       await sleep(30_000 * (attempt + 1));
     }
   } else {
-    const env = proxy ? proxyEnv({ base: proxyBase || stubBase, key: proxyKey || 'stub', voters: order, route, db: d1(db) })
-      : { DB: d1(db), BENCH_MODELS: 'on', BENCH_BASE_URL: process.env.BENCH_BASE_URL || (stubbed ? stubBase : undefined), BENCH_API_KEY: process.env.BENCH_API_KEY || (stubbed ? 'stub' : undefined),
+    const env = proxy ? proxyEnv({ base: stubbed ? stubBase : proxyBase, key: stubbed ? 'stub' : proxyKey, voters: order, route, db: d1(db) })
+      : { DB: d1(db), BENCH_MODELS: 'on', BENCH_BASE_URL: stubbed ? stubBase : process.env.BENCH_BASE_URL, BENCH_API_KEY: stubbed ? 'stub' : process.env.BENCH_API_KEY,
         ACCURACY_VOTERS: order.join(','), OWNER_ACCOUNT_IDS: 'bench', OWNER_BENCH_DAILY_LIMIT: '100000', ACCURACY_DAILY_CEILING: '100000' };
     res = await checkBatch(env, 'bench', { items: batch.map(c => c.item) }, fetcher,
       { owner: true, bench: true, budgets: { votes: 240_000, evidence: 30_000, jev: 5_000 } });
@@ -287,7 +288,7 @@ const saved = results.map(r => ({ id: r.item.id, source: r.item.source, truth: r
   rules: r.result?.rules, proof: r.result?.proof, votes: r.result?.votes, features: r.result?.features, fix: r.result?.fix,
   provenance: r.result?.provenance ? { tier: r.result.provenance.tier, gates: r.result.provenance.gates, flags: r.result.provenance.flags } : undefined }));
 // what held each check back from Verified, condition by condition
-const run = { mode: live ? 'live' : proxy ? 'proxy' : 'provider', route: proxy ? route : undefined, voters: live ? undefined : voters, seed, perSource, batch: perBatch, batches: batchRuns };
+const run = { mode: live ? 'live' : proxy ? 'proxy' : 'provider', stub: stubbed || undefined, route: proxy ? route : undefined, voters: live ? undefined : voters, seed, perSource, batch: perBatch, batches: batchRuns };
 lines.push('', '## What held them back from Verified', '', gateReport(saved, run));
 writeFileSync(join(outDir, 'report.md'), lines.join('\n') + '\n');
 writeFileSync(join(outDir, 'results.json'), JSON.stringify(saved, null, 1));

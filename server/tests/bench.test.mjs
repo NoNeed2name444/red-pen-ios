@@ -80,12 +80,46 @@ console.log('all passed');
   // --- the label rules, on fixed examples
   const item = { id: 't1', kind: 'mcq', stem: 'A 60-year-old man has crushing chest pain. An ECG is taken. What is the most likely diagnosis?',
     options: ['Myocardial infarction', 'Pericarditis', 'Aortic dissection', 'Metformin toxicity'], key: 0 };
-  const inputs = R.labelInputs(item, 'Myocardial Infarction');
+  // the drugs named come from lookups now (drugsNamed, below), not from labelInputs
+  const inputs = { ...R.labelInputs(item, 'Myocardial Infarction'), drugs: ['metformin'] };
   check(inputs.keyWords.join(' ') === 'myocardial infarction' && inputs.meshWords.join(' ') === 'myocardial infarction', 'label inputs: the key\'s words and the MeSH term\'s, normalised');
   check(R.lastSentences(item.stem).startsWith('An ECG is taken.') && !R.lastSentences(item.stem).includes('crushing'), 'the stem\'s last two sentences');
   check(inputs.tail.includes('diagnosis') && inputs.tail.includes('taken') && !inputs.tail.includes('myocardial') && !inputs.tail.includes('likely'), 'the tail: content words of those sentences, never the glue or the key\'s own');
-  check(R.drugsIn('Metformin 500 mg or ramipril, or lisinopril').sort().join() === 'lisinopril,metformin,ramipril', 'drugs named: the engine\'s list and its drug endings');
-  check(R.drugsNamed(item).join() === 'metformin', 'drugs named in an option count');
+  check(R.drugsIn('Metformin 500 mg or ramipril, or lisinopril').sort().join() === 'lisinopril,metformin,ramipril', 'drugs inside longer options: the engine\'s list and its drug endings');
+  // recorded keyless replies (RxNav and openFDA, 16 Oct 2026): what the bench's own drug test reads
+  const canned = map => { const asked = []; const f = async url => { asked.push(String(url)); const body = map[String(url)]; return body === undefined ? new Response('{"error":{"code":"NOT_FOUND"}}', { status: 404 }) : new Response(JSON.stringify(body), { status: 200 }); }; f.asked = asked; return f; };
+  const rxn = (name, id) => ({ [`https://rxnav.nlm.nih.gov/REST/rxcui.json?name=${name}&search=2`]: { idGroup: id ? { rxnormId: [id] } : {} } });
+  const rxp = (id, name) => ({ [`https://rxnav.nlm.nih.gov/REST/rxcui/${id}/properties.json`]: { properties: { rxcui: id, name, synonym: '', tty: 'IN', language: 'ENG', suppress: 'N', umlscui: '' } } });
+  const rx = canned({ ...rxn('bupropion', '42347'), ...rxn('modafinil', '30125'), ...rxn('chlorazepate', '2353'), ...rxn('reassurance'), ...rxp('42347', 'bupropion'), ...rxp('30125', 'modafinil'), ...rxp('2353', 'clorazepate') });
+  const psych = { id: 'p', stem: 'Which drug?', options: ['Bupropion', 'Modafinil', 'Chlorazepate', 'Reassurance'], key: 0 };
+  const look = await R.drugLookups([psych], rx);
+  const named = R.drugsNamed(psych, look);
+  check(named.map(d => d.name).join() === 'bupropion,modafinil,clorazepate' && named.every(d => d.by === 'rxnav') && named[0].key && !named[1].key, 'drugs named: the bench\'s own test finds Bupropion, Modafinil and clorazepate (RxNav ingredients), not Reassurance');
+  check(rx.asked.some(u => u.startsWith('https://api.fda.gov/') && u.includes('reassurance')) && !rx.asked.some(u => u.startsWith('https://api.fda.gov/') && u.includes('bupropion')), 'openFDA\'s exact generic names are asked only for options RxNav does not know');
+  check(R.drugsNamed(item, { rx: new Map(), fda: new Set() }).map(d => `${d.name}:${d.by}`).join() === 'metformin:dictionary' && R.drugsNamed({ options: ['Metformin'], key: 0 }, { rx: new Map(), fda: new Set(['metformin']) })[0].by === 'openFDA', 'drugs named: the engine\'s list inside a longer option, and an openFDA generic name');
+  // the FDA oracle, past the first hit: the phrase search's first label is the combination (the engine's limit=1 lookup gets it)
+  const metTerms = [{ term: 'METFORMIN HYDROCHLORIDE', count: 243 }, { term: 'METFORMIN HCL', count: 26 }, { term: 'SITAGLIPTIN AND METFORMIN HYDROCHLORIDE', count: 16 }];
+  const fdaFake = canned({
+    'https://api.fda.gov/drug/label.json?search=openfda.generic_name:%22metformin%22&limit=1': { results: [{ set_id: '0098dec4-f0e5-45d5-8aa4-5d0faf9ab142', openfda: { generic_name: ['SITAGLIPTIN AND METFORMIN HYDROCHLORIDE'] } }] },
+    'https://api.fda.gov/drug/label.json?search=openfda.generic_name.exact:%22METFORMIN%20HYDROCHLORIDE%22&limit=1&skip=0': { results: [{ set_id: '011de1a5-1ac0-4831-9e8d-26ec79ba2205', effective_time: '20240821', openfda: { generic_name: ['METFORMIN HYDROCHLORIDE'] } }] },
+  });
+  const met = await R.fdaOracle('metformin', metTerms, fdaFake);
+  check(met.status === 'label' && met.id === 'fda:metformin' && met.setId === '011de1a5-1ac0-4831-9e8d-26ec79ba2205' && !fdaFake.asked.some(u => u.endsWith('%22metformin%22&limit=1')), 'FDA oracle: the single-ingredient label is chosen over the combination first hit, by an exact search');
+  check((await R.fdaOracle('warfarin', [{ term: 'WARFARIN SODIUM', count: 40 }], fdaFake)).status === 'salt-only' && (await R.fdaOracle('clavulanate', [{ term: 'AMOXICILLIN AND CLAVULANATE POTASSIUM', count: 9 }], fdaFake)).status === 'combination-only' && (await R.fdaOracle('zzz', [], fdaFake)).status === 'none', 'FDA oracle: a drug with labels only as another salt, or only in combinations, stays out of label 2 and is counted apart');
+  const topicsXml = '<health-topics><health-topic meta-desc="x" title="Heart Attack" url="https://medlineplus.gov/heartattack.html" id="1" language="English"><also-called>MI</also-called><also-called>Myocardial infarction</also-called><full-summary>&lt;p&gt;x&lt;/p&gt;</full-summary></health-topic>'
+    + '<health-topic title="Ataque card\u00edaco" url="https://medlineplus.gov/spanish/heartattack.html" language="Spanish"><also-called>Infarto</also-called></health-topic></health-topics>';
+  const index = R.healthTopics(topicsXml);
+  check(index.topics === 1 && index.byWords.get('myocardial infarction')?.[0].url === 'https://medlineplus.gov/heartattack.html' && index.byWords.has('heart attack') && !index.byWords.has('infarto'), 'MedlinePlus: the full health-topics XML, English topics by title and "also called" name');
+  const orc = await R.oracleFor({ ...inputs, drugs: [{ name: 'metformin', by: 'dictionary', key: false }, { name: 'warfarin', by: 'rxnav', key: true }] }, { terms: [...metTerms, { term: 'WARFARIN SODIUM', count: 40 }], topics: index, fetcher: fdaFake });
+  check(orc.oracle.map(o => `${o.id}:${o.key}`).join() === 'fda:metformin:false,https://medlineplus.gov/heartattack.html:true' && orc.oracle[0].setId && orc.drugs.map(d => d.fda).join() === 'label,salt-only', 'the oracle: an FDA label with its set_id and a topic matched on the key, the key\'s own marked; the salt-only drug counted');
+  // R-dev's vignettes are case stems, never what the proof declined
+  check(R.isVignette({ stem: 'A 45-year-old man presents with crushing chest pain. An ECG shows ST elevation in II, III and aVF. What is the most likely diagnosis?' }) && R.isVignette({ stem: 'A woman comes to the clinic with a rash on her arms. She recently started a new drug. Which drug is the cause?' }), 'a vignette: two or more sentences with a patient presentation');
+  check(!R.isVignette({ stem: 'Primary receptor cells of hearing is' }) && !R.isVignette({ stem: 'A 30-year-old man has which of the following?' }) && !R.isVignette({ stem: 'Insulin is made in the pancreas. Which cells make it?' }), 'not a vignette: a one-liner, one sentence, or no patient');
+  // runs read the stored label inputs, and refuse inputs the bench's words do not make
+  const stored = { id: 't1', mesh: 'Myocardial Infarction', keyWords: inputs.keyWords, meshWords: inputs.meshWords, drugs: [{ name: 'metformin' }], oracle: [{ id: 'fda:metformin', key: false }] };
+  const runIn = R.inputsFor(stored, item);
+  check(runIn.drugs.join() === 'metformin' && runIn.keyWords === stored.keyWords && runIn.tail.join() === inputs.tail.join() && runIn.oracle.join() === 'fda:metformin', 'a run reads keyWords, meshWords and drugs from the label file; the stored inputs equal what the run computes');
+  check(throws(() => R.inputsFor({ ...stored, keyWords: ['myocardial', 'infarct'] }, item), /stored label inputs/) && R.benchWords('β-Blocker (Café)').join() === 'beta,blocker,cafe', 'stored inputs the bench\'s frozen words do not make are refused; the words are its own');
   const fda = { source: 'openFDA label', title: 'metformin (FDA label)', url: 'u', official: { drug: 'Metformin Hydrochloride' } };
   check(R.officialRelevant(fda, inputs) === true, 'label 2: an FDA label whose generic name equals a drug named (a salt aside)');
   check(R.officialRelevant({ ...fda, official: { drug: 'metformin and glipizide' } }, inputs) === false, 'label 2: not a combination label');
@@ -114,7 +148,9 @@ console.log('all passed');
   check(R.recallAt(5, ranked, []) === null && R.recallAt(3, [], ['a']) === 0, 'recall: not counted when nothing is relevant; 0 when nothing is found');
   // labels 0,2,1,0,2: DCG = 3/log2(3) + 1/log2(4) + 3/log2(6) = 3.5533; the ideal 2,2,1,0,0: 3 + 3/log2(3) + 1/log2(4) = 5.3928
   check(near(R.dcgAt(5, [0, 2, 1, 0, 2]), 3.5533) && near(R.ndcgAt(5, [0, 2, 1, 0, 2]), 0.6589), 'nDCG@5 of labels 0,2,1,0,2 is 0.659');
-  check(R.ndcgAt(5, [2, 2, 1, 0, 0]) === 1 && R.ndcgAt(5, [0, 0, 0]) === 0 && R.ndcgAt(5, []) === 0, 'nDCG@5: 1 for the best order, 0 where nothing is relevant or nothing is shown');
+  // moved (A4): the ideal holds the item's oracle documents, so 1 needs the best order and no official document missed
+  // ideal 2,2,2,1,0 = 3 + 3/log2(3) + 3/2 + 1/log2(5) = 6.8235; the list's 5.3928
+  check(R.ndcgAt(5, [2, 2, 1, 0, 0]) === 1 && near(R.ndcgAt(5, [2, 2, 1, 0, 0], 1), 0.7903) && R.ndcgAt(5, [0, 0, 0]) === 0 && R.ndcgAt(5, [], 1) === 0 && R.ndcgAt(5, []) === 0, 'nDCG@5: 1 for the best order with no official document missed, less when one was; 0 where nothing relevant is shown');
   check(near(R.ndcgAt(2, [0, 2, 2]), 3 * 0.63093 / (3 + 3 * 0.63093)), 'nDCG@k reads only the first k');
   const s = R.summarize([
     { id: 'a', oracle: ['b', 'e'], retrieved: ['a', 'b', 'c', 'd', 'e'], shown: [2, 1, 0], lookups: 3 },
@@ -124,6 +160,12 @@ console.log('all passed');
   check(s.items === 3 && s.answerable === 2 && s.officialDocs === 3 && near(s.recall3, 1 / 3) && near(s.recall5, 2 / 3), 'summary: recall over the documents that exist, only for items that have one');
   check(near(s.onTopic, 2 / 4) && near(s.official, 1 / 4) && s.passages === 4 && near(s.lookupsPerItem, 2) && s.noPassage === 1, 'summary: the on-topic share of what is shown, lookups per item');
   check(near(s.ndcg5, (R.ndcgAt(5, [2, 1, 0]) + 0 + 0) / 3), 'summary: nDCG@5 is the mean over every item');
+  const s2 = R.summarize([
+    { id: 'a', oracle: ['b', 'e'], keyDocs: ['e'], retrieved: ['b', 'x'], shown: [2, 0], missing: 1, outside: ['q'], lookups: 1 },
+    { id: 'c', oracle: ['z', 'y', 'w', 'v'], keyDocs: [], retrieved: ['z', 'y', 'w', 'v'], shown: [2], missing: 3, outside: [], lookups: 1 },
+  ]);
+  check(near(s2.recall5, 5 / 6) && near(s2.recall5Macro, (0.5 + 1) / 2) && s2.keyRecall5 === 0 && s2.keyDocs === 1 && s2.outside === 1, 'summary: micro and macro recall@5, key-document recall, label-2 documents outside the oracle');
+  check(near(s2.ndcg5, (R.ndcgAt(5, [2, 0], 1) + R.ndcgAt(5, [2], 3)) / 2) && near(s2.ndcg5Order, 1), 'summary: nDCG@5 against the oracle\'s documents, and the order-only figure beside it');
 
   // --- the committed label files and their sha256
   check(readdirSync(R.LABELS_DIR).sort().join() === 'SHA256SUMS,r-dev.json,r-test.json', 'two label files and their sums');
@@ -136,6 +178,8 @@ console.log('all passed');
   check(new Set(dev.items.map(i => i.id)).size === 150 && dev.items.every(i => /^(medmcqa|medqa)-train:/.test(i.id) && i.row?.offset >= 0 && /^[0-9a-f]{16}$/.test(i.sha)), 'R-dev: each from a MedMCQA or MedQA training split, by row, with a content hash');
   check(test.items.length === 90 && ['MedXpertQA', 'MedQA', 'CareQA Medicine'].every(g => test.items.filter(i => i.group === g).length === 30), 'R-test: the 90 bench questions, 30 a source');
   check(JSON.stringify(dev).length < 1e6 && !('stem' in dev.items[0]) && !('options' in dev.items[0]), 'the label files hold no question text');
+  check([dev, test].every(f => f.words === R.WORDS && f.items.every(i => Array.isArray(i.drugs) && i.drugs.every(d => d.name && d.by && d.fda) && i.oracle.every(o => !o.id.startsWith('fda:') || o.setId))), 'the label files store the drugs named, their FDA status, and each FDA document with its set_id');
+  check(dev.vignettes?.medqa + dev.vignettes?.medmcqa === 50 && dev.vignettes.leastSentences >= 2, 'R-dev\'s vignettes are counted, each of two or more sentences');
   const tmp = mkdtempSync(join(tmpdir(), 'bench-labels-'));
   for (const f of ['r-test.json', 'SHA256SUMS']) copyFileSync(join(R.LABELS_DIR, f), join(tmp, f));
   check(R.readLabels('r-test', tmp).items.length === 90, 'a copy of the label files reads');
@@ -163,15 +207,20 @@ console.log('all passed');
   }
   const before = sent.length;
   check(await rejects(() => fetcher('https://w.example/v1/chat/completions', { method: 'POST', body: JSON.stringify({ ...body, model: 'claude:claude-opus-5-5' }) }), /claude is never pinned/) && sent.length === before, 'the fetcher refuses a claude call and sends nothing');
-  const refused = spawnSync(process.execPath, [new URL('layer.mjs', bench).pathname, '--proxy', '--stub', '--voters', 'bench:gemini:gemini-3.5-flash-lite,bench:claude:claude-opus-5-5'], { encoding: 'utf8' });
+  // the stub spawns never inherit a Worker, a key or a provider
+  const offline = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'WORKER' && k !== 'KEY' && !k.startsWith('BENCH_')));
+  const refused = spawnSync(process.execPath, [new URL('layer.mjs', bench).pathname, '--proxy', '--stub', '--voters', 'bench:gemini:gemini-3.5-flash-lite,bench:claude:claude-opus-5-5'], { encoding: 'utf8', env: offline });
   check(refused.status === 2 && /refused pin/.test(refused.stderr), 'layer.mjs --proxy exits 2 on a claude voter');
   const proxyEnv = X.proxyEnv({ base: 'https://w.example/v1', key: 'k', voters: pins, route: 'off', db: {} });
   check(proxyEnv.BENCH_MODELS === 'on' && proxyEnv.BENCH_BASE_URL === 'https://w.example/v1' && proxyEnv.VIGNETTE_ROUTE === 'off' && proxyEnv.ACCURACY_VOTERS === pins.join(',') && X.proxyEnv({ base: 'b', key: 'k', voters: pins, db: {} }).VIGNETTE_ROUTE === 'on', 'proxy env: bench models on, the Worker as base, the route on by default');
   const stubDir = mkdtempSync(join(tmpdir(), 'bench-stub-'));
-  const stub = spawnSync(process.execPath, [new URL('layer.mjs', bench).pathname, '--stub', '--out', stubDir, '--per-source', '4'], { encoding: 'utf8' });
+  const stub = spawnSync(process.execPath, [new URL('layer.mjs', bench).pathname, '--stub', '--out', stubDir, '--per-source', '4'], { encoding: 'utf8', env: offline });
   check(stub.status === 0 && /Cost and quality of this run/.test(stub.stdout) && JSON.parse(readFileSync(join(stubDir, 'run.json'), 'utf8')).batches.length > 0, 'layer.mjs --stub runs offline, writes its report and the cost of each batch');
-  const stubProxy = spawnSync(process.execPath, [new URL('layer.mjs', bench).pathname, '--proxy', '--stub', '--route', 'off', '--out', stubDir, '--per-source', '2'], { encoding: 'utf8' });
+  const stubProxy = spawnSync(process.execPath, [new URL('layer.mjs', bench).pathname, '--proxy', '--stub', '--route', 'off', '--out', stubDir, '--per-source', '2'], { encoding: 'utf8', env: offline });
   check(stubProxy.status === 0 && JSON.parse(readFileSync(join(stubDir, 'run.json'), 'utf8')).mode === 'proxy', 'layer.mjs --proxy --stub runs offline with the free pins');
+  const stubLive = spawnSync(process.execPath, [new URL('layer.mjs', bench).pathname, '--stub', '--out', stubDir, '--per-source', '2'], { encoding: 'utf8', env: { ...offline, WORKER: 'http://127.0.0.1:9', KEY: 'dummy' } });
+  const stubRun = stubLive.status === 0 && JSON.parse(readFileSync(join(stubDir, 'run.json'), 'utf8'));
+  check(stubRun && stubRun.mode !== 'live' && stubRun.stub === true && stubRun.batches.length > 0, 'layer.mjs --stub never goes live, even with WORKER and KEY set');
 
   // --- gates.mjs on a fixed results.json fragment
   const fam = { a: 'gemini-3.5-flash-lite', b: '@cf/openai/gpt-oss-120b', c: '@cf/nvidia/nemotron-3-120b-a12b' };

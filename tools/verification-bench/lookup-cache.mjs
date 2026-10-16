@@ -1,7 +1,7 @@
 // A disk-cached fetcher for the benches that spend no neurons and use the
 // network only (retrieval-set.mjs, proof-only.mjs): the sources are free and
-// keyless (MedlinePlus, openFDA, Europe PMC, NLM's MeSH lookup, the Hugging
-// Face datasets server), and a bench reads the same pages and labels again
+// keyless (MedlinePlus, openFDA, RxNav, Europe PMC, NLM's MeSH lookup, the
+// Hugging Face datasets server), and a bench reads the same pages and labels again
 // and again, so every answer is kept on disk under one directory, which is
 // never in the repository and never grows past a byte cap.
 //
@@ -53,7 +53,7 @@ export function diskCache(dir, { cap = CACHE_CAP_BYTES } = {}) {
 export const newTally = () => ({ lookups: 0, disk: 0, network: 0, retried: 0, failed: 0, byStatus: {}, bytes: 0 });
 
 // a politeness gap per host, so a bench is not an abuse of a free service
-const GAP_MS = { 'wsearch.nlm.nih.gov': 700, 'api.fda.gov': 300, 'www.ebi.ac.uk': 200, 'id.nlm.nih.gov': 150, 'datasets-server.huggingface.co': 400 };
+const GAP_MS = { 'wsearch.nlm.nih.gov': 700, 'api.fda.gov': 300, 'www.ebi.ac.uk': 200, 'id.nlm.nih.gov': 150, 'datasets-server.huggingface.co': 400, 'rxnav.nlm.nih.gov': 60, 'medlineplus.gov': 500 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // when each host was last asked: shared by every fetcher, so a bench that
 // makes a fetcher per item still keeps its gaps
