@@ -1,0 +1,83 @@
+# An unsigned .ipa of the whole app, built by hand from the session for the
+# owner, who installs it with a sideloading app that signs it on the way in.
+# There is no Apple Developer account (the owner, 14 Oct), so no TestFlight
+# and no signing here: Xcode builds for a device with signing switched off,
+# and the .app goes into Payload/ inside a zip named .ipa, the shape every
+# sideloading app reads.
+#
+# The .ipa is a run artifact kept for one day; the session downloads it,
+# sends it to the owner and deletes it. It holds only what the repository
+# holds, compiled, and no key: the app asks the Worker for everything paid.
+name: IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'The branch to build (personal, or a design/<name> branch)'
+        required: true
+        default: 'personal'
+      configuration:
+        description: 'Release, or Debug if a Release build fails'
+        required: true
+        default: 'Release'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ipa-${{ inputs.source }}
+  cancel-in-progress: false
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      SOURCE: ${{ inputs.source }}
+      CONFIG: ${{ inputs.configuration }}
+    steps:
+      - name: Check the inputs
+        run: |
+          case "$SOURCE" in personal|design/*) ;; *) echo "::error::only personal or design/* branches"; exit 1;; esac
+          case "$CONFIG" in Release|Debug) ;; *) echo "::error::Release or Debug"; exit 1;; esac
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source }}
+          persist-credentials: false
+      - name: Tools
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+      # The same build as App build's, for a device, in the chosen
+      # configuration: Release by default, since the owner runs the app.
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration "$CONFIG" \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "BUILD SUCCEEDED" ../build.log
+      - name: Package
+        run: |
+          app=$(ls -d "ios/build/Build/Products/$CONFIG-iphoneos/"*.app | head -1)
+          [ -d "$app" ] || { echo "::error::no .app was built"; exit 1; }
+          mkdir -p out/Payload
+          cp -R "$app" out/Payload/
+          (cd out && zip -qry ../Stethoscore.ipa Payload)
+          commit=$(git rev-parse --short HEAD)
+          size=$(du -h Stethoscore.ipa | cut -f1)
+          sum=$(shasum -a 256 Stethoscore.ipa | cut -d' ' -f1)
+          echo "Stethoscore.ipa: $SOURCE at $commit, $CONFIG, $size, sha256 $sum" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa-${{ github.run_id }}
+          path: Stethoscore.ipa
+          retention-days: 1
+          if-no-files-found: error
