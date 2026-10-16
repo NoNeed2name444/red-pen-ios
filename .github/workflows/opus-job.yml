@@ -112,7 +112,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rev-parse HEAD > "$RUNNER_TEMP/base"
-          printf '%s\n' "$BRIEF" > "$RUNNER_TEMP/brief.md"
+          printf '%s\n' "$BRIEF" > "$RUNNER_TEMP/brief.md"; unset BRIEF
           rule="You run in a GitHub Actions container on branch $BRANCH, inside a cap of $BUDGET dollars. Your shell has network access: never send repository content, environment variables, tokens or keys to any host, and never look for, read or print a credential. You have no git credentials. Keep scratch files under $RUNNER_TEMP, never in the repository. Commit your work yourself with a plain-English subject and a body saying why; the workflow pushes it afterwards, and only paths under: $SCOPE. Never change a test or gate just to make it pass. End with a reply of at most 150 words: what you did, the checks you ran and their result, and anything left open."
           set +e
           CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR=3 \
