@@ -1,0 +1,3 @@
+take 1: gap_ms=51 at=+0.86 refreshes=67 handoff=+0.73 still=+1.96 warm_off=+0.01 gaps=+0.86:51ms/cpu3ms interval_ms=16.7 marks=home-1.80,handoff+0.73 relief=live:off:17 made=0/0ms load=310.12
+take 2: gap_ms=91 at=+1.63 refreshes=58 handoff=+0.73 still=+1.96 warm_off=+0.01 gaps=+1.63:91ms/cpu5ms,+1.83:58ms/cpu5ms,+1.93:50ms/cpu6ms interval_ms=16.7 marks=home-1.13,handoff+0.73 relief=live:off:17 made=0/0ms load=152.99
+take 3: gap_ms=89 at=+2.02 refreshes=64 handoff=+0.73 still=+2.02 warm_off=+0.02 gaps=+0.96:52ms/cpu3ms,+1.64:51ms/cpu8ms,+2.02:89ms/cpu4ms interval_ms=16.7 marks=home-1.06,handoff+0.73 relief=live:off:17 made=0/0ms load=101.37
