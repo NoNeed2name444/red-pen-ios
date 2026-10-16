@@ -1,8 +1,8 @@
 # One job by Claude Code on the owner's Anthropic key, run by hand from the
 # session: Opus at max effort, on one design branch, inside a dollar cap.
 #
-# The owner (16 Oct) set 30 dollars a month for these jobs, inside the key's
-# 90: the Worker's own Claude checks drop to 60 (CLAUDE_MONTHLY_USD), and the
+# The owner (16 Oct) set 30 dollars a month for these jobs, then 50, inside
+# the key's 90: the Worker's own Claude checks drop to 40 (CLAUDE_MONTHLY_USD), and the
 # session keeps the jobs' tally from each run's cost line. --max-budget-usd
 # (above 0, at most 10) is checked between turns, so a run can pass its cap by
 # up to one turn's cost; the session sets each budget with that in mind.
