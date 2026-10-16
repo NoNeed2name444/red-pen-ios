@@ -23,18 +23,114 @@ for dark in [false, true] {
               String(format: "%.2f", r))
     }
 }
+// The words of a chip or a pill sit on a well pressed into what is under
+// it, with the well's inner shade over its edge (the review's B4). Every ink
+// a chip can wear reads 4.5:1 on it, in light and dark, with and without
+// Increase Contrast (which deepens the shade): the semantic tones' words,
+// Biro Grey, Chart Ink and Theatre Blue, and every section's accent, which
+// is what the New chip and the bed chips take.
+check("the shade is there at a chip's edge and gone where its words start",
+      WardRelief.shadeCoverage(.low, depth: 0) > 0.5 && WardRelief.shadeCoverage(.low, depth: 6) < 0.01)
+let chipInks: [WardToken] = [.primaryInk, .ecg, .success, .warning, .danger, .inkSecondary, .ink]
+// the nearest a chip's words come to its edge: its vertical padding (4)
+// and the line's own leading above a capital (2 at least)
+let chipTextDepth = 6.0
+for dark in [false, true] {
+    for hc in [false, true] {
+        let mode = "\(dark ? "dark" : "light")\(hc ? " with Increase Contrast" : "")"
+        let well = WardPalette.hex(.well, dark: dark)
+        let ground = WardRelief.insetGround(well, lift: .low, dark: dark, highContrast: hc, depth: chipTextDepth)
+        for token in chipInks {
+            let r = WardPalette.contrast(WardPalette.hex(token, dark: dark), ground)
+            check("\(mode): \(token) reads 4.5:1 on a chip's well", r >= 4.5, String(format: "%.3f", r))
+        }
+        for section in WardSection.allCases {
+            let r = WardPalette.contrast(section.accent(dark: dark), ground)
+            check("\(mode): \(section)'s accent reads 4.5:1 on a chip's well", r >= 4.5, String(format: "%.3f", r))
+        }
+    }
+}
 check("the monitor card is dark in both modes",
       WardPalette.luminance(WardPalette.hex(.monitor, dark: false)) < 0.05 &&
       WardPalette.luminance(WardPalette.hex(.monitor, dark: true)) < 0.05)
 
-// soft UI: cards are the ground, raised; only relief tells them apart
+// soft UI on close tiers: a well, the base, a card, a sheet, each a shade
+// off the one before, so a card is told from the ground mostly by relief
 for dark in [false, true] {
-    check("\(dark ? "dark" : "light"): cards and the ground are one base",
-          WardPalette.hex(.surface, dark: dark) == WardPalette.hex(.background, dark: dark))
+    let mode = dark ? "dark" : "light"
+    let lum = WardPalette.tiers.map { WardPalette.luminance(WardPalette.hex($0, dark: dark)) }
+    check("\(mode): the tiers rise from well to sheet", lum == lum.sorted() && Set(lum).count == lum.count)
+    for (a, b) in zip(WardPalette.tiers, WardPalette.tiers.dropFirst()) {
+        let step = WardPalette.contrast(WardPalette.hex(a, dark: dark), WardPalette.hex(b, dark: dark))
+        check("\(mode): \(a) to \(b) is a soft step", step > 1.02 && step < 1.25, String(format: "%.3f", step))
+    }
     let groove = WardPalette.contrast(WardPalette.hex(.hairline, dark: dark), WardPalette.hex(.background, dark: dark))
-    check("\(dark ? "dark" : "light"): a groove shows but stays soft", groove >= 1.1 && groove < 1.6,
+    check("\(mode): a groove shows but stays soft", groove >= 1.1 && groove < 1.6,
           String(format: "%.2f", groove))
 }
+check("the bases the launch screen is drawn on are kept",
+      WardPalette.hex(.background, dark: false) == 0xE0E5EC && WardPalette.hex(.background, dark: true) == 0x2A2E35)
+
+// two characters, not one palette inverted: the night accent is its own hue,
+// and every text colour differs between the modes
+func hue(_ hex: UInt32) -> Double {
+    let (r, g, b) = WardPalette.rgb(hex)
+    let mx = max(r, g, b), mn = min(r, g, b), d = mx - mn
+    guard d > 0 else { return 0 }
+    var h: Double
+    if mx == r { h = ((g - b) / d).truncatingRemainder(dividingBy: 6) }
+    else if mx == g { h = (b - r) / d + 2 }
+    else { h = (r - g) / d + 4 }
+    h *= 60
+    return h < 0 ? h + 360 : h
+}
+let dayHue = hue(WardPalette.hex(.primaryInk, dark: false)), nightHue = hue(WardPalette.hex(.primaryInk, dark: true))
+check("the night accent is a different hue from the day's", abs(dayHue - nightHue) >= 12,
+      String(format: "%.0f vs %.0f", dayHue, nightHue))
+for token in [WardToken.primaryInk, .ecg, .success, .warning, .danger, .ink, .inkSecondary, .beam] {
+    check("\(token) has a value of its own in each mode",
+          WardPalette.hex(token, dark: false) != WardPalette.hex(token, dark: true))
+}
+// night reads its secondary text more strongly than day: dim rooms need it
+let daySecondary = WardPalette.contrast(WardPalette.hex(.inkSecondary, dark: false), WardPalette.hex(.background, dark: false))
+let nightSecondary = WardPalette.contrast(WardPalette.hex(.inkSecondary, dark: true), WardPalette.hex(.background, dark: true))
+check("night's secondary text has more contrast than day's", nightSecondary > daySecondary,
+      String(format: "%.2f vs %.2f", nightSecondary, daySecondary))
+
+// the contrast maths, against WCAG's own worked values
+check("contrast is symmetric", WardPalette.contrast(0x1D5FB0, 0xE0E5EC) == WardPalette.contrast(0xE0E5EC, 0x1D5FB0))
+check("a colour on itself is 1", WardPalette.contrast(0x2A2E35, 0x2A2E35) == 1)
+check("mid grey #777 on white is about 4.48 (just under AA)",
+      abs(WardPalette.contrast(0x777777, 0xFFFFFF) - 4.48) < 0.01, String(WardPalette.contrast(0x777777, 0xFFFFFF)))
+check("#767676 on white is about 4.54 (just AA)",
+      abs(WardPalette.contrast(0x767676, 0xFFFFFF) - 4.54) < 0.01, String(WardPalette.contrast(0x767676, 0xFFFFFF)))
+check("luminance of white is 1 and black 0", WardPalette.luminance(0xFFFFFF) == 1 && WardPalette.luminance(0) == 0)
+
+// the appearance glide: a colour shift through linear light, from one
+// palette to the other, about a third of a second
+check("the glide takes 0.3 to 0.4 s", (0.3...0.4).contains(WardSchemeGlide.duration))
+for token in WardToken.allCases {
+    check("glide \(token): starts at day and ends at night",
+          WardSchemeGlide.frame(token, t: 0) == WardPalette.hex(token, dark: false) &&
+          WardSchemeGlide.frame(token, t: 1) == WardPalette.hex(token, dark: true))
+}
+check("mix clamps", WardPalette.mix(0x000000, 0xFFFFFF, -1) == 0 && WardPalette.mix(0x000000, 0xFFFFFF, 2) == 0xFFFFFF)
+check("halfway between black and white in linear light is #BCBCBC",
+      WardPalette.mix(0x000000, 0xFFFFFF, 0.5) == 0xBCBCBC, String(WardPalette.mix(0, 0xFFFFFF, 0.5), radix: 16))
+var lastLum = 2.0
+var steady = true
+for i in 0...20 {
+    let l = WardPalette.luminance(WardSchemeGlide.frame(.background, t: Double(i) / 20))
+    if l > lastLum + 1e-9 { steady = false }
+    lastLum = l
+}
+check("the base darkens steadily through the glide, never flashing", steady)
+
+// the spacing scale
+check("the scale is 4, 8, 12, 16, 24, 32", WardScale.steps == [4, 8, 12, 16, 24, 32] &&
+      [WardScale.xs, WardScale.s, WardScale.m, WardScale.l, WardScale.xl, WardScale.xxl] == WardScale.steps)
+check("on the scale", WardScale.onScale(12) && !WardScale.onScale(10) && !WardScale.onScale(20))
+
 check("light: the base is a light grey", WardPalette.luminance(WardPalette.hex(.background, dark: false)) > 0.7)
 check("dark: the base is a dark grey, not black",
       (0.015...0.06).contains(WardPalette.luminance(WardPalette.hex(.background, dark: true))))

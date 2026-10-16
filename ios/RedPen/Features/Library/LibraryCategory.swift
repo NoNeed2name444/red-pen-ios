@@ -47,6 +47,7 @@ extension LibraryView {
                             .frame(minHeight: 44, alignment: .leading)
                     }
                     .accessibilityIdentifier("morePractise")
+                    .wardPart("More ways to practise")
                     // its words where the rows' words are
                     .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
                     .listRowBackground(Color.clear)
@@ -94,6 +95,8 @@ extension LibraryView {
         // the page this tile opens zooms out of it (featurePageView)
         .skyZoomSource(Self.zoomID(feature))
         .accessibilityIdentifier("feature-\(feature.rawValue)")
+        .wardPart("the \(feature.rawValue) tile",
+                  reach: CGFloat(WardRelief.rimOffset(.low) + WardRelief.rimBlur(.low)))
     }
 
     /// The shared id of a tile and the page it zooms into.
@@ -122,6 +125,7 @@ extension LibraryView {
                         .foregroundStyle(Color.wardInk)
                 }
                 .accessibilityIdentifier("more-\(page.rawValue)")
+                .wardPart("a More row", reach: WardSpace.s)
                 .frostedListRow()
             }
         } header: {

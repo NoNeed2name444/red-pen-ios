@@ -7,14 +7,14 @@ import SwiftUI
 
 /// The Ward Round tokens as the Cases screens use them.
 enum CaseInk {
-    static let theatre: Color = .wardPrimaryInk
-    static let resus: Color = .wardDanger
-    static let discharge: Color = .wardSuccess
-    static let caution: Color = .wardWarning
-    static let biro: Color = .wardInkSecondary
-    static let surface: Color = .wardSurface
-    static let ward: Color = .wardBackground
-    static let hairline: Color = .wardHairline
+    static var theatre: Color { .wardPrimaryInk }
+    static var resus: Color { .wardDanger }
+    static var discharge: Color { .wardSuccess }
+    static var caution: Color { .wardWarning }
+    static var biro: Color { .wardInkSecondary }
+    static var surface: Color { .wardSurface }
+    static var ward: Color { .wardBackground }
+    static var hairline: Color { .wardHairline }
 }
 
 extension View {

@@ -782,7 +782,7 @@ struct MCQQuizView: View {
     }
 
     private func sureLabel(tagged: Bool) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: WardSpace.s) {
             Text("How sure?")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.wardInkSecondary)
@@ -954,7 +954,7 @@ struct MCQQuizView: View {
             UISelectionFeedbackGenerator().selectionChanged()
             withAnimation(.snappy(duration: 0.2)) { action() }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: WardSpace.s) {
                 if let symbol { Image(systemName: symbol).accessibilityHidden(true) }
                 Text(title)
             }

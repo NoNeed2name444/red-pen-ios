@@ -36,7 +36,7 @@ struct BedtimeReviewView: View {
         }
         .background(Color.wardBackground.ignoresSafeArea())
         .tint(Color.wardPrimaryInk)
-        .environment(\.colorScheme, .dark)
+        .wardHeld(.dark)
         .environment(\.modeTint, Color.wardPrimaryInk)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)

@@ -38,7 +38,7 @@ struct WardOptionRow: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.tile, style: .continuous)
-        HStack(spacing: 14) {
+        HStack(spacing: WardSpace.m) {
             Text(letter)
                 .font(.callout.weight(.semibold).monospaced())
                 .foregroundStyle(letterInk)
@@ -60,8 +60,8 @@ struct WardOptionRow: View {
                     .transition(.identity)
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, WardSpace.l)
+        .padding(.vertical, WardSpace.l)
         .frame(minHeight: 56)
         .wardRelief(in: shape, lift: ChartQuiz.liesLow(struck: struck, mark: mark) ? .low : .mid, pressed: tone != nil)
         // Differentiate Without Colour: the chosen one also ringed

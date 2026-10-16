@@ -73,22 +73,45 @@ struct PopTileStyle: ButtonStyle {
     var lift: WardLift? = nil
 
     func makeBody(configuration: Configuration) -> some View {
+        PopTileStandInFace(label: configuration.label, isPressed: configuration.isPressed, selected: selected,
+                           cornerRadius: cornerRadius, plane: plane, lift: lift)
+    }
+}
+
+/// As the app's tile: pressed in while held (or drawn held by the states
+/// gallery) or chosen; chosen, a solid edge in the section's accent round
+/// it, disabled too; disabled, it lies low. Solid, never faded; its
+/// colours are the caller's.
+private struct PopTileStandInFace: View {
+    let label: ButtonStyleConfiguration.Label
+    let isPressed: Bool
+    let selected: Bool
+    let cornerRadius: CGFloat
+    let plane: PopOutPlane
+    let lift: WardLift?
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.wardShowsPressed) private var showsPressed
+
+    var body: some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        return configuration.label
+        let held: Bool = enabled && (isPressed || showsPressed)
+        label
             .contentShape(shape)
-            .modifier(PopOutReliefStandIn(plane: plane, shape: shape, pressed: configuration.isPressed || selected,
-                                          dims: true, chosenLift: lift))
+            .background { Color.clear.wardChosenEdge(shape, selected) }
+            .modifier(PopOutReliefStandIn(plane: plane, shape: shape, pressed: held, chosen: selected,
+                                          chosenLift: lift))
     }
 }
 
 /// A surface's relief by its plane, as in the app: a well on the deep
-/// plane, raised above the screen plane, pressed in while held, low and
-/// faint when disabled (a tile's label too, `dims`).
+/// plane, raised above the screen plane, pressed in while held or chosen
+/// (a chosen one stays pressed in, disabled too), low when disabled. Solid,
+/// never faded.
 private struct PopOutReliefStandIn<S: InsettableShape>: ViewModifier {
     let plane: PopOutPlane
     let shape: S
     let pressed: Bool
-    var dims = false
+    var chosen = false
     var chosenLift: WardLift? = nil
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -96,19 +119,18 @@ private struct PopOutReliefStandIn<S: InsettableShape>: ViewModifier {
     func body(content: Content) -> some View {
         let own: WardLift = plane == .hero ? .peak : plane == .floating ? .high : plane == .raised ? .mid : .low
         let lift: WardLift = chosenLift ?? own
+        let at: WardLift = enabled ? lift : .low
+        let down: Bool = (enabled && pressed) || chosen
         let deep: Bool = plane == .deep
         return content
-            .opacity(enabled || !dims ? 1 : 0.55)
             .background {
                 if deep {
                     WardReliefFace(shape: shape, lift: lift, inset: true)
-                } else if !enabled {
-                    WardReliefFace(shape: shape, lift: .low).opacity(0.5)
                 } else {
-                    WardReliefFace(shape: shape, lift: pressed ? lift.lower : lift, inset: pressed)
+                    WardReliefFace(shape: shape, lift: down ? at.lower : at, inset: down)
                 }
             }
-            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: pressed)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: down)
     }
 }
 

@@ -86,9 +86,11 @@ struct WardEtch: View {
     var vertical = false
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.wardHeld) private var held
 
     var body: some View {
-        let spec: WardReliefSpec = WardRelief.raised(.low, dark: scheme == .dark, highContrast: contrast == .increased)
+        let night: Double = WardLookStore.shared.glide.night(dark: scheme == .dark, held: held)
+        let spec: WardReliefSpec = WardRelief.raised(.low, night: night, highContrast: contrast == .increased)
         let shade = Color(relief: spec.shade)
         let highlight = Color(relief: spec.highlight)
         Group {

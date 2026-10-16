@@ -78,14 +78,14 @@ struct BookReaderView: View {
     /// starts at its top.
     private var pageScroll: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: WardSpace.m) {
                 if let page {
                     ForEach(Array(BookPages.blocks(page.markdown).enumerated()), id: \.offset) { _, block in
                         blockView(block)
                     }
                     // the page's accuracy, and why
                     AccuracyBadge(set: studySet, itemID: studySet.id.uuidString + "#p\(page.id)")
-                        .padding(.top, 6)
+                        .padding(.top, WardSpace.s)
                 } else {
                     Text("This textbook is empty.").foregroundStyle(Color.wardInkSecondary)
                 }
@@ -125,7 +125,7 @@ struct BookReaderView: View {
         case .heading(let level, let text):
             Text(md(text))
                 .font(Self.headingFont(level))
-                .padding(.top, 6)
+                .padding(.top, WardSpace.s)
         case .bullet(let text, let marker):
             HStack(alignment: .top, spacing: 8) {
                 Text(marker ?? "\u{2022}")
@@ -151,11 +151,11 @@ struct BookReaderView: View {
         case .paragraph(let text):
             Text(md(text)).font(.body).lineSpacing(3)
         case .callout(let kind, let text):
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: WardSpace.m) {
                 Image(systemName: Self.calloutSymbol(kind))
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Self.calloutColor(kind))
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(kind).font(.subheadline.weight(.bold))
                         .foregroundStyle(Self.calloutColor(kind))
                     Text(md(text)).font(.body)
@@ -165,13 +165,13 @@ struct BookReaderView: View {
             .padding(12)
             .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(alignment: .leading) {
-                Rectangle().fill(Self.calloutColor(kind)).frame(width: 3).padding(.vertical, 6)
+                Rectangle().fill(Self.calloutColor(kind)).frame(width: 3).padding(.vertical, WardSpace.s)
             }
         case .flow(let steps):
             FlowchartView(steps: steps)
         case .image(let index, let caption):
             if let picture = picture(index) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: WardSpace.s) {
                     Image(uiImage: picture)
                         .resizable().scaledToFit()
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -226,19 +226,25 @@ struct BookReaderView: View {
 
     /// Back and Contents on the left, small; Next page at the trailing end -
     /// and on the last page, or a book of one page, Done.
+    ///
+    /// Back gives way to its symbol where its word has no room, as Contents
+    /// does, so the main button keeps its words whole: at XXL, with Back's
+    /// word kept whole first, Done was cut to "..." (15 Oct). VoiceOver
+    /// still hears "Previous page".
     @ViewBuilder
     private var footer: some View {
         if pages.count > 1 {
             HStack(spacing: 12) {
                 Button { index = max(0, index - 1) } label: {
-                    Label("Back", systemImage: "chevron.left")
+                    ViewThatFits(in: .horizontal) {
+                        Label("Back", systemImage: "chevron.left")
+                        Image(systemName: "chevron.left")
+                    }
                 }
                 .buttonStyle(.bigCompanion)
                 .disabled(index == 0)
                 .accessibilityLabel("Previous page")
                 .keyboardShortcut(.leftArrow, modifiers: [])
-                // its word whole first; the main button takes what is left
-                .layoutPriority(1)
 
                 contentsButton
 
@@ -304,7 +310,7 @@ struct FlowchartView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
+        .padding(.vertical, WardSpace.s)
         .accessibilityElement(children: .combine)
     }
 
@@ -313,7 +319,7 @@ struct FlowchartView: View {
         let parts = step.components(separatedBy: CharacterSet(charactersIn: "\u{2192}")).map { $0.trimmingCharacters(in: .whitespaces) }
         let branch = parts.count > 1 || step.contains("->")
         let pieces = parts.count > 1 ? parts : step.components(separatedBy: "->").map { $0.trimmingCharacters(in: .whitespaces) }
-        VStack(spacing: 2) {
+        VStack(spacing: WardSpace.xs) {
             if branch, pieces.count > 1 {
                 Text(pieces[0]).font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
                 Text(pieces.dropFirst().joined(separator: " \u{2192} ")).font(.subheadline.weight(.semibold))
@@ -323,7 +329,7 @@ struct FlowchartView: View {
         }
         .foregroundStyle(Color.wardInk)
         .multilineTextAlignment(.center)
-        .padding(.horizontal, 14).padding(.vertical, 10)
+        .padding(.horizontal, WardSpace.l).padding(.vertical, WardSpace.m)
         .frame(maxWidth: 420)
         .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }

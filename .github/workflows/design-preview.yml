@@ -24,7 +24,8 @@
 name: Design preview
 on:
   push:
-    branches: ['preview/**']
+    # preview/ward-<name> is ward-preview.yml's
+    branches: ['preview/**', '!preview/ward-**']
   workflow_dispatch:
     inputs:
       only:

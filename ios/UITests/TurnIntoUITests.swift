@@ -42,7 +42,10 @@ final class TurnIntoUITests: XCTestCase {
         // then, once, "Which exam are you preparing for?" - skipped here
         let skipExam = app.buttons["examOnboardingSkip"]
         if skipExam.waitForExistence(timeout: 8) { skipExam.tap() }
-        XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 15), "the library didn't open")
+        // home draws its own top row, with no navigation bar: its account
+        // menu says the library is open
+        let home = app.descendants(matching: .any)["libraryMenu"]
+        XCTAssertTrue(home.waitForExistence(timeout: 15), "the library didn't open")
         snap(app, "1-library")
 
         // The personal build seeds an example of every mode; the MCQ one is

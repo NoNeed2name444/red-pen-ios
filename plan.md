@@ -2012,6 +2012,158 @@ with the marks on the screens last.
     that gives them their neumorphic shape and never darkens or blurs what
     lies behind or beside them. The second, since 15 Oct: the depth fade
     inside the 3D map (4f, docs/design/depth-fade.md).
+  - Every control's states (design/ward-states): rest, held, disabled and
+    chosen, the same in every section and mode. WardControlStates holds
+    them as colour roles, Foundation only, and the wardstates suite checks
+    all seven sections, light and dark (words 4.5:1 on their face; disabled
+    told apart from enabled, and chosen from unchosen, by more than relief;
+    no blue outside Questions). Disabled is Biro Grey, solid; chosen keeps
+    a 2 pt accent edge, disabled too; held sinks. WardControls, PopTileStyle
+    and its Playgrounds stand-in draw them; WardStatesGallery
+    (`-uiPreviewScreen states -uiPreviewSection <section>`) shows every
+    control in each state, shot by the Ward preview's states part. Done in
+    code (7028b485, 35590f7b, then the gallery's switches without their
+    words). The fade gate is fixed (ward-polish merged in, 15 Oct). Left:
+    the gallery's pictures from the next Ward preview, then an independent
+    review of code and pictures together.
+  - The fade rule, loosened (the owner, 15 Oct, 6:25 PM Cairo: "loosen the
+    no fade rule a bit"). Still banned: anything that looks washed out at
+    rest (faded buttons, text or cards), and a visible fade lasting longer
+    than 0.2 s used as a transition. Allowed, besides the buttons' rim and
+    the Neurons depth fade (4f): iOS's own brief transitions (the status
+    bar, sheet and alert dimming, the keyboard, menus), any change that
+    settles within 0.2 s, and crossfades under Reduce Motion. The Ward
+    preview's gate (tools/ward_frames_check.py) follows it: the status bar
+    is measured and reported but never fails, and the content fails only
+    when a faded stretch stays on screen longer than 0.2 s (a shorter one
+    is reported as a brief dip, allowed).
+  - [x] The Ward preview no longer hangs on a recording: ward-r15's phone
+    job waited 80 minutes for simctl's recordVideo to stop and timed out.
+    tools/ward_shots.sh stop_rec gives it 20 s after the stop signal, then
+    kills it and logs a FAULT line, so a stuck recorder costs 20 s, not
+    the run.
+  - [x] Recordings start only once the app's screen is up: on a busy Mac,
+    ward-states-2's mode-switch-quiz.mp4 (preview 38779814424) was 7 s of
+    the system launch screen, so its "no switch" check failed. wait_up()
+    in tools/ward_shots.sh asks the same launch-screen check as shoot()
+    before record() and system_switch() start recording, every 3 s for
+    up to 10 checks, then logs a FAULT line and records anyway.
+  - [x] Home's fit faults (the publish gate, ward-r14 on): the Vitals streak
+    is one line at its own width beside the ring (a Label drew it narrower than
+    ViewThatFits judged); at large text a bed comes off the round when the cut
+    would slice Start ward round; the preview waits for a slow first frame
+    instead of relaunching it. Check A: HomeFitTests; confirm on a Mac run.
+  - Independent review of design/ward-states (15 Oct) rejected it on seven
+    blocking defects; fixing them smallest first (the 16 nits are out of
+    scope):
+    - [x] B6: Start's frame is written to LibraryView only at rest
+      (HomeBandTrack.isAtRest), so a scroll step no longer re-runs the
+      library's body (WardHome.swift onStartFrame).
+    - [x] B1: no sliver under 12 pt of any row or part shows over home's
+      cut. Rows and parts report their tops at rest (`wardPart`,
+      WardPartBook: Practise tiles, set rows, headings, More rows, the card,
+      each bed and its chip) and the cut moves up to any top it would
+      sliver (HomeFit.settledCut, LibraryView.pageCutHeight); the probe
+      checks them all against where the page really ends (HomeFit.faults
+      parts/pageEnd) and faults if nothing was measured. HomeFitTests: the
+      iPad at the default size (tiles 8 pt over the cut) and AX1 (the Due
+      chip 4 pt over it).
+    - [x] B3: a disabled switch's words go Biro Grey like every other
+      disabled control (WardToggleFace); the states model's switch now has
+      words (WardControlLook.words, wordsFace) and WardStatesTests checks
+      them in every state, section and mode.
+    - [x] B5: no blue outside Questions: the New chip (CaseKit, the bed chip)
+      takes the section's accent (`.blue` tone); WardTone.info and
+      Color.wardInfo are gone. tests/ward/accent-blue.test.mjs now asserts
+      it (it asserted the opposite).
+    - [x] B4: every ink a chip or pill wears clears 4.5:1 on its well, light
+      and dark, with and without Increase Contrast (the inner shade
+      included, WardRelief.insetGround): Resus ECG red, Discharge Green
+      and Caution Amber are a shade darker in the light scheme (0xB6263A,
+      0x116D50, 0x8C5200; the green also moved a little towards teal so the
+      Textbook accent stays apart from it). WardPaletteTests holds the
+      semantic inks, Biro Grey, Chart Ink, Theatre Blue and every section's
+      accent on the well; the false promises in WardControls and WardHome
+      now point at it.
+    - [x] B7: the fade gate takes each mode's end state from frames at rest
+      (on screen 0.5 s or more; the highest spread among them), not the
+      last frame of a run on one side of brightness 120, which can be
+      caught mid-crossfade. tests/ward/frames-check.test.mjs has three
+      0.5 s crossfades that must fail (the old gate called them clean, end
+      contrast 6.8) and the same switches in one step that must pass. Run on
+      a real recording with fades (before2/mode-switch.mp4) the old gate said
+      light 3.8 and passed; this one says light 31.3 and fails four fades.
+    - [x] B2: the dock, the rail, the Ideas pill, the AX list button and
+      FloatingSwitcher follow the states: chosen keeps the pressed-in hollow
+      and adds the 2 pt accent edge (wardChosenEdge on the moving hollow),
+      unchosen enabled items are in Chart Ink (Biro Grey is disabled's),
+      held sinks with the Ward press (WardItemButtonStyle,
+      WardPanelButtonStyle, not `.buttonStyle(.plain)`), the collapse
+      chevron is in Chart Ink. Rings, shaping and Ideas' magenta stay.
+      tests/ward/dock-states.test.mjs reads the sources for it; the pictures
+      come from the next Ward preview.
+    - [x] B3: AX1 home-fit sliver (run 38820624486): SwiftUI snapped the page
+      frame to the 3x grid, up, so the end (682.67) fell below the chip's top
+      (682.3). HomeFit.shown now settles the cut onto the pixel grid at or
+      above itself (scale from displayScale); gate unchanged; HomeFitTests.
+    - Second review (N1-N3):
+      - [x] N1: set rows, the examples row and the More rows had lost their
+        Ward tile because `.wardPart` wrapped the row after its list-row
+        traits, so the List no longer read them. `wardPart` now comes before
+        the traits (LibraryRows, LibraryCategory); no other List row had it
+        the wrong way round. tests/ward/part-traits.test.mjs fails if a row
+        trait sits before a `.wardPart` in a chain (it flags the old order).
+      - [x] N3: a part's top is booked floored onto the pixel grid
+        (wardBookedTop), not rounded to half a point: 682.78 at 3x books
+        682.667, never 683. HomeFitTests.
+      - [x] N2: a part whose view goes away leaves the book (onDisappear),
+        and the book tells `changed` what it already holds the moment the
+        page installs it, so an early publish is kept. The book's logic is
+        WardPartLedger (Foundation-only, Shared/Ward/WardPartLedger.swift), tested for drop, clear and
+        shared tops in HomeFitTests. The Mac run (ward-states-7) confirmed
+        the drop only: nothing in it returned to a page, and the late-install
+        replay cannot be told apart from a later publish.
+    - Third review (REJECT on N4):
+      - [x] N4: a part dropped when its view went away was never booked
+        again (set() books only at rest, and onGeometryChange reports only
+        changes), so after a page was pushed over home and popped the iPad's
+        cut showed 8 pt of the Practise tiles again. The ledger now keeps
+        each live part's latest sighting, booked at the next rest; a part
+        hands its last frame back on onAppear (kept in a plain object, never
+        view state); HomeBandTrack rebooks when the list comes to rest. A
+        part that disappears at rest wholly below the cut is hidden by it,
+        not gone: it keeps its entry and sighting, so the cut cannot fall
+        back, show it and hide it again (a loop at rest). HomeFitTests.
+      - [x] N5: a drop while the list moves no longer re-runs the page; the
+        next rest publishes.
+      - [x] The gate: on the library preview, -uiPreviewPushBack pushes the
+        first set and comes back before the fit report, which flags any part
+        lost on the way (tools/ward_shots.sh passes it on home's shots).
+      - [x] Nit 1: the Practise tiles book their low lift's rim (3 pt).
+        Nit 2: part-traits.test.mjs knows the other row traits and a `}.`
+        line; server-tests.yml runs on the folders it reads.
+      - [x] Confirmed on the next Ward preview, then the fourth review.
+        Ward preview 8 (dfb9a921): every fit report says "fits" and "push
+        and back: done" on every device and size but AX5 (phone and SE),
+        where the push and back gave up at 2.5 s with no set to open; an
+        AX5 launch takes about half a minute. The trip now waits up to 30
+        s for its parts and a set, the report waits for the trip and the
+        rest after its pop, and a trip that never ended says "not
+        finished" apart from "no set to open". Preview only; the gate is
+        unchanged. Ward preview 9 (53ca8795): all 21 reports say "fits"
+        and "push and back: done". The fourth independent review (16 Oct)
+        accepted it: N4 and N5 fixed, the gate would have caught N4, no
+        new blocking defect.
+      - [ ] The fourth review's nits, each with a Ward preview: the loop
+        guard compares raw doubles (WardPartLedger.swift:104-105), so on a
+        3x screen about 1 in 9 holders is not kept and could loop at rest
+        if the cut hides its cell (slack as in onGrid, drop the maxY half,
+        a 3x test); clear() leaves the cut nil until pageCut changes; kept
+        entries go stale (prune those above the cut at each rebook); a
+        self-topped holder ("More ways to practise") flashes once at the
+        end of a scroll back; and the gate never proves a real push (FAULT
+        unless the book lost parts between push and pop), its lost check
+        goes by name, and a slow launch can shoot during the trip.
 - [ ] 6. Last: the owner's marks on the screens.
 - [x] 7. (Done 14 Oct: tools/jev-standin and jev-standin.yml; oath check 30 of
   30, 0 false alarms; NLI model is the TRIAGE_NLI_MODEL repo variable.) An open-source stand-in for Jev (§22a kept only Layer 7, the

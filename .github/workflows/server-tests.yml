@@ -20,6 +20,11 @@ on:
       - 'tools/asr_bench.mjs'
       - 'ios/RedPen/Shared/CloudTranscript.swift'
       - 'ios/RedPen/Shared/LectureTranscriber.swift'
+      # the Ward Swift source checks in tests/ward/
+      - 'ios/RedPen/Features/**'
+      - 'ios/RedPen/Shared/**'
+      - 'ios/RedPen/Models/**'
+      - 'ios/RedPen/Persistence/**'
 # Read-only: the tests need nothing more, and they also run on aahp/ branches.
 permissions:
   contents: read

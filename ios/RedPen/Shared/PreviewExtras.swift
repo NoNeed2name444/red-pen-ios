@@ -12,7 +12,12 @@ import SwiftUI
 enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
-                          "quiz-folded", "library-end", "library-loading", "signin", "account-deleted"]
+                          "quiz-folded", "library-end", "library-loading", "signin", "account-deleted",
+                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz"]
+
+    /// Posted by the "section-switch" preview: home moves one place along
+    /// its dock (LibraryView).
+    static let dockStep = Notification.Name("PreviewExtras.dockStep")
 
     @ViewBuilder
     static func view(for screen: String) -> some View {
@@ -48,6 +53,30 @@ enum PreviewExtras {
             // after an Apple-linked account is deleted: Apple's steps for
             // removing the app from Sign in with Apple (GAP 1)
             PreviewSignIn(deleted: true)
+        case "settings":
+            // Settings, for the Ward design pass's light and dark pairs
+            NavigationStack { SettingsPage() }
+        case "sheet":
+            // a sheet over home: New set, as the dock's writing modes open it
+            LibraryView().sheet(isPresented: .constant(true)) { NewSetView() }
+        case "mode-switch":
+            // home turning dark and back every 2.5 s through Always night
+            // sky, the app's own switch, for a recording of the shift
+            PreviewModeSwitch { LibraryView() }
+        case "mode-switch-quiz":
+            // the same switch on a study screen, whose bar carries buttons
+            PreviewModeSwitch { NavigationStack { MCQQuizView(set: SampleData.nephrology) } }
+        case "section-switch":
+            // home stepping along its dock every 2 s, each place's hue
+            // shifting to the next, for a recording
+            PreviewSectionSwitch()
+        case "home-ideas":
+            // home on Ideas, in its hue
+            LibraryView()
+                .task {
+                    try? await Task.sleep(for: .seconds(1))
+                    NotificationCenter.default.post(name: PreviewExtras.dockStep, object: "ideas")
+                }
         default:
             EmptyView()
         }
@@ -137,4 +166,37 @@ enum PreviewDecks {
             NarrateSegment(text: "والـ ميكو كوتينياس تاني في الـ كرايتيريا", lang: "ar"),
         ]
     )
+}
+
+/// Home, switching light and dark by itself (the "mode-switch" preview)
+/// through the app's own path: the Always night sky setting, which turns
+/// the window dark at the root (SkyRoot), so the window's bars, the search
+/// field and every Ward colour take the same switch a user's would.
+private struct PreviewModeSwitch<Content: View>: View {
+    @ViewBuilder var content: Content
+    @AppStorage(SpaceSettings.alwaysNightKey) private var night = false
+
+    var body: some View {
+        content
+            .task {
+                night = false
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    night.toggle()
+                }
+            }
+    }
+}
+
+/// Home stepping along its dock by itself (the "section-switch" preview).
+private struct PreviewSectionSwitch: View {
+    var body: some View {
+        LibraryView()
+            .task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(2))
+                    NotificationCenter.default.post(name: PreviewExtras.dockStep, object: nil)
+                }
+            }
+    }
 }

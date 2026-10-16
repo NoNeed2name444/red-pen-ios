@@ -46,6 +46,7 @@ extension LibraryView {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("examplesBanner")
+                .wardPart("the examples row", reach: WardSpace.s)
                 .frostedListRow()
             }
         }
@@ -131,6 +132,10 @@ extension LibraryView {
                 .transition(.identity)
             }
         }
+        // the tile's face stands a little out of the content (WardRowTile);
+        // the part goes inside the row's traits, which the List reads off
+        // the row's outermost modifiers
+        .wardPart("a set row", reach: WardSpace.s)
         // a soft tile, a little tighter above and below than a form's, so
         // a long library stays quick to scan
         .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 16))
@@ -231,11 +236,11 @@ extension LibraryView {
                 selectionActions(compact: true)
             }
         }
-        .padding(10)
+        .padding(WardSpace.m)
         .wardRaised(in: shape, lift: .high)
         .frame(maxWidth: 700)
         .padding(.horizontal, 12)
-        .padding(.bottom, 10)
+        .padding(.bottom, WardSpace.m)
     }
 
     private var selectionDoneButton: some View {
@@ -282,7 +287,7 @@ extension LibraryView {
     /// Move, Quiz, Combine, then Delete - with their names, or as symbols
     /// alone when the names do not fit.
     private func selectionActions(compact: Bool) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: WardSpace.s) {
             moveMenu(compact: compact)
             quizButton(compact: compact)
             combineButton(compact: compact)
@@ -375,7 +380,7 @@ extension LibraryView {
     /// first. A card at the top of the page rather than the whole page, so
     /// the category's ways to practise are still there under it.
     var emptyState: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: WardSpace.l) {
             HStack(spacing: -10) {
                 ForEach([StudySetKind.mcq, .anki, .osce], id: \.self) { kind in
                     fannedTile(kind)
@@ -413,7 +418,7 @@ extension LibraryView {
             .buttonStyle(.borderless)
             .accessibilityIdentifier("emptyLibraryLinks")
         }
-        .padding(.vertical, 20)
+        .padding(.vertical, WardSpace.xl)
         .frame(maxWidth: .infinity)
     }
 

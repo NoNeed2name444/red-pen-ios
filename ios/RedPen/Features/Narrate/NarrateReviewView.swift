@@ -102,7 +102,7 @@ struct NarrateReviewView: View {
     /// (NarrateListening), over the recording's own player or the read-aloud
     /// controls with the way to add a recording beside them.
     private var controls: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: WardSpace.m) {
             if !texts.isEmpty || player.hasAudio { listenRow }
             transport
         }

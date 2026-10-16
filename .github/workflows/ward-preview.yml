@@ -1,0 +1,226 @@
+# A short look at the Ward design pass, light and dark, without the whole
+# design tour, on five Macs at once (tools/ward_shots.sh says what each
+# part takes):
+#   phone   on the main iPhone (a 17 Pro): the recordings of the colour
+#           shift (the app's own light/dark switch, home stepping through
+#           its sections, the system's switch), home, a study screen, New
+#           set, Settings, a sheet and each section in both modes;
+#   small   on the same iPhone: home and each section at the iPhone SE's
+#           size, and Dynamic Type at XXL, AX1 and AX5 (home, the
+#           sections list and New set);
+#   promax  home and each section on a Pro Max, both modes, and home at
+#           XXL and AX1;
+#   ipad    the same on an iPad;
+#   states  the states gallery (every control at rest, held, disabled and
+#           chosen) in each section's hue, once the app has that screen.
+# A picture that is still the launch screen is taken again. Pictures are
+# kept at full size, to be read at 1:1.
+#
+# The run fails if the app's own switch leaves the content faded for
+# longer than 0.2 s (tools/ward_frames_check.py: its contrast under both
+# end states; a shorter dip is allowed, and the status bar is reported but
+# never fails, the owner's rule of 15 Oct), or if home does not fit on any
+# device or size (HomeFit, written by the app on the "library" screen: at
+# the default size the round card and its button end above the page's cut
+# over the bar; at any size nothing sits on the card, no button is sliced
+# by the cut, no sliver peeks over it and no word of home's text is broken).
+#
+# A push to a preview/ward-<name> branch runs it (design-preview.yml leaves
+# those branches alone); the pictures land on the shots/ward-<name> branch.
+# Each name is pushed once, so a later round takes a new name.
+name: Ward preview
+on:
+  push:
+    branches: ['preview/ward-**']
+permissions:
+  contents: read
+concurrency:
+  group: ward-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  shots:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [phone, small, promax, ipad, states]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Whether this part has anything to take
+        id: due
+        run: |
+          # the states gallery is a screen of its own; until the app has it
+          # the part stops here
+          if [ "${{ matrix.part }}" = states ] && ! grep -q 'case "states"' ios/RedPen/Shared/PreviewLaunch.swift; then
+            echo "run=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Tools
+        if: steps.due.outputs.run == 'yes'
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        if: steps.due.outputs.run == 'yes'
+        working-directory: ios
+        run: xcodegen generate
+      - name: Pick the simulators
+        if: steps.due.outputs.run == 'yes'
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re, subprocess, sys
+          devices = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          best = {}
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in re.findall(r"\d+", runtime.rsplit("iOS", 1)[-1]))
+              for d in devs:
+                  name = d["name"]
+                  if name.startswith("iPhone") and "SE" not in name:
+                      # the main phone: a Pro, not a Max; then the Pro Max
+                      key = "max" if name.endswith("Pro Max") else ("pro" if name.endswith(" Pro") else None)
+                      rank = 0
+                  elif name.startswith("iPad"):
+                      # an 11-inch iPad Pro, else any iPad Pro, else any iPad
+                      key = "ipad"
+                      rank = 2 if name.startswith("iPad Pro") and "11" in name else (1 if name.startswith("iPad Pro") else 0)
+                  else:
+                      continue
+                  if key is None:
+                      continue
+                  candidate = (version, rank, name, d["udid"])
+                  if key not in best or candidate > best[key]:
+                      best[key] = candidate
+          for key in ("pro", "max", "ipad"):
+              if key in best:
+                  print(f"{key}={best[key][3]}")
+                  print(key, best[key][2], file=sys.stderr)
+              else:
+                  print("no simulator for", key, file=sys.stderr)
+          PY
+      - name: Build for the simulator
+        if: steps.due.outputs.run == 'yes'
+        working-directory: ios
+        env:
+          UDID: ${{ (matrix.part == 'promax' && steps.sim.outputs.max) || (matrix.part == 'ipad' && steps.sim.outputs.ipad) || steps.sim.outputs.pro }}
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=$UDID" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+      - name: Pictures
+        if: steps.due.outputs.run == 'yes'
+        env:
+          PART: ${{ matrix.part }}
+          PRO: ${{ steps.sim.outputs.pro }}
+          MAX: ${{ steps.sim.outputs.max }}
+          IPAD: ${{ steps.sim.outputs.ipad }}
+        run: |
+          APP=ios/build/Build/Products/Debug-iphonesimulator/RedPen.app
+          device() {  # key, udid
+            if [ -n "$2" ]; then bash tools/ward_shots.sh device "$2" "$APP" "$1"
+            else mkdir -p "out/devices/$1"; echo "FAULT no $1 simulator" > "out/devices/$1/home-fit.txt"; fi
+          }
+          case "$PART" in
+            phone|small|states) bash tools/ward_shots.sh "$PART" "$PRO" "$APP" ;;
+            promax) device promax "$MAX" ;;
+            ipad) device ipad "$IPAD" ;;
+          esac
+      - name: Keep the log
+        if: ${{ !cancelled() && steps.due.outputs.run == 'yes' }}
+        run: |
+          mkdir -p out
+          grep -E "error:" build.log 2>/dev/null | sed -E 's#^.*/ios/##' | sort -u | head -60 > "out/errors-${{ matrix.part }}.txt" || true
+          ls -laR out | head -150
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.due.outputs.run == 'yes' }}
+        with:
+          name: ward-${{ matrix.part }}
+          path: out
+  publish:
+    needs: shots
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # every part's out/ lands in one out/: their files have names of
+      # their own (home-fit.txt, home-fit-small.txt, devices/<key>/, ...)
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ward-*
+          path: out
+          merge-multiple: true
+      - name: Note a part that left nothing
+        run: |
+          for f in out/home-fit.txt out/home-fit-small.txt out/devices/promax/home-fit.txt out/devices/ipad/home-fit.txt; do
+            if [ ! -f "$f" ]; then mkdir -p "$(dirname "$f")"; echo "FAULT its part left nothing" > "$f"; fi
+          done
+      - uses: actions/checkout@v4
+        with:
+          path: src
+          persist-credentials: false
+          sparse-checkout: tools/ward_frames_check.py
+          sparse-checkout-cone-mode: false
+      - name: Check the light/dark switch for a fade
+        id: fade
+        run: |
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install -y -qq ffmpeg python3-pil >/dev/null
+          set +e
+          code=0
+          for v in mode-switch-app mode-switch-quiz; do
+            if [ ! -f "out/$v.mp4" ]; then
+              echo "== $v: no recording" >> out/frames-check.txt
+              code=1
+              continue
+            fi
+            echo "== $v" >> out/frames-check.txt
+            python3 src/tools/ward_frames_check.py "out/$v.mp4" --report out/check.tmp
+            # a fade of the content longer than 0.2 s fails, and so does
+            # a recording with no switch in it
+            # (r9's stayed dark throughout and passed)
+            [ $? != 0 ] && code=1
+            cat out/check.tmp >> out/frames-check.txt && rm out/check.tmp
+          done
+          # the system's own switch, for the record only: iOS blends the
+          # screen across itself when the whole device changes mode
+          if [ -f out/mode-switch.mp4 ]; then
+            echo "== mode-switch (system, not gated)" >> out/frames-check.txt
+            python3 src/tools/ward_frames_check.py out/mode-switch.mp4 >> out/frames-check.txt
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Push to shots/ward-<name>
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ github.ref_name }}
+        run: |
+          set -e
+          NAME="${REF#preview/}"
+          cd out
+          git init -q
+          git checkout -q -b "shots/$NAME"
+          git config user.name "red-pen-preview"
+          git config user.email "preview@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Ward preview of ${GITHUB_SHA::7}"
+          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "shots/$NAME:shots/$NAME"
+      - name: Fail on a faded frame or a recording with no switch
+        if: ${{ steps.fade.outputs.code == '1' }}
+        run: |
+          cat out/frames-check.txt
+          exit 1
+      - name: Fail on a home that does not fit, on any device or size
+        run: |
+          for f in out/home-fit.txt out/home-fit-small.txt out/devices/promax/home-fit.txt out/devices/ipad/home-fit.txt; do
+            echo "== $f"; cat "$f"
+          done
+          ! grep -q "^FAULT" out/home-fit.txt out/home-fit-small.txt out/devices/promax/home-fit.txt out/devices/ipad/home-fit.txt
