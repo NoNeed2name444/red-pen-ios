@@ -2273,6 +2273,9 @@ with the marks on the screens last.
        1.46:1 lighter than the cards (was blue-grey #353E4A, 1.32:1), the
        faded ink 5.77:1 on it; by day as it was. The right answer keeps its
        section's ring, pressed in at the new depth.
+    Done (16 Oct): the ward suites 4 of 4 and tools/preflight.sh,
+    PREFLIGHT OK; on 33b60aea the new tests fail (wardrelief 3,269 of
+    12,135 checks, wardpalette 2 of 206, wardlook does not build).
 
 ### Waiting on the owner
 
