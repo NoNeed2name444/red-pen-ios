@@ -1,0 +1,25 @@
+== ipad library-light
+fits
+card 236-589, start 517-573, new set 1118-1174, tiles 621-758, bar 1118-1190, cut 1106, large text false
+page ends 1098, 15 parts measured: the round card 237-590, bed 1 283-356, the Due chip 308-330, bed 2 358-431, the New chip 383-405, bed 3 433-506, the tiles 622-758, the Your sets heading 807-821, a set row 848-922, Build a session 960-1028, the Practise heading 1066-1080, the flagged tile 1098-1210, the mistakes tile 1098-1210, the mixed tile 1098-1210, the timed tile 1098-1210
+words: the Vitals tile's streak 84/40, the brain map's line 192/38
+== ipad library-dark
+fits
+card 236-589, start 517-573, new set 1118-1174, tiles 621-758, bar 1118-1190, cut 1106, large text false
+page ends 1098, 15 parts measured: the round card 237-590, bed 1 283-356, the Due chip 308-330, bed 2 358-431, the New chip 383-405, bed 3 433-506, the tiles 622-758, the Your sets heading 807-821, a set row 848-922, Build a session 960-1028, the Practise heading 1066-1080, the flagged tile 1098-1210, the mistakes tile 1098-1210, the mixed tile 1098-1210, the timed tile 1098-1210
+words: the Vitals tile's streak 84/40, the brain map's line 192/38
+== ipad xxl-library-light
+fits
+card 253-656, start 584-640, new set 1118-1174, tiles 688-829, bar 1118-1190, cut 1106, large text true
+page ends 1106, 10 parts measured: the round card 253-656, bed 1 304-392, the Due chip 334-362, bed 2 394-482, the New chip 424-452, bed 3 484-572, the tiles 688-830, the Your sets heading 876-895, a set row 920-1008, Build a session 1046-1121
+words: the Vitals tile's streak 105/50, the brain map's line 241/48
+== ipad xxl-library-dark
+fits
+card 253-656, start 584-640, new set 1118-1174, tiles 688-829, bar 1118-1190, cut 1106, large text true
+page ends 1106, 10 parts measured: the round card 253-656, bed 1 304-392, the Due chip 334-362, bed 2 394-482, the New chip 424-452, bed 3 484-572, the tiles 688-830, the Your sets heading 876-895, a set row 920-1008, Build a session 1046-1121
+words: the Vitals tile's streak 105/50, the brain map's line 241/48
+== ipad ax1-library-light
+fits
+card 334-881, start 807-865, new set 1032-1089, tiles 913-1225, bar 1032-1190, cut 1020, large text true
+page ends 1020, 6 parts measured: the round card 335-881, bed 1 393-593, the Due chip 551-585, bed 2 595-796, the New chip 753-788, the tiles 913-1226
+words: the Vitals tile's streak 137/65, the brain map's line 313/64
