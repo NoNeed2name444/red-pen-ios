@@ -2123,9 +2123,11 @@ with the marks on the screens last.
   failure was something else: a face switching from live to cached
   re-created the recording terms' agree button mid-tap, and the test kept
   tapping its corner, outside the capsule.
-  Next: the entrance comes off the two builders and goes on each row's own
-  view, never on a Section, a ForEach or a builder of several rows, with a
-  source check in LaunchOpeningTests. Tick when one Design preview of it
+  The fix: the entrance comes off the two builders and goes on each row's
+  own view (the set rows, each grid, the section headers, the build-session
+  and examples buttons, the "Across the app" rows), never on a Section, a
+  ForEach or a builder of several rows, with source checks in
+  LaunchOpeningTests. Tick when one Design preview of it
   passes the iPhone tour on its first attempt (03-library-osce and
   04-library-audio), testStraightLines finds the banner, the accessibility
   tree shows one cell per row, the iPad passes both, and the Launch

@@ -604,8 +604,8 @@ struct LibraryView: View {
                     // The modes first - one tile per kind of set here - where
                     // there is more than one. A category of one kind has its
                     // "See all" beside the heading over its sets instead.
-                    if !searching && category.kinds.count > 1 { modesSection.launchEntrance(inOpening: true) }
-                    listBody.launchEntrance(inOpening: true)
+                    if !searching && category.kinds.count > 1 { modesSection }
+                    listBody
                 }
                 // The whole page already sits 16 points in from the paper
                 // frame (SkyRoot), so the sections' own side margins would
@@ -731,6 +731,7 @@ struct LibraryView: View {
             if !searching { seeAllButton }
             selectButton
         }
+        .launchEntrance(inOpening: true)
         .textCase(nil)
     }
 
@@ -814,6 +815,7 @@ struct LibraryView: View {
                 .hoverEffect(.highlight)
                 .accessibilityLabel("Folder options")
             }
+            .launchEntrance(inOpening: true)
             .textCase(nil)
         }
         }

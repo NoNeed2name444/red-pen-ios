@@ -46,6 +46,7 @@ extension LibraryView {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("examplesBanner")
+                .launchEntrance(inOpening: true)
                 .frostedListRow()
             }
         }
@@ -91,6 +92,7 @@ extension LibraryView {
 
     func sectionHeader(_ text: String) -> some View {
         CategoryHeading(title: text)
+            .launchEntrance(inOpening: true)
     }
 
     /// One library row - a navigation link normally, a tickable row in
@@ -131,6 +133,7 @@ extension LibraryView {
                 .transition(.identity)
             }
         }
+        .launchEntrance(inOpening: true)
         // a soft tile, a little tighter above and below than a form's, so
         // a long library stays quick to scan
         .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 16))

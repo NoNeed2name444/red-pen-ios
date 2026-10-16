@@ -513,6 +513,27 @@ check("the entrance notes its frame in a plain object, not view state",
       !entrance.isEmpty && !entrance.contains("@State private var frame") && entrance.contains("spot.frame = f")
       && stage.contains("final class LaunchSpot"))
 
+// A List row is one view: the entrance cannot sit on a Section, or on a
+// builder of several (listBody, modesSection), or every Section stacks into
+// one row below the round card, five screens tall, that never settles. It
+// goes on each row's own single view instead.
+let libraryView = source("ios/RedPen/Features/Library/LibraryView.swift")
+let libraryRows = source("ios/RedPen/Features/Library/LibraryRows.swift")
+let libraryCategory = source("ios/RedPen/Features/Library/LibraryCategory.swift")
+let librarySearch = source("ios/RedPen/Features/Library/LibrarySearchResults.swift")
+let opens = ".launchEntrance(inOpening: true)"
+check("the library does not put the entrance on a builder of several rows",
+      !libraryView.isEmpty && !libraryView.contains("listBody.launchEntrance")
+      && !libraryView.contains("modesSection.launchEntrance"))
+let rowSource = section(libraryRows, from: "func row(_ set: StudySet) -> some View {", to: "func rowMenu(")
+let gridSource = section(libraryCategory, from: "private func tileGrid(", to: "private func tileButton(")
+let examplesSource = section(libraryRows, from: "var examplesSection: some View {", to: "func startFlaggedQuiz()")
+let buildSource = section(librarySearch, from: "func buildSessionButton(", to: "private func searchRow(")
+for (name, text) in [("row(_:)", rowSource), ("tileGrid", gridSource),
+                     ("the examples button", examplesSource), ("buildSessionButton", buildSource)] {
+    check("\(name) carries the entrance, so the opening still moves it", !text.isEmpty && text.contains(opens))
+}
+
 // MARK: no fading, anywhere in the opening
 
 let splash = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchSplash.swift", encoding: .utf8)) ?? ""
