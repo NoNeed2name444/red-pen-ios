@@ -1,0 +1,34 @@
+
+compile rc=0
+ok   design/icon/layers holds one PNG per layer, numbered back to front: ["0-background.png", "1-metal.png", "2-tubing.png", "3-earpieces.png", "4-chest-piece.png", "5-a-plus.png"]
+ok   0-background.png is on the 1024 x 1024 canvas
+ok   0-background.png is 8-bit RGBA, so it has alpha
+ok   1-metal.png is on the 1024 x 1024 canvas
+ok   1-metal.png is 8-bit RGBA, so it has alpha
+ok   2-tubing.png is on the 1024 x 1024 canvas
+ok   2-tubing.png is 8-bit RGBA, so it has alpha
+ok   3-earpieces.png is on the 1024 x 1024 canvas
+ok   3-earpieces.png is 8-bit RGBA, so it has alpha
+ok   4-chest-piece.png is on the 1024 x 1024 canvas
+ok   4-chest-piece.png is 8-bit RGBA, so it has alpha
+ok   5-a-plus.png is on the 1024 x 1024 canvas
+ok   5-a-plus.png is 8-bit RGBA, so it has alpha
+ok   icon.json is a JSON object
+ok   at most four groups, as Icon Composer asks (4)
+ok   the icon has a fill behind the background layer
+ok   no color-space-for-untagged-svg-colors (actool on Xcode 26.4-26.6 crashes on it)
+ok   the layers stack back to front: ["background", "metal", "tubing", "earpieces", "chest-piece", "a-plus"]
+ok   each layer names its own PNG
+ok   each layer sits in its group
+ok   icon.json names every asset in Assets, and no other: ["0-background.png", "1-metal.png", "2-tubing.png", "3-earpieces.png", "4-chest-piece.png", "5-a-plus.png"]
+ok   Assets/0-background.png is design/icon/layers/0-background.png
+ok   Assets/1-metal.png is design/icon/layers/1-metal.png
+ok   Assets/2-tubing.png is design/icon/layers/2-tubing.png
+ok   Assets/3-earpieces.png is design/icon/layers/3-earpieces.png
+ok   Assets/4-chest-piece.png is design/icon/layers/4-chest-piece.png
+ok   Assets/5-a-plus.png is design/icon/layers/5-a-plus.png
+ok   IconLayers.swift shows each layer's PNG from the app's layers folder
+ok   project.yml copies design/icon/layers into the app
+all icon layer checks passed
+
+run rc=0

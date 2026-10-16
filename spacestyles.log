@@ -1,0 +1,61 @@
+
+compile rc=0
+PASS P1 the inner edge turns at the full rate
+PASS P1 twice as far out turns 2^-1.5 as fast (Kepler)
+PASS P1 every lane further out turns slower
+PASS P1 inside the inner edge holds at the edge's rate
+PASS P1 the gas is fastest at the inner edge, half light's speed
+PASS P1 its speed falls as 1/sqrt(r)
+PASS P1 the side coming towards the eye is brightest (beaming)
+PASS P1 square to the eye, no beaming
+PASS P1 beaming held to 0.3...3.5
+PASS P2 one sun: the light comes from it
+PASS P2 two suns: the nearer one wins (inverse square)
+PASS P2 no suns: the key light
+PASS P2 a slot with no sun adds nothing
+PASS P2 the side facing the light is in full day
+PASS P2 the far side is night
+PASS P2 the terminator is soft (partly lit)
+PASS P2 the day side faces the light, whichever way it comes
+PASS P2 the reddened band sits on the terminator
+PASS P3 the planet shadows the ring behind it from the sun
+PASS P3 not on the sun's side
+PASS P3 not beside the shadow
+PASS P3 the shadow is a planet wide
+PASS P3 the ring's shadow falls on the hemisphere away from the sun
+PASS P3 ... as a band where the ring is dense
+PASS P3 the Cassini division is dark
+PASS P3 nothing inside the C ring or beyond the A ring
+PASS P3 the C ring is faint
+PASS P4 the beams come round once a period
+PASS P4 half a period: half a turn
+PASS P4 a beam stays at its tilt from the spin axis as it sweeps
+PASS P4 the links beat twice a turn
+PASS P4 the link shader beats at that rate
+PASS P4 the core and nebula flash at it too
+PASS P4 3000 s of clock is a whole number of turns (no jump at the wrap)
+PASS P4 the axis at the eye: the nebula a round ring
+PASS P4 the axis across the sky: the torus seen edge on
+PASS P4 its +y turned along the axis as seen
+PASS P5 at rest both tails point straight away from the light
+PASS P5 moving: the ion tail still exactly away from the light
+PASS P5 the dust tail lags behind the motion
+PASS P5 a slow orbit bends the dust tail visibly; faster bends it more
+PASS P5 never past square to the light
+PASS P5 with no sun, away from the key light
+PASS P5 flying straight away from the sun: no lag sideways
+PASS P6 a corona's code gives back its seed (to 1/32) and motion
+PASS P6 the code stays between 2 and 3 (the shader's |z| - 2)
+PASS P6 the shader reads it the same way
+PASS P7 a black hole's plume is thrown back, narrow and streaking
+PASS P7 ... the longest-lived and densest
+PASS P7 ... white-gold cooling to ember red
+PASS P7 a sun's plasma is warm
+PASS P7 a comet's dust is icy and left behind
+PASS P7 every colour on screen's scale, every life positive
+PASS P8 the rocky terminator is the tested one
+PASS P8 the ring shadow on the clouds only with a ring
+PASS P8 the disk's Kepler shear
+all passed
+
+run rc=0

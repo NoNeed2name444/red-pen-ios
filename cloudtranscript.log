@@ -1,0 +1,90 @@
+
+compile rc=0
+ok   a short clip is one chunk
+ok   an hour is planned as six ten-minute chunks
+ok   a few seconds past a boundary join the last chunk
+ok   no audio, no chunks
+ok   three seconds are measured in overlapping tenths
+ok   the cut moves back into the pause between words
+ok   with no pause the cut stays as late as it can
+ok   audio that could not be read keeps the exact mark
+ok   a sliver too short to measure has no levels
+ok   a cut never passes the planned edge
+ok   JSON phrases are read
+ok   a fenced answer is read too
+ok   prose is not a transcript
+ok   a cut-off reply is not read as a whole one
+ok   but its complete phrases are kept
+ok   a fenced cut-off reply too
+ok   prose has nothing to keep
+ok   nor does a reply cut off in its first phrase
+ok   a word said over and over is cut back to once
+ok   so is a looping line of several words
+ok   a lecturer repeating a term is left alone
+ok   three times in a row is still speech
+ok   Arabic loops are cut the same way
+ok   a normal chunk passes untouched
+ok   the same two phrases forty times keep one round
+ok   and count what was cut
+ok   enough to tell the student
+ok   a phrase said three times running is speech
+ok   four times, whatever the punctuation, is a loop
+ok   whole parts need no note
+ok   trimmed parts are named
+ok   a one-part lecture is the lecture
+ok   parts are listed as a person would
+ok   every part from 3.5 Flash needs no note
+ok   a part whose model is not known is not called a downgrade
+ok   a part Flash-Lite heard is named, never a silent downgrade
+ok   a loop and a downgrade are both told
+ok   each line keeps the model that heard it
+ok   and so does the saved transcript
+ok   a line saved before models were kept still opens
+ok   and the model is saved with the line
+ok   lines sit on the recording's clock, not the chunk's
+ok   and keep their end
+ok   each word gets a time inside its line
+ok   word times follow each other
+ok   a longer word takes longer to say
+ok   all-zero times are not trusted
+ok   so the chunk is shared out by text length
+ok   times running backwards are not trusted
+ok   a small overlap is kept in order
+ok   nothing ends past the chunk
+ok   an Arabic line is Arabic
+ok   an English line is English
+ok   numbers alone read as English
+ok   repeated slide terms come first
+ok   short and common words are left out
+ok   the common list fills the room left, without repeats
+ok   a cardiology lecture's terms are its own, not lupus's
+ok   no slides, no slide terms
+ok   Arabic on a slide is not a spelling hint
+ok   the recogniser hears a cardiology lecture's own terms
+ok   no slides, no recogniser terms
+ok   recogniser terms keep order, omit empties and case repeats, and stop at 100
+ok   the prompt carries the slide terms
+ok   and asks for Egyptian Arabic in Arabic script, English in English
+ok   a mixed lecture is the default
+ok   and shows the accent example only there
+ok   mixed: goes on to the end
+ok   mixed: the recording is the only source
+ok   mixed: drugs and poisons are relayed, not advised on
+ok   mixed: students' questions and repetitions are kept
+ok   mixed: the app's own rules come first
+ok   mixed: still asks for timed phrases
+ok   English: goes on to the end
+ok   English: the recording is the only source
+ok   English: drugs and poisons are relayed, not advised on
+ok   English: students' questions and repetitions are kept
+ok   English: the app's own rules come first
+ok   English: still asks for timed phrases
+ok   an English lecture is not told to expect Egyptian Arabic
+ok   and gets no Arabic example
+ok   and still asks for correct English spelling of every term
+ok   and still carries the slide terms
+ok   one prompt per language
+ok   an English lecture is heard by the English recogniser
+all passed
+
+run rc=0

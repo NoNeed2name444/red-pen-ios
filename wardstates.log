@@ -1,0 +1,11 @@
+
+compile rc=0
+ok   light: the disabled ink #536171, nearest success at 0.097
+ok   dark: the disabled ink #B8C2D0, nearest cards's accent at 0.086
+ok   words and glyphs: the lowest is 4.612:1 (dark questions: the primary at rest)
+ok   disabled from enabled: the nearest is 0.086 (dark cards: the primary disabled)
+ok   chosen from unchosen: the nearest is 0.124 (dark questions: the chip chosen and disabled)
+
+all 4027 passed
+
+run rc=0

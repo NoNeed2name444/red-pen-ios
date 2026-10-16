@@ -1,0 +1,19 @@
+
+compile rc=0
+PASS S1 the catalogue lists every theme's shaders
+PASS S1 names are unique
+PASS S1 entry points are SceneKit's
+PASS S1 every shader: declared before use, arguments declared, brackets balance, Metal only
+PASS S1 a material's geometry and surface modifiers never declare the same argument
+PASS S2 a broken shader is caught (undeclared, twice, arguments, brackets, GLSL, splat, probe, scope)
+PASS S2 the same name in two sibling blocks is fine
+PASS S3 value noise stays in 0...1
+PASS S3 value noise is continuous across cell faces
+PASS S3 value noise is varied, centred near a half
+PASS S3 fBm stays in 0...1
+PASS S3 the same point gives the same noise
+PASS S3 the kit's Metal names everything after its result
+PASS S3 the kit's Metal reads clean, used twice in one shader
+all passed
+
+run rc=0

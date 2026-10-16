@@ -1,0 +1,118 @@
+ios/RedPen/Shared/Ward/WardPartLedger.swift:134:13: warning: result of call to 'publish()' is unused [#NoUsage]
+132 |         entries[key] = nil
+133 |         if atRest {
+134 |             publish()
+    |             `- warning: result of call to 'publish()' is unused [#NoUsage]
+135 |         }
+136 |         return .removed
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+
+compile rc=0
+ok   647 points tall is short
+ok   728 points tall is short
+ok   763 points tall is short
+ok   778 points tall is not short
+ok   840 points tall is not short
+ok   a wide iPad keeps New set at the bottom
+ok   nothing measured yet is not short
+ok   a short window shows two of four beds
+ok   a short window shows a lone bed
+ok   a tall window shows every bed
+ok   no beds stay none
+ok   a trim takes a bed off a tall window
+ok   a trim goes on from a short window's two
+ok   a trim leaves one bed
+ok   a trim leaves none as none
+ok   a cut through the middle slices
+ok   a button wholly above the cut is not sliced
+ok   a button wholly past the cut is not sliced
+ok   a button ending on the cut is not sliced
+ok   a home that fits has no faults
+ok   the button and the card past the cut are both caught
+ok   New set on the card's top is caught
+ok   at XXL a home that runs on and scrolls fits
+ok   the same page at the standard sizes does not
+ok   a Start button sliced by the cut is caught
+ok   a Start button wholly above the cut is fine
+ok   6 points of the tiles over the cut is a sliver
+ok   a good part of the tiles is fine
+ok   tiles wholly under the cut is fine
+ok   a text narrower than its widest word is caught, and only that one
+ok   iPad at the default size: 8 points of the Practise tiles are caught
+ok   the cut moves up to the tiles' top
+ok   the page, cut there, shows none of them
+ok   with the cut moved up, the tiles are no sliver
+ok   AX1: 4 points of the Due chip over the cut are caught
+ok   AX1: the cut moves up to the chip's top
+ok   AX1: with the cut moved up, the chip is no sliver
+ok   AX1: the page ends on the 3x grid at or above the chip's top
+ok   AX1: from a page top at 0.0, an end snapped to the grid either way is not below the chip
+ok   AX1: from a page top at 0.17, an end snapped to the grid either way is not below the chip
+ok   AX1: from a page top at 59.4, an end snapped to the grid either way is not below the chip
+ok   AX1: from a page top at 62.5, an end snapped to the grid either way is not below the chip
+ok   AX1: the snapped page end clears the chip in the gate
+ok   no scale known: the cut as it was
+ok   a top at the cut leaves it
+ok   a top 12 points over the cut leaves it
+ok   a top past the cut leaves it
+ok   no tops, no move
+ok   a chain of tops moves the cut to the last
+ok   tops in any order settle the same
+ok   the same sliver reported twice is one fault
+ok   parts wholly past the cut or well over it are fine
+ok   no bar measured: all of the page
+ok   a bar at 700: down to 688
+ok   measured from the page's own top
+ok   a bar not below the page's top: all of it
+ok   an endless bar top: all of it
+ok   the cut, from the page's top
+ok   the cut below a short page's frame is kept
+ok   no bar, no cut
+ok   a bar over the page's top, no cut
+ok   a bar just under the page's top cuts at its top
+ok   ending 4 points above the bar is too close
+ok   nothing laid out is a fault
+ok   a card with no button is a fault
+ok   682.78 at 3x books at the pixel line above, 682.667
+ok   a booked top is never below the real one
+ok   a top already on the grid keeps its place
+ok   a top on a 2x pixel line keeps its place
+ok   every booked top is at or above the real one, within a pixel
+ok   an unknown scale floors to a whole point
+ok   the ledger lists the floored top
+ok   a cut at 683 settles on the chip's pixel line
+ok   reach lifts a row's top
+ok   a dropped part leaves the book
+ok   dropping a part that is not there changes nothing
+ok   an empty frame is not kept
+ok   a new page empties the ledger
+ok   two parts at one top book it once
+ok   the top stays while another part holds it
+ok   initial rest sighting books the tile and publishes once
+ok   push disappear drops both entry and sighting
+ok   onAppear re-books the identical rect and publishes once
+ok   chip booked at rest before transition
+ok   mid-push drop clears entry without publishing mid-transition
+ok   mid-pop sighting is kept in sightings without booking or publishing
+ok   rebook on rest restores the popped part and publishes once
+ok   scrolling updates sightings without changing entries or told
+ok   rebook at scroll settlement updates entries to final sighting and fires once
+ok   a second rebook with no change does not fire again
+ok   row recycled mid-scroll does not publish until settlement
+ok   settlement after mid-scroll recycle publishes remaining row once
+ok   the chip at 682 moves the cut from 686 to 682
+ok   dropping a part at or below the settled cut keeps its entry so settledCut stays at 682
+ok   a part hidden by the cut stays booked through the next rest
+ok   dropping a part above the cut removes it from entries and tops
+ok   told deduplicates identical sorted tops across set, drop and rebook
+ok   T0060 nit 1: every 3x holder survives roundoff at the cut
+ok   T0060 nit 2: rebook prunes ghosts above or without a cut, keeping live and reappeared rows
+ok   T0060 nit 3: keep a self-topped holder through moving drop/rest, but recycle above-cut rows
+ok   T0060 nit 4: clear empties the book while preserving an unchanged cut
+ok   drop reports kept below cut
+ok   drop reports removed
+ok   drop reports no such part
+all HomeFit checks passed
+
+run rc=0

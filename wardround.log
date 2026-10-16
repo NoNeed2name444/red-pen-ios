@@ -1,0 +1,85 @@
+
+compile rc=0
+ok   standard is 25 on, 5 off, 4 rounds
+ok   a stored plan is held to sane values
+ok   choices
+ok   starts on round 1, focusing
+ok   full clock at the start
+ok   ring full at the start
+ok   ring half way
+ok   clock text at the start
+ok   clock text rounds up
+ok   nothing ends early
+ok   items counted while focusing
+ok   caption
+ok   round 1 ends into its break
+ok   the break runs from when the round ran out, not from now
+ok   items in a break are not the round's
+ok   break caption
+ok   the break ends and waits
+ok   waiting has no clock
+ok   waiting does not move on by itself
+ok   ready caption
+ok   round 2 starts when asked
+ok   the round and its break both end on the way
+ok   focus minutes add up
+ok   paused holds the clock
+ok   items while paused are not the round's
+ok   nothing ends while paused
+ok   no alarms while paused
+ok   resumed from where it was held
+ok   round 3 ends 15 minutes after resuming
+ok   starting from a break skips the rest of it
+ok   the last round cut short still counts its ten minutes, and finishes
+ok   focus total
+ok   done caption
+ok   no fifth round
+ok   stopping a finished round does nothing
+ok   a 50-minute round has a 10-minute break
+ok   a skipped break goes to ready
+ok   stopping mid round counts the time sat, not the time paused
+ok   stopping in a break logs no more focus
+ok   two alarms: the round's end and the break's end
+ok   alarm ids are the known ones
+ok   round alarm says which round
+ok   the last round's alarm is the end
+ok   no alarms when done
+ok   a round survives being saved
+ok   goal label
+ok   goal fraction
+ok   goal ring stops at full
+ok   goal met
+ok   no goal, no ring
+ok   stored goal: nothing stored reads 50
+ok   stored goal: held to the range
+ok   stored goal: a chosen goal is kept
+ok   goal defaults to 50
+ok   goal held to the bottom of the range
+ok   goal held to the top of the range
+ok   goal kept
+ok   the ring reads what Settings stored the way DailyGoal does
+ok   nothing studied
+ok   a plain run ending today
+ok   a run ending yesterday is alive before today's first card
+ok   one missed day is a rest day
+ok   a rest day used means none is ready
+ok   yesterday missed: the run lives while today can still close it
+ok   two missed days end it and use no rest day
+ok   two missed days before today end it
+ok   a second rest day inside a week is not covered
+ok   rest days a week apart are both covered
+ok   a rest day is ready again a week later
+ok   and not six days later
+ok   a gap before anything was studied is no rest day
+ok   key format
+ok   keys: a rest day on the 24th
+ok   keys: future and junk keys ignored
+ok   keys: across a month end, a gap of 23 days ends it
+ok   keys: a rest day on the 1st bridges the month
+ok   summer time does not break a run
+ok   consecutive days are one apart across the change
+ok   a day number turns back into its key
+
+ALL PASSED
+
+run rc=0

@@ -1,0 +1,12 @@
+
+compile rc=0
+ok   a file that was never written is missing
+ok   and is not present
+ok   a write to a fresh folder lands
+ok   and reads back the same bytes
+skip  running as root: nothing is unreadable here
+skip  running as root: every write lands
+ok   a second write replaces the first
+ok   whole
+
+run rc=0
