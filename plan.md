@@ -2096,6 +2096,20 @@ with the marks on the screens last.
   (GraphPreviewUITests.swift:424) in all three. Neither fails on the Design
   previews of design/neurons-depth, which comes from personal. Root cause
   first, then the fix.
+  Root cause (independent review): LaunchEntrance wrote its frame to view
+  state from onGeometryChange for good once home was at rest, and it wraps
+  whole groups of the list's rows, so each write redrew every row, which
+  re-sized and moved them and wrote again: a loop from geometry to state to
+  layout. The fix keeps the frame in a plain object (LaunchSpot), with a
+  source check in LaunchOpeningTests. Tick when the Design preview of the
+  fix passes the tour on its first attempt and testStraightLines finds the
+  banner, and the Launch recording shows the readout and gate unchanged.
+- [ ] After that, from the same review, each with a Launch recording:
+  WardLightImages.image() returns .late on a miss and makes the image in
+  scheduleCatchUp, never inside a cell's layout; WardRowTile's entrance only
+  on home, not on the thirty other screens that use the row background; and
+  each row its own entrance, so the rows of one group scale about the
+  opening's middle as one piece instead of taking the last writer's offset.
 
 ### Waiting on the owner
 

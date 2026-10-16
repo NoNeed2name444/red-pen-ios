@@ -506,6 +506,13 @@ check("a pressable face draws from its image only at rest",
       wardSurfaces.contains("if depth > Self.rest { face.note(.live(.press)); return nil }")
       && wardSurfaces.contains("if let kind = cachedKind(), let fillColor {"))
 
+// Noting where a part of home stands must not be view state: a write from
+// geometry would redraw the whole list and loop (the tour's crash).
+let entrance = section(stage, from: "struct LaunchEntrance: ViewModifier {", to: "struct LaunchLanding: ViewModifier {")
+check("the entrance notes its frame in a plain object, not view state",
+      !entrance.isEmpty && !entrance.contains("@State private var frame") && entrance.contains("spot.frame = f")
+      && stage.contains("final class LaunchSpot"))
+
 // MARK: no fading, anywhere in the opening
 
 let splash = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchSplash.swift", encoding: .utf8)) ?? ""

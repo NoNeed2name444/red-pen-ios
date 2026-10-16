@@ -276,18 +276,26 @@ private final class LaunchTicker: NSObject {
 /// in it (`inOpening`). It notes where it stands while home is drawn whole.
 struct LaunchEntrance: ViewModifier {
     let inOpening: Bool
-    @State private var frame: CGRect?
+    @State private var spot = LaunchSpot()
 
     func body(content: Content) -> some View {
         let stage = LaunchStage.shared
-        let p = stage.pose(frame, inOpening: inOpening)
+        let p = stage.pose(spot.frame, inOpening: inOpening)
         content
             .scaleEffect(p.scale)
             .offset(x: p.dx, y: p.dy)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { f in
-                if LaunchStage.shared.measuring { frame = f }
+                if LaunchStage.shared.measuring { spot.frame = f }
             }
     }
+}
+
+/// Where a part of home stands, noted while home is drawn whole. A plain
+/// object, not view state: noting a frame must never redraw the list it
+/// is in, or the rows re-size, move and are noted again, a loop that
+/// crashed the design tour and stopped home's list from scrolling.
+@MainActor final class LaunchSpot {
+    var frame: CGRect?
 }
 
 /// The squiggle beside the title: the splash's ECG lands on it and stays as
