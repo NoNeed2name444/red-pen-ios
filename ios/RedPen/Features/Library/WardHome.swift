@@ -975,6 +975,20 @@ final class HomeFitProbe {
     var pushLastKeptCut: Double?
     var pushBookCountBefore = 0
     var pushBookCountLastLook = 0
+    /// From the push on, each new cut of home's page (nil, not cut), with
+    /// the bar's top, the page's frame and the booked tops it came from, and
+    /// when, so a cut that moves while home is pushed shows what moved it.
+    var pushStarted: Date?
+    private(set) var pushCuts: [String] = []
+
+    func notePushCut(_ cut: Double?, barTop: CGFloat?, page: CGRect, tops: [Double]) {
+        guard PreviewLaunch.pushBack, let pushStarted, pushCuts.count < 40 else { return }
+        func text(_ value: Double?) -> String { value.map { String(format: "%.2f", $0) } ?? "none" }
+        let at: Double = Date().timeIntervalSince(pushStarted)
+        pushCuts.append("\(text(at))s cut \(text(cut)) bar \(text(barTop.map(Double.init))) "
+                        + "page \(text(Double(page.minY)))+\(text(Double(page.height))) "
+                        + "tops \(tops.count) from \(text(tops.first))")
+    }
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -989,7 +1003,7 @@ final class HomeFitProbe {
         // a push and back still under way after a slow launch ends first, and
         // the page comes to rest after its pop before anything is read
         if PreviewLaunch.pushBack, !pushBackDone, !pushBackNoSet {
-            for _ in 0..<350 where !pushBackDone && !pushBackNoSet {
+            for _ in 0..<400 where !pushBackDone && !pushBackNoSet {
                 do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
             }
         }
@@ -1017,7 +1031,7 @@ final class HomeFitProbe {
                 faults.append("push and back: not finished")
             } else {
                 if !pushLostParts {
-                    faults.append("push and back: no part left the book during the push")
+                    faults.append("push and back: home was not seen covered during the push")
                 }
                 // Consume each occurrence: one returned set row cannot
                 // stand in for two rows with the same name before the push.
@@ -1045,9 +1059,10 @@ final class HomeFitProbe {
         var lines: [String] = faults.isEmpty ? ["fits"] : faults.map { "FAULT " + $0 }
         if PreviewLaunch.pushBack && pushBackDone {
             lines.append("push and back: done")
-            lines.append("push and back: parts left the book: \(pushLostParts ? "yes" : "no")")
+            lines.append("push and back: home covered: \(pushLostParts ? "yes" : "no")")
             let cutStr = pushLastKeptCut.map { $0.rounded() == $0 ? "\(Int($0))" : "\($0)" } ?? "none"
             lines.append("push and back: drops removed \(pushDropsRemoved), kept \(pushDropsKept) (cut \(cutStr)), book \(pushBookCountBefore) parts before the push, \(pushBookCountLastLook) at its last look")
+            lines.append("push and back: cuts: " + (pushCuts.isEmpty ? "none" : pushCuts.joined(separator: "; ")))
         }
         let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
