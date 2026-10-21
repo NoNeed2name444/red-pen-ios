@@ -16,8 +16,13 @@ import Foundation
 /// the ground; night is a deep blue-black ward (#171C24) with near-white
 /// ink, a brighter secondary grey, warmer reds and greens that glow without
 /// glaring, and cards that lift by lightening, as a dark room shows depth.
-/// The primary is Cards' indigo (WardSection.outside), the look outside any
-/// section; there is no Theatre Blue or cyan night any more. A wrong answer
+/// The primary is Cards' Care Blue (WardSection.outside), the look outside
+/// any section. Every hue is the owner's 2026-10-21 palette (ten colours,
+/// docs/design/palette-2026-10-21.md): right is Fresh Mint, wrong and the
+/// ECG red Vital Coral, due and the beam Optimistic Amber, each as a shade
+/// of its hue where the colour itself would not read 4.5:1 (3:1 for the
+/// beam) on the tiers; words on any fill are the night well's near-black
+/// (`onPrimary`), since white reads under 4.5:1 on every one. A wrong answer
 /// is the faded row (`faded`, `fadedInk`), drawn in colours, never with
 /// opacity. The launch screen and the launch logo are drawn on the bases.
 ///
@@ -37,17 +42,18 @@ enum WardToken: String, CaseIterable {
     case primary
     /// The primary as text and glyphs on a surface (Cards' accent)
     case primaryInk
-    /// White on a primary fill
+    /// Words on a primary or section fill: near-black, as white reads under
+    /// 4.5:1 on every fill of the 2026-10-21 palette
     case onPrimary
-    /// ECG Red: the secondary accent
+    /// ECG Red: the secondary accent, Vital Coral
     case ecg
-    /// Pager Amber: the progress beam, the countdown pill
+    /// Pager Amber: the progress beam, the countdown pill, Optimistic Amber
     case beam
-    /// Discharge Green
+    /// Discharge Green: a right answer, Fresh Mint
     case success
-    /// Caution Amber
+    /// Caution Amber: due and warnings, Optimistic Amber
     case warning
-    /// Resus Red
+    /// Resus Red: a wrong answer, Vital Coral
     case danger
     /// Chart Ink: text
     case ink
@@ -74,14 +80,14 @@ enum WardPalette {
         .surface:      (0xEEF1F5, 0x242B35),
         .raised:       (0xF1F4F8, 0x2E353F),
         .well:         (0xDDE2E8, 0x090E15),
-        .primary:      (0x5260BC, 0x5A68C5),
-        .primaryInk:   (0x4046C2, 0xA5B6FE),
-        .onPrimary:    (0xFFFFFF, 0xFFFFFF),
-        .ecg:          (0xB6263A, 0xFF97A9),
-        .beam:         (0xC2620B, 0xFFAF57),
-        .success:      (0x116D50, 0x5EE0A8),
-        .warning:      (0x8C5200, 0xFFC15A),
-        .danger:       (0xB8222A, 0xFF9A9F),
+        .primary:      (0x3B82F6, 0x3B82F6),
+        .primaryInk:   (0x0251C2, 0x84B2FD),
+        .onPrimary:    (0x090E15, 0x090E15),
+        .ecg:          (0xBB2A34, 0xF57875),
+        .beam:         (0x9F7818, 0xFBBF24),
+        .success:      (0x316E56, 0x6EE7B7),
+        .warning:      (0x7D5E14, 0xFBBF24),
+        .danger:       (0xBB2A34, 0xF57875),
         .ink:          (0x232C39, 0xF1F4F8),
         .inkSecondary: (0x536171, 0xB8C2D0),
         .hairline:     (0xCFD7E2, 0x04070B),

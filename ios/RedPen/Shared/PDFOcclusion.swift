@@ -122,7 +122,9 @@ enum PDFOcclusion {
         context.setShouldAntialias(true)
         let size = max(7, min(rect.height * 0.7, rect.width * 0.8, 40))
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.boldSystemFont(ofSize: size), .foregroundColor: UIColor.white,
+            .font: UIFont.boldSystemFont(ofSize: size),
+            .foregroundColor: UIColor(red: CGFloat(OcclusionCovers.markRGB.red), green: CGFloat(OcclusionCovers.markRGB.green),
+                                      blue: CGFloat(OcclusionCovers.markRGB.blue), alpha: 1),
         ]
         let mark = "?" as NSString
         let measured = mark.size(withAttributes: attributes)

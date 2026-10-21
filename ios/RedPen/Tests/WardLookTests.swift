@@ -125,9 +125,9 @@ check("outside any section the look is Cards", WardSection.outside == .cards)
 check("the default paper ink is the outside look's",
       WardPaper.ink(dark: false, highContrast: false).hex == WardSection.outside.ink(dark: false) &&
       WardPaper.ink(dark: true, highContrast: false).hex == WardSection.outside.ink(dark: true))
-check("Questions: hue 20 and the pinned fills",
-      WardSection.questions.hue == 20 && WardSection.questions.fill.light == 0xC03946 &&
-      WardSection.questions.fill.dark == 0xCB3E4B)
+check("Questions: Vital Coral's hue 23 and its fill, the owner's #FF6B6B in both modes",
+      WardSection.questions.hue == 23 && WardSection.questions.fill.light == 0xFF6B6B &&
+      WardSection.questions.fill.dark == 0xFF6B6B)
 for dark in [false, true] {
     check("\(dark ? "dark" : "light"): primary and primaryInk equal Cards' fill and accent",
           WardPalette.hex(.primary, dark: dark) == WardSection.cards.fill(dark: dark) &&
@@ -195,7 +195,7 @@ check("set kinds find their section",
 // (from the outside look, Cards, so the move is to Questions)
 let toCards = WardGlide(from: day, to: WardLook(dark: false, section: .questions), progress: 0)
 var cardsEnd = toCards; cardsEnd.progress = 1
-check("a move to Questions starts in indigo and ends in red",
+check("a move to Questions starts in Care Blue and ends in coral",
       toCards.ink(dark: false) == WardSection.cards.ink.light && cardsEnd.ink(dark: false) == WardSection.questions.ink.light)
 var cardsMid = toCards; cardsMid.progress = 0.5
 check("half way it is the linear-light mix, not either",
@@ -277,7 +277,7 @@ for hc in [false, true] {
 
 // Every accent role in every section and mode keeps its ratio: words and
 // glyphs 4.5:1 on each tier (the well to a sheet), 3:1 as a graphic or
-// large text (a progress beam, an icon) on the same; white words 4.5:1 on
+// large text (a progress beam, an icon) on the same; the on-fill words 4.5:1 on
 // the fill; and the accents read on the vitals monitor, which is dark in
 // both modes.
 for dark in [false, true] {
@@ -290,7 +290,7 @@ for dark in [false, true] {
             check("\(mode) \(s): accent glyphs read 3:1 on the \(tier)", c >= 3, f(c))
         }
         let white = WardPalette.contrast(WardPalette.hex(.onPrimary, dark: dark), fill)
-        check("\(mode) \(s): white words read 4.5:1 on the fill", white >= 4.5, "\(h(fill)) \(f(white))")
+        check("\(mode) \(s): the on-fill words read 4.5:1 on the fill", white >= 4.5, "\(h(fill)) \(f(white))")
         if dark {
             let m = WardPalette.contrast(accent, WardPalette.hex(.monitor, dark: true))
             check("\(s): the accent reads 4.5:1 on the monitor", m >= 4.5, f(m))
@@ -326,7 +326,7 @@ for dark in [false, true] {
         }
         if s != .cards {
             let d = distance(s.accent(dark: dark), WardPalette.hex(.primaryInk, dark: dark))
-            if d < near { near = d; what = "the primary's indigo" }
+            if d < near { near = d; what = "the primary's Care Blue" }
         }
         check("\(mode) \(s): the accent is not mistaken for a colour that means something", near >= sectionsApart,
               "\(what) \(f(near))")
@@ -389,9 +389,9 @@ do {
     check("the look starts outside any section", now.glide == .rest(outside) && WardLookNow.shared.glide == .rest(outside))
     now.set(.rest(WardLook(dark: false, section: .questions)))
     check("a right answer made outside any section shows Questions' accent by day",
-          now.hex(.primaryInk, dark: false) == 0x970525, h(now.hex(.primaryInk, dark: false)))
-    check("and at night", now.hex(.primaryInk, dark: true) == 0xD98888, h(now.hex(.primaryInk, dark: true)))
-    check("and its edges Questions' ink", now.ink(dark: false) == 0xC82D40 && now.ink(dark: true) == 0xF0777A)
+          now.hex(.primaryInk, dark: false) == 0x8A0219, h(now.hex(.primaryInk, dark: false)))
+    check("and at night", now.hex(.primaryInk, dark: true) == 0xFEBAB5, h(now.hex(.primaryInk, dark: true)))
+    check("and its edges Questions' ink", now.ink(dark: false) == 0xBE2130 && now.ink(dark: true) == 0xFEBAB5)
     for section in WardSection.allCases {
         for dark in [false, true] {
             now.set(.rest(WardLook(dark: dark, section: section)))

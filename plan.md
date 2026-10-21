@@ -2435,6 +2435,8 @@ with the marks on the screens last.
       deck's line and join at the bottom and the frame's ring are unchanged.
       Waits for the Design preview with only=testIsland.
 
+- [x] 11. The owner's 10-colour palette (21 Oct; task T0104, design/palette-genz): every accent remapped onto it by role and hue, neutrals kept, words on fills near-black where white fails; mapping in docs/design/palette-2026-10-21.md.
+
 ### The launch mark (design/launch-anim), 15 Oct
 
 - The owner, correcting an earlier relay: "i meant only the diaphragm i want

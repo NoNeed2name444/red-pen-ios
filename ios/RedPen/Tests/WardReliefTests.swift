@@ -245,9 +245,9 @@ check("paper constants", WardPaper.frame == 12 && WardPaper.cell == 6 &&
 for dark in [false, true] {
     for strong in [false, true] {
         let ink = WardPaper.ink(dark: dark, highContrast: strong)
-        // the ink outside any section (Cards' indigo), not the old blue
+        // the ink outside any section (Cards' Care Blue, the 2026-10-21 palette)
         check("paper ink \(dark)/\(strong)",
-              ink.hex == (dark ? 0xA5B6FE : 0x5866E5) &&
+              ink.hex == (dark ? 0x84B2FD : 0x2A71E5) &&
               ink.fine == (strong ? 0 : (dark ? 0.07 : 0.09)) &&
               ink.bold == (strong ? 0 : (dark ? 0.14 : 0.18)) &&
               ink.edge == (dark ? 0.5 : 0.55))
