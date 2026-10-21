@@ -111,7 +111,7 @@ import java.util.Locale
                     "study" -> {
                         val set=store.library.firstOrNull { it.id==selectedId }
                         if(set!=null) when(set.kind) {
-                            StudySetKind.MCQ -> QuizScreen(set,store,::goHome)
+                            StudySetKind.MCQ -> QuizScreen(set,store,::goHome,onOpen={ refresh();open(it) })
                             StudySetKind.ANKI -> CardsScreen(set,store,::goHome)
                             else -> ClinicalScreen(set,store,::goHome)
                         } else LaunchedEffect(Unit) { goHome() }

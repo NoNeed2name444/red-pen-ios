@@ -85,5 +85,12 @@ data class ReadingProgress(val position: Int, val savedAt: Long = System.current
 data class OsceProgress(val checklistIndex: Int, val checklistTitle: String, val stepIndex: Int, val missed: List<Int> = emptyList(), val savedAt: Long = System.currentTimeMillis()) {
     fun fits(checklists: List<OsceChecklist>): Boolean { val station = checklists.getOrNull(checklistIndex) ?: return false; return station.title == checklistTitle && stepIndex in 0 until maxOf(1, station.steps.size) && missed.all { it in station.steps.indices } }
 }
-data class AnswerEvent(val questionId: String, val correct: Boolean, val at: Long = System.currentTimeMillis())
+/**
+ * One checked answer (iOS AnswerEvent): how sure the student said they were
+ * ("sure", "maybe", "guess"), the option picked as its index in the
+ * question's own options, and whether the attending's hint was shown first.
+ */
+data class AnswerEvent(val questionId: String, val correct: Boolean, val at: Long = System.currentTimeMillis(), val confidence: String? = null, val picked: Int? = null, val hinted: Boolean? = null)
+/** The latest reason given for getting one question wrong (iOS MistakeNote); the reason is MistakeReason's raw value. */
+data class MistakeNote(val reason: String, val at: Long = System.currentTimeMillis())
 data class Note(val id: String = newId(), val title: String, val body: String = "", val folderId: String? = null, val kind: String = "idea", val links: List<String> = emptyList(), val tags: List<String> = emptyList(), val boardX: Double = 0.0, val boardY: Double = 0.0, val createdAt: Long = System.currentTimeMillis(), val updatedAt: Long = createdAt, val rawJson: String = "{}")
