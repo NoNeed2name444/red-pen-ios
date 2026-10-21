@@ -2317,6 +2317,12 @@ with the marks on the screens last.
     Theatre Blue any more and WardLookTests' "when they were Theatre Blue"
     (the past); Brand.mark, which is Theatre Blue (the launch logo is its
     own decision); WardPaletteTests' check label (test code).
+  - [ ] The Lens sheet now has a preview screen, "lens" (PreviewExtras,
+    LensSheetPreview): a sample nephrology MCQ, answered (A right, the
+    rest faded), with its explanation, put straight into the model
+    (LensModel.setPreviewAnswer), drawn at full height. The Ward preview
+    shoots it on the phone, Pro Max and iPad, light and dark; waiting for
+    that run.
   - [ ] Press depth (16 Oct, the owner on the checked quiz, light and dark:
     "the color here doesn't match the mode color", raised and pressed
     buttons read alike, and a wrong pick reads like a right one). Each
