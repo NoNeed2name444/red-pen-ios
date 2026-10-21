@@ -1,0 +1,138 @@
+/:
+	Indexing enabled. 
+/System/Volumes/Data:
+	Indexing enabled. 
+/System/Volumes/Preboot:
+	Indexing enabled. 
+12:36:39.450 booted and installed  | load { 527.84 242.39 109.40 }
+12:36:39.638 warm-up launch  | load { 527.84 242.39 109.40 }
+12:38:15.051 take 1 (attempt 1): after 30 s quiet  | load { 734.66 391.24 181.13 }
+12:38:22.525 take 1 (attempt 1): launch (3 s into film/raw-dark.mp4)  | load { 734.27 402.49 187.58 }
+--- take 1 before launch: 12:38:22 busiest processes
+ %CPU COMM
+ 31.1 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 19.1 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/Applications/MobileCal.app/PlugIns/CalendarWidgetExtension.appex/CalendarWidgetExtension
+ 18.6 /usr/libexec/diagnosticd
+ 17.1 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ChronoCore.framework/Support/chronod
+ 14.7 /Users/runner/actions-runner/cached/bin/Runner.Worker
+ 14.3 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 12.1 /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/provjobd119312302
+ps: stdout: Broken pipe
+--- take 1 after the take: 12:38:47 busiest processes
+ %CPU COMM
+ 33.5 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 25.1 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 19.3 /usr/libexec/diagnosticd
+ 17.1 /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/provjobd119312302
+ 10.4 /usr/libexec/diskimagesiod
+  9.8 /usr/sbin/spindump
+  9.2 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+ps: stdout: Broken pipe
+12:39:26.898 take 1 control: after 30 s quiet  | load { 384.31 375.58 194.03 }
+--- take 1 control before launch: 12:39:28 busiest processes
+ %CPU COMM
+ 21.3 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 14.5 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 14.3 /usr/libexec/CoreSimulatorBridge
+ 13.2 /usr/libexec/diagnosticd
+ 11.7 /sbin/launchd
+  8.7 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/Search.framework/searchd
+  5.8 /usr/libexec/diskimagesiod
+ps: stdout: Broken pipe
+--- take 1 control after the take: 12:39:50 busiest processes
+ %CPU COMM
+ 29.8 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 15.7 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 14.4 /usr/libexec/diagnosticd
+ 12.8 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/mobileassetd
+ 11.3 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+  7.8 /usr/libexec/diskimagesiod
+  6.5 /System/Library/CoreServices/Software Update.app/Contents/Resources/softwareupdated
+ps: stdout: Broken pipe
+12:40:27.029 take 2 (attempt 1): after 30 s quiet  | load { 205.70 323.86 186.92 }
+12:40:32.226 take 2 (attempt 1): launch (3 s into film/raw-dark-2.mp4)  | load { 203.81 321.51 186.90 }
+--- take 2 before launch: 12:40:32 busiest processes
+ %CPU COMM
+ 25.9 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 23.4 /usr/libexec/mlhostd
+ 17.2 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 14.4 /usr/libexec/diagnosticd
+  6.6 /System/Library/PrivateFrameworks/HelpData.framework/Versions/A/Resources/helpd
+  5.7 /usr/libexec/diskimagesiod
+  5.5 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+ps: stdout: Broken pipe
+--- take 2 after the take: 12:40:53 busiest processes
+ %CPU COMM
+ 50.0 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/MapKit.framework/XPCServices/com.apple.MapKit.SnapshotService.xpc/com.apple.MapKit.SnapshotService
+ 22.2 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 19.8 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/Applications/Maps.app/PlugIns/GeneralMapsWidget.appex/GeneralMapsWidget
+ 16.9 /usr/libexec/diagnosticd
+ 16.4 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 13.8 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/mobileassetd
+ 10.7 /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost
+ps: stdout: Broken pipe
+12:41:28.608 take 2 control: after 30 s quiet  | load { 160.21 289.60 183.45 }
+--- take 2 control before launch: 12:41:31 busiest processes
+ %CPU COMM
+ 22.0 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 13.3 /usr/libexec/CoreSimulatorBridge
+ 13.0 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 12.2 /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/provjobd119312302
+ 11.7 /usr/libexec/diagnosticd
+ 11.1 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+  9.3 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+ps: stdout: Broken pipe
+--- take 2 control after the take: 12:41:52 busiest processes
+ %CPU COMM
+ 22.0 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 20.7 /System/Library/PrivateFrameworks/IntelligencePlatformCompute.framework/Versions/A/XPCServices/IntelligencePlatformComputeService.xpc/Contents/MacOS/IntelligencePlatformComputeService
+ 17.7 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+ 16.2 /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/provjobd119312302
+ 15.4 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+ 15.1 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 12.4 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+ps: stdout: Broken pipe
+12:42:28.948 take 3 (attempt 1): after 30 s quiet  | load { 125.64 255.84 178.03 }
+12:42:33.883 take 3 (attempt 1): launch (3 s into film/raw-dark-3.mp4)  | load { 123.67 253.27 177.58 }
+--- take 3 before launch: 12:42:33 busiest processes
+ %CPU COMM
+ 43.4 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/CoreServices/iconservicesagent
+ 29.7 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 17.0 /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimMetalHost.xpc/Contents/MacOS/SimMetalHost
+ 15.1 /usr/libexec/diagnosticd
+ 12.9 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+  5.9 /usr/libexec/diskimagesiod
+  2.5 /Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/Resources/SimRenderingServices.simdeviceio/Contents/XPCServices/SimRenderServer.xpc/Contents/MacOS/SimRenderServer
+ps: stdout: Broken pipe
+--- take 3 after the take: 12:42:55 busiest processes
+ %CPU COMM
+ 26.6 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 23.9 /usr/libexec/diskimagesiod
+ 16.6 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 15.4 /usr/libexec/diagnosticd
+  8.8 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+  8.5 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mdworker_shared
+  7.9 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds
+ps: stdout: Broken pipe
+12:43:31.543 take 3 control: after 30 s quiet  | load { 99.82 224.30 171.99 }
+--- take 3 control before launch: 12:43:34 busiest processes
+ %CPU COMM
+ 29.1 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 22.6 /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/provjobd119312302
+ 14.6 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 14.2 /usr/libexec/diagnosticd
+ 14.2 /usr/libexec/CoreSimulatorBridge
+ 10.6 /usr/libexec/diskimagesiod
+  3.4 /usr/libexec/diskimagesiod
+ps: stdout: Broken pipe
+--- take 3 control after the take: 12:43:56 busiest processes
+ %CPU COMM
+ 26.6 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/usr/libexec/diagnosticd
+ 17.4 /var/folders/n6/hn37q6pj7sj_9dmqqc2113800000gn/T/provjobd119312302
+ 14.5 /usr/libexec/diagnosticd
+ 12.9 /Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/ApplePushService.framework/apsd
+ 12.0 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/mds_stores
+ 10.4 (diskutil)
+  8.9 /usr/libexec/diskimagesiod
+ps: stdout: Broken pipe
+12:46:14.054 done  | load { 133.85 184.36 164.12 }
