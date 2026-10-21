@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui.map
 
+import android.content.res.AssetManager
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import com.stethoscore.app.map.ChunkCache
@@ -12,6 +13,10 @@ import com.stethoscore.app.map.MapPalette
 import com.stethoscore.app.map.Mat4
 import com.stethoscore.app.map.Octree
 import com.stethoscore.app.map.OrbitCamera
+import com.stethoscore.app.map.SpaceBodies
+import com.stethoscore.app.map.SpaceLod
+import com.stethoscore.app.map.SpaceOptics
+import com.stethoscore.app.map.SpacePalette
 import com.stethoscore.app.map.Vec3
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -38,7 +43,12 @@ data class MapReadout(
     val bundles: Int = 0,
     val resident: Int = 0,
     val detail: Float = 1f,
+    /** Notes drawn as Space bodies this frame (0 in the plain theme). */
+    val bodies: Int = 0,
 )
+
+/** How the map draws its notes: plain coloured points, or the Space theme's bodies. */
+enum class MapTheme { PLAIN, SPACE }
 
 /** A node's place on screen, for labels and taps (real notes only). */
 data class ScreenNode(val index: Int, val x: Float, val y: Float, val pixels: Float)
@@ -51,6 +61,10 @@ data class ScreenNode(val index: Int, val x: Float, val y: Float, val pixels: Fl
  * never moving the million nodes. Link lists stream into a paged GPU pool through the LRU
  * [ChunkCache]. Draws: link bundles (instanced quads), links, summary points, nodes, all
  * additive, so detail changes by size and position, never by opacity.
+ *
+ * In the [MapTheme.SPACE] theme a note's colour group is its style (SpaceStyle), the near
+ * notes become their bodies (SpaceBodies, drawn by SpaceGl over everything else, their points
+ * hidden by a one-byte-per-node mask) and the links glow warm, tinted by their notes' styles.
  */
 class GlMapRenderer(
     val tree: Octree,
@@ -61,7 +75,21 @@ class GlMapRenderer(
     private val displayMaxHz: Float,
     private val onReadout: (MapReadout) -> Unit,
     private val onScreenNodes: ((List<ScreenNode>) -> Unit)? = null,
+    private val theme: MapTheme = MapTheme.PLAIN,
+    /** Where the Space theme's Earth maps are read from; null draws the rocky planet from noise. */
+    assets: AssetManager? = null,
 ) : GLSurfaceView.Renderer {
+    private val space = theme == MapTheme.SPACE
+    private val bodies: SpaceBodies? = if (space) SpaceBodies(tree, nodeRadius) else null
+    private val spaceGl: SpaceGl? = if (space) SpaceGl(assets) else null
+    private val palette = if (space) SpacePalette.rgb else MapPalette.rgb
+    private val styleScale = if (space) SpacePalette.pointScale else FloatArray(6) { 1f }
+    private val startNanos = System.nanoTime()
+    private var maskTexture = 0
+    private val maskHeight = if (space) max(1, (tree.nodeCount + 1023) / 1024) else 1
+    /** One byte per node (chunk order): 255 while the node is drawn as its body. */
+    private val mask = ByteArray(1024 * maskHeight)
+    private val maskTexel: ByteBuffer = ByteBuffer.allocateDirect(1)
     /** The vsync time (Choreographer) of the frame being drawn; 0 when unknown. */
     @Volatile var vsyncNanos = 0L
     /** Camera velocity (world units a second), smoothed; read by the guard band. */
@@ -100,6 +128,7 @@ class GlMapRenderer(
     private val center = FloatArray(3)
     private val half = FloatArray(3)
     private var viewProj = Mat4.identity()
+    private var clock = 0f
 
     init { require(tree.leafCount < 65_536) { "chunk ids are 16-bit" } }
 
@@ -113,6 +142,7 @@ class GlMapRenderer(
         maxPointSize = max(range[1], 1f)
         uploadNodes()
         uploadLeafTexture()
+        uploadMask()
         val ids = IntArray(4)
         GLES30.glGenBuffers(4, ids, 0)
         edgeIbo = ids[0]; summaryVbo = ids[1]; bundleVbo = ids[2]; cornerVbo = ids[3]
@@ -151,6 +181,7 @@ class GlMapRenderer(
         // a new context has an empty pool: everything streams again
         cache = newCache()
         lod = LodSelector(tree, cache)
+        if (bodies != null) spaceGl?.create(bodies, budget.detail)
     }
 
     override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) {
@@ -185,15 +216,25 @@ class GlMapRenderer(
         val guard = GuardBand.predict(guardCamera, aspect, velocity, lookaheadSeconds = 0.35f)
         val plan = lod.select(eye, focal, guard.view, guard, budget.openPixels, budget.maxDetailNodes, dt, frame)
         cache.pump(frame, budget.uploadBudget) { chunk, pages -> uploadChunk(chunk, pages) }
-        animating = moved > 1e-5f || plan.detailLeaves.size.let { n -> (0 until n).any { plan.leafState[plan.detailLeaves[it] * 4 + 3] < 1f } } || cache.uploadedThisFrame > 0
+        // the shaders' clock, wrapped so float time stays fine-grained (every period is whole there)
+        clock = (((System.nanoTime() - startNanos) / 1e9) % SpaceOptics.CLOCK_PERIOD).toFloat()
+        val bodyCount = bodies?.let { b ->
+            val right = Vec3(view[0], view[4], view[8]); val up = Vec3(view[1], view[5], view[9])
+            b.update(plan, viewProj, eye, right, up, focal, SpaceLod.maxBodies(budget.detail), clock).also { applyMask(b) }
+        } ?: 0
+        animating = bodyCount > 0 || (bodies?.beamCount ?: 0) > 0 || moved > 1e-5f || plan.detailLeaves.size.let { n -> (0 until n).any { plan.leafState[plan.detailLeaves[it] * 4 + 3] < 1f } } || cache.uploadedThisFrame > 0
 
-        GLES30.glClearColor(0.055f, 0.106f, 0.173f, 1f)
+        if (space) GLES30.glClearColor(0.004f, 0.006f, 0.016f, 1f) else GLES30.glClearColor(0.055f, 0.106f, 0.173f, 1f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
         uploadLeafState(plan)
         drawBundles(plan)
         drawEdges(plan, eye, focal)
         drawSummaries(plan)
         val drawn = drawNodes(plan, eye, focal)
+        if (bodies != null && spaceGl != null && bodyCount + bodies.beamCount > 0) {
+            spaceGl.draw(bodies, viewProj, floatArrayOf(eye.x, eye.y, eye.z), floatArrayOf(view[0], view[4], view[8]),
+                floatArrayOf(view[1], view[5], view[9]), focal, clock, SpaceLod.shaderDetail(budget.detail))
+        }
         publishScreenNodes(plan)
 
         val workMs = (System.nanoTime() - start) / 1e6
@@ -206,6 +247,7 @@ class GlMapRenderer(
                 frameMs = stats.medianInterval(), workMs = stats.medianWork(),
                 nodes = tree.nodeCount, links = tree.edgeCount, drawnNodes = drawn, chunks = plan.detailLeaves.size,
                 summaries = plan.summaryCount, bundles = plan.bundleCount, resident = cache.residentCount, detail = budget.detail,
+                bodies = bodyCount,
             ))
         }
     }
@@ -261,6 +303,33 @@ class GlMapRenderer(
         GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA32F, leafTexWidth, leafTexHeight, 0, GLES30.GL_RGBA, GLES30.GL_FLOAT, null)
     }
 
+    private fun uploadMask() {
+        val ids = IntArray(1)
+        GLES30.glGenTextures(1, ids, 0); maskTexture = ids[0]
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, maskTexture)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 1)
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_R8, 1024, maskHeight, 0, GLES30.GL_RED, GLES30.GL_UNSIGNED_BYTE, ByteBuffer.wrap(mask))
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 4)
+    }
+
+    /** Hides the points of the nodes that became bodies and shows the ones that stopped, a texel each. */
+    private fun applyMask(b: SpaceBodies) {
+        if (b.maskChanges.size == 0) return
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, maskTexture)
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 1)
+        for (k in 0 until b.maskChanges.size) {
+            val change = b.maskChanges[k]
+            val node = kotlin.math.abs(change) - 1
+            val value: Byte = if (change > 0) -1 else 0
+            mask[node] = value
+            maskTexel.clear(); maskTexel.put(value).flip()
+            GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, node % 1024, node / 1024, 1, 1, GLES30.GL_RED, GLES30.GL_UNSIGNED_BYTE, maskTexel)
+        }
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 4)
+    }
+
     private fun uploadLeafState(plan: FramePlan) {
         leafStateBuffer.clear()
         leafStateBuffer.put(plan.leafState, 0, min(plan.leafState.size, leafStateBuffer.capacity()))
@@ -294,7 +363,13 @@ class GlMapRenderer(
         GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(program, "uVP"), 1, false, viewProj, 0)
         GLES30.glUniform3fv(GLES30.glGetUniformLocation(program, "uCenter"), 1, center, 0)
         GLES30.glUniform3fv(GLES30.glGetUniformLocation(program, "uHalf"), 1, half, 0)
-        GLES30.glUniform3fv(GLES30.glGetUniformLocation(program, "uPalette"), 6, MapPalette.rgb, 0)
+        GLES30.glUniform3fv(GLES30.glGetUniformLocation(program, "uPalette"), 6, palette, 0)
+        GLES30.glUniform1fv(GLES30.glGetUniformLocation(program, "uStyleScale"), 6, styleScale, 0)
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "uSpace"), if (space) 1f else 0f)
+        GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "rpClock"), clock)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, maskTexture)
+        GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "uBodyMask"), 1)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "uFocal"), focal)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "uNodeRadius"), nodeRadius)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "uMaxPoint"), min(maxPointSize, 64f))
@@ -431,6 +506,15 @@ uniform float uFocal;
 uniform float uNodeRadius;
 uniform float uMaxPoint;
 uniform highp sampler2D uLeafState;
+uniform float uStyleScale[6];
+uniform float uSpace;
+uniform float rpClock;
+uniform mediump sampler2D uBodyMask;
+// Space theme: 1 while this node is drawn as its body (its point hides)
+float bodyMasked() {
+    if (uSpace < 0.5) return 0.0;
+    return texelFetch(uBodyMask, ivec2(gl_VertexID % 1024, gl_VertexID / 1024), 0).r;
+}
 vec4 leafState() { int l = int(aLeaf); return texelFetch(uLeafState, ivec2(l % 1024, l / 1024), 0); }
 vec3 placed(vec4 st) { return mix(st.xyz, uCenter + aPos * uHalf, st.w); }
 """
@@ -443,13 +527,14 @@ void main() {
     gl_Position = uVP * vec4(placed(st), 1.0);
     float w = max(gl_Position.w, 1e-4);
     // detail follows the pixels a node covers: a plain point, then shading, then glow
-    float px = 2.0 * uNodeRadius * uFocal / w * st.w;
+    float px = 2.0 * uNodeRadius * uFocal / w * st.w * uStyleScale[int(aGroup) % 6];
     vSize = clamp(px, 1.0, uMaxPoint);
     gl_PointSize = vSize;
     // a node smaller than a pixel lights the pixel by the area it covers, so dense far
     // clusters stay coloured instead of adding up to white
     float cover = clamp(px, 0.35, 1.0);
     vColor = uPalette[int(aGroup) % 6] * cover * cover;
+    if (bodyMasked() > 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
 }
 """
 
@@ -479,6 +564,17 @@ void main() {
     vec4 st = leafState();
     gl_Position = uVP * vec4(placed(st), 1.0);
     vColor = uPalette[int(aGroup) % 6];
+    if (uSpace > 0.5) {
+        // Space: warm glowing links, tinted by the note's style (sun whiter, black hole ember,
+        // comet icy, rocky bluish, gas giant warm, pulsar beating with its beams); a link
+        // fades into a body, whose beam carries it from there
+        int s = int(aGroup) % 6;
+        vec3 warm = vec3(1.0, 0.72, 0.42);
+        vec3 tint = s == 5 ? vec3(1.0, 0.93, 0.8) : s == 0 ? vec3(1.0, 0.5, 0.2) : s == 3 ? vec3(0.72, 0.9, 1.0)
+            : s == 1 ? vec3(0.78, 0.84, 1.0) : s == 2 ? vec3(1.0, 0.8, 0.55) : vec3(0.85, 0.85, 1.0);
+        float beat = s == 4 ? 0.7 + 0.3 * cos(6.2831853 * rpClock * 1.3333333) : 1.0;
+        vColor = mix(warm, tint, 0.5) * 1.6 * beat * (1.0 - bodyMasked());
+    }
 }
 """
 

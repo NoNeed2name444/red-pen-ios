@@ -61,6 +61,8 @@ import com.stethoscore.app.map.MapGraph
 import com.stethoscore.app.map.Octree
 import com.stethoscore.app.map.OrbitCamera
 import com.stethoscore.app.map.RefreshRate
+import com.stethoscore.app.map.SpacePalette
+import com.stethoscore.app.map.SpaceStyle
 import com.stethoscore.app.map.Vec3
 import com.stethoscore.app.map.grouped
 import java.util.Locale
@@ -69,7 +71,8 @@ import kotlin.math.max
 
 /** A map ready to draw: its octree, how big a node is, and the notes behind the nodes. */
 /** [viewRadius] holds 95% of the nodes: the home view frames those, not a few far outliers. */
-class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>, val ids: List<String>, val viewRadius: Float = tree.radius[0]) {
+/** [theme] says how its notes are drawn; in [MapTheme.SPACE] each node's group is its SpaceStyle code. */
+class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>, val ids: List<String>, val viewRadius: Float = tree.radius[0], val theme: MapTheme = MapTheme.PLAIN) {
     companion object {
         fun viewRadius(tree: Octree): Float {
             val n = tree.nodeCount
@@ -84,8 +87,12 @@ class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>
             return max(d[(d.size * 0.95f).toInt().coerceAtMost(d.size - 1)], 1e-3f)
         }
 
-        fun of(graph: MapGraph, leafCapacity: Int = 4096): MapScene {
-            val tree = Octree.build(graph, leafCapacity)
+        fun of(graph: MapGraph, leafCapacity: Int = 4096, theme: MapTheme = MapTheme.PLAIN): MapScene {
+            // Space: a note's style follows its links (SpaceStyle.forLinks), as on iOS
+            val tree = if (theme == MapTheme.SPACE) {
+                val styled = MapGraph(graph.positions, SpaceStyle.assign(graph.nodeCount, graph.edges), graph.edges, graph.titles, graph.ids)
+                Octree.build(styled, leafCapacity, palette = SpacePalette.rgb)
+            } else Octree.build(graph, leafCapacity)
             // a node is about a third of the typical spacing between neighbours in its chunk
             var spacing = 0.0; var weight = 0
             for (leaf in 0 until tree.leafCount) {
@@ -95,7 +102,7 @@ class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>
                 weight += tree.count[cell]
             }
             val radius = if (weight == 0) 0.35f else (spacing / weight * 0.3).toFloat().coerceIn(0.01f, 0.45f)
-            return MapScene(tree, radius, graph.titles, graph.ids, viewRadius(tree))
+            return MapScene(tree, radius, graph.titles, graph.ids, viewRadius(tree), theme)
         }
     }
 }
@@ -153,6 +160,7 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
             scene.tree, camera, scene.nodeRadius, displayHz = { hz[0] }, displayMaxHz = maxHz,
             onReadout = { r -> mainHandler.post { readout = r } },
             onScreenNodes = if (scene.titles.isEmpty()) null else { nodes -> mainHandler.post { screenNodes = nodes } },
+            theme = scene.theme, assets = context.assets,
         )
     }
     val gles3 = remember(context) { supportsGles3(context) }

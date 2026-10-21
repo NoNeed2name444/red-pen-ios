@@ -65,7 +65,8 @@ class Octree private constructor(
     companion object {
         const val ROOT = 0
 
-        fun build(graph: MapGraph, leafCapacity: Int = 4096, maxDepth: Int = 10): Octree {
+        /** [palette] colours the chunk summaries by group (r, g, b per group): the Ward palette, or SpacePalette. */
+        fun build(graph: MapGraph, leafCapacity: Int = 4096, maxDepth: Int = 10, palette: FloatArray = MapPalette.rgb): Octree {
             val n = graph.nodeCount
             val src = graph.positions
             val perm = IntArray(n) { it }
@@ -132,7 +133,7 @@ class Octree private constructor(
                 var sx = 0.0; var sy = 0.0; var sz = 0.0; var r = 0.0; var g = 0.0; var b = 0.0
                 for (k in lo until hi) {
                     sx += positions[3 * k]; sy += positions[3 * k + 1]; sz += positions[3 * k + 2]
-                    val gr = groups[k].toInt(); r += MapPalette.r(gr); g += MapPalette.g(gr); b += MapPalette.b(gr)
+                    val gr = 3 * (groups[k].toInt() % MapGraph.PALETTE_SIZE); r += palette[gr]; g += palette[gr + 1]; b += palette[gr + 2]
                 }
                 val cnt = max(hi - lo, 1)
                 cx[c] = (sx / cnt).toFloat(); cy[c] = (sy / cnt).toFloat(); cz[c] = (sz / cnt).toFloat()
