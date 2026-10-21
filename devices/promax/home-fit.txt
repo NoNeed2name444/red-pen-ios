@@ -1,0 +1,45 @@
+== promax library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 7, kept 0 (cut none), book 7 parts before the push, 0 at its last look
+push and back: cuts: 3.84s cut 770.00 bar 782.00 page 118.00+656.00 tops 0 from none
+card 266-653, start 581-637, new set 782-838, tiles 685-863, bar 782-922, cut 770, large text false
+page ends 770, 7 parts measured: the round card 266-653, bed 1 327-400, the Due chip 353-375, bed 2 402-495, the New chip 437-460, bed 3 497-569, the tiles 685-864
+words: the Vitals tile's streak 84/40, the brain map's line 154/38
+== promax library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 7, kept 0 (cut none), book 7 parts before the push, 0 at its last look
+push and back: cuts: 3.64s cut 770.00 bar 782.00 page 118.00+656.00 tops 0 from none
+card 266-653, start 581-637, new set 782-838, tiles 685-863, bar 782-922, cut 770, large text false
+page ends 770, 7 parts measured: the round card 266-653, bed 1 327-400, the Due chip 353-375, bed 2 402-495, the New chip 437-460, bed 3 497-569, the tiles 685-864
+words: the Vitals tile's streak 84/40, the brain map's line 154/38
+== promax xxl-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+push and back: cuts: 3.50s cut 768.67 bar 780.67 page 120.00+652.67 tops 0 from none
+card 283-686, start 614-670, new set 780-836, tiles 718-911, bar 780-922, cut 768, large text true
+page ends 768, 6 parts measured: the round card 283-686, bed 1 354-442, the Due chip 384-412, bed 2 444-602, the New chip 509-537, the tiles 718-911
+words: the Vitals tile's streak 105/50, the brain map's line 144/48
+== promax xxl-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+push and back: cuts: 3.40s cut 768.67 bar 780.67 page 120.00+652.67 tops 0 from none
+card 283-686, start 614-670, new set 780-836, tiles 718-911, bar 780-922, cut 768, large text true
+page ends 768, 6 parts measured: the round card 283-686, bed 1 354-442, the Due chip 384-412, bed 2 444-602, the New chip 509-537, the tiles 718-911
+words: the Vitals tile's streak 105/50, the brain map's line 144/48
+== promax ax1-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 0, kept 6 (cut 285.83333333333337), book 6 parts before the push, 6 at its last look
+push and back: cuts: 2.94s cut 768.00 bar 780.00 page 180.00+592.00 tops 6 from 364.00
+card 364-1123, start 1049-1107, new set 780-837, tiles none, bar 780-922, cut 768, large text true
+page ends 768, 6 parts measured: the round card 364-1123, bed 1 475-675, the Due chip 633-667, bed 2 677-878, the New chip 835-870, bed 3 880-1038
+words: 
