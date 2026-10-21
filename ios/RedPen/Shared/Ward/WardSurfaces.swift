@@ -1334,9 +1334,13 @@ struct WardDeckSlab: ViewModifier {
         let right = WardEdge.slabTopRadius(join?.right, slabSide: slab.maxX, leading: false)
         let shape = WardDeckShape(left: left, right: right, joined: join != nil)
         let inset = join.map { WardIsland.foldInset(slab: slab, join: $0) } ?? 0
+        // The slab takes the strip's own wash, not the cards' surface, so
+        // the dock reads as one tone with the screen: no paler (or darker)
+        // panel inside the island and no seam between its rows. The edge
+        // and relief stay as they are (the owner, 21 Oct).
         let face = content
             .environment(\.wardFoldInset, CGFloat(inset))
-            .wardRaised(in: shape, lift: .high)
+            .wardRaised(in: shape, lift: .high, fill: .wardWash)
         Group {
             if let join {
                 face.clipShape(shape)
