@@ -986,11 +986,7 @@ extension View {
     /// Home's small-caps label: one Dynamic Type step smaller than
     /// `WardSmallCaps` (`.caption.weight(.semibold)` -> `.caption2.weight(.semibold)`).
     func homeSmallCaps(colour: Color = .wardInkSecondary) -> some View {
-        self
-            .font(.caption2.weight(.semibold))
-            .textCase(.uppercase)
-            .tracking(WardType.smallCapsTracking)
-            .foregroundStyle(colour)
+        modifier(WardSmallCaps(font: .caption2.weight(.semibold), colour: colour))
     }
 }
 

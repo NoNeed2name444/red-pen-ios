@@ -287,10 +287,10 @@ final class LaunchOpeningView: UIView {
         CATransaction.setDisableActions(true)
         // the ground over the whole view, its grid counted from the
         // window's top left, as home's paper and the launch screen lay it
-        let origin = convert(CGPoint.zero, to: nil)
+        let groundOrigin = convert(CGPoint.zero, to: nil)
         for host in [ground, phoneGround].compactMap({ $0 }) {
             host.view.frame = bounds
-            if host.rootView.origin != origin { host.rootView.origin = origin }
+            if host.rootView.origin != groundOrigin { host.rootView.origin = groundOrigin }
         }
         // centred in the safe area at its natural size, where the launch
         // screen puts the same image: the window's insets, since this view

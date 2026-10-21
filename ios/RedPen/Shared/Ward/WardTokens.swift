@@ -551,13 +551,20 @@ extension View {
 /// ran past its frame (the AX5 audit's "Text clipped", 15 Oct).
 struct WardSmallCaps: ViewModifier {
     @Environment(\.dynamicTypeSize) private var typeSize
+    var font: Font
+    var colour: Color
+
+    init(font: Font = .caption.weight(.semibold), colour: Color = .wardInkSecondary) {
+        self.font = font
+        self.colour = colour
+    }
 
     func body(content: Content) -> some View {
         content
-            .font(.caption.weight(.semibold))
+            .font(font)
             .textCase(.uppercase)
             .tracking(typeSize.isAccessibilitySize ? 0 : 0.8)
-            .foregroundStyle(Color.wardInkSecondary)
+            .foregroundStyle(colour)
     }
 }
 
