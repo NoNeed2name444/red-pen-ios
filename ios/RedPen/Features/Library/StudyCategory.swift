@@ -457,7 +457,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
 /// base, pressed in under the finger (PopTileStyle).
 struct FeatureTile: View {
     let feature: CategoryFeature
-    let tint: Color
+    var tint: Color = .wardPrimaryInk
     /// Said in place of the feature's own line - a mode's count of sets.
     var detail: String? = nil
     @Environment(\.dynamicTypeSize) private var typeSize

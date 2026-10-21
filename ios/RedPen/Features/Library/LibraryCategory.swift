@@ -90,7 +90,7 @@ extension LibraryView {
     private func tileButton(_ feature: CategoryFeature) -> some View {
         let line: String = tileDetail(feature)
         return Button { start(feature) } label: {
-            FeatureTile(feature: feature, tint: category.tint, detail: line)
+            FeatureTile(feature: feature, tint: Color.wardPrimaryInk, detail: line)
         }
         // a style of its own, so each tile in the one list row is its own
         // button rather than the row being one; it is pressed in under the
@@ -125,7 +125,7 @@ extension LibraryView {
             ForEach(pages) { page in
                 Button { support = page } label: {
                     CategoryRowLabel(title: page.title, symbol: page.symbol,
-                                     detail: Self.moreDetail(page), tint: category.tint)
+                                     detail: Self.moreDetail(page), tint: Color.wardPrimaryInk)
                         .foregroundStyle(Color.wardInk)
                 }
                 .accessibilityIdentifier("more-\(page.rawValue)")
@@ -171,7 +171,7 @@ extension LibraryView {
         HStack(spacing: 14) {
             Image(systemName: category.symbol)
                 .font(.title2)
-                .foregroundStyle(category.tint)
+                .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 40)
                 .accessibilityHidden(true)
             Text(category.emptySets)

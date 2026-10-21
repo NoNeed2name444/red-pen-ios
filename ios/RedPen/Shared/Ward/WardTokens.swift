@@ -75,6 +75,14 @@ extension Color {
         WardRestColors.sectionInk(section)
     }
 
+    /// The section's wash this frame (WardSection.wash): the matte base mixed
+    /// toward the section's fill, shifting with the section's glide.
+    static var wardWash: Color {
+        let glide = WardLookStore.shared.glide
+        if glide.settled { return WardRestColors.wash(glide.to.section) }
+        return Color(uiColor: WardRestColors.liveWash())
+    }
+
     static func uiColor(_ hex: UInt32, alpha: Double = 1) -> UIColor {
         let (r, g, b) = WardPalette.rgb(hex)
         return UIColor(red: r, green: g, blue: b, alpha: alpha)
@@ -166,6 +174,19 @@ enum WardRestColors {
         (section, Color(uiColor: liveInk(section, edge: false)))
     })
     static func sectionInk(_ section: WardSection) -> Color { sectionInks[section] ?? palette[WardToken.primaryInk.index] }
+
+    /// The section's wash at rest, and as it shifts.
+    private static let washes: [WardSection: Color] = Dictionary(uniqueKeysWithValues: WardSection.allCases.map { section in
+        (section, Color(uiColor: liveWash()))
+    })
+    static func wash(_ section: WardSection) -> Color { washes[section] ?? Color(uiColor: liveWash()) }
+    static func liveWash() -> UIColor {
+        UIColor { traits in
+            let dark = traits.userInterfaceStyle == .dark
+            let hex = WardLookNow.shared.wash(dark: dark, held: traits.wardHeld)
+            return Color.uiColor(hex)
+        }
+    }
 }
 
 // MARK: - The one animated value

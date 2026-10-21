@@ -53,6 +53,13 @@ final class LaunchStage {
     /// (WardLightImages draws live instead and makes its images afterwards).
     var handingOff: Bool { link != nil }
 
+    /// From launch until the opening has handed over to home, the ground
+    /// keeps the neutral base so the launch screen and the opening never jump.
+    var inOpening: Bool {
+        guard LaunchSplash.wanted else { return false }
+        return !landed || link != nil || now.isFinite
+    }
+
     /// The time home is posed at: whole while it warms up.
     var poseTime: Double { warm ? .infinity : now }
 

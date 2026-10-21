@@ -1078,7 +1078,7 @@ struct LibraryView: View {
         // Ideas the plain base, so nothing scrolled shows through
         .background {
             if !bandShown && !underSky {
-                Color.wardBackground
+                Color.wardWash
                     .ignoresSafeArea(edges: [.top, .horizontal])
                     .transition(.identity)
             }

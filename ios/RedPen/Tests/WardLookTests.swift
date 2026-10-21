@@ -460,5 +460,46 @@ do {
           now.ink(.cards, dark: false) == WardSection.cards.ink.light)
 }
 
+// MARK: - Each section's wash
+
+for dark in [false, true] {
+    let mode = dark ? "dark" : "light"
+    let chartInk = WardPalette.hex(.ink, dark: dark)
+    let biroGrey = WardPalette.hex(.inkSecondary, dark: dark)
+    for s in sections {
+        let wash = s.wash(dark: dark)
+        let cChart = WardPalette.contrast(chartInk, wash)
+        check("\(mode) \(s): Chart Ink keeps 4.5:1 on its wash", cChart >= 4.5, "\(h(wash)) \(f(cChart))")
+        let cBiro = WardPalette.contrast(biroGrey, wash)
+        check("\(mode) \(s): Biro Grey keeps 4.5:1 on its wash", cBiro >= 4.5, "\(h(wash)) \(f(cBiro))")
+        let cAccent = WardPalette.contrast(s.accent(dark: dark), wash)
+        check("\(mode) \(s): its accent keeps 4.5:1 on its wash", cAccent >= 4.5, "\(h(wash)) \(f(cAccent))")
+    }
+    // no two sections' washes are the same
+    var washes: [UInt32] = []
+    for s in sections {
+        let w = s.wash(dark: dark)
+        check("\(mode) \(s): wash is unique among sections", !washes.contains(w), h(w))
+        washes.append(w)
+    }
+}
+
+do {
+    let now = WardLookNow()
+    for section in WardSection.allCases {
+        for dark in [false, true] {
+            now.set(.rest(WardLook(dark: dark, section: section)))
+            check("drawn now: \(section) \(dark ? "dark" : "light") wash",
+                  now.wash(dark: dark) == section.wash(dark: dark),
+                  h(now.wash(dark: dark)) + " vs " + h(section.wash(dark: dark)))
+        }
+    }
+    let shift = WardGlide(from: day, to: WardLook(dark: false, section: .questions), progress: 0.5)
+    now.set(shift)
+    let midWash = now.wash(dark: false)
+    let expectWash = WardPalette.mix(WardSection.cards.wash(dark: false), WardSection.questions.wash(dark: false), shift.eased)
+    check("mid-shift, wash is linear-light mix", midWash == expectWash, "\(h(midWash)) vs \(h(expectWash))")
+}
+
 print(failures.isEmpty ? "\nall passed" : "\n\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

@@ -387,7 +387,8 @@ private struct WardReliefDrawing<S: InsettableShape>: View {
 /// only, so VoiceOver skips it.
 struct WardBackground: View {
     var body: some View {
-        Color.wardBackground
+        let base: Color = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
+        base
             .ignoresSafeArea()
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -961,7 +962,7 @@ struct WardPaperBand: View {
         let paper = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                   highContrast: contrast == .increased)
         let ink = WardPaperInk(hex: paper.hex, fine: grid ? paper.fine : 0, bold: grid ? paper.bold : 0, edge: paper.edge)
-        let base: Color = .wardBackground
+        let base: Color = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
         Group {
             Canvas { context, size in
                 let height: CGFloat = min(size.height, bottom - origin.y)
@@ -999,7 +1000,7 @@ struct WardMasthead: ViewModifier {
                 Color.clear
                     .frame(height: 0)
                     .background(alignment: .bottom) {
-                        Color.wardBackground.ignoresSafeArea(edges: .top)
+                        (LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash).ignoresSafeArea(edges: .top)
                     }
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -1096,16 +1097,17 @@ private struct WardEdgeHost: ViewModifier {
             .environment(\.wardIslandEntry, entry)
             .background(alignment: .top) {
                 if strip && shown {
+                    let base = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
                     if let entry {
                         GeometryReader { geometry in
                             WardIslandPath(join: entry.local, from: -WardPaper.sideInset,
                                            to: entry.host.width + WardPaper.sideInset, filled: true)
-                                .fill(Color.wardBackground)
+                                .fill(base)
                                 .frame(height: max(geometry.size.height, entry.panel.y + entry.panel.height - entry.host.minY + WardPaper.frame))
                         }
                         .transition(.identity)
                     } else {
-                        Color.wardBackground.ignoresSafeArea(edges: [.horizontal, .bottom]).transition(.identity)
+                        base.ignoresSafeArea(edges: [.horizontal, .bottom]).transition(.identity)
                     }
                 }
             }
@@ -1177,7 +1179,7 @@ private struct WardPageEdge: View, Animatable {
     }
 
     var body: some View {
-        let base = Color.wardBackground
+        let base = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
         Canvas { context, size in
             let rect = CGRect(origin: .zero, size: size)
             if pockets {

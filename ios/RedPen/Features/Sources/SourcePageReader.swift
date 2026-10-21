@@ -37,7 +37,7 @@ struct SourcePageReader: View {
             .foregroundStyle(Color.wardInk)
             .padding()
         }
-        .background(Color.wardBackground)
+        .background(WardBackground())
     }
 
     private var current: SourceDoc.Page? { source.page(page) }

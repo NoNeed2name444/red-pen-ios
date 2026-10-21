@@ -226,7 +226,7 @@ struct ReasoningToolPicker: View {
             destination(set)
         } label: {
             CategoryRowLabel(title: set.name, symbol: tool.symbol,
-                             detail: set.subject, tint: StudySetKind.anki.tint)
+                             detail: set.subject, tint: Color.wardPrimaryInk)
         }
         .frostedListRow()
     }

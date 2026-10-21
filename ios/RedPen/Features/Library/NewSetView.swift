@@ -180,6 +180,7 @@ struct NewSetView: View {
                 }
                 .interactiveDismissDisabled(generation.job != nil)
                 .environment(\.modeTint, kind.tint)
+                .wardSection(WardSection(kindRaw: kind.rawValue))
                 // what the sections start belongs to this sheet
                 .environment(\.generationOwner, generationOwner)
                 .navigationTitle("New set")
@@ -425,7 +426,7 @@ struct NewSetView: View {
     private func modeTile(_ option: StudySetKind) -> some View {
         let chosen: Bool = kind == option
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        let title: Color = chosen ? Color.wardPrimaryInk : Color.wardInk
+        let title: Color = chosen ? option.tint : Color.wardInk
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         return Button {
             withAnimation(.snappy) {

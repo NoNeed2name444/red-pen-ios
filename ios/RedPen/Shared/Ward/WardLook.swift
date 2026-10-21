@@ -45,6 +45,16 @@ enum WardSection: String, CaseIterable, Sendable {
     func fill(dark: Bool) -> UInt32 { dark ? fill.dark : fill.light }
     func ink(dark: Bool) -> UInt32 { dark ? ink.dark : ink.light }
 
+    /// The wash behind every page: the base mixed toward the section's fill
+    /// in linear light (WardPalette.mix): 0.06 by day, 0.10 at night.
+    var wash: (light: UInt32, dark: UInt32) { (wash(dark: false), wash(dark: true)) }
+
+    func wash(dark: Bool) -> UInt32 {
+        let base = WardPalette.hex(.background, dark: dark)
+        let t = dark ? 0.10 : 0.06
+        return WardPalette.mix(base, fill(dark: dark), t)
+    }
+
     /// The colours that mean something, which no section's accent may
     /// look like.
     static let semanticTokens: [WardToken] = [.success, .danger, .warning, .ecg, .beam]
@@ -179,6 +189,12 @@ struct WardGlide: Equatable, Sendable {
         sectioned(dark: dark, held: held) { $0.ink }
     }
 
+    /// The section's wash this frame, for something drawn in `dark`:
+    /// shifts with the section's glide, like the grid's ink.
+    func wash(dark: Bool, held: Bool = false) -> UInt32 {
+        sectioned(dark: dark, held: held) { $0.wash }
+    }
+
     /// A given section's ink this frame (grid and edges), for something
     /// drawn in `dark`: the night mixed as ink(dark:held:) does, but with
     /// no hue shift with the section on show.
@@ -236,6 +252,11 @@ final class WardLookNow: @unchecked Sendable {
     /// The section's ink (grid and edges) as it is drawn now.
     func ink(dark: Bool, held: Bool = false) -> UInt32 {
         glide.ink(dark: dark, held: held)
+    }
+
+    /// The section's wash as it is drawn now.
+    func wash(dark: Bool, held: Bool = false) -> UInt32 {
+        glide.wash(dark: dark, held: held)
     }
 
     /// A given section's ink (grid and edges) as it is drawn now.

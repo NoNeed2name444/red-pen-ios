@@ -574,22 +574,7 @@ struct HomeRoundCard: View {
     }
 
     static func tone(_ bed: BedPlan.Bed) -> WardTone {
-        switch bed.kind {
-        case .priority(let mission):
-            switch mission {
-            case .examKit, .mock: return .warning
-            default: return .blue
-            }
-        case .dueCards: return .accent(.cards)
-        case .weakest: return .danger
-        case .freshSet(let set):
-            switch set.mode {
-            case .questions: return .accent(.questions)
-            case .cards: return .accent(.cards)
-            case .textbook: return .accent(.textbook)
-            }
-        case .station: return .warning
-        }
+        .blue
     }
 
     /// The chip's words and tone: every tone here keeps its text at AA in
@@ -730,7 +715,7 @@ private struct VitalsTileFace: View {
 
     private var ring: some View {
         let centre: String? = readiness == nil ? "\u{2013}" : nil
-        return WardRing(value: readiness?.center ?? 0, tone: .amber, lineWidth: 6, centre: centre)
+        return WardRing(value: readiness?.center ?? 0, tone: .blue, lineWidth: 6, centre: centre)
             .frame(width: 56, height: 56)
     }
 
@@ -885,7 +870,7 @@ struct NodeGlyph: View {
             for (index, point) in points.enumerated() {
                 let radius: CGFloat = index == 0 ? 6 : 4
                 let rect = CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)
-                let colour: Color = index == 0 ? Color.wardBeam : Color.wardPrimaryInk
+                let colour: Color = Color.wardPrimaryInk
                 context.fill(Path(ellipseIn: rect), with: .color(colour))
             }
         }
@@ -906,7 +891,7 @@ struct SetRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: WardSpace.m) {
-            ModeTile(kind: set.kind, size: 40)
+            WardIconSquare(symbol: set.kind.symbol, tone: .blue, size: 40)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
                 nameLine

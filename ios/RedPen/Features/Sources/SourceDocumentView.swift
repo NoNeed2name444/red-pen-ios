@@ -86,7 +86,7 @@ struct PDFDocumentView: UIViewRepresentable {
         let view = IdeaPDFView()
         view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         view.autoScales = true
-        view.backgroundColor = UIColor(Color.wardBackground)
+        view.backgroundColor = UIColor(Color.wardWash)
         view.document = PDFDocument(url: url)
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
@@ -151,7 +151,7 @@ struct TextPagesView: View {
                 }
                 .padding()
             }
-            .background(Color.wardBackground)
+            .background(WardBackground())
             .onAppear { reader.scrollTo(page, anchor: .top) }
             // a page picked in the list or the sheet: go straight there
             .onChange(of: page) { _, now in

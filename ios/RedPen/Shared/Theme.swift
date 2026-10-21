@@ -51,7 +51,7 @@ struct ModeTile: View {
         let shape = RoundedRectangle(cornerRadius: min(WardRadius.icon, size * 0.28), style: .continuous)
         Image(systemName: kind.symbol)
             .font(.system(size: size * 0.42, weight: .semibold))
-            .foregroundStyle(selected ? Color.wardPrimaryInk : kind.tint)
+            .foregroundStyle(kind.tint)
             .frame(width: size, height: size)
             // the row or header around it is what is tapped: no edge here
             .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected, control: false)
@@ -161,7 +161,7 @@ private struct WardBarScheme: ViewModifier {
             .toolbarColorScheme(scheme, for: .navigationBar)
             // the bar's own base, always shown: with it the bar, not iOS's
             // guess from the content under it, owns the status bar's style
-            .toolbarBackground(Color.wardBackground, for: .navigationBar)
+            .toolbarBackground(Color.wardWash, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }
 }

@@ -2335,6 +2335,14 @@ with the marks on the screens last.
     rings in its own mode's section ink (Questions red, Cards indigo,
     Textbook teal, Cases orange, OSCE green, Narrate purple), light and dark;
     waits for its Ward preview (new; phone, SE, Pro Max, iPad; light and dark).
+  - [ ] Each mode's colour plain to see (21 Oct, the owner: "colors don't match
+    the mode" and "the mode colors don't change"; task T0074): one mode, one
+    colour on home and category pages with row icons taking the section on
+    show; New set takes the chosen kind's section with mode tiles keeping
+    their own glyph and accent name; ground matte base takes a linear-light
+    wash of the section on show (0.06 day, 0.10 night) shifting with the
+    look's glide, while the launch opening keeps the neutral base until
+    hand-off; waits for its Ward preview.
   - Deck island continuity and rounded corners (the owner, 16 Oct; task
     T0065): any place with a line across the opening (quiz bottom deck,
     header line) turns down into the outer line along a circular arc

@@ -49,7 +49,7 @@ struct SpokenPatientsView: View {
                     } label: {
                         CategoryRowLabel(title: station.title, symbol: "person.wave.2.fill",
                                          detail: "Talk to the patient, then get marked.",
-                                         tint: StudySetKind.osce.tint)
+                                         tint: Color.wardPrimaryInk)
                     }
                     .frostedListRow()
                 }
@@ -63,7 +63,7 @@ struct SpokenPatientsView: View {
                     } label: {
                         CategoryRowLabel(title: "Example: breaking bad news", symbol: "doc.text.magnifyingglass",
                                          detail: "A marked attempt, to see how it works.",
-                                         tint: StudySetKind.osce.tint)
+                                         tint: Color.wardPrimaryInk)
                     }
                     .frostedListRow()
                 } header: {
@@ -87,7 +87,7 @@ struct CategoryRowLabel: View {
     let title: String
     let symbol: String
     let detail: String
-    let tint: Color
+    var tint: Color = .wardPrimaryInk
 
     var body: some View {
         let square = RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous)
