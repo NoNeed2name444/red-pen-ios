@@ -4,7 +4,6 @@ import android.content.Context
 import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -533,10 +532,12 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             }
         }
 
-        // the bar: Start again and Resume while a saved place waits, or How sure? before checking
+        // the bar: Start again and Resume while a saved place waits, or How sure? before checking.
+        // It sits on the screen's own tone, with no fill of its own, so the dock reads as one
+        // colour with no band or seam (the owner, 21 Oct; iOS WardDeckSlab).
         val p = pendingResume
         if (p != null || (!a.checked && asksConfidence)) {
-            Column(Modifier.fillMaxWidth().background(wardColor(WardToken.raised)).padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 if (p != null) {
                     val done = p.answers.count { it.checked }
                     val total = set.questions.size
