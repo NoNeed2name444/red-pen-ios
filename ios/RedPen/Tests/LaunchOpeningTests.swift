@@ -557,7 +557,7 @@ check("the splash draws home's ground live, for the section home opens on",
 check("the splash shows no picture of the ground and no neutral base",
       !splash.contains("\"LaunchPaper\"") && !splash.contains("LaunchBackground") && !splash.contains("baseCG"))
 check("the ground's grid counts from the window's top left, as home's paper",
-      splash.contains("let origin = convert(CGPoint.zero, to: nil)"))
+      splash.contains("let groundOrigin = convert(CGPoint.zero, to: nil)"))
 check("no neutral base until the hand-off: the opening's ground is home's wash throughout",
       !stageSource.contains("var inOpening: Bool") && !surfaces.contains("LaunchStage.shared.inOpening")
       && !surfaces.contains("Color.ward(.background)"))
