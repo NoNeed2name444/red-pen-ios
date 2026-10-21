@@ -345,7 +345,10 @@ struct LibraryView: View {
         }
         // Save to Ideas: the study screens' store, and a saved note's way
         // back to where it came from (LibrarySavedIdeas)
-        .onAppear { attachIdeaSaver() }
+        .onAppear {
+            LaunchStage.shared.mark("home", once: true)
+            attachIdeaSaver()
+        }
         .onReceive(PlatformNotice.publisher(PlatformNotice.openItem)) { note in
             if let source = note.userInfo?["source"] as? NoteSource { openSaved(source) }
         }
@@ -686,6 +689,7 @@ struct LibraryView: View {
                 .environment(\.colorScheme, dockScheme)
                 .environment(\.wardHeld, underSky)
                 .wardUnlit()
+                .launchEntrance()
                 .transition(.slideIn(.leading))
         }
     }
@@ -722,11 +726,16 @@ struct LibraryView: View {
                 // An empty library has its own big button in the middle of
                 // the page, so this one stays away until there is something
                 // to list; Ideas has its own capture row instead.
-                if newSet { newSetRow.transition(.identity) }
+                // arrives with the page's opening at the hand-off (LaunchStage)
+                if newSet { newSetRow.launchEntrance().transition(.identity) }
                 if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
                         .environment(\.colorScheme, dockScheme)
+<<<<<<< HEAD
                         .environment(\.wardHeld, underSky)
+=======
+                        .launchEntrance()
+>>>>>>> 4540bc9e
                 }
             }
             // New set and the dock float on the page itself, with no strip
@@ -782,6 +791,7 @@ struct LibraryView: View {
                     if store.library.isEmpty {
                         Section {
                             emptyState
+                                .launchEntrance(inOpening: true)
                                 .frostedListRow()
                         }
                     }
@@ -947,6 +957,7 @@ struct LibraryView: View {
             if !searching { seeAllButton }
             selectButton
         }
+        .launchEntrance(inOpening: true)
         .textCase(nil)
     }
 
@@ -1030,6 +1041,7 @@ struct LibraryView: View {
                 .hoverEffect(.highlight)
                 .accessibilityLabel("Folder options")
             }
+            .launchEntrance(inOpening: true)
             .textCase(nil)
         }
         }

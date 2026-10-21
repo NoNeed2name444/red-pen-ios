@@ -384,11 +384,19 @@ suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift $S/Ward/WardL
 # soft UI relief: the highlight and shade per mode and lift, visible but
 # soft, growing with the lift, no glare in dark, pressed in mirrors raised
 suite wardrelief WardReliefTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+<<<<<<< HEAD
 # window/page joins, clearance clips, iPad corners and the fold pill
 suite wardisland WardIslandTests.swift $S/Ward/WardIsland.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
 # one animated value for every Ward colour: the light/dark shift and the move
 # between sections, with each section's hue
 suite wardlook WardLookTests.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+=======
+# the relief's lights drawn once: how far each look reaches, the cut that lets
+# one image serve every size of a rounded rectangle, the key, and that
+# stretching the cut image gives the picture the larger drawing gives
+suite wardlightslice WardLightSliceTests.swift $S/Ward/WardLightSlice.swift $S/Ward/WardRelief.swift \
+      $S/Ward/WardPalette.swift
+>>>>>>> 4540bc9e
 # today's ward round on the home: which beds and in what order, the weak
 # spots that need a consult (the weakest always has a bed), the minutes;
 # the study rhythm read from StudyLog's days; the countdown and greeting
@@ -439,4 +447,10 @@ suite storeload StoreLoadTests.swift ios/RedPen/Persistence/Store.swift ios/RedP
 # file is written, filled back in as it is read, swept when nothing refers to
 # them, and named by the same SHA-256 on Linux (plain Swift) as with CryptoKit
 suite pictures LibraryPicturesTests.swift $S/LibraryPictures.swift $S/BlobRefs.swift $S/RecoveryFiles.swift
+<<<<<<< HEAD
 suite wardstates WardStatesTests.swift $S/Ward/WardControlStates.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+=======
+# the launch opening: the heartbeat in step with its sound, the ECG drawn
+# with it, the hole that uncovers home, the art and the sound it uses
+suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift $S/LaunchDiagnostics.swift
+>>>>>>> 4540bc9e

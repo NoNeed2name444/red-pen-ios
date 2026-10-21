@@ -27,6 +27,6 @@ jobs:
           set -euo pipefail
           git config user.name "red-pen-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add -A ios/RedPen/Assets.xcassets/AppIcon.appiconset design/icon
+          git add -A ios/RedPen/Assets.xcassets/AppIcon.appiconset ios/AppResources/AppIcon.icon design/icon
           git diff --cached --quiet || git commit -m "icon: redraw from tools/make_icon.py"
           git push origin HEAD:main
