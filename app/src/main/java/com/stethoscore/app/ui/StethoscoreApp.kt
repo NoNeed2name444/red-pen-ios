@@ -50,6 +50,7 @@ import java.util.Locale
     var category by rememberSaveable { mutableStateOf("Questions") }
     var query by rememberSaveable { mutableStateOf("") }
     var notice by remember { mutableStateOf<String?>(null) }
+    var nothingDue by remember { mutableStateOf(false) }
     val scope=rememberCoroutineScope()
     DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
     fun refresh() { revision++ }
@@ -95,6 +96,7 @@ import java.util.Locale
     val section = when(screen) {
         "study" -> store.library.firstOrNull { it.id==selectedId }?.let { WardSection.fromKindRaw(it.kind.rawValue) } ?: WardSection.outside
         "ideas" -> WardSection.ideas
+        "due" -> WardSection.cards
         // home wears its category's section, opening on Questions (WardSection.opening)
         "home" -> homeSection(category)
         else -> WardSection.outside
@@ -113,13 +115,14 @@ import java.util.Locale
                         val set=store.library.firstOrNull { it.id==selectedId }
                         if(set!=null) when(set.kind) {
                             StudySetKind.MCQ -> QuizScreen(set,store,::goHome)
-                            StudySetKind.ANKI -> CardsScreen(set,store,::goHome)
+                            StudySetKind.ANKI -> AnkiReviewScreen(set,store,::goHome)
                             else -> ClinicalScreen(set,store,::goHome)
                         } else LaunchedEffect(Unit) { goHome() }
                     }
                     "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { refresh();open(set) }.onFailure { notice=it.message } },::goHome)
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
+                    "due" -> DueTodayScreen(store,::goHome)
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } })
                     else -> Column(Modifier.fillMaxSize()) {
                         Box(Modifier.weight(1f)) {
@@ -155,6 +158,7 @@ import java.util.Locale
                                         WardCard(Modifier.weight(1f).clickable { screen="ideas" }) { SectionLabel("Brain map");Icon(Icons.Rounded.Hub,null,tint=MaterialTheme.colorScheme.primary);Text("${store.notes.size} ideas",fontWeight=FontWeight.Bold);Text("Make connections",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
                                     } }
                                 }
+                                if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) { SectionLabel(if(query.isBlank()) "Your ${category.lowercase()}" else "Search results");TextButton(onClick={screen="new"}) { Icon(Icons.Rounded.Add,null,Modifier.size(18.dp));Text("New set") } } }
                                 val filtered=store.library.filter { set ->
                                     (query.isNotBlank() || when(category) { "Questions" -> set.kind==StudySetKind.MCQ || set.kind==StudySetKind.BOOK; "Cards" -> set.kind==StudySetKind.ANKI;"Cases" -> set.kind==StudySetKind.CASES;"OSCE" -> set.kind==StudySetKind.OSCE;else -> set.kind==StudySetKind.NARRATE }) && (query.isBlank() || "${set.name} ${set.subject} ${set.tags.joinToString()}".contains(query,true))
@@ -168,11 +172,27 @@ import java.util.Locale
                         CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query=""} })
                     }
                 }
+                if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("OK")}})
                 notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("OK")}}) }
             }
             // Every page but home stands in the paper's opening (iOS WardPaperFrame):
             // still ECG paper round the window, the page scrolling beneath it.
             if(!onGround) WardPaperFrame(Modifier.fillMaxSize())
+        }
+    }
+}
+
+/** The Cards page's "Due cards" tile: every deck's waiting cards in one queue (iOS CategoryFeature.due). */
+@Composable private fun DueCardsTile(store:StudyStore,revision:Int,open:()->Unit) {
+    val due=remember(revision) { store.dueCount() }
+    WardCard(Modifier.fillMaxWidth().clickable(onClick=open)) {
+        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
+            Icon(Icons.Rounded.Inbox,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(28.dp))
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                Text("Due cards",fontSize=17.sp,fontWeight=FontWeight.SemiBold)
+                Text(if(due>0) "Cards waiting today \u00B7 $due" else "Cards waiting today",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.Rounded.ChevronRight,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
