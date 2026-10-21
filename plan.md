@@ -2356,6 +2356,9 @@ with the marks on the screens last.
       call: a joined deck's slab draws flat, its soft relief clipped to the
       slab (WardSurfaces.swift `face.clipShape(shape)`); keeping it means a
       relief mask past the slab by its reach, cut only by the island.
+    - T0073: recordings of the island's motions (deck folding, push and back)
+      added to GraphPreviewUITests.swift; wait for the Design preview with
+      only=testIsland.
 
 ### Waiting on the owner
 
