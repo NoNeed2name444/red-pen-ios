@@ -14,13 +14,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,9 +38,6 @@ val LocalWardLook = staticCompositionLocalOf { WardLook(dark = false, section = 
 
 /** A 0xRRGGBB colour as an opaque Compose colour. */
 fun wardRgb(hex: Int): Color = Color(0xFF000000.toInt() or hex)
-
-/** A 0xRRGGBB colour at [alpha] as a framework ARGB int. */
-private fun wardArgb(hex: Int, alpha: Double): Int = ((alpha.coerceIn(0.0, 1.0) * 255 + 0.5).toInt() shl 24) or hex
 
 /** The Material scheme for [look]: every slot from the Ward palette and the section. */
 fun wardColorScheme(look: WardLook): ColorScheme {
@@ -109,27 +101,8 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     }
 }
 
-/** Soft UI relief from WardRelief: a highlight up and left, a shade down and right, on the matte base. */
-fun Modifier.relief(dark:Boolean, radius:Float=24f, lift:WardLift=WardLift.mid):Modifier = drawBehind {
-    val spec = WardRelief.raised(lift, dark)
-    drawIntoCanvas { canvas ->
-        val p=Paint().asFrameworkPaint()
-        p.isAntiAlias=true
-        p.color=wardArgb(WardPalette.hex(WardToken.background, dark), 1.0)
-        val r=radius.dp.toPx()
-        val h=spec.highlight
-        p.setShadowLayer(h.radius.toFloat().dp.toPx(),h.x.toFloat().dp.toPx(),h.y.toFloat().dp.toPx(),wardArgb(h.hex,h.alpha))
-        canvas.nativeCanvas.drawRoundRect(0f,0f,size.width,size.height,r,r,p)
-        val s=spec.shade
-        p.setShadowLayer(s.radius.toFloat().dp.toPx(),s.x.toFloat().dp.toPx(),s.y.toFloat().dp.toPx(),wardArgb(s.hex,s.alpha))
-        canvas.nativeCanvas.drawRoundRect(0f,0f,size.width,size.height,r,r,p)
-        p.clearShadowLayer()
-    }
-}
-
-@Composable fun WardCard(modifier:Modifier=Modifier, content:@Composable ColumnScope.()->Unit) {
-    Column(modifier.relief(LocalWardDark.current).background(wardColor(WardToken.surface),RoundedCornerShape(24.dp)).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
-}
+/** A card (iOS wardCard): raised mid off the base by WardRelief's two lights, iOS's card radius and gutter (WardSurfaces). */
+@Composable fun WardCard(modifier:Modifier=Modifier, content:@Composable ColumnScope.()->Unit) = WardCardFace(modifier, content=content)
 @Composable fun WardButton(text:String,onClick:()->Unit,modifier:Modifier=Modifier,enabled:Boolean=true) {
     OutlinedButton(onClick=onClick,modifier=modifier.heightIn(min=50.dp),enabled=enabled,shape=RoundedCornerShape(24.dp),border=androidx.compose.foundation.BorderStroke(1.dp,wardInk().copy(alpha=(WardRelief.edgeAlpha(LocalWardDark.current)*(if(enabled) 1.0 else 0.33)).toFloat()))) {
         Text(text,fontWeight=FontWeight.SemiBold,fontSize=15.sp)

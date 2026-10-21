@@ -2,6 +2,7 @@ package com.stethoscore.app.ui
 
 import com.stethoscore.app.ui.ward.WardDock
 import com.stethoscore.app.ui.ward.WardGround
+import com.stethoscore.app.ui.ward.WardPaperFrame
 import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.WardToken
 
@@ -169,6 +170,9 @@ import java.util.Locale
                 }
                 notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("OK")}}) }
             }
+            // Every page but home stands in the paper's opening (iOS WardPaperFrame):
+            // still ECG paper round the window, the page scrolling beneath it.
+            if(!onGround) WardPaperFrame(Modifier.fillMaxSize())
         }
     }
 }

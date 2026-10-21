@@ -2,6 +2,7 @@ package com.stethoscore.app.ui.ward
 
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
@@ -10,8 +11,8 @@ import kotlin.math.sqrt
 
 // A port of the Foundation part of upstream/ios/RedPen/Shared/Ward/WardRelief.swift:
 // the lifts, the two lights, the relief and the rim, the press and the ECG
-// paper's ink and panel. (WardEdge, the frame-line join geometry, is not
-// ported yet: docs/parity.md, batch 2.) Pure Kotlin, tested on the JVM.
+// paper's ink and panel, and WardEdge, the frame line's corner joins. Pure
+// Kotlin, tested on the JVM (WardReliefTest).
 
 /** How far a soft UI surface stands off the base. Not Comparable on purpose: order by [rawValue]. */
 @Suppress("EnumEntryName")
@@ -341,5 +342,212 @@ object WardPaper {
             k += 1
         }
         return result
+    }
+}
+
+/** A point or a vector in points (Swift's SIMD2<Double>). */
+data class WardVec(val x: Double, val y: Double) {
+    operator fun plus(o: WardVec) = WardVec(x + o.x, y + o.y)
+    operator fun minus(o: WardVec) = WardVec(x - o.x, y - o.y)
+    operator fun div(k: Double) = WardVec(x / k, y / k)
+
+    companion object {
+        val zero = WardVec(0.0, 0.0)
+    }
+}
+
+operator fun Double.times(v: WardVec) = WardVec(this * v.x, this * v.y)
+
+/**
+ * One end of a line across the frame's opening: the circular arc from the
+ * line down to the opening's outline, tangent to both.
+ */
+data class WardEdgeCorner(
+    val center: WardVec,
+    val radius: Double,
+    /** where the arc leaves the line: center.x */
+    val lineX: Double,
+    /** where the arc meets the outline, tangent to it */
+    val join: WardVec,
+)
+
+/** A line across the opening at [y], with its ends joined to the outline. */
+data class WardEdgeJoin(
+    val y: Double,
+    val left: WardEdgeCorner?,
+    val right: WardEdgeCorner?,
+    /**
+     * The straight line's ends: an arc's lineX, or, on a joined side with no
+     * room for an arc, where the line meets the outline; null on a side that
+     * is not joined (the caller keeps its own end there).
+     */
+    val fromX: Double?,
+    val toX: Double?,
+)
+
+object WardEdge {
+    const val minRadius = 12.0
+
+    /** The continuous corner's control points, in radii (iOS's RoundedRectangle, style .continuous). */
+    private const val k0 = 1.52866483
+    private const val k1 = 1.08849299
+    private const val k2 = 0.86840701
+    private const val k3 = 0.63149399
+    private const val k4 = 0.07491100
+    private const val k5 = 0.37282401
+    private const val k6 = 0.16905501
+
+    private fun cubicPoint(p0: WardVec, p1: WardVec, p2: WardVec, p3: WardVec, t: Double): WardVec {
+        val u = 1.0 - t
+        val tt = t * t
+        val uu = u * u
+        val uuu = uu * u
+        val ttt = tt * t
+        return uuu * p0 + 3.0 * uu * t * p1 + 3.0 * u * tt * p2 + ttt * p3
+    }
+
+    private fun sampleCubic(p0: WardVec, p1: WardVec, p2: WardVec, p3: WardVec, n: Int): List<WardVec> {
+        if (n <= 0) return listOf(p3)
+        return (1..n).map { i -> cubicPoint(p0, p1, p2, p3, i.toDouble() / n) }
+    }
+
+    /** One corner's three cubics, from a mapping of the top-right corner's (u, v) into the window. */
+    private fun corner(poly: MutableList<WardVec>, n: Int, q: (Double, Double) -> WardVec) {
+        poly += sampleCubic(q(-k0, 0.0), q(-k1, 0.0), q(-k2, 0.0), q(-k3, k4), n)
+        poly += sampleCubic(q(-k3, k4), q(-k5, k6), q(-k6, k5), q(-k4, k3), n)
+        poly += sampleCubic(q(-k4, k3), q(0.0, k2), q(0.0, k1), q(0.0, k0), n)
+    }
+
+    /**
+     * The panel's outline with iOS continuous corners, a closed polyline,
+     * clockwise from the top edge's left end of straight run.
+     */
+    fun outline(panel: WardPaperPanel, pointsPerCurve: Int = 24): List<WardVec> {
+        if (pointsPerCurve <= 0) return emptyList()
+        val minX = panel.x
+        val maxX = panel.x + panel.width
+        val minY = panel.y
+        val maxY = panel.y + panel.height
+        val r = panel.radius
+        val c = k0
+        val poly = mutableListOf(WardVec(minX + c * r, minY))
+        // top straight run, then the top-right corner
+        poly += WardVec(maxX - c * r, minY)
+        corner(poly, pointsPerCurve) { u, v -> WardVec(maxX + r * u, minY + r * v) }
+        // right straight run, then the bottom-right corner
+        poly += WardVec(maxX, maxY - c * r)
+        corner(poly, pointsPerCurve) { u, v -> WardVec(maxX - r * v, maxY + r * u) }
+        // bottom straight run, then the bottom-left corner
+        poly += WardVec(minX + c * r, maxY)
+        corner(poly, pointsPerCurve) { u, v -> WardVec(minX - r * u, maxY - r * v) }
+        // left straight run, then the top-left corner
+        poly += WardVec(minX, minY + c * r)
+        corner(poly, pointsPerCurve) { u, v -> WardVec(minX + r * v, minY - r * u) }
+        return poly
+    }
+
+    private fun closestPointOnSegment(p: WardVec, a: WardVec, b: WardVec): Pair<WardVec, Double> {
+        val ab = b - a
+        val abLenSq = ab.x * ab.x + ab.y * ab.y
+        if (abLenSq < 1e-12) return a to hypot(p.x - a.x, p.y - a.y)
+        val t = max(0.0, min(1.0, ((p.x - a.x) * ab.x + (p.y - a.y) * ab.y) / abLenSq))
+        val proj = a + t * ab
+        return proj to hypot(p.x - proj.x, p.y - proj.y)
+    }
+
+    private fun horizontalCrossing(poly: List<WardVec>, y: Double, left: Boolean): Double? {
+        if (poly.size < 2) return null
+        val xs = mutableListOf<Double>()
+        for (i in 0 until poly.size - 1) {
+            val p1 = poly[i]
+            val p2 = poly[i + 1]
+            if (y >= min(p1.y, p2.y) && y <= max(p1.y, p2.y) && p1.y != p2.y) {
+                val t = (y - p1.y) / (p2.y - p1.y)
+                xs += p1.x + t * (p2.x - p1.x)
+            }
+        }
+        if (xs.isEmpty()) return null
+        return if (left) xs.min() else xs.max()
+    }
+
+    private fun solveLeftCorner(outline: List<WardVec>, y: Double, radius: Double, midX: Double, maxY: Double): Pair<WardEdgeCorner?, Double?> {
+        val room = maxY - y
+        val r = min(radius, room / 2.0)
+        if (r < minRadius) return null to horizontalCrossing(outline, y, left = true)
+        val cy = y + r
+        val lowX = horizontalCrossing(outline, cy, left = true) ?: return null to null
+
+        fun distToOuter(c: WardVec): Pair<Double, WardVec> {
+            var bestDist = Double.POSITIVE_INFINITY
+            var bestPoint = c
+            for (i in 0 until outline.size - 1) {
+                val (proj, d) = closestPointOnSegment(c, outline[i], outline[i + 1])
+                // the outer side is x < c.x (the bottom edge straight below, x == c.x, is not the join)
+                if (proj.x < c.x - 1e-9 && d < bestDist) {
+                    bestDist = d
+                    bestPoint = proj
+                }
+            }
+            return bestDist to bestPoint
+        }
+
+        var lo = lowX
+        var hi = midX
+        repeat(60) {
+            val mid = (lo + hi) / 2.0
+            if (distToOuter(WardVec(mid, cy)).first < r) lo = mid else hi = mid
+        }
+        val cx = (lo + hi) / 2.0
+        val join = distToOuter(WardVec(cx, cy)).second
+        return WardEdgeCorner(WardVec(cx, cy), r, cx, join) to cx
+    }
+
+    /**
+     * The line at [y] across the opening whose outline is [outline], its ends
+     * joined on the sides asked for, with arcs of [radius] or the largest
+     * that fits. null when y is not inside the opening.
+     */
+    fun join(outline: List<WardVec>, y: Double, radius: Double, left: Boolean = true, right: Boolean = true): WardEdgeJoin? {
+        if (outline.size < 3) return null
+        val minY = outline.minOf { it.y }
+        val maxY = outline.maxOf { it.y }
+        val minX = outline.minOf { it.x }
+        val maxX = outline.maxOf { it.x }
+        if (!(y > minY && y < maxY)) return null
+        val midX = (minX + maxX) / 2.0
+
+        var leftCorner: WardEdgeCorner? = null
+        var rightCorner: WardEdgeCorner? = null
+        var fromX: Double? = null
+        var toX: Double? = null
+        if (left) {
+            val res = solveLeftCorner(outline, y, radius, midX, maxY)
+            leftCorner = res.first
+            fromX = res.second
+        }
+        if (right) {
+            // mirror the outline about midX, so the left solver solves the right side symmetrically
+            val mirrored = outline.map { WardVec(2.0 * midX - it.x, it.y) }
+            val (mc, mFromX) = solveLeftCorner(mirrored, y, radius, midX, maxY)
+            if (mc != null) {
+                val rx = 2.0 * midX - mc.center.x
+                rightCorner = WardEdgeCorner(WardVec(rx, mc.center.y), mc.radius, rx, WardVec(2.0 * midX - mc.join.x, mc.join.y))
+                toX = rx
+            } else if (mFromX != null) {
+                toX = 2.0 * midX - mFromX
+            }
+        }
+        return WardEdgeJoin(y, leftCorner, rightCorner, fromX, toX)
+    }
+
+    /**
+     * The slab's top corner radius on one side ([leading]: its left side at x
+     * [slabSide]; otherwise its right side): [base] unless its top edge would
+     * run past where the arc leaves the line.
+     */
+    fun slabTopRadius(corner: WardEdgeCorner?, slabSide: Double, leading: Boolean, base: Double = 24.0): Double {
+        if (corner == null) return base
+        val diff = if (leading) corner.lineX - slabSide else slabSide - corner.lineX
+        return max(base, diff)
     }
 }
