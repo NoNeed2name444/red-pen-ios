@@ -3,15 +3,19 @@ package com.stethoscore.app.map
 import kotlin.math.max
 import kotlin.math.sqrt
 
-/** The node colours by group: blue, teal, amber, violet, rose, green (the Ward map palette). */
+/**
+ * The node colours by group, from the owner's 2026-10-21 palette: Care Blue #3B82F6,
+ * Pulse Teal #14B8A6, Optimistic Amber #FBBF24, Soft Lilac #A78BFA, Bubblegum Pink
+ * #F472B6, Lime Zest #A3E635 (were blue, teal, amber, violet, rose, green).
+ */
 object MapPalette {
     val rgb = floatArrayOf(
-        0.46f, 0.71f, 0.95f,
-        0.41f, 0.82f, 0.75f,
-        0.94f, 0.71f, 0.40f,
-        0.69f, 0.61f, 0.95f,
-        0.95f, 0.52f, 0.62f,
-        0.55f, 0.85f, 0.45f,
+        59 / 255f, 130 / 255f, 246 / 255f,
+        20 / 255f, 184 / 255f, 166 / 255f,
+        251 / 255f, 191 / 255f, 36 / 255f,
+        167 / 255f, 139 / 255f, 250 / 255f,
+        244 / 255f, 114 / 255f, 182 / 255f,
+        163 / 255f, 230 / 255f, 53 / 255f,
     )
     fun r(g: Int) = rgb[3 * (g % MapGraph.PALETTE_SIZE)]
     fun g(g: Int) = rgb[3 * (g % MapGraph.PALETTE_SIZE) + 1]

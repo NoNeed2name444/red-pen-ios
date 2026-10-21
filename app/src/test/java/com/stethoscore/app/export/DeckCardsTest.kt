@@ -76,7 +76,16 @@ class DeckCardsTest {
 
     @Test fun paletteTintsTowardWhiteAndShadesTowardBlack() {
         val p = DeckPalette.of(StudySetKind.MCQ)
-        assertTrue(p.tint().red > p.red && p.shade().red < p.red)
-        assertEquals(0xFFC72929.toInt(), p.argb())
+        assertTrue(p.tint().green > p.green && p.shade().red < p.red)
+        assertEquals(0xFFFF6B6B.toInt(), p.argb())
+    }
+
+    @Test fun everyModeBarCarriesWhiteAndItsWordsReadOnPaper() {
+        for (kind in StudySetKind.values()) {
+            val p = DeckPalette.of(kind)
+            assertTrue("$kind: white is under 4.5:1 on the bright tint as drawn", !p.carriesWhiteText)
+            assertTrue("$kind: its bar carries white", p.barFill().carriesWhiteText)
+            assertTrue("$kind: its words read 5:1 on white", 1.05 / (p.ink().wcagLuminance + 0.05) >= 5)
+        }
     }
 }

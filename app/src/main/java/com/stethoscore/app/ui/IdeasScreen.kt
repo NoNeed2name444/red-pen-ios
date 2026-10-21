@@ -170,7 +170,7 @@ private object MillionScene {
     if (ready == null) {
         Box(modifier.background(Color(0xFF0E1B2C), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                CircularProgressIndicator(color = Color(0xFF76B4F2))
+                CircularProgressIndicator(color = Color(0xFF3B82F6))
                 Text("Building 1,000,000 nodes and their links", color = Color(0xFFE1EBF9), fontSize = 14.sp)
             }
         }
