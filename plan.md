@@ -2618,6 +2618,18 @@ with the marks on the screens last.
 - [ ] Test only: GraphPreviewUITests (about :357) taps the Look menu's item
   again when linkLengthBar has not appeared, the way the tour retries its
   taps; the iPad's one failure there was the simulator cancelling the tap.
+- [ ] Home's name as the owner's logo, and smaller text on home (the owner,
+  on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
+  stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,
+  else nil; the logo is added to the root of the built app's bundle after
+  build and is never committed. HomeHeader.nameLine fits the logo (or the
+  typed name in a box of the same 1449 x 447 aspect and 72 pt default height,
+  56 to 112 pt, scaled down when narrower) beside the ECG squiggle as one
+  "Stethoscore" header accessibility element, and LaunchStage uncovers the
+  logo from left to right on the same clock and span as the typed letters
+  with the logo's frame as the title target. On home only, every text style
+  steps one Dynamic Type size smaller. Waits for its Ward preview and Launch
+  recording.
 
 ### Waiting on the owner
 

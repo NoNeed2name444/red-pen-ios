@@ -233,6 +233,19 @@ final class LaunchStage {
         return (CGFloat(e.scale), CGFloat(d.dx), CGFloat(d.dy))
     }
 
+    /// How much of the owner's logo is uncovered from left to right at time
+    /// `t`, on the same clock and over the same span as the typed title's
+    /// letters (`markArrives - 0.02` over `letterStagger * (titleLetters - 1) / 2 + letterLength`).
+    static func logoUncover(at t: Double, reduced: Bool) -> Double {
+        guard t.isFinite else { return 1 }
+        let o = LaunchOpening(reduced: reduced)
+        if reduced { return t >= o.handoff ? 1 : 0 }
+        let start: Double = o.markArrives - 0.02
+        let span: Double = LaunchOpening.letterStagger * Double(LaunchOpening.titleLetters - 1) / 2
+            + LaunchOpening.letterLength
+        return LaunchOpening.easeInOut((t - start) / span)
+    }
+
     /// For a recorded opening (`-uiPreviewSplash`), what the hand-off
     /// measured, in Caches/launch-handoff.txt, which the Launch recording
     /// workflow reads back after each take. Times are the opening's. The last
@@ -316,11 +329,31 @@ struct LaunchLanding: ViewModifier {
     }
 }
 
-/// The title's letters settling in (LetterSettle), on the splash's clock.
+/// A horizontal clip that uncovers the owner's logo from left to right.
+struct LaunchLogoUncover: Shape {
+    var fraction: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let f: CGFloat = min(max(fraction, 0), 1)
+        return Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width * f, height: rect.height))
+    }
+}
+
+/// The title's letters settling in (LetterSettle), or the owner's logo
+/// uncovered from left to right over the same span, on the splash's clock.
 struct LaunchLetters: ViewModifier {
+    var logo = false
+
     func body(content: Content) -> some View {
         let stage = LaunchStage.shared
-        content.textRenderer(LetterSettle(time: stage.poseTime, reduced: stage.reduced))
+        if logo {
+            content.clipShape(
+                LaunchLogoUncover(fraction: CGFloat(LaunchStage.logoUncover(at: stage.poseTime,
+                                                                            reduced: stage.reduced)))
+            )
+        } else {
+            content.textRenderer(LetterSettle(time: stage.poseTime, reduced: stage.reduced))
+        }
     }
 }
 
@@ -337,9 +370,10 @@ extension View {
     func launchLanding() -> some View { modifier(LaunchLanding()) }
 
     /// The app's name as home's title: its letters settle in at the opening's
-    /// hand-off.
+    /// hand-off, or the owner's logo is uncovered from left to right over the
+    /// same span (`logo: true`).
     @MainActor
-    func launchLetters() -> some View { modifier(LaunchLetters()) }
+    func launchLetters(logo: Bool = false) -> some View { modifier(LaunchLetters(logo: logo)) }
 
     /// Tells the opening where this is on screen (the title, or its squiggle).
     @MainActor
