@@ -75,7 +75,7 @@ object DeckBuilder {
 
     /** A patient prints as the one question the case ends on: the diagnosis and the next step. */
     fun cases(files: List<CaseFile>): List<DeckCard> = files.map { file ->
-        val who = listOf(file.patient.ageSex, settingLabel(file.setting)).filter { it.isNotEmpty() }.joinToString(" · ")
+        val who = listOf(file.patient.ageSex, file.setting.label).filter { it.isNotEmpty() }.joinToString(" · ")
         val question = listOf(DeckBlock.Text(who), DeckBlock.Text("“" + file.complaint + "”"), DeckBlock.Text("What is the diagnosis, and the next step?"))
         val answer = mutableListOf<DeckBlock>(DeckBlock.Bullet("Diagnosis", file.diagnosis.name))
         file.nextStep.options.getOrNull(file.nextStep.key)?.let { answer += DeckBlock.Bullet("Next step", it) }
@@ -149,8 +149,6 @@ object DeckBuilder {
     fun plain(text: String): String = text
         .replace(Regex("\\{\\{c\\d+::(.*?)(::.*?)?\\}\\}"), "$1")
         .replace("**", "").replace("==", "").replace("__", "")
-
-    private fun settingLabel(setting: String) = setting.replaceFirstChar { it.uppercase() }
 }
 
 /** The contents index: one row per run of cards on the same topic. */

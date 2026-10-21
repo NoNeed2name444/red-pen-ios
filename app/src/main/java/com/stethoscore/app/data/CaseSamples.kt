@@ -1,0 +1,251 @@
+package com.stethoscore.app.data
+
+import com.stethoscore.app.data.CaseFile.Obs
+import com.stethoscore.app.data.CaseFile.Obs.Sign
+import com.stethoscore.app.data.CaseStep.Group
+import com.stethoscore.app.data.CaseStep.LabResult
+import com.stethoscore.app.data.CaseStep.Yield
+
+// Two example patients, written for this app: one in the emergency
+// department, one in clinic. They show every part of a case (the clerking
+// note, both groups of steps, key and low-yield steps, red flags, a
+// must-not-miss, results with flags, differentials with the steps for and
+// against) and pass the same checks as a written case (CaseChecks; CasesTest
+// holds them to it). Port of iOS Shared/Cases/CaseSamples.swift, word for word.
+//
+// The medicine follows current UK guidance: NICE NG158 (venous
+// thromboembolic diseases, 2020) for the first, the British Society for
+// Rheumatology's guideline on giant cell arteritis (2020) for the second.
+
+object CaseSamples {
+
+    // MARK: 1. emergency: pleuritic pain after a long flight
+
+    val breathless = CaseFile(
+        id = "CA5E0001-0000-4000-8000-000000000001",
+        title = "Sharp chest pain after a long flight",
+        specialty = "Respiratory",
+        setting = CaseFile.Setting.emergency,
+        patient = CaseFile.Patient(name = "Leah Moreno", age = 34, sex = "F", about = "architect, back from a work trip"),
+        complaint = "It hurts on the right when I breathe in, and I can't get my breath since this morning.",
+        clerking = CaseFile.Clerking(
+            presenting = "Right-sided pleuritic chest pain and breathlessness since this morning.",
+            history = "Sudden onset on waking, sharp, worse on deep inspiration, not related to exertion. One streak of bright red blood in her sputum this morning. Dry cough, no fever. Flew home from Sydney 3 days ago (about 22 hours in the air).",
+            past = "Nil of note. No previous clots.",
+            drugs = "Combined oral contraceptive pill. No known allergies.",
+            social = "Architect. Never smoked. Alcohol socially."),
+        arrival = listOf(
+            Obs(Sign.hr, 112.0),
+            Obs(Sign.bp, 118.0, 76.0),
+            Obs(Sign.rr, 24.0),
+            Obs(Sign.spo2, 93.0),
+            Obs(Sign.temp, 37.4),
+        ),
+        budgetMinutes = 60,
+        steps = listOf(
+            CaseStep("s1", Group.examine, "Inspect the chest",
+                "Fast, shallow breathing; she splints the right side on inspiration; both sides expand equally.",
+                minutes = 2, value = Yield.useful,
+                note = "Splinting fits pleural pain; equal expansion makes a large pneumothorax less likely."),
+            CaseStep("s2", Group.examine, "Examine the legs",
+                "Right calf 3 cm wider than the left, tender along the deep veins, with pitting oedema.",
+                minutes = 3, value = Yield.key, redFlag = true, mustNotMiss = true,
+                note = "Signs of a deep vein thrombosis make pulmonary embolism the leading diagnosis (Wells score above 4)."),
+            CaseStep("s3", Group.examine, "Listen to the chest",
+                "Equal air entry, clear breath sounds, normal percussion note on both sides.",
+                minutes = 2, value = Yield.useful,
+                note = "A clear chest argues against pneumonia and a pneumothorax."),
+            CaseStep("s4", Group.examine, "Check the neck veins and heart",
+                "Jugular venous pressure not raised; normal heart sounds; no rub.",
+                minutes = 2, value = Yield.useful,
+                note = "No rub argues against pericarditis; no raised venous pressure, so no sign of right heart strain."),
+            CaseStep("s5", Group.examine, "Blood pressure in both arms",
+                "118/76 in both arms.",
+                minutes = 2, value = Yield.low,
+                note = "Nothing in the story suggests aortic dissection, so this adds little here."),
+            CaseStep("s6", Group.examine, "Look in the throat",
+                "Mildly red pharynx; no exudate.",
+                minutes = 2, value = Yield.low,
+                note = "A sore throat is not part of this story and does not explain pleuritic pain."),
+            CaseStep("s7", Group.test, "12-lead ECG",
+                "Sinus tachycardia at 112 per minute; no ST elevation.",
+                minutes = 5, value = Yield.useful,
+                note = "No sign of a heart attack or pericarditis; tachycardia fits embolism."),
+            CaseStep("s8", Group.test, "Arterial blood gas on air",
+                "Low oxygen with a low carbon dioxide: type 1 respiratory failure.",
+                minutes = 10, value = Yield.key, redFlag = true,
+                results = listOf(
+                    LabResult("pH", 7.47),
+                    LabResult("PaO2", 8.9, "kPa"),
+                    LabResult("PaCO2", 4.1, "kPa"),
+                ),
+                note = "Hypoxaemia with hyperventilation and a clear chest points to a perfusion defect."),
+            CaseStep("s9", Group.test, "Chest X-ray",
+                "Clear lung fields; no consolidation, effusion or pneumothorax.",
+                minutes = 20, value = Yield.useful,
+                note = "A normal film in a breathless, hypoxic patient makes embolism more likely, not less."),
+            CaseStep("s10", Group.test, "CRP",
+                "Mildly raised.",
+                minutes = 15, value = Yield.useful,
+                results = listOf(LabResult("CRP", 18.0, "mg/L", 0.0, 5.0)),
+                note = "A mild rise is common in embolism and does not make this pneumonia."),
+            CaseStep("s11", Group.test, "Troponin",
+                "Slightly raised.",
+                minutes = 15, value = Yield.useful,
+                results = listOf(LabResult("hs-Troponin T", 22.0, "ng/L", 0.0, 14.0)),
+                note = "A small rise is common in embolism; with no ST change and a normal right ventricle it does not change the plan."),
+            CaseStep("s12", Group.test, "D-dimer",
+                "Raised.",
+                minutes = 15, value = Yield.low,
+                results = listOf(LabResult("D-dimer", 2.1, "mg/L FEU", 0.0, 0.5)),
+                note = "With embolism likely on the Wells score, a D-dimer changes nothing: go straight to imaging."),
+            CaseStep("s13", Group.test, "CT pulmonary angiogram",
+                "Filling defects in the right lower lobe pulmonary arteries; right ventricle normal in size.",
+                minutes = 30, value = Yield.key,
+                note = "Confirms the embolism and shows no right ventricular strain."),
+        ),
+        diagnosis = CaseFile.Diagnosis("Pulmonary embolism", listOf("PE", "Pulmonary thromboembolism")),
+        differentials = listOf(
+            Differential("Pulmonary embolism", listOf("PE", "Pulmonary thromboembolism"),
+                supportedBy = listOf("s2", "s8", "s9", "s13"), againstBy = emptyList()),
+            Differential("Pneumonia", listOf("Community-acquired pneumonia", "Chest infection"),
+                supportedBy = listOf("s10"), againstBy = listOf("s3", "s9")),
+            Differential("Pneumothorax", listOf("Spontaneous pneumothorax"),
+                supportedBy = listOf("s1"), againstBy = listOf("s3", "s9")),
+            Differential("Pericarditis", listOf("Acute pericarditis"),
+                supportedBy = listOf("s11"), againstBy = listOf("s4", "s7")),
+        ),
+        distractors = listOf("Acute asthma", "Panic attack", "Aortic dissection"),
+        turningStep = "s2",
+        nextStep = CaseFile.NextStep(
+            options = listOf(
+                "Start apixaban, a direct oral anticoagulant",
+                "Give alteplase for systemic thrombolysis",
+                "Insert an inferior vena cava filter today",
+                "Start aspirin and arrange outpatient review",
+                "Give co-amoxiclav for a chest infection",
+            ),
+            key = 0,
+            why = "She has a confirmed embolism and is haemodynamically stable, so she needs anticoagulation; a direct oral anticoagulant such as apixaban is first line. Thrombolysis is kept for embolism with persistent hypotension."),
+        teaching = listOf(
+            "Pleuritic pain, breathlessness and a swollen tender calf after a long flight make pulmonary embolism the leading diagnosis.",
+            "When embolism is likely on the two-level Wells score, go straight to CT pulmonary angiography; a D-dimer is for when it is unlikely.",
+            "Stable embolism is treated with anticoagulation, usually a direct oral anticoagulant; thrombolysis is for embolism with shock.",
+        ),
+        source = CaseFile.Source("Example case", ""),
+        verification = CaseFile.Verification.passed)
+
+    // MARK: 2. clinic: a new headache at 72
+
+    val headache = CaseFile(
+        id = "CA5E0002-0000-4000-8000-000000000002",
+        title = "A new headache at 72",
+        specialty = "Rheumatology",
+        setting = CaseFile.Setting.clinic,
+        patient = CaseFile.Patient(name = "Irene Castell", age = 72, sex = "F", about = "retired librarian, lives with her husband"),
+        complaint = "I've had this new headache on the right for three weeks, and it even hurts to brush my hair.",
+        clerking = CaseFile.Clerking(
+            presenting = "New right-sided headache for 3 weeks.",
+            history = "Constant, worse at night; scalp sore when brushing her hair. Jaw aches after a minute of chewing meat and eases on stopping. Two episodes of blurred vision in the right eye this week, each lasting minutes. Stiff, aching shoulders each morning for 2 months. Lost 3 kg; feels feverish in the evenings. Never had headaches before.",
+            past = "Hypertension. Osteoarthritis of both knees.",
+            drugs = "Amlodipine; paracetamol as needed. No known allergies.",
+            social = "Retired librarian, lives with her husband. Never smoked."),
+        arrival = listOf(
+            Obs(Sign.hr, 78.0),
+            Obs(Sign.bp, 142.0, 84.0),
+            Obs(Sign.rr, 14.0),
+            Obs(Sign.spo2, 97.0),
+            Obs(Sign.temp, 37.6),
+        ),
+        budgetMinutes = 50,
+        steps = listOf(
+            CaseStep("s1", Group.examine, "Feel the temporal arteries",
+                "Right temporal artery thickened, beaded and tender, with no pulse.",
+                minutes = 2, value = Yield.key,
+                note = "An abnormal temporal artery on examination strongly supports giant cell arteritis."),
+            CaseStep("s2", Group.examine, "Check acuity and fundi",
+                "Acuity 6/12 in the right eye, 6/9 in the left; the right optic disc is pale and swollen.",
+                minutes = 4, value = Yield.key, redFlag = true, mustNotMiss = true,
+                note = "Ischaemic optic neuropathy has begun: the sight in that eye is at risk now, and the other eye can follow."),
+            CaseStep("s3", Group.examine, "Swinging light test",
+                "A relative afferent pupillary defect on the right.",
+                minutes = 2, value = Yield.useful,
+                note = "Confirms the right optic nerve is affected."),
+            CaseStep("s4", Group.examine, "Feel the scalp",
+                "Tender over the right temple and parietal scalp.",
+                minutes = 1, value = Yield.useful,
+                note = "Scalp tenderness is common in giant cell arteritis."),
+            CaseStep("s5", Group.examine, "Move the shoulders and hips",
+                "Painful, stiff active movement at both shoulders; passive movement better; strength normal.",
+                minutes = 3, value = Yield.useful,
+                note = "Polymyalgia often comes with giant cell arteritis."),
+            CaseStep("s6", Group.examine, "Neurological examination",
+                "No focal neurological signs; no neck stiffness.",
+                minutes = 4, value = Yield.useful,
+                note = "Argues against a stroke, a mass or meningitis."),
+            CaseStep("s7", Group.examine, "Look in the ears",
+                "Normal ear canals and eardrums.",
+                minutes = 2, value = Yield.low,
+                note = "An ear problem does not cause jaw claudication or scalp tenderness."),
+            CaseStep("s8", Group.test, "ESR",
+                "Markedly raised.",
+                minutes = 15, value = Yield.key,
+                results = listOf(LabResult("ESR", 88.0, "mm/h", 0.0, 30.0)),
+                note = "A high ESR supports the diagnosis; a normal one makes it less likely but does not exclude it."),
+            CaseStep("s9", Group.test, "CRP",
+                "Raised.",
+                minutes = 15, value = Yield.useful,
+                results = listOf(LabResult("CRP", 64.0, "mg/L", 0.0, 5.0)),
+                note = "Inflammatory markers are raised in almost every case."),
+            CaseStep("s10", Group.test, "Full blood count",
+                "Mild normocytic anaemia; platelets raised.",
+                minutes = 15, value = Yield.useful,
+                results = listOf(
+                    LabResult("Haemoglobin", 11.2, "g/dL"),
+                    LabResult("Platelets", 452.0, "×10⁹/L", 150.0, 400.0),
+                ),
+                note = "Anaemia of inflammation and a reactive thrombocytosis are common."),
+            CaseStep("s11", Group.test, "Temporal artery ultrasound",
+                "A halo around the right temporal artery that does not compress.",
+                minutes = 20, value = Yield.useful,
+                note = "The halo sign supports the diagnosis; it stays visible for the first days of steroids, so it never delays them."),
+            CaseStep("s12", Group.test, "CT head",
+                "No intracranial abnormality.",
+                minutes = 30, value = Yield.low,
+                note = "A brain scan does not look at the inflamed arteries, and waiting for it delays treatment."),
+            CaseStep("s13", Group.test, "Urine dipstick",
+                "Normal.",
+                minutes = 5, value = Yield.low,
+                note = "Nothing in the story points to the kidneys."),
+        ),
+        diagnosis = CaseFile.Diagnosis("Giant cell arteritis", listOf("Temporal arteritis", "GCA")),
+        differentials = listOf(
+            Differential("Giant cell arteritis", listOf("Temporal arteritis", "GCA"),
+                supportedBy = listOf("s1", "s2", "s4", "s8", "s11"), againstBy = emptyList()),
+            Differential("Polymyalgia rheumatica", listOf("PMR"),
+                supportedBy = listOf("s5", "s8"), againstBy = listOf("s1", "s2", "s11")),
+            Differential("Tension-type headache", listOf("Tension headache"),
+                supportedBy = listOf("s4"), againstBy = listOf("s1", "s8", "s11")),
+        ),
+        distractors = listOf("Trigeminal neuralgia", "Acute angle-closure glaucoma", "Sinusitis"),
+        turningStep = "s1",
+        nextStep = CaseFile.NextStep(
+            options = listOf(
+                "Start high-dose steroids today, before a biopsy",
+                "Arrange a temporal artery biopsy, then treat",
+                "Prescribe sumatriptan and review in a week",
+                "Request an MRI brain and wait for the result",
+                "Start amitriptyline at night for the pain",
+            ),
+            key = 0,
+            why = "Treatment starts on suspicion, the same day, because sight is already threatened; with visual loss the guideline advises intravenous methylprednisolone and same-day eye and rheumatology review. A biopsy or ultrasound still confirms the diagnosis in the first one to two weeks of steroids."),
+        teaching = listOf(
+            "A new headache after 50 with jaw claudication or scalp tenderness is giant cell arteritis until proven otherwise.",
+            "Visual symptoms, and a pale swollen optic disc above all, make treatment an emergency: steroids start the same day.",
+            "Never wait for a biopsy or ultrasound to treat; both stay informative in the first one to two weeks of steroids.",
+        ),
+        source = CaseFile.Source("Example case", ""),
+        verification = CaseFile.Verification.passed)
+
+    val all: List<CaseFile> = listOf(breathless, headache)
+}

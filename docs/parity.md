@@ -89,7 +89,7 @@ Look first, then home and library, each study mode, the rest. Each batch ports t
 7. **Questions**: MCQQuizView with faded wrong rows, MCQExamTools, MCQSummaryView, ChartQuiz.
 8. **Cards**: AnkiReviewView, AnkiCardFace, DueTodayView, ReviewCardActions, FSRS.
 9. **Textbook and Sources**: BookReaderView, figures, highlights; SourcesLibraryView, SourceDocumentView, SourcePageReader, reader bar, credits.
-10. **Cases**: CaseListView, CaseWardView, CaseDecisionView, CaseDebriefView, CaseMaker and run store.
+10. **Cases** (done): CaseListView, CaseWardView, CaseDecisionView, CaseDebriefView, CaseMaker and run store. The typed CaseFile, CaseNames (with iOS's seeded candidate shuffle, bit for bit), CaseChecks and CaseChart, CaseRun and CaseScore, CaseDebrief, CaseWriting, CaseSamples and the case parts of AccuracyRules and AccuracyItem in `data/` and `accuracy/`; CasesTests ported check for check (CasesTest) with the shuffle's parity added; the four screens in `ui/cases/`. Differences: no case writer on Android yet (CaseMaker.writer() finds none, so "Another patient like this" says so); no AccuracyHolds store, so only a case marked held is held; the chips, segmented control, option rows and faces are plain Compose in Ward colours until the Ward controls are used here.
 11. **OSCE and Mock**: OsceReviewView, OsceGenerateSection; MockPaperView, MockSittingView, MockResultsView.
 12. **Audio**: NarrateReviewView, listening and reading, the spoken word's wash, audio bar, fix-word sheet, lecture importer.
 13. **Ideas**: IdeasView, IdeaBoardView, NoteEditorView, the graph's look (GraphLook, GraphTheme, neurons) on the GL map.
