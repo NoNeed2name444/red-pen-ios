@@ -143,7 +143,10 @@ class ScreenshotTest {
         val store=store()
         val set=store.library.first {it.kind==StudySetKind.BOOK}
         compose.setContent {StethoscoreApp(store)}
-        compose.onNodeWithText(set.name).performScrollTo().performClick()
+        // a textbook lives under Cards, as on iOS (StudyCategory.cards: Flashcards and Textbooks)
+        compose.onNode(hasText("Cards") and hasClickAction()).performClick()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
+        compose.onNodeWithText(set.name).performClick()
         compose.onNodeWithContentDescription("Contents").assertIsDisplayed()
         shot("10-textbook")
     }

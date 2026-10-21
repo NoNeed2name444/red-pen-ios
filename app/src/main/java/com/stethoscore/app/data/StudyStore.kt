@@ -174,6 +174,75 @@ class StudyStore(private val directory: File) {
         caseRuns = caseRuns.filterKeys { !it.startsWith("$id:") && it !in removed.caseFiles.map { case -> case.id } }
         save()
     }
+    /** Several sets at once, with any folders they need, in one save (iOS Store.addSets). */
+    @Synchronized fun addSets(sets: List<StudySet>, newFolders: List<StudyFolder> = emptyList()) {
+        if (sets.isEmpty() && newFolders.isEmpty()) return
+        folders = folders + newFolders
+        library = library + sets
+        save()
+    }
+
+    // Library: names and folders (iOS Store.rename / group / move / ungroup / renameFolder / combine)
+
+    @Synchronized fun rename(id: String, name: String) {
+        val set = library.firstOrNull { it.id == id } ?: return
+        if (set.name == name) return
+        library = library.map { if (it.id == id) it.copy(name = name, updatedAt = System.currentTimeMillis()) else it }
+        save()
+    }
+
+    /** Puts [ids] into a new folder called [name]; any folder a set leaves that is now empty is removed. */
+    @Synchronized fun group(ids: Set<String>, name: String): StudyFolder {
+        val folder = StudyFolder(name = name.trim().ifEmpty { "Folder" })
+        folders = folders + folder
+        val left = library.filter { it.id in ids }.map { it.folderId }
+        val now = System.currentTimeMillis()
+        library = library.map { if (it.id in ids) it.copy(folderId = folder.id, updatedAt = now) else it }
+        pruneEmptyFolders(left)
+        save()
+        return folder
+    }
+
+    /** Moves one set into a folder, or out of every folder with null. */
+    @Synchronized fun move(id: String, folderId: String?) {
+        val set = library.firstOrNull { it.id == id } ?: return
+        if (set.folderId == folderId) return
+        library = library.map { if (it.id == id) it.copy(folderId = folderId, updatedAt = System.currentTimeMillis()) else it }
+        pruneEmptyFolders(listOf(set.folderId))
+        save()
+    }
+
+    /** Clears the folder on every member and removes the folder; never deletes the sets themselves. */
+    @Synchronized fun ungroup(folderId: String) {
+        val now = System.currentTimeMillis()
+        library = library.map { if (it.folderId == folderId) it.copy(folderId = null, updatedAt = now) else it }
+        folders = folders.filterNot { it.id == folderId }
+        save()
+    }
+
+    @Synchronized fun renameFolder(id: String, name: String) {
+        val folder = folders.firstOrNull { it.id == id } ?: return
+        if (folder.name == name) return
+        folders = folders.map { if (it.id == id) it.copy(name = name, updatedAt = System.currentTimeMillis()) else it }
+        save()
+    }
+
+    /** Only the folders sets just left, if that left them empty. */
+    private fun pruneEmptyFolders(left: List<String?>) {
+        val used = library.mapNotNull { it.folderId }.toSet()
+        val emptied = left.filterNotNull().toSet() - used
+        if (emptied.isNotEmpty()) folders = folders.filterNot { it.id in emptied }
+    }
+
+    /** Two or more sets of one kind joined into a new set; the originals are left untouched. */
+    @Synchronized fun combine(ids: List<String>, name: String): StudySet? {
+        val members = ids.mapNotNull { id -> library.firstOrNull { it.id == id } }
+        val out = SetImport.combined(members, name) ?: return null
+        library = library + out
+        save()
+        return out
+    }
+
     @Synchronized fun importJson(text: String): Int {
         require(text.toByteArray(Charsets.UTF_8).size <= 32 * 1024 * 1024) { "Choose a JSON file smaller than 32 MB." }
         val incoming = StudyJson.decodeSets(text)

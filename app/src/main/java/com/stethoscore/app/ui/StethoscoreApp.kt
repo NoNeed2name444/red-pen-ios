@@ -15,6 +15,7 @@ import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardPaperFrame
 import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.library.libraryItems
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
@@ -37,6 +38,8 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,6 +64,12 @@ import kotlinx.coroutines.withContext
     var nothingDue by remember { mutableStateOf(false) }
     // a quiz put together on the spot (a bed's drill), not in the library
     var quick by remember { mutableStateOf<StudySet?>(null) }
+    // the library's own state: picking sets, its menus and sheets, and what it opened
+    val lib=remember { com.stethoscore.app.ui.library.LibraryState() }
+    var libQuiz by remember { mutableStateOf<com.stethoscore.app.ui.library.LibraryQuiz?>(null) }
+    var libReview by remember { mutableStateOf<StudySet?>(null) }
+    var shelf by rememberSaveable { mutableStateOf(com.stethoscore.app.ui.library.CategoryFeature.MULTIPLE_CHOICE.rawValue) }
+    var newKind by rememberSaveable { mutableStateOf(StudySetKind.MCQ) }
     val scope=rememberCoroutineScope()
     DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
     fun refresh() { revision++ }
@@ -100,6 +109,33 @@ import kotlinx.coroutines.withContext
             notice=result.fold({ "Printed ${set.name} as a PDF deck ($it pages)" }) { it.message ?: "Unable to print this set" }
         }
     }
+    var sharing by rememberSaveable { mutableStateOf<String?>(null) }
+    val shared=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val set=store.library.firstOrNull { it.id==sharing }
+        sharing=null
+        if(uri!=null && set!=null) scope.launch {
+            val result=withContext(Dispatchers.IO) { runCatching {
+                val stream=context.contentResolver.openOutputStream(uri) ?: error("Unable to write to that location")
+                stream.bufferedWriter().use { it.write(store.exportSet(set)) }
+            } }
+            notice=result.fold({ "Saved ${set.name} as a Stethoscore file" }) { it.message ?: "Unable to save this set" }
+        }
+    }
+    val libActions=com.stethoscore.app.ui.library.LibraryActions(
+        open=::open,
+        quiz={ libQuiz=it;screen="libquiz" },
+        review={ libReview=it;screen="libreview" },
+        newSet={ newKind=it;screen="newset" },
+        shelf={ shelf=it.rawValue;screen="shelf" },
+        stats={ screen="stats" },
+        due={ if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true },
+        ideas={ screen="ideas" },
+        exportPdf={ set -> printing=set.id;printed.launch(com.stethoscore.app.export.DeckPdf.fileName(set)) },
+        shareJson={ set -> sharing=set.id;shared.launch(set.name.replace(Regex("[^A-Za-z0-9 _-]"),"").trim().ifEmpty { "set" }+".json") },
+        change=::change,
+        edit={ set -> selectedId=set.id;screen="edit" },
+    )
+    BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
     BackHandler(screen!="home") { when(screen) { "sources" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
     // takes its kind's, the brain map Ideas', everywhere else the outside look.
@@ -111,6 +147,10 @@ import kotlinx.coroutines.withContext
         "mock" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
         "photo" -> WardSection.cards
         "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { WardSection.fromKindRaw(it.kind.rawValue) } ?: WardSection.outside
+        "libreview" -> WardSection.cards
+        "libquiz","stats" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
+        "shelf" -> com.stethoscore.app.ui.library.CategoryFeature.entries.firstOrNull { it.rawValue==shelf }?.shelfKind?.let { WardSection.fromKindRaw(it.rawValue) } ?: WardSection.outside
+        "newset" -> WardSection.fromKindRaw(newKind.rawValue)
         // home wears its category's section, opening on Questions (WardSection.opening)
         "home" -> homeSection(category)
         else -> WardSection.outside
@@ -139,6 +179,11 @@ import kotlinx.coroutines.withContext
                     "vitals" -> VitalsScreen(store,::goHome)
                     "mock" -> com.stethoscore.app.ui.mock.MockPaperScreen(store) { goHome() }
                     "due" -> DueTodayScreen(store,::goHome)
+                    "libquiz" -> libQuiz?.let { q -> QuizScreen(q.set,store,::goHome,keepsProgress=false,minReadSeconds=q.minReadSeconds,startsTimed=q.timed) } ?: LaunchedEffect(Unit) { goHome() }
+                    "libreview" -> libReview?.let { AnkiReviewScreen(it,store,::goHome) } ?: LaunchedEffect(Unit) { goHome() }
+                    "shelf" -> com.stethoscore.app.ui.library.KindShelfScreen(com.stethoscore.app.ui.library.CategoryFeature.entries.first { it.rawValue==shelf },store,revision,::goHome,::open) { newKind=it;screen="newset" }
+                    "stats" -> com.stethoscore.app.ui.library.StatsScreen(store,revision,::goHome) { libQuiz=it;screen="libquiz" }
+                    "newset" -> com.stethoscore.app.ui.library.LibraryNewSetScreen(store,newKind,::goHome,::goHome)
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
                     "photo" -> com.stethoscore.app.ui.editors.PictureFromPhotoScreen(store,{ refresh();goHome() },onOpen={ refresh();open(it) })
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },
@@ -152,6 +197,7 @@ import kotlinx.coroutines.withContext
                         else LaunchedEffect(Unit) { goHome() }
                     }
                     else -> Column(Modifier.fillMaxSize()) {
+                        val libSearch=com.stethoscore.app.ui.library.rememberLibrarySearch(store,revision,query,lib.scope)
                         // home: the header, today's ward round and its tiles (ui/home, iOS WardHome)
                         val shortWindow=homeShortWindow()
                         val home=remember(revision,shortWindow,store.library) { if(store.library.isEmpty()) null else {
@@ -180,7 +226,7 @@ import kotlinx.coroutines.withContext
                                     SectionLabel("YOUR STUDY WARD")
                                     IconButton(onClick={screen="settings"},Modifier.size(44.dp).border(1.dp,MaterialTheme.colorScheme.outline,RoundedCornerShape(22.dp))) { Icon(Icons.Rounded.Settings,"Settings") }
                                 } }
-                                item { OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Search your library",fontSize=14.sp)},leadingIcon={Icon(Icons.Rounded.Search,null)},singleLine=true,shape=RoundedCornerShape(30.dp),colors=OutlinedTextFieldDefaults.colors(unfocusedContainerColor=MaterialTheme.colorScheme.surface.copy(alpha=.9f))) }
+                                item { OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Search questions, cards, notes",fontSize=14.sp)},leadingIcon={Icon(Icons.Rounded.Search,null)},singleLine=true,shape=RoundedCornerShape(30.dp),colors=OutlinedTextFieldDefaults.colors(unfocusedContainerColor=MaterialTheme.colorScheme.surface.copy(alpha=.9f))) }
                                 item { HomeHeader(ExamCountdown.text(store.examDate)) }
                                 store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
                                     Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
@@ -203,19 +249,26 @@ import kotlinx.coroutines.withContext
                                 }
                                 if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
                                 if(query.isBlank() && category=="Cards" && store.loadError==null) item { com.stethoscore.app.ui.editors.PhotoCardsTile({ screen="photo" },Modifier.fillMaxWidth()) }
-                                item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) { SectionLabel(if(query.isBlank()) "Your ${category.lowercase()}" else "Search results");TextButton(onClick={screen="new"}) { Icon(Icons.Rounded.Add,null,Modifier.size(18.dp));Text("New set") } } }
-                                val filtered=store.library.filter { set ->
-                                    (query.isNotBlank() || when(category) { "Questions" -> set.kind==StudySetKind.MCQ || set.kind==StudySetKind.BOOK; "Cards" -> set.kind==StudySetKind.ANKI;"Cases" -> set.kind==StudySetKind.CASES;"OSCE" -> set.kind==StudySetKind.OSCE;else -> set.kind==StudySetKind.NARRATE }) && (query.isBlank() || "${set.name} ${set.subject} ${set.tags.joinToString()}".contains(query,true))
-                                }
-                                items(filtered,key={it.id}) { set -> Box(Modifier.homePart(book,"set-${set.id}","a set row")) { SetRow(set,{open(set)},{ change { store.deleteSet(set.id) } },
-                                    if(com.stethoscore.app.export.DeckBuilder.printsAsPdf(set.kind) && set.itemCount>0) ({ printing=set.id;printed.launch(com.stethoscore.app.export.DeckPdf.fileName(set)) }) else null,
-                                    if(set.kind==StudySetKind.ANKI || set.kind==StudySetKind.MCQ) ({ selectedId=set.id;screen="edit" }) else null) } }
-                                if(filtered.isEmpty() && store.library.isNotEmpty()) item { Text(if(query.isNotBlank()) "No matching sets." else "No sets here yet. Create or import one.",color=MaterialTheme.colorScheme.onSurfaceVariant) }
+                                // the library: its sets, folders, search and practice tiles (iOS LibraryView and LibraryRows), each row a part of home's cut
+                                libraryItems(store,revision,com.stethoscore.app.ui.library.StudyCategory.named(category),query,libSearch,lib,libActions,
+                                    rowModifier={ set -> Modifier.homePart(book,"set-${set.id}","a set row") },showsEmpty=false)
                                 item { Text("Study aid · Not for clinical decisions",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
                             }
                         }
-                        CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query=""} })
+                        // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)
+                        if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=6.dp),horizontalArrangement=Arrangement.End) {
+                            com.stethoscore.app.ui.ward.WardButtonBox({ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;screen="newset" },
+                                Modifier.semantics { contentDescription="New set. Make questions or cards from a lecture" },fills=false) {
+                                Icon(Icons.Rounded.Add,null,Modifier.size(18.dp));Text("New set")
+                            }
+                        }
+                        if(lib.selecting) com.stethoscore.app.ui.library.LibrarySelectionBar(store,lib,libActions)
+                        else CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} })
                     }
+                }
+                if(screen=="home") {
+                    com.stethoscore.app.ui.library.LibraryOverlays(store,lib,libActions)
+                    com.stethoscore.app.ui.library.IncomingImportHost(store,busy=notice!=null || lib.naming!=null || lib.session!=null || lib.pendingDelete!=null,onChanged=::refresh)
                 }
                 if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("OK")}})
                 notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("OK")}}) }
@@ -243,19 +296,6 @@ import kotlinx.coroutines.withContext
 }
 
 fun modeIcon(kind:StudySetKind):ImageVector = when(kind) { StudySetKind.MCQ -> Icons.Rounded.FactCheck;StudySetKind.ANKI -> Icons.Rounded.Style;StudySetKind.BOOK -> Icons.Rounded.AutoStories;StudySetKind.CASES -> Icons.Rounded.MedicalServices;StudySetKind.OSCE -> Icons.Rounded.Assignment;StudySetKind.NARRATE -> Icons.Rounded.GraphicEq }
-@Composable private fun SetRow(set:StudySet,open:()->Unit,delete:()->Unit,print:(()->Unit)?=null,edit:(()->Unit)?=null) {
-    var confirm by remember { mutableStateOf(false) }
-    WardCard(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment=Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).clickable(onClick=open),verticalArrangement=Arrangement.spacedBy(7.dp)) { SectionLabel(set.subject);Text(set.name,fontSize=19.sp,fontWeight=FontWeight.SemiBold);Text("${set.kind.label} · ${set.itemCount} ${set.itemNoun}${if(set.itemCount!=1) "s" else ""}",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
-            if(edit!=null) IconButton(onClick=edit) {Icon(Icons.Rounded.Edit,if(set.kind==StudySetKind.MCQ) "Edit questions" else "Edit cards",tint=MaterialTheme.colorScheme.onSurfaceVariant)}
-            if(print!=null) IconButton(onClick=print) {Icon(Icons.Rounded.PictureAsPdf,"Export ${set.name} as a PDF deck",tint=MaterialTheme.colorScheme.onSurfaceVariant)}
-            IconButton(onClick={confirm=true}) {Icon(Icons.Rounded.DeleteOutline,"Delete ${set.name}",tint=MaterialTheme.colorScheme.onSurfaceVariant)}
-        }
-        WardButton("Open ${set.kind.label.lowercase()}",open,Modifier.fillMaxWidth())
-    }
-    if(confirm) AlertDialog(onDismissRequest={confirm=false},title={Text("Delete this set?")},text={Text(set.name)},confirmButton={TextButton(onClick={confirm=false;delete()}) {Text("Delete")}},dismissButton={TextButton(onClick={confirm=false}) {Text("Cancel")}})
-}
 
 /** Home's section for a dock category (WardSection.opening for Questions, the first). */
 fun homeSection(category:String):WardSection = when(category) {

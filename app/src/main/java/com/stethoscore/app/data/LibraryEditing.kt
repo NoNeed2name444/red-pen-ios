@@ -5,7 +5,7 @@ import java.util.zip.ZipInputStream
 
 // The logic under the library's editors (iOS Features/Library, fed0105), ported
 // from the files that hold it: CardStyle and DiagramCards (Shared/CardStyle.swift),
-// CardQuality.clozeHoles (Shared/CardQuality.swift), MCQCoverage.suggestedCount
+// MCQCoverage.suggestedCount (CardQuality.clozeHoles is in QuizFromCards.kt)
 // (Shared/MCQCoverage.swift), MCQGenerator.maxQuestionsTotal, ReadSource
 // (LecturePDFSection.swift), and the words and counts of LecturePDFSection and
 // LectureWriterSection. Pure Kotlin (MCQCoverageTest, LibraryEditorsTest).
@@ -22,18 +22,6 @@ enum class CardStyle(val title: String) {
 
 /** Cards made from the lecture's labelled diagrams, with the pictures they point into. */
 data class DiagramCards(val cards: List<AnkiCard> = emptyList(), val images: List<String> = emptyList(), val included: Boolean = false)
-
-object CardQuality {
-    /** One deletion in a cloze sentence: its number and the words it hides. */
-    data class Hole(val number: Int, val text: String, val range: IntRange)
-
-    private val hole = Regex("""\{\{c(\d+)::(.+?)(?:::.*?)?\}\}""")
-
-    /** The deletions in a cloze sentence; none means there is nothing to recall. */
-    fun clozeHoles(text: String): List<Hole> = hole.findAll(text).map {
-        Hole(it.groupValues[1].toIntOrNull() ?: 1, it.groupValues[2], it.range)
-    }.toList()
-}
 
 object MCQCoverage {
     /** How many questions a source of this many characters can support: about a paragraph each. */
