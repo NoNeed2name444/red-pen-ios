@@ -94,7 +94,7 @@ extension DeckPDF {
         let title = topic as NSString
         let titleAttrs: [NSAttributedString.Key: Any] = [
             .font: round(19, weight: .bold),
-            .foregroundColor: color(palette.shade(0.10)),
+            .foregroundColor: color(palette.ink),
         ]
         let width = pageSize.width - margin * 2
         let titleHeight = titleHeight(topic)
@@ -154,7 +154,7 @@ extension DeckPDF {
         guard let right else { return }
         let attrs: [NSAttributedString.Key: Any] = [
             .font: round(7.5, weight: .bold),
-            .foregroundColor: color(palette.shade(0.18)),
+            .foregroundColor: color(palette.ink),
             .kern: 0.8,
         ]
         let text = right.uppercased() as NSString
@@ -192,7 +192,7 @@ extension DeckPDF {
             ])
             value.draw(at: CGPoint(x: margin, y: y + 13), withAttributes: [
                 .font: round(15, weight: .semibold),
-                .foregroundColor: color(palette.shade(0.14)),
+                .foregroundColor: color(palette.ink),
             ])
             y += 46
         }
@@ -222,7 +222,7 @@ extension DeckPDF {
             var y = bar("Contents", right: set.subject, palette: palette) + 26
             "Contents".draw(at: CGPoint(x: margin, y: y), withAttributes: [
                 .font: round(17, weight: .bold),
-                .foregroundColor: color(palette.shade(0.10)),
+                .foregroundColor: color(palette.ink),
             ])
             y += 34
 
@@ -245,7 +245,7 @@ extension DeckPDF {
                 let number = row.range as NSString
                 let attrs: [NSAttributedString.Key: Any] = [
                     .font: round(9.5, weight: .heavy).monospacedDigits(),
-                    .foregroundColor: color(palette.shade(0.18)),
+                    .foregroundColor: color(palette.ink),
                 ]
                 let width = number.size(withAttributes: attrs).width
                 number.draw(at: CGPoint(x: pageSize.width - margin - width, y: y),

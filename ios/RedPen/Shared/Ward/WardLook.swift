@@ -6,8 +6,8 @@ import Foundation
 /// direction 3, seven section colours). Each section has a hue, and every
 /// accent is drawn from it: the paper's grid and the controls' edges
 /// (`ink`), the words and glyphs of buttons, links, the chosen dock tab,
-/// progress and a right answer (`accent`), and the fills under white words
-/// (`fill`). The base, the cards and the body text stay the Ward palette's,
+/// progress and a right answer (`accent`), and the fills under the
+/// near-black on-fill words (`fill`, WardToken.onPrimary). The base, the cards and the body text stay the Ward palette's,
 /// and so do the colours that mean something: Discharge green, Resus red,
 /// Caution amber for due, the ECG red and the beam's orange. The sections
 /// keep apart from those and from each other (at least 0.076 in OKLab,
@@ -16,7 +16,7 @@ enum WardSection: String, CaseIterable, Sendable {
     case questions, cards, textbook, cases, osce, audio, ideas
 
     /// The look outside any section (a screen that sets none, and home
-    /// before a section is asked for): Cards' indigo, which is also the
+    /// before a section is asked for): Cards' Care Blue, which is also the
     /// palette's primary. Not Questions, or every screen without a section
     /// would turn red; and the default paper ink and the control edges
     /// follow it, so the app keeps no blue of its own.
@@ -37,8 +37,8 @@ enum WardSection: String, CaseIterable, Sendable {
     /// 4.5:1 on every tier of its mode, the well to a sheet.
     var accent: (light: UInt32, dark: UInt32) { WardSection.table[self]!.accent }
 
-    /// A fill in the section's colour, under white words (a switch that
-    /// is on, a chosen segment): white reads 4.5:1 on it.
+    /// A fill in the section's colour, the owner's hex (a switch that is
+    /// on, a chosen segment): the on-fill words (onPrimary) read 4.5:1 on it.
     var fill: (light: UInt32, dark: UInt32) { WardSection.table[self]!.fill }
 
     func accent(dark: Bool) -> UInt32 { dark ? accent.dark : accent.light }
@@ -66,13 +66,13 @@ enum WardSection: String, CaseIterable, Sendable {
     /// --write. (ink, accent, fill) as (light, dark) 0xRRGGBB.
     // ward_accents.py: begin
     private static let table: [WardSection: WardSectionColours] = [
-        .questions: WardSectionColours(hue: 20, ink: (0xC82D40, 0xF0777A), accent: (0x970525, 0xD98888), fill: (0xC03946, 0xCB3E4B)),
-        .cards: WardSectionColours(hue: 274, ink: (0x5866E5, 0xA5B6FE), accent: (0x4046C2, 0xA5B6FE), fill: (0x5260BC, 0x5A68C5)),
-        .textbook: WardSectionColours(hue: 186, ink: (0x0E7C74, 0x0FC8BA), accent: (0x065650, 0x0FC8BA), fill: (0x227D75, 0x258279)),
-        .cases: WardSectionColours(hue: 51, ink: (0xAC5102, 0xF48C49), accent: (0x783907, 0xF48C49), fill: (0xAC5A21, 0xB05C23)),
-        .osce: WardSectionColours(hue: 149, ink: (0x01712E, 0x5DC474), accent: (0x024B1D, 0x5DC474), fill: (0x3D7C49, 0x42814F)),
-        .audio: WardSectionColours(hue: 307, ink: (0x9853D0, 0xCD99FE), accent: (0x772FAB, 0xCD99FE), fill: (0x8150AD, 0x8B57B8)),
-        .ideas: WardSectionColours(hue: 346, ink: (0xC74195, 0xE97EBB), accent: (0x9E1071, 0xE97EBB), fill: (0xB23E86, 0xBA438E)),
+        .questions: WardSectionColours(hue: 23, ink: (0xBE2130, 0xFEBAB5), accent: (0x8A0219, 0xFEBAB5), fill: (0xFF6B6B, 0xFF6B6B)),
+        .cards: WardSectionColours(hue: 260, ink: (0x2A71E5, 0x84B2FD), accent: (0x0251C2, 0x84B2FD), fill: (0x3B82F6, 0x3B82F6)),
+        .textbook: WardSectionColours(hue: 182, ink: (0x157C70, 0x1EC8B4), accent: (0x0A574D, 0x1EC8B4), fill: (0x14B8A6, 0x14B8A6)),
+        .cases: WardSectionColours(hue: 42, ink: (0xCE4F08, 0xFE9F79), accent: (0x983803, 0xFF9F7A), fill: (0xFF9F7A, 0xFF9F7A)),
+        .osce: WardSectionColours(hue: 129, ink: (0x476A05, 0xAFE172), accent: (0x2D4601, 0xA3E635), fill: (0xA3E635, 0xA3E635)),
+        .audio: WardSectionColours(hue: 294, ink: (0x845BDD, 0xB097FD), accent: (0x6538B8, 0xB097FD), fill: (0xA78BFA, 0xA78BFA)),
+        .ideas: WardSectionColours(hue: 350, ink: (0xCA3F8D, 0xF383BB), accent: (0xA00B69, 0xF383BB), fill: (0xF472B6, 0xF472B6)),
     ]
     // ward_accents.py: end
 

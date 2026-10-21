@@ -5,7 +5,7 @@
 // indigo (Cards' own since palette direction 3). The owner saw exactly that
 // (14 Oct): blue words in other sections. And every section's colour reads
 // (WCAG AA) in light and dark: its words 4.5:1 on every tier, as large text
-// or an icon 3:1, white words 4.5:1 on its fill, its ink 3:1 as a control's
+// or an icon 3:1, its on-fill words 4.5:1 on its fill, its ink 3:1 as a control's
 // edge; and it is told apart from the other sections and from what means
 // something (right, wrong, due, the ECG red, the beam). This reads the Swift
 // sources: WardPalette's table, WardLook's section table (written by
@@ -122,7 +122,7 @@ for (const m of look.matchAll(row)) {
 }
 const names = Object.keys(sections);
 check('seven sections are read', names.length === 7, names.join(' '));
-check('Questions is in the table, at hue 20', sections.questions?.hue === 20, String(sections.questions?.hue));
+check('Questions is in the table, at Vital Coral\'s hue 23', sections.questions?.hue === 23, String(sections.questions?.hue));
 check('the primary is Cards\' fill and accent (the look outside any section)',
       [0, 1].every(d => palette.primary[d] === sections.cards.fill[d] && palette.primaryInk[d] === sections.cards.accent[d]));
 
@@ -163,7 +163,7 @@ for (const dark of [0, 1]) {
     check(`${mode} ${name}: its words read 4.5:1 on every tier (AA body text)`, low >= 4.5, `${hex(accent)} ${low.toFixed(2)}`);
     check(`${mode} ${name}: as large text or an icon, 3:1 on every tier`, low >= 3, low.toFixed(2));
     const white = ratio(palette.onPrimary[dark], s.fill[dark]);
-    check(`${mode} ${name}: white words read 4.5:1 on its fill`, white >= 4.5, `${hex(s.fill[dark])} ${white.toFixed(2)}`);
+    check(`${mode} ${name}: the on-fill words read 4.5:1 on its fill`, white >= 4.5, `${hex(s.fill[dark])} ${white.toFixed(2)}`);
     for (const ground of ['background', 'surface']) {
       const g = palette[ground][dark];
       const edge = ratio(composite(s.ink[dark], edgeAlpha[dark], g), g);

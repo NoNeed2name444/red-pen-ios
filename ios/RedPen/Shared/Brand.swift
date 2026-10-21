@@ -41,12 +41,12 @@ enum Brand {
 
     /// The icon's scarlet, and the colour of the one thing that should ever
     /// shout: how long is left.
-    static let signal = Color(red: 194 / 255, green: 98 / 255, blue: 11 / 255)    // Pager Amber
+    static let signal = Color(red: 251 / 255, green: 191 / 255, blue: 36 / 255)   // Optimistic Amber (was Pager Amber)
 
     /// The cool mark struck through the icon's page. The only other colour the
     /// brand owns, kept for the answer to whatever the signal is counting down
     /// to - and deliberately the opposite of scarlet, so the two never blur.
-    static let mark = Color(red: 29 / 255, green: 95 / 255, blue: 176 / 255)      // Theatre Blue
+    static let mark = Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)     // Care Blue (was Theatre Blue)
 
     /// The mark: three stacked rules pressed down into one.
     ///

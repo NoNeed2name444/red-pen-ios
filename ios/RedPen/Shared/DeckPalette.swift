@@ -23,16 +23,22 @@ struct DeckPalette: Equatable {
         self.blue = blue.clamped()
     }
 
-    /// The mode tints, kept in step with Theme's.
+    /// The mode tints, kept in step with Theme's: each section's fill in the
+    /// owner's 2026-10-21 palette (WardSection.fill).
     static func of(_ kind: StudySetKind) -> DeckPalette {
         switch kind {
-        case .mcq:     return DeckPalette(red: 0.78, green: 0.16, blue: 0.16)
-        case .anki:    return DeckPalette(red: 0.31, green: 0.36, blue: 0.86)
-        case .book:    return DeckPalette(red: 0.10, green: 0.55, blue: 0.50)
-        case .osce:    return DeckPalette(red: 0.20, green: 0.62, blue: 0.35)
-        case .narrate: return DeckPalette(red: 0.55, green: 0.32, blue: 0.80)
-        case .cases:   return DeckPalette(red: 0.11, green: 0.37, blue: 0.69)
+        case .mcq:     return DeckPalette(hex: 0xFF6B6B)   // Vital Coral
+        case .anki:    return DeckPalette(hex: 0x3B82F6)   // Care Blue
+        case .book:    return DeckPalette(hex: 0x14B8A6)   // Pulse Teal
+        case .osce:    return DeckPalette(hex: 0xA3E635)   // Lime Zest
+        case .narrate: return DeckPalette(hex: 0xA78BFA)   // Soft Lilac
+        case .cases:   return DeckPalette(hex: 0xFF9F7A)   // Peach Glow
         }
+    }
+
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
+                  blue: Double(hex & 0xFF) / 255)
     }
 
     /// Darkened towards black - for headings and emphasised words on paper.
@@ -50,20 +56,41 @@ struct DeckPalette: Equatable {
         return DeckPalette(red: r, green: g, blue: b)
     }
 
-    /// Whether white text can be read on this colour.
+    /// Whether white text can be read on this colour: WCAG's 4.5:1.
     ///
-    /// The header bar is filled with the base colour and its text is white. Two
-    /// of the mode tints are bright - amber above all - and white on them is
-    /// close to unreadable in print, so those bars take the darkened shade
-    /// instead. Measured by relative luminance rather than by eye, because "it
-    /// looked fine on my screen" is how a printed page ends up illegible.
-    var carriesWhiteText: Bool { luminance < 0.5 }
+    /// The header bar is filled with the base colour and its text is white.
+    /// The 2026-10-21 mode tints are all bright, and white on them is under
+    /// AA, so those bars take a darkened shade instead. Measured by WCAG
+    /// contrast rather than by eye, because "it looked fine on my screen" is
+    /// how a printed page ends up illegible.
+    var carriesWhiteText: Bool { 1.05 / (wcagLuminance + 0.05) >= 4.5 }
+
+    /// WCAG 2 relative luminance, in linear light.
+    var wcagLuminance: Double {
+        func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+    }
 
     /// Relative luminance, weighted the way the eye responds.
     var luminance: Double { 0.2126 * red + 0.7152 * green + 0.0722 * blue }
 
-    /// The colour a header bar is actually filled with.
-    var barFill: DeckPalette { carriesWhiteText ? self : shade(0.38) }
+    /// Words in the mode's colour on the paper and its pale tints: the
+    /// lightest shade from 0.10 down that reads 5:1 on white, so it keeps
+    /// 4.5:1 on a tint of 0.86 or paler.
+    var ink: DeckPalette {
+        var amount = 0.10
+        while 1.05 / (shade(amount).wcagLuminance + 0.05) < 5 && amount < 1 { amount += 0.02 }
+        return shade(amount)
+    }
+
+    /// The colour a header bar is actually filled with: the tint, or the
+    /// lightest shade of it from 0.38 down that carries white text.
+    var barFill: DeckPalette {
+        if carriesWhiteText { return self }
+        var amount = 0.38
+        while !shade(amount).carriesWhiteText && amount < 1 { amount += 0.02 }
+        return shade(amount)
+    }
 
     var hex: String {
         String(format: "#%02X%02X%02X",

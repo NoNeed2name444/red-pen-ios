@@ -115,7 +115,14 @@ ok(DeckPalette(red: 0, green: 0, blue: 0).hex == "#000000"
 let amber = DeckPalette(red: 0.90, green: 0.49, blue: 0.13)
 ok(!amber.carriesWhiteText, "a bright tint is not asked to carry white text")
 ok(amber.barFill.luminance < amber.luminance, "so its bar is filled with a darker shade")
-ok(DeckPalette.of(.mcq).carriesWhiteText, "a dark tint carries white text as it is")
+ok(DeckPalette(red: 0.10, green: 0.12, blue: 0.35).carriesWhiteText, "a dark tint carries white text as it is")
+// the 2026-10-21 mode tints are all bright: white is under 4.5:1 on each, so
+// every bar darkens until white reads 4.5:1 on it
+let kinds: [StudySetKind] = [.mcq, .anki, .book, .osce, .narrate, .cases]
+ok(kinds.allSatisfy { !DeckPalette.of($0).carriesWhiteText }, "no mode tint is asked to carry white text as drawn")
+ok(kinds.allSatisfy { DeckPalette.of($0).barFill.carriesWhiteText }, "every mode's bar carries white text")
+ok(kinds.allSatisfy { 1.05 / (DeckPalette.of($0).ink.wcagLuminance + 0.05) >= 5 }, "every mode's words read 5:1 on the paper")
+ok(DeckPalette.of(.mcq).hex == "#FF6B6B" && DeckPalette.of(.anki).hex == "#3B82F6", "the tints are the owner's hexes")
 
 // MARK: building cards
 

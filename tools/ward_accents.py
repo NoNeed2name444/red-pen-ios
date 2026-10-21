@@ -15,9 +15,10 @@ pinned. For each mode it has three colours of that hue:
           progress): the most chroma, between the mode's floor (so it
           reads as its hue) and its cap (so it is not neon), that stays in
           sRGB and reads 4.6:1 (AA's 4.5 with a margin, so rounding never
-          tips it) on every tier, the well to a sheet.
-  fill    under white words (a switch that is on, a chosen segment): the
-          owner's colour as given, checked, never searched: white reads
+          tips it) on every tier, the well to a sheet, and on the
+          section's own wash behind the page.
+  fill    under the on-fill words (a switch that is on, a chosen segment): the
+          owner's colour as given, checked, never searched: the on-fill words (onPrimary) read
           4.6:1 on it and its hue is within 2 degrees of the section's, or
           the tool exits 1.
   ink     the paper's grid and the controls' edges: the most chroma at the
@@ -30,18 +31,18 @@ shade moves, never the hue. The palette (WardPalette.swift) and the edge
 strengths (WardRelief.swift) are read from the source, so a palette or
 route change is one edit there (or of the rows below) and a --write.
 
-The hues and fills are the owner's palette direction 3 (16 Oct): seven
-section colours, Cards' indigo also the primary (the look outside any
-section). The fills are the owner's colours exactly, but OSCE's, turned 3
-degrees (387D4D and 3D8253 to 3D7C49 and 42814F, about 0.006 in OKLab,
-not visible) to keep its words apart from Textbook's. The words'
-lightnesses were then chosen, one section at a time inside the bands
-below, so that every accent stays at least 0.076 in OKLab from every other
-and from the colours that mean something (right, wrong, due, the ECG red,
-the beam), in both modes, with no meaning colour moved: the least gaps are
-0.078 by day (textbook/osce, textbook/success) and 0.084 by night
-(questions/danger). tests/ward/accent-blue.test.mjs and WardLookTests hold
-them to it.
+The hues and fills are the owner's 2026-10-21 palette
+(docs/design/palette-2026-10-21.md): seven of its ten colours, one per
+section, each fill the owner's hex exactly in both modes and each hue the
+fill's own; Cards' Care Blue is also the primary (the look outside any
+section). Where the owner's colour reads 4.6:1 on every tier as it is (at
+night, mostly), it is the words' colour too; elsewhere the words are a
+shade of its hue. The words' lightnesses were chosen, one section at a
+time inside the bands below, so that every accent stays at least 0.076 in
+OKLab from every other and from the colours that mean something (right,
+wrong, due, the ECG red, the beam), in both modes: the least gaps are
+0.082 by day (textbook/success) and 0.084 by night (cards/audio).
+tests/ward/accent-blue.test.mjs and WardLookTests hold them to it.
 """
 import math, os, re, sys
 
@@ -53,20 +54,23 @@ LOOK = os.path.join(WARD, "WardLook.swift")
 # fill in light, in dark). Light words sit between 0.36 and 0.55 (darker is
 # muddy, lighter fails the well); dark words between 0.66 and 0.94.
 SECTIONS = [
-    ("questions", 20, 0.43, 0.71, 0xC03946, 0xCB3E4B),   # red, as ECG paper
-    ("cards", 274, 0.47, 0.79, 0x5260BC, 0x5A68C5),      # indigo, the primary
-    ("textbook", 186, 0.41, 0.75, 0x227D75, 0x258279),   # teal
-    ("cases", 51, 0.42, 0.74, 0xAC5A21, 0xB05C23),       # rust
-    ("osce", 149, 0.36, 0.74, 0x3D7C49, 0x42814F),       # green, turned 3 degrees
-    ("audio", 307, 0.47, 0.77, 0x8150AD, 0x8B57B8),      # violet
-    ("ideas", 346, 0.47, 0.73, 0xB23E86, 0xBA438E),      # magenta
+    ("questions", 23, 0.40, 0.85, 0xFF6B6B, 0xFF6B6B),   # Vital Coral, red as ECG paper
+    ("cards", 260, 0.47, 0.76, 0x3B82F6, 0x3B82F6),      # Care Blue, the primary
+    ("textbook", 182, 0.41, 0.75, 0x14B8A6, 0x14B8A6),   # Pulse Teal
+    ("cases", 42, 0.47, 0.79, 0xFF9F7A, 0xFF9F7A),       # Peach Glow
+    ("osce", 129, 0.36, 0.85, 0xA3E635, 0xA3E635),       # Lime Zest
+    ("audio", 294, 0.47, 0.74, 0xA78BFA, 0xA78BFA),      # Soft Lilac
+    ("ideas", 350, 0.47, 0.75, 0xF472B6, 0xF472B6),      # Bubblegum Pink
 ]
 CAP = (0.19, 0.15)        # chroma in light and dark: vivid, not neon
-FLOOR = (0.07, 0.10)      # and at least this, so every colour reads as its hue.
+FLOOR = (0.07, 0.08)      # and at least this, so every colour reads as its hue.
                           # By day 0.07, not 0.085: at hue 186 no teal with
                           # 0.085 of chroma reads 4.6:1 on the paler tiers, so
                           # the search found nothing; at 0.07 every hue stays
-                          # within 2 degrees and every promise holds
+                          # within 2 degrees and every promise holds. At night
+                          # 0.08, not 0.10: Questions' words are a pale coral
+                          # (L 0.85), the only coral that keeps clear of Cases'
+                          # Peach Glow and of a wrong answer's Vital Coral
 HUE_SLACK = 2             # a pinned fill's hue, at most this far from its section's
 INK_LIFT = (0.12, 0.0)    # the grid's ink: the words' lightness and this (a
                           # finer line wants a lighter ink by day), before it
@@ -150,6 +154,18 @@ def from_oklch(L, C, hue):
     return out
 
 
+def mix(a, b, t):
+    """`a` part way to `b` in linear light, as WardPalette.mix does."""
+    out = 0
+    for x, y in zip(rgb(a), rgb(b)):
+        v = to_gamma(to_linear(x) + (to_linear(y) - to_linear(x)) * t)
+        out = out << 8 | int(round(min(1, max(0, v)) * 255))
+    return out
+
+
+WASH = (0.06, 0.10)       # the page's wash: the base this far to the fill (WardSection.wash)
+
+
 def composite(top, alpha, base):
     """`top` laid on `base` at `alpha`, as WardRelief.composite does."""
     out = 0
@@ -188,11 +204,11 @@ def hue_apart(a, b):
 
 
 def pinned_fill(name, hue, fill, white):
-    """The owner's fill as given, once it keeps its promises: white words
+    """The owner's fill as given, once it keeps its promises: on-fill words
     4.6:1 on it, and the section's hue. Exits 1 if it does not."""
     ratio, h = contrast(white, fill), oklch(fill)[2]
     if ratio < 4.5 + MARGIN or hue_apart(h, hue) > HUE_SLACK:
-        print("%s fill %06X: white %.2f:1 (needs %.1f), hue %.1f (section %d, within %d)"
+        print("%s fill %06X: on-fill words %.2f:1 (needs %.1f), hue %.1f (section %d, within %d)"
               % (name, fill, ratio, 4.5 + MARGIN, h, hue, HUE_SLACK))
         sys.exit(1)
     return fill
@@ -203,16 +219,19 @@ def section_colours(table, tiers, edge_alpha, edge_contrast):
     for name, hue, light_L, dark_L, fill_light, fill_dark in SECTIONS:
         row = {}
         for dark in (0, 1):
-            grounds = [table[t][dark] for t in tiers]
             white = table["onPrimary"][dark]
+            fill = pinned_fill(name, hue, fill_dark if dark else fill_light, white)
+            # every tier, and the section's own wash behind the page
+            grounds = [table[t][dark] for t in tiers] + [mix(table["background"][dark], fill, WASH[dark])]
             base = [table["background"][dark], table["surface"][dark]]
             away = L_STEP if dark else -L_STEP
             words = lambda c: all(contrast(c, g) >= 4.5 + MARGIN for g in grounds)
             edge = lambda c: all(contrast(composite(c, edge_alpha[dark], g), g) >= edge_contrast + MARGIN
                                  for g in base)
             words_L = dark_L if dark else light_L
-            accent, m1 = settle(hue, words_L, dark, words, away)
-            fill = pinned_fill(name, hue, fill_dark if dark else fill_light, white)
+            # the owner's colour itself for the words, where it keeps the
+            # promise as it is (at night, mostly); else a shade of its hue
+            accent, m1 = (fill, 0.0) if words(fill) else settle(hue, words_L, dark, words, away)
             ink, m3 = settle(hue, words_L + INK_LIFT[dark], dark, edge, away)
             for role, moved in (("accent", m1), ("ink", m3)):
                 if moved:

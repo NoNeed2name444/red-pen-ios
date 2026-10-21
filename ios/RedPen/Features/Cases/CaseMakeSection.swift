@@ -120,7 +120,7 @@ struct CaseMakeSection: View {
             Text(status).font(.caption).foregroundStyle(Color.wardInkSecondary)
         }
         if let trouble {
-            Text(trouble).font(.caption).foregroundStyle(.red)
+            Text(trouble).font(.caption).foregroundStyle(Color.wardDanger)
         }
     }
 

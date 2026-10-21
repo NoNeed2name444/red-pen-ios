@@ -47,8 +47,10 @@ struct GlanceProvider: TimelineProvider {
 enum GlanceStyle {
     static let night = Color(red: 0.035, green: 0.047, blue: 0.11)
     static let dusk = Color(red: 0.11, green: 0.09, blue: 0.24)
-    static let pen = Color(red: 0.886, green: 0.243, blue: 0.188)
-    static let star = Color(red: 0.549, green: 0.784, blue: 0.941)
+    /// Vital Coral #FF6B6B and Care Blue #3B82F6 (docs/design/palette-2026-10-21.md):
+    /// 6.1:1 and 4.6:1 on the dusk, the lighter end of the sky.
+    static let pen = Color(red: 255 / 255, green: 107 / 255, blue: 107 / 255)
+    static let star = Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
 
     /// The sky behind a Home Screen widget. Lock Screen and StandBy tint
     /// it themselves, so the accessory families get none.

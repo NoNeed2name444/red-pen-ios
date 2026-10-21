@@ -1,6 +1,6 @@
 // The Ward Round palette: every text colour keeps its promised contrast on
 // the surface it sits on, in light and in dark, and the app's AccentColor
-// and LaunchBackground assets are the primary (Cards' indigo) and the bases
+// and LaunchBackground assets are the primary (Cards' Care Blue) and the bases
 // from the same table.
 import Foundation
 
@@ -215,9 +215,9 @@ func components(_ appearance: String?, in asset: URL = accent) -> UInt32? {
     }
     return nil
 }
-check("AccentColor (light) is the primary, Cards' indigo", components(nil) == WardPalette.hex(.primary, dark: false),
+check("AccentColor (light) is the primary, Cards' Care Blue", components(nil) == WardPalette.hex(.primary, dark: false),
       String(components(nil) ?? 0, radix: 16))
-check("AccentColor (dark) is the night primary ink, Cards' indigo", components("dark") == WardPalette.hex(.primaryInk, dark: true),
+check("AccentColor (dark) is the night primary ink, Cards' Care Blue", components("dark") == WardPalette.hex(.primaryInk, dark: true),
       String(components("dark") ?? 0, radix: 16))
 let launch = root.appendingPathComponent("ios/RedPen/Assets.xcassets/LaunchBackground.colorset/Contents.json")
 check("LaunchBackground (light) is the base", components(nil, in: launch) == WardPalette.hex(.background, dark: false),

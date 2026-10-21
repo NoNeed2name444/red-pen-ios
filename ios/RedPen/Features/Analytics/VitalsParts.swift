@@ -55,7 +55,7 @@ struct RhythmMonitor: View {
     private var readings: some View {
         MonitorReading(label: "RDY", value: RhythmMonitor.percent(readiness), tint: Color.wardBeam)
         MonitorReading(label: "ACC", value: RhythmMonitor.percent(accuracy), tint: Color.wardSuccess)
-        MonitorReading(label: "Q/D", value: "\(today)/\(target)", tint: Color.wardOnPrimary)
+        MonitorReading(label: "Q/D", value: "\(today)/\(target)", tint: Color.wardInk)
         streakReading
     }
 

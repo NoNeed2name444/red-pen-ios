@@ -371,8 +371,11 @@ enum OcclusionFilter {
 /// whole pixels so no edge of a letter shows round them.
 enum OcclusionCovers {
 
-    /// The label this card asks about: a strong orange.
-    static let targetRGB: (red: Double, green: Double, blue: Double) = (0.93, 0.45, 0.09)
+    /// The label this card asks about: Peach Glow #FF9F7A (the owner's
+    /// 2026-10-21 palette), where it was a strong orange.
+    static let targetRGB: (red: Double, green: Double, blue: Double) = (255.0 / 255, 159.0 / 255, 122.0 / 255)
+    /// Its "?": near-black #090E15, 9.7:1 on the peach (white reads 2:1).
+    static let markRGB: (red: Double, green: Double, blue: Double) = (9.0 / 255, 14.0 / 255, 21.0 / 255)
     /// Every other label on the picture: a flat, neutral grey.
     static let otherRGB: (red: Double, green: Double, blue: Double) = (0.56, 0.58, 0.62)
 

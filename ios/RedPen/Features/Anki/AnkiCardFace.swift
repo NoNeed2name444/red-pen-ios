@@ -186,7 +186,8 @@ struct AnkiCardFace: View {
                 context.fill(Path(rect), with: .color(orange))
                 let mark = Text("?")
                     .font(.system(size: max(9, min(rect.height * 0.7, 22)), weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(red: OcclusionCovers.markRGB.red, green: OcclusionCovers.markRGB.green,
+                                           blue: OcclusionCovers.markRGB.blue))
                 context.draw(mark, at: CGPoint(x: rect.midX, y: rect.midY))
             }
         }

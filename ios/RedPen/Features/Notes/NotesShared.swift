@@ -1,38 +1,57 @@
 import SwiftUI
 import UIKit
 
-/// The quiet colour each top-level folder is known by, on the board and in the
-/// space alike. Muted on purpose: it is there to tell clusters apart at a
-/// glance, not to decorate.
+/// The colour each top-level folder is known by, on the board and in the
+/// space alike: there to tell clusters apart at a glance, not to decorate.
 ///
-/// Literal colours on purpose: these are the user's folder colours (stored
-/// order, matched by index), seven of them, and the 3D map's space look
-/// draws its clusters in the same ones; Ward Round has no seven like-weight
-/// tones to swap in without turning folders into warnings.
+/// Seven of the owner's 2026-10-21 palette (docs/design/palette-2026-10-21.md),
+/// in the stored order the folders are matched by index: the 3D map's space
+/// draws its clusters in the colours themselves; a folder's glyph on a
+/// card or a row, which must read 3:1 on the page, takes a shade of the
+/// same hue where the colour itself does not. Vital Coral is left out, so
+/// a folder never reads as a wrong answer.
 enum NoteTone {
-    private static let palette: [Color] = [
-        Color(red: 0.36, green: 0.62, blue: 0.60),  // sea green
-        Color(red: 0.45, green: 0.47, blue: 0.75),  // slate blue
-        Color(red: 0.78, green: 0.58, blue: 0.40),  // sand
-        Color(red: 0.62, green: 0.46, blue: 0.66),  // heather
-        Color(red: 0.47, green: 0.63, blue: 0.42),  // sage
-        Color(red: 0.76, green: 0.47, blue: 0.47),  // clay
-        Color(red: 0.40, green: 0.58, blue: 0.76),  // sky
+    /// (the owner's colour, the glyph's by day, the glyph's at night), 0xRRGGBB
+    private static let palette: [(fill: UInt32, light: UInt32, dark: UInt32)] = [
+        (0x14B8A6, 0x3B8B80, 0x14B8A6),  // Pulse Teal (was sea green)
+        (0x6366F1, 0x6366F1, 0x737CB3),  // Electric Indigo (was slate blue)
+        (0xFF9F7A, 0xBF6642, 0xFF9F7A),  // Peach Glow (was sand)
+        (0xA78BFA, 0x886BD4, 0xA78BFA),  // Soft Lilac (was heather)
+        (0xA3E635, 0x708558, 0xA3E635),  // Lime Zest (was sage)
+        (0xF472B6, 0xCE4F93, 0xF472B6),  // Bubblegum Pink (was clay)
+        (0x3B82F6, 0x367AEC, 0x3B82F6),  // Care Blue (was sky)
     ]
 
-    /// Loose notes are plain grey; a note in a folder takes the colour of
-    /// the top-level folder it sits in.
-    @MainActor
-    static func color(for folderId: UUID?, in store: NoteStore) -> Color {
-        guard let root = store.rootFolder(of: folderId),
-              let index = store.subfolders(of: nil).firstIndex(where: { $0.id == root })
-        else { return Color.gray }
-        return palette[index % palette.count]
+    private static func ui(_ hex: UInt32) -> UIColor {
+        UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+    }
+
+    private static let glyphs: [Color] = palette.map { tone in
+        Color(uiColor: UIColor { traits in ui(traits.userInterfaceStyle == .dark ? tone.dark : tone.light) })
     }
 
     @MainActor
+    private static func index(for folderId: UUID?, in store: NoteStore) -> Int? {
+        guard let root = store.rootFolder(of: folderId),
+              let index = store.subfolders(of: nil).firstIndex(where: { $0.id == root })
+        else { return nil }
+        return index % palette.count
+    }
+
+    /// Loose notes are plain grey; a note in a folder takes the colour of
+    /// the top-level folder it sits in (its glyph's shade, light or dark).
+    @MainActor
+    static func color(for folderId: UUID?, in store: NoteStore) -> Color {
+        guard let k = index(for: folderId, in: store) else { return Color.gray }
+        return glyphs[k]
+    }
+
+    /// The folder's colour itself, for the space's clusters.
+    @MainActor
     static func uiColor(for folderId: UUID?, in store: NoteStore) -> UIColor {
-        UIColor(color(for: folderId, in: store))
+        guard let k = index(for: folderId, in: store) else { return UIColor(Color.gray) }
+        return ui(palette[k].fill)
     }
 
     /// The palette's colour at `index` (wrapping), for a folder the space
@@ -40,7 +59,7 @@ enum NoteTone {
     static func uiColor(at index: Int) -> UIColor {
         let count: Int = palette.count
         let k: Int = ((index % count) + count) % count
-        return UIColor(palette[k])
+        return ui(palette[k].fill)
     }
 }
 

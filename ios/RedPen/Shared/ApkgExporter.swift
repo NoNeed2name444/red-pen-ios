@@ -137,9 +137,9 @@ enum ApkgExporter {
     private static let cardCSS = """
     .card { font-family: -apple-system, Helvetica, Arial, sans-serif; font-size: 20px; text-align: left; color: #1e1c19; background: #fbfaf7; padding: 12px 18px; }
     .bullets { padding-left: 1.2em; margin: .5em 0; } .bullets li { margin: .3em 0; }
-    .why { margin-top: 1em; padding: .7em 1em; background: #f4ece6; border-left: 3px solid #c02828; border-radius: 6px; font-size: .9em; }
-    .why b { display: block; margin-bottom: .25em; color: #c02828; font-size: .8em; letter-spacing: .04em; text-transform: uppercase; }
-    .cloze { font-weight: bold; color: #c02828; }
+    .why { margin-top: 1em; padding: .7em 1em; background: #f4ece6; border-left: 3px solid #bb2a34; border-radius: 6px; font-size: .9em; }
+    .why b { display: block; margin-bottom: .25em; color: #bb2a34; font-size: .8em; letter-spacing: .04em; text-transform: uppercase; }
+    .cloze { font-weight: bold; color: #bb2a34; }
     img { max-width: 100%; border-radius: 8px; }
     """
 
