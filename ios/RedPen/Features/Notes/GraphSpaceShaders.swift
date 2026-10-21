@@ -133,6 +133,92 @@ nonisolated enum GraphStyleShaders {
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
 
+    // MARK: the depth fade and detail by size
+
+    // docs/design/depth-fade.md and plan 4e, for the Space theme. Every
+    // Space shader takes `rpFade` (start, end, exponent, cap: SpaceDepthBand,
+    // set by GraphSim each frame as the camera moves) and fades by the view
+    // depth of its node's centre (a link by each fragment's):
+    // f = clamp((z - start) / (end - start), 0, 1)^k * cap, SceneKit's fog
+    // formula. A body's colour goes towards the sky's near-black by f; a
+    // glow's light goes towards nothing, times (1 - f), never towards a
+    // colour that would brighten it. All four 0 (a material GraphSim never
+    // set) is no fade at all, so nothing changes where it is not wired.
+    //
+    // The bodies with noise loops also take `rpFocal` (the camera's focal
+    // length in points) and weigh their fine detail by the node's radius on
+    // screen, smoothly from none at `detailLow` points to all of it at
+    // `detailHigh` (rp_dl = rpDetail times that): a morph between the
+    // simple path and the full one, never a switch. 0 (not set) is full
+    // detail. SpaceDepth (GraphSpaceDepth.swift) is the same maths in Swift.
+
+    /// The sky's near-black a far body dissolves into (sRGB): between the
+    /// sky's darkest (its poles) and its band (GraphSpace.skyColour).
+    static let fadeSRGB = SIMD3<Float>(0.011, 0.019, 0.058)
+    /// The same in linear light, as the endings mix it.
+    static var fadeLinear: SIMD3<Float> {
+        SIMD3<Float>(pow(fadeSRGB.x, 2.2), pow(fadeSRGB.y, 2.2), pow(fadeSRGB.z, 2.2))
+    }
+    /// A body's radius on screen (points) where its fine detail starts to
+    /// come in, and where all of it is there.
+    static let detailLow: Float = 8
+    static let detailHigh: Float = 32
+
+    static func literal(_ v: Float) -> String { String(format: "%.6f", Double(v)) }
+
+    /// The fade factor `rp_dfF` for the view depth `z` (a float expression,
+    /// in front of the eye positive).
+    static func depthFade(_ z: String) -> String {
+        """
+        float rp_dfZ = \(z);
+        float rp_dfW = rpFade.y - rpFade.x;
+        float rp_dfF = 0.0;
+        if (rp_dfW > 0.0001) {
+        rp_dfF = pow(clamp((rp_dfZ - rpFade.x) / rp_dfW, 0.0, 1.0), max(rpFade.z, 0.0001)) * rpFade.w;
+        }
+
+        """
+    }
+
+    /// `rp_dl`: rpDetail weighed by the node's size on screen. Needs
+    /// `rpDetail` and `rpFocal` declared.
+    static var detail: String {
+        """
+        float rp_lodZ = max(-scn_node.modelViewTransform[3].z, 0.001);
+        float rp_lodPx = length(scn_node.modelTransform[0].xyz) * rpFocal / rp_lodZ;
+        float rp_lod = 1.0;
+        if (rpFocal > 0.0) {
+        rp_lod = smoothstep(\(literal(detailLow)), \(literal(detailHigh)), rp_lodPx);
+        }
+        float rp_dl = rpDetail * rp_lod;
+
+        """
+    }
+
+    /// bodyEnd, faded towards the sky by the node's depth.
+    static var fadedBodyEnd: String {
+        let c: SIMD3<Float> = fadeLinear
+        return """
+        rp_col = pow(clamp(rp_col, float3(0.0), float3(1.0)), float3(2.2));
+
+        """ + depthFade("-scn_node.modelViewTransform[3].z") + """
+        rp_col = mix(rp_col, float3(\(literal(c.x)), \(literal(c.y)), \(literal(c.z))), rp_dfF);
+        float rp_ok = step(0.5, length(_surface.normal));
+        _surface.diffuse = float4(rp_col + float3(rpProbe * rp_ok), 1.0);
+        """
+    }
+
+    /// glowEnd, its light faded to nothing by the node's depth.
+    static var fadedGlowEnd: String {
+        """
+        rp_col = pow(max(rp_col, float3(0.0)), float3(2.2));
+
+        """ + depthFade("-scn_node.modelViewTransform[3].z") + """
+        rp_col = rp_col * (1.0 - rp_dfF);
+        _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
+        """
+    }
+
     // MARK: the link
 
     /// A link: GraphShaders.link's calm beam, plus what each end's style does
@@ -176,6 +262,7 @@ nonisolated enum GraphStyleShaders {
     /// streaming out along it in quick bright blobs.
     static let link: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpEnergy;
@@ -489,6 +576,9 @@ nonisolated enum GraphStyleShaders {
     rp_dim = rp_dim * mix(0.25 - 0.21 * rp_smB, 1.0, mix(rp_dimB, rp_dimB * rp_dimB, rp_smB));
     rp_col = rp_col * rp_cap * rp_dim * rpEnergy;
     rp_col = (float3(1.0) - exp(-rp_col * 1.3)) * 0.92;
+
+    """ + depthFade("-_surface.position.z") + """
+    rp_col = rp_col * (1.0 - rp_dfF);
     _surface.diffuse = float4(rp_col + float3(rpProbe), 1.0);
     """
 
@@ -507,14 +597,16 @@ nonisolated enum GraphStyleShaders {
     /// hotter (flares when dragged).
     static let bhDisk: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpDetail;
+    float rpFocal;
     float rpProbe;
 
     #pragma body
 
-    """ + plane + planeCode + """
+    """ + plane + planeCode + detail + """
     float rp_in = 0.43;
     float rp_u = (rp_r - rp_in) / (1.0 - rp_in);
     float rp_a = atan2(rp_qy, rp_qx);
@@ -532,10 +624,10 @@ nonisolated enum GraphStyleShaders {
     float rp_fn1 = 0.5 + 0.5 * sin(rp_r * 170.0 + rp_fw1);
     float rp_pat = 0.3 + 0.45 * rp_arc1 * (0.4 + 0.6 * rp_h1);
     rp_pat = (rp_pat + 0.25 * rp_fn1) * (0.85 + 0.15 * rp_kep);
-    if (rpDetail > 0.5) {
+    if (rp_dl > 0.0) {
 
     """ + GraphShaderKit.noise("rp_dn1", "float3(cos(rp_a1) * 2.6, sin(rp_a1) * 2.6, rp_r * 30.0)") + """
-    rp_pat = rp_pat * (0.68 + 0.64 * rp_dn1);
+    rp_pat = rp_pat * mix(1.0, 0.68 + 0.64 * rp_dn1, rp_dl);
     }
     float rp_rise = smoothstep(0.0, 0.05, rp_u);
     float rp_fall = pow(max(1.0 - rp_u, 0.0), 1.2);
@@ -579,7 +671,7 @@ nonisolated enum GraphStyleShaders {
     float rp_keep = step(rp_in - 0.03, rp_r) * (1.0 - step(1.0, rp_r));
     rp_col = rp_col * rp_keep;
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     /// The black hole as the eye sees it, ray-traced on the billboard in
     /// front of the black sphere (the shadow): every pixel is a light ray
@@ -609,15 +701,17 @@ nonisolated enum GraphStyleShaders {
     /// `rpDisk` 0 is a dormant hole: the shadow and its ring alone.
     static let bhRing: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpDetail;
+    float rpFocal;
     float rpProbe;
     float rpDisk;
 
     #pragma body
 
-    """ + plane + """
+    """ + plane + detail + """
     float rp_code = length(scn_node.modelTransform[2].xyz) - 2.0;
     float rp_above = rp_code < 0.0 ? -1.0 : 1.0;
     float rp_v = min(abs(rp_code), 0.99999);
@@ -645,7 +739,7 @@ nonisolated enum GraphStyleShaders {
     float rp_lit = 0.0;
     float rp_s1 = 0.5;
     float rp_om = 0.9;
-    int rp_images = rpDetail > 0.5 ? 2 : 1;
+    int rp_images = rp_dl > 0.0 ? 2 : 1;
     for (int rp_img = 0; rp_img < rp_images; rp_img++) {
     float rp_two = float(rp_img);
     float rp_psi = rp_psi0 + 3.14159265 * rp_two;
@@ -666,7 +760,7 @@ nonisolated enum GraphStyleShaders {
     float3 rp_P = float3(rp_e.x * rp_sp, rp_e.y * rp_sp, rp_cp);
     float rp_phi = atan2(dot(rp_P, rp_d2), rp_P.x);
     float rp_front = rp_b < 1.0 ? 1.0 - smoothstep(1.2, 1.6, rp_psi) : 1.0;
-    float rp_seen = mix(rp_front, step(1.0, rp_b) * 0.55, rp_two);
+    float rp_seen = mix(rp_front, step(1.0, rp_b) * 0.55 * rp_dl, rp_two);
     float rp_on = rp_seen * smoothstep(rp_rin - 0.04, rp_rin + 0.02, rp_rr) * (1.0 - smoothstep(rp_rout * 0.72, rp_rout, rp_rr));
     float rp_rn = max(rp_rr / rp_rin, 1.0);
     float rp_prof = 17.6 * (1.0 - 1.0 / sqrt(rp_rn)) / (rp_rn * rp_rn * rp_rn);
@@ -680,12 +774,12 @@ nonisolated enum GraphStyleShaders {
     float rp_lh = fract(sin(rp_ln * 12.9898 + rp_seed * 7.0) * 43758.5453);
 
     """ + GraphShaderKit.noise("rp_n1", "float3(cos(rp_ph) * 2.4, sin(rp_ph) * 2.4, rp_ln * 0.61)") + """
-    rp_s1 = rp_n1;
+    rp_s1 = mix(rp_n1, rp_s1, rp_two);
     float rp_streak = 0.45 + 0.9 * rp_n1 * (0.6 + 0.4 * rp_lh);
-    if (rpDetail > 0.5) {
+    if (rp_dl > 0.0) {
 
     """ + GraphShaderKit.noise("rp_n2", "float3(cos(rp_ph) * 7.0, sin(rp_ph) * 7.0, rp_rr * 40.0)") + """
-    rp_streak = rp_streak * (0.62 + 0.76 * rp_n2);
+    rp_streak = rp_streak * mix(1.0, 0.62 + 0.76 * rp_n2, rp_dl);
     }
     float rp_fine = 0.82 + 0.18 * sin(rp_rr * 150.0 + rp_n1 * 5.0);
     float rp_hA = rp_phi - 0.9 * pow(rp_rin / 1.45, 1.5) * rp_t - 0.7;
@@ -730,12 +824,12 @@ nonisolated enum GraphStyleShaders {
     float rp_pd = (rp_b - 1.012) / 0.011;
     float rp_ring = exp(-rp_pd * rp_pd) * (0.35 + 1.4 * rp_side * rp_side);
     float rp_ld = (rp_b - 1.05) / 0.016;
-    float rp_echo = exp(-rp_ld * rp_ld) * (0.3 + 0.8 * rp_side) * (0.6 + 0.6 * rp_s1) * rpDisk * (1.0 - rpDetail);
+    float rp_echo = exp(-rp_ld * rp_ld) * (0.3 + 0.8 * rp_side) * (0.6 + 0.6 * rp_s1) * rpDisk * (1.0 - rp_dl);
     float3 rp_ringHue = mix(float3(1.0, 0.7, 0.35), float3(1.0, 0.95, 0.86), rp_side);
     rp_col = rp_col + rp_ringHue * (rp_ring * (1.1 + 0.6 * rp_m) + rp_echo * 0.5);
     float rp_out = max(rp_b - 1.0, 0.0);
     rp_col = rp_col + float3(1.0, 0.5, 0.15) * (exp(-rp_out / 0.35) * 0.05 * step(1.0, rp_b) * (0.5 + rp_side));
-    if (rpDetail > 0.5) {
+    if (rp_dl > 0.0) {
     float rp_sa2 = atan2(rp_Y, rp_X);
     float rp_lr = floor(rp_b * 9.0);
     float rp_la = floor(rp_sa2 * 4.0 + rp_lr * 0.37);
@@ -748,12 +842,12 @@ nonisolated enum GraphStyleShaders {
     float rp_stx = rp_dAng / (0.02 + 0.2 * rp_ein);
     float rp_sty = (rp_b - rp_cr) / 0.012;
     float rp_star = exp(-rp_stx * rp_stx - rp_sty * rp_sty) * step(0.8, rp_lsh) * step(1.06, rp_b);
-    rp_col = rp_col + float3(0.75, 0.85, 1.0) * (rp_star * 0.35 * (1.0 - min(rp_lit, 1.0)));
+    rp_col = rp_col + float3(0.75, 0.85, 1.0) * (rp_star * 0.35 * (1.0 - min(rp_lit, 1.0)) * rp_dl);
     }
     float rp_edge = clamp((1.0 - rp_r) / 0.1, 0.0, 1.0);
     rp_col = rp_col * (rp_edge * rp_edge * (3.0 - 2.0 * rp_edge));
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     // MARK: the sun
 
@@ -773,14 +867,16 @@ nonisolated enum GraphStyleShaders {
     /// runs hotter.
     static let sunBody: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpDetail;
+    float rpFocal;
     float rpProbe;
 
     #pragma body
 
-    """ + axes + sphere + sphereMotion + """
+    """ + axes + sphere + sphereMotion + detail + """
     float rp_t = rpClock * rpMotion;
     float rp_lm = 1.0 - rp_mu;
     float rp_limb = 1.0 - 0.56 * rp_lm - 0.22 * rp_lm * rp_lm;
@@ -801,10 +897,10 @@ nonisolated enum GraphStyleShaders {
     rp_cell = rp_cell * (0.93 + 0.14 * rp_c1_id) * (1.0 - 0.12 * smoothstep(0.25, 0.8, rp_c1_f1));
     rp_gran = mix(rp_gran, rp_gran * rp_cell * 1.08, rp_near);
     }
-    if (rpDetail > 0.5) {
+    if (rp_dl > 0.0) {
 
     """ + GraphShaderKit.noise("rp_g2", "rp_p * 18.0 + float3(5.0, 1.0, rp_t * 0.05)") + """
-    rp_gran = rp_gran * (0.94 + 0.12 * rp_g2);
+    rp_gran = rp_gran * mix(1.0, 0.94 + 0.12 * rp_g2, rp_dl);
     }
     float rp_sd = dot(rp_p, float3(0.35, 0.28, 0.894));
     float rp_um = smoothstep(0.9935, 0.9965, rp_sd);
@@ -837,7 +933,7 @@ nonisolated enum GraphStyleShaders {
     rp_col = mix(rp_col, float3(1.0, 0.98, 0.9), clamp((rp_heat - 0.89) / 0.2, 0.0, 1.0));
     rp_col = rp_col * (0.25 + 0.85 * clamp(rp_heat, 0.0, 1.3));
 
-    """ + bodyEnd
+    """ + fadedBodyEnd
 
     /// The corona round the sun, on the lifted billboard (the limb at a
     /// quarter of the half side): a soft inner corona falling off gently
@@ -856,6 +952,7 @@ nonisolated enum GraphStyleShaders {
     /// and brighter, and the plasma runs out along them.
     static let sunCorona: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpDetail;
@@ -950,7 +1047,7 @@ nonisolated enum GraphStyleShaders {
     float rp_e = clamp((1.0 - rp_r) / 0.5, 0.0, 1.0);
     rp_col = rp_col * (rp_e * rp_e * (3.0 - 2.0 * rp_e));
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     // MARK: the rocky planet
 
@@ -979,17 +1076,19 @@ nonisolated enum GraphStyleShaders {
     /// the cloud shadows).
     static let rockBody: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
     float rpDetail;
+    float rpFocal;
     texture2d<float> rpEarthDay;
     texture2d<float> rpEarthAux;
 
     """ + lightArguments + """
     #pragma body
 
-    """ + light + sphere + """
+    """ + light + sphere + detail + """
     float rp_t = rpClock * rpMotion;
     float rp_ce = max(sqrt(rp_p.x * rp_p.x + rp_p.z * rp_p.z), 0.02);
     float2 rp_uv = float2(0.5 + atan2(rp_p.x, rp_p.z) * 0.15915494, 0.5 - asin(clamp(rp_p.y, -1.0, 1.0)) * 0.31830989);
@@ -1005,10 +1104,10 @@ nonisolated enum GraphStyleShaders {
     float rp_ndl = dot(rp_N, rp_Lv);
     float rp_day = smoothstep(-0.08, 0.22, rp_ndl);
     float rp_shade = 1.0;
-    if (rpDetail > 0.5) {
+    if (rp_dl > 0.0) {
     float3 rp_off = (rp_Lo - rp_p * dot(rp_Lo, rp_p)) * (0.006 / max(dot(rp_Lo, rp_p), 0.2));
     float2 rp_suv = rp_cuv + float2(dot(rp_off, float3(rp_p.z, 0.0, -rp_p.x)) / (6.2831853 * rp_ce * rp_ce), -rp_off.y / (3.1415927 * rp_ce));
-    rp_shade = 1.0 - 0.55 * smoothstep(0.1, 0.82, rpEarthDay.sample(rp_smp, rp_suv, gradient2d(rp_gx, rp_gy)).w);
+    rp_shade = 1.0 - 0.55 * rp_dl * smoothstep(0.1, 0.82, rpEarthDay.sample(rp_smp, rp_suv, gradient2d(rp_gx, rp_gy)).w);
     }
     float3 rp_tau = float3(0.05, 0.12, 0.33);
     float rp_mv = 1.0 / (rp_mu + 0.035);
@@ -1027,7 +1126,7 @@ nonisolated enum GraphStyleShaders {
     float rp_glint = 3.1415927 * rp_ggx * rp_fr * max(rp_ndl, 0.0) / (4.0 * max(max(rp_ndl, rp_mu), 0.05));
     rp_glint = rp_glint * rp_sea * (1.0 - rp_cloud) * 1.6;
     float rp_night = 1.0 - smoothstep(-0.16, 0.04, rp_ndl);
-    float rp_city = rp_aux.x * rp_aux.x * rp_night * (1.0 - 0.85 * rp_cloud);
+    float rp_city = rp_aux.x * rp_aux.x * rp_night * (1.0 - 0.85 * rp_cloud) * rp_lod;
     float3 rp_surf = (rp_alb * (rp_sunE * rp_shade) + float3(rp_glint)) * rp_Ts + float3(1.0, 0.62, 0.3) * (rp_city * 0.9);
     rp_surf = rp_surf * rp_Tv;
     float rp_cE = smoothstep(-0.14, 0.24, rp_ndl) * (max(rp_ndl, 0.0) * 0.85 + 0.15);
@@ -1042,23 +1141,26 @@ nonisolated enum GraphStyleShaders {
     rp_col = min(rp_col, float3(0.75)) + (float3(1.0) - exp(-rp_over * 4.0)) * 0.25;
     rp_col = pow(rp_col, float3(0.45454545));
 
-    """ + bodyEnd
+    """ + fadedBodyEnd
 
     /// A moon: grey regolith with darker seas (a low noise) and craters -
     /// a bright ring of ejecta round a darker floor - lit by the same suns,
     /// with the hard terminator of a world without air.
     static let moonBody: String = """
     #pragma arguments
+    float4 rpFade;
     float rpProbe;
     float rpDetail;
+    float rpFocal;
 
     """ + lightArguments + """
     #pragma body
 
-    """ + light + sphere + """
-    int rp_oct = rpDetail > 0.5 ? 3 : 2;
+    """ + light + sphere + detail + """
+    int rp_oct = rp_dl > 0.0 ? 3 : 2;
 
-    """ + GraphShaderKit.fbm("rp_mh", "rp_p * 2.4 + float3(5.0, 3.0, 1.0)", octaves: "rp_oct") + """
+    """ + GraphShaderKit.fbm("rp_mh", "rp_p * 2.4 + float3(5.0, 3.0, 1.0)", octaves: "rp_oct", from: 2,
+                             fine: "rp_dl") + """
     float rp_mare = 1.0 - smoothstep(0.4, 0.47, rp_mh);
 
     """ + GraphShaderKit.noise("rp_cr", "rp_p * 8.5 + float3(1.0, 2.0, 3.0)") + """
@@ -1069,7 +1171,7 @@ nonisolated enum GraphStyleShaders {
     float rp_k = 1.15 * smoothstep(-0.03, 0.14, rp_ndl) * pow(max(rp_ndl, 0.02), 0.85);
     float3 rp_col = float3(0.93, 0.9, 0.86) * (rp_alb * (0.012 + rp_k));
 
-    """ + bodyEnd
+    """ + fadedBodyEnd
 
     /// The thin air round a planet (and, tinted by rpTintA, a gas giant's
     /// glow), on the lifted billboard: brightest on the sun's side, and a
@@ -1079,6 +1181,7 @@ nonisolated enum GraphStyleShaders {
     /// gas giant's (an oblate limb would leave a gap under a round line).
     static let halo: String = """
     #pragma arguments
+    float4 rpFade;
     float rpProbe;
     float rpThin;
     float3 rpTintA;
@@ -1102,7 +1205,7 @@ nonisolated enum GraphStyleShaders {
     rp_col = rp_col * mix(float3(1.0, 1.0, 1.0), float3(1.35, 0.75, 0.55), rp_edge * 0.6);
     rp_col = rp_col * clamp((1.0 - rp_r) / 0.2, 0.0, 1.0);
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     // MARK: the gas giant
 
@@ -1138,10 +1241,12 @@ nonisolated enum GraphStyleShaders {
     /// rpTintA cream, B tan, C rust, D the poles.
     static let gasBody: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
     float rpDetail;
+    float rpFocal;
     float rpRinged;
     float3 rpTintA;
     float3 rpTintB;
@@ -1151,7 +1256,7 @@ nonisolated enum GraphStyleShaders {
     """ + lightArguments + """
     #pragma body
 
-    """ + light + sphere + sphereMotion + """
+    """ + light + sphere + sphereMotion + detail + """
     float rp_t = rpClock * rpMotion;
     float rp_lat = rp_p.y;
     float rp_lon = atan2(rp_p.z, rp_p.x);
@@ -1170,9 +1275,10 @@ nonisolated enum GraphStyleShaders {
     float rp_lb = rp_lon + rp_t * rp_om;
     float rp_R = 1.6 * (1.0 - 0.6 * rp_m);
     float3 rp_ring3 = float3(cos(rp_lb) * rp_R, rp_lat * 9.0, sin(rp_lb) * rp_R);
-    int rp_oct = rpDetail > 0.5 ? 5 : 3;
+    int rp_oct = rp_dl > 0.0 ? 5 : 3;
 
-    """ + GraphShaderKit.fbm("rp_tb", "rp_ring3 + float3(0.0, 0.0, rp_t * 0.01)", octaves: "rp_oct")
+    """ + GraphShaderKit.fbm("rp_tb", "rp_ring3 + float3(0.0, 0.0, rp_t * 0.01)", octaves: "rp_oct", from: 3,
+                             fine: "rp_dl")
         + GraphShaderKit.noise("rp_ed", "float3(rp_ring3.x * 4.0, rp_lat * 34.0, rp_ring3.z * 4.0)") + """
     float rp_bq = rp_bq0 + (rp_tb - 0.5) * 0.6 + (rp_ed - 0.5) * 0.2 * (1.0 - 0.6 * rp_m);
     float rp_bj = floor(rp_bq);
@@ -1212,7 +1318,7 @@ nonisolated enum GraphStyleShaders {
     float rp_hz = rp_p.z + rp_Lo.z * rp_tt;
     float rp_rho = sqrt(rp_hx * rp_hx + rp_hz * rp_hz);
     """ + ringDensity("rp") + """
-    float rp_shade = 1.0 - 0.6 * rp_den * step(0.0, rp_tt) * rpRinged;
+    float rp_shade = 1.0 - 0.6 * rp_den * step(0.0, rp_tt) * rpRinged * rp_lod;
     float3 rp_Vo = float3(dot(rp_v0, rp_V), dot(rp_v1, rp_V), dot(rp_v2, rp_V));
     float rp_vy = abs(rp_Vo.y) < 0.001 ? 0.001 : rp_Vo.y;
     float rp_tv = -rp_lat / rp_vy;
@@ -1230,7 +1336,7 @@ nonisolated enum GraphStyleShaders {
     rp_col = rp_col + float3(0.9, 0.78, 0.55) * (rp_fr * 0.18 * smoothstep(-0.3, 0.5, rp_ndl));
     rp_col = rp_col * rp_veil;
 
-    """ + bodyEnd
+    """ + fadedBodyEnd
 
     /// A gas giant's ring, in the disk's plane (its half side 2.4 planet
     /// radii): the faint grey C ring, the bright cream B ring, the dark
@@ -1250,6 +1356,7 @@ nonisolated enum GraphStyleShaders {
     /// terms as colours in a preview).
     static let gasRing: String = """
     #pragma arguments
+    float4 rpFade;
     float rpProbe;
 
     """ + lightArguments + """
@@ -1291,7 +1398,7 @@ nonisolated enum GraphStyleShaders {
     rp_k = rp_k * (0.85 + 0.3 * rp_m);
     float3 rp_col = rp_hue * (rp_k * 0.95) + float3(1.0, 0.95, 0.85) * (rp_fw * (1.0 - rp_sh));
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     // MARK: the pulsar
 
@@ -1300,6 +1407,7 @@ nonisolated enum GraphStyleShaders {
     /// so its edge holds against the glare.
     static let pulsarCore: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1314,7 +1422,7 @@ nonisolated enum GraphStyleShaders {
     float rp_k = 0.72 + 0.2 * (1.0 - rp_mu) + 0.1 * rp_b;
     float3 rp_col = float3(0.82, 0.9, 1.0) * rp_k;
 
-    """ + bodyEnd
+    """ + fadedBodyEnd
 
     /// The glow round the core and its wind nebula, after the Crab's: a
     /// small, tight blue-white glare beating gently with the beams, never
@@ -1333,6 +1441,7 @@ nonisolated enum GraphStyleShaders {
     /// towards the eye.
     static let pulsarGlow: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1382,7 +1491,7 @@ nonisolated enum GraphStyleShaders {
     rp_col = rp_col + (rp_wind + rp_syn + rp_warm) * (0.92 + 0.12 * rp_b);
     rp_col = rp_col * clamp((1.0 - rp_r) / 0.3, 0.0, 1.0);
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     /// Both beams in one long plane along the magnetic axis (turned each
     /// frame by GraphStyleAnimator to face the eye): narrow cones widening
@@ -1399,6 +1508,7 @@ nonisolated enum GraphStyleShaders {
     /// cannot whiten the core, whose edge holds in every frame.
     static let pulsarBeam: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1427,7 +1537,7 @@ nonisolated enum GraphStyleShaders {
     float3 rp_hue = mix(float3(0.9, 0.95, 1.0), float3(0.52, 0.45, 1.0), clamp(abs(rp_ac) * 0.7, 0.0, 1.0));
     float3 rp_col = rp_hue * rp_k;
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     // MARK: the comet
 
@@ -1437,6 +1547,7 @@ nonisolated enum GraphStyleShaders {
     /// added over it, so it sits inside a bright head.
     static let cometNucleus: String = """
     #pragma arguments
+    float4 rpFade;
     float rpProbe;
 
     """ + lightArguments + """
@@ -1448,7 +1559,7 @@ nonisolated enum GraphStyleShaders {
     float rp_k = 0.02 + 0.55 * smoothstep(-0.1, 0.5, rp_ndl);
     float3 rp_col = float3(0.56, 0.54, 0.5) * (rp_k * (0.7 + 0.4 * rp_nf));
 
-    """ + bodyEnd
+    """ + fadedBodyEnd
 
     /// The coma, round the head: thin over the nucleus itself, so the small
     /// dark body shows through, brightest in a white ring just off it,
@@ -1459,6 +1570,7 @@ nonisolated enum GraphStyleShaders {
     /// sits at 0.1875 of the plane's half side).
     static let cometComa: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1494,7 +1606,7 @@ nonisolated enum GraphStyleShaders {
     float rp_edge = clamp((1.0 - rp_r) / 0.3, 0.0, 1.0);
     float3 rp_col = (rp_hue * (rp_g * rp_clear + rp_core) + float3(1.0, 0.97, 0.9) * rp_fan) * rp_edge;
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     /// The ion tail, in a plane from the head (bottom) to the tip (top),
     /// turned by GraphStyleAnimator to point straight away from the light
@@ -1503,6 +1615,7 @@ nonisolated enum GraphStyleShaders {
     /// moving: brighter (and the animator makes it longer).
     static let cometTail: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1527,7 +1640,7 @@ nonisolated enum GraphStyleShaders {
     float3 rp_col = float3(0.42, 0.64, 1.0) * (rp_ion * 1.35) + float3(0.8, 0.92, 1.0) * (rp_head * 0.5);
     rp_col = rp_col * (0.8 + 0.6 * rp_m);
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     /// The dust tail, in its own plane from the head (bottom) to the tip
     /// (top), turned by GraphStyleAnimator to lie between the light's away
@@ -1540,6 +1653,7 @@ nonisolated enum GraphStyleShaders {
     /// of dust that stream away down the tail.
     static let cometDust: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1573,7 +1687,7 @@ nonisolated enum GraphStyleShaders {
     rp_col = rp_col + float3(1.0, 0.93, 0.78) * (rp_puff * 0.5 * (1.0 - rp_ty));
     rp_col = rp_col * (0.8 + 0.5 * rp_m);
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     // MARK: selection and folders
 
@@ -1581,6 +1695,7 @@ nonisolated enum GraphStyleShaders {
     /// running along it, trailing light.
     static let orbit: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1598,13 +1713,14 @@ nonisolated enum GraphStyleShaders {
     float3 rp_hue = mix(float3(1.0, 0.753, 0.302), float3(1.0, 0.95, 0.84), clamp(rp_tail, 0.0, 1.0));
     float3 rp_col = rp_hue * (rp_line * (0.28 + 1.1 * rp_tail));
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 
     /// A folder's gravity well, on a billboard round its notes: faint
     /// rings crowding towards the middle, as a funnel does seen from above,
     /// drifting slowly inwards, tinted by the folder (rpTintA).
     static let well: String = """
     #pragma arguments
+    float4 rpFade;
     float rpClock;
     float rpMotion;
     float rpProbe;
@@ -1625,5 +1741,5 @@ nonisolated enum GraphStyleShaders {
     rp_k = rp_k + exp(-rp_r * rp_r * 6.0) * 0.035;
     float3 rp_col = rpTintA * (rp_k * smoothstep(0.02, 0.2, rp_r));
 
-    """ + glowEnd
+    """ + fadedGlowEnd
 }

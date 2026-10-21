@@ -51,6 +51,25 @@ nonisolated struct GraphPerfFrustum: Sendable {
         for p in planes where p.distance(centre) > radius { return false }
         return true
     }
+
+    /// The view volume of any camera: its eye, its unit forward, right and
+    /// up, its vertical field of view (radians), a screen this shape, and
+    /// its near and far planes. The Space map's SceneKit camera uses it too
+    /// (SpaceDepth.frustum).
+    static func of(eye e: SIMD3<Float>, forward f: SIMD3<Float>, right r: SIMD3<Float>, up u: SIMD3<Float>,
+                   fovY: Float, width: Float, height: Float, near: Float, far: Float) -> GraphPerfFrustum {
+        let halfY = fovY / 2
+        let halfX = atan(tan(halfY) * width / max(height, 1e-6))
+        // each side's outward normal, tipped from the screen axis towards forward
+        func side(_ axis: SIMD3<Float>, _ half: Float) -> GraphPerfPlane {
+            let n = axis * cos(half) - f * sin(half)
+            return GraphPerfPlane(normal: n, d: (n * e).sum())
+        }
+        let nearPlane = GraphPerfPlane(normal: -f, d: (-f * e).sum() - near)
+        let farPlane = GraphPerfPlane(normal: f, d: (f * e).sum() + far)
+        return GraphPerfFrustum(planes: [nearPlane, farPlane, side(r, halfX), side(-r, halfX), side(u, halfY),
+                                         side(-u, halfY)])
+    }
 }
 
 nonisolated struct GraphPerfCamera: Sendable, Equatable {
@@ -158,18 +177,8 @@ nonisolated struct GraphPerfCamera: Sendable, Equatable {
 
     /// The view volume for a screen this shape.
     func frustum(width: Float, height: Float, near: Float, far: Float) -> GraphPerfFrustum {
-        let f = forward, r = right, u = up, e = eye
-        let halfY = fovY / 2
-        let halfX = atan(tan(halfY) * width / max(height, 1e-6))
-        // each side's outward normal, tipped from the screen axis towards forward
-        func side(_ axis: SIMD3<Float>, _ half: Float) -> GraphPerfPlane {
-            let n = axis * cos(half) - f * sin(half)
-            return GraphPerfPlane(normal: n, d: (n * e).sum())
-        }
-        let nearPlane = GraphPerfPlane(normal: -f, d: (-f * e).sum() - near)
-        let farPlane = GraphPerfPlane(normal: f, d: (f * e).sum() + far)
-        return GraphPerfFrustum(planes: [nearPlane, farPlane, side(r, halfX), side(-r, halfX), side(u, halfY),
-                                         side(-u, halfY)])
+        GraphPerfFrustum.of(eye: eye, forward: forward, right: right, up: up, fovY: fovY, width: width,
+                            height: height, near: near, far: far)
     }
 
     // MARK: - Framing

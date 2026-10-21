@@ -229,6 +229,14 @@ suite graphperf GraphPerfTests.swift $F/Notes/GraphPerfGraph.swift $F/Notes/Grap
       $F/Notes/GraphPerfLayout.swift $F/Notes/GraphPerfForce.swift $F/Notes/GraphPerfLOD.swift \
       $F/Notes/GraphPerfClusters.swift $F/Notes/GraphPerfPick.swift $F/Notes/GraphPerfCamera.swift \
       $F/Notes/GraphPerfScene.swift $F/Notes/GraphPerfShaders.swift
+# the Space theme's depth fade and near-only loading: the fade curve, the
+# band following the camera's focus, the Graphics setting's reach,
+# Increase Contrast, culling past the band with no pop, shader detail by
+# size on screen (whole up close), the point level's gap, the view volume
+# (the Performance theme's), and the shaders' fade and detail pieces
+suite spacedepth SpaceDepthTests.swift $F/Notes/GraphSpaceDepth.swift $F/Notes/GraphPerfLOD.swift \
+      $F/Notes/GraphPerfCamera.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphShaderKit.swift \
+      $F/Notes/GraphSpaceShaders.swift
 # the accuracy engine: dose, lab and contradiction rules (the same
 # cases as the server's), the accuracy model's grades, the cache key,
 # the order background checks run in, and one-tap corrections

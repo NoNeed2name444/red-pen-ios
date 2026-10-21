@@ -179,6 +179,10 @@ nonisolated enum GraphStyleUniforms {
         }
         material.setValue(NSNumber(value: 0.75), forKey: "rpReach")
         let off = SCNVector4(x: 0, y: 0, z: 0, w: 0)
+        // the Space theme's depth fade and detail by size (SpaceDepth): no
+        // fade and full detail until GraphSim sets them each frame
+        material.setValue(NSValue(scnVector4: off), forKey: "rpFade")
+        material.setValue(NSNumber(value: 0.0), forKey: "rpFocal")
         for k in 0..<4 {
             material.setValue(NSValue(scnVector4: off), forKey: "rpSun\(k)")
         }

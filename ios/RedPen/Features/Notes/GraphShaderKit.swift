@@ -61,6 +61,32 @@ nonisolated enum GraphShaderKit {
         """
     }
 
+    /// Metal: `fbm`, with the octaves from `from` on weighed by `fine` (a
+    /// float expression, 0...1) in both the sum and the normalising weight:
+    /// at 1 it is fbm(`octaves`) to the bit, at 0 fbm(`from`), and between
+    /// the finest octaves morph in and out with no step (SpaceDepth's
+    /// detail by size on screen). `octaves` may drop to `from` when `fine`
+    /// is 0, so the loop is not run for nothing.
+    static func fbm(_ out: String, _ p: String, octaves: String, from: Int, fine: String) -> String {
+        """
+        float \(out) = 0.0;
+        float \(out)_wt = 0.5;
+        float \(out)_sum = 0.0;
+        float3 \(out)_x = \(p);
+        for (int \(out)_o = 0; \(out)_o < \(octaves); \(out)_o++) {
+
+        """ + noise(out + "_v", out + "_x") + """
+        float \(out)_k = \(out)_o < \(from) ? 1.0 : \(fine);
+        \(out) = \(out) + \(out)_v * \(out)_wt * \(out)_k;
+        \(out)_sum = \(out)_sum + \(out)_wt * \(out)_k;
+        \(out)_x = \(out)_x * 2.03 + float3(1.7, 9.2, 3.1);
+        \(out)_wt = \(out)_wt * 0.5;
+        }
+        \(out) = \(out) / max(\(out)_sum, 0.0001);
+
+        """
+    }
+
     /// Metal: cellular (Worley) noise of the float3 expression `p`, from
     /// the 2x2x2 cells nearest the point (each cell's feature point kept to
     /// its middle half, so the nearest is almost always among them): into
@@ -129,6 +155,23 @@ nonisolated enum GraphShaderKit {
         for _ in 0..<max(octaves, 0) {
             total += value(x) * weight
             sum += weight
+            x = x * 2.03 + SIMD3<Float>(1.7, 9.2, 3.1)
+            weight *= 0.5
+        }
+        return total / max(sum, 0.0001)
+    }
+
+    /// The morphing fbm as the shaders sum it: octaves from `from` on
+    /// weighed by `fine`.
+    static func fbm(_ p: SIMD3<Float>, octaves: Int, from: Int, fine: Float) -> Float {
+        var total: Float = 0
+        var weight: Float = 0.5
+        var sum: Float = 0
+        var x: SIMD3<Float> = p
+        for o in 0..<max(octaves, 0) {
+            let k: Float = o < from ? 1 : fine
+            total += value(x) * weight * k
+            sum += weight * k
             x = x * 2.03 + SIMD3<Float>(1.7, 9.2, 3.1)
             weight *= 0.5
         }
