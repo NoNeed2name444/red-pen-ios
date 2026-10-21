@@ -19,7 +19,8 @@ import XCTest
 ///
 /// Everything is found by the accessibility identifiers in the app's sources:
 /// localSignIn, acceptRecordingTerms, dockCategory-<category>,
-/// dockCategory-ideas, feature-mixed, feature-mock, feature-examPlan,
+/// dockCategory-ideas (on the dock, or in the list dockList opens where the
+/// dock is one button: LibraryDock), feature-mixed, feature-mock, feature-examPlan,
 /// feature-symptomBlocks, morePractise, more-analytics, newSetButton,
 /// newSetNext, setRow-mcq, setRow-anki, ideasMode-list/board/space,
 /// ideasSwitcherToggle, graph3D, examplesBanner, example-ideas,
@@ -31,6 +32,9 @@ import XCTest
 /// `press` taps those at their centre instead of giving up on them.
 final class DesignTourUITests: XCTestCase {
     private var app: XCUIApplication!
+
+    /// The library's dock, as buttons or as the list button.
+    private var dock: LibraryDock { LibraryDock(app: app) }
 
     /// The dock's four categories, in the dock's order.
     private let categories: [String] = ["questions", "cards", "osce", "audio"]
@@ -53,8 +57,7 @@ final class DesignTourUITests: XCTestCase {
         app.launchArguments += ["-personalBuild"]
         app.launch()
         signIn()
-        let dock = element("dockCategory-questions")
-        XCTAssertTrue(dock.waitForExistence(timeout: 20), "the library didn't open")
+        XCTAssertTrue(dock.waitForLibrary(timeout: 20), "the library didn't open")
         check("sign-in")
 
         libraryOnEachCategory()
@@ -445,9 +448,9 @@ final class DesignTourUITests: XCTestCase {
         let accept = app.buttons["acceptRecordingTerms"]
         // then, once, "Which exam are you preparing for?" - skipped here
         let skipExam = app.buttons["examOnboardingSkip"]
-        let dock = element("dockCategory-questions")
+        let library = dock.anyForm
         for _ in 0..<80 {
-            if dock.exists { return }
+            if library.exists { return }
             if door.exists && door.isHittable {
                 door.tap()
                 sleep(1)
@@ -475,12 +478,11 @@ final class DesignTourUITests: XCTestCase {
 
     // MARK: - Moving about
 
-    /// Taps a dock item - a category, or Ideas. False, with a "missing"
-    /// picture, when it is not there.
+    /// Taps a dock item - a category, or Ideas - on the dock or in its list.
+    /// False, with a "missing" picture, when it is not there.
     @discardableResult
     private func choose(_ place: String) -> Bool {
-        let item = element("dockCategory-\(place)")
-        guard item.waitForExistence(timeout: 5), press(item) else {
+        guard dock.choose(place, press: { self.press($0) }) else {
             missing("dockCategory-\(place)")
             return false
         }
@@ -492,9 +494,7 @@ final class DesignTourUITests: XCTestCase {
     /// page is built afresh when the dock moves to it.
     private func chooseFresh(_ category: String) -> Bool {
         let other: String = category == "osce" ? "audio" : "osce"
-        let away = element("dockCategory-\(other)")
-        if away.exists && away.isHittable {
-            away.tap()
+        if dock.choose(other, timeout: 0, press: { self.press($0) }) {
             sleep(1)
         }
         return choose(category)
@@ -569,11 +569,12 @@ final class DesignTourUITests: XCTestCase {
         }
     }
 
-    /// Whether the library - with its dock or rail - is what is on screen.
+    /// Whether the library - with its dock, list button or rail - is what is
+    /// on screen.
     private func atLibrary() -> Bool {
-        let dock = element("dockCategory-questions")
+        let shown = dock.anyForm
         if app.buttons["learnDone"].exists { return false }
-        return dock.exists && dock.isHittable
+        return shown.exists && shown.isHittable
     }
 
     // MARK: - Ideas' switcher
@@ -732,7 +733,7 @@ final class DesignTourUITests: XCTestCase {
     private func bottomLimit() -> CGFloat {
         let height: CGFloat = windowHeight
         var limit: CGFloat = height - 16
-        for id in ["newSetButton", "dockCategory-questions"] {
+        for id in ["newSetButton", "dockCategory-questions", "dockList"] {
             let item = element(id)
             guard item.exists else { continue }
             let top: CGFloat = item.frame.minY

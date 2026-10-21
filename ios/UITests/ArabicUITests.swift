@@ -61,8 +61,8 @@ final class ArabicUITests: XCTestCase {
             skipExam.tap()
         }
 
-        let dock = element("dockCategory-questions")
-        guard dock.waitForExistence(timeout: 20) else {
+        // the dock as buttons, or as the one list button
+        guard LibraryDock(app: app).waitForLibrary(timeout: 20) else {
             missing("library")
             XCTFail("the library didn't open in Arabic")
             return
