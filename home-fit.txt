@@ -1,0 +1,18 @@
+== library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 1 (cut 689.3333333333334), book 7 parts before the push, 1 at its last look
+push and back: cuts: 2.86s cut 689.33 bar 708.00 page 118.00+582.00 tops 1 from 689.33
+card 294-657, start 585-641, new set 708-764, tiles 689-864, bar 708-840, cut 696, large text false
+page ends 689, 7 parts measured: the round card 294-657, bed 1 350-417, the Due chip 373-395, bed 2 419-504, the New chip 451-473, bed 3 506-573, the tiles 689-864
+words: the Vitals tile's streak 78/37, the brain map's line 126/36
+== library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 1 (cut 689.3333333333334), book 7 parts before the push, 1 at its last look
+push and back: cuts: 3.57s cut 689.33 bar 708.00 page 118.00+582.00 tops 1 from 689.33
+card 294-657, start 585-641, new set 708-764, tiles 689-864, bar 708-840, cut 696, large text false
+page ends 689, 7 parts measured: the round card 294-657, bed 1 350-417, the Due chip 373-395, bed 2 419-504, the New chip 451-473, bed 3 506-573, the tiles 689-864
+words: the Vitals tile's streak 78/37, the brain map's line 126/36
