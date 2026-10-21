@@ -206,6 +206,19 @@ jobs:
           set -e
           NAME="${REF#preview/}"
           cd out
+          # GitHub refuses a file over 100 MB, and one refusal loses every
+          # shot (shots/ward-island-1's section-switch.mp4 was 134 MB): such
+          # a recording is published re-encoded smaller, after the checks
+          # above have read the original, and anything still too big is
+          # left out and named in skipped.txt
+          find . -type f -name '*.mp4' -size +95M | while read -r f; do
+            ffmpeg -loglevel error -y -i "$f" -c:v libx264 -preset veryfast -crf 30 -an "$f.small.mp4" \
+              && mv "$f.small.mp4" "$f" || rm -f "$f.small.mp4"
+          done
+          find . -type f -size +95M | while read -r f; do
+            echo "left out, over 95 MB: ${f#./}" >> skipped.txt
+            rm -f "$f"
+          done
           git init -q
           git checkout -q -b "shots/$NAME"
           git config user.name "red-pen-preview"

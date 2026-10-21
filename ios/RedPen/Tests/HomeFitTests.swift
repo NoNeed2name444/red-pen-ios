@@ -478,6 +478,27 @@ do {
     check("drop reports no such part", missingDrop == .none)
 }
 
+// MARK: - A push and back shows home covered (shots/ward-nits-3)
+do {
+    // AX5 on the SE's size: every face booked lies below home's cut at
+    // 670, so the three parts that went away were kept and none removed
+    let se: [Double] = [682, 971, 1142, 1219, 1765, 1812, 2071]
+    check("push: kept drops show home covered when every face is below the cut",
+          HomeFit.pushCovered(faces: se, cut: 670, removed: 0, kept: 3))
+    check("push: no drop at all is no push",
+          !HomeFit.pushCovered(faces: se, cut: 670, removed: 0, kept: 0))
+    // AX5 on the phone: the round card stands above the cut at 640
+    let phone: [Double] = [589, 878, 1177, 1247, 1775, 1844]
+    check("push: a part above the cut must leave the book",
+          !HomeFit.pushCovered(faces: phone, cut: 640, removed: 0, kept: 5))
+    check("push: a part leaving the book shows home covered",
+          HomeFit.pushCovered(faces: phone, cut: 640, removed: 1, kept: 5))
+    check("push: an uncut page needs a part to leave",
+          !HomeFit.pushCovered(faces: [100, 300], cut: nil, removed: 0, kept: 2))
+    check("push: a face on the cut is below it",
+          HomeFit.pushCovered(faces: [682.3333333333333], cut: 682.3333333333333, removed: 0, kept: 1))
+}
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {

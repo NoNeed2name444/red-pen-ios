@@ -2205,6 +2205,19 @@ with the marks on the screens last.
         FAULT still stands if none leaves. Waits for its Ward preview.
         The check now counts drops (removed and kept below the cut) and
         prints them, waiting for the next Ward preview.
+        shots/ward-nits-3: only AX5 SE light FAULTed (removed 0, kept 3,
+        every face below the cut). Review U1 (16 Oct) ruled the rule wrong
+        there, and its repair N-R1 is in: home counts as covered when a part
+        leaves the book, or, when every face booked before the push lies at
+        or below home's cut, when one goes away and is kept by it
+        (HomeFit.pushCovered, six homefit checks). The integration preview
+        (38938158628) FAULTed on AX1, iPad and Pro Max: every part kept, by
+        a cut near the page's top (277.75 and 285.83, at rest 1020 and
+        768), so home's cut collapses during the push and N-R1 still flags
+        it. The report now logs each cut during the trip with the bar, the
+        page's frame and the tops behind it, to find what collapses it.
+        The preview also re-encodes a recording over 95 MB before
+        publishing (shots/ward-island-1 lost every shot to a 134 MB one).
 - [ ] 6. Last: the owner's marks on the screens.
 - [x] 7. (Done 14 Oct: tools/jev-standin and jev-standin.yml; oath check 30 of
   30, 0 false alarms; NLI model is the TRIAGE_NLI_MODEL repo variable.) An open-source stand-in for Jev (§22a kept only Layer 7, the
