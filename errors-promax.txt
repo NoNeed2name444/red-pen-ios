@@ -1,0 +1,1 @@
+RedPen/Features/Library/WardHome.swift:992:32: error: type 'WardType' has no member 'smallCapsTracking'
