@@ -13,7 +13,7 @@ enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
                           "quiz-folded", "quiz-scrolled", "library-end", "library-loading", "signin", "account-deleted",
-                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz"]
+                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz", "lens"]
 
     /// Posted by the "section-switch" preview: home moves one place along
     /// its dock (LibraryView).
@@ -59,6 +59,10 @@ enum PreviewExtras {
         case "sheet":
             // a sheet over home: New set, as the dock's writing modes open it
             LibraryView().sheet(isPresented: .constant(true)) { NewSetView() }
+        case "lens":
+            // Study Lens's answer sheet on a sample multiple-choice question,
+            // answered: how its option rows are marked has never been shown
+            LensSheetPreview()
         case "mode-switch":
             // home turning dark and back every 2.5 s through Always night
             // sky, the app's own switch, for a recording of the shift

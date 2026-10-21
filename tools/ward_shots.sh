@@ -242,7 +242,7 @@ if [ "$plan" = phone ]; then
   record mode-switch-quiz mode-switch-quiz.mp4 6 11
   record section-switch section-switch.mp4 5 13
   for look in light dark; do
-    for screen in library quiz quiz-folded quiz-scrolled quiz-checked new settings sheet; do
+    for screen in library quiz quiz-folded quiz-scrolled quiz-checked new settings sheet lens; do
       shoot "$look" "$screen" "$screen-$look"
       if [ "$screen" = library ]; then fit "library-$look"; fi
     done

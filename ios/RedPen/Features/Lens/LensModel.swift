@@ -144,6 +144,13 @@ final class LensModel: ObservableObject {
         answers[LensHash.answerKey(q)]
     }
 
+    /// Puts an answer in directly, with nothing asked. Only the "lens" preview
+    /// screen uses it (LensSheetPreview), so its picture is the same on every
+    /// run, with no camera, network or waiting.
+    func setPreviewAnswer(_ answer: LensAnswer, for q: DetectedQuestion) {
+        answers[LensHash.answerKey(q)] = .done(answer)
+    }
+
     /// Asks for the answer to `q`, unless it is known or on its way. Cached
     /// by the question's words, so the same question seen again - or on
     /// another day - is answered at once. `again` asks afresh.

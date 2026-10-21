@@ -2306,6 +2306,12 @@ with the marks on the screens last.
     Follow-ups: 46 comment lines in 29 files still name Theatre Blue; the
     launch logo still draws "score" in Theatre Blue; the Lens sheet has no
     preview case.
+  - [ ] The Lens sheet now has a preview screen, "lens" (PreviewExtras,
+    LensSheetPreview): a sample nephrology MCQ, answered (A right, the
+    rest faded), with its explanation, put straight into the model
+    (LensModel.setPreviewAnswer), drawn at full height. The phone part of
+    the Ward preview shoots it, light and dark; waiting for that run. The
+    device part (Pro Max, iPad) does not shoot it yet.
   - [ ] Press depth (16 Oct, the owner on the checked quiz, light and dark:
     "the color here doesn't match the mode color", raised and pressed
     buttons read alike, and a wrong pick reads like a right one). Each
