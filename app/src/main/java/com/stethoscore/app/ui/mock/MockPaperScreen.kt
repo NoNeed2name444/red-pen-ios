@@ -47,6 +47,14 @@ import com.stethoscore.app.data.MCQQuestion
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.exam.ExamBlueprint
+import com.stethoscore.app.exam.ExamChoice
+import com.stethoscore.app.exam.ExamDomain
+import com.stethoscore.app.exam.ExamMock
+import com.stethoscore.app.exam.ExamMockEntry
+import com.stethoscore.app.exam.TargetExam
+import com.stethoscore.app.exam.papers
+import com.stethoscore.app.quiz.MockRandom
 import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.quiz.MockAssembler
 import com.stethoscore.app.quiz.MockCandidate
@@ -83,10 +91,11 @@ import java.util.Date
 // its length and its clock, drawn from their own library. Says honestly when
 // the library is too small to fill it.
 //
-// Not ported: a chosen target exam (ExamChoice, its blueprint weighting,
-// pass mark and negative marking: Android has no exam catalog yet, so the
-// paper follows the exam track, as iOS does with no target), and the
-// accuracy holds that keep a question out (AccuracyHolds).
+// With an exam chosen (ExamChoice), the paper is that exam's: its papers and
+// blocks, its clock, its pass mark and negative marking, and questions drawn
+// in its blueprint's proportions (ExamMock); with none, the exam track's.
+//
+// Not ported: the accuracy holds that keep a question out (AccuracyHolds).
 
 /** One question and the set it is in (iOS QuestionPick). */
 data class QuestionPick(val set: StudySet, val question: MCQQuestion)
@@ -170,6 +179,9 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
     val context = LocalContext.current
     val dir = context.filesDir
     val track = remember { QuizPrefs.track(context) }
+    /** The chosen exam: its own papers, clock and blueprint, when there is one. */
+    val target: TargetExam? = remember { ExamChoice.current(context) }
+    val secondary: TargetExam? = remember { ExamChoice.currentSecondary(context) }
     var usmleBlocks by rememberSaveable { mutableIntStateOf(2) }
     var paperId by rememberSaveable { mutableStateOf("") }
     var sitting by remember { mutableStateOf<MockSitting?>(null) }
@@ -190,7 +202,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
         return
     }
 
-    val papers = MockFormat.papers(track, usmleBlocks)
+    val papers = if (target != null) MockFormat.papers(target, usmleBlocks) else MockFormat.papers(track, usmleBlocks)
     val paper = papers.firstOrNull { it.id == paperId } ?: papers[0]
     val pool = remember(revision) {
         MockLibrary.mcqPicks(store.library).map { MockCandidate(it.question.id, MockLibrary.subjectName(it.set)) }
@@ -207,20 +219,39 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
         }
         resuming = save
         sitting = MockSitting(save.title, save.specs, sections, save.wanted, ExamTrack.from(save.track), save.passMark,
-            MockMarking.penalty(null))
+            MockMarking.penalty(target?.negativeMarking))
+    }
+
+    /**
+     * With an exam chosen, the paper's questions are drawn in its
+     * blueprint's proportions (ExamMock), each question filed under the
+     * area its set's subject or its stem is about.
+     */
+    fun weightedPool(spec: MockPaperSpec): List<MockCandidate> {
+        val exam = target ?: return pool
+        val plan = ExamBlueprint.plan(exam, secondary)
+        val within = plan.map { it.domain }.toSet()
+        val filed = MockLibrary.mcqPicks(store.library).map { pick ->
+            val subject = MockLibrary.subjectName(pick.set)
+            val domain: ExamDomain? = ExamBlueprint.domain(subject, within) ?: ExamBlueprint.domain(pick.question.stem, within)
+            ExamMockEntry(MockCandidate(pick.question.id, subject), domain)
+        }
+        return ExamMock.select(filed, spec.questionCount, plan, MockRandom.system())
     }
 
     fun start() {
         val spec: MockPaperSpec = paper
-        val made = MockAssembler.assemble(spec, pool) ?: return
+        val made = MockAssembler.assemble(spec, weightedPool(spec)) ?: return
         val byId = MockLibrary.mcqPicks(store.library).associateBy { it.question.id }
         val sections = made.questionIds.map { ids -> ids.mapNotNull { byId[it] } }
         // a new paper replaces one left part way
         MockSittingStore.clear(MockLibrary.sittingFile(dir))
         saved = null
         resuming = null
-        sitting = MockSitting(spec.title, made.sections, sections, made.wanted, track, null, MockMarking.penalty(null))
+        sitting = MockSitting(spec.title, made.sections, sections, made.wanted, track, target?.passMark,
+            MockMarking.penalty(target?.negativeMarking))
     }
+
 
     BackHandler(onBack = onBack)
     Column(Modifier.fillMaxSize()) {
@@ -231,13 +262,13 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
                 saved?.let { ResumeCard(it, { resume(it) }, { MockSittingStore.clear(MockLibrary.sittingFile(dir)); saved = null }) }
                 // the exam, and how the paper is sat
                 ContentCard(spacing = 6.dp) {
-                    Text(if (track == ExamTrack.general) "General revision" else track.title,
+                    Text(target?.name ?: (if (track == ExamTrack.general) "General revision" else track.title),
                         style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
                     Text("Sit it like the real thing: the paper’s length and clock, and nothing about right or wrong until the end.",
                         style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 }
-                PaperChoice(papers, paper, { paperId = it }, track, usmleBlocks, { usmleBlocks = it; paperId = "" })
-                LibraryNote(available, paper)
+                PaperChoice(papers, paper, { paperId = it }, track, target, usmleBlocks, { usmleBlocks = it; paperId = "" })
+                LibraryNote(available, paper, target)
                 ContentCard(spacing = 8.dp) {
                     WardSectionLabel("How it runs")
                     listOf(
@@ -285,7 +316,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
 }
 
 @Composable private fun PaperChoice(papers: List<MockPaperSpec>, paper: MockPaperSpec, onPaper: (String) -> Unit, track: ExamTrack,
-                                    blocks: Int, onBlocks: (Int) -> Unit) {
+                                    target: TargetExam?, blocks: Int, onBlocks: (Int) -> Unit) {
     ContentCard(spacing = 12.dp) {
         if (papers.size > 1) {
             var menu by remember { mutableStateOf(false) }
@@ -304,13 +335,20 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
         } else {
             Text(paper.title, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
         }
-        if (track == ExamTrack.usmle) {
+        // a blockwise exam's blocks (USMLE, COMLEX, SMLE, IFOM), or the USMLE track's with no exam chosen
+        val per = if (target != null && target.sitsBlockwise) target.sections.firstOrNull()?.questions ?: 40 else 40
+        val most = when {
+            target != null && target.sitsBlockwise -> maxOf(1, target.sections.size)
+            target == null && track == ExamTrack.usmle -> MockFormat.usmleMaxBlocks
+            else -> 0
+        }
+        if (most > 0) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("$blocks block" + (if (blocks == 1) "" else "s") + " of 40", Modifier.weight(1f),
+                Text("$blocks block" + (if (blocks == 1) "" else "s") + " of $per", Modifier.weight(1f),
                     style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 WardCircleButton(Icons.Rounded.Remove, "Fewer blocks", { onBlocks(blocks - 1) }, enabled = blocks > 1)
                 Spacer(Modifier.width(8.dp))
-                WardCircleButton(Icons.Rounded.Add, "More blocks", { onBlocks(blocks + 1) }, enabled = blocks < MockFormat.usmleMaxBlocks)
+                WardCircleButton(Icons.Rounded.Add, "More blocks", { onBlocks(blocks + 1) }, enabled = blocks < most)
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -323,7 +361,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
     }
 }
 
-@Composable private fun LibraryNote(available: Int, paper: MockPaperSpec) {
+@Composable private fun LibraryNote(available: Int, paper: MockPaperSpec, target: TargetExam?) {
     val wanted = paper.questionCount
     when {
         available < MockAssembler.minimumQuestions -> WardBanner(WardTone.Warning, Icons.Rounded.Warning,
@@ -332,7 +370,10 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
             val sections = MockAssembler.fitted(paper.sections, available)
             NoteCard(Icons.Rounded.Info, MockAssembler.shortfall(available, paper, sections))
         }
-        else -> NoteCard(Icons.Rounded.CheckCircle, "Drawn from $available questions in your library, spread across your subjects.")
+        else -> {
+            val spread = target?.let { "weighted by the ${it.shortName} blueprint" } ?: "spread across your subjects"
+            NoteCard(Icons.Rounded.CheckCircle, "Drawn from $available questions in your library, $spread.")
+        }
     }
 }
 

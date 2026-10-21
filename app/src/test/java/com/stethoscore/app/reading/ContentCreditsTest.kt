@@ -7,6 +7,7 @@ import com.stethoscore.app.data.SourceDoc
 import com.stethoscore.app.data.SourcePage
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
+import com.stethoscore.app.exam.ExamCatalog
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -85,10 +86,11 @@ class ContentCreditsTest {
         assertTrue("MedMCQA's exams credit MedMCQA",
             ContentSources.styleBank("medmcqa")?.id == "medmcqa" && ContentSources.styleBank("medqa-step1")?.id == "medqa")
         // the exams the credits know, as iOS's catalogue names them
-        assertEquals(21, ExamStyles.count)
-        assertEquals("USMLE Step 2 CK" to "medqa-step23", ExamStyles.exam("step2ck"))
-        assertEquals("NEET-PG" to "medmcqa", ExamStyles.exam("neetpg"))
-        assertNull(ExamStyles.exam(null))
+        fun style(id: String?) = ExamCatalog.exam(id)?.let { it.name to it.exemplars.rawValue }
+        assertEquals(21, ExamCatalog.all.size)
+        assertEquals("USMLE Step 2 CK" to "medqa-step23", style("step2ck"))
+        assertEquals("NEET-PG" to "medmcqa", style("neetpg"))
+        assertNull(style(null))
     }
 
     // MARK: the app's own list

@@ -8,6 +8,9 @@ import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.data.StudyStreak
 import com.stethoscore.app.data.WardWords
+import com.stethoscore.app.exam.ExamChoice
+import com.stethoscore.app.exam.ExamDefaults
+import com.stethoscore.app.quiz.ExamTrack
 import java.time.Instant
 import java.time.ZoneId
 
@@ -16,21 +19,24 @@ import java.time.ZoneId
 // freshSets, roundStations, started, progress; ExamCountdown; and
 // StoreStudy's subjectStats and drill). Nothing here is stored.
 
-/** The exam date kept by Settings, as the home counts down to it (iOS ExamCountdown). */
+/** The exam date and name kept by Settings → Your exam, as the home counts down to them (iOS ExamCountdown). */
 object ExamCountdown {
     /**
-     * The chosen exam's short name; nil for general revision, which the
-     * countdown calls finals. Android has no exam choice or track yet
-     * (ExamChoice, ExamTrack: batch 16), so it is always nil.
+     * The chosen exam's short name; the track's when no one exam is chosen;
+     * null for general revision, which the countdown calls finals.
      */
-    val examName: String? get() = null
+    fun examName(defaults: ExamDefaults): String? {
+        ExamChoice.current(defaults)?.let { return it.shortName }
+        val track = ExamChoice.currentTrack(defaults)
+        return if (track == ExamTrack.general) null else track.rawValue.uppercase()
+    }
 
     /** Days until the exam, or null when no date is set. */
     fun daysLeft(examDate: Long?, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): Int? =
         examDate?.let { ExamWeekPlanner.daysLeft(Instant.ofEpochMilli(it), now, zone) }
 
     /** "Finals in 23 days"; null with no date, or once it has passed. */
-    fun text(examDate: Long?, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): String? =
+    fun text(examDate: Long?, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault(), examName: String? = null): String? =
         WardWords.countdown(daysLeft(examDate, now, zone), examName)
 }
 

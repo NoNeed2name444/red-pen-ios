@@ -70,12 +70,14 @@ import kotlinx.coroutines.withContext
     var libReview by remember { mutableStateOf<StudySet?>(null) }
     var shelf by rememberSaveable { mutableStateOf(com.stethoscore.app.ui.library.CategoryFeature.MULTIPLE_CHOICE.rawValue) }
     var newKind by rememberSaveable { mutableStateOf(StudySetKind.MCQ) }
+    // New set's preset from the exam card's Study next (batch 16)
+    var newPreset by remember { mutableStateOf<com.stethoscore.app.exam.NewSetPreset?>(null) }
     val scope=rememberCoroutineScope()
     DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
     fun refresh() { revision++ }
     /** Library changes the person asked for; a failed save is shown, never a crash. */
     fun change(action:()->Unit) { runCatching(action).onFailure { notice=it.message ?: "Could not save your library." };refresh() }
-    fun goHome() { screen="home";refresh() }
+    fun goHome() { screen="home";newPreset=null;refresh() }
     fun open(set:StudySet) { selectedId=set.id;screen="study" }
     val imported=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         // Reading, parsing and saving a large library takes seconds: keep it off the main thread.
@@ -136,7 +138,7 @@ import kotlinx.coroutines.withContext
         edit={ set -> selectedId=set.id;screen="edit" },
     )
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
-    BackHandler(screen!="home") { when(screen) { "sources" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
+    BackHandler(screen!="home") { when(screen) { "sources", "exam" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
     // takes its kind's, the brain map Ideas', everywhere else the outside look.
     val section = when(screen) {
@@ -173,7 +175,7 @@ import kotlinx.coroutines.withContext
                             else -> ClinicalScreen(set,store,::goHome)
                         } else LaunchedEffect(Unit) { goHome() }
                     }
-                    "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { refresh();open(set) }.onFailure { notice=it.message } },::goHome)
+                    "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { newPreset=null;refresh();open(set) }.onFailure { notice=it.message } },::goHome,newPreset)
                     "quick" -> quick?.let { q -> QuizScreen(q,store,{ quick=null;goHome() },onOpen={ refresh();open(it) },keepsProgress=false) } ?: LaunchedEffect(Unit) { goHome() }
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
@@ -187,7 +189,9 @@ import kotlinx.coroutines.withContext
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
                     "photo" -> com.stethoscore.app.ui.editors.PictureFromPhotoScreen(store,{ refresh();goHome() },onOpen={ refresh();open(it) })
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },
-                        onSources={ screen="sources" },onLicences={ licencesFrom="settings";screen="licences" })
+                        onSources={ screen="sources" },onLicences={ licencesFrom="settings";screen="licences" },onExam={ screen="exam" })
+                    // batch 16: Settings, Your exam
+                    "exam" -> com.stethoscore.app.ui.exam.ExamPickerScreen(store,{ screen="settings";refresh() })
                     // batch 9: the lectures in the library, the app's own sources, and one set's credits
                     "sources" -> com.stethoscore.app.ui.sources.SourcesLibraryScreen(store,{ screen="settings" },{ screen="new" })
                     "licences" -> com.stethoscore.app.ui.sources.ContentLicencesScreen { screen=licencesFrom }
@@ -227,7 +231,7 @@ import kotlinx.coroutines.withContext
                                     IconButton(onClick={screen="settings"},Modifier.size(44.dp).border(1.dp,MaterialTheme.colorScheme.outline,RoundedCornerShape(22.dp))) { Icon(Icons.Rounded.Settings,"Settings") }
                                 } }
                                 item { OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Search questions, cards, notes",fontSize=14.sp)},leadingIcon={Icon(Icons.Rounded.Search,null)},singleLine=true,shape=RoundedCornerShape(30.dp),colors=OutlinedTextFieldDefaults.colors(unfocusedContainerColor=MaterialTheme.colorScheme.surface.copy(alpha=.9f))) }
-                                item { HomeHeader(ExamCountdown.text(store.examDate)) }
+                                item { HomeHeader(remember(revision) { ExamCountdown.text(store.examDate,examName=ExamCountdown.examName(com.stethoscore.app.exam.ExamChoice.defaults(context))) }) }
                                 store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
                                     Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
                                     Text("Your library could not be opened",fontSize=20.sp,fontWeight=FontWeight.Bold)
@@ -245,6 +249,7 @@ import kotlinx.coroutines.withContext
                                 } else if(home!=null && query.isBlank() && (category=="Questions" || (category=="Cards" && home.first>0))) {
                                     // the round on Questions, and on Cards while cards are due; the tiles on Questions
                                     homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" })
+                                    if(category=="Questions") item { com.stethoscore.app.ui.exam.ExamDashboardCard(store,revision,{ newPreset=it;screen="new" }) }
                                     if(category=="Questions") item { com.stethoscore.app.ui.mock.MockPaperTile({ screen="mock" }) }
                                 }
                                 if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
