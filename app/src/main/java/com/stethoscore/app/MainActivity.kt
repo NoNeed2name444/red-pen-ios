@@ -3,6 +3,7 @@ package com.stethoscore.app
 import android.app.Activity
 import android.app.UiModeManager
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -12,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.StethoscoreApp
 import com.stethoscore.app.ui.WardGroundDrawable
+import com.stethoscore.app.ui.library.IncomingFiles
 import com.stethoscore.app.ui.ward.WardGround
 
 class MainActivity : ComponentActivity() {
@@ -25,7 +27,14 @@ class MainActivity : ComponentActivity() {
         val dark = getSharedPreferences("appearance", Context.MODE_PRIVATE).getBoolean("dark", false)
         showGround(this, dark)
         val store = StudyStore(filesDir)
+        // a table or a backup opened from another app waits for the library to show it
+        if (savedInstanceState == null) IncomingFiles.take(intent)
         setContent { StethoscoreApp(store) }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        IncomingFiles.take(intent)
     }
 
     companion object {

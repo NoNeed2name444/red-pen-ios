@@ -97,15 +97,27 @@ object CaseNames {
  * seeded from the case's id), drawn as Swift's `shuffled(using:)` draws so a
  * case lists its names in the same order on Android as on iOS.
  */
-class CaseShuffle(seed: String) {
-    private var state: ULong
+class CaseShuffle(seed: String) : SplitMixShuffle(hash(seed)) {
+    private companion object {
+        fun hash(seed: String): ULong {
+            var s = 0x9E3779B97F4A7C15uL
+            for (byte in bytes(seed)) s = (s xor byte.toUByte().toULong()) * 0x100000001B3uL
+            return s
+        }
 
-    init {
-        var s = 0x9E3779B97F4A7C15uL
-        for (byte in bytes(seed)) s = (s xor byte.toUByte().toULong()) * 0x100000001B3uL
-        state = s
+        /** The id's sixteen bytes when it is a UUID (as Swift's `uuid`), else its UTF-8. */
+        fun bytes(seed: String): ByteArray = runCatching {
+            val u = UUID.fromString(seed)
+            java.nio.ByteBuffer.allocate(16).putLong(u.mostSignificantBits).putLong(u.leastSignificantBits).array()
+        }.getOrElse { seed.toByteArray(Charsets.UTF_8) }
     }
+}
 
+/**
+ * SplitMix64 started from a given state, drawn as Swift's RandomNumberGenerator
+ * draws (iOS SeededGenerator): the same seed shuffles the same way on both.
+ */
+open class SplitMixShuffle(private var state: ULong) {
     fun next(): ULong {
         state += 0x9E3779B97F4A7C15uL
         var z = state
@@ -158,13 +170,5 @@ class CaseShuffle(seed: String) {
             current += 1
         }
         return out
-    }
-
-    private companion object {
-        /** The id's sixteen bytes when it is a UUID (as Swift's `uuid`), else its UTF-8. */
-        fun bytes(seed: String): ByteArray = runCatching {
-            val u = UUID.fromString(seed)
-            java.nio.ByteBuffer.allocate(16).putLong(u.mostSignificantBits).putLong(u.leastSignificantBits).array()
-        }.getOrElse { seed.toByteArray(Charsets.UTF_8) }
     }
 }

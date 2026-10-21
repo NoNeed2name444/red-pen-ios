@@ -9,6 +9,16 @@ enum class StudySetKind(val rawValue: String, val label: String) {
     OSCE("osce", "OSCE"), NARRATE("narrate", "Narrate"), CASES("cases", "Cases");
     companion object { fun from(value: String): StudySetKind? = entries.firstOrNull { it.rawValue == value.lowercase() } }
 }
+/** What a lecture is spoken in (iOS LectureLanguage): kept on the set as text, so a value a newer version adds never stops the set reading. */
+enum class LectureLanguage(val rawValue: String) {
+    /** Egyptian Arabic with English medical terms inside the same sentence. */
+    MIXED("mixed"),
+    /** English throughout. */
+    ENGLISH("english");
+    /** The on-device recogniser for it. */
+    val locale: String get() = if (this == ENGLISH) "en-US" else "ar-EG"
+    companion object { fun from(value: String?): LectureLanguage = entries.firstOrNull { it.rawValue == value } ?: MIXED }
+}
 enum class AnkiCardType(val rawValue: String) { QA("qa"), CLOZE("cloze"), OCCLUSION("occlusion") }
 
 data class StudySet(
@@ -22,6 +32,10 @@ data class StudySet(
     /** Original object retained so fields added by another version survive export. */
     val rawJson: String = "{}"
 ) {
+    /** The lecture's language, mixed unless the set says otherwise. */
+    val language: LectureLanguage get() = LectureLanguage.from(lectureLanguage)
+    fun withLanguage(language: LectureLanguage): StudySet = copy(lectureLanguage = language.rawValue)
+
     val itemCount: Int get() = when (kind) {
         StudySetKind.MCQ -> questions.size
         StudySetKind.ANKI -> cards.size
