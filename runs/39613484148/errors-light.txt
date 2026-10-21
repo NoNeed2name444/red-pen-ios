@@ -1,0 +1,1 @@
+RedPen/Shared/LaunchSplash.swift:306:13: error: invalid redeclaration of 'origin'
