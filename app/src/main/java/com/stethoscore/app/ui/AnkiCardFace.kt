@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.ward.wardRaised
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.Base64
@@ -215,7 +216,7 @@ private const val hintsKey = "anki.ratingHintsShown"
     val ink = tone(rating)
     val shape = RoundedCornerShape(16.dp)
     val ground = if (pressed) wardColor(WardToken.well) else wardColor(WardToken.surface)
-    Column(modifier.heightIn(min = 56.dp).then(if (pressed) Modifier else Modifier.relief(LocalWardDark.current, 16f)).background(ground, shape)
+    Column(modifier.heightIn(min = 56.dp).then(if (pressed) Modifier else Modifier.wardRaised(16.0)).background(ground, shape)
         .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
         .semantics { contentDescription = CardReview.title(rating); stateDescription = CardReview.spokenInterval(whenBack) }
         .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {

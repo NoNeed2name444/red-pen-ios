@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.ward.wardRaised
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,7 +63,7 @@ private fun android.view.View.say(text: String) = announceForAccessibility(text)
     }
     if (until == null) return
     Row(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 16.dp).heightIn(min = 44.dp)
-        .relief(LocalWardDark.current, 22f).background(wardColor(WardToken.raised), RoundedCornerShape(22.dp))
+        .wardRaised(22.0).background(wardColor(WardToken.raised), RoundedCornerShape(22.dp))
         .clickable(role = Role.Button, onClickLabel = "Brings the last card back as it was") { onUndo(); view.say("Rating undone. The card is back.") }
         .semantics(mergeDescendants = true) { contentDescription = "Undo last rating" }
         .padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

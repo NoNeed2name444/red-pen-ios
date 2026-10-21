@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.ward.wardRaised
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -230,7 +231,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 /** Where you are and how far there is to go: a thin raised slab over the content. */
 @Composable private fun ProgressHeader(header: CardReview.Header) {
     Box(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().relief(LocalWardDark.current, 24f, com.stethoscore.app.ui.ward.WardLift.low)
+        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(24.0, lift = com.stethoscore.app.ui.ward.WardLift.low)
             .background(wardColor(WardToken.surface), RoundedCornerShape(24.dp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(header.status, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink))
@@ -246,7 +247,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** A card standing on the base: raised, a shade off it. */
 @Composable private fun ContentCard(spacing: androidx.compose.ui.unit.Dp = 0.dp, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().relief(LocalWardDark.current, 16f).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp)).padding(16.dp),
+    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(16.0).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(spacing), content = content)
 }
 
@@ -274,7 +275,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 /** The end of a sitting: the done seal on a raised disc, large, and a line saying what happened. */
 @Composable private fun FinishHero(icon: ImageVector, title: String, message: String) {
     Column(Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Box(Modifier.size(96.dp).relief(LocalWardDark.current, 48f).background(wardColor(WardToken.surface), CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(96.dp).wardRaised(48.0).background(wardColor(WardToken.surface), CircleShape), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(48.dp), tint = wardColor(WardToken.success))
         }
         Text(title, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
@@ -284,7 +285,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** The screen's one main button: filled in the primary, under white words. */
 @Composable internal fun CardsPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, hint: String? = null) {
-    Box(modifier.heightIn(min = 56.dp).relief(LocalWardDark.current, 16f).background(wardColor(WardToken.primary), RoundedCornerShape(16.dp))
+    Box(modifier.heightIn(min = 56.dp).wardRaised(16.0).background(wardColor(WardToken.primary), RoundedCornerShape(16.dp))
         .clickable(role = Role.Button, onClickLabel = hint, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.onPrimary), textAlign = TextAlign.Center)
     }
@@ -292,7 +293,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** The quieter button beside it: raised, its words in the primary's ink. */
 @Composable internal fun CardsCompanionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.heightIn(min = 56.dp).relief(LocalWardDark.current, 16f).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp))
+    Box(modifier.heightIn(min = 56.dp).wardRaised(16.0).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp))
         .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.primaryInk), textAlign = TextAlign.Center)
     }
