@@ -386,10 +386,45 @@ private struct WardReliefDrawing<S: InsettableShape>: View {
 /// The base: one matte colour that every surface is shaped from. Decoration
 /// only, so VoiceOver skips it.
 struct WardBackground: View {
+    /// A section at rest to draw, whatever the look on show (the opening's
+    /// ground, LaunchSplash: home's section before home has set it); nil
+    /// draws the look on show, shifting with it.
+    var section: WardSection? = nil
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
-        let base: Color = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
+        // the base with the section's wash, from the first frame of the
+        // opening to home at rest: the ground never changes at the hand-off
+        let base: Color = section.map { Color(uiColor: Color.uiColor(WardGround.home($0, dark: scheme == .dark).base)) } ?? Color.wardWash
         base
             .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Home's ground drawn live for its section at rest (WardGround): the base
+/// with the section's wash (WardBackground) and the ECG paper's grid over
+/// it, in the section's ink, its lines on the window's grid from `origin`
+/// (this view's top left in the window), exactly as home's paper lays
+/// them. The opening stands on it from its first Swift frame (LaunchSplash).
+struct WardGroundView: View {
+    var section: WardSection = .opening
+    var origin: CGPoint = .zero
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        let ground = WardGround.home(section, dark: scheme == .dark, highContrast: contrast == .increased)
+        let (r, g, b) = WardPalette.rgb(ground.ink.hex)
+        WardBackground(section: section)
+            .overlay {
+                Canvas { context, size in
+                    WardPaperInk.drawPaper(in: &context, size: size, from: origin, ink: ground.ink,
+                                           color: Color(red: r, green: g, blue: b), base: .clear)
+                }
+                .ignoresSafeArea()
+            }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -753,7 +788,8 @@ private struct WardPaperCutStage: View {
         let dark = scheme == .dark
         let strong = contrast == .increased
         let ink = WardPaper.ink(look: look, dark: dark, held: held, highContrast: strong)
-        let base = look.hex(.background, dark: dark, held: held)
+        // the base with the section's wash, as WardBackground draws it
+        let base = look.wash(dark: dark, held: held)
         let top = WardPaperTop.shared.y.map { $0 - (edges?.window.minY ?? 0) }
         #if canImport(UIKit)
         WardPaperCutSheet(cut: WardPaperCut(scale: pose?.scale, drop: pose?.drop ?? 0,
@@ -856,12 +892,12 @@ final class WardPaperCutView: UIView {
         cutHolder.frame = rect
         // the picture from the window's top left at its own size, as the
         // rest drawing places it; the lines drawn once where it falls short
-        // or when the section's ink or base differs from LaunchPaper's
+        // or when the section's ink or base differs from LaunchPaper's (the
+        // ground of the section home opens on, WardGround)
         let grid = ink.fine > 0 || ink.bold > 0
-        let defaultInk = WardPaper.ink(dark: cut.dark, highContrast: false)
-        let defaultBase = WardPalette.hex(.background, dark: cut.dark)
+        let launch = WardGround.home(dark: cut.dark)
         let traits = traitCollection.modifyingTraits { $0.userInterfaceStyle = cut.dark ? .dark : .light }
-        let picture = grid && ink == defaultInk && cut.base == defaultBase
+        let picture = grid && ink == launch.ink && cut.base == launch.base
             ? UIImage(named: "LaunchPaper", in: nil, compatibleWith: traits) : nil
         if let picture, picture.size.width >= size.width, picture.size.height >= size.height {
             sheet.frame = CGRect(origin: .zero, size: picture.size)
@@ -915,7 +951,7 @@ final class WardPaperCutView: UIView {
 extension WardPaperInk {
     /// The base, then the frame's grid over `size`, for a canvas whose top
     /// left corner sits at `origin` in the window, so its lines fall on the
-    /// frame's. tools/make_launch_paper.py draws the same paper, line for
+    /// frame's. tools/make_launch_ground.py draws the same paper, line for
     /// line, for the launch screen (LaunchPaper): a change here goes there.
     static func drawPaper(in context: inout GraphicsContext, size: CGSize, from origin: CGPoint,
                           ink: WardPaperInk, color: Color, base: Color) {
@@ -1001,7 +1037,7 @@ struct WardPaperBand: View {
         let paper = WardPaper.ink(look: .drawn(rest: restLook, live: WardLookStore.shared.glide), dark: scheme == .dark, held: held,
                                   highContrast: contrast == .increased)
         let ink = WardPaperInk(hex: paper.hex, fine: grid ? paper.fine : 0, bold: grid ? paper.bold : 0, edge: paper.edge)
-        let base: Color = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
+        let base: Color = Color.wardWash
         Group {
             Canvas { context, size in
                 let height: CGFloat = min(size.height, bottom - origin.y)
@@ -1039,7 +1075,7 @@ struct WardMasthead: ViewModifier {
                 Color.clear
                     .frame(height: 0)
                     .background(alignment: .bottom) {
-                        (LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash).ignoresSafeArea(edges: .top)
+                        Color.wardWash.ignoresSafeArea(edges: .top)
                     }
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -1138,7 +1174,7 @@ private struct WardEdgeHost: ViewModifier {
             .environment(\.wardIslandEntry, entry)
             .background(alignment: .top) {
                 if shown {
-                    let base = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
+                    let base = Color.wardWash
                     if let entry {
                         GeometryReader { geometry in
                             WardIslandPath(join: entry.local, from: -WardPaper.sideInset,

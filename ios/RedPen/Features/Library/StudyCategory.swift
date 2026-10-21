@@ -560,7 +560,15 @@ struct CategoryDock: View {
     }
 
     private var panelShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
+        RoundedRectangle(cornerRadius: CGFloat(WardDock.panelRadius), style: .continuous)
+    }
+
+    /// The chosen tab's hollow and ring: concentric with the panel, its
+    /// corners the panel's less the inset between them, in the same
+    /// continuous style (WardDock), along the bottom and in the rail.
+    private var segment: RoundedRectangle {
+        let inset: Double = axis == .vertical ? WardDock.railInset : WardDock.barInset
+        return RoundedRectangle(cornerRadius: CGFloat(WardDock.tabRadius(inset: inset)), style: .continuous)
     }
 
     var body: some View {
@@ -658,7 +666,7 @@ struct CategoryDock: View {
                 item(category)
             }
         }
-        .padding(4)
+        .padding(CGFloat(WardDock.barInset))
         .wardRaised(in: panelShape, lift: .high, control: true)
     }
 
@@ -695,8 +703,11 @@ struct CategoryDock: View {
                 .padding(.vertical, 4)
             ideasRailItem
         }
-        .padding(5)
-        .frame(width: 76)
+        .padding(CGFloat(WardDock.railInset))
+        // as wide as its widest name needs, and never under 76, so the
+        // chosen ring holds every name with room at its corners
+        .frame(minWidth: 76)
+        .fixedSize(horizontal: true, vertical: false)
         .wardRaised(in: panelShape, lift: .high, control: true)
         .padding(.leading, 12)
         .frame(maxHeight: .infinity)
@@ -705,11 +716,12 @@ struct CategoryDock: View {
     /// Ideas in the rail: an item like the others, after the divider.
     private var ideasRailItem: some View {
         let chosen: Bool = inIdeas
-        let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
+        let segment = self.segment
         return Button(action: chooseIdeas) {
             ideasFace(chosen: chosen)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .padding(.vertical, 2)
+                .padding(.horizontal, CGFloat(WardDock.labelSide))
+                .padding(.vertical, CGFloat(WardDock.labelVertical))
+                .frame(maxWidth: .infinity, minHeight: CGFloat(WardDock.tabMinHeight))
                 .background {
                     if chosen {
                         WardReliefFace(shape: segment, lift: .low, inset: true)
@@ -748,17 +760,19 @@ struct CategoryDock: View {
 
     private func item(_ category: StudyCategory) -> some View {
         let chosen: Bool = !inIdeas && category == selection
-        let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
+        let segment = self.segment
         let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
             withAnimation(change) { selection = category }
         } label: {
             DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), chosen: chosen)
-                // Four points is eight pixels in the 2x preview. Keep this
-                // inside the pressed face, including at its minimum width.
-                .padding(.horizontal, 4)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .padding(.vertical, 2)
+                // The name keeps clear of the chosen ring, its corners too,
+                // at every text size the dock is drawn at: room at the
+                // sides and above and below (WardDock.labelFits). The slot
+                // is never narrower than the name and this room (DockSlots).
+                .padding(.horizontal, CGFloat(WardDock.labelSide))
+                .padding(.vertical, CGFloat(WardDock.labelVertical))
+                .frame(maxWidth: .infinity, minHeight: CGFloat(WardDock.tabMinHeight))
                 .background {
                     // One segment that moves between the categories rather
                     // than one per category shown and hidden: it travels with
@@ -901,7 +915,7 @@ extension DockListSheet {
 /// Name-sized slots with spare width shared by water-filling the narrower ones.
 private struct DockSlots: Layout {
     private func widths(_ subviews: Subviews, offered: CGFloat?) -> [CGFloat] {
-        // Each label already contains its four-point side padding.
+        // Each label already contains its side room (WardDock.labelSide).
         let ideals = subviews.map { max(44, $0.sizeThatFits(.unspecified).width) }
         let total = ideals.reduce(0, +)
         guard let offered, total > 0 else { return ideals }

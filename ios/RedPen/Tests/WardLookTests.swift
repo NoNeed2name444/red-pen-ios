@@ -501,5 +501,123 @@ do {
     check("mid-shift, wash is linear-light mix", midWash == expectWash, "\(h(midWash)) vs \(h(expectWash))")
 }
 
+// MARK: - The opening's ground is home's
+
+// The owner, 21 Oct, on the launch's first frame and home: "the background
+// color doesn't match the main menu". The first frame (the launch screen's
+// LaunchPaper, drawn by tools/make_launch_ground.py) and the opening stand
+// on home's own ground: the base with the section's wash, and the grid in
+// the section's ink at the paper's strengths, for the section home opens on.
+
+do {
+    let library = (try? String(contentsOfFile: "ios/RedPen/Features/Library/LibraryView.swift", encoding: .utf8)) ?? ""
+    check("home opens on WardSection.opening: Questions, the dock's first category",
+          WardSection.opening == .questions && library.contains("@State var category: StudyCategory = .questions")
+          && library.contains(".wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)"))
+    for section in WardSection.allCases {
+        for dark in [false, true] {
+            let mode = dark ? "dark" : "light"
+            let ground = WardGround.home(section, dark: dark)
+            let look = WardGlide.rest(WardLook(dark: dark, section: section))
+            check("\(section) \(mode): the ground's base is home's wash (WardBackground)",
+                  ground.base == section.wash(dark: dark) && ground.base == look.wash(dark: dark), h(ground.base))
+            check("\(section) \(mode): the ground's grid is home's paper ink",
+                  ground.ink == WardPaper.ink(look: look, dark: dark, highContrast: false)
+                  && ground.ink.hex == section.ink(dark: dark), h(ground.ink.hex))
+            check("\(section) \(mode): under Increase Contrast the ground has no grid, as home's paper",
+                  WardGround.home(section, dark: dark, highContrast: true).ink.fine == 0
+                  && WardGround.home(section, dark: dark, highContrast: true).ink.bold == 0)
+        }
+    }
+}
+
+// The script's colours, for every section in light and dark, are home's:
+// it prints the ground it would draw for each (--table).
+do {
+    let script = "tools/make_launch_ground.py"
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = ["python3", script, "--table"]
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    var table: [String: Any]? = nil
+    do {
+        try process.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        table = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    } catch {
+        table = nil
+    }
+    check("\(script) --table runs and prints its grounds", table != nil)
+    let rows = table?["sections"] as? [String: [String: [String: Any]]] ?? [:]
+    check("the script draws the section home opens on", (table?["opening"] as? String) == WardSection.opening.rawValue,
+          "\(table?["opening"] ?? "none")")
+    check("the script knows every section", Set(rows.keys) == Set(WardSection.allCases.map(\.rawValue)), "\(rows.keys.sorted())")
+    for section in WardSection.allCases {
+        for dark in [false, true] {
+            let mode = dark ? "dark" : "light"
+            let ground = WardGround.home(section, dark: dark)
+            let row = rows[section.rawValue]?[mode] ?? [:]
+            let base = (row["base"] as? String).flatMap { UInt32($0, radix: 16) }
+            let ink = (row["ink"] as? String).flatMap { UInt32($0, radix: 16) }
+            check("script, \(section) \(mode): its base is home's ground (base with wash)", base == ground.base,
+                  "\(base.map(h) ?? "none") vs \(h(ground.base))")
+            check("script, \(section) \(mode): its grid ink is home's", ink == ground.ink.hex
+                  && (row["fine"] as? Double) == ground.ink.fine && (row["bold"] as? Double) == ground.ink.bold,
+                  "\(ink.map(h) ?? "none") \(row["fine"] ?? "") \(row["bold"] ?? "") vs \(h(ground.ink.hex)) \(ground.ink.fine) \(ground.ink.bold)")
+        }
+    }
+}
+
+// The pictures the launch screen shows were drawn with home's ground: each
+// carries the ground it was drawn with (a PNG text chunk, "WardGround"), at
+// its idiom's size in points times its scale, so no line is scaled.
+do {
+    let set = "ios/RedPen/Assets.xcassets/LaunchPaper.imageset/"
+    /// The width, height and "WardGround" text of a PNG, read from its
+    /// uncompressed chunks.
+    func png(_ path: String) -> (width: Int, height: Int, ground: String)? {
+        guard let data = FileManager.default.contents(atPath: path), data.count > 33 else { return nil }
+        let bytes = [UInt8](data)
+        func u32(_ i: Int) -> Int { bytes[i..<i + 4].reduce(0) { $0 << 8 | Int($1) } }
+        var ground = ""
+        var i = 8
+        while i + 8 <= bytes.count {
+            let length = u32(i)
+            let type = String(decoding: bytes[i + 4..<i + 8], as: UTF8.self)
+            guard i + 12 + length <= bytes.count else { break }
+            if type == "tEXt" {
+                let body = bytes[i + 8..<i + 8 + length]
+                if let zero = body.firstIndex(of: 0),
+                   String(decoding: body[body.startIndex..<zero], as: UTF8.self) == "WardGround" {
+                    ground = String(decoding: body[(zero + 1)...], as: UTF8.self)
+                }
+            }
+            i += 12 + length
+        }
+        return (u32(16), u32(20), ground)
+    }
+    func label(_ g: WardGround) -> String {
+        func n(_ x: Double) -> String { x == x.rounded() ? String(Int(x)) : String(x) }
+        return String(format: "base=#%06X ink=#%06X", g.base, g.ink.hex) + " fine=\(n(g.ink.fine)) bold=\(n(g.ink.bold))"
+    }
+    for (idiom, size, scales) in [("iphone", (480, 1040), [2, 3]), ("ipad", (1400, 1400), [2])] {
+        for dark in [false, true] {
+            let ground = WardGround.home(.opening, dark: dark)
+            for scale in scales {
+                let name = "paper-\(idiom)\(dark ? "-dark" : "")@\(scale)x.png"
+                let read = png(set + name)
+                check("\(name): drawn at \(scale)x of \(size.0) by \(size.1) points",
+                      read?.width == size.0 * scale && read?.height == size.1 * scale,
+                      "\(read.map { "\($0.width)x\($0.height)" } ?? "unreadable")")
+                let expect = "\(WardSection.opening.rawValue) \(dark ? "dark" : "light") " + label(ground)
+                check("\(name): drawn with home's ground", read?.ground == expect,
+                      "\(read?.ground ?? "unreadable") vs \(expect)")
+            }
+        }
+    }
+}
+
 print(failures.isEmpty ? "\nall passed" : "\n\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

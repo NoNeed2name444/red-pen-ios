@@ -2008,6 +2008,7 @@ with the marks on the screens last.
   The animated opening (design/launch-anim) uses this pair, with a real
   lub-dub (licence recorded, or synthesised) and an ECG drawn under the
   stethoscope in step with it, also when muted.
+  - [ ] T0079 (21 Oct): the opening stands on home's own ground (Questions' wash and grid, WardGround), drawn live by WardGroundView with no neutral base until the hand-off, and LaunchPaper redrawn from the same numbers by tools/make_launch_ground.py; waits for the Launch recording.
 - [ ] 9. Ward design pass (the owner, 14 Oct: "the iOS design is a bit
   cramped - lacks color difference for each mode and animations when
   switching colors - also when we removed the fade some buttons became too
@@ -2122,6 +2123,7 @@ with the marks on the screens last.
       chevron is in Chart Ink. Rings, shaping and Ideas' magenta stay.
       tests/ward/dock-states.test.mjs reads the sources for it; the pictures
       come from the next Ward preview.
+      - [ ] T0079 (21 Oct): the chosen tab's ring is concentric with the dock (radius 24 less the 4 or 5 inset, continuous) and its name keeps clear of the ring's corners (WardDock, WardStatesTests); waits for the Ward preview.
     - [x] B3: AX1 home-fit sliver (run 38820624486): SwiftUI snapped the page
       frame to the 3x grid, up, so the end (682.67) fell below the chip's top
       (682.3). HomeFit.shown now settles the cut onto the pixel grid at or

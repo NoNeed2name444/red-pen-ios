@@ -358,3 +358,31 @@ extension WardPaper {
                             bold: a.bold + (b.bold - a.bold) * t, edge: a.edge + (b.edge - a.edge) * t)
     }
 }
+
+extension WardSection {
+    /// The section home opens on: the dock's first category, Questions
+    /// (LibraryView's `category` starts there and is not kept between
+    /// launches). The launch screen and the opening stand on its ground.
+    static let opening: WardSection = .questions
+}
+
+/// Home's ground for a look at rest: the base with the section's wash
+/// (what WardBackground draws) and the ECG paper's grid over it, in the
+/// section's ink at the mode's strengths, every `WardPaper.cell` points
+/// and bold every `WardPaper.boldEvery`, counted from the window's top
+/// left. The opening draws it live (LaunchSplash), and the launch screen's
+/// picture (LaunchPaper) is drawn from the same numbers by
+/// tools/make_launch_ground.py, so the ground is one from the first frame
+/// to home at rest, with no change at the hand-off.
+struct WardGround: Equatable, Sendable {
+    /// The base with the section's wash (WardSection.wash).
+    var base: UInt32
+    /// The grid's ink and its strengths (WardPaper.ink).
+    var ink: WardPaperInk
+
+    static func home(_ section: WardSection = .opening, dark: Bool, highContrast: Bool = false) -> WardGround {
+        let look = WardGlide.rest(WardLook(dark: dark, section: section))
+        return WardGround(base: look.wash(dark: dark),
+                          ink: WardPaper.ink(look: look, dark: dark, highContrast: highContrast))
+    }
+}

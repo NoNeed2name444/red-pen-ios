@@ -240,6 +240,100 @@ check("a disabled switch's knob lies flat with an edge",
       WardControl.toggle.look(.disabled).knobStand == .flat && WardControlStates.knobEdgeWidth > 0)
 check("a chosen edge is wider than a control's own 1-point edge", WardControlStates.chosenEdgeWidth > 1)
 
+// MARK: - The dock's chosen tab: concentric with the panel, its name inside
+
+// The owner, 21 Oct: "the corner of the part doesn't match the corner
+// around it". The chosen tab's ring is concentric with the dock's panel
+// (its radius the panel's less the inset between them, continuous like the
+// panel's), along the bottom and in the iPad's rail; and its name sits
+// wholly inside the ring at every text size the dock is drawn at.
+check("the dock's panel is WardRadius.bar's 24 points", WardDock.panelRadius == WardScale.xl && WardDock.panelRadius == 24)
+for (name, inset, tab) in [("bar", WardDock.barInset, WardDock.barTabRadius), ("rail", WardDock.railInset, WardDock.railTabRadius)] {
+    check("\(name): the tab's radius is the panel's less the inset (\(f(WardDock.panelRadius)) - \(f(inset)))",
+          tab == WardDock.panelRadius - inset && WardDock.tabRadius(inset: inset) == tab && tab > WardDock.ringWidth,
+          f(tab))
+    // the two continuous corners run parallel: from every point of the
+    // tab's corner to the panel's, about the inset (within a tenth of it)
+    let outer = WardDock.cornerPoints(radius: WardDock.panelRadius, steps: 120)
+    let inner = WardDock.cornerPoints(radius: tab, steps: 120).map { (x: $0.x + inset, y: $0.y + inset) }
+    func distance(_ a: (x: Double, y: Double), _ b: (x: Double, y: Double)) -> Double {
+        let dx: Double = a.x - b.x
+        let dy: Double = a.y - b.y
+        return (dx * dx + dy * dy).squareRoot()
+    }
+    func gaps(_ points: [(x: Double, y: Double)]) -> (Double, Double) {
+        var d: [Double] = []
+        for p in points {
+            var nearest = Double.infinity
+            for q in outer { nearest = min(nearest, distance(p, q)) }
+            d.append(nearest)
+        }
+        return (d.min() ?? 0, d.max() ?? 0)
+    }
+    let (lo, hi) = gaps(inner)
+    check("\(name): the tab's corner runs parallel to the panel's, \(f(inset)) apart",
+          lo >= inset * 0.9 && hi <= inset * 1.0001, "\(f(lo))...\(f(hi))")
+    // the 16-point tab this replaced came within 2 points of the panel's corner
+    let (oldLo, _) = gaps(WardDock.cornerPoints(radius: 16, steps: 120).map { (x: $0.x + inset, y: $0.y + inset) })
+    check("\(name): the old 16-point tab was not parallel (the check bites)", oldLo < inset * 0.9, f(oldLo))
+}
+// The name's box: centred across its tab (the slot is never narrower than
+// the name and its side room, DockSlots), with at least labelVertical under
+// it (the tab is at least 56 tall at the standard size, and grows with the
+// text past that by the same room above and below). caption2 bold, from the
+// smallest text size to xxxLarge (past it, the dock is one list button).
+let caption2 = [(11.0, 13.0), (11, 13), (11, 13), (11, 13), (13, 16), (15, 18), (17, 20)]
+let symbolLine = [24.0, 24, 24, 24, 26, 28, 31]
+for (size, (point, line)) in caption2.enumerated() {
+    // the widest name, "Questions", at about 0.6 em a letter
+    let width = point * 0.6 * 9
+    let content = symbolLine[size] + 3 + line
+    let height = max(WardDock.tabMinHeight, content + 2 * WardDock.labelVertical)
+    let below = (height - content) / 2
+    for (name, radius) in [("bar", WardDock.barTabRadius), ("rail", WardDock.railTabRadius)] {
+        check("\(name), text size \(size): the chosen name sits inside its ring, \(f(WardDock.labelClearance)) clear",
+              below >= WardDock.labelVertical
+              && WardDock.labelFits(width: width, below: below, tabWidth: width + 2 * WardDock.labelSide, radius: radius),
+              "below \(f(below))")
+    }
+}
+check("a name's room keeps it clear of the ring at its smallest (labelVertical under it)",
+      WardDock.labelFits(width: 60, below: WardDock.labelVertical, tabWidth: 60 + 2 * WardDock.labelSide, radius: WardDock.barTabRadius)
+      && WardDock.labelFits(width: 60, below: WardDock.labelVertical, tabWidth: 60 + 2 * WardDock.labelSide, radius: WardDock.railTabRadius))
+check("the old room (4 at the sides, 2 below at large text) crossed the ring's corner (the check bites)",
+      !WardDock.labelFits(width: 60, below: 2, tabWidth: 60 + 8, radius: 16)
+      && !WardDock.labelFits(width: 60, below: 8, tabWidth: 60 + 8, radius: 16))
+// a continuous corner of radius 20 meets its diagonal about 0.323 radii
+// (6.46 points) in from each edge, a little deeper than a circle's 0.293
+check("a continuous corner: clear past its reach, cut off across its diagonal",
+      WardDock.inside(x: 1.6 * 20, y: 0.5, radius: 20, clearance: 0.4)
+      && !WardDock.inside(x: 6, y: 6, radius: 20, clearance: 0)
+      && WardDock.inside(x: 7.2, y: 7.2, radius: 20, clearance: 0.4)
+      && !WardDock.inside(x: 6.6, y: 6.6, radius: 20, clearance: 0.4)
+      && WardDock.inside(x: 20, y: 20, radius: 20, clearance: 1))
+
+// The dock draws with these numbers (the source, read from the repository root).
+let dockSource = (try? String(contentsOfFile: "ios/RedPen/Features/Library/StudyCategory.swift", encoding: .utf8)) ?? ""
+let dockStart = dockSource.range(of: "struct CategoryDock")
+let dockEnd = dockSource.range(of: "private struct DockListSheet")
+let dock = dockStart.flatMap { a in dockEnd.map { String(dockSource[a.lowerBound..<$0.lowerBound]) } } ?? ""
+let tokens = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardTokens.swift", encoding: .utf8)) ?? ""
+check("found the dock's source", !dock.isEmpty)
+check("the panel is WardDock's radius, continuous",
+      dock.contains("RoundedRectangle(cornerRadius: CGFloat(WardDock.panelRadius), style: .continuous)")
+      && tokens.contains("static let bar = CGFloat(WardScale.xl)"))
+check("the chosen tab is the panel's radius less the inset, continuous, in the bar and the rail",
+      dock.contains("let inset: Double = axis == .vertical ? WardDock.railInset : WardDock.barInset")
+      && dock.contains("RoundedRectangle(cornerRadius: CGFloat(WardDock.tabRadius(inset: inset)), style: .continuous)")
+      && !dock.contains("cornerRadius: WardRadius.button"))
+check("the insets are WardDock's",
+      dock.contains(".padding(CGFloat(WardDock.barInset))") && dock.contains(".padding(CGFloat(WardDock.railInset))"))
+check("every tab keeps its name's room, and the rail is as wide as its widest name needs",
+      dock.components(separatedBy: ".padding(.horizontal, CGFloat(WardDock.labelSide))").count == 3
+      && dock.components(separatedBy: ".padding(.vertical, CGFloat(WardDock.labelVertical))").count == 3
+      && dock.components(separatedBy: "minHeight: CGFloat(WardDock.tabMinHeight)").count == 3
+      && dock.contains(".frame(minWidth: 76)\n        .fixedSize(horizontal: true, vertical: false)"))
+
 print("ok   words and glyphs: the lowest is \(f(worstText.0)):1 (\(worstText.1))")
 print("ok   disabled from enabled: the nearest is \(f(worstDisabledApart.0)) (\(worstDisabledApart.1))")
 print("ok   chosen from unchosen: the nearest is \(f(worstChosenApart.0)) (\(worstChosenApart.1))")
