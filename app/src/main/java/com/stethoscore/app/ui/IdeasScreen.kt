@@ -38,6 +38,7 @@ import com.stethoscore.app.map.NoteLike
 import com.stethoscore.app.map.SyntheticGraph
 import com.stethoscore.app.ui.map.Map3DView
 import com.stethoscore.app.ui.map.MapScene
+import com.stethoscore.app.ui.map.MapTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -84,7 +85,7 @@ import kotlinx.coroutines.withContext
                     if (query.isBlank()) WardButton("Write your first idea", { edit(Note(title = "")) }, Modifier.fillMaxWidth())
                 }
             } else if (mode == "Map") {
-                val scene = remember(notes) { MapScene.of(MapGraph.fromNotes(notes.map { NoteNode(it) })) }
+                val scene = remember(notes) { MapScene.of(MapGraph.fromNotes(notes.map { NoteNode(it) }), theme = MapTheme.SPACE) }
                 Map3DView(scene, Modifier.weight(1f).fillMaxWidth(), description = "3D map of ${notes.size} ideas. Edit all ideas from List view.",
                     onOpenNode = { index -> notes.getOrNull(index)?.let { edit(it) } })
                 Text("Drag to turn · Pinch to zoom · Two fingers to move · Tap an idea to edit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

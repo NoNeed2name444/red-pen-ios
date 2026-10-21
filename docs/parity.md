@@ -28,7 +28,7 @@ One row per folder in `Features/`.
 | `Features/MCQ/` (MCQQuizView, MCQSummaryView, MCQExamTools, ChartQuiz) | `ui/StudyScreens.kt` (QuizScreen) | differs: question, choices and feedback work; no faded wrong rows, exam tools, summary or chart quiz |
 | `Features/Mock/` (MockPaperView, MockSittingView, MockResultsView, MockSittingSave) | none | missing |
 | `Features/Narrate/` (NarrateReviewView, listening, reading, audio bar, word flow, fix-word sheet, lecture importer) | `ui/ClinicalScreens.kt` (NarrateScreen, Android TextToSpeech) | differs: reads segments aloud; no spoken-word wash, audio bar, word fixes or lecture import |
-| `Features/Notes/` (IdeasView, IdeaBoardView, NoteEditorView, Graph3DView and the Graph* renderer) | `ui/IdeasScreen.kt`, `ui/map/Map3DView.kt`, `ui/map/GlMapRenderer.kt`, `map/` | differs: notes, links and a GL ES 3.0 map run; no idea board, neuron look, shaders or the iOS graph styles |
+| `Features/Notes/` (IdeasView, IdeaBoardView, NoteEditorView, Graph3DView and the Graph* renderer) | `ui/IdeasScreen.kt`, `ui/map/Map3DView.kt`, `ui/map/GlMapRenderer.kt`, `ui/map/SpaceGl.kt`, `map/` (SpaceShaders, SpaceOptics, SpaceBodies) | differs: notes, links and a GL ES 3.0 map run; the Space theme's six bodies (black hole, sun, Earth from the NASA maps, gas giant, pulsar, comet) and warm link beams are ported as GLSL ES 3.0 shaders from GraphSpaceShaders with SpaceOptics' numbers (SpaceStyleTest mirrors SpaceStyleTests P1 to P9, E1 to E3); a note's style comes from its links (no Universe folders yet), and there is no style picker, sparks, idea board or neuron look |
 | `Features/OSCE/` (OsceReviewView, OsceGenerateSection) | `ui/ClinicalScreens.kt` (OsceScreen) | differs: recall-in-order works; no generation section, iOS layout |
 | `Features/Onboarding/` (FirstRunView, StudyTips) | none | missing |
 | `Features/Paywall/` (PaywallView) | none | missing (nearest Android way: Play Billing; store work needs the owner's word) |
@@ -92,7 +92,7 @@ Look first, then home and library, each study mode, the rest. Each batch ports t
 10. **Cases**: CaseListView, CaseWardView, CaseDecisionView, CaseDebriefView, CaseMaker and run store.
 11. **OSCE and Mock**: OsceReviewView, OsceGenerateSection; MockPaperView, MockSittingView, MockResultsView.
 12. **Audio**: NarrateReviewView, listening and reading, the spoken word's wash, audio bar, fix-word sheet, lecture importer.
-13. **Ideas**: IdeasView, IdeaBoardView, NoteEditorView, the graph's look (GraphLook, GraphTheme, neurons) on the GL map.
+13. **Ideas**: IdeasView, IdeaBoardView, NoteEditorView, the graph's look (GraphLook, GraphTheme, neurons) on the GL map. The Space bodies are done (T0083); still to come: the style picker, sparks (SpaceOptics.trail is ported, not drawn) and styles from the Universe's folders.
 14. **Learn**: WardRoundView and overlay, GuessFirstView, BedtimeReviewView, ExamPlanView, ExamDayKitView, SymptomBlocksView.
 15. **Vitals and Insight**: AnalyticsView, AnalyticsVisuals, VitalsParts, WardVitals; InsightViews, RuleSheetView; Coverage.
 16. **Exam and pocket**: ExamPickerView, ExamDashboardCard, WardPocketView.
