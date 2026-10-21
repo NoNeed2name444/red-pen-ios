@@ -477,12 +477,12 @@ struct FeatureTile: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(feature.title)
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(lines)
                     .multilineTextAlignment(.leading)
                 Text(detail ?? feature.detail)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(lines)
                     .multilineTextAlignment(.leading)
@@ -496,15 +496,21 @@ struct FeatureTile: View {
 }
 
 /// A heading over one part of a category's page: Ward small caps in Biro
-/// Grey.
+/// Grey (one Dynamic Type step smaller on home).
 struct CategoryHeading: View {
     let title: String
+    var home = false
 
     var body: some View {
-        Text(title)
-            .wardSmallCaps()
-            .accessibilityAddTraits(.isHeader)
-            .wardPart("the \(title) heading")
+        Group {
+            if home {
+                Text(title).homeSmallCaps()
+            } else {
+                Text(title).wardSmallCaps()
+            }
+        }
+        .accessibilityAddTraits(.isHeader)
+        .wardPart("the \(title) heading")
     }
 }
 

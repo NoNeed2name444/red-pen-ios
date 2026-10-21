@@ -43,7 +43,7 @@ extension LibraryView {
                         tileGrid(rest)
                     } label: {
                         Text("More ways to practise")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.footnote.weight(.semibold))
                             .frame(minHeight: 44, alignment: .leading)
                             .launchEntrance(inOpening: true)
                     }
@@ -55,7 +55,7 @@ extension LibraryView {
                     .listRowSeparator(.hidden)
                 }
             } header: {
-                CategoryHeading(title: FeatureGroup.practise.title)
+                CategoryHeading(title: FeatureGroup.practise.title, home: true)
                     .launchEntrance(inOpening: true)
             }
         }
@@ -68,7 +68,7 @@ extension LibraryView {
             Section {
                 tileGrid(features)
             } header: {
-                CategoryHeading(title: group.title)
+                CategoryHeading(title: group.title, home: true)
                     .launchEntrance(inOpening: true)
             }
         }
@@ -124,8 +124,8 @@ extension LibraryView {
         return Section {
             ForEach(pages) { page in
                 Button { support = page } label: {
-                    CategoryRowLabel(title: page.title, symbol: page.symbol,
-                                     detail: Self.moreDetail(page), tint: category.tint)
+                    HomeCategoryRowLabel(title: page.title, symbol: page.symbol,
+                                         detail: Self.moreDetail(page), tint: category.tint)
                         .foregroundStyle(Color.wardInk)
                 }
                 .accessibilityIdentifier("more-\(page.rawValue)")
@@ -134,7 +134,7 @@ extension LibraryView {
                 .frostedListRow()
             }
         } header: {
-            CategoryHeading(title: "Across the app")
+            CategoryHeading(title: "Across the app", home: true)
                 .launchEntrance(inOpening: true)
         }
     }
@@ -170,12 +170,12 @@ extension LibraryView {
     var emptyCategoryRow: some View {
         HStack(spacing: 14) {
             Image(systemName: category.symbol)
-                .font(.title2)
+                .font(.title3)
                 .foregroundStyle(category.tint)
                 .frame(width: 40)
                 .accessibilityHidden(true)
             Text(category.emptySets)
-                .font(.body)
+                .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)
             Spacer(minLength: 8)
             Button("Make one") { newSetKind = category.mainKind }
@@ -234,5 +234,33 @@ extension LibraryView {
 
     var nothingYetShown: Binding<Bool> {
         Binding(get: { nothingYet != nil }, set: { if !$0 { nothingYet = nil } })
+    }
+}
+
+/// Home's "Across the app" row label (`CategoryRowLabel` one Dynamic Type step
+/// smaller: `.subheadline.weight(.semibold)` and `.footnote`, while
+/// `CategoryRowLabel` on pushed pages stays as it is).
+private struct HomeCategoryRowLabel: View {
+    let title: String
+    let symbol: String
+    let detail: String
+    let tint: Color
+
+    var body: some View {
+        let square = RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous)
+        HStack(spacing: WardSpace.m) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 40, height: 40)
+                .wardRaised(in: square, lift: .low)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
+                Text(detail).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+            }
+        }
+        .padding(.vertical, WardSpace.xs)
+        .frame(minHeight: 56)
     }
 }

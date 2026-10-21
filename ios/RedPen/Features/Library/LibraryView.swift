@@ -958,7 +958,7 @@ struct LibraryView: View {
     /// of one kind (its mode tile, since it has no Modes row), and Select.
     func setsHeader(_ title: String) -> some View {
         HStack(spacing: 12) {
-            CategoryHeading(title: title)
+            CategoryHeading(title: title, home: true)
             Spacer(minLength: 8)
             if !searching { seeAllButton }
             selectButton
@@ -997,7 +997,7 @@ struct LibraryView: View {
     /// target.
     private func headerButtonFace(_ title: String) -> some View {
         Text(title)
-            .font(.subheadline.weight(.semibold))
+            .font(.footnote.weight(.semibold))
             .foregroundStyle(Color.wardPrimaryInk)
             .lineLimit(1)
             .contentTransition(.identity)
@@ -1022,11 +1022,11 @@ struct LibraryView: View {
         } header: {
             HStack {
                 Label {
-                    Text(folder.name).wardSmallCaps()
+                    Text(folder.name).homeSmallCaps()
                 } icon: {
                     Image(systemName: "folder.fill").foregroundStyle(Color.wardInkSecondary)
                 }
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
                 Spacer()
                 Menu {

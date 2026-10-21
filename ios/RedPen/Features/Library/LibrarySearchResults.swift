@@ -43,7 +43,7 @@ extension LibraryView {
                     searchRow(hit)
                 }
             } header: {
-                CategoryHeading(title: itemsHeading)
+                CategoryHeading(title: itemsHeading, home: true)
             } footer: {
                 if search.results.more {
                     Text("The first \(LibrarySearch.itemLimit). Add a word to narrow it.")
@@ -83,17 +83,17 @@ extension LibraryView {
                 WardIconSquare(symbol: "slider.horizontal.3", tone: .blue)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Build a session")
-                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.wardInk)
                     Text("Missed this week, a subject, a tag, what\u{2019}s due")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(true)
             }
@@ -111,18 +111,18 @@ extension LibraryView {
         Button { openHit(hit) } label: {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: hit.kind.symbol)
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 24)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(Self.marked(hit))
-                        .font(.subheadline)
+                        .font(.footnote)
                         .foregroundStyle(Color.wardInk)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                     Text(Self.whereFound(hit))
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(1)
                 }
