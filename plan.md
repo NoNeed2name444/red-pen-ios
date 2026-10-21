@@ -1965,6 +1965,19 @@ with the marks on the screens last.
        so turning back is instant.
     5. Only the heavy extras (labels, glow textures) stream, on a
        background thread within a fixed slice of each frame.
+  - [ ] Space (T0082, code done on design/integration 52a1b72, waiting
+    for its Mac run). The stage is GraphSpaceDepthStage, and it reuses
+    GraphPerfFrustum.of and GraphPerfLOD:
+    - A body whose look (its disk, tail or beams) is all outside the
+      frustum is neither drawn nor animated.
+    - Each shader weighs its fine detail by the body's radius on screen,
+      smoothstep from 8 to 32 points (rp_lod). This covers granulation,
+      the lensed image and stars, clouds and city lights, ring shadows,
+      and the moon and gas fbm octaves. It morphs and does not switch, and
+      at full size it is bit-exact with the old look.
+    - Under 1.5 points (3 when mostly faded) a body becomes an additive
+      point in its colour, and it comes back at 2.25 (3.75). The gap is
+      hysteresis.
 - [ ] 4f. Depth fade in every map theme, like deep-sea footage and cell
   animation (the owner, 15 Oct, about 8:35 am: "u know how deep see videos
   or cell 3d high quality videos have fade for far objects ? that's how i
@@ -1977,7 +1990,24 @@ with the marks on the screens last.
   It is the owner's second exception to "no fading", and applies inside
   the 3D scene only.
   - [ ] Performance, on design/perf-million (with D1 to D5).
-  - [ ] Space, on design/space-bodies (after its current step).
+  - [ ] Space, on design/space-bodies (after its current step). Code done
+    (T0082, on design/integration 52a1b72), waiting for its Mac run:
+    - The band (SpaceDepth.band, GraphSpaceDepth.swift) runs from 1.15x
+      to 2.6x the focus's view depth on High, and from 1.1x to 2.0x on
+      Smooth, with k 1.25. With Increase Contrast it starts at 1.25x and
+      stops at 0.7.
+    - Every Space shader gets rpFade. Bodies mix toward the sky's
+      near-black in linear light, and glows, coronas, beams, links and the
+      disk are multiplied by 1 - f.
+    - A body past the end of the band is not drawn, animated or pickable.
+      It dissolves its last 15% by node opacity.
+    - Names show in the crisp zone only. The chosen body is always kept.
+    - Tests: the spacedepth suite (D1 to D12).
+    - Left for the Mac:
+      - SceneKit compiles the shaders and the probes pass;
+      - the link fade (_surface.position) works;
+      - the look up close is unchanged and nothing pops;
+      - the frame numbers below.
   - [ ] Neurons, on design/neurons-depth (a new stream).
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner

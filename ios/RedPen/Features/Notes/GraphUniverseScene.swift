@@ -213,6 +213,9 @@ extension GraphSceneBuilder {
         let dyingLinks = GraphDeathLinks(material: linkMaterial, halfWidth: universe.halfWidth)
         simLooks.dying = GraphDeathStage.make(world: world, keeping: Set(infos.map(\.id)), key: key,
                                               lively: lively, links: dyingLinks)
+        // near crisp, far into the sky; only what is near is drawn (GraphSpaceDepthStage)
+        simLooks.depth = GraphSpaceDepthStage.make(infos: infos, materials: clocked + split.owned.map { $0.0 },
+                                                   contrast: contrast)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines, looks: simLooks,
                            lively: lively, labelReach: 5.5)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)

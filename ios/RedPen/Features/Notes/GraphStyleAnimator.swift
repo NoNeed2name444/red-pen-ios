@@ -259,10 +259,14 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
 
     // MARK: each frame
 
+    /// `drawn`: whose pieces are drawn this frame (the Space depth stage:
+    /// not a point, not outside the view or past the band); nil, all the
+    /// visible ones. A body not drawn is not posed or animated; it still
+    /// lights its planets and carries the orbit ring.
     func step(_ f: GraphStyleFrame, position: [SIMD3<Float>], velocity: [SIMD3<Float>],
-              level: [Float], visible: [Bool], pop: [Float]) {
+              level: [Float], visible: [Bool], pop: [Float], drawn: [Bool]? = nil) {
         let dt: Float = f.lively ? min(max(f.dt, 0), 0.05) : 0
-        for i in rigs.indices where visible[i] {
+        for i in rigs.indices where visible[i] && (drawn.map { i >= $0.count || $0[i] } ?? true) {
             let p: SIMD3<Float> = position[i]
             let v: SIMD3<Float> = velocity[i]
             let m: Float = f.lively ? level[i] : 0

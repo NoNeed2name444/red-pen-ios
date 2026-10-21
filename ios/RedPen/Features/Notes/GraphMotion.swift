@@ -187,6 +187,9 @@ struct GraphSimLooks {
     /// settings, for the name pills' styles (GraphLabelContrast.swift).
     var labelBackdrop: GraphRGB = GraphShine.backdrop(theme: "space")
     var labelSettings = GraphLabelSettings()
+    /// The Space theme's depth fade and near-only loading
+    /// (GraphSpaceDepthStage); nil in every other look.
+    var depth: GraphSpaceDepthStage? = nil
 }
 
 /// Keeps the space gently alive, and drives the black holes' motion.
@@ -380,6 +383,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// depth of field on, each frame focuses there (setLens, setFocus).
     private var lens: GraphLens = .off
     private var focusPoint: SIMD3<Float> = .zero
+    /// The Space theme's depth fade and near-only loading (nil elsewhere),
+    /// the view's width in points and the camera's vertical field of view
+    /// (radians) for it, and whether it must look again while at rest.
+    private let depth: GraphSpaceDepthStage?
+    private var viewWidth: Float = 400
+    private var fovY: Float = GraphFraming.fieldOfView * Float.pi / 180
+    private var depthStale: Bool = true
     /// Above 150 bodies, a rocky planet's or moon's halo is hidden while its
     /// sphere is under 3 points on screen (shown again from 3.5).
     private let crowded: Bool
@@ -554,6 +564,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         self.labelBack = looks.labelBackdrop
         self.labelSettings = looks.labelSettings
         self.labelParts = infos.map { GraphLabelParts.find(in: $0.label) }
+        self.depth = looks.depth
         // critical damping is 2 * sqrt(stiffness), about 4.9
         let critical: Float = 2 * stiffness.squareRoot()
         self.damping = lively ? critical * 0.6 : critical
@@ -918,7 +929,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         defer { lock.unlock() }
         var found: [(Int, SIMD3<Float>)] = []
         found.reserveCapacity(position.count)
-        for i in position.indices where visible[i] {
+        for i in position.indices where visible[i] && !beyondBand(i) {
             found.append((i, position[i]))
         }
         return found
@@ -933,11 +944,25 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         defer { lock.unlock() }
         var found: [(Int, SIMD3<Float>, Float, Bool)] = []
         found.reserveCapacity(position.count)
-        for i in position.indices where visible[i] && !ghost[i] {
+        for i in position.indices where visible[i] && !ghost[i] && !beyondBand(i) {
             let size: Float = pickRadius[i] * max(popScale[i], 0.05)
             found.append((i, position[i], size, bodyKind[i] != .note))
         }
         return found
+    }
+
+    /// Past the Space depth fade's far end (fully faded, not drawn), so it
+    /// cannot be picked; never the chosen body. Called with the lock held.
+    private func beyondBand(_ i: Int) -> Bool {
+        guard let depth, i != selected, i < depth.pastBand.count else { return false }
+        return depth.pastBand[i]
+    }
+
+    /// Whether body `i`'s look is drawn this frame: not a point or gone
+    /// (the Space depth stage). Called with the lock held.
+    private func lookDrawn(_ i: Int) -> Bool {
+        guard let depth, i < depth.drawn.count else { return true }
+        return depth.drawn[i]
     }
 
     /// What body `i` is.
@@ -964,11 +989,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         lock.unlock()
     }
 
-    /// The view's height in points, for names at a constant size.
-    func setViewHeight(_ height: Float) {
+    /// The view's height in points, for names at a constant size, and its
+    /// width (the Space depth stage's view volume).
+    func setViewHeight(_ height: Float, width: Float? = nil) {
         guard height > 1 else { return }
         lock.lock()
         viewHeight = height
+        if let width, width > 1 { viewWidth = width }
+        depthStale = true
         lock.unlock()
     }
 
@@ -983,6 +1011,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     func setFocus(_ point: SIMD3<Float>) {
         lock.lock()
         focusPoint = point
+        depthStale = true
         lock.unlock()
     }
 
@@ -1250,6 +1279,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         if let chosen = selected, !visible[chosen] || ghost[chosen] { selected = nil }
         if let pointed = hovered, !visible[pointed] || ghost[pointed] { hovered = nil }
         if let held = pressedNote, !visible[held] || ghost[held] { pressedNote = nil }
+        depthStale = true
         if let shownName = named, !visible[shownName] || ghost[shownName] { named = nil }
         let stillSelected: Int? = selected
         // every orbit ring's state in one pass over the bodies
@@ -1368,6 +1398,19 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let pose: simd_float4x4 = pov?.simdWorldTransform ?? matrix_identity_float4x4
         let right = SIMD3<Float>(pose.columns.0.x, pose.columns.0.y, pose.columns.0.z)
         let up = SIMD3<Float>(pose.columns.1.x, pose.columns.1.y, pose.columns.1.z)
+        // the Space depth stage's view volume: SceneKit's field of view is
+        // vertical unless the camera says otherwise
+        var fovNow: Float = 0
+        if depth != nil, let camera = pov?.camera {
+            let degrees = Float(camera.fieldOfView)
+            fovNow = degrees * Float.pi / 180
+            if camera.projectionDirection == .horizontal {
+                lock.lock()
+                let aspect: Float = viewHeight / max(viewWidth, 1)
+                lock.unlock()
+                fovNow = 2 * atan(tan(fovNow / 2) * aspect)
+            }
+        }
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0
         // the window: turned by the tilt before anything is stepped; the
@@ -1387,6 +1430,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         // the sky stays centred on the camera, so it is at infinity
         sky.simdWorldPosition = eye
         lock.lock()
+        if fovNow > 0 { fovY = fovNow }
         step(Float(raw), eye: eye, right: right, up: up)
         lock.unlock()
         SCNTransaction.commit()
@@ -1461,6 +1505,24 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         }
     }
 
+    /// The Space theme's depth fade and near-only loading
+    /// (GraphSpaceDepthStage), from the camera in the world's coordinates:
+    /// every frame while anything moves, and at rest only when the camera,
+    /// its focus, the view or the filter changed. Called with the lock held.
+    private func stepDepth(eye: SIMD3<Float>, right: SIMD3<Float>, up: SIMD3<Float>, turned: Bool) {
+        guard let depth else { return }
+        guard lively || turned || depthStale || !resting else { return }
+        depthStale = false
+        let r: SIMD3<Float> = simd_length_squared(right) > 1e-12 ? simd_normalize(right) : SIMD3<Float>(1, 0, 0)
+        let u: SIMD3<Float> = simd_length_squared(up) > 1e-12 ? simd_normalize(up) : SIMD3<Float>(0, 1, 0)
+        // SceneKit's camera looks down its -z: forward is up x right
+        let forward: SIMD3<Float> = simd_normalize(simd_cross(u, r))
+        let focus: SIMD3<Float> = world.simdConvertPosition(focusPoint, from: nil)
+        depth.update(eye: eye, forward: forward, right: r, up: u, fovY: fovY, width: viewWidth, height: viewHeight,
+                     focus: focus, position: position, visible: visible, ghost: ghost,
+                     chosen: grabbed ?? selected)
+    }
+
     /// Moves everything on by `rawStep` seconds. `worldEye`, `worldRight`
     /// and `worldUp` are the camera's position and its screen's right and up
     /// in the scene. Called with the lock held.
@@ -1472,6 +1534,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let up: SIMD3<Float> = world.simdConvertVector(worldUp, from: nil)
         let turned: Bool = simd_distance_squared(eye, lastEye) > 1e-8
         lastEye = eye
+        stepDepth(eye: eye, right: right, up: up, turned: turned)
         var linksStale: Bool = turned
         // Lines: Curved / Straight was flipped - redraw even when at rest
         let straight: Bool = GraphLineStyleLive.shared.isStraight
@@ -1718,6 +1781,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             let shown: Bool = linkShown(e, pair)
             let grow: Float = lively ? linkGrow[e] : (shown ? 1 : 0)
             guard grow > 0.001 else { continue }
+            // fully faded at both ends: all of it is past the band
+            if beyondBand(pair.0) && beyondBand(pair.1) { continue }
             addRibbon(pair.0, pair.1, seed: e, grow: grow, edge: e)
         }
         for (g, pair) in ghostEdges.enumerated() {
@@ -1870,7 +1935,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         let fullTurn: Float = 2 * Float.pi
         picks.removeAll(keepingCapacity: true)
         let trailSlots: Int = grabbed == nil ? emitters.count : emitters.count - 1
-        for i in nodes.indices where visible[i] {
+        for i in nodes.indices where visible[i] && lookDrawn(i) {
             let speed: Float = simd_length(velocity[i])
             let goal: Float = min(speed / fullSpeed, 1)
             let change: Float = (goal - level[i]) * ease
@@ -1945,13 +2010,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
                                     key: key, toScene: world.simdWorldTransform, grabbed: grabbed,
                                     selected: selected, lively: lively)
         styler.step(frame, position: position, velocity: velocity, level: level, visible: visible,
-                    pop: popScale)
+                    pop: popScale, drawn: depth?.drawn)
     }
 
     /// Sizes every shown ring for the camera, with no motion.
     private func fitRings(eye: SIMD3<Float>) {
         let none = SIMD3<Float>(0, 0, 0)
-        for i in nodes.indices where visible[i] {
+        for i in nodes.indices where visible[i] && lookDrawn(i) {
             shapeRing(i, eye: eye, right: none, up: none)
         }
     }
@@ -2198,6 +2263,9 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
     private func wantLabel(_ i: Int?) {
         guard let i, i >= 0, i < nodes.count, visible[i], !ghost[i] else { return }
+        // a name pill is interface and never half-fades: it shows only in
+        // the Space depth fade's crisp zone, and on the chosen body
+        if let depth, i != selected, i < depth.crisp.count, !depth.crisp[i] { return }
         if labelsWanted.contains(i) { return }
         labelsWanted.append(i)
     }

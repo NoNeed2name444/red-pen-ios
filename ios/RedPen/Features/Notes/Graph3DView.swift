@@ -1290,6 +1290,8 @@ enum GraphSceneBuilder {
         let dyingLinks = GraphDeathLinks(material: linkMaterial, halfWidth: GraphShape.linkHalfWidth)
         simLooks.dying = GraphDeathStage.make(world: world, keeping: Set(infos.map(\.id)), key: key,
                                               lively: lively, links: dyingLinks)
+        // near crisp, far into the sky; only what is near is drawn (GraphSpaceDepthStage)
+        simLooks.depth = GraphSpaceDepthStage.make(infos: infos, materials: clocked, contrast: contrast)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines,
                            looks: simLooks, lively: lively, labelReach: labelReach)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
@@ -1780,7 +1782,7 @@ struct GraphSCNView: UIViewRepresentable {
             view.isPlaying = true
             view.antialiasingMode = GraphSCNView.antialiasing()
             view.preferredFramesPerSecond = GraphQuality.frameRate
-            built.sim.setViewHeight(Float(view.bounds.height))
+            built.sim.setViewHeight(Float(view.bounds.height), width: Float(view.bounds.width))
             wireCameraGestures(in: view)
             // still flown in to a folder that is still there: stay on it
             if universe, let id = flownID, let slot = folders[id] {
@@ -2102,7 +2104,7 @@ struct GraphSCNView: UIViewRepresentable {
         /// whole map, not a framing made for a size the view no longer has.
         func resized(to size: CGSize) {
             guard size.width > 1, size.height > 1 else { return }
-            sim?.setViewHeight(Float(size.height))
+            sim?.setViewHeight(Float(size.height), width: Float(size.width))
             let wide: Bool = size.width > size.height
             let moved: Bool = abs(size.width - framedSize.width) > 1 || abs(size.height - framedSize.height) > 1
             let turned: Bool = framedWide != wide
