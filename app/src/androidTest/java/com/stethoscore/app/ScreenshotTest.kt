@@ -71,21 +71,21 @@ class ScreenshotTest {
     @Test fun homeDark() { val store=store();compose.setContent {StethoscoreApp(store,forceDark=true)};shot("02-home-dark") }
     @Test fun quizAnswerPersists() {
         val store=store();val set=store.library.first {it.kind==StudySetKind.MCQ}
-        compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {QuizScreen(set,store,{})}}}}
+        compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {QuizScreen(set,store,{},minReadSeconds=0)}}}}
         shot("03-questions")
         compose.onNodeWithText(set.questions.first().options[set.questions.first().correctIndex]).performScrollTo().performClick()
         compose.onNodeWithText("Check answer").performScrollTo().performClick()
-        compose.onNodeWithText("Well reasoned.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Right!").performScrollTo().assertIsDisplayed()
         check(store.answerHistory[set.questions.first().id]?.last()==true)
         shot("04-answer-explanation")
     }
     @Test fun cardsRevealAndSchedule() {
         val store=store();val set=store.library.first {it.kind==StudySetKind.ANKI}
-        compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {CardsScreen(set,store,{})}}}}
+        compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {AnkiReviewScreen(set,store,{})}}}}
         shot("05-cards")
-        compose.onNodeWithText("Reveal answer").performScrollTo().performClick()
+        compose.onNodeWithText("Reveal").performScrollTo().performClick()
         shot("06-card-revealed")
-        compose.onNodeWithText("Good").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Good").performScrollTo().performClick()
         check(store.reviews.isNotEmpty())
     }
     @Test fun osce() { val store=store();val set=store.library.first {it.kind==StudySetKind.OSCE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("07-osce") }

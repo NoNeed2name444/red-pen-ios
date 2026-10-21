@@ -40,6 +40,9 @@ class StudyStore(private val directory: File) {
         private set
     var flagged: Set<String> = emptySet()
         private set
+    /** Why each wrong answer was wrong, in the student's own judgement, by question id. */
+    var mistakeReasons: Map<String, MistakeNote> = emptyMap()
+        private set
     var examDate: Long? = null
         private set
     /** The rating Undo would take back: the card and its record from before. One step, as in Anki. */
@@ -52,6 +55,7 @@ class StudyStore(private val directory: File) {
         val reviews: Map<String, ReviewRecord>, val quizProgress: Map<String, QuizProgress>, val readingProgress: Map<String, ReadingProgress>,
         val osceProgress: Map<String, OsceProgress>, val caseRuns: Map<String, String>, val answerHistory: Map<String, List<Boolean>>,
         val answerLog: List<AnswerEvent>, val flagged: Set<String>, val examDate: Long?,
+        val mistakeReasons: Map<String, MistakeNote> = emptyMap(),
     )
     private var committed = current()
     /** Called when a background save (progress, ratings, answers) fails; the change is undone. */
@@ -83,16 +87,18 @@ class StudyStore(private val directory: File) {
             osceProgress = readMap(root.obj("osceProgress")) { OsceProgress(it.optInt("checklistIndex"), it.text("checklistTitle"), it.optInt("stepIndex"), intList(it.optJSONArray("missed")), StudyJson.date(it.opt("savedAt"))) },
             caseRuns = root.obj("caseRuns").let { o -> o.keys().asSequence().associateWith { o.get(it).toString() } },
             answerHistory = root.obj("answerHistory").let { o -> o.keys().asSequence().associateWith { key -> o.optJSONArray(key)?.let { a -> (0 until a.length()).map { a.optBoolean(it) } } ?: emptyList() } },
-            answerLog = root.objects("answerLog") { AnswerEvent(it.text("questionId"), it.optBoolean("correct"), StudyJson.date(it.opt("at"))) },
+            answerLog = root.objects("answerLog") { AnswerEvent(it.text("questionId"), it.optBoolean("correct"), StudyJson.date(it.opt("at")), it.nullText("confidence"), it.intOrNull("picked"), if (it.has("hinted") && !it.isNull("hinted")) it.optBoolean("hinted") else null) },
             flagged = root.strings("flagged").toSet(),
             examDate = if (root.isNull("examDate")) null else StudyJson.date(root.opt("examDate")),
+            mistakeReasons = readMap(root.obj("mistakeReasons")) { MistakeNote(it.text("reason"), StudyJson.date(it.opt("at"))) }.filterValues { it.reason.isNotEmpty() },
         )
     }
-    private fun current() = Saved(original, unknownSets, library, folders, notes, reviews, quizProgress, readingProgress, osceProgress, caseRuns, answerHistory, answerLog, flagged, examDate)
+    private fun current() = Saved(original, unknownSets, library, folders, notes, reviews, quizProgress, readingProgress, osceProgress, caseRuns, answerHistory, answerLog, flagged, examDate, mistakeReasons)
     private fun restore(s: Saved) {
         original = s.original; unknownSets = s.unknownSets; library = s.library; folders = s.folders; notes = s.notes
         reviews = s.reviews; quizProgress = s.quizProgress; readingProgress = s.readingProgress; osceProgress = s.osceProgress
         caseRuns = s.caseRuns; answerHistory = s.answerHistory; answerLog = s.answerLog; flagged = s.flagged; examDate = s.examDate
+        mistakeReasons = s.mistakeReasons
     }
     private fun intList(a: JSONArray?): List<Int> = a?.let { (0 until it.length()).map(it::optInt) } ?: emptyList()
     private fun <T> readMap(o: JSONObject, decode: (JSONObject) -> T): Map<String, T> = o.keys().asSequence().mapNotNull { key -> o.optJSONObject(key)?.let { key to decode(it) } }.toMap()
@@ -112,7 +118,8 @@ class StudyStore(private val directory: File) {
         .put("osceProgress", writeMap(osceProgress) { JSONObject().put("checklistIndex", it.checklistIndex).put("checklistTitle", it.checklistTitle).put("stepIndex", it.stepIndex).put("missed", jsonArray(it.missed)).putDate("savedAt", it.savedAt) })
         .put("caseRuns", writeMap(caseRuns) { JSONObject(it) })
         .put("answerHistory", writeMap(answerHistory, ::jsonArray))
-        .put("answerLog", jsonArray(answerLog.map { JSONObject().put("questionId", it.questionId).put("correct", it.correct).putDate("at", it.at) }))
+        .put("answerLog", jsonArray(answerLog.map { e -> JSONObject().put("questionId", e.questionId).put("correct", e.correct).putDate("at", e.at).also { o -> e.confidence?.let { o.put("confidence", it) }; e.picked?.let { o.put("picked", it) }; e.hinted?.let { o.put("hinted", it) } } }))
+        .put("mistakeReasons", writeMap(mistakeReasons) { JSONObject().put("reason", it.reason).putDate("at", it.at) })
         .put("flagged", jsonArray(flagged.toList())).putDate("examDate", examDate)
 
     /**
@@ -195,6 +202,7 @@ class StudyStore(private val directory: File) {
         answerLog = (answerLog + b.answerLog.filter { Triple(it.questionId, it.correct, it.at) !in logged }).sortedBy { it.at }
         flagged = flagged + b.flagged
         if (examDate == null) examDate = b.examDate
+        mistakeReasons = b.mistakeReasons + mistakeReasons
     }
     @Synchronized fun loadExamples() {
         val added = DemoData.sets.filter { example -> library.none { it.name == "Example: ${example.name}" } }.map { it.duplicate().copy(name = "Example: ${it.name}") }
@@ -207,11 +215,25 @@ class StudyStore(private val directory: File) {
     @Synchronized fun clearOsceProgress(setId: String) { osceProgress = osceProgress - setId; saveQuietly() }
     @Synchronized fun saveCaseRun(caseId: String, json: String) { JSONObject(json); caseRuns = caseRuns + (caseId to json); saveQuietly() }
     @Synchronized fun clearCaseRun(caseId: String) { caseRuns = caseRuns - caseId; saveQuietly() }
-    @Synchronized fun recordAnswer(questionId: String, correct: Boolean) {
+    /**
+     * Records a checked answer: right or wrong in the history, and in the log
+     * how sure the student was, what they picked (in the question's own
+     * numbering) and whether the hint was shown first. [saving] false leaves
+     * the write to the save that follows (the quiz's place), as iOS does.
+     */
+    @Synchronized fun recordAnswer(questionId: String, correct: Boolean, confidence: String? = null, picked: Int? = null, hinted: Boolean = false, saving: Boolean = true) {
         answerHistory = answerHistory + (questionId to ((answerHistory[questionId] ?: emptyList()) + correct))
-        answerLog = answerLog + AnswerEvent(questionId, correct)
+        answerLog = answerLog + AnswerEvent(questionId, correct, confidence = confidence, picked = picked, hinted = if (hinted) true else null)
+        if (saving) saveQuietly()
+    }
+    /** Files a wrong answer under a reason (MistakeReason's raw value), or clears it with null. */
+    @Synchronized fun noteMistake(reason: String?, questionId: String) {
+        if (reason != null) mistakeReasons = mistakeReasons + (questionId to MistakeNote(reason))
+        else { if (questionId !in mistakeReasons) return; mistakeReasons = mistakeReasons - questionId }
         saveQuietly()
     }
+    /** Questions answered wrongly while the student said they were sure, the last time they were answered. */
+    val confidentMistakeIds: Set<String> get() = answerLog.associateBy { it.questionId }.values.filter { !it.correct && it.confidence == "sure" }.map { it.questionId }.toSet()
     @Synchronized fun toggleFlag(questionId: String) { flagged = if (questionId in flagged) flagged - questionId else flagged + questionId; saveQuietly() }
     /** Today's queue for one deck: due, not suspended or buried, within the library's daily limits. */
     fun queue(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiQueueItem> = ReviewOptions.dailyQueue(set.cards, reviews, now, reviewSettings.limits)
