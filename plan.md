@@ -2138,6 +2138,16 @@ with the marks on the screens last.
       island strips, base-filled header pockets and rounded slab tops.
       An iPad's frame, moved home opening and islands take its 18 pt
       corners, including in multitasking windows. Awaiting the Ward preview.
+    - Review U1 (16 Oct): REPAIR I-R1, in: the fold button's icon grows
+      with the text up to the largest size its 44 by 28 pill holds (xxxLarge),
+      on every deck, and shows in the Large Content Viewer past that; the
+      fixed 17 pt on a joined deck was an accessibility regression. The
+      integration preview (38938158628) shows quiz, quiz-folded and
+      quiz-scrolled joined into the frame on the phone and the iPad, with no
+      doubled ink where the arcs meet the frame's line. Open, the owner's
+      call: a joined deck's slab draws flat, its soft relief clipped to the
+      slab (WardSurfaces.swift `face.clipShape(shape)`); keeping it means a
+      relief mask past the slab by its reach, cut only by the island.
 
 ### Waiting on the owner
 
