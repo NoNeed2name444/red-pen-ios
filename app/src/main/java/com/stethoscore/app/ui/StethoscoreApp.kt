@@ -46,6 +46,7 @@ import java.util.Locale
     var reviewSettings by remember { mutableStateOf(store.reviewSettings) }
     var screen by rememberSaveable { mutableStateOf(initialScreen) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var licencesFrom by rememberSaveable { mutableStateOf("settings") }
     var revision by remember { mutableIntStateOf(0) }
     var category by rememberSaveable { mutableStateOf("Questions") }
     var query by rememberSaveable { mutableStateOf("") }
@@ -90,7 +91,7 @@ import java.util.Locale
             notice=result.fold({ "Printed ${set.name} as a PDF deck ($it pages)" }) { it.message ?: "Unable to print this set" }
         }
     }
-    BackHandler(screen!="home") { goHome() }
+    BackHandler(screen!="home") { when(screen) { "sources" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
     // takes its kind's, the brain map Ideas', everywhere else the outside look.
     val section = when(screen) {
@@ -123,7 +124,16 @@ import java.util.Locale
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
                     "due" -> DueTodayScreen(store,::goHome)
-                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } })
+                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },
+                        onSources={ screen="sources" },onLicences={ licencesFrom="settings";screen="licences" })
+                    // batch 9: the lectures in the library, the app's own sources, and one set's credits
+                    "sources" -> com.stethoscore.app.ui.sources.SourcesLibraryScreen(store,{ screen="settings" },{ screen="new" })
+                    "licences" -> com.stethoscore.app.ui.sources.ContentLicencesScreen { screen=licencesFrom }
+                    "credits" -> {
+                        val set=store.library.firstOrNull { it.id==selectedId }
+                        if(set!=null) com.stethoscore.app.ui.sources.SetCreditsScreen(set,::goHome) { licencesFrom="credits";screen="licences" }
+                        else LaunchedEffect(Unit) { goHome() }
+                    }
                     else -> Column(Modifier.fillMaxSize()) {
                         Box(Modifier.weight(1f)) {
                             LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp,12.dp,20.dp,20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {

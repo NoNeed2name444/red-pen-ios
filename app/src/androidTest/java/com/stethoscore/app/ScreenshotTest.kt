@@ -144,7 +144,7 @@ class ScreenshotTest {
         val set=store.library.first {it.kind==StudySetKind.BOOK}
         compose.setContent {StethoscoreApp(store)}
         compose.onNodeWithText(set.name).performScrollTo().performClick()
-        compose.onNodeWithText("Table of contents").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Contents").assertIsDisplayed()
         shot("10-textbook")
     }
 }
