@@ -107,6 +107,7 @@ import kotlinx.coroutines.withContext
         "ideas" -> WardSection.ideas
         "due" -> WardSection.cards
         "quick" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
+        "mock" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
         // home wears its category's section, opening on Questions (WardSection.opening)
         "home" -> homeSection(category)
         else -> WardSection.outside
@@ -133,6 +134,7 @@ import kotlinx.coroutines.withContext
                     "quick" -> quick?.let { q -> QuizScreen(q,store,{ quick=null;goHome() },onOpen={ refresh();open(it) },keepsProgress=false) } ?: LaunchedEffect(Unit) { goHome() }
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
+                    "mock" -> com.stethoscore.app.ui.mock.MockPaperScreen(store) { goHome() }
                     "due" -> DueTodayScreen(store,::goHome)
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } })
                     else -> Column(Modifier.fillMaxSize()) {
@@ -183,6 +185,7 @@ import kotlinx.coroutines.withContext
                                 } else if(home!=null && query.isBlank() && (category=="Questions" || (category=="Cards" && home.first>0))) {
                                     // the round on Questions, and on Cards while cards are due; the tiles on Questions
                                     homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" })
+                                    if(category=="Questions") item { com.stethoscore.app.ui.mock.MockPaperTile({ screen="mock" }) }
                                 }
                                 if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) { SectionLabel(if(query.isBlank()) "Your ${category.lowercase()}" else "Search results");TextButton(onClick={screen="new"}) { Icon(Icons.Rounded.Add,null,Modifier.size(18.dp));Text("New set") } } }

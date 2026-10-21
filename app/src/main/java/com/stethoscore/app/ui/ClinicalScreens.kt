@@ -47,7 +47,7 @@ import java.util.Locale
 @Composable
 fun ClinicalScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) {
     when (set.kind) {
-        StudySetKind.OSCE -> OsceScreen(set, store, onBack)
+        StudySetKind.OSCE -> com.stethoscore.app.ui.osce.OsceReviewScreen(set, store, onBack)
         StudySetKind.BOOK -> TextbookScreen(set, store, onBack)
         StudySetKind.NARRATE -> NarrateScreen(set, store, onBack)
         StudySetKind.CASES -> com.stethoscore.app.ui.cases.CaseListScreen(set, store, onBack)
@@ -74,106 +74,6 @@ private fun ProgressStrip(label: String, progress: Float, detail: String = "") {
             if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(5.dp))
-    }
-}
-
-@Composable
-private fun OsceScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) {
-    val saved = remember(set.id) { store.osceProgress[set.id]?.takeIf { it.fits(set.osceChecklists) } }
-    var stationIndex by rememberSaveable(set.id) { mutableIntStateOf(saved?.checklistIndex ?: 0) }
-    var step by rememberSaveable(set.id) { mutableIntStateOf(saved?.stepIndex ?: 0) }
-    var misses by rememberSaveable(set.id) { mutableStateOf(ArrayList(saved?.missed ?: emptyList())) }
-    var revealed by rememberSaveable(set.id) { mutableStateOf(false) }
-    var complete by rememberSaveable(set.id) { mutableStateOf(false) }
-    val station = set.osceChecklists.getOrNull(stationIndex)
-    val stationSeconds = if (set.exam.orEmpty().contains("paces", true)) 600 else 480
-    var secondsLeft by rememberSaveable(set.id) { mutableIntStateOf(stationSeconds) }
-    var clockRunning by rememberSaveable(set.id) { mutableStateOf(false) }
-    var clockEndsAt by rememberSaveable(set.id) { mutableLongStateOf(0L) }
-    LaunchedEffect(clockRunning, clockEndsAt) {
-        while (clockRunning) {
-            secondsLeft = ((clockEndsAt - System.currentTimeMillis() + 999) / 1000).toInt().coerceAtLeast(0)
-            if (secondsLeft == 0) clockRunning = false
-            delay(250)
-        }
-    }
-    LaunchedEffect(stationIndex, step, misses, complete) {
-        if (station != null) {
-            if (complete) {
-                clockRunning = false
-                val next = set.osceChecklists.getOrNull(stationIndex + 1)
-                if (next == null) store.clearOsceProgress(set.id)
-                else store.saveOsceProgress(set.id, OsceProgress(stationIndex + 1, next.title, 0))
-            } else store.saveOsceProgress(set.id, OsceProgress(stationIndex, station.title, step, misses))
-        }
-    }
-    ClinicalColumn {
-        ScreenHeader(set.name, "OSCE · Recall in order", onBack)
-        if (station == null || station.steps.isEmpty()) {
-            WardCard { Text("No checklist steps in this set.", style = MaterialTheme.typography.titleMedium) }
-            return@ClinicalColumn
-        }
-        ProgressStrip(
-            if (complete) "Station complete" else "Step ${step + 1} of ${station.steps.size}",
-            if (complete) 1f else step.toFloat() / station.steps.size,
-            "Station ${stationIndex + 1}/${set.osceChecklists.size}"
-        )
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(station.title, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
-            if (!complete) OutlinedButton(onClick = {
-                when {
-                    clockRunning -> clockRunning = false
-                    secondsLeft == 0 -> secondsLeft = stationSeconds
-                    else -> { clockEndsAt = System.currentTimeMillis() + secondsLeft * 1000L; clockRunning = true }
-                }
-            }) {
-                Icon(if (clockRunning) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null, Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("${secondsLeft / 60}:${(secondsLeft % 60).toString().padStart(2, '0')}", color = if (secondsLeft <= 60) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-            }
-        }
-        if (complete) {
-            WardCard {
-                Icon(Icons.Default.Check, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
-                Text(if (misses.isEmpty()) "All ${station.steps.size} steps, first time" else "Complete after ${misses.size} ${if (misses.size == 1) "restart" else "restarts"}", style = MaterialTheme.typography.headlineSmall)
-                Text("You recalled the whole station in order.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (misses.isNotEmpty()) {
-                SectionLabel("STEPS TO REVISIT")
-                misses.groupingBy { it }.eachCount().entries.sortedWith(compareByDescending<Map.Entry<Int, Int>> { it.value }.thenBy { it.key }).forEach { (index, count) ->
-                    WardCard {
-                        Text("Step ${index + 1} · $count ${if (count == 1) "restart" else "restarts"}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                        Text(station.steps.getOrElse(index) { "" })
-                    }
-                }
-            }
-            if (stationIndex + 1 < set.osceChecklists.size) WardButton("Next station", onClick = {
-                stationIndex++; step = 0; misses = arrayListOf(); complete = false; revealed = false
-                secondsLeft = stationSeconds; clockRunning = false
-            }, modifier = Modifier.fillMaxWidth())
-            WardButton("Done for now", onBack, Modifier.fillMaxWidth())
-        } else {
-            WardCard(Modifier.fillMaxWidth().heightIn(min = 230.dp)) {
-                SectionLabel(if (revealed) "STEP ${step + 1}" else "RECALL BEFORE REVEAL")
-                Spacer(Modifier.height(16.dp))
-                Text(if (revealed) station.steps[step.coerceIn(station.steps.indices)] else "What comes next?", style = MaterialTheme.typography.headlineSmall)
-                if (!revealed) Text("Say the step out loud, then reveal it to check yourself.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(16.dp))
-                Text("Attempt ${misses.size + 1}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            }
-            if (!revealed) WardButton("Reveal step", onClick = { revealed = true }, modifier = Modifier.fillMaxWidth())
-            else Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = {
-                    misses = ArrayList(misses + step); step = 0; revealed = false; secondsLeft = stationSeconds
-                    if (clockRunning) clockEndsAt = System.currentTimeMillis() + stationSeconds * 1000L
-                }, modifier = Modifier.weight(1f).heightIn(min = 52.dp)) { Text("Start over") }
-                WardButton("I got it", onClick = {
-                    if (step == station.steps.lastIndex) complete = true else step++
-                    revealed = false
-                }, modifier = Modifier.weight(1f))
-            }
-            Text("A missed step restarts the chain from step 1. Your restart points are saved for the finish.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
     }
 }
 
