@@ -16,10 +16,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
 
-@Composable fun NewSetScreen(onSave:(StudySet)->Unit,onBack:()->Unit) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var subject by rememberSaveable { mutableStateOf("") }
-    var kindName by rememberSaveable { mutableStateOf(StudySetKind.ANKI.name) }
+/** New set; a [preset] (the exam's Study next, the Ward pocket's Practise this) fills in its name, subject and mode. */
+@Composable fun NewSetScreen(onSave:(StudySet)->Unit,onBack:()->Unit,preset:com.stethoscore.app.exam.NewSetPreset?=null) {
+    var name by rememberSaveable { mutableStateOf(preset?.name ?: "") }
+    var subject by rememberSaveable { mutableStateOf(preset?.subject ?: "") }
+    var kindName by rememberSaveable { mutableStateOf((preset?.kind ?: StudySetKind.ANKI).name) }
     val kind=StudySetKind.valueOf(kindName)
     var content by rememberSaveable { mutableStateOf("") }
     var error by remember {mutableStateOf<String?>(null)}
@@ -33,6 +34,8 @@ import com.stethoscore.app.data.*
             Text(when(kind) {StudySetKind.ANKI->"One card per line";StudySetKind.MCQ->"One question per block";StudySetKind.OSCE->"One checklist step per line";StudySetKind.NARRATE->"One transcript segment per line";else->"Write or paste your notes"},fontWeight=FontWeight.Bold)
             Text(when(kind) {StudySetKind.ANKI->"Question | Answer\nUse {{c1::answer}} for a cloze card.";StudySetKind.MCQ->"Question\nA) Option\n*B) Correct option\nC) Option\nWhy: Explanation\n\nSeparate questions with a blank line.";StudySetKind.BOOK->"Use # headings and ## page titles. Your text stays editable in exported JSON.";StudySetKind.OSCE->"Use the set name as the station title. Each non-empty line becomes a recall step.";else->"Paste the transcript. Playback uses the text-to-speech voice installed on your device."},fontSize=13.sp,lineHeight=21.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        // what the questions are to be written on (iOS gives it to the writer as its notes)
+        if(preset!=null && preset.notes.isNotBlank()) WardCard(Modifier.fillMaxWidth()) { SectionLabel("Notes");Text(preset.notes,fontSize=13.sp,lineHeight=21.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
         if(kind==StudySetKind.OSCE) com.stethoscore.app.ui.osce.OsceGenerateSection(content,{content=it;error=null},subject,{subject=it})
         OutlinedTextField(content,{content=it;error=null},Modifier.fillMaxWidth().heightIn(min=230.dp),label={Text("Study content")},minLines=8)
         error?.let {Text(it,color=MaterialTheme.colorScheme.error)}
@@ -67,12 +70,24 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
 
 @Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit,
     review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={},
-    onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null) {
+    onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null,onExam:(()->Unit)?=null) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Appearance")
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {Column {Text("Night shift",fontSize=18.sp,fontWeight=FontWeight.SemiBold);Text("Stethoscore's dark palette",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};Switch(dark,onDark)}
+        }
+        // iOS: Settings, "Your exam" (ExamPickerView)
+        if(onExam!=null) WardCard(Modifier.fillMaxWidth()) {
+            val context=LocalContext.current
+            val exam=remember { com.stethoscore.app.exam.ExamChoice.current(context) }
+            SectionLabel("Your exam")
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                Text("Exam",Modifier.weight(1f),fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+                Text(exam?.shortName ?: "Choose",fontSize=16.sp,color=MaterialTheme.colorScheme.primary)
+            }
+            WardButton(if(exam==null) "Choose your exam" else "Change exam",onExam,Modifier.fillMaxWidth().testTag("chooseExam"))
+            Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Review")

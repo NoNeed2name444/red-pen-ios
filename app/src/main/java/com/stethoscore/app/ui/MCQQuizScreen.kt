@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -132,6 +133,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     var highlights by remember { mutableStateOf(mapOf<Int, Set<Int>>()) }
     var highlighting by remember { mutableStateOf(false) }
     var toolSheet by remember { mutableStateOf<ExamToolSheet?>(null) }
+    // the Ward pocket (batch 16), from More while no timed exam runs
+    var pocketOpen by remember { mutableStateOf(false) }
     var hints by remember { mutableStateOf(mapOf<String, String>()) }
     var twinNotes by remember { mutableStateOf(mapOf<String, String>()) }
     var flagged by remember { mutableStateOf(store.flagged) }
@@ -358,6 +361,11 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                     }
                     ExamToolMenuItems(track, highlighting, onSheet = { menuOpen = false; toolSheet = it },
                         onHighlight = { menuOpen = false; highlighting = !highlighting })
+                    if (examEndsAt == null) {
+                        HorizontalDivider()
+                        DropdownMenuItem(text = { Text("Ward pocket") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
+                            onClick = { menuOpen = false; pocketOpen = true }, modifier = Modifier.testTag("wardPocket"))
+                    }
                 }
             }
         }
@@ -557,6 +565,9 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
         }
     }
     ExamToolSheets(toolSheet, track) { toolSheet = null }
+    if (pocketOpen) com.stethoscore.app.ui.exam.ExamSheet({ pocketOpen = false }) {
+        com.stethoscore.app.ui.exam.WardPocketScreen(track, { pocketOpen = false }, { made -> runCatching { store.addSet(made) } })
+    }
 }
 
 /** A skippable question's lead line, tagged optional. */

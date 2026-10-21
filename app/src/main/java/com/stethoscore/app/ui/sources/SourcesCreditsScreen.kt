@@ -25,12 +25,12 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.exam.ExamCatalog
 import com.stethoscore.app.data.SourceDoc
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.reading.ContentSource
 import com.stethoscore.app.reading.ContentSources
 import com.stethoscore.app.reading.EvidenceRef
-import com.stethoscore.app.reading.ExamStyles
 import com.stethoscore.app.reading.SetCredits
 import com.stethoscore.app.reading.sourceKind
 import com.stethoscore.app.ui.wardColor
@@ -67,7 +67,7 @@ object CreditsWords {
 
 /** Where one set's content came from (SetCreditsView). */
 @Composable fun SetCreditsScreen(set: StudySet, onBack: () -> Unit, onLicences: () -> Unit) {
-    val credits = remember(set) { SetCredits.make(set, ExamStyles.exam(set.exam)) }
+    val credits = remember(set) { SetCredits.make(set, ExamCatalog.exam(set.exam)?.let { it.name to it.exemplars.rawValue }) }
     var reading by remember { mutableStateOf<SourceDoc?>(null) }
     Column(Modifier.fillMaxSize()) {
         ReaderNavBar(CreditsWords.title, leading = { ReaderBackButton(onBack) })

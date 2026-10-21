@@ -135,46 +135,6 @@ object ContentSources {
     }
 }
 
-/**
- * The exams a set can be written for, as their name and style bank: iOS
- * ExamCatalog's names and exemplars (fed0105), the only parts the credits
- * need, until the exam picker (batch 16) brings the whole catalogue.
- */
-object ExamStyles {
-    private const val step1 = "medqa-step1"
-    private const val step23 = "medqa-step23"
-    private const val medmcqa = "medmcqa"
-
-    private val exams: Map<String, Pair<String, String>> = linkedMapOf(
-        "step1" to ("USMLE Step 1" to step1),
-        "step2ck" to ("USMLE Step 2 CK" to step23),
-        "step3" to ("USMLE Step 3" to step23),
-        "comlex1" to ("COMLEX-USA Level 1" to step1),
-        "comlex2" to ("COMLEX-USA Level 2-CE" to step23),
-        "plab1" to ("PLAB 1 (UKMLA)" to step23),
-        "mrcp1" to ("MRCP(UK) Part 1" to step23),
-        "mrcsA" to ("MRCS Part A" to medmcqa),
-        "mccqe1" to ("MCCQE Part I" to step23),
-        "amc" to ("AMC CAT MCQ" to step23),
-        "neetpg" to ("NEET-PG" to medmcqa),
-        "inicet" to ("INI-CET" to medmcqa),
-        "fmge" to ("FMGE" to medmcqa),
-        "smle" to ("SMLE (Saudi Medical Licensing Exam)" to step23),
-        "dha" to ("DHA licensing exam (Dubai)" to step23),
-        "doh" to ("DOH licensing exam (Abu Dhabi, formerly HAAD)" to step23),
-        "mohap" to ("MOHAP licensing exam (UAE)" to step23),
-        "qchp" to ("QCHP / DHP licensing exam (Qatar)" to step23),
-        "omsb" to ("OMSB licensing exam (Oman)" to step23),
-        "emle" to ("Egyptian Medical Licensing Exam" to step23),
-        "ifom" to ("IFOM Clinical Science (NBME)" to step23),
-    )
-
-    /** The exam's name and style bank, or null for none or one not in the catalogue. */
-    fun exam(id: String?): Pair<String, String>? = if (id.isNullOrEmpty()) null else exams[id]
-
-    val count: Int get() = exams.size
-}
-
 /** One set's credits: what it was made from, and whose content it carries. */
 data class SetCredits(
     val lectures: List<Lecture> = emptyList(),
