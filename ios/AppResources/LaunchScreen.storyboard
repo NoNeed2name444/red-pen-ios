@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  The first frame, before any Swift runs: home's ECG paper (LaunchPaper, made
-  by tools/make_launch_paper.py) pinned to the screen's top left at its own
-  size, so its lines fall exactly where home draws them, and the stethoscope
-  (LaunchLogo) at its own size in the middle of the safe area, on the base
-  colour, light or dark with the phone. LaunchSplash lays the same two
-  pictures the same way for its first frame, and home stands on the same
-  paper, so the ground never changes.
+  The first frame, before any Swift runs: home's ground for the section it
+  opens on (LaunchPaper: the base with the section's wash and its grid, made
+  by tools/make_launch_ground.py from the app's own numbers, WardGround, at
+  2x and 3x) pinned to the screen's top left at its own size, so its lines
+  fall exactly where home draws them, and the stethoscope (LaunchLogo) at its
+  own size in the middle of the safe area, light or dark with the phone.
+  From its first frame LaunchSplash draws the same ground live, laid the same
+  way, and home stands on it, so the ground never changes.
 -->
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Lch-vc-001">
     <device id="retina6_12" orientation="portrait" appearance="light"/>

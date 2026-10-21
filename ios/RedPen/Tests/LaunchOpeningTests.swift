@@ -542,6 +542,37 @@ for banned in [".opacity", "opacity =", "\"opacity\"", ".transition(.opacity", "
     check("the splash never uses \(banned)", !splash.contains(banned))
 }
 
+// MARK: the opening's ground is home's, drawn live
+
+// The owner, 21 Oct: the first frame's ground did not match home's, and its
+// picture's lines were soft behind the stethoscope. From its first Swift
+// frame the splash draws home's own ground live (WardGroundView: home's
+// WardBackground and paper grid, for the section home opens on), with no
+// picture; and nothing keeps a neutral base until the hand-off any more, so
+// the ground never changes there. (The colours themselves: WardLookTests.)
+check("the splash draws home's ground live, for the section home opens on",
+      splash.contains("WardGroundView(section: .opening, origin: origin)")
+      && splash.contains("addSubview(ground.view)")
+      && splash.contains("ground.view.layer.add(gone, forKey: \"handoff\")"))
+check("the splash shows no picture of the ground and no neutral base",
+      !splash.contains("\"LaunchPaper\"") && !splash.contains("LaunchBackground") && !splash.contains("baseCG"))
+check("the ground's grid counts from the window's top left, as home's paper",
+      splash.contains("let origin = convert(CGPoint.zero, to: nil)"))
+check("no neutral base until the hand-off: the opening's ground is home's wash throughout",
+      !stageSource.contains("var inOpening: Bool") && !surfaces.contains("LaunchStage.shared.inOpening")
+      && !surfaces.contains("Color.ward(.background)"))
+check("WardBackground draws home's wash, or a given section's at rest",
+      section(surfaces, from: "struct WardBackground: View {", to: "struct WardGroundView: View {")
+        .contains("section.map { Color(uiColor: Color.uiColor(WardGround.home($0, dark: scheme == .dark).base)) } ?? Color.wardWash"))
+check("the ground view is WardBackground with home's paper grid over it",
+      section(surfaces, from: "struct WardGroundView: View {", to: "/// Where a page moves the top")
+        .contains("WardBackground(section: section)")
+      && section(surfaces, from: "struct WardGroundView: View {", to: "/// Where a page moves the top")
+        .contains("WardPaperInk.drawPaper(in: &context, size: size, from: origin, ink: ground.ink,"))
+check("home's paper stands on the same base with the wash",
+      paperStage.contains("let base = look.wash(dark: dark, held: held)")
+      && surfaces.contains("let launch = WardGround.home(dark: cut.dark)"))
+
 print(failures.isEmpty ? "\nALL LAUNCH OPENING TESTS PASS"
                        : "\n\(failures.count) LAUNCH OPENING TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

@@ -6,8 +6,10 @@ import UIKit
 /// Home's side of the opening's hand-off (LaunchSplash, LaunchOpening).
 ///
 /// While an opening is going to play, home is laid out but none of it is
-/// drawn except its ECG paper, the same paper the launch screen and the
-/// splash stand on (LaunchPaper), with no opening cut in it yet: every part
+/// drawn except its ECG paper, the same ground the launch screen and the
+/// splash stand on (home's own: the base with its section's wash and the
+/// section's grid, WardGround; the launch screen's LaunchPaper is drawn
+/// from the same numbers), with no opening cut in it yet: every part
 /// waits at nothing, so when the splash's own ground gives way there is no
 /// change to see. At the hand-off home's parts arrive in one wave up the
 /// screen behind the ECG (LaunchEntrance, LaunchOpening.arrival): first the
@@ -52,13 +54,6 @@ final class LaunchStage {
     /// window, in which nothing may be rendered that could be made before it
     /// (WardLightImages draws live instead and makes its images afterwards).
     var handingOff: Bool { link != nil }
-
-    /// From launch until the opening has handed over to home, the ground
-    /// keeps the neutral base so the launch screen and the opening never jump.
-    var inOpening: Bool {
-        guard LaunchSplash.wanted else { return false }
-        return !landed || link != nil || now.isFinite
-    }
 
     /// The time home is posed at: whole while it warms up.
     var poseTime: Double { warm ? .infinity : now }

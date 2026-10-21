@@ -40,6 +40,108 @@ enum WardControlStates {
     static let knobEdgeWidth = 1.0
 }
 
+/// The dock's geometry (CategoryDock): its panel, and the chosen tab's
+/// hollow and ring inside it. The ring is concentric with the panel: its
+/// corner radius is the panel's less the inset between them, in the same
+/// continuous corner style, so the two curves run parallel round every
+/// corner (the owner, 21 Oct: "the corner of the part doesn't match the
+/// corner around it"). The chosen tab's name sits wholly inside the ring's
+/// inner edge, clear of its corners, at every text size the dock is drawn
+/// at (past them it is one list button). Foundation only (WardStatesTests).
+enum WardDock {
+    /// The panel's corner radius (WardRadius.bar).
+    static let panelRadius = WardScale.xl
+    /// From the panel's edge to the tab's: the bar along the bottom, and
+    /// the wide iPad's rail.
+    static let barInset = 4.0
+    static let railInset = 5.0
+    /// The ring round the chosen tab: the accent edge, drawn inside its
+    /// hollow's shape (strokeBorder).
+    static let ringWidth = WardControlStates.chosenEdgeWidth
+    /// The tab's hollow (and its ring's outer edge), concentric with the panel.
+    static func tabRadius(inset: Double) -> Double { panelRadius - inset }
+    static var barTabRadius: Double { tabRadius(inset: barInset) }
+    static var railTabRadius: Double { tabRadius(inset: railInset) }
+
+    /// Round a tab's symbol and name: above and below, and at each side.
+    /// With these the name's box keeps `labelClearance` inside the ring's
+    /// inner edge, its corners too, whatever the text size makes the tab's
+    /// height (labelFits).
+    static let labelVertical = 8.0
+    static let labelSide = 10.0
+    /// The least room between the name and the ring's inner edge.
+    static let labelClearance = 1.0
+    /// A tab's least height: as tall as before (52 and 2 above and below).
+    static let tabMinHeight = 56.0
+
+    /// SwiftUI's continuous corner (`.continuous`) for radius 1, from the
+    /// edge's straight line into the corner's middle: three cubic curves,
+    /// as (along the edge, in from it) from where the curve leaves the
+    /// straight edge, 1.52866 radii from the corner.
+    static let continuousCorner: [[(Double, Double)]] = [
+        [(1.52866, 0), (1.08849, 0), (0.86840, 0), (0.66993, 0.06814)],
+        [(0.66993, 0.06814), (0.46213, 0.15429), (0.15429, 0.46213), (0.06814, 0.66993)],
+        [(0.06814, 0.66993), (0, 0.86840), (0, 1.08849), (0, 1.52866)],
+    ]
+
+    /// Points on a continuous corner of `radius`, as (x, y) from the
+    /// corner's two edges, the edges' lines being x = 0 and y = 0.
+    static func cornerPoints(radius: Double, steps: Int = 200) -> [(x: Double, y: Double)] {
+        var points: [(x: Double, y: Double)] = []
+        for curve in continuousCorner {
+            for i in 0...steps {
+                let t = Double(i) / Double(steps), m = 1 - t
+                let w = [m * m * m, 3 * m * m * t, 3 * m * t * t, t * t * t]
+                let x = zip(w, curve).map { $0 * $1.0 }.reduce(0, +)
+                let y = zip(w, curve).map { $0 * $1.1 }.reduce(0, +)
+                points.append((x * radius, y * radius))
+            }
+        }
+        return points
+    }
+
+    /// Whether a box's corner at (x, y) from a continuous corner's two
+    /// edges lies inside it, at least `clearance` from its curve.
+    static func inside(x: Double, y: Double, radius: Double, clearance: Double) -> Bool {
+        guard x >= clearance, y >= clearance else { return false }
+        let reach = 1.52866 * radius
+        if x >= reach + clearance || y >= reach + clearance { return true }
+        let curve = cornerPoints(radius: radius)
+        // inside is past the curve from the corner: at the box's height
+        // above the edge, further along than the curve
+        guard x >= depth(curve, at: y) else { return false }
+        var nearest = Double.infinity
+        for p in curve {
+            let dx: Double = x - p.x, dy: Double = y - p.y
+            nearest = min(nearest, (dx * dx + dy * dy).squareRoot())
+        }
+        return nearest >= clearance
+    }
+
+    /// How far along the edge the corner's curve is at `y` in from it (the
+    /// curve's y only grows along it, from 0 to the reach).
+    static func depth(_ curve: [(x: Double, y: Double)], at y: Double) -> Double {
+        guard let last = curve.last, y < last.y else { return 0 }
+        for (a, b) in zip(curve, curve.dropFirst()) where a.y <= y && y <= b.y {
+            let t = b.y > a.y ? (y - a.y) / (b.y - a.y) : 0
+            return a.x + (b.x - a.x) * t
+        }
+        return curve.first?.x ?? 0
+    }
+
+    /// Whether a tab's name, `width` by `height`, centred across a tab
+    /// `tabWidth` wide whose bottom edge is `below` under the name, sits
+    /// wholly inside a ring of corner `radius`: its box keeps
+    /// `labelClearance` from the ring's inner edge (the hollow's shape
+    /// inset by the ring's width, its radius less the same), corners too.
+    static func labelFits(width: Double, below: Double, tabWidth: Double, radius: Double) -> Bool {
+        let inner = radius - ringWidth
+        let side = (tabWidth - width) / 2 - ringWidth
+        let under = below - ringWidth
+        return inside(x: side, y: under, radius: inner, clearance: labelClearance)
+    }
+}
+
 /// One state of a control: chosen or not, held or not, enabled or not.
 struct WardControlState: Hashable, Sendable, CustomStringConvertible {
     var isChosen = false

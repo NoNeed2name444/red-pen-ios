@@ -6,8 +6,11 @@ import UIKit
 import AVFoundation
 #endif
 
-/// The opening: the owner's stethoscope on home's own ECG paper
-/// (LaunchPaper), exactly as the system launch screen drew it, and then,
+/// The opening: the owner's stethoscope on home's own ground (the base with
+/// the wash and the grid of the section home opens on, WardGround), drawn
+/// live from the first frame (WardGroundView) where the system launch screen
+/// showed the same ground as a picture (LaunchPaper, drawn from the same
+/// numbers by tools/make_launch_ground.py), and then,
 /// once the home screen's first real frame is up (the library read), one
 /// heartbeat:
 ///
@@ -16,16 +19,16 @@ import AVFoundation
 /// 2. one ECG complex is drawn under the mark (LaunchArt.trace), out from
 ///    the middle of a baseline, its R peak as the lub is heard and its T
 ///    wave ending as the dub is;
-/// 3. the hand-off, straight into home with no wipe: the splash's paper
-///    gives way to home's own (the same paper, with nothing of home drawn
+/// 3. the hand-off, straight into home with no wipe: the splash's ground
+///    gives way to home's own (the same ground, with nothing of home drawn
 ///    on it yet), the ECG travels up and shrinks into the squiggle beside
 ///    the title, the stethoscope glides up and shrinks away into the title
 ///    as its letters settle in, and home's parts spring into place in one
 ///    wave up the screen behind the ECG (LaunchStage).
 ///
 /// Nothing fades: everything is position, scale, stroke trims, a path
-/// morph and (when the app's light or dark differs from the phone's) a
-/// colour shift of the base.
+/// morph and (when the app's light or dark differs from the phone's) the
+/// ground turning from the phone's to the app's.
 /// The timings are LaunchOpening's, tested on Linux; here they are sampled
 /// into Core Animation keyframes, so the animation runs in the render server
 /// and a busy main thread cannot stall it. The sound and the drawing are
@@ -51,7 +54,8 @@ struct LaunchSplash: View {
     /// any longer looks hung.
     static let longestHold: Double = 2
 
-    /// How long the base colour takes to move to the app's, when it has to.
+    /// When the ground's light or dark differs from the app's: the phone's
+    /// ground (the launch screen's) turns to the app's halfway through this.
     static let shift: Double = 0.25
 
     /// Settings: whether the opening's heartbeat is heard (on by default).
@@ -60,27 +64,13 @@ struct LaunchSplash: View {
     static var soundOn: Bool { UserDefaults.standard.object(forKey: soundKey) as? Bool ?? true }
 
     /// Whether the phone itself (not the app's setting) is in dark mode: what
-    /// the system launch screen, LaunchBackground and LaunchLogo, was drawn
-    /// in. The screen's traits are the phone's; a window's can be the app's.
+    /// the system launch screen, LaunchPaper and LaunchLogo, was drawn in.
+    /// The screen's traits are the phone's; a window's can be the app's.
     @MainActor static var phoneIsDark: Bool {
         let screen = UIApplication.shared.connectedScenes
             .compactMap { ($0 as? UIWindowScene)?.screen }
             .first
         return screen?.traitCollection.userInterfaceStyle == .dark
-    }
-
-    /// The Ward base as the system launch screen drew it: the very colour
-    /// the launch screen names (LaunchBackground, as the asset compiler
-    /// stored it), so the two are the same pixels, not a value a rounding
-    /// apart (run 38595937165: one chroma step off in both modes, with the
-    /// colour written out). The written-out value is only the fallback.
-    static func baseCG(dark: Bool) -> CGColor {
-        let traits = UITraitCollection(userInterfaceStyle: dark ? .dark : .light)
-        if let named = UIColor(named: "LaunchBackground", in: nil, compatibleWith: traits) {
-            return named.resolvedColor(with: traits).cgColor
-        }
-        let (r, g, b) = WardPalette.rgb(WardPalette.hex(.background, dark: dark))
-        return UIColor(red: r, green: g, blue: b, alpha: 1).cgColor
     }
 
     /// Once per process: a second window on iPad, or a scene rebuilt after a
@@ -133,6 +123,18 @@ struct LaunchSplash: View {
     }
 }
 
+/// The opening's ground: home's own, for the section it opens on, in one
+/// light or dark, its grid from `origin` (the view's top left in the window).
+private struct LaunchGround: View {
+    let dark: Bool
+    var origin: CGPoint = .zero
+
+    var body: some View {
+        WardGroundView(section: .opening, origin: origin)
+            .environment(\.colorScheme, dark ? .dark : .light)
+    }
+}
+
 /// The opening's layers, in UIKit so Core Animation plays them.
 private struct LaunchOpeningLayer: UIViewRepresentable {
     let phoneDark: Bool
@@ -159,8 +161,11 @@ final class LaunchOpeningView: UIView {
     private let appDark: Bool
     private let side = CGFloat(LaunchArt.side)
 
-    private let ground = CALayer()         // the launch screen's base and paper, until the hand-off
-    private let paper = CALayer()          // LaunchPaper, at the screen's top left at its own size
+    /// home's ground, drawn live in the app's light or dark, until the hand-off
+    private let ground: UIHostingController<LaunchGround>
+    /// the phone's ground over it, for the first half of the shift, when the
+    /// app's light or dark differs from the phone's
+    private let phoneGround: UIHostingController<LaunchGround>?
     private let mark = CALayer()           // scales about the chest piece
     private let logo = CALayer()
     private let chest = CALayer()          // the chest piece alone, for the beat
@@ -177,6 +182,8 @@ final class LaunchOpeningView: UIView {
     init(phoneDark: Bool, appDark: Bool) {
         self.phoneDark = phoneDark
         self.appDark = appDark
+        ground = Self.host(dark: appDark)
+        phoneGround = appDark != phoneDark ? Self.host(dark: phoneDark) : nil
         super.init(frame: .zero)
         isUserInteractionEnabled = false
         isAccessibilityElement = false
@@ -193,32 +200,21 @@ final class LaunchOpeningView: UIView {
     private func build() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        layer.addSublayer(ground)
-        ground.backgroundColor = LaunchSplash.baseCG(dark: appDark)
-        ground.masksToBounds = true
-        ground.addSublayer(paper)
-        let sheet = Self.paperImage(dark: appDark)
-        paper.contents = sheet?.cgImage
-        paper.contentsScale = sheet?.scale ?? UIScreen.main.scale
-        paper.contentsGravity = .resize
-        paper.magnificationFilter = .nearest
-        if appDark != phoneDark {
-            // a colour shift, not a fade: from the phone's base to the app's,
-            // the paper's lines turning over halfway
-            let shift = CABasicAnimation(keyPath: "backgroundColor")
-            shift.fromValue = LaunchSplash.baseCG(dark: phoneDark)
-            shift.toValue = LaunchSplash.baseCG(dark: appDark)
-            shift.duration = LaunchSplash.shift
-            shift.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            shift.fillMode = .backwards
-            ground.add(shift, forKey: "shift")
-            let turn = CAKeyframeAnimation(keyPath: "contents")
-            turn.values = [Self.paperImage(dark: phoneDark)?.cgImage as Any, sheet?.cgImage as Any]
+        // home's own ground, drawn live (no picture): the base with the
+        // wash and the grid of the section home opens on, as home draws it
+        addSubview(ground.view)
+        if let phoneGround {
+            // not a fade: the phone's ground (the launch screen's) turns to
+            // the app's halfway through the shift, in one step
+            addSubview(phoneGround.view)
+            phoneGround.view.layer.isHidden = true
+            let turn = CAKeyframeAnimation(keyPath: "hidden")
+            turn.values = [false, true]
             turn.keyTimes = [0, 0.5, 1]
             turn.calculationMode = .discrete
             turn.duration = LaunchSplash.shift
             turn.fillMode = .backwards
-            paper.add(turn, forKey: "shift")
+            phoneGround.view.layer.add(turn, forKey: "shift")
         }
 
         let traits = UITraitCollection(userInterfaceStyle: phoneDark ? .dark : .light)
@@ -261,11 +257,14 @@ final class LaunchOpeningView: UIView {
         CATransaction.commit()
     }
 
-    /// Home's ECG paper as the launch screen lays it (LaunchPaper, made by
-    /// tools/make_launch_paper.py), in light or dark.
-    private static func paperImage(dark: Bool) -> UIImage? {
-        UIImage(named: "LaunchPaper", in: nil,
-                compatibleWith: UITraitCollection(userInterfaceStyle: dark ? .dark : .light))
+    /// Home's ground in one light or dark, hosted for this UIKit view.
+    private static func host(dark: Bool) -> UIHostingController<LaunchGround> {
+        let host = UIHostingController(rootView: LaunchGround(dark: dark))
+        host.safeAreaRegions = []
+        host.view.backgroundColor = .clear
+        host.view.isUserInteractionEnabled = false
+        host.view.accessibilityElementsHidden = true
+        return host
     }
 
     private static func traceColor(dark: Bool) -> CGColor {
@@ -286,11 +285,13 @@ final class LaunchOpeningView: UIView {
         super.layoutSubviews()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        ground.frame = bounds
-        // the paper from the screen's top left at its own size, as the launch
-        // screen pins it, so its lines fall on home's
-        let sheet = (paper.contents != nil ? Self.paperImage(dark: appDark) : nil)?.size ?? .zero
-        paper.frame = CGRect(origin: convert(CGPoint.zero, from: nil), size: sheet)
+        // the ground over the whole view, its grid counted from the
+        // window's top left, as home's paper and the launch screen lay it
+        let origin = convert(CGPoint.zero, to: nil)
+        for host in [ground, phoneGround].compactMap({ $0 }) {
+            host.view.frame = bounds
+            if host.rootView.origin != origin { host.rootView.origin = origin }
+        }
         // centred in the safe area at its natural size, where the launch
         // screen puts the same image: the window's insets, since this view
         // spans the whole screen (SwiftUI's ignoresSafeArea leaves its own
@@ -437,7 +438,7 @@ final class LaunchOpeningView: UIView {
                 return NSValue(cgPoint: CGPoint(x: x, y: y))
             }), forKey: "glide")
             mark.add(keys("transform.scale", times.map { o.markScale(at: $0) }), forKey: "shrink")
-            // the splash's paper gives way to home's (the same paper, with
+            // the splash's ground gives way to home's (the same ground, with
             // nothing of home drawn on it yet): no pixel changes
             let gone = CAKeyframeAnimation(keyPath: "hidden")
             gone.values = [false, true]
@@ -447,7 +448,7 @@ final class LaunchOpeningView: UIView {
             gone.beginTime = zero
             gone.fillMode = .both
             gone.isRemovedOnCompletion = false
-            ground.add(gone, forKey: "handoff")
+            ground.view.layer.add(gone, forKey: "handoff")
             enterNavigationBars(o, from: zero)
         } else if o.reduced {
             // Reduce Motion: the mark shrinks where it stands, then home is there
