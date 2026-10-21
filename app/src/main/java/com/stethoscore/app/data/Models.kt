@@ -59,27 +59,6 @@ object NarrateScheduler {
 data class SourceDoc(val id: String = newId(), val name: String, val kind: String = "text", val pages: List<SourcePage> = emptyList(), val addedAt: Long = System.currentTimeMillis(), val fileBlob: String? = null, val rawJson: String = "{}")
 data class SourcePage(val number: Int, val text: String, val recognised: Boolean = false, val rawJson: String = "{}")
 
-data class CasePatient(val name: String = "", val age: Int = 0, val sex: String = "", val about: String = "", val rawJson: String = "{}") {
-    val initials: String get() = name.split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }
-    val ageSex: String get() = listOf(if (age > 0) "$age" else "", sex).filter { it.isNotBlank() }.joinToString(" ")
-}
-data class CaseClerking(val presenting: String = "", val history: String = "", val past: String = "", val drugs: String = "", val social: String = "", val rawJson: String = "{}") {
-    val parts: List<Pair<String, String>> get() = listOf("Presenting complaint" to presenting, "History" to history, "Past medical history" to past, "Drugs and allergies" to drugs, "Social history" to social).filter { it.second.isNotBlank() }
-}
-data class CaseObservation(val sign: String, val value: Double, val second: Double? = null, val rawJson: String = "{}") {
-    val shown: String get() = number(value) + if (second != null) "/${number(second)}" else ""
-    val label: String get() = when (sign) { "spo2" -> "SpO₂"; "temp" -> "Temp"; else -> sign.uppercase() }
-    val unit: String get() = when (sign) { "hr", "rr" -> "/min"; "bp" -> "mmHg"; "spo2" -> "%"; "temp" -> "°C"; "gcs" -> "/15"; else -> "" }
-    private fun number(n: Double) = if (n == n.toLong().toDouble()) n.toLong().toString() else n.toString()
-}
-data class CaseLabResult(val name: String, val value: Double, val unit: String = "", val low: Double? = null, val high: Double? = null, val rawJson: String = "{}")
-data class CaseStep(val id: String = newId(), val group: String = "examine", val label: String, val finding: String, val minutes: Int = 2, val value: String = "useful", val redFlag: Boolean = false, val mustNotMiss: Boolean = false, val results: List<CaseLabResult> = emptyList(), val note: String = "", val rawJson: String = "{}")
-data class CaseDiagnosis(val name: String = "", val accepted: List<String> = emptyList(), val rawJson: String = "{}")
-data class CaseDifferential(val name: String, val accepted: List<String> = emptyList(), val supportedBy: List<String> = emptyList(), val againstBy: List<String> = emptyList(), val rawJson: String = "{}")
-data class CaseNextStep(val options: List<String> = emptyList(), val key: Int = 0, val why: String = "", val rawJson: String = "{}")
-data class CaseSource(val lecture: String = "", val pages: String = "", val rawJson: String = "{}")
-data class CaseFile(val id: String = newId(), val title: String = "", val specialty: String = "", val setting: String = "ward", val patient: CasePatient = CasePatient(), val complaint: String = "", val clerking: CaseClerking = CaseClerking(), val arrival: List<CaseObservation> = emptyList(), val budgetMinutes: Int = 20, val steps: List<CaseStep> = emptyList(), val diagnosis: CaseDiagnosis = CaseDiagnosis(), val differentials: List<CaseDifferential> = emptyList(), val distractors: List<String> = emptyList(), val turningStep: String = "", val nextStep: CaseNextStep = CaseNextStep(), val teaching: List<String> = emptyList(), val source: CaseSource = CaseSource(), val verification: String = "unchecked", val heldBecause: List<String> = emptyList(), val rawJson: String = "{}")
-
 data class QuizProgress(val current: Int, val answers: List<MCQAnswer>, val questionIds: List<String>, val optionOrders: List<List<Int>>, val savedAt: Long = System.currentTimeMillis())
 data class ReadingProgress(val position: Int, val savedAt: Long = System.currentTimeMillis())
 data class OsceProgress(val checklistIndex: Int, val checklistTitle: String, val stepIndex: Int, val missed: List<Int> = emptyList(), val savedAt: Long = System.currentTimeMillis()) {
