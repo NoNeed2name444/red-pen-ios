@@ -1,0 +1,15 @@
+== logs/build-iphone-graph.log (the build failed)
+Command line invocation:
+    /Applications/Xcode_26.6.app/Contents/Developer/usr/bin/xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug -destination "platform=iOS Simulator,id=E839A11B-51B4-4AD3-ACF4-A53B95B7C957" -derivedDataPath build-sim -skipMacroValidation -skipPackagePluginValidation SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO CODE_SIGNING_ALLOWED=NO build-for-testing
+
+Build settings from command line:
+    CLANG_ENABLE_EXPLICIT_MODULES = NO
+    CODE_SIGNING_ALLOWED = NO
+    SWIFT_ENABLE_EXPLICIT_MODULES = NO
+
+Resolve Package Graph
+
+Fetching from https://github.com/tattn/LocalLLMClient.git
+
+== logs/ipad.log
+no simulator for ipad on this runner
