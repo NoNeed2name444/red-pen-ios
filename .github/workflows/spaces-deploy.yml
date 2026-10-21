@@ -1,0 +1,51 @@
+# Puts Doctor-R1 and MedVAL-4B in the cloud: one Hugging Face Space each,
+# running llama.cpp (server/spaces). Needs one extra repository secret:
+#   HF_WRITE_TOKEN  a Hugging Face token with WRITE access (to create the Spaces)
+# Then run "Deploy the worker" so CramDown's server starts using them.
+name: Deploy the medical model Spaces
+on:
+  workflow_dispatch:
+    inputs:
+      hardware:
+        description: cpu-basic (free, slow) or e.g. t4-small / l4x1 (paid, fast)
+        required: false
+        default: cpu-basic
+jobs:
+  spaces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create or update the Spaces
+        env:
+          HF_WRITE_TOKEN: ${{ secrets.HF_WRITE_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          HARDWARE: ${{ inputs.hardware }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HF_WRITE_TOKEN:-}" ]; then echo "::error::Add the HF_WRITE_TOKEN repository secret first."; exit 1; fi
+          pip install -q huggingface_hub
+          export SPACE_KEY=$(printf 'cramdown-space:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_WRITE_TOKEN"])
+          user = api.whoami()["name"]
+          for name, model in [("cramdown-doctor", "mradermacher/Doctor-R1-GGUF:Q4_K_M"),
+                              ("cramdown-medval", "stanfordmimi/MedVAL-4B-GGUF:Q4_K_M")]:
+              repo = f"{user}/{name}"
+              api.create_repo(repo, repo_type="space", space_sdk="docker", exist_ok=True)
+              api.add_space_variable(repo, "MODEL", model)
+              api.add_space_secret(repo, "API_KEY", os.environ["SPACE_KEY"])
+              api.upload_folder(repo_id=repo, repo_type="space", folder_path="server/spaces")
+              hw = os.environ.get("HARDWARE") or "cpu-basic"
+              try:
+                  api.request_space_hardware(repo, hw, sleep_time=900 if hw != "cpu-basic" else None)
+              except Exception as e:
+                  print(f"hardware {hw} for {repo}: {e}")
+              host = f"https://{user.lower()}-{name}.hf.space/v1"
+              print(f"{name}: https://huggingface.co/spaces/{repo}  ->  {host}")
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+                  f.write(f"- {name}: {host}\n")
+          PY
+          echo "Now run 'Deploy the worker' so CramDown's server points at these." >> "$GITHUB_STEP_SUMMARY"

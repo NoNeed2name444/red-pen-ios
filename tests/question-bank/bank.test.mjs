@@ -70,7 +70,7 @@ writeFileSync(join(dir, 'p.jsonl'), JSON.stringify(passage) + '\n');
 const calls = [];
 const worker = async (url, init) => {
   const body = JSON.parse(init.body);
-  calls.push(url.split('.dev')[1]);
+  calls.push(new URL(url).pathname); // WORKER may not be a .dev domain (e.g. 127.0.0.1)
   if (url.endsWith('/v1/chat/completions')) return new Response(JSON.stringify({ model: 'gemma-4-31b-it', choices: [{ message: { content: JSON.stringify([good, { ...good, options: good.options.slice(0, 3) }]) } }] }));
   return new Response(JSON.stringify({ items: body.items.map(i => ({ id: i.id, verdict: 'verified', p: 0.93 })) }));
 };

@@ -1,0 +1,2254 @@
+{
+ "v": 1,
+ "set": "r-test",
+ "words": "bench-words-1",
+ "about": "R-test, for reporting: the 90 bench questions (seed 7, 30 a source: MedXpertQA, MedQA, CareQA Medicine), as layer.mjs picks them.",
+ "labels": "mechanical (retrieval-set.mjs header): keyWords and meshWords are the key's and the MeSH term's words (benchWords); drugs are the drugs named (drugsNamed: found by RxNav, openFDA or the engine's list; key: named in the key; fda: its FDA label, fdaOracle); oracle is the official documents that exist for the item (label 2), looked up once and never pooled from a run (an FDA label as fda:<drug tokens> with its set_id, a MedlinePlus topic by its address; key: the key's own); a passage's label 1 is computed at run time from the item, these inputs and the bench's words.",
+ "sources": {
+  "rxnav": "rxcui.json search=2, then the concept's term type (IN, PIN, MIN)",
+  "openFDA": "keyless: counts of openfda.generic_name.exact, then generic_name.exact searches",
+  "medlinePlus": "mplus_topics_2026-10-16.xml",
+  "mesh": "id.nlm.nih.gov/mesh lookup"
+ },
+ "lookedUp": "2026-10-16",
+ "items": [
+  {
+   "id": "medxpertqa:Text-858",
+   "group": "MedXpertQA",
+   "sha": "d8d62adc64ba2e9a",
+   "keyWords": [
+    "endoscopy"
+   ],
+   "mesh": "Endoscopy",
+   "meshWords": [
+    "endoscopy"
+   ],
+   "drugs": [
+    {
+     "name": "activated charcoal",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "polyethylene glycol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:activated charcoal",
+     "title": "ACTIVATED CHARCOAL",
+     "setId": "2e6e0480-1000-22f1-e063-6394a90a0fc5",
+     "key": false
+    },
+    {
+     "id": "fda:polyethylene glycol",
+     "title": "POLYETHYLENE GLYCOL",
+     "setId": "a5aaaf06-772d-44d3-8601-f978ddc48ad7",
+     "key": false
+    },
+    {
+     "id": "https://medlineplus.gov/endoscopy.html",
+     "title": "Endoscopy",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-1287",
+   "group": "MedXpertQA",
+   "sha": "61b4b3888cd32a4e",
+   "keyWords": [
+    "inlet",
+    "iliac",
+    "oblique",
+    "view"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1921",
+   "group": "MedXpertQA",
+   "sha": "66535c43766574c4",
+   "keyWords": [
+    "t6",
+    "extended",
+    "rotated",
+    "left",
+    "sidebent",
+    "left"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-271",
+   "group": "MedXpertQA",
+   "sha": "6e9621201d671add",
+   "keyWords": [
+    "unfavorable",
+    "intermediate"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-2027",
+   "group": "MedXpertQA",
+   "sha": "2d02e8c6446b398e",
+   "keyWords": [
+    "2600",
+    "cgy"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-231",
+   "group": "MedXpertQA",
+   "sha": "9887080e8280a4b9",
+   "keyWords": [
+    "autosomal",
+    "recessive"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1467",
+   "group": "MedXpertQA",
+   "sha": "458d061ab75f4383",
+   "keyWords": [
+    "left",
+    "inferior",
+    "pubic",
+    "shear"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1655",
+   "group": "MedXpertQA",
+   "sha": "c37a1e94ccf85057",
+   "keyWords": [
+    "needle",
+    "aspiration",
+    "and",
+    "oral",
+    "dicloxacillin"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "ibuprofen",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "fluconazole",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "vancomycin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "dicloxacillin",
+     "by": "dictionary",
+     "key": true,
+     "fda": "salt-only"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:ibuprofen",
+     "title": "IBUPROFEN",
+     "setId": "00653b7c-7099-487e-9a01-e89781c21323",
+     "key": false
+    },
+    {
+     "id": "fda:fluconazole",
+     "title": "FLUCONAZOLE",
+     "setId": "01df20c4-7b94-044e-e063-6394a90a406a",
+     "key": false
+    },
+    {
+     "id": "fda:vancomycin",
+     "title": "VANCOMYCIN HYDROCHLORIDE",
+     "setId": "00946db3-d6c5-4534-a870-1ec6e63eda43",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-1153",
+   "group": "MedXpertQA",
+   "sha": "04882d6bead904e6",
+   "keyWords": [
+    "nucleic",
+    "acid",
+    "amplification",
+    "testing"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1418",
+   "group": "MedXpertQA",
+   "sha": "6b19562a906f89ae",
+   "keyWords": [
+    "ceftriaxone",
+    "and",
+    "doxycycline"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "metronidazole",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "clindamycin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "ceftriaxone",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "doxycycline",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "azithromycin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "sulfamethoxazole trimethoprim",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "trimethoprim",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "sulfamethoxazole",
+     "by": "dictionary",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "fluconazole",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "amoxicillin clavulanate",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "amoxicillin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:metronidazole",
+     "title": "METRONIDAZOLE",
+     "setId": "02046a22-a5eb-4bb7-bec7-e5a2aa55e142",
+     "key": false
+    },
+    {
+     "id": "fda:clindamycin",
+     "title": "CLINDAMYCIN HYDROCHLORIDE",
+     "setId": "07f5d841-9c58-4dd1-b0bc-e12553931c8e",
+     "key": false
+    },
+    {
+     "id": "fda:ceftriaxone",
+     "title": "CEFTRIAXONE",
+     "setId": "1f8776bd-4f5b-427a-849a-6b8338f7997d",
+     "key": true
+    },
+    {
+     "id": "fda:doxycycline",
+     "title": "DOXYCYCLINE",
+     "setId": "00b2aa98-dea2-90c3-e063-6294a90a35d6",
+     "key": true
+    },
+    {
+     "id": "fda:azithromycin",
+     "title": "AZITHROMYCIN",
+     "setId": "003307c5-3f73-4a5d-a704-bfdea3c656e8",
+     "key": false
+    },
+    {
+     "id": "fda:sulfamethoxazole trimethoprim",
+     "title": "SULFAMETHOXAZOLE AND TRIMETHOPRIM",
+     "setId": "079c828c-148f-45b9-966e-d8906043b2a2",
+     "key": false
+    },
+    {
+     "id": "fda:trimethoprim",
+     "title": "TRIMETHOPRIM",
+     "setId": "249e938d-f181-47c4-a082-372d65462f33",
+     "key": false
+    },
+    {
+     "id": "fda:fluconazole",
+     "title": "FLUCONAZOLE",
+     "setId": "01df20c4-7b94-044e-e063-6394a90a406a",
+     "key": false
+    },
+    {
+     "id": "fda:amoxicillin",
+     "title": "AMOXICILLIN",
+     "setId": "00fbd46e-05fd-4f8a-9f59-a7a4d01c8e54",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-1525",
+   "group": "MedXpertQA",
+   "sha": "c733b3b9d1536132",
+   "keyWords": [
+    "absent",
+    "thumb"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-973",
+   "group": "MedXpertQA",
+   "sha": "2f8caf23bd495396",
+   "keyWords": [
+    "increase",
+    "in",
+    "pyloric",
+    "sphincter",
+    "tone"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "epinephrine",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:epinephrine",
+     "title": "EPINEPHRINE",
+     "setId": "0172280c-f7d6-4613-9dbd-f94d3ae5825a",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-1460",
+   "group": "MedXpertQA",
+   "sha": "0109338cfc991773",
+   "keyWords": [
+    "esophagogastroduodenoscopy"
+   ],
+   "mesh": "Endoscopy, Digestive System",
+   "meshWords": [
+    "endoscopy",
+    "digestive",
+    "system"
+   ],
+   "drugs": [
+    {
+     "name": "mirtazapine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:mirtazapine",
+     "title": "MIRTAZAPINE",
+     "setId": "0f19ab40-1a30-4ac2-9bd7-c2f8199e29e1",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-1014",
+   "group": "MedXpertQA",
+   "sha": "1ffb63cad8a7cbb5",
+   "keyWords": [
+    "proximal",
+    "interphalangeal",
+    "joint",
+    "flexion"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1905",
+   "group": "MedXpertQA",
+   "sha": "6e38951c2df9d573",
+   "keyWords": [
+    "ventricular",
+    "septal",
+    "defect"
+   ],
+   "mesh": "Heart Septal Defects, Ventricular",
+   "meshWords": [
+    "heart",
+    "septal",
+    "defects",
+    "ventricular"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1648",
+   "group": "MedXpertQA",
+   "sha": "7512c0e46c276952",
+   "keyWords": [
+    "anterior",
+    "spike",
+    "displacement",
+    "of",
+    "the",
+    "proximal",
+    "fragment"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-353",
+   "group": "MedXpertQA",
+   "sha": "74b97e69131d0f43",
+   "keyWords": [
+    "blurry",
+    "vision"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1349",
+   "group": "MedXpertQA",
+   "sha": "acfbec873e1b3d98",
+   "keyWords": [
+    "left",
+    "sided",
+    "cerebellar",
+    "tumor"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-447",
+   "group": "MedXpertQA",
+   "sha": "320420e5c1d0ce67",
+   "keyWords": [
+    "repeat",
+    "cystoscopy",
+    "with",
+    "transurethral",
+    "resection",
+    "and",
+    "fulguration"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "mitomycin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:mitomycin",
+     "title": "MITOMYCIN",
+     "setId": "0171a1c8-c474-4ec1-a11d-6b93a21ca460",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-572",
+   "group": "MedXpertQA",
+   "sha": "922a1fe323ed2dfa",
+   "keyWords": [
+    "renal",
+    "cell",
+    "carcinoma"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-472",
+   "group": "MedXpertQA",
+   "sha": "5f2c4f60e5bdf802",
+   "keyWords": [
+    "lack",
+    "of",
+    "empathy",
+    "by",
+    "provider"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1201",
+   "group": "MedXpertQA",
+   "sha": "34ca901f97c87d69",
+   "keyWords": [
+    "recurrent",
+    "pulmonary",
+    "embolism"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1390",
+   "group": "MedXpertQA",
+   "sha": "17bc708ced8531f1",
+   "keyWords": [
+    "intercostal",
+    "neuralgia"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-2136",
+   "group": "MedXpertQA",
+   "sha": "b876c5a5ad6c77b3",
+   "keyWords": [
+    "surgical",
+    "exploration"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "morphine",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:morphine",
+     "title": "MORPHINE",
+     "setId": "8a77894b-2137-4f46-8dff-5c7b773d4d16",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-161",
+   "group": "MedXpertQA",
+   "sha": "ad5c5690afc1d84f",
+   "keyWords": [
+    "start",
+    "a",
+    "dihydropyridine",
+    "calcium",
+    "channel",
+    "blocker"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "aspirin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "lisinopril",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "hydrochlorothiazide",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:aspirin",
+     "title": "ASPIRIN",
+     "setId": "0058175f-3474-40c3-a046-6cfaec86d84b",
+     "key": false
+    },
+    {
+     "id": "fda:lisinopril",
+     "title": "LISINOPRIL",
+     "setId": "021831ab-dfeb-40fc-aede-4aa1fbb8d918",
+     "key": false
+    },
+    {
+     "id": "fda:hydrochlorothiazide",
+     "title": "HYDROCHLOROTHIAZIDE",
+     "setId": "01ad3531-5ed9-434c-b7d5-02d72aa82e46",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-1330",
+   "group": "MedXpertQA",
+   "sha": "61a3fc969e2a4c09",
+   "keyWords": [
+    "plasma",
+    "cells"
+   ],
+   "mesh": "Plasma Cells",
+   "meshWords": [
+    "plasma",
+    "cells"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-1097",
+   "group": "MedXpertQA",
+   "sha": "b657dcc28e68d99d",
+   "keyWords": [
+    "conduct",
+    "interviews",
+    "with",
+    "all",
+    "staff",
+    "members",
+    "involved",
+    "in",
+    "the",
+    "patient",
+    "s",
+    "care"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-2016",
+   "group": "MedXpertQA",
+   "sha": "f729772a3541b66b",
+   "keyWords": [
+    "ataxia"
+   ],
+   "mesh": "Ataxia",
+   "meshWords": [
+    "ataxia"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medxpertqa:Text-442",
+   "group": "MedXpertQA",
+   "sha": "e826af4fcd4dbf16",
+   "keyWords": [
+    "administer",
+    "amiodarone",
+    "1",
+    "mg",
+    "min",
+    "iv"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "adenosine",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "amiodarone",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "warfarin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "metoprolol",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "digoxin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:adenosine",
+     "title": "ADENOSINE",
+     "setId": "0c71d3f0-949d-4c00-8758-4ae7c9fd11ed",
+     "key": false
+    },
+    {
+     "id": "fda:amiodarone",
+     "title": "AMIODARONE HYDROCHLORIDE",
+     "setId": "02f4a736-63ed-4ad4-a1f1-b21a71e928bd",
+     "key": true
+    },
+    {
+     "id": "fda:warfarin",
+     "title": "WARFARIN",
+     "setId": "2cbcc99d-9107-4d39-a1e9-e19305de8b5d",
+     "key": false
+    },
+    {
+     "id": "fda:metoprolol",
+     "title": "METOPROLOL",
+     "setId": "00940cc5-d2eb-4841-9138-de97d7b1c674",
+     "key": false
+    },
+    {
+     "id": "fda:digoxin",
+     "title": "DIGOXIN",
+     "setId": "03612934-62f4-4002-85af-6c66cd172acb",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medxpertqa:Text-1665",
+   "group": "MedXpertQA",
+   "sha": "d32a8d499fe3305e",
+   "keyWords": [
+    "bilateral",
+    "surgical",
+    "procedure"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4836",
+   "group": "MedQA",
+   "sha": "e6144837cb7ec1e3",
+   "keyWords": [
+    "i",
+    "iii",
+    "iv"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4433",
+   "group": "MedQA",
+   "sha": "8d2a7fe34df75bac",
+   "keyWords": [
+    "5"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4988",
+   "group": "MedQA",
+   "sha": "a02dcb163f8fa4c0",
+   "keyWords": [
+    "heroin"
+   ],
+   "mesh": "Heroin",
+   "meshWords": [
+    "heroin"
+   ],
+   "drugs": [
+    {
+     "name": "amitriptyline",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "cocaine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "ethylene glycol",
+     "by": "rxnav",
+     "key": false,
+     "fda": "none"
+    },
+    {
+     "name": "heroin",
+     "by": "rxnav",
+     "key": true,
+     "fda": "none"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:amitriptyline",
+     "title": "AMITRIPTYLINE HYDROCHLORIDE",
+     "setId": "0067b698-ee1d-4524-b1cc-af1028d13736",
+     "key": false
+    },
+    {
+     "id": "fda:cocaine",
+     "title": "COCAINE HYDROCHLORIDE",
+     "setId": "0f897764-fe30-090a-e063-6294a90af106",
+     "key": false
+    },
+    {
+     "id": "https://medlineplus.gov/heroin.html",
+     "title": "Heroin",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medqa:5240",
+   "group": "MedQA",
+   "sha": "ca038db22eb2e51a",
+   "keyWords": [
+    "zinc"
+   ],
+   "mesh": "Zinc",
+   "meshWords": [
+    "zinc"
+   ],
+   "drugs": [
+    {
+     "name": "niacin",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "vitamin b 12",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "iron",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "zinc",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:niacin",
+     "title": "NIACIN",
+     "setId": "249e27ac-e1e7-42dc-84f6-cd32fd1d9dee",
+     "key": false
+    },
+    {
+     "id": "fda:iron",
+     "title": "IRON",
+     "setId": "2392929c-996b-01e0-e063-6394a90aa2b9",
+     "key": false
+    },
+    {
+     "id": "fda:zinc",
+     "title": "ZINC",
+     "setId": "0eba1030-7c33-11e6-8959-424c58303031",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medqa:5288",
+   "group": "MedQA",
+   "sha": "103e6c388f861e30",
+   "keyWords": [
+    "begin",
+    "warfarin",
+    "and",
+    "heparin"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "aspirin",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "clopidogrel",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "warfarin",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:aspirin",
+     "title": "ASPIRIN",
+     "setId": "0058175f-3474-40c3-a046-6cfaec86d84b",
+     "key": false
+    },
+    {
+     "id": "fda:clopidogrel",
+     "title": "CLOPIDOGREL",
+     "setId": "02f0eaf8-0fc2-425d-8259-cef00156e25d",
+     "key": false
+    },
+    {
+     "id": "fda:warfarin",
+     "title": "WARFARIN",
+     "setId": "2cbcc99d-9107-4d39-a1e9-e19305de8b5d",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medqa:5132",
+   "group": "MedQA",
+   "sha": "70c9bbbd96bced2d",
+   "keyWords": [
+    "adaptation",
+    "in",
+    "binding",
+    "proteins"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:5623",
+   "group": "MedQA",
+   "sha": "e9d0fd7d601b448f",
+   "keyWords": [
+    "i",
+    "really",
+    "haven",
+    "t",
+    "thought",
+    "about",
+    "the",
+    "colonoscopy",
+    "until",
+    "today",
+    "worrying",
+    "before",
+    "getting",
+    "the",
+    "results",
+    "wasn",
+    "t",
+    "going",
+    "to",
+    "help",
+    "anything"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4587",
+   "group": "MedQA",
+   "sha": "fc0ff8bc4e7e3e97",
+   "keyWords": [
+    "elevated",
+    "tsh"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:5001",
+   "group": "MedQA",
+   "sha": "ab4530be711a32a7",
+   "keyWords": [
+    "increased",
+    "adenylate",
+    "cyclase",
+    "activity"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4376",
+   "group": "MedQA",
+   "sha": "48b7272eaafe76dc",
+   "keyWords": [
+    "ibuprofen",
+    "colchicine",
+    "omeprazole"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "omeprazole",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "ibuprofen",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "colchicine",
+     "by": "dictionary",
+     "key": true,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:omeprazole",
+     "title": "OMEPRAZOLE",
+     "setId": "015b1c8f-9d5b-4afc-a55c-1a731b5fc72a",
+     "key": true
+    },
+    {
+     "id": "fda:ibuprofen",
+     "title": "IBUPROFEN",
+     "setId": "00653b7c-7099-487e-9a01-e89781c21323",
+     "key": true
+    },
+    {
+     "id": "fda:colchicine",
+     "title": "COLCHICINE",
+     "setId": "0f69b9c6-8c00-45e2-b950-34dc5ae62352",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medqa:4717",
+   "group": "MedQA",
+   "sha": "cabaf0fb677f0970",
+   "keyWords": [
+    "bacteroides",
+    "fragilis"
+   ],
+   "mesh": "Bacteroides fragilis",
+   "meshWords": [
+    "bacteroides",
+    "fragilis"
+   ],
+   "drugs": [
+    {
+     "name": "campylobacter jejuni",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "clostridium perfringen",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    },
+    {
+     "name": "shigella sonnei",
+     "by": "rxnav",
+     "key": false,
+     "fda": "combination-only"
+    }
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4397",
+   "group": "MedQA",
+   "sha": "b8a8e531e0a43554",
+   "keyWords": [
+    "arcuate",
+    "fasciculus"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4840",
+   "group": "MedQA",
+   "sha": "f71eef2b0dae3eab",
+   "keyWords": [
+    "squamous",
+    "cell",
+    "carcinoma"
+   ],
+   "mesh": "Carcinoma, Squamous Cell",
+   "meshWords": [
+    "carcinoma",
+    "squamous",
+    "cell"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:5538",
+   "group": "MedQA",
+   "sha": "5670c66d34bb160c",
+   "keyWords": [
+    "myocardial",
+    "perfusion",
+    "scan",
+    "under",
+    "pharmacological",
+    "stress"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4652",
+   "group": "MedQA",
+   "sha": "8d088fa3e7554f6c",
+   "keyWords": [
+    "minimal",
+    "change",
+    "disease"
+   ],
+   "mesh": "Nephrosis, Lipoid",
+   "meshWords": [
+    "nephrosis",
+    "lipoid"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4685",
+   "group": "MedQA",
+   "sha": "268eac9b68026b05",
+   "keyWords": [
+    "adhesive",
+    "pili"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:5280",
+   "group": "MedQA",
+   "sha": "7c4c59106224b17e",
+   "keyWords": [
+    "gonadectomy"
+   ],
+   "mesh": "Castration",
+   "meshWords": [
+    "castration"
+   ],
+   "drugs": [
+    {
+     "name": "prednisolone",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:prednisolone",
+     "title": "PREDNISOLONE",
+     "setId": "070f1937-50a5-457f-bef5-4e597014e26d",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medqa:4972",
+   "group": "MedQA",
+   "sha": "5a3a27ff7f8c4750",
+   "keyWords": [
+    "external",
+    "anal",
+    "sphincter"
+   ],
+   "mesh": "Anal Canal",
+   "meshWords": [
+    "anal",
+    "canal"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4773",
+   "group": "MedQA",
+   "sha": "0071d425cb517c44",
+   "keyWords": [
+    "proton",
+    "pump",
+    "inhibitors"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "lithium",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "estrogen",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:lithium",
+     "title": "LITHIUM",
+     "setId": "59d0e8e3-bc0b-0cc1-e063-6394a90a0a6d",
+     "key": false
+    },
+    {
+     "id": "fda:estrogen",
+     "title": "ESTROGEN",
+     "setId": "3515b12e-5c2e-2e7c-e063-6394a90aa636",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medqa:4962",
+   "group": "MedQA",
+   "sha": "a686b2159c37abc8",
+   "keyWords": [
+    "sickle",
+    "cell",
+    "disease"
+   ],
+   "mesh": "Anemia, Sickle Cell",
+   "meshWords": [
+    "anemia",
+    "sickle",
+    "cell"
+   ],
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/sicklecelldisease.html",
+     "title": "Sickle Cell Disease",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medqa:4602",
+   "group": "MedQA",
+   "sha": "621348163e3f5d0a",
+   "keyWords": [
+    "th2",
+    "cells"
+   ],
+   "mesh": "Th2 Cells",
+   "meshWords": [
+    "th2",
+    "cells"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4477",
+   "group": "MedQA",
+   "sha": "f69e75506d6c96e9",
+   "keyWords": [
+    "avoid",
+    "exposure",
+    "to",
+    "birds"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "beclomethasone",
+     "by": "dictionary",
+     "key": false,
+     "fda": "salt-only"
+    }
+   ],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4618",
+   "group": "MedQA",
+   "sha": "86845a49b2d74f52",
+   "keyWords": [
+    "deficiency",
+    "of",
+    "atp"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:5617",
+   "group": "MedQA",
+   "sha": "8ddb0ba25c7921b3",
+   "keyWords": [
+    "opportunistic",
+    "colonization"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:5031",
+   "group": "MedQA",
+   "sha": "243b968b4ee579dd",
+   "keyWords": [
+    "rough",
+    "endoplasmic",
+    "reticulum"
+   ],
+   "mesh": "Endoplasmic Reticulum, Rough",
+   "meshWords": [
+    "endoplasmic",
+    "reticulum",
+    "rough"
+   ],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4716",
+   "group": "MedQA",
+   "sha": "4e8afa7449552d4d",
+   "keyWords": [
+    "ana",
+    "and",
+    "anti",
+    "dsdna",
+    "levels"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "haloperidol",
+     "by": "dictionary",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "clozapine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:haloperidol",
+     "title": "HALOPERIDOL",
+     "setId": "00bb61c8-db35-4c04-9ef7-47d447d2496b",
+     "key": false
+    },
+    {
+     "id": "fda:clozapine",
+     "title": "CLOZAPINE",
+     "setId": "09231d80-6343-4a34-bd5b-100c547fd3c9",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "medqa:5015",
+   "group": "MedQA",
+   "sha": "5419f2ba1c9649bb",
+   "keyWords": [
+    "autoantibody",
+    "mediated",
+    "platelet",
+    "activation"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:5375",
+   "group": "MedQA",
+   "sha": "366600fff9d1c577",
+   "keyWords": [
+    "modafinil"
+   ],
+   "mesh": "Modafinil",
+   "meshWords": [
+    "modafinil"
+   ],
+   "drugs": [
+    {
+     "name": "clomipramine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "dextroamphetamine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "modafinil",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:clomipramine",
+     "title": "CLOMIPRAMINE HYDROCHLORIDE",
+     "setId": "0bbee292-0fba-4606-9c8e-4723742682c0",
+     "key": false
+    },
+    {
+     "id": "fda:dextroamphetamine",
+     "title": "DEXTROAMPHETAMINE",
+     "setId": "0862f02a-72a8-41cc-8845-57cf4974bb6f",
+     "key": false
+    },
+    {
+     "id": "fda:modafinil",
+     "title": "MODAFINIL",
+     "setId": "013450dd-cd42-46c7-98d6-9a2925761978",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "medqa:5061",
+   "group": "MedQA",
+   "sha": "21dcb0ff3a7e2b41",
+   "keyWords": [
+    "distributive",
+    "shock",
+    "with",
+    "warm",
+    "skin"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "medqa:4947",
+   "group": "MedQA",
+   "sha": "976d5a5b66859bde",
+   "keyWords": [
+    "bupropion"
+   ],
+   "mesh": "Bupropion",
+   "meshWords": [
+    "bupropion"
+   ],
+   "drugs": [
+    {
+     "name": "bupropion",
+     "by": "rxnav",
+     "key": true,
+     "fda": "label"
+    },
+    {
+     "name": "citalopram",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "fluoxetine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "trazodone",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:bupropion",
+     "title": "BUPROPION HYDROCHLORIDE",
+     "setId": "004d8121-59d4-46c4-acb8-b2dd097bf556",
+     "key": true
+    },
+    {
+     "id": "fda:citalopram",
+     "title": "CITALOPRAM",
+     "setId": "04766f1d-7a69-49ed-8fd3-1a6305505d47",
+     "key": false
+    },
+    {
+     "id": "fda:fluoxetine",
+     "title": "FLUOXETINE HYDROCHLORIDE",
+     "setId": "02283de9-6087-45f7-a9ce-3b082ce860de",
+     "key": false
+    },
+    {
+     "id": "fda:trazodone",
+     "title": "TRAZODONE HYDROCHLORIDE",
+     "setId": "007f38e0-653b-43e4-a1c1-b59997b2762a",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "careqa:1dafb36e-9acd-467c-8df1-ae50e96b28c9",
+   "group": "CareQA Medicine",
+   "sha": "07cae44798afb4f7",
+   "keyWords": [
+    "its",
+    "selective",
+    "action",
+    "is",
+    "anticholinesterase"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:788786da-399d-47ce-8634-a87c1084feb6",
+   "group": "CareQA Medicine",
+   "sha": "7477a4463dd7de2b",
+   "keyWords": [
+    "reactive",
+    "arthritis"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:5d5392d7-48dc-4eed-aa3a-aa83f8767b96",
+   "group": "CareQA Medicine",
+   "sha": "d3185996a2a2589e",
+   "keyWords": [
+    "prothrombin",
+    "time"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:2b5cffff-8bf0-42c2-b442-16173d01c3a1",
+   "group": "CareQA Medicine",
+   "sha": "bfc5fc170059076a",
+   "keyWords": [
+    "in",
+    "very",
+    "persistent",
+    "cases",
+    "in",
+    "adults",
+    "the",
+    "lesions",
+    "tend",
+    "to",
+    "spread",
+    "throughout",
+    "the",
+    "torso",
+    "and",
+    "face"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:10af320a-ff27-4abe-9ed3-892ae15bfab1",
+   "group": "CareQA Medicine",
+   "sha": "916b20187d976b5c",
+   "keyWords": [
+    "progression",
+    "to",
+    "leiomyosarcoma"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:a1c31b3c-38a4-407b-8a99-e9aee9f9f8ef",
+   "group": "CareQA Medicine",
+   "sha": "3e9dc5e9d96d4ab2",
+   "keyWords": [
+    "the",
+    "implantation",
+    "of",
+    "a",
+    "thoracic",
+    "endoprosthesis",
+    "is",
+    "indicated"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:af033753-acfa-4da4-923d-b0e9ad10d34a",
+   "group": "CareQA Medicine",
+   "sha": "3195a0fe3629d6af",
+   "keyWords": [
+    "decrease",
+    "the",
+    "number",
+    "of",
+    "local",
+    "recurrences"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:1bd21e7f-cd0d-4b55-a583-64a9efb9962c",
+   "group": "CareQA Medicine",
+   "sha": "a17d24063e735710",
+   "keyWords": [
+    "genetic",
+    "study",
+    "for",
+    "notch3"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:dad16bf8-663d-4b9d-8e29-da568386a585",
+   "group": "CareQA Medicine",
+   "sha": "6b5926db0d336287",
+   "keyWords": [
+    "it",
+    "is",
+    "a",
+    "recessive",
+    "hereditary",
+    "disease",
+    "linked",
+    "to",
+    "the",
+    "x",
+    "chromosome"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:5388b7ec-779f-4795-9e54-71c6992372d8",
+   "group": "CareQA Medicine",
+   "sha": "92f75b091ab894e3",
+   "keyWords": [
+    "part",
+    "of",
+    "injuries"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:7735e3cf-4a2e-4671-a594-d00cd784cf7e",
+   "group": "CareQA Medicine",
+   "sha": "bad1edb246b57164",
+   "keyWords": [
+    "it",
+    "is",
+    "indicated",
+    "because",
+    "there",
+    "are",
+    "clear",
+    "symptoms",
+    "and",
+    "signs",
+    "of",
+    "severe",
+    "worsening",
+    "and",
+    "poor",
+    "prognosis"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:e07f595e-83b9-4224-8edc-6002abe79485",
+   "group": "CareQA Medicine",
+   "sha": "2d5fca73784f7364",
+   "keyWords": [
+    "penetrating",
+    "injuries",
+    "and",
+    "the",
+    "severity",
+    "of",
+    "the",
+    "injury",
+    "are",
+    "contributing",
+    "factors"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:8a8f6b15-cb83-41af-b208-af90e03f982e",
+   "group": "CareQA Medicine",
+   "sha": "ccc182074a6f75f1",
+   "keyWords": [
+    "the",
+    "production",
+    "of",
+    "type",
+    "i",
+    "interferons",
+    "after",
+    "the",
+    "recognition",
+    "of",
+    "viral",
+    "rna",
+    "by",
+    "pattern",
+    "recognition",
+    "receptors",
+    "such",
+    "as",
+    "the",
+    "toll",
+    "like",
+    "receptors",
+    "tlr",
+    "or",
+    "the",
+    "rig",
+    "like",
+    "receptors",
+    "rlr"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:c0b5e935-1e52-4156-88d3-45f058d8113a",
+   "group": "CareQA Medicine",
+   "sha": "82ec81a6828fef1b",
+   "keyWords": [
+    "multiple",
+    "myeloma"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": [
+    {
+     "id": "https://medlineplus.gov/multiplemyeloma.html",
+     "title": "Multiple Myeloma",
+     "key": true
+    }
+   ]
+  },
+  {
+   "id": "careqa:412479da-a41f-4746-90c5-4863d77e15c6",
+   "group": "CareQA Medicine",
+   "sha": "9912c86e830fc133",
+   "keyWords": [
+    "the",
+    "tendons",
+    "of",
+    "the",
+    "rotator",
+    "cuff",
+    "muscles",
+    "reinforce",
+    "the",
+    "fibrous",
+    "capsule",
+    "of",
+    "the",
+    "scapulo",
+    "humeral",
+    "joint"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:d2cc7dce-97e2-49f2-a721-3f0148416a6a",
+   "group": "CareQA Medicine",
+   "sha": "a12e6f3688656393",
+   "keyWords": [
+    "simultaneous",
+    "surgical",
+    "treatment",
+    "with",
+    "valve",
+    "replacement",
+    "and",
+    "coronary",
+    "surgical",
+    "revascularization",
+    "with",
+    "bypass"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:7f1493c9-fad8-467a-9eb1-c11d5cfc5fe5",
+   "group": "CareQA Medicine",
+   "sha": "2695f29def989489",
+   "keyWords": [
+    "it",
+    "is",
+    "more",
+    "common",
+    "in",
+    "males",
+    "than",
+    "in",
+    "females"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:dbd055f7-f013-4ed4-951e-5f955744203b",
+   "group": "CareQA Medicine",
+   "sha": "0d1cf7822e7528b5",
+   "keyWords": [
+    "before",
+    "contact",
+    "with",
+    "the",
+    "patient",
+    "s",
+    "environment"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:57f0a163-389c-4088-b2bc-9216e5e5b6a2",
+   "group": "CareQA Medicine",
+   "sha": "85b5c9517d5c98ae",
+   "keyWords": [
+    "the",
+    "accuracy",
+    "of",
+    "the",
+    "study"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:b20d7eaf-f49a-4838-9488-5fe15e7ef6b0",
+   "group": "CareQA Medicine",
+   "sha": "0e477a16638ca0fd",
+   "keyWords": [
+    "chlorazepate"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [
+    {
+     "name": "lithium",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "valproate",
+     "by": "rxnav",
+     "key": false,
+     "fda": "salt-only"
+    },
+    {
+     "name": "carbamazepine",
+     "by": "rxnav",
+     "key": false,
+     "fda": "label"
+    },
+    {
+     "name": "clorazepate",
+     "by": "rxnav",
+     "key": true,
+     "fda": "salt-only"
+    }
+   ],
+   "oracle": [
+    {
+     "id": "fda:lithium",
+     "title": "LITHIUM",
+     "setId": "59d0e8e3-bc0b-0cc1-e063-6394a90a0a6d",
+     "key": false
+    },
+    {
+     "id": "fda:carbamazepine",
+     "title": "CARBAMAZEPINE",
+     "setId": "047bc284-060a-4db9-bf37-75d10f95a0a6",
+     "key": false
+    }
+   ]
+  },
+  {
+   "id": "careqa:bdbaebc7-737c-4cfd-8600-85d84f867dfa",
+   "group": "CareQA Medicine",
+   "sha": "11d27ce4ce160884",
+   "keyWords": [
+    "anhedonia"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:9f90986c-b95d-4887-b807-39d4bf932107",
+   "group": "CareQA Medicine",
+   "sha": "19c7199589145831",
+   "keyWords": [
+    "mood",
+    "swings",
+    "cognitive",
+    "deficit",
+    "decline",
+    "in",
+    "functional",
+    "independence"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:a079d7bd-1a5d-41d3-ad0c-607dca85b53d",
+   "group": "CareQA Medicine",
+   "sha": "5e9cfd7f0e83dbc8",
+   "keyWords": [
+    "an",
+    "s1",
+    "s2",
+    "gallop",
+    "rhythm",
+    "and",
+    "peripheral",
+    "and",
+    "pulmonary",
+    "edema",
+    "are",
+    "observed"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:0aa17acd-1557-4e90-a43d-d46582312c33",
+   "group": "CareQA Medicine",
+   "sha": "6701160075c79497",
+   "keyWords": [
+    "allelic",
+    "heterogeneity"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:428f4b21-6158-4605-88fd-2474869a9e19",
+   "group": "CareQA Medicine",
+   "sha": "45758d458abb87ab",
+   "keyWords": [
+    "cellular",
+    "necrosis"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:b22c3a0b-fe62-4767-b008-e6f0431a2103",
+   "group": "CareQA Medicine",
+   "sha": "938e0d4bd47ce5ac",
+   "keyWords": [
+    "the",
+    "shaffer",
+    "s",
+    "sign",
+    "or",
+    "tobacco",
+    "dust",
+    "is",
+    "a",
+    "sign",
+    "of",
+    "good",
+    "prognosis"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:b5e9067c-dd83-46d2-9b2f-816eef7f4368",
+   "group": "CareQA Medicine",
+   "sha": "a417585a9441d58c",
+   "keyWords": [
+    "malignant",
+    "obstructive",
+    "tumor",
+    "of",
+    "the",
+    "distal",
+    "common",
+    "bile",
+    "duct",
+    "request",
+    "an",
+    "abdominal",
+    "ct",
+    "scan",
+    "for",
+    "the",
+    "study",
+    "of",
+    "local",
+    "and",
+    "distant",
+    "spread"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:9524b877-0270-4de4-8865-e0e4b1255ff5",
+   "group": "CareQA Medicine",
+   "sha": "d5027f1edf6e39ea",
+   "keyWords": [
+    "hypertensive",
+    "uveitis"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:9f4eb879-2b71-4186-b509-1ca144710203",
+   "group": "CareQA Medicine",
+   "sha": "64ac4835c204aca0",
+   "keyWords": [
+    "a",
+    "case",
+    "control",
+    "study"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  },
+  {
+   "id": "careqa:8796704d-1692-4c9a-b816-898d8609b76d",
+   "group": "CareQA Medicine",
+   "sha": "e6e83d2c5ff62c02",
+   "keyWords": [
+    "no",
+    "imaging",
+    "test"
+   ],
+   "mesh": null,
+   "meshWords": [],
+   "drugs": [],
+   "oracle": []
+  }
+ ]
+}
