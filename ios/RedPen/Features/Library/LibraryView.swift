@@ -265,7 +265,11 @@ struct LibraryView: View {
         }
         let before = WardPartBook.shared.parts
         HomeFitProbe.shared.beforePush = before.values.map(\.name)
+        // home's cut and the faces it booked, before the push covers it
+        let restCut: Double? = WardPartBook.shared.cut
+        let faces: [Double] = before.values.map { Double($0.rect.minY) }
         WardPartBook.shared.resetDropCounts()
+        HomeFitProbe.shared.pushStarted = Date()
         opened = [set]
         // Home's parts leave the book once the pushed page covers it. A busy
         // Mac can take longer than 1.5 s to get there (one look then missed
@@ -277,7 +281,9 @@ struct LibraryView: View {
             do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
             let duringPush = WardPartBook.shared.parts
             lastLookCount = duringPush.count
-            lost = lost || WardPartBook.shared.dropsRemoved > 0 || before.keys.contains { duringPush[$0] == nil }
+            let removed: Int = WardPartBook.shared.dropsRemoved + (before.keys.contains { duringPush[$0] == nil } ? 1 : 0)
+            lost = lost || HomeFit.pushCovered(faces: faces, cut: restCut, removed: removed,
+                                               kept: WardPartBook.shared.dropsKept)
             if lost && tick >= 15 { break }
         }
         HomeFitProbe.shared.pushLostParts = lost
@@ -523,7 +529,10 @@ struct LibraryView: View {
             // to VoiceOver and to the UI tests alike, and scrolls into view
             // instead of hiding under New set or the dock.
             .frame(height: pageCutHeight, alignment: .top)
-            .onChange(of: pageCut, initial: true) { _, cut in WardPartBook.shared.cut = cut }
+            .onChange(of: pageCut, initial: true) { _, cut in
+                WardPartBook.shared.cut = cut
+                HomeFitProbe.shared.notePushCut(cut, barTop: barTop, page: pageFrame, tops: restTops)
+            }
             // where the page really ends, for the preview's fit check
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
                 HomeFitProbe.shared.pageEnd = $0

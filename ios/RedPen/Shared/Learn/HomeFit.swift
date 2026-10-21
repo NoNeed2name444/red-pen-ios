@@ -83,6 +83,19 @@ enum HomeFit {
         return at
     }
 
+    /// Whether a push and back showed home covered by the pushed page: a
+    /// part of home left the book during the push, or, when every face
+    /// booked before it lay wholly at or below home's cut, at least one
+    /// went away and was kept by that cut, all the book can show then
+    /// (WardPartLedger.drop). `faces`: the tops of the faces booked before
+    /// the push; `cut`: home's cut then (nil, not cut); `removed`, `kept`:
+    /// the book's drops during the push.
+    static func pushCovered(faces: [Double], cut: Double?, removed: Int, kept: Int) -> Bool {
+        if removed > 0 { return true }
+        guard let cut, !faces.isEmpty, kept > 0 else { return false }
+        return faces.allSatisfy { $0 + 1e-6 >= cut }
+    }
+
     /// Whether a window this tall is short. A wide iPad keeps New set at
     /// the bottom beside the rail, where it has the room.
     static func isShort(height: Double, broad: Bool) -> Bool {

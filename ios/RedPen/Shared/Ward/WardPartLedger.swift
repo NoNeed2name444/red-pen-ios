@@ -131,7 +131,7 @@ struct WardPartLedger<Key: Hashable> {
         sightings[key] = nil
         entries[key] = nil
         if atRest {
-            publish()
+            _ = publish()
         }
         return .removed
     }
