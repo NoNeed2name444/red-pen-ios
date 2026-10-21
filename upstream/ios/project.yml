@@ -56,6 +56,11 @@ targets:
       # RedPen/ so the Playgrounds package, which copies RedPen/, never sees it.
       - path: AppResources/PrivacyInfo.xcprivacy
         buildPhase: resources
+      # The launch screen (see UILaunchStoryboardName). Outside RedPen/, so
+      # the Playgrounds package, where the opening itself is the launch
+      # screen, never sees it.
+      - path: AppResources/LaunchScreen.storyboard
+        buildPhase: resources
       # The layered iOS 26 icon (Icon Composer; tools/icon_layers.py). Named
       # like the AppIcon set in Assets.xcassets, so Xcode 26 uses this one and
       # the set stays the fallback. Outside RedPen/, so the Playgrounds
@@ -63,7 +68,7 @@ targets:
       - path: AppResources/AppIcon.icon
         type: file
         buildPhase: resources
-      # The same layers as PNGs, for IconLayersView (actool compiles the .icon
+      # The icon in layers (light and dark PNGs), for IconLayersView (actool compiles the .icon
       # away, so the app cannot read them from it).
       - path: ../design/icon/layers
         type: folder
@@ -101,13 +106,14 @@ targets:
         CFBundleLocalizations:
           - en
           - ar
-        # The first frame, before any Swift runs: the Midnight Enamel mark and
-        # the wordmark on Midnight navy. LaunchSplash draws the same picture
-        # for its first frame, so the hand-over is invisible.
-        UILaunchScreen:
-          UIColorName: LaunchBackground
-          UIImageName: LaunchLogo
-          UIImageRespectsSafeAreaInsets: true
+        # The first frame, before any Swift runs: the stethoscope on home's
+        # own ECG paper, light or dark with the phone
+        # (AppResources/LaunchScreen.storyboard: a storyboard, since the
+        # UILaunchScreen keys show one picture only, centred, and the paper
+        # has to sit at the screen's corner to fall on home's grid).
+        # LaunchSplash draws the same pictures for its first frame, so the
+        # hand-over is invisible and the app runs straight on from it.
+        UILaunchStoryboardName: LaunchScreen
         # The phone stays upright - a card deck held one-handed has no reason
         # to rotate - but an iPad is used on a desk, in a stand, on a keyboard
         # case, and refusing to turn there is simply broken.

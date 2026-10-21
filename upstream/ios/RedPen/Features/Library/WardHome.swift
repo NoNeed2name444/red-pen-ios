@@ -61,14 +61,14 @@ extension LibraryView {
     var showsRound: Bool {
         guard !searching, !store.library.isEmpty else { return false }
         if category == .questions { return true }
-        return category == .cards && !reviews.dueAcross(store.library).isEmpty
+        return category == .cards && !dueNow().isEmpty
     }
 
     /// Today's ward round, and on Questions the two tiles under it.
     @ViewBuilder
     var homeRoundSections: some View {
         if showsRound {
-            let due: [ReviewPlan.Due] = reviews.dueAcross(store.library)
+            let due: [ReviewPlan.Due] = dueNow()
             // the card and the tiles stand as low as the rows below them,
             // so the cell never cuts their lights
             Section { roundCard(due: due).wardCardRow() }
@@ -87,16 +87,32 @@ extension LibraryView {
             .listRowSeparator(.hidden)
     }
 
+    /// The cards due across the library: one of home's loads, marked for a
+    /// recorded opening (LaunchStage.measure).
+    private func dueNow() -> [ReviewPlan.Due] {
+        LaunchStage.shared.measure("due") { reviews.dueAcross(store.library) }
+    }
+
     private func roundCard(due: [ReviewPlan.Due]) -> some View {
-        let input: BedPlan.Input = bedInput(due: due)
-        let beds: [BedPlan.Bed] = BedPlan.beds(input)
+        let input: BedPlan.Input = LaunchStage.shared.measure("plan") { bedInput(due: due) }
+        let all: [BedPlan.Bed] = BedPlan.beds(input)
+        // a short window's round is its first beds, so the card and its
+        // button end above the dock (HomeFit); Plan has the whole day
+        let beds: [BedPlan.Bed] = Array(all.prefix(HomeFit.shownBeds(all.count, short: shortWindow, trimmed: bedsTrimmed)))
         let note: String? = input.phase.holdsNewMaterial ? input.phase.headline : nil
         return HomeRoundCard(beds: beds, note: note,
                              onOpen: { bed in openBed(bed) },
+                             // at rest only: Start's global frame moves with every scroll
+                             // step, and each write would re-run this whole view
+                             onStartFrame: { if bandTrack.isAtRest { startFrame = $0 } },
                              onPlan: { LearnRouter.shared.open(.examPlan) })
     }
 
     private func homeTiles(due: Int) -> some View {
+        LaunchStage.shared.measure("tiles") { homeTilesLoaded(due: due) }
+    }
+
+    private func homeTilesLoaded(due: Int) -> HomeTiles {
         let readiness: ReadinessEstimate? = store.readiness(dueCards: due)
         let days: [String: Int] = StudyDays.merged(log: studyLog.days, answers: store.answerLog,
                                                    version: store.changeCount)
@@ -255,21 +271,33 @@ extension LibraryView {
 /// small caps, the app's name with a squiggle of ECG beside it, a greeting,
 /// and the countdown to the exam when there is a date.
 struct HomeHeader: View {
+    /// The squiggle's frame, which the opening's ECG becomes (its line is
+    /// LaunchOpening.squiggleLine).
+    static let squiggleSize = CGSize(width: 34, height: 18)
+
     let date: Date
     let greeting: String
     let countdown: String?
 
     var body: some View {
+        // at the opening's hand-off the name settles in where the stethoscope
+        // goes, the squiggle is where the ECG lands, and the rest grows into
+        // place around them (LaunchStage)
         VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide)))
                 .wardSmallCaps()
+                // every line it wraps to, whole, at the largest sizes
+                .fixedSize(horizontal: false, vertical: true)
+                .launchEntrance()
             nameLine
             Text(greeting)
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)
+                .launchEntrance()
             if let countdown {
                 WardPill(text: countdown, symbol: "calendar")
                     .padding(.top, WardSpace.xs)
+                    .launchEntrance()
             }
         }
         .padding(.top, WardSpace.xs)
@@ -283,10 +311,16 @@ struct HomeHeader: View {
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+                .launchLetters()
+                .launchTarget(.title)
                 .accessibilityAddTraits(.isHeader)
             EcgSquiggle()
-                .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                .frame(width: 34, height: 18)
+                .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: CGFloat(LaunchOpening.squiggleLine),
+                                                          lineCap: .round, lineJoin: .round))
+                .frame(width: HomeHeader.squiggleSize.width, height: HomeHeader.squiggleSize.height)
+                // drawn the moment the opening's ECG lands on it
+                .launchLanding()
+                .launchTarget(.squiggle)
                 .accessibilityHidden(true)
         }
     }
@@ -304,16 +338,24 @@ final class HomeBandTrack {
     /// The header's bottom with the list at its top, once seen.
     private(set) var rest: CGFloat?
     /// How far the list has scrolled from its top.
-    var scroll: CGFloat = 0
+    var scroll: CGFloat = 0 {
+        didSet { noteRest() }
+    }
     /// The bottom of the bar area (HomeMasthead).
     var barBottom: CGFloat = 0
     @ObservationIgnored private var seen: CGFloat?
     @ObservationIgnored private var idle = true
+    @ObservationIgnored private var wasAtRest = true
 
     /// Clear of the header's last line: the band's edge sits this far under it.
     static let belowHeader: CGFloat = 10
 
     var bottom: CGFloat? { rest.map { $0 - scroll + Self.belowHeader } }
+
+    /// The list is at its top and not moving: where its rows stand is where
+    /// they rest. Phase changes come before the offset's, so a row seen
+    /// moving is never taken for one at rest.
+    var isAtRest: Bool { idle && abs(scroll) < 1 }
 
     /// The header reported where its bottom is. At rest that pairs with the
     /// scroll, so it fixes where the header stands with the list at its
@@ -328,14 +370,23 @@ final class HomeBandTrack {
     func settle(idle now: Bool) {
         idle = now
         if now, let seen, (rest ?? .infinity) - scroll > 0 { rest = seen + scroll }
+        noteRest()
+    }
+
+    private func noteRest() {
+        let now: Bool = isAtRest
+        guard now != wasAtRest else { return }
+        wasAtRest = now
+        if now { WardPartBook.shared.rebook() }
     }
 
     /// Another page's list: at its top, its header not yet seen.
     func reset() {
         rest = nil
         seen = nil
-        scroll = 0
         idle = true
+        wasAtRest = true
+        scroll = 0
     }
 }
 
@@ -346,8 +397,8 @@ struct HomeBand: View {
 
     var body: some View {
         if let bottom = track.bottom {
-            // no edge of its own: the frame draws the opening's rounded top
-            // here (WardPaperTop)
+            // No ink outline: the paper's cut supplies the rounded corners
+            // here (WardPaperTop), continuous with the ringless outer frame.
             WardPaperBand(bottom: bottom, edge: false)
                 .padding(.horizontal, -WardPaper.sideInset)
                 .ignoresSafeArea()
@@ -385,7 +436,10 @@ struct HomeMasthead: View {
             .allowsHitTesting(false)
             .accessibilityHidden(true)
             .onChange(of: paperTop, initial: true) { _, y in WardPaperTop.shared.y = y }
-            .onAppear { WardPaperTop.shared.y = paperTop }
+            .onAppear {
+                WardPaperTop.shared.home = true
+                WardPaperTop.shared.y = paperTop
+            }
             // a page pushed over home has the frame's own opening
             .onDisappear { WardPaperTop.shared.y = nil }
     }
@@ -400,6 +454,8 @@ struct HomeRoundCard: View {
     /// The exam-week line, while new material is held back.
     let note: String?
     let onOpen: (BedPlan.Bed) -> Void
+    /// Where Start ward round is, in global points, as it is laid out.
+    var onStartFrame: (CGRect) -> Void = { _ in }
     let onPlan: () -> Void
 
     var body: some View {
@@ -415,6 +471,11 @@ struct HomeRoundCard: View {
         }
         // a List row: as low as the tiles round it, the button proud of it
         .wardCard(lift: .low)
+        .launchEntrance(inOpening: true)
+        .wardPart("the round card")
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.card = $0
+        }
     }
 
     private var heading: some View {
@@ -472,6 +533,7 @@ struct HomeRoundCard: View {
         .accessibilityLabel(bed.spoken)
         .accessibilityHint("Opens this bed")
         .accessibilityIdentifier("wardBed-\(bed.number)")
+        .wardPart("bed \(bed.number)")
     }
 
     private func noteLine(_ text: String) -> some View {
@@ -492,6 +554,11 @@ struct HomeRoundCard: View {
         .frame(maxWidth: .infinity, alignment: .trailing)
         .accessibilityHint(hint)
         .accessibilityIdentifier("missionLiftOff")
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            guard LaunchStage.shared.measuring else { return }
+            HomeFitProbe.shared.start = $0
+            onStartFrame($0)
+        }
     }
 
     // MARK: each bed's icon and chip
@@ -513,20 +580,22 @@ struct HomeRoundCard: View {
             case .examKit, .mock: return .warning
             default: return .blue
             }
-        case .dueCards: return .red
+        case .dueCards: return .accent(.cards)
         case .weakest: return .danger
         case .freshSet(let set):
             switch set.mode {
-            case .questions: return .blue
-            case .cards: return .red
-            case .textbook: return .green
+            case .questions: return .accent(.questions)
+            case .cards: return .accent(.cards)
+            case .textbook: return .accent(.textbook)
             }
         case .station: return .warning
         }
     }
 
     /// The chip's words and tone: every tone here keeps its text at AA in
-    /// the chip's well (Caution Amber, Theatre Blue, Resus Red).
+    /// the chip's well (WardPaletteTests: Caution Amber, Resus Red, and the
+    /// section's accent, which is what New takes: no blue outside
+    /// Questions).
     static func chip(_ bed: BedPlan.Bed) -> (text: String, tone: WardTone)? {
         guard let status = bed.status else { return nil }
         let tone: WardTone
@@ -561,7 +630,10 @@ struct HomeTiles: View {
     let onIdeas: () -> Void
     @Environment(\.dynamicTypeSize) private var typeSize
 
-    var body: some View {
+    var body: some View { measured }
+
+    @ViewBuilder
+    private var tiles: some View {
         if typeSize.isAccessibilitySize {
             VStack(spacing: WardSpace.m) {
                 vitals
@@ -573,6 +645,14 @@ struct HomeTiles: View {
                 brainMap
             }
             .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Where the tiles were laid out, for the preview's fit check: no
+    /// sliver of them may peek over the page's cut (HomeFit).
+    private var measured: some View {
+        tiles.launchEntrance(inOpening: true).wardPart("the tiles").onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.tiles = $0
         }
     }
 
@@ -627,14 +707,17 @@ private struct VitalsTileFace: View {
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
             Text("Vitals").wardSmallCaps()
+            // the figures beside the ring only where they fit whole: squeezed
+            // there, "No streak yet" broke inside its word ("No strea / k
+            // yet"); otherwise under the ring, at the tile's full width
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: WardSpace.m) {
                     ring
-                    figures
+                    figures(besideRing: true)
                 }
                 VStack(alignment: .leading, spacing: WardSpace.s) {
                     ring
-                    figures
+                    figures(besideRing: false)
                 }
             }
             RhythmTrace(beats: rhythm.beats)
@@ -651,15 +734,25 @@ private struct VitalsTileFace: View {
             .frame(width: 56, height: 56)
     }
 
-    private var figures: some View {
-        VStack(alignment: .leading, spacing: 2) {
+    /// Beside the ring the streak is one line at its own width, set on the
+    /// text itself: a Label's icon-and-title row kept its title at the
+    /// width of "Readiness" above it (18 pt of 40 for "streak") although
+    /// ViewThatFits had judged the row by the title's whole width, so the
+    /// row was picked and then drawn narrower than it was judged. Under
+    /// the ring it takes the tile's width and may wrap between words.
+    private func figures(besideRing: Bool) -> some View {
+        let text: String = VitalsTileFace.streakText(streak)
+        return VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text("Readiness")
                 .font(.caption)
                 .foregroundStyle(Color.wardInkSecondary)
-            Label {
-                Text(VitalsTileFace.streakText(streak))
-            } icon: {
-                Image(systemName: "heart.fill").foregroundStyle(Color.wardEcg)
+            HStack(alignment: .firstTextBaseline, spacing: WardSpace.xs) {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(Color.wardEcg)
+                    .accessibilityHidden(true)
+                Text(text)
+                    .homeWordFit("the Vitals tile's streak", text, font: .footnote.weight(.semibold))
+                    .fixedSize(horizontal: besideRing, vertical: true)
             }
             .font(.footnote.weight(.semibold))
             .foregroundStyle(Color.wardInk)
@@ -685,6 +778,7 @@ private struct BrainMapTileFace: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardInk)
                 .multilineTextAlignment(.leading)
+                .homeWordFit("the brain map's line", line, font: .footnote.weight(.semibold))
         }
         .homeTile()
     }
@@ -732,7 +826,7 @@ extension View {
     func homeTile() -> some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return self
-            .padding(14)
+            .padding(WardSpace.l)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .contentShape(shape)
     }
@@ -814,7 +908,7 @@ struct SetRow: View {
         HStack(alignment: .top, spacing: WardSpace.m) {
             ModeTile(kind: set.kind, size: 40)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 nameLine
                 kindLine
                 if let progress { progressLine(progress) }
@@ -824,14 +918,14 @@ struct SetRow: View {
                 WardChip(text: "\(due) due", tone: .warning)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
         // a whole row to aim at, not only its words
         .frame(minHeight: 56)
         .contentShape(Rectangle())
     }
 
     private var nameLine: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: WardSpace.s) {
             Text(set.name)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Color.wardInk)
@@ -846,7 +940,7 @@ struct SetRow: View {
         let amount: String = "\(set.itemCount) \(set.itemNoun)\(plural)"
         let subject: String = set.subject.trimmingCharacters(in: .whitespacesAndNewlines)
         let showsSubject: Bool = !subject.isEmpty && subject != "General"
-        return HStack(spacing: 6) {
+        return HStack(spacing: WardSpace.s) {
             Text(set.kind.label).font(.caption.weight(.semibold))
             separator
             Text(amount).font(.caption)
@@ -874,5 +968,184 @@ struct SetRow: View {
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityLabel("\(percent) percent done")
         }
+    }
+}
+
+// MARK: - The preview's fit check
+
+/// Where home's round card, its Start button, New set, the tiles and the
+/// bar at the bottom were laid out, and how wide some of home's texts are
+/// beside their widest word, for the Ward preview: on the "library" screen
+/// it writes HomeFit's verdict to Documents/home-fit.txt, which the workflow
+/// reads after the picture and fails the run on.
+@MainActor
+final class HomeFitProbe {
+    static let shared = HomeFitProbe()
+    var card: CGRect?
+    var start: CGRect?
+    var newSet: CGRect?
+    var bar: CGRect?
+    var tiles: CGRect?
+    /// Where the page was actually cut (its bottom), after the layout moved
+    /// the cut up for any part (HomeFit.settledCut).
+    var pageEnd: CGFloat?
+    /// The text size is above the standard ones: the page may scroll.
+    var large = false
+    /// Each probed text's laid-out width, and its widest word's on its own.
+    var widths: [String: Double] = [:]
+    var widest: [String: Double] = [:]
+    /// The part names (as a multiset) in the book before `-uiPreviewPushBack`
+    /// pushed a set, whether the push-and-back ran, and whether it gave up
+    /// with no set to open.
+    var beforePush: [String] = []
+    var pushLostParts = false
+    var pushBackDone = false
+    var pushBackNoSet = false
+    var pushDropsRemoved = 0
+    var pushDropsKept = 0
+    var pushLastKeptCut: Double?
+    var pushBookCountBefore = 0
+    var pushBookCountLastLook = 0
+    /// From the push on, each new cut of home's page (nil, not cut), with
+    /// the bar's top, the page's frame and the booked tops it came from, and
+    /// when, so a cut that moves while home is pushed shows what moved it.
+    var pushStarted: Date?
+    private(set) var pushCuts: [String] = []
+
+    func notePushCut(_ cut: Double?, barTop: CGFloat?, page: CGRect, tops: [Double]) {
+        guard PreviewLaunch.pushBack, let pushStarted, pushCuts.count < 40 else { return }
+        func text(_ value: Double?) -> String { value.map { String(format: "%.2f", $0) } ?? "none" }
+        let at: Double = Date().timeIntervalSince(pushStarted)
+        pushCuts.append("\(text(at))s cut \(text(cut)) bar \(text(barTop.map(Double.init))) "
+                        + "page \(text(Double(page.minY)))+\(text(Double(page.height))) "
+                        + "tops \(tops.count) from \(text(tops.first))")
+    }
+
+    private static func box(_ rect: CGRect?) -> HomeFit.Box? {
+        guard let rect, !rect.isEmpty else { return nil }
+        return HomeFit.Box(minX: Double(rect.minX), minY: Double(rect.minY),
+                           maxX: Double(rect.maxX), maxY: Double(rect.maxY))
+    }
+
+    /// Once the page has settled, the verdict, written for the workflow.
+    func report() async {
+        guard PreviewLaunch.screen == "library" else { return }
+        do { try await Task.sleep(for: .seconds(6)) } catch { return }
+        // a push and back still under way after a slow launch ends first, and
+        // the page comes to rest after its pop before anything is read
+        if PreviewLaunch.pushBack, !pushBackDone, !pushBackNoSet {
+            for _ in 0..<400 where !pushBackDone && !pushBackNoSet {
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            }
+        }
+        if PreviewLaunch.pushBack, pushBackDone {
+            do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
+        }
+        let words: [HomeFit.Words] = widths.keys.sorted().compactMap { name in
+            guard let width = widths[name], let word = widest[name] else { return nil }
+            return HomeFit.Words(name: name, width: width, widest: word)
+        }
+        // every row and part that reported itself at rest (wardPart)
+        let parts: [HomeFit.Part] = WardPartBook.shared.parts.values.compactMap { part in
+            Self.box(part.rect).map { HomeFit.Part(name: part.name, box: $0) }
+        }.sorted { ($0.box.minY, $0.name) < ($1.box.minY, $1.name) }
+        var faults: [String] = HomeFit.faults(card: Self.box(card), start: Self.box(start),
+                                              bar: Self.box(bar), newSet: Self.box(newSet),
+                                              tiles: Self.box(tiles), large: large, words: words,
+                                              pageEnd: pageEnd.map { Double($0) }, parts: parts)
+        // a probe that measured nothing would call any home fitting
+        if parts.isEmpty { faults.append("no row or part of the page was measured") }
+        if PreviewLaunch.pushBack {
+            if pushBackNoSet {
+                faults.append("push and back: no set to open")
+            } else if !pushBackDone {
+                faults.append("push and back: not finished")
+            } else {
+                if !pushLostParts {
+                    faults.append("push and back: home was not seen covered during the push")
+                }
+                // Consume each occurrence: one returned set row cannot
+                // stand in for two rows with the same name before the push.
+                var remaining: [String: Int] = [:]
+                for part in parts {
+                    remaining[part.name, default: 0] += 1
+                }
+                var lost: [String] = []
+                for name in beforePush.sorted() {
+                    if let count = remaining[name], count > 0 {
+                        remaining[name] = count - 1
+                    } else {
+                        lost.append(name)
+                    }
+                }
+                if !lost.isEmpty {
+                    faults.append("parts lost after a push and back: " + lost.joined(separator: ", "))
+                }
+            }
+        }
+        func edges(_ rect: CGRect?) -> String {
+            guard let rect else { return "none" }
+            return "\(Int(rect.minY))-\(Int(rect.maxY))"
+        }
+        var lines: [String] = faults.isEmpty ? ["fits"] : faults.map { "FAULT " + $0 }
+        if PreviewLaunch.pushBack && pushBackDone {
+            lines.append("push and back: done")
+            lines.append("push and back: home covered: \(pushLostParts ? "yes" : "no")")
+            let cutStr = pushLastKeptCut.map { $0.rounded() == $0 ? "\(Int($0))" : "\($0)" } ?? "none"
+            lines.append("push and back: drops removed \(pushDropsRemoved), kept \(pushDropsKept) (cut \(cutStr)), book \(pushBookCountBefore) parts before the push, \(pushBookCountLastLook) at its last look")
+            lines.append("push and back: cuts: " + (pushCuts.isEmpty ? "none" : pushCuts.joined(separator: "; ")))
+        }
+        let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
+        lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
+                     + "tiles \(edges(tiles)), bar \(edges(bar)), cut \(cut), large text \(large)")
+        lines.append("page ends \(pageEnd.map { String(Int($0)) } ?? "none"), \(parts.count) parts measured: "
+                     + parts.prefix(40).map { "\($0.name) \($0.box.text)" }.joined(separator: ", "))
+        lines.append("words: " + words.map { "\($0.name) \(Int($0.width))/\(Int($0.widest))" }
+            .joined(separator: ", "))
+        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("home-fit.txt")
+        try? (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+}
+
+/// For the preview's fit check: how wide a text was laid out, and how wide
+/// its widest word is on its own in the same font (HomeFit.Words). Only on
+/// the preview's "library" screen; elsewhere it adds nothing.
+private struct HomeWordFit: ViewModifier {
+    let name: String
+    let text: String
+    let font: Font
+
+    func body(content: Content) -> some View {
+        if PreviewLaunch.screen == "library" {
+            content
+                .onGeometryChange(for: Double.self) { Double($0.size.width) } action: {
+                    HomeFitProbe.shared.widths[name] = $0
+                }
+                .background(alignment: .topLeading) {
+                    // each word on its own, unbroken and unseen: the widest
+                    // is the least width the text can have without breaking
+                    // one
+                    ZStack(alignment: .topLeading) {
+                        ForEach(Array(text.split(separator: " ").enumerated()), id: \.offset) { _, word in
+                            Text(String(word)).font(font).fixedSize()
+                        }
+                    }
+                    .hidden()
+                    .accessibilityHidden(true)
+                    .onGeometryChange(for: Double.self) { Double($0.size.width) } action: {
+                        HomeFitProbe.shared.widest[name] = $0
+                    }
+                }
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// The preview's word check on this text (HomeWordFit).
+    fileprivate func homeWordFit(_ name: String, _ text: String, font: Font) -> some View {
+        modifier(HomeWordFit(name: name, text: text, font: font))
     }
 }

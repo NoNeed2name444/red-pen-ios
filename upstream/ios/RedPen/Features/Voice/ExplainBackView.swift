@@ -180,7 +180,7 @@ struct ExplainBackView: View {
     /// so it never moves with the pop-out.
     private var transcriptBox: some View {
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-        return VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: WardSpace.s) {
             ExplainBoxHeader(words: wordCount)
             transcriptBody
         }
@@ -211,7 +211,7 @@ struct ExplainBackView: View {
                     Text(Self.placeholder)
                         .foregroundStyle(Color.wardInkSecondary)
                         .padding(.top, 8)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, WardSpace.s)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
@@ -276,7 +276,7 @@ struct ExplainBackView: View {
     /// microphone is the screen's one hero until there is enough to mark;
     /// then Mark is, and the microphone steps down.
     private var recordBar: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: WardSpace.l) {
             micButton
             markButton
         }
@@ -407,7 +407,7 @@ private struct ExplainSetChipLabel: View {
     let title: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: WardSpace.s) {
             Image(systemName: "books.vertical")
             Text(title).lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
@@ -415,7 +415,7 @@ private struct ExplainSetChipLabel: View {
         }
         .font(.subheadline.weight(.semibold))
         .foregroundStyle(Color.wardPrimaryInk)
-        .padding(.horizontal, 14)
+        .padding(.horizontal, WardSpace.l)
         .frame(minHeight: 44)
         .wardRaised(in: Capsule(), lift: .low)
         .contentShape(Capsule())
@@ -535,8 +535,8 @@ private struct ExplainAttemptLabel: View {
     var body: some View {
         let score: Int = attempt.result.score
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
+                HStack(spacing: WardSpace.s) {
                     Text(attempt.topic).foregroundStyle(Color.wardInk)
                     if attempt.isExample { VoiceExampleTag() }
                 }

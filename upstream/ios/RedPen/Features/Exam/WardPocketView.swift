@@ -122,14 +122,14 @@ struct WardPocketSheet: View {
         switch entry {
         case .table(let score):
             NavigationLink(value: score) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(score.name)
                     Text(score.purpose).font(.caption).foregroundStyle(Color.wardInkSecondary).lineLimit(2)
                 }
             }
         case .formula(let calc):
             NavigationLink(value: calc) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(calc.title)
                     Text("Liver disease severity and transplant priority").font(.caption)
                         .foregroundStyle(Color.wardInkSecondary)
@@ -163,10 +163,10 @@ private struct WardDisclaimer: ViewModifier {
             Label(WardPocket.disclaimer, systemImage: "graduationcap")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardWarning)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, WardSpace.l)
                 .padding(.vertical, 8)
                 .wardRaised(in: Capsule())
-                .padding(.bottom, 6)
+                .padding(.bottom, WardSpace.s)
                 .accessibilityIdentifier("wardDisclaimer")
                 .wardUnlit()
         }
@@ -340,8 +340,8 @@ struct WardCalcView: View {
                 .multilineTextAlignment(.trailing)
                 .font(WardType.obs)
                 .monospacedDigit()
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, WardSpace.m)
+                .padding(.vertical, WardSpace.s)
                 .frame(maxWidth: 110)
                 .wardInset(in: RoundedRectangle(cornerRadius: 10, style: .continuous), control: true)
                 .focused($focused, equals: field.id)
@@ -509,7 +509,7 @@ struct WardScoreView: View {
             Text(range)
                 .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                 .frame(minWidth: 44, alignment: .leading)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(band.title).font(.subheadline.weight(.semibold))
                 Text(band.detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -534,13 +534,13 @@ private struct WardScoreTotal: View {
     var body: some View {
         let number: String = WardScores.points(total)
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: WardSpace.l) {
             Text(number)
                 .font(.system(size: 34, weight: .bold, design: .monospaced).monospacedDigit())
                 .foregroundStyle(Color.wardInk)
                 .contentTransition(.numericText())
                 .frame(minWidth: 48)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(band?.title ?? "")
                     .font(.headline)
                     .foregroundStyle(Color.wardInk)
@@ -554,10 +554,10 @@ private struct WardScoreTotal: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, WardSpace.m)
         .wardRaised(in: shape, lift: .high)
         .padding(.horizontal, 16)
-        .padding(.bottom, 6)
+        .padding(.bottom, WardSpace.s)
         .animation(.snappy, value: total)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("wardScoreTotal")

@@ -147,6 +147,8 @@ struct SettingsPage: View {
     @AppStorage(PopOutSettings.faceKey) private var face = false
     @AppStorage(SpaceSettings.alwaysNightKey) private var alwaysNight = false
     @AppStorage(SpaceSettings.soundsKey) private var sounds = false
+    /// The heartbeat the opening plays (LaunchSplash); its ECG draws either way.
+    @AppStorage(LaunchSplash.soundKey) private var launchHeartbeat = true
     /// "Graphics": Automatic, High quality or Smooth (GraphicsQuality.swift).
     @AppStorage(SpaceSettings.graphicsKey) private var graphicsRaw: String = GraphicsChoice.automatic.rawValue
     /// "Link length": how far apart linked bodies stand in the Ideas map
@@ -215,6 +217,8 @@ struct SettingsPage: View {
                 .accessibilityIdentifier("alwaysNightToggle")
             Toggle("Sounds", isOn: $sounds)
                 .accessibilityIdentifier("soundsToggle")
+            Toggle("Heartbeat when the app opens", isOn: $launchHeartbeat)
+                .accessibilityIdentifier("launchHeartbeatToggle")
             Picker("Graphics", selection: $graphicsRaw) {
                 ForEach(GraphicsChoice.allCases, id: \.rawValue) { choice in
                     Text(choice.title).tag(choice.rawValue)
@@ -541,14 +545,14 @@ private struct HelpModeRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             ModeTile(kind: kind, size: 34)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(kind.label).font(.headline).foregroundStyle(Color.wardInk)
                 Text(detail)
                     .font(.footnote)
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
     }
 }
 
@@ -572,7 +576,7 @@ private struct HelpQuestionRow: View {
             Text(answer)
                 .font(.footnote)
                 .foregroundStyle(Color.wardInkSecondary)
-                .padding(.top, 2)
+                .padding(.top, WardSpace.xs)
         } label: {
             Text(question).font(.subheadline.weight(.semibold))
         }

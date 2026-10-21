@@ -17,6 +17,16 @@ enum PreviewLaunch {
         return args[i + 1]
     }
 
+    /// The section the states gallery is drawn in (`-uiPreviewSection
+    /// <questions|cards|textbook|cases|osce|audio|ideas>`); Questions when
+    /// none, or none known, is named.
+    static var section: WardSection {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewSection"), i + 1 < args.count,
+              let section = WardSection(rawValue: args[i + 1].lowercased()) else { return .questions }
+        return section
+    }
+
     /// The orientation named on the command line, for the iPad job.
     ///
     /// simctl cannot rotate a simulator, so without this a "landscape" pass
@@ -42,6 +52,22 @@ enum PreviewLaunch {
         guard let i = args.firstIndex(of: "-uiPreviewWidth"), i + 1 < args.count,
               let w = Double(args[i + 1]), w > 100 else { return nil }
         return CGFloat(w)
+    }
+
+    /// A pretend window height, with the pretend width: the iPhone SE's
+    /// 647 points under its status bar, so home is checked at the height
+    /// the smallest phone gives it, not the simulator's.
+    static var pretendHeight: CGFloat? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewHeight"), i + 1 < args.count,
+              let h = Double(args[i + 1]), h > 100 else { return nil }
+        return CGFloat(h)
+    }
+
+    /// On the "library" preview, pushes the first set and comes back before
+    /// the fit check (`-uiPreviewPushBack`).
+    static var pushBack: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiPreviewPushBack")
     }
 
     /// Asks the window to turn, and keeps asking until it does.
@@ -301,13 +327,24 @@ enum SampleData {
 struct PreviewRoot: View {
     let screen: String
 
+    init(screen: String) {
+        self.screen = screen
+        // Always night sky is kept between launches, so a mode-switch
+        // recording that turned it on left every later still dark (r10).
+        // A still starts from the device's own mode; the recordings that
+        // turn it on do so themselves.
+        if !screen.hasPrefix("mode-switch") {
+            UserDefaults.standard.set(false, forKey: "vignette.space.alwaysNight") // SpaceSettings.alwaysNightKey
+        }
+    }
+
     var body: some View {
         Group {
             if let w = PreviewLaunch.pretendWidth {
                 ZStack {
                     Color(.systemGray4).ignoresSafeArea()
                     content
-                        .frame(width: w)
+                        .frame(width: w, height: PreviewLaunch.pretendHeight)
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 6)
                         .padding(.vertical, 28)
@@ -355,6 +392,14 @@ struct PreviewRoot: View {
             NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: SampleData.narrate.narrateSegments.count - 1, startFinished: true) }
         case "cases":
             NavigationStack { CaseListView(set: SampleData.cases) }
+        case "states":
+            // every Ward control in each state, in one section's colours, on
+            // the base and with the controls a mode's screen has (modeScreen;
+            // the base is the same for every mode)
+            WardStatesGallery(section: PreviewLaunch.section)
+                .background(ModeBackdrop(kind: .mcq))
+                .wardControls()
+                .wardSection(PreviewLaunch.section)
         default:
             LibraryView()
         }

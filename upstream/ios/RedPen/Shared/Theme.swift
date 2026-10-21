@@ -9,15 +9,9 @@ import SwiftUI
 
 extension StudySetKind {
     var tint: Color {
-        switch self {
-        // each mode's glyph in a palette tone that reads on the base
-        case .mcq: return .wardPrimaryInk
-        case .anki: return .wardEcg
-        case .book: return .wardSuccess
-        case .osce: return .wardWarning
-        case .narrate: return .wardInkSecondary
-        case .cases: return .wardPrimaryInk
-        }
+        // each mode's glyph in its section's accent, the hue its screens
+        // take (WardSection), clear of the right, wrong and due colours
+        Color.wardAccent(WardSection(kindRaw: rawValue))
     }
 
     var symbol: String {
@@ -129,7 +123,7 @@ struct ModeBackdrop: View {
 /// with the pop-out; only what you can touch leans with it.
 struct ContentCard: ViewModifier {
     func body(content: Content) -> some View {
-        content.wardCard(padding: 18)
+        content.wardCard(padding: WardSpace.xl)
     }
 }
 
@@ -144,6 +138,11 @@ extension View {
             .background(ModeBackdrop(kind: kind))
             .wardControls()
             .environment(\.modeTint, Color.wardPrimaryInk)
+            // the mode's hue on the paper's grid and the controls' edges
+            .wardSection(WardSection(kindRaw: kind.rawValue))
+            // the bar, and the status bar over it, named light or dark with
+            // the page, so they switch with it rather than fading
+            .modifier(WardBarScheme())
     }
 
     /// Slides up, solid, on first appearance, staggered by `index` so a
@@ -151,6 +150,20 @@ extension View {
     /// less than the rows' spacing, so a row never passes over its
     /// neighbour.
     func riseIn(index: Int = 0) -> some View { modifier(RiseIn(index: index)) }
+}
+
+/// The navigation bar's scheme, named outright as the page's.
+private struct WardBarScheme: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        content
+            .toolbarColorScheme(scheme, for: .navigationBar)
+            // the bar's own base, always shown: with it the bar, not iOS's
+            // guess from the content under it, owns the status bar's style
+            .toolbarBackground(Color.wardBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+    }
 }
 
 extension View {
@@ -223,7 +236,7 @@ struct ThinProgress: View {
     let fraction: Double
 
     var body: some View {
-        WardGroove(fraction: fraction, tint: .wardBeam, height: 6)
+        WardGroove(fraction: fraction, tint: .wardPrimaryInk, height: 6)
             .animation(.easeOut(duration: 0.3), value: fraction)
     }
 }
@@ -283,7 +296,7 @@ struct ScoreRing: View {
 /// the middle of the indigo Anki screen: the accent is the app's colour, not
 /// the screen's.
 private struct ModeTintKey: EnvironmentKey {
-    static let defaultValue: Color = .wardPrimaryInk
+    static var defaultValue: Color { .wardPrimaryInk }
 }
 
 extension EnvironmentValues {
@@ -386,8 +399,8 @@ struct ReadableColumn: ViewModifier {
         content
             .frame(maxWidth: limit, alignment: .leading)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, roomy ? 8 : 0)
-            .padding(.top, roomy ? 10 : 0)
+            .padding(.horizontal, roomy ? WardSpace.s : 0)
+            .padding(.top, roomy ? WardSpace.m : 0)
     }
 }
 
@@ -507,7 +520,6 @@ struct StudyActionBar<Content: View>: View {
     var body: some View {
         if shown {
             let broad: Bool = span == .broad
-            let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
             let innerCap: CGFloat? = broad ? nil : 700
             let side: Alignment = broad ? .trailing : .center
             Group {
@@ -541,7 +553,7 @@ struct StudyActionBar<Content: View>: View {
                     }
                     .fixedSize(horizontal: broad, vertical: false)
                     .frame(maxWidth: innerCap)
-                    .wardRaised(in: shape, lift: .high)
+                    .modifier(WardDeckSlab())
                     .frame(maxWidth: .infinity, alignment: side)
                     .frame(maxWidth: broad ? 1000 : 700, alignment: side)
                     .frame(maxWidth: .infinity)
@@ -570,20 +582,27 @@ private struct DeckFoldBand: View {
     let label: ButtonStyleConfiguration.Label
     let pressed: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.wardFoldInset) private var inset
 
     var body: some View {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
             label
+                // Grows with the text up to the largest size its measured
+                // 44 by 28 pill holds, on every deck; past that the Large
+                // Content Viewer shows it. The band's hit target is 44 pt.
                 .font(.body.weight(.semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(Color.wardInk)
                 .frame(width: 44, height: 28)
                 .background { WardPressFace(shape: Capsule(), lift: .low, pressed: pressed) }
                 .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
                 .capPop(pressed)
                 .frame(width: 56, height: 44)
+                .padding(.trailing, inset)
         }
         .contentShape(Rectangle())
+        .accessibilityShowsLargeContentViewer()
     }
 }
 
@@ -636,10 +655,10 @@ struct StudyProgressHeader<Accessory: View>: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
+        let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
+        VStack(alignment: .leading, spacing: WardSpace.s) {
+            HStack(alignment: .center, spacing: WardSpace.m) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(status)
                         .font(.headline)
                         .monospacedDigit()
@@ -661,12 +680,12 @@ struct StudyProgressHeader<Accessory: View>: View {
                     .accessibilityHidden(true)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, WardSpace.l)
+        .padding(.vertical, WardSpace.m)
         .frame(maxWidth: 700)
         .wardRaised(in: shape, lift: .low)
-        .padding(.horizontal, 12)
-        .padding(.top, 6)
+        .padding(.horizontal, WardSpace.m)
+        .padding(.top, WardSpace.s)
         .frame(maxWidth: .infinity)
     }
 }
@@ -685,8 +704,8 @@ struct OptionalTag: View {
         Text("optional")
             .font(.caption.weight(.medium))
             .foregroundStyle(Color.wardInkSecondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
+            .padding(.horizontal, WardSpace.s)
+            .padding(.vertical, WardSpace.xs)
             .wardInset(in: Capsule())
     }
 }

@@ -6,12 +6,17 @@ import SwiftUI
 // each shows is decided, and tested, in ChartQuiz.
 
 /// An answer option as a soft tile: a plain monospaced letter, then its
-/// text. Chosen, the row is pressed into the base with letter and text in Theatre
-/// Blue; once checked, the right one is pressed in with a Discharge Green
-/// letter and check, a wrong pick with a Resus Red letter and cross - the
-/// colour on the letter and the mark only. Crossed out, it is struck through
-/// and lies low, as do the options neither picked nor right once checked:
-/// solid, never dimmed. For the quiz and the mock paper.
+/// text. Chosen, the row is pressed into the base with letter and text in the
+/// section's accent; once checked (the owner, 15 Oct: "the wrong should be
+/// faded and what is right gets the color of the mode used"), the right one
+/// is pressed in with its letter and check in the section's accent and its
+/// ring in the section's ink, and a wrong pick lies flat on the faded face,
+/// ringed, lettered, worded, struck and crossed in the faded ink, so it
+/// reads as stepped back, never as lifted or as the right answer (the
+/// owner, 16 Oct: "the faded buttons aren't distinguishable from correct
+/// answers"). Crossed out, it is struck through and lies low, as
+/// do the options neither picked nor right once checked: solid colours, never
+/// dimmed. For the quiz and the mock paper.
 struct WardOptionRow: View {
     let letter: String
     let text: String
@@ -23,10 +28,17 @@ struct WardOptionRow: View {
 
     private var tone: Color? {
         switch mark {
-        case .chosen: return .wardPrimaryInk
-        case .right: return .wardSuccess
-        case .wrong: return .wardDanger
+        case .chosen, .right: return .wardPrimaryInk
+        case .wrong: return .wardFadedInk
         case .idle, .past: return nil
+        }
+    }
+
+    private var textInk: Color {
+        switch mark {
+        case .chosen: return .wardPrimaryInk
+        case .wrong: return .wardFadedInk
+        case .right, .idle, .past: return .wardInk
         }
     }
 
@@ -34,19 +46,19 @@ struct WardOptionRow: View {
         tone ?? .wardInkSecondary
     }
 
-    private var symbol: String? { mark == .right ? "checkmark.circle.fill" : (mark == .wrong ? "xmark.circle.fill" : nil) }
+    private var symbol: String? { mark == .right ? "checkmark.circle.fill" : (mark == .wrong ? "xmark" : nil) }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.tile, style: .continuous)
-        HStack(spacing: 14) {
+        HStack(spacing: WardSpace.m) {
             Text(letter)
                 .font(.callout.weight(.semibold).monospaced())
                 .foregroundStyle(letterInk)
                 .accessibilityHidden(true)
             Text(text)
                 .font(.callout)
-                .foregroundStyle(mark == .chosen ? Color.wardPrimaryInk : Color.wardInk)
-                .strikethrough(struck, color: .wardInkSecondary)
+                .foregroundStyle(textInk)
+                .strikethrough(struck || mark == .wrong, color: mark == .wrong ? .wardFadedInk : .wardInkSecondary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -56,14 +68,26 @@ struct WardOptionRow: View {
                         .font(.caption.weight(.semibold)).foregroundStyle(letterInk).accessibilityHidden(true)
                         .transition(.identity)
                 }
-                Image(systemName: symbol).font(.title3.weight(.semibold)).foregroundStyle(letterInk).accessibilityHidden(true)
+                Image(systemName: symbol)
+                    .font(mark == .wrong ? .caption.weight(.bold) : .title3.weight(.semibold))
+                    .foregroundStyle(letterInk).accessibilityHidden(true)
                     .transition(.identity)
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, WardSpace.l)
+        .padding(.vertical, WardSpace.l)
         .frame(minHeight: 56)
-        .wardRelief(in: shape, lift: ChartQuiz.liesLow(struck: struck, mark: mark) ? .low : .mid, pressed: tone != nil)
+        // a wrong pick lies flat on the faded face, in the faded ink's ring,
+        // not pressed in: its face is lighter than the cards at night, and a
+        // rim would lift it
+        .background {
+            WardPressFace(shape: shape,
+                          lift: mark == .wrong || ChartQuiz.liesLow(struck: struck, mark: mark) ? .low : .mid,
+                          pressed: mark == .chosen || mark == .right,
+                          fill: mark == .wrong ? Color.wardFaded : Color.wardSurface,
+                          flat: mark == .wrong,
+                          edge: mark == .wrong ? Color.wardFadedInk : nil)
+        }
         // Differentiate Without Colour: the chosen one also ringed
         .overlay { if noColour && mark == .chosen { shape.strokeBorder(letterInk, lineWidth: 3).transition(.identity) } }
     }

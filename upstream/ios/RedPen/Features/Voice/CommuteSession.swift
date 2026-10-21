@@ -167,7 +167,7 @@ final class CommuteSession: ObservableObject {
         let answer = Self.answerLines(of: card)
         let answerText = answer.joined(separator: "; ")
         add(.app, prompt)
-        await say("\(Self.deckName(due.setName)). \(prompt)", current)
+        await say("\(Self.deckName(due.setName)). \(prompt)", current, tone: .asking)
         guard alive(current) else { return .same }
 
         guard let heard = await hear(current, hints: answer) else {
@@ -176,7 +176,7 @@ final class CommuteSession: ObservableObject {
             await thinkingPause(current)
             guard alive(current) else { return .same }
             add(.note, "Answer: \(answerText). Not rated - rate it on Due today.")
-            await say("The answer: \(answerText).", current)
+            await say("The answer: \(answerText).", current, tone: .explaining)
             return .next
         }
         guard alive(current) else { return .same }
@@ -199,17 +199,17 @@ final class CommuteSession: ObservableObject {
         guard let correct = SpokenAnswer.cardVerdict(heard, answer: answer) else {
             // nothing was said: the answer, and no rating (audit #71)
             add(.note, "Answer: \(answerText). Not rated - rate it on Due today.")
-            await say("I didn't hear an answer. It's \(answerText).", current)
+            await say("I didn't hear an answer. It's \(answerText).", current, tone: .correcting)
             return .next
         }
         mark(card: due, correct: correct)
         let why = SpokenAnswer.firstSentence(card.why)
         if correct {
             add(.right, "Right \u{2014} \(answerText)")
-            await say("Correct. \(answerText).", current)
+            await say(VoiceTone.verdict(praise: true, turn: right, answer: answerText, why: ""), current)
         } else {
             add(.wrong, "Answer: \(answerText)" + (why.isEmpty ? "" : "\n\(why)"))
-            await say("Not quite. It's \(answerText). \(why)", current)
+            await say(VoiceTone.verdict(praise: false, turn: wrong, answer: answerText, why: why), current)
         }
         return .next
     }
@@ -245,9 +245,9 @@ final class CommuteSession: ObservableObject {
         let listed = options.enumerated().map { "\(letters[$0.offset]). \($0.element)" }
         add(.app, ([question.stem] + listed).joined(separator: "\n"))
         speaker.prefetch(listed.joined(separator: ". \n"))
-        await say("\(Self.deckName(setName)). \(question.stem)", current)
+        await say("\(Self.deckName(setName)). \(question.stem)", current, tone: .asking)
         guard alive(current) else { return .same }
-        await say(listed.joined(separator: ". \n"), current)
+        await say(listed.joined(separator: ". \n"), current, tone: .listing)
         guard alive(current) else { return .same }
 
         let key = letters[min(max(question.correctIndex, 0), letters.count - 1)]
@@ -258,7 +258,7 @@ final class CommuteSession: ObservableObject {
             await thinkingPause(current)
             guard alive(current) else { return .same }
             add(.note, "Answer: \(key). \(keyText)")
-            await say("The answer is \(key): \(keyText). \(why)", current)
+            await say([("The answer is \(key): \(keyText).", .explaining), (why, .explaining)], current)
             return .next
         }
         guard alive(current) else { return .same }
@@ -278,7 +278,7 @@ final class CommuteSession: ObservableObject {
         var choice = SpokenAnswer.option(in: heard, options: options)
         if choice == nil, !heard.isEmpty, SpokenAnswer.command(in: heard) != .dontKnow {
             // one more go: the recogniser is at its worst on a lone letter
-            await say("Sorry, which letter? A to \(letters[max(0, options.count - 1)]).", current)
+            await say("Sorry, which letter? A to \(letters[max(0, options.count - 1)]).", current, tone: .asking)
             guard alive(current) else { return .same }
             if let again = await hear(current, hints: options) {
                 heard = again
@@ -293,20 +293,26 @@ final class CommuteSession: ObservableObject {
         StudyLog.shared.record()
         if correct {
             add(.right, "Right \u{2014} \(key). \(keyText)")
-            await say("Correct, \(key). \(why)", current)
+            await say(VoiceTone.verdict(praise: true, turn: right, answer: key, why: why), current)
         } else {
             add(.wrong, "Answer: \(key). \(keyText)" + (why.isEmpty ? "" : "\n\(why)"))
             let opener = choice.map { "No, not \(letters[$0])." } ?? "No answer."
-            await say("\(opener) It's \(key): \(keyText). \(why)", current)
+            await say([("\(opener) It's \(key): \(keyText).", .correcting), (why, .explaining)], current)
         }
         return .next
     }
 
     // MARK: speaking and listening
 
-    private func say(_ text: String, _ current: Int) async {
+    private func say(_ text: String, _ current: Int, tone: VoiceTone = .plain) async {
         guard alive(current) else { return }
-        await speaker.say(text)
+        await speaker.say(text, tone: tone)
+    }
+
+    /// Lines in turn, each in its tone; empty lines are skipped.
+    private func say(_ lines: [(String, VoiceTone)], _ current: Int) async {
+        guard alive(current) else { return }
+        await speaker.say(lines.filter { !$0.0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
     }
 
     /// Listens for one answer. Nil when there is no way to hear one: the

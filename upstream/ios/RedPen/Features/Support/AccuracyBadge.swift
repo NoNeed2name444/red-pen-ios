@@ -6,6 +6,7 @@ extension AccuracyGrade {
     var tone: WardTone {
         switch self {
         case .verified: return .green
+        case .checked: return .blue
         case .check: return .warning
         case .flagged: return .danger
         case .unchecked: return .grey
@@ -159,6 +160,7 @@ struct AccuracyWhySheet: View {
     private func explanation(_ a: AccuracyAssessment, percent: Int) -> String {
         switch a.grade {
         case .verified: return "The checkers agree it is right, and the sources support it (\(percent)% likely accurate)."
+        case .checked: return (a.grade.meaning ?? "") + " (\(percent)% likely accurate)"
         case .check: return "Something about it is uncertain - read the reasons below before you rely on it (\(percent)% likely accurate)."
         case .flagged:
             if a.record == nil { return "A rule check found a likely error." }

@@ -57,7 +57,7 @@ struct CaseDebriefView: View {
     private var header: some View {
         HStack(spacing: 12) {
             CaseAvatar(initials: file.patient.initials)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text("Discharge summary")
                     .font(.title2.weight(.bold))
                     .accessibilityAddTraits(.isHeader)
@@ -71,7 +71,7 @@ struct CaseDebriefView: View {
 
     private var scoreCard: some View {
         let score: CaseScore = debrief.score
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: WardSpace.m) {
             HStack(alignment: .firstTextBaseline) {
                 CaseLabel("Score")
                 Spacer()
@@ -100,7 +100,7 @@ struct CaseDebriefView: View {
     }
 
     private var redFlagsCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             CaseLabel("Missed red flags")
             ForEach(debrief.missedRedFlags) { step in
                 VStack(alignment: .leading, spacing: 4) {
@@ -120,7 +120,7 @@ struct CaseDebriefView: View {
     }
 
     private var diagnosisCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             CaseLabel("Diagnosis")
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: debrief.diagnosisRight ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -166,7 +166,7 @@ struct CaseDebriefView: View {
     }
 
     private var findingsCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             HStack {
                 CaseLabel("Key findings")
                 Spacer()
@@ -186,7 +186,7 @@ struct CaseDebriefView: View {
             Image(systemName: item.found ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(item.found ? CaseInk.discharge : CaseInk.biro)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(item.step.label).font(.subheadline.weight(.semibold))
                 Text(item.step.finding).font(.subheadline)
             }
@@ -247,7 +247,7 @@ struct CaseDebriefView: View {
                 Text("Low-yield here:")
                     .font(.subheadline.weight(.semibold))
                 ForEach(debrief.lowYield) { step in
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: WardSpace.xs) {
                         Text("\(step.label) \u{00B7} \(step.minutes) min").font(.subheadline.weight(.semibold))
                         if !step.note.isEmpty { Text(step.note).font(.subheadline) }
                     }
@@ -285,7 +285,7 @@ struct CaseDebriefView: View {
     // MARK: what to do with it
 
     private var actionsCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             Button { makeCards() } label: {
                 Label("Make cards from what I missed", systemImage: "rectangle.stack.badge.plus")
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)

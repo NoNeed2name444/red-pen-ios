@@ -300,6 +300,8 @@ extension EnvironmentValues {
 struct SkyRoot<Content: View>: View {
     let content: Content
     @Namespace private var zoom
+    @State private var wardEdges = WardEdgeStore()
+    @State private var pageFrame: CGRect = .zero
     @AppStorage(SpaceSettings.alwaysNightKey) private var alwaysNight = false
 
     var body: some View {
@@ -308,6 +310,11 @@ struct SkyRoot<Content: View>: View {
         let budget: GraphicsBudget = center.graphics
         let scheme: ColorScheme? = alwaysNight || center.skyCovered ? .dark : nil
         content
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+                pageFrame = frame
+                wardEdges.setPage(frame, covered: center.skyCovered)
+            }
+            .onChange(of: center.skyCovered) { _, covered in wardEdges.setPage(pageFrame, covered: covered) }
             // NavigationStack owns its safe area and can reset an inherited
             // safeAreaPadding. Reduce its actual layout bounds instead, so
             // pushed pages, search chrome and bottom insets share the clearance.
@@ -320,8 +327,9 @@ struct SkyRoot<Content: View>: View {
             .environment(\.spaceQuality, level)
             .environment(\.graphics, budget)
             .environment(\.skyZoom, zoom)
+            .environment(\.wardEdgeStore, wardEdges)
             .preferredColorScheme(scheme)
-            .overlay { if !center.skyCovered { WardPaperFrame().transition(.identity) } }
+            .overlay { if !center.skyCovered { WardPaperFrame(edges: wardEdges).transition(.identity) } }
             .onAppear {
                 // the cues' tones are made once, ahead of the first one
                 if SpaceSettings.sounds { SpaceSounds.shared.prepare() }

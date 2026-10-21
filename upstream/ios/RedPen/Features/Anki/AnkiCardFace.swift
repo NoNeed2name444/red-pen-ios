@@ -22,7 +22,7 @@ struct AnkiCardFace: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: WardSpace.l) {
             Text(badge)
                 .font(.caption.weight(.semibold))
                 .textCase(.uppercase)
@@ -52,7 +52,7 @@ struct AnkiCardFace: View {
                 // the answer opens under the question, as Anki shows a card's
                 // back below its front: nothing turns over, the question stays
                 // where it was read (a cloze fills its gap in place instead)
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: WardSpace.l) {
                     if card.type != .cloze {
                         WardEtch()
                     }
@@ -199,9 +199,9 @@ struct AnkiCardFace: View {
     private var back: some View {
         switch card.type {
         case .qa:
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: WardSpace.s) {
                 ForEach(card.bullets, id: \.self) { bullet in
-                    HStack(alignment: .top, spacing: 6) {
+                    HStack(alignment: .top, spacing: WardSpace.s) {
                         Text("\u{2022}")
                         Text(Self.highlighted(bullet))
                     }
@@ -427,13 +427,13 @@ struct AnkiRatingBar: View {
             onRate(rating)
             Announce.say("Rated " + spoken + ".")
         }
-        let label = VStack(spacing: 2) {
+        let label = VStack(spacing: WardSpace.xs) {
             Text(Self.title(rating))
             if hints {
                 Text(Self.meaning(rating)).font(.footnote)
             }
             if !when.isEmpty {
-                HStack(spacing: 3) {
+                HStack(spacing: WardSpace.xs) {
                     Text("back").font(.caption)
                     Text(when)
                         .font(.system(.caption, design: .monospaced).weight(.semibold))
@@ -507,8 +507,8 @@ private struct AnkiRatingFace: View {
             .font(font)
             .multilineTextAlignment(.center)
             .foregroundStyle(tone.ink)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 10)
+            .padding(.horizontal, WardSpace.m)
+            .padding(.vertical, WardSpace.m)
             .frame(maxWidth: .infinity, minHeight: 56)
             .background { WardPressFace(shape: shape, lift: lift, pressed: pressed) }
             .contentShape(shape)

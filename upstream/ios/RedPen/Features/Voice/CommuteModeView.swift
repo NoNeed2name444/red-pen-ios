@@ -464,13 +464,13 @@ private struct CommuteNowPlaying: View {
         let done: Int = session.position
         let left: String = done > 0 ? "~" + Self.clock(elapsed * session.remaining / done) : "\u{2014}"
         return ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: WardSpace.l) {
+            HStack(alignment: .top, spacing: WardSpace.xl) {
                 times(elapsed: elapsed, left: left)
                 counts
             }
             VStack(alignment: .leading, spacing: WardSpace.s) {
-                HStack(alignment: .top, spacing: WardSpace.l) { times(elapsed: elapsed, left: left) }
-                HStack(alignment: .top, spacing: WardSpace.l) { counts }
+                HStack(alignment: .top, spacing: WardSpace.xl) { times(elapsed: elapsed, left: left) }
+                HStack(alignment: .top, spacing: WardSpace.xl) { counts }
             }
         }
     }

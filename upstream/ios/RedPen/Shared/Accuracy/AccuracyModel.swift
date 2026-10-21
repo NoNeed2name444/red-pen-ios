@@ -1,12 +1,16 @@
 import Foundation
 
-/// Verified / Check this / Flagged - or not checked yet.
+/// Verified / Checked / Check this / Flagged - or not checked yet. Checked
+/// (the vignette route, server/vignette-proof.js) sits below Verified: every
+/// check passed, but the published rule its proof rests on is not signed off
+/// yet.
 enum AccuracyGrade: String, Codable, CaseIterable {
-    case verified, check, flagged, unchecked
+    case verified, checked, check, flagged, unchecked
 
     var title: String {
         switch self {
         case .verified: return "Verified"
+        case .checked: return "Checked"
         case .check: return "Check this"
         case .flagged: return "Flagged"
         case .unchecked: return "Not checked yet"
@@ -16,9 +20,20 @@ enum AccuracyGrade: String, Codable, CaseIterable {
     var symbol: String {
         switch self {
         case .verified: return "checkmark.seal.fill"
+        case .checked: return "checkmark.circle.fill"
         case .check: return "questionmark.diamond.fill"
         case .flagged: return "exclamationmark.triangle.fill"
         case .unchecked: return "clock"
+        }
+    }
+
+    /// What Verified and Checked mean, in plain words: server/accuracy-model.js
+    /// TIER_MEANINGS, word for word.
+    var meaning: String? {
+        switch self {
+        case .verified: return "Verified means every fact was matched word for word to an open source, and every step was checked."
+        case .checked: return "Checked means it passed our checks and agreement tests, but it isn't fully proven yet."
+        default: return nil
         }
     }
 }
@@ -161,9 +176,12 @@ enum AccuracyModel {
     /// The feature values for one item (the same as features() on the server).
     /// `sourceProof`: every claim of the item is stated word for word by an
     /// official source (AccuracyProof.isFull).
+    /// `vignette`: only while the server's vignette route is on (its reply
+    /// carried the item's proof check), whether that proof is proven or only
+    /// checked; nil, the features are what they always were.
     static func featureValues(kind: AccuracyKind, rules: [AccuracyRules.Hit], votes: [AccuracyVote],
                               evidenceCount: Int, sourceMatch: Double?, keyLetter: String?,
-                              sourceProof: Bool = false) -> [String: Double] {
+                              sourceProof: Bool = false, vignette: (proven: Bool, checked: Bool)? = nil) -> [String: Double] {
         let risks: [Double] = votes.map { clamp01(Double($0.risk - 1) / 3) }
         let flags: [Bool] = votes.map { $0.risk >= 3 }
         let answered: [AccuracyVote] = votes.filter { v in
@@ -220,6 +238,11 @@ enum AccuracyModel {
         }
         // the families that flagged it
         f["flag_families"] = Double(Set(votes.filter { $0.risk >= 3 }.map { familyOf($0.model) }).count)
+        // not weighted: the vignette route's proof, as the server sets it
+        if let vignette {
+            f["vignette_proof"] = vignette.proven ? 1 : 0
+            f["vignette_checked"] = vignette.checked ? 1 : 0
+        }
         return f
     }
 
@@ -344,8 +367,11 @@ enum AccuracyModel {
     /// stating it word for word - proof, not the models' agreement. Flagged
     /// needs proof from two directions; rules alone flag an item only before
     /// any model has looked. Everything else is Check this. server/accuracy-model.js verdict, rule for rule.
+    /// `vignetteRoute`: the server's vignette route is on - an owner-signed
+    /// vignette proof stands where a source proof would, and one only checked
+    /// gives at most Checked, every other condition still met.
     static func grade(_ p: Double, _ f: [String: Double], weights w: AccuracyWeights = bundled,
-                      oath: Bool = false) -> AccuracyGrade {
+                      oath: Bool = false, vignetteRoute: Bool = false) -> AccuracyGrade {
         let severe: Bool = (f["rule_severe"] ?? 0) > 0
         if (f["no_models"] ?? 1) > 0 { return severe ? .flagged : .unchecked }
         let need: Double = Double(minVerifyVoters)
@@ -360,7 +386,7 @@ enum AccuracyModel {
         let voters: Int = Int(((f["voters"] ?? 0) * 3).rounded())
         // every item needs an official source stating it word for word (the
         // owner: "they need to be PROVEN 99.999% right", 7 Oct)
-        let backed: Bool = (f["source_proof"] ?? 0) == 1
+        let backed: Bool = (f["source_proof"] ?? 0) == 1 || (vignetteRoute && (f["vignette_proof"] ?? 0) == 1)
         let independent: Bool = (f["families"] ?? 0) >= need
         // no voter raised a concern or read the literature against it, and
         // no sensor fired, however mildly
@@ -370,6 +396,10 @@ enum AccuracyModel {
         // reach its key and no family solving it blind went elsewhere
         let solved: Bool = !question || ((f["blind_agree"] ?? 0) >= need && (f["blind_dissent"] ?? 0) == 0)
         if p >= w.thresholds.verified && clean && voters >= minVerifyVoters && backed && independent && unanimous && solved { return .verified }
+        // Checked: everything Verified needs, but its proof rests on a rule
+        // the owner has not signed off yet
+        if vignetteRoute && (f["vignette_checked"] ?? 0) == 1 && p >= w.thresholds.verified && clean
+            && voters >= minVerifyVoters && independent && unanimous && solved { return .checked }
         return .check
     }
 }

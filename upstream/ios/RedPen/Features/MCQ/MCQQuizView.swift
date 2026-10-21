@@ -782,7 +782,7 @@ struct MCQQuizView: View {
     }
 
     private func sureLabel(tagged: Bool) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: WardSpace.s) {
             Text("How sure?")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.wardInkSecondary)
@@ -954,7 +954,7 @@ struct MCQQuizView: View {
             UISelectionFeedbackGenerator().selectionChanged()
             withAnimation(.snappy(duration: 0.2)) { action() }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: WardSpace.s) {
                 if let symbol { Image(systemName: symbol).accessibilityHidden(true) }
                 Text(title)
             }
@@ -997,6 +997,15 @@ struct MCQQuizView: View {
                     do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
                     guard !Task.isCancelled else { return }
                     proxy.scrollTo(Self.answerRowID, anchor: .bottom)
+                }
+            }
+            .task {
+                guard PreviewLaunch.screen == "quiz-scrolled" else { return }
+                // Keep the deck open and leave choices under both curved cuts.
+                for _ in 0..<12 {
+                    do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+                    guard !Task.isCancelled else { return }
+                    proxy.scrollTo("\(current)-1", anchor: .center)
                 }
             }
             .onChange(of: current) { _, _ in proxy.scrollTo(Self.chartTop, anchor: .top) }

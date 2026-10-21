@@ -504,6 +504,7 @@ struct CategoryHeading: View {
         Text(title)
             .wardSmallCaps()
             .accessibilityAddTraits(.isHeader)
+            .wardPart("the \(title) heading")
     }
 }
 
@@ -517,7 +518,10 @@ enum IdeasPlace {
     static let chosenSymbol: String = "lightbulb.fill"
     /// Pager Amber: the tint of the 3D map's backdrop, the one place that
     /// keeps its own look.
-    static let tint: Color = Color.wardBeam
+    static var tint: Color { .wardBeam }
+    /// Ideas' accent (WardSection.ideas), for its glyph beside the
+    /// categories' own.
+    static var accent: Color { .wardAccent(.ideas) }
     /// Where Ideas sits along the dock: after the four categories.
     static var order: Int { StudyCategory.allCases.count }
 }
@@ -575,37 +579,56 @@ struct CategoryDock: View {
         let here: String = inIdeas ? IdeasPlace.title : selection.title
         let symbol: String = inIdeas ? IdeasPlace.chosenSymbol : selection.symbol
         return Button { listing = true } label: {
-            HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(Color.wardPrimaryInk)
-                    .accessibilityHidden(true)
-                Text(here)
-                    .font(.headline)
-                    .foregroundStyle(Color.wardInk)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.up")
-                    .font(.headline)
-                    .foregroundStyle(Color.wardInkSecondary)
-                    .accessibilityHidden(true)
+            // The place's name is one word, never broken: with its symbol
+            // where both fit, without it where only the name does, and
+            // only then a little smaller ("Ques / tions" and "Card / s" at
+            // AX5, 15 Oct).
+            ViewThatFits(in: .horizontal) {
+                listFace(here, symbol: symbol)
+                listFace(here, symbol: nil)
+                listFace(here, symbol: nil, shrinks: true)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, minHeight: 56)
             .contentShape(shape)
         }
-        .buttonStyle(.plain)
+        // raised, sinking under the finger like every Ward button
+        .buttonStyle(WardPanelButtonStyle(lift: .mid, shape: shape))
         .accessibilityLabel("Sections, now \(here)")
         .accessibilityHint("Lists every section to choose from")
         .accessibilityIdentifier("dockList")
-        .wardRaised(in: shape, control: true)
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
+        // the preview's picture of the list, at the accessibility sizes
+        .task { if PreviewLaunch.screen == "sections" { listing = true } }
         .sheet(isPresented: $listing) {
             // a sheet has its lights, whatever the dock floats with
             DockListSheet(selection: $selection, inIdeas: $inIdeas, count: count)
                 .wardUnlit(false)
+        }
+    }
+
+    /// The list button's face: the place's symbol (or none), its name on
+    /// one line, and the chevron.
+    private func listFace(_ here: String, symbol: String?, shrinks: Bool = false) -> some View {
+        HStack(spacing: 12) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(Color.wardPrimaryInk)
+                    .accessibilityHidden(true)
+            }
+            Text(here)
+                .font(.headline)
+                .foregroundStyle(Color.wardInk)
+                .lineLimit(1)
+                .minimumScaleFactor(shrinks ? 0.5 : 1)
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.up")
+                .font(.headline)
+                .foregroundStyle(Color.wardInk)
+                .accessibilityHidden(true)
         }
     }
 
@@ -641,12 +664,12 @@ struct CategoryDock: View {
             ideasFace(chosen: chosen)
                 .frame(width: 56)
                 .frame(minHeight: 56, maxHeight: .infinity)
-                .wardRelief(in: shape, lift: .high, pressed: chosen)
                 .contentShape(shape)
                 .contentShape(.hoverEffect, shape)
                 .hoverEffect(.highlight)
         }
-        .buttonStyle(.plain)
+        // pressed in with the accent edge when chosen, sinking when held
+        .buttonStyle(WardPanelButtonStyle(chosen: chosen, lift: .high, shape: shape))
         .accessibilityLabel(L10n.lookup(IdeasPlace.title))
         .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
@@ -684,6 +707,7 @@ struct CategoryDock: View {
                 .background {
                     if chosen {
                         WardReliefFace(shape: segment, lift: .low, inset: true)
+                            .wardChosenEdge(segment, true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                             .transition(.identity)
                     }
@@ -692,7 +716,7 @@ struct CategoryDock: View {
                 .contentShape(.hoverEffect, segment)
                 .hoverEffect(.highlight)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(WardItemButtonStyle(chosen: chosen, shape: segment))
         .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
         .accessibilityLabel(L10n.lookup(IdeasPlace.title))
         .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
@@ -712,20 +736,18 @@ struct CategoryDock: View {
     /// The lightbulb over the word Ideas, Theatre Blue when chosen.
     private func ideasFace(chosen: Bool) -> some View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
-        let ink: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
-        return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), ink: ink)
+        return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), chosen: chosen)
             .contentTransition(.identity)
     }
 
     private func item(_ category: StudyCategory) -> some View {
         let chosen: Bool = !inIdeas && category == selection
-        let ink: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         let segment = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
             withAnimation(change) { selection = category }
         } label: {
-            DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), ink: ink)
+            DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), chosen: chosen)
                 // Four points is eight pixels in the 2x preview. Keep this
                 // inside the pressed face, including at its minimum width.
                 .padding(.horizontal, 4)
@@ -738,6 +760,7 @@ struct CategoryDock: View {
                     // there.
                     if chosen {
                         WardReliefFace(shape: segment, lift: .low, inset: true)
+                            .wardChosenEdge(segment, true)
                             .matchedGeometryEffect(id: "chosen", in: lift)
                             .transition(.identity)
                     }
@@ -746,7 +769,7 @@ struct CategoryDock: View {
                 .contentShape(.hoverEffect, segment)
                 .hoverEffect(.highlight)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(WardItemButtonStyle(chosen: chosen, shape: segment))
         .keyboardShortcut(CategoryDock.digit(number), modifiers: .command)
         .accessibilityLabel(spoken(category))
         .accessibilityHint(L10n.string("Shows these sets and ways to practise"))
@@ -790,7 +813,7 @@ private struct DockListSheet: View {
                     }
                 }
                 row(title: L10n.lookup(IdeasPlace.title), detail: L10n.string("Your idea dump, board and 3D map"),
-                    symbol: IdeasPlace.symbol, tint: IdeasPlace.tint, chosen: inIdeas,
+                    symbol: IdeasPlace.symbol, tint: IdeasPlace.accent, chosen: inIdeas,
                     id: "dockCategory-ideas") {
                     inIdeas = true
                 }
@@ -814,23 +837,13 @@ private struct DockListSheet: View {
             choose()
             dismiss()
         } label: {
-            HStack(spacing: 14) {
-                Image(systemName: symbol)
-                    .font(.title2)
-                    .foregroundStyle(tint)
-                    .frame(minWidth: 28)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline).foregroundStyle(Color.wardInk)
-                    Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
-                }
-                Spacer(minLength: 8)
-                if chosen {
-                    Image(systemName: "checkmark")
-                        .font(.headline)
-                        .foregroundStyle(Color.wardPrimaryInk)
-                        .accessibilityHidden(true)
-                }
+            // The name whole, as on the dock's button: with the symbol where
+            // both fit, without it, then a little smaller - never hyphenated
+            // ("Ques- tions" at AX5, 15 Oct). The line under it wraps.
+            ViewThatFits(in: .horizontal) {
+                rowFace(title: title, detail: detail, symbol: symbol, tint: tint, chosen: chosen)
+                rowFace(title: title, detail: detail, symbol: nil, tint: tint, chosen: chosen)
+                rowFace(title: title, detail: detail, symbol: nil, tint: tint, chosen: chosen, shrinks: true)
             }
             .frame(minHeight: 56)
             .contentShape(Rectangle())
@@ -838,6 +851,44 @@ private struct DockListSheet: View {
         .wardRowBackground()
         .accessibilityAddTraits(chosen ? [.isSelected] : [])
         .accessibilityIdentifier(id)
+    }
+}
+
+extension DockListSheet {
+    /// A row's face: the symbol (or none), the name on one line over the
+    /// line about it, and the tick on the chosen row.
+    fileprivate func rowFace(title: String, detail: String, symbol: String?, tint: Color, chosen: Bool,
+                             shrinks: Bool = false) -> some View {
+        HStack(spacing: 14) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.title2)
+                    .foregroundStyle(tint)
+                    .frame(minWidth: 28)
+                    .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(Color.wardInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(shrinks ? 0.5 : 1)
+                // it wraps as it needs; its one-line width does not count
+                // towards whether the name fits
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(minWidth: 0, idealWidth: 0, maxWidth: .infinity, alignment: .leading)
+            }
+            Spacer(minLength: 8)
+            if chosen {
+                Image(systemName: "checkmark")
+                    .font(.headline)
+                    .foregroundStyle(Color.wardPrimaryInk)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 }
 
@@ -888,7 +939,15 @@ private struct DockSlots: Layout {
 private struct DockItemFace: View {
     let symbol: String
     let title: String
-    let ink: Color
+    let chosen: Bool
+    @Environment(\.isEnabled) private var enabled
+
+    /// The states every control keeps: Chart Ink, the section's accent when
+    /// chosen, Biro Grey when disabled.
+    private var ink: Color {
+        if !enabled { return .wardDisabledInk }
+        return chosen ? .wardPrimaryInk : .wardInk
+    }
 
     var body: some View {
         VStack(spacing: 3) {

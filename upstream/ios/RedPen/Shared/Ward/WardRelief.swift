@@ -53,7 +53,7 @@ struct WardReliefSpec: Equatable, Sendable {
 /// Light mode: white at 0.75 to 0.9 and a cool grey shade (#A3B1C6) at 0.5
 /// to 0.65. Dark mode: white at 0.05 to 0.08, so nothing glares, and black
 /// at 0.45 to 0.6. A control's face (a button, a chip, a tile to tap, a
-/// field) has a 1-pt edge in the ECG paper's blue that reads at least 3:1
+/// field) has a 1-pt edge in the ECG paper's ink that reads at least 3:1
 /// on the base (the owner, 9 Oct: buttons "not visually distinct in
 /// borders", then "make the line around the buttons match the grid
 /// color"), so what can
@@ -64,10 +64,10 @@ struct WardReliefSpec: Equatable, Sendable {
 enum WardRelief {
     static let lightShade: UInt32 = 0xA3B1C6
     static let highContrastShadeGain = 0.15
-    /// A control's edge, light and dark, in the paper's blue: about 3.3:1
+    /// A control's edge, light and dark, in the paper's ink: about 3.3:1
     /// on the base in both (the grid's own strength would be about 2:1).
     static let lightEdge = 0.85
-    static let darkEdge = 0.65
+    static let darkEdge = 0.7
     static let highContrastEdge = 1.0
     /// A card's or a slab's edge under Increase Contrast; none otherwise.
     static let containerHighContrastEdge = 0.35
@@ -84,8 +84,8 @@ enum WardRelief {
         highContrast ? containerHighContrastEdge : 0
     }
 
-    /// The ink of a control's edge: the ECG paper's blue, so the edges
-    /// carry on the grid and its frame line.
+    /// The ink of a control's edge: the ECG paper's ink outside any
+    /// section, so the edges carry on the grid and its frame line.
     static func edgeHex(dark: Bool) -> UInt32 {
         WardPaper.ink(dark: dark, highContrast: false).hex
     }
@@ -155,6 +155,83 @@ enum WardRelief {
         raised(lift, dark: dark, highContrast: highContrast, control: control).mirrored()
     }
 
+    // MARK: The rim: the one soft light a button keeps
+
+    /// A button's rim (the owner, 14 Oct: "add fade to the buttons but only
+    /// a very small rim around the buttons enough to make them have
+    /// neumorphism but doesn't affect elements behind them"): a highlight
+    /// up and left and a shade down and right, offset 2 to 3 points with a
+    /// crisp blur of 2, so the whole light stays within `rimReach` of the
+    /// face. That is less than the smallest gap the scale puts between two
+    /// controls (WardScale.s), so a rim never reaches another control or
+    /// the words beside it, and it is drawn under the face only, never over
+    /// what lies behind. Nothing else in the app casts a soft light outward
+    /// any more than it did: cards and slabs keep their own relief, and
+    /// what floats over a page stays unlit (wardUnlit) except its buttons'
+    /// rims. Raised and pressed in read alike at the old 1 to 2 points
+    /// (the owner, 16 Oct: buttons "can't be distinguished between pushed
+    /// and not because the button highte is a bit low"), so the rim now
+    /// stands at the largest offset its reach allows, with less blur, so
+    /// its edge is crisp, and a darker shade.
+    static let rimReach = 5.0
+    static let rimMaxBlur = 2.0
+    static let rimMaxOffset = 3.0
+
+    static func rimOffset(_ lift: WardLift) -> Double {
+        switch lift {
+        case .low: return 2
+        case .mid: return 2.5
+        case .high, .peak: return 3
+        }
+    }
+
+    static func rimBlur(_ lift: WardLift) -> Double { rimMaxBlur }
+
+    /// A small rim reads only when it is strong: stronger than the wide
+    /// relief, which spreads the same light over far more of the base. The
+    /// dark highlight stays at 0.1, the most it can be without glaring.
+    static let rimLightHighlight = 0.95
+    static let rimLightShade = 0.9
+    static let rimDarkHighlight = 0.1
+    static let rimDarkShade = 0.85
+
+    /// A button's face raised by its rim, with the control's ink edge.
+    static func rim(_ lift: WardLift, dark: Bool, highContrast: Bool = false) -> WardReliefSpec {
+        let d = rimOffset(lift), r = rimBlur(lift)
+        let shade = (dark ? rimDarkShade : rimLightShade) + (highContrast ? highContrastShadeGain : 0)
+        return WardReliefSpec(
+            highlight: WardReliefLight(hex: 0xFFFFFF, alpha: dark ? rimDarkHighlight : rimLightHighlight,
+                                       x: -d, y: -d, radius: r),
+            shade: WardReliefLight(hex: dark ? 0x000000 : lightShade, alpha: min(1, shade), x: d, y: d, radius: r),
+            inner: false,
+            edgeAlpha: edgeAlpha(dark: dark, highContrast: highContrast))
+    }
+
+    /// How far past the face a light can show: its offset plus its blur.
+    static func reach(_ light: WardReliefLight) -> Double {
+        max(abs(light.x), abs(light.y)) + light.radius
+    }
+
+    /// How much of a pressed-in face's inner shade reaches `depth` points in
+    /// from its edge, 0 to 1: the shade is cast `offset` in and blurred (a
+    /// SwiftUI radius is twice the blur's standard deviation), so it falls
+    /// away to nothing a few points inside.
+    static func shadeCoverage(_ lift: WardLift, depth: Double) -> Double {
+        let sigma: Double = radius(lift) / 2
+        return 0.5 * (1 - erf((depth - offset(lift)) / sigma / 2.0.squareRoot()))
+    }
+
+    /// What a pressed-in face of `fill` really is `depth` points in from its
+    /// edge: the fill with the inner shade over it, as strong as it is there
+    /// (Increase Contrast deepens it). This is the ground a chip's words sit
+    /// on, not the bare fill.
+    static func insetGround(_ fill: UInt32, lift: WardLift, dark: Bool, highContrast: Bool,
+                            depth: Double) -> UInt32 {
+        let alpha: Double = shadeAlpha(lift, dark: dark, highContrast: highContrast) * shadeCoverage(lift, depth: depth)
+        return composite(WardReliefLight(hex: dark ? 0x000000 : lightShade, alpha: alpha, x: 0, y: 0, radius: 0),
+                         on: fill)
+    }
+
     /// What a light looks like where it lies at full strength on `base`.
     static func composite(_ light: WardReliefLight, on base: UInt32) -> UInt32 {
         let (r0, g0, b0) = WardPalette.rgb(base), (r1, g1, b1) = WardPalette.rgb(light.hex)
@@ -166,6 +243,9 @@ enum WardRelief {
 /// Continuous control relief, independent of SwiftUI and its animation clock.
 struct WardPressSpec: Equatable, Sendable {
     var blur: Double
+    /// Raised, outside the face: a control's rim highlight (none for an
+    /// icon tile, which keeps the softened outline it had).
+    var outerHighlight: WardReliefLight
     var outerShade: WardReliefLight
     var innerShade: WardReliefLight
     var innerHighlight: WardReliefLight
@@ -176,9 +256,19 @@ enum WardPress {
     static let sinkScale = 0.985
     static let press = 0.05
     static let release = 0.07
-    static let shadePress = 0.15
-    static let shadeRelease = 0.18
-    static let depth = 0.7
+    /// The shade's glide in and out. At the old depth of 0.7 a pressed face
+    /// sank too little to tell from a raised one (the owner, 16 Oct: "the
+    /// pressed doesn't have much depress"), so it now sinks the whole of
+    /// its lift's lights, with the inner shade a quarter stronger. Over the
+    /// old times that would sink half as fast again, a snap rather than a
+    /// press, so the times grow with the depth (0.15 and 0.18 at 0.7):
+    /// the shade starts in at the speed it always had and goes on to the
+    /// new depth. The click (press, release) keeps its time, so the face
+    /// still dips at once under the finger.
+    static let shadePress = 0.21
+    static let shadeRelease = 0.26
+    static let depth = 1.0
+    static let innerShadeGain = 1.25
     static let softKeep = 0.6
     static let hollowSoft = 1.0
 
@@ -201,21 +291,28 @@ enum WardPress {
     }
 
     /// A pressable face at `depth` (0 raised, 1 pressed in): a control's,
-    /// with its ink edge, unless `control` is false (an icon tile that only
-    /// shows a choice).
+    /// with its ink edge and its rim (WardRelief.rim) and a crisp outline,
+    /// unless `control` is false (an icon tile that only shows a choice),
+    /// which keeps the wide shade and the softened outline. Pressed in, the
+    /// lift's own lights fall inside the face, where they touch nothing else.
     static func spec(_ lift: WardLift, depth q: Double, dark: Bool,
                      highContrast: Bool = false, control: Bool = true) -> WardPressSpec {
         let q = min(1, max(0, q))
         let up = 1 - q, down = depth * q
         let raised = WardRelief.raised(lift, dark: dark, highContrast: highContrast, control: control)
+        let rim = WardRelief.rim(lift, dark: dark, highContrast: highContrast)
         func light(_ original: WardReliefLight, weight: Double) -> WardReliefLight {
             WardReliefLight(hex: original.hex, alpha: original.alpha * weight,
                             x: original.x * weight, y: original.y * weight,
                             radius: original.radius * (softKeep + (1 - softKeep) * weight))
         }
-        return WardPressSpec(blur: soft(lift) + hollowSoft * q,
-                             outerShade: light(raised.shade, weight: up),
-                             innerShade: light(raised.shade, weight: down),
+        let none = WardReliefLight(hex: 0xFFFFFF, alpha: 0, x: 0, y: 0, radius: 0)
+        var deeper = raised.shade
+        deeper.alpha = min(1, deeper.alpha * innerShadeGain)
+        return WardPressSpec(blur: control ? 0 : soft(lift) + hollowSoft * q,
+                             outerHighlight: control ? light(rim.highlight, weight: up) : none,
+                             outerShade: light(control ? rim.shade : raised.shade, weight: up),
+                             innerShade: light(deeper, weight: down),
                              innerHighlight: light(raised.highlight, weight: down),
                              edgeAlpha: raised.edgeAlpha)
     }
@@ -246,19 +343,22 @@ enum WardPaper {
     static let line = 1.0
     static let edgeWidth = 1.5
     static let cornerShare = 53.33 / 428
+    /// The rounded iPad screen, including its smaller multitasking windows.
+    static let padRadius = 18.0
 
     static func ink(dark: Bool, highContrast: Bool) -> WardPaperInk {
-        WardPaperInk(hex: dark ? 0x78AAF5 : 0x2868C4,
+        // the ink outside any section (WardSection.outside, Cards' indigo)
+        WardPaperInk(hex: dark ? 0xA5B6FE : 0x5866E5,
                      fine: highContrast ? 0 : (dark ? 0.07 : 0.09),
                      bold: highContrast ? 0 : (dark ? 0.14 : 0.18),
                      edge: dark ? 0.5 : 0.55)
     }
 
-    static func panel(width: Double, height: Double) -> WardPaperPanel? {
+    static func panel(width: Double, height: Double, pad: Bool = false) -> WardPaperPanel? {
         guard width > 4 * frame, height > 4 * frame else { return nil }
         return WardPaperPanel(x: frame, y: frame,
                               width: width - 2 * frame, height: height - 2 * frame,
-                              radius: (min(width, height) - 2 * frame) * cornerShare)
+                              radius: pad ? padRadius : (min(width, height) - 2 * frame) * cornerShare)
     }
 
     /// The panel with its top moved down to `top` (window points): the home
@@ -267,8 +367,8 @@ enum WardPaper {
     /// header "with the roundedness of it and continuity with the rest of
     /// the grid line"). A `top` above the frame's, or too low to leave room
     /// for both corners, is held to what fits.
-    static func panel(width: Double, height: Double, top: Double) -> WardPaperPanel? {
-        guard var p = panel(width: width, height: height) else { return nil }
+    static func panel(width: Double, height: Double, top: Double, pad: Bool = false) -> WardPaperPanel? {
+        guard var p = panel(width: width, height: height, pad: pad) else { return nil }
         let bottom = p.y + p.height
         let y = min(max(top, p.y), bottom - 2 * p.radius)
         guard y > p.y else { return p }
@@ -296,5 +396,308 @@ enum WardPaper {
             k += 1
         }
         return result
+    }
+}
+
+/// One end of a line across the frame's opening: the circular arc from the
+/// line down to the opening's outline, tangent to both.
+struct WardEdgeCorner: Equatable, Sendable {
+    var center: SIMD2<Double>
+    var radius: Double
+    /// where the arc leaves the line: center.x
+    var lineX: Double
+    /// where the arc meets the outline, tangent to it
+    var join: SIMD2<Double>
+}
+
+/// A line across the opening at `y`, with its ends joined to the outline.
+struct WardEdgeJoin: Equatable, Sendable {
+    var y: Double
+    var left: WardEdgeCorner?
+    var right: WardEdgeCorner?
+    /// the straight line's ends: an arc's lineX, or, on a joined side with
+    /// no room for an arc, where the line meets the outline; nil on a side
+    /// that is not joined (the caller keeps its own end there)
+    var fromX: Double?
+    var toX: Double?
+}
+
+enum WardEdge {
+    static let minRadius = 12.0
+
+    private static func cubicPoint(p0: SIMD2<Double>, p1: SIMD2<Double>, p2: SIMD2<Double>, p3: SIMD2<Double>, t: Double) -> SIMD2<Double> {
+        let u = 1.0 - t
+        let tt = t * t
+        let uu = u * u
+        let uuu = uu * u
+        let ttt = tt * t
+        return uuu * p0 + 3.0 * uu * t * p1 + 3.0 * u * tt * p2 + ttt * p3
+    }
+
+    private static func sampleCubic(p0: SIMD2<Double>, p1: SIMD2<Double>, p2: SIMD2<Double>, p3: SIMD2<Double>, n: Int) -> [SIMD2<Double>] {
+        guard n > 0 else { return [p3] }
+        var points: [SIMD2<Double>] = []
+        points.reserveCapacity(n)
+        for i in 1...n {
+            let t = Double(i) / Double(n)
+            points.append(cubicPoint(p0: p0, p1: p1, p2: p2, p3: p3, t: t))
+        }
+        return points
+    }
+
+    /// The panel's outline with iOS continuous corners, a closed polyline,
+    /// clockwise from the top edge's left end of straight run.
+    static func outline(_ panel: WardPaperPanel, pointsPerCurve: Int = 24) -> [SIMD2<Double>] {
+        guard pointsPerCurve > 0 else { return [] }
+        let minX = panel.x
+        let maxX = panel.x + panel.width
+        let minY = panel.y
+        let maxY = panel.y + panel.height
+        let r = panel.radius
+        let c = 1.52866483
+
+        // Start at top edge's left end of straight run
+        var poly: [SIMD2<Double>] = [SIMD2<Double>(minX + c * r, minY)]
+
+        // 1. Top straight run to top-right corner start
+        poly.append(SIMD2<Double>(maxX - c * r, minY))
+
+        // 2. Top-right corner (3 cubics)
+        let tr_c1_p0 = SIMD2<Double>(maxX - 1.52866483 * r, minY)
+        let tr_c1_p1 = SIMD2<Double>(maxX - 1.08849299 * r, minY)
+        let tr_c1_p2 = SIMD2<Double>(maxX - 0.86840701 * r, minY)
+        let tr_c1_p3 = SIMD2<Double>(maxX - 0.63149399 * r, minY + 0.07491100 * r)
+
+        let tr_c2_p0 = tr_c1_p3
+        let tr_c2_p1 = SIMD2<Double>(maxX - 0.37282401 * r, minY + 0.16905501 * r)
+        let tr_c2_p2 = SIMD2<Double>(maxX - 0.16905501 * r, minY + 0.37282401 * r)
+        let tr_c2_p3 = SIMD2<Double>(maxX - 0.07491100 * r, minY + 0.63149399 * r)
+
+        let tr_c3_p0 = tr_c2_p3
+        let tr_c3_p1 = SIMD2<Double>(maxX, minY + 0.86840701 * r)
+        let tr_c3_p2 = SIMD2<Double>(maxX, minY + 1.08849299 * r)
+        let tr_c3_p3 = SIMD2<Double>(maxX, minY + 1.52866483 * r)
+
+        poly.append(contentsOf: sampleCubic(p0: tr_c1_p0, p1: tr_c1_p1, p2: tr_c1_p2, p3: tr_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tr_c2_p0, p1: tr_c2_p1, p2: tr_c2_p2, p3: tr_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tr_c3_p0, p1: tr_c3_p1, p2: tr_c3_p2, p3: tr_c3_p3, n: pointsPerCurve))
+
+        // 3. Right straight run
+        poly.append(SIMD2<Double>(maxX, maxY - c * r))
+
+        // 4. Bottom-right corner (mirroring TR)
+        func brPoint(u: Double, v: Double) -> SIMD2<Double> {
+            SIMD2<Double>(maxX - r * v, maxY + r * u)
+        }
+        let br_c1_p0 = brPoint(u: -1.52866483, v: 0)
+        let br_c1_p1 = brPoint(u: -1.08849299, v: 0)
+        let br_c1_p2 = brPoint(u: -0.86840701, v: 0)
+        let br_c1_p3 = brPoint(u: -0.63149399, v: 0.07491100)
+
+        let br_c2_p0 = br_c1_p3
+        let br_c2_p1 = brPoint(u: -0.37282401, v: 0.16905501)
+        let br_c2_p2 = brPoint(u: -0.16905501, v: 0.37282401)
+        let br_c2_p3 = brPoint(u: -0.07491100, v: 0.63149399)
+
+        let br_c3_p0 = br_c2_p3
+        let br_c3_p1 = brPoint(u: 0, v: 0.86840701)
+        let br_c3_p2 = brPoint(u: 0, v: 1.08849299)
+        let br_c3_p3 = brPoint(u: 0, v: 1.52866483)
+
+        poly.append(contentsOf: sampleCubic(p0: br_c1_p0, p1: br_c1_p1, p2: br_c1_p2, p3: br_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: br_c2_p0, p1: br_c2_p1, p2: br_c2_p2, p3: br_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: br_c3_p0, p1: br_c3_p1, p2: br_c3_p2, p3: br_c3_p3, n: pointsPerCurve))
+
+        // 5. Bottom straight run
+        poly.append(SIMD2<Double>(minX + c * r, maxY))
+
+        // 6. Bottom-left corner (mirroring TR)
+        func blPoint(u: Double, v: Double) -> SIMD2<Double> {
+            SIMD2<Double>(minX - r * u, maxY - r * v)
+        }
+        let bl_c1_p0 = blPoint(u: -1.52866483, v: 0)
+        let bl_c1_p1 = blPoint(u: -1.08849299, v: 0)
+        let bl_c1_p2 = blPoint(u: -0.86840701, v: 0)
+        let bl_c1_p3 = blPoint(u: -0.63149399, v: 0.07491100)
+
+        let bl_c2_p0 = bl_c1_p3
+        let bl_c2_p1 = blPoint(u: -0.37282401, v: 0.16905501)
+        let bl_c2_p2 = blPoint(u: -0.16905501, v: 0.37282401)
+        let bl_c2_p3 = blPoint(u: -0.07491100, v: 0.63149399)
+
+        let bl_c3_p0 = bl_c2_p3
+        let bl_c3_p1 = blPoint(u: 0, v: 0.86840701)
+        let bl_c3_p2 = blPoint(u: 0, v: 1.08849299)
+        let bl_c3_p3 = blPoint(u: 0, v: 1.52866483)
+
+        poly.append(contentsOf: sampleCubic(p0: bl_c1_p0, p1: bl_c1_p1, p2: bl_c1_p2, p3: bl_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: bl_c2_p0, p1: bl_c2_p1, p2: bl_c2_p2, p3: bl_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: bl_c3_p0, p1: bl_c3_p1, p2: bl_c3_p2, p3: bl_c3_p3, n: pointsPerCurve))
+
+        // 7. Left straight run
+        poly.append(SIMD2<Double>(minX, minY + c * r))
+
+        // 8. Top-left corner (mirroring TR)
+        func tlPoint(u: Double, v: Double) -> SIMD2<Double> {
+            SIMD2<Double>(minX + r * v, minY - r * u)
+        }
+        let tl_c1_p0 = tlPoint(u: -1.52866483, v: 0)
+        let tl_c1_p1 = tlPoint(u: -1.08849299, v: 0)
+        let tl_c1_p2 = tlPoint(u: -0.86840701, v: 0)
+        let tl_c1_p3 = tlPoint(u: -0.63149399, v: 0.07491100)
+
+        let tl_c2_p0 = tl_c1_p3
+        let tl_c2_p1 = tlPoint(u: -0.37282401, v: 0.16905501)
+        let tl_c2_p2 = tlPoint(u: -0.16905501, v: 0.37282401)
+        let tl_c2_p3 = tlPoint(u: -0.07491100, v: 0.63149399)
+
+        let tl_c3_p0 = tl_c2_p3
+        let tl_c3_p1 = tlPoint(u: 0, v: 0.86840701)
+        let tl_c3_p2 = tlPoint(u: 0, v: 1.08849299)
+        let tl_c3_p3 = tlPoint(u: 0, v: 1.52866483)
+
+        poly.append(contentsOf: sampleCubic(p0: tl_c1_p0, p1: tl_c1_p1, p2: tl_c1_p2, p3: tl_c1_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tl_c2_p0, p1: tl_c2_p1, p2: tl_c2_p2, p3: tl_c2_p3, n: pointsPerCurve))
+        poly.append(contentsOf: sampleCubic(p0: tl_c3_p0, p1: tl_c3_p1, p2: tl_c3_p2, p3: tl_c3_p3, n: pointsPerCurve))
+
+        return poly
+    }
+
+    private static func closestPointOnSegment(p: SIMD2<Double>, a: SIMD2<Double>, b: SIMD2<Double>) -> (point: SIMD2<Double>, dist: Double) {
+        let ab = b - a
+        let abLenSq = ab.x * ab.x + ab.y * ab.y
+        if abLenSq < 1e-12 {
+            let d = hypot(p.x - a.x, p.y - a.y)
+            return (a, d)
+        }
+        let t = max(0.0, min(1.0, ((p.x - a.x) * ab.x + (p.y - a.y) * ab.y) / abLenSq))
+        let proj = a + t * ab
+        let d = hypot(p.x - proj.x, p.y - proj.y)
+        return (proj, d)
+    }
+
+    private static func horizontalCrossing(poly: [SIMD2<Double>], y: Double, left: Bool) -> Double? {
+        guard poly.count >= 2 else { return nil }
+        var xs: [Double] = []
+        for i in 0..<(poly.count - 1) {
+            let p1 = poly[i]
+            let p2 = poly[i + 1]
+            let minY = min(p1.y, p2.y)
+            let maxY = max(p1.y, p2.y)
+            if y >= minY && y <= maxY && p1.y != p2.y {
+                let t = (y - p1.y) / (p2.y - p1.y)
+                let x = p1.x + t * (p2.x - p1.x)
+                xs.append(x)
+            }
+        }
+        if xs.isEmpty { return nil }
+        return left ? xs.min() : xs.max()
+    }
+
+    private static func solveLeftCorner(outline: [SIMD2<Double>], y: Double, radius: Double,
+                                        midX: Double, maxY: Double) -> (WardEdgeCorner?, fromX: Double?) {
+        let room = maxY - y
+        let r = min(radius, room / 2.0)
+        guard r >= minRadius else {
+            let fromX = horizontalCrossing(poly: outline, y: y, left: true)
+            return (nil, fromX)
+        }
+        let cy = y + r
+        guard let lowX = horizontalCrossing(poly: outline, y: cy, left: true) else {
+            return (nil, nil)
+        }
+
+        func distToOuter(c: SIMD2<Double>) -> (dist: Double, nearest: SIMD2<Double>) {
+            var bestDist = Double.infinity
+            var bestPoint = c
+            for i in 0..<(outline.count - 1) {
+                let (proj, d) = closestPointOnSegment(p: c, a: outline[i], b: outline[i + 1])
+                // Outer side is x < c.x (touching the bottom edge straight below has x == c.x, which is not the join)
+                if proj.x < c.x - 1e-9 {
+                    if d < bestDist {
+                        bestDist = d
+                        bestPoint = proj
+                    }
+                }
+            }
+            return (bestDist, bestPoint)
+        }
+
+        var lo = lowX
+        var hi = midX
+        for _ in 0..<60 {
+            let mid = (lo + hi) / 2.0
+            let (d, _) = distToOuter(c: SIMD2<Double>(mid, cy))
+            if d < r {
+                lo = mid
+            } else {
+                hi = mid
+            }
+        }
+        let cx = (lo + hi) / 2.0
+        let (_, join) = distToOuter(c: SIMD2<Double>(cx, cy))
+        let corner = WardEdgeCorner(center: SIMD2<Double>(cx, cy), radius: r, lineX: cx, join: join)
+        return (corner, cx)
+    }
+
+    /// The line at `y` across the opening whose outline is `outline`, its
+    /// ends joined on the sides asked for, with arcs of `radius` or the
+    /// largest that fits. nil when y is not inside the opening.
+    static func join(outline: [SIMD2<Double>], y: Double, radius: Double,
+                     left: Bool = true, right: Bool = true) -> WardEdgeJoin? {
+        guard outline.count >= 3 else { return nil }
+        var minY = Double.infinity
+        var maxY = -Double.infinity
+        var minX = Double.infinity
+        var maxX = -Double.infinity
+        for pt in outline {
+            if pt.y < minY { minY = pt.y }
+            if pt.y > maxY { maxY = pt.y }
+            if pt.x < minX { minX = pt.x }
+            if pt.x > maxX { maxX = pt.x }
+        }
+
+        guard y > minY, y < maxY else { return nil }
+        let midX = (minX + maxX) / 2.0
+
+        var leftCorner: WardEdgeCorner? = nil
+        var rightCorner: WardEdgeCorner? = nil
+        var fromX: Double? = nil
+        var toX: Double? = nil
+
+        if left {
+            let res = solveLeftCorner(outline: outline, y: y, radius: radius, midX: midX, maxY: maxY)
+            leftCorner = res.0
+            fromX = res.fromX
+        }
+
+        if right {
+            // Mirror outline horizontally about midX so the left solver solves the right side symmetrically
+            let mirroredOutline = outline.map { SIMD2<Double>(2.0 * midX - $0.x, $0.y) }
+            let res = solveLeftCorner(outline: mirroredOutline, y: y, radius: radius, midX: midX, maxY: maxY)
+            if let mc = res.0 {
+                let rx = 2.0 * midX - mc.center.x
+                let jx = 2.0 * midX - mc.join.x
+                rightCorner = WardEdgeCorner(center: SIMD2<Double>(rx, mc.center.y),
+                                             radius: mc.radius,
+                                             lineX: rx,
+                                             join: SIMD2<Double>(jx, mc.join.y))
+                toX = rx
+            } else if let mFromX = res.fromX {
+                toX = 2.0 * midX - mFromX
+            }
+        }
+
+        return WardEdgeJoin(y: y, left: leftCorner, right: rightCorner, fromX: fromX, toX: toX)
+    }
+
+    /// The slab's top corner radius on one side (`leading`: its left side
+    /// at x `slabSide`; otherwise its right side): `base` unless its top edge
+    /// would run past where the arc leaves the line.
+    static func slabTopRadius(_ corner: WardEdgeCorner?, slabSide: Double,
+                              leading: Bool, base: Double = 24) -> Double {
+        guard let corner else { return base }
+        let diff = leading ? (corner.lineX - slabSide) : (slabSide - corner.lineX)
+        return max(base, diff)
     }
 }

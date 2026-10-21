@@ -1,7 +1,7 @@
 # Stethoscore for Android
 
 Native Kotlin / Jetpack Compose app targeting **Android 17 (API 37)**, on the independent `android/kotlin` branch.
-The source is `red-pen-ios/personal@be11a567cff6f96d74266cdadba63415b832a32c` (9 October 2026), selected after auditing 4 accessible repositories and 162 branches. This branch runs only the Android workflow. The iOS working branch is unaffected.
+The source is `red-pen-ios/design/integration@ca4ddb4d` (21 October 2026; first ported from `personal@be11a567`, 9 October). `upstream/ios` is that iOS app, the reference the Kotlin port follows 1:1. This branch runs only the Android workflow. The iOS working branch is unaffected.
 
 ## Build and install
 

@@ -219,7 +219,7 @@ private struct SpokenTranscript: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
+                LazyVStack(alignment: .leading, spacing: WardSpace.m) {
                     ForEach(session.lines) { line in
                         SpokenLineBubble(line: line).id(line.id)
                     }
@@ -287,8 +287,8 @@ private struct StationAttemptRow: View {
         let score: String = "\(attempt.mark.done.count)/\(attempt.steps.count)"
         Button(action: open) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
+                    HStack(spacing: WardSpace.s) {
                         Text(attempt.title).foregroundStyle(Color.wardInk).lineLimit(2)
                         if attempt.isExample { VoiceExampleTag() }
                     }
@@ -475,20 +475,20 @@ private struct SpokenLineBubble: View {
                 .font(.callout.italic())
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
+                .padding(WardSpace.m)
                 .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         case .student:
             HStack {
                 Spacer(minLength: 40)
                 Text(line.text)
-                    .padding(10)
+                    .padding(WardSpace.m)
                     .foregroundStyle(Color.wardPrimaryInk)
                     .wardRaised(in: bubble, lift: .low)
             }
         case .patient:
             Text(line.text)
                 .foregroundStyle(Color.wardInk)
-                .padding(10)
+                .padding(WardSpace.m)
                 .wardRaised(in: bubble, lift: .low)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.trailing, 40)
@@ -515,7 +515,7 @@ struct StationReportView: View {
                 HStack {
                     Text("Communication")
                     Spacer()
-                    HStack(spacing: 2) {
+                    HStack(spacing: WardSpace.xs) {
                         ForEach(1...5, id: \.self) { i in
                             Image(systemName: i <= attempt.mark.communication ? "star.fill" : "star")
                                 .foregroundStyle(i <= attempt.mark.communication ? Color.wardBeam : Color.wardInkSecondary)
@@ -538,7 +538,7 @@ struct StationReportView: View {
                         let stage = SpokenAnswer.spikes[index]
                         let done = spikes[stage.key] ?? false
                         Label {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: WardSpace.xs) {
                                 Text(stage.name)
                                 Text(stage.meaning).font(.caption).foregroundStyle(Color.wardInkSecondary)
                             }
@@ -578,7 +578,7 @@ struct StationReportView: View {
 
             Section("Transcript") {
                 ForEach(attempt.lines) { line in
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: WardSpace.xs) {
                         Text(line.speaker.rawValue.capitalized)
                             .font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
                         Text(line.text).font(.callout)

@@ -103,6 +103,8 @@ extension LibraryView {
         }
         .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card))
         .accessibilityIdentifier("buildSession")
+        .launchEntrance(inOpening: true)
+        .wardPart("Build a session")
     }
 
     private func searchRow(_ hit: LibrarySearch.Hit) -> some View {

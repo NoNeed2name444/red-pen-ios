@@ -438,6 +438,124 @@ final class GraphPreviewUITests: XCTestCase {
         }
     }
 
+    // MARK: the island's motions
+
+    /// The quiz bottom deck: folded and unfolded twice, then the question
+    /// scrolled up and back so the scroll edge's line appears and goes.
+    func testIslandDeckFold() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-uiPreviewScreen", "quiz"]
+        app.launch()
+
+        let fold = app.buttons["studyBarFold"]
+        guard fold.waitForExistence(timeout: 30) else {
+            throw XCTSkip("no study bar fold button on quiz")
+        }
+
+        // 1. Start with the deck open, at rest.
+        usleep(1_500_000)
+
+        // 2. Fold it with its fold button, then unfold it.
+        press(fold)
+        usleep(1_500_000)
+        press(fold)
+        usleep(1_500_000)
+
+        // 3. Fold and unfold it once more.
+        press(fold)
+        usleep(1_500_000)
+        press(fold)
+        usleep(1_500_000)
+
+        // 4. Scroll the question up and back, so the scroll edge's line appears and goes.
+        app.swipeUp(velocity: .slow)
+        usleep(1_500_000)
+        app.swipeDown(velocity: .slow)
+        usleep(1_500_000)
+    }
+
+    /// On a page with an open deck, push another page; swipe back interactively;
+    /// push again, swipe back halfway and let go (a cancelled back).
+    func testIslandPushAndBack() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-uiPreviewScreen", "anki-quizable"]
+        app.launch()
+
+        let fold = app.buttons["studyBarFold"]
+        guard fold.waitForExistence(timeout: 30) else {
+            throw XCTSkip("no study bar on anki-quizable")
+        }
+        let more = app.buttons["studyMore"]
+        guard more.waitForExistence(timeout: 10) else {
+            throw XCTSkip("no studyMore button")
+        }
+
+        // Start with the deck open, at rest.
+        usleep(1_500_000)
+
+        // Push another page (MCQQuizView from More -> Quiz me)
+        press(more)
+        let quizMe = app.buttons["quizMe"]
+        let quizTarget = quizMe.waitForExistence(timeout: 5) ? quizMe : app.menuItems["quizMe"]
+        if quizTarget.waitForExistence(timeout: 3) {
+            press(quizTarget)
+        } else {
+            let byLabel = app.buttons["Quiz me"].exists ? app.buttons["Quiz me"] : app.menuItems["Quiz me"]
+            guard byLabel.waitForExistence(timeout: 5) else {
+                throw XCTSkip("no Quiz me option in More menu")
+            }
+            press(byLabel)
+        }
+
+        let patientHeader = NSPredicate(format: "label MATCHES %@", "Patient [0-9]+ of [0-9]+.*")
+        let quizHeader = app.descendants(matching: .any).matching(patientHeader).firstMatch
+        XCTAssertTrue(quizHeader.waitForExistence(timeout: 10), "pushed quiz view didn't appear")
+        usleep(1_500_000)
+
+        // 1. Go back with an interactive swipe from the left edge, not the back button:
+        // an XCUICoordinate press and drag from x 0.01 to x 0.8, slowly (about 0.6 s).
+        let window = app.windows.firstMatch
+        let leftEdge = window.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5))
+        let backTarget = window.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5))
+        leftEdge.press(forDuration: 0.05, thenDragTo: backTarget, withVelocity: .slow, thenHoldForDuration: 0.1)
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: quizHeader)
+        XCTAssertTrue(XCTWaiter.wait(for: [gone], timeout: 10) == .completed, "did not return to anki card review")
+        usleep(1_500_000)
+
+        // 2. Push again, swipe back, stop halfway and let go, so the push stays (a cancelled back).
+        XCTAssertTrue(more.waitForExistence(timeout: 5), "no studyMore button after returning")
+        press(more)
+        let quizMeAgain = app.buttons["quizMe"]
+        let quizTargetAgain = quizMeAgain.waitForExistence(timeout: 5) ? quizMeAgain : app.menuItems["quizMe"]
+        if quizTargetAgain.waitForExistence(timeout: 3) {
+            press(quizTargetAgain)
+        } else {
+            let byLabel = app.buttons["Quiz me"].exists ? app.buttons["Quiz me"] : app.menuItems["Quiz me"]
+            guard byLabel.waitForExistence(timeout: 5) else {
+                throw XCTSkip("no Quiz me option in More menu on second push")
+            }
+            press(byLabel)
+        }
+        XCTAssertTrue(quizHeader.waitForExistence(timeout: 10), "second pushed quiz view didn't appear")
+        usleep(1_500_000)
+
+        let halfTarget = window.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.5))
+        leftEdge.press(forDuration: 0.05, thenDragTo: halfTarget, withVelocity: .slow, thenHoldForDuration: 0.1)
+        usleep(1_500_000)
+        XCTAssertTrue(quizHeader.exists, "pushed quiz view should remain after cancelled back")
+    }
+
+    @discardableResult
+    private func press(_ target: XCUIElement) -> Bool {
+        guard target.exists else { return false }
+        if target.isHittable {
+            target.tap()
+            return true
+        }
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        return true
+    }
+
     private func snap(_ app: XCUIApplication, _ name: String) {
         let shot = uprightShot()
         shot.name = name

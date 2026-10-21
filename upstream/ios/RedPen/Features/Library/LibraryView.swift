@@ -172,6 +172,17 @@ struct LibraryView: View {
     /// text size the reader chose, so the only reliable number is the one the
     /// layout reports.
     @State private var dockHeight: CGFloat = 0
+    /// Where the bottom bar (New set over the dock, or the selection bar)
+    /// begins, in global points; nil while there is none (the keyboard has
+    /// put it away). The page ends a little above it (pageCutHeight).
+    @State private var barTop: CGFloat?
+    /// The room the page has, in global points, for its cut.
+    @State private var pageFrame: CGRect = .zero
+    /// The tops, in global points, of the rows and parts that stood where
+    /// the page's cut can fall, at rest (WardPartBook): the cut moves up to
+    /// any that it would leave a sliver of (HomeFit.settledCut). Written
+    /// only at rest, so a scroll never re-runs the page for it.
+    @State private var restTops: [Double] = []
 
     /// Where the home's grid band ends, followed through a scroll without
     /// redrawing the list (HomeBandTrack).
@@ -189,17 +200,40 @@ struct LibraryView: View {
     /// The window, not the screen: an iPad app can be a third of one, and the
     /// rows read this to choose between selecting and pushing.
     @State var span: WindowSpan = .slim
+    /// A short window (HomeFit): New set stands up beside the account
+    /// button, and the round shows its first beds, so the card and its
+    /// button end above the dock.
+    @State var shortWindow = false
+    /// At large text, how many of the round's beds were taken off so the
+    /// page's cut does not slice Start ward round (HomeFit.slices), and
+    /// where Start was last laid out, in global points.
+    @State var bedsTrimmed = 0
+    @State var startFrame: CGRect = .zero
     /// At the accessibility text sizes the dock is one button over a list
     /// (CategoryDock), so it sits at the bottom even on a wide iPad.
     @Environment(\.dynamicTypeSize) var typeSize
+    /// Pixels to a point, so the page's cut can sit on the pixel grid (HomeFit.shown).
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         layout
             .environment(\.windowSpan, span)
+            // the preview's fit check (HomeFitProbe); nothing outside it.
+            // Past the default text size the page may scroll (HomeFit).
+            .task {
+                WardPartBook.shared.atRest = { [bandTrack] in bandTrack.isAtRest }
+                WardPartBook.shared.changed = { restTops = $0 }
+                HomeFitProbe.shared.large = typeSize > .large
+                async let trip: Void = previewPushBack()
+                await HomeFitProbe.shared.report()
+                _ = await trip
+            }
             .background {
                 Color.clear
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                        let now = WindowSpan(width: w)
+                    .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+                        let now = WindowSpan(width: size.width)
+                        let short: Bool = HomeFit.isShort(height: Double(size.height), broad: now == .broad)
+                        if short != shortWindow { shortWindow = short }
                         // In iPadOS 26 this changes while the student drags
                         // the window's edge. Not animated: animating it would
                         // cross-fade one column into two, and nothing in the
@@ -211,6 +245,55 @@ struct LibraryView: View {
                         span = now
                     }
             }
+    }
+
+    /// With `-uiPreviewPushBack` on the "library" preview, once home is up
+    /// with its parts booked and a set to open, notes the book's part names,
+    /// pushes the first set onto `opened` and pops it once a part of home
+    /// has left the book (1.5 s at the soonest, 10 s at the most). A
+    /// slow launch (AX5 on the SE's size takes about half a minute on a busy
+    /// Mac) is waited for, up to 30 s, instead of being reported as no set.
+    private func previewPushBack() async {
+        guard PreviewLaunch.screen == "library", PreviewLaunch.pushBack else { return }
+        do { try await Task.sleep(for: .milliseconds(1500)) } catch { return }
+        for _ in 0..<300 where WardPartBook.shared.parts.isEmpty || (loose.first ?? shown.first) == nil {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+        }
+        guard let set = loose.first ?? shown.first, !WardPartBook.shared.parts.isEmpty else {
+            HomeFitProbe.shared.pushBackNoSet = true
+            return
+        }
+        let before = WardPartBook.shared.parts
+        HomeFitProbe.shared.beforePush = before.values.map(\.name)
+        // home's cut and the faces it booked, before the push covers it
+        let restCut: Double? = WardPartBook.shared.cut
+        let faces: [Double] = before.values.map { Double($0.rect.minY) }
+        WardPartBook.shared.resetDropCounts()
+        HomeFitProbe.shared.pushStarted = Date()
+        opened = [set]
+        // Home's parts leave the book once the pushed page covers it. A busy
+        // Mac can take longer than 1.5 s to get there (one look then missed
+        // it at random), so watch for it, up to 10 s, and pop no sooner
+        // than 1.5 s in, as before.
+        var lost = false
+        var lastLookCount = before.count
+        for tick in 1...100 {
+            do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            let duringPush = WardPartBook.shared.parts
+            lastLookCount = duringPush.count
+            let removed: Int = WardPartBook.shared.dropsRemoved + (before.keys.contains { duringPush[$0] == nil } ? 1 : 0)
+            lost = lost || HomeFit.pushCovered(faces: faces, cut: restCut, removed: removed,
+                                               kept: WardPartBook.shared.dropsKept)
+            if lost && tick >= 15 { break }
+        }
+        HomeFitProbe.shared.pushLostParts = lost
+        HomeFitProbe.shared.pushDropsRemoved = WardPartBook.shared.dropsRemoved
+        HomeFitProbe.shared.pushDropsKept = WardPartBook.shared.dropsKept
+        HomeFitProbe.shared.pushLastKeptCut = WardPartBook.shared.lastKeptCut
+        HomeFitProbe.shared.pushBookCountBefore = before.count
+        HomeFitProbe.shared.pushBookCountLastLook = lastLookCount
+        opened = []
+        HomeFitProbe.shared.pushBackDone = true
     }
 
     /// One stack on every shape of window: the dock (or the rail) chooses
@@ -237,6 +320,10 @@ struct LibraryView: View {
             }
         }
         .task { restoreLastSet() }
+        // the "section-switch" preview steps along the dock as a tap would
+        .onReceive(NotificationCenter.default.publisher(for: PreviewExtras.dockStep)) { note in
+            previewDockStep(toIdeas: note.object as? String == "ideas")
+        }
         // the search's index follows the library and the notes; it is only
         // rebuilt while a search is showing
         .onReceive(store.$library) { search.libraryChanged($0) }
@@ -258,7 +345,10 @@ struct LibraryView: View {
         }
         // Save to Ideas: the study screens' store, and a saved note's way
         // back to where it came from (LibrarySavedIdeas)
-        .onAppear { attachIdeaSaver() }
+        .onAppear {
+            LaunchStage.shared.mark("home", once: true)
+            attachIdeaSaver()
+        }
         .onReceive(PlatformNotice.publisher(PlatformNotice.openItem)) { note in
             if let source = note.userInfo?["source"] as? NoteSource { openSaved(source) }
         }
@@ -351,6 +441,24 @@ struct LibraryView: View {
         })
     }
 
+    /// One step along the dock, as a tap on the next place would take it:
+    /// each category, then Ideas, then back to Questions (a recording of the
+    /// sections' hues shifting); or straight to Ideas.
+    private func previewDockStep(toIdeas: Bool = false) {
+        let all: [StudyCategory] = StudyCategory.allCases
+        withAnimation(.snappy(duration: 0.3)) {
+            if toIdeas {
+                inIdeas = true
+            } else if inIdeas {
+                dockSelection.wrappedValue = all[0]
+            } else if let i = all.firstIndex(of: category), i + 1 < all.count {
+                dockSelection.wrappedValue = all[i + 1]
+            } else {
+                inIdeas = true
+            }
+        }
+    }
+
     /// Ideas in place of the category's page. It sits after the four
     /// categories, so it always slides in from the trailing side.
     func goToIdeas() {
@@ -380,16 +488,40 @@ struct LibraryView: View {
             .navigationTitle(screenTitle)
             .diagnosticsScreen("screen:library")
             .navigationBarTitleDisplayMode(.inline)
-            // pinned in the bar's drawer at the top, so it never fights the
-            // dock at the bottom for the thumb
-            .searchable(text: searchText, placement: .navigationBarDrawer(displayMode: .automatic),
-                        prompt: searchPrompt)
-            .searchFocused($searchFocused)
-            .toolbar { toolbarItems }
+            // The search field and the account menu at the top, so they
+            // never fight the dock at the bottom for the thumb. Drawn by the
+            // page in Ward colours rather than in the system bar: the bar's
+            // glass search field and its items changed style on their own
+            // clock, a grey film over the page for most of a second after
+            // light and dark switched (the owner, 14 Oct). Here they shift
+            // with every other Ward colour (WardLookStore).
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) { topRow }
             // the wide iPad's rail, under the left hand
             .safeAreaInset(edge: .leading, spacing: 0) { rail }
             .safeAreaInset(edge: .bottom) { bottomBar }
             .modifier(KeyboardWatch(up: $keyboardUp))
+            // the dock steps aside while typing, and the page runs to the
+            // keyboard
+            .onChange(of: keyboardUp) { _, up in if up { barTop = nil } }
+            // Start ward round is whole above the page's cut or wholly past
+            // it, never sliced by it, at any text size
+            .onChange(of: startFrame) { trimSlicedStart() }
+            .onChange(of: barTop) { trimSlicedStart() }
+            .onChange(of: typeSize) { bedsTrimmed = 0 }
+            .onChange(of: span) { bedsTrimmed = 0 }
+            // the category's hue (or Ideas') on the paper's grid and the
+            // controls' edges, shifting with the dock
+            .wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)
+            .onChange(of: homeShowing, initial: true) { _, showing in WardPaperTop.shared.home = showing }
+            .onAppear { WardPaperTop.shared.home = homeShowing }
+            .onDisappear { WardPaperTop.shared.home = false }
+    }
+
+    /// True while home itself is on screen, with no page pushed over it.
+    private var homeShowing: Bool {
+        opened.isEmpty && pushedSupport.wrappedValue == nil && quickQuiz == nil
+            && featureQuiz == nil && featurePage == nil && !showingDue && sessionDeck == nil
     }
 
     /// The page, and everything it can push.
@@ -403,8 +535,27 @@ struct LibraryView: View {
                 .id(pageKey)
                 .transition(pageTransition)
         }
+            // The page ends at a clean cut a little above the bottom bar
+            // (pageCutHeight), its frame rather than a clip: past the cut a
+            // row is out of the list's bounds, so it is off screen to a tap,
+            // to VoiceOver and to the UI tests alike, and scrolls into view
+            // instead of hiding under New set or the dock.
+            .frame(height: pageCutHeight, alignment: .top)
+            .onChange(of: pageCut, initial: true) { _, cut in
+                WardPartBook.shared.cut = cut
+                HomeFitProbe.shared.notePushCut(cut, barTop: barTop, page: pageFrame, tops: restTops)
+            }
+            // where the page really ends, for the preview's fit check
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
+                HomeFitProbe.shared.pageEnd = $0
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { pageFrame = $0 }
             // a new page's list starts at its top, its header not yet seen
-            .onChange(of: pageKey) { bandTrack.reset() }
+            .onChange(of: pageKey) {
+                bandTrack.reset()
+                WardPartBook.shared.clear()
+            }
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             // Snapshotted when tapped rather than built live: a flag taken
             // off half way through the flagged quiz must not pull the
@@ -460,9 +611,46 @@ struct LibraryView: View {
     /// header steps aside), not in Ideas and never under the sky.
     private var bandShown: Bool { !inIdeas && !underSky && !searching }
 
-    /// How far Ideas' lists run on past their last row, to clear the dock -
-    /// nothing while the keyboard has put the dock away.
-    private var ideasClearance: CGFloat { keyboardUp ? 0 : dockHeight }
+    /// How far Ideas' lists run on past their last row: a little, when
+    /// the page ends at its cut above the dock; the dock's height when it
+    /// runs on under it; nothing while the keyboard has put the dock away.
+    private var ideasClearance: CGFloat {
+        if keyboardUp { return 0 }
+        return pageCutHeight == nil ? dockHeight : 16
+    }
+
+    /// How tall the page is, from its top to its cut (HomeFit.cut): a
+    /// little above the bottom bar, so nothing scrolled under New set or the
+    /// dock shows round or below them, with no strip or line under them, so
+    /// the page reads unbroken to the bottom (the owner, 9 and 14 Oct). The
+    /// backdrop is not cut: its grid runs on under the bar. Under the sky,
+    /// while the keyboard is up, and until the page and the bar have been
+    /// measured, no cut: the page has all its room.
+    private var pageCutHeight: CGFloat? {
+        guard !underSky, let barTop, pageFrame.height > 0 else { return nil }
+        let top: Double = Double(pageFrame.minY)
+        guard HomeFit.cut(barTop: Double(barTop), pageTop: top, tops: restTops) != nil else { return nil }
+        return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height),
+                                     tops: restTops, scale: Double(displayScale)))
+    }
+
+    /// The page's cut y in global points, or nil when the page is not cut.
+    private var pageCut: Double? {
+        pageCutHeight.map { Double(pageFrame.minY + $0) }
+    }
+
+    /// At large text the round can run past the cut and scroll, but with
+    /// the page at rest the cut must not fall through Start ward round: it
+    /// would show half a button. Then the round gives up a bed (Plan has the
+    /// whole day) and Start rises clear. A page being scrolled is left alone.
+    private func trimSlicedStart() {
+        guard typeSize > .large, bedsTrimmed < 8, bandTrack.isAtRest,
+              let barTop, startFrame.height > 0 else { return }
+        let cut: Double = Double(barTop) - HomeFit.cutRoom
+        if HomeFit.slices(minY: Double(startFrame.minY), maxY: Double(startFrame.maxY), cut: cut) {
+            bedsTrimmed += 1
+        }
+    }
 
     /// The base under every page, Ideas' list and board too, with the grid
     /// band under a category page's header; only the 3D map keeps the sky
@@ -508,7 +696,9 @@ struct LibraryView: View {
         if railed && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
                 .environment(\.colorScheme, dockScheme)
+                .environment(\.wardHeld, underSky)
                 .wardUnlit()
+                .launchEntrance()
                 .transition(.slideIn(.leading))
         }
     }
@@ -523,11 +713,15 @@ struct LibraryView: View {
             // measured like the dock, so the rows can still be scrolled
             // clear of it
             selectionBar
-                // over the Ideas map it has no strip: no glow there
-                .wardUnlit(underSky)
-                .wardBarBase(shown: !underSky)
+                // it floats on the page as the dock does, with no strip
+                // under it, so no glow round it either (the owner, 9 Oct)
+                .wardUnlit()
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0
+                }
+                // where it begins: the page ends above it (pageCutHeight)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: {
+                    barTop = $0
                 }
                 .frame(maxWidth: .infinity)
                 .transition(.slideIn(.bottom))
@@ -535,30 +729,46 @@ struct LibraryView: View {
             // the dock steps aside while typing
             EmptyView()
         } else {
-            let newSet: Bool = !inIdeas && !store.library.isEmpty
+            // on a short window New set is up in the top row (HomeFit)
+            let newSet: Bool = newSetShown && !shortWindow
             VStack(spacing: 10) {
                 // An empty library has its own big button in the middle of
                 // the page, so this one stays away until there is something
                 // to list; Ideas has its own capture row instead.
-                if newSet { newSetRow.transition(.identity) }
+                // arrives with the page's opening at the hand-off (LaunchStage)
+                if newSet { newSetRow.launchEntrance().transition(.identity) }
                 if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
                         .environment(\.colorScheme, dockScheme)
+                        .environment(\.wardHeld, underSky)
+                        .launchEntrance()
                 }
             }
-            // No strip under it: New set and the dock float on the page's
-            // own paper, so the page runs unbroken to the bottom (the
-            // owner's word, 9 Oct), and without a glow round them, only
-            // their edges. The rows still scroll clear of it by its
-            // measured height.
+            // New set and the dock float on the page itself, with no strip
+            // under them, so the page reads unbroken to the bottom (the
+            // owner, 9 Oct); the page's rows end at a clean cut above them
+            // (pageCutHeight), so nothing scrolled under them shows through
+            // or peeks out below the dock (the owner, 14 Oct). Without a glow
+            // round them, only their edges.
             .wardUnlit()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
+            }
+            // where the bar begins: the page's cut, and the preview's fit
+            // check. Beside the rail with no New set (Ideas) the bar holds
+            // nothing, and the page runs on to the bottom.
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                HomeFitProbe.shared.bar = $0
+                barTop = $0.height > 0 ? $0.minY : nil
             }
             .frame(maxWidth: .infinity)
             .transition(.slideIn(.bottom))
         }
     }
+
+    /// Whether this page has a New set button: an empty library has its
+    /// own big button in the middle, and Ideas its own capture row.
+    private var newSetShown: Bool { !inIdeas && !store.library.isEmpty }
 
     /// New set on its own row over the dock, at the trailing end - under the
     /// right thumb on a phone, bottom-right under the right hand on a wide
@@ -587,6 +797,7 @@ struct LibraryView: View {
                     if store.library.isEmpty {
                         Section {
                             emptyState
+                                .launchEntrance(inOpening: true)
                                 .frostedListRow()
                         }
                     }
@@ -606,7 +817,12 @@ struct LibraryView: View {
                 // rail on a wide iPad they stay, to keep the list off it.
                 .listSectionMargins(.horizontal, railed ? 16 : 0)
             }
-            .listSectionSpacing(16)
+            // the scale's 16, not a page's 24: Start ward round has to end
+            // above New set, which floats over the list
+            .listSectionSpacing(WardSpace.l)
+            // the rows and parts that report where they stand at rest, so the
+            // cut leaves no sliver of any (WardPartBook)
+            .environment(\.wardPartsProbed, true)
             .scrollContentBackground(.hidden)
             // the masthead stands in for iOS's soft top edge (categoryPage)
             .scrollEdgeEffectHidden(true, for: .top)
@@ -661,8 +877,11 @@ struct LibraryView: View {
         // contentMargins were supposed to keep the last card clear of the
         // floating bar and neither did; a row cannot be ignored, because
         // the list has to make room for it like any other.
+        // Once the page ends at its cut above the bar, the list already
+        // stops clear of it, and the row is only the room under the last
+        // card.
         Color.clear
-            .frame(height: dockHeight + 24)
+            .frame(height: (pageCutHeight == nil ? dockHeight : 0) + 24)
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -713,6 +932,26 @@ struct LibraryView: View {
         .accessibilityHint("Make questions or cards from a lecture")
         .accessibilityIdentifier("newSetButton")
         .keyboardShortcut("n", modifiers: .command)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.newSet = $0
+        }
+    }
+
+    /// New set on a short window: a round button in the top row, so the
+    /// bar at the bottom is the dock alone and the round card fits above it.
+    private var newSetCircle: some View {
+        Button { newSetKind = category.mainKind } label: {
+            Label("New set", systemImage: "plus")
+                .labelStyle(.iconOnly)
+                .foregroundStyle(Color.wardPrimaryInk)
+        }
+        .buttonStyle(.wardCircle)
+        .accessibilityHint("Make questions or cards from a lecture")
+        .accessibilityIdentifier("newSetButton")
+        .keyboardShortcut("n", modifiers: .command)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            HomeFitProbe.shared.newSet = $0
+        }
     }
 
     /// Over the category's loose sets: the heading, "See all" for a category
@@ -724,6 +963,7 @@ struct LibraryView: View {
             if !searching { seeAllButton }
             selectButton
         }
+        .launchEntrance(inOpening: true)
         .textCase(nil)
     }
 
@@ -807,32 +1047,115 @@ struct LibraryView: View {
                 .hoverEffect(.highlight)
                 .accessibilityLabel("Folder options")
             }
+            .launchEntrance(inOpening: true)
             .textCase(nil)
         }
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbarItems: some ToolbarContent {
-        // One item, top-trailing: Progress, the lectures, the tour of
-        // examples, account, settings and help - the pages about the app
-        // rather than one category, and seldom needed, so up here out of
-        // the thumb's way. The studying itself is in the dock; Select is
-        // beside the sets it picks from.
-        ToolbarItem(placement: .topBarTrailing) {
-            // The Ward circle supplies this control's face; the toolbar's
-            // shared glass background stays hidden.
-            Menu {
-                SupportMenuItems(chosen: $support)
-            } label: {
-                Label("Account and settings", systemImage: "person.crop.circle")
-                .labelStyle(.iconOnly)
+    /// The top of home: the one search field, which searches whatever is on
+    /// show, and the account menu beside it. While typing, Cancel takes the
+    /// menu's place. At the accessibility sizes the field has a row of its
+    /// own under them, so its prompt has the width to wrap whole.
+    private var topRow: some View {
+        Group {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .trailing, spacing: WardSpace.s) {
+                    HStack(spacing: WardSpace.m) { topControls }
+                    searchField
+                }
+            } else {
+                HStack(spacing: WardSpace.m) {
+                    searchField
+                    topControls
+                }
             }
-            .menuStyle(.button)
-            .buttonStyle(.wardCircle)
-            .accessibilityIdentifier("libraryMenu")
         }
-        .sharedBackgroundVisibility(.hidden)
+        .padding(.horizontal, WardSpace.l)
+        .padding(.top, WardSpace.xs)
+        .padding(.bottom, WardSpace.s)
+        // over a category the header's paper band runs on behind it; in
+        // Ideas the plain base, so nothing scrolled shows through
+        .background {
+            if !bandShown && !underSky {
+                Color.wardBackground
+                    .ignoresSafeArea(edges: [.top, .horizontal])
+                    .transition(.identity)
+            }
+        }
+    }
+
+    /// The search field: the magnifier, the field, and Clear once there is
+    /// something to clear. Its prompt is drawn over it (SearchPrompt) rather
+    /// than as its placeholder, which UIKit cut short on one line at every
+    /// size ("Search questions, cards, no..."); VoiceOver still hears the
+    /// field's own name.
+    private var searchField: some View {
+        HStack(spacing: WardSpace.s) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(Color.wardInkSecondary)
+                // a glyph, grown no further than AX1, leaving the prompt
+                // its width
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                .accessibilityHidden(true)
+            ZStack(alignment: .leading) {
+                // kept in the layout while typing, so the field keeps its
+                // height and the page does not jump
+                SearchPrompt(text: searchPrompt)
+                    .opacity(searchText.wrappedValue.isEmpty ? 1 : 0)
+                TextField(searchPrompt, text: searchText, prompt: Text(verbatim: ""))
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .foregroundStyle(Color.wardInk)
+                    .accessibilityIdentifier("librarySearch")
+            }
+            if !searchText.wrappedValue.isEmpty {
+                Button {
+                    searchText.wrappedValue = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .wardField()
+    }
+
+    /// Beside the search field (above it, at the accessibility sizes):
+    /// Cancel while typing; otherwise the account menu, and a short window's
+    /// New set beside it.
+    @ViewBuilder
+    private var topControls: some View {
+        if searchFocused {
+            Button("Cancel") {
+                searchText.wrappedValue = ""
+                searchFocused = false
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.wardPrimaryInk)
+        } else {
+            if shortWindow && newSetShown { newSetCircle }
+            accountMenu
+        }
+    }
+
+    /// Progress, the lectures, the tour of examples, account, settings and
+    /// help - the pages about the app rather than one category, and seldom
+    /// needed, so up here out of the thumb's way. The studying itself is in
+    /// the dock; Select is beside the sets it picks from.
+    private var accountMenu: some View {
+        Menu {
+            SupportMenuItems(chosen: $support)
+        } label: {
+            Label("Account and settings", systemImage: "person.crop.circle")
+                .labelStyle(.iconOnly)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.wardCircle)
+        .accessibilityIdentifier("libraryMenu")
     }
 
     /// Every delete - a swipe, a row's menu, the selection bar - comes
@@ -945,5 +1268,28 @@ private struct KeyboardWatch: ViewModifier {
             .onReceive(KeyboardWatch.hides) { _ in
                 withAnimation(.snappy) { up = false }
             }
+    }
+}
+
+/// The search field's prompt, whole: on one line in the field's own size
+/// where it fits, else a size or two smaller, else wrapped over two or more
+/// lines, never cut and never broken inside a word. Past AX1 it grows no
+/// further, so its longest word ("questions,") still fits the field; the
+/// words typed grow on. VoiceOver reads the field's name instead.
+private struct SearchPrompt: View {
+    let text: String
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(text).lineLimit(1)
+            Text(text).font(.callout).lineLimit(1)
+            Text(text).font(.subheadline).lineLimit(1)
+            Text(text).font(.footnote).lineLimit(1)
+            Text(text).fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(Color.wardInkSecondary)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

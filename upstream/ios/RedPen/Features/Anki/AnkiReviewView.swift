@@ -58,6 +58,7 @@ struct AnkiReviewView: View {
             Button(action: buildQuiz) {
                 Label("Quiz me", systemImage: "list.bullet.rectangle")
             }
+            .accessibilityIdentifier("quizMe")
             .disabled(studySet.cards.count < 5)
             if current != nil {
                 Button(action: buryCurrent) {

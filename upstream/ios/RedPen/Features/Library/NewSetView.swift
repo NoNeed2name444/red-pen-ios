@@ -282,11 +282,21 @@ struct NewSetView: View {
     /// thumb.
     private var stepHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                ForEach(NewSetStep.allCases) { one in
-                    stepDot(one)
-                    if one != .make {
-                        stepLink(after: one)
+            // in a row where the three fit, one under another where they do
+            // not: at AX5 the row ran off both sides of the sheet, and the
+            // question under it with it (15 Oct)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(NewSetStep.allCases) { one in
+                        stepDot(one)
+                        if one != .make {
+                            stepLink(after: one)
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(NewSetStep.allCases) { one in
+                        stepDot(one)
                     }
                 }
             }
@@ -439,7 +449,8 @@ struct NewSetView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .wardRelief(in: shape, lift: .mid, pressed: chosen)
+            .wardRelief(in: shape, lift: .mid, pressed: chosen,
+                        edge: Color.wardEdgeInk(WardSection(kindRaw: option.rawValue)))
             .contentShape(shape)
         }
         .buttonStyle(.plain)

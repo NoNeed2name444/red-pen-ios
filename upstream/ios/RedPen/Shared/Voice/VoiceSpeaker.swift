@@ -17,6 +17,11 @@ import Combine
 /// Two voices: the narrator (questions, the examiner) and the patient are
 /// different people, so a student with the phone in a pocket can hear who is
 /// talking without looking.
+///
+/// Each line can carry a tone (VoiceTone): praise lifts a little, a
+/// correction slows and softens, an explanation is unhurried. The phone's
+/// voice reads every line flat unless told, which is most of what makes it
+/// sound like a machine.
 @MainActor
 final class VoiceSpeaker: NSObject, ObservableObject {
 
@@ -37,6 +42,8 @@ final class VoiceSpeaker: NSObject, ObservableObject {
     /// Which call to `say` is the live one. `stop` clears it, so a line that
     /// was waiting for the cloud voice gives up instead of starting late.
     private var turn: UUID?
+    /// Which run of lines (`say(_ lines:)`) is the live one; `stop` clears it.
+    private var sequence: UUID?
 
     override init() {
         super.init()
@@ -44,8 +51,14 @@ final class VoiceSpeaker: NSObject, ObservableObject {
     }
 
     /// Speaks `text` and returns once it has been said (or `stop` was called).
-    func say(_ text: String, as role: Role = .narrator) async {
-        stop()
+    /// Ends any run of lines still being said.
+    func say(_ text: String, as role: Role = .narrator, tone: VoiceTone = .plain) async {
+        sequence = nil
+        await speak(text, as: role, tone: tone)
+    }
+
+    private func speak(_ text: String, as role: Role, tone: VoiceTone) async {
+        halt()
         let clean = Self.speakable(text)
         guard !clean.isEmpty else { return }
         let myTurn = UUID()
@@ -71,13 +84,29 @@ final class VoiceSpeaker: NSObject, ObservableObject {
         }
         guard turn == myTurn else { return }
         if !pieces.isEmpty && played == pieces.count {
+            // the cloud voice paces itself; only the quiet after the line is
+            // ours, so a question still leaves room before the microphone
+            try? await Task.sleep(nanoseconds: UInt64(tone.after * 1_000_000_000))
+            guard turn == myTurn else { return }
             release()
             return
         }
 
         // whatever the cloud did not read, the phone reads
         let rest = played == 0 ? clean : pieces.dropFirst(played).joined(separator: " ")
-        await speakOnPhone(rest, as: role, turn: myTurn)
+        await speakOnPhone(rest, as: role, tone: tone, turn: myTurn)
+    }
+
+    /// Says several lines in turn, each in its own tone: a verdict, then
+    /// why. Any other line said, or `stop`, ends the rest.
+    func say(_ lines: [(String, VoiceTone)], as role: Role = .narrator) async {
+        let group = UUID()
+        sequence = group
+        for (text, tone) in lines {
+            guard sequence == group else { return }
+            await speak(text, as: role, tone: tone)
+        }
+        if sequence == group { sequence = nil }
     }
 
     /// Starts fetching a line that will be said soon, so it plays without a
@@ -92,6 +121,11 @@ final class VoiceSpeaker: NSObject, ObservableObject {
 
     /// Silences whatever is being said, and releases anyone waiting on it.
     func stop() {
+        sequence = nil
+        halt()
+    }
+
+    private func halt() {
         turn = nil
         cloud.stop()
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
@@ -100,20 +134,22 @@ final class VoiceSpeaker: NSObject, ObservableObject {
 
     // MARK: the phone's own voice
 
-    private func speakOnPhone(_ text: String, as role: Role, turn myTurn: UUID) async {
+    private func speakOnPhone(_ text: String, as role: Role, tone: VoiceTone, turn myTurn: UUID) async {
         let utterance = AVSpeechUtterance(string: text)
         let voices = Self.voices
         utterance.voice = role == .patient ? voices.patient : voices.narrator
-        utterance.rate = rate
-        utterance.pitchMultiplier = 1.0
+        utterance.rate = min(AVSpeechUtteranceMaximumSpeechRate,
+                             max(AVSpeechUtteranceMinimumSpeechRate, rate * tone.pace))
+        var pitch = tone.pitch
         // the same voice for both on a phone with only one: a slightly lower
         // patient is still audibly somebody else
         if role == .patient, voices.patient?.identifier == voices.narrator?.identifier {
-            utterance.pitchMultiplier = 0.9
+            pitch *= 0.9
         }
+        utterance.pitchMultiplier = pitch
         // a breath before and after, as a person would leave
-        utterance.preUtteranceDelay = 0.05
-        utterance.postUtteranceDelay = 0.2
+        utterance.preUtteranceDelay = tone.before
+        utterance.postUtteranceDelay = tone.after
         guard turn == myTurn else { return }
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             waiting = continuation

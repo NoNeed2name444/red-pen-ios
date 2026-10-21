@@ -62,7 +62,7 @@ struct HighlightableStem: View {
     /// Whether "Tap a phrase" heads it: once a card, however many parts.
     var prompt = true
 
-    private static let ink: Color = Color.wardBeam.opacity(0.3)
+    private static var ink: Color { Color.wardBeam.opacity(0.3) }
 
     var body: some View {
         let pieces: [String] = StemPieces.split(stem)

@@ -20,7 +20,7 @@ struct SignInView: View {
 
     /// Theatre Blue, for the door that works on its own: the tone that reads
     /// as words on the soft base.
-    private static let pen = Color.wardPrimaryInk
+    private static var pen: Color { .wardPrimaryInk }
 
     private static let door = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
 
