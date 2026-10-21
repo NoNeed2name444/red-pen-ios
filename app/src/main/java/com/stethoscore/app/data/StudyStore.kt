@@ -42,7 +42,10 @@ class StudyStore(private val directory: File) {
         private set
     var examDate: Long? = null
         private set
-    private var previousRating: Pair<String, ReviewRecord?>? = null
+    /** The rating Undo would take back: the card and its record from before. One step, as in Anki. */
+    data class UndoableRating(val cardId: String, val previous: ReviewRecord?, val rating: AnkiRating, val at: Long)
+    var lastRating: UndoableRating? = null
+        private set
     /** Everything that is written to disk, as last saved. A failed save puts memory back to this. */
     private data class Saved(
         val original: JSONObject, val unknownSets: List<JSONObject>, val library: List<StudySet>, val folders: List<StudyFolder>, val notes: List<Note>,
@@ -181,7 +184,8 @@ class StudyStore(private val directory: File) {
     private fun mergeBackup(b: Saved) {
         val noteIds = notes.map { it.id }.toSet()
         notes = notes + b.notes.filter { it.id !in noteIds }
-        reviews = b.reviews + reviews
+        // card by card, the later word on each card winning (iOS ReviewStore.merge)
+        reviews = ReviewPlan.merging(reviews, b.reviews)
         quizProgress = b.quizProgress + quizProgress
         readingProgress = b.readingProgress + readingProgress
         osceProgress = b.osceProgress + osceProgress
@@ -210,22 +214,49 @@ class StudyStore(private val directory: File) {
     }
     @Synchronized fun toggleFlag(questionId: String) { flagged = if (questionId in flagged) flagged - questionId else flagged + questionId; saveQuietly() }
     /** Today's queue for one deck: due, not suspended or buried, within the library's daily limits. */
-    fun dueCards(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiCard> = ReviewOptions.dailyQueue(set.cards, reviews, now, reviewSettings.limits)
+    fun queue(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiQueueItem> = ReviewOptions.dailyQueue(set.cards, reviews, now, reviewSettings.limits)
+    fun dueCards(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiCard> = queue(set, now).map { it.card }
+    /** Study ahead: the whole deck except suspended cards. */
+    fun everything(set: StudySet, now: Long = System.currentTimeMillis()): List<AnkiQueueItem> = ReviewOptions.studyAhead(set.cards, reviews, now)
+    fun nextDue(set: StudySet): Long? = ReviewPlan.nextDue(set.cards, reviews)
+    private fun decks() = library.filter { it.kind == StudySetKind.ANKI }.map { it.reviewDeck() }
     /** Everything due across the library today; the daily limits apply once to the whole library. */
+    fun dueAcross(now: Long = System.currentTimeMillis()): List<ReviewPlan.Due> = ReviewOptions.dueToday(decks(), reviews, now, reviewSettings.limits)
     fun dueCount(now: Long = System.currentTimeMillis()): Int = ReviewOptions.dueCount(library.filter { it.kind == StudySetKind.ANKI }.flatMap { it.cards }, reviews, now, reviewSettings.limits)
+    /** Records a rating and returns the card's new standing. */
     @Synchronized fun rateCard(card: AnkiCard, rating: AnkiRating, now: Long = System.currentTimeMillis()): ReviewRecord {
-        previousRating = card.id to reviews[card.id]
-        val next = ReviewOptions.after(rating, reviews[card.id] ?: ReviewRecord(now, 0.0, ratedAt = now), now, examDate, reviewSettings.scheduler)
+        val kept = ReviewPlan.record(card, reviews, now)
+        val next = ReviewOptions.after(rating, kept, now, examDate, reviewSettings.scheduler)
+        lastRating = UndoableRating(card.id, reviews[card.id], rating, now)
         reviews = reviews + (card.id to next)
         saveQuietly(); return reviews[card.id] ?: next
     }
-    @Synchronized fun undoRating(): Boolean {
-        val previous = previousRating ?: return false
-        reviews = if (previous.second == null) reviews - previous.first else reviews + (previous.first to previous.second!!)
-        previousRating = null; saveQuietly(); return true
+    /** Takes back the last rating, stamped now so a merge takes the undo over it. Returns what was undone. */
+    @Synchronized fun undoLast(now: Long = System.currentTimeMillis()): UndoableRating? {
+        val last = lastRating ?: return null
+        lastRating = null
+        reviews = reviews + (last.cardId to ReviewOptions.restoring(last.previous, now))
+        saveQuietly(); return last
     }
-    @Synchronized fun suspendCard(cardId: String) { val now = System.currentTimeMillis(); val kept = reviews[cardId] ?: ReviewRecord(now, 0.0); reviews = reviews + (cardId to kept.copy(suspended = true, changedAt = now)); saveQuietly() }
-    @Synchronized fun buryCard(cardId: String) { val now = System.currentTimeMillis(); val tomorrow = ReviewDay.next(now); val kept = reviews[cardId] ?: ReviewRecord(now, 0.0); reviews = reviews + (cardId to kept.copy(buriedUntil = tomorrow, changedAt = now)); saveQuietly() }
+    /** Out of every queue until let back in. */
+    @Synchronized fun suspendCard(card: AnkiCard, on: Boolean = true, now: Long = System.currentTimeMillis()) {
+        reviews = reviews + (card.id to ReviewOptions.suspending(card, on, reviews, now))
+        if (lastRating?.cardId == card.id) lastRating = null
+        saveQuietly()
+    }
+    /** Out of today's queues, back tomorrow. */
+    @Synchronized fun buryCard(card: AnkiCard, now: Long = System.currentTimeMillis()) {
+        reviews = reviews + (card.id to ReviewOptions.burying(card, reviews, now))
+        if (lastRating?.cardId == card.id) lastRating = null
+        saveQuietly()
+    }
+    /** Every suspended card back into its deck's schedule. */
+    @Synchronized fun unsuspendAll(now: Long = System.currentTimeMillis()) {
+        val back = reviews.filterValues { it.suspended }.mapValues { it.value.copy(suspended = false, changedAt = now) }
+        if (back.isEmpty()) return
+        reviews = reviews + back; saveQuietly()
+    }
+    val suspendedCount: Int get() = reviews.values.count { it.suspended }
     @Synchronized fun setExamDate(date: Long?) { examDate = date; saveQuietly() }
     @Synchronized fun setReviewSettings(settings: ReviewSettings) {
         val clean = settings.copy(limits = ReviewLimits(settings.limits.newPerDay.coerceIn(0, 9999), settings.limits.reviewsPerDay.coerceIn(0, 9999)))

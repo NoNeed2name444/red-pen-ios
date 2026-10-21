@@ -109,12 +109,26 @@ object ReviewDay {
         return day.toInstant().toEpochMilli() + shift
     }
 
-    /** When "bury until tomorrow" ends: the next day's start. */
-    fun next(after: Long, zone: ZoneId = ZoneId.systemDefault()): Long {
-        val shift = rolloverHours * 3_600_000
-        val day = Instant.ofEpochMilli(after - shift).atZone(zone).toLocalDate().plusDays(1).atStartOfDay(zone)
-        return day.toInstant().toEpochMilli() + shift
-    }
+    /**
+     * When "bury until tomorrow" ends: the next day's start. As iOS does it, a calendar day
+     * added to today's start, so across a clock change it keeps today's start's wall-clock time.
+     */
+    fun next(after: Long, zone: ZoneId = ZoneId.systemDefault()): Long =
+        Instant.ofEpochMilli(start(after, zone)).atZone(zone).plusDays(1).toInstant().toEpochMilli()
+}
+
+/**
+ * What the accuracy check has graded Flagged (possibly wrong), by item id: held back from
+ * daily review so a wrong fact is not drilled in. Empty where no check has run, so nothing
+ * is held for want of one. Port of iOS AccuracyHolds.
+ */
+object AccuracyHolds {
+    private val flagged = HashSet<String>()
+
+    @Synchronized fun update(id: String, flagged: Boolean) { if (flagged) this.flagged.add(id) else this.flagged.remove(id) }
+    @Synchronized fun snapshot(): Set<String> = flagged.toSet()
+    fun isHeld(id: String): Boolean = id in snapshot()
+    @Synchronized fun reset() = flagged.clear()
 }
 
 /** Daily limits, holds and the scheduler switch. Port of ios/RedPen/Shared/ReviewOptions.swift. */
@@ -159,30 +173,77 @@ object ReviewOptions {
     fun allowance(limits: ReviewLimits, records: Map<String, ReviewRecord>, now: Long, today: DayCounts? = null, zone: ZoneId = ZoneId.systemDefault()) =
         Allowance(limits, if (limits.isUnlimited) DayCounts() else today ?: counts(records, now, zone))
 
-    private fun kept(id: String, records: Map<String, ReviewRecord>, now: Long) = records[id] ?: ReviewRecord(now, 0.0, ratedAt = now)
-
-    /** Cards due now and not held, soonest first, with their stage. */
-    private fun due(cards: List<AnkiCard>, records: Map<String, ReviewRecord>, now: Long): List<Pair<AnkiCard, Stage>> =
-        cards.mapNotNull { card ->
+    /** Cards due now, not held and not Flagged, soonest first, with their stage. */
+    private fun due(cards: List<AnkiCard>, records: Map<String, ReviewRecord>, now: Long): List<Pair<AnkiQueueItem, Stage>> {
+        val held = AccuracyHolds.snapshot()
+        return cards.mapNotNull { card ->
+            if (card.id in held) return@mapNotNull null
             val stored = records[card.id]
             if (isHeld(stored, now)) return@mapNotNull null
-            val record = kept(card.id, records, now)
-            if (record.due > now) null else Triple(card, stage(stored), record.due)
-        }.sortedBy { it.third }.map { it.first to it.second }
+            val record = ReviewPlan.record(card, records, now)
+            if (record.due > now) null else AnkiQueueItem(card, record.due, record.intervalMin) to stage(stored)
+        }.sortedBy { it.first.due }
+    }
 
     /** One deck's queue for today: due, not held, within the day's limits. */
-    fun dailyQueue(cards: List<AnkiCard>, records: Map<String, ReviewRecord>, now: Long, limits: ReviewLimits, today: DayCounts? = null, zone: ZoneId = ZoneId.systemDefault()): List<AnkiCard> {
+    fun dailyQueue(cards: List<AnkiCard>, records: Map<String, ReviewRecord>, now: Long, limits: ReviewLimits, today: DayCounts? = null, zone: ZoneId = ZoneId.systemDefault()): List<AnkiQueueItem> {
         val budget = allowance(limits, records, now, today, zone)
         return due(cards, records, now).filter { budget.take(it.second) }.map { it.first }
     }
 
+    /** Everything due across the library today, within the library's limits, soonest first. */
+    fun <D : ReviewDeck> dueToday(decks: List<D>, records: Map<String, ReviewRecord>, now: Long, limits: ReviewLimits, cap: Int = 500, today: DayCounts? = null, zone: ZoneId = ZoneId.systemDefault()): List<ReviewPlan.Due> {
+        val budget = allowance(limits, records, now, today, zone)
+        val held = AccuracyHolds.snapshot()
+        val found = ArrayList<Pair<ReviewPlan.Due, Stage>>()
+        for (deck in decks) for (card in deck.deckCards) {
+            if (card.id in held) continue
+            val stored = records[card.id]
+            if (isHeld(stored, now)) continue
+            val kept = ReviewPlan.record(card, records, now)
+            if (kept.due > now) continue
+            found.add(ReviewPlan.Due(deck.deckId, deck.deckName, card, kept.due) to stage(stored))
+        }
+        found.sortBy { it.first.due }
+        val out = ArrayList<ReviewPlan.Due>()
+        for (entry in found) {
+            if (out.size >= cap) break
+            if (budget.take(entry.second)) out.add(entry.first)
+        }
+        return out
+    }
+
+    /** Study ahead: the whole deck, except what the student suspended. */
+    fun studyAhead(cards: List<AnkiCard>, records: Map<String, ReviewRecord>, now: Long): List<AnkiQueueItem> =
+        ReviewPlan.everything(cards.filter { records[it.id]?.suspended != true }, records, now)
+
+    // ---- suspend, bury, undo ----
+
+    /** The card suspended (or let back in). A card never rated gets a record to carry it. */
+    fun suspending(card: AnkiCard, on: Boolean, records: Map<String, ReviewRecord>, now: Long): ReviewRecord =
+        ReviewPlan.record(card, records, now).copy(suspended = on, changedAt = now)
+
+    /** The card out of today's queues, back at the next day's start. */
+    fun burying(card: AnkiCard, records: Map<String, ReviewRecord>, now: Long, zone: ZoneId = ZoneId.systemDefault()): ReviewRecord =
+        ReviewPlan.record(card, records, now).copy(buriedUntil = ReviewDay.next(now, zone), changedAt = now)
+
+    /**
+     * What undoing a rating writes back: the record from before it, stamped now so a merge
+     * takes the undo over the rating it cancels. A card that had no record gets a fresh,
+     * never-rated one for the same reason.
+     */
+    fun restoring(previous: ReviewRecord?, now: Long): ReviewRecord =
+        (previous ?: ReviewRecord(due = now, intervalMin = 0.0, ratedAt = now)).copy(changedAt = now)
+
     /** How many cards [dailyQueue] would hold; the library's limits apply once across all decks given. */
     fun dueCount(cards: List<AnkiCard>, records: Map<String, ReviewRecord>, now: Long, limits: ReviewLimits, today: DayCounts? = null, zone: ZoneId = ZoneId.systemDefault()): Int {
         var learning = 0; var fresh = 0; var reviewing = 0
+        val held = AccuracyHolds.snapshot()
         for (card in cards) {
             val stored = records[card.id]
             if (isHeld(stored, now)) continue
-            if (kept(card.id, records, now).due > now) continue
+            if (card.id in held) continue
+            if (ReviewPlan.record(card, records, now).due > now) continue
             when (stage(stored)) { Stage.LEARNING -> learning++; Stage.NEW -> fresh++; Stage.REVIEW -> reviewing++ }
         }
         if (limits.isUnlimited) return learning + fresh + reviewing

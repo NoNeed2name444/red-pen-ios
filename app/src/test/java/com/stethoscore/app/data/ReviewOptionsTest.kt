@@ -95,6 +95,8 @@ class ReviewOptionsTest {
         val reviewIds = cards.subList(2, 6).map { it.id }.toSet()
         assertEquals(2, q.count { it.id in reviewIds })
         assertTrue(q.any { it.id == cards[6].id })
+        val deck = object : ReviewDeck { override val deckId = "cardio"; override val deckName = "Cardio"; override val deckCards = cards }
+        assertEquals("Due today counts the same limits", q.size, ReviewOptions.dueToday(listOf(deck), records, now, limits, zone = utc).size)
         assertEquals(q.size, ReviewOptions.dueCount(cards, records, now, limits, zone = utc))
         assertEquals(ReviewOptions.dailyQueue(cards, records, now, ReviewLimits.unlimited).size, ReviewOptions.dueCount(cards, records, now, ReviewLimits.unlimited))
         assertEquals(1, ReviewOptions.dueCount(cards, records, now, limits, today = ReviewOptions.DayCounts(3, 2), zone = utc))
@@ -104,14 +106,64 @@ class ReviewOptionsTest {
     @Test fun suspendAndBury() {
         val cards = (0 until 10).map { card("c$it") }
         val held = HashMap<String, ReviewRecord>()
-        held[cards[2].id] = fresh.copy(suspended = true, changedAt = now)
-        held[cards[9].id] = fresh.copy(buriedUntil = ReviewDay.next(now, utc), changedAt = now)
+        held[cards[2].id] = ReviewOptions.suspending(cards[2], true, held, now)
+        held[cards[9].id] = ReviewOptions.burying(cards[9], held, now, utc)
         val q = ReviewOptions.dailyQueue(cards, held, now, ReviewLimits.unlimited)
-        assertFalse(q.any { it.id == cards[2].id }); assertFalse(q.any { it.id == cards[9].id })
+        assertFalse("a suspended card leaves the queue", q.any { it.id == cards[2].id })
+        assertFalse("a buried new card leaves the queue", q.any { it.id == cards[9].id })
         val tomorrow = ReviewDay.start(now, utc) + day + 60_000
         val next = ReviewOptions.dailyQueue(cards, held, tomorrow, ReviewLimits.unlimited)
-        assertTrue(next.any { it.id == cards[9].id }); assertFalse(next.any { it.id == cards[2].id })
+        assertTrue("a buried card is back the next day", next.any { it.id == cards[9].id })
+        assertFalse("a suspended card is still out the next day", next.any { it.id == cards[2].id })
+        assertEquals("study ahead skips suspended cards only", 9, ReviewOptions.studyAhead(cards, held, now).size)
+        val back = ReviewOptions.suspending(cards[2], false, held, now)
+        assertTrue("unsuspending clears the flag", !back.suspended && !ReviewOptions.isHeld(back, now))
+        assertTrue("rating a suspended card (study ahead) keeps it suspended", ReviewPlan.after(AnkiRating.GOOD, held.getValue(cards[2].id), now, null).suspended)
         assertTrue(ReviewOptions.after(AnkiRating.GOOD, held.getValue(cards[2].id), now, null, ReviewScheduler.FSRS).suspended)
+    }
+
+    @Test fun buryKeepsTheClockTimeAcrossAClockChange() {
+        // London springs forward at 01:00 UTC on 31 March 2024: the study day after the 30th
+        // starts at 04:00 on the clock, as iOS's calendar day added to today's start gives
+        val london = ZoneId.of("Europe/London")
+        val evening = Instant.parse("2024-03-30T20:00:00Z").toEpochMilli()
+        val next = Instant.ofEpochMilli(ReviewDay.next(evening, london)).atZone(london)
+        assertEquals(4, next.hour); assertEquals(31, next.dayOfMonth)
+    }
+
+    @Test fun oldSchedulesAndTheMerge() {
+        val oldJson = """{"due":"2023-11-14T00:00:00Z","intervalMin":1440,"reviews":2,"lapses":0,"ratedAt":"2023-11-13T00:00:00Z"}"""
+        val old = StudyJson.review(org.json.JSONObject(oldJson))
+        assertTrue("a record written before these fields still decodes", !old.suspended && old.stability == null)
+        val text = StudyJson.encodeReview(old).toString()
+        assertTrue("an untouched record encodes without the new keys (no spurious sync): $text", !text.contains("suspended") && !text.contains("changedAt"))
+        val cards = (0 until 4).map { card("c$it") }
+        val c = cards[3]
+        val before = ReviewRecord(due = now - day, intervalMin = 3.0 * 1440, reviews = 2, ratedAt = now - 4 * day)
+        val rated = ReviewPlan.after(AnkiRating.GOOD, before, now, null)
+        val undone = ReviewOptions.restoring(before, now + 5_000)
+        assertTrue("an undo beats the rating it cancelled, whichever side has it",
+            ReviewPlan.merging(mapOf(c.id to undone), mapOf(c.id to rated))[c.id] == undone && ReviewPlan.merging(mapOf(c.id to rated), mapOf(c.id to undone))[c.id] == undone)
+        val suspendedThere = ReviewOptions.suspending(c, true, mapOf(c.id to rated), now + 30_000)
+        assertTrue("a suspend on another device wins over an older rating", ReviewPlan.merging(mapOf(c.id to rated), mapOf(c.id to suspendedThere)).getValue(c.id).suspended)
+        val ratedLater = ReviewPlan.after(AnkiRating.GOOD, rated, now + 60_000, null)
+        assertEquals("a later rating still wins over an older suspend", ratedLater.ratedAt, ReviewPlan.merging(mapOf(c.id to suspendedThere), mapOf(c.id to ratedLater)).getValue(c.id).ratedAt)
+        val firstUndo = ReviewOptions.restoring(null, now)
+        assertTrue("undoing a first rating leaves a never-rated card, due now", firstUndo.reviews == 0 && firstUndo.due == now && ReviewOptions.stage(firstUndo) == ReviewOptions.Stage.NEW)
+    }
+
+    @Test fun flaggedCardsAreHeldOutOfReviewUntilCleared() {
+        val held = AnkiCard(type = AnkiCardType.QA, front = "Antidote to heparin?", bullets = listOf("Vitamin K"))
+        val fine = AnkiCard(type = AnkiCardType.QA, front = "Antidote to warfarin?", bullets = listOf("Vitamin K and PCC"))
+        val at = System.currentTimeMillis()
+        AccuracyHolds.reset()
+        try {
+            AccuracyHolds.update(held.id, flagged = true)
+            assertEquals("a Flagged card is held out of today's queue", listOf(fine.id), ReviewOptions.dailyQueue(listOf(held, fine), emptyMap(), at, ReviewLimits.unlimited).map { it.card.id })
+            assertEquals("and out of the due count", 1, ReviewOptions.dueCount(listOf(held, fine), emptyMap(), at, ReviewLimits.unlimited))
+            AccuracyHolds.update(held.id, flagged = false)
+            assertEquals("a fix or a re-check clears it, and it comes back", 2, ReviewOptions.dailyQueue(listOf(held, fine), emptyMap(), at, ReviewLimits.unlimited).size)
+        } finally { AccuracyHolds.reset() }
     }
 
     @Test fun storeAppliesTheSettingsAndKeepsThem() {

@@ -33,4 +33,5 @@ class SwipeBackTest {
     @Test fun backFromVitals() = backFrom("vitals")
     @Test fun backFromSettings() = backFrom("settings")
     @Test fun backFromNewSet() = backFrom("new")
+    @Test fun backFromDueToday() = backFrom("due")
 }
