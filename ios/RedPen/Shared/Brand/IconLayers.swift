@@ -8,7 +8,9 @@ import UIKit
 
 /// `IconLayersView()` is the whole icon; `layers:` picks some of them, so a
 /// screen can move or light them apart. Without the PNGs (the Playgrounds
-/// package has none) it draws nothing.
+/// package has none) it draws nothing. The repository carries only plain
+/// stand-ins (the base's colour and a clear stethoscope; the art is private
+/// and added to the built app), which it shows like any other picture.
 struct IconLayersView: View {
     var layers: [IconLayer] = IconLayer.allCases
     var body: some View {

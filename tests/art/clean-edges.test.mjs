@@ -13,7 +13,7 @@
 import { existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readPng, gauss, components, ART_ROOT, isPlaceholder } from './art.mjs';
+import { readPng, gauss, components, ART_ROOT, isPlaceholder, isClearPlaceholder } from './art.mjs';
 
 let failed = 0;
 function check(label, ok, detail = '') {
@@ -27,11 +27,16 @@ const at = p => (other ? join(other, basename(p)) : join(root, p));
 // the brand art: from ART_ROOT when given; otherwise what is here is a stand-in
 const brand = p => (other ? join(other, basename(p)) : join(ART_ROOT || root, p));
 const standIn = !other && !ART_ROOT;
-function checkStandIn(p) {
+let stoodIn = 0;
+// clear: the stand-in may also be fully transparent (the icon's front layer)
+function checkStandIn(p, clear = false) {
+  stoodIn++;
   const path = join(root, p);
   if (!existsSync(path)) { check(`${p}: not in the repository (private)`, true); return; }
   const img = readPng(path);
-  check(`${p}: only a plain stand-in here (the art is private)`, isPlaceholder(img), `${img.width} x ${img.height}, not one colour`);
+  check(`${p}: only a plain stand-in here (the art is private)`,
+    isPlaceholder(img) || (clear && isClearPlaceholder(img)),
+    `${img.width} x ${img.height}, not one colour${clear ? ' or clear' : ''}`);
 }
 if (standIn) console.log('     the brand art is private: ART_ROOT=<its checkout> measures it');
 
@@ -64,8 +69,10 @@ const cuts = [];
 for (const [stem, mode] of [['launch-logo', 'light'], ['launch-logo-dark', 'dark']]) {
   for (const n of [1, 2, 3]) cuts.push({ path: `${LAUNCH}/${stem}@${n}x.png`, ground: ground[mode], brand: true });
 }
-cuts.push({ path: `${LAYERS}/1-stethoscope.png`, ground: () => backgroundOf('') });
-cuts.push({ path: `${LAYERS}/1-stethoscope-dark.png`, ground: () => backgroundOf('-dark') });
+// the stethoscope layers are brand art too; their stand-ins are clear, so the
+// base (a plain colour, kept here) shows through in the layered icon
+cuts.push({ path: `${LAYERS}/1-stethoscope.png`, ground: () => backgroundOf(''), brand: true, clear: true });
+cuts.push({ path: `${LAYERS}/1-stethoscope-dark.png`, ground: () => backgroundOf('-dark'), brand: true, clear: true });
 
 function measure(img, g) {
   const { width: w, height: h, data } = img;
@@ -142,7 +149,7 @@ function measure(img, g) {
 
 let measured = 0;
 for (const cut of cuts) {
-  if (cut.brand && standIn) { checkStandIn(cut.path); continue; }
+  if (cut.brand && standIn) { checkStandIn(cut.path, cut.clear); continue; }
   const path = cut.brand ? brand(cut.path) : at(cut.path);
   if (!existsSync(path)) { if (!other) check(`${cut.path} exists`, false, 'missing'); continue; }
   const img = readPng(path);
@@ -160,13 +167,14 @@ for (const cut of cuts) {
   check(`${name}: no ring of the ground's colour at the edge (${m.ring} px, none in a run of ${RUN})`,
     m.longestRun < RUN && m.ring <= 0.001 * m.outline, `${m.ring} px, the longest run ${m.longestRun}`);
 }
-check('every cut was measured', measured > 0);
+if (standIn) check('every cut was checked as a stand-in', stoodIn === cuts.length, `${stoodIn} of ${cuts.length}`);
+else check('every cut was measured', measured > 0);
 
 // The opaque icons: square, solid, and the layers put back together (the
 // layers are cut from them, so a stale layer or icon shows here).
 if (!other) {
   for (const [look, suffix] of [['light', ''], ['dark', '-dark']]) {
-    const fg = readPng(at(`${LAYERS}/1-stethoscope${suffix}.png`));
+    const fg = readPng(brand(`${LAYERS}/1-stethoscope${suffix}.png`));
     const bg = readPng(at(`${LAYERS}/0-background${suffix}.png`));
     for (const icon of [`ios/AppResources/AppIcon.icon/Assets/icon-${look}.png`,
                         `ios/RedPen/Assets.xcassets/AppIcon.appiconset/icon-1024${suffix}.png`]) {

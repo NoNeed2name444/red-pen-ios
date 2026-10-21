@@ -182,3 +182,12 @@ export function isPlaceholder(img) {
   }
   return true;
 }
+
+/** Whether an image is a clear stand-in: square and fully transparent
+ *  throughout (the icon's front layer, which the base must show through). */
+export function isClearPlaceholder(img) {
+  if (img.width !== img.height) return false;
+  const d = img.data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] !== 0) return false;
+  return true;
+}

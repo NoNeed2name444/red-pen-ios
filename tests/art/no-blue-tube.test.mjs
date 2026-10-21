@@ -17,7 +17,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readPng, hsv, chestPiece, ART_ROOT, isPlaceholder } from './art.mjs';
+import { readPng, hsv, chestPiece, ART_ROOT, isPlaceholder, isClearPlaceholder } from './art.mjs';
 
 let failed = 0;
 function check(label, ok, detail = '') {
@@ -68,7 +68,8 @@ function launchSquare(img) {
 }
 
 const layer = 'design/icon/layers/1-stethoscope-dark.png';
-const layerChest = existsSync(at(layer)) ? chestPiece(readPng(at(layer))) : null;
+// the layer is brand art: measured only where the art is (ART_ROOT or <dir>)
+const layerChest = !standIn && existsSync(brand(layer)) ? chestPiece(readPng(brand(layer))) : null;
 const files = [
   ...[1, 2, 3].map(n => ({
     brand: true, path: `ios/RedPen/Assets.xcassets/LaunchLogo.imageset/launch-logo-dark@${n}x.png`, cut: true, collar: true,
@@ -81,7 +82,7 @@ const files = [
       return { x: s.left + launchChest[0] * s.side, y: s.top + launchChest[1] * s.side, r: launchChest[2] * s.side };
     },
   },
-  { path: layer, cut: true, chest: img => chestPiece(img) },
+  { brand: true, clear: true, path: layer, cut: true, chest: img => chestPiece(img) },
   { brand: true, path: 'ios/RedPen/Assets.xcassets/AppIcon.appiconset/icon-1024-dark.png', cut: false, chest: () => layerChest },
   { brand: true, path: 'ios/AppResources/AppIcon.icon/Assets/icon-dark.png', cut: false, chest: () => layerChest },
   {
@@ -92,13 +93,15 @@ const files = [
   },
 ];
 
-let judged = 0;
+let judged = 0, stoodIn = 0;
 for (const f of files) {
   if (f.brand && standIn) {
+    stoodIn++;
     const here = join(root, f.path);
     if (!existsSync(here)) { check(`${f.path}: not in the repository (private)`, true); continue; }
     const img = readPng(here);
-    check(`${f.path}: only a plain stand-in here (the art is private)`, isPlaceholder(img), `${img.width} x ${img.height}, not one colour`);
+    check(`${f.path}: only a plain stand-in here (the art is private)`,
+      isPlaceholder(img) || (f.clear && isClearPlaceholder(img)), `${img.width} x ${img.height}, not one colour`);
     continue;
   }
   const path = f.brand ? brand(f.path) : at(f.path);
@@ -130,7 +133,8 @@ for (const f of files) {
   check(`${name}: enough of the tube judged`, tube > 0.01 * img.width * img.height, `${tube} px`);
   if (f.collar) check(`${name}: the collar's known blue line is no bigger`, collar <= COLLAR * c.r, `${collar} px`);
 }
-check('every dark file was judged', judged > 0);
+if (standIn) check('every dark file was checked as a stand-in', stoodIn === files.length, `${stoodIn} of ${files.length}`);
+else check('every dark file was judged', judged > 0);
 
 console.log(failed ? `\n${failed} BLUE TUBE FAILURE(S)` : '\nALL BLUE TUBE TESTS PASS');
 process.exit(failed ? 1 : 0);
