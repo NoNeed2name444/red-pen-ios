@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Derived from a single base colour per mode - the same tint the mode's
 /// screens use - rather than hand-picked per element, so a deck printed from
-/// Cases looks like Cases and a deck printed from OSCE looks like OSCE, and
+/// MCQ looks like MCQ and a deck printed from OSCE looks like OSCE, and
 /// adding a mode later cannot produce a palette nobody chose.
 ///
 /// Three shades come out of the base: the base itself for the header bar and
@@ -29,9 +29,9 @@ struct DeckPalette: Equatable {
         case .mcq:     return DeckPalette(red: 0.78, green: 0.16, blue: 0.16)
         case .anki:    return DeckPalette(red: 0.31, green: 0.36, blue: 0.86)
         case .book:    return DeckPalette(red: 0.10, green: 0.55, blue: 0.50)
-        case .qa:      return DeckPalette(red: 0.90, green: 0.49, blue: 0.13)
         case .osce:    return DeckPalette(red: 0.20, green: 0.62, blue: 0.35)
         case .narrate: return DeckPalette(red: 0.55, green: 0.32, blue: 0.80)
+        case .cases:   return DeckPalette(red: 0.11, green: 0.37, blue: 0.69)
         }
     }
 
@@ -44,9 +44,10 @@ struct DeckPalette: Equatable {
     /// Lightened towards white - for chips, rules and the giant watermark.
     func tint(_ amount: Double = 0.86) -> DeckPalette {
         let a = amount.clamped()
-        return DeckPalette(red: red + (1 - red) * a,
-                           green: green + (1 - green) * a,
-                           blue: blue + (1 - blue) * a)
+        let r: Double = red + (1 - red) * a
+        let g: Double = green + (1 - green) * a
+        let b: Double = blue + (1 - blue) * a
+        return DeckPalette(red: r, green: g, blue: b)
     }
 
     /// Whether white text can be read on this colour.

@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
-"""Draw CramDown's app icon.
+"""Make Stethoscore's app icon set from the master render.
 
-Kept as a script rather than as a binary blob nobody can edit: an icon that can
-be regenerated is one that can be adjusted. Change a number here and the whole
-set comes out consistent - the composed icon, and the flat layers that an
-iOS 26 layered icon is assembled from.
+The icon is a picture, not a drawing: the render the owner chose, a glossy
+blue stethoscope with an A+ on its diaphragm on a sky-to-royal-blue tile,
+kept at design/icon/source.png. This script turns that one file into what the
+app needs and changes nothing about the picture itself:
 
     python3 tools/make_icon.py                 # into the asset catalogue
     python3 tools/make_icon.py --out /tmp/x    # somewhere else, to look first
 
-The design: a flat scarlet tile with one soft white exam paper lit from above.
-All of the depth is in the object and none in the background, because a busy
-ground competes with the thing it is meant to be showing. The lines on the page
-get shorter as they descend and the last is struck in pale blue - the name
-doing its work inside the picture rather than beside it.
+- It finds the tile (the blue rounded square) in the render and crops to it,
+  dropping the page margin and the drop shadow around it.
+- It paints the tile's own gradient into the rounded corners, because an iOS
+  icon asset has to be a full opaque square: the system cuts the corners
+  itself, so nothing painted there is ever seen.
+- It ships that one square for every appearance. There is no separate dark or
+  tinted file: iOS shows the same picture in dark mode and makes its own
+  tinted version, so the icon is the render and nothing else.
+- It writes the launch logo: the icon, the wordmark and the tagline on a
+  clear ground, flat, with no shadow, once for light and once for dark. The
+  launch screen's colour (LaunchBackground.colorset) is the home screen's own
+  base, so the first frame runs straight on into the app.
 """
 
 from __future__ import annotations
@@ -22,204 +29,287 @@ import argparse
 import json
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+import numpy as np
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 S = 1024
-GROUND = ((226, 62, 48), (192, 36, 32))       # scarlet, deeper at the foot
-GROUND_DARK = ((122, 24, 22), (72, 12, 14))   # the same red, turned down
-ACCENT = (140, 200, 240)                      # the one cool mark on the page
-RULE = (150, 162, 184)                        # the writing: grey, never black
+SOURCE = Path("design/icon/source.png")
+
+# The wordmark's colours on the home screen's base (WardPalette .background,
+# 0xE0E5EC light and 0x2A2E35 dark): "Stetho" in the Ward ink, "score" in
+# the primary blue, the tagline in the secondary ink.
+WORDMARK = {
+    False: {"ink": (0x0E, 0x1B, 0x2C), "accent": (0x1D, 0x5F, 0xB0), "tagline": (0x4E, 0x5E, 0x73)},
+    True: {"ink": (0xE8, 0xEE, 0xF5), "accent": (0x7D, 0xB0, 0xF2), "tagline": (0xA3, 0xB1, 0xC3)},
+}
+
+# The wordmark in the app's own face where there is one (San Francisco, on a
+# Mac), else Inter Display, drawn to the same proportions; DejaVu last.
+WORDMARK_FONTS = [
+    "/System/Library/Fonts/SFNSDisplay-Semibold.otf",
+    "/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+TAGLINE_FONTS = [
+    "/System/Library/Fonts/SFNSText-Medium.otf",
+    "/usr/share/fonts/opentype/inter/Inter-Medium.otf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+
+# The relief the home screen's raised tiles have (WardRelief.raised, .high):
+# a highlight from the top left and a shade to the bottom right, 8 pt each
+# way, 12 pt soft. (highlight, shade) as (rgb, alpha).
+RELIEF = {
+    False: (((255, 255, 255), 0.85), ((0xA3, 0xB1, 0xC6), 0.6)),
+    True: (((255, 255, 255), 0.07), ((0, 0, 0), 0.55)),
+}
+RELIEF_OFFSET = 8
+RELIEF_RADIUS = 12
+
+# Files earlier versions of this script wrote and this one does not: removed
+# on the way past, so a stale appearance never ships by accident.
+STALE_ICON = ("icon-1024-dark.png", "icon-1024-tinted.png")
+STALE_DESIGN = ("background.png", "background-dark.png", "foreground.png", "foreground-tinted.png",
+                "clear-light.png", "clear-dark.png", "preview-dark.png")
 
 
-def ground(stops=GROUND) -> Image.Image:
-    top, foot = stops
-    img = Image.new("RGB", (S, S))
-    draw = ImageDraw.Draw(img)
-    for y in range(S):
-        t = y / S
-        draw.line([(0, y), (S, y)],
-                  fill=tuple(int(top[k] + (foot[k] - top[k]) * t) for k in range(3)))
-    return img.convert("RGBA")
+# --- reading the render -----------------------------------------------------
+
+def find_tile(arr: np.ndarray) -> tuple[int, int, int, int]:
+    """The bounding box of the blue tile: the page around it is white and the
+    shadow under it is grey, so blue-dominant pixels are the tile (and the
+    stethoscope, which lies inside it anyway)."""
+    r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
+    blue = (b > r + 40) & (b > g + 15)
+    ys, xs = np.where(blue)
+    return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
 
 
-def sheet_mask(back: int) -> Image.Image:
-    """One sheet of paper. `back` is how far behind the front one it sits."""
-    pad = int(S * 0.030 * back)
-    lift = int(S * 0.040 * back)
-    mask = Image.new("L", (S, S), 0)
-    ImageDraw.Draw(mask).rounded_rectangle(
-        [int(S * 0.275) + pad, int(S * 0.205) + pad - lift,
-         int(S * 0.725) - pad, int(S * 0.815) - lift],
-        radius=int(S * 0.075), fill=255)
-    return mask
-
-
-def inflate(mask: Image.Image, shade=(196, 204, 216)) -> Image.Image:
-    """Turn a flat silhouette into something that looks blown up like a pillow.
-
-    A blurred copy of the mask is treated as a height map: the middle of the
-    shape is tall and reads as white, the edges fall away into a cool grey.
-    That height, nudged up and to the left and subtracted from itself, gives
-    the highlight along the top edge - which is what makes a soft object look
-    lit rather than merely rounded - and the opposite nudge gives the shadow
-    that gathers under the bottom edge.
-    """
-    height = mask.filter(ImageFilter.GaussianBlur(S * 0.052))
-    lit = Image.composite(Image.new("RGB", (S, S), (255, 255, 255)),
-                          Image.new("RGB", (S, S), shade),
-                          height.point(lambda v: min(255, int(v * 1.35))))
-    body = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    body.paste(lit, (0, 0), mask)
-
-    spec = ImageChops.subtract(height, ImageChops.offset(height, int(S * 0.012), int(S * 0.016)))
-    spec = spec.filter(ImageFilter.GaussianBlur(S * 0.012)).point(lambda v: min(255, int(v * 2.2)))
-    body = Image.alpha_composite(body, Image.composite(
-        Image.new("RGBA", (S, S), (255, 255, 255, 255)),
-        Image.new("RGBA", (S, S), (0, 0, 0, 0)),
-        ImageChops.multiply(spec, mask)))
-
-    occ = ImageChops.subtract(ImageChops.offset(height, -int(S * 0.010), -int(S * 0.014)), height)
-    occ = occ.filter(ImageFilter.GaussianBlur(S * 0.012)).point(lambda v: min(255, int(v * 1.5)))
-    return Image.alpha_composite(body, Image.composite(
-        Image.new("RGBA", (S, S), (70, 84, 108, 140)),
-        Image.new("RGBA", (S, S), (0, 0, 0, 0)),
-        ImageChops.multiply(occ, mask)))
-
-
-def writing(mono: bool = False) -> Image.Image:
-    box = (int(S * 0.275), int(S * 0.205), int(S * 0.725), int(S * 0.815))
+def square(box: tuple[int, int, int, int], limit: tuple[int, int]) -> tuple[int, int, int, int]:
+    """Grow the shorter side of the box so the crop is square, centred on the
+    tile; whatever falls outside the tile is filled with the gradient later."""
     x0, y0, x1, y1 = box
-    width, middle = x1 - x0, (x0 + x1) // 2
-    thickness = int(S * 0.028)
-    layer = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    for i, (ratio, top) in enumerate(zip([0.62, 0.50, 0.38], [0.26, 0.42, 0.58])):
-        w = int(width * ratio)
-        y = int(y0 + (y1 - y0) * top)
-        draw.rounded_rectangle([middle - w // 2, y, middle + w // 2, y + thickness],
-                               radius=thickness // 2, fill=RULE + (230 - 30 * i,))
-    w = int(width * 0.24)
-    y = int(y0 + (y1 - y0) * 0.745)
-    draw.rounded_rectangle([middle - w // 2, y, middle + w // 2, y + thickness],
-                           radius=thickness // 2,
-                           fill=((120, 128, 146) if mono else ACCENT) + (255,))
-    return layer
+    side = max(x1 - x0, y1 - y0)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    nx0 = int(round(cx - side / 2))
+    ny0 = int(round(cy - side / 2))
+    nx0 = max(0, min(nx0, limit[0] - side))
+    ny0 = max(0, min(ny0, limit[1] - side))
+    return nx0, ny0, nx0 + side, ny0 + side
 
 
-def foreground(sheets: int = 2, mono: bool = False, flat: bool = False) -> Image.Image:
-    """Everything that sits ON the tile, with its own transparency.
-
-    This is the layer an iOS 26 layered icon wants: no background, and no baked
-    tile shadow, because the system draws that itself.
-    """
-    out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    for back in range(sheets - 1, -1, -1):
-        mask = sheet_mask(back)
-        front = back == 0
-        shadow = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-        shadow.paste((12, 20, 40, 150 if front else 105),
-                     (0, int(S * (0.030 if front else 0.018))), mask)
-        out = Image.alpha_composite(out, shadow.filter(ImageFilter.GaussianBlur(S * 0.030)))
-        body = inflate(mask, shade=(196, 204, 216) if front else (168, 178, 196))
-        if not front:
-            body = Image.blend(Image.new("RGBA", (S, S), (0, 0, 0, 0)), body, 0.82)
-        out = Image.alpha_composite(out, body)
-    out = Image.alpha_composite(out, writing(mono=mono))
-    if flat:
-        # No cast shadow in the layered and Clear appearances: the system draws
-        # the shadow itself, and a second one baked into the art is the classic
-        # way a layered icon ends up looking dirty.
-        out = Image.alpha_composite(Image.new("RGBA", (S, S), (0, 0, 0, 0)), out)
-    return out
+def outside_mask(arr: np.ndarray) -> np.ndarray:
+    """The page and shadow left in the crop: low-saturation pixels that connect
+    to a corner. The flood fill is what keeps the white ear tips and the
+    diaphragm face, which are pale too but sit inside the tile."""
+    hi = arr.max(axis=2)
+    lo = arr.min(axis=2)
+    pale = (hi - lo < 30) & (hi > 190)
+    # .copy(): fromarray shares the array's memory and is read-only, and
+    # floodfill on a read-only image drops its writes without a word
+    img = Image.fromarray(np.where(pale, 255, 0).astype(np.uint8), "L").copy()
+    h, w = pale.shape
+    for seed in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
+        if img.getpixel(seed) == 255:
+            ImageDraw.floodfill(img, seed, 128)
+    outside = np.asarray(img) == 128
+    # take the anti-aliased rim of the old corner with it
+    grown = Image.fromarray(np.where(outside, 255, 0).astype(np.uint8), "L")
+    grown = grown.filter(ImageFilter.MaxFilter(9))
+    return np.asarray(grown) > 0
 
 
-def composed(stops=GROUND, mono: bool = False) -> Image.Image:
-    """The icon as one flat square, for the classic single-image slot."""
-    return Image.alpha_composite(ground(stops), foreground(mono=mono)).convert("RGB")
+def fit_gradient(arr: np.ndarray, outside: np.ndarray) -> np.ndarray:
+    """The tile's colour as a smooth function of position, fitted to the pixels
+    that are plainly tile: blue-dominant, bright in blue (the tubing is dark
+    navy and drops out), and not the page. A quadratic in x and y follows the
+    diagonal wash of the render; a second pass drops whatever did not fit,
+    such as the shadows the stethoscope casts on the tile."""
+    h, w, _ = arr.shape
+    yy, xx = np.mgrid[0:h, 0:w]
+    x = xx / (w - 1)
+    y = yy / (h - 1)
+    basis = np.stack([np.ones_like(x), x, y, x * x, x * y, y * y], axis=-1)
+
+    r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
+    tile = (b > r + 40) & (b > g + 15) & (b > 205) & ~outside
+    fitted = np.zeros_like(arr)
+    for _ in range(2):
+        idx = np.flatnonzero(tile.ravel())[::7]
+        a = basis.reshape(-1, 6)[idx]
+        for c in range(3):
+            coef, *_ = np.linalg.lstsq(a, arr[..., c].ravel()[idx], rcond=None)
+            fitted[..., c] = basis.reshape(-1, 6).dot(coef).reshape(h, w)
+        residual = np.sqrt(((arr - fitted) ** 2).sum(axis=2))
+        tile = tile & (residual < 12)
+    return np.clip(fitted, 0, 255)
 
 
-def clear(dark: bool) -> Image.Image:
-    """The Clear appearance: no ground of our own, and no colour.
-
-    In this mode iOS makes the icon out of the wallpaper behind it - the art
-    is a stencil the system frosts, so anything coloured here comes out wrong.
-    What is shipped is the shape in white, with its own internal shading kept
-    (that is what stops the paper reading as a flat rectangle) and the writing
-    knocked through it: on a light wallpaper the page is drawn dark, on a dark
-    one it is drawn light.
-    """
-    art = foreground(mono=True, flat=True)
-    if not dark:
-        grey, alpha = art.convert("L"), art.split()[3]
-        art = Image.merge("RGBA", (ImageChops.invert(grey),) * 3 + (alpha,))
-    return art
-
-
-def tinted() -> Image.Image:
-    """The Tinted appearance: one hue chosen by the user, so ship grey."""
-    return Image.alpha_composite(ground(((58, 58, 62), (28, 28, 32))),
-                                 foreground(mono=True)).convert("RGB")
+def master(source: Path) -> Image.Image:
+    """The render as the one square iOS wants: the tile, cropped out of the
+    page, its corners filled with its own gradient, at 1024 x 1024."""
+    page = np.asarray(Image.open(source).convert("RGB")).astype(np.float32)
+    box = square(find_tile(page), (page.shape[1], page.shape[0]))
+    crop = page[box[1]:box[3], box[0]:box[2]]
+    outside = outside_mask(crop)
+    filled = crop.copy()
+    filled[outside] = fit_gradient(crop, outside)[outside]
+    img = Image.fromarray(np.clip(filled, 0, 255).astype(np.uint8), "RGB")
+    img = img.resize((S, S), Image.LANCZOS)
+    x0, y0, x1, y1 = box
+    print(f"tile {x1 - x0}x{y1 - y0} at ({x0},{y0}) in {source}")
+    return img
 
 
-def rounded_preview(stops=GROUND) -> Image.Image:
+def rounded(img: Image.Image, radius: float = 0.225) -> Image.Image:
     """Only for looking at: the squircle the system applies, faked."""
-    mask = Image.new("L", (S, S), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * 0.225), fill=255)
-    out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    out.paste(composed(stops).convert("RGBA"), (0, 0), mask)
+    mask = Image.new("L", img.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, img.size[0] - 1, img.size[1] - 1],
+                                           radius=int(img.size[0] * radius), fill=255)
+    out = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    out.paste(img.convert("RGBA"), (0, 0), mask)
     return out
+
+
+# --- the launch logo --------------------------------------------------------
+
+def font(size: int, faces: list[str]) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for path in faces:
+        if Path(path).exists():
+            return ImageFont.truetype(path, size)
+    return ImageFont.load_default(size=size)
+
+
+def tracked(draw: ImageDraw.ImageDraw, text: str, f, track: float) -> float:
+    return sum(draw.textlength(c, font=f) for c in text) + track * (len(text) - 1)
+
+
+def draw_tracked(draw: ImageDraw.ImageDraw, x: float, y: float, text: str, f, track: float, fill) -> float:
+    """PIL has no letter spacing of its own: one letter at a time."""
+    for c in text:
+        draw.text((x, y), c, font=f, fill=fill)
+        x += draw.textlength(c, font=f) + track
+    return x
+
+
+def relief(shape: Image.Image, dark: bool, scale: int) -> Image.Image:
+    """The light and the shade a raised Ward tile casts, under `shape`."""
+    alpha = shape.split()[3]
+    out = Image.new("RGBA", shape.size, (0, 0, 0, 0))
+    d = RELIEF_OFFSET * scale
+    blur = ImageFilter.GaussianBlur(RELIEF_RADIUS * scale / 2)
+    for (rgb, strength), (dx, dy) in zip(RELIEF[dark], ((-d, -d), (d, d))):
+        mask = Image.new("L", shape.size, 0)
+        mask.paste(alpha, (dx, dy))
+        mask = mask.filter(blur).point(lambda v: int(v * strength))
+        layer = Image.new("RGBA", shape.size, rgb + (0,))
+        layer.putalpha(mask)
+        out = Image.alpha_composite(out, layer)
+    return out
+
+
+def launch_logo(icon: Image.Image, scale: int = 3, dark: bool = False) -> Image.Image:
+    """The first frame: icon, wordmark, tagline on a clear ground. 300 x 260 pt.
+
+    It is drawn as part of the home screen's soft surface rather than laid on
+    it: the tile rises out of the base with the same light and shade as the
+    home screen's raised tiles, and the wordmark is set like the app's own
+    titles, semibold and slightly tight, in the Ward inks."""
+    w, h = 300 * scale, 260 * scale
+    colors = WORDMARK[dark]
+
+    side = 112 * scale
+    top = 30 * scale
+    tile = rounded(icon.resize((side, side), Image.LANCZOS))
+    placed = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    placed.alpha_composite(tile, ((w - side) // 2, top))
+    out = relief(placed, dark, scale)
+    out.alpha_composite(placed)
+
+    draw = ImageDraw.Draw(out)
+    size = 40 * scale
+    track = -0.4 * scale
+    while size > 10:
+        f = font(size, WORDMARK_FONTS)
+        if tracked(draw, "Stethoscore", f, track) <= w - 56 * scale:
+            break
+        size -= scale
+    total = tracked(draw, "Stethoscore", f, track)
+    x = (w - total) / 2
+    y = top + side + 20 * scale
+    x = draw_tracked(draw, x, y, "Stetho", f, track, colors["ink"]) + 0
+    draw_tracked(draw, x, y, "score", f, track, colors["accent"])
+
+    text = "LISTEN · LEARN · SCORE"
+    small = font(10 * scale, TAGLINE_FONTS)
+    track = 2.6 * scale
+    width = tracked(draw, text, small, track)
+    draw_tracked(draw, (w - width) / 2, y + 54 * scale, text, small, track, colors["tagline"])
+    return out
+
+
+# --- writing ----------------------------------------------------------------
+
+def remove(folder: Path, names: tuple[str, ...]) -> None:
+    for name in names:
+        stale = folder / name
+        if stale.exists():
+            stale.unlink()
+            print(f"removed {stale}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--source", default=str(SOURCE), help="the master render")
     parser.add_argument("--out", default="ios/RedPen/Assets.xcassets/AppIcon.appiconset",
                         help="where the icon itself goes")
-    parser.add_argument("--layers", default="design/icon",
-                        help="the flat layers and the appearances that are not\n"
-                             "expressible in an asset catalogue")
+    parser.add_argument("--launch", default="ios/RedPen/Assets.xcassets/LaunchLogo.imageset",
+                        help="where the launch logo goes")
+    parser.add_argument("--design", default="design/icon",
+                        help="where the preview goes, next to the master render")
     args = parser.parse_args()
+
+    icon = master(Path(args.source))
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    composed().save(out / "icon-1024.png")
-    composed(GROUND_DARK).save(out / "icon-1024-dark.png")
-    tinted().save(out / "icon-1024-tinted.png")
-
-    # An asset catalogue can carry three of the appearances. Dark is a real
-    # design decision rather than a filter: the same scarlet turned right down,
-    # so a home screen at night is not one glowing red square among dark ones.
-    # Tinted must be greyscale, because the hue is the user's to choose.
+    icon.save(out / "icon-1024.png")
+    remove(out, STALE_ICON)
+    # one image for every appearance: the system reuses it in dark mode and
+    # derives the tinted one itself
     (out / "Contents.json").write_text(json.dumps({
-        "images": [
-            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
-             "filename": "icon-1024.png"},
-            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
-             "filename": "icon-1024-dark.png",
-             "appearances": [{"appearance": "luminosity", "value": "dark"}]},
-            {"idiom": "universal", "platform": "ios", "size": "1024x1024",
-             "filename": "icon-1024-tinted.png",
-             "appearances": [{"appearance": "luminosity", "value": "tinted"}]},
-        ],
+        "images": [{"idiom": "universal", "platform": "ios", "size": "1024x1024",
+                    "filename": "icon-1024.png"}],
         "info": {"version": 1, "author": "xcode"},
     }, indent=2) + "\n")
 
-    layers = Path(args.layers)
-    layers.mkdir(parents=True, exist_ok=True)
-    ground().convert("RGB").save(layers / "background.png")
-    ground(GROUND_DARK).convert("RGB").save(layers / "background-dark.png")
-    foreground(flat=True).save(layers / "foreground.png")
-    foreground(mono=True, flat=True).save(layers / "foreground-tinted.png")
-    # Clear has no catalogue slot at all - it belongs to a layered .icon - so
-    # it is exported here, ready for whoever assembles one.
-    clear(dark=False).save(layers / "clear-light.png")
-    clear(dark=True).save(layers / "clear-dark.png")
-    rounded_preview().save(layers / "preview.png")
-    rounded_preview(GROUND_DARK).save(layers / "preview-dark.png")
+    launch = Path(args.launch)
+    launch.mkdir(parents=True, exist_ok=True)
+    images = []
+    for dark in (False, True):
+        stem = "launch-logo-dark" if dark else "launch-logo"
+        big = launch_logo(icon, scale=3, dark=dark)
+        big.save(launch / f"{stem}@3x.png")
+        big.resize((600, 520), Image.LANCZOS).save(launch / f"{stem}@2x.png")
+        big.resize((300, 260), Image.LANCZOS).save(launch / f"{stem}@1x.png")
+        for n in (1, 2, 3):
+            entry = {"idiom": "universal", "scale": f"{n}x", "filename": f"{stem}@{n}x.png"}
+            if dark:
+                entry["appearances"] = [{"appearance": "luminosity", "value": "dark"}]
+            images.append(entry)
+    (launch / "Contents.json").write_text(json.dumps({
+        "images": images,
+        "info": {"version": 1, "author": "xcode"},
+    }, indent=2) + "\n")
 
-    for name in ("icon-1024.png", "icon-1024-dark.png", "icon-1024-tinted.png"):
-        print(out / name)
-    print(f"{layers}/ background, background-dark, foreground, foreground-tinted,")
-    print(f"{layers}/ clear-light, clear-dark, preview, preview-dark")
+    design = Path(args.design)
+    design.mkdir(parents=True, exist_ok=True)
+    rounded(icon).save(design / "preview.png")
+    remove(design, STALE_DESIGN)
+
+    print(out / "icon-1024.png")
+    print(f"{launch}/ launch-logo(-dark)@1x, @2x, @3x")
+    print(f"{design}/ preview.png")
     return 0
 
 

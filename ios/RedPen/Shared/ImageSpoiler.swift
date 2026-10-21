@@ -68,6 +68,26 @@ enum ImageSpoiler {
         return share >= threshold ? revealed : []
     }
 
+    /// Whether reading the picture in Arabic could change where it goes.
+    ///
+    /// Only a word the answer adds can move a picture, so Arabic on the picture
+    /// matters only when one of those words is Arabic. Every other card keeps
+    /// the quick English-only read: the Arabic one is several times slower, and
+    /// an export reads every picture in the set before it draws a page.
+    static func needsArabic(question: String, answer: String) -> Bool {
+        words(answer).subtracting(words(question)).contains(where: isArabic)
+    }
+
+    /// The Arabic blocks RedPenOCR.hasArabic checks, kept here so this file
+    /// stays free of Vision.
+    static func isArabic(_ word: String) -> Bool {
+        word.unicodeScalars.contains { scalar in
+            let v = scalar.value
+            return (0x0600...0x06FF).contains(v) || (0x0750...0x077F).contains(v)
+                || (0xFB50...0xFDFF).contains(v) || (0xFE70...0xFEFF).contains(v)
+        }
+    }
+
     /// Content words, normalised: lowercased, stripped of accents and
     /// punctuation, short and everyday words dropped.
     ///

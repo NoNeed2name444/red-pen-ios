@@ -13,6 +13,10 @@ enum SubscriptionPlan: String, Codable, CaseIterable, Identifiable {
     /// Both subscriptions belong to one group, so switching between them is an
     /// upgrade rather than a second subscription running alongside the first.
     static let groupName = "Red Pen Pro"
+    /// The group's id (RedPen.storekit, App Store Connect): what StoreKit's
+    /// subscription status asks for. The name finds nothing, so a renewal
+    /// being retried would read as lapsed.
+    static let groupID = "21431869"
 }
 
 /// What the phone last managed to confirm about a subscription.
@@ -107,6 +111,19 @@ enum Entitlement {
             return now.timeIntervalSince(verifiedAt) >= every
         }
         return true
+    }
+
+    /// Whether Pro's features are open: a subscription, or the owner's
+    /// personal build, where everything is unlocked without one.
+    static func unlocked(_ access: Access, personal: Bool) -> Bool {
+        personal || access.isPro
+    }
+
+    /// The account page's line: in the personal build, with nothing bought,
+    /// it says why Pro is open instead of "No subscription yet."
+    static func accountLine(_ access: Access, personal: Bool, now: Date = Date()) -> String {
+        if personal && !access.isPro { return "Everything is unlocked in this build." }
+        return summary(access, now: now)
     }
 
     /// What to say about it, in words rather than dates.

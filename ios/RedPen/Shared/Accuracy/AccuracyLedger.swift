@@ -1,0 +1,375 @@
+import Foundation
+
+/// What was found about one item, kept by its content hash: the checker
+/// models' votes, the evidence they were shown, how much of it the lecture
+/// contains, and the correction they offered. Never the verdict itself - that
+/// is worked out from these whenever it is shown, so new model weights
+/// re-score everything without a new check.
+struct AccuracyRecord: Codable, Hashable {
+    var hash: String
+    var votes: [AccuracyVote] = []
+    var evidence: [AccuracyEvidence] = []
+    var sourceMatch: Double? = nil
+    var fix: AccuracySuggestion? = nil
+    var checkedAt: Date = Date()
+    /// The student reported this item as wrong.
+    var reported: Bool = false
+    /// The server's claim gate (server/claims.js): what the item says that
+    /// contradicts its own lecture - "negation", "dose", "frequency",
+    /// "percentage", "direction" (a sentence turned around: higher for
+    /// lower, rare for common) - or "gate_failed" when the gate could not
+    /// tell. Any of them and the item is never Verified, whatever the votes
+    /// say. Nil when the gate found nothing (or the check predates it).
+    var claimHolds: [String]? = nil
+    /// The server's source proof (server/proof.js): which of the item's
+    /// claims an official source states word for word. Nil before the check
+    /// had one.
+    var proof: AccuracyProof? = nil
+    /// How many checks in a row came back with the proof cut short: asked
+    /// again a few times, then left at Check this.
+    var proofTries: Int? = nil
+    /// The server's vignette proof check (server/vignette-proof.js), sent only
+    /// while its vignette route is on; nil otherwise, and cleared when a
+    /// reply comes back without one.
+    var vignette: AccuracyVignette? = nil
+}
+
+/// What server/vignette-proof.js found for a clinical vignette: whether its
+/// proof was accepted, and at which tier - "proven" (every rule it used
+/// signed off by the owner: may back Verified) or "checked" (at most
+/// Checked) - or why it was refused.
+struct AccuracyVignette: Codable, Hashable {
+    var ok: Bool?
+    var tier: String?
+    var why: String?
+    var rules: [String]?
+
+    var isProven: Bool { ok == true && tier == "proven" }
+    var isChecked: Bool { ok == true && tier == "checked" }
+}
+
+/// What server/proof.js found for one item. Only `isFull` lets an item be
+/// Verified: every claim stated word for word by an official source.
+struct AccuracyProof: Codable, Hashable {
+    struct Quote: Codable, Hashable {
+        var claim: String?
+        var quote: String?
+        var source: String?
+        var title: String?
+        var url: String?
+    }
+    var v: Int?
+    var claims: Int?
+    var proven: Int?
+    var why: String?
+    var quotes: [Quote]?
+
+    /// server/proof.js PROOF_VERSION
+    static let version: Int = 2
+    /// Proofs cut short rather than failed: proven again on a later check.
+    static let retried: Set<String> = ["budget", "timeout", "lookup", "error"]
+
+    /// proof.js fullyProven
+    var isFull: Bool {
+        v == AccuracyProof.version && why == nil && (claims ?? 0) > 0 && proven == claims
+    }
+
+    /// accuracy.js proofDue, for a proof the device holds
+    var due: Bool {
+        v != AccuracyProof.version || AccuracyProof.retried.contains(why ?? "")
+    }
+}
+
+/// What the server's /accuracy/check answers, as much of it as the device
+/// keeps: per item, in the order sent, the votes, evidence, correction and
+/// features, and the claim gate's hard findings. Everything is optional, so
+/// an older or newer server's reply still decodes.
+struct AccuracyCheckReply: Decodable {
+    struct Finding: Decodable { var code: String? }
+    struct Claims: Decodable {
+        var hard: [Finding]?
+        var partial: Bool?
+    }
+    struct Item: Decodable {
+        var id: String?
+        var votes: [AccuracyVote]?
+        var evidence: [AccuracyEvidence]?
+        var fix: AccuracySuggestion?
+        var features: [String: Double]?
+        var reason: String?
+        var claims: Claims?
+        var proof: AccuracyProof?
+        var vignette: AccuracyVignette?
+    }
+    var items: [Item]?
+    var limit: String?
+    var message: String?
+    /// true when no checker answered: nothing was checked (the server gave
+    /// the allowance back) and the app should wait before the next batch
+    var busy: Bool?
+
+    /// The gate's code for "it failed on this item": held at Check this, and
+    /// the item is asked about again later (its votes come from the cache).
+    static let gateFailed = "gate_failed"
+}
+
+/// One item's standing, ready to show.
+struct AccuracyAssessment: Hashable {
+    var grade: AccuracyGrade
+    var probability: Double
+    var rules: [AccuracyRules.Hit]
+    var record: AccuracyRecord?
+    var features: [String: Double]
+    /// It gives a dose, names a diagnosis or recommends a treatment.
+    var oath: Bool = false
+
+    /// Which rules, which of the claim gate's findings and which models
+    /// raised a concern, and what no official source states yet, in words.
+    var reasons: [String] {
+        var out: [String] = rules.map { $0.detail }
+        for code in record?.claimHolds ?? [] { out.append(AccuracyAssessment.holdReason(code)) }
+        for v in record?.votes ?? [] where v.risk >= 3 {
+            let issue: String = v.issues.first ?? "Judged it likely to mislead (risk \(v.risk) of 4)."
+            out.append(v.model + ": " + issue)
+        }
+        if grade == .checked, let meaning = grade.meaning {
+            out.append(meaning)
+        } else if let record, !record.votes.isEmpty, grade != .verified {
+            out.append(contentsOf: AccuracyAssessment.proofReasons(record.proof, oath: oath))
+        }
+        return out
+    }
+
+    /// server/accuracy-model.js reasonsFor and describe, word for word.
+    static func proofReasons(_ proof: AccuracyProof?, oath: Bool) -> [String] {
+        var out: [String] = []
+        // its key stated word for word, and another option a source may state too
+        let other: Bool = proof?.why == "distractor" || proof?.why == "options"
+        if proof?.isFull != true && !other {
+            out.append(oath ? "A dose, diagnosis or treatment no official source states word for word yet."
+                            : "No official source states it word for word yet.")
+        }
+        switch proof?.why {
+        case "lookup", "timeout", "error":
+            out.append("An official source could not be read this time; it will be checked again.")
+        case "budget":
+            out.append("Its official sources were too long to read in this batch; it will be checked again on its own.")
+        case "distractor":
+            out.append("An official source may also state another of its options.")
+        case "options":
+            out.append("One of its other options could not be read for certain.")
+        default: break
+        }
+        return out
+    }
+
+    static func holdReason(_ code: String) -> String {
+        switch code {
+        case "negation": return "Says the opposite of its own lecture."
+        case "dose": return "Gives a different dose from its own lecture."
+        case "frequency": return "Gives a different dosing frequency from its own lecture."
+        case "percentage": return "Gives a different percentage from its own lecture."
+        case "direction": return "Says the other way from its own lecture."
+        case AccuracyCheckReply.gateFailed: return "Couldn't be compared with its lecture yet; it will be checked again."
+        // the server's provenance holds (server/provenance.js): where its
+        // source came from and whether that chain can be trusted
+        case "retracted": return "A source it rests on was retracted or is under an expression of concern."
+        case "conflict": return "Only its sponsor's own source says this in its favour; it needs an independent source."
+        case "dabt": return "It doesn't copy its source faithfully: a number, unit, frequency, population or \"not\" differs, or a dose is written unsafely."
+        case "shadh": return "A stronger source was read against it."
+        case "tafarrud": return "Only one source supports it, and that source isn't strong enough on its own."
+        case "naskh": return "A published rule its proof rests on has been replaced by a newer one."
+        default: return "Differs from its own lecture."
+        }
+    }
+}
+
+/// Counts of each grade in a set. `checked` counts every item the models
+/// have looked at; `passed` counts the Checked grade alone.
+struct AccuracySummary: Hashable {
+    var verified = 0, passed = 0, check = 0, flagged = 0, unchecked = 0
+    var total: Int { verified + passed + check + flagged + unchecked }
+    var checked: Int { verified + passed + check + flagged }
+
+    mutating func add(_ grade: AccuracyGrade) {
+        switch grade {
+        case .verified: verified += 1
+        case .checked: passed += 1
+        case .check: check += 1
+        case .flagged: flagged += 1
+        case .unchecked: unchecked += 1
+        }
+    }
+
+    /// "12 verified · 2 to check · 1 flagged", or nil before anything is checked.
+    var line: String? {
+        guard checked > 0 || flagged > 0 else { return nil }
+        var parts: [String] = []
+        if verified > 0 { parts.append("\(verified) verified") }
+        if passed > 0 { parts.append("\(passed) checked, not fully proven") }
+        if check > 0 { parts.append("\(check) to check") }
+        if flagged > 0 { parts.append("\(flagged) flagged") }
+        if unchecked > 0 { parts.append("\(unchecked) not yet checked") }
+        return parts.joined(separator: " \u{00B7} ")
+    }
+
+    /// The badge for the whole set: flagged if anything is, verified only
+    /// when everything is, checked when everything is at least that.
+    var grade: AccuracyGrade {
+        if flagged > 0 { return .flagged }
+        if check > 0 { return .check }
+        if passed > 0 && unchecked == 0 { return .checked }
+        if verified > 0 && unchecked == 0 { return .verified }
+        return .unchecked
+    }
+}
+
+/// Every record on this device, and what each means. Pure, so the whole of
+/// it is tested on Linux; AccuracyStore keeps it on disk.
+struct AccuracyLedger: Codable {
+    var records: [String: AccuracyRecord] = [:]
+    /// Items whose check came back with no vote, and when: tried again after
+    /// a while rather than on every pass.
+    var failed: [String: Date] = [:]
+
+    /// How many times a cut-short source proof is asked for again, and how
+    /// long after the last check.
+    static let proofTries: Int = 4
+    static let proofRetry: TimeInterval = 6 * 3600
+
+    func assess(_ item: AccuracyItem, weights: AccuracyWeights = AccuracyModel.bundled) -> AccuracyAssessment {
+        let hash: String = item.contentHash
+        let record: AccuracyRecord? = records[hash]
+        let rules: [AccuracyRules.Hit] = AccuracyRules.hits(item)
+        let key: String? = item.kind == .mcq && item.options.indices.contains(item.key) ? AccuracyItem.letter(item.key) : nil
+        let match: Double? = record?.sourceMatch ?? AccuracyRules.sourceMatch(item)
+        let f: [String: Double] = AccuracyModel.featureValues(kind: item.kind, rules: rules, votes: record?.votes ?? [],
+                                                             evidenceCount: record?.evidence.count ?? 0,
+                                                             sourceMatch: match, keyLetter: key,
+                                                             sourceProof: record?.proof?.isFull == true,
+                                                             vignette: record?.vignette.map { (proven: $0.isProven, checked: $0.isChecked) })
+        let p: Double = AccuracyModel.probability(f, weights: weights)
+        // the chosen exam's management questions need more to be Verified
+        var cutoffs: AccuracyWeights = weights
+        let strict: Double = AccuracyModel.examStrictness(for: item)
+        if strict > 0 { cutoffs.thresholds = AccuracyModel.stricter(weights.thresholds, by: strict) }
+        // the oath check: a dose, a diagnosis or a treatment needs evidence behind it
+        let oath: Bool = AccuracyModel.isOath(item.checkedText)
+        // the vignette route is on when the server's reply carried its check
+        var grade: AccuracyGrade = AccuracyModel.grade(p, f, weights: cutoffs, oath: oath, vignetteRoute: record?.vignette != nil)
+        let passed: Bool = grade == .verified || grade == .checked
+        // the student said it is wrong: never shown as Verified (or Checked) to them again
+        if record?.reported == true && passed { grade = .check }
+        // it contradicts its own lecture (or the claim gate could not tell),
+        // or a provenance hold: never Verified or Checked on the votes alone
+        if !(record?.claimHolds ?? []).isEmpty && passed { grade = .check }
+        return AccuracyAssessment(grade: grade, probability: p, rules: rules, record: record, features: f, oath: oath)
+    }
+
+    func summary(of items: [AccuracyItem], weights: AccuracyWeights = AccuracyModel.bundled) -> AccuracySummary {
+        var s = AccuracySummary()
+        for item in items { s.add(assess(item, weights: weights).grade) }
+        return s
+    }
+
+    /// Checked already: a model voted on exactly this content, and the claim
+    /// gate did not fail on it (an item it failed on is asked about again).
+    /// A question checked before it was solved blind (1 Oct) is asked about
+    /// again: votes that saw the key cannot verify it now. So is a check that
+    /// reached fewer than three model families (the free models had run
+    /// out), once a day has passed. server/accuracy.js staleSignals. And so is
+    /// one whose source proof was cut short or predates it, after a few hours
+    /// and up to `proofTries` times: the server proves it again from its
+    /// cache, without new votes.
+    func isChecked(_ hash: String, question: Bool = false, now: Date = Date()) -> Bool {
+        guard let record = records[hash], !record.votes.isEmpty else { return false }
+        if record.proof?.due ?? true, (record.proofTries ?? 0) < AccuracyLedger.proofTries,
+           now.timeIntervalSince(record.checkedAt) > AccuracyLedger.proofRetry { return false }
+        if question && record.votes.filter({ $0.blind == true }).count < 2 { return false }
+        let counted: [AccuracyVote] = record.votes.filter { !question || $0.blind == true }
+        let families: Int = Set(counted.map { AccuracyModel.familyOf($0.model) }).count
+        if families < AccuracyModel.minVerifyVoters && now.timeIntervalSince(record.checkedAt) > 86_400 { return false }
+        return !(record.claimHolds ?? []).contains(AccuracyCheckReply.gateFailed)
+    }
+
+    /// Worth trying again: never failed, or failed more than `after` ago.
+    func mayRetry(_ hash: String, now: Date = Date(), after: TimeInterval = 6 * 3600) -> Bool {
+        guard let when = failed[hash] else { return true }
+        return now.timeIntervalSince(when) > after
+    }
+
+    /// A vote from a check made elsewhere - the server's batch check - added
+    /// to the item's record.
+    /// `holds`: the claim gate's hard findings from that check, which replace
+    /// any earlier ones (the server works them out afresh for every reply);
+    /// nil from a check that has no gate, leaving them as they were.
+    /// `proof`: that check's source proof, which replaces any earlier one; one
+    /// cut short counts a try (see isChecked).
+    mutating func add(votes: [AccuracyVote], evidence: [AccuracyEvidence] = [], sourceMatch: Double? = nil,
+                      fix: AccuracySuggestion? = nil, holds: [String]? = nil, proof: AccuracyProof? = nil,
+                      vignette: AccuracyVignette? = nil, for hash: String, at now: Date = Date()) {
+        var record: AccuracyRecord = records[hash] ?? AccuracyRecord(hash: hash)
+        for v in votes {
+            record.votes.removeAll { $0.model == v.model }
+            record.votes.append(v)
+        }
+        if !evidence.isEmpty { record.evidence = evidence }
+        if let sourceMatch { record.sourceMatch = sourceMatch }
+        if let fix { record.fix = fix }
+        if let holds { record.claimHolds = holds.isEmpty ? nil : holds }
+        if let proof {
+            if proof.due && !(record.proof?.isFull ?? false) {
+                record.proof = proof
+                record.proofTries = (record.proofTries ?? 0) + 1
+            } else if !proof.due {
+                record.proof = proof
+                record.proofTries = nil
+            }
+        }
+        // the vignette route's check comes with every reply while it is on:
+        // one without it (the route off, or no packet) clears the last
+        record.vignette = vignette
+        record.checkedAt = now
+        records[hash] = record
+        if !votes.isEmpty { failed[hash] = nil }
+    }
+
+    /// The server's answer to a batch, item by item in the order sent: the
+    /// votes and the claim gate's findings kept; an item with no vote marked
+    /// failed (tried again later) unless the day's checks ran out; an item
+    /// the gate failed on kept, held at Check this, and tried again later too.
+    mutating func record(_ reply: AccuracyCheckReply?, for hashes: [String], at now: Date = Date()) {
+        let replied: [AccuracyCheckReply.Item] = reply?.items ?? []
+        for (n, hash) in hashes.enumerated() {
+            guard n < replied.count, let votes = replied[n].votes, !votes.isEmpty else {
+                if reply?.limit != "day" { failed[hash] = now }
+                continue
+            }
+            let got: AccuracyCheckReply.Item = replied[n]
+            let noSource: Bool = (got.features?["no_source"] ?? 1) > 0
+            let match: Double? = noSource ? nil : got.features?["source_match"]
+            let holds: [String] = (got.claims?.hard ?? []).map { $0.code ?? AccuracyCheckReply.gateFailed }
+            add(votes: votes, evidence: got.evidence ?? [], sourceMatch: match, fix: got.fix, holds: holds,
+                proof: got.proof, vignette: got.vignette, for: hash, at: now)
+            // a server without the proof: asked a few times more, not for ever
+            if got.proof == nil, var kept = records[hash] {
+                kept.proofTries = (kept.proofTries ?? 0) + 1
+                records[hash] = kept
+            }
+            if holds.contains(AccuracyCheckReply.gateFailed) { failed[hash] = now }
+        }
+    }
+
+    mutating func markReported(_ hash: String) {
+        var record: AccuracyRecord = records[hash] ?? AccuracyRecord(hash: hash)
+        record.reported = true
+        records[hash] = record
+    }
+
+    /// Only the records some item still has: an edited or deleted item's old
+    /// record would otherwise stay for ever.
+    mutating func prune(keeping live: Set<String>) {
+        records = records.filter { live.contains($0.key) }
+        failed = failed.filter { live.contains($0.key) }
+    }
+}

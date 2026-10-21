@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import StoreKit
 import Combine
@@ -19,9 +20,15 @@ final class SubscriptionStore: ObservableObject {
     @Published private(set) var record = EntitlementRecord()
     @Published var busy = false
     @Published var trouble: String?
+    /// The App Store's id for this subscription, sent to the worker so it can
+    /// ask Apple itself before CramDown Cloud answers. Not stored: StoreKit
+    /// hands it back on every refresh.
+    private(set) var originalTransactionID: String?
 
     var access: Access { Entitlement.access(record) }
-    var isPro: Bool { access.isPro }
+    /// A subscription, or the personal build (everything unlocked, no
+    /// subscription needed). Only the personal build skips the gate.
+    var isPro: Bool { Entitlement.unlocked(access, personal: PersonalBuild.isOn) }
 
     private var updates: Task<Void, Never>?
     private let fileURL: URL
@@ -51,11 +58,15 @@ final class SubscriptionStore: ObservableObject {
 
     func loadProducts() async {
         guard products.isEmpty else { return }
+        trouble = nil
         do {
             let found = try await Product.products(for: SubscriptionPlan.allCases.map(\.rawValue))
             // cheapest first, so the yearly saving is visible rather than
             // merely stated
             products = found.sorted { $0.price < $1.price }
+            // an answer with nothing in it (the plans not yet approved, or a
+            // storefront without them) is not a reason to keep spinning
+            if found.isEmpty { trouble = "Plans aren't available right now. Please try again later." }
         } catch {
             trouble = "Couldn't reach the App Store."
         }
@@ -78,6 +89,17 @@ final class SubscriptionStore: ObservableObject {
 
     // MARK: buying
 
+    /// The signed-in account, set by the app; nil for "this device only".
+    var accountId: String?
+
+    /// The same UUID the server works out for the account: the first 16 bytes
+    /// of SHA-256("vignette-account:" + id).
+    static func accountToken(for accountId: String) -> UUID {
+        let digest = Array(SHA256.hash(data: Data("vignette-account:\(accountId)".utf8)))
+        return UUID(uuid: (digest[0], digest[1], digest[2], digest[3], digest[4], digest[5], digest[6], digest[7],
+                           digest[8], digest[9], digest[10], digest[11], digest[12], digest[13], digest[14], digest[15]))
+    }
+
     func buy(_ plan: SubscriptionPlan) async {
         guard let product = product(for: plan) else {
             trouble = "That plan isn't available right now."
@@ -87,7 +109,13 @@ final class SubscriptionStore: ObservableObject {
         trouble = nil
         defer { busy = false }
         do {
-            switch try await product.purchase() {
+            // Tagged with the buyer's account: the server only lets the account
+            // that bought a subscription use it, whoever else learns its id.
+            var options: Set<Product.PurchaseOption> = []
+            if let accountId, !accountId.isEmpty {
+                options.insert(.appAccountToken(Self.accountToken(for: accountId)))
+            }
+            switch try await product.purchase(options: options) {
             case .success(let verification):
                 if case .verified(let transaction) = verification {
                     await transaction.finish()
@@ -115,7 +143,7 @@ final class SubscriptionStore: ObservableObject {
         defer { busy = false }
         try? await AppStore.sync()
         await refresh()
-        if !isPro { trouble = "No subscription found on this Apple Account." }
+        if !access.isPro { trouble = "No subscription found on this Apple Account." }
     }
 
     // MARK: what the App Store says now
@@ -140,11 +168,12 @@ final class SubscriptionStore: ObservableObject {
                expiry > (found.expiresAt ?? .distantPast) {
                 found.plan = plan
                 found.expiresAt = expiry
+                originalTransactionID = String(transaction.originalID)
             }
         }
 
         if found.plan != nil,
-           let statuses = try? await Product.SubscriptionInfo.status(for: SubscriptionPlan.groupName) {
+           let statuses = try? await Product.SubscriptionInfo.status(for: SubscriptionPlan.groupID) {
             // being told a renewal is being retried is the difference between
             // "they cancelled" and "their card expired"
             found.inBillingRetry = statuses.contains {
@@ -155,6 +184,25 @@ final class SubscriptionStore: ObservableObject {
         found.verifiedAt = Date()
         record = found
         save()
+    }
+
+    /// Tells the worker which subscription this account holds. The worker
+    /// confirms it with Apple; nothing here is taken on trust. Quietly does
+    /// nothing when offline, signed out or on a this-device-only session.
+    func report(token: String?) async {
+        guard let token, token != Session.localToken else { return }
+        if originalTransactionID == nil { await refresh() }
+        guard let original = originalTransactionID else { return }
+        struct Report: Encodable {
+            var plan: String?
+            var expiresAt: Date?
+            var originalTransactionId: String
+        }
+        _ = try? await AuthAPI.send("account/subscription",
+                                    body: Report(plan: record.plan?.rawValue,
+                                                 expiresAt: record.expiresAt,
+                                                 originalTransactionId: original),
+                                    token: token)
     }
 
     // MARK: keeping it between launches

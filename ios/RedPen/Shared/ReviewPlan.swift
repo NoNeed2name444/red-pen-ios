@@ -16,6 +16,28 @@ struct ReviewRecord: Codable, Equatable {
     /// later one. Without it a whole day of reviews can vanish silently, which
     /// is the worst way for a study app to fail.
     var ratedAt: Date = Date()
+
+    // Anki review essentials. All optional, so a schedule written before they
+    // existed (or by an older build on another device) decodes unchanged.
+
+    /// Held out of every queue until the student lets it back in.
+    var suspended: Bool? = nil
+    /// Held out of every queue until this moment (the next day's start).
+    var buriedUntil: Date? = nil
+    /// FSRS memory, when the FSRS scheduler rated it last.
+    var stability: Double? = nil
+    var difficulty: Double? = nil
+    /// When it was first rated: what the daily new-card limit counts.
+    var introducedAt: Date? = nil
+    /// When something other than a rating changed it - a suspend, a bury, an
+    /// undo - so the merge takes that change over an older rating.
+    var changedAt: Date? = nil
+
+    /// Which of two versions of this card's record is the later word on it.
+    var mergeStamp: Date {
+        guard let changedAt else { return ratedAt }
+        return max(ratedAt, changedAt)
+    }
 }
 
 /// A deck, as the schedule needs to see one.
@@ -80,16 +102,58 @@ enum ReviewPlan {
 
     /// What a rating leaves behind. The interval comes from AnkiScheduler, so
     /// the buttons' promised "in N days" and what is actually stored cannot
-    /// drift apart.
+    /// drift apart (previewLabels reads the same `earned`).
+    ///
+    /// With an exam date, no interval runs past the exam: a card that would
+    /// next come back after the paper comes back a day or two before it
+    /// instead (ExamCap), so everything is seen once more while it counts.
     static func after(rating: AnkiRating, record kept: ReviewRecord,
-                      now: Date = Date()) -> ReviewRecord {
-        let next = AnkiScheduler.nextInterval(rating: rating,
-                                              currentIntervalMin: kept.intervalMin)
-        return ReviewRecord(due: now.addingTimeInterval(next * 60),
-                            intervalMin: next,
-                            reviews: kept.reviews + 1,
-                            lapses: kept.lapses + (rating == .again ? 1 : 0),
-                            ratedAt: now)
+                      now: Date = Date(), exam: Date? = nil) -> ReviewRecord {
+        let plain = earned(rating: rating, record: kept, now: now)
+        let next = ExamCap.capped(plain, now: now, exam: exam)
+        var out = ReviewRecord(due: now.addingTimeInterval(next * 60),
+                               intervalMin: next,
+                               reviews: kept.reviews + 1,
+                               lapses: kept.lapses + (rating == .again ? 1 : 0),
+                               ratedAt: now)
+        out.introducedAt = kept.reviews == 0 ? now : kept.introducedAt
+        out.suspended = kept.suspended
+        return out
+    }
+
+    /// The interval a rating earns, before any exam cap.
+    ///
+    /// On time, AnkiScheduler's growth on the interval the card had. Early -
+    /// studying ahead, a card rated before it was due - the growth is on the
+    /// time that has ACTUALLY passed, as Anki does for early reviews. Grown on
+    /// the whole interval instead, a card rated Easy on Monday (4 days) and
+    /// again each day it was studied ahead came back in 16 days, then 64,
+    /// then 256: seen on Thursday before the exam, gone for eight months.
+    /// Good and Easy never shorten what the card had earned; Hard can, by
+    /// at most 40%, as Anki's early Hard does. Again is a lapse whenever it
+    /// comes. Learning steps (under a day) are left as they are, so a sitting
+    /// still moves a card on when it is shown again before its minutes are up.
+    static func earned(rating: AnkiRating, record kept: ReviewRecord, now: Date) -> Double {
+        let plain: Double = AnkiScheduler.nextInterval(rating: rating, currentIntervalMin: kept.intervalMin)
+        let remaining: Double = kept.due.timeIntervalSince(now) / 60
+        guard rating != .again, remaining > 0, kept.intervalMin >= ExamCap.day else { return plain }
+        let elapsed: Double = max(0, kept.intervalMin - remaining)
+        let grown: Double = AnkiScheduler.nextInterval(rating: rating, currentIntervalMin: elapsed)
+        let floor: Double = rating == .hard ? kept.intervalMin * 0.6 : kept.intervalMin
+        return min(AnkiScheduler.maxIntervalMin, max(grown, floor))
+    }
+
+    /// The four buttons' "in N min / hr / d" for a card as it stands - the
+    /// same `earned` and exam cap `after` stores, so an early review's
+    /// buttons promise what it will actually get.
+    static func previewLabels(for kept: ReviewRecord, now: Date = Date(),
+                              exam: Date? = ExamCap.storedDate()) -> [AnkiRating: String] {
+        var out: [AnkiRating: String] = [:]
+        for rating in AnkiRating.allCases {
+            let plain: Double = earned(rating: rating, record: kept, now: now)
+            out[rating] = "in " + AnkiScheduler.formatInterval(ExamCap.capped(plain, now: now, exam: exam))
+        }
+        return out
     }
 
     /// When the next card in a deck comes back.
@@ -100,12 +164,17 @@ enum ReviewPlan {
     // MARK: across the whole library
 
     /// One due card, and the deck it belongs to.
+    ///
+    /// Identified by deck AND card: a set copied with its cards' ids (a sync
+    /// conflict copy, a re-imported file) puts the same card id in two decks,
+    /// and an id of the card alone gave a list two rows with one identity and
+    /// made removing one remove both.
     struct Due: Identifiable {
         var setID: UUID
         var setName: String
         var card: AnkiCard
         var due: Date
-        var id: UUID { card.id }
+        var id: String { setID.uuidString + "/" + card.id.uuidString }
     }
 
     /// Everything due right now, from every deck, soonest first.
@@ -142,7 +211,8 @@ enum ReviewPlan {
                 out[id] = record
                 continue
             }
-            if record.ratedAt > existing.ratedAt { out[id] = record }
+            // a suspend, bury or undo counts from when it was made
+            if record.mergeStamp > existing.mergeStamp { out[id] = record }
         }
         return out
     }
@@ -157,5 +227,45 @@ enum ReviewPlan {
         var live = Set<UUID>()
         for deck in decks { for card in deck.deckCards { live.insert(card.id) } }
         return records.filter { live.contains($0.key) }
+    }
+}
+
+/// Keeps every interval inside the run-up to the exam.
+///
+/// Spacing is about remembering on the day that matters. An interval that
+/// ends after the exam is a review the student never gets before the paper,
+/// so a card due after it is brought forward to land one to three days
+/// before - close enough to count, far enough to leave the last day calm.
+///
+/// Foundation only, and here beside ReviewPlan so the schedule and the
+/// rating buttons' "in N d" read the same cap.
+enum ExamCap {
+    /// Where the exam date is kept: the same key as ExamTrack.dateKey
+    /// (seconds since 1970, 0 for none). Spelled out so the schedule compiles
+    /// without ExamTrack; a test checks the two stay equal.
+    static let dateKey = "exam.date"
+
+    /// The exam date the student set, or nil.
+    static func storedDate(_ defaults: UserDefaults = .standard) -> Date? {
+        let stamp = defaults.double(forKey: dateKey)
+        return stamp > 0 ? Date(timeIntervalSince1970: stamp) : nil
+    }
+
+    /// Minutes in a day.
+    static let day: Double = 1440
+
+    /// `minutes` unless it would carry the card past the exam; then the
+    /// interval that brings it back before it. Short learning steps (under a
+    /// day) are never touched, and nothing changes once the exam has passed.
+    static func capped(_ minutes: Double, now: Date, exam: Date?) -> Double {
+        guard let exam else { return minutes }
+        let untilExam: Double = exam.timeIntervalSince(now) / 60
+        guard untilExam > 0, minutes >= day else { return minutes }
+        // lands at least a day before the exam already: fine as it is
+        guard minutes > untilExam - day else { return minutes }
+        // back two days before, or halfway there when the exam is closer
+        let lead: Double = min(2 * day, untilExam / 2)
+        let fits: Double = untilExam - lead
+        return max(10, min(minutes, fits))
     }
 }

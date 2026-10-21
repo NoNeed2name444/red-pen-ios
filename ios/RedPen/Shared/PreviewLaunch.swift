@@ -17,6 +17,16 @@ enum PreviewLaunch {
         return args[i + 1]
     }
 
+    /// The section the states gallery is drawn in (`-uiPreviewSection
+    /// <questions|cards|textbook|cases|osce|audio|ideas>`); Questions when
+    /// none, or none known, is named.
+    static var section: WardSection {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewSection"), i + 1 < args.count,
+              let section = WardSection(rawValue: args[i + 1].lowercased()) else { return .questions }
+        return section
+    }
+
     /// The orientation named on the command line, for the iPad job.
     ///
     /// simctl cannot rotate a simulator, so without this a "landscape" pass
@@ -42,6 +52,22 @@ enum PreviewLaunch {
         guard let i = args.firstIndex(of: "-uiPreviewWidth"), i + 1 < args.count,
               let w = Double(args[i + 1]), w > 100 else { return nil }
         return CGFloat(w)
+    }
+
+    /// A pretend window height, with the pretend width: the iPhone SE's
+    /// 647 points under its status bar, so home is checked at the height
+    /// the smallest phone gives it, not the simulator's.
+    static var pretendHeight: CGFloat? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewHeight"), i + 1 < args.count,
+              let h = Double(args[i + 1]), h > 100 else { return nil }
+        return CGFloat(h)
+    }
+
+    /// On the "library" preview, pushes the first set and comes back before
+    /// the fit check (`-uiPreviewPushBack`).
+    static var pushBack: Bool {
+        ProcessInfo.processInfo.arguments.contains("-uiPreviewPushBack")
     }
 
     /// Asks the window to turn, and keeps asking until it does.
@@ -84,7 +110,7 @@ enum PreviewLaunch {
         try? text.write(to: log, atomically: true, encoding: .utf8)
     }
 
-    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "qa", "qa-revealed", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished"]
+    static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished", "cases"]
 
     /// A store that never touches the real library file.
     @MainActor
@@ -92,10 +118,10 @@ enum PreviewLaunch {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("redpen-preview-\(UUID().uuidString).json")
         let store = Store(fileURL: url)
         store.library = SampleData.sets
-        // group the two cardiology-ish sets so the library screenshot shows a folder
+        // put the cardiology set in a folder so the library screenshot shows one
         let folder = StudyFolder(name: "Cardiology block")
         store.folders = [folder]
-        for i in store.library.indices where ["Cardiology", "Respiratory"].contains(store.library[i].subject) {
+        for i in store.library.indices where store.library[i].subject == "Cardiology" {
             store.library[i].folderId = folder.id
         }
         return store
@@ -111,10 +137,10 @@ enum SampleData {
         kind: .mcq,
         questions: [
             MCQQuestion(
-                stem: "A 34-year-old presents with frothy urine, periorbital oedema and 6 g/day proteinuria. Serum albumin is 22 g/L. Which finding on light microscopy is most consistent with the most common primary cause in adults?",
+                stem: "A 34-year-old Black man presents with frothy urine, periorbital oedema and 6 g/day proteinuria. Serum albumin is 22 g/L. Which finding on light microscopy is most consistent with the most common primary cause of nephrotic syndrome in this patient?",
                 options: ["Normal glomeruli", "Segmental sclerosis in some glomeruli", "Diffuse thickening of the basement membrane", "Mesangial IgA deposits"],
                 correctIndex: 1,
-                explanation: "Focal segmental glomerulosclerosis is the most common primary nephrotic syndrome in adults; light microscopy shows sclerosis in some (focal) glomeruli, affecting part (segmental) of the tuft."
+                explanation: "Focal segmental glomerulosclerosis is the most common primary cause of nephrotic syndrome in Black adults; light microscopy shows sclerosis in some (focal) glomeruli, affecting part (segmental) of the tuft. In older white adults membranous nephropathy (basement membrane thickening) is commoner."
             ),
             MCQQuestion(
                 stem: "Which glomerular disease is classically associated with hepatitis C infection?",
@@ -161,11 +187,13 @@ enum SampleData {
         subject: "Endocrinology",
         kind: .book,
         bookMarkdown: """
-        # Hyperthyroidism
+        ## Hyperthyroidism
+
+        ### Definition
 
         **Thyrotoxicosis** is the clinical state of excess thyroid hormone; **hyperthyroidism** is the subset caused by overproduction by the gland itself.
 
-        ## Causes
+        ### Causes and risk factors
 
         | Cause | Clue |
         |---|---|
@@ -174,33 +202,51 @@ enum SampleData {
         | Toxic adenoma | Single hot nodule on uptake scan |
         | Thyroiditis | Tender gland, *low* uptake, transient |
 
-        ## Investigations
+        > **Exam tip:** Eye signs and pretibial myxoedema point to **Graves** - no other cause gives them.
+
+        ### Investigations
 
         - **TSH** suppressed, free T4 (± T3) raised
         - TSH-receptor antibodies confirm Graves
         - Radioiodine uptake: high and diffuse in Graves, patchy in MNG, low in thyroiditis
 
-        ## Management
+        ```flow
+        Suspected hyperthyroidism
+        TSH and free T4
+        If TSH low and FT4 high → primary hyperthyroidism
+        TSH-receptor antibodies
+        If positive → Graves disease
+        If negative → uptake scan to find the cause
+        ```
+
+        ### Management
 
         - Symptom control: **propranolol**
         - Antithyroid drugs: **carbimazole** first line (propylthiouracil in the first trimester)
         - Definitive: radioiodine or thyroidectomy
-        - Warn every patient on antithyroid drugs to report a sore throat or fever — **agranulocytosis**
-        """
-    )
 
-    static let respiratory = StudySet(
-        name: "Respiratory — cases",
-        subject: "Respiratory",
-        kind: .qa,
-        qaCards: [
-            QACard(topic: "Pneumonia", type: .case, stem: "A 72-year-old with fever, productive cough and right basal crackles. RR 32, BP 88/56, urea 9 mmol/L, confused. What is the CURB-65 score and where should she be managed?",
-                   answer: ["CURB-65 = **4** (confusion, urea > 7, RR ≥ 30, BP < 90/60)", "Score ≥ 3 → **admit, consider ICU**", "IV co-amoxiclav + clarithromycin per local policy"]),
-            QACard(topic: "Asthma", type: .recall, stem: "Features of a life-threatening asthma attack?",
-                   answer: ["PEF < **33%** of best", "SpO₂ < **92%**, PaO₂ < 8 kPa, *normal* PaCO₂", "Silent chest, cyanosis, poor effort", "Exhaustion, arrhythmia, hypotension, altered consciousness"]),
-            QACard(topic: "COPD", type: .case, stem: "Known COPD, acutely breathless, drowsy. ABG on 15 L O₂: pH 7.28, PaCO₂ 9.5 kPa, PaO₂ 14 kPa. Next step?",
-                   answer: ["Controlled oxygen — target SpO₂ **88–92%** (Venturi 24–28%)", "Nebulised salbutamol + ipratropium, steroids, antibiotics if purulent", "Repeat ABG in 30–60 min; **NIV** if pH < 7.35 with PaCO₂ > 6.5 despite treatment"]),
-        ]
+        > **Red flag:** Warn every patient on antithyroid drugs to report a sore throat or fever at once - **agranulocytosis**.
+
+        > **Mnemonic:** Graves' eye signs - **NO SPECS** (No signs, Only signs, Soft tissue, Proptosis, Extraocular muscles, Corneal, Sight loss).
+
+        ## Hypothyroidism
+
+        ### Definition
+
+        Too little thyroid hormone; in iodine-sufficient countries most often from **Hashimoto's thyroiditis**.
+
+        ### Clinical features
+
+        - Tiredness, weight gain, cold intolerance, constipation
+        - **Slow-relaxing reflexes**, dry skin, bradycardia
+
+        ### Management
+
+        - **Levothyroxine**, adjusted to keep TSH in range
+        - Start low in the elderly and in ischaemic heart disease
+
+        > **Key point:** Recheck TSH 6-8 weeks after any dose change - that is how long it takes to settle.
+        """
     )
 
     static let osce = StudySet(
@@ -246,12 +292,51 @@ enum SampleData {
         ]
     )
 
-    static let sets: [StudySet] = [nephrology, cardiology, endocrine, respiratory, osce, narrate]
+    /// Two patients written for the app (CaseSamples), as a Cases set.
+    static let cases = StudySet(
+        name: "Example patients",
+        subject: "Acute medicine",
+        kind: .cases,
+        caseFiles: CaseSamples.all
+    )
+
+    static let sets: [StudySet] = [nephrology, cardiology, endocrine, osce, narrate, cases]
+
+    /// Adds a copy of every example set, once, to a personal build's library -
+    /// never to the App Store app, whose students start with their own.
+    @MainActor
+    static func seedPersonalBuild(into store: Store) {
+        let key = "sampleLibrary.v3"
+        // not over a library that could not be read at this launch (Store)
+        guard PersonalBuild.isOn, store.unreadable.isEmpty,
+              !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        let folder = StudyFolder(name: "Examples - try every mode")
+        store.folders.append(folder)
+        for sample in sets {
+            var copy = sample
+            copy.id = UUID()
+            copy.name = "Example: " + sample.name
+            copy.folderId = folder.id
+            store.addSet(copy)
+        }
+    }
 }
 
 /// Opens the requested screen directly, with the sample data in place.
 struct PreviewRoot: View {
     let screen: String
+
+    init(screen: String) {
+        self.screen = screen
+        // Always night sky is kept between launches, so a mode-switch
+        // recording that turned it on left every later still dark (r10).
+        // A still starts from the device's own mode; the recordings that
+        // turn it on do so themselves.
+        if !screen.hasPrefix("mode-switch") {
+            UserDefaults.standard.set(false, forKey: "vignette.space.alwaysNight") // SpaceSettings.alwaysNightKey
+        }
+    }
 
     var body: some View {
         Group {
@@ -259,7 +344,7 @@ struct PreviewRoot: View {
                 ZStack {
                     Color(.systemGray4).ignoresSafeArea()
                     content
-                        .frame(width: w)
+                        .frame(width: w, height: PreviewLaunch.pretendHeight)
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 6)
                         .padding(.vertical, 28)
@@ -295,10 +380,6 @@ struct PreviewRoot: View {
             NavigationStack { AnkiReviewView(set: SampleData.cardiology, startRevealed: true) }
         case "book":
             NavigationStack { BookReaderView(set: SampleData.endocrine, page: 1) }
-        case "qa":
-            NavigationStack { QACardsView(set: SampleData.respiratory) }
-        case "qa-revealed":
-            NavigationStack { QACardsView(set: SampleData.respiratory, startRevealed: true) }
         case "osce":
             NavigationStack { OsceReviewView(set: SampleData.osce) }
         case "osce-revealed":
@@ -309,6 +390,16 @@ struct PreviewRoot: View {
             NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: 3) }
         case "narrate-finished":
             NavigationStack { NarrateReviewView(set: SampleData.narrate, startIndex: SampleData.narrate.narrateSegments.count - 1, startFinished: true) }
+        case "cases":
+            NavigationStack { CaseListView(set: SampleData.cases) }
+        case "states":
+            // every Ward control in each state, in one section's colours, on
+            // the base and with the controls a mode's screen has (modeScreen;
+            // the base is the same for every mode)
+            WardStatesGallery(section: PreviewLaunch.section)
+                .background(ModeBackdrop(kind: .mcq))
+                .wardControls()
+                .wardSection(PreviewLaunch.section)
         default:
             LibraryView()
         }

@@ -6,109 +6,175 @@
 # name. Copying it to any other name is what made an earlier suite silently
 # never compile.
 #
-# Only UIKit-free files can be listed: the runner is a Mac, so a file importing
-# UIKit, PDFKit, StoreKit or Vision cannot be compiled for it. That is why the
-# decisions worth testing live in files that import nothing but Foundation.
+# Only UIKit-free files can be listed, and most suites now run on Linux
+# (Swift 6.4 in a container: fast to start, about twenty at once, and off the
+# five macOS machines the app build and screenshots need). The few suites
+# that need Apple's Compression or CryptoKit run on macOS
+# (tools/swift_suites_mac_only.txt). The list of suites is
+# tools/swift_suites.txt; tools/swift_suites.py runs it, here and locally.
+#
+# On aahp/ branches (changes proposed by an automated loop) the logs stay in
+# the run's swift-tests-linux and swift-tests-mac artifacts; nothing is pushed.
 name: Swift tests
 on:
   workflow_dispatch:
   push:
+    # the session branch is a copy of personal: testing it again only queues
+    branches-ignore: ['claude/**']
     paths:
       - 'ios/RedPen/Shared/**'
       - 'ios/RedPen/Models/**'
       - 'ios/RedPen/Features/Anki/AnkiScheduler.swift'
+      - 'ios/RedPen/Features/Notes/GraphUniverse.swift'
+      - 'ios/RedPen/Features/Notes/GraphLinkCurve.swift'
+      - 'ios/RedPen/Features/Notes/GraphThemePlan.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeurons.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeuronImpulses.swift'
+      - 'ios/RedPen/Features/Notes/GraphTheme.swift'
+      - 'ios/RedPen/Features/Notes/GraphDeath.swift'
+      - 'ios/RedPen/Features/Notes/GraphFrameSync.swift'
+      - 'ios/RedPen/Features/Notes/GraphSynapse.swift'
+      - 'ios/RedPen/Features/Notes/GraphLabelContrast.swift'
+      - 'ios/RedPen/Features/Notes/GraphTouchModel.swift'
+      - 'ios/RedPen/Features/Notes/GraphLineStyle.swift'
+      - 'ios/RedPen/Features/Notes/GraphSpaceShaders.swift'
+      - 'ios/RedPen/Features/Notes/GraphShaderKit.swift'
+      - 'ios/RedPen/Features/Notes/GraphSpaceOptics.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeuronShaders.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeuronMembrane.swift'
+      - 'ios/RedPen/Features/Notes/GraphLinkBridge.swift'
+      - 'ios/RedPen/Features/Notes/GraphShaderCatalog.swift'
+      - 'ios/RedPen/Features/Notes/GraphNeuronStates.swift'
+      - 'ios/RedPen/Features/Notes/GraphAnatomy.swift'
+      - 'ios/RedPen/Features/Notes/GraphLens.swift'
+      - 'ios/RedPen/Features/Notes/GraphPerf*.swift'
+      - 'ios/RedPen/Features/Mock/MockSittingSave.swift'
       - 'ios/RedPen/Tests/**'
+      - 'ios/RedPen/Resources/**'
+      - 'tools/l10n_*.py'
       - '.github/workflows/swift-tests.yml'
+      - 'tools/swift_suites*'
+# Read-only: the suites compile and run the app's code. Only the publish jobs,
+# which run none of it, can write.
 permissions:
-  contents: write
-env:
-  GH_TOKEN: ${{ github.token }}
+  contents: read
+# a newer push to the same branch supersedes the run before it
+concurrency:
+  group: swift-tests-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  tests:
-    runs-on: macos-latest
-    timeout-minutes: 25
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:6.4-noble
+    timeout-minutes: 20
+    outputs:
+      mac: ${{ steps.mac.outputs.run }}
     steps:
+      - name: Tools
+        run: apt-get update -qq && apt-get install -y -qq python3 zip git > /dev/null
       - uses: actions/checkout@v4
-
-      # A real zip for the Word reader to open, written by the runner's own zip
-      # command rather than by Red Pen: the whole risk in reading a .docx is
-      # that a real file is laid out differently from the one in your head.
-      - name: A sample Word handout
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Every suite that builds on Linux
+        run: python3 tools/swift_suites.py --platform linux --release -j 4
+      # the Apple-only suites wait for a macOS machine, so they run only when a
+      # change touches their files (or by hand)
+      - name: Whether the macOS suites are needed
+        if: always()
+        id: mac
         run: |
-          mkdir -p fixture/word/media
-          printf '%s' '<?xml version="1.0"?><w:document xmlns:w="x"><w:body><w:p><w:r><w:t>Lupus &amp; the kidney</w:t></w:r></w:p><w:p><w:r><w:t>Class IV</w:t></w:r><w:r><w:t> nephritis</w:t></w:r></w:p><w:p/><w:p><w:r><w:t>Treat with</w:t></w:r><w:br/><w:r><w:t>steroids</w:t></w:r></w:p></w:body></w:document>' > fixture/word/document.xml
-          printf 'two' > fixture/word/media/image2.png
-          printf 'ten' > fixture/word/media/image10.png
-          (cd fixture && zip -qr ../sample.docx .)
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" != "push" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          n=$(python3 tools/swift_suites.py --platform mac --affected "$before" --list-chosen | grep -c . || true)
+          echo "run=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-      - name: Every suite
+      # Localisation: whether the String Catalog is sound (every key
+      # translated, its format specifiers kept, Arabic's six plural forms),
+      # and the report of what the full string sweep still has to do -
+      # English glued into Text, hard-coded plurals, left/right symbols and
+      # offsets, literals not yet in the catalog. A report for now: it never
+      # fails the job. It is pushed with the logs as l10n-report.md.
+      - name: Localisation report
+        if: always()
+        continue-on-error: true
         run: |
           mkdir -p out
-          S=ios/RedPen/Shared; M=ios/RedPen/Models; F=ios/RedPen/Features
-          suite () {
-            name=$1; test=$2; shift 2
-            mkdir -p build/$name
-            cp ios/RedPen/Tests/$test build/$name/main.swift
-            {
-              swiftc -O "$@" build/$name/main.swift -o build/$name/run 2>&1 | head -n 40
-              echo "compile rc=${PIPESTATUS[0]}"
-              if [ -x build/$name/run ]; then
-                build/$name/run 2>&1 | head -n 90; echo "run rc=${PIPESTATUS[0]}"
-              else echo "$name was never built"; fi
-            } > out/$name.log 2>&1
-            cat out/$name.log
-          }
-          suite quality CardQualityTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift \
-                $S/CardQuality.swift $S/QuizFromCards.swift
-          suite learning LearningTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
-                $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift
-          suite transcriber TranscriberTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
-                $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
-                $S/LectureTranscriber.swift
-          suite ingest IngestTests.swift $S/SourceText.swift
-          suite figures FigureTests.swift $M/AnkiCard.swift $S/FigureGrid.swift
-          suite docx DocxTests.swift $S/Zip.swift $S/DocxText.swift
-          suite coverage CoverageTests.swift $S/MCQCoverage.swift
-          suite schedule ScheduleTests.swift $M/AnkiCard.swift \
-                $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift
-          suite slides SlideTests.swift $M/AnkiCard.swift $M/MCQQuestion.swift \
-                $S/DocxText.swift $S/PptxText.swift $S/SourceText.swift \
-                $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift
-          suite account AccountTests.swift $M/Account.swift $S/AuthRules.swift \
-                $S/Entitlement.swift
-          suite sync SyncTests.swift $M/SyncDoc.swift $S/SyncMerge.swift $S/BlobRefs.swift
-          suite sources SourceTests.swift $M/SourceDoc.swift $S/SourceSearch.swift
-          # NarrateSegment carries a helper that builds segments from a
-          # transcript, so the parsers drag the transcriber in with them.
-          suite osce OsceTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift \
-                $M/QACard.swift $M/OsceChecklist.swift $M/NarrateSegment.swift \
-                $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift \
-                $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift \
-                $S/PlainTextImport.swift $S/OsceStations.swift
-          suite reading ReadingTests.swift $S/Highlight.swift $S/BookPages.swift
-          suite deck DeckTests.swift $M/MCQQuestion.swift $M/AnkiCard.swift $M/QACard.swift \
-                $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
-                $M/StudySet.swift $S/SoundKey.swift $S/PronunciationStore.swift \
-                $S/OnDeviceLearning.swift $S/Corrections.swift $S/WordTiming.swift \
-                $S/LectureTranscriber.swift $S/PlainTextImport.swift \
-                $S/BookPages.swift $S/Highlight.swift \
-                $S/ImageSpoiler.swift $S/DeckPalette.swift $S/DeckCard.swift
-
-      - name: Fail the job if anything failed
-        run: |
-          bad=0
-          for f in out/*.log; do
-            if grep -qE 'rc=[1-9]' "$f"; then echo "FAILURES in $f"; bad=1; fi
-            if grep -q 'never built' "$f"; then echo "NOT BUILT in $f"; bad=1; fi
-          done
-          [ "$bad" = "0" ] && echo "every check passed"
-          exit $bad
-
-      - name: Push the logs
+          python3 tools/l10n_catalog.py check ios/RedPen/Resources/Localizable.xcstrings > out/l10n-catalog.txt 2>&1 || true
+          python3 tools/l10n_lint.py ios/RedPen --out out/l10n-report.md > out/l10n-lint.txt 2>&1 || true
+          { echo '### Localisation'; echo '```'; cat out/l10n-catalog.txt out/l10n-lint.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: swift-tests-linux
+          path: out
+  mac:
+    needs: linux
+    if: ${{ always() && needs.linux.outputs.mac == 'true' }}
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: The suites that need Apple frameworks
+        run: python3 tools/swift_suites.py --platform mac --release -j 3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: swift-tests-mac
+          path: out
+
+  # Separate from the suites so the write token never shares a job with the
+  # app's code. Never for aahp/ branches.
+  publish-linux:
+    needs: linux
+    if: ${{ always() && !startsWith(github.ref_name, 'aahp/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: swift-tests-linux
+          path: out
+      - name: Push the logs
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd out
           git init -q && git checkout -q -b swift-tests
           git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
-          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID" || git commit -q --allow-empty -m nothing
-          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" swift-tests:swift-tests
+          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (linux) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
+          url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # one commit pushed to two branches is tested twice, and both runs can
+          # publish here at the same moment: a push that loses the race tries once more
+          git push -f "$url" swift-tests:swift-tests || { sleep 10; git push -f "$url" swift-tests:swift-tests; }
+  publish-mac:
+    needs: mac
+    if: ${{ always() && needs.mac.result != 'skipped' && !startsWith(github.ref_name, 'aahp/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: swift-tests-mac
+          path: out
+      - name: Push the logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          git init -q && git checkout -q -b swift-tests-mac
+          git config user.name red-pen-preview && git config user.email preview@users.noreply.github.com
+          git add -A && git commit -q -m "swift tests $GITHUB_RUN_ID (mac) on $GITHUB_REF_NAME" || git commit -q --allow-empty -m nothing
+          url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # one commit pushed to two branches is tested twice, and both runs can
+          # publish here at the same moment: a push that loses the race tries once more
+          git push -f "$url" swift-tests-mac:swift-tests-mac || { sleep 10; git push -f "$url" swift-tests-mac:swift-tests-mac; }

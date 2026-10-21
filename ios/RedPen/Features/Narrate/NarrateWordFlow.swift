@@ -14,54 +14,148 @@ import SwiftUI
 /// reading along knows exactly where the lecturer is, instead of scanning a
 /// highlighted paragraph for their place.
 struct NarrateWordFlow: View {
-    @Environment(\.modeTint) private var modeTint
     let texts: [String]
     let langs: [String]
     let currentIndex: Int
-    /// The word within the current line, when a recording is driving playback.
+    /// The word within the current line being spoken right now.
     var spokenWord: Int?
+    /// The mis-heard word being fixed, marked until the fix is saved.
+    var misheard: FixTarget?
+    /// Where each line sits in the scroll view, for the auto-scroll's band.
+    var band: NarrateScrollBand?
     let onJump: (Int) -> Void
     let onFix: (FixTarget) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        // Lazy, and one Equatable view per line: a word moving on rebuilds
+        // the one line it is in, not a lecture's worth of flowed words.
+        LazyVStack(alignment: .leading, spacing: 10) {
             ForEach(texts.indices, id: \.self) { i in
-                line(i)
-                    .padding(.vertical, 6).padding(.horizontal, 8)
-                    .background(i == currentIndex ? modeTint.opacity(0.14) : Color.clear,
-                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .animation(.easeInOut(duration: 0.25), value: currentIndex)
+                let current: Bool = i == currentIndex
+                let wrong: Int? = misheard?.segment == i ? misheard?.word : nil
+                NarrateLine(index: i, text: texts[i],
+                            rtl: i < langs.count && langs[i] == "ar",
+                            current: current,
+                            spoken: current ? spokenWord : nil,
+                            misheard: wrong,
+                            band: band, onJump: onJump, onFix: onFix)
+                    .equatable()
                     .id(i)
-                    .environment(\.layoutDirection,
-                                 (i < langs.count && langs[i] == "ar") ? .rightToLeft : .leftToRight)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
 
-    @ViewBuilder
-    private func line(_ i: Int) -> some View {
-        let words = texts[i].split(separator: " ").map(String.init)
+/// One line of the transcript.
+///
+/// The spoken word is marked by colour and a background drawn OUTSIDE its
+/// frame, never by a bolder weight or extra padding: either of those makes
+/// the word wider, the line re-wraps, and every word after it shuffles
+/// sideways three times a second. That shuffle was most of the "choppy".
+struct NarrateLine: View, Equatable {
+    let index: Int
+    let text: String
+    let rtl: Bool
+    let current: Bool
+    let spoken: Int?
+    /// A word marked as mis-heard: Resus Red, underlined, so it is not
+    /// colour alone.
+    var misheard: Int? = nil
+    let band: NarrateScrollBand?
+    let onJump: (Int) -> Void
+    let onFix: (FixTarget) -> Void
+
+    /// What the line shows. The closures and the band never change what is
+    /// drawn, so they are left out and SwiftUI skips every line but the one
+    /// whose highlight moved.
+    nonisolated static func == (a: NarrateLine, b: NarrateLine) -> Bool {
+        a.index == b.index && a.text == b.text && a.rtl == b.rtl
+            && a.current == b.current && a.spoken == b.spoken && a.misheard == b.misheard
+    }
+
+    var body: some View {
+        let words: [String] = text.split(separator: " ").map(String.init)
+        let ink: Color = current ? Color.wardPrimaryInk : Color.wardInk
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         FlowLayout(spacing: 4, lineSpacing: 6) {
             ForEach(words.indices, id: \.self) { w in
-                let speaking = (i == currentIndex && spokenWord == w)
-                Text(words[w])
-                    .font(.body)
-                    .foregroundStyle(i == currentIndex ? modeTint : .primary)
-                    .fontWeight(speaking ? .bold : (i == currentIndex ? .semibold : .regular))
-                    .padding(.horizontal, speaking ? 3 : 0)
-                    .background(speaking ? modeTint.opacity(0.22) : .clear,
-                                in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-                    // a moving highlight should glide, but not so slowly that
-                    // it lags behind the voice it is tracking
-                    .animation(.easeOut(duration: 0.12), value: speaking)
-                    .contentShape(Rectangle())
-                    .onTapGesture { onJump(i) }
-                    .onLongPressGesture(minimumDuration: 0.35) {
-                        onFix(FixTarget(segment: i, word: w, heard: words[w]))
-                    }
+                word(words[w], at: w, ink: ink)
             }
         }
+        .padding(.vertical, 6).padding(.horizontal, 8)
+        // the line being read pressed into the page
+        .background {
+            if current { WardReliefFace(shape: shape, lift: .low, inset: true).transition(.identity) }
+        }
+        // a pointer lights the whole line, which is what a click jumps to;
+        // one modifier per line, not one per word
+        .contentShape(.hoverEffect, shape)
+        .hoverEffect(.highlight)
+        .animation(.easeInOut(duration: 0.2), value: current)
+        .environment(\.layoutDirection, rtl ? .rightToLeft : .leftToRight)
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .named(NarrateScrollBand.space))
+        } action: { frame in
+            band?.frames[index] = frame
+        }
+        .onDisappear { band?.frames[index] = nil }
+    }
+
+    private func word(_ text: String, at w: Int, ink: Color) -> some View {
+        let speaking: Bool = spoken == w
+        let wrong: Bool = misheard == w
+        let wash: Color = wrong ? Color.wardDanger.opacity(0.12) : Color.clear
+        let mark: Color = speaking ? Color.wardPrimary.opacity(WardWash.alpha) : wash
+        let shown: Color = wrong ? Color.wardDanger : ink
+        return Text(text)
+            .font(.body)
+            .underline(wrong, color: Color.wardDanger)
+            .foregroundStyle(shown)
+            .background {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(mark)
+                    .padding(.horizontal, -3)
+                    .padding(.vertical, -1)
+            }
+            // quick enough to keep up with the voice, slow enough to glide
+            .animation(.easeOut(duration: 0.1), value: speaking)
+            .contentShape(Rectangle())
+            .onTapGesture { onJump(index) }
+            .onLongPressGesture(minimumDuration: 0.35) {
+                onFix(FixTarget(segment: index, word: w, heard: text))
+            }
+            // the tap and the hold, for VoiceOver
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Plays from here")
+            .accessibilityAction(named: "Fix this word") {
+                onFix(FixTarget(segment: index, word: w, heard: text))
+            }
+    }
+}
+
+/// Where the lines are, kept out of SwiftUI's state on purpose: writing a
+/// frame here on every scrolled frame must not rebuild anything. The screen
+/// reads it only when the line changes, to decide whether to scroll.
+@MainActor
+final class NarrateScrollBand {
+    nonisolated static let space = "narrate.scroll"
+
+    var frames: [Int: CGRect] = [:]
+    var viewport: CGFloat = 0
+    /// While the student is scrolling, and for a moment after, the transcript
+    /// is theirs: the auto-scroll does not pull it back.
+    var handsOffUntil = Date.distantPast
+
+    /// The current line is left where it is while it sits comfortably in the
+    /// upper-middle of the screen; only when it leaves that band is the
+    /// transcript moved - instead of re-centring on every line.
+    func needsScroll(to line: Int) -> Bool {
+        guard Date() >= handsOffUntil, viewport > 0 else { return false }
+        guard let frame = frames[line] else { return true }
+        let top: CGFloat = viewport * 0.12
+        let bottom: CGFloat = viewport * 0.72
+        return frame.minY < top || frame.maxY > bottom
     }
 }
 
@@ -69,42 +163,57 @@ struct NarrateWordFlow: View {
 ///
 /// SwiftUI has no inline flow of separately tappable views, and an HStack per
 /// line would need the text measured by hand. The Layout protocol does the
-/// measuring properly, including when the text size changes.
+/// measuring properly, including when the text size changes. Both passes
+/// break the lines with FlowLines, against the same width: the one offered.
+/// Placed against the width given instead (the widest line, rounded to
+/// pixels), the lines disagreed by a hair with the ones measured, and a
+/// line's last word dropped onto the next paragraph (Audio at XXL, 15 Oct).
 struct FlowLayout: Layout {
     var spacing: CGFloat = 4
     var lineSpacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .infinity
-        var x: CGFloat = 0, y: CGFloat = 0, lineHeight: CGFloat = 0, widest: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x > 0 && x + size.width > width {
-                widest = max(widest, x - spacing)
-                x = 0
-                y += lineHeight + lineSpacing
-                lineHeight = 0
-            }
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
-        }
-        widest = max(widest, x - spacing)
-        return CGSize(width: min(widest, width == .infinity ? widest : width), height: y + lineHeight)
+        let sizes: [CGSize] = subviews.map { $0.sizeThatFits(.unspecified) }
+        let widths: [Double] = sizes.map { Double($0.width) }
+        let lines: [Int] = FlowLines.lines(widths: widths, spacing: Double(spacing),
+                                           width: Double(proposal.width ?? .infinity))
+        let widest = CGFloat(FlowLines.lineWidths(widths: widths, spacing: Double(spacing), lines: lines).max() ?? 0)
+        let heights: [CGFloat] = lineHeights(sizes, lines)
+        let height: CGFloat = heights.reduce(0, +) + lineSpacing * CGFloat(max(0, heights.count - 1))
+        return CGSize(width: proposal.width.map { min(widest, $0) } ?? widest, height: height)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize,
                        subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX, y = bounds.minY, lineHeight: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x > bounds.minX && x + size.width > bounds.maxX {
+        let sizes: [CGSize] = subviews.map { $0.sizeThatFits(.unspecified) }
+        // the width the size was measured for, not the size's own width
+        let lines: [Int] = FlowLines.lines(widths: sizes.map { Double($0.width) }, spacing: Double(spacing),
+                                           width: Double(proposal.width ?? .infinity))
+        let heights: [CGFloat] = lineHeights(sizes, lines)
+        var x: CGFloat = bounds.minX
+        var y: CGFloat = bounds.minY
+        var current: Int = 0
+        for (i, view) in subviews.enumerated() {
+            while current < lines[i] {
+                y += heights[current] + lineSpacing
+                current += 1
                 x = bounds.minX
-                y += lineHeight + lineSpacing
-                lineHeight = 0
             }
-            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
+            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(sizes[i]))
+            x += sizes[i].width + spacing
         }
+    }
+
+    /// Each line's height: its tallest item's.
+    private func lineHeights(_ sizes: [CGSize], _ lines: [Int]) -> [CGFloat] {
+        var out: [CGFloat] = []
+        for (size, line) in zip(sizes, lines) {
+            if line < out.count {
+                out[line] = max(out[line], size.height)
+            } else {
+                out.append(size.height)
+            }
+        }
+        return out
     }
 }

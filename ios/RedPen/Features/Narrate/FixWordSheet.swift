@@ -32,40 +32,57 @@ struct FixWordSheet: View {
                 field("Heard as") {
                     Text(target.heard)
                         .font(.title3.weight(.semibold))
+                        .foregroundStyle(Color.wardDanger)
+                        .underline(true, color: Color.wardDanger.opacity(0.5))
                         .textSelection(.enabled)
                 }
                 field("Should be") {
                     TextField("the correct spelling", text: $spelling)
-                        .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .focused($typing)
                         .submitLabel(.done)
                         .onSubmit { if usable { save() } }
+                        .wardField()
                 }
                 // Said plainly up front, because the student is about to change
                 // more of the transcript than the word they tapped.
                 Label("Every other word that sounds the same is fixed too, and remembered for next time.",
                       systemImage: "wand.and.sparkles")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.wardInkSecondary)
                     .labelStyle(.titleAndIcon)
                 Spacer(minLength: 0)
             }
             .padding()
+            .wardScreen()
+            // the one action, under the thumb and standing out of the glass;
+            // it rides above the keyboard while the spelling is typed
+            .studyBar {
+                Button("Fix", action: save)
+                    .buttonStyle(.bigPrimary)
+                    .disabled(!usable)
+            }
             .navigationTitle("Fix this word")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                    .buttonStyle(.wardQuiet)
                 }
+                .sharedBackgroundVisibility(.hidden)
+                // kept for a hardware keyboard and for habit; the bar below
+                // is the one the thumb finds
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fix") { save() }.disabled(!usable)
+                    Button("Fix") { save() }
+                    .buttonStyle(.wardCompact).disabled(!usable)
                 }
+                .sharedBackgroundVisibility(.hidden)
             }
             .onAppear { typing = true }
         }
-        .presentationDetents([.height(320)])
+        // taller than before by the bar at the bottom
+        .presentationDetents([.height(390)])
     }
 
     @ViewBuilder
@@ -73,9 +90,7 @@ struct FixWordSheet: View {
                                       @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+                .wardSmallCaps()
             content()
         }
     }
@@ -100,17 +115,20 @@ struct FixReport: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.tint)
-            Text(summary).font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.wardSuccess)
+                .accessibilityHidden(true)
+            Text(summary)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
             Button("Undo", action: onUndo)
-                .font(.subheadline.weight(.semibold))
-                .buttonStyle(.glass)
+                .buttonStyle(.wardCompact)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.regularMaterial, in: Capsule())
+        .padding(.vertical, 8)
+        // a soft slip floating over the transcript
+        .wardRaised(in: Capsule(), lift: .high)
         .padding(.horizontal)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(.slideIn(.bottom))
     }
 }

@@ -50,6 +50,9 @@ enum SyncAPI {
         /// error: one document being stale must not throw away the other
         /// nineteen in the batch.
         var conflicts: [SyncDoc]
+        /// The server had synced all it can for the day and kept the rest of
+        /// the batch for tomorrow (server/sync.js). Nil from a server before it.
+        var resting: Bool?
     }
 
     static func push(_ docs: [SyncDoc], token: String) async throws -> PushResult {
@@ -108,6 +111,8 @@ enum SyncAPI {
     }
 
     private static func send(_ request: URLRequest, body: Data?) async throws -> (Data, URLResponse) {
+        var request = request
+        VignetteHeaders.apply(to: &request)
         do {
             if let body {
                 return try await URLSession.shared.upload(for: request, from: body)
@@ -124,7 +129,26 @@ enum SyncAPI {
         case 200...299: return
         case 401, 403: throw AuthAPI.Failure.signedOut
         case 429: throw AuthAPI.Failure.tooManyTries
-        default: throw AuthAPI.Failure.server("The server refused that (\(http.statusCode)).")
+        case 402: throw AuthAPI.Failure.needsPro("Syncing between devices is part of Pro.")
+        default: throw PictureRefused(status: http.statusCode)
+        }
+    }
+
+    /// One picture the server would not take or give. About that picture
+    /// only: the sync carries on without it (SyncPush), rather than one
+    /// missing or oversized picture stopping every document behind it.
+    struct PictureRefused: LocalizedError {
+        let status: Int
+        /// The account's picture allowance is used up (server: BLOB_BUDGET).
+        var storageFull: Bool { status == 507 }
+
+        var errorDescription: String? {
+            switch status {
+            case 507: return "This account's picture storage is full."
+            case 413: return "That picture is too large to sync."
+            case 404: return "That picture is not on the server."
+            default: return "The server refused a picture (\(status))."
+            }
         }
     }
 }

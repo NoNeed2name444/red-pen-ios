@@ -1,0 +1,398 @@
+import Foundation
+
+/// How far a soft UI surface stands off the base: a row or a chip sits low,
+/// a card mid, a sheet or a floating bar high, the one hero of a screen at
+/// its peak.
+///
+/// Not Comparable on purpose: a `<` of its own would join every `<` the
+/// compiler weighs app-wide; order by `rawValue` instead.
+enum WardLift: Int, CaseIterable, Sendable {
+    case low = 1, mid, high, peak
+
+    /// One step nearer the base, never below low: what a raised surface
+    /// sinks to, pressed in, while it is held.
+    var lower: WardLift { WardLift(rawValue: rawValue - 1) ?? .low }
+}
+
+/// One of the two lights a relief is drawn with: a colour, how strong it
+/// is, where it falls (points) and how soft its edge is (blur radius,
+/// points).
+struct WardReliefLight: Equatable, Sendable {
+    var hex: UInt32
+    var alpha: Double
+    var x: Double
+    var y: Double
+    var radius: Double
+
+    /// Lights below the visible threshold are omitted from rendering.
+    var lit: Bool { alpha > 1e-4 }
+}
+
+/// A relief: a highlight from the top left and a shade to the bottom right.
+/// Raised, they are drop shadows outside the shape; pressed in (`inner`),
+/// the same two fall inside it, so the shade lines the top-left wall and
+/// the highlight the bottom-right one.
+struct WardReliefSpec: Equatable, Sendable {
+    var highlight: WardReliefLight
+    var shade: WardReliefLight
+    var inner: Bool
+    /// The ink edge's strength; 0 draws none.
+    var edgeAlpha: Double
+
+    /// Raised to pressed in and back: the lights stay where they are.
+    func mirrored() -> WardReliefSpec {
+        var m = self
+        m.inner.toggle()
+        return m
+    }
+}
+
+/// The soft UI light, per mode and lift. Foundation only, so the numbers
+/// are tested on Linux (WardReliefTests); WardSurfaces draws them.
+///
+/// Light mode: white at 0.75 to 0.9 and a cool grey shade (#A3B1C6) at 0.5
+/// to 0.65. Dark mode: white at 0.05 to 0.08, so nothing glares, and black
+/// at 0.45 to 0.6. A control's face (a button, a chip, a tile to tap, a
+/// field) has a 1-pt edge in the ECG paper's ink that reads at least 3:1
+/// on the base (the owner, 9 Oct: buttons "not visually distinct in
+/// borders", then "make the line around the buttons match the grid
+/// color"), so what can
+/// be pressed stands apart from what cannot; a card or a slab shows its
+/// shape by its lights alone, as Retro Press draws it, with an edge only
+/// under Increase Contrast. Increase Contrast deepens the shade and
+/// strengthens both edges.
+enum WardRelief {
+    static let lightShade: UInt32 = 0xA3B1C6
+    static let highContrastShadeGain = 0.15
+    /// A control's edge, light and dark, in the paper's ink: about 3.3:1
+    /// on the base in both (the grid's own strength would be about 2:1).
+    static let lightEdge = 0.85
+    static let darkEdge = 0.7
+    static let highContrastEdge = 1.0
+    /// A card's or a slab's edge under Increase Contrast; none otherwise.
+    static let containerHighContrastEdge = 0.35
+    /// The least a control's boundary may read against the base (WCAG 1.4.11).
+    static let edgeContrast = 3.0
+
+    /// A control's edge strength.
+    static func edgeAlpha(dark: Bool, highContrast: Bool = false) -> Double {
+        highContrast ? highContrastEdge : (dark ? darkEdge : lightEdge)
+    }
+
+    /// A card's or a slab's edge strength: 0 unless Increase Contrast is on.
+    static func containerEdgeAlpha(highContrast: Bool = false) -> Double {
+        highContrast ? containerHighContrastEdge : 0
+    }
+
+    /// The ink of a control's edge: the ECG paper's ink outside any
+    /// section, so the edges carry on the grid and its frame line.
+    static func edgeHex(dark: Bool) -> UInt32 {
+        WardPaper.ink(dark: dark, highContrast: false).hex
+    }
+
+    /// A control's edge as it lands on the base.
+    static func edgeColor(dark: Bool, highContrast: Bool = false) -> UInt32 {
+        composite(WardReliefLight(hex: edgeHex(dark: dark),
+                                  alpha: edgeAlpha(dark: dark, highContrast: highContrast),
+                                  x: 0, y: 0, radius: 0), on: base(dark: dark))
+    }
+
+    /// The shade's offset from the shape, down and right; the highlight
+    /// falls the same distance up and left.
+    static func offset(_ lift: WardLift) -> Double {
+        switch lift {
+        case .low: return 2
+        case .mid: return 5
+        case .high: return 8
+        case .peak: return 11
+        }
+    }
+
+    static func radius(_ lift: WardLift) -> Double {
+        switch lift {
+        case .low: return 3
+        case .mid: return 8
+        case .high: return 12
+        case .peak: return 16
+        }
+    }
+
+    /// Per lift, low to peak.
+    static let lightHighlight = [0.75, 0.8, 0.85, 0.9]
+    static let lightShadeAlpha = [0.5, 0.55, 0.6, 0.65]
+    static let darkHighlight = [0.05, 0.06, 0.07, 0.08]
+    static let darkShadeAlpha = [0.45, 0.5, 0.55, 0.6]
+
+    static func highlightAlpha(_ lift: WardLift, dark: Bool) -> Double {
+        (dark ? darkHighlight : lightHighlight)[lift.rawValue - 1]
+    }
+
+    static func shadeAlpha(_ lift: WardLift, dark: Bool, highContrast: Bool = false) -> Double {
+        let alpha = (dark ? darkShadeAlpha : lightShadeAlpha)[lift.rawValue - 1]
+        return highContrast ? alpha + highContrastShadeGain : alpha
+    }
+
+    /// The ground both lights fall on.
+    static func base(dark: Bool) -> UInt32 { WardPalette.hex(.background, dark: dark) }
+
+    /// A surface raised off the base: a card or a slab, or with `control`
+    /// a control's face, which carries the ink edge.
+    static func raised(_ lift: WardLift, dark: Bool, highContrast: Bool = false,
+                       control: Bool = false) -> WardReliefSpec {
+        let d = offset(lift), r = radius(lift)
+        return WardReliefSpec(
+            highlight: WardReliefLight(hex: 0xFFFFFF, alpha: highlightAlpha(lift, dark: dark), x: -d, y: -d, radius: r),
+            shade: WardReliefLight(hex: dark ? 0x000000 : lightShade,
+                                   alpha: shadeAlpha(lift, dark: dark, highContrast: highContrast),
+                                   x: d, y: d, radius: r),
+            inner: false,
+            edgeAlpha: control ? edgeAlpha(dark: dark, highContrast: highContrast)
+                               : containerEdgeAlpha(highContrast: highContrast))
+    }
+
+    static func inset(_ lift: WardLift, dark: Bool, highContrast: Bool = false,
+                      control: Bool = false) -> WardReliefSpec {
+        raised(lift, dark: dark, highContrast: highContrast, control: control).mirrored()
+    }
+
+    // MARK: The rim: the one soft light a button keeps
+
+    /// A button's rim (the owner, 14 Oct: "add fade to the buttons but only
+    /// a very small rim around the buttons enough to make them have
+    /// neumorphism but doesn't affect elements behind them"): a highlight
+    /// up and left and a shade down and right, offset 2 to 3 points with a
+    /// crisp blur of 2, so the whole light stays within `rimReach` of the
+    /// face. That is less than the smallest gap the scale puts between two
+    /// controls (WardScale.s), so a rim never reaches another control or
+    /// the words beside it, and it is drawn under the face only, never over
+    /// what lies behind. Nothing else in the app casts a soft light outward
+    /// any more than it did: cards and slabs keep their own relief, and
+    /// what floats over a page stays unlit (wardUnlit) except its buttons'
+    /// rims. Raised and pressed in read alike at the old 1 to 2 points
+    /// (the owner, 16 Oct: buttons "can't be distinguished between pushed
+    /// and not because the button highte is a bit low"), so the rim now
+    /// stands at the largest offset its reach allows, with less blur, so
+    /// its edge is crisp, and a darker shade.
+    static let rimReach = 5.0
+    static let rimMaxBlur = 2.0
+    static let rimMaxOffset = 3.0
+
+    static func rimOffset(_ lift: WardLift) -> Double {
+        switch lift {
+        case .low: return 2
+        case .mid: return 2.5
+        case .high, .peak: return 3
+        }
+    }
+
+    static func rimBlur(_ lift: WardLift) -> Double { rimMaxBlur }
+
+    /// A small rim reads only when it is strong: stronger than the wide
+    /// relief, which spreads the same light over far more of the base. The
+    /// dark highlight stays at 0.1, the most it can be without glaring.
+    static let rimLightHighlight = 0.95
+    static let rimLightShade = 0.9
+    static let rimDarkHighlight = 0.1
+    static let rimDarkShade = 0.85
+
+    /// A button's face raised by its rim, with the control's ink edge.
+    static func rim(_ lift: WardLift, dark: Bool, highContrast: Bool = false) -> WardReliefSpec {
+        let d = rimOffset(lift), r = rimBlur(lift)
+        let shade = (dark ? rimDarkShade : rimLightShade) + (highContrast ? highContrastShadeGain : 0)
+        return WardReliefSpec(
+            highlight: WardReliefLight(hex: 0xFFFFFF, alpha: dark ? rimDarkHighlight : rimLightHighlight,
+                                       x: -d, y: -d, radius: r),
+            shade: WardReliefLight(hex: dark ? 0x000000 : lightShade, alpha: min(1, shade), x: d, y: d, radius: r),
+            inner: false,
+            edgeAlpha: edgeAlpha(dark: dark, highContrast: highContrast))
+    }
+
+    /// How far past the face a light can show: its offset plus its blur.
+    static func reach(_ light: WardReliefLight) -> Double {
+        max(abs(light.x), abs(light.y)) + light.radius
+    }
+
+    /// How much of a pressed-in face's inner shade reaches `depth` points in
+    /// from its edge, 0 to 1: the shade is cast `offset` in and blurred (a
+    /// SwiftUI radius is twice the blur's standard deviation), so it falls
+    /// away to nothing a few points inside.
+    static func shadeCoverage(_ lift: WardLift, depth: Double) -> Double {
+        let sigma: Double = radius(lift) / 2
+        return 0.5 * (1 - erf((depth - offset(lift)) / sigma / 2.0.squareRoot()))
+    }
+
+    /// What a pressed-in face of `fill` really is `depth` points in from its
+    /// edge: the fill with the inner shade over it, as strong as it is there
+    /// (Increase Contrast deepens it). This is the ground a chip's words sit
+    /// on, not the bare fill.
+    static func insetGround(_ fill: UInt32, lift: WardLift, dark: Bool, highContrast: Bool,
+                            depth: Double) -> UInt32 {
+        let alpha: Double = shadeAlpha(lift, dark: dark, highContrast: highContrast) * shadeCoverage(lift, depth: depth)
+        return composite(WardReliefLight(hex: dark ? 0x000000 : lightShade, alpha: alpha, x: 0, y: 0, radius: 0),
+                         on: fill)
+    }
+
+    /// What a light looks like where it lies at full strength on `base`.
+    static func composite(_ light: WardReliefLight, on base: UInt32) -> UInt32 {
+        let (r0, g0, b0) = WardPalette.rgb(base), (r1, g1, b1) = WardPalette.rgb(light.hex)
+        func mix(_ a: Double, _ b: Double) -> UInt32 { UInt32(((a + (b - a) * light.alpha) * 255).rounded()) }
+        return mix(r0, r1) << 16 | mix(g0, g1) << 8 | mix(b0, b1)
+    }
+}
+
+/// Continuous control relief, independent of SwiftUI and its animation clock.
+struct WardPressSpec: Equatable, Sendable {
+    var blur: Double
+    /// Raised, outside the face: a control's rim highlight (none for an
+    /// icon tile, which keeps the softened outline it had).
+    var outerHighlight: WardReliefLight
+    var outerShade: WardReliefLight
+    var innerShade: WardReliefLight
+    var innerHighlight: WardReliefLight
+    var edgeAlpha: Double
+}
+
+enum WardPress {
+    static let sinkScale = 0.985
+    static let press = 0.05
+    static let release = 0.07
+    /// The shade's glide in and out. At the old depth of 0.7 a pressed face
+    /// sank too little to tell from a raised one (the owner, 16 Oct: "the
+    /// pressed doesn't have much depress"), so it now sinks the whole of
+    /// its lift's lights, with the inner shade a quarter stronger. Over the
+    /// old times that would sink half as fast again, a snap rather than a
+    /// press, so the times grow with the depth (0.15 and 0.18 at 0.7):
+    /// the shade starts in at the speed it always had and goes on to the
+    /// new depth. The click (press, release) keeps its time, so the face
+    /// still dips at once under the finger.
+    static let shadePress = 0.21
+    static let shadeRelease = 0.26
+    static let depth = 1.0
+    static let innerShadeGain = 1.25
+    static let softKeep = 0.6
+    static let hollowSoft = 1.0
+
+    static func soft(_ lift: WardLift) -> Double {
+        Double(lift.rawValue + 1) / 2
+    }
+    static let quickCurve = (x1: 1.0 / 3, y1: 0.5, x2: 2.0 / 3, y2: 5.0 / 6)
+
+    static func quick(_ u: Double) -> Double {
+        let u = min(1, max(0, u))
+        return u * (1.5 - 0.5 * u)
+    }
+
+    static func glide(_ u: Double) -> Double {
+        sin(min(1, max(0, u)) * .pi / 2)
+    }
+
+    static func releaseHold(held: Double) -> Double {
+        max(0, press - max(0, held))
+    }
+
+    /// A pressable face at `depth` (0 raised, 1 pressed in): a control's,
+    /// with its ink edge and its rim (WardRelief.rim) and a crisp outline,
+    /// unless `control` is false (an icon tile that only shows a choice),
+    /// which keeps the wide shade and the softened outline. Pressed in, the
+    /// lift's own lights fall inside the face, where they touch nothing else.
+    static func spec(_ lift: WardLift, depth q: Double, dark: Bool,
+                     highContrast: Bool = false, control: Bool = true) -> WardPressSpec {
+        let q = min(1, max(0, q))
+        let up = 1 - q, down = depth * q
+        let raised = WardRelief.raised(lift, dark: dark, highContrast: highContrast, control: control)
+        let rim = WardRelief.rim(lift, dark: dark, highContrast: highContrast)
+        func light(_ original: WardReliefLight, weight: Double) -> WardReliefLight {
+            WardReliefLight(hex: original.hex, alpha: original.alpha * weight,
+                            x: original.x * weight, y: original.y * weight,
+                            radius: original.radius * (softKeep + (1 - softKeep) * weight))
+        }
+        let none = WardReliefLight(hex: 0xFFFFFF, alpha: 0, x: 0, y: 0, radius: 0)
+        var deeper = raised.shade
+        deeper.alpha = min(1, deeper.alpha * innerShadeGain)
+        return WardPressSpec(blur: control ? 0 : soft(lift) + hollowSoft * q,
+                             outerHighlight: control ? light(rim.highlight, weight: up) : none,
+                             outerShade: light(control ? rim.shade : raised.shade, weight: up),
+                             innerShade: light(deeper, weight: down),
+                             innerHighlight: light(raised.highlight, weight: down),
+                             edgeAlpha: raised.edgeAlpha)
+    }
+}
+
+/// ECG paper geometry and ink, independent of the rendering framework.
+struct WardPaperInk: Equatable, Sendable {
+    var hex: UInt32
+    var fine: Double
+    var bold: Double
+    var edge: Double
+}
+
+struct WardPaperPanel: Equatable, Sendable {
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+    var radius: Double
+}
+
+enum WardPaper {
+    static let frame = 12.0
+    /// Keep controls four points inside the paper frame line.
+    static let sideInset = frame + 4
+    static let cell = 6.0
+    static let boldEvery = 5
+    static let line = 1.0
+    static let edgeWidth = 1.5
+    static let cornerShare = 53.33 / 428
+
+    static func ink(dark: Bool, highContrast: Bool) -> WardPaperInk {
+        // the ink outside any section (WardSection.outside, Cards' indigo)
+        WardPaperInk(hex: dark ? 0xA5B6FE : 0x5866E5,
+                     fine: highContrast ? 0 : (dark ? 0.07 : 0.09),
+                     bold: highContrast ? 0 : (dark ? 0.14 : 0.18),
+                     edge: dark ? 0.5 : 0.55)
+    }
+
+    static func panel(width: Double, height: Double) -> WardPaperPanel? {
+        guard width > 4 * frame, height > 4 * frame else { return nil }
+        return WardPaperPanel(x: frame, y: frame,
+                              width: width - 2 * frame, height: height - 2 * frame,
+                              radius: (min(width, height) - 2 * frame) * cornerShare)
+    }
+
+    /// The panel with its top moved down to `top` (window points): the home
+    /// page's opening starts under its header, the paper solid above it,
+    /// with the frame's own corners (the owner, 9 Oct: the line under the
+    /// header "with the roundedness of it and continuity with the rest of
+    /// the grid line"). A `top` above the frame's, or too low to leave room
+    /// for both corners, is held to what fits.
+    static func panel(width: Double, height: Double, top: Double) -> WardPaperPanel? {
+        guard var p = panel(width: width, height: height) else { return nil }
+        let bottom = p.y + p.height
+        let y = min(max(top, p.y), bottom - 2 * p.radius)
+        guard y > p.y else { return p }
+        p.y = y
+        p.height = bottom - y
+        return p
+    }
+
+    static func lines(_ length: Double) -> [(at: Double, bold: Bool)] {
+        lines(length, from: 0)
+    }
+
+    /// The frame's lines (k·cell, bold every fifth) that fall in
+    /// [origin, origin + length), in positions local to `origin`: a band
+    /// that starts at a global `origin` lines up with the frame's grid.
+    static func lines(_ length: Double, from origin: Double) -> [(at: Double, bold: Bool)] {
+        guard length > 0, origin.isFinite, length.isFinite else { return [] }
+        var result: [(at: Double, bold: Bool)] = []
+        var k = Int((origin / cell).rounded(.up))
+        while Double(k) * cell < origin + length {
+            let at = Double(k) * cell - origin
+            if at >= 0 {
+                result.append((at: at, bold: ((k % boldEvery) + boldEvery) % boldEvery == 0))
+            }
+            k += 1
+        }
+        return result
+    }
+}

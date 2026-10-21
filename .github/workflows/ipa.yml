@@ -1,68 +1,83 @@
-# An .ipa of the app, built on GitHub's Mac.
+# An unsigned .ipa of the whole app, built by hand from the session for the
+# owner, who installs it with a sideloading app that signs it on the way in.
+# There is no Apple Developer account (the owner, 14 Oct), so no TestFlight
+# and no signing here: Xcode builds for a device with signing switched off,
+# and the .app goes into Payload/ inside a zip named .ipa, the shape every
+# sideloading app reads.
 #
-# Unsigned by default: signing needs an Apple developer certificate, and this
-# repository deliberately holds no secrets of the owner's. What comes out is a
-# real, complete app bundle that any of the usual signing routes can take -
-# and, with an App Store Connect key in the repository's secrets, the same job
-# can sign it and send it to TestFlight, which is the only way onto a phone
-# that needs no computer at all.
+# The .ipa is a run artifact kept for one day; the session downloads it,
+# sends it to the owner and deletes it. It holds only what the repository
+# holds, compiled, and no key: the app asks the Worker for everything paid.
 name: IPA
+
 on:
   workflow_dispatch:
     inputs:
+      source:
+        description: 'The branch to build (main, personal, or a design/<name> branch)'
+        required: true
+        default: 'personal'
       configuration:
-        description: Debug or Release
-        required: false
+        description: 'Release, or Debug if a Release build fails'
+        required: true
         default: 'Release'
+
 permissions:
   contents: read
+
+concurrency:
+  group: ipa-${{ inputs.source }}
+  cancel-in-progress: false
+
 jobs:
-  build:
+  ipa:
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
+    env:
+      SOURCE: ${{ inputs.source }}
+      CONFIG: ${{ inputs.configuration }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Tools
+      - name: Check the inputs
         run: |
-          xcodebuild -version
-          brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
-          xcodegen --version
-
+          case "$SOURCE" in main|personal|design/*) ;; *) echo "::error::only main, personal or design/* branches"; exit 1;; esac
+          case "$CONFIG" in Release|Debug) ;; *) echo "::error::Release or Debug"; exit 1;; esac
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source }}
+          persist-credentials: false
+      - name: Tools
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
       - name: Generate the project
         working-directory: ios
         run: xcodegen generate
-
-      - name: Build for a device
+      # The same build as App build's, for a device, in the chosen
+      # configuration: Release by default, since the owner runs the app.
+      - name: Build
         working-directory: ios
         run: |
           set -o pipefail
-          # generic/platform=iOS, not a simulator: a simulator build is x86/arm
-          # code for a Mac and will not run on a phone whatever you do to it.
-          xcodebuild -project RedPen.xcodeproj -scheme RedPen \
-            -configuration "${{ inputs.configuration }}" \
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration "$CONFIG" \
             -destination 'generic/platform=iOS' -derivedDataPath build \
             -skipMacroValidation -skipPackagePluginValidation \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "BUILD SUCCEEDED" ../build.log
-
-      - name: Wrap it as an .ipa
+      - name: Package
         run: |
-          set -euo pipefail
-          APP=$(find ios/build/Build/Products -maxdepth 2 -name 'RedPen.app' -type d | head -1)
-          test -n "$APP"
+          app=$(ls -d "ios/build/Build/Products/$CONFIG-iphoneos/"*.app | head -1)
+          [ -d "$app" ] || { echo "::error::no .app was built"; exit 1; }
           mkdir -p out/Payload
-          cp -R "$APP" out/Payload/
-          # An .ipa is only ever a zip with the bundle inside Payload/.
-          (cd out && zip -qry "CramDown-${{ inputs.configuration }}.ipa" Payload && rm -rf Payload)
-          cp build.log out/build.log
-          ls -la out
-
+          cp -R "$app" out/Payload/
+          (cd out && zip -qry ../Stethoscore.ipa Payload)
+          commit=$(git rev-parse --short HEAD)
+          size=$(du -h Stethoscore.ipa | cut -f1)
+          sum=$(shasum -a 256 Stethoscore.ipa | cut -d' ' -f1)
+          echo "Stethoscore.ipa: $SOURCE at $commit, $CONFIG, $size, sha256 $sum" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: ipa
-          path: out/*
-          if-no-files-found: warn
+          name: ipa-${{ github.run_id }}
+          path: Stethoscore.ipa
+          retention-days: 1
+          if-no-files-found: error

@@ -121,21 +121,33 @@ let later = MCQEdit.removing(IndexSet(integer: 3), from: four)
 check("deleting a later option leaves the key alone",
       later.options[later.correctIndex] == "C")
 let gone = MCQEdit.removing(IndexSet(integer: 2), from: four)
-check("deleting the key itself falls back to the first option",
-      gone.correctIndex == 0 && gone.options == ["A", "B", "D"], "\(gone.options)")
+// never quietly option A: that is the silent wrong key this guards against
+check("deleting the key itself leaves nothing marked correct",
+      !MCQEdit.hasKey(gone) && gone.options == ["A", "B", "D"], "\(gone.options) key=\(gone.correctIndex)")
+check("and a question with nothing marked cannot be saved", MCQEdit.tidied(gone) == nil)
+var picked = gone
+picked.correctIndex = 2
+check("until the right answer is picked again", MCQEdit.tidied(picked)?.options[2] == "D")
 
 let blanks = MCQQuestion(stem: "Which?", options: ["A", "  ", "C"],
                          correctIndex: 2, explanation: "")
 let tidied = MCQEdit.tidied(blanks)
 check("dropping a blank option moves the key too",
-      tidied.options == ["A", "C"] && tidied.options[tidied.correctIndex] == "C",
-      "\(tidied.options) key=\(tidied.correctIndex)")
+      tidied?.options == ["A", "C"] && tidied.map { $0.options[$0.correctIndex] } == "C",
+      "\(tidied?.options ?? []) key=\(tidied?.correctIndex ?? -1)")
 check("whitespace around an option is trimmed",
       MCQEdit.tidied(MCQQuestion(stem: "", options: [" A ", "B"], correctIndex: 0,
-                                 explanation: "")).options == ["A", "B"])
-check("a question with no options does not crash",
+                                 explanation: ""))?.options == ["A", "B"])
+check("a question with no options does not crash, and is not saved",
       MCQEdit.tidied(MCQQuestion(stem: "", options: [], correctIndex: 0,
-                                 explanation: "")).correctIndex == 0)
+                                 explanation: "")) == nil)
+// emptying the keyed option to retype it, then saving: no silent key of A
+let emptied = MCQQuestion(stem: "Which?", options: ["A", "B", "   ", "D"], correctIndex: 2, explanation: "")
+check("clearing the keyed option's text does not make A the key",
+      MCQEdit.tidied(emptied) == nil && !MCQEdit.hasKey(emptied))
+let twins = MCQQuestion(stem: "Which?", options: ["Same", " ", "Same"], correctIndex: 2, explanation: "")
+check("the key follows its position, not the first option with the same words",
+      MCQEdit.tidied(twins)?.correctIndex == 1)
 
 print(failures.isEmpty ? "\nALL SLIDE TESTS PASS"
                        : "\n\(failures.count) SLIDE TEST FAILURE(S)")

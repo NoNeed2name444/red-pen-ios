@@ -13,7 +13,7 @@ struct DeckCard: Equatable {
     var number: Int = 0
     /// The short label the contents index groups by.
     var topic: String
-    /// The chip under the title: RECALL, CASE, LIST, MCQ, STEP, PAGE.
+    /// The chip under the title: RECALL, IMAGE, LIST, MCQ, STEP, PAGE.
     var kindLabel: String
     var question: [DeckBlock]
     var answer: [DeckBlock]
@@ -56,11 +56,11 @@ enum DeckBuilder {
         var built: [DeckCard]
         switch set.kind {
         case .mcq:     built = mcq(set.questions)
-        case .qa:      built = qa(set.qaCards)
         case .osce:    built = osce(set.osceChecklists)
         case .book:    built = book(set.bookMarkdown)
         case .narrate: built = narrate(set.narrateSegments)
         case .anki:    built = anki(set.cards)
+        case .cases:   built = cases(set.caseFiles)
         }
         for i in built.indices { built[i].number = i + 1 }
         return built
@@ -90,17 +90,6 @@ enum DeckBuilder {
         }
     }
 
-    // MARK: Cases
-
-    static func qa(_ cards: [QACard]) -> [DeckCard] {
-        cards.map { card in
-            DeckCard(topic: card.topic.isEmpty ? topic(from: card.stem) : card.topic,
-                     kindLabel: card.type == .case ? "CASE" : "RECALL",
-                     question: [.text(card.stem)],
-                     answer: card.answer.map { .bullet(lead: nil, text: $0) })
-        }
-    }
-
     // MARK: OSCE
     //
     // One card per step, asking what comes next - which is how the station is
@@ -127,6 +116,28 @@ enum DeckBuilder {
             }
         }
         return out
+    }
+
+    // MARK: Cases
+    //
+    // A case on paper loses its clock and its choices, so each patient prints
+    // as the one question the case ends on: who they are and what they say,
+    // then the diagnosis, the next step and the teaching on the back.
+
+    static func cases(_ files: [CaseFile]) -> [DeckCard] {
+        files.map { file in
+            let who: String = [file.patient.ageSex, file.setting.label].filter { !$0.isEmpty }.joined(separator: " \u{00B7} ")
+            var question: [DeckBlock] = [.text(who), .text("\u{201C}" + file.complaint + "\u{201D}")]
+            question.append(.text("What is the diagnosis, and the next step?"))
+            var answer: [DeckBlock] = [.bullet(lead: "Diagnosis", text: file.diagnosis.name)]
+            if file.nextStep.options.indices.contains(file.nextStep.key) {
+                answer.append(.bullet(lead: "Next step", text: file.nextStep.options[file.nextStep.key]))
+            }
+            for point in file.teaching { answer.append(.note(label: "Teaching", text: point)) }
+            let cited: String = file.source.cited
+            return DeckCard(topic: file.specialty.isEmpty ? file.title : file.specialty, kindLabel: "CASE",
+                            question: question, answer: answer, source: cited.isEmpty ? nil : cited)
+        }
     }
 
     // MARK: Textbook
@@ -227,10 +238,16 @@ enum DeckBuilder {
             case .heading(_, let text): return .bullet(lead: text, text: "")
             case .bullet(let text, let marker): return .bullet(lead: marker, text: text)
             case .paragraph(let text): return .text(text)
-            case .row(let cells):
+            case .row(let cells, _):
                 guard !cells.isEmpty else { return nil }
                 return .bullet(lead: cells.first,
                                text: cells.dropFirst().joined(separator: " \u{2014} "))
+            case .callout(let kind, let text): return .bullet(lead: kind, text: text)
+            // a pathway prints as its steps joined by arrows
+            case .flow(let steps): return .text(steps.joined(separator: " \u{2192} "))
+            // pictures are on screen and in the exported deck, not in the
+            // printed text
+            case .image: return nil
             }
         }
     }

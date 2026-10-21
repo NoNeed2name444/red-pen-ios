@@ -1,0 +1,211 @@
+// Red Pen · reading a lecture aloud: how it is cut into clips, where each
+// word falls inside one, and what is fetched ahead.
+import Foundation
+
+var failures: [String] = []
+
+func check(_ label: String, _ ok: Bool, _ detail: String = "") {
+    print((ok ? "ok   " : "FAIL ") + label + (ok ? "" : "  | " + detail))
+    if !ok { failures.append(label) }
+}
+
+// MARK: clips
+
+let line = String(repeating: "word ", count: 20)   // 100 characters
+let lecture: [String] = Array(repeating: line, count: 40)
+let chunks = NarratePlan.chunks(lecture)
+
+check("every line is in exactly one clip, in order",
+      chunks.map { Array($0.lines) }.flatMap { $0 } == Array(0..<40), "\(chunks.map(\.lines))")
+check("the first clip is short, so speech starts quickly",
+      chunks[0].text.count <= NarratePlan.firstLimit, "\(chunks[0].text.count)")
+check("later clips are longer, so a lecture is few requests",
+      chunks.count < 12 && chunks[1].lines.count > chunks[0].lines.count, "\(chunks.count)")
+check("no clip is more than the server takes",
+      chunks.allSatisfy { $0.text.count <= NarratePlan.hardCap })
+
+let long = String(repeating: "x", count: 2000)
+let odd = NarratePlan.chunks(["short", long, "after"])
+check("a line too long for a clip is still its own clip, never lost",
+      odd.map(\.lines) == [0..<1, 1..<2, 2..<3], "\(odd.map(\.lines))")
+check("a blank line leaves no double space",
+      NarratePlan.chunks(["one", "  ", "two"])[0].text == "one two",
+      NarratePlan.chunks(["one", "  ", "two"])[0].text)
+check("an empty lecture has no clips", NarratePlan.chunks([]).isEmpty)
+
+check("the clip holding a line is found",
+      NarratePlan.chunkIndex(containing: 17, in: chunks).map { chunks[$0].lines.contains(17) } == true)
+check("a line past the end is in no clip",
+      NarratePlan.chunkIndex(containing: 99, in: chunks) == nil)
+
+// MARK: word times
+
+let words = NarratePlan.wordTimes(lines: ["Buffers act in seconds, the lungs in minutes.",
+                                          "The kidneys take days."],
+                                  range: 0..<2, duration: 6)
+check("every word is timed", words.count == 12, "\(words.count)")
+check("the words fill the clip exactly",
+      words.first?.start == 0 && words.last?.end == 6, "\(words.first?.start ?? -1) \(words.last?.end ?? -1)")
+check("times only move forward",
+      zip(words, words.dropFirst()).allSatisfy { $0.end <= $1.start && $0.start < $0.end })
+let seconds = words[3]                      // "seconds," before a comma
+let the = words[4]
+check("a comma leaves a pause before the next word",
+      the.start - seconds.end > 0.05, "\(the.start - seconds.end)")
+let minutes = words[7]                      // "minutes." ends the line
+let next = words[8]
+check("a full stop leaves a longer pause than a comma",
+      next.start - minutes.end > the.start - seconds.end)
+check("a long word is given longer than a short one",
+      words[0].end - words[0].start > words[2].end - words[2].start)
+check("the second line's words say which line they are in",
+      words[8].line == 1 && words[8].word == 0)
+check("nothing to time gives nothing",
+      NarratePlan.wordTimes(lines: ["a"], range: 0..<1, duration: 0).isEmpty)
+
+check("the word at a moment is found",
+      NarratePlan.spot(at: seconds.start + 0.01, in: words) == 3)
+check("in a pause the word just said stays lit",
+      NarratePlan.spot(at: seconds.end + 0.01, in: words) == 3)
+check("before the first word, the first word",
+      NarratePlan.spot(at: -1, in: words) == 0)
+check("after the end, the last word",
+      NarratePlan.spot(at: 99, in: words) == words.count - 1)
+check("no words, no spot", NarratePlan.spot(at: 1, in: []) == nil)
+check("a line starts where its first word does",
+      NarratePlan.start(ofLine: 1, in: words) == words[8].start)
+
+// MARK: fetching ahead
+
+check("the playing clip and the next three are fetched",
+      NarratePlan.prefetch(current: 2, count: 10, ahead: 3, have: []) == [2, 3, 4, 5])
+check("clips already here are not fetched again",
+      NarratePlan.prefetch(current: 2, count: 10, ahead: 3, have: [2, 3]) == [4, 5])
+check("nothing past the end is fetched",
+      NarratePlan.prefetch(current: 8, count: 10, ahead: 3, have: []) == [8, 9])
+check("past the end, nothing",
+      NarratePlan.prefetch(current: 10, count: 10, ahead: 3, have: []).isEmpty)
+
+// MARK: the phone's voice
+
+check("normal speed is the phone's normal pace", NarratePlan.phoneRate(1) == 0.5)
+check("faster is faster, slower is slower",
+      NarratePlan.phoneRate(1.5) > 0.5 && NarratePlan.phoneRate(0.75) < 0.5)
+check("double speed stays intelligible", NarratePlan.phoneRate(2) <= 0.7)
+// the same speed menu drives the recording and the phone's voice, so every
+// step on it has to be a little faster than the one before
+let menu: [Double] = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5]
+let phoneRates: [Float] = menu.map { NarratePlan.phoneRate($0) }
+check("every step on the speed menu is faster than the last",
+      zip(phoneRates, phoneRates.dropFirst()).allSatisfy { $0 < $1 }, "\(phoneRates)")
+check("the fastest step is still words", NarratePlan.phoneRate(2.5) <= 0.75, "\(NarratePlan.phoneRate(2.5))")
+
+let spoken = "The  bicarbonate buffer"
+check("a range at the start is the first word",
+      NarratePlan.wordIndex(atUTF16: 0, in: spoken) == 0)
+check("a double space does not count as a word",
+      NarratePlan.wordIndex(atUTF16: 5, in: spoken) == 1, "\(NarratePlan.wordIndex(atUTF16: 5, in: spoken))")
+check("the third word", NarratePlan.wordIndex(atUTF16: 17, in: spoken) == 2)
+check("the words match the screen's split",
+      NarratePlan.tokens(spoken) == ["The", "bicarbonate", "buffer"])
+let arabic = "\u{627}\u{644}\u{62d}\u{645}\u{636} pH"
+check("Arabic counts words the same way",
+      NarratePlan.wordIndex(atUTF16: 6, in: arabic) == 1)
+
+// MARK: the phone standing in for one clip
+
+// a line too long for the server is read by the phone - that clip, and no
+// more: the cloud takes the next one back
+check("the phone hands the too-long line back at its own clip's end",
+      NarratePlan.standInEnd(forLine: 1, in: odd) == 2, "\(String(describing: NarratePlan.standInEnd(forLine: 1, in: odd)))")
+check("not at the end of the lecture",
+      NarratePlan.standInEnd(forLine: 1, in: odd) != odd.last?.lines.upperBound)
+check("a line in a longer clip hands back where that clip ends",
+      NarratePlan.standInEnd(forLine: 17, in: chunks)
+        == NarratePlan.chunkIndex(containing: 17, in: chunks).map { chunks[$0].lines.upperBound })
+check("a line in no clip has nowhere to hand back", NarratePlan.standInEnd(forLine: 99, in: chunks) == nil)
+
+// MARK: the clip cache
+
+let day: TimeInterval = 86_400
+let cached: [(name: String, used: Date)] = (0..<6).map {
+    (name: "clip\($0).mp3", used: Date(timeIntervalSince1970: Double($0) * day))
+}
+check("nothing is pruned under the limit",
+      NarratePlan.pruneList(cached, keep: 10, protected: []).isEmpty)
+check("the least recently used go first",
+      NarratePlan.pruneList(cached, keep: 4, protected: []) == ["clip0.mp3", "clip1.mp3"],
+      "\(NarratePlan.pruneList(cached, keep: 4, protected: []))")
+// replaying an old lecture: its clips are the oldest files, and deleting one
+// that is about to play leaves the lecture silent
+check("a clip the lecture holds is never pruned, however old",
+      NarratePlan.pruneList(cached, keep: 4, protected: ["clip0.mp3"]) == ["clip1.mp3", "clip2.mp3"],
+      "\(NarratePlan.pruneList(cached, keep: 4, protected: ["clip0.mp3"]))")
+check("with everything protected, nothing is deleted",
+      NarratePlan.pruneList(cached, keep: 2, protected: Set(cached.map(\.name))).isEmpty)
+
+// the audio tile's empty lecture (audit #33)
+check("a cancelled pick leaves no empty lecture",
+      NarratePlan.dropsEmptyLecture(madeHere: true, segments: 0, hasRecording: false, importing: false))
+check("a recording on its way keeps it",
+      !NarratePlan.dropsEmptyLecture(madeHere: true, segments: 0, hasRecording: false, importing: true))
+check("a recording kept keeps it",
+      !NarratePlan.dropsEmptyLecture(madeHere: true, segments: 0, hasRecording: true, importing: false))
+check("a lecture opened from the library is never dropped",
+      !NarratePlan.dropsEmptyLecture(madeHere: false, segments: 0, hasRecording: false, importing: false))
+
+// MARK: the word flow's lines (FlowLines)
+
+check("words that fit share a line",
+      FlowLines.lines(widths: [30, 40, 50], spacing: 4, width: 200) == [0, 0, 0])
+check("a word that does not fit starts the next line",
+      FlowLines.lines(widths: [100, 100, 100], spacing: 4, width: 210) == [0, 0, 1],
+      "\(FlowLines.lines(widths: [100, 100, 100], spacing: 4, width: 210))")
+check("a word wider than a line has a line of its own",
+      FlowLines.lines(widths: [50, 500, 50], spacing: 4, width: 200) == [0, 1, 2])
+check("with no width offered, every word is on one line",
+      FlowLines.lines(widths: [80, 90, 100, 110], spacing: 4, width: .infinity) == [0, 0, 0, 0])
+check("each line is as wide as its words and the gaps between them",
+      FlowLines.lineWidths(widths: [100, 100, 100], spacing: 4, lines: [0, 0, 1]) == [204, 100])
+check("no words, no lines",
+      FlowLines.lines(widths: [], spacing: 4, width: 200).isEmpty
+        && FlowLines.lineWidths(widths: [], spacing: 4, lines: []).isEmpty)
+
+// The audio tile at XXL (15 Oct): measured on one line 188.6 wide, the
+// line was placed in 188.33 (rounded to a third of a point), and its last
+// word dropped onto the next paragraph.
+let rounded: [Double] = [60.2, 70.1, 50.3]
+check("a line placed in its own width, rounded down, keeps its last word",
+      FlowLines.lines(widths: rounded, spacing: 4, width: 188.6 - 0.27) == [0, 0, 0],
+      "\(FlowLines.lines(widths: rounded, spacing: 4, width: 188.6 - 0.27))")
+
+// Whatever the words and the width offered: offered back the width they
+// asked for (their widest line), less up to a point's rounding, they break
+// into the same lines - wherever no line needed the give to fit.
+var seed: UInt64 = 0x5EED
+func nextUnit() -> Double {
+    seed = seed &* 6364136223846793005 &+ 1442695040888963407
+    return Double(seed >> 11) / Double(UInt64(1) << 53)
+}
+var agree = true
+var disagreement = ""
+for _ in 0..<500 {
+    let count: Int = 1 + Int(nextUnit() * 30)
+    let widths: [Double] = (0..<count).map { _ in 8 + nextUnit() * 140 }
+    let offered: Double = 60 + nextUnit() * 400
+    let measured: [Int] = FlowLines.lines(widths: widths, spacing: 4, width: offered)
+    let widest: Double = FlowLines.lineWidths(widths: widths, spacing: 4, lines: measured).max() ?? 0
+    if widest > offered { continue }
+    let given: Double = widest - nextUnit() * 0.99
+    let placed: [Int] = FlowLines.lines(widths: widths, spacing: 4, width: given)
+    if placed != measured {
+        agree = false
+        disagreement = "offered \(offered), given \(given): \(measured) then \(placed)"
+        break
+    }
+}
+check("offered back its own width, rounded down, a flow keeps its lines", agree, disagreement)
+
+print(failures.isEmpty ? "\nALL NARRATE TESTS PASS"
+                       : "\n\(failures.count) NARRATE TEST FAILURE(S)")
+exit(failures.isEmpty ? 0 : 1)

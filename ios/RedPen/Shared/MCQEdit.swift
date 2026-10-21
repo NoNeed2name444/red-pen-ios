@@ -16,26 +16,50 @@ import Foundation
 /// runner has no business importing.
 enum MCQEdit {
 
+    /// Removing options. When the keyed option itself goes, nothing is marked
+    /// correct (`correctIndex` -1) until the student picks again - it is
+    /// never quietly moved to option A - and `tidied` will not save it so.
     static func removing(_ offsets: IndexSet, from question: MCQQuestion) -> MCQQuestion {
         var out = question
-        let key = out.options.indices.contains(out.correctIndex)
-            ? out.options[out.correctIndex] : nil
-        out.options = out.options.enumerated()
-            .filter { !offsets.contains($0.offset) }
-            .map(\.element)
-        out.correctIndex = key.flatMap { out.options.firstIndex(of: $0) } ?? 0
+        let keyed: Int = question.correctIndex
+        var moved: Int = -1
+        var kept: [String] = []
+        for (index, option) in question.options.enumerated() where !offsets.contains(index) {
+            if index == keyed { moved = kept.count }
+            kept.append(option)
+        }
+        out.options = kept
+        out.correctIndex = moved
         return out
     }
 
-    /// Blank options are dropped on the way out, which moves positions too.
-    static func tidied(_ question: MCQQuestion) -> MCQQuestion {
+    /// Whether an option with words in it is marked correct.
+    static func hasKey(_ question: MCQQuestion) -> Bool {
+        guard question.options.indices.contains(question.correctIndex) else { return false }
+        return !question.options[question.correctIndex].trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// The question as it is saved: blank options dropped, which moves
+    /// positions too, and the key moved with its option.
+    ///
+    /// Nil when it cannot be saved: fewer than two options with words in
+    /// them, or no option with words marked correct - the keyed option was
+    /// emptied to be retyped, or deleted. Falling back to option A there was
+    /// the silent wrong key this file exists to prevent; the sheet keeps Done
+    /// off and asks for the right answer instead.
+    static func tidied(_ question: MCQQuestion) -> MCQQuestion? {
         var out = question
-        let key = out.options.indices.contains(out.correctIndex)
-            ? out.options[out.correctIndex].trimmingCharacters(in: .whitespaces) : nil
-        out.options = out.options
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        out.correctIndex = key.flatMap { out.options.firstIndex(of: $0) } ?? 0
+        var moved: Int = -1
+        var kept: [String] = []
+        for (index, option) in question.options.enumerated() {
+            let trimmed: String = option.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+            if index == question.correctIndex { moved = kept.count }
+            kept.append(trimmed)
+        }
+        guard kept.count >= 2, moved >= 0 else { return nil }
+        out.options = kept
+        out.correctIndex = moved
         return out
     }
 }

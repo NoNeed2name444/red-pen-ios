@@ -27,6 +27,96 @@ Conflicts are settled on the device, in `SyncMerge`, where the rule is that the
 loser is kept as a visible copy rather than dropped. The server does not decide
 whose work survives.
 
+## The accuracy engine
+
+`accuracy.js` checks questions, cards, cases, OSCE stations, textbook pages,
+narrated facts and (when a student asks) their own notes. Each batch of up to
+four items is shown with its lecture excerpt and free literature
+(`evidence.js`: Europe PMC, MedlinePlus, openFDA) to two free checker models -
+a third when they disagree, never the model that wrote the items - and every
+call goes through `ai.js`'s free shares and neuron limits. `accuracy-rules.js`
+adds deterministic checks (doses, lab values and units, key/explanation
+contradictions), and `accuracy-model.js` combines everything into P(accurate)
+and Verified / Check this / Flagged. Verdict signals are cached in
+`accuracy_verdicts` by the hash of the item's content, so nothing is checked
+twice unless edited. Reports go to `accuracy_reports` (deleted with the
+account). The combiner's weights are trained for free by
+`bench/train-accuracy.mjs` (`.github/workflows/accuracy-model.yml`) and served
+from `accuracy_model`; before any training the bundled prior is used.
+
+A check runs as named stages in a fixed order - rules, claims, lookup (the
+cache), evidence, votes, jev, verdict, cache (the write) - each with its own time
+budget and a typed result (`STAGES` and `BUDGETS` in `accuracy.js`). Each
+budget is longer than the timeout already inside its work, so it only cuts
+work that has stopped keeping its own time; a stage that runs out of time or
+fails gives its safe result - no evidence, no vote, no Jev answer, not cached
+- never a hang and never a better grade. `tests/accuracy-stages.test.mjs`
+keeps the check as it was before the stages and holds the staged one to the
+same replies, outside calls and cache on a set of fixed inputs.
+
+The claims stage is the claim gate (`claims.js`): the deterministic guards of
+Chat-me's medical verifier (claim reasoning, independent entailment, the
+semantic and consistency guards, entity and date normalization), ported from
+its Python, run on every item before any vote. It compares what an item says
+with its own lecture, sentence by sentence: where the item restates a lecture
+sentence but flips its negation or gives another dose, frequency or
+percentage, it is never Verified - Check this at best - and the reply carries
+`claims: { hard, soft }`; what else the guards notice (a wider scope, a cause
+read from an association) is reported as soft and changes nothing. It is
+counted in work, not time (`MAX_WORK` units a batch, a judgement costing
+`VERIFY_WORK`; the first `MAX_SENTENCES` sentences of an item and of its
+lecture), since a Worker's clock stands still while it computes and the free
+plan gives a request about 10 ms of CPU: the worst batch the server takes
+costs about 3 ms warm and 15 ms in a fresh isolate (where Python's Unicode
+`\b` would have cost 100 ms to compile, so each pattern also has an ASCII
+form used for text without letters beyond ASCII). A page cut short says so
+(`partial`), and a gate that fails holds the item at Check this. The app keeps
+the hard findings with the item's votes (`AccuracyRecord.claimHolds`) and
+re-grades from them on the phone, so the hold reaches the student; an item the
+gate failed on is asked about again later, and its votes then come from the
+cache. `tests/claims.test.mjs` holds the port to
+what the Python said on its 35 shared conformance vectors and on
+Stethoscore-shaped pairs (`tests/claim-vectors.json`, made by
+`bench/claim-vectors.py` from a checkout of the verifier).
+
+## Exams
+
+`exams.js` holds the prompt side of the exam catalogue (the app's
+`Shared/Exam/ExamCatalog.swift` has the full blueprints; `tests/exams.test.mjs`
+keeps the two in step). Nothing is fine-tuned: a question writer is given the
+chosen exam's format rules and two or three real items in its style, from
+`exam-exemplars.js` - built by `bench/exam-exemplars.mjs` from MedQA (MIT) and
+MedMCQA (Apache-2.0) only, never from a copyrighted bank. A job's prompt may
+carry `{{EXEMPLARS:<exam>:<topic>:<n>}}`, filled with different items each
+batch; `/exams/catalogue` and `/exams/exemplars` serve the same data. With
+`exam` in `/accuracy/check`, that exam's management questions need a higher
+P(accurate) to be Verified, and `bench/train-accuracy.mjs` reports the model
+per exam style and per exam.
+
+## Switching things off
+
+Every AI feature has a kill switch (`switches.js`): `STETHOSCORE_OFF` in
+`wrangler.toml` `[vars]` names the ones that are off - `write`, `check`,
+`jobs`, `accuracy`, `transcribe`, `tts`, or `all`. It is read on every
+request, so editing the variable in the Cloudflare dashboard switches a
+feature off at once without deploying code (the deploy workflow later puts
+back what `wrangler.toml` says). A switched-off feature is refused with a
+message the app shows, before anything is read, spent or queued. Nothing is
+lost: jobs can still be collected and cancelled, a running job ends at once
+with what it has written (partial, with the reason) instead of a progress bar
+that stops moving, and an item that cannot be checked stays Unverified.
+
+The model chain's providers have circuit breakers (`breakers.js`): a
+provider's model that fails three times in two minutes (a 5xx, a time-out) is
+skipped for a minute, then tried once. When every provider a request could use
+is resting, the answer is a quick 503 "busy, try again" with Retry-After,
+and it costs nothing from the day's allowance: when the providers that are not
+resting could not be used either (a model out for the day, a prompt too long
+for Workers AI), the request is given back. A background job waits out busy
+answers for ten minutes at most, then ends with what it has. The breakers live in each isolate's
+memory. `GET /diagnostics/summary` (owner only) shows the switches and this
+isolate's breakers under `health`.
+
 ## Deploying it
 
     cd server

@@ -1,0 +1,214 @@
+# The proof ladder (docs/verification/proof-plan.md; the owner, 14 Oct:
+# 99.999%, staged 99.9% -> 99.99% -> 99.999%, on its own, inside the cap).
+# Once a day it checks public exam questions with gold keys (half with a
+# distractor keyed) on the live Worker, as the owner's bench, and adds the
+# verdicts to the running count: how many Verified, how many of them wrong,
+# and the accuracy that proves at 95%.
+#
+# Three jobs: pick chooses the day's questions; vote has each runner voter
+# (tools/runner-voter/models.json: open-weight models on this free CPU, no
+# key) answer them blind; climb sends them to the Worker with those answers,
+# which take one family's seat (server/runner-voters.js), and keeps the
+# ledger of each family's blind answers against the gold key.
+#
+# Spend: no key but the owner's own. The runner voters cost nothing; the
+# cloud checker is held by the Worker to CLAUDE_MONTHLY_USD (40), and by the
+# ladder to its share (tools/proof-ladder/config.json), paced over the month.
+# Needs the AI_API_KEY secret (the owner key), as the verification bench does.
+#
+# Progress: proof-ladder/progress.md and progress.json on the
+# verification-bench-results branch, and each run's summary.
+name: Proof ladder
+on:
+  # the schedule runs only from the default branch; until the ladder is
+  # there, a push to ladder/run or the Run workflow button starts a day
+  schedule:
+    - cron: '43 2 * * *'
+  push:
+    branches: ['ladder/run']
+  workflow_dispatch:
+    inputs:
+      max_items:
+        description: 'Items at most today (empty: config.json)'
+        required: false
+        default: ''
+      offline:
+        description: 'Pick and vote only, never the live Worker (a dry run of the runner voters)'
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: verification-bench
+  cancel-in-progress: false
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      models: ${{ steps.models.outputs.models }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Where the ladder stands
+        run: |
+          mkdir -p out
+          if git fetch -q origin verification-bench-results && git cat-file -e FETCH_HEAD:proof-ladder/progress.json 2>/dev/null; then
+            git show FETCH_HEAD:proof-ladder/progress.json > out/progress.json
+          fi
+          ls -l out
+      - name: The day's questions
+        env:
+          MAX: ${{ inputs.max_items }}
+        run: |
+          cfg=tools/proof-ladder/config.json
+          max="${MAX:-$(node -p "require('./$cfg').maxItems")}"
+          all=$(node -p "require('./$cfg').all ? '--all' : ''")
+          node tools/proof-ladder/ladder.mjs --state out/progress.json --pick out/items.json --max-items "$max" $all
+      - name: The runner voters
+        id: models
+        run: echo "models=$(node -p "JSON.stringify(require('./tools/runner-voter/models.json').models.map(m => m.name))")" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ladder-items
+          path: out/
+          retention-days: 7
+
+  vote:
+    needs: pick
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.pick.outputs.models) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: ladder-items
+          path: out/
+      - name: Which engine and weights
+        id: which
+        env:
+          NAME: ${{ matrix.model }}
+        run: |
+          node -e "
+            const c = require('./tools/runner-voter/models.json');
+            const m = c.models.find(x => x.name === process.env.NAME);
+            if (!m) { console.error('no such runner voter'); process.exit(1); }
+            const out = { tag: c.engine.tag, repo: c.engine.repo, hub: m.hub, file: m.file, bytes: m.bytes };
+            for (const [k, v] of Object.entries(out)) require('fs').appendFileSync(process.env.GITHUB_OUTPUT, k + '=' + v + '\n');
+          "
+      - uses: actions/cache@v4
+        id: engine
+        with:
+          path: ~/engine
+          key: runner-engine-${{ steps.which.outputs.tag }}-avx2
+      - name: Build the engine
+        if: steps.engine.outputs.cache-hit != 'true'
+        env:
+          TAG: ${{ steps.which.outputs.tag }}
+          REPO: ${{ steps.which.outputs.repo }}
+        run: |
+          git clone -q --depth 1 --branch "$TAG" "$REPO" "$RUNNER_TEMP/engine-src"
+          cd "$RUNNER_TEMP/engine-src"
+          cmake -B build -DGGML_NATIVE=OFF -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON -DGGML_BMI2=ON \
+            -DBUILD_SHARED_LIBS=OFF -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release > /dev/null
+          cmake --build build -j "$(nproc)" --target llama-server > /dev/null
+          mkdir -p ~/engine && cp build/bin/llama-server ~/engine/
+      - name: Fetch the weights
+        env:
+          HUB: ${{ steps.which.outputs.hub }}
+          FILE: ${{ steps.which.outputs.file }}
+          BYTES: ${{ steps.which.outputs.bytes }}
+        run: |
+          curl -fsSL --retry 5 --retry-delay 10 -o "$RUNNER_TEMP/model.gguf" "https://huggingface.co/$HUB/resolve/main/$FILE"
+          test "$(stat -c %s "$RUNNER_TEMP/model.gguf")" = "$BYTES" || { echo "::error::the weights are not the size models.json records"; exit 1; }
+      - name: Answer blind
+        env:
+          NAME: ${{ matrix.model }}
+        run: |
+          nohup ~/engine/llama-server -m "$RUNNER_TEMP/model.gguf" --host 127.0.0.1 --port 8080 -c 8192 -t "$(nproc)" > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 120); do curl -sf http://127.0.0.1:8080/health > /dev/null && break; sleep 5; done
+          curl -sf http://127.0.0.1:8080/health > /dev/null || { tail -20 "$RUNNER_TEMP/server.log"; exit 1; }
+          mkdir -p ballots
+          node tools/runner-voter/vote.mjs --items out/items.json --model "$NAME" --out "ballots/$NAME.json" --hours 4.5
+          grep -E "eval time" "$RUNNER_TEMP/server.log" | tail -2 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ballots-${{ matrix.model }}
+          path: ballots/
+          retention-days: 7
+
+  climb:
+    needs: [pick, vote]
+    if: ${{ always() && needs.pick.result == 'success' && !inputs.offline }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: ladder-items
+          path: out/
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: ballots-*
+          path: ballots/
+          merge-multiple: true
+      - name: Climb
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          set -eo pipefail
+          test -n "$AI_API_KEY" || { echo "::error::the AI_API_KEY secret is not set"; exit 1; }
+          export WORKER=https://redpen-auth.vv7sh4rnnw.workers.dev
+          KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
+          echo "::add-mask::$KEY"
+          export KEY
+          cfg=tools/proof-ladder/config.json
+          node tools/proof-ladder/ladder.mjs --state out/progress.json --out out --items out/items.json --ballots ballots \
+            --max-items 100000 --share "$(node -p "require('./$cfg').share")" --hours "$(node -p "require('./$cfg').hours")" \
+            --runner-seats "$(node -p "require('./$cfg').runnerSeats ?? 1")" --runner-bar "$(node -p "require('./$cfg').runnerBar ?? 0.8")" \
+            --pool-batches "$(node -p "require('./$cfg').poolBatches ?? 15")"
+      - name: Summary
+        if: always()
+        run: |
+          [ -f out/progress.md ] && cat out/progress.md >> "$GITHUB_STEP_SUMMARY"
+          true
+      - name: Publish
+        if: always()
+        run: |
+          [ -f out/progress.json ] || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          dest="$RUNNER_TEMP/results"
+          for attempt in 1 2 3; do
+            rm -rf "$dest"; git worktree prune
+            if git fetch -q origin verification-bench-results; then
+              git worktree add -q "$dest" FETCH_HEAD && git -C "$dest" checkout -q -B verification-bench-results
+            else
+              git worktree add -q --detach "$dest" && git -C "$dest" checkout -q --orphan verification-bench-results
+              git -C "$dest" rm -rqf --cached . > /dev/null 2>&1 || true
+              find "$dest" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+            fi
+            mkdir -p "$dest/proof-ladder"
+            cp out/progress.json out/progress.md "$dest/proof-ladder/"
+            git -C "$dest" add proof-ladder
+            git -C "$dest" commit -q -m "Proof ladder ${{ github.run_id }} (${{ github.sha }})" || exit 0
+            git -C "$dest" push -q origin verification-bench-results && exit 0
+            sleep 10
+          done
+          exit 1

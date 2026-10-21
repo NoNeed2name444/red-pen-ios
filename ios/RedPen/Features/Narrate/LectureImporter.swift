@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Attaching a recording to a Narrate set and transcribing it on the phone.
+/// Attaching a recording to a Narrate set and transcribing it: with Gemini by
+/// default, or on the phone.
 ///
 /// Held apart from the player view because it is the only part that can fail in
 /// ways a student has to be told about - no permission, no offline language for
@@ -17,15 +18,39 @@ final class LectureImporter: ObservableObject {
     /// The transcript the recording produced, ready to replace the set's own.
     @Published var produced: [NarrateSegment]?
 
+    /// A passing note, such as the lecture being transcribed on the phone
+    /// because Gemini was out of quota. Not an error: there is a transcript.
+    @Published var notice: String?
+
+    /// True while Gemini has the recording, so the screen says where it went.
+    @Published var inCloud = false
+
+    /// Whether the Narrate screen is showing; it says so as it comes and
+    /// goes. A transcript finishing after it has gone is handed to `keep`,
+    /// which saves it to the set: nobody is left to adopt `produced`, and the
+    /// Gemini chunks it was made from are already deleted (audit #70).
+    var onScreen = true
+    var keep: (@MainActor ([NarrateSegment], LectureLanguage) -> Void)?
+
+    /// Who does the listening.
+    enum Engine { case cloud, device }
+
+    /// What the lecture is spoken in: what Gemini is told to expect, and
+    /// which recogniser listens on the phone.
+    var language: LectureLanguage = .mixed
+
     /// Arabic first: these lectures are Egyptian Arabic carrying English terms,
     /// and an English recogniser turns the Arabic into noise. If the phone has
     /// no offline Arabic it is worth saying so rather than quietly producing a
-    /// transcript of the English words only.
-    var locale: Locale = Locale(identifier: "ar-EG")
+    /// transcript of the English words only. An English lecture gets the
+    /// English recogniser.
+    var locale: Locale { Locale(identifier: language.locale) }
 
     func attach(_ picked: Result<[URL], Error>, to set: StudySet,
-                learned: PronunciationLibrary) async {
+                learned: PronunciationLibrary, engine: Engine = .cloud,
+                language: LectureLanguage = .mixed) async {
         trouble = nil
+        self.language = language
         switch picked {
         case .failure(let error):
             trouble = error.localizedDescription
@@ -34,7 +59,8 @@ final class LectureImporter: ObservableObject {
             do {
                 working = "Copying the recording"
                 let stored = try LectureAudio.store(imported: source, for: set.id)
-                await transcribe(stored, learned: learned)
+                await transcribe(stored, learned: learned, engine: engine,
+                                 vocabulary: Self.vocabulary(for: set))
             } catch {
                 working = nil
                 trouble = error.localizedDescription
@@ -42,73 +68,186 @@ final class LectureImporter: ObservableObject {
         }
     }
 
-    func transcribe(_ url: URL, learned: PronunciationLibrary) async {
-        working = "Listening to the lecture"
+    /// The lecture's own slide terms, so Gemini spells them as the slides do.
+    static func vocabulary(for set: StudySet) -> [String] {
+        CloudTranscript.lectureTerms(slides: set.sources.flatMap { $0.pages.map(\.text) })
+    }
+
+    func transcribe(_ url: URL, learned: PronunciationLibrary,
+                    engine: Engine = .cloud, vocabulary: [String] = []) async {
         trouble = nil
+        notice = nil
         do {
-            let lines = try await LectureTranscriber.transcribe(fileAt: url, locale: locale)
+            var lines: [LectureTranscriber.Line] = []
+            var byLine = false
+            if engine == .cloud {
+                working = "Sending the lecture to Gemini"
+                inCloud = true
+                defer { inCloud = false }
+                do {
+                    let outcome = try await CloudTranscriber.transcribe(fileAt: url, vocabulary: vocabulary,
+                                                                  language: language, token: LocalLLMService.shared.cloudToken) { part, parts in
+                        Task { @MainActor [weak self] in
+                            self?.working = parts > 1 ? "Gemini is transcribing part \(part) of \(parts)"
+                                                      : "Gemini is transcribing"
+                        }
+                    }
+                    lines = outcome.lines
+                    notice = CloudTranscript.notice(for: outcome.parts, of: outcome.total)
+                    byLine = true
+                } catch is CancellationError {
+                    working = nil
+                    return
+                } catch {
+                    // a transcript from the phone beats no transcript: Gemini
+                    // being out of quota, unreachable or not set up falls back
+                    let why = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                    notice = "Transcribed on this phone instead. \(why)"
+                }
+            }
+            if !byLine {
+                working = "Listening to the lecture"
+                lines = try await LectureTranscriber.transcribe(fileAt: url, locale: locale, terms: vocabulary)
+            }
             guard !lines.isEmpty else {
                 working = nil
                 trouble = "Nothing recognisable was found in that recording."
                 return
             }
-            var segments = NarrateScheduler.segments(from: lines,
-                                                     lang: locale.identifier.hasPrefix("ar") ? "ar" : "en")
+            let deviceLang = locale.identifier.hasPrefix("ar") ? "ar" : "en"
+            var segments = NarrateScheduler.segments(from: lines, lang: deviceLang)
+            // Gemini writes Arabic and English each in its own script, so the
+            // pace and direction can follow the line itself
+            if byLine {
+                for i in segments.indices { segments[i].lang = CloudTranscript.language(of: segments[i].text) }
+            }
             // Everything already learned is applied before the student ever
             // sees the transcript: a term corrected last week arrives correct.
             var texts = segments.map(\.text)
-            let fixed = learned.applyLearned(to: &texts)
+            _ = learned.applyLearned(to: &texts)
             for i in segments.indices { segments[i].text = texts[i] }
 
+            if !onScreen { keep?(segments, language) }
             produced = segments
             working = nil
-            if fixed > 0 {
-                trouble = nil
-            }
         } catch {
             working = nil
-            trouble = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            let why = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            // both ways failed: one message saying so, not two alerts
+            if let cloud = notice {
+                notice = nil
+                trouble = cloud.replacingOccurrences(of: "Transcribed on this phone instead. ", with: "Gemini: ")
+                    + "\n\nOn this phone: " + why
+            } else {
+                trouble = why
+            }
         }
     }
 }
 
 /// The reading-pace controls, for a set with no recording attached.
+///
+/// One row under the thumb: the way to add a recording at the leading end
+/// (while there is none), then the speed as a compact menu beside Play - the
+/// one main button - at the trailing end. With nothing to read yet, adding a
+/// recording is the only useful step, so it becomes the main button on its
+/// own. This is the bar's content: the screen hands it to `.studyBar { }`, so
+/// the transcript scrolls under the glass.
 struct NarrateReadingControls: View {
     @Binding var speed: Double
     let playing: Bool
     let finished: Bool
     let canPlay: Bool
+    /// True when the transcript has no lines yet.
+    var isEmpty: Bool = false
     let onPlayPause: () -> Void
     let onRestart: () -> Void
+    /// Adds a recording; nil hides the button (while one is being made).
+    var onAddAudio: (() -> Void)? = nil
 
+    @Environment(\.windowSpan) private var span
+
+    @ViewBuilder
     var body: some View {
-        GlassEffectContainer(spacing: 10) {
-            VStack(spacing: 10) {
-                HStack(spacing: 8) {
-                    speedButton(0.75, "Slow")
-                    speedButton(1, "Normal")
-                    speedButton(1.5, "Fast")
-                }
-                if finished {
-                    Button("Restart", action: onRestart)
-                        .buttonStyle(.glassProminent)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Button(playing ? "Pause" : "Play", action: onPlayPause)
-                        .buttonStyle(.glassProminent)
-                        .frame(maxWidth: .infinity)
-                        .disabled(!canPlay)
-                }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 10)
+        if isEmpty, let onAddAudio {
+            addAudioMain(onAddAudio)
+        } else {
+            row
         }
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
     }
 
-    private func speedButton(_ value: Double, _ label: String) -> some View {
-        Button(label) { speed = value }
-            .buttonStyle(.glass)
-            .tint(speed == value ? StudySetKind.narrate.tint : Color.secondary)
+    /// Add audio to the left hand; speed right beside the Play it controls.
+    private var row: some View {
+        HStack(spacing: 12) {
+            if let onAddAudio {
+                addAudioButton(onAddAudio)
+                if span == .broad { Spacer(minLength: 16) }
+            }
+            speedMenu
+            playButton
+        }
+    }
+
+    /// An empty transcript: adding a recording is the main button, in words.
+    private func addAudioMain(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label("Add audio", systemImage: "waveform.badge.plus")
+        }
+        .buttonStyle(.bigPrimary)
+        .accessibilityLabel("Add an audio file")
+        .accessibilityHint("Transcribes a recording of the lecture and follows it word by word")
+        .accessibilityIdentifier("narrateAddAudio")
+    }
+
+    /// Always in reach while the lecture has no recording: the way to add one.
+    /// Words when there is room, the symbol alone on a phone.
+    private func addAudioButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ViewThatFits(in: .horizontal) {
+                Label("Add audio", systemImage: "waveform.badge.plus")
+                Image(systemName: "waveform.badge.plus")
+            }
+        }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Add an audio file")
+        .accessibilityHint("Transcribes a recording of the lecture and follows it word by word")
+        .accessibilityIdentifier("narrateAddAudio")
+    }
+
+    /// The same speeds as a recording's (0.75x to 2.5x), in a compact menu
+    /// showing the one chosen, so a lecture sounds as fast either way.
+    private var speedMenu: some View {
+        let shown: String = AudioRate.label(speed)
+        return Menu {
+            // a picker inside the menu ticks the chosen speed by itself
+            Picker("Reading speed", selection: $speed) {
+                ForEach(AudioRate.steps, id: \.self) { rate in
+                    Text(AudioRate.name(rate)).tag(rate)
+                }
+            }
+        } label: {
+            Text(shown)
+                .monospacedDigit()
+        }
+        .buttonStyle(.bigCompanion)
+        .accessibilityLabel("Reading speed, \(shown)")
+    }
+
+    @ViewBuilder
+    private var playButton: some View {
+        if finished {
+            Button(action: onRestart) {
+                Label("Start again", systemImage: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.space, modifiers: [])
+        } else {
+            Button(action: onPlayPause) {
+                Label(playing ? "Pause" : "Play", systemImage: playing ? "pause.fill" : "play.fill")
+            }
+            .buttonStyle(.bigPrimary)
+            .keyboardShortcut(.space, modifiers: [])
+            .disabled(!canPlay)
+        }
     }
 }

@@ -1,0 +1,565 @@
+import SwiftUI
+
+// The Ward pocket: the lab values sheet grown into three tabs - Lab values,
+// Calculators and Scores - opened from any study screen's More menu and from
+// the exam plan. The formulas and tables are in Shared/WardPocket.swift and
+// Shared/WardPocketScores.swift; this is only how they are shown.
+//
+// Every screen carries "For learning only - not for patient care" at the
+// bottom (App Store guideline 1.4.1): this teaches how a score works, it is
+// not a medical device.
+
+/// Which of the Ward pocket's tabs is showing.
+enum WardPocketTab: String, CaseIterable, Identifiable {
+    case labs, calculators, scores
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .labs: return "Lab values"
+        case .calculators: return "Calculators"
+        case .scores: return "Scores"
+        }
+    }
+}
+
+struct WardPocketSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var tab: WardPocketTab
+    /// US conventional units for a USMLE track, SI for every other.
+    @State private var conventional: Bool = LabUnits.conventional(for: ExamTrack.current)
+    @State private var query: String = ""
+    @State private var practice: NewSetPreset?
+
+    init(start: WardPocketTab = .calculators) {
+        _tab = State(initialValue: start)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    WardSegmented(selection: $tab, options: WardPocketTab.allCases) { t in
+                        Text(t.title)
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Section")
+                    .accessibilityIdentifier("wardPocketTabs")
+                    if tab != .scores { WardUnitsPicker(conventional: $conventional) }
+                }
+                // the switches sit on the base itself, not on tiles, where
+                // the tiles' edges are
+                .wardCardRow()
+                switch tab {
+                case .labs: LabRangesSections(query: query, conventional: conventional)
+                case .calculators: calculatorRows
+                case .scores: scoreRows
+                }
+            }
+            .wardForm()
+            .searchable(text: $query, prompt: Text(searchPrompt))
+            .navigationTitle("Ward pocket")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: WardCalc.self) { calc in
+                WardCalcView(calc: calc, conventional: $conventional, practice: $practice)
+            }
+            .navigationDestination(for: WardScore.self) { score in
+                WardScoreView(score: score, practice: $practice)
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                    .buttonStyle(.wardCompact)
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+            .wardDisclaimer()
+        }
+        .presentationDetents([.large])
+        // "Practise this": New set, ready to write questions on it
+        .sheet(item: $practice) { NewSetView(preset: $0) }
+    }
+
+    private var searchPrompt: String {
+        switch tab {
+        case .labs: return "Search lab values"
+        case .calculators: return "Search calculators"
+        case .scores: return "Search scores"
+        }
+    }
+
+    private func matches(_ name: String) -> Bool {
+        let q: String = query.trimmingCharacters(in: .whitespaces)
+        return q.isEmpty || name.localizedCaseInsensitiveContains(q)
+    }
+
+    @ViewBuilder
+    private var calculatorRows: some View {
+        let shown: [WardCalc] = WardCalc.calculators.filter { matches($0.title) }
+        Section("Calculators") {
+            ForEach(shown) { calc in
+                NavigationLink(value: calc) {
+                    Label(calc.title, systemImage: calc.symbol)
+                }
+            }
+        }
+        .wardRowBackground()
+    }
+
+    @ViewBuilder
+    private var scoreRows: some View {
+        let shown: [WardScoreEntry] = WardScores.entries.filter { matches($0.name) }
+        Section("Scores") {
+            ForEach(shown) { entry in
+                scoreLink(entry)
+            }
+        }
+        .wardRowBackground()
+    }
+
+    @ViewBuilder
+    private func scoreLink(_ entry: WardScoreEntry) -> some View {
+        switch entry {
+        case .table(let score):
+            NavigationLink(value: score) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
+                    Text(score.name)
+                    Text(score.purpose).font(.caption).foregroundStyle(Color.wardInkSecondary).lineLimit(2)
+                }
+            }
+        case .formula(let calc):
+            NavigationLink(value: calc) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
+                    Text(calc.title)
+                    Text("Liver disease severity and transplant priority").font(.caption)
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - pieces shared by the tabs
+
+/// SI or US conventional units.
+struct WardUnitsPicker: View {
+    @Binding var conventional: Bool
+
+    var body: some View {
+        WardSegmented(selection: $conventional, options: [false, true]) { us in
+            Text(us ? "US conventional" : "SI")
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Units")
+    }
+}
+
+/// "For learning only - not for patient care", a small soft chip with amber
+/// words at the foot of the screen, always in view.
+private struct WardDisclaimer: ViewModifier {
+    func body(content: Content) -> some View {
+        // it floats over the page, so its chip has no glow
+        content.safeAreaInset(edge: .bottom, spacing: 0) {
+            Label(WardPocket.disclaimer, systemImage: "graduationcap")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.wardWarning)
+                .padding(.horizontal, WardSpace.l)
+                .padding(.vertical, 8)
+                .wardRaised(in: Capsule())
+                .padding(.bottom, WardSpace.s)
+                .accessibilityIdentifier("wardDisclaimer")
+                .wardUnlit()
+        }
+    }
+}
+
+extension View {
+    /// The Ward pocket's learning-only line along the bottom.
+    func wardDisclaimer() -> some View { modifier(WardDisclaimer()) }
+}
+
+/// A block of text under a heading: the formula, the note, the source.
+private struct WardTextSection: View {
+    let title: String
+    let text: String
+
+    var body: some View {
+        if !text.isEmpty {
+            Section(title) {
+                Text(text)
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
+            .wardRowBackground()
+        }
+    }
+}
+
+/// "Practise this": opens New set with the calculator or score as its material.
+private struct PractiseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Section {
+            Button(action: action) {
+                Label("Practise this", systemImage: "sparkles")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .accessibilityIdentifier("wardPractise")
+            .accessibilityHint("Writes exam questions on this with your usual question settings")
+        } footer: {
+            Text(WardPocket.disclaimerDetail)
+        }
+        .wardRowBackground()
+    }
+}
+
+extension NewSetPreset {
+    /// New set, ready to write MCQs on one Ward pocket calculator or score.
+    init(wardPocket title: String, notes text: String) {
+        kind = .mcq
+        name = "Ward pocket: " + title
+        subject = title
+        notes = text
+    }
+}
+
+// MARK: - a calculator
+
+struct WardCalcView: View {
+    let calc: WardCalc
+    @Binding var conventional: Bool
+    @Binding var practice: NewSetPreset?
+    /// What was typed in each number field, in the units showing.
+    @State private var typed: [String: String] = [:]
+    @State private var toggles: [String: Bool] = [:]
+    @State private var choices: [String: Int] = [:]
+    /// The number field being typed in; the decimal pad has no return key.
+    @FocusState private var focused: String?
+
+    private var hasUnits: Bool {
+        calc.fields.contains { field in
+            if case .number(let unit) = field.kind { return unit.si != unit.us }
+            return false
+        }
+    }
+
+    var body: some View {
+        let outcome: WardOutcome? = calc.compute(values(), us: conventional)
+        Form {
+            if hasUnits {
+                Section { WardUnitsPicker(conventional: $conventional) }
+                    .wardCardRow()
+            }
+            Section("Values") {
+                ForEach(calc.fields) { field in
+                    fieldRow(field)
+                }
+            }
+            .wardRowBackground()
+            resultSection(outcome)
+            WardTextSection(title: "How it is worked out", text: calc.formula)
+            WardTextSection(title: "Keep in mind", text: calc.note)
+            WardTextSection(title: "Source", text: calc.source)
+            PractiseButton {
+                practice = NewSetPreset(wardPocket: calc.title, notes: WardPocket.practiceNotes(for: calc))
+            }
+        }
+        .wardForm()
+        .scrollDismissesKeyboard(.interactively)
+        .navigationTitle(calc.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: conventional) { was, now in
+            retype(from: was, to: now)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focused = nil }
+                .buttonStyle(.wardCompact)
+            }
+            .sharedBackgroundVisibility(.hidden)
+        }
+        .wardDisclaimer()
+    }
+
+    @ViewBuilder
+    private func resultSection(_ outcome: WardOutcome?) -> some View {
+        Section("Result") {
+            if let outcome {
+                ForEach(outcome.lines, id: \.self) { line in
+                    LabeledContent(line.label) {
+                        Text(line.value)
+                            .font(WardType.obsLarge)
+                            .monospacedDigit()
+                            .foregroundStyle(Color.wardInk)
+                    }
+                }
+                if let verdict = outcome.verdict {
+                    Text(verdict)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.wardInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                Text("Fill in the values above.")
+                    .foregroundStyle(Color.wardInkSecondary)
+            }
+        }
+        .wardRowBackground()
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func fieldRow(_ field: WardField) -> some View {
+        switch field.kind {
+        case .number(let unit):
+            numberRow(field, unit: unit)
+        case .toggle:
+            Toggle(field.label, isOn: toggleBinding(field.id))
+        case .choice(let names):
+            Picker(field.label, selection: choiceBinding(field.id)) {
+                ForEach(Array(names.enumerated()), id: \.offset) { index, name in
+                    Text(name).tag(index)
+                }
+            }
+        }
+    }
+
+    private func numberRow(_ field: WardField, unit: WardUnit) -> some View {
+        let unitName: String = unit.name(us: conventional)
+        let prompt: String = field.optional ? "optional" : ""
+        let spoken: String = unitName.isEmpty ? field.label : field.label + ", " + unitName
+        return HStack(spacing: 8) {
+            Text(field.label)
+            Spacer(minLength: 8)
+            TextField(prompt, text: textBinding(field.id))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .font(WardType.obs)
+                .monospacedDigit()
+                .padding(.horizontal, WardSpace.m)
+                .padding(.vertical, WardSpace.s)
+                .frame(maxWidth: 110)
+                .wardInset(in: RoundedRectangle(cornerRadius: 10, style: .continuous), control: true)
+                .focused($focused, equals: field.id)
+                .accessibilityLabel(spoken)
+            if !unitName.isEmpty {
+                Text(unitName)
+                    .font(.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .frame(minWidth: 44, alignment: .leading)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private func textBinding(_ id: String) -> Binding<String> {
+        Binding(get: { typed[id] ?? "" }, set: { typed[id] = $0 })
+    }
+
+    private func toggleBinding(_ id: String) -> Binding<Bool> {
+        Binding(get: { toggles[id] ?? false }, set: { toggles[id] = $0 })
+    }
+
+    private func choiceBinding(_ id: String) -> Binding<Int> {
+        Binding(get: { choices[id] ?? 0 }, set: { choices[id] = $0 })
+    }
+
+    private static func number(_ text: String?) -> Double? {
+        guard let text else { return nil }
+        let clean: String = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        return Double(clean)
+    }
+
+    /// Everything entered, numbers in SI.
+    private func values() -> [String: Double] {
+        var out: [String: Double] = [:]
+        for field in calc.fields {
+            switch field.kind {
+            case .number(let unit):
+                if let x = Self.number(typed[field.id]) { out[field.id] = unit.toSI(x, us: conventional) }
+            case .toggle:
+                out[field.id] = (toggles[field.id] ?? false) ? 1 : 0
+            case .choice:
+                out[field.id] = Double(choices[field.id] ?? 0)
+            }
+        }
+        return out
+    }
+
+    /// Switching units rewrites what was typed, so a value keeps its meaning.
+    private func retype(from was: Bool, to now: Bool) {
+        for field in calc.fields {
+            guard case .number(let unit) = field.kind, unit.usPerSI != 1,
+                  let x = Self.number(typed[field.id]) else { continue }
+            let si: Double = unit.toSI(x, us: was)
+            let shown: Double = unit.fromSI(si, us: now)
+            let places: Int = abs(shown) >= 100 ? 0 : (abs(shown) >= 10 ? 1 : 2)
+            typed[field.id] = WardPocket.format(shown, places: places)
+        }
+    }
+}
+
+// MARK: - a score
+
+struct WardScoreView: View {
+    let score: WardScore
+    @Binding var practice: NewSetPreset?
+    @State private var picks: [String: Int] = [:]
+
+    var body: some View {
+        let total: Double = score.total(picks)
+        let verdict: WardBand? = score.verdict(picks)
+        let choiceItems: [WardItem] = score.items.filter { !$0.isYesNo }
+        let yesNoItems: [WardItem] = score.items.filter(\.isYesNo)
+        Form {
+            Section {
+                Text(score.purpose)
+                    .font(.subheadline)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .wardRowBackground()
+            ForEach(choiceItems) { item in
+                Section(item.label) { choicePicker(item) }
+                    .wardRowBackground()
+            }
+            if !yesNoItems.isEmpty {
+                Section("Criteria") {
+                    ForEach(yesNoItems) { item in
+                        yesNoRow(item)
+                    }
+                }
+                .wardRowBackground()
+            }
+            Section("Bands") {
+                ForEach(score.bands, id: \.self) { band in
+                    bandRow(band, on: band == verdict)
+                        // the band the score falls in, pressed into the base
+                        .listRowBackground(WardRowTile(inset: band == verdict))
+                }
+            }
+            .wardRowBackground()
+            WardTextSection(title: "Keep in mind", text: score.note)
+            WardTextSection(title: "Source", text: score.source)
+            PractiseButton {
+                practice = NewSetPreset(wardPocket: score.name, notes: score.practiceNotes)
+            }
+        }
+        .wardForm()
+        .navigationTitle(score.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Reset") { picks = [:] }
+                .buttonStyle(.wardCompact)
+                    .disabled(picks.isEmpty)
+            }
+            .sharedBackgroundVisibility(.hidden)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            WardScoreTotal(total: total, band: verdict)
+                .wardUnlit()
+        }
+        .wardDisclaimer()
+    }
+
+    private func pickBinding(_ id: String) -> Binding<Int> {
+        Binding(get: { picks[id] ?? 0 }, set: { picks[id] = $0 })
+    }
+
+    private func choicePicker(_ item: WardItem) -> some View {
+        Picker(item.label, selection: pickBinding(item.id)) {
+            ForEach(Array(item.choices.enumerated()), id: \.offset) { index, choice in
+                HStack {
+                    Text(choice.label)
+                    Spacer(minLength: 8)
+                    Text(WardScores.points(choice.points))
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+                .tag(index)
+            }
+        }
+        .pickerStyle(.inline)
+        .labelsHidden()
+    }
+
+    private func yesNoRow(_ item: WardItem) -> some View {
+        let points: String = WardScores.points(item.choices[1].points)
+        let on = Binding<Bool>(get: { (picks[item.id] ?? 0) == 1 }, set: { picks[item.id] = $0 ? 1 : 0 })
+        return Toggle(isOn: on) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(item.label).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Text(points)
+                    .font(.system(.subheadline, design: .monospaced))
+                    .foregroundStyle(Color.wardInkSecondary)
+            }
+        }
+    }
+
+    private func bandRow(_ band: WardBand, on: Bool) -> some View {
+        let low: String = WardScores.points(band.low)
+        let high: String = WardScores.points(band.high)
+        let range: String = band.low == band.high ? low : low + "\u{2013}" + high
+        return HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(range)
+                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                .frame(minWidth: 44, alignment: .leading)
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
+                Text(band.title).font(.subheadline.weight(.semibold))
+                Text(band.detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if on {
+                Spacer(minLength: 0)
+                Image(systemName: "checkmark").font(.subheadline.weight(.bold)).accessibilityHidden(true)
+                    .transition(.identity)
+            }
+        }
+        .foregroundStyle(on ? Color.wardPrimaryInk : Color.wardInk)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+}
+
+/// The running total and what it means, on a card above the disclaimer.
+private struct WardScoreTotal: View {
+    let total: Double
+    let band: WardBand?
+
+    var body: some View {
+        let number: String = WardScores.points(total)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
+        HStack(alignment: .center, spacing: WardSpace.l) {
+            Text(number)
+                .font(.system(size: 34, weight: .bold, design: .monospaced).monospacedDigit())
+                .foregroundStyle(Color.wardInk)
+                .contentTransition(.numericText())
+                .frame(minWidth: 48)
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
+                Text(band?.title ?? "")
+                    .font(.headline)
+                    .foregroundStyle(Color.wardInk)
+                    .contentTransition(.identity)
+                Text(band?.detail ?? "")
+                    .font(.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .lineLimit(3)
+                    .contentTransition(.identity)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, WardSpace.m)
+        .wardRaised(in: shape, lift: .high)
+        .padding(.horizontal, 16)
+        .padding(.bottom, WardSpace.s)
+        .animation(.snappy, value: total)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("wardScoreTotal")
+    }
+}

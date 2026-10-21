@@ -1,15 +1,33 @@
-# The sync worker's logic, run against a real SQLite.
+# The sync worker's logic, run against a real SQLite, and CramDown Cloud's
+# proxy against a fake upstream.
 #
-# Cheap and fast on purpose - Ubuntu and no install step - so that the one part
-# of Red Pen that can lose a student's work by being subtly wrong is checked on
-# every push rather than only when somebody remembers.
+# Cheap and fast on purpose - Ubuntu and no install step - so that the parts
+# of Red Pen that can lose a student's work, or give paid models away, are
+# checked on every push rather than only when somebody remembers.
 name: Server tests
 on:
   workflow_dispatch:
   push:
+    # the session branch is a copy of personal: testing it again only queues
+    branches-ignore: ['claude/**']
     paths:
       - 'server/**'
+      - 'governance/**'
+      - 'tests/**'
+      - 'tools/question-bank/**'
       - '.github/workflows/server-tests.yml'
+      # the transcription benchmark's scorer, and the app prompt it rebuilds
+      - 'tools/asr_bench.mjs'
+      - 'ios/RedPen/Shared/CloudTranscript.swift'
+      - 'ios/RedPen/Shared/LectureTranscriber.swift'
+      # the Ward Swift source checks in tests/ward/
+      - 'ios/RedPen/Features/**'
+      - 'ios/RedPen/Shared/**'
+      - 'ios/RedPen/Models/**'
+      - 'ios/RedPen/Persistence/**'
+# Read-only: the tests need nothing more, and they also run on aahp/ branches.
+permissions:
+  contents: read
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -20,5 +38,8 @@ jobs:
         with:
           # node:sqlite, which these tests run against, arrived in 22.5.
           node-version: '22'
-      - name: The sync worker
-        run: node server/tests/sync.test.mjs
+      - name: Every server test (sync, cloud models, jobs, pairing, voice, evidence, benchmarks, the transcription scorer) and the licence gate
+        run: |
+          failed=0
+          for t in server/tests/*.test.mjs tests/*/*.test.mjs; do node "$t" || { echo "::error::$t failed"; failed=1; }; done
+          exit $failed

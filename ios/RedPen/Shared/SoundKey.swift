@@ -12,7 +12,8 @@
 // caller is built knowing that: a lookup only rewrites a transcript where the
 // evidence is a person's own spelling, never on the skeleton alone.
 //
-// This must agree exactly with sound() in pipeline/consensus.py. A table the
+// This must agree exactly with sound() in consensus.py in red-pen-transcribe
+// (there is no copy in this repository). A table the
 // phone learns is read by the committee and vice versa, so two implementations
 // that disagree on one word make both tables wrong in ways nobody would notice.
 import Foundation

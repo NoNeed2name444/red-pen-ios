@@ -128,6 +128,15 @@ enum Citation {
         return (source, reference.page)
     }
 
+    /// The citations that point at this page of this source. Page 4 of one
+    /// lecture is not page 4 of the other lecture in the same set.
+    static func citing(_ source: SourceDoc, page: Int, among labels: [String], sources: [SourceDoc]) -> [String] {
+        labels.filter { label in
+            guard let hit = resolve(label, in: sources) else { return false }
+            return hit.source.id == source.id && hit.page == page
+        }
+    }
+
     static func read(_ label: String?) -> Reference? {
         guard let label, !label.isEmpty else { return nil }
 

@@ -1,0 +1,373 @@
+// Soft UI relief: in light and dark, at every lift, the highlight is lighter
+// than the base and the shade darker, the two read apart but softly, they
+// grow with the lift, the dark highlight never glares, the same input gives
+// the same relief, and pressed in is raised mirrored.
+import Foundation
+
+var failures: [String] = []
+
+func check(_ label: String, _ ok: Bool, _ detail: String = "") {
+    print((ok ? "ok   " : "FAIL ") + label + (ok ? "" : "  | " + detail))
+    if !ok { failures.append(label) }
+}
+
+func f(_ x: Double) -> String { String(format: "%.3f", x) }
+
+for dark in [false, true] {
+    let mode = dark ? "dark" : "light"
+    let base = WardRelief.base(dark: dark)
+    check("\(mode): the relief falls on the palette's base",
+          base == WardPalette.hex(.background, dark: dark))
+
+    var last: WardReliefSpec?
+    for lift in WardLift.allCases {
+        let tag = "\(mode) \(lift)"
+        let spec = WardRelief.raised(lift, dark: dark)
+        let hi = WardRelief.composite(spec.highlight, on: base)
+        let sh = WardRelief.composite(spec.shade, on: base)
+        let (lb, lh, ls) = (WardPalette.luminance(base), WardPalette.luminance(hi), WardPalette.luminance(sh))
+
+        check("\(tag): the highlight is lighter than the base", lh > lb, "\(f(lh)) vs \(f(lb))")
+        check("\(tag): the shade is darker than the base", ls < lb, "\(f(ls)) vs \(f(lb))")
+        let apart = WardPalette.contrast(hi, sh)
+        check("\(tag): highlight and shade read apart, softly", apart >= 1.25 && apart <= 2.5, f(apart))
+        check("\(tag): each light shows on the base",
+              WardPalette.contrast(hi, base) >= 1.08 && WardPalette.contrast(sh, base) >= 1.08,
+              "\(f(WardPalette.contrast(hi, base))) / \(f(WardPalette.contrast(sh, base)))")
+
+        // lit from the top left
+        check("\(tag): the highlight falls up and left, the shade down and right",
+              spec.highlight.x < 0 && spec.highlight.y < 0 && spec.shade.x > 0 && spec.shade.y > 0 &&
+              spec.highlight.x == -spec.shade.x && spec.highlight.y == -spec.shade.y)
+        check("\(tag): the highlight is white", spec.highlight.hex == 0xFFFFFF)
+
+        // the ranges the design asks for
+        if dark {
+            check("\(tag): white at 0.05 to 0.09", (0.05...0.09).contains(spec.highlight.alpha), f(spec.highlight.alpha))
+            check("\(tag): black at 0.45 to 0.6",
+                  spec.shade.hex == 0x000000 && (0.45...0.6).contains(spec.shade.alpha), f(spec.shade.alpha))
+            check("\(tag): no white glare", WardPalette.contrast(hi, base) <= 1.4, f(WardPalette.contrast(hi, base)))
+        } else {
+            check("\(tag): white at 0.7 to 0.9", (0.7...0.9).contains(spec.highlight.alpha), f(spec.highlight.alpha))
+            check("\(tag): #A3B1C6 at 0.5 to 0.65",
+                  spec.shade.hex == 0xA3B1C6 && (0.5...0.65).contains(spec.shade.alpha), f(spec.shade.alpha))
+        }
+
+        // grows with the lift
+        if let last {
+            check("\(tag): stands further off than the lift below",
+                  spec.shade.x > last.shade.x && spec.shade.radius > last.shade.radius &&
+                  spec.highlight.alpha >= last.highlight.alpha && spec.shade.alpha >= last.shade.alpha)
+            let wasApart = WardPalette.contrast(WardRelief.composite(last.highlight, on: base),
+                                                WardRelief.composite(last.shade, on: base))
+            check("\(tag): reads at least as strongly as the lift below", apart >= wasApart, "\(f(apart)) vs \(f(wasApart))")
+        }
+        last = spec
+
+        // deterministic, and pressed in mirrors raised
+        check("\(tag): the same input gives the same relief", WardRelief.raised(lift, dark: dark) == spec)
+        let inset = WardRelief.inset(lift, dark: dark)
+        check("\(tag): raised drops its lights outside, pressed in casts them inside", !spec.inner && inset.inner)
+        check("\(tag): pressed in is raised mirrored", inset == spec.mirrored() && inset.mirrored() == spec)
+        check("\(tag): pressed in keeps the lights where they are",
+              inset.highlight == spec.highlight && inset.shade == spec.shade)
+
+        // A control's face has an ink edge at 3:1 or more; a card or a slab
+        // has none until Increase Contrast, which strengthens both
+        let control = WardRelief.raised(lift, dark: dark, control: true)
+        let strong = WardRelief.raised(lift, dark: dark, highContrast: true)
+        let strongControl = WardRelief.raised(lift, dark: dark, highContrast: true, control: true)
+        let edge = WardPalette.contrast(WardRelief.edgeColor(dark: dark), base)
+        let strongEdge = WardPalette.contrast(WardRelief.edgeColor(dark: dark, highContrast: true), base)
+        check("\(tag): a control's edge reads at least 3:1 on the base",
+              control.edgeAlpha == WardRelief.edgeAlpha(dark: dark) && edge >= WardRelief.edgeContrast, f(edge))
+        check("\(tag): a card has no edge", spec.edgeAlpha == 0)
+        check("\(tag): a control's face is a card's with the edge",
+              control.highlight == spec.highlight && control.shade == spec.shade && control.inner == spec.inner)
+        check("\(tag): pressed in keeps the edge",
+              inset.edgeAlpha == spec.edgeAlpha &&
+              WardRelief.inset(lift, dark: dark, control: true).edgeAlpha == control.edgeAlpha)
+        check("\(tag): Increase Contrast edges a card",
+              strong.edgeAlpha == WardRelief.containerHighContrastEdge && strong.edgeAlpha > 0)
+        check("\(tag): Increase Contrast strengthens a control's edge, past a card's",
+              strongControl.edgeAlpha > control.edgeAlpha && strongEdge > edge &&
+              strongControl.edgeAlpha > strong.edgeAlpha, "\(f(strongEdge)) vs \(f(edge))")
+        check("\(tag): Increase Contrast deepens the shade",
+              strong.shade.alpha > spec.shade.alpha &&
+              WardPalette.luminance(WardRelief.composite(strong.shade, on: base)) < ls)
+        check("\(tag): Increase Contrast keeps the geometry and the highlight",
+              strong.highlight == spec.highlight && strong.shade.x == spec.shade.x && strong.shade.radius == spec.shade.radius)
+        check("\(tag): Increase Contrast pressed in mirrors too",
+              WardRelief.inset(lift, dark: dark, highContrast: true) == strong.mirrored())
+    }
+}
+
+let liftOrder: [Int] = WardLift.allCases.map { $0.rawValue }
+check("the lifts are ordered low to peak", liftOrder == liftOrder.sorted() && liftOrder.first == WardLift.low.rawValue
+      && liftOrder.last == WardLift.peak.rawValue)
+check("pressed in sinks one lift, never below low",
+      WardLift.peak.lower == .high && WardLift.high.lower == .mid && WardLift.mid.lower == .low && WardLift.low.lower == .low)
+check("a light on its own colour at full strength is that colour",
+      WardRelief.composite(WardReliefLight(hex: 0x123456, alpha: 1, x: 0, y: 0, radius: 0), on: 0xFFFFFF) == 0x123456)
+check("a light at no strength leaves the base",
+      WardRelief.composite(WardReliefLight(hex: 0x123456, alpha: 0, x: 0, y: 0, radius: 0), on: 0xE0E5EC) == 0xE0E5EC)
+
+for (alpha, expected) in [(0.0, false), (1e-4, false), (2e-4, true)] {
+    check("light visibility at \(alpha)",
+          WardReliefLight(hex: 0xFFFFFF, alpha: alpha, x: 0, y: 0, radius: 0).lit == expected)
+}
+
+// The retro press has separate click and shade tracks, with no overshoot.
+func near(_ a: Double, _ b: Double) -> Bool { abs(a - b) <= 1e-9 }
+check("press constants", WardPress.sinkScale == 0.985 && WardPress.press == 0.05 &&
+      WardPress.release == 0.07 && WardPress.shadePress == 0.21 &&
+      WardPress.shadeRelease == 0.26 && WardPress.depth == 1 &&
+      WardPress.softKeep == 0.6 && WardPress.hollowSoft == 1)
+let curve = WardPress.quickCurve
+check("quick curve controls", near(curve.x1, 1.0 / 3) && curve.y1 == 0.5 &&
+      near(curve.x2, 2.0 / 3) && near(curve.y2, 5.0 / 6))
+for i in 0...20 {
+    let t = Double(i) / 20, v = 1 - t
+    let x = 3 * v * v * t * curve.x1 + 3 * v * t * t * curve.x2 + t * t * t
+    let y = 3 * v * v * t * curve.y1 + 3 * v * t * t * curve.y2 + t * t * t
+    check("Bezier \(i): x=t, y=quick(t)", near(x, t) && near(y, WardPress.quick(t)))
+    check("glide \(i)", near(WardPress.glide(t), sin(t * .pi / 2)))
+}
+check("progress clamps", WardPress.quick(-1) == 0 && WardPress.quick(2) == 1 &&
+      WardPress.glide(-1) == 0 && near(WardPress.glide(2), 1))
+check("release completes click", WardPress.releaseHold(held: -1) == 0.05 &&
+      WardPress.releaseHold(held: 0) == 0.05 && near(WardPress.releaseHold(held: 0.02), 0.03) &&
+      WardPress.releaseHold(held: 0.05) == 0 && WardPress.releaseHold(held: 1) == 0)
+for (lift, expected) in zip(WardLift.allCases, [1.0, 1.5, 2.0, 2.5]) {
+    check("softness \(lift)", near(WardPress.soft(lift), expected))
+    for dark in [false, true] {
+        for strong in [false, true] {
+            let raised = WardRelief.raised(lift, dark: dark, highContrast: strong, control: true)
+            func spec(_ q: Double) -> WardPressSpec {
+                WardPress.spec(lift, depth: q, dark: dark, highContrast: strong)
+            }
+            check("\(lift)/\(dark)/\(strong): a pressable face is a control's, edged",
+                  spec(0).edgeAlpha == WardRelief.edgeAlpha(dark: dark, highContrast: strong))
+            check("\(lift)/\(dark)/\(strong): an icon tile's is a card's",
+                  WardPress.spec(lift, depth: 0.5, dark: dark, highContrast: strong, control: false).edgeAlpha
+                    == WardRelief.containerEdgeAlpha(highContrast: strong))
+            check("\(lift)/\(dark)/\(strong): depth clamps", spec(-1) == spec(0) && spec(2) == spec(1))
+            for q in [-1.0, 0.0, 0.5, 1.0, 2.0] {
+                check("a button's outline stays crisp \(lift)/\(dark)/\(strong)/\(q)", spec(q).blur == 0)
+                let tile = WardPress.spec(lift, depth: q, dark: dark, highContrast: strong, control: false)
+                let extra = min(1, max(0, q))
+                check("an icon tile keeps its softness \(lift)/\(dark)/\(strong)/\(q)", near(tile.blur, expected + extra))
+                check("an icon tile casts no rim highlight \(lift)/\(dark)/\(strong)/\(q)", !tile.outerHighlight.lit)
+            }
+            let resting = spec(0), pressed = spec(1)
+            check("\(lift)/\(dark)/\(strong): resting lights are the rim",
+                  resting.outerShade.lit && resting.outerHighlight.lit && !resting.innerShade.lit && !resting.innerHighlight.lit)
+            check("\(lift)/\(dark)/\(strong): pressed lights fall inside",
+                  !pressed.outerShade.lit && !pressed.outerHighlight.lit && pressed.innerShade.lit && pressed.innerHighlight.lit)
+            let rim = WardRelief.rim(lift, dark: dark, highContrast: strong)
+            var previous = spec(0)
+            for i in 0...100 {
+                let q = Double(i) / 100, up = 1 - q, down = q
+                let current = spec(q)
+                let lights = [current.outerHighlight, current.outerShade, current.innerShade, current.innerHighlight]
+                var deeper = raised.shade
+                deeper.alpha = min(1, raised.shade.alpha * 1.25)
+                let originals = [rim.highlight, rim.shade, deeper, raised.highlight]
+                let weights = [up, up, down, down]
+                for j in 0..<4 {
+                    let light = lights[j], original = originals[j], w = weights[j]
+                    check("spec \(lift)/\(dark)/\(strong)/\(i)/\(j)",
+                          light.hex == original.hex && near(light.alpha, original.alpha * w) &&
+                          near(light.x, original.x * w) && near(light.y, original.y * w) &&
+                          near(light.radius, original.radius * (0.6 + 0.4 * w)))
+                }
+                check("edge \(i)", current.edgeAlpha == raised.edgeAlpha)
+                check("a button's rim never reaches past rimReach \(lift)/\(dark)/\(strong)/\(i)",
+                      WardRelief.reach(current.outerHighlight) <= WardRelief.rimReach + 1e-9 &&
+                      WardRelief.reach(current.outerShade) <= WardRelief.rimReach + 1e-9)
+                let old = [previous.outerHighlight, previous.outerShade, previous.innerShade, previous.innerHighlight]
+                check("continuous \(lift)/\(dark)/\(strong)/\(i)", zip(old, lights).allSatisfy {
+                    abs($0.alpha - $1.alpha) <= 0.01 + 1e-9 &&
+                    abs($0.x - $1.x) <= 0.12 + 1e-9 && abs($0.y - $1.y) <= 0.12 + 1e-9
+                })
+                previous = current
+            }
+        }
+    }
+}
+
+// The rim: the one soft light the app keeps, on buttons only (the owner,
+// 14 Oct). Small: 2 points of blur and at most 3 of offset, the whole of it
+// within rimReach, which is less than the smallest gap between two
+// controls, so it never reaches another control or the words beside it.
+check("the rim's reach is under the scale's smallest gap between controls",
+      WardRelief.rimReach < WardScale.s && WardRelief.rimReach <= WardRelief.rimMaxOffset + WardRelief.rimMaxBlur)
+for dark in [false, true] {
+    let base = WardRelief.base(dark: dark)
+    var lastReach = 0.0
+    for lift in WardLift.allCases {
+        for strong in [false, true] {
+            let tag = "rim \(dark ? "dark" : "light") \(lift)\(strong ? " strong" : "")"
+            let rim = WardRelief.rim(lift, dark: dark, highContrast: strong)
+            let wide = WardRelief.raised(lift, dark: dark, highContrast: strong)
+            check("\(tag): a blur of 2 points", (2...WardRelief.rimMaxBlur).contains(rim.highlight.radius) &&
+                  rim.shade.radius == rim.highlight.radius)
+            check("\(tag): a small offset, up and left then down and right",
+                  rim.highlight.x < 0 && rim.highlight.y < 0 && rim.shade.x > 0 && rim.shade.y > 0 &&
+                  rim.shade.x <= WardRelief.rimMaxOffset && rim.highlight.x == -rim.shade.x)
+            check("\(tag): within its reach", WardRelief.reach(rim.highlight) <= WardRelief.rimReach &&
+                  WardRelief.reach(rim.shade) <= WardRelief.rimReach)
+            check("\(tag): never wider than the relief a card keeps",
+                  WardRelief.reach(rim.shade) <= WardRelief.reach(wide.shade) || lift == .low)
+            check("\(tag): raised, outside the face", !rim.inner)
+            check("\(tag): a control's edge", rim.edgeAlpha == WardRelief.edgeAlpha(dark: dark, highContrast: strong))
+            let hi = WardRelief.composite(rim.highlight, on: base), sh = WardRelief.composite(rim.shade, on: base)
+            check("\(tag): the highlight is lighter than the base and the shade darker",
+                  WardPalette.luminance(hi) > WardPalette.luminance(base) &&
+                  WardPalette.luminance(sh) < WardPalette.luminance(base))
+            check("\(tag): the two read apart", WardPalette.contrast(hi, sh) >= 1.3, f(WardPalette.contrast(hi, sh)))
+            if dark { check("\(tag): no white glare", WardPalette.contrast(hi, base) <= 1.4, f(WardPalette.contrast(hi, base))) }
+            if strong {
+                check("\(tag): Increase Contrast deepens the shade",
+                      rim.shade.alpha > WardRelief.rim(lift, dark: dark).shade.alpha)
+            }
+        }
+        let reach = WardRelief.reach(WardRelief.rim(lift, dark: dark).shade)
+        check("rim \(dark) \(lift): a higher button's rim reaches no less", reach >= lastReach)
+        lastReach = reach
+    }
+}
+
+// Paper frame: exact ink, strict size threshold and grid endpoints.
+check("paper constants", WardPaper.frame == 12 && WardPaper.cell == 6 &&
+      WardPaper.boldEvery == 5 && WardPaper.line == 1 && WardPaper.edgeWidth == 1.5 &&
+      near(WardPaper.cornerShare, 53.33 / 428))
+for dark in [false, true] {
+    for strong in [false, true] {
+        let ink = WardPaper.ink(dark: dark, highContrast: strong)
+        // the ink outside any section (Cards' indigo), not the old blue
+        check("paper ink \(dark)/\(strong)",
+              ink.hex == (dark ? 0xA5B6FE : 0x5866E5) &&
+              ink.fine == (strong ? 0 : (dark ? 0.07 : 0.09)) &&
+              ink.bold == (strong ? 0 : (dark ? 0.14 : 0.18)) &&
+              ink.edge == (dark ? 0.5 : 0.55))
+    }
+}
+check("paper panel excludes threshold", WardPaper.panel(width: 48, height: 500) == nil &&
+      WardPaper.panel(width: 500, height: 48) == nil)
+if let panel = WardPaper.panel(width: 49, height: 49) {
+    check("paper smallest panel", panel.x == 12 && panel.y == 12 &&
+          panel.width == 25 && panel.height == 25 && near(panel.radius, 25 * 53.33 / 428))
+} else {
+    check("paper smallest panel exists", false)
+}
+for (width, height) in [(428.0, 926.0), (926.0, 428.0)] {
+    if let panel = WardPaper.panel(width: width, height: height) {
+        check("paper panel \(width)x\(height)", panel.x == 12 && panel.y == 12 &&
+              panel.width == width - 24 && panel.height == height - 24 &&
+              near(panel.radius, 404 * 53.33 / 428))
+    } else {
+        check("paper phone panel exists", false)
+    }
+}
+// The home page's opening, moved down under its header: same sides, bottom
+// and corners; held to the frame above and to room for its corners below.
+if let base = WardPaper.panel(width: 402, height: 874),
+   let low = WardPaper.panel(width: 402, height: 874, top: 280),
+   let high = WardPaper.panel(width: 402, height: 874, top: 4),
+   let deep = WardPaper.panel(width: 402, height: 874, top: 870) {
+    check("paper panel moved down", low.y == 280 && low.x == base.x && low.width == base.width &&
+          low.y + low.height == base.y + base.height && low.radius == base.radius)
+    check("paper panel never above the frame", high == base)
+    check("paper panel keeps room for its corners", near(deep.height, 2 * base.radius) &&
+          deep.y + deep.height == base.y + base.height)
+} else {
+    check("paper moved panel exists", false)
+}
+let paper30 = WardPaper.lines(30), paper31 = WardPaper.lines(31)
+check("paper grid excludes endpoint", paper30.count == 5 &&
+      paper30.map { $0.at } == [0, 6, 12, 18, 24] &&
+      paper30.filter { $0.bold }.map { $0.at } == [0])
+check("paper grid includes next bold", paper31.count == 6 &&
+      paper31.map { $0.at } == [0, 6, 12, 18, 24, 30] &&
+      paper31.filter { $0.bold }.map { $0.at } == [0, 30])
+check("paper nonpositive grid empty", WardPaper.lines(0).isEmpty && WardPaper.lines(-5).isEmpty)
+
+// A band from a global origin: the frame's lines, in local positions.
+check("paper band from zero is the frame grid",
+      WardPaper.lines(31, from: 0).map { $0.at } == paper31.map { $0.at } &&
+      WardPaper.lines(31, from: 0).map { $0.bold } == paper31.map { $0.bold })
+let band = WardPaper.lines(20, from: 10)
+check("paper band shifts into local positions",
+      band.map { $0.at } == [2, 8, 14] && band.map { $0.bold } == [false, false, false],
+      "\(band.map { $0.at })")
+let bandBold = WardPaper.lines(25, from: 27)
+check("paper band keeps the global bold lines",
+      bandBold.map { $0.at } == [3, 9, 15, 21] &&
+      bandBold.filter { $0.bold }.map { $0.at } == [3],
+      "\(bandBold.map { ($0.at, $0.bold) })")
+let bandOnLine = WardPaper.lines(12, from: 30)
+check("paper band includes a line on its origin, excludes its end",
+      bandOnLine.map { $0.at } == [0, 6] && bandOnLine.first?.bold == true)
+let bandAbove = WardPaper.lines(14, from: -8)
+check("paper band above the origin counts bold lines the same way",
+      bandAbove.map { $0.at } == [2, 8] && bandAbove.map { $0.bold } == [false, true],
+      "\(bandAbove.map { ($0.at, $0.bold) })")
+check("paper band empty for no length", WardPaper.lines(0, from: 40).isEmpty &&
+      WardPaper.lines(-3, from: 40).isEmpty && WardPaper.lines(.infinity, from: 0).isEmpty)
+var aligned = true
+for origin in stride(from: -37.5, through: 211.0, by: 3.25) {
+    for line in WardPaper.lines(90, from: origin) {
+        let global = line.at + origin
+        let k = (global / WardPaper.cell).rounded()
+        if abs(k * WardPaper.cell - global) > 1e-9 || line.at < 0 || line.at >= 90 ||
+            line.bold != (Int(k) % 5 == 0) { aligned = false }
+    }
+}
+check("paper band lines sit on the frame's grid", aligned)
+
+// Raised and pressed in read apart at a glance, in light and dark, at every
+// lift (the owner, 16 Oct: buttons "can't be distinguished between pushed
+// and not"). Raised, the rim stands at the largest offset its reach allows
+// (2, 2.5, 3, 3), with a crisp blur of 2 and a darker shade (0.9 by day,
+// 0.85 at night), and reaches 4 to 5 points, still under the smallest gap
+// between two controls. Pressed in, the face sinks the whole of its lift's
+// lights, the inner shade a quarter stronger. The shade still starts in at
+// the speed it had at the old depth (0.7 over 0.15 and 0.18 seconds).
+for (lift, offset) in zip(WardLift.allCases, [2.0, 2.5, 3, 3]) {
+    check("raised \(lift): offset \(offset), blur 2", WardRelief.rimOffset(lift) == offset && WardRelief.rimBlur(lift) == 2)
+    for dark in [false, true] {
+        for strong in [false, true] {
+            let tag = "\(lift) \(dark ? "dark" : "light")\(strong ? " strong" : "")"
+            let rim = WardRelief.rim(lift, dark: dark, highContrast: strong)
+            let shade = min(1, (dark ? 0.85 : 0.9) + (strong ? 0.15 : 0))
+            check("raised \(tag): the rim's lights", near(rim.shade.alpha, shade) &&
+                  rim.highlight.alpha == (dark ? 0.1 : 0.95) && rim.shade.x == offset && rim.shade.y == offset &&
+                  rim.highlight.x == -offset && rim.shade.radius == 2 && rim.highlight.radius == 2,
+                  "\(rim.shade.alpha) \(rim.shade.x) \(rim.shade.radius)")
+            for light in [rim.highlight, rim.shade] {
+                check("raised \(tag): reaches \(offset + 2), within rimReach, under the gap between controls",
+                      near(WardRelief.reach(light), offset + 2) && WardRelief.reach(light) <= WardRelief.rimReach &&
+                      WardRelief.rimReach == 5 && WardRelief.rimReach < WardScale.s)
+            }
+            let raised = WardRelief.raised(lift, dark: dark, highContrast: strong, control: true)
+            let pressed = WardPress.spec(lift, depth: 1, dark: dark, highContrast: strong)
+            check("pressed \(tag): the whole of the lift's shade, a quarter stronger",
+                  near(pressed.innerShade.alpha, min(1, raised.shade.alpha * 1.25)) &&
+                  near(pressed.innerShade.x, WardRelief.offset(lift)) && near(pressed.innerShade.y, WardRelief.offset(lift)) &&
+                  near(pressed.innerShade.radius, WardRelief.radius(lift)),
+                  "\(pressed.innerShade.alpha) \(pressed.innerShade.x) \(pressed.innerShade.radius)")
+            check("pressed \(tag): and the whole of its highlight",
+                  near(pressed.innerHighlight.alpha, raised.highlight.alpha) &&
+                  near(pressed.innerHighlight.x, -WardRelief.offset(lift)))
+        }
+    }
+}
+check("the shade starts in as fast as at the old depth",
+      abs(WardPress.depth / WardPress.shadePress - 0.7 / 0.15) <= 0.03 * 0.7 / 0.15 &&
+      abs(WardPress.depth / WardPress.shadeRelease - 0.7 / 0.18) <= 0.03 * 0.7 / 0.18 &&
+      WardPress.press == 0.05 && WardPress.release == 0.07)
+
+print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
+                       : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")
+exit(failures.isEmpty ? 0 : 1)

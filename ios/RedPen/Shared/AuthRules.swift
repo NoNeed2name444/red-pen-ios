@@ -54,4 +54,12 @@ enum AuthRules {
               let code = value("code"), !code.isEmpty else { return nil }
         return code
     }
+
+    /// The Google client id the Info.plist carries, or nil when the build left
+    /// it unset: an empty or blank setting is no client id at all, and the app
+    /// then offers no Google door rather than one that can only fail.
+    static func googleClientID(_ raw: String?) -> String? {
+        guard let id = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else { return nil }
+        return id
+    }
 }

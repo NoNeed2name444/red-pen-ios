@@ -1,0 +1,92 @@
+# The whole app, compiled on every push to the personal branch - "Swift tests"
+# only compiles the shared model code, so an error in a screen would otherwise
+# first show up in the Swift Playgrounds build on the phone.
+name: App build
+on:
+  push:
+    # design/<name>: a design in progress is built and tapped through before it joins personal
+    branches: [personal, 'design/**']
+    paths: ['ios/**', '.github/workflows/app-build.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: app-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-latest
+    # The full run on personal (compile, the UI suite, then accessibility)
+    # took 61 minutes on 8 Oct and was cut off at 60.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: brew list xcodegen >/dev/null 2>&1 || HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Generate the project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build
+        id: build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          # the errors, where they can be read without downloading anything
+          { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "BUILD SUCCEEDED" ../build.log
+      # The simulator tap-through takes most of the run; a design branch gets the
+      # compile check only, and the full suite runs when it reaches personal.
+      - name: Tap through sign-in and the terms on a simulator
+        if: ${{ !startsWith(github.ref_name, 'design/') }}
+        working-directory: ios
+        run: |
+          set -o pipefail
+          DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
+          echo "Simulator: $DEVICE"
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
+            -resultBundlePath ../ui.xcresult \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -skip-testing:RedPenUITests/AccessibilityUITests \
+            test 2>&1 | tee ../uitest.log | grep -E "error:|Test Case|TEST |\*\* " || true
+          { echo '### Sign-in and terms tap test'; echo '```'; grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" ../uitest.log | tail -20 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "TEST SUCCEEDED" ../uitest.log
+      # The accessibility walk and audit at the largest text size, reported
+      # on its own: an audit finding shows up here (and in the summary)
+      # without turning the build above red. It must pass before the App
+      # Store accessibility labels are claimed (docs/launch/accessibility.md).
+      # Like the tap-through, it waits for personal: a design branch gets the
+      # compile check only.
+      - name: Accessibility at the largest text size
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && !startsWith(github.ref_name, 'design/') }}
+        continue-on-error: true
+        working-directory: ios
+        run: |
+          set -o pipefail
+          DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
+            -resultBundlePath ../a11y.xcresult \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:RedPenUITests/AccessibilityUITests \
+            test 2>&1 | tee ../a11y.log | grep -E "error:|Test Case|TEST |\*\* " || true
+          { echo '### Accessibility (AX5 text, audit)'; echo '```'; grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" ../a11y.log | tail -30 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "TEST SUCCEEDED" ../a11y.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-test
+          path: |
+            ui.xcresult
+            a11y.xcresult
+          if-no-files-found: ignore

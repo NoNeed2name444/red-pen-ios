@@ -16,6 +16,24 @@ func ok(_ condition: Bool, _ what: String) {
 
 let stem = "A 24-year-old returns with facial swelling. What is the diagnosis?"
 
+// MARK: which pictures are read in Arabic
+//
+// The Arabic read is several times slower than the English one, and an export
+// reads every picture before drawing a page, so only a card whose answer adds
+// an Arabic word gets it.
+
+ok(!ImageSpoiler.needsArabic(question: stem, answer: "Membranous nephropathy"),
+   "an English answer keeps the quick English-only read")
+ok(ImageSpoiler.needsArabic(question: stem, answer: "Membranous nephropathy \u{2014} \u{627}\u{644}\u{630}\u{626}\u{628}\u{629}"),
+   "an answer that adds an Arabic word is read in Arabic")
+ok(!ImageSpoiler.needsArabic(question: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629}: what is the treatment?",
+                             answer: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629} hydroxychloroquine"),
+   "an Arabic word the question already has cannot be given away, so it is not")
+ok(ImageSpoiler.placement(imageText: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629}",
+                          question: stem,
+                          answer: "\u{627}\u{644}\u{630}\u{626}\u{628}\u{629}") == .answer,
+   "and a picture showing that Arabic answer is held back")
+
 ok(ImageSpoiler.placement(imageText: "", question: stem,
                           answer: "Membranous nephropathy") == .question,
    "a picture with no readable text stays with the question")
@@ -92,9 +110,9 @@ ok(DeckPalette(red: 2, green: -1, blue: 0.5) == DeckPalette(red: 1, green: 0, bl
 ok(DeckPalette(red: 0, green: 0, blue: 0).hex == "#000000"
    && DeckPalette(red: 1, green: 1, blue: 1).hex == "#FFFFFF", "hex is hex")
 
-// Amber is the bright one: white on it is close to unreadable in print, so its
-// bar has to darken rather than carry white text as drawn.
-let amber = DeckPalette.of(.qa)
+// A bright amber: white on it is close to unreadable in print, so its bar has
+// to darken rather than carry white text as drawn.
+let amber = DeckPalette(red: 0.90, green: 0.49, blue: 0.13)
 ok(!amber.carriesWhiteText, "a bright tint is not asked to carry white text")
 ok(amber.barFill.luminance < amber.luminance, "so its bar is filled with a darker shade")
 ok(DeckPalette.of(.mcq).carriesWhiteText, "a dark tint carries white text as it is")
@@ -169,8 +187,34 @@ ok(!DeckBuilder.printsAsPDF(.anki), "an Anki set does not print as a PDF")
 ok(StudySetKind.allCases.filter { !DeckBuilder.printsAsPDF($0) } == [.anki],
    "and it is the only mode that does not")
 
-print(failures == 0 ? "\nALL DECK TESTS PASS" : "\n\(failures) FAILED")
-exit(failures == 0 ? 0 : 1)
+// MARK: a second copy of a set gets its own items
+
+// A conflict copy or a re-imported file that kept its cards' ids shared one
+// schedule with the original, since the schedule is kept by card id.
+var original = StudySet(name: "Lupus", kind: .anki)
+original.cards = [AnkiCard(type: .qa, front: "Malar rash spares?", bullets: ["Nasolabial folds"]),
+                  AnkiCard(type: .qa, front: "Entry criterion?", bullets: ["ANA"])]
+original.questions = [MCQQuestion(stem: "Which?", options: ["A", "B"], correctIndex: 1, explanation: "")]
+let copy = original.withNewItemIDs()
+ok(Set(copy.cards.map(\.id)).isDisjoint(with: Set(original.cards.map(\.id))),
+   "a copy's cards have ids of their own, so it has a schedule of its own")
+ok(Set(copy.questions.map(\.id)).isDisjoint(with: Set(original.questions.map(\.id))),
+   "and so do its questions")
+ok(copy.cards.map(\.front) == original.cards.map(\.front) && copy.questions[0].correctIndex == 1,
+   "with everything else as it was")
+
+// A conflict copy beside the version that won: only the cards both hold get
+// new ids. A card added on this device alone keeps its id - and its schedule.
+var losing = original
+losing.cards.append(AnkiCard(type: .qa, front: "Only here?", bullets: ["Yes"]))
+let kept = losing.withNewItemIDs(sharedWith: original)
+ok(Set(kept.cards.prefix(2).map(\.id)).isDisjoint(with: original.itemIDs),
+   "a conflict copy's cards shared with the winner are renewed")
+ok(kept.cards[2].id == losing.cards[2].id,
+   "and a card only the copy has keeps its id, so its schedule stays with it")
+ok(kept.itemIDs.isDisjoint(with: original.itemIDs),
+   "so no card is in both decks, and deleting one never forgets the other's schedule")
+
 
 // MARK: the explanation, arranged
 
@@ -227,3 +271,6 @@ ok(mechanism.traps.count == 1,
    "a sentence is a trap only when it looks more like the distractor than like the answer")
 ok(mechanism.core.contains("delayed pulmonary valve closure"),
    "so the right answer's own mechanism stays in the core")
+
+print(failures == 0 ? "\nALL DECK TESTS PASS" : "\n\(failures) FAILED")
+exit(failures == 0 ? 0 : 1)

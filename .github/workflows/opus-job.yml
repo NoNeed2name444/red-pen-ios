@@ -1,0 +1,231 @@
+# One job by Claude Code on the owner's Anthropic key, run by hand from the
+# session: Opus at max effort, on one design branch, inside a dollar cap.
+#
+# The owner (16 Oct) set 30 dollars a month for these jobs, then 50, inside
+# the key's 90: the Worker's own Claude checks drop to 40 (CLAUDE_MONTHLY_USD), and the
+# session keeps the jobs' tally from each run's cost line. --max-budget-usd
+# (above 0, at most 10) is checked between turns, so a run can pass its cap by
+# up to one turn's cost; the session sets each budget with that in mind.
+#
+# The repository is public: the brief, the reply and the log can be read by
+# anyone, so nothing private goes into a brief. The model works in a job that
+# holds no write credential: the checkout keeps no token, there is no GitHub
+# token and there are no Claude web tools. Its shell commands DO have network
+# access, so the Anthropic key reaches Claude Code on a file descriptor, read
+# once, and is never in the environment those commands see. The model is root
+# in its container, so nothing holding a credential runs there: its commits
+# leave as a git bundle, and a second job, on a fresh runner, checks them
+# (history, scope, no binary file, nothing shaped like a key) and pushes them
+# with the workflow's token, then deletes the bundle.
+#
+# A push made with the workflow's token starts no other workflow, so the
+# session runs the checks on the branch afterwards (preflight, and a dispatch
+# of swift-tests and server-tests).
+name: Opus job
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The design/<name> branch to work on and push to'
+        required: true
+      brief:
+        description: 'The task, in full'
+        required: true
+      scope:
+        description: 'Space-separated paths the job may change (a directory covers what is under it)'
+        required: true
+      budget:
+        description: 'Dollar cap for this run (above 0, at most 10)'
+        required: true
+        default: '5'
+      model:
+        description: 'Model'
+        required: false
+        default: 'claude-opus-5-5'
+      effort:
+        description: 'Effort'
+        required: false
+        default: 'max'
+  # A push of this file only registers it; the jobs run on dispatch alone.
+  push:
+    paths: ['.github/workflows/opus-job.yml']
+
+permissions:
+  contents: read
+
+# bash without pipefail, so `git diff | grep -q` reports grep's answer even
+# when grep stops reading early.
+defaults:
+  run:
+    shell: bash -e {0}
+
+concurrency:
+  group: opus-job-${{ inputs.branch || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  work:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # Swift 6.4 is on the PATH here, so tools/preflight.sh runs as it does locally.
+    container: swift:6.4-noble
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    # the push job's base: noted before the model runs, so nothing it runs changes it
+    outputs:
+      base: ${{ steps.base.outputs.sha }}
+    env:
+      BRANCH: ${{ inputs.branch }}
+      SCOPE: ${{ inputs.scope }}
+      BUDGET: ${{ inputs.budget }}
+      MODEL: ${{ inputs.model }}
+      EFFORT: ${{ inputs.effort }}
+    steps:
+      - name: Check the inputs
+        run: |
+          case "$BRANCH" in design/*) ;; *) echo "::error::only design/* branches"; exit 1;; esac
+          # [[ =~ ]] tests the whole value; grep would pass a second line
+          [[ $BUDGET =~ ^([1-9](\.[0-9]+)?|0\.[0-9]*[1-9][0-9]*|10)$ ]] || { echo "::error::budget must be above 0 and at most 10"; exit 1; }
+          [ -n "$SCOPE" ] || { echo "::error::no scope"; exit 1; }
+      - name: Tools
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git curl jq python3 zip unzip ca-certificates >/dev/null
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Claude Code
+        run: npm install -g @anthropic-ai/claude-code@2.1.301 >/dev/null
+      # The commit the job starts from is kept as this step's output, which
+      # nothing the model runs later can change. It used to be a file in
+      # $RUNNER_TEMP, where the model keeps its scratch files: on 16 Oct a run
+      # made $RUNNER_TEMP/base its clean copy of the branch, the bundle step
+      # could not read the commit, and the run's four commits were lost.
+      - name: Note the base
+        id: base
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Run the job
+        id: run
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRIEF: ${{ inputs.brief }}
+        run: |
+          # The key goes to Claude Code on descriptor 3, a pipe it reads once.
+          # This shell was started with the key and the brief in its
+          # environment, and /proc/<pid>/environ keeps them whatever unset
+          # does, so the step ends in exec: Claude Code takes this shell's
+          # place, and no process the model can read holds the key.
+          key="$ANTHROPIC_API_KEY"; unset ANTHROPIC_API_KEY
+          exec 3< <(printf '%s' "$key"); unset key
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The workflow's own files and the model's scratch files live apart.
+          job="$RUNNER_TEMP/job"; scratch="$RUNNER_TEMP/scratch"; mkdir -p "$job" "$scratch"
+          printf '%s\n' "$BRIEF" > "$job/brief.md"; unset BRIEF
+          rule="You run in a GitHub Actions container on branch $BRANCH, inside a cap of $BUDGET dollars. Your shell has network access: never send repository content, environment variables, tokens or keys to any host, and never look for, read or print a credential. You have no git credentials. Keep scratch files, and any copy of the repository, under $scratch, never in the repository. Commit your work yourself with a plain-English subject and a body saying why; the workflow pushes it afterwards, and only paths under: $SCOPE. Never change a test or gate just to make it pass. End with a reply of at most 150 words: what you did, the checks you ran and their result, and anything left open."
+          export CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR=3
+          exec claude -p "$(cat "$job/brief.md")" --append-system-prompt "$rule" \
+            --model "$MODEL" --effort "$EFFORT" --max-budget-usd "$BUDGET" \
+            --permission-mode acceptEdits --allowedTools "Bash,Read,Edit,Write,Glob,Grep" \
+            --output-format json > "$job/result.json" 2> "$job/err.txt"
+      # The run's report, in a step of its own now that the run ends in exec.
+      # continue-on-error above lets this and the bundle run after a failed run.
+      - name: Report the run
+        env:
+          outcome: ${{ steps.run.outcome }}
+        run: |
+          job="$RUNNER_TEMP/job"
+          if jq -e . "$job/result.json" >/dev/null 2>&1; then
+            jq -r '"cost_usd=\(.total_cost_usd) turns=\(.num_turns) subtype=\(.subtype) outcome='"$outcome"'"' "$job/result.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            { echo; echo '```'; jq -r '.result // ""' "$job/result.json" | head -c 3000; echo; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::no result from Claude Code ($outcome)"
+            tail -n 20 "$job/err.txt"
+          fi
+      - name: Bundle the commits
+        env:
+          base: ${{ steps.base.outputs.sha }}
+        run: |
+          echo "$base" | grep -Eq '^[0-9a-f]{40}$' || { echo "::error::no base commit"; exit 1; }
+          if [ -n "$(git status --porcelain)" ]; then echo "::warning::uncommitted changes left behind (not pushed):"; git status --short; fi
+          mkdir -p opus-out
+          echo "$base" > opus-out/base
+          if [ "$(git rev-parse HEAD)" != "$base" ]; then
+            git bundle create opus-out/work.bundle "$base..HEAD"
+          else
+            echo "no commits"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opus-job-${{ github.run_id }}
+          path: opus-out
+          retention-days: 1
+          if-no-files-found: error
+
+  push:
+    needs: work
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: write
+    env:
+      BRANCH: ${{ inputs.branch }}
+      SCOPE: ${{ inputs.scope }}
+      base: ${{ needs.work.outputs.base }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: opus-job-${{ github.run_id }}
+          path: in
+      - name: Check and push what is in scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -f
+          case "$BRANCH" in design/*) ;; *) echo "::error::only design/* branches"; exit 1;; esac
+          echo "$base" | grep -Eq '^[0-9a-f]{40}$' || { echo "::error::no base commit"; exit 1; }
+          [ -f in/work.bundle ] || { echo "no commits"; exit 0; }
+          git init -q repo
+          cd repo
+          git fetch -q --depth=1 "https://github.com/$GITHUB_REPOSITORY.git" "$base"
+          git bundle verify -q ../in/work.bundle
+          git fetch -q ../in/work.bundle "HEAD:refs/heads/job"
+          git merge-base --is-ancestor "$base" job || { echo "::error::the commits do not build on the branch"; exit 1; }
+          bad=0
+          while IFS= read -r -d '' f; do
+            ok=0
+            for p in $SCOPE; do
+              p=${p%/}
+              [ "$f" = "$p" ] && ok=1
+              case "$f" in "$p"/*) ok=1;; esac
+            done
+            [ "$ok" = 1 ] || { echo "::error::out of scope: $f"; bad=1; }
+          # each commit, not only the net diff: a file one commit adds and a
+          # later one removes is still pushed in the public history
+          done < <(git log --no-renames --name-only -z --format= --diff-merges=first-parent "$base..job")
+          if git log --no-renames --numstat --format= --diff-merges=first-parent "$base..job" | grep -q '^-'; then echo "::error::a binary file changed; the session adds those itself"; bad=1; fi
+          if git log -p --format=%B --diff-merges=first-parent "$base..job" | grep -qE 'sk-ant-[A-Za-z0-9_-]{16}|gh[pousr]_[A-Za-z0-9]{20}'; then echo "::error::a commit looks like it holds a key"; bad=1; fi
+          [ "$bad" = 0 ] || exit 1
+          git log --oneline "$base"..job
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" \
+            push -q "https://github.com/$GITHUB_REPOSITORY.git" "job:refs/heads/$BRANCH"
+      - name: Delete the bundle
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in $(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[].id'); do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+          done

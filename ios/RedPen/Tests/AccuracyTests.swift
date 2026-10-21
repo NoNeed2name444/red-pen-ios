@@ -1,0 +1,508 @@
+// The accuracy engine's pure parts on the phone: the rule checks (the same
+// cases as server/tests/accuracy.test.mjs, since the two ports must agree),
+// the accuracy model's inference and grades, the content hash the cache is
+// kept by, the order background checks run in, and one-tap corrections.
+import Foundation
+
+var failures: [String] = []
+
+func check(_ label: String, _ ok: Bool, _ detail: String = "") {
+    print((ok ? "ok   " : "FAIL ") + label + (ok ? "" : "  | " + detail))
+    if !ok { failures.append(label) }
+}
+
+func card(_ text: String) -> AccuracyItem { AccuracyItem(id: "x", kind: .card, text: text) }
+func ids(_ item: AccuracyItem) -> [String] { AccuracyRules.hits(item).map { $0.rule + ":" + $0.severity } }
+func has(_ item: AccuracyItem, _ prefix: String) -> Bool { ids(item).contains { $0.hasPrefix(prefix) } }
+
+// MARK: rules - the same cases as the server's
+
+check("paracetamol 10 g is a severe dose error", has(card("Give paracetamol 10 g orally for fever."), "dose-range:severe"))
+check("metformin 500 mg is fine", !has(card("Metformin 500 mg twice daily with meals."), "dose-range"))
+check("digoxin 25 mg is severe", has(card("Digoxin 25 mg once daily for rate control."), "dose-range:severe"))
+check("adrenaline 0.5 mg IM is fine", !has(card("Adrenaline 0.5 mg IM for anaphylaxis."), "dose-range"))
+check("a per-kg dose is left alone", !has(card("Vancomycin 15 mg/kg every 12 hours."), "dose-range"))
+check("a dose before the drug is read", AccuracyRules.doses("500 mg of amoxicillin three times a day").first?.mg == 500)
+check("micrograms are converted", AccuracyRules.doses("levothyroxine 100 micrograms daily").first?.mg == 0.1)
+check("atorvastatin 800 mg is severe", has(card("Atorvastatin 800 mg at night."), "dose-range:severe"))
+check("glucose 5.5 mg/dL is impossible", has(card("Fasting glucose 5.5 mg/dL is normal."), "lab-implausible"))
+check("sodium 128 mmol/L is fine", !has(card("Sodium 128 mmol/L indicates hyponatraemia."), "lab"))
+check("sodium in mg/dL is the wrong unit", has(card("Sodium 140 mg/dL is normal."), "lab-unit"))
+check("a wrong reference range is severe", has(card("Normal potassium is 5.5-7.5 mmol/L."), "reference-range:severe"))
+check("the right reference range passes", !has(card("Normal potassium is 3.5-5.0 mmol/L."), "reference-range"))
+check("pH and PaCO2 are read", AccuracyRules.labValues("pH 7.21 and PaCO2 60 mmHg").count == 2)
+check("one analyte raised and lowered", has(card("In SIADH sodium is low. Sodium is elevated in SIADH."), "direction-conflict"))
+check("vitamin K is not potassium", !has(card("Vitamin K 10 mg IV reverses warfarin."), "lab"))
+
+let q = AccuracyItem(id: "q", kind: .mcq,
+                     stem: "A 60-year-old man has crushing chest pain. Which drug reduces mortality first?",
+                     options: ["Aspirin", "Morphine", "Oxygen", "Nitrates", "Furosemide"], key: 0,
+                     explanation: "Aspirin reduces mortality in acute coronary syndrome.")
+check("a clean question has no hits", AccuracyRules.hits(q).isEmpty, "\(ids(q))")
+var q2 = q; q2.explanation = "The correct answer is B. Morphine relieves pain."
+check("an explanation naming another letter", has(q2, "key-explanation-conflict:severe"))
+q2.explanation = "Morphine is the correct answer here."
+check("or another option's words", has(q2, "key-explanation-conflict"))
+q2.explanation = "Aspirin is not the correct answer here."
+check("an explanation calling the key wrong", has(q2, "key-called-wrong"))
+var q3 = q; q3.options = ["Aspirin", "aspirin", "Oxygen", "Nitrates", "Furosemide"]
+check("a duplicate of the key is severe", has(q3, "duplicate-option:severe"))
+q3.options = ["Aspirin", "All of the above", "Oxygen", "Nitrates", "None of the above"]
+check("all of the above not last", has(q3, "non-answer-position"))
+q3.options = ["Aspirin", "Morphine", "Oxygen", "None of the above", "All of the above"]; q3.key = 4
+check("all of the above keyed beside none of the above", has(q3, "all-above-contradiction"))
+var q4 = q; q4.key = 7
+check("a key outside the options", has(q4, "no-key:severe"))
+let numbers = AccuracyItem(id: "n", kind: .mcq, stem: "A woman has sodium 118 mmol/L after a marathon. What is the cause?",
+                           options: ["Water excess", "Salt loss"], key: 0, explanation: "Her sodium of 128 mmol/L reflects water excess.")
+check("stem and explanation disagree on a value", has(numbers, "numbers-disagree"))
+let except = AccuracyItem(id: "e", kind: .mcq, stem: "Which is NOT a feature of nephrotic syndrome?",
+                          options: ["Haematuria", "Proteinuria"], key: 0, explanation: "Haematuria is a characteristic feature.")
+check("an EXCEPT question whose explanation calls the key true", has(except, "negation-mismatch"))
+check("the explanation's letter is read", AccuracyRules.explainedAnswer("Ans. is the correct answer: (C) because", options: ["a", "b", "c"]) == 2)
+check("the source match", AccuracyRules.sourceMatch(AccuracyItem(id: "s", kind: .card, text: "Aspirin reduces mortality", source: "aspirin reduces mortality in ACS")) == 1
+      && AccuracyRules.sourceMatch(card("x")) == nil)
+check("the tables are read", AccuracyRules.drugs.count > 100 && AccuracyRules.drugs["digoxin"] == [0.0625, 1.5]
+      && AccuracyRules.labs["glucose"]?["mmol/l"] == [0.5, 140, 3.9, 5.6])
+
+// MARK: the model
+
+check("Verified needs three model families", AccuracyModel.minVerifyVoters == 3)
+func solve(_ model: String, _ answer: String, evidence: String = "supports") -> AccuracyVote {
+    AccuracyVote(model: model, risk: 1, answer: answer, evidence: evidence, blind: true)
+}
+let gModel = "gemini-3.5-flash-lite", gmModel = "gemma-4-31b-it", oModel = "@cf/openai/gpt-oss-120b", nModel = "@cf/nvidia/nemotron-3-120b-a12b"
+let pass = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [solve(gModel, "A"), solve(oModel, "A"), solve(nModel, "A")],
+                                       evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A", sourceProof: true)
+let p1 = AccuracyModel.probability(pass)
+check("three blind solves from three families reach the key, proven by an official source: Verified", p1 > 0.95 && AccuracyModel.grade(p1, pass) == .verified, "\(p1)")
+let unproven = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [solve(gModel, "A"), solve(oModel, "A"), solve(nModel, "A")],
+                                           evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
+check("the same votes with no official source stating it: Check this, the score unchanged",
+      unproven["source_proof"] == 0 && pass["source_proof"] == 1 && AccuracyModel.grade(p1, unproven) == .check
+      && AccuracyModel.probability(unproven) == p1)
+// the briefs' rules for questions, as the server has them (server/accuracy-model.js verdict)
+func mcqVotes(_ votes: [AccuracyVote], rules: [AccuracyRules.Hit] = []) -> [String: Double] {
+    AccuracyModel.featureValues(kind: .mcq, rules: rules, votes: votes, evidenceCount: 3, sourceMatch: 0.7, keyLetter: "A")
+}
+let twoBlindF = mcqVotes([solve(gModel, "A"), solve(oModel, "A")])
+check("two blind families on the key are no longer enough", AccuracyModel.grade(AccuracyModel.probability(twoBlindF), twoBlindF) == .check)
+let dissentF = mcqVotes([solve(gModel, "A"), solve(gmModel, "C"), solve(oModel, "A"), solve(nModel, "A")])
+check("a family whose blind solve went elsewhere keeps it from Verified", dissentF["blind_agree"] == 3 && dissentF["blind_dissent"] == 1
+      && AccuracyModel.grade(0.99, dissentF) == .check)
+let concernF = mcqVotes([solve(gModel, "A"), solve(oModel, "A"), solve(nModel, "A"), AccuracyVote(model: oModel, risk: 3, answer: "A", evidence: "none")])
+check("a concern from any checker keeps it from Verified", AccuracyModel.grade(0.99, concernF) == .check)
+let contradictedF = mcqVotes([solve(gModel, "A", evidence: "contradicts"), solve(oModel, "A"), solve(nModel, "A")])
+check("literature read against it keeps it from Verified", AccuracyModel.grade(0.99, contradictedF) == .check)
+let anchoredF = mcqVotes([AccuracyVote(model: gModel, risk: 1, answer: "A", evidence: "supports"),
+                          AccuracyVote(model: oModel, risk: 1, answer: "A", evidence: "supports"),
+                          AccuracyVote(model: nModel, risk: 1, answer: "A", evidence: "supports")])
+check("votes that saw the key do not verify a question", AccuracyModel.grade(AccuracyModel.probability(anchoredF), anchoredF) == .check)
+let againstF = mcqVotes([solve(gModel, "C", evidence: "none"), solve(oModel, "C", evidence: "none"), solve(nModel, "C", evidence: "none"),
+                         AccuracyVote(model: gmModel, risk: 1, answer: "A", evidence: "supports")])
+check("three families solving it blind agree on another answer, none on the key: Flagged", againstF["blind_against"] == 3
+      && AccuracyModel.grade(AccuracyModel.probability(againstF), againstF) == .flagged)
+let twoAgainstF = mcqVotes([solve(gModel, "C", evidence: "none"), solve(oModel, "C", evidence: "none")])
+check("two families on another answer are not proof enough to flag", AccuracyModel.grade(AccuracyModel.probability(twoAgainstF), twoAgainstF) == .check)
+let outvotedF = mcqVotes([solve(gModel, "C", evidence: "none"), solve(oModel, "C", evidence: "none"), solve(nModel, "A")])
+check("two families on another answer and one on the key: Check this", AccuracyModel.grade(AccuracyModel.probability(outvotedF), outvotedF) == .check)
+let oneFamilyBlind = mcqVotes([solve(gModel, "A"), solve(gmModel, "A")])
+check("two blind solves from one family are one witness", oneFamilyBlind["blind_agree"] == 1
+      && AccuracyModel.grade(AccuracyModel.probability(oneFamilyBlind), oneFamilyBlind) == .check)
+let cardBad = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 4, evidence: "contradicts"),
+                                                                         AccuracyVote(model: oModel, risk: 4, evidence: "contradicts"),
+                                                                         AccuracyVote(model: nModel, risk: 4, evidence: "contradicts")],
+                                          evidenceCount: 0, sourceMatch: 0.7, keyLetter: nil)
+check("three families judging a card wrong: Flagged", cardBad["flag_families"] == 3 && AccuracyModel.grade(AccuracyModel.probability(cardBad), cardBad) == .flagged)
+let cardBad2 = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 4, evidence: "contradicts"),
+                                                                          AccuracyVote(model: oModel, risk: 4, evidence: "contradicts")],
+                                           evidenceCount: 0, sourceMatch: 0.7, keyLetter: nil)
+check("two families judging it wrong: Check this", AccuracyModel.grade(AccuracyModel.probability(cardBad2), cardBad2) == .check)
+let threeCards = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "supports"),
+                                                                            AccuracyVote(model: oModel, risk: 1, evidence: "supports"),
+                                                                            AccuracyVote(model: nModel, risk: 1, evidence: "supports")],
+                                             evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil, sourceProof: true)
+check("three passing families verify a card an official source states", threeCards["families"] == 3 && AccuracyModel.grade(0.99, threeCards) == .verified)
+let decodedBlind = try? JSONDecoder().decode(AccuracyVote.self, from: Data(#"{"model":"m","risk":1,"answer":"A","blind":true}"#.utf8))
+check("the blind mark comes from the server's reply", decodedBlind?.blind == true)
+// two votes from one family are one witness (independence), as on the server
+let oneFamily = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: "gemini-3.5-flash-lite", risk: 1, evidence: "supports"),
+                                                                           AccuracyVote(model: "gemma-4-31b-it", risk: 1, evidence: "supports"),
+                                                                           AccuracyVote(model: "@cf/openai/gpt-oss-120b", risk: 1, evidence: "supports")],
+                                            evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
+check("three passing votes from two families (Gemini and Gemma are one) are Check this", oneFamily["families"] == 2 && AccuracyModel.grade(0.99, oneFamily) == .check)
+check("families: Gemma and Gemini are Google, gpt-oss OpenAI, Nemotron NVIDIA",
+      AccuracyModel.familyOf("gemma-4-31b-it") == "google" && AccuracyModel.familyOf("@cf/openai/gpt-oss-120b") == "openai"
+      && AccuracyModel.familyOf("@cf/nvidia/nemotron-3-120b-a12b") == "nvidia")
+let bad = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 4, answer: "B", evidence: "contradicts"),
+                                                                     AccuracyVote(risk: 4, answer: "B", evidence: "contradicts")],
+                                      evidenceCount: 0, sourceMatch: 0.7, keyLetter: "A")
+check("checkers shown the key calling it wrong, with no blind solve: Check this, not proof", AccuracyModel.grade(AccuracyModel.probability(bad), bad) == .check)
+let split = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 1, answer: "A"), AccuracyVote(risk: 3, answer: "A")],
+                                        evidenceCount: 0, sourceMatch: 0.5, keyLetter: "A")
+check("a split vote is Check this", AccuracyModel.grade(AccuracyModel.probability(split), split) == .check)
+let none = AccuracyModel.featureValues(kind: .card, rules: [], votes: [], evidenceCount: 0, sourceMatch: nil, keyLetter: nil)
+check("rules alone never verify", AccuracyModel.grade(AccuracyModel.probability(none), none) == .unchecked)
+let severe = [AccuracyRules.Hit(rule: "dose-range", severity: "severe", detail: "")]
+let ruled = AccuracyModel.featureValues(kind: .card, rules: severe, votes: [], evidenceCount: 0, sourceMatch: nil, keyLetter: nil)
+check("a severe rule with no model is Flagged", AccuracyModel.grade(AccuracyModel.probability(ruled), ruled) == .flagged)
+let passRuled = AccuracyModel.featureValues(kind: .card, rules: severe, votes: [AccuracyVote(risk: 1, evidence: "supports"), AccuracyVote(risk: 1, evidence: "supports")],
+                                            evidenceCount: 5, sourceMatch: 1, keyLetter: nil)
+check("a severe rule is never Verified", AccuracyModel.grade(AccuracyModel.probability(passRuled), passRuled) != .verified)
+
+// one model's word is never enough, and the oath check (server/tests/accuracy.test.mjs, case for case)
+let lone = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(risk: 1, evidence: "supports")],
+                                       evidenceCount: 3, sourceMatch: 0.9, keyLetter: nil)
+check("a single vote, however sure, is Check this, never Verified", AccuracyModel.grade(0.99, lone) == .check)
+let unbacked = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gmModel, risk: 1, evidence: "none"), AccuracyVote(model: nModel, risk: 1, evidence: "none"),
+                                                                          AccuracyVote(model: oModel, risk: 1, evidence: "none")],
+                                           evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil)
+check("any item passed by three families but with no official source stating it stays Check this",
+      AccuracyModel.grade(0.99, unbacked) == .check && AccuracyModel.grade(0.99, unbacked, oath: true) == .check)
+let literature = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "supports"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
+                                                                            AccuracyVote(model: nModel, risk: 1, evidence: "none")],
+                                             evidenceCount: 2, sourceMatch: 0.2, keyLetter: nil)
+let lecture = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "none"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
+                                                                         AccuracyVote(model: nModel, risk: 1, evidence: "none")],
+                                          evidenceCount: 0, sourceMatch: AccuracyModel.oathSourceMatch, keyLetter: nil)
+check("the literature or its own lecture behind it is no longer proof: Check this",
+      AccuracyModel.grade(0.99, literature, oath: true) == .check && AccuracyModel.grade(0.99, lecture, oath: true) == .check
+      && AccuracyModel.grade(0.99, literature) == .check)
+let proven = AccuracyModel.featureValues(kind: .card, rules: [], votes: [AccuracyVote(model: gModel, risk: 1, evidence: "none"), AccuracyVote(model: oModel, risk: 1, evidence: "none"),
+                                                                        AccuracyVote(model: nModel, risk: 1, evidence: "none")],
+                                         evidenceCount: 0, sourceMatch: 0.2, keyLetter: nil, sourceProof: true)
+check("an oath item an official source states word for word can be Verified", AccuracyModel.grade(0.99, proven, oath: true) == .verified)
+// server/tests/oath-vectors.mjs, text for text
+let doseVectors: [(String, Bool)] = [
+    ("Give amoxicillin 500 mg PO three times a day", true),
+    ("Start IV ceftriaxone 2 g once daily", true),
+    ("Paracetamol 15 mg/kg every 6 hours", true),
+    ("Enoxaparin 1 mg/kg twice daily", true),
+    ("Adrenaline IM 0.5 mg", true),
+    ("Insulin 10 units at night nocte", true),
+    ("Give 1 g stat", true),
+    ("Potassium 6.8 mmol/L, glucose 250 mg/dL", false),
+    ("A 45-year-old man weighing 80 kg presents", false),
+    ("Haemoglobin 9 g/dL with low MCV", false),
+    ("What is the most likely diagnosis?", false),
+    ("The mechanism of aspirin", false),
+]
+for (text, dose) in doseVectors {
+    check("dose \(dose ? "found" : "not found"): \(text)", AccuracyModel.hasDose(text) == dose)
+}
+check("a diagnosis, a treatment or a dose makes an oath item; a mechanism does not",
+      AccuracyModel.isOath("What is the most likely diagnosis?") && AccuracyModel.isOath("What is the next best step in management?")
+      && AccuracyModel.isOath("Give amoxicillin 500 mg PO three times a day") && !AccuracyModel.isOath("Which enzyme is deficient in PKU?"))
+check("key disagreement is a share", AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [AccuracyVote(risk: 1, answer: "C"), AccuracyVote(risk: 1, answer: "A")],
+                                                                 evidenceCount: 0, sourceMatch: nil, keyLetter: "A")["key_disagree"] == 0.5)
+check("the bundled weights decode and are valid", AccuracyModel.bundled.version == "prior-1" && AccuracyModel.bundled.isValid
+      && AccuracyModel.bundled.features == AccuracyModel.features)
+// the same numbers as the server's predict() for the passing case: logit 3 + 0.3*(3/3) + 0.8 + 0.1*0.6 + 0.8*0.7
+let voterTerm: Double = 0.3 * (3.0 / 3.0)
+let evidenceTerm: Double = 0.8 + 0.1 * 0.6
+let sourceTerm: Double = 0.8 * 0.7
+let logit: Double = 3 + voterTerm + evidenceTerm + sourceTerm
+check("inference is the logistic of the weighted sum", abs(p1 - 1 / (1 + exp(-logit))) < 1e-12, "\(p1)")
+var trained = AccuracyModel.bundled
+trained.thresholds = .init(verified: 0.999, flagged: 0.4)
+check("new weights re-score without a new check", AccuracyModel.grade(p1, pass, weights: trained) == .check)
+trained.thresholds = .init(verified: 0.3, flagged: 0.5)
+check("weights with crossed cut-offs are invalid", !trained.isValid)
+
+// MARK: the cache key
+
+let hashA = q.contentHash
+var edited = q; edited.explanation += " "
+var renamed = q; renamed.id = "other"
+check("the hash is stable and 32 hex", hashA.count == 32 && hashA == q.contentHash && hashA.allSatisfy { $0.isHexDigit })
+check("it is of the content, not the id", renamed.contentHash == hashA)
+var rekeyed = q; rekeyed.key = 1
+check("any edit changes it", rekeyed.contentHash != hashA && AccuracyItem(id: "q", kind: .mcq, stem: q.stem, options: q.options, key: 0, explanation: q.explanation, source: "lecture").contentHash != hashA)
+check("FNV-1a of the empty string is its offset basis", AccuracyItem.fnv("", seed: 0xcbf29ce484222325) == "cbf29ce484222325"
+      && AccuracyItem.fnv("a", seed: 0xcbf29ce484222325) == "af63dc4c8601ec8c")
+check("the checker text matches the server's", q.checkedText.hasSuffix("Keyed answer: A. Aspirin\nExplanation: Aspirin reduces mortality in acute coronary syndrome."))
+
+// MARK: items in every kind of set
+
+let mq = MCQQuestion(stem: q.stem, options: q.options, correctIndex: 0, explanation: q.explanation)
+var mcqSet = StudySet(name: "ACS", kind: .mcq)
+mcqSet.questions = [mq]
+check("a question becomes an item", AccuracyItem.items(in: mcqSet).first?.kind == .mcq && AccuracyItem.items(in: mcqSet).first?.id == mq.id.uuidString)
+check("with its lecture excerpt", AccuracyItem.items(in: mcqSet, source: { _ in String(repeating: "x", count: 5000) }).first?.source.count == AccuracyItem.sourceLimit)
+var cardSet = StudySet(name: "Cards", kind: .anki)
+cardSet.cards = [AnkiCard(type: .qa, front: "Antidote to warfarin?", bullets: ["Vitamin K", "PCC"], why: "Reverses it."),
+                 AnkiCard(type: .occlusion)]
+check("cards (not a wordless occlusion)", AccuracyItem.items(in: cardSet).count == 1 && AccuracyItem.items(in: cardSet)[0].text.contains("A: Vitamin K; PCC"))
+var osceSet = StudySet(name: "OSCE", kind: .osce)
+osceSet.osceChecklists = [OsceChecklist(title: "BLS", steps: ["Check response", "Call for help"])]
+check("stations", AccuracyItem.items(in: osceSet).first?.text == "BLS\n- Check response\n- Call for help")
+var book = StudySet(name: "Book", kind: .book)
+book.bookMarkdown = "# Heart\nThe heart has four chambers.\n# Lungs\nThe right lung has three lobes."
+check("a textbook's pages", AccuracyItem.items(in: book).count == 2 && AccuracyItem.items(in: book)[1].kind == .page)
+var talk = StudySet(name: "Lecture", kind: .narrate)
+talk.narrateSegments = [NarrateSegment(text: "Welcome everyone. Give aspirin 300 mg at once. Thanks for coming. Amoxicillin is first line for otitis media.")]
+let facts = AccuracyItem.items(in: talk)
+check("a narration's key facts, not its chatter", facts.count == 1 && facts[0].text.contains("aspirin 300 mg") && facts[0].text.contains("first line") && !facts[0].text.contains("Welcome"))
+check("a note is its own kind", AccuracyItem.note(id: UUID(), title: "T", body: "B").kind == .note)
+
+// MARK: the ledger
+
+var ledger = AccuracyLedger()
+let item0 = AccuracyItem.items(in: mcqSet)[0]
+let fullProof = AccuracyProof(v: 2, claims: 1, proven: 1)
+check("an unchecked item with no rule hits is Not checked yet", ledger.assess(item0).grade == .unchecked)
+ledger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true),
+                   AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports", blind: true)],
+           evidence: [AccuracyEvidence(id: "S1", source: "MedlinePlus", title: "t", url: "https://medlineplus.gov")], sourceMatch: 0.8, proof: fullProof, for: item0.contentHash)
+check("three families' blind solves, proven by an official source, make it Verified", ledger.assess(item0).grade == .verified && ledger.isChecked(item0.contentHash, question: true))
+let checkTime = Date(timeIntervalSince1970: 2_000_000)
+var shortLedger = AccuracyLedger()
+shortLedger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)],
+                sourceMatch: 0.8, for: item0.contentHash, at: checkTime)
+check("a check that reached only two families is Check this, and asked again once a day has passed",
+      shortLedger.assess(item0).grade == .check && shortLedger.isChecked(item0.contentHash, question: true, now: checkTime.addingTimeInterval(3600))
+      && !shortLedger.isChecked(item0.contentHash, question: true, now: checkTime.addingTimeInterval(90_000)))
+var anchoredLedger = AccuracyLedger()
+anchoredLedger.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports"), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports")], sourceMatch: 0.8, for: item0.contentHash)
+check("a question checked before blind solving is asked about again", !anchoredLedger.isChecked(item0.contentHash, question: true)
+      && anchoredLedger.isChecked(item0.contentHash) && anchoredLedger.assess(item0).grade == .check)
+ledger.add(votes: [AccuracyVote(model: "a", risk: 4, answer: "B", evidence: "contradicts", issues: ["Wrong"])], for: item0.contentHash)
+check("a model's new vote replaces its old one", ledger.records[item0.contentHash]?.votes.count == 3 && ledger.assess(item0).grade != .verified)
+check("and its concern is a reason", ledger.assess(item0).reasons.contains("a: Wrong"))
+var reported = AccuracyLedger()
+reported.add(votes: [AccuracyVote(model: "a", risk: 1, answer: "A", evidence: "supports", blind: true), AccuracyVote(model: "b", risk: 1, answer: "A", evidence: "supports", blind: true)], sourceMatch: 0.8, proof: fullProof, for: item0.contentHash)
+reported.markReported(item0.contentHash)
+check("a reported item is never shown as Verified again", reported.assess(item0).grade == .check)
+// the claim gate (server/claims.js): the server's reply, as it sends it
+let provenJSON = #","proof":{"v":2,"claims":1,"proven":1,"quotes":[{"claim":"c","quote":"q","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov/x.html"}]}"#
+func gateReply(_ claims: String, proof: String = provenJSON) -> AccuracyCheckReply? {
+    let json: String = """
+    {"items":[{"id":"q","hash":"x","p":0.97,"verdict":"check","modelVersion":"v","features":{"source_match":0.8,"no_source":0},
+      "rules":[],"votes":[{"model":"a","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true},
+                          {"model":"b","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true},
+                          {"model":"c","risk":1,"answer":"A","evidence":"supports","cites":[],"issues":[],"fix":null,"blind":true}],
+      "evidence":[{"id":"S1","source":"MedlinePlus","title":"t","url":"https://medlineplus.gov"}],"fix":null\(claims)\(proof)}]}
+    """
+    return try? JSONDecoder().decode(AccuracyCheckReply.self, from: Data(json.utf8))
+}
+let hash0: String = item0.contentHash
+let gateTime = Date(timeIntervalSince1970: 3_000_000)
+var gated = AccuracyLedger()
+gated.record(gateReply(""), for: [hash0], at: gateTime)
+check("a reply the gate found nothing in: Verified on the votes, as before", gated.assess(item0).grade == .verified && gated.records[hash0]?.claimHolds == nil)
+gated.record(gateReply(#","claims":{"hard":[{"code":"frequency","claim":"every 4 hours","source":"every 6 hours"}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("an item that contradicts its own lecture is never Verified, whatever the votes", gated.assess(item0).grade == .check
+      && gated.records[hash0]?.claimHolds == ["frequency"] && gated.isChecked(hash0))
+check("and the finding is a reason, in words", gated.assess(item0).reasons.contains("Gives a different dosing frequency from its own lecture."))
+gated.record(gateReply(#","claims":{"hard":[{"code":"direction","claim":"raises the potassium","source":"lowers the potassium"}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("a sentence turned around has words of its own", gated.assess(item0).grade == .check
+      && gated.assess(item0).reasons.contains("Says the other way from its own lecture."))
+gated.record(gateReply(#","claims":{"hard":[{"code":"dabt","claim":"Give 1.0 mg","source":"number: 1 mg against 10 mg"}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("a provenance hold from the server (server/provenance.js) holds it too, in its own words", gated.assess(item0).grade == .check
+      && gated.assess(item0).reasons.contains { $0.hasPrefix("It doesn't copy its source faithfully") })
+check("and every provenance hold has words of its own", ["retracted", "conflict", "dabt", "shadh", "tafarrud"]
+      .allSatisfy { AccuracyAssessment.holdReason($0) != AccuracyAssessment.holdReason("anything else") })
+gated.record(gateReply(""), for: [hash0], at: gateTime)
+check("a later reply's findings replace the earlier ones", gated.assess(item0).grade == .verified)
+gated.add(votes: [AccuracyVote(model: "c", risk: 1, answer: "A", evidence: "supports")], holds: ["negation"], for: hash0)
+gated.add(votes: [AccuracyVote(model: "d", risk: 1, answer: "A", evidence: "supports")], for: hash0)
+check("a vote from elsewhere, with no gate, leaves the findings as they were", gated.records[hash0]?.claimHolds == ["negation"] && gated.assess(item0).grade == .check)
+var broken = AccuracyLedger()
+broken.record(gateReply(#","claims":{"hard":[{"code":"gate_failed","claim":"","source":""}],"soft":[]}"#), for: [hash0], at: gateTime)
+check("a gate that failed holds the item at Check this, with its votes kept", broken.assess(item0).grade == .check && broken.records[hash0]?.votes.count == 3)
+check("and it is asked about again later, not at once", !broken.isChecked(hash0) && !broken.mayRetry(hash0, now: gateTime.addingTimeInterval(60))
+      && broken.mayRetry(hash0, now: gateTime.addingTimeInterval(7 * 3600)))
+broken.record(gateReply(""), for: [hash0], at: gateTime.addingTimeInterval(7 * 3600))
+check("asked again and the gate works: graded on the votes", broken.isChecked(hash0, question: true) && broken.assess(item0).grade == .verified)
+var unread = AccuracyLedger()
+unread.record(gateReply(#","claims":{"hard":[{"claim":"x"}],"soft":[],"partial":true}"#), for: [hash0], at: gateTime)
+check("a finding without a code still holds the item", unread.assess(item0).grade == .check)
+var unanswered = AccuracyLedger()
+unanswered.record(AccuracyCheckReply(items: [], limit: "day", message: nil), for: [hash0], at: gateTime)
+unanswered.record(nil, for: ["other"], at: gateTime)
+check("no vote: failed, unless the day's checks ran out", unanswered.failed[hash0] == nil && unanswered.failed["other"] == gateTime && unanswered.records.isEmpty)
+let older = try? JSONDecoder().decode(AccuracyRecord.self, from: Data(#"{"hash":"h","votes":[],"evidence":[],"checkedAt":0,"reported":false}"#.utf8))
+check("a record saved before the gate still loads, with no findings", older != nil && older?.claimHolds == nil)
+let summary = reported.summary(of: [item0, AccuracyItem(id: "z", kind: .card, text: "Give paracetamol 10 g now")])
+check("a set's summary", summary.check == 1 && summary.flagged == 1 && summary.grade == .flagged && summary.line == "1 to check \u{00B7} 1 flagged")
+check("nothing checked: no summary line", AccuracySummary().line == nil)
+var failing = AccuracyLedger()
+let t0 = Date(timeIntervalSince1970: 1_000_000)
+failing.failed["h"] = t0
+check("a failed check waits before it is tried again", !failing.mayRetry("h", now: t0.addingTimeInterval(60)) && failing.mayRetry("h", now: t0.addingTimeInterval(7 * 3600)))
+failing.records["old"] = AccuracyRecord(hash: "old")
+failing.prune(keeping: ["h"])
+check("records of edited or deleted items are pruned", failing.records.isEmpty && failing.failed["h"] != nil)
+
+// the source proof (server/proof.js): only an official source's own words verify
+var proofs = AccuracyLedger()
+proofs.record(gateReply("", proof: ""), for: [hash0], at: gateTime)
+check("three families with no proof in the reply: Check this, with the reason",
+      proofs.assess(item0).grade == .check && proofs.records[hash0]?.proof == nil
+      && proofs.assess(item0).reasons.contains("No official source states it word for word yet."))
+check("the server's proof decodes, quotes and all", gateReply("")?.items?.first?.proof?.isFull == true
+      && gateReply("")?.items?.first?.proof?.quotes?.first?.url == "https://medlineplus.gov/x.html")
+check("a proof is full only when every claim is proven, by this version, with nothing cut short",
+      fullProof.isFull && !AccuracyProof(v: 2, claims: 2, proven: 1).isFull && !AccuracyProof(v: 2, claims: 0, proven: 0).isFull
+      && !AccuracyProof(v: 1, claims: 1, proven: 1).isFull && !AccuracyProof(v: 2, claims: 1, proven: 1, why: "budget").isFull
+      && !AccuracyProof(v: 2, claims: 1, proven: 1, why: "stem").isFull)
+check("due again: cut short or an older version; not when it simply could not be proven",
+      AccuracyProof(v: 2, why: "lookup").due && AccuracyProof(v: 2, why: "budget").due && AccuracyProof(v: 2, why: "timeout").due
+      && AccuracyProof(v: 2, why: "error").due && AccuracyProof(v: 0).due && !AccuracyProof(v: 2, claims: 1, proven: 0, why: "unproven").due
+      && !AccuracyProof(v: 2, why: "stem").due && !fullProof.due)
+let lookupJSON = #","proof":{"v":2,"claims":1,"proven":0,"why":"lookup"}"#
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+check("a source that could not be read: Check this, saying it will be checked again",
+      proofs.assess(item0).grade == .check && proofs.records[hash0]?.proofTries == 2
+      && proofs.assess(item0).reasons.contains("An official source could not be read this time; it will be checked again."))
+check("asked again after a few hours, not at once", proofs.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(3600))
+      && !proofs.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(7 * 3600)))
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+check("then left at Check this after a few tries", proofs.records[hash0]?.proofTries == 4
+      && proofs.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(30 * 86400)))
+proofs.record(gateReply(""), for: [hash0], at: gateTime)
+check("proven on a later check: Verified, the tries cleared", proofs.assess(item0).grade == .verified
+      && proofs.records[hash0]?.proofTries == nil && proofs.assess(item0).reasons.isEmpty)
+proofs.record(gateReply("", proof: lookupJSON), for: [hash0], at: gateTime)
+check("a later check cut short does not take the proof away", proofs.assess(item0).grade == .verified && proofs.records[hash0]?.proof?.isFull == true)
+var budgeted = AccuracyLedger()
+budgeted.record(gateReply("", proof: #","proof":{"v":2,"claims":1,"proven":0,"why":"budget"}"#), for: [hash0], at: gateTime)
+check("sources too long for the batch: said so",
+      budgeted.assess(item0).reasons.contains("Its official sources were too long to read in this batch; it will be checked again on its own."))
+var twoAnswers = AccuracyLedger()
+twoAnswers.record(gateReply("", proof: #","proof":{"v":2,"claims":1,"proven":1,"why":"distractor"}"#), for: [hash0], at: gateTime)
+check("a key stated word for word with another option a source may state too: said so, and not that no source states it",
+      twoAnswers.assess(item0).grade != .verified
+      && twoAnswers.assess(item0).reasons.contains("An official source may also state another of its options.")
+      && !twoAnswers.assess(item0).reasons.contains(where: { $0.contains("word for word") })
+      && AccuracyAssessment.proofReasons(AccuracyProof(v: 2, claims: 1, proven: 1, why: "options"), oath: true)
+         == ["One of its other options could not be read for certain."])
+check("neither is checked again: the sources will not change their words",
+      !AccuracyProof(v: 2, claims: 1, proven: 1, why: "distractor").due && !AccuracyProof(v: 2, claims: 1, proven: 1, why: "options").due)
+check("an oath item gets the oath's words", AccuracyAssessment.proofReasons(nil, oath: true) == ["A dose, diagnosis or treatment no official source states word for word yet."]
+      && AccuracyAssessment.proofReasons(fullProof, oath: true).isEmpty)
+var unprovable = AccuracyLedger()
+unprovable.record(gateReply("", proof: #","proof":{"v":2,"claims":0,"proven":0,"why":"stem"}"#), for: [hash0], at: gateTime)
+check("an item no wording could be formed for is not asked again", unprovable.isChecked(hash0, question: true, now: gateTime.addingTimeInterval(30 * 86400)))
+let olderRecord = try? JSONDecoder().decode(AccuracyRecord.self, from: Data(#"{"hash":"h","votes":[],"evidence":[],"checkedAt":0,"reported":false}"#.utf8))
+check("a record saved before the proof still loads, with none", olderRecord != nil && olderRecord?.proof == nil && olderRecord?.proofTries == nil)
+
+// MARK: the schedule
+
+let now = Date(timeIntervalSince1970: 2_000_000)
+func set(_ name: String, updated: TimeInterval, n: Int) -> StudySet {
+    var s = StudySet(name: name, kind: .anki)
+    s.updatedAt = now.addingTimeInterval(-updated)
+    s.cards = (0..<n).map { AnkiCard(type: .qa, front: "\(name) question \($0)?", bullets: ["answer \($0)"]) }
+    return s
+}
+let justMade = set("new", updated: 60, n: 5)
+let oldStudied = set("studied", updated: 30 * 86400, n: 3)
+let oldIdle = set("idle", updated: 20 * 86400, n: 3)
+let thisWeek = set("week", updated: 2 * 86400, n: 2)
+let plan = AccuracySchedule.plan(sets: [oldIdle, oldStudied, thisWeek, justMade], items: { AccuracyItem.items(in: $0) },
+                                 ledger: AccuracyLedger(), studied: [oldStudied.id: 40, oldIdle.id: 1], now: now, limit: 100)
+check("just-made content first, in the foreground", plan.first?.setID == justMade.id && plan.first?.priority == "foreground" && plan[1].setID == justMade.id)
+check("in batches of four", plan[0].items.count == 4 && plan[1].items.count == 1)
+check("then this week's, then most-studied, then the rest, in the background",
+      plan.dropFirst(2).map(\.setID) == [thisWeek.id, oldStudied.id, oldIdle.id] && plan.dropFirst(2).allSatisfy { $0.priority == "background" })
+var partly = AccuracyLedger()
+for item in AccuracyItem.items(in: justMade).prefix(3) { partly.add(votes: [AccuracyVote(model: "a", risk: 1)], for: item.contentHash) }
+partly.failed[AccuracyItem.items(in: justMade)[3].contentHash] = now
+let replan = AccuracySchedule.plan(sets: [justMade], items: { AccuracyItem.items(in: $0) }, ledger: partly, now: now)
+check("checked items are never sent again, failed ones wait", replan.count == 1 && replan[0].items.count == 1)
+let capped = AccuracySchedule.plan(sets: [oldIdle, oldStudied, thisWeek, justMade], items: { AccuracyItem.items(in: $0) },
+                                   ledger: AccuracyLedger(), now: now, limit: 6)
+check("the day's limit is kept", capped.reduce(0) { $0 + $1.items.count } == 6)
+var twin = set("twin", updated: 100 * 86400, n: 1)
+twin.cards = justMade.cards.prefix(1).map { var c = $0; c.id = UUID(); return c }
+let deduped = AccuracySchedule.plan(sets: [justMade, twin], items: { AccuracyItem.items(in: $0) }, ledger: AccuracyLedger(), now: now)
+check("the same content in two sets is checked once", deduped.reduce(0) { $0 + $1.items.count } == 5)
+var tooLong = AccuracyLedger()
+let longHash: String = AccuracyItem.items(in: justMade)[1].contentHash
+tooLong.add(votes: [AccuracyVote(model: "a", risk: 1)], proof: AccuracyProof(v: 2, claims: 1, proven: 0, why: "budget"), for: longHash, at: now.addingTimeInterval(-7 * 3600))
+let alonePlan = AccuracySchedule.plan(sets: [justMade], items: { AccuracyItem.items(in: $0) }, ledger: tooLong, now: now)
+check("an item whose sources were too long for a batch goes on its own", alonePlan.map(\.items.count) == [4, 1]
+      && alonePlan[1].items[0].contentHash == longHash && !alonePlan[0].items.contains { $0.contentHash == longHash })
+
+// MARK: one-tap corrections
+
+let keyFix = AccuracySuggestion(field: "key", value: "B")
+if let fixed = AccuracyFix.apply(keyFix, toItem: mq.id.uuidString, in: mcqSet) {
+    check("a key correction moves the key", fixed.questions[0].correctIndex == 1)
+    check("and the edit means a new check", AccuracyItem.items(in: fixed)[0].contentHash != item0.contentHash)
+} else { check("a key correction applies", false) }
+check("a key outside the options is not offered", !AccuracyFix.canApply(AccuracySuggestion(field: "key", value: "Q"), to: item0)
+      && AccuracyFix.apply(AccuracySuggestion(field: "key", value: "Z"), toItem: mq.id.uuidString, in: mcqSet) == nil)
+check("an explanation correction", AccuracyFix.apply(AccuracySuggestion(field: "explanation", value: "Better."), toItem: mq.id.uuidString, in: mcqSet)?.questions[0].explanation == "Better.")
+let cardID = cardSet.cards[0].id.uuidString
+check("a card's answer, line by line", AccuracyFix.apply(AccuracySuggestion(field: "answer", value: "Vitamin K\n- Four-factor PCC"), toItem: cardID, in: cardSet)?.cards[0].bullets == ["Vitamin K", "Four-factor PCC"])
+check("a station's steps", AccuracyFix.apply(AccuracySuggestion(field: "text", value: "Check danger\nCheck response\nCall for help"), toItem: osceSet.osceChecklists[0].id.uuidString, in: osceSet)?.osceChecklists[0].steps.count == 3)
+var mistakesCopy = StudySet(name: "Mistakes", subject: "", kind: .mcq)
+mistakesCopy.questions = [mcqSet.questions[0]]
+let fixedBoth: [StudySet] = AccuracyFix.applyEverywhere(keyFix, toItem: mq.id.uuidString, in: [mcqSet, cardSet, mistakesCopy])
+check("a key fix reaches the question's copy in Mistakes too", fixedBoth.count == 2
+      && Set(fixedBoth.map { $0.questions[0].correctIndex }).count == 1 && fixedBoth[1].name == "Mistakes")
+check("a fix for an unknown item does nothing", AccuracyFix.apply(keyFix, toItem: "nope", in: mcqSet) == nil)
+
+// MARK: the vignette route (server/vignette-proof.js): Checked, below Verified
+let checkedJSON: String = #","vignette":{"ok":true,"tier":"checked","why":null,"rules":["cdc-tst-5mm"]}"#
+var vignettes = AccuracyLedger()
+vignettes.record(gateReply(checkedJSON, proof: ""), for: [hash0], at: gateTime)
+check("V1 a vignette proof only checked, three blind families, no source proof: Checked", vignettes.assess(item0).grade == .checked,
+      "\(vignettes.assess(item0).grade)")
+check("V2 Checked says what it means", vignettes.assess(item0).reasons.contains(AccuracyGrade.checked.meaning ?? "-"))
+vignettes.record(gateReply(#","vignette":{"ok":true,"tier":"proven","why":null,"rules":["cdc-tst-5mm"]}"#, proof: ""), for: [hash0], at: gateTime)
+check("V3 a proof whose rules the owner signed off: Verified", vignettes.assess(item0).grade == .verified)
+vignettes.record(gateReply(#","vignette":{"ok":false,"tier":null,"why":"stale","rules":[]}"#, proof: ""), for: [hash0], at: gateTime)
+check("V4 a refused proof: Check this", vignettes.assess(item0).grade == .check)
+vignettes.record(gateReply(checkedJSON, proof: ""), for: [hash0], at: gateTime)
+vignettes.record(gateReply("", proof: ""), for: [hash0], at: gateTime)
+check("V5 a reply without it (the route off) clears it: Check this, as before", vignettes.records[hash0]?.vignette == nil && vignettes.assess(item0).grade == .check)
+var heldChecked = AccuracyLedger()
+heldChecked.record(gateReply(#","claims":{"hard":[{"code":"naskh","claim":"x","source":"y"}],"soft":[]}"# + checkedJSON, proof: ""), for: [hash0], at: gateTime)
+check("V6 a hold (a rule replaced: naskh) drops Checked to Check this, in its own words", heldChecked.assess(item0).grade == .check
+      && heldChecked.assess(item0).reasons.contains("A published rule its proof rests on has been replaced by a newer one."))
+var reportedChecked = AccuracyLedger()
+reportedChecked.record(gateReply(checkedJSON, proof: ""), for: [hash0], at: gateTime)
+reportedChecked.markReported(hash0)
+check("V7 reported by the student: never Checked to them again", reportedChecked.assess(item0).grade == .check)
+let vf: [String: Double] = ["no_models": 0, "kind_mcq": 1, "voters": 1, "families": 3, "blind_agree": 3, "vignette_proof": 1, "vignette_checked": 1]
+check("V8 the route off: a vignette proof backs nothing", AccuracyModel.grade(0.95, vf) == .check && AccuracyModel.grade(0.95, vf, vignetteRoute: false) == .check)
+check("V9 on: proven is Verified, checked is Checked, and neither below the cut-off",
+      AccuracyModel.grade(0.95, vf, vignetteRoute: true) == .verified
+      && AccuracyModel.grade(0.95, vf.merging(["vignette_proof": 0]) { $1 }, vignetteRoute: true) == .checked
+      && AccuracyModel.grade(0.5, vf.merging(["vignette_proof": 0]) { $1 }, vignetteRoute: true) == .check
+      && AccuracyModel.grade(0.95, vf.merging(["vignette_proof": 0, "blind_agree": 2]) { $1 }, vignetteRoute: true) == .check)
+var mixed = AccuracySummary()
+mixed.add(.verified); mixed.add(.checked)
+check("V10 a set of Verified and Checked: Checked overall, said plainly", mixed.grade == .checked && mixed.passed == 1 && mixed.checked == 2
+      && mixed.line == "1 verified \u{00B7} 1 checked, not fully proven")
+check("V11 the tiers' meanings", AccuracyGrade.checked.title == "Checked" && AccuracyGrade.verified.meaning?.hasPrefix("Verified means") == true
+      && AccuracyGrade.check.meaning == nil)
+let featuresBefore: [String: Double] = AccuracyModel.featureValues(kind: .mcq, rules: [], votes: [], evidenceCount: 0, sourceMatch: nil, keyLetter: "A")
+check("V12 the route off: no new feature", featuresBefore["vignette_proof"] == nil && featuresBefore["vignette_checked"] == nil)
+
+// MARK: the shared rule cases (server/tests/accuracy.test.mjs runs the same file)
+var ruleRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+while !FileManager.default.fileExists(atPath: ruleRoot.appendingPathComponent("server/tests/rule-vectors.json").path), ruleRoot.path != "/" {
+    ruleRoot.deleteLastPathComponent()
+}
+struct RuleQuestion: Decodable { var stem: String; var options: [String]; var key: Int; var explanation: String }
+struct RuleCase: Decodable { var text: String?; var mcq: RuleQuestion?; var has: [String]?; var not: [String]? }
+let ruleCases: [RuleCase] = (try? JSONDecoder().decode([RuleCase].self,
+    from: Data(contentsOf: ruleRoot.appendingPathComponent("server/tests/rule-vectors.json")))) ?? []
+check("the shared rule cases are found", ruleCases.count >= 20, "\(ruleCases.count)")
+for c in ruleCases {
+    let item: AccuracyItem = c.mcq.map {
+        AccuracyItem(id: "x", kind: .mcq, stem: $0.stem, options: $0.options, key: $0.key, explanation: $0.explanation)
+    } ?? card(c.text ?? "")
+    let said: String = c.mcq?.stem ?? c.text ?? ""
+    let found: [String] = ids(item)
+    for h in c.has ?? [] { check("\"\(said)\" gives \(h)", found.contains(h), found.joined(separator: ", ")) }
+    for n in c.not ?? [] { check("\"\(said)\" gives no \(n)", !found.contains { $0.hasPrefix(n + ":") }, found.joined(separator: ", ")) }
+}
+
+print(failures.isEmpty ? "\nALL ACCURACY TESTS PASS" : "\n\(failures.count) ACCURACY TEST FAILURE(S)")
+exit(failures.isEmpty ? 0 : 1)

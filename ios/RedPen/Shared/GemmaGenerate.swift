@@ -51,19 +51,25 @@ extension GemmaModel {
     ) async throws -> [MCQQuestion] {
         guard Self.isDownloaded else { throw GenerationError.notDownloaded }
         let llm = try await loadedClient()
-        let promptSource = String(sourceText.prefix(MCQGenerator.maxPromptChars))
+        // a window at a time, round the whole lecture: Gemma's context is
+        // 4,096 tokens (audits #85, #90)
+        let windows: [String] = TextSlicing.windows(sourceText, maxChars: MCQGenerator.onDeviceSourceChars)
         var collected: [MCQQuestion] = []
         var asked: [MCQCoverage.Asked] = []
         var consecutiveFailures = 0
+        var call = 0
 
         while collected.count < count && consecutiveFailures < 3 {
             try Task.checkCancellation()
-            let callCount = min(MCQGenerator.maxQuestionsPerCall, count - collected.count)
+            let callCount = min(MCQGenerator.onDeviceQuestionsPerCall, count - collected.count)
+            let promptSource: String = TextSlicing.window(windows, round: call)
+            call += 1
             onProgress(collected.count, count)
 
             let instructions = MCQGenerator.buildPrompt(
                 sourceText: promptSource, count: callCount, subject: subject,
-                highYield: highYield, requestJSONShape: true, alreadyAsked: asked)
+                highYield: highYield, requestJSONShape: true, alreadyAsked: asked,
+                exemplars: 1, round: asked.count)
             do {
                 let input = LLMInput.chat([
                     .system(instructions),
@@ -119,25 +125,7 @@ extension GemmaModel {
     /// or adds a sentence either side, so everything outside the outermost
     /// braces is dropped before decoding.
     static func parseQuestions(from raw: String) -> [MCQQuestion] {
-        guard let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}"),
-              start < end else { return [] }
-        guard let data = raw[start...end].data(using: .utf8),
-              let decoded = try? JSONDecoder().decode(RawQuestionSet.self, from: data)
-        else { return [] }
-        return decoded.questions.filter {
-            MCQGenerator.isValidQuestion(stem: $0.stem, options: $0.options,
-                                         correctIndex: $0.correctIndex)
-        }.map {
-            MCQQuestion(stem: $0.stem, options: $0.options,
-                        correctIndex: $0.correctIndex, explanation: $0.explanation)
-        }
-    }
-
-    struct RawQuestionSet: Decodable { var questions: [RawQuestion] }
-    struct RawQuestion: Decodable {
-        var stem: String
-        var options: [String]
-        var correctIndex: Int
-        var explanation: String
+        // the same reading as every other JSON writer, differential included
+        MedicalGenerate.parseQuestions(raw)
     }
 }

@@ -171,6 +171,69 @@ let again = QuizFromCards.build(from: deck, seed: 1)
 check("the quiz is reproducible",
       again.questions.map(\.options) == built.questions.map(\.options))
 
+// MARK: a second right answer is never a distractor
+
+check("case and a hyphen do not make a different answer",
+      CardQuality.similarity("Beta blockers", "beta-blockers") == 1, "\(CardQuality.similarity("Beta blockers", "beta-blockers"))")
+check("nor a plural", CardQuality.similarity("ACE inhibitor", "ace inhibitors") == 1)
+check("so a restated key is not offered as a wrong answer",
+      !QuizFromCards.distractors(for: "Beta blockers", stem: "Which drug class lowers mortality in heart failure?",
+                                 pool: ["beta-blockers", "Loop diuretics", "Digoxin", "Nitrates", "Ivabradine"],
+                                 want: 4).contains("beta-blockers"))
+
+// MARK: numbers are answers, not noise
+
+check("two values in the same unit are different answers",
+      CardQuality.similarity("140 mmol/L", "3.5 mmol/L") < QuizFromCards.tooAlike,
+      "\(CardQuality.similarity("140 mmol/L", "3.5 mmol/L"))")
+check("type 1 and type 2 are different answers", CardQuality.similarity("Type 1", "Type 2") < QuizFromCards.tooAlike)
+let labValues = ["140 mmol/L", "3.5 mmol/L", "5.5 mmol/L", "2.2 mmol/L", "Addison disease", "Spironolactone", "Conn syndrome"]
+let valueDistractors = QuizFromCards.distractors(for: "140 mmol/L", stem: "What is the lower limit of normal serum sodium?",
+                                                 pool: labValues, want: 4)
+check("a value draws values first", valueDistractors.prefix(3).allSatisfy { QuizFromCards.isValue($0) },
+      "\(valueDistractors)")
+check("a key that is the only value among terms gives itself away",
+      QuizFromCards.keyStandsOut(answer: "140 mmol/L", distractors: ["Addison disease", "Spironolactone", "Conn syndrome", "Hypokalaemia"]))
+check("a term with a digit in its name is still a term",
+      !QuizFromCards.isValue("Complement C3 and C4") && QuizFromCards.isValue("> 10 points"))
+
+// MARK: a repeated cloze number is hidden everywhere
+
+let repeated = AnkiCard(type: .cloze,
+                        clozeText: "{{c1::Warfarin}} is reversed with vitamin K; {{c1::warfarin}} dosing is guided by {{c2::INR}}.")
+let repeatedStem = QuizFromCards.stem(of: repeated)
+check("every hole with the first one's number is blanked",
+      !repeatedStem.lowercased().contains("warfarin") && repeatedStem.components(separatedBy: "______").count == 3,
+      repeatedStem)
+check("other numbers are shown as words", repeatedStem.contains("INR"), repeatedStem)
+
+// MARK: the capitals of what follows the answer
+
+check("an acronym keeps its capitals",
+      QuizFromCards.explanation(answer: "Lisinopril", why: "ACE inhibitors reduce proteinuria.")
+      == "Lisinopril \u{2014} ACE inhibitors reduce proteinuria.")
+check("so does CT", QuizFromCards.lowercasingFirstWord("CT shows a hyperdense lesion.") == "CT shows a hyperdense lesion.")
+check("and an eponym", QuizFromCards.lowercasingFirstWord("Addison disease causes it.") == "Addison disease causes it."
+      && QuizFromCards.lowercasingFirstWord("Cushing's syndrome is the opposite.") == "Cushing's syndrome is the opposite.")
+check("an ordinary first word is still lower-cased",
+      QuizFromCards.lowercasingFirstWord("Lowers flares.") == "lowers flares."
+      && QuizFromCards.lowercasingFirstWord("A diuretic.") == "a diuretic.")
+
+// a cloze shown as Anki shows it: the sentence in pieces, its gaps in place
+let clozeRun = AnkiCard.clozePieces("EF {{c1::≤ 40%}} is HFrEF; {{c2::≥ 50%::a percentage}} is HFpEF.")
+check("cloze: the sentence splits at its gaps, in order",
+      clozeRun.map(\.text) == ["EF ", "≤ 40%", " is HFrEF; ", "≥ 50%", " is HFpEF."]
+      && clozeRun.map(\.isGap) == [false, true, false, true, false], "\(clozeRun)")
+check("cloze: a hint is kept apart from its answer", clozeRun[3].hint == "a percentage" && clozeRun[1].hint == nil)
+check("cloze: a gap reads [...] or its hint, as in Anki",
+      AnkiCard.clozeGap(clozeRun[1]) == "[...]" && AnkiCard.clozeGap(clozeRun[3]) == "[a percentage]")
+check("cloze: an answer with a colon or a ratio survives",
+      AnkiCard.clozePieces("The ratio is {{c1::1:2}}.").map(\.text) == ["The ratio is ", "1:2", "."])
+check("cloze: a sentence with no gap is one plain piece",
+      AnkiCard.clozePieces("No gap here.") == [AnkiCard.ClozePiece(text: "No gap here.", isGap: false)])
+check("cloze: put back together, the answers make the whole sentence",
+      clozeRun.map(\.text).joined() == "EF ≤ 40% is HFrEF; ≥ 50% is HFpEF.")
+
 print(failures.isEmpty ? "\nALL CARD QUALITY TESTS PASS"
                        : "\n\(failures.count) CARD QUALITY TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

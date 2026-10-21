@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 
 /// Deciding what happens to one document when two devices disagree.
 ///
@@ -39,7 +41,15 @@ enum SyncMerge {
     /// `mark` is what this device last agreed with the server about it. Absent
     /// means this device has never synced that document, which is the same
     /// situation as a first run.
-    static func resolve(local: SyncDoc?, mark: SyncMark?, remote: SyncDoc?) -> Resolution {
+    ///
+    /// `editedHere`, when the caller knows it, says whether this device edited
+    /// the document since that agreement - for a set, read from its stamp. It
+    /// is preferred to comparing hashes because a hash also moves when nothing
+    /// was edited at all: an app update that adds a field to a card changes
+    /// how every set encodes, and every unedited set would then look "changed
+    /// here", turning the other device's next edit into a conflict copy.
+    static func resolve(local: SyncDoc?, mark: SyncMark?, remote: SyncDoc?,
+                        editedHere: Bool? = nil) -> Resolution {
         switch (local, remote) {
         case (nil, nil):
             return .nothingToDo
@@ -51,13 +61,16 @@ enum SyncMerge {
             // go of something we have already forgotten
             return .applyRemote
         case (.some(let local), .some(let remote)):
-            return resolveBoth(local: local, mark: mark, remote: remote)
+            return resolveBoth(local: local, mark: mark, remote: remote, editedHere: editedHere)
         }
     }
 
     private static func resolveBoth(local: SyncDoc, mark: SyncMark?,
-                                    remote: SyncDoc) -> Resolution {
-        let changedHere = mark.map { $0.contentHash != hash(local) } ?? true
+                                    remote: SyncDoc, editedHere: Bool?) -> Resolution {
+        // with no bookmark there is nothing to have edited since, so the hash
+        // rule (everything counts as changed) stands whatever the stamp says
+        let byHash: Bool = mark.map { $0.contentHash != hash(local) } ?? true
+        let changedHere: Bool = mark == nil ? true : (editedHere ?? byHash)
         let changedThere = mark.map { remote.rev > $0.rev } ?? true
 
         switch (changedHere, changedThere) {
@@ -101,10 +114,17 @@ enum SyncMerge {
     /// knows whether IT changed something since the last sync, without keeping
     /// a second copy of the whole library to compare against.
     static func hash(_ doc: SyncDoc) -> String {
+        #if canImport(CryptoKit)
         var hasher = SHA256()
         hasher.update(data: Data(doc.deleted ? [1] : [0]))
         if let payload = doc.payload { hasher.update(data: payload) }
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        #else
+        // the Linux suites: the same bytes through the plain-Swift SHA-256
+        var bytes = Data(doc.deleted ? [1] : [0])
+        if let payload = doc.payload { bytes.append(payload) }
+        return PlainSHA256.hex(bytes)
+        #endif
     }
 
     static func mark(for doc: SyncDoc, rev: Int? = nil) -> SyncMark {
