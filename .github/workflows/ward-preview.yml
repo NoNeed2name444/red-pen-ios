@@ -212,7 +212,7 @@ jobs:
           # above have read the original, and anything still too big is
           # left out and named in skipped.txt
           find . -type f -name '*.mp4' -size +95M | while read -r f; do
-            ffmpeg -loglevel error -y -i "$f" -c:v libx264 -preset veryfast -crf 30 -an "$f.small.mp4" \
+            ffmpeg -nostdin -loglevel error -y -i "$f" -c:v libx264 -preset veryfast -crf 30 -an "$f.small.mp4" \
               && mv "$f.small.mp4" "$f" || rm -f "$f.small.mp4"
           done
           find . -type f -size +95M | while read -r f; do
