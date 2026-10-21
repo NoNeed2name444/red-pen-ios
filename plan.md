@@ -2688,6 +2688,9 @@ with the marks on the screens last.
 - [ ] Test only: GraphPreviewUITests (about :357) taps the Look menu's item
   again when linkLengthBar has not appeared, the way the tour retries its
   taps; the iPad's one failure there was the simulator cancelling the tap.
+- [x] Test only (T0105): the UI tests reach each section through the dock's
+  buttons or, where it is one dockList button (iPhone 17 Pro, default size),
+  through its list (UITests/LibraryDock), so the tour finds home again.
 - [ ] Home's name as the owner's logo, and smaller text on home (the owner,
   on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
   stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,
