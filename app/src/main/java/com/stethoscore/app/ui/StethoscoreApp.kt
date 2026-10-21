@@ -178,7 +178,7 @@ import kotlinx.coroutines.withContext
                     "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { newPreset=null;refresh();open(set) }.onFailure { notice=it.message } },::goHome,newPreset)
                     "quick" -> quick?.let { q -> QuizScreen(q,store,{ quick=null;goHome() },onOpen={ refresh();open(it) },keepsProgress=false) } ?: LaunchedEffect(Unit) { goHome() }
                     "ideas" -> IdeasScreen(store,::goHome)
-                    "vitals" -> VitalsScreen(store,::goHome)
+                    "vitals" -> VitalsScreen(store,::goHome) { newPreset=it;screen="new" }
                     "mock" -> com.stethoscore.app.ui.mock.MockPaperScreen(store) { goHome() }
                     "due" -> DueTodayScreen(store,::goHome)
                     "libquiz" -> libQuiz?.let { q -> QuizScreen(q.set,store,::goHome,keepsProgress=false,minReadSeconds=q.minReadSeconds,startsTimed=q.timed) } ?: LaunchedEffect(Unit) { goHome() }
@@ -211,7 +211,8 @@ import kotlinx.coroutines.withContext
                             val days=HomeRound.studyDays(store)
                             val (ideas,links)=HomeRound.brainMap(store)
                             due.size to HomeRoundModel(all.take(HomeFit.shownBeds(all.size,shortWindow)),if(input.phase.holdsNewMaterial) input.phase.headline else null,
-                                HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),ideas,links)
+                                HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),ideas,links,
+                                com.stethoscore.app.ui.vitals.StoreInsight.readiness(store,due.size,QuizPrefs.track(context)))
                         } }
                         fun openBed(bed:com.stethoscore.app.data.BedPlan.Bed) { when(val kind=bed.kind) {
                             is com.stethoscore.app.data.BedPlan.Kind.DueCards -> screen="due"

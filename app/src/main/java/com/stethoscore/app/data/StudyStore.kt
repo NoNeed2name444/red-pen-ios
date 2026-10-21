@@ -45,6 +45,9 @@ class StudyStore(private val directory: File) {
         private set
     var examDate: Long? = null
         private set
+    /** The rule sheet: one line to remember for a missed question, by its id (iOS Store.ruleSheet). */
+    var ruleSheet: Map<String, StudyRule> = emptyMap()
+        private set
     /** The rating Undo would take back: the card and its record from before. One step, as in Anki. */
     data class UndoableRating(val cardId: String, val previous: ReviewRecord?, val rating: AnkiRating, val at: Long)
     var lastRating: UndoableRating? = null
@@ -56,6 +59,7 @@ class StudyStore(private val directory: File) {
         val osceProgress: Map<String, OsceProgress>, val caseRuns: Map<String, String>, val answerHistory: Map<String, List<Boolean>>,
         val answerLog: List<AnswerEvent>, val flagged: Set<String>, val examDate: Long?,
         val mistakeReasons: Map<String, MistakeNote> = emptyMap(),
+        val ruleSheet: Map<String, StudyRule> = emptyMap(),
     )
     private var committed = current()
     /** Called when a background save (progress, ratings, answers) fails; the change is undone. */
@@ -87,19 +91,22 @@ class StudyStore(private val directory: File) {
             osceProgress = readMap(root.obj("osceProgress")) { OsceProgress(it.optInt("checklistIndex"), it.text("checklistTitle"), it.optInt("stepIndex"), intList(it.optJSONArray("missed")), StudyJson.date(it.opt("savedAt"))) },
             caseRuns = root.obj("caseRuns").let { o -> o.keys().asSequence().associateWith { o.get(it).toString() } },
             answerHistory = root.obj("answerHistory").let { o -> o.keys().asSequence().associateWith { key -> o.optJSONArray(key)?.let { a -> (0 until a.length()).map { a.optBoolean(it) } } ?: emptyList() } },
-            answerLog = root.objects("answerLog") { AnswerEvent(it.text("questionId"), it.optBoolean("correct"), StudyJson.date(it.opt("at")), it.nullText("confidence"), it.intOrNull("picked"), if (it.has("hinted") && !it.isNull("hinted")) it.optBoolean("hinted") else null) },
+            answerLog = root.objects("answerLog") { AnswerEvent(it.text("questionId"), it.optBoolean("correct"), StudyJson.date(it.opt("at")), it.nullText("confidence"), it.intOrNull("picked"), if (it.has("hinted") && !it.isNull("hinted")) it.optBoolean("hinted") else null, exampleMark(it)) },
             flagged = root.strings("flagged").toSet(),
             examDate = if (root.isNull("examDate")) null else StudyJson.date(root.opt("examDate")),
-            mistakeReasons = readMap(root.obj("mistakeReasons")) { MistakeNote(it.text("reason"), StudyJson.date(it.opt("at"))) }.filterValues { it.reason.isNotEmpty() },
+            mistakeReasons = readMap(root.obj("mistakeReasons")) { MistakeNote(it.text("reason"), StudyJson.date(it.opt("at")), exampleMark(it)) }.filterValues { it.reason.isNotEmpty() },
+            ruleSheet = root.obj("ruleSheet").let { o -> o.keys().asSequence().mapNotNull { key -> o.optJSONObject(key)?.let { key to StudyRule.from(key, it) } }.toMap() },
         )
     }
-    private fun current() = Saved(original, unknownSets, library, folders, notes, reviews, quizProgress, readingProgress, osceProgress, caseRuns, answerHistory, answerLog, flagged, examDate, mistakeReasons)
+    private fun current() = Saved(original, unknownSets, library, folders, notes, reviews, quizProgress, readingProgress, osceProgress, caseRuns, answerHistory, answerLog, flagged, examDate, mistakeReasons, ruleSheet)
     private fun restore(s: Saved) {
         original = s.original; unknownSets = s.unknownSets; library = s.library; folders = s.folders; notes = s.notes
         reviews = s.reviews; quizProgress = s.quizProgress; readingProgress = s.readingProgress; osceProgress = s.osceProgress
         caseRuns = s.caseRuns; answerHistory = s.answerHistory; answerLog = s.answerLog; flagged = s.flagged; examDate = s.examDate
-        mistakeReasons = s.mistakeReasons
+        mistakeReasons = s.mistakeReasons; ruleSheet = s.ruleSheet
     }
+    /** The personal build's example mark on an answer or a reason (iOS isExample); absent on the student's own. */
+    private fun exampleMark(o: JSONObject): Boolean? = if (o.has("isExample") && !o.isNull("isExample")) o.optBoolean("isExample") else null
     private fun intList(a: JSONArray?): List<Int> = a?.let { (0 until it.length()).map(it::optInt) } ?: emptyList()
     private fun <T> readMap(o: JSONObject, decode: (JSONObject) -> T): Map<String, T> = o.keys().asSequence().mapNotNull { key -> o.optJSONObject(key)?.let { key to decode(it) } }.toMap()
     private fun <T> writeMap(map: Map<String, T>, encode: (T) -> Any): JSONObject = JSONObject().also { o -> map.forEach { (key, value) -> o.put(key, encode(value)) } }
@@ -118,8 +125,9 @@ class StudyStore(private val directory: File) {
         .put("osceProgress", writeMap(osceProgress) { JSONObject().put("checklistIndex", it.checklistIndex).put("checklistTitle", it.checklistTitle).put("stepIndex", it.stepIndex).put("missed", jsonArray(it.missed)).putDate("savedAt", it.savedAt) })
         .put("caseRuns", writeMap(caseRuns) { JSONObject(it) })
         .put("answerHistory", writeMap(answerHistory, ::jsonArray))
-        .put("answerLog", jsonArray(answerLog.map { e -> JSONObject().put("questionId", e.questionId).put("correct", e.correct).putDate("at", e.at).also { o -> e.confidence?.let { o.put("confidence", it) }; e.picked?.let { o.put("picked", it) }; e.hinted?.let { o.put("hinted", it) } } }))
-        .put("mistakeReasons", writeMap(mistakeReasons) { JSONObject().put("reason", it.reason).putDate("at", it.at) })
+        .put("answerLog", jsonArray(answerLog.map { e -> JSONObject().put("questionId", e.questionId).put("correct", e.correct).putDate("at", e.at).also { o -> e.confidence?.let { o.put("confidence", it) }; e.picked?.let { o.put("picked", it) }; e.hinted?.let { o.put("hinted", it) }; e.isExample?.let { o.put("isExample", it) } } }))
+        .put("mistakeReasons", writeMap(mistakeReasons) { n -> JSONObject().put("reason", n.reason).putDate("at", n.at).also { o -> n.isExample?.let { o.put("isExample", it) } } })
+        .put("ruleSheet", writeMap(ruleSheet) { it.json() })
         .put("flagged", jsonArray(flagged.toList())).putDate("examDate", examDate)
 
     /**
@@ -279,6 +287,7 @@ class StudyStore(private val directory: File) {
         flagged = flagged + b.flagged
         if (examDate == null) examDate = b.examDate
         mistakeReasons = b.mistakeReasons + mistakeReasons
+        ruleSheet = b.ruleSheet + ruleSheet
     }
     @Synchronized fun loadExamples() {
         val added = DemoData.sets.filter { example -> library.none { it.name == "Example: ${example.name}" } }.map { it.duplicate().copy(name = "Example: ${it.name}") }
@@ -307,6 +316,25 @@ class StudyStore(private val directory: File) {
         if (reason != null) mistakeReasons = mistakeReasons + (questionId to MistakeNote(reason))
         else { if (questionId !in mistakeReasons) return; mistakeReasons = mistakeReasons - questionId }
         saveQuietly()
+    }
+    /** Puts rules on the sheet (a question's own rule replaced); returns how many. */
+    @Synchronized fun addRules(rules: List<StudyRule>): Int {
+        if (rules.isEmpty()) return 0
+        ruleSheet = ruleSheet + rules.associateBy { it.id }
+        save()
+        return rules.size
+    }
+    /** Puts a model's wording in place of the plain lines, by rule id. */
+    @Synchronized fun applyWrittenRules(lines: Map<String, String>) {
+        val changed = lines.mapNotNull { (id, line) -> ruleSheet[id]?.let { id to it.copy(text = line, byAI = true) } }
+        if (changed.isEmpty()) return
+        ruleSheet = ruleSheet + changed
+        save()
+    }
+    @Synchronized fun deleteRule(id: String) {
+        if (id !in ruleSheet) return
+        ruleSheet = ruleSheet - id
+        save()
     }
     /** Questions answered wrongly while the student said they were sure, the last time they were answered. */
     val confidentMistakeIds: Set<String> get() = answerLog.associateBy { it.questionId }.values.filter { !it.correct && it.confidence == "sure" }.map { it.questionId }.toSet()

@@ -191,14 +191,26 @@ object CoverageEngine {
      * "center" all come out the same. Short words are left alone.
      */
     fun canonicalWords(text: String): List<String> {
+        val lower = text.lowercase()
         val out = ArrayList<String>()
         val current = StringBuilder()
-        for (ch in text.lowercase()) {
-            if (ch.isLetterOrDigit()) current.append(ch)
-            else if (current.isNotEmpty()) { out.add(fold(current.toString())); current.clear() }
+        var i = 0
+        while (i < lower.length) {
+            val cp = lower.codePointAt(i)
+            if (alphanumeric(cp)) current.appendCodePoint(cp)
+            else if (current.isNotEmpty()) { out.add(fold(current.toString())); current.setLength(0) }
+            i += Character.charCount(cp)
         }
         if (current.isNotEmpty()) out.add(fold(current.toString()))
         return out
+    }
+
+    /** Foundation's CharacterSet.alphanumerics: letters, marks and numbers of every script. */
+    private fun alphanumeric(cp: Int): Boolean = when (Character.getType(cp).toByte()) {
+        Character.UPPERCASE_LETTER, Character.LOWERCASE_LETTER, Character.TITLECASE_LETTER, Character.MODIFIER_LETTER,
+        Character.OTHER_LETTER, Character.NON_SPACING_MARK, Character.ENCLOSING_MARK, Character.COMBINING_SPACING_MARK,
+        Character.DECIMAL_DIGIT_NUMBER, Character.LETTER_NUMBER, Character.OTHER_NUMBER -> true
+        else -> false
     }
 
     fun fold(word: String): String {
