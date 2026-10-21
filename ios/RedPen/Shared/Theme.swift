@@ -588,9 +588,11 @@ private struct DeckFoldBand: View {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
             label
-                // The joined deck's icon stays within its measured pill at
-                // accessibility sizes; the band's hit target is still 44 pt.
-                .font(inset > 0 ? .system(size: 17, weight: .semibold) : .body.weight(.semibold))
+                // Grows with the text up to the largest size its measured
+                // 44 by 28 pill holds, on every deck; past that the Large
+                // Content Viewer shows it. The band's hit target is 44 pt.
+                .font(.body.weight(.semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(Color.wardInk)
                 .frame(width: 44, height: 28)
                 .background { WardPressFace(shape: Capsule(), lift: .low, pressed: pressed) }
@@ -600,6 +602,7 @@ private struct DeckFoldBand: View {
                 .padding(.trailing, inset)
         }
         .contentShape(Rectangle())
+        .accessibilityShowsLargeContentViewer()
     }
 }
 
