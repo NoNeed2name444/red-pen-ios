@@ -71,13 +71,16 @@ fun wardColorScheme(look: WardLook): ColorScheme {
 @Composable fun wardColor(token: WardToken, held: Boolean = false): Color {
     val look = LocalWardLook.current
     val dark = if (held) true else look.dark
-    return wardRgb(WardGlide.rest(look).hex(token, dark, held))
+    // this frame of the section's glide (rememberWardGlide), or the look at rest
+    val glide = LocalWardGlide.current ?: WardGlide.rest(look)
+    return wardRgb(glide.hex(token, dark, held))
 }
 
 /** The section's ink on show: the grid's lines and the controls' edges. */
 @Composable fun wardInk(): Color {
     val look = LocalWardLook.current
-    return wardRgb(look.section.ink(look.dark))
+    val glide = LocalWardGlide.current ?: WardGlide.rest(look)
+    return wardRgb(glide.ink(look.dark))
 }
 
 @Composable fun StethoscoreTheme(dark:Boolean=false, section:WardSection=WardSection.outside, content:@Composable ()->Unit) {
@@ -95,20 +98,22 @@ fun wardColorScheme(look: WardLook): ColorScheme {
         }
     }
     val look = WardLook(dark = dark, section = section)
-    SideEffect { WardLookNow.shared.set(WardGlide.rest(look)) }
-    CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look) {
-        MaterialTheme(colorScheme=wardColorScheme(look), typography=Typography(), content=content)
+    // the one animated value: light and dark in one step, a section's hue glides (WardLookDriver)
+    val glide = rememberWardGlide(look)
+    SideEffect { WardLookNow.shared.set(glide) }
+    CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide) {
+        MaterialTheme(colorScheme=wardColorScheme(look), typography=wardTypography(), content=content)
     }
 }
 
 /** A card (iOS wardCard): raised mid off the base by WardRelief's two lights, iOS's card radius and gutter (WardSurfaces). */
 @Composable fun WardCard(modifier:Modifier=Modifier, content:@Composable ColumnScope.()->Unit) = WardCardFace(modifier, content=content)
-@Composable fun WardButton(text:String,onClick:()->Unit,modifier:Modifier=Modifier,enabled:Boolean=true) {
-    OutlinedButton(onClick=onClick,modifier=modifier.heightIn(min=50.dp),enabled=enabled,shape=RoundedCornerShape(24.dp),border=androidx.compose.foundation.BorderStroke(1.dp,wardInk().copy(alpha=(WardRelief.edgeAlpha(LocalWardDark.current)*(if(enabled) 1.0 else 0.33)).toFloat()))) {
-        Text(text,fontWeight=FontWeight.SemiBold,fontSize=15.sp)
-    }
+/** A Ward button (ui/ward/WardControls): a soft capsule raised off the base, its kind in the label's colour. */
+@Composable fun WardButton(text:String,onClick:()->Unit,modifier:Modifier=Modifier,enabled:Boolean=true,kind:WardButtonKind=WardButtonKind.secondary) {
+    WardTextButton(text,onClick,modifier,kind=kind,enabled=enabled)
 }
-@Composable fun SectionLabel(text:String) { Text(text.uppercase(),fontSize=11.sp,letterSpacing=1.4.sp,fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+/** A section's small-caps label (WardSmallCaps). */
+@Composable fun SectionLabel(text:String) { WardSmallCapsText(text) }
 @Composable fun ScreenHeader(title:String,subtitle:String,onBack:()->Unit) {
     Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
         IconButton(onClick=onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack,contentDescription="Back") }

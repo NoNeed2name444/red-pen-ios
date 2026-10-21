@@ -16,10 +16,7 @@ import kotlin.math.sqrt
 // circular one. Both are kept here: the continuous maths as iOS has it, and
 // the circle Android draws (insideCircle, labelFitsCircle), checked alike.
 
-/** The chosen tab's ring: its edge width (WardControlStates.chosenEdgeWidth). */
-object WardControlStates {
-    const val chosenEdgeWidth = 2.0
-}
+// The chosen tab's ring is WardControlStates.chosenEdgeWidth (WardControlStates.kt).
 
 object WardDock {
     /** The panel's corner radius (WardRadius.bar). */
