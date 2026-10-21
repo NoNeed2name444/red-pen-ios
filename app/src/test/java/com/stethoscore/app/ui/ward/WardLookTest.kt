@@ -153,9 +153,9 @@ class WardLookTest {
         check("the default paper ink is the outside look's",
             WardPaper.ink(dark = false, highContrast = false).hex == WardSection.outside.ink(false) &&
                 WardPaper.ink(dark = true, highContrast = false).hex == WardSection.outside.ink(true))
-        check("Questions: hue 20 and the pinned fills",
-            WardSection.questions.hue == 20.0 && WardSection.questions.fill.light == 0xC03946 &&
-                WardSection.questions.fill.dark == 0xCB3E4B)
+        check("Questions: Vital Coral's hue 23 and its fill, the owner's #FF6B6B in both modes",
+            WardSection.questions.hue == 23.0 && WardSection.questions.fill.light == 0xFF6B6B &&
+                WardSection.questions.fill.dark == 0xFF6B6B)
         for (dark in modes) {
             check("${mode(dark)}: primary and primaryInk equal Cards' fill and accent",
                 WardPalette.hex(WardToken.primary, dark) == WardSection.cards.fill(dark) &&
@@ -192,7 +192,7 @@ class WardLookTest {
         // (from the outside look, Cards, so the move is to Questions)
         val toCards = WardGlide(day, WardLook(false, WardSection.questions), 0.0)
         val cardsEnd = toCards.copy(progress = 1.0)
-        check("a move to Questions starts in indigo and ends in red",
+        check("a move to Questions starts in Care Blue and ends in coral",
             toCards.ink(false) == WardSection.cards.ink.light && cardsEnd.ink(false) == WardSection.questions.ink.light)
         val cardsMid = toCards.copy(progress = 0.5)
         check("half way it is the linear-light mix, not either",
@@ -292,7 +292,7 @@ class WardLookTest {
                     check("$m $s: accent glyphs read 3:1 on the $tier", c >= 3, f3(c))
                 }
                 val white = WardPalette.contrast(WardPalette.hex(WardToken.onPrimary, dark), fill)
-                check("$m $s: white words read 4.5:1 on the fill", white >= 4.5, "${hx(fill)} ${f3(white)}")
+                check("$m $s: the on-fill words read 4.5:1 on the fill", white >= 4.5, "${hx(fill)} ${f3(white)}")
                 if (dark) {
                     val mc = WardPalette.contrast(accent, WardPalette.hex(WardToken.monitor, true))
                     check("$s: the accent reads 4.5:1 on the monitor", mc >= 4.5, f3(mc))
@@ -328,7 +328,7 @@ class WardLookTest {
                 }
                 if (s != WardSection.cards) {
                     val d = distance(s.accent(dark), WardPalette.hex(WardToken.primaryInk, dark))
-                    if (d < near) { near = d; what = "the primary's indigo" }
+                    if (d < near) { near = d; what = "the primary's Care Blue" }
                 }
                 check("$m $s: the accent is not mistaken for a colour that means something", near >= sectionsApart,
                     "$what ${f3(near)}")
@@ -391,9 +391,9 @@ class WardLookTest {
             now.glide == WardGlide.rest(outside) && WardLookNow.shared.glide == WardGlide.rest(outside))
         now.set(WardGlide.rest(WardLook(false, WardSection.questions)))
         check("a right answer made outside any section shows Questions' accent by day",
-            now.hex(WardToken.primaryInk, false) == 0x970525, hx(now.hex(WardToken.primaryInk, false)))
-        check("and at night", now.hex(WardToken.primaryInk, true) == 0xD98888, hx(now.hex(WardToken.primaryInk, true)))
-        check("and its edges Questions' ink", now.ink(false) == 0xC82D40 && now.ink(true) == 0xF0777A)
+            now.hex(WardToken.primaryInk, false) == 0x8A0219, hx(now.hex(WardToken.primaryInk, false)))
+        check("and at night", now.hex(WardToken.primaryInk, true) == 0xFEBAB5, hx(now.hex(WardToken.primaryInk, true)))
+        check("and its edges Questions' ink", now.ink(false) == 0xBE2130 && now.ink(true) == 0xFEBAB5)
         for (section in WardSection.entries) {
             for (dark in modes) {
                 now.set(WardGlide.rest(WardLook(dark, section)))

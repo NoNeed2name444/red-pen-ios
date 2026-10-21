@@ -306,9 +306,9 @@ object WardPaper {
     const val padRadius = 18.0
 
     fun ink(dark: Boolean, highContrast: Boolean): WardPaperInk =
-        // the ink outside any section (WardSection.outside, Cards' indigo)
+        // the ink outside any section (WardSection.outside, Cards' Care Blue)
         WardPaperInk(
-            hex = if (dark) 0xA5B6FE else 0x5866E5,
+            hex = if (dark) 0x84B2FD else 0x2A71E5,
             fine = if (highContrast) 0.0 else if (dark) 0.07 else 0.09,
             bold = if (highContrast) 0.0 else if (dark) 0.14 else 0.18,
             edge = if (dark) 0.5 else 0.55,

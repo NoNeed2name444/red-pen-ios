@@ -175,14 +175,41 @@ data class DeckPalette(val red: Double, val green: Double, val blue: Double) {
     fun argb(): Int = (0xFF shl 24) or (channel(red) shl 16) or (channel(green) shl 8) or channel(blue)
     private fun channel(v: Double) = Math.round(v.coerceIn(0.0, 1.0) * 255).toInt()
 
+    /** WCAG 2 relative luminance, in linear light. */
+    val wcagLuminance: Double get() {
+        fun linear(c: Double) = if (c <= 0.04045) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
+        return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+    }
+
+    /** White words read 4.5:1 on it (WCAG AA). */
+    val carriesWhiteText: Boolean get() = 1.05 / (wcagLuminance + 0.05) >= 4.5
+
+    /** A bar under white words: the tint, or the lightest shade of it from 0.38 down that carries white. */
+    fun barFill(): DeckPalette {
+        if (carriesWhiteText) return this
+        var amount = 0.38
+        while (!shade(amount).carriesWhiteText && amount < 1) amount += 0.02
+        return shade(amount)
+    }
+
+    /** Words in the mode's colour on the paper: the lightest shade from 0.10 down that reads 5:1 on white. */
+    fun ink(): DeckPalette {
+        var amount = 0.10
+        while (1.05 / (shade(amount).wcagLuminance + 0.05) < 5 && amount < 1) amount += 0.02
+        return shade(amount)
+    }
+
     companion object {
+        private fun hex(rgb: Int) = DeckPalette(((rgb shr 16) and 0xFF) / 255.0, ((rgb shr 8) and 0xFF) / 255.0, (rgb and 0xFF) / 255.0)
+
+        /** Each section's fill in the owner's 2026-10-21 palette (WardSection.fill). */
         fun of(kind: StudySetKind) = when (kind) {
-            StudySetKind.MCQ -> DeckPalette(0.78, 0.16, 0.16)
-            StudySetKind.ANKI -> DeckPalette(0.31, 0.36, 0.86)
-            StudySetKind.BOOK -> DeckPalette(0.10, 0.55, 0.50)
-            StudySetKind.OSCE -> DeckPalette(0.20, 0.62, 0.35)
-            StudySetKind.NARRATE -> DeckPalette(0.55, 0.32, 0.80)
-            StudySetKind.CASES -> DeckPalette(0.11, 0.37, 0.69)
+            StudySetKind.MCQ -> hex(0xFF6B6B)      // Vital Coral
+            StudySetKind.ANKI -> hex(0x3B82F6)     // Care Blue
+            StudySetKind.BOOK -> hex(0x14B8A6)     // Pulse Teal
+            StudySetKind.OSCE -> hex(0xA3E635)     // Lime Zest
+            StudySetKind.NARRATE -> hex(0xA78BFA)  // Soft Lilac
+            StudySetKind.CASES -> hex(0xFF9F7A)    // Peach Glow
         }
     }
 }

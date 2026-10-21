@@ -92,7 +92,7 @@ object DeckPdf {
     // ---- pages ----
 
     private fun cover(c: Canvas, set: StudySet, count: Int, palette: DeckPalette) {
-        val fill = Paint().apply { color = palette.argb() }
+        val fill = Paint().apply { color = palette.barFill().argb() }
         c.drawRect(0f, 0f, PAGE_W.toFloat(), PAGE_H * 0.38f, fill)
         text(c, set.kind.label.uppercase(), MARGIN, 70f, PAGE_W - 2 * MARGIN, 11f, 0xFFFFFFFF.toInt(), bold = true)
         val h = text(c, set.name, MARGIN, 100f, PAGE_W - 2 * MARGIN, 30f, 0xFFFFFFFF.toInt(), bold = true)
@@ -104,32 +104,32 @@ object DeckPdf {
     }
 
     private fun contents(c: Canvas, set: StudySet, rows: List<DeckIndexRow>, first: Boolean, palette: DeckPalette, firstCardPage: Int) {
-        text(c, if (first) "Contents" else "Contents (continued)", MARGIN, MARGIN, PAGE_W - 2 * MARGIN, 22f, palette.shade().argb(), bold = true)
+        text(c, if (first) "Contents" else "Contents (continued)", MARGIN, MARGIN, PAGE_W - 2 * MARGIN, 22f, palette.ink().argb(), bold = true)
         var y = MARGIN + 44
         val rule = Paint().apply { color = palette.tint(0.8).argb(); strokeWidth = 0.6f }
         for (row in rows) {
             text(c, row.topic, MARGIN, y, PAGE_W - 2 * MARGIN - 130, 11.5f, 0xFF1F2937.toInt())
             val pages = "cards ${row.range} · p. ${firstCardPage + (row.first - 1) * 2}"
-            text(c, pages, PAGE_W - MARGIN - 125, y, 125f, 10f, palette.shade().argb(), align = Layout.Alignment.ALIGN_OPPOSITE)
+            text(c, pages, PAGE_W - MARGIN - 125, y, 125f, 10f, palette.ink().argb(), align = Layout.Alignment.ALIGN_OPPOSITE)
             y += 22
             c.drawLine(MARGIN, y - 6, PAGE_W - MARGIN, y - 6, rule)
         }
     }
 
     private fun header(c: Canvas, set: StudySet, card: DeckCard, palette: DeckPalette, side: String) {
-        c.drawRect(RectF(0f, 0f, PAGE_W.toFloat(), MARGIN + BAR - 12), Paint().apply { color = palette.argb() })
+        c.drawRect(RectF(0f, 0f, PAGE_W.toFloat(), MARGIN + BAR - 12), Paint().apply { color = palette.barFill().argb() })
         text(c, set.name, MARGIN, 18f, PAGE_W - 2 * MARGIN - 120, 10f, 0xFFFFFFFF.toInt(), bold = true, maxLines = 1)
         text(c, "${card.number} · $side", PAGE_W - MARGIN - 120, 18f, 120f, 10f, 0xFFFFFFFF.toInt(), bold = true, align = Layout.Alignment.ALIGN_OPPOSITE)
         // the topic and a chip with the card's kind
         val chip = Paint().apply { color = palette.tint().argb() }
         c.drawRoundRect(RectF(MARGIN, MARGIN + BAR, MARGIN + 60, MARGIN + BAR + 18), 9f, 9f, chip)
-        text(c, card.kindLabel, MARGIN, MARGIN + BAR + 3, 60f, 8.5f, palette.shade().argb(), bold = true, align = Layout.Alignment.ALIGN_CENTER)
-        text(c, card.topic, MARGIN, MARGIN + BAR + 28, PAGE_W - 2 * MARGIN, 15f, palette.shade().argb(), bold = true, maxLines = 2)
+        text(c, card.kindLabel, MARGIN, MARGIN + BAR + 3, 60f, 8.5f, palette.ink().argb(), bold = true, align = Layout.Alignment.ALIGN_CENTER)
+        text(c, card.topic, MARGIN, MARGIN + BAR + 28, PAGE_W - 2 * MARGIN, 15f, palette.ink().argb(), bold = true, maxLines = 2)
     }
 
     private fun footer(c: Canvas, card: DeckCard, total: Int, palette: DeckPalette, hint: String) {
         text(c, "${card.number} of $total", MARGIN, PAGE_H - MARGIN + 10, 120f, 9f, 0xFF6B7280.toInt())
-        if (hint.isNotEmpty()) text(c, hint, PAGE_W - MARGIN - 200, PAGE_H - MARGIN + 10, 200f, 9f, palette.shade().argb(), align = Layout.Alignment.ALIGN_OPPOSITE)
+        if (hint.isNotEmpty()) text(c, hint, PAGE_W - MARGIN - 200, PAGE_H - MARGIN + 10, 200f, 9f, palette.ink().argb(), align = Layout.Alignment.ALIGN_OPPOSITE)
     }
 
     // ---- blocks ----
@@ -171,7 +171,7 @@ object DeckPdf {
 
     private fun layoutOf(block: DeckBlock, palette: DeckPalette, size: Float, width: Float): StaticLayout {
         val text = SpannableStringBuilder()
-        val accent = palette.shade().argb()
+        val accent = palette.ink().argb()
         fun lead(s: String) {
             val start = text.length; text.append(s)
             text.setSpan(ForegroundColorSpan(accent), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)

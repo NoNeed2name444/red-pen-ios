@@ -215,9 +215,9 @@ class WardPaletteTest {
             }
             return null
         }
-        check("AccentColor (light) is the primary, Cards' indigo", components(null) == WardPalette.hex(WardToken.primary, false),
+        check("AccentColor (light) is the primary, Cards' Care Blue", components(null) == WardPalette.hex(WardToken.primary, false),
             Integer.toHexString(components(null) ?: 0))
-        check("AccentColor (dark) is the night primary ink, Cards' indigo", components("dark") == WardPalette.hex(WardToken.primaryInk, true),
+        check("AccentColor (dark) is the night primary ink, Cards' Care Blue", components("dark") == WardPalette.hex(WardToken.primaryInk, true),
             Integer.toHexString(components("dark") ?: 0))
         val launch = File(base, "LaunchBackground.colorset/Contents.json")
         check("LaunchBackground (light) is the base", components(null, launch) == WardPalette.hex(WardToken.background, false),

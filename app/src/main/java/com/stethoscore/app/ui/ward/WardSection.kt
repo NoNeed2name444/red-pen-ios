@@ -51,7 +51,7 @@ enum class WardSection {
 
     companion object {
         /**
-         * The look outside any section: Cards' indigo, which is also the
+         * The look outside any section: Cards' Care Blue, which is also the
          * palette's primary. Not Questions, or every screen without a
          * section would turn red.
          */
@@ -72,13 +72,13 @@ enum class WardSection {
         // (ink, accent, fill) as (light, dark) 0xRRGGBB.
         private val table: Map<WardSection, WardSectionColours> by lazy {
             mapOf(
-                questions to WardSectionColours(20.0, WardPair(0xC82D40, 0xF0777A), WardPair(0x970525, 0xD98888), WardPair(0xC03946, 0xCB3E4B)),
-                cards to WardSectionColours(274.0, WardPair(0x5866E5, 0xA5B6FE), WardPair(0x4046C2, 0xA5B6FE), WardPair(0x5260BC, 0x5A68C5)),
-                textbook to WardSectionColours(186.0, WardPair(0x0E7C74, 0x0FC8BA), WardPair(0x065650, 0x0FC8BA), WardPair(0x227D75, 0x258279)),
-                cases to WardSectionColours(51.0, WardPair(0xAC5102, 0xF48C49), WardPair(0x783907, 0xF48C49), WardPair(0xAC5A21, 0xB05C23)),
-                osce to WardSectionColours(149.0, WardPair(0x01712E, 0x5DC474), WardPair(0x024B1D, 0x5DC474), WardPair(0x3D7C49, 0x42814F)),
-                audio to WardSectionColours(307.0, WardPair(0x9853D0, 0xCD99FE), WardPair(0x772FAB, 0xCD99FE), WardPair(0x8150AD, 0x8B57B8)),
-                ideas to WardSectionColours(346.0, WardPair(0xC74195, 0xE97EBB), WardPair(0x9E1071, 0xE97EBB), WardPair(0xB23E86, 0xBA438E)),
+                questions to WardSectionColours(23.0, WardPair(0xBE2130, 0xFEBAB5), WardPair(0x8A0219, 0xFEBAB5), WardPair(0xFF6B6B, 0xFF6B6B)),
+                cards to WardSectionColours(260.0, WardPair(0x2A71E5, 0x84B2FD), WardPair(0x0251C2, 0x84B2FD), WardPair(0x3B82F6, 0x3B82F6)),
+                textbook to WardSectionColours(182.0, WardPair(0x157C70, 0x1EC8B4), WardPair(0x0A574D, 0x1EC8B4), WardPair(0x14B8A6, 0x14B8A6)),
+                cases to WardSectionColours(42.0, WardPair(0xCE4F08, 0xFE9F79), WardPair(0x983803, 0xFF9F7A), WardPair(0xFF9F7A, 0xFF9F7A)),
+                osce to WardSectionColours(129.0, WardPair(0x476A05, 0xAFE172), WardPair(0x2D4601, 0xA3E635), WardPair(0xA3E635, 0xA3E635)),
+                audio to WardSectionColours(294.0, WardPair(0x845BDD, 0xB097FD), WardPair(0x6538B8, 0xB097FD), WardPair(0xA78BFA, 0xA78BFA)),
+                ideas to WardSectionColours(350.0, WardPair(0xCA3F8D, 0xF383BB), WardPair(0xA00B69, 0xF383BB), WardPair(0xF472B6, 0xF472B6)),
             )
         }
 
