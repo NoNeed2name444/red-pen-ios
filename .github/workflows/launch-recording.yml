@@ -23,7 +23,6 @@ on:
       - 'ios/RedPen/Shared/Ward/WardLight*.swift'
       - 'ios/RedPen/Features/Library/WardHome.swift'
       - 'ios/RedPen/Features/Library/LibraryView.swift'
-      - 'ios/RedPen/Assets.xcassets/LaunchLogo*/**'
       - 'ios/RedPen/Assets.xcassets/LaunchPaper*/**'
       - 'ios/AppResources/LaunchScreen.storyboard'
       - 'ios/RedPen/Assets.xcassets/Heartbeat.dataset/**'

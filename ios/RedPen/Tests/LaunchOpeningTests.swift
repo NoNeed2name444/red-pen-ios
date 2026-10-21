@@ -377,9 +377,16 @@ check("the paper: iPhone at 2x and 3x, iPad at 2x, day and night",
       ["paper-iphone@2x.png", "paper-iphone@3x.png", "paper-ipad@2x.png",
        "paper-iphone-dark@2x.png", "paper-iphone-dark@3x.png", "paper-ipad-dark@2x.png"]
         .allSatisfy(paperFiles.contains), "\(paperFiles)")
+// The mark is private: it is added to the built app when it is downloaded,
+// never kept here, and the opening draws only the ground without it.
 let set = "ios/RedPen/Assets.xcassets/\(LaunchArt.imageName).imageset"
-let files = (try? FileManager.default.contentsOfDirectory(atPath: set)) ?? []
-check("launch art: day and night at 1x, 2x, 3x", files.filter { $0.hasSuffix(".png") }.count == 6, "\(files)")
+check("launch art: not in the source tree (added to the built app at download)",
+      !FileManager.default.fileExists(atPath: set))
+let splashCode = (try? String(contentsOfFile: "ios/RedPen/Shared/LaunchSplash.swift", encoding: .utf8)) ?? ""
+check("the opening looks up the night mark, then the day one, and draws nothing when neither is there",
+      splashCode.contains("UIImage(named: LaunchArt.darkImageName, in: nil, compatibleWith: traits) : nil)")
+      && splashCode.contains("?? UIImage(named: LaunchArt.imageName, in: nil, compatibleWith: traits)")
+      && splashCode.contains("l.contents = image?.cgImage"))
 for dark in [false, true] {
     let c = LaunchArt.chest(dark: dark)
     check("chest piece inside the \(dark ? "night" : "day") image",

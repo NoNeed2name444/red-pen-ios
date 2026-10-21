@@ -44,7 +44,8 @@ SE=(-uiPreviewWidth 375 -uiPreviewHeight 647)
 SECTIONS="anki book cases osce narrate home-ideas"
 
 # Whether a picture is still the launch screen: flat above and below the
-# logo. sips turns it into an uncompressed BMP to read.
+# logo (or flat throughout, in a build without the private launch mark).
+# sips turns it into an uncompressed BMP to read.
 BLANK="$OUT/.blank-$plan.py"
 cat > "$BLANK" <<'PY'
 import struct, sys

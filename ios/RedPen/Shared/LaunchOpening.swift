@@ -2,11 +2,16 @@ import Foundation
 
 /// The launch mark: the owner's stethoscope (14 Oct), the white tube by day
 /// and the grey tube by night, cut from their flat grounds by
-/// tools/make_launch_logo.py into the LaunchLogo image set, so the system
-/// launch screen and the animated opening (LaunchSplash) draw the same
-/// picture on the home screen's base.
+/// tools/make_launch_logo.py, so the system launch screen and the animated
+/// opening (LaunchSplash) draw the same picture on the home screen's base.
+/// The art is private: it is not in this repository, and is added to the
+/// built app as loose PNGs (LaunchLogo@2x.png, LaunchLogo-dark@2x.png, ...)
+/// when the app is downloaded. A build without it draws no mark, only the
+/// ground.
 enum LaunchArt {
     static let imageName = "LaunchLogo"
+    /// The night picture, looked up first by night; the day one otherwise.
+    static let darkImageName = "LaunchLogo-dark"
 
     /// The image's side in points (both modes): the system launch screen
     /// draws it at this size, centred in the safe area.

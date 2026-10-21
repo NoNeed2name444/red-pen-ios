@@ -36,6 +36,7 @@ Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8)
 - Send screenshots of every visual change with SendUserFile. No zip files.
 - Macaly is dropped: never mention it, its connector or its auth notices, and
   don't relay any other connector's auth notices either.
+- The stethoscope art (app icon, launch mark) is private since 21 Oct: only plain stand-ins live here; never commit it, it is added to the built app at download.
 
 ## 2. State
 

@@ -7,10 +7,13 @@
 //   node tests/art/clean-edges.test.mjs          the committed art
 //   node tests/art/clean-edges.test.mjs <dir>    the same files (by name) from <dir>,
 //                                                to measure older art against the bar
+//   ART_ROOT=<dir> node tests/art/clean-edges.test.mjs
+//                                                the private brand art, kept at the
+//                                                same paths under <dir> (tests/art/art.mjs)
 import { existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readPng, gauss, components } from './art.mjs';
+import { readPng, gauss, components, ART_ROOT, isPlaceholder } from './art.mjs';
 
 let failed = 0;
 function check(label, ok, detail = '') {
@@ -21,6 +24,16 @@ function check(label, ok, detail = '') {
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const other = process.argv[2];
 const at = p => (other ? join(other, basename(p)) : join(root, p));
+// the brand art: from ART_ROOT when given; otherwise what is here is a stand-in
+const brand = p => (other ? join(other, basename(p)) : join(ART_ROOT || root, p));
+const standIn = !other && !ART_ROOT;
+function checkStandIn(p) {
+  const path = join(root, p);
+  if (!existsSync(path)) { check(`${p}: not in the repository (private)`, true); return; }
+  const img = readPng(path);
+  check(`${p}: only a plain stand-in here (the art is private)`, isPlaceholder(img), `${img.width} x ${img.height}, not one colour`);
+}
+if (standIn) console.log('     the brand art is private: ART_ROOT=<its checkout> measures it');
 
 // The bar. Roughness is how much of the solid body's outline a light
 // smoothing (sigma 1.5 px) would move, per pixel of outline: a drawn,
@@ -49,7 +62,7 @@ const backgroundOf = suffix => {
 
 const cuts = [];
 for (const [stem, mode] of [['launch-logo', 'light'], ['launch-logo-dark', 'dark']]) {
-  for (const n of [1, 2, 3]) cuts.push({ path: `${LAUNCH}/${stem}@${n}x.png`, ground: ground[mode] });
+  for (const n of [1, 2, 3]) cuts.push({ path: `${LAUNCH}/${stem}@${n}x.png`, ground: ground[mode], brand: true });
 }
 cuts.push({ path: `${LAYERS}/1-stethoscope.png`, ground: () => backgroundOf('') });
 cuts.push({ path: `${LAYERS}/1-stethoscope-dark.png`, ground: () => backgroundOf('-dark') });
@@ -129,7 +142,8 @@ function measure(img, g) {
 
 let measured = 0;
 for (const cut of cuts) {
-  const path = at(cut.path);
+  if (cut.brand && standIn) { checkStandIn(cut.path); continue; }
+  const path = cut.brand ? brand(cut.path) : at(cut.path);
   if (!existsSync(path)) { if (!other) check(`${cut.path} exists`, false, 'missing'); continue; }
   const img = readPng(path);
   const g = typeof cut.ground === 'function' ? cut.ground() : cut.ground;
@@ -156,7 +170,8 @@ if (!other) {
     const bg = readPng(at(`${LAYERS}/0-background${suffix}.png`));
     for (const icon of [`ios/AppResources/AppIcon.icon/Assets/icon-${look}.png`,
                         `ios/RedPen/Assets.xcassets/AppIcon.appiconset/icon-1024${suffix}.png`]) {
-      const img = readPng(at(icon));
+      if (standIn) { checkStandIn(icon); continue; }
+      const img = readPng(brand(icon));
       const name = icon.split('/').slice(-2).join('/');
       check(`${name} is 1024 x 1024`, img.width === 1024 && img.height === 1024, `${img.width} x ${img.height}`);
       let clearest = 255, off = 0;

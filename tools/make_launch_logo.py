@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Cut the launch mark from its flat ground, for the launch screen and the opening.
 
+The art is private: design/launch-logo and the LaunchLogo image set are not
+in this repository (.gitignore keeps them out); the mark is added to the
+built app as loose PNGs when it is downloaded. Run this on a copy that holds
+the art, and never commit its output here.
+
 The owner's stethoscope art comes as a picture on a flat ground, exactly the
 home screen's base (#E0E5EC by day, #2A2E35 by night), with a soft shadow
 under the mark. The launch screen draws its image on that same base colour

@@ -8,6 +8,10 @@
 # Either copy it there yourself and run this with no arguments, or name it:
 #   tools/swap_art.sh launch-dark=PATH icon-dark=PATH
 # (keys: launch-light, launch-dark, icon-light, icon-dark, icon-tinted).
+# The art is private: it is not kept in this repository (only plain stand-ins
+# where the build needs an icon) and is added to the built app when it is
+# downloaded. Run this on a copy that holds the art, and never commit what it
+# writes here (.gitignore keeps the sources and the launch mark out).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 for pair in "$@"; do

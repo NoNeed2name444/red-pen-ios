@@ -165,3 +165,20 @@ export function chestPiece(img) {
     r: best / 2,
   };
 }
+
+// The brand art (the launch mark and the opaque icons) is private: it is kept
+// outside this repository and added to the built app when it is downloaded.
+// Here, where the build needs a file, a plain one-colour square stands in.
+// ART_ROOT=<a checkout holding the art at the same paths> measures the art
+// itself; without it, the tests check that what is here is only a stand-in.
+export const ART_ROOT = process.env.ART_ROOT || null;
+
+/** Whether an image is a stand-in: opaque, square and one colour throughout. */
+export function isPlaceholder(img) {
+  if (img.width !== img.height) return false;
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] !== 255 || d[i] !== d[0] || d[i + 1] !== d[1] || d[i + 2] !== d[2]) return false;
+  }
+  return true;
+}

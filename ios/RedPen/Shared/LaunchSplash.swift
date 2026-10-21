@@ -218,7 +218,10 @@ final class LaunchOpeningView: UIView {
         }
 
         let traits = UITraitCollection(userInterfaceStyle: phoneDark ? .dark : .light)
-        let image = UIImage(named: LaunchArt.imageName, in: nil, compatibleWith: traits)
+        // the mark is added to the app after it is built, so it may be
+        // missing: then the layers stay empty and only the ground shows
+        let image = (phoneDark ? UIImage(named: LaunchArt.darkImageName, in: nil, compatibleWith: traits) : nil)
+            ?? UIImage(named: LaunchArt.imageName, in: nil, compatibleWith: traits)
         for l in [logo, chest] {
             l.contents = image?.cgImage
             l.contentsScale = image?.scale ?? UIScreen.main.scale

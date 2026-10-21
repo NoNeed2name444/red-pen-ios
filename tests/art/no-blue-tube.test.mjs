@@ -11,10 +11,13 @@
 //
 //   node tests/art/no-blue-tube.test.mjs          the committed art
 //   node tests/art/no-blue-tube.test.mjs <dir>    the same files (by name) from <dir>
+//   ART_ROOT=<dir> node tests/art/no-blue-tube.test.mjs
+//                                                 the private brand art, kept at the
+//                                                 same paths under <dir> (tests/art/art.mjs)
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readPng, hsv, chestPiece } from './art.mjs';
+import { readPng, hsv, chestPiece, ART_ROOT, isPlaceholder } from './art.mjs';
 
 let failed = 0;
 function check(label, ok, detail = '') {
@@ -25,6 +28,10 @@ function check(label, ok, detail = '') {
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const other = process.argv[2];
 const at = p => (other ? join(other, basename(p)) : join(root, p));
+// the brand art: from ART_ROOT when given; otherwise what is here is a stand-in
+const brand = p => (other ? join(other, basename(p)) : join(ART_ROOT || root, p));
+const standIn = !other && !ART_ROOT;
+if (standIn) console.log('     the brand art is private: ART_ROOT=<its checkout> measures it');
 
 const SATURATION = 0.25;
 const HUE = [190, 250];
@@ -64,21 +71,21 @@ const layer = 'design/icon/layers/1-stethoscope-dark.png';
 const layerChest = existsSync(at(layer)) ? chestPiece(readPng(at(layer))) : null;
 const files = [
   ...[1, 2, 3].map(n => ({
-    path: `ios/RedPen/Assets.xcassets/LaunchLogo.imageset/launch-logo-dark@${n}x.png`, cut: true, collar: true,
+    brand: true, path: `ios/RedPen/Assets.xcassets/LaunchLogo.imageset/launch-logo-dark@${n}x.png`, cut: true, collar: true,
     chest: img => ({ x: launchChest[0] * img.width, y: launchChest[1] * img.width, r: launchChest[2] * img.width }),
   })),
   {
-    path: 'design/launch-logo/dark.png', cut: false, collar: true,
+    brand: true, path: 'design/launch-logo/dark.png', cut: false, collar: true,
     chest: img => {
       const s = launchSquare(img);
       return { x: s.left + launchChest[0] * s.side, y: s.top + launchChest[1] * s.side, r: launchChest[2] * s.side };
     },
   },
   { path: layer, cut: true, chest: img => chestPiece(img) },
-  { path: 'ios/RedPen/Assets.xcassets/AppIcon.appiconset/icon-1024-dark.png', cut: false, chest: () => layerChest },
-  { path: 'ios/AppResources/AppIcon.icon/Assets/icon-dark.png', cut: false, chest: () => layerChest },
+  { brand: true, path: 'ios/RedPen/Assets.xcassets/AppIcon.appiconset/icon-1024-dark.png', cut: false, chest: () => layerChest },
+  { brand: true, path: 'ios/AppResources/AppIcon.icon/Assets/icon-dark.png', cut: false, chest: () => layerChest },
   {
-    path: 'design/icon/source/icon-dark.png', cut: false,
+    brand: true, path: 'design/icon/source/icon-dark.png', cut: false,
     // the icon is this picture scaled to 1024 (tools/make_icon.py), so its
     // chest piece is the layer's, scaled back
     chest: img => layerChest && { x: layerChest.x * img.width / 1024, y: layerChest.y * img.width / 1024, r: layerChest.r * img.width / 1024 },
@@ -87,7 +94,14 @@ const files = [
 
 let judged = 0;
 for (const f of files) {
-  const path = at(f.path);
+  if (f.brand && standIn) {
+    const here = join(root, f.path);
+    if (!existsSync(here)) { check(`${f.path}: not in the repository (private)`, true); continue; }
+    const img = readPng(here);
+    check(`${f.path}: only a plain stand-in here (the art is private)`, isPlaceholder(img), `${img.width} x ${img.height}, not one colour`);
+    continue;
+  }
+  const path = f.brand ? brand(f.path) : at(f.path);
   if (!existsSync(path)) { if (!other) check(`${f.path} exists`, false, 'missing'); continue; }
   const img = readPng(path);
   const c = f.chest(img);

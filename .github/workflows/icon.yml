@@ -19,6 +19,11 @@ jobs:
           python-version: '3.11'
       - name: Draw
         run: |
+          # the art is private and not in this repository: there is nothing
+          # to draw from, and the result must never be committed here
+          if [ ! -d design/icon/source ]; then
+            echo "::error::design/icon/source is private and not in this repository"; exit 1
+          fi
           python -m pip install --quiet pillow
           python3 tools/make_icon.py
           ls -la ios/RedPen/Assets.xcassets/AppIcon.appiconset design/icon

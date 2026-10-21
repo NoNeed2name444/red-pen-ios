@@ -25,6 +25,10 @@ needs and changes nothing in them but their size:
 The launch screen's mark is cut separately, from the flat pair, by
 tools/make_launch_logo.py; the same pictures in layers (design/icon/layers, for
 IconLayersView) by tools/icon_layers.py.
+
+The art is private: design/icon/source is not in this repository, and the
+icon files here are plain one-colour stand-ins; the real icon is added to the
+built app when it is downloaded. Never commit this script's output here.
 """
 
 from __future__ import annotations
