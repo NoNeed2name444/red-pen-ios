@@ -1126,7 +1126,6 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     // MARK: leaving
-    // MARK: leaving
 
     /// The bodies shown now whose ids are not in `keeping` - deleted, as a
     /// new scene is built - each with a copy of its node, where it is, how

@@ -36,6 +36,26 @@ for asset in IconLayer.assets {
     ok(h?.depth == 8 && h?.colour == 6, "\(asset) is 8-bit RGBA, so it has alpha")
 }
 
+// MARK: back to front
+
+// IconLayer's order is the stacking order: the base at the back, the
+// stethoscope in front. Each look's PNGs are numbered 0, 1, ... in that
+// order, tools/icon_layers.py cuts them so, and the in-app view stacks
+// them first to last (a ZStack puts its first view at the back).
+let order = IconLayer.allCases
+ok(order == [.background, .stethoscope], "the layers stack back to front, base then stethoscope: \(order.map(\.rawValue))")
+ok(Set(IconLayer.assets).count == IconLayer.assets.count && IconLayer.assets.count == order.count * 2,
+   "one PNG per layer and look, none twice: \(IconLayer.assets)")
+for dark in [false, true] {
+    let look = IconLayer.assets.filter { $0.hasSuffix("-dark.png") == dark }
+    ok(look == order.map { $0.asset(dark: dark) }, "the \(dark ? "dark" : "light") look lists its layers back to front: \(look)")
+    ok(look.map { Int($0.prefix { $0.isNumber }) ?? -1 } == Array(order.indices),
+       "the \(dark ? "dark" : "light") look's PNGs are numbered back to front from 0: \(look)")
+}
+let cutter = fm.contents(atPath: "tools/icon_layers.py").flatMap { String(data: $0, encoding: .utf8) } ?? ""
+ok(cutter.contains("(f\"0-background{suffix}.png\", bg), (f\"1-stethoscope{suffix}.png\", fg)"),
+   "tools/icon_layers.py writes the base as 0 and the stethoscope over it as 1")
+
 // MARK: AppIcon.icon (tools/make_icon.py, the owner's icon since 14 Oct)
 
 let json = fm.contents(atPath: "\(bundle)/icon.json")
@@ -75,6 +95,9 @@ ok(setJSON.contains("\"dark\"") && setJSON.contains("\"tinted\""), "the icon set
 let swift = fm.contents(atPath: "ios/RedPen/Shared/Brand/IconLayers.swift").flatMap { String(data: $0, encoding: .utf8) } ?? ""
 ok(swift.contains("layer.asset(dark: scheme == .dark)") && swift.contains("subdirectory: \"layers\""),
    "IconLayers.swift shows each layer's PNG, light or dark, from the app's layers folder")
+ok(swift.contains("var layers: [IconLayer] = IconLayer.allCases")
+   && swift.contains("ZStack { ForEach(layers, id: \\.self) { IconLayerView(layer: $0) } }"),
+   "IconLayersView stacks the layers in IconLayer's order, the first at the back")
 let project = fm.contents(atPath: "ios/project.yml").flatMap { String(data: $0, encoding: .utf8) } ?? ""
 ok(project.contains("path: ../design/icon/layers"), "project.yml copies design/icon/layers into the app")
 

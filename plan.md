@@ -1886,7 +1886,8 @@ with the marks on the screens last.
   dragged upwards, with its links:
   - Black hole (elevated): photon ring brighter on the approaching side
     (Doppler), lensed arcs, Keplerian streaks, an ISCO line; beams bend in,
-    redden and flash on arrival. Dragged: the disc flares and sheds matter.
+    redden and flash on arrival. Dragged: the disc flares (it sheds no
+    matter: its spark trail is off, rate 0).
   - Sun: granulation, limb darkening, corona, prominences and a flare;
     links run whiter and pulses leave as ejected plasma.
   - Rocky planet: day/night terminator from the light, city lights on the
@@ -1904,6 +1905,11 @@ with the marks on the screens last.
   the bodies must match the sheet's photoreal look, in real-time shaders
   (procedural granulation, lensing, atmosphere, ring shadows), judged on
   the iPad.
+  - Status (21 Oct): the Space bodies merge landed on design/integration
+    (2a62a68): Earth from NASA's public maps, a ray-traced black hole, and
+    every rocky planet is now Earth (the desert and ice palettes are gone).
+    The dragged black hole's spark trail is off (rate 0), so it no longer
+    sheds matter as the sheet's wording above had it. Waiting for its Mac run.
 - [ ] 4b. The Performance theme to 1,000,000 nodes with their links at 60
   frames a second or more (the owner, 14 Oct: "why didn't u make the
   performance nodes theme that can run 1million nodes and their connections
@@ -1965,7 +1971,7 @@ with the marks on the screens last.
        so turning back is instant.
     5. Only the heavy extras (labels, glow textures) stream, on a
        background thread within a fixed slice of each frame.
-  - [ ] Space (T0082, code done on design/integration 52a1b72, waiting
+  - [ ] Space (T0082, code done on design/integration fed0105, waiting
     for its Mac run). The stage is GraphSpaceDepthStage, and it reuses
     GraphPerfFrustum.of and GraphPerfLOD:
     - A body whose look (its disk, tail or beams) is all outside the
@@ -1991,7 +1997,7 @@ with the marks on the screens last.
   the 3D scene only.
   - [ ] Performance, on design/perf-million (with D1 to D5).
   - [ ] Space, on design/space-bodies (after its current step). Code done
-    (T0082, on design/integration 52a1b72), waiting for its Mac run:
+    (T0082, on design/integration fed0105), waiting for its Mac run:
     - The band (SpaceDepth.band, GraphSpaceDepth.swift) runs from 1.15x
       to 2.6x the focus's view depth on High, and from 1.1x to 2.0x on
       Smooth, with k 1.25. With Increase Contrast it starts at 1.25x and

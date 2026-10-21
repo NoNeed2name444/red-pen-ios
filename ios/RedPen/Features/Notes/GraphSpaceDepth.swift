@@ -33,7 +33,7 @@ nonisolated struct SpaceDepthBand: Sendable, Equatable {
     /// The shaders' rp_dfF.
     func fade(_ depth: Float) -> Float {
         let width: Float = end - start
-        guard width > 0.0001, cap > 0 else { return 0 }
+        guard fades else { return 0 }
         let t: Float = min(max((depth - start) / width, 0), 1)
         return pow(t, max(exponent, 0.0001)) * cap
     }
@@ -42,8 +42,12 @@ nonisolated struct SpaceDepthBand: Sendable, Equatable {
     /// link): it fades to nothing, never towards a colour.
     func light(_ depth: Float) -> Float { 1 - fade(depth) }
 
+    /// Whether the band fades anything at all (`off` does not).
+    var fades: Bool { end - start > 0.0001 && cap > 0 }
+
     /// In the crisp zone (nothing faded): where name pills may show.
-    func crisp(_ depth: Float) -> Bool { depth <= start }
+    /// Everywhere when the band fades nothing.
+    func crisp(_ depth: Float) -> Bool { !fades || depth <= start }
 
     /// Whether the far end reaches the background, so what lies past it
     /// is fully faded and is not drawn.
@@ -96,15 +100,20 @@ nonisolated enum SpaceDepth {
     /// Increase Contrast: the fade starts later and stops short.
     static let contrastStart: Float = 1.25
     static let contrastCap: Float = 0.7
-    /// The focus is never taken as nearer than this (scene units), so a
-    /// camera right on top of its target still has a band.
+    /// The nearest a focus may lie along the view (scene units) and still
+    /// set a band. One this near, at the eye or behind it is stale (the
+    /// camera moved past what it last looked at): a band scaled from it
+    /// would fade, then cull, everything in front, so there is none.
     static let nearestFocus: Float = 0.05
 
     /// The band for a camera whose focus (its orbit target, or the body it
     /// flew to) lies `focusDepth` along its view. Start and end scale with
     /// it, so zooming in on one small body looks the same as the whole map.
+    /// `off` for a focus at most `nearestFocus` ahead, behind the eye or
+    /// not a number.
     static func band(focusDepth: Float, tier: GraphicsTier, contrast: Bool = false) -> SpaceDepthBand {
-        let d: Float = max(focusDepth.isFinite ? focusDepth : nearestFocus, nearestFocus)
+        guard focusDepth.isFinite, focusDepth > nearestFocus else { return .off }
+        let d: Float = focusDepth
         let r = reach(tier)
         let start: Float = r.start * (contrast ? contrastStart : 1)
         return SpaceDepthBand(start: d * start, end: d * r.end, exponent: exponent,

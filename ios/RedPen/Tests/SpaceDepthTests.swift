@@ -6,8 +6,9 @@
 // dissolves there with no pop (D5), shader detail by size on screen, whole
 // up close (D6), the point level with its gap so nothing flickers (D7, D8),
 // the view volume, the Performance theme's (D9), the shaders' fade and
-// detail pieces (D10), the fade colour against the sky (D11), and the
-// morphing noise octaves (D12).
+// detail pieces (D10), the fade colour against the sky (D11), the
+// morphing noise octaves (D12), and a stale focus behind the eye fading
+// nothing (D13).
 //
 // Compiled with GraphSpaceDepth.swift, GraphPerfLOD.swift,
 // GraphPerfCamera.swift, GraphicsQuality.swift, GraphShaderKit.swift and
@@ -273,6 +274,34 @@ check("D12 at full weight the octaves are the old ones to the bit (the look up c
 check("D12 at none they are the simple path's, and between they morph with no step", ends && morphSmooth)
 check("D12 the shaders use the morphing octaves", GraphStyleShaders.gasBody.contains("float rp_tb_k = rp_tb_o < 3 ? 1.0 : rp_dl;")
       && GraphStyleShaders.moonBody.contains("float rp_mh_k = rp_mh_o < 2 ? 1.0 : rp_dl;"))
+
+// MARK: D13 a stale focus fades nothing
+
+// the camera's own gestures carried it past the focus it last set: the
+// focus is now behind the eye (or on it), and a band scaled from it would
+// fade and cull everything the camera looks at
+let staleEye = SIMD3<Float>(0, 0, -5)
+let staleDepth: Float = SpaceDepth.depth(of: SIMD3<Float>(0, 0, 0), eye: staleEye, forward: ahead)
+var staleOff = staleDepth < 0
+for depth in [staleDepth, -0.01, 0, SpaceDepth.nearestFocus, Float.nan, -Float.infinity] {
+    for tier in [GraphicsTier.high, .smooth] {
+        for lifted in [false, true] where SpaceDepth.band(focusDepth: depth, tier: tier, contrast: lifted) != .off {
+            staleOff = false
+        }
+    }
+}
+check("D13 a focus behind the eye, on it or not a number sets no band", staleOff, "\(staleDepth)")
+let stale: SpaceDepthBand = SpaceDepth.band(focusDepth: staleDepth, tier: .high)
+var nothingLost = true
+for z in [Float(0.01), 0.13, 1, 5, 50, 5000] {
+    if stale.fade(z) != 0 || stale.gone(z) || stale.dissolve(z) != 1 || !stale.crisp(z) || stale.light(z) != 1 {
+        nothingLost = false
+    }
+}
+check("D13 then every body ahead stays crisp and drawn, names and all: the map never goes blank", nothingLost)
+let justAhead: SpaceDepthBand = SpaceDepth.band(focusDepth: SpaceDepth.nearestFocus * 1.01, tier: .high)
+check("D13 a focus just ahead of the nearest still sets its band",
+      justAhead.culls && justAhead.crisp(SpaceDepth.nearestFocus) && justAhead.gone(1))
 
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

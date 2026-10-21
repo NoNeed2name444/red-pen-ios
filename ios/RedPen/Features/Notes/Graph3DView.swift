@@ -1552,7 +1552,11 @@ struct GraphSCNView: UIViewRepresentable {
         coordinator.view = view
         view.onResize = { [weak coordinator] size in coordinator?.resized(to: size) }
         view.onPress = { [weak coordinator] point in coordinator?.pressed(at: point) }
-        view.onMove = { [weak coordinator] in coordinator?.wake() }
+        view.onMove = { [weak coordinator] in
+            coordinator?.wake()
+            coordinator?.followTarget()
+        }
+        view.defaultCameraController.delegate = coordinator
         let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped(_:)))
         tap.delegate = coordinator
         view.addGestureRecognizer(tap)
@@ -1638,7 +1642,7 @@ struct GraphSCNView: UIViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate, SCNCameraControllerDelegate {
         var onTap: (UUID) -> Void
         var openFolder: (UUID?) -> Void
         var recenterCount: Int
@@ -1960,6 +1964,7 @@ struct GraphSCNView: UIViewRepresentable {
                     let at: SIMD3<Float> = sim.world.simdConvertPosition(sim.currentPosition(i), to: nil)
                     camera.simdPosition = at + offset
                     camera.simdOrientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+                    sim.setFocus(at)
                 }
                 sim.namesShown = false
                 sim.closeUpSubject = i
@@ -2239,6 +2244,22 @@ struct GraphSCNView: UIViewRepresentable {
         func wake() {
             lastWake = CACurrentMediaTime()
             pace()
+        }
+
+        /// SceneKit's own camera gestures (orbit, pan, pinch, double tap)
+        /// move its orbit target without telling the sim, and the depth
+        /// fade measures from the sim's focus: hand it the target, or a
+        /// stale focus behind the camera fades what it looks at.
+        func followTarget() {
+            guard let view, let sim else { return }
+            let target: SCNVector3 = view.defaultCameraController.target
+            sim.setFocus(SIMD3<Float>(Float(target.x), Float(target.y), Float(target.z)))
+        }
+
+        /// The camera has coasted to a stop after a gesture: the focus
+        /// follows where it ended.
+        nonisolated func cameraInertiaDidEnd(for cameraController: SCNCameraController) {
+            Task { @MainActor [weak self] in self?.followTarget() }
         }
 
         /// A sheet is up over the map (the note, a picker, a name): it
