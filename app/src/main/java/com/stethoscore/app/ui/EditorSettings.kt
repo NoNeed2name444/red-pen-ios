@@ -32,6 +32,7 @@ import com.stethoscore.app.data.*
             Text(when(kind) {StudySetKind.ANKI->"One card per line";StudySetKind.MCQ->"One question per block";StudySetKind.OSCE->"One checklist step per line";StudySetKind.NARRATE->"One transcript segment per line";else->"Write or paste your notes"},fontWeight=FontWeight.Bold)
             Text(when(kind) {StudySetKind.ANKI->"Question | Answer\nUse {{c1::answer}} for a cloze card.";StudySetKind.MCQ->"Question\nA) Option\n*B) Correct option\nC) Option\nWhy: Explanation\n\nSeparate questions with a blank line.";StudySetKind.BOOK->"Use # headings and ## page titles. Your text stays editable in exported JSON.";StudySetKind.OSCE->"Use the set name as the station title. Each non-empty line becomes a recall step.";else->"Paste the transcript. Playback uses the text-to-speech voice installed on your device."},fontSize=13.sp,lineHeight=21.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        if(kind==StudySetKind.OSCE) com.stethoscore.app.ui.osce.OsceGenerateSection(content,{content=it;error=null},subject,{subject=it})
         OutlinedTextField(content,{content=it;error=null},Modifier.fillMaxWidth().heightIn(min=230.dp),label={Text("Study content")},minLines=8)
         error?.let {Text(it,color=MaterialTheme.colorScheme.error)}
         WardButton("Save study set",{
@@ -57,7 +58,7 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
             MCQQuestion(stem=parts.first(),options=options.map {it.replace(Regex("^\\*?[A-Z][).]\\s+"),"")},correctIndex=correct,explanation=parts.firstOrNull {it.startsWith("Why:",true)}?.substringAfter(':')?.trim().orEmpty())
         })
         StudySetKind.BOOK -> base.copy(bookMarkdown=content.trim())
-        StudySetKind.OSCE -> base.copy(osceChecklists=listOf(OsceChecklist(title=name.trim(),steps=lines)))
+        StudySetKind.OSCE -> base.copy(osceChecklists=OsceText.parseOsce(content).ifEmpty {listOf(OsceChecklist(title=name.trim(),steps=lines))})
         StudySetKind.NARRATE -> base.copy(narrateSegments=lines.map {NarrateSegment(text=it)})
         else -> error("Import a Cases JSON file instead.")
     }

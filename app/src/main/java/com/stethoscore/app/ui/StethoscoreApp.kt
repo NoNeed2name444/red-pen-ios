@@ -97,6 +97,7 @@ import java.util.Locale
         "study" -> store.library.firstOrNull { it.id==selectedId }?.let { WardSection.fromKindRaw(it.kind.rawValue) } ?: WardSection.outside
         "ideas" -> WardSection.ideas
         "due" -> WardSection.cards
+        "mock" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
         // home wears its category's section, opening on Questions (WardSection.opening)
         "home" -> homeSection(category)
         else -> WardSection.outside
@@ -122,6 +123,7 @@ import java.util.Locale
                     "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { refresh();open(set) }.onFailure { notice=it.message } },::goHome)
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
+                    "mock" -> com.stethoscore.app.ui.mock.MockPaperScreen(store) { goHome() }
                     "due" -> DueTodayScreen(store,::goHome)
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } })
                     else -> Column(Modifier.fillMaxSize()) {
@@ -153,6 +155,7 @@ import java.util.Locale
                                     } }
                                 } else if(query.isBlank() && category=="Questions") {
                                     item { RoundCard(store,revision,::open) }
+                                    item { com.stethoscore.app.ui.mock.MockPaperTile({ screen="mock" }) }
                                     item { Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {
                                         WardCard(Modifier.weight(1f).clickable { screen="vitals" }) { SectionLabel("Vitals");Icon(Icons.Rounded.MonitorHeart,null,tint=MaterialTheme.colorScheme.secondary);Text("Your progress",fontWeight=FontWeight.Bold);Text("From your practice",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
                                         WardCard(Modifier.weight(1f).clickable { screen="ideas" }) { SectionLabel("Brain map");Icon(Icons.Rounded.Hub,null,tint=MaterialTheme.colorScheme.primary);Text("${store.notes.size} ideas",fontWeight=FontWeight.Bold);Text("Make connections",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }

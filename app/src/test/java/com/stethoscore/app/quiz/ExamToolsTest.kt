@@ -7,13 +7,89 @@ import org.junit.Test
 import java.time.ZoneId
 import java.util.UUID
 
-// A port of upstream/ios/RedPen/Tests/ExamToolsTests.swift: the twins, the
-// attending's hint, the calculator, the reference ranges and the highlighter
-// pieces, case for case. Its first three parts (paper formats, assembly and
-// marking of a mock paper) test MockFormat and MockAssembler, which come with
-// the mock paper (parity batch 11) and are ported there.
+// A port of upstream/ios/RedPen/Tests/ExamToolsTests.swift: a mock paper's
+// formats, assembly and marking, the twins, the attending's hint, the
+// calculator, the reference ranges and the highlighter pieces, case for case.
 class ExamToolsTest {
     private fun id() = UUID.randomUUID().toString()
+
+    @Test fun paperFormats() {
+        val plab = MockFormat.papers(ExamTrack.plab)[0]
+        assertTrue("PLAB 1 is 180 questions in 3 hours", plab.questionCount == 180 && plab.minutes == 180)
+        val mrcp = MockFormat.papers(ExamTrack.mrcp)
+        assertTrue("MRCP Part 1 is two papers of 100", mrcp.size == 2 && mrcp.all { it.questionCount == 100 && it.minutes == 180 })
+        val usmle = MockFormat.papers(ExamTrack.usmle, usmleBlocks = 3)[0]
+        assertTrue("USMLE blocks are 40 in 60 minutes", usmle.sections.size == 3 && usmle.sections.all { it.questions == 40 && it.minutes == 60 })
+        assertEquals("no more than seven USMLE blocks", 7, MockFormat.papers(ExamTrack.usmle, usmleBlocks = 12)[0].sections.size)
+        assertEquals("MRCS A has its two papers", listOf(180, 120), MockFormat.papers(ExamTrack.mrcs).map { it.minutes })
+    }
+
+    private fun pool(counts: Map<String, Int>): List<MockCandidate> =
+        counts.toSortedMap().flatMap { (subject, n) -> List(n) { MockCandidate(id(), subject) } }
+
+    @Test fun assembly() {
+        val plab = MockFormat.papers(ExamTrack.plab)[0]
+        val usmle = MockFormat.papers(ExamTrack.usmle, usmleBlocks = 3)[0]
+        val rng = MockSeededGenerator(42u)
+        val big = pool(mapOf("Cardiology" to 150, "Renal" to 60, "Neuro" to 40))
+        val full = MockAssembler.assemble(plab, big, rng)
+        assertTrue("a big library fills the paper: ${full?.count}", full?.count == 180 && full.isShort == false && full.shortfallNote == null)
+        val ids = full?.questionIds?.flatten() ?: emptyList()
+        assertEquals("no question twice", ids.size, ids.toSet().size)
+        val bySubject = big.filter { it.id in ids }.groupingBy { it.subject }.eachCount()
+        assertTrue("every subject gets its share before one fills the rest: $bySubject",
+            (bySubject["Neuro"] ?: 0) == 40 && (bySubject["Renal"] ?: 0) == 60)
+
+        val small = pool(mapOf("Cardiology" to 30, "Renal" to 15))
+        val short = MockAssembler.assemble(plab, small, rng)
+        assertTrue("a short library sits a shorter paper", short?.count == 45 && short.isShort)
+        assertEquals("at the real paper's pace", 45, short?.sections?.first()?.minutes)
+        assertTrue("and says so honestly: ${short?.shortfallNote}",
+            short?.shortfallNote?.contains("45") == true && short.shortfallNote.contains("180"))
+
+        val blocks = MockAssembler.assemble(usmle, pool(mapOf("A" to 50, "B" to 20)), rng)
+        assertEquals("blocks fill in order, the last one short", listOf(40, 30), blocks?.sections?.map { it.questions })
+        assertEquals("a short block keeps the pace", 45, blocks?.sections?.last()?.minutes)
+
+        assertNull("too few questions makes no paper", MockAssembler.assemble(plab, pool(mapOf("A" to 9)), rng))
+        val one = MockCandidate(id(), "A")
+        assertNull("copies of one question are one question", MockAssembler.assemble(plab, List(20) { one }, rng))
+
+        val same1 = MockAssembler.assemble(plab, big, MockSeededGenerator(7u))
+        val same2 = MockAssembler.assemble(plab, big, MockSeededGenerator(7u))
+        assertEquals("the same seed makes the same paper", same1, same2)
+    }
+
+    @Test fun marking() {
+        val marks = listOf(
+            MockMark(id(), "Cardio", picked = 1, correct = true, seconds = 50.0),
+            MockMark(id(), "Cardio", picked = 2, correct = false, seconds = 70.0),
+            MockMark(id(), "Renal", picked = null, correct = false, seconds = 0.0),
+            MockMark(id(), "Renal", picked = 0, correct = true, seconds = 60.0),
+        )
+        val result = MockResult(marks, passMark = 0.6)
+        assertTrue("score counts right answers", result.correct == 2 && result.total == 4)
+        assertEquals("unanswered are counted", 1, result.unanswered)
+        assertTrue("50% does not pass a 60% mark", !result.passed)
+        assertEquals("subjects are listed", listOf("Cardio", "Renal"), result.bySubject.map { it.subject }.sorted())
+        assertEquals("renal answered once of twice", 1, result.bySubject.first { it.subject == "Renal" }.answered)
+        // negative marking: one right, one wrong, one blank, one right
+        assertEquals("NEET-PG's -1 of +4 is a quarter", 0.25, MockMarking.penalty("-1 of +4 for a wrong answer"), 1e-9)
+        assertEquals("INI-CET's -1/3 is a third", 1.0 / 3, MockMarking.penalty("-1/3 for a wrong answer"), 1e-9)
+        assertEquals("no negative marking costs nothing", 0.0, MockMarking.penalty(null), 0.0)
+        val neetResult = MockResult(marks, passMark = 0.6, penalty = 0.25)
+        assertTrue("a wrong answer costs a quarter of a mark", neetResult.wrong == 1 && kotlin.math.abs(neetResult.fraction - 1.75 / 4) < 1e-9)
+        assertEquals("a blank costs nothing", 0.0, MockResult(listOf(marks[2]), passMark = 0.5, penalty = 0.25).fraction, 1e-9)
+        assertEquals("the marked score never goes below nothing", 0.0, MockResult(listOf(marks[1]), passMark = 0.5, penalty = 1.0).fraction, 0.0)
+        val neetAdvice = MockMarking.guessAdvice("NEET-PG", "-1 of +4 for a wrong answer", 4)
+        assertTrue("NEET-PG: a blind guess still pays, so answer everything",
+            neetAdvice.contains("answer every question") && !neetAdvice.contains("blank when"))
+        val iniAdvice = MockMarking.guessAdvice("INI-CET", "-1/3 for a wrong answer", 4)
+        assertTrue("INI-CET: a blind guess breaks even", iniAdvice.contains("breaks even"))
+        assertTrue("a full mark off: guess only down to two", MockMarking.guessAdvice("X", "-1 for a wrong answer", 4).contains("down to 2 options"))
+        assertTrue("no penalty: never leave a blank", MockMarking.guessAdvice("PLAB", null, 5).startsWith("Never leave one blank"))
+        assertEquals("pacing: halfway through PLAB is Q90", 90, MockPacing.target(5_400.0, 180, 180))
+    }
 
     @Test fun twins() {
         var queue = TwinQueue()
