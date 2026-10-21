@@ -10,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +66,8 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
 }
 
 @Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit,
-    review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={}) {
+    review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={},
+    onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
@@ -90,6 +92,13 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
             WardButton("Import JSON",onImport,Modifier.fillMaxWidth())
             WardButton("Export library backup",onExport,Modifier.fillMaxWidth())
             WardButton("Add example sets",onExamples,Modifier.fillMaxWidth())
+            // iOS: Support centre, "Your lectures" (SourcesLibraryView)
+            if(onSources!=null) WardButton("Your lectures",onSources,Modifier.fillMaxWidth().testTag("sourcesLibrary"))
+        }
+        // iOS: Settings, About, "Sources and licences" (ContentLicencesView)
+        if(onLicences!=null) WardCard(Modifier.fillMaxWidth()) {
+            SectionLabel("About")
+            WardButton("Sources and licences",onLicences,Modifier.fillMaxWidth().testTag("contentLicences"))
         }
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Android preview · 0.1")

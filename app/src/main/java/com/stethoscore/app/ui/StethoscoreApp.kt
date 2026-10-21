@@ -53,6 +53,7 @@ import kotlinx.coroutines.withContext
     var reviewSettings by remember { mutableStateOf(store.reviewSettings) }
     var screen by rememberSaveable { mutableStateOf(initialScreen) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var licencesFrom by rememberSaveable { mutableStateOf("settings") }
     var revision by remember { mutableIntStateOf(0) }
     var category by rememberSaveable { mutableStateOf("Questions") }
     var query by rememberSaveable { mutableStateOf("") }
@@ -99,7 +100,7 @@ import kotlinx.coroutines.withContext
             notice=result.fold({ "Printed ${set.name} as a PDF deck ($it pages)" }) { it.message ?: "Unable to print this set" }
         }
     }
-    BackHandler(screen!="home") { goHome() }
+    BackHandler(screen!="home") { when(screen) { "sources" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
     // takes its kind's, the brain map Ideas', everywhere else the outside look.
     val section = when(screen) {
@@ -140,7 +141,16 @@ import kotlinx.coroutines.withContext
                     "due" -> DueTodayScreen(store,::goHome)
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
                     "photo" -> com.stethoscore.app.ui.editors.PictureFromPhotoScreen(store,{ refresh();goHome() },onOpen={ refresh();open(it) })
-                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } })
+                    "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },
+                        onSources={ screen="sources" },onLicences={ licencesFrom="settings";screen="licences" })
+                    // batch 9: the lectures in the library, the app's own sources, and one set's credits
+                    "sources" -> com.stethoscore.app.ui.sources.SourcesLibraryScreen(store,{ screen="settings" },{ screen="new" })
+                    "licences" -> com.stethoscore.app.ui.sources.ContentLicencesScreen { screen=licencesFrom }
+                    "credits" -> {
+                        val set=store.library.firstOrNull { it.id==selectedId }
+                        if(set!=null) com.stethoscore.app.ui.sources.SetCreditsScreen(set,::goHome) { licencesFrom="credits";screen="licences" }
+                        else LaunchedEffect(Unit) { goHome() }
+                    }
                     else -> Column(Modifier.fillMaxSize()) {
                         // home: the header, today's ward round and its tiles (ui/home, iOS WardHome)
                         val shortWindow=homeShortWindow()
