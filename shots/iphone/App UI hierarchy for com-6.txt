@@ -1,0 +1,136 @@
+Application, 0x11301de00, pid: 60790, label: 'Stethoscore' <App element pid: 60790>
+  Window (Main), 0x11301d040, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4423879680.3>
+    Other, 0x11301d180, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4473128448.4>
+      Other, 0x11301d2c0, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471960064.5>
+        Other, 0x11301d400, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4423878656.6>
+          Other, 0x11301d540, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4424644608.7>
+            Other, 0x11301d680, {{201.0, 451.0}, {0.0, 0.0}} <AX element pid: 60790, elementOrHash.elementID: 4472198848.8>
+            Other, 0x11301d7c0, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471517440.9>
+            Other, 0x11301c3c0, {{16.0, 62.0}, {370.0, 778.0}} <AX element pid: 60790, elementOrHash.elementID: 4472200192.10>
+            Other, 0x11301c280, {{16.0, 62.0}, {370.0, 778.0}} <AX element pid: 60790, elementOrHash.elementID: 4472201088.11>
+            Other, 0x11301c780, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471723712.200>
+              Other, 0x11301c8c0, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471721024.201>
+                Other, 0x11301db80, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471729088.203>
+                  Other, 0x11301ca00, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4423860224.205>
+                    Other, 0x11301cb40, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471838848.835>
+                      Other, 0x11301cc80, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471830976.836>
+                      Other, 0x11301c640, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4471830080.837>
+                      CollectionView, 0x11301c500, {{16.0, 0.0}, {370.0, 696.0}} <AX element pid: 60790, elementOrHash.elementID: 4484848640.209>
+                        Other, 0x11301c140, {{16.0, -1274.0}, {370.0, 1544.0}} <AX element pid: 60790, elementOrHash.elementID: 4931951104.218>
+                        Cell, 0x11301d900, {{16.0, 153.0}, {370.0, 117.0}} <AX element pid: 60790, elementOrHash.elementID: 4923519488.219>
+                          Other, 0x11301e580, {{16.0, 153.0}, {370.0, 117.0}} <AX element pid: 60790, elementOrHash.elementID: 4930248704.231>
+                            Other, 0x11301da40, {{16.0, 153.0}, {370.0, 117.0}} <AX element pid: 60790, elementOrHash.elementID: 4930338816.238>
+                              Other, 0x11301dcc0, {{16.0, 153.0}, {370.0, 117.0}} <AX element pid: 60790, elementOrHash.elementID: 4471785216.855>
+                          Other, 0x11301df40, {{16.0, 153.0}, {370.0, 117.0}} <AX element pid: 60790, elementOrHash.elementID: 4471731328.232>
+                            Other, 0x11301e080, {{16.0, 153.0}, {370.0, 117.0}} <AX element pid: 60790, elementOrHash.elementID: 4423537152.239>
+                              Other, 0x11301e1c0, {{16.0, 153.0}, {370.0, 117.0}} <AX element pid: 60790, elementOrHash.elementID: 4471784768.856>
+                                StaticText, 0x11301e300, {{32.0, 161.0}, {163.0, 13.3}}, label: 'Wednesday, October 21' <AX element pid: 60790, elementOrHash.elementID: 4471791936.859>
+                                StaticText, 0x11301e440, {{28.0, 178.3}, {280.3, 72.0}}, label: 'Stethoscore' <AX element pid: 60790, elementOrHash.elementID: 4471794176.860>
+                                  StaticText, 0x11301e6c0, {{28.0, 190.0}, {202.0, 54.7}}, label: 'Stethoscore' <AX element pid: 60790, elementOrHash.elementID: 4471796864.872>
+                                  Other, 0x11301e800, {{272.3, 204.3}, {36.0, 16.4}} <AX element pid: 60790, elementOrHash.elementID: 4471786560.873>
+                                StaticText, 0x11301e940, {{32.0, 254.3}, {95.3, 15.7}}, label: 'Good afternoon' <AX element pid: 60790, elementOrHash.elementID: 4471794624.861>
+                        Other, 0x11301ea80, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4931952128.220>
+                        Cell, 0x11301ebc0, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4923520768.221>
+                          Other, 0x11301ed00, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4930249728.233>
+                            Other, 0x11301ee40, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4930339712.240>
+                              Other, 0x11301ef80, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4471795520.857>
+                          Other, 0x11301f0c0, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4471719680.234>
+                            Other, 0x11301f200, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4423538688.241>
+                              Other, 0x11301f340, {{16.0, 286.0}, {370.0, 450.3}} <AX element pid: 60790, elementOrHash.elementID: 4471796416.858>
+                                StaticText, 0x11301f480, {{40.0, 312.0}, {231.0, 26.3}}, label: 'Today’s ward round: 4 patients, about 24 minutes.' <AX element pid: 60790, elementOrHash.elementID: 4471839296.862>
+                                Button, 0x11301f5c0, {{295.0, 310.0}, {67.3, 15.7}}, identifier: 'missionPlan', label: 'Plan' <AX element pid: 60790, elementOrHash.elementID: 4471840192.863>
+                                  Image, 0x11301f700, {{298.0, 310.0}, {18.3, 15.7}}, identifier: 'chart.line.uptrend.xyaxis', label: 'Chart Line' <AX element pid: 60790, elementOrHash.elementID: 4471833024.874>
+                                  StaticText, 0x11301f840, {{295.0, 310.0}, {67.3, 15.7}}, label: 'Plan' <AX element pid: 60790, elementOrHash.elementID: 4471841088.875>
+                                Button, 0x11301f980, {{40.0, 350.3}, {322.3, 67.0}}, identifier: 'wardBed-1', label: 'Bed 1, Cardiology. 13 cards due. Spaced review. About 3 minutes. Due' <AX element pid: 60790, elementOrHash.elementID: 4471840640.864>
+                                  Image, 0x11301fac0, {{40.0, 364.0}, {40.0, 40.0}} <AX element pid: 60790, elementOrHash.elementID: 4471879232.876>
+                                  Image, 0x11301fc00, {{40.0, 364.0}, {40.0, 40.0}}, identifier: 'rectangle.on.rectangle.angled', label: 'Study Cards' <AX element pid: 60790, elementOrHash.elementID: 4471837952.877>
+                                  StaticText, 0x11301fd40, {{92.0, 358.3}, {129.7, 13.3}}, label: 'Bed 1 · Cardiology' <AX element pid: 60790, elementOrHash.elementID: 4471845568.878>
+                                  StaticText, 0x11301fe80, {{92.0, 373.7}, {91.3, 18.0}}, label: '13 cards due' <AX element pid: 60790, elementOrHash.elementID: 4471845120.879>
+                                  StaticText, 0x105d4f700, {{92.0, 393.7}, {88.7, 15.7}}, label: 'Spaced review' <AX element pid: 60790, elementOrHash.elementID: 4471843776.880>
+                                  StaticText, 0x105d4f480, {{303.3, 373.3}, {37.7, 21.0}}, label: 'Due' <AX element pid: 60790, elementOrHash.elementID: 4471550208.881>
+                                    Image, 0x105d4f340, {{303.3, 373.3}, {37.7, 21.0}} <AX element pid: 60790, elementOrHash.elementID: 4471870720.908>
+                                    StaticText, 0x105d4cf00, {{311.3, 377.2}, {21.7, 13.3}}, label: 'Due' <AX element pid: 60790, elementOrHash.elementID: 4471844672.909>
+                                  Image, 0x105d4e300, {{355.3, 378.7}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward' <AX element pid: 60790, elementOrHash.elementID: 4471842432.882>
+                                Other, 0x105d4c3c0, {{92.0, 417.3}, {270.3, 2.0}} <AX element pid: 60790, elementOrHash.elementID: 4471837504.865>
+                                Button, 0x105d4f5c0, {{40.0, 419.3}, {322.3, 67.0}}, identifier: 'wardBed-2', label: 'Bed 2, Nephrology. Weakest topic · 56%. 3 MCQs, missed ones first. About 4 minutes. Weak' <AX element pid: 60790, elementOrHash.elementID: 4471848256.866>
+                                  Image, 0x105d4d180, {{40.0, 433.0}, {40.0, 40.0}} <AX element pid: 60790, elementOrHash.elementID: 4471795072.883>
+                                  Image, 0x105d4ef80, {{40.0, 433.0}, {40.0, 40.0}}, identifier: 'target', label: 'target' <AX element pid: 60790, elementOrHash.elementID: 4471836160.884>
+                                  StaticText, 0x105d4f0c0, {{92.0, 427.3}, {134.7, 13.3}}, label: 'Bed 2 · Nephrology' <AX element pid: 60790, elementOrHash.elementID: 4471836608.885>
+                                  StaticText, 0x105d4f200, {{92.0, 442.7}, {147.3, 18.0}}, label: 'Weakest topic · 56%' <AX element pid: 60790, elementOrHash.elementID: 4471837056.886>
+                                  StaticText, 0x105d4cdc0, {{92.0, 462.7}, {159.7, 15.7}}, label: '3 MCQs, missed ones first' <AX element pid: 60790, elementOrHash.elementID: 4471841536.887>
+                                  StaticText, 0x105d4d040, {{295.0, 442.3}, {46.0, 21.0}}, label: 'Weak' <AX element pid: 60790, elementOrHash.elementID: 4471791488.888>
+                                    Image, 0x105d4f980, {{295.0, 442.3}, {46.0, 21.0}} <AX element pid: 60790, elementOrHash.elementID: 4471795968.910>
+                                    StaticText, 0x105d4ee40, {{303.0, 446.2}, {30.0, 13.3}}, label: 'Weak' <AX element pid: 60790, elementOrHash.elementID: 4471835712.911>
+                                  Image, 0x105d4fc00, {{355.3, 447.7}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward' <AX element pid: 60790, elementOrHash.elementID: 4471842880.889>
+                                Other, 0x105d4ebc0, {{92.0, 486.3}, {270.3, 2.0}} <AX element pid: 60790, elementOrHash.elementID: 4471846912.867>
+                                Button, 0x105d4e6c0, {{40.0, 488.3}, {322.3, 87.0}}, identifier: 'wardBed-3', label: 'Bed 3, Cardiology. Example: The heart - image occlusion. Cards · 10 cards · not started. About 2 minutes. New' <AX element pid: 60790, elementOrHash.elementID: 4471793728.868>
+                                  Image, 0x105d4dcc0, {{40.0, 512.0}, {40.0, 40.0}} <AX element pid: 60790, elementOrHash.elementID: 4471936256.890>
+                                  Image, 0x105d4df40, {{40.0, 512.0}, {40.0, 40.0}}, identifier: 'rectangle.on.rectangle.angled', label: 'Study Cards' <AX element pid: 60790, elementOrHash.elementID: 4471790592.891>
+                                  StaticText, 0x105d4da40, {{92.0, 496.3}, {131.3, 13.3}}, label: 'Bed 3 · Cardiology' <AX element pid: 60790, elementOrHash.elementID: 4471791040.892>
+                                  StaticText, 0x105d4e1c0, {{92.0, 511.7}, {152.7, 38.0}}, label: 'Example: The heart - image occlusion' <AX element pid: 60790, elementOrHash.elementID: 4471792832.893>
+                                  StaticText, 0x105d4fac0, {{92.0, 551.7}, {175.7, 15.7}}, label: 'Cards · 10 cards · not started' <AX element pid: 60790, elementOrHash.elementID: 4471797760.894>
+                                  StaticText, 0x105d4f840, {{301.0, 521.3}, {40.0, 21.3}}, label: 'New' <AX element pid: 60790, elementOrHash.elementID: 4471941632.895>
+                                    Image, 0x105d4d2c0, {{301.0, 521.3}, {40.0, 21.3}} <AX element pid: 60790, elementOrHash.elementID: 4471942528.912>
+                                    StaticText, 0x105d4e080, {{309.0, 525.2}, {24.0, 13.3}}, label: 'New' <AX element pid: 60790, elementOrHash.elementID: 4471797312.913>
+                                  Image, 0x105d4d900, {{355.3, 526.7}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward' <AX element pid: 60790, elementOrHash.elementID: 4471798208.896>
+                                Other, 0x105d4e800, {{92.0, 575.3}, {270.3, 2.0}} <AX element pid: 60790, elementOrHash.elementID: 4472140480.869>
+                                Button, 0x105d4e940, {{40.0, 577.3}, {322.3, 67.0}}, identifier: 'wardBed-4', label: 'Bed 4, OSCE station. Venepuncture. 15 min timed. About 15 minutes' <AX element pid: 60790, elementOrHash.elementID: 4472140032.870>
+                                  Image, 0x105d4de00, {{40.0, 591.0}, {40.0, 40.0}} <AX element pid: 60790, elementOrHash.elementID: 4471936704.897>
+                                  Image, 0x105d4ed00, {{40.0, 591.0}, {40.0, 40.0}}, identifier: 'list.clipboard', label: 'list.clipboard' <AX element pid: 60790, elementOrHash.elementID: 4471847360.898>
+                                  StaticText, 0x105d4c8c0, {{92.0, 585.3}, {141.0, 13.3}}, label: 'Bed 4 · OSCE station' <AX element pid: 60790, elementOrHash.elementID: 4471825600.899>
+                                  StaticText, 0x105d4d540, {{92.0, 600.7}, {100.7, 18.0}}, label: 'Venepuncture' <AX element pid: 60790, elementOrHash.elementID: 4471876096.900>
+                                  StaticText, 0x105d4fd40, {{92.0, 620.7}, {77.3, 15.7}}, label: '15 min timed' <AX element pid: 60790, elementOrHash.elementID: 4471945664.901>
+                                  Image, 0x105d4ea80, {{355.3, 605.7}, {6.3, 10.7}}, identifier: 'chevron.right', label: 'Forward' <AX element pid: 60790, elementOrHash.elementID: 4471935808.902>
+                                Button, 0x105d4e580, {{40.0, 656.3}, {322.3, 56.0}}, identifier: 'missionLiftOff', label: 'Start ward round' <AX element pid: 60790, elementOrHash.elementID: 4471798656.871>
+                                  Image, 0x105d4db80, {{40.0, 656.3}, {322.3, 56.0}} <AX element pid: 60790, elementOrHash.elementID: 4471934464.903>
+                                  Image, 0x105d4d7c0, {{126.0, 673.3}, {14.0, 22.3}}, identifier: 'bolt.fill', label: 'Flash' <AX element pid: 60790, elementOrHash.elementID: 4471799104.904>
+                                  StaticText, 0x105d4e440, {{40.0, 656.3}, {322.3, 56.0}}, label: 'Start ward round' <AX element pid: 60790, elementOrHash.elementID: 4471793280.905>
+                        Cell, 0x105d4fe80, {{16.0, 752.3}, {370.0, 191.0}} <AX element pid: 60790, elementOrHash.elementID: 4931092480.357>
+                          Other, 0x105d4d680, {{16.0, 752.3}, {370.0, 191.0}} <AX element pid: 60790, elementOrHash.elementID: 4930255872.358>
+                            Other, 0x105d4c000, {{16.0, 752.3}, {370.0, 191.0}} <AX element pid: 60790, elementOrHash.elementID: 4930340608.360>
+                              Other, 0x105d4d400, {{16.0, 752.3}, {370.0, 191.0}} <AX element pid: 60790, elementOrHash.elementID: 4471904384.362>
+                          Other, 0x105d4cc80, {{16.0, 752.3}, {370.0, 191.0}} <AX element pid: 60790, elementOrHash.elementID: 4471680832.359>
+                            Other, 0x105d4cb40, {{16.0, 752.3}, {370.0, 191.0}} <AX element pid: 60790, elementOrHash.elementID: 4423540224.361>
+                              Other, 0x105d4ca00, {{16.0, 752.3}, {370.0, 191.0}} <AX element pid: 60790, elementOrHash.elementID: 4471752448.363>
+                                Button, 0x105d4c500, {{24.0, 760.3}, {171.0, 175.0}}, identifier: 'homeVitals', label: 'Vitals. Readiness 67 percent. No streak yet. Study rhythm, regular. Studied 10 of the last 10 days.', value: 67 percent <AX element pid: 60790, elementOrHash.elementID: 4471911104.364>
+                                  Image, 0x105d4c280, {{24.0, 760.3}, {171.0, 175.0}} <AX element pid: 60790, elementOrHash.elementID: 4472069568.906>
+                                  StaticText, 0x10260ef80, {{40.0, 776.3}, {44.3, 13.3}}, label: 'VITALS' <AX element pid: 60790, elementOrHash.elementID: 4471905728.367>
+                                  Other, 0x10260f200, {{40.0, 797.7}, {56.0, 56.0}}, label: 'Progress', value: 67 percent <AX element pid: 60790, elementOrHash.elementID: 4471907968.368>
+                                    Image, 0x10260fe80, {{40.0, 797.7}, {56.0, 56.0}} <AX element pid: 60790, elementOrHash.elementID: 4472069120.914>
+                                    StaticText, 0x10260f0c0, {{51.0, 814.7}, {34.0, 22.0}}, label: '67%' <AX element pid: 60790, elementOrHash.elementID: 4471907520.378>
+                                  StaticText, 0x10260f340, {{40.0, 861.7}, {53.7, 13.3}}, label: 'Readiness' <AX element pid: 60790, elementOrHash.elementID: 4471908416.369>
+                                  Image, 0x10260fac0, {{41.3, 880.7}, {12.0, 11.3}}, identifier: 'heart.fill', label: 'Love' <AX element pid: 60790, elementOrHash.elementID: 4471908864.370>
+                                  StaticText, 0x10260f480, {{58.7, 879.0}, {78.7, 14.3}}, label: 'No streak yet' <AX element pid: 60790, elementOrHash.elementID: 4471909760.371>
+                                  Other, 0x10260f980, {{39.2, 900.6}, {140.5, 15.9}} <AX element pid: 60790, elementOrHash.elementID: 4471910656.372>
+                                Button, 0x10260f5c0, {{207.0, 760.3}, {171.0, 175.0}}, identifier: 'homeBrainMap', label: 'Brain map. 13 ideas · 16 links' <AX element pid: 60790, elementOrHash.elementID: 4471913792.365>
+                                  Image, 0x10260f840, {{207.0, 760.3}, {171.0, 175.0}} <AX element pid: 60790, elementOrHash.elementID: 4472070464.907>
+                                  StaticText, 0x10260fc00, {{223.0, 776.3}, {70.3, 13.3}}, label: 'BRAIN MAP' <AX element pid: 60790, elementOrHash.elementID: 4471912448.374>
+                                  Other, 0x10260ee40, {{223.0, 797.7}, {72.0, 48.0}} <AX element pid: 60790, elementOrHash.elementID: 4471912896.375>
+                                  StaticText, 0x10260fd40, {{223.0, 853.7}, {103.3, 14.3}}, label: '13 ideas · 16 links' <AX element pid: 60790, elementOrHash.elementID: 4471913344.376>
+                        Other, 0x10260f700, {{353.0, 118.0}, {30.0, 578.0}}, label: 'Vertical scroll bar, 4 pages', value: 0% <AX element pid: 60790, elementOrHash.elementID: 4929974272.222>
+                          Other, 0x105c43e80, {{380.0, 121.0}, {3.0, 176.0}} <AX element pid: 60790, elementOrHash.elementID: 4471722816.235>
+                        Other, 0x105c41cc0, {{353.0, 118.0}, {30.0, 578.0}}, label: 'Vertical scroll bar, 4 pages', value: 0% <AX element pid: 60790, elementOrHash.elementID: 4929974272.222>
+                          Other, 0x105c43200, {{380.0, 121.0}, {3.0, 176.0}} <AX element pid: 60790, elementOrHash.elementID: 4471722816.235>
+                      Other, 0x105c41680, {{0.0, 0.0}, {402.0, 118.0}} <AX element pid: 60790, elementOrHash.elementID: 4472075392.838>
+                      Image, 0x105c426c0, {{32.0, 67.0}, {282.0, 42.0}} <AX element pid: 60790, elementOrHash.elementID: 4472068224.839>
+                      Image, 0x105c417c0, {{46.0, 79.7}, {16.3, 16.7}}, identifier: 'magnifyingglass', label: 'Search' <AX element pid: 60790, elementOrHash.elementID: 4471755136.840>
+                      StaticText, 0x105c43c00, {{72.3, 78.3}, {223.3, 19.3}}, label: 'Search questions, cards, notes' <AX element pid: 60790, elementOrHash.elementID: 4471751552.841>
+                      TextField, 0x105c43d40, {{72.3, 77.0}, {229.7, 22.0}}, identifier: 'librarySearch' <AX element pid: 60790, elementOrHash.elementID: 4923518208.214>
+                      Button, 0x105c40a00, {{326.0, 66.0}, {44.0, 44.0}}, identifier: 'libraryMenu', label: 'Account and settings' <AX element pid: 60790, elementOrHash.elementID: 4471756480.842>
+                        Button, 0x105c430c0, {{326.0, 66.0}, {44.0, 44.0}} <AX element pid: 60790, elementOrHash.elementID: 4423875456.223>
+                          Image, 0x105c40dc0, {{326.0, 66.0}, {44.0, 44.0}} <AX element pid: 60790, elementOrHash.elementID: 4472071360.852>
+                          Image, 0x105c40c80, {{326.0, 66.0}, {44.0, 44.0}}, identifier: 'person.crop.circle', label: 'Account and settings' <AX element pid: 60790, elementOrHash.elementID: 4471826944.853>
+                      Button, 0x105c42440, {{229.7, 708.0}, {140.3, 56.0}}, identifier: 'newSetButton', label: 'New set' <AX element pid: 60790, elementOrHash.elementID: 4471846464.843>
+                        Image, 0x105c41180, {{229.7, 708.0}, {140.3, 56.0}} <AX element pid: 60790, elementOrHash.elementID: 4472066432.845>
+                        Image, 0x105c40780, {{255.7, 729.0}, {14.3, 14.3}}, identifier: 'plus', label: 'Add' <AX element pid: 60790, elementOrHash.elementID: 4471846016.846>
+                        StaticText, 0x105c41040, {{229.7, 708.0}, {140.3, 56.0}}, label: 'New set' <AX element pid: 60790, elementOrHash.elementID: 4471832576.847>
+                      Button, 0x105c43980, {{28.0, 774.0}, {346.0, 56.0}}, identifier: 'dockList', label: 'Sections, now Questions' <AX element pid: 60790, elementOrHash.elementID: 4471839744.844>
+                        Image, 0x105c408c0, {{28.0, 774.0}, {346.0, 56.0}} <AX element pid: 60790, elementOrHash.elementID: 4472070912.848>
+                        Image, 0x105c43340, {{48.7, 791.0}, {25.3, 22.3}}, identifier: 'checklist.checked', label: 'checklist.checked' <AX element pid: 60790, elementOrHash.elementID: 4471834368.849>
+                        StaticText, 0x105c40500, {{28.0, 774.0}, {346.0, 56.0}}, label: 'Questions' <AX element pid: 60790, elementOrHash.elementID: 4471833920.850>
+                        Image, 0x105c42300, {{339.0, 797.7}, {15.0, 9.0}}, identifier: 'chevron.up', label: 'Go Up' <AX element pid: 60790, elementOrHash.elementID: 4471843328.851>
+              Other, 0x105c43ac0, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4928735232.202>
+                Other, 0x105c41b80, {{16.0, 0.0}, {370.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4928737280.204>
+            Other, 0x105c42580, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4484284416.26>
+            Other, 0x105c403c0, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 60790, elementOrHash.elementID: 4472199744.27>
+            Other, 0x105c43700, {{201.0, 451.0}, {0.0, 0.0}} <AX element pid: 60790, elementOrHash.elementID: 4424644160.28>
