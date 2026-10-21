@@ -49,6 +49,8 @@ import kotlinx.coroutines.withContext
 @Composable fun StethoscoreApp(store:StudyStore, initialScreen:String="home", forceDark:Boolean?=null) {
     val context=LocalContext.current
     val prefs=remember { context.getSharedPreferences("appearance",Context.MODE_PRIVATE) }
+    // Learn's small marks and the ward round live in SharedPreferences (batch 14)
+    remember(context) { com.stethoscore.app.ui.learn.PrefsLearnDefaults.install(context) }
     var dark by remember { mutableStateOf(forceDark ?: prefs.getBoolean("dark",false)) }
     var reviewSettings by remember { mutableStateOf(store.reviewSettings) }
     var screen by rememberSaveable { mutableStateOf(initialScreen) }
@@ -63,11 +65,16 @@ import kotlinx.coroutines.withContext
     var quick by remember { mutableStateOf<StudySet?>(null) }
     val scope=rememberCoroutineScope()
     DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
+    com.stethoscore.app.ui.learn.LearnHostEffects(store)
     fun refresh() { revision++ }
     /** Library changes the person asked for; a failed save is shown, never a crash. */
     fun change(action:()->Unit) { runCatching(action).onFailure { notice=it.message ?: "Could not save your library." };refresh() }
     fun goHome() { screen="home";refresh() }
-    fun open(set:StudySet) { selectedId=set.id;screen="study" }
+    fun open(set:StudySet) {
+        selectedId=set.id;screen="study"
+        // a textbook or narrate set opened for the first time: Guess first over it
+        if(com.stethoscore.app.ui.learn.GuessFirst.isDue(set)) com.stethoscore.app.ui.learn.LearnRouter.open(com.stethoscore.app.ui.learn.LearnRoute.Pretest(set.id))
+    }
     val imported=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         // Reading, parsing and saving a large library takes seconds: keep it off the main thread.
         if(uri!=null) scope.launch {
@@ -103,7 +110,7 @@ import kotlinx.coroutines.withContext
     BackHandler(screen!="home") { when(screen) { "sources" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
     // takes its kind's, the brain map Ideas', everywhere else the outside look.
-    val section = when(screen) {
+    val section = com.stethoscore.app.ui.learn.LearnRouter.section(store) ?: when(screen) {
         "study" -> store.library.firstOrNull { it.id==selectedId }?.let { WardSection.fromKindRaw(it.kind.rawValue) } ?: WardSection.outside
         "ideas" -> WardSection.ideas
         "due" -> WardSection.cards
@@ -154,9 +161,10 @@ import kotlinx.coroutines.withContext
                     else -> Column(Modifier.fillMaxSize()) {
                         // home: the header, today's ward round and its tiles (ui/home, iOS WardHome)
                         val shortWindow=homeShortWindow()
-                        val home=remember(revision,shortWindow,store.library) { if(store.library.isEmpty()) null else {
+                        val home=remember(revision,shortWindow,store.library,com.stethoscore.app.ui.learn.LearnRouter.version) { if(store.library.isEmpty()) null else {
                             val due=store.dueAcross()
-                            val input=HomeRound.input(store,due.size,HomeRound.dueSubjects(store,due))
+                            val situation=com.stethoscore.app.ui.learn.LearnLibrary.examSituation(store,due.size,com.stethoscore.app.ui.mock.MockLibrary.recordsFile(context.filesDir))
+                            val input=HomeRound.input(store,due.size,HomeRound.dueSubjects(store,due),situation=situation,track=QuizPrefs.track(context))
                             val all=com.stethoscore.app.data.BedPlan.beds(input)
                             val days=HomeRound.studyDays(store)
                             val (ideas,links)=HomeRound.brainMap(store)
@@ -168,7 +176,11 @@ import kotlinx.coroutines.withContext
                             is com.stethoscore.app.data.BedPlan.Kind.Weakest -> HomeRound.drill(store,kind.topic.name).takeIf { it.questions.isNotEmpty() }?.let { quick=it;screen="quick" }
                             is com.stethoscore.app.data.BedPlan.Kind.Fresh -> store.library.firstOrNull { it.id==kind.set.id }?.let(::open)
                             is com.stethoscore.app.data.BedPlan.Kind.OsceStation -> store.library.firstOrNull { it.id==kind.station.setID }?.let(::open)
-                            is com.stethoscore.app.data.BedPlan.Kind.Priority -> notice="The exam-day kit is not on Android yet."
+                            is com.stethoscore.app.data.BedPlan.Kind.Priority -> when(val start=com.stethoscore.app.ui.learn.launchMission(store,kind.mission)) {
+                                com.stethoscore.app.ui.learn.MissionStart.DueCards -> screen="due"
+                                is com.stethoscore.app.ui.learn.MissionStart.Quiz -> { quick=start.set;screen="quick" }
+                                com.stethoscore.app.ui.learn.MissionStart.Nothing -> Unit
+                            }
                         } }
                         val book=remember { HomePartBook() }
                         LaunchedEffect(category,query) { book.clear() }
@@ -198,7 +210,8 @@ import kotlinx.coroutines.withContext
                                     } }
                                 } else if(home!=null && query.isBlank() && (category=="Questions" || (category=="Cards" && home.first>0))) {
                                     // the round on Questions, and on Cards while cards are due; the tiles on Questions
-                                    homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" })
+                                    homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" },
+                                        onPlan={ com.stethoscore.app.ui.learn.LearnRouter.open(com.stethoscore.app.ui.learn.LearnRoute.ExamPlan) })
                                     if(category=="Questions") item { com.stethoscore.app.ui.mock.MockPaperTile({ screen="mock" }) }
                                 }
                                 if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
@@ -217,12 +230,16 @@ import kotlinx.coroutines.withContext
                         CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query=""} })
                     }
                 }
+                // a learning screen over the app, in a sheet of its own (LearnRoutes)
+                com.stethoscore.app.ui.learn.LearnSheet(store,dark,section) { set -> refresh();open(set) }
                 if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("OK")}})
                 notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("OK")}}) }
             }
             // Every page but home stands in the paper's opening (iOS WardPaperFrame):
             // still ECG paper round the window, the page scrolling beneath it.
             if(!onGround) WardPaperFrame(Modifier.fillMaxSize())
+            // a ward round's chip, over every screen while one runs
+            com.stethoscore.app.ui.learn.WardRoundFloat()
         }
     }
 }

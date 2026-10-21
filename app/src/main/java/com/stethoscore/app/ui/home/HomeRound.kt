@@ -6,8 +6,10 @@ import com.stethoscore.app.data.RhythmReading
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.data.StudyMinutes
 import com.stethoscore.app.data.StudyStreak
 import com.stethoscore.app.data.WardWords
+import com.stethoscore.app.quiz.ExamTrack
 import java.time.Instant
 import java.time.ZoneId
 
@@ -105,7 +107,8 @@ object HomeRound {
     }
 
     /** Everything BedPlan weighs, read from the library. */
-    fun input(store: StudyStore, dueCount: Int, dueFrom: List<String>, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): BedPlan.Input {
+    fun input(store: StudyStore, dueCount: Int, dueFrom: List<String>, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault(),
+              situation: ExamWeekPlanner.Situation? = null, track: ExamTrack = ExamTrack.general): BedPlan.Input {
         val fresh = store.library.mapNotNull { set ->
             val mode = bedMode(set.kind) ?: return@mapNotNull null
             if (started(store, set)) null
@@ -120,22 +123,41 @@ object HomeRound {
             else BedPlan.Station(set.id, first.title, false, set.createdAt)
         }
         return BedPlan.Input(
-            // no exam-week planner on Android yet (Learn, batch 14): no mission of its own
-            mission = ExamWeekPlanner.Mission.Nothing,
-            phase = ExamWeekPlanner.phase(store.examDate?.let { Instant.ofEpochMilli(it) }, now, zone),
+            // the run-up's own priority (ExamWeekPlanner's mission), when the situation was read
+            mission = situation?.let { ExamWeekPlanner.mission(it) } ?: ExamWeekPlanner.Mission.Nothing,
+            phase = situation?.phase ?: ExamWeekPlanner.phase(store.examDate?.let { Instant.ofEpochMilli(it) }, now, zone),
             dueCards = dueCount,
             dueFrom = dueFrom,
             topics = subjectStats(store),
             fresh = fresh,
             stations = stations,
+            untried = situation?.untried ?: 0,
+            secondsPerQuestion = track.secondsPerQuestion,
+            stationMinutes = stationMinutes(track),
+            mockMinutes = ExamWeekPlanner.paper(track).minutes,
         )
     }
 
-    /** The days anything was studied, `yyyy-MM-dd`: answers checked and cards rated (StudyLog's days, from what Android keeps). */
-    fun studyDays(store: StudyStore, zone: ZoneId = ZoneId.systemDefault()): Map<String, Int> {
+    /** Minutes an OSCE station gets in this exam (iOS ExamTrack.stationMinutes). */
+    fun stationMinutes(track: ExamTrack): Int = when (track) {
+        ExamTrack.plab -> 8
+        ExamTrack.mrcp -> 10
+        ExamTrack.mrcs -> 9
+        ExamTrack.usmle, ExamTrack.general -> 15
+    }
+
+    /**
+     * The days anything was studied, `yyyy-MM-dd`: answers checked and cards
+     * rated (StudyLog's days, from what Android keeps), and the days a ward
+     * round's focus minutes were sat, which count for the streak too.
+     */
+    fun studyDays(store: StudyStore, zone: ZoneId = ZoneId.systemDefault(),
+                  minutes: Map<String, Int> = StudyMinutes.all()): Map<String, Int> {
         val dates = store.answerLog.map { Instant.ofEpochMilli(it.at) } +
             store.reviews.values.filter { it.reviews > 0 }.map { Instant.ofEpochMilli(it.ratedAt) }
-        return RhythmReading.merged(emptyMap(), dates, zone)
+        val days = RhythmReading.merged(emptyMap(), dates, zone).toMutableMap()
+        for ((day, count) in minutes) if (count > 0 && (days[day] ?: 0) == 0) days[day] = 1
+        return days
     }
 
     fun streak(days: Map<String, Int>, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): Int =
