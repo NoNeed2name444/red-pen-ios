@@ -70,6 +70,9 @@ data class WardGlide(val from: WardLook, val to: WardLook, val progress: Double)
     /** The section's ink this frame (grid and edges): the hue and the mode move together. */
     fun ink(dark: Boolean, held: Boolean = false): Int = sectioned(dark, held) { it.ink }
 
+    /** The section's wash this frame (the ground behind every page): shifts with the section, like the grid's ink. */
+    fun wash(dark: Boolean, held: Boolean = false): Int = sectioned(dark, held) { it.wash }
+
     /** A given section's ink this frame, mixed for the night but with no hue shift. */
     fun ink(section: WardSection, dark: Boolean, held: Boolean = false): Int {
         val n = night(dark, held)
@@ -128,6 +131,9 @@ class WardLookNow(glide: WardGlide = WardGlide.rest(WardLook(dark = false, secti
     fun ink(dark: Boolean, held: Boolean = false): Int = glide.ink(dark, held)
 
     fun ink(section: WardSection, dark: Boolean, held: Boolean = false): Int = glide.ink(section, dark, held)
+
+    /** The section's wash as it is drawn now. */
+    fun wash(dark: Boolean, held: Boolean = false): Int = glide.wash(dark, held)
 
     companion object {
         val shared = WardLookNow()
@@ -189,4 +195,21 @@ fun WardPaper.ink(night: Double, highContrast: Boolean, hex: Int): WardPaperInk 
     val b = ink(dark = true, highContrast = highContrast)
     val t = min(1.0, max(0.0, night))
     return WardPaperInk(hex, a.fine + (b.fine - a.fine) * t, a.bold + (b.bold - a.bold) * t, a.edge + (b.edge - a.edge) * t)
+}
+
+/**
+ * Home's ground for a look at rest: the base with the section's wash and the
+ * ECG paper's grid over it, in the section's ink at the mode's strengths,
+ * every [WardPaper.cell] and bold every [WardPaper.boldEvery], counted from
+ * the window's top left. The window's background (res/values ward_ground,
+ * WardGroundDrawable) and home (WardGroundBackground) are drawn from it, so
+ * the ground is one from the first frame to home at rest.
+ */
+data class WardGround(val base: Int, val ink: WardPaperInk) {
+    companion object {
+        fun home(section: WardSection = WardSection.opening, dark: Boolean, highContrast: Boolean = false): WardGround {
+            val look = WardGlide.rest(WardLook(dark, section))
+            return WardGround(look.wash(dark), WardPaper.ink(look, dark, highContrast = highContrast))
+        }
+    }
 }

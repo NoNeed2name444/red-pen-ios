@@ -40,6 +40,15 @@ enum class WardSection {
     fun fill(dark: Boolean): Int = fill.of(dark)
     fun ink(dark: Boolean): Int = ink.of(dark)
 
+    /**
+     * The wash behind every page: the base mixed toward the section's fill
+     * in linear light (WardPalette.mix): 0.06 by day, 0.10 at night.
+     */
+    val wash: WardPair get() = WardPair(wash(false), wash(true))
+
+    fun wash(dark: Boolean): Int =
+        WardPalette.mix(WardPalette.hex(WardToken.background, dark), fill(dark), if (dark) 0.10 else 0.06)
+
     companion object {
         /**
          * The look outside any section: Cards' indigo, which is also the
@@ -47,6 +56,13 @@ enum class WardSection {
          * section would turn red.
          */
         val outside: WardSection = cards
+
+        /**
+         * The section home opens on: the dock's first category, Questions
+         * (home's category starts there). The window's starting background
+         * and the first frame stand on its ground (WardGround).
+         */
+        val opening: WardSection = questions
 
         /** The colours that mean something, which no section's accent may look like. */
         val semanticTokens: List<WardToken> =

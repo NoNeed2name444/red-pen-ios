@@ -1,0 +1,4 @@
+<resources>
+    <!-- Android 12 and later: the system's splash screen stands on home's ground too. -->
+    <style name="AppTheme" parent="Base.AppTheme"><item name="android:windowSplashScreenBackground">@color/ward_ground</item></style>
+</resources>

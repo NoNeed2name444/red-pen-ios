@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home's ground for the section home opens on (WardGround.home(WardSection.opening), Questions):
+         the base with the section's wash, light. The grid over it is drawn by WardGroundDrawable.
+         WardGroundTest checks this equals the Ward core. -->
+    <color name="ward_ground">#FFE7E7EC</color>
+</resources>
