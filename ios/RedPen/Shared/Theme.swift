@@ -612,11 +612,10 @@ extension View {
     }
 }
 
-/// The deck under what scrolls, and a line where what scrolls is cut at the
-/// top of its frame (under a study header, or under the bar area) once any
-/// of it has gone under: with the strip's line at the bottom, a card cut at
-/// either end reads as passing under, not as two things overlapping (the
-/// owner, 9 Oct).
+/// The deck under what scrolls, with its strip's line along the bottom.
+/// The top, where what scrolls is cut under a study header or the bar area,
+/// has no line: the content simply passes under, clipped by its scroll view
+/// (the owner, 21 Oct: "only on the upper side").
 private struct StudyBarHost<Bar: View>: ViewModifier {
     let folds: Bool
     let shown: Bool
@@ -624,7 +623,6 @@ private struct StudyBarHost<Bar: View>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .wardScrollTopEdge()
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 StudyActionBar(folds: folds, shown: shown) { bar }
             }

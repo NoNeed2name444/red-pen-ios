@@ -324,7 +324,6 @@ struct OsceReviewView: View {
             .padding(.bottom, 24)
             .readableColumn()
         }
-        .wardScrollTopEdge()
         .studyBar { completeButtons(hasNext: hasNext) }
     }
 

@@ -330,6 +330,13 @@ struct SkyRoot<Content: View>: View {
             .environment(\.wardEdgeStore, wardEdges)
             .preferredColorScheme(scheme)
             .overlay { if !center.skyCovered { WardPaperFrame(edges: wardEdges).transition(.identity) } }
+            // a swipe back from the screen's edge, across the paper's gutter,
+            // reaches the page's navigation stack (WardEdgeReach)
+            .overlay {
+                if !center.skyCovered {
+                    WardEdgeReach().ignoresSafeArea().accessibilityHidden(true).transition(.identity)
+                }
+            }
             .onAppear {
                 // the cues' tones are made once, ahead of the first one
                 if SpaceSettings.sounds { SpaceSounds.shared.prepare() }

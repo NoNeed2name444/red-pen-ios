@@ -2367,6 +2367,17 @@ with the marks on the screens last.
     - T0073: recordings of the island's motions (deck folding, push and back)
       added to GraphPreviewUITests.swift; wait for the Design preview with
       only=testIsland.
+    - T0076 (21 Oct): testIslandPushAndBack's swipe from the screen's edge
+      did not go back because the page stands 16 pt in from the window
+      (SkyRoot), so a touch at the edge landed on the paper, outside the
+      navigation stack and its edge pan (an app bug; the quiz's More menu in
+      the recording was the test's next step, run after the failure). Now
+      the paper's leading gutter hands its touches to the page (WardEdgeReach)
+      and the test is unchanged. And, the owner: "only on the upper side":
+      the scroll edge's line under a page's header and its turn-down into
+      the frame are gone on every page (wardScrollTopEdge removed); the
+      deck's line and join at the bottom and the frame's ring are unchanged.
+      Waits for the Design preview with only=testIsland.
 
 ### The launch mark (design/launch-anim), 15 Oct
 

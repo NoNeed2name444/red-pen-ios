@@ -36,7 +36,6 @@ struct PaywallView: View {
                 .frame(maxWidth: .infinity)
             }
             .wardScreen()
-            .wardScrollTopEdge()
             // buying, restoring and the small print, under the thumb
             .studyBar { buyBar }
             .navigationTitle(PaywallView.title)

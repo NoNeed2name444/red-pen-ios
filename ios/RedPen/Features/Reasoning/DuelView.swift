@@ -162,7 +162,6 @@ struct DuelView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
             }
-            .wardScrollTopEdge()
             .studyBar { choices }
         }
     }
@@ -299,7 +298,6 @@ struct DuelView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
         }
-        .wardScrollTopEdge()
         .studyBar { summaryButtons }
     }
 

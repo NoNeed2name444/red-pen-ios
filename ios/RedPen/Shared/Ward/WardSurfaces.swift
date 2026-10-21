@@ -939,6 +939,45 @@ extension WardPaperInk {
     }
 }
 
+#if canImport(UIKit)
+/// The paper's gutter on the page's leading side, handed to the page.
+///
+/// The page stands `WardPaper.sideInset` in from the window's sides
+/// (SkyRoot), so a finger put down at the screen's very edge landed on the
+/// paper, outside the navigation stack, and the stack's own edge pan (the
+/// system's swipe back) never saw it: from the edge, swiping back did
+/// nothing on any pushed page (the island recording, 21 Oct). A touch in
+/// the leading gutter is hit-tested to what lies just inside the page at the
+/// same height; the touch itself stays where it is, at the screen's edge,
+/// so the stack's edge pan takes it as on any iPhone app. Anywhere else this
+/// view takes nothing.
+struct WardEdgeReach: UIViewRepresentable {
+    func makeUIView(context: Context) -> WardEdgeReachView { WardEdgeReachView() }
+    func updateUIView(_ view: WardEdgeReachView, context: Context) {}
+}
+
+final class WardEdgeReachView: UIView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        isAccessibilityElement = false
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard let window, !isHidden, bounds.contains(point) else { return nil }
+        let inset = CGFloat(WardPaper.sideInset)
+        let rtl = effectiveUserInterfaceLayoutDirection == .rightToLeft
+        let inGutter = rtl ? point.x >= bounds.maxX - inset : point.x <= bounds.minX + inset
+        guard inGutter else { return nil }
+        // Just inside the page, where this view (outside its gutter) takes nothing.
+        let inside = CGPoint(x: rtl ? bounds.maxX - inset - 1 : bounds.minX + inset + 1, y: point.y)
+        return window.hitTest(convert(inside, to: window), with: event)
+    }
+}
+#endif
+
 /// ECG paper in a band from the top of the window down to `bottom` (window
 /// points), its lines on the frame's grid and in its ink, ending in a line
 /// in the frame's edge ink: the home page's header stands on it (the owner,
@@ -1083,9 +1122,11 @@ private final class WardEdgeTransaction {
     var value = Transaction(animation: nil)
 }
 
+/// A bar's strip and its line, joined into the frame (`wardBarBase`). Only a
+/// bar at the bottom has one: the top, where what scrolls goes under a
+/// header, draws no line and no join (the owner, 21 Oct).
 private struct WardEdgeHost: ViewModifier {
     let shown: Bool
-    let strip: Bool
     @Environment(\.wardEdgeStore) private var store
     @State private var id = UUID()
     @State private var frame: CGRect = .zero
@@ -1096,7 +1137,7 @@ private struct WardEdgeHost: ViewModifier {
         content
             .environment(\.wardIslandEntry, entry)
             .background(alignment: .top) {
-                if strip && shown {
+                if shown {
                     let base = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
                     if let entry {
                         GeometryReader { geometry in
@@ -1113,7 +1154,7 @@ private struct WardEdgeHost: ViewModifier {
             }
             .overlay(alignment: .top) {
                 if shown {
-                    WardScrollEdgeLine(entry: entry, pockets: !strip).transition(.identity)
+                    WardScrollEdgeLine(entry: entry).transition(.identity)
                 }
             }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { now in
@@ -1128,11 +1169,10 @@ private struct WardEdgeHost: ViewModifier {
     }
 }
 
-/// One stroked path, including its true circular arcs, in the frame's ink.
-/// The pockets under a header are the complement of the island's fill.
+/// One stroked path, including its true circular arcs, in the frame's ink:
+/// the line along the top of a bar's strip, where what scrolls goes under it.
 struct WardScrollEdgeLine: View {
     var entry: WardEdgeStore.Entry?
-    var pockets = false
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
@@ -1150,7 +1190,7 @@ struct WardScrollEdgeLine: View {
                                                    from: 0, to: entry.host.width + 2 * WardPaper.sideInset),
                              panel: entry.panel,
                              origin: CGPoint(x: entry.host.minX - WardPaper.sideInset, y: entry.host.minY),
-                             pockets: pockets, color: color)
+                             color: color)
                     .frame(height: max(entry.local.left?.join.y ?? 0, entry.local.right?.join.y ?? 0) + WardPaper.edgeWidth)
                     .padding(.horizontal, -WardPaper.sideInset)
             } else {
@@ -1168,7 +1208,6 @@ private struct WardPageEdge: View, Animatable {
     var shape: WardIslandPath
     let panel: WardPaperPanel
     var origin: CGPoint
-    let pockets: Bool
     let color: Color
     var animatableData: AnimatablePair<WardEdgeVector, AnimatablePair<CGFloat, CGFloat>> {
         get { AnimatablePair(shape.data, AnimatablePair(origin.x, origin.y)) }
@@ -1179,20 +1218,8 @@ private struct WardPageEdge: View, Animatable {
     }
 
     var body: some View {
-        let base = LaunchStage.shared.inOpening ? Color.ward(.background) : Color.wardWash
         Canvas { context, size in
             let rect = CGRect(origin: .zero, size: size)
-            if pockets {
-                var island = shape
-                island.filled = true
-                var outside = Path(rect)
-                outside.addPath(island.path(in: rect))
-                context.drawLayer { layer in
-                    layer.clip(to: Path(rect))
-                    layer.clip(to: outside, style: FillStyle(eoFill: true))
-                    layer.fill(Path(rect), with: .color(base))
-                }
-            }
             // A low deck can meet a bottom corner inside the page itself.
             // The frame owns its stroke there, just as it does in the gap.
             let hole = WardPanelPath.hole(panel).applying(CGAffineTransform(translationX: -origin.x, y: -origin.y))
@@ -1201,20 +1228,6 @@ private struct WardPageEdge: View, Animatable {
             context.clip(to: outsideStroke, style: FillStyle(eoFill: true, antialiased: false))
             context.stroke(shape.path(in: rect), with: .color(color), lineWidth: WardPaper.edgeWidth)
         }
-    }
-}
-
-private struct WardScrollTopEdge: ViewModifier {
-    @State private var scrolled = false
-
-    func body(content: Content) -> some View {
-        content
-            .onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y + $0.contentInsets.top > 0.5 } action: { _, now in
-                var t = Transaction(animation: nil)
-                t.disablesAnimations = true
-                withTransaction(t) { scrolled = now }
-            }
-            .modifier(WardEdgeHost(shown: scrolled, strip: false))
     }
 }
 
@@ -1308,13 +1321,6 @@ struct WardDeckSlab: ViewModifier {
 
 
 extension View {
-    /// A line where what scrolls is cut at the top of its frame, once it
-    /// has scrolled (WardScrollEdgeLine). On the scroll view, or on what
-    /// holds it with nothing above it.
-    func wardScrollTopEdge() -> some View {
-        modifier(WardScrollTopEdge())
-    }
-
     /// A solid strip under a bar, with the scroll edge's line along its top:
     /// it hides and blocks the rows beneath, and nothing fades. The room
     /// above the bar is for its lights (a raised `.high` slab's reach about
@@ -1324,7 +1330,7 @@ extension View {
     /// or hidden, the bar keeps its identity, so a fold never cross-fades it.
     func wardBarBase(room: CGFloat = 24, shown: Bool = true) -> some View {
         self.padding(.top, shown ? room : 0)
-            .modifier(WardEdgeHost(shown: shown, strip: true))
+            .modifier(WardEdgeHost(shown: shown))
     }
 
     func wardCard(padding: CGFloat = WardSpace.gutter, lift: WardLift = .mid) -> some View {
@@ -1387,12 +1393,11 @@ extension View {
     }
 
     /// A Form or List in the soft UI: its own grey ground hidden for the
-    /// base, a solid bar area with the scroll edge's line under it once the
-    /// rows have moved, rows tall enough for their tiles, and the controls.
+    /// base, a solid bar area the rows pass under with no line at its edge,
+    /// rows tall enough for their tiles, and the controls.
     func wardForm() -> some View {
         self
             .scrollContentBackground(.hidden)
-            .wardScrollTopEdge()
             .wardMasthead()
             .environment(\.defaultMinListRowHeight, 56)
             .listSectionSpacing(WardSpace.section)

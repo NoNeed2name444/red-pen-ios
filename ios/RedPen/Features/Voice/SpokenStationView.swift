@@ -233,7 +233,6 @@ private struct SpokenTranscript: View {
                 .padding()
                 .readableColumn()
             }
-            .wardScrollTopEdge()
             .onChange(of: session.lines.count) { _, _ in
                 if let last = session.lines.last?.id {
                     withAnimation { proxy.scrollTo(last, anchor: .bottom) }
