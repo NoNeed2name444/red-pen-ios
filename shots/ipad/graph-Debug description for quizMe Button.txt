@@ -1,0 +1,4 @@
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  ↪︎Find: Descendants matching type Button
+    ↪︎Find: Elements matching predicate '"quizMe" IN identifiers'
