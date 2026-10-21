@@ -1,0 +1,81 @@
+== library-se-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 5, kept 0 (cut none), book 5 parts before the push, 0 at its last look
+push and back: cuts: 1.76s cut 561.00 bar 573.00 page 74.33+490.67 tops 5 from 222.33; 2.94s cut 561.00 bar 703.67 page 209.00+486.67 tops 0 from none; 3.05s cut 691.67 bar 703.67 page 209.00+486.67 tops 6 from 357.00; 3.07s cut 688.67 bar 700.67 page 202.00+490.67 tops 6 from 357.00
+card 350-684, start 612-668, new set 140-184, tiles 716-895, bar 700-774, cut 688, large text false
+page ends 688, 6 parts measured: the round card 350-685, bed 1 411-484, the Due chip 437-459, bed 2 486-601, the New chip 532-555, the tiles 717-895
+words: the Vitals tile's streak 84/40, the brain map's line 135/38
+== library-se-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 5, kept 0 (cut none), book 5 parts before the push, 0 at its last look
+push and back: cuts: 1.24s cut 561.00 bar 573.00 page 74.33+490.67 tops 5 from 222.33; 2.45s cut 561.00 bar 703.67 page 209.00+486.67 tops 0 from none; 2.57s cut 691.67 bar 703.67 page 209.00+486.67 tops 6 from 357.00; 2.60s cut 688.67 bar 700.67 page 202.00+490.67 tops 6 from 357.00
+card 350-684, start 612-668, new set 140-184, tiles 716-895, bar 700-774, cut 688, large text false
+page ends 688, 6 parts measured: the round card 350-685, bed 1 411-484, the Due chip 437-459, bed 2 486-601, the New chip 532-555, the tiles 717-895
+words: the Vitals tile's streak 84/40, the brain map's line 135/38
+== xxl-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+push and back: cuts: 2.38s cut 696.00 bar 708.00 page 145.33+554.67 tops 0 from none
+card 308-822, start 750-806, new set 708-764, tiles none, bar 708-840, cut 696, large text true
+page ends 696, 6 parts measured: the round card 308-822, bed 1 379-488, the Due chip 420-447, bed 2 490-649, the New chip 556-583, bed 3 651-738
+words: 
+== xxl-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+push and back: cuts: 2.13s cut 696.00 bar 708.00 page 145.33+554.67 tops 0 from none
+card 308-822, start 750-806, new set 708-764, tiles none, bar 708-840, cut 696, large text true
+page ends 696, 6 parts measured: the round card 308-822, bed 1 379-488, the Due chip 420-447, bed 2 490-649, the New chip 556-583, bed 3 651-738
+words: 
+== xxl-library-se-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 5, kept 0 (cut none), book 5 parts before the push, 0 at its last look
+push and back: cuts: 1.06s cut 569.00 bar 581.00 page 83.33+489.67 tops 5 from 246.33; 2.25s cut 569.00 bar 711.67 page 218.00+485.67 tops 0 from none; 2.28s cut 699.67 bar 711.67 page 218.00+485.67 tops 5 from 381.00; 2.30s cut 696.67 bar 708.67 page 211.00+489.67 tops 5 from 381.00
+card 374-798, start 726-782, new set 145-189, tiles none, bar 708-774, cut 696, large text true
+page ends 696, 5 parts measured: the round card 374-798, bed 1 445-554, the Due chip 486-513, bed 2 556-714, the New chip 621-649
+words: 
+== ax1-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 2, kept 4 (cut 682.3333333333333), book 6 parts before the push, 4 at its last look
+push and back: cuts: 2.21s cut 682.33 bar 698.00 page 213.67+476.33 tops 4 from 682.33
+card 413-1172, start 1098-1156, new set 698-755, tiles none, bar 698-840, cut 686, large text true
+page ends 682, 6 parts measured: the round card 413-1173, bed 1 524-725, the Due chip 682-717, bed 2 727-927, the New chip 885-919, bed 3 929-1087
+words: 
+== ax1-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 2, kept 4 (cut 682.3333333333333), book 6 parts before the push, 4 at its last look
+push and back: cuts: 2.22s cut 682.33 bar 698.00 page 213.67+476.33 tops 4 from 682.33
+card 413-1172, start 1098-1156, new set 698-755, tiles none, bar 698-840, cut 686, large text true
+page ends 682, 6 parts measured: the round card 413-1173, bed 1 524-725, the Due chip 682-717, bed 2 727-927, the New chip 885-919, bed 3 929-1087
+words: 
+== ax5-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 1, kept 5 (cut 640), book 6 parts before the push, 5 at its last look
+push and back: cuts: 2.18s cut 640.00 bar 652.17 page 233.00+410.67 tops 5 from 878.67
+card 589-2444, start 2217-2428, new set 652-739, tiles none, bar 652-837, cut 640, large text true
+page ends 640, 6 parts measured: the round card 590-2445, bed 1 879-1245, the Due chip 1178-1237, bed 2 1247-1842, the New chip 1775-1834, bed 3 1844-2205
+words: 
+== ax5-library-se-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 0, kept 3 (cut 543), book 12 parts before the push, 12 at its last look
+push and back: cuts: 1.15s cut 543.00 bar 555.00 page 171.00+376.00 tops 12 from 554.00; 2.38s cut 543.00 bar 682.67 page 302.67+372.00 tops 12 from 554.00; 2.43s cut 670.67 bar 682.67 page 302.67+372.00 tops 12 from 685.67
+card 681-1463, start 1298-1447, new set 136-190, tiles 1446-2051, bar 682-774, cut 670, large text true
+page ends 670, 12 parts measured: the round card 682-1463, bed 1 971-1286, the Due chip 1219-1278, the tiles 1446-2051, the Your sets heading 1765-1868, a set row 1812-2268, Build a session 2071-2329, the Practise heading 2216-2268, the mixed tile 2246-2491, the mistakes tile 2499-2694, the flagged tile 2702-2948, the timed tile 2956-3201
+words: the Vitals tile's streak 259/123, the brain map's line 301/120
