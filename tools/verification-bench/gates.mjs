@@ -305,11 +305,12 @@ export function gateReport(rows, run = null) {
   if (batches.length) {
     const nu = neuronSummary(batches);
     const c = costSummary(batches);
-    const isProxy = run?.mode === 'proxy';
-    const neuronLabel = isProxy ? 'neurons per check (upper bound)' : 'neurons per check';
-    const neuronDetail = isProxy
-      ? 'upper bound: every call there is the reservation estimate'
-      : `${nu.fromUsage} calls from a reply's usage, ${nu.estimated} estimated as the Worker does`;
+    // An upper bound only when no call carried a reply's usage, so every
+    // counted neuron is the Worker's reservation estimate; the split is shown
+    // either way, in proxy mode too.
+    const upperBound = nu.fromUsage === 0 && nu.estimated > 0;
+    const neuronLabel = upperBound ? 'neurons per check (upper bound)' : 'neurons per check';
+    const neuronDetail = `${nu.fromUsage} calls from a reply's usage, ${nu.estimated} estimated as the Worker does${upperBound ? '; upper bound: every call there is the reservation estimate' : ''}`;
     out.push(`| ${neuronLabel} | mean ${fmt(nu.mean)}, p95 ${fmt(nu.p95)}; ${fmt(nu.total, 0)} in all over ${nu.checks} checks (${neuronDetail}) |`);
     out.push(`| CPU per batch (ms) | median ${fmt(c.cpu.median)}, p95 ${fmt(c.cpu.p95)}, max ${fmt(c.cpu.max)} (${c.batches} batches; live run, context only) |`);
     if (run?.worstBatchCpu) {

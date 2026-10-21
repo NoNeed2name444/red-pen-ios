@@ -354,17 +354,25 @@ export function ndcgAt(k, labels, missing = 0) {
 /// keyDocs: [ids], retrieved: [ids], shown: [labels], missing, outside: [ids],
 /// lookups }. Recall is micro (over the documents that exist) and macro (the
 /// mean of each item's); an item with no document that exists is left out of
-/// recall and counted.
+/// recall and counted. An item whose lookups failed (row.failed > 0) is not
+/// a miss: nothing is known about what it would have found, so it is left out
+/// of recall and nDCG and counted apart (lookupFailed), as proof-only.mjs
+/// counts a failed lookup apart from not proven.
 export function summarize(rows) {
-  const answerable = rows.filter(r => r.oracle.length);
+  const lookupFailed = rows.filter(r => (r.failed || 0) > 0);
+  const measured = rows.filter(r => !((r.failed || 0) > 0));
+  const answerable = measured.filter(r => r.oracle.length);
   const found = (k, r, want) => recallAt(k, r.retrieved, want) * want.length;
   const wants = answerable.reduce((s, r) => s + r.oracle.length, 0);
-  const keyed = rows.filter(r => (r.keyDocs || []).length);
+  const keyed = measured.filter(r => (r.keyDocs || []).length);
   const keyWants = keyed.reduce((s, r) => s + r.keyDocs.length, 0);
   const shown = rows.flatMap(r => r.shown);
   const mean = list => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : null);
   return {
     items: rows.length,
+    lookupFailed: lookupFailed.length,
+    lookupFailedUnread: lookupFailed.reduce((s, r) => s + (r.unread || 0), 0),
+    measured: measured.length,
     answerable: answerable.length,
     officialDocs: wants,
     recall3: wants ? answerable.reduce((s, r) => s + found(3, r, r.oracle), 0) / wants : null,
@@ -374,8 +382,8 @@ export function summarize(rows) {
     keyDocs: keyWants,
     keyRecall5: keyWants ? keyed.reduce((s, r) => s + found(5, r, r.keyDocs), 0) / keyWants : null,
     outside: rows.reduce((s, r) => s + (r.outside || []).length, 0),
-    ndcg5: mean(rows.map(r => ndcgAt(5, r.shown, r.missing || 0))),
-    ndcg5Order: mean(rows.map(r => ndcgAt(5, r.shown))),
+    ndcg5: mean(measured.map(r => ndcgAt(5, r.shown, r.missing || 0))),
+    ndcg5Order: mean(measured.map(r => ndcgAt(5, r.shown))),
     passages: shown.length,
     onTopic: shown.length ? shown.filter(l => l >= 1).length / shown.length : null,
     official: shown.length ? shown.filter(l => l === 2).length / shown.length : null,
@@ -554,7 +562,7 @@ export function reportFor(name, sets, notes = []) {
   const lines = [`# Retrieval set R: ${name}`, ''];
   for (const [label, rows, extra = []] of sets) {
     const s = summarize(rows);
-    lines.push(`## ${label}`, '', `${s.items} items; ${s.answerable} have an official document that exists (${s.officialDocs} in all); ${s.items - s.answerable} have none (left out of recall, counted here).`, '',
+    lines.push(`## ${label}`, '', `${s.items} items; ${s.answerable} have an official document that exists (${s.officialDocs} in all); ${s.measured - s.answerable} have none (left out of recall, counted here); ${s.lookupFailed} had a failed lookup (${s.lookupFailedUnread} sources unread; left out of recall and nDCG, not counted as misses).`, '',
       '| measure | result |', '|---|---|',
       `| official recall@3, micro (over the documents that exist) | ${pc(s.recall3)} |`, `| official recall@5, micro | ${pc(s.recall5)} |`,
       `| official recall@5, macro (the mean of each item's) | ${pc(s.recall5Macro)} |`,

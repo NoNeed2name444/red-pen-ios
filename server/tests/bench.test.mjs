@@ -168,6 +168,14 @@ console.log('all passed');
   ]);
   check(near(s2.recall5, 5 / 6) && near(s2.recall5Macro, (0.5 + 1) / 2) && s2.keyRecall5 === 0 && s2.keyDocs === 1 && s2.outside === 1, 'summary: micro and macro recall@5, key-document recall, label-2 documents outside the oracle');
   check(near(s2.ndcg5, (R.ndcgAt(5, [2, 0], 1) + R.ndcgAt(5, [2], 3)) / 2) && near(s2.ndcg5Order, 1), 'summary: nDCG@5 against the oracle\'s documents, and the order-only figure beside it');
+  // a failed lookup is not a miss: left out of recall and nDCG, counted apart
+  const okRow = { id: 'a', oracle: ['b'], retrieved: ['b'], shown: [2], missing: 0, lookups: 2, failed: 0, unread: 0 };
+  const s3 = R.summarize([okRow, { id: 'f', oracle: ['z'], retrieved: [], shown: [], missing: 1, lookups: 2, failed: 2, unread: 1 }]);
+  check(s3.items === 2 && s3.lookupFailed === 1 && s3.lookupFailedUnread === 1 && s3.measured === 1 && s3.answerable === 1 && s3.officialDocs === 1
+    && s3.recall5 === 1 && s3.recall3 === 1 && s3.recall5Macro === 1 && s3.ndcg5 === 1 && s3.ndcg5Order === 1, 'summary: a failed lookup is not counted as a miss in recall or nDCG, and is counted apart');
+  const s4 = R.summarize([okRow, { id: 'm', oracle: ['z'], retrieved: [], shown: [], missing: 1, lookups: 2, failed: 0, unread: 0 }]);
+  check(s4.lookupFailed === 0 && s4.recall5 === 1 / 2 && s4.ndcg5 === 1 / 2, 'summary: the same empty item with no failed lookup is a miss');
+  check(/1 had a failed lookup \(1 sources unread; left out of recall and nDCG/.test(R.reportFor('t', [['set', [okRow, { id: 'f', oracle: ['z'], retrieved: [], shown: [], lookups: 2, failed: 2, unread: 1 }]]])), 'report: the failed-lookup count is shown');
 
   // --- the committed label files and their sha256
   check(readdirSync(R.LABELS_DIR).sort().join() === 'SHA256SUMS,r-dev.json,r-test.json', 'two label files and their sums');
@@ -328,8 +336,10 @@ console.log('all passed');
 
   // --- A12: proxy mode neuron label
   const proxyRep = G.gateReport(rows, { ...run, mode: 'proxy' });
-  check(/neurons per check \(upper bound\) \| [^|]*\(upper bound: every call there is the reservation estimate\)/.test(proxyRep), 'A12: in proxy mode gateReport labels neurons as upper bound');
-  check(!/neurons per check \(upper bound\)/.test(rep), 'A12: live run does not label neurons as upper bound');
+  check(/neurons per check \| [^|]*\(1 calls from a reply's usage, 1 estimated as the Worker does\) \|/.test(proxyRep) && !/upper bound/.test(proxyRep), 'A12: in proxy mode with a reply\'s usage, the usage/estimate split is shown and no upper bound is claimed');
+  const estimatesOnly = { mode: 'proxy', batches: [{ items: 1, cpuMs: 1, lookups: 0, calls: [{ model: 'workers-ai:@cf/qwen/qwen3-30b-a3b-fp8', chars: 400, maxTokens: 80 }] }] };
+  check(/neurons per check \(upper bound\) \| [^|]*\(0 calls from a reply's usage, 1 estimated as the Worker does; upper bound: every call there is the reservation estimate\) \|/.test(G.gateReport(rows, estimatesOnly)), 'A12: with no call from a reply\'s usage, neurons are labelled an upper bound, the split still shown');
+  check(!/upper bound/.test(rep) && /\(1 calls from a reply's usage, 1 estimated as the Worker does\)/.test(rep), 'A12: live run shows the split and does not label neurons as upper bound');
 
   // --- A13: P counts network failures per item apart from budget skips
   const [netFailRec] = await P.proveBatch([{ truth: 'right', group: 'ladder', item: mcq }], async () => new Response('error', { status: 500 }));

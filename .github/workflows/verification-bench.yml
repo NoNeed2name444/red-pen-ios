@@ -67,14 +67,16 @@ jobs:
           BENCH_API_KEY: ${{ secrets.BENCH_API_KEY }}
           BENCH_BASE_URL: ${{ secrets.BENCH_BASE_URL }}
           BENCH_VOTERS: ${{ vars.BENCH_VOTERS }}
+          N: ${{ inputs.per_source || '30' }}
         run: |
-          n="${{ inputs.per_source || '30' }}"
+          [[ "$N" =~ ^[0-9]+$ ]] || exit 1
           if [ -n "$AI_API_KEY" ]; then
             export WORKER=https://redpen-auth.vv7sh4rnnw.workers.dev
             export KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
-            node tools/verification-bench/layer.mjs --data data --out out/layer --per-source "$n"
+            echo "::add-mask::$KEY"
+            node tools/verification-bench/layer.mjs --data data --out out/layer --per-source "$N"
           elif [ -n "$BENCH_API_KEY" ] && [ -n "$BENCH_BASE_URL" ]; then
-            node tools/verification-bench/layer.mjs --data data --out out/layer --per-source "$n" --voters "$BENCH_VOTERS"
+            node tools/verification-bench/layer.mjs --data data --out out/layer --per-source "$N" --voters "$BENCH_VOTERS"
           else
             echo "No checkers: add the AI_API_KEY secret (the live Worker), or BENCH_API_KEY and BENCH_BASE_URL secrets with a BENCH_VOTERS variable." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
@@ -82,8 +84,9 @@ jobs:
         if: inputs.mode == 'proxy'
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          N: ${{ inputs.per_source || '30' }}
         run: |
-          n="${{ inputs.per_source || '30' }}"
+          [[ "$N" =~ ^[0-9]+$ ]] || exit 1
           if [ -z "$AI_API_KEY" ]; then
             echo "Proxy mode needs the AI_API_KEY secret (the live Worker's owner key)." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 1
@@ -92,7 +95,7 @@ jobs:
           export BENCH_BASE_URL="$WORKER/v1"
           export BENCH_API_KEY=$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)
           echo "::add-mask::$BENCH_API_KEY"
-          node tools/verification-bench/layer.mjs --proxy --route "${{ inputs.route || 'on' }}" --data data --out out/layer --per-source "$n"
+          node tools/verification-bench/layer.mjs --proxy --route "${{ inputs.route || 'on' }}" --data data --out out/layer --per-source "$N"
       - name: Retrieval set R (no model)
         if: inputs.mode == 'retrieval'
         run: node tools/verification-bench/retrieval-set.mjs --set both --data data --cache "$RUNNER_TEMP/ragbench-cache" --out out/retrieval
