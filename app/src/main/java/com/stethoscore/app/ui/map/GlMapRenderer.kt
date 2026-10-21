@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView
 import com.stethoscore.app.map.ChunkCache
 import com.stethoscore.app.map.FrameBudget
 import com.stethoscore.app.map.FramePlan
+import com.stethoscore.app.map.GraphicsTier
 import com.stethoscore.app.map.FrameStats
 import com.stethoscore.app.map.GuardBand
 import com.stethoscore.app.map.LodSelector
@@ -14,6 +15,8 @@ import com.stethoscore.app.map.Mat4
 import com.stethoscore.app.map.Octree
 import com.stethoscore.app.map.OrbitCamera
 import com.stethoscore.app.map.SpaceBodies
+import com.stethoscore.app.map.SpaceDepth
+import com.stethoscore.app.map.SpaceDepthBand
 import com.stethoscore.app.map.SpaceLod
 import com.stethoscore.app.map.SpaceOptics
 import com.stethoscore.app.map.SpacePalette
@@ -50,8 +53,12 @@ data class MapReadout(
 /** How the map draws its notes: plain coloured points, or the Space theme's bodies. */
 enum class MapTheme { PLAIN, SPACE }
 
-/** A node's place on screen, for labels and taps (real notes only). */
-data class ScreenNode(val index: Int, val x: Float, val y: Float, val pixels: Float)
+/**
+ * A node's place on screen, for labels and taps (real notes only). [crisp] is false where the
+ * Space theme's depth fade has begun: its name does not show there (iOS shows names only in
+ * the crisp zone); a note past the band's end is not listed at all, so it cannot be picked.
+ */
+data class ScreenNode(val index: Int, val x: Float, val y: Float, val pixels: Float, val crisp: Boolean = true)
 
 /**
  * Draws the 3D Ideas map with OpenGL ES 3.0, the baseline every Android 8+ phone has.
@@ -78,6 +85,12 @@ class GlMapRenderer(
     private val theme: MapTheme = MapTheme.PLAIN,
     /** Where the Space theme's Earth maps are read from; null draws the rocky planet from noise. */
     assets: AssetManager? = null,
+    /** Pixels per dp: the depth fade's sizes on screen are iOS's points. */
+    private val density: Float = 1f,
+    /** How far the Space theme's depth fade reaches (the Graphics setting on iOS). */
+    private val tier: GraphicsTier = GraphicsTier.HIGH,
+    /** Increase Contrast: the fade starts later and stops short of the sky. */
+    private val contrast: Boolean = false,
 ) : GLSurfaceView.Renderer {
     private val space = theme == MapTheme.SPACE
     private val bodies: SpaceBodies? = if (space) SpaceBodies(tree, nodeRadius) else null
@@ -129,6 +142,9 @@ class GlMapRenderer(
     private val half = FloatArray(3)
     private var viewProj = Mat4.identity()
     private var clock = 0f
+    /** The Space theme's depth fade this frame (off in the plain theme). */
+    @Volatile var band: SpaceDepthBand = SpaceDepthBand.OFF; private set
+    private var bandUniform = band.uniform
 
     init { require(tree.leafCount < 65_536) { "chunk ids are 16-bit" } }
 
@@ -198,12 +214,16 @@ class GlMapRenderer(
         frame++
         budget.refreshHz = displayHz()
 
-        val eye: Vec3; val target: Vec3; val view: FloatArray; val proj: FloatArray; val focal: Float
+        val eye: Vec3; val target: Vec3; val view: FloatArray; val proj: FloatArray; val focal: Float; val forward: Vec3
         val aspect = width.toFloat() / height
         synchronized(camera) {
             eye = camera.eye(); target = camera.target
             view = camera.view(); proj = camera.projection(aspect); focal = camera.focalPixels(height.toFloat())
+            forward = camera.forward()
         }
+        // the depth fade follows what the camera looks at: its orbit target
+        band = if (space) SpaceDepth.band(SpaceDepth.depth(target, eye, forward), tier, contrast) else SpaceDepthBand.OFF
+        bandUniform = band.uniform
         val moved = lastEye?.let { (eye - it).length() + (target - (lastTarget ?: target)).length() } ?: 0f
         if (dt > 0f) {
             val instant = lastEye?.let { (eye - it) * (1f / dt) } ?: Vec3.ZERO
@@ -220,7 +240,7 @@ class GlMapRenderer(
         clock = (((System.nanoTime() - startNanos) / 1e9) % SpaceOptics.CLOCK_PERIOD).toFloat()
         val bodyCount = bodies?.let { b ->
             val right = Vec3(view[0], view[4], view[8]); val up = Vec3(view[1], view[5], view[9])
-            b.update(plan, viewProj, eye, right, up, focal, SpaceLod.maxBodies(budget.detail), clock).also { applyMask(b) }
+            b.update(plan, viewProj, eye, right, up, focal, SpaceLod.maxBodies(budget.detail), clock, band).also { applyMask(b) }
         } ?: 0
         animating = bodyCount > 0 || (bodies?.beamCount ?: 0) > 0 || moved > 1e-5f || plan.detailLeaves.size.let { n -> (0 until n).any { plan.leafState[plan.detailLeaves[it] * 4 + 3] < 1f } } || cache.uploadedThisFrame > 0
 
@@ -233,7 +253,8 @@ class GlMapRenderer(
         val drawn = drawNodes(plan, eye, focal)
         if (bodies != null && spaceGl != null && bodyCount + bodies.beamCount > 0) {
             spaceGl.draw(bodies, viewProj, floatArrayOf(eye.x, eye.y, eye.z), floatArrayOf(view[0], view[4], view[8]),
-                floatArrayOf(view[1], view[5], view[9]), focal, clock, SpaceLod.shaderDetail(budget.detail))
+                floatArrayOf(view[1], view[5], view[9]), focal, clock, SpaceLod.shaderDetail(budget.detail),
+                bandUniform, focal / max(density, 0.1f), floatArrayOf(forward.x, forward.y, forward.z))
         }
         publishScreenNodes(plan)
 
@@ -367,6 +388,7 @@ class GlMapRenderer(
         GLES30.glUniform1fv(GLES30.glGetUniformLocation(program, "uStyleScale"), 6, styleScale, 0)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "uSpace"), if (space) 1f else 0f)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(program, "rpClock"), clock)
+        GLES30.glUniform4fv(GLES30.glGetUniformLocation(program, "rpFade"), 1, bandUniform, 0)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, maskTexture)
         GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "uBodyMask"), 1)
@@ -416,6 +438,7 @@ class GlMapRenderer(
         GLES30.glUseProgram(summaryProgram)
         GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(summaryProgram, "uVP"), 1, false, viewProj, 0)
         GLES30.glUniform1f(GLES30.glGetUniformLocation(summaryProgram, "uMaxPoint"), maxPointSize)
+        GLES30.glUniform4fv(GLES30.glGetUniformLocation(summaryProgram, "rpFade"), 1, bandUniform, 0)
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, summaryVbo)
         GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, plan.summaries.size * 4, summaryBuffer, GLES30.GL_STREAM_DRAW)
         GLES30.glBindVertexArray(summaryVao)
@@ -430,6 +453,7 @@ class GlMapRenderer(
         GLES30.glUseProgram(bundleProgram)
         GLES30.glUniformMatrix4fv(GLES30.glGetUniformLocation(bundleProgram, "uVP"), 1, false, viewProj, 0)
         GLES30.glUniform2f(GLES30.glGetUniformLocation(bundleProgram, "uViewport"), width.toFloat(), height.toFloat())
+        GLES30.glUniform4fv(GLES30.glGetUniformLocation(bundleProgram, "rpFade"), 1, bandUniform, 0)
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, bundleVbo)
         GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, plan.bundles.size * 4, bundleBuffer, GLES30.GL_STREAM_DRAW)
         GLES30.glBindVertexArray(bundleVao)
@@ -444,6 +468,7 @@ class GlMapRenderer(
         val callback = onScreenNodes ?: return
         val out = ArrayList<ScreenNode>(tree.nodeCount)
         val focal = camera.focalPixels(height.toFloat())
+        val band = band
         for (k in 0 until tree.nodeCount) {
             val leaf = tree.leafOfNode[k]
             val t = plan.leafState[leaf * 4 + 3]
@@ -453,10 +478,10 @@ class GlMapRenderer(
             val y = plan.leafState[s + 1] + (tree.positions[3 * k + 1] - plan.leafState[s + 1]) * t
             val z = plan.leafState[s + 2] + (tree.positions[3 * k + 2] - plan.leafState[s + 2]) * t
             Mat4.project(viewProj, x, y, z, clip)
-            if (clip[3] <= 1e-4f) continue
+            if (clip[3] <= 1e-4f || band.gone(clip[3])) continue
             val sx = (clip[0] / clip[3] * 0.5f + 0.5f) * width
             val sy = (1f - (clip[1] / clip[3] * 0.5f + 0.5f)) * height
-            out.add(ScreenNode(tree.order[k], sx, sy, nodeRadius * focal / clip[3] * 2f * t))
+            out.add(ScreenNode(tree.order[k], sx, sy, nodeRadius * focal / clip[3] * 2f * t, band.crisp(clip[3]) || band == SpaceDepthBand.OFF))
         }
         callback(out)
     }
@@ -490,9 +515,20 @@ class GlMapRenderer(
 
         private fun floats(n: Int): FloatBuffer = ByteBuffer.allocateDirect(n * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
 
+        // The Space theme's depth fade for light (points, links, summaries, bundles): what is left
+        // of it at view depth z (1 - f, SpaceDepthBand.light), and whether it is past the band.
+        private const val LIGHT = """
+float rpLight(float z) {
+    float rp_dfW = rpFade.y - rpFade.x;
+    if (rp_dfW <= 0.0001) return 1.0;
+    return 1.0 - pow(clamp((z - rpFade.x) / rp_dfW, 0.0, 1.0), max(rpFade.z, 0.0001)) * rpFade.w;
+}
+bool rpGone(float z) { return rpFade.w >= 1.0 && rpFade.y - rpFade.x > 0.0001 && z >= rpFade.y; }
+"""
+
         // Each node morphs between its chunk's summary point and its own place by the chunk's
         // openness t, and its point grows with t: a summary point grows into its nodes.
-        private const val NODE_HEADER = """#version 300 es
+        private val NODE_HEADER = """#version 300 es
 precision highp float;
 precision highp int;
 layout(location = 0) in vec3 aPos;
@@ -510,7 +546,8 @@ uniform float uStyleScale[6];
 uniform float uSpace;
 uniform float rpClock;
 uniform mediump sampler2D uBodyMask;
-// Space theme: 1 while this node is drawn as its body (its point hides)
+uniform vec4 rpFade;
+""" + LIGHT + """// Space theme: 1 while this node is drawn as its body (its point hides)
 float bodyMasked() {
     if (uSpace < 0.5) return 0.0;
     return texelFetch(uBodyMask, ivec2(gl_VertexID % 1024, gl_VertexID / 1024), 0).r;
@@ -519,7 +556,7 @@ vec4 leafState() { int l = int(aLeaf); return texelFetch(uLeafState, ivec2(l % 1
 vec3 placed(vec4 st) { return mix(st.xyz, uCenter + aPos * uHalf, st.w); }
 """
 
-        private const val NODE_VS = NODE_HEADER + """
+        private val NODE_VS = NODE_HEADER + """
 out vec3 vColor;
 out float vSize;
 void main() {
@@ -533,8 +570,8 @@ void main() {
     // a node smaller than a pixel lights the pixel by the area it covers, so dense far
     // clusters stay coloured instead of adding up to white
     float cover = clamp(px, 0.35, 1.0);
-    vColor = uPalette[int(aGroup) % 6] * cover * cover;
-    if (bodyMasked() > 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    vColor = uPalette[int(aGroup) % 6] * cover * cover * rpLight(w);
+    if (bodyMasked() > 0.5 || rpGone(w)) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
 }
 """
 
@@ -558,7 +595,7 @@ void main() {
 }
 """
 
-        private const val EDGE_VS = NODE_HEADER + """
+        private val EDGE_VS = NODE_HEADER + """
 out vec3 vColor;
 void main() {
     vec4 st = leafState();
@@ -575,6 +612,7 @@ void main() {
         float beat = s == 4 ? 0.7 + 0.3 * cos(6.2831853 * rpClock * 1.3333333) : 1.0;
         vColor = mix(warm, tint, 0.5) * 1.6 * beat * (1.0 - bodyMasked());
     }
+    vColor = vColor * rpLight(gl_Position.w);
 }
 """
 
@@ -585,18 +623,20 @@ out vec4 fragColor;
 void main() { fragColor = vec4(vColor * 0.32, 1.0); }
 """
 
-        private const val SUMMARY_VS = """#version 300 es
+        private val SUMMARY_VS = """#version 300 es
 precision highp float;
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in float aSize;
 layout(location = 2) in vec3 aColor;
 uniform mat4 uVP;
 uniform float uMaxPoint;
+uniform vec4 rpFade;
 out vec3 vColor;
-void main() {
+""" + LIGHT + """void main() {
     gl_Position = uVP * vec4(aPos, 1.0);
     gl_PointSize = clamp(aSize, 1.0, uMaxPoint);
-    vColor = aColor;
+    vColor = aColor * rpLight(gl_Position.w);
+    if (rpGone(gl_Position.w)) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
 }
 """
 
@@ -616,7 +656,7 @@ void main() {
 """
 
         // A bundle is one quad between two chunk summary points, its width in pixels.
-        private const val BUNDLE_VS = """#version 300 es
+        private val BUNDLE_VS = """#version 300 es
 precision highp float;
 layout(location = 0) in vec2 aCorner;
 layout(location = 1) in vec3 aA;
@@ -625,9 +665,10 @@ layout(location = 3) in float aWidth;
 layout(location = 4) in vec3 aColor;
 uniform mat4 uVP;
 uniform vec2 uViewport;
+uniform vec4 rpFade;
 out vec3 vColor;
 out float vSide;
-void main() {
+""" + LIGHT + """void main() {
     vec4 a = uVP * vec4(aA, 1.0);
     vec4 b = uVP * vec4(aB, 1.0);
     if (a.w <= 1e-4 || b.w <= 1e-4) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); vColor = vec3(0.0); vSide = 0.0; return; }
@@ -639,7 +680,7 @@ void main() {
     vec2 offset = n * aCorner.y * max(aWidth, 1.0) * 0.5 / (uViewport * 0.5);
     gl_Position = vec4(p.xy + offset * p.w, p.z, p.w);
     // under a pixel, the quad stays a pixel wide and carries the coverage of its true width
-    vColor = aColor * min(aWidth, 1.0);
+    vColor = aColor * min(aWidth, 1.0) * rpLight(p.w);
     vSide = aCorner.y;
 }
 """

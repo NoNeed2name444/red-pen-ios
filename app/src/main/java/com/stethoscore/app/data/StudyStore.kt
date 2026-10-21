@@ -1,5 +1,6 @@
 package com.stethoscore.app.data
 
+import com.stethoscore.app.ideas.NoteFolder
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -23,6 +24,9 @@ class StudyStore(private val directory: File) {
     var folders: List<StudyFolder> = emptyList()
         private set
     var notes: List<Note> = emptyList()
+        private set
+    /** The idea dump's folders (iOS NoteStore's), nested by parentId. */
+    var noteFolders: List<NoteFolder> = emptyList()
         private set
     var reviews: Map<String, ReviewRecord> = emptyMap()
         private set
@@ -56,6 +60,7 @@ class StudyStore(private val directory: File) {
         val osceProgress: Map<String, OsceProgress>, val caseRuns: Map<String, String>, val answerHistory: Map<String, List<Boolean>>,
         val answerLog: List<AnswerEvent>, val flagged: Set<String>, val examDate: Long?,
         val mistakeReasons: Map<String, MistakeNote> = emptyMap(),
+        val noteFolders: List<NoteFolder> = emptyList(),
     )
     private var committed = current()
     /** Called when a background save (progress, ratings, answers) fails; the change is undone. */
@@ -91,14 +96,15 @@ class StudyStore(private val directory: File) {
             flagged = root.strings("flagged").toSet(),
             examDate = if (root.isNull("examDate")) null else StudyJson.date(root.opt("examDate")),
             mistakeReasons = readMap(root.obj("mistakeReasons")) { MistakeNote(it.text("reason"), StudyJson.date(it.opt("at"))) }.filterValues { it.reason.isNotEmpty() },
+            noteFolders = root.objects("noteFolders") { NoteFolder(it.text("id", newId()), it.text("name", "Folder"), it.nullText("parentId"), StudyJson.date(it.opt("createdAt")), it.toString()) },
         )
     }
-    private fun current() = Saved(original, unknownSets, library, folders, notes, reviews, quizProgress, readingProgress, osceProgress, caseRuns, answerHistory, answerLog, flagged, examDate, mistakeReasons)
+    private fun current() = Saved(original, unknownSets, library, folders, notes, reviews, quizProgress, readingProgress, osceProgress, caseRuns, answerHistory, answerLog, flagged, examDate, mistakeReasons, noteFolders)
     private fun restore(s: Saved) {
         original = s.original; unknownSets = s.unknownSets; library = s.library; folders = s.folders; notes = s.notes
         reviews = s.reviews; quizProgress = s.quizProgress; readingProgress = s.readingProgress; osceProgress = s.osceProgress
         caseRuns = s.caseRuns; answerHistory = s.answerHistory; answerLog = s.answerLog; flagged = s.flagged; examDate = s.examDate
-        mistakeReasons = s.mistakeReasons
+        mistakeReasons = s.mistakeReasons; noteFolders = s.noteFolders
     }
     private fun intList(a: JSONArray?): List<Int> = a?.let { (0 until it.length()).map(it::optInt) } ?: emptyList()
     private fun <T> readMap(o: JSONObject, decode: (JSONObject) -> T): Map<String, T> = o.keys().asSequence().mapNotNull { key -> o.optJSONObject(key)?.let { key to decode(it) } }.toMap()
@@ -112,6 +118,7 @@ class StudyStore(private val directory: File) {
         .put("library", jsonArray(library.map(StudyJson::encodeSet) + unknownSets))
         .put("folders", jsonArray(folders.map { raw(it.rawJson).put("id", it.id).put("name", it.name).putDate("updatedAt", it.updatedAt) }))
         .put("notes", jsonArray(notes.map(StudyJson::encodeNote)))
+        .put("noteFolders", jsonArray(noteFolders.map { raw(it.rawJson).put("id", it.id).put("name", it.name).put("parentId", it.parentId ?: JSONObject.NULL).putDate("createdAt", it.createdAt) }))
         .put("reviews", writeMap(reviews, StudyJson::encodeReview))
         .put("quizProgress", writeMap(quizProgress) { p -> JSONObject().put("current", p.current).put("answers", jsonArray(p.answers.map { JSONObject().put("selected", it.selected ?: JSONObject.NULL).put("checked", it.checked) })).put("questionIds", jsonArray(p.questionIds)).put("optionOrders", jsonArray(p.optionOrders.map(::jsonArray))).putDate("savedAt", p.savedAt) })
         .put("readingProgress", writeMap(readingProgress) { JSONObject().put("position", it.position).putDate("savedAt", it.savedAt) })
@@ -198,6 +205,8 @@ class StudyStore(private val directory: File) {
     private fun mergeBackup(b: Saved) {
         val noteIds = notes.map { it.id }.toSet()
         notes = notes + b.notes.filter { it.id !in noteIds }
+        val folderIds = noteFolders.map { it.id }.toSet()
+        noteFolders = noteFolders + b.noteFolders.filter { it.id !in folderIds }
         // card by card, the later word on each card winning (iOS ReviewStore.merge)
         reviews = ReviewPlan.merging(reviews, b.reviews)
         quizProgress = b.quizProgress + quizProgress
@@ -309,6 +318,12 @@ class StudyStore(private val directory: File) {
         if (existing == note) return
         val updated = if (existing == null) note else note.copy(updatedAt = System.currentTimeMillis())
         notes = if (existing == null) notes + updated else notes.map { if (it.id == note.id) updated else it }
+        save()
+    }
+    /** The idea dump after a change (IdeaBook): every note and folder, saved together. */
+    @Synchronized fun replaceIdeas(notes: List<Note>, folders: List<NoteFolder>) {
+        if (notes == this.notes && folders == noteFolders) return
+        this.notes = notes; noteFolders = folders
         save()
     }
     @Synchronized fun deleteNote(id: String) { notes = notes.filterNot { it.id == id }.map { it.copy(links = it.links - id) }; save() }

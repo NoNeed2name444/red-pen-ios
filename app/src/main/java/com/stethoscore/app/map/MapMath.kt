@@ -111,6 +111,15 @@ class OrbitCamera(
         val cp = cos(pitch); return target + Vec3(cp * sin(yaw), sin(pitch), cp * cos(yaw)) * distance
     }
 
+    /** Where it looks (eye to target), unit length; the screen's right and up in the world. */
+    fun forward(): Vec3 { val cp = cos(pitch); return Vec3(-cp * sin(yaw), -sin(pitch), -cp * cos(yaw)) }
+    fun right(): Vec3 = Vec3(cos(yaw), 0f, -sin(yaw))
+    fun up(): Vec3 = right().cross(forward())
+
+    /** Its view volume for a screen this shape (SpaceDepth's culling). */
+    fun frustum(width: Float, height: Float, near: Float = near(), far: Float = far()): ViewFrustum =
+        ViewFrustum.of(eye(), forward(), right(), up(), fovY, width, height, near, far)
+
     fun orbit(dYaw: Float, dPitch: Float) {
         yaw += dYaw; pitch = (pitch + dPitch).coerceIn(-1.5f, 1.5f)
     }

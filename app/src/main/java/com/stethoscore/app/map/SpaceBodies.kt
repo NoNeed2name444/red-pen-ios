@@ -2,6 +2,7 @@ package com.stethoscore.app.map
 
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -13,8 +14,14 @@ import kotlin.math.sqrt
  *
  * Only chunks fully open into their nodes are looked at, and of those only the ones whose
  * nearest note could be [SpaceLod.BODY_PIXELS] across, so the million-node path pays nothing
- * for it. A note becomes its body once it covers that many pixels (SpaceLod), nearest first,
- * up to the frame budget's cap; the rest stay points. The bodies' links become glowing beams.
+ * for it. A note becomes its body once it covers more than that many pixels (SpaceLod), nearest
+ * first, up to the frame budget's cap; the rest stay points. The bodies' links become glowing
+ * beams.
+ *
+ * The depth fade (SpaceDepth, iOS GraphSpaceDepthStage): a note past the band's end is gone
+ * (neither a body nor animated), and the change between point and body has SpaceDepth.level's
+ * gap, so a body hovering at the edge does not flicker: once a body, it stays one until it
+ * drops under two thirds of that size; where it has mostly faded (f 0.6) both edges double.
  *
  * Per body ([STRIDE] floats, the body shader's four vec4 attributes): place and note radius;
  * light direction and seed; A (a direction and a number) and B (a direction and the note's
@@ -37,6 +44,8 @@ class SpaceBodies(val tree: Octree, val nodeRadius: Float, val capacity: Int = 9
         const val OPEN = 0.999f
         /** More suns than this and only the drawn ones light the others (the 1M maps). */
         const val MAX_LIGHTS = 4096
+        /** A body stays one down to this share of [SpaceLod.BODY_PIXELS] (SpaceDepth's gap, 1.5 / 2.25). */
+        const val KEEP = SpaceDepth.POINT_ENTER / SpaceDepth.POINT_LEAVE
     }
 
     val data = FloatArray(capacity * STRIDE)
@@ -73,7 +82,8 @@ class SpaceBodies(val tree: Octree, val nodeRadius: Float, val capacity: Int = 9
      * Chooses this frame's bodies and beams. [viewProj] is the frame's matrix, [right] and [up]
      * the camera's axes in the world, [time] the shaders' clock (rpClock * rpMotion).
      */
-    fun update(plan: FramePlan, viewProj: FloatArray, eye: Vec3, right: Vec3, up: Vec3, focal: Float, maxBodies: Int, time: Float): Int {
+    fun update(plan: FramePlan, viewProj: FloatArray, eye: Vec3, right: Vec3, up: Vec3, focal: Float, maxBodies: Int, time: Float,
+               band: SpaceDepthBand = SpaceDepthBand.OFF): Int {
         val frustum = Frustum(viewProj)
         val limit = min(maxBodies, capacity)
         heapSize = 0
@@ -84,15 +94,17 @@ class SpaceBodies(val tree: Octree, val nodeRadius: Float, val capacity: Int = 9
             val cell = tree.leafCell[leaf]
             val dx = tree.cx[cell] - eye.x; val dy = tree.cy[cell] - eye.y; val dz = tree.cz[cell] - eye.z
             val nearest = sqrt(dx * dx + dy * dy + dz * dz) - tree.radius[cell]
-            if (nearest > 0f && SpaceLod.pixels(nodeRadius, focal, nearest) < SpaceLod.BODY_PIXELS) continue
+            if (nearest > 0f && SpaceLod.pixels(nodeRadius, focal, nearest) < SpaceLod.BODY_PIXELS * KEEP) continue
             for (i in tree.start[cell] until tree.end[cell]) {
                 val style = tree.groups[i].toInt()
                 if (style !in 0..5 || !enabled[style]) continue
                 val x = p[3 * i]; val y = p[3 * i + 1]; val z = p[3 * i + 2]
                 val w = viewProj[3] * x + viewProj[7] * y + viewProj[11] * z + viewProj[15]
                 if (w <= 1e-3f) continue
-                if (SpaceLod.level(SpaceLod.pixels(nodeRadius, focal, w)) != SpaceLod.Level.BODY) continue
-                if (!frustum.intersectsSphere(x, y, z, SpaceStyle.of(style).extent * nodeRadius)) continue
+                if (band.gone(w)) continue
+                if (level(masked[i], SpaceLod.pixels(nodeRadius, focal, w), band.fade(w)) != SpaceBodyLevel.BODY) continue
+                val reach = max(SpaceDepth.reachOfLook(style), SpaceStyle.of(style).extent)
+                if (!frustum.intersectsSphere(x, y, z, reach * nodeRadius)) continue
                 offer(i, w, limit)
             }
         }
@@ -123,6 +135,15 @@ class SpaceBodies(val tree: Octree, val nodeRadius: Float, val capacity: Int = 9
         buildBeams(plan)
         return count
     }
+
+    /**
+     * Body or point for a note [pixels] across, given whether it was a body last frame:
+     * SpaceDepth.level with its sizes (radii in points on iOS) scaled so a point becomes a body
+     * just past [SpaceLod.BODY_PIXELS] across.
+     */
+    fun level(wasBody: Boolean, pixels: Float, fade: Float): SpaceBodyLevel =
+        SpaceDepth.level(if (wasBody) SpaceBodyLevel.BODY else SpaceBodyLevel.POINT,
+            pixelRadius = pixels * SpaceDepth.POINT_LEAVE / SpaceLod.BODY_PIXELS, fade = fade, gone = false, inView = true)
 
     /** True when [node] (chunk order) is drawn as its body this frame. */
     fun isBody(node: Int) = node in slot.indices && slot[node] >= 0
