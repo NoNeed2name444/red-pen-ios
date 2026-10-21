@@ -389,6 +389,11 @@ suite wardisland WardIslandTests.swift $S/Ward/WardIsland.swift $S/Ward/WardReli
 # one animated value for every Ward colour: the light/dark shift and the move
 # between sections, with each section's hue
 suite wardlook WardLookTests.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+# the relief's lights drawn once: how far each look reaches, the cut that lets
+# one image serve every size of a rounded rectangle, the key, and that
+# stretching the cut image gives the picture the larger drawing gives
+suite wardlightslice WardLightSliceTests.swift $S/Ward/WardLightSlice.swift $S/Ward/WardRelief.swift \
+      $S/Ward/WardPalette.swift
 # today's ward round on the home: which beds and in what order, the weak
 # spots that need a consult (the weakest always has a bed), the minutes;
 # the study rhythm read from StudyLog's days; the countdown and greeting
@@ -438,5 +443,8 @@ suite storeload StoreLoadTests.swift ios/RedPen/Persistence/Store.swift ios/RedP
 # the library's pictures on disk (audit row 17): packed into references as the
 # file is written, filled back in as it is read, swept when nothing refers to
 # them, and named by the same SHA-256 on Linux (plain Swift) as with CryptoKit
-suite pictures LibraryPicturesTests.swift $S/LibraryPictures.swift $S/BlobRefs.swift $S/RecoveryFiles.swift
+suite librarypictures LibraryPicturesTests.swift $S/LibraryPictures.swift $S/BlobRefs.swift $S/RecoveryFiles.swift
 suite wardstates WardStatesTests.swift $S/Ward/WardControlStates.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+# the launch opening: the heartbeat in step with its sound, the ECG drawn
+# with it, the hole that uncovers home, the art and the sound it uses
+suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift $S/LaunchDiagnostics.swift

@@ -239,7 +239,9 @@ final class WardLookDriver: NSObject {
         let store = WardLookStore.shared
         let now = store.glide
         guard look != now.to else { return }
-        if reduceMotion {
+        // The splash is opaque while home warms. Set its initial section
+        // before the relief images and paper are made, not during hand-off.
+        if reduceMotion || LaunchStage.shared.warm {
             stop()
             WardLookDriver.still { store.set(.rest(look)) }
             return

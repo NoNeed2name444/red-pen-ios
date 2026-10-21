@@ -46,6 +46,7 @@ extension LibraryView {
                 }
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("examplesBanner")
+                .launchEntrance(inOpening: true)
                 .wardPart("the examples row", reach: WardSpace.s)
                 .frostedListRow()
             }
@@ -92,6 +93,7 @@ extension LibraryView {
 
     func sectionHeader(_ text: String) -> some View {
         CategoryHeading(title: text)
+            .launchEntrance(inOpening: true)
     }
 
     /// One library row - a navigation link normally, a tickable row in
@@ -132,6 +134,7 @@ extension LibraryView {
                 .transition(.identity)
             }
         }
+        .launchEntrance(inOpening: true)
         // the tile's face stands a little out of the content (WardRowTile);
         // the part goes inside the row's traits, which the List reads off
         // the row's outermost modifiers

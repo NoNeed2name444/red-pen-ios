@@ -190,12 +190,15 @@ private struct WardPartModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { rect in
+                // Nested parts (the round's beds) inherit their row's pose.
+                // Keep their whole-home sightings until the opening settles.
+                guard LaunchStage.shared.measuring else { return }
                 spot.rect = rect
                 guard probed else { return }
                 WardPartBook.shared.set(id, name: name, rect: rect, reach: reach, scale: displayScale)
             }
             .onAppear {
-                guard probed, let rect = spot.rect else { return }
+                guard probed, LaunchStage.shared.measuring, let rect = spot.rect else { return }
                 WardPartBook.shared.set(id, name: name, rect: rect, reach: reach, scale: displayScale)
             }
             .onDisappear { WardPartBook.shared.drop(id) }

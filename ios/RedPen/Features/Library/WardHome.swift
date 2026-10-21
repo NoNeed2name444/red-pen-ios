@@ -61,14 +61,14 @@ extension LibraryView {
     var showsRound: Bool {
         guard !searching, !store.library.isEmpty else { return false }
         if category == .questions { return true }
-        return category == .cards && !reviews.dueAcross(store.library).isEmpty
+        return category == .cards && !dueNow().isEmpty
     }
 
     /// Today's ward round, and on Questions the two tiles under it.
     @ViewBuilder
     var homeRoundSections: some View {
         if showsRound {
-            let due: [ReviewPlan.Due] = reviews.dueAcross(store.library)
+            let due: [ReviewPlan.Due] = dueNow()
             // the card and the tiles stand as low as the rows below them,
             // so the cell never cuts their lights
             Section { roundCard(due: due).wardCardRow() }
@@ -87,8 +87,14 @@ extension LibraryView {
             .listRowSeparator(.hidden)
     }
 
+    /// The cards due across the library: one of home's loads, marked for a
+    /// recorded opening (LaunchStage.measure).
+    private func dueNow() -> [ReviewPlan.Due] {
+        LaunchStage.shared.measure("due") { reviews.dueAcross(store.library) }
+    }
+
     private func roundCard(due: [ReviewPlan.Due]) -> some View {
-        let input: BedPlan.Input = bedInput(due: due)
+        let input: BedPlan.Input = LaunchStage.shared.measure("plan") { bedInput(due: due) }
         let all: [BedPlan.Bed] = BedPlan.beds(input)
         // a short window's round is its first beds, so the card and its
         // button end above the dock (HomeFit); Plan has the whole day
@@ -103,6 +109,10 @@ extension LibraryView {
     }
 
     private func homeTiles(due: Int) -> some View {
+        LaunchStage.shared.measure("tiles") { homeTilesLoaded(due: due) }
+    }
+
+    private func homeTilesLoaded(due: Int) -> HomeTiles {
         let readiness: ReadinessEstimate? = store.readiness(dueCards: due)
         let days: [String: Int] = StudyDays.merged(log: studyLog.days, answers: store.answerLog,
                                                    version: store.changeCount)
@@ -261,23 +271,33 @@ extension LibraryView {
 /// small caps, the app's name with a squiggle of ECG beside it, a greeting,
 /// and the countdown to the exam when there is a date.
 struct HomeHeader: View {
+    /// The squiggle's frame, which the opening's ECG becomes (its line is
+    /// LaunchOpening.squiggleLine).
+    static let squiggleSize = CGSize(width: 34, height: 18)
+
     let date: Date
     let greeting: String
     let countdown: String?
 
     var body: some View {
+        // at the opening's hand-off the name settles in where the stethoscope
+        // goes, the squiggle is where the ECG lands, and the rest grows into
+        // place around them (LaunchStage)
         VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide)))
                 .wardSmallCaps()
                 // every line it wraps to, whole, at the largest sizes
                 .fixedSize(horizontal: false, vertical: true)
+                .launchEntrance()
             nameLine
             Text(greeting)
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)
+                .launchEntrance()
             if let countdown {
                 WardPill(text: countdown, symbol: "calendar")
                     .padding(.top, WardSpace.xs)
+                    .launchEntrance()
             }
         }
         .padding(.top, WardSpace.xs)
@@ -291,10 +311,16 @@ struct HomeHeader: View {
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+                .launchLetters()
+                .launchTarget(.title)
                 .accessibilityAddTraits(.isHeader)
             EcgSquiggle()
-                .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                .frame(width: 34, height: 18)
+                .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: CGFloat(LaunchOpening.squiggleLine),
+                                                          lineCap: .round, lineJoin: .round))
+                .frame(width: HomeHeader.squiggleSize.width, height: HomeHeader.squiggleSize.height)
+                // drawn the moment the opening's ECG lands on it
+                .launchLanding()
+                .launchTarget(.squiggle)
                 .accessibilityHidden(true)
         }
     }
@@ -371,8 +397,8 @@ struct HomeBand: View {
 
     var body: some View {
         if let bottom = track.bottom {
-            // no edge of its own: the frame draws the opening's rounded top
-            // here (WardPaperTop)
+            // No ink outline: the paper's cut supplies the rounded corners
+            // here (WardPaperTop), continuous with the ringless outer frame.
             WardPaperBand(bottom: bottom, edge: false)
                 .padding(.horizontal, -WardPaper.sideInset)
                 .ignoresSafeArea()
@@ -410,7 +436,10 @@ struct HomeMasthead: View {
             .allowsHitTesting(false)
             .accessibilityHidden(true)
             .onChange(of: paperTop, initial: true) { _, y in WardPaperTop.shared.y = y }
-            .onAppear { WardPaperTop.shared.y = paperTop }
+            .onAppear {
+                WardPaperTop.shared.home = true
+                WardPaperTop.shared.y = paperTop
+            }
             // a page pushed over home has the frame's own opening
             .onDisappear { WardPaperTop.shared.y = nil }
     }
@@ -442,6 +471,7 @@ struct HomeRoundCard: View {
         }
         // a List row: as low as the tiles round it, the button proud of it
         .wardCard(lift: .low)
+        .launchEntrance(inOpening: true)
         .wardPart("the round card")
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.card = $0
@@ -525,6 +555,7 @@ struct HomeRoundCard: View {
         .accessibilityHint(hint)
         .accessibilityIdentifier("missionLiftOff")
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            guard LaunchStage.shared.measuring else { return }
             HomeFitProbe.shared.start = $0
             onStartFrame($0)
         }
@@ -620,7 +651,7 @@ struct HomeTiles: View {
     /// Where the tiles were laid out, for the preview's fit check: no
     /// sliver of them may peek over the page's cut (HomeFit).
     private var measured: some View {
-        tiles.wardPart("the tiles").onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+        tiles.launchEntrance(inOpening: true).wardPart("the tiles").onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.tiles = $0
         }
     }

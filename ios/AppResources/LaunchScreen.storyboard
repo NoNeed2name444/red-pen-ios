@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The first frame, before any Swift runs: home's ECG paper (LaunchPaper, made
+  by tools/make_launch_paper.py) pinned to the screen's top left at its own
+  size, so its lines fall exactly where home draws them, and the stethoscope
+  (LaunchLogo) at its own size in the middle of the safe area, on the base
+  colour, light or dark with the phone. LaunchSplash lays the same two
+  pictures the same way for its first frame, and home stands on the same
+  paper, so the ground never changes.
+-->
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Lch-vc-001">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="Lch-sc-001">
+            <objects>
+                <viewController id="Lch-vc-001" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Lch-vw-001">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="topLeft" horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="1" verticalCompressionResistancePriority="1" image="LaunchPaper" translatesAutoresizingMaskIntoConstraints="NO" id="Lch-pp-001">
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                            </imageView>
+                            <imageView userInteractionEnabled="NO" contentMode="center" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchLogo" translatesAutoresizingMaskIntoConstraints="NO" id="Lch-lg-001">
+                                <rect key="frame" x="96.5" y="335" width="200" height="200"/>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Lch-sa-001"/>
+                        <color key="backgroundColor" name="LaunchBackground"/>
+                        <constraints>
+                            <constraint firstItem="Lch-pp-001" firstAttribute="top" secondItem="Lch-vw-001" secondAttribute="top" id="Lch-ct-001"/>
+                            <constraint firstItem="Lch-pp-001" firstAttribute="left" secondItem="Lch-vw-001" secondAttribute="left" id="Lch-ct-002"/>
+                            <constraint firstAttribute="bottom" secondItem="Lch-pp-001" secondAttribute="bottom" id="Lch-ct-003"/>
+                            <constraint firstAttribute="right" secondItem="Lch-pp-001" secondAttribute="right" id="Lch-ct-004"/>
+                            <constraint firstItem="Lch-lg-001" firstAttribute="centerX" secondItem="Lch-sa-001" secondAttribute="centerX" id="Lch-ct-005"/>
+                            <constraint firstItem="Lch-lg-001" firstAttribute="centerY" secondItem="Lch-sa-001" secondAttribute="centerY" id="Lch-ct-006"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="Lch-fr-001" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="LaunchLogo" width="200" height="200"/>
+        <image name="LaunchPaper" width="480" height="1040"/>
+        <namedColor name="LaunchBackground">
+            <color red="0.8784313725490196" green="0.89803921568627454" blue="0.92549019607843142" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+    </resources>
+</document>
