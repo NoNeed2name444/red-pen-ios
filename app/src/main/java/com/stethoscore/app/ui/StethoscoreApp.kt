@@ -1,5 +1,7 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.ward.WardSection
+
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -81,7 +83,14 @@ import java.util.Locale
         }
     }
     BackHandler(screen!="home") { goHome() }
-    StethoscoreTheme(dark) {
+    // Each part of the app wears its section's colours (WardSection): a set
+    // takes its kind's, the brain map Ideas', everywhere else the outside look.
+    val section = when(screen) {
+        "study" -> store.library.firstOrNull { it.id==selectedId }?.let { WardSection.fromKindRaw(it.kind.rawValue) } ?: WardSection.outside
+        "ideas" -> WardSection.ideas
+        else -> WardSection.outside
+    }
+    StethoscoreTheme(dark, section) {
         Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
             Box(Modifier.fillMaxSize().safeDrawingPadding()) {
                 when(screen) {

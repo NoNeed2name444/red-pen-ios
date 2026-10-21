@@ -1,5 +1,7 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.ward.WardToken
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -63,18 +65,18 @@ private fun studyDate(time: Long): LocalDate = Instant.ofEpochMilli(time).atZone
             if (remaining >= 0) item { Text(if (remaining == 0L) "Your exam is today" else "Your exam in $remaining days", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary) }
         }
         item {
-            Column(Modifier.fillMaxWidth().background(Color(0xFF0E1B2C), RoundedCornerShape(24.dp)).padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Text("QUESTION ACTIVITY · LAST 7 DAYS", color = Color(0xFFA3B1C3), fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
+            Column(Modifier.fillMaxWidth().background(wardColor(WardToken.monitor, held = true), RoundedCornerShape(24.dp)).padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                Text("QUESTION ACTIVITY · LAST 7 DAYS", color = wardColor(WardToken.inkSecondary, held = true), fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column { Text("$todayAnswers", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4CC38A)); Text("answers today", color = Color(0xFFA3B1C3), fontSize = 12.sp) }
-                    Column(horizontalAlignment = Alignment.End) { Text("$streak", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7DB0F2)); Text("day question streak", color = Color(0xFFA3B1C3), fontSize = 12.sp) }
+                    Column { Text("$todayAnswers", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = wardColor(WardToken.success, held = true)); Text("answers today", color = wardColor(WardToken.inkSecondary, held = true), fontSize = 12.sp) }
+                    Column(horizontalAlignment = Alignment.End) { Text("$streak", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = wardColor(WardToken.primaryInk, held = true)); Text("day question streak", color = wardColor(WardToken.inkSecondary, held = true), fontSize = 12.sp) }
                 }
                 Row(Modifier.fillMaxWidth().height(65.dp), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Bottom) {
                     val highest = week.maxOf { it.second }.coerceAtLeast(1)
                     week.forEach { (date, count) ->
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(Modifier.fillMaxWidth().height((4 + count.toFloat() / highest * 40).dp).background(if (count > 0) Color(0xFF4CC38A) else Color(0xFF25364C), RoundedCornerShape(3.dp)))
-                            Text(date.dayOfWeek.name.take(1), color = Color(0xFFA3B1C3), fontSize = 10.sp)
+                            Box(Modifier.fillMaxWidth().height((4 + count.toFloat() / highest * 40).dp).background(if (count > 0) wardColor(WardToken.success, held = true) else wardColor(WardToken.surface, held = true), RoundedCornerShape(3.dp)))
+                            Text(date.dayOfWeek.name.take(1), color = wardColor(WardToken.inkSecondary, held = true), fontSize = 10.sp)
                         }
                     }
                 }

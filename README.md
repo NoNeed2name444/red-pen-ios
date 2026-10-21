@@ -31,6 +31,6 @@ Examples are optional and copied from the iOS examples. A normal first launch ha
 
 ## Remaining parity work
 
-This is an Android preview, not a finished one-to-one conversion. Still missing: cloud generation and the accuracy UI, sign-in and full conflict-preserving sync, transcription and recording, APKG import and export (Anki deck files), subscription billing, widgets, and a Vulkan path for the map (OpenGL ES 3.0 is the baseline). PDF export has no tappable contents links, because Android's PdfDocument has no link annotations; it lists page numbers instead. Backend transport is not automatic account sync, and examples are not independently verified medical content.
+This is an Android preview, not yet a one-to-one copy of the iOS app. What it has and lacks, screen by screen, and the order the rest is ported in, is in [docs/parity.md](docs/parity.md). Examples are not independently verified medical content.
 
 `upstream/ios/` and `upstream/docs/` preserve the selected Swift source and design record. `docs/audit/` records source selection and branch heads. Do not deploy the preserved server without configuring its resources and explicit authorization. No server was deployed for this port.
