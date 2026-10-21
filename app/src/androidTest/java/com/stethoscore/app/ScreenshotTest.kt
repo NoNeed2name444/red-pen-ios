@@ -99,26 +99,35 @@ class ScreenshotTest {
         val edema=Note(title="Pulmonary oedema",links=listOf(heart.id,bnp.id),tags=listOf("cardio"))
         val diuretics=Note(title="Loop diuretics",links=listOf(edema.id),tags=listOf("drugs"))
         listOf(heart,bnp,edema,diuretics).forEach(store::saveNote)
+        ideasPrefs {}
         compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
-        compose.onNodeWithText("4 ideas · 4 links",ignoreCase=true).assertIsDisplayed()
+        compose.onNodeWithText("Loop diuretics").assertIsDisplayed()
         shot("09-ideas")
-        compose.onNodeWithText("3D map").performClick()
-        compose.onNodeWithContentDescription("3D map of 4 ideas",substring=true).assertIsDisplayed()
-        SystemClock.sleep(3_000) // let the chunks open (a fifth of a second) and the readout fill
-        requireMapDrawn("3D map of 4 ideas")
+        compose.onNodeWithTag("ideasMode-space").performClick()
+        compose.waitUntil(30_000) { compose.onAllNodesWithContentDescription("Space of ideas: 4 notes, 4 links",substring=true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Space of ideas: 4 notes, 4 links",substring=true).assertIsDisplayed()
+        SystemClock.sleep(3_000) // let the chunks open (a fifth of a second)
+        requireMapDrawn("Space of ideas: 4 notes, 4 links")
         shot("11-ideas-map")
+        ideasPrefs {}
     }
     @Test fun millionNodeDemo() {
         val store=store()
+        // Ideas' Space, in the Performance theme, showing the million-note demo map
+        ideasPrefs { putString("vignette.ideas.mode","space"); putString("vignette.space.theme","performance"); putInt("vignette.space.perfDemo",1_000_000) }
         compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
-        compose.onNodeWithText("1M demo").performClick()
         // building a million nodes and their octree takes a few seconds on a CI emulator
         compose.waitUntil(120_000) { compose.onAllNodesWithText("1,000,000 nodes",substring=true).fetchSemanticsNodes().isNotEmpty() }
         compose.waitUntil(60_000) { compose.onAllNodesWithText(" fps · ",substring=true).fetchSemanticsNodes().any { node ->
             node.config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.Text) { null }?.joinToString()?.trim()?.startsWith("0 fps")==false } }
         SystemClock.sleep(6_000) // the adaptive budget settles on what this emulator can draw at its refresh rate
         shot("12-ideas-million") // kept even when the check below fails, to see why
-        requireMapDrawn("3D performance map of 1,000,000 nodes")
+        try { requireMapDrawn("demo of 1,000,000 synthetic notes") } finally { ideasPrefs {} }
+    }
+    /** Ideas' remembered choices (the "ideas" preferences), cleared, then set as [block] says. */
+    private fun ideasPrefs(block: android.content.SharedPreferences.Editor.() -> Unit) {
+        val context=InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("ideas",android.content.Context.MODE_PRIVATE).edit().clear().apply(block).commit()
     }
     /**
      * The GL surface really drew: the middle of the map (below the readout, above the zoom

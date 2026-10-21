@@ -83,8 +83,13 @@ internal class SpaceGl(private val assets: AssetManager?) {
         if (programs[SpaceStyle.ROCKY.code] != 0) EarthLoader.request(assets, EarthMaps.useLarge(maxTexture, Runtime.getRuntime().maxMemory(), detail))
     }
 
-    /** Draws the beams, then the bodies, with premultiplied blending; restores additive blending. */
-    fun draw(bodies: SpaceBodies, viewProj: FloatArray, eye: FloatArray, right: FloatArray, up: FloatArray, focal: Float, clock: Float, shaderDetail: Float) {
+    /**
+     * Draws the beams, then the bodies, with premultiplied blending; restores additive blending.
+     * [fade] is the depth band (SpaceDepthBand.uniform), [focalDp] the focal length in dp for the
+     * shaders' detail by size, [forward] the camera's unit view direction.
+     */
+    fun draw(bodies: SpaceBodies, viewProj: FloatArray, eye: FloatArray, right: FloatArray, up: FloatArray, focal: Float, clock: Float, shaderDetail: Float,
+             fade: FloatArray = FloatArray(4), focalDp: Float = 0f, forward: FloatArray = FloatArray(3)) {
         if (!earthReady) uploadEarth()
         GLES30.glBlendFunc(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
         if (bodies.beamCount > 0 && linkProgram != 0) {
@@ -104,6 +109,7 @@ internal class SpaceGl(private val assets: AssetManager?) {
             GLES30.glUniform1f(loc(p, "rpEnergy"), 1f)
             GLES30.glUniform1f(loc(p, "rpSolid"), 0f)
             GLES30.glUniform1f(loc(p, "rpReach"), 0.75f)
+            GLES30.glUniform4fv(loc(p, "rpFade"), 1, fade, 0)
             GLES30.glBindVertexArray(beamVao)
             GLES30.glDrawArraysInstanced(GLES30.GL_TRIANGLES, 0, 6, bodies.beamCount)
         }
@@ -130,6 +136,9 @@ internal class SpaceGl(private val assets: AssetManager?) {
                 GLES30.glUniform1f(loc(p, "rpMotion"), 1f)
                 GLES30.glUniform1f(loc(p, "rpDetail"), shaderDetail)
                 GLES30.glUniform1f(loc(p, "rpDisk"), 1f)
+                GLES30.glUniform4fv(loc(p, "rpFade"), 1, fade, 0)
+                GLES30.glUniform1f(loc(p, "rpFocal"), focalDp)
+                GLES30.glUniform3fv(loc(p, "uForward"), 1, forward, 0)
                 when (style) {
                     SpaceStyle.ROCKY -> {
                         GLES30.glActiveTexture(GLES30.GL_TEXTURE2); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, dayTexture)

@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,10 +88,12 @@ class MapScene(val tree: Octree, val nodeRadius: Float, val titles: List<String>
             return max(d[(d.size * 0.95f).toInt().coerceAtMost(d.size - 1)], 1e-3f)
         }
 
-        fun of(graph: MapGraph, leafCapacity: Int = 4096, theme: MapTheme = MapTheme.PLAIN): MapScene {
-            // Space: a note's style follows its links (SpaceStyle.forLinks), as on iOS
+        /** [styles], in Space, is each node's SpaceStyle code (the Look menu's choice); by default its links decide. */
+        fun of(graph: MapGraph, leafCapacity: Int = 4096, theme: MapTheme = MapTheme.PLAIN, styles: ByteArray? = null): MapScene {
+            // Space: a note's style follows its links (SpaceStyle.forLinks) unless one is given
             val tree = if (theme == MapTheme.SPACE) {
-                val styled = MapGraph(graph.positions, SpaceStyle.assign(graph.nodeCount, graph.edges), graph.edges, graph.titles, graph.ids)
+                val codes = styles?.takeIf { it.size == graph.nodeCount } ?: SpaceStyle.assign(graph.nodeCount, graph.edges)
+                val styled = MapGraph(graph.positions, codes, graph.edges, graph.titles, graph.ids)
                 Octree.build(styled, leafCapacity, palette = SpacePalette.rgb)
             } else Octree.build(graph, leafCapacity)
             // a node is about a third of the typical spacing between neighbours in its chunk
@@ -134,6 +137,12 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
     continuous: Boolean = false,
     autoOrbit: Boolean = false,
     onOpenNode: ((Int) -> Unit)? = null,
+    /** The speed readout at the top left, and the zoom and recentre buttons at the bottom right. */
+    showReadout: Boolean = true,
+    showControls: Boolean = true,
+    /** Each change puts the camera back to its first view (Ideas' Back to the middle). */
+    recenter: Int = 0,
+    corner: androidx.compose.ui.unit.Dp = 24.dp,
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
@@ -161,10 +170,14 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
             onReadout = { r -> mainHandler.post { readout = r } },
             onScreenNodes = if (scene.titles.isEmpty()) null else { nodes -> mainHandler.post { screenNodes = nodes } },
             theme = scene.theme, assets = context.assets,
+            density = context.resources.displayMetrics.density, contrast = increaseContrast(context),
         )
     }
     val gles3 = remember(context) { supportsGles3(context) }
     val loop = remember(renderer) { FrameLoop(renderer, continuous, autoOrbit, camera) { display?.refreshRate?.let { hz[0] = it } } }
+    LaunchedEffect(recenter) {
+        if (recenter != 0) { loop.touched(); synchronized(camera) { camera.target = home.first; camera.distance = home.second; camera.yaw = home.third.first; camera.pitch = home.third.second } }
+    }
 
     // Ask the window for the highest refresh mode at this resolution while the map is shown.
     DisposableEffect(activity, modes) {
@@ -177,7 +190,7 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
     }
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    Box(modifier.background(Color(0xFF0E1B2C), RoundedCornerShape(24.dp)).semantics { contentDescription = description }) {
+    Box(modifier.background(Color(0xFF0E1B2C), RoundedCornerShape(corner)).semantics { contentDescription = description }) {
         if (!gles3) {
             Text("This device has no OpenGL ES 3, which the 3D map needs.", Modifier.align(Alignment.Center).padding(24.dp), color = Color.White)
             return@Box
@@ -256,6 +269,7 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
                     typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
                 }
                 for (node in screenNodes) {
+                    if (!node.crisp) continue
                     val textSize = (node.pixels * 0.9f).coerceAtMost(12.sp.toPx())
                     if (textSize < 5f) continue
                     paint.textSize = textSize
@@ -265,8 +279,8 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
                 }
             }
         }
-        Readout(readout, Modifier.align(Alignment.TopStart).padding(10.dp))
-        Row(Modifier.align(Alignment.BottomEnd).padding(10.dp).background(Color(0xFF1D3047), RoundedCornerShape(24.dp))) {
+        if (showReadout) Readout(readout, Modifier.align(Alignment.TopStart).padding(10.dp))
+        if (showControls) Row(Modifier.align(Alignment.BottomEnd).padding(10.dp).background(Color(0xFF1D3047), RoundedCornerShape(24.dp))) {
             IconButton(onClick = { loop.touched(); synchronized(camera) { camera.zoom(1 / 1.25f) } }) { Icon(Icons.Rounded.Remove, "Zoom out", tint = Color.White) }
             IconButton(onClick = {
                 loop.touched()
@@ -286,6 +300,13 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
         Text("${grouped(r.drawnNodes)} drawn · ${r.chunks} chunks · ${grouped(r.summaries)} summaries · ${grouped(r.bundles)} bundles",
             color = Color(0xFF8FA6C4), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
     }
+}
+
+/** Increase Contrast: the system's contrast raised (Android 14+), as iOS's accessibility setting. */
+private fun increaseContrast(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < 34) return false
+    val modes = context.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager ?: return false
+    return runCatching { modes.contrast >= 0.5f }.getOrDefault(false)
 }
 
 private fun requestFrameRate(surface: Surface, hz: Float) {
