@@ -1,5 +1,15 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.home.ExamCountdown
+import com.stethoscore.app.ui.home.HomeCutPage
+import com.stethoscore.app.ui.home.HomeFit
+import com.stethoscore.app.ui.home.HomeHeader
+import com.stethoscore.app.ui.home.HomePartBook
+import com.stethoscore.app.ui.home.HomeRound
+import com.stethoscore.app.ui.home.HomeRoundModel
+import com.stethoscore.app.ui.home.homePart
+import com.stethoscore.app.ui.home.homeRoundItems
+import com.stethoscore.app.ui.home.homeShortWindow
 import com.stethoscore.app.ui.ward.WardDock
 import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardPaperFrame
@@ -35,9 +45,6 @@ import com.stethoscore.app.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable fun StethoscoreApp(store:StudyStore, initialScreen:String="home", forceDark:Boolean?=null) {
     val context=LocalContext.current
@@ -51,6 +58,8 @@ import java.util.Locale
     var query by rememberSaveable { mutableStateOf("") }
     var notice by remember { mutableStateOf<String?>(null) }
     var nothingDue by remember { mutableStateOf(false) }
+    // a quiz put together on the spot (a bed's drill), not in the library
+    var quick by remember { mutableStateOf<StudySet?>(null) }
     val scope=rememberCoroutineScope()
     DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
     fun refresh() { revision++ }
@@ -97,6 +106,7 @@ import java.util.Locale
         "study" -> store.library.firstOrNull { it.id==selectedId }?.let { WardSection.fromKindRaw(it.kind.rawValue) } ?: WardSection.outside
         "ideas" -> WardSection.ideas
         "due" -> WardSection.cards
+        "quick" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
         // home wears its category's section, opening on Questions (WardSection.opening)
         "home" -> homeSection(category)
         else -> WardSection.outside
@@ -120,23 +130,42 @@ import java.util.Locale
                         } else LaunchedEffect(Unit) { goHome() }
                     }
                     "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { refresh();open(set) }.onFailure { notice=it.message } },::goHome)
+                    "quick" -> quick?.let { q -> QuizScreen(q,store,{ quick=null;goHome() },onOpen={ refresh();open(it) },keepsProgress=false) } ?: LaunchedEffect(Unit) { goHome() }
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome)
                     "due" -> DueTodayScreen(store,::goHome)
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } })
                     else -> Column(Modifier.fillMaxSize()) {
-                        Box(Modifier.weight(1f)) {
-                            LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(20.dp,12.dp,20.dp,20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
+                        // home: the header, today's ward round and its tiles (ui/home, iOS WardHome)
+                        val shortWindow=homeShortWindow()
+                        val home=remember(revision,shortWindow,store.library) { if(store.library.isEmpty()) null else {
+                            val due=store.dueAcross()
+                            val input=HomeRound.input(store,due.size,HomeRound.dueSubjects(store,due))
+                            val all=com.stethoscore.app.data.BedPlan.beds(input)
+                            val days=HomeRound.studyDays(store)
+                            val (ideas,links)=HomeRound.brainMap(store)
+                            due.size to HomeRoundModel(all.take(HomeFit.shownBeds(all.size,shortWindow)),if(input.phase.holdsNewMaterial) input.phase.headline else null,
+                                HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),ideas,links)
+                        } }
+                        fun openBed(bed:com.stethoscore.app.data.BedPlan.Bed) { when(val kind=bed.kind) {
+                            is com.stethoscore.app.data.BedPlan.Kind.DueCards -> screen="due"
+                            is com.stethoscore.app.data.BedPlan.Kind.Weakest -> HomeRound.drill(store,kind.topic.name).takeIf { it.questions.isNotEmpty() }?.let { quick=it;screen="quick" }
+                            is com.stethoscore.app.data.BedPlan.Kind.Fresh -> store.library.firstOrNull { it.id==kind.set.id }?.let(::open)
+                            is com.stethoscore.app.data.BedPlan.Kind.OsceStation -> store.library.firstOrNull { it.id==kind.station.setID }?.let(::open)
+                            is com.stethoscore.app.data.BedPlan.Kind.Priority -> notice="The exam-day kit is not on Android yet."
+                        } }
+                        val book=remember { HomePartBook() }
+                        LaunchedEffect(category,query) { book.clear() }
+                        val listState=androidx.compose.foundation.lazy.rememberLazyListState()
+                        val atRest by remember { derivedStateOf { !listState.isScrollInProgress && listState.firstVisibleItemIndex==0 && listState.firstVisibleItemScrollOffset==0 } }
+                        HomeCutPage(book,atRest,Modifier.weight(1f)) { cut ->
+                            LazyColumn(cut,state=listState,contentPadding=PaddingValues(20.dp,12.dp,20.dp,20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                                     SectionLabel("YOUR STUDY WARD")
                                     IconButton(onClick={screen="settings"},Modifier.size(44.dp).border(1.dp,MaterialTheme.colorScheme.outline,RoundedCornerShape(22.dp))) { Icon(Icons.Rounded.Settings,"Settings") }
                                 } }
                                 item { OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Search your library",fontSize=14.sp)},leadingIcon={Icon(Icons.Rounded.Search,null)},singleLine=true,shape=RoundedCornerShape(30.dp),colors=OutlinedTextFieldDefaults.colors(unfocusedContainerColor=MaterialTheme.colorScheme.surface.copy(alpha=.9f))) }
-                                item { Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                                    SectionLabel(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d",Locale.ENGLISH)))
-                                    Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) { Text("Stethoscore",fontSize=34.sp,fontWeight=FontWeight.Bold,letterSpacing=(-1).sp);PulseLine(Modifier.size(46.dp,24.dp)) }
-                                    Text("A little practice. A clearer picture.",color=MaterialTheme.colorScheme.onSurfaceVariant,fontSize=14.sp)
-                                } }
+                                item { HomeHeader(ExamCountdown.text(store.examDate)) }
                                 store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
                                     Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
                                     Text("Your library could not be opened",fontSize=20.sp,fontWeight=FontWeight.Bold)
@@ -151,20 +180,17 @@ import java.util.Locale
                                         WardButton("Explore example sets",{ change(store::loadExamples) },Modifier.fillMaxWidth(),enabled=store.loadError==null)
                                         TextButton(onClick={imported.launch(arrayOf("application/json","text/plain"))}) { Text("Import a Stethoscore library") }
                                     } }
-                                } else if(query.isBlank() && category=="Questions") {
-                                    item { RoundCard(store,revision,::open) }
-                                    item { Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {
-                                        WardCard(Modifier.weight(1f).clickable { screen="vitals" }) { SectionLabel("Vitals");Icon(Icons.Rounded.MonitorHeart,null,tint=MaterialTheme.colorScheme.secondary);Text("Your progress",fontWeight=FontWeight.Bold);Text("From your practice",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
-                                        WardCard(Modifier.weight(1f).clickable { screen="ideas" }) { SectionLabel("Brain map");Icon(Icons.Rounded.Hub,null,tint=MaterialTheme.colorScheme.primary);Text("${store.notes.size} ideas",fontWeight=FontWeight.Bold);Text("Make connections",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
-                                    } }
+                                } else if(home!=null && query.isBlank() && (category=="Questions" || (category=="Cards" && home.first>0))) {
+                                    // the round on Questions, and on Cards while cards are due; the tiles on Questions
+                                    homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" })
                                 }
                                 if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) { SectionLabel(if(query.isBlank()) "Your ${category.lowercase()}" else "Search results");TextButton(onClick={screen="new"}) { Icon(Icons.Rounded.Add,null,Modifier.size(18.dp));Text("New set") } } }
                                 val filtered=store.library.filter { set ->
                                     (query.isNotBlank() || when(category) { "Questions" -> set.kind==StudySetKind.MCQ || set.kind==StudySetKind.BOOK; "Cards" -> set.kind==StudySetKind.ANKI;"Cases" -> set.kind==StudySetKind.CASES;"OSCE" -> set.kind==StudySetKind.OSCE;else -> set.kind==StudySetKind.NARRATE }) && (query.isBlank() || "${set.name} ${set.subject} ${set.tags.joinToString()}".contains(query,true))
                                 }
-                                items(filtered,key={it.id}) { set -> SetRow(set,{open(set)},{ change { store.deleteSet(set.id) } },
-                                    if(com.stethoscore.app.export.DeckBuilder.printsAsPdf(set.kind) && set.itemCount>0) ({ printing=set.id;printed.launch(com.stethoscore.app.export.DeckPdf.fileName(set)) }) else null) }
+                                items(filtered,key={it.id}) { set -> Box(Modifier.homePart(book,"set-${set.id}","a set row")) { SetRow(set,{open(set)},{ change { store.deleteSet(set.id) } },
+                                    if(com.stethoscore.app.export.DeckBuilder.printsAsPdf(set.kind) && set.itemCount>0) ({ printing=set.id;printed.launch(com.stethoscore.app.export.DeckPdf.fileName(set)) }) else null) } }
                                 if(filtered.isEmpty() && store.library.isNotEmpty()) item { Text(if(query.isNotBlank()) "No matching sets." else "No sets here yet. Create or import one.",color=MaterialTheme.colorScheme.onSurfaceVariant) }
                                 item { Text("Study aid · Not for clinical decisions",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
                             }
@@ -197,26 +223,6 @@ import java.util.Locale
     }
 }
 
-@Composable private fun RoundCard(store:StudyStore,revision:Int,open:(StudySet)->Unit) {
-    val beds=remember(revision) { val due=store.library.filter { it.kind==StudySetKind.ANKI && store.dueCards(it).isNotEmpty() }; (due+store.library.filter { it.kind==StudySetKind.MCQ || it.kind==StudySetKind.BOOK || it.kind==StudySetKind.OSCE }).distinctBy {it.id}.take(3) }
-    if(beds.isEmpty()) return
-    WardCard(Modifier.fillMaxWidth()) {
-        SectionLabel("Today's ward round · ${beds.size} stops")
-        beds.forEachIndexed { i,set ->
-            Row(Modifier.fillMaxWidth().clickable {open(set)}.padding(vertical=6.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-                Icon(modeIcon(set.kind),null,tint=if(i==0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,modifier=Modifier.size(28.dp))
-                Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
-                    SectionLabel("Bed ${i+1} · ${set.subject}")
-                    Text(if(set.kind==StudySetKind.ANKI) "${store.dueCards(set).size} cards due" else set.name,fontSize=17.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
-                    Text(if(set.kind==StudySetKind.ANKI) "Spaced review" else "${set.kind.label} · ${set.itemCount} ${set.itemNoun}${if(set.itemCount!=1) "s" else ""}",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Icon(Icons.Rounded.ChevronRight,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if(i<beds.lastIndex) HorizontalDivider(color=MaterialTheme.colorScheme.outline.copy(alpha=.35f))
-        }
-        WardButton("Start ward round",{open(beds.first())},Modifier.fillMaxWidth())
-    }
-}
 fun modeIcon(kind:StudySetKind):ImageVector = when(kind) { StudySetKind.MCQ -> Icons.Rounded.FactCheck;StudySetKind.ANKI -> Icons.Rounded.Style;StudySetKind.BOOK -> Icons.Rounded.AutoStories;StudySetKind.CASES -> Icons.Rounded.MedicalServices;StudySetKind.OSCE -> Icons.Rounded.Assignment;StudySetKind.NARRATE -> Icons.Rounded.GraphicEq }
 @Composable private fun SetRow(set:StudySet,open:()->Unit,delete:()->Unit,print:(()->Unit)?=null) {
     var confirm by remember { mutableStateOf(false) }
