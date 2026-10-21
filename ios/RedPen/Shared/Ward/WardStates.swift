@@ -206,7 +206,7 @@ struct WardTile: View {
 }
 
 /// A chip that filters: a soft capsule raised off the base; on, it is
-/// pressed in and its words go Theatre Blue.
+/// pressed in and its words take the section's accent.
 struct WardFilterChip: View {
     let text: String
     var symbol: String?

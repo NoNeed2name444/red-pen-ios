@@ -253,8 +253,8 @@ struct Sparkline: View {
 struct ReasonDonut: View {
     var shares: [ReasonShare]
 
-    /// Theatre Blue at a strength that steps down with each reason, commonest
-    /// strongest.
+    /// The section's accent at a strength that steps down with each reason,
+    /// commonest strongest.
     private func shade(_ index: Int) -> Color {
         let strength: Double = 0.9 - Double(index) * 0.16
         return Color.wardPrimaryInk.opacity(max(0.25, strength))

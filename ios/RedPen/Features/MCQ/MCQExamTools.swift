@@ -329,7 +329,7 @@ struct CalculatorSheet: View {
     }
 
     /// A soft key: digits in ink, the functions in slate, the operations
-    /// and = in Theatre Blue; a pending operation stays pressed in.
+    /// and = in the section's accent; a pending operation stays pressed in.
     @ViewBuilder
     private func key(_ title: String, role: KeyRole, chosen: Bool = false, action: @escaping () -> Void) -> some View {
         if role == .blank {

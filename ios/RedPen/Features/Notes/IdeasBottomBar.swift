@@ -157,7 +157,8 @@ private struct IdeaSendButton: View {
 }
 
 /// With nothing typed: a new idea (Command N), a new page or a new folder,
-/// from a disc raised as high as the switcher, its plus in Theatre Blue.
+/// from a disc raised as high as the switcher, its plus in the section's
+/// accent.
 private struct IdeaAddMenu: View {
     let newIdea: () -> Void
     let newPage: () -> Void

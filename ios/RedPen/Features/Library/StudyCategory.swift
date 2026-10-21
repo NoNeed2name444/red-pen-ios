@@ -751,7 +751,7 @@ struct CategoryDock: View {
         withAnimation(change) { inIdeas = true }
     }
 
-    /// The lightbulb over the word Ideas, Theatre Blue when chosen.
+    /// The lightbulb over the word Ideas, in the section's accent when chosen.
     private func ideasFace(chosen: Bool) -> some View {
         let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
         return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), chosen: chosen)

@@ -103,9 +103,9 @@ enum ChartQuiz {
 
     // MARK: the options and the bar
 
-    /// How an option row is drawn: chosen (Theatre Blue) or idle until it is
-    /// checked; then right (green, a check), wrong (the pick: red, a cross)
-    /// or past. A timed paper keeps right and wrong for the results.
+    /// How an option row is drawn: chosen (section accent) or idle until it
+    /// is checked; then right (green, a check), wrong (the pick: red, a
+    /// cross) or past. A timed paper keeps right and wrong for the results.
     enum Mark: Equatable { case idle, chosen, right, wrong, past }
 
     static func mark(slot: Int, selected: Int?, correct: Int, checked: Bool, examMode: Bool) -> Mark {

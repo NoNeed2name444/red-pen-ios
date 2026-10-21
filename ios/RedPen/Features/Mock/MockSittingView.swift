@@ -319,8 +319,8 @@ struct MockSittingView: View {
         return q.options[i]
     }
 
-    /// One option as a Ward row (WardOptionRow): Theatre Blue once chosen,
-    /// and nothing about right or wrong until the end.
+    /// One option as a Ward row (WardOptionRow): in the section's accent once
+    /// chosen, and nothing about right or wrong until the end.
     private func optionRow(_ slot: Int) -> some View {
         let id: UUID = q.id
         let orig: Int? = original(slot)

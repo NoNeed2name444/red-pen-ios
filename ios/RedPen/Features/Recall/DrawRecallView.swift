@@ -360,7 +360,7 @@ struct DrawRecallView: View {
             }
             .frame(width: 64, height: 44)
             // white like the paper the attempt was drawn on, raised like it;
-            // the one on the paper now is ringed in Theatre Blue
+            // the one on the paper now is ringed in the section's accent
             .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(edge, lineWidth: 2))
             .wardRaised(in: RoundedRectangle(cornerRadius: 6, style: .continuous), lift: .low)

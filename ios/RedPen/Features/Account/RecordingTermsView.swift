@@ -121,7 +121,7 @@ struct RecordingTermsView: View {
     }
 
     /// Grey while it counts down; the moment it can be pressed it turns
-    /// Theatre Blue as the one thing to do here.
+    /// the section's accent as the one thing to do here.
     private var agreeButton: some View {
         // the countdown in the reader's digits; the words from the catalog
         let waiting: Bool = remaining > 0

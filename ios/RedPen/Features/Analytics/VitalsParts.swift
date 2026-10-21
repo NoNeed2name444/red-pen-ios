@@ -107,7 +107,7 @@ private struct MonitorReading: View {
 
 /// The four rings: Readiness (Pager Amber), Accuracy over 30 days (Discharge
 /// Green), Syllabus covered (ECG Red) and Today against the day's target
-/// (Theatre Blue). Each is a button into what is behind it. Four across;
+/// (the section's accent). Each is a button into what is behind it. Four across;
 /// two by two at the largest text sizes.
 struct VitalsRings: View {
     let readiness: ReadinessEstimate?

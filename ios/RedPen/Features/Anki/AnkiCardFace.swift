@@ -243,8 +243,8 @@ struct AnkiCardFace: View {
     }
 
     /// A cloze sentence with its gaps as Anki draws them: "[...]" (or the
-    /// hint) in Theatre Blue until revealed, then the answer, bold and blue,
-    /// in the same place.
+    /// hint) in the section's accent until revealed, then the answer, bold
+    /// and in that accent, in the same place.
     static func clozeSentence(_ text: String, revealed: Bool) -> AttributedString {
         var out = AttributedString()
         for piece in AnkiCard.clozePieces(text) {
@@ -357,8 +357,8 @@ extension AnkiFooter where Companion == EmptyView {
 ///
 /// Shared by the one-deck screen and Due today, so the two cannot drift
 /// apart. Each speaks in its tone - Again Resus Red, Hard Caution Amber,
-/// Good Discharge Green, Easy Theatre Blue - with when it comes back in SF
-/// Mono. Good is the filled one, because it is the answer most cards get
+/// Good Discharge Green, Easy the section's accent - with when it comes back
+/// in SF Mono. Good is the filled one, because it is the answer most cards get
 /// and the one a thumb should find without looking; the other three are the
 /// quiet version of the same button.
 ///

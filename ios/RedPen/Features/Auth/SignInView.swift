@@ -5,7 +5,7 @@ import AuthenticationServices
 ///
 /// What the app is, up top; the doors at the bottom, under the thumb. The one
 /// that works on its own - start without an account - is the lowest and the
-/// one raised highest, its words in Theatre Blue; above it Apple, which on this platform is one
+/// one raised highest, its words in the section's accent; above it Apple, which on this platform is one
 /// tap and gives away the least; Google, because most students are already
 /// signed in to it in Safari - in a build that carries a Google client id; and
 /// a code, for a second iPhone or iPad joining the library of the first.
@@ -18,8 +18,8 @@ struct SignInView: View {
     @Environment(\.colorScheme) private var scheme
     @State private var joining = false
 
-    /// Theatre Blue, for the door that works on its own: the tone that reads
-    /// as words on the soft base.
+    /// The section's accent, for the door that works on its own: the tone
+    /// that reads as words on the soft base.
     private static var pen: Color { .wardPrimaryInk }
 
     private static let door = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)

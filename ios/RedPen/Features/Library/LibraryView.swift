@@ -305,7 +305,7 @@ struct LibraryView: View {
                 .navigationDestination(item: pushedSupport) { $0.page }
         }
         // one accent for the whole library rather than a colour per mode:
-        // Theatre Blue, in the tone that reads as text on the soft base
+        // the section's accent, in the tone that reads as text on the soft base
         .tint(Color.wardPrimaryInk)
         // "Turn into…": an instant set opens straight away, in place of
         // whatever was open; a written one goes to New set, filled in
@@ -923,7 +923,7 @@ struct LibraryView: View {
         }
     }
 
-    /// "New set": the library's one main button, Theatre Blue, over the dock.
+    /// "New set": the library's one main button, in the section's accent, over the dock.
     private var newSetButton: some View {
         Button { newSetKind = category.mainKind } label: {
             Label("New set", systemImage: "plus")
@@ -993,8 +993,8 @@ struct LibraryView: View {
         .accessibilityIdentifier("selectSets")
     }
 
-    /// A sets header button's words: a Theatre Blue link, in a 44-point
-    /// target.
+    /// A sets header button's words: a link in the section's accent, in a
+    /// 44-point target.
     private func headerButtonFace(_ title: String) -> some View {
         Text(title)
             .font(.footnote.weight(.semibold))

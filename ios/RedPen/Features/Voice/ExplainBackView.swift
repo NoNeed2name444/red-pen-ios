@@ -448,8 +448,8 @@ private struct ExplainMarkLabel: View {
         let title: String = marking ? "Marking\u{2026}" : "Mark my explanation"
         HStack(spacing: 8) {
             if marking {
-                // a spinner in the button's own Theatre Blue, beside its
-                // words on the soft face
+                // a spinner in the section's accent, the button's own,
+                // beside its words on the soft face
                 ProgressView()
                     .controlSize(.small)
                     .tint(Color.wardPrimaryInk)

@@ -5,7 +5,7 @@ import SwiftUI
 // Every mode has its own glyph colour and an SF Symbol. Screens sit on the
 // soft UI's one matte base (ModeBackdrop), and every surface on them is
 // shaped out of it: raised to touch, pressed in when chosen. The controls on
-// every screen are Theatre Blue (modeScreen).
+// every screen take the section's accent (modeScreen).
 
 extension StudySetKind {
     var tint: Color {
@@ -40,7 +40,8 @@ extension StudySetKind {
 struct ModeTile: View {
     let kind: StudySetKind
     var size: CGFloat = 44
-    /// The chosen one: pressed into the base, its glyph Theatre Blue.
+    /// The chosen one: pressed into the base, its glyph still its mode's
+    /// accent.
     var selected = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -131,7 +132,7 @@ extension View {
     func contentCard() -> some View { modifier(ContentCard()) }
 
     /// Standard chrome for a mode screen: the base under it, a solid bar
-    /// area, and Theatre Blue controls.
+    /// area, and controls in the section's accent.
     func modeScreen(_ kind: StudySetKind) -> some View {
         self
             .wardMasthead()
@@ -241,8 +242,8 @@ struct ThinProgress: View {
     }
 }
 
-/// The animated score ring on the results screens: a Theatre Blue arc in a
-/// groove pressed into the base. It reports its score upwards
+/// The animated score ring on the results screens: an arc in the section's
+/// accent in a groove pressed into the base. It reports its score upwards
 /// (FinishScoreKey) so a finish around it can celebrate.
 struct ScoreRing: View {
     let fraction: Double
@@ -443,10 +444,10 @@ extension View {
 /// "Back" next to "Next" - so there is never any doubt which is the main one.
 ///
 /// Depth: every button is raised off the base and pressed in while held;
-/// the primary stands a step higher and says itself in Theatre Blue. A
-/// disabled one sinks low, as solid as the rest. On a wide iPad a filling
-/// button stops at 360 points, so a lone primary lands under the right hand
-/// instead of stretching across the whole window.
+/// the primary stands a step higher and says itself in the section's
+/// accent. A disabled one sinks low, as solid as the rest. On a wide iPad
+/// a filling button stops at 360 points, so a lone primary lands under the
+/// right hand instead of stretching across the whole window.
 ///
 /// The words keep to one line, shrinking a little before they would wrap,
 /// so buttons sharing a row are one height (every button is one height,
@@ -483,7 +484,7 @@ private struct OneLineLabel: ViewModifier {
 }
 
 extension ButtonStyle where Self == BigButtonStyle {
-    /// The one main button: raised highest, its words in Theatre Blue.
+    /// The one main button: raised highest, its words in the section's accent.
     static var bigPrimary: BigButtonStyle { BigButtonStyle() }
     /// A second choice beside the main one: raised, its words in ink.
     static var bigSecondary: BigButtonStyle { BigButtonStyle(weight: .secondary) }
