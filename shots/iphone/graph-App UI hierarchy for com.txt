@@ -1,0 +1,61 @@
+Application, 0x103a6b0c0, pid: 71239, label: 'Stethoscore' <App element pid: 71239>
+  Window (Main), 0x103a6b200, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 71239, elementOrHash.elementID: 4415309824.4>
+    Other, 0x103a6b340, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 71239, elementOrHash.elementID: 4464657920.5>
+      Other, 0x103a6b480, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 71239, elementOrHash.elementID: 4463684864.6>
+        Other, 0x103a6b5c0, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 71239, elementOrHash.elementID: 4415308800.7>
+          Other, 0x103a6b700, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 71239, elementOrHash.elementID: 4463341376.8>
+            Other, 0x103a6b840, {{201.0, 451.0}, {0.0, 0.0}} <AX element pid: 71239, elementOrHash.elementID: 4463891712.9>
+            Other, 0x103a6ae40, {{0.0, 62.0}, {402.0, 778.0}} <AX element pid: 71239, elementOrHash.elementID: 4463893504.11>
+            Other, 0x103a6b980, {{0.0, 62.0}, {402.0, 778.0}} <AX element pid: 71239, elementOrHash.elementID: 4463893952.12>
+            Other, 0x103a6bac0, {{0.0, 0.0}, {402.0, 874.0}} <AX element pid: 71239, elementOrHash.elementID: 4787061504.22>
+              Other, 0x103a6bc00, {{0.0, 0.0}, {402.0, 874.0}}, identifier: 'graph3D', label: 'Space of ideas', value: 2 galaxies, 3 star... <AX element pid: 71239, elementOrHash.elementID: 4463665408.31>
+              Button, 0x103a6bd40, {{236.5, 220.3}, {44.0, 44.0}}, label: 'Cardiology · 14 notes', value: Black hole <AX element pid: 71239, elementOrHash.elementID: 4945116320.32>
+              Button, 0x103a6be80, {{230.3, 271.4}, {44.0, 44.0}}, label: 'ACE inhibitors', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116400.33>
+              Button, 0x113440000, {{260.8, 267.8}, {44.0, 44.0}}, label: 'Hypokalaemia', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116480.34>
+              Button, 0x113440140, {{276.0, 237.5}, {44.0, 44.0}}, label: 'Loop diuretics', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116560.35>
+              Button, 0x113440280, {{268.5, 197.7}, {44.0, 44.0}}, label: 'NSTEMI', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116640.36>
+              Button, 0x1134403c0, {{242.2, 170.1}, {44.0, 44.0}}, label: 'STEMI', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116720.37>
+              Button, 0x113440500, {{211.0, 171.1}, {44.0, 44.0}}, label: 'Troponin', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116800.38>
+              Button, 0x113440640, {{193.9, 202.2}, {44.0, 44.0}}, label: 'Heart sounds', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116880.39>
+              Button, 0x113440780, {{202.5, 244.8}, {44.0, 44.0}}, label: 'Syncope', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4945116960.40>
+              Button, 0x1134408c0, {{287.0, 295.1}, {44.0, 44.0}}, label: 'Heart failure', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4945117040.41>
+              Button, 0x113440a00, {{305.9, 307.3}, {44.0, 44.0}}, label: 'BNP', value: Moon <AX element pid: 71239, elementOrHash.elementID: 4763091104.42>
+              Button, 0x113440b40, {{288.2, 175.1}, {44.0, 44.0}}, label: 'Acute coronary syndrome', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4763090944.43>
+              Button, 0x113440c80, {{182.9, 141.3}, {44.0, 44.0}}, label: 'Atrial fibrillation', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4415165360.44>
+              Button, 0x113440dc0, {{190.6, 128.6}, {44.0, 44.0}}, label: 'CHA2DS2-VASc', value: Moon <AX element pid: 71239, elementOrHash.elementID: 4415173920.45>
+              Button, 0x113440f00, {{179.2, 270.5}, {44.0, 44.0}}, label: 'Murmurs', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4415160640.46>
+              Button, 0x113441040, {{208.1, 545.1}, {44.0, 44.0}}, label: 'Examples · 14 notes', value: Black hole <AX element pid: 71239, elementOrHash.elementID: 4415160800.47>
+              Button, 0x113441180, {{262.6, 587.5}, {44.0, 44.0}}, label: 'Groin hernia', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4415162320.48>
+              Button, 0x1134412c0, {{259.5, 602.5}, {44.0, 44.0}}, label: 'Hernia repair', value: Moon <AX element pid: 71239, elementOrHash.elementID: 4415174240.49>
+              Button, 0x113441400, {{153.8, 503.0}, {44.0, 44.0}}, label: 'Expansile cough impulse', value: Pulsar <AX element pid: 71239, elementOrHash.elementID: 4763269024.50>
+              Button, 0x113441540, {{135.6, 414.9}, {44.0, 44.0}}, label: 'Inguinal · 8 notes', value: Star <AX element pid: 71239, elementOrHash.elementID: 4763267984.51>
+              Button, 0x113441680, {{148.9, 440.6}, {44.0, 44.0}}, label: 'Inferior epigastric vessels', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4763268064.52>
+              Button, 0x1134417c0, {{122.4, 389.6}, {44.0, 44.0}}, label: 'Internal ring test', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4763268144.53>
+              Button, 0x113441900, {{149.7, 458.5}, {44.0, 44.0}}, label: 'Inguinal canal', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4763268224.54>
+              Button, 0x113441a40, {{164.7, 391.6}, {44.0, 44.0}}, label: 'Indirect inguinal hernia', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4763268304.55>
+              Button, 0x113441b80, {{90.9, 396.4}, {44.0, 44.0}}, label: 'Direct inguinal hernia', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4763268704.56>
+              Button, 0x113441cc0, {{87.4, 317.5}, {44.0, 44.0}}, label: 'Anatomy · 3 notes', value: Star <AX element pid: 71239, elementOrHash.elementID: 4763268544.57>
+              Button, 0x113441e00, {{119.6, 328.5}, {44.0, 44.0}}, label: 'Canal boundaries', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4763268464.58>
+              Button, 0x113441f40, {{120.2, 337.9}, {44.0, 44.0}}, label: 'LA/PM mnemonic', value: Moon <AX element pid: 71239, elementOrHash.elementID: 4763269264.59>
+              Button, 0x113442080, {{54.2, 306.3}, {44.0, 44.0}}, label: 'Spermatic cord coverings', value: Rocky planet <AX element pid: 71239, elementOrHash.elementID: 4763269344.60>
+              Button, 0x1134421c0, {{169.1, 702.8}, {44.0, 44.0}}, label: 'Femoral · 3 notes', value: Star <AX element pid: 71239, elementOrHash.elementID: 4763269424.61>
+              Button, 0x113442300, {{171.1, 651.5}, {44.0, 44.0}}, label: 'Femoral hernia', value: Gas giant <AX element pid: 71239, elementOrHash.elementID: 4763269504.62>
+              Button, 0x113442440, {{157.5, 638.2}, {44.0, 44.0}}, label: 'Femoral canal', value: Moon <AX element pid: 71239, elementOrHash.elementID: 4763269584.63>
+              Button, 0x113442580, {{184.8, 664.7}, {44.0, 44.0}}, label: 'Saphena varix', value: Moon <AX element pid: 71239, elementOrHash.elementID: 4763269984.64>
+              Button, 0x1134426c0, {{196.1, 329.8}, {44.0, 44.0}}, label: 'Pericarditis', value: Comet <AX element pid: 71239, elementOrHash.elementID: 4763269824.65>
+              Button, 0x113442800, {{240.1, 496.1}, {44.0, 44.0}}, label: 'Richter's hernia', value: Comet <AX element pid: 71239, elementOrHash.elementID: 4763269744.66>
+            Image, 0x113442940, {{342.0, 660.0}, {44.0, 44.0}}, label: 'Filter' <AX element pid: 71239, elementOrHash.elementID: 4463343168.23>
+            Button, 0x113442a80, {{342.0, 660.0}, {44.0, 44.0}}, label: 'Filter' <AX element pid: 71239, elementOrHash.elementID: 4415980416.24>
+              Button, 0x113442bc0, {{342.0, 660.0}, {44.0, 44.0}} <AX element pid: 71239, elementOrHash.elementID: 4415258624.67>
+                Image, 0x113442d00, {{342.0, 660.0}, {44.0, 44.0}}, identifier: 'line.3.horizontal.decrease', label: 'Filter' <AX element pid: 71239, elementOrHash.elementID: 4463344064.72>
+            Image, 0x113442e40, {{342.0, 720.0}, {44.0, 44.0}}, label: 'Look' <AX element pid: 71239, elementOrHash.elementID: 4415984896.25>
+            Button, 0x113442f80, {{342.0, 720.0}, {44.0, 44.0}}, label: 'Look' <AX element pid: 71239, elementOrHash.elementID: 4415991168.26>
+              Button, 0x1134430c0, {{342.0, 720.0}, {44.0, 44.0}} <AX element pid: 71239, elementOrHash.elementID: 4415259520.68>
+                Image, 0x113443200, {{342.0, 720.0}, {44.0, 44.0}}, identifier: 'sparkles', label: 'Sparkle' <AX element pid: 71239, elementOrHash.elementID: 4415980864.74>
+            Button, 0x113443340, {{342.0, 780.0}, {44.0, 44.0}}, label: 'Recentre' <AX element pid: 71239, elementOrHash.elementID: 4415993408.27>
+              Image, 0x113443480, {{342.0, 780.0}, {44.0, 44.0}} <AX element pid: 71239, elementOrHash.elementID: 4415991616.69>
+              Image, 0x1134435c0, {{342.0, 780.0}, {44.0, 44.0}}, identifier: 'smallcircle.filled.circle', label: 'smallcircle.filled.circle' <AX element pid: 71239, elementOrHash.elementID: 4415992064.70>
+            Image, 0x113443700, {{161.7, 69.0}, {79.0, 38.3}} <AX element pid: 71239, elementOrHash.elementID: 4415993856.28>
+            StaticText, 0x113443840, {{161.7, 69.0}, {79.0, 38.3}}, label: 'Ideas' <AX element pid: 71239, elementOrHash.elementID: 4415994304.29>
+            Button, 0x113443980, {{32.3, 80.7}, {9.0, 15.0}}, identifier: 'chevron.left', label: 'Back' <AX element pid: 71239, elementOrHash.elementID: 4463116288.30>
+            Other, 0x113443ac0, {{201.0, 451.0}, {0.0, 0.0}} <AX element pid: 71239, elementOrHash.elementID: 4463340480.19>

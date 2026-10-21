@@ -1,0 +1,4 @@
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  ↪︎Find: Descendants matching type Other
+    ↪︎Find: Elements matching predicate '"graphNodeMenu" IN identifiers'
