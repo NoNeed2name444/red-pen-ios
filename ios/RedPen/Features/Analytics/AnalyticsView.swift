@@ -806,8 +806,8 @@ struct AnalyticsView: View {
             HStack {
                 Text("Subjects")
                 Spacer(minLength: 8)
-                // a Theatre Blue link; the finger's worth of target is
-                // taller than the words
+                // a link in the section's accent; the finger's worth of
+                // target is taller than the words
                 Button { route = .bySubject } label: {
                     Label("By subject", systemImage: "chart.bar.doc.horizontal")
                         .font(.footnote.weight(.semibold))

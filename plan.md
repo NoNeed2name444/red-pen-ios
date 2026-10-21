@@ -2308,6 +2308,15 @@ with the marks on the screens last.
     Follow-ups: 46 comment lines in 29 files still name Theatre Blue; the
     launch logo still draws "score" in Theatre Blue; the Lens sheet has no
     preview case.
+  - Comments (21 Oct, T0070): the comments that named Theatre Blue now
+    name the colour each control draws: the section's accent
+    (Color.wardPrimaryInk, WardTone.blue, the primary button), a mode's own
+    accent where the code draws one (StudySetKind.tint: ModeTile, New
+    set's mode tiles, the reading drill's key words in Questions' accent).
+    Comments only. Kept, as still true: WardPalette's note that there is no
+    Theatre Blue any more and WardLookTests' "when they were Theatre Blue"
+    (the past); Brand.mark, which is Theatre Blue (the launch logo is its
+    own decision); WardPaletteTests' check label (test code).
   - [ ] Press depth (16 Oct, the owner on the checked quiz, light and dark:
     "the color here doesn't match the mode color", raised and pressed
     buttons read alike, and a wrong pick reads like a right one). Each

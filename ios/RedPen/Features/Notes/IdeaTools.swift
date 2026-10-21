@@ -8,8 +8,8 @@ import SwiftUI
 // bottom container - under the right thumb on a phone - and on the trailing
 // edge, vertically centred, on a wide iPad, where the right hand rests. Each
 // is a soft circle raised off the base on the floating plane; a tool that is
-// on is pressed in, its glyph Theatre Blue. Over the 3D map they take the
-// dark scheme with the rest of its chrome.
+// on is pressed in, its glyph in the section's accent. Over the 3D map
+// they take the dark scheme with the rest of its chrome.
 
 /// A vertical cluster of tool circles, with no backing pill: each circle
 /// carries its own relief, spaced apart so each reads on its own.
@@ -38,15 +38,16 @@ struct IdeaToolFace: View {
             .contentShape(Circle())
     }
 
-    /// A tool's glyph: Theatre Blue while the tool is on, Biro Grey at rest.
+    /// A tool's glyph: the section's accent while the tool is on, Biro Grey
+    /// at rest.
     static func ink(active: Bool) -> Color {
         active ? Color.wardPrimaryInk : Color.wardInkSecondary
     }
 }
 
 /// One round tool button. `active` presses it in and turns its glyph
-/// Theatre Blue, for a tool that is switched on (Connect) or narrowing what
-/// is shown (Filter).
+/// the section's accent, for a tool that is switched on (Connect) or
+/// narrowing what is shown (Filter).
 struct IdeaToolButton: View {
     let symbol: String
     let label: String
@@ -157,7 +158,7 @@ struct IdeaLinesPicker: View {
 }
 
 /// The board's Look tool: how its connectors are drawn (IdeaLinesPicker).
-/// Pressed in, its glyph Theatre Blue, while it is off the standard
+/// Pressed in, its glyph the section's accent, while it is off the standard
 /// (Straight). A small popover on the base pointing at the button, beside
 /// the tool circles, rather than a menu that grows out over the cards.
 struct IdeaBoardLookTool: View {

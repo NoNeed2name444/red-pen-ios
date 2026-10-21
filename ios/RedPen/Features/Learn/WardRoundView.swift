@@ -11,7 +11,7 @@ import SwiftUI
 // round are still pictures.
 
 enum WardRoundStyle {
-    /// Theatre Blue while focusing, green on a break, grey while paused.
+    /// The section's accent while focusing, green on a break, grey while paused.
     static func tone(_ round: WardRound) -> WardTone {
         if round.phase == .rest || round.phase == .ready { return .green }
         return round.isPaused ? .grey : .blue

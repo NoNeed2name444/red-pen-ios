@@ -315,8 +315,8 @@ struct NewSetView: View {
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 
-    /// Between two dots: a Theatre Blue line once the step is passed, before
-    /// that a groove etched into the base.
+    /// Between two dots: a line in the section's accent once the step is
+    /// passed, before that a groove etched into the base.
     @ViewBuilder
     private func stepLink(after one: NewSetStep) -> some View {
         if one < step {
@@ -421,8 +421,8 @@ struct NewSetView: View {
     }
 
     /// One kind of set, as a soft tile raised off the base; the chosen one is
-    /// pressed in, its glyph and name in Theatre Blue. Tapping it chooses it
-    /// and moves on.
+    /// pressed in, its glyph and name in its mode's accent. Tapping it
+    /// chooses it and moves on.
     private func modeTile(_ option: StudySetKind) -> some View {
         let chosen: Bool = kind == option
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
@@ -470,7 +470,7 @@ struct NewSetView: View {
     }
 
     /// One way to add material: raised off the base; the chosen one pressed
-    /// in, its name and tick in Theatre Blue.
+    /// in, its name and tick in the section's accent.
     private func pathTile(_ option: Path) -> some View {
         let chosen: Bool = path == option
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)

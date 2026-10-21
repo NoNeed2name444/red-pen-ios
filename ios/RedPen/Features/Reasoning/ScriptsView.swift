@@ -252,8 +252,8 @@ struct ScriptCard: View {
         .accessibilityLabel(title)
     }
 
-    /// A lookalike with a card on this screen is a Theatre Blue chip; one
-    /// without is grey, since it goes nowhere.
+    /// A lookalike with a card on this screen is a chip in the section's
+    /// accent; one without is grey, since it goes nowhere.
     private func lookalikeChip(_ name: String) -> some View {
         let here: Bool = jumpable.contains(name.lowercased())
         return Button {
@@ -304,8 +304,9 @@ struct ScriptCard: View {
     }
 }
 
-/// One lookalike's face: raised off the base, its name in Theatre Blue, when
-/// it jumps to a card here; pressed in and grey when it does not.
+/// One lookalike's face: raised off the base, its name in the section's
+/// accent, when it jumps to a card here; pressed in and grey when it does
+/// not.
 private struct LookalikeChipFace: View {
     let name: String
     let here: Bool

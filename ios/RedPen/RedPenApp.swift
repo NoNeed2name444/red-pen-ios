@@ -283,7 +283,7 @@ struct RedPenApp: App {
             .environmentObject(sync)
             .environmentObject(gemma)
             .environmentObject(llm)
-            // the soft UI's Theatre Blue, switch and progress bar everywhere
+            // the section's accent, soft switch and progress bar everywhere
             .wardControls()
             // right to left in Arabic, in both builds (L10n.swift)
             .appLanguage()

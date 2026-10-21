@@ -608,8 +608,8 @@ struct WardTimerPill: View {
 }
 
 /// A rounded icon square: the glyph in its tone on a soft raised square;
-/// chosen, the square is pressed in and the glyph goes Theatre Blue. No ink
-/// edge: the row or tile around it is what is tapped.
+/// chosen, the square is pressed in and the glyph takes the section's
+/// accent. No ink edge: the row or tile around it is what is tapped.
 struct WardIconSquare: View {
     let symbol: String
     var tone: WardTone = .blue

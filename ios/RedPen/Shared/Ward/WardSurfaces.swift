@@ -1399,7 +1399,7 @@ extension View {
         background { WardPressFace(shape: shape, lift: lift, pressed: pressed, control: control, edge: edge) }
     }
 
-    /// The soft UI's controls: the Theatre Blue that reads on the base as
+    /// The soft UI's controls: the section's accent that reads on the base as
     /// the tint, and the soft switch and progress bar. Set at the root and
     /// on each screen. Text keeps its own colours (a style set here would
     /// override the tint on plain buttons).

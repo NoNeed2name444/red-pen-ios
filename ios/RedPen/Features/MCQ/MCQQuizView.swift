@@ -619,7 +619,7 @@ struct MCQQuizView: View {
     private var oneLine: Int? { typeSize.isAccessibilitySize ? nil : 1 }
 
     /// A stem's text when nothing is being marked: in the slow reading
-    /// drill, the key words drawn in Theatre Blue and bold.
+    /// drill, the key words drawn in Questions' accent and bold.
     private func plainText(_ text: String) -> AttributedString {
         minReadSeconds > 0 ? Self.highlighted(text) : AttributedString(text)
     }
@@ -670,9 +670,9 @@ struct MCQQuizView: View {
         }
     }
 
-    /// One option as a Ward row (WardOptionRow): Theatre Blue once chosen;
-    /// checked, the right one green with a check and a wrong pick red with a
-    /// cross - in a timed paper, only what was chosen (ChartQuiz.mark).
+    /// One option as a Ward row (WardOptionRow): in the section's accent once
+    /// chosen; checked, the right one green with a check and a wrong pick red
+    /// with a cross - in a timed paper, only what was chosen (ChartQuiz.mark).
     private func optionRow(_ idx: Int) -> some View {
         let mark: ChartQuiz.Mark = ChartQuiz.mark(slot: idx, selected: a.selected, correct: correctSlot(current),
                                                   checked: a.checked, examMode: examMode)
@@ -948,7 +948,7 @@ struct MCQQuizView: View {
 
     /// One small choice in the confidence and "why" rows: a Ward chip with a
     /// 44-point target, so it is easy to hit, but quiet, so it never looks
-    /// like the main button; the chosen one is Theatre Blue.
+    /// like the main button; the chosen one is in the section's accent.
     private func chip(_ title: String, symbol: String?, on: Bool, action: @escaping () -> Void) -> some View {
         Button {
             UISelectionFeedbackGenerator().selectionChanged()

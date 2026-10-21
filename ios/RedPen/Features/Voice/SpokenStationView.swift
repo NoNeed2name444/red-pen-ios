@@ -461,8 +461,8 @@ private struct StationCircleFace: View {
 }
 
 /// One line said: the two speaking raised off the base (the student on the
-/// right, in Theatre Blue words; the patient on the left, in ink), the
-/// examiner's asides pressed into it.
+/// right, its words in the section's accent; the patient on the left, in
+/// ink), the examiner's asides pressed into it.
 private struct SpokenLineBubble: View {
     let line: SpokenLine
 

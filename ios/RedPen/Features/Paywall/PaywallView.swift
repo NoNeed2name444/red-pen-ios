@@ -106,7 +106,7 @@ struct PaywallView: View {
     }
 
     /// Each plan a soft tile: the chosen one pressed into the base, its mark
-    /// in Theatre Blue; the other raised.
+    /// in the section's accent; the other raised.
     private func planRow(_ plan: SubscriptionPlan, _ product: Product) -> some View {
         let picked: Bool = chosen == plan
         let symbol: String = picked ? "largecircle.fill.circle" : "circle"

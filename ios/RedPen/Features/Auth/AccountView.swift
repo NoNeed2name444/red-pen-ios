@@ -316,7 +316,7 @@ private struct AccountHeaderCard<Action: View>: View {
 }
 
 /// A small capsule saying the account has Pro: a label pressed into the
-/// card, its word in Theatre Blue.
+/// card, its word in the section's accent.
 private struct ProBadge: View {
     var body: some View {
         WardChip(text: "Pro", tone: .blue)
