@@ -5,8 +5,9 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 // A port of upstream/ios/RedPen/Shared/Learn/BedPlan.swift (today's ward
-// round on the home screen) with the parts of ExamWeekPlanner it reads (the
-// phase from the exam date, and the mission's cases). Pure Kotlin.
+// round on the home screen) and Shared/Learn/ExamWeekPlanner.swift (the
+// phase from the exam date, the one most useful session, and the exam-day
+// kit's pacing). Pure Kotlin (BedPlanTest, LearnTest).
 //
 // The round holds at most four beds, in this order: the run-up's own
 // priority (ExamWeekPlanner's mission, when it is a bed of its own); the
@@ -19,14 +20,26 @@ import java.time.temporal.ChronoUnit
 object ExamWeekPlanner {
     sealed class Phase {
         object NoDate : Phase()
-        data class Building(val days: Int) : Phase()
-        data class MockWindow(val days: Int) : Phase()
-        data class ExamWeek(val days: Int) : Phase()
+        data class Building(val left: Int) : Phase()
+        data class MockWindow(val left: Int) : Phase()
+        data class ExamWeek(val left: Int) : Phase()
         object ExamDay : Phase()
         object After : Phase()
 
         /** Whether new material should be held back. */
         val holdsNewMaterial: Boolean get() = this is ExamWeek || this == ExamDay
+
+        /** Days left, when there is a date still to come. */
+        val days: Int? get() = when (this) {
+            is Building -> left
+            is MockWindow -> left
+            is ExamWeek -> left
+            ExamDay -> 0
+            NoDate, After -> null
+        }
+
+        /** Whether this is the window for a full mock. */
+        val isMockWindow: Boolean get() = this is MockWindow
 
         val headline: String get() = when (this) {
             NoDate -> "No exam date set"
@@ -36,8 +49,49 @@ object ExamWeekPlanner {
             ExamDay -> "Exam day"
             After -> "Exam done"
         }
+
+        /** One line of advice for the phase. */
+        val advice: String get() = when (this) {
+            NoDate -> "Set your exam date and the plan works back from it."
+            is Building -> "New material, then reviews as they fall due. Aim to lock each question in on three separate days."
+            is MockWindow -> "Sit one full mock under exam timing now. What it shows is what the last week is for."
+            is ExamWeek -> "No new topics. Your mistakes, your confident errors and the rule sheet, then sleep — sleep beats cramming."
+            ExamDay -> "Nothing to learn today. Eat, check the kit, pace yourself, flag and move on."
+            After -> "Your exam date has passed. Set the next one when you know it."
+        }
+
+        override fun toString(): String = when (this) {
+            NoDate -> "noDate"
+            is Building -> "building(days: $left)"
+            is MockWindow -> "mockWindow(days: $left)"
+            is ExamWeek -> "examWeek(days: $left)"
+            ExamDay -> "examDay"
+            After -> "after"
+        }
     }
 
+    /** What is waiting, as counts, for choosing the session. */
+    data class Situation(
+        val phase: Phase,
+        val dueCards: Int = 0,
+        /** Questions got wrong while sure. */
+        val confidentErrors: Int = 0,
+        /** Questions whose last answer was wrong. */
+        val missed: Int = 0,
+        val flagged: Int = 0,
+        /** Questions right on one or two days, not yet three. */
+        val closeToSecure: Int = 0,
+        /** Questions never answered. */
+        val untried: Int = 0,
+        /** Items from yesterday's misses still to re-ask this morning. */
+        val morningCheck: Int = 0,
+        /** Whether a mock has been sat in the mock window. */
+        val mockDone: Boolean = false,
+        /** The weakest subject, when there is one. */
+        val weakestSubject: String? = null,
+    )
+
+    /** The session the lift-off button starts. */
     sealed class Mission {
         object ExamKit : Mission()
         data class MorningCheck(val n: Int) : Mission()
@@ -50,7 +104,119 @@ object ExamWeekPlanner {
         data class Weakest(val subject: String) : Mission()
         object NewQuestions : Mission()
         object Nothing : Mission()
+
+        val title: String get() = when (this) {
+            ExamKit -> "Open your exam-day kit"
+            is MorningCheck -> "Morning check · $n from yesterday"
+            is DueCards -> "Study $n due card${if (n == 1) "" else "s"}"
+            Mock -> "Sit a mock paper"
+            is ConfidentErrors -> "Fix $n confident error${if (n == 1) "" else "s"}"
+            is Mistakes -> "Redo $n missed question${if (n == 1) "" else "s"}"
+            is LockIn -> "Lock in $n question${if (n == 1) "" else "s"}"
+            is Flagged -> "Practise $n flagged question${if (n == 1) "" else "s"}"
+            is Weakest -> "Drill $subject"
+            NewQuestions -> "Try new questions"
+            Nothing -> "All done for now"
+        }
+
+        override fun toString(): String = when (this) {
+            ExamKit -> "examKit"
+            is MorningCheck -> "morningCheck($n)"
+            is DueCards -> "dueCards($n)"
+            Mock -> "mock"
+            is ConfidentErrors -> "confidentErrors($n)"
+            is Mistakes -> "mistakes($n)"
+            is LockIn -> "lockIn($n)"
+            is Flagged -> "flagged($n)"
+            is Weakest -> "weakest(\"$subject\")"
+            NewQuestions -> "newQuestions"
+            Nothing -> "nothing"
+        }
     }
+
+    /**
+     * The most useful session now.
+     *
+     * Always first: the exam-day kit on the day, and a morning check of
+     * yesterday's misses (two minutes, before anything new). Cards due come
+     * next in every phase, because the schedule only works if they are done
+     * on the day. After that the phase decides: the mock in its window;
+     * confident errors, mistakes and the half-secured in exam week; and far
+     * out, locking in, then the weakest subject, then something new.
+     */
+    fun mission(s: Situation): Mission {
+        if (s.phase == Phase.ExamDay) return Mission.ExamKit
+        if (s.morningCheck > 0) return Mission.MorningCheck(s.morningCheck)
+        if (s.dueCards > 0) return Mission.DueCards(s.dueCards)
+        when (val phase = s.phase) {
+            is Phase.MockWindow -> if (!s.mockDone) return Mission.Mock
+            is Phase.ExamWeek -> {
+                // a mock missed in its window can still be sat at T-7
+                if (phase.days == 7 && !s.mockDone) return Mission.Mock
+                if (s.confidentErrors > 0) return Mission.ConfidentErrors(s.confidentErrors)
+                if (s.missed > 0) return Mission.Mistakes(s.missed)
+                if (s.closeToSecure > 0) return Mission.LockIn(s.closeToSecure)
+                if (s.flagged > 0) return Mission.Flagged(s.flagged)
+                // no new material this week, so nothing else to offer
+                return Mission.Nothing
+            }
+            else -> {}
+        }
+        if (s.confidentErrors > 0) return Mission.ConfidentErrors(s.confidentErrors)
+        if (s.closeToSecure > 0) return Mission.LockIn(s.closeToSecure)
+        if (s.flagged > 0) return Mission.Flagged(s.flagged)
+        s.weakestSubject?.let { return Mission.Weakest(it) }
+        if (s.untried > 0) return Mission.NewQuestions
+        return Mission.Nothing
+    }
+
+    // MARK: the exam-day kit
+
+    /** One pacing checkpoint: be at question [question] by [minute]. */
+    data class Checkpoint(val minute: Int, val question: Int)
+
+    /** The paper the kit paces, for a track. [published]: the exam's own format rather than a pace from ExamTrack. */
+    data class Paper(val name: String, val questions: Int, val minutes: Int, val published: Boolean)
+
+    /**
+     * The paper for each track. PLAB 1 is 180 questions in three hours; an
+     * MRCP(UK) Part 1 paper is 100 in three hours; a USMLE block is up to 40
+     * in an hour. MRCS Part A's papers have changed format more than once,
+     * so it (and general revision) gets an hour-long pace from the track's
+     * seconds per question and the kit says to check the count.
+     */
+    fun paper(track: com.stethoscore.app.quiz.ExamTrack): Paper = when (track) {
+        com.stethoscore.app.quiz.ExamTrack.plab -> Paper("PLAB 1", 180, 180, true)
+        com.stethoscore.app.quiz.ExamTrack.mrcp -> Paper("MRCP(UK) Part 1 paper", 100, 180, true)
+        com.stethoscore.app.quiz.ExamTrack.usmle -> Paper("USMLE block", 40, 60, true)
+        com.stethoscore.app.quiz.ExamTrack.mrcs, com.stethoscore.app.quiz.ExamTrack.general -> {
+            val perHour = maxOf(1, 3600 / maxOf(1, track.secondsPerQuestion))
+            Paper("An hour of questions", perHour, 60, false)
+        }
+    }
+
+    /**
+     * Where to be as time passes: each hour for a long paper, each quarter
+     * of it for a paper of an hour or less. The last checkpoint is the end.
+     */
+    fun checkpoints(paper: Paper): List<Checkpoint> {
+        if (paper.minutes <= 0 || paper.questions <= 0) return emptyList()
+        val step = if (paper.minutes > 60) 60 else maxOf(1, paper.minutes / 4)
+        val out = mutableListOf<Checkpoint>()
+        var minute = step
+        while (minute <= paper.minutes) {
+            val share = minute.toDouble() / paper.minutes
+            // Swift's rounded(): to nearest, half away from zero
+            val q = Math.round(share * paper.questions).toInt()
+            out.add(Checkpoint(minute, minOf(paper.questions, maxOf(1, q))))
+            minute += step
+        }
+        if (out.lastOrNull()?.minute != paper.minutes) out.add(Checkpoint(paper.minutes, paper.questions))
+        return out
+    }
+
+    /** "1:00" for 60 minutes. */
+    fun clock(minutes: Int): String = String.format(java.util.Locale.ROOT, "%d:%02d", minutes / 60, minutes % 60)
 
     /** Calendar days from today to the exam's day, in [zone]. */
     fun daysLeft(exam: Instant, now: Instant, zone: ZoneId): Int =
@@ -152,9 +318,10 @@ object BedPlan {
             .sortedWith(compareBy<Topic> { it.accuracy }.thenByDescending { it.answered }.thenBy { it.name })
 
     /**
-     * What the round does about the subjects that need a consult, for the
-     * Vitals screen: the weakest is on it automatically, except on exam day,
-     * when the kit is the whole round. With none, why none.
+     * The Vitals screen's line under its weak spots: what today's round does
+     * about them, said only as far as [beds] makes it true (the weakest spot
+     * has a bed on every round but exam day's; BedPlanTest checks the
+     * sentence against the round).
      */
     fun consultNote(spots: List<Topic>, phase: ExamWeekPlanner.Phase, anyJudged: Boolean): String {
         val line = Math.round(consultBelow * 100).toInt()

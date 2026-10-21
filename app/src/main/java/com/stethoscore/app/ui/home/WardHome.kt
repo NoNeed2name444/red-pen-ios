@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
@@ -60,6 +61,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
@@ -301,8 +303,9 @@ data class HomeRoundModel(
  * homeRoundSections), as rows of home's list.
  */
 fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: HomePartBook?,
-                                 onOpen: (BedPlan.Bed) -> Unit, onVitals: () -> Unit, onIdeas: () -> Unit) {
-    item(key = "home-round") { HomeRoundCard(model.beds, model.note, onOpen, book) }
+                                 onOpen: (BedPlan.Bed) -> Unit, onVitals: () -> Unit, onIdeas: () -> Unit,
+                                 onPlan: () -> Unit = {}) {
+    item(key = "home-round") { HomeRoundCard(model.beds, model.note, onOpen, book, onPlan = onPlan) }
     if (tiles) item(key = "home-tiles") {
         HomeTiles(model.streak, model.rhythm, model.ideas, model.links, onVitals, onIdeas, book, model.readiness)
     }
@@ -313,12 +316,15 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
  * per bed, and the button that starts bed 1.
  */
 @Composable fun HomeRoundCard(beds: List<BedPlan.Bed>, note: String?, onOpen: (BedPlan.Bed) -> Unit,
-                              book: HomePartBook? = null, modifier: Modifier = Modifier) {
+                              book: HomePartBook? = null, modifier: Modifier = Modifier, onPlan: () -> Unit = {}) {
     WardCardFace(modifier.fillMaxWidth().homePart(book, "card", "the round card"), lift = WardLift.low,
         spacing = WardSpace.m.wardDp) {
         val spoken = BedPlan.spokenSummary(beds)
-        HomeSmallCaps("Today’s ward round · " + BedPlan.summary(beds),
-            Modifier.semantics { heading(); contentDescription = spoken })
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+            HomeSmallCaps("Today’s ward round · " + BedPlan.summary(beds),
+                Modifier.weight(1f).semantics { heading(); contentDescription = spoken })
+            HomePlanButton(onPlan)
+        }
         if (beds.isEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.CheckCircleOutline, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(16.dp))
@@ -340,6 +346,24 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
                 Text("Start ward round", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
             }
         }
+    }
+}
+
+/**
+ * The round's way into the exam plan (HomeRoundCard.planButton): a 44-point
+ * target that takes only the words' height in the heading's row.
+ */
+@Composable private fun HomePlanButton(onPlan: () -> Unit) {
+    Row(Modifier.layout { measurable, constraints ->
+            // the words' height in the row, the target 12 above and below it
+            val placeable = measurable.measure(constraints)
+            val trim = 24.dp.roundToPx()
+            layout(placeable.width, maxOf(0, placeable.height - trim)) { placeable.place(0, -trim / 2) }
+        }.clickable(role = Role.Button, onClickLabel = "Opens the exam plan and forecast", onClick = onPlan)
+        .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))
+        Text("Plan", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
     }
 }
 

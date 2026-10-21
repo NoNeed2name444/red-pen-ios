@@ -64,6 +64,8 @@ class StudyStore(private val directory: File) {
     private var committed = current()
     /** Called when a background save (progress, ratings, answers) fails; the change is undone. */
     var onSaveError: ((String) -> Unit)? = null
+    /** Told of each answer checked and card rated, so a running ward round can count them (iOS StudyLog.recorded). */
+    var onStudied: ((Int) -> Unit)? = null
 
     init { load() }
 
@@ -310,6 +312,7 @@ class StudyStore(private val directory: File) {
         answerHistory = answerHistory + (questionId to ((answerHistory[questionId] ?: emptyList()) + correct))
         answerLog = answerLog + AnswerEvent(questionId, correct, confidence = confidence, picked = picked, hinted = if (hinted) true else null)
         if (saving) saveQuietly()
+        onStudied?.invoke(1)
     }
     /** Files a wrong answer under a reason (MistakeReason's raw value), or clears it with null. */
     @Synchronized fun noteMistake(reason: String?, questionId: String) {
@@ -355,7 +358,7 @@ class StudyStore(private val directory: File) {
         val next = ReviewOptions.after(rating, kept, now, examDate, reviewSettings.scheduler)
         lastRating = UndoableRating(card.id, reviews[card.id], rating, now)
         reviews = reviews + (card.id to next)
-        saveQuietly(); return reviews[card.id] ?: next
+        saveQuietly(); onStudied?.invoke(1); return reviews[card.id] ?: next
     }
     /** Takes back the last rating, stamped now so a merge takes the undo over it. Returns what was undone. */
     @Synchronized fun undoLast(now: Long = System.currentTimeMillis()): UndoableRating? {
