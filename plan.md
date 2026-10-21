@@ -2163,6 +2163,7 @@ with the marks on the screens last.
       tests/ward/dock-states.test.mjs reads the sources for it; the pictures
       come from the next Ward preview.
       - [ ] T0079 (21 Oct): the chosen tab's ring is concentric with the dock (radius 24 less the 4 or 5 inset, continuous) and its name keeps clear of the ring's corners (WardDock, WardStatesTests); waits for the Ward preview.
+      - [ ] T0103 (21 Oct): the study deck (quiz's How sure? dock and every .studyBar) is one tone: WardDeckSlab fills with the strip's wash, not the surface, so no inner panel shows; edge and relief kept; waits for shots/dock-one-tone.
     - [x] B3: AX1 home-fit sliver (run 38820624486): SwiftUI snapped the page
       frame to the 3x grid, up, so the end (682.67) fell below the chip's top
       (682.3). HomeFit.shown now settles the cut onto the pixel grid at or
