@@ -161,7 +161,8 @@ import kotlinx.coroutines.withContext
                             val days=HomeRound.studyDays(store)
                             val (ideas,links)=HomeRound.brainMap(store)
                             due.size to HomeRoundModel(all.take(HomeFit.shownBeds(all.size,shortWindow)),if(input.phase.holdsNewMaterial) input.phase.headline else null,
-                                HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),ideas,links)
+                                HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),ideas,links,
+                                com.stethoscore.app.ui.vitals.StoreInsight.readiness(store,due.size,QuizPrefs.track(context)))
                         } }
                         fun openBed(bed:com.stethoscore.app.data.BedPlan.Bed) { when(val kind=bed.kind) {
                             is com.stethoscore.app.data.BedPlan.Kind.DueCards -> screen="due"

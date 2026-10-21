@@ -292,6 +292,8 @@ data class HomeRoundModel(
     val rhythm: RhythmReading.Reading,
     val ideas: Int,
     val links: Int,
+    /** The readiness estimate the Vitals tile's ring shows (StoreInsight.readiness), null until there is one. */
+    val readiness: com.stethoscore.app.data.ReadinessEstimate? = null,
 )
 
 /**
@@ -302,7 +304,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
                                  onOpen: (BedPlan.Bed) -> Unit, onVitals: () -> Unit, onIdeas: () -> Unit) {
     item(key = "home-round") { HomeRoundCard(model.beds, model.note, onOpen, book) }
     if (tiles) item(key = "home-tiles") {
-        HomeTiles(model.streak, model.rhythm, model.ideas, model.links, onVitals, onIdeas, book)
+        HomeTiles(model.streak, model.rhythm, model.ideas, model.links, onVitals, onIdeas, book, model.readiness)
     }
 }
 
@@ -454,16 +456,18 @@ fun homeBedChip(bed: BedPlan.Bed): Pair<String, WardTone>? {
  * accessibility sizes): Vitals opens the Vitals screen, the brain map Ideas.
  */
 @Composable fun HomeTiles(streak: Int, rhythm: RhythmReading.Reading, ideas: Int, links: Int,
-                          onVitals: () -> Unit, onIdeas: () -> Unit, book: HomePartBook? = null) {
+                          onVitals: () -> Unit, onIdeas: () -> Unit, book: HomePartBook? = null,
+                          readiness: com.stethoscore.app.data.ReadinessEstimate? = null) {
     val brainLine = if (ideas <= 0) "Your ideas, joined up on a map" else {
         var line = BedPlan.counted(ideas, "idea")
         if (links > 0) line += " · " + BedPlan.counted(links, "link")
         line
     }
-    val vitalsSpoken = listOf("Vitals", "Readiness not estimated yet", streakText(streak), rhythm.spoken).joinToString(". ")
+    val vitalsSpoken = listOf("Vitals", if (readiness != null) "Readiness ${Math.round(readiness.center * 100)} percent" else "Readiness not estimated yet",
+        streakText(streak), rhythm.spoken).joinToString(". ")
     val reach = WardRelief.rimOffset(WardLift.low) + WardRelief.rimBlur(WardLift.low)
     val vitals: @Composable (Modifier) -> Unit = { m ->
-        HomeTile(onVitals, "$vitalsSpoken. Opens Vitals", m) { VitalsTileFace(streak, rhythm) }
+        HomeTile(onVitals, "$vitalsSpoken. Opens Vitals", m) { VitalsTileFace(readiness, streak, rhythm) }
     }
     val brain: @Composable (Modifier) -> Unit = { m ->
         HomeTile(onIdeas, "Brain map. $brainLine. Opens Ideas: the idea dump, its board and the 3D map", m) { BrainMapTileFace(brainLine) }
@@ -499,21 +503,22 @@ fun streakText(streak: Int): String = if (streak > 0) "$streak-day streak" else 
 }
 
 /** The Vitals tile: the readiness ring, the streak with a heart, and the last two weeks as a rhythm strip. */
-@Composable private fun VitalsTileFace(streak: Int, rhythm: RhythmReading.Reading) {
+@Composable private fun VitalsTileFace(readiness: com.stethoscore.app.data.ReadinessEstimate?, streak: Int, rhythm: RhythmReading.Reading) {
     Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         HomeSmallCaps("Vitals")
         // the figures beside the ring only where they fit whole; otherwise under it
         ThatFits(
-            { Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) { ReadinessRing(); Figures(streak) } },
-            { Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) { ReadinessRing(); Figures(streak) } },
+            { Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) { ReadinessRing(readiness); Figures(streak) } },
+            { Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) { ReadinessRing(readiness); Figures(streak) } },
         )
         RhythmTrace(rhythm.beats, Modifier.fillMaxWidth().height(18.dp))
     }
 }
 
-/** No readiness estimate on Android yet (ReadinessEstimate): the ring reads a dash. */
-@Composable private fun ReadinessRing() {
-    WardRing(0.0, Modifier.size(56.dp), tone = WardTone.Blue, lineWidth = 6.0, centre = "–", spoken = "not estimated yet")
+/** The readiness estimate's middle (StoreInsight.readiness) as a ring; a dash before there is one. */
+@Composable private fun ReadinessRing(readiness: com.stethoscore.app.data.ReadinessEstimate?) {
+    WardRing(readiness?.center ?: 0.0, Modifier.size(56.dp), tone = WardTone.Blue, lineWidth = 6.0,
+        centre = if (readiness == null) "–" else null, spoken = if (readiness == null) "not estimated yet" else null)
 }
 
 @Composable private fun Figures(streak: Int) {

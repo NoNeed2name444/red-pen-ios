@@ -151,6 +151,22 @@ object BedPlan {
         topics.filter { it.answered >= consultAnswers && it.accuracy < consultBelow }
             .sortedWith(compareBy<Topic> { it.accuracy }.thenByDescending { it.answered }.thenBy { it.name })
 
+    /**
+     * What the round does about the subjects that need a consult, for the
+     * Vitals screen: the weakest is on it automatically, except on exam day,
+     * when the kit is the whole round. With none, why none.
+     */
+    fun consultNote(spots: List<Topic>, phase: ExamWeekPlanner.Phase, anyJudged: Boolean): String {
+        val line = Math.round(consultBelow * 100).toInt()
+        val first = spots.firstOrNull()
+        if (first == null) {
+            if (anyJudged) return "Nothing needs a consult: every subject with $consultAnswers or more answers is at $line% or better."
+            return "A subject shows here once it has $consultAnswers answers and is under $line%."
+        }
+        if (phase == ExamWeekPlanner.Phase.ExamDay) return "Exam day: today’s ward round is your kit alone, so these can wait."
+        return "${first.name}, the weakest, is on today’s ward round automatically."
+    }
+
     /** Today's beds, numbered from 1. */
     fun beds(input: Input): List<Bed> {
         val kinds = mutableListOf<Kind>()
