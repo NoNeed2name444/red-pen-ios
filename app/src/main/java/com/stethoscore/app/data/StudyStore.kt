@@ -158,6 +158,13 @@ class StudyStore(private val directory: File) {
         save()
     }
     fun updateSet(set: StudySet) = addSet(set)
+    /** Forgets the schedule of these cards only (iOS ReviewStore.forget): the editor's deleted cards. */
+    @Synchronized fun forgetReviews(cardIds: Collection<String>) {
+        if (cardIds.isEmpty()) return
+        val gone = cardIds.toSet()
+        reviews = reviews.filterKeys { it !in gone }
+        save()
+    }
     @Synchronized fun deleteSet(id: String) {
         val removed = library.firstOrNull { it.id == id } ?: return
         library = library.filterNot { it.id == id }
