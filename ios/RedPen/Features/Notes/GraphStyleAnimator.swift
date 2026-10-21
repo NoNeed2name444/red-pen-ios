@@ -85,8 +85,8 @@ nonisolated struct GraphStyleFrame {
 ///   been - from its true motion, orbit and drag alike (SpaceOptics
 ///   .cometTails) - and both lengthen as it moves;
 /// - every style's sparks when it moves fast (GraphSim's trail emitters):
-///   a black hole's bright plume of debris thrown back along its path, a
-///   sun's plasma, a comet's icy dust (SpaceOptics.trail);
+///   a sun's plasma, a comet's icy dust (SpaceOptics.trail); a black hole
+///   throws none;
 /// - every note: glows dim with distance (haze);
 /// - the chosen note: an orbit ring, eased in.
 ///
@@ -198,9 +198,8 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
     }
 
     /// Dresses a trail emitter in body `i`'s style as it is handed to it
-    /// (SpaceOptics.trail): a black hole's long bright plume of debris,
-    /// streaking, white-gold cooling to ember red; a sun's plasma; a
-    /// comet's icy dust; the others' dust. Render thread.
+    /// (SpaceOptics.trail): a sun's plasma; a comet's icy dust; the
+    /// others' dust (a black hole's rate is 0). Render thread.
     func dressTrail(_ system: SCNParticleSystem, note i: Int) {
         guard i >= 0, i < rigs.count else { return }
         let look: SpaceOptics.Trail = SpaceOptics.trail(style: rigs[i].style.code)
@@ -218,23 +217,20 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         }
         system.particleColor = colours.first ?? UIColor.orange
         system.particleColorVariation = SCNVector4(x: 0.02, y: 0.06, z: 0.06, w: 0)
-        let fade = CAKeyframeAnimation()
-        fade.values = [NSNumber(value: 1.0), NSNumber(value: 0.6), NSNumber(value: 0.0)]
-        fade.keyTimes = [NSNumber(value: 0.0), NSNumber(value: 0.4), NSNumber(value: 1.0)]
+        // no fading: each mote shrinks and cools to black as it dies (the
+        // trail is additive, so black is gone)
         let shrink = CAKeyframeAnimation()
-        shrink.values = [NSNumber(value: 1.0), NSNumber(value: 0.3)]
-        shrink.keyTimes = [NSNumber(value: 0.0), NSNumber(value: 1.0)]
-        var controllers: [SCNParticleSystem.ParticleProperty: SCNParticlePropertyController] = [
-            .opacity: SCNParticlePropertyController(animation: fade),
-            .size: SCNParticlePropertyController(animation: shrink)
+        shrink.values = [NSNumber(value: 1.0), NSNumber(value: 0.55), NSNumber(value: 0.0)]
+        shrink.keyTimes = [NSNumber(value: 0.0), NSNumber(value: 0.5), NSNumber(value: 1.0)]
+        let ramp = CAKeyframeAnimation()
+        let cooling: [UIColor] = (colours.isEmpty ? [UIColor.orange] : colours) + [UIColor.black]
+        ramp.values = cooling
+        let last: Double = Double(cooling.count - 1)
+        ramp.keyTimes = cooling.indices.map { NSNumber(value: Double($0) / last) }
+        let controllers: [SCNParticleSystem.ParticleProperty: SCNParticlePropertyController] = [
+            .size: SCNParticlePropertyController(animation: shrink),
+            .color: SCNParticlePropertyController(animation: ramp)
         ]
-        if colours.count > 1 {
-            let ramp = CAKeyframeAnimation()
-            ramp.values = colours
-            let last: Double = Double(colours.count - 1)
-            ramp.keyTimes = colours.indices.map { NSNumber(value: Double($0) / last) }
-            controllers[.color] = SCNParticlePropertyController(animation: ramp)
-        }
         system.propertyControllers = controllers
     }
 
@@ -370,8 +366,7 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         let qx: Float = simd_dot(q, f.right)
         let qy: Float = simd_dot(q, f.up)
         if qx * qx + qy * qy > 0.000_001 { leafTurn[i] = atan2(qy, qx) }
-        let above: Float = simd_dot(n, toEye) >= 0 ? 1 : -1
-        let code: Float = (2 + k * above) / scale
+        let code: Float = SpaceOptics.holeCode(tilt: k, above: simd_dot(n, toEye) >= 0, motion: m) / scale
         rig.ringLeaf.simdScale = SIMD3<Float>(rig.ringSide, rig.ringSide, code)
     }
 
@@ -526,8 +521,8 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         for node in rig.haze { node.opacity = CGFloat(haze) }
     }
 
-    /// The orbit ring round the chosen note: grows in from a little larger
-    /// and fainter over a quarter of a second.
+    /// The orbit ring round the chosen note: closes in from a little larger
+    /// over a quarter of a second (by size alone: nothing here fades).
     private func placeOrbit(_ f: GraphStyleFrame, position: [SIMD3<Float>], visible: [Bool], pop: [Float]) {
         guard let orbit else { return }
         var note: Int? = f.selected
@@ -547,7 +542,7 @@ nonisolated final class GraphStyleAnimator: @unchecked Sendable {
         let size: Float = ring * (1.35 - 0.35 * eased) * max(pop[i], 0.05)
         orbit.simdPosition = position[i]
         orbit.simdScale = SIMD3<Float>(size, size, size)
-        orbit.opacity = CGFloat(eased)
+        if orbit.opacity != 1 { orbit.opacity = 1 }
         if orbit.isHidden { orbit.isHidden = false }
     }
 

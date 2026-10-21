@@ -47,6 +47,12 @@ targets:
       # Views read it through L10n (Shared/L10n.swift) in both builds.
       - path: RedPen/Resources/Localizable.xcstrings
         buildPhase: resources
+      # The Earth maps the Space theme's rocky planets wear (NASA imagery;
+      # where each comes from and its licence: the folder's SOURCES.md), as
+      # a folder, so they sit in Earth/ in the app (GraphEarth.swift)
+      - path: RedPen/Resources/Earth
+        type: folder
+        buildPhase: resources
       # Arabic for what iOS itself shows about the app: the permission
       # prompts. Outside RedPen/, since Playgrounds has no Info.plist to
       # localise.

@@ -164,15 +164,17 @@ nonisolated enum GraphStyleProbe {
 /// material never draws with one missing (rpKey especially: the light is
 /// normalised from it).
 nonisolated enum GraphStyleUniforms {
-    static let key = SIMD3<Float>(-0.55, 0.45, 0.70)
+    static let key = SIMD3<Float>(-0.75, 0.4, 0.45)
 
     static func defaults(_ material: SCNMaterial) {
         let zero = NSNumber(value: 0.0)
         for name in ["rpClock", "rpMotion", "rpProbe", "rpSolid"] {
             material.setValue(zero, forKey: name)
         }
-        // rpRinged: a gas giant has its ring (and its shadow) unless told not
-        for name in ["rpDetail", "rpEnergy", "rpRinged"] {
+        // rpRinged: a gas giant has its ring (and its shadow) unless told not;
+        // rpDisk: a black hole traces its disk unless dormant; rpThin: a
+        // halo keeps its thin limb line unless told not
+        for name in ["rpDetail", "rpEnergy", "rpRinged", "rpDisk", "rpThin"] {
             material.setValue(NSNumber(value: 1.0), forKey: name)
         }
         material.setValue(NSNumber(value: 0.75), forKey: "rpReach")
@@ -186,6 +188,13 @@ nonisolated enum GraphStyleUniforms {
         let grey = SCNVector3(x: 0.6, y: 0.6, z: 0.6)
         for name in ["rpTintA", "rpTintB", "rpTintC", "rpTintD"] {
             material.setValue(NSValue(scnVector3: grey), forKey: name)
+        }
+        // the Earth's maps (rockBody): never left unbound, black until
+        // GraphStyleKit sets the real ones (GraphEarth)
+        if let source = material.shaderModifiers?[.surface], source.contains("texture2d<float> rpEarthDay") {
+            for name in ["rpEarthDay", "rpEarthAux"] {
+                material.setValue(SCNMaterialProperty(contents: GraphStyleProbe.blackContents), forKey: name)
+            }
         }
     }
 }

@@ -178,6 +178,9 @@ struct GraphSimLooks {
     var recall: GraphRecall = .everything
     /// The Universe's rings and far links; nil in the graph look.
     var universe: GraphUniverseLooks? = nil
+    /// The graph look's link trims by style code (GraphRibbonWriter), used
+    /// when there is no Universe; empty: GraphShape.linkTrim.
+    var trims: [Float] = []
     /// Bodies of the scene before this one dying (GraphDeathStage).
     var dying: GraphDeathStage? = nil
     /// The theme's ground behind everything, and the accessibility
@@ -603,12 +606,12 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         ribbons = GraphRibbonWriter(halfWidth: nearWidth, material: looks.linkMaterial,
                                     samples: budgetNow.linkSamples, expected: linkCount, seeded: seeded,
                                     fence: frames, arbor: universeLooks?.arbor, bridge: universeLooks?.bridge,
-                                    trims: universeLooks?.trims ?? [])
+                                    trims: universeLooks?.trims ?? looks.trims)
         let farLook: SCNMaterial = universeLooks?.farMaterial ?? looks.linkMaterial
         let farWidth: Float = universeLooks?.farHalfWidth ?? 0.10
         farRibbons = GraphRibbonWriter(halfWidth: farWidth, material: farLook, samples: budgetNow.linkSamples,
                                        seeded: seeded, fence: frames, arbor: universeLooks?.farArbor,
-                                       bridge: universeLooks?.bridge, trims: universeLooks?.trims ?? [])
+                                       bridge: universeLooks?.bridge, trims: universeLooks?.trims ?? looks.trims)
         ticker = universeLooks?.ticker
         mouths = universeLooks?.mouths
         deathKinds = infos.map(\.deathKind)
@@ -1040,6 +1043,60 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         return best
     }
 
+    /// For the design preview's close-ups: among the most-linked notes
+    /// (at least half the busiest one's links), the one standing clearest
+    /// of its neighbours as the camera sees it (across the screen, depth
+    /// aside), and of eight ways across the screen, the one it can be
+    /// carried six radii along without passing over another body - so no
+    /// neighbour overlaps the subject at rest or while it is dragged. Ties
+    /// go to the more-linked note, and to straight up. Judged from where
+    /// the notes rest (their homes), not where they are a second in, still
+    /// settling: so the rest and dragged shots, separate launches, pick
+    /// the same note (they had shown two different planets).
+    func closeUpChoice() -> (note: Int, way: SIMD3<Float>)? {
+        lock.lock()
+        let at: [SIMD3<Float>] = home
+        let size: [Float] = radius
+        let shown: [Bool] = visible
+        let ghosts: [Bool] = ghost
+        lock.unlock()
+        let notes: [Int] = nodes.indices.filter { shown[$0] && !ghosts[$0] && bodyKind[$0] == .note }
+        guard let top = notes.map({ degree[$0] }).max() else { return nil }
+        let pool: [Int] = notes.filter { degree[$0] * 2 >= top }
+        func gap(_ p: SIMD3<Float>, _ i: Int) -> Float {
+            var least: Float = .greatestFiniteMagnitude
+            for j in notes where j != i {
+                let d: SIMD2<Float> = SIMD2<Float>(p.x - at[j].x, p.y - at[j].y)
+                least = min(least, (simd_length(d) - (size[i] + size[j]) * 1.3) / max(size[i], 0.001))
+            }
+            return least
+        }
+        var best: (note: Int, way: SIMD3<Float>, clear: Float, links: Int)?
+        for i in pool {
+            let rest: Float = gap(at[i], i)
+            var way = SIMD3<Float>(0, 1, 0)
+            var wayClear: Float = -.greatestFiniteMagnitude
+            for k in 0..<8 {
+                let angle: Float = Float.pi / 2 + Float(k) * Float.pi / 4
+                let d = SIMD3<Float>(cos(angle), sin(angle), 0)
+                var clear: Float = .greatestFiniteMagnitude
+                for step in 1...6 { clear = min(clear, gap(at[i] + d * (Float(step) * size[i]), i)) }
+                if clear > wayClear + 0.01 {
+                    wayClear = clear
+                    way = d
+                }
+            }
+            let score: Float = min(min(rest, wayClear), 1.5)
+            if let b = best, score < b.clear - 0.01 || (abs(score - b.clear) <= 0.01 && degree[i] <= b.links) {
+                continue
+            }
+            best = (i, way, score, degree[i])
+        }
+        guard let best else { return nil }
+        return (best.note, best.way)
+    }
+
+    // MARK: leaving
     // MARK: leaving
 
     /// The bodies shown now whose ids are not in `keeping` - deleted, as a
@@ -1085,6 +1142,24 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         defer { lock.unlock() }
         guard i >= 0, i < home.count else { return SIMD3<Float>(0, 0, 0) }
         return home[i]
+    }
+
+    /// Whether names show at all (the design preview's close-ups turn them
+    /// off, so a name never covers the body: a grabbed note is also the
+    /// pressed, named and chosen one). Set from the main thread.
+    var namesShown: Bool = true
+
+    /// The design preview's close-up subject: every frame, any other body
+    /// whose disc on screen would cross the subject's (with a margin) is
+    /// moved sideways, at its own depth, to just outside it - so no
+    /// neighbour sits in front of or on the subject, however the drag pulls
+    /// them. Nil in the app. Set from the main thread.
+    var closeUpSubject: Int?
+
+    /// A note's radius, in the space's own units.
+    func noteRadius(_ i: Int) -> Float {
+        guard i >= 0, i < radius.count else { return 1 }
+        return radius[i]
     }
 
     /// Where a note is now, in the space's own coordinates.
@@ -1453,6 +1528,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             fastest = universe ? integrateOrbits(h, first: piece == 0) : integrate(h)
         }
         if universe { swap(&offsets, &nextOffsets) }
+        if let s = closeUpSubject { keepClear(of: s, eye: eye) }
 
         for i in nodes.indices {
             nodes[i].simdPosition = position[i]
@@ -1479,6 +1555,37 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
         // still, and nothing will set it moving by itself: stop working
         if !lively && grabbed == nil && fastest < 0.000_01 { resting = true }
+    }
+
+    /// Moves every body whose disc on screen crosses the close-up subject's
+    /// (twice its radius, so a black hole's photon ring and the inner disk
+    /// are clear too; the other's 1.2 of its own) sideways, at its own
+    /// depth, to just outside it, and stops it heading back in
+    /// (closeUpSubject).
+    private func keepClear(of s: Int, eye: SIMD3<Float>) {
+        guard s >= 0, s < position.count else { return }
+        let toSubject: SIMD3<Float> = position[s] - eye
+        let far: Float = simd_length(toSubject)
+        guard far > 0.0001 else { return }
+        let ahead: SIMD3<Float> = toSubject / far
+        var aside: SIMD3<Float> = simd_cross(ahead, SIMD3<Float>(0, 1, 0))
+        if simd_length_squared(aside) < 0.000_001 { aside = simd_cross(ahead, SIMD3<Float>(1, 0, 0)) }
+        aside = simd_normalize(aside)
+        for j in position.indices where j != s && visible[j] {
+            let rel: SIMD3<Float> = position[j] - eye
+            let depth: Float = simd_dot(rel, ahead)
+            guard depth > 0.0001 else { continue }
+            // where it sits across the screen, at the subject's distance
+            let scale: Float = far / depth
+            let side: SIMD3<Float> = (rel - ahead * depth) * scale
+            let need: Float = radius[s] * 2.0 + radius[j] * 1.2 * scale
+            let off: Float = simd_length(side)
+            guard off < need else { continue }
+            let out: SIMD3<Float> = off > 0.0001 ? side / off : aside
+            position[j] = eye + ahead * depth + out * (need / scale)
+            let inward: Float = simd_dot(velocity[j], out)
+            if inward < 0 { velocity[j] -= out * inward }
+        }
     }
 
     /// One semi-implicit Euler step of `h` seconds. Returns the largest
@@ -1796,8 +1903,8 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
 
     /// Points each emitter at a moving note - the dragged one first, then the
     /// fastest - keeping a note on the emitter it already has, dresses it in
-    /// that note's style (a black hole's plume of debris, a sun's plasma, a
-    /// comet's icy dust: GraphStyleAnimator.dressTrail), aims the sparks a
+    /// that note's style (a sun's plasma, a comet's icy dust, none for a
+    /// black hole: GraphStyleAnimator.dressTrail), aims the sparks a
     /// style throws back along its path, and sets how many it throws by how
     /// fast that note is going.
     private func updateTrails() {
@@ -1938,12 +2045,14 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     /// lock held.
     private func updateLabels(_ dt: Float, eye: SIMD3<Float>, up: SIMD3<Float>) {
         labelsWanted.removeAll(keepingCapacity: true)
-        wantLabel(hovered)
-        wantLabel(pressedNote)
-        wantLabel(grabbed)
-        wantLabel(named)
-        // the chosen body keeps its name while its card is up
-        wantLabel(selected)
+        if namesShown {
+            wantLabel(hovered)
+            wantLabel(pressedNote)
+            wantLabel(grabbed)
+            wantLabel(named)
+            // the chosen body keeps its name while its card is up
+            wantLabel(selected)
+        }
         for i in labelsUp where !labelsWanted.contains(i) {
             labels[i].isHidden = true
         }

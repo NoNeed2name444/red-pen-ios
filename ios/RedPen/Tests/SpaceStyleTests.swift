@@ -16,8 +16,8 @@
 //   tail lags behind the motion, more the faster, never past square;
 // - a sun's corona carries its seed and motion in one number and gives
 //   them back;
-// - each style's sparks: a black hole's plume thrown back, longest and
-//   densest; a sun's plasma warm; a comet's dust icy.
+// - each style's sparks: none from a black hole; a pulsar's few and
+//   fine; a sun's plasma warm; a comet's dust icy.
 //
 // Compiled with GraphShaderKit.swift, GraphSpaceShaders.swift and
 // GraphSpaceOptics.swift (Foundation only).
@@ -205,10 +205,9 @@ let plume: SpaceOptics.Trail = SpaceOptics.trail(style: 0)
 let plasma: SpaceOptics.Trail = SpaceOptics.trail(style: 5)
 let ice: SpaceOptics.Trail = SpaceOptics.trail(style: 3)
 let others: [SpaceOptics.Trail] = (0...5).map { SpaceOptics.trail(style: $0) }
-check("P7 a black hole's plume is thrown back, narrow and streaking", plume.backward && plume.spread < 45
-      && plume.stretch > 0)
-check("P7 ... the longest-lived and densest", others.allSatisfy { $0.life <= plume.life && $0.rate <= plume.rate })
-check("P7 ... white-gold cooling to ember red", (plume.colours.first?.x ?? 0) > 0.9 && (plume.colours.last?.y ?? 1) < 0.2)
+check("P7 a black hole throws nothing off: it swallows", plume.rate == 0)
+check("P7 a pulsar's motes are few and fine, so its core keeps its edge",
+      SpaceOptics.trail(style: 4).rate <= 60 && SpaceOptics.trail(style: 4).size <= 0.015)
 check("P7 a sun's plasma is warm", plasma.colours.allSatisfy { $0.x >= $0.z })
 check("P7 a comet's dust is icy and left behind", ice.backward && (ice.colours.first?.z ?? 0) >= (ice.colours.first?.x ?? 1) - 0.2
       && (ice.colours.last?.z ?? 0) > (ice.colours.last?.x ?? 1))
@@ -219,8 +218,110 @@ check("P7 every colour on screen's scale, every life positive",
 
 check("P8 the rocky terminator is the tested one", GraphStyleShaders.rockBody.contains("smoothstep(-0.08, 0.22, rp_ndl)"))
 check("P8 the ring shadow on the clouds only with a ring", GraphStyleShaders.gasBody.contains("* rpRinged"))
+check("P8 a pulsar's beam is never drawn over its core's disc as seen",
+      GraphStyleShaders.pulsarBeam.contains("rp_k = rp_k * smoothstep(1.0, 1.35, rp_off)")
+        && GraphStyleShaders.pulsarBeam.contains("* 6.0 / length(scn_node.modelViewTransform[0].xyz)"))
 check("P8 the disk's Kepler shear", GraphStyleShaders.bhDisk.contains("pow(rp_in / max(rp_r, rp_in), 1.5)")
       && close(0.43, SpaceOptics.diskInner))
+
+// MARK: P9 the black hole's code
+
+var holeTrip: Bool = true
+for k in stride(from: Float(0), through: 1, by: 0.05) {
+    for m in stride(from: Float(0), through: 1, by: 0.25) {
+        for above in [true, false] {
+            let back = SpaceOptics.holeRead(SpaceOptics.holeCode(tilt: k, above: above, motion: m))
+            if abs(back.tilt - k) > 1.0 / 255 + 1e-4 || back.above != above || abs(back.motion - m) > 0.02 {
+                holeTrip = false
+            }
+        }
+    }
+}
+check("P9 a black hole's code gives back its tilt (to 1/255), side and motion", holeTrip)
+check("P9 the code stays within 1 of 2 (the shader's |z| - 2)",
+      SpaceOptics.holeCode(tilt: 1, above: true, motion: 1) < 3 && SpaceOptics.holeCode(tilt: 1, above: false, motion: 1) > 1)
+check("P9 the shader reads it the same way", GraphStyleShaders.bhRing.contains("floor(rp_v * 256.0)")
+      && GraphStyleShaders.bhRing.contains("rp_kq / 255.0") && GraphStyleShaders.bhRing.contains("/ 0.96"))
+
+// MARK: E the Earth's maps (Resources/Earth), their sources, and how the shader reads them
+
+// (the suites run from the repository root, or from anywhere under it)
+var earthRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+while !FileManager.default.fileExists(atPath: earthRoot.appendingPathComponent("ios/RedPen").path),
+      earthRoot.path != "/" {
+    earthRoot.deleteLastPathComponent()
+}
+let earthFolder = earthRoot.appendingPathComponent("ios/RedPen/Resources/Earth")
+
+/// A PNG's or JPEG's pixel size, read from its header.
+func pictureSize(_ data: Data) -> (width: Int, height: Int)? {
+    let b = [UInt8](data)
+    func be16(_ i: Int) -> Int { Int(b[i]) << 8 | Int(b[i + 1]) }
+    if b.count > 24 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47 {
+        return (be16(16) << 16 | be16(18), be16(20) << 16 | be16(22))
+    }
+    guard b.count > 4 && b[0] == 0xFF && b[1] == 0xD8 else { return nil }
+    var i = 2
+    while i + 9 < b.count && b[i] == 0xFF {
+        let marker: UInt8 = b[i + 1]
+        if marker == 0xFF {
+            i += 1
+            continue
+        }
+        // a start of frame: C0 to CF but for DHT (C4), JPG (C8) and DAC (CC)
+        if (0xC0...0xCF).contains(marker) && ![0xC4, 0xC8, 0xCC].contains(marker) {
+            return (be16(i + 7), be16(i + 5))
+        }
+        i += 2 + be16(i + 2)
+    }
+    return nil
+}
+
+let earthMaps: [(file: String, width: Int, height: Int)] = [
+    ("earth-day.jpg", 4096, 2048), ("earth-clouds.jpg", 4096, 2048),
+    ("earth-lights.jpg", 2048, 1024), ("earth-water.png", 2048, 1024)
+]
+var earthBytes: Int = 0
+for map in earthMaps {
+    let data: Data = (try? Data(contentsOf: earthFolder.appendingPathComponent(map.file))) ?? Data()
+    earthBytes += data.count
+    let size = pictureSize(data)
+    check("E1 \(map.file) is \(map.width) x \(map.height), as GraphEarth packs it",
+          size?.width == map.width && size?.height == map.height, "\(String(describing: size))")
+}
+check("E1 the four maps stay compressed: under 6 MB together", earthBytes > 1_000_000 && earthBytes < 6_000_000,
+      "\(earthBytes) bytes")
+
+let earthText: String = (try? String(contentsOf: earthFolder.appendingPathComponent("SOURCES.md"), encoding: .utf8)) ?? ""
+let earthFlat: String = earthText.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+check("E2 SOURCES.md sits beside the maps", !earthText.isEmpty)
+for map in earthMaps {
+    let section: String = earthText.components(separatedBy: "### `\(map.file)`").dropFirst().first ?? ""
+    let part: String = (section.components(separatedBy: "\n### ").first ?? "")
+        .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    check("E2 SOURCES.md gives \(map.file) its page, its download with a SHA-256, its credit and how it was made",
+          part.contains("- Page: https://") && part.contains("- File: https://") && part.contains("SHA-256 `")
+            && part.contains("- Credit:") && part.contains("- Processing:"), String(part.prefix(80)))
+}
+check("E2 the licences are named and linked", earthFlat.contains("generally are not subject to copyright in the United States")
+      && earthFlat.contains("https://www.nasa.gov/nasa-brand-center/images-and-media/")
+      && earthFlat.contains("https://gpm.nasa.gov/data/policy"))
+check("E2 NASA Earth Observatory is credited as it asks", earthFlat.contains("please credit 'NASA Earth Observatory.'")
+      && earthFlat.contains("Nothing here implies that NASA endorses the app."))
+
+let rock: String = GraphStyleShaders.rockBody
+check("E3 the rocky planet reads both maps", rock.contains("texture2d<float> rpEarthDay;")
+      && rock.contains("texture2d<float> rpEarthAux;"))
+check("E3 the maps wrap round in longitude and stop at the poles",
+      rock.contains("s_address::repeat, t_address::clamp_to_edge"))
+check("E3 no seam at the date line: the gradients wrap too",
+      rock.contains("rp_gx.x = rp_gx.x - round(rp_gx.x)") && rock.contains("gradient2d(rp_gx, rp_gy)"))
+check("E3 longitude 0 faces the eye at rest, north up",
+      rock.contains("0.5 + atan2(rp_p.x, rp_p.z) * 0.15915494")
+      && rock.contains("0.5 - asin(clamp(rp_p.y, -1.0, 1.0)) * 0.31830989"))
+check("E3 the glint only on open water, the lights only at night",
+      rock.contains("rp_aux.y * (1.0 - smoothstep(0.05, 0.2, rp_lum))")
+      && rock.contains("rp_aux.x * rp_aux.x * rp_night"))
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

@@ -21,8 +21,8 @@ import Foundation
 //   curves back along its path;
 // - a sun's corona carries its seed and how hard it is moving in one
 //   number (the plane's z scale), so dragged, its rays flare;
-// - each style's sparks when it moves: a black hole's bright plume of
-//   debris, a sun's plasma, a comet's icy dust.
+// - each style's sparks when it moves: a sun's plasma, a comet's icy
+//   dust, a pulsar's few fine motes; a black hole throws none.
 //
 // The styles themselves (GraphNodeStyle) live here too, so a theme that
 // mirrors them (the Neurons' cell states, NeuronState) is tested with them.
@@ -278,6 +278,29 @@ nonisolated enum SpaceOptics {
         return (s, m)
     }
 
+    // MARK: the black hole's number
+
+    /// A black hole's billboard carries in its z scale how its disk is seen
+    /// and how hard it is moving: 2 + above * (sin i to 1/255, over 256, +
+    /// (0.02 + motion * 0.96) / 256), where i is the angle between the disk's axis
+    /// and the eye and `above` the side of the disk the eye is on (+1 or
+    /// -1); the 0.02 keeps the side even when both are 0.
+    /// GraphStyleShaders.bhRing reads it back.
+    static func holeCode(tilt k: Float, above: Bool, motion: Float) -> Float {
+        let q: Float = (min(max(k, 0), 1) * 255).rounded(.down)
+        let m: Float = min(max(motion, 0), 1)
+        let v: Float = (q + 0.02 + m * 0.96) / 256
+        return 2 + (above ? v : -v)
+    }
+
+    /// The tilt, side and motion back from a black hole's code.
+    static func holeRead(_ code: Float) -> (tilt: Float, above: Bool, motion: Float) {
+        let v: Float = min(abs(code - 2), 0.99999)
+        let q: Float = (v * 256).rounded(.down)
+        let m: Float = min(max((v * 256 - q - 0.02) / 0.96, 0), 1)
+        return (q / 255, code - 2 >= 0, m)
+    }
+
     // MARK: sparks when a body moves
 
     /// How one style's sparks look (GraphSim's trail emitters wear the
@@ -302,12 +325,12 @@ nonisolated enum SpaceOptics {
     static func trail(style code: Int) -> Trail {
         switch code {
         case 0:
-            // a bright plume of debris, white-gold cooling to ember red,
-            // streaking back along where the hole has been
+            // none: a black hole swallows, it throws nothing off (a plume
+            // read on screen as white puffs and orange sparks round a dark
+            // body); its disk and lensed ring carry its motion
             return Trail(life: 1.1, size: 0.05, speed: 0.45, spread: 22, stretch: 0.08,
-                         colours: [SIMD3<Float>(1.0, 0.95, 0.84), SIMD3<Float>(1.0, 0.6, 0.15),
-                                   SIMD3<Float>(0.62, 0.08, 0.0)],
-                         backward: true, rate: 260)
+                         colours: [SIMD3<Float>(0.62, 0.08, 0.0)],
+                         backward: true, rate: 0)
         case 5:
             // plasma thrown off all round: white-yellow to orange
             return Trail(life: 0.7, size: 0.045, speed: 0.3, spread: 180, stretch: 0.03,
@@ -319,9 +342,11 @@ nonisolated enum SpaceOptics {
                          colours: [SIMD3<Float>(0.85, 1.0, 1.0), SIMD3<Float>(0.45, 0.85, 1.0)],
                          backward: true, rate: 170)
         case 4:
-            return Trail(life: 0.5, size: 0.03, speed: 0.2, spread: 180, stretch: 0.02,
-                         colours: [SIMD3<Float>(0.85, 0.9, 1.0), SIMD3<Float>(0.55, 0.5, 1.0)],
-                         backward: false, rate: 150)
+            // a few fine violet motes thrown well clear: a dense white
+            // swarm on so small a body blew its core out to a blank disc
+            return Trail(life: 0.4, size: 0.012, speed: 0.4, spread: 180, stretch: 0.02,
+                         colours: [SIMD3<Float>(0.6, 0.62, 1.0), SIMD3<Float>(0.4, 0.3, 0.9)],
+                         backward: false, rate: 45)
         case 2:
             return Trail(life: 0.55, size: 0.035, speed: 0.12, spread: 180, stretch: 0,
                          colours: [SIMD3<Float>(1.0, 0.86, 0.6), SIMD3<Float>(0.8, 0.55, 0.3)],

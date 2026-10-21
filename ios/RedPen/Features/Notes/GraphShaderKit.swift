@@ -61,6 +61,44 @@ nonisolated enum GraphShaderKit {
         """
     }
 
+    /// Metal: cellular (Worley) noise of the float3 expression `p`, from
+    /// the 2x2x2 cells nearest the point (each cell's feature point kept to
+    /// its middle half, so the nearest is almost always among them): into
+    /// new floats `out`_f1 and `out`_f2 (the distances to the nearest and
+    /// second-nearest points; f2 - f1 is 0 on the borders between cells)
+    /// and `out`_id (0...1, the nearest cell's own number). `wobble` (a
+    /// float expression) moves each point round its place, so cells boil.
+    static func cells(_ out: String, _ p: String, wobble: String) -> String {
+        """
+        float3 \(out)_p = \(p);
+        float3 \(out)_i = floor(\(out)_p);
+        float3 \(out)_f = \(out)_p - \(out)_i;
+        float3 \(out)_o = step(float3(0.5), \(out)_f) - float3(1.0);
+        float \(out)_f1 = 8.0;
+        float \(out)_f2 = 8.0;
+        float \(out)_id = 0.0;
+        for (int \(out)_k = 0; \(out)_k < 8; \(out)_k++) {
+        float3 \(out)_c = \(out)_o + float3(float(\(out)_k & 1), float((\(out)_k >> 1) & 1), float((\(out)_k >> 2) & 1));
+        float3 \(out)_g = \(out)_i + \(out)_c;
+        float \(out)_h = \(out)_g.x + \(out)_g.y * 57.0 + \(out)_g.z * 113.0;
+        float3 \(out)_r = fract(sin(float3(\(out)_h, \(out)_h + 31.7, \(out)_h + 67.3)) * 43758.5453);
+        float3 \(out)_j = float3(0.5) + (\(out)_r - float3(0.5)) * 0.5 + sin(\(out)_r * 6.2831853 + float3(\(wobble))) * 0.1;
+        float3 \(out)_d = \(out)_c + \(out)_j - \(out)_f;
+        float \(out)_dd = dot(\(out)_d, \(out)_d);
+        if (\(out)_dd < \(out)_f1) {
+        \(out)_f2 = \(out)_f1;
+        \(out)_f1 = \(out)_dd;
+        \(out)_id = \(out)_r.x;
+        } else if (\(out)_dd < \(out)_f2) {
+        \(out)_f2 = \(out)_dd;
+        }
+        }
+        \(out)_f1 = sqrt(\(out)_f1);
+        \(out)_f2 = sqrt(\(out)_f2);
+
+        """
+    }
+
     // MARK: the same maths on the CPU
 
     /// fract(sin(n) * 43758.5453), in Float as the GPU has it.

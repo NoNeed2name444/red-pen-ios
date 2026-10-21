@@ -269,11 +269,21 @@ drop = os.environ.get("DROP_STAMP") or time.strftime("%y%m%d.%H%M", time.gmtime(
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import l10n_catalog
 catalog_path = os.path.join(src, "Resources", "Localizable.xcstrings")
-resources = ', resources: [.copy("Samples")]'
+listed = ['.copy("Samples")']
 if os.path.exists(catalog_path):
     catalog = l10n_catalog.load(catalog_path)
     l10n_catalog.write_lproj(catalog, os.path.join(root, "Localization"))
-    resources = ', resources: [.copy("Samples"), .process("Localization")]'
+    listed.append('.process("Localization")')
+# the Earth maps (Resources/Earth, NASA imagery, 4.5 MB) go with the 3D map
+# whose rocky planets wear them: a folder in the package's resources where
+# the map is kept, left out with it everywhere else
+earth = os.path.join(root, "Resources", "Earth")
+if os.path.isdir(earth):
+    if os.path.exists(os.path.join(root, "Features", "Notes", "GraphNodeFactory.swift")):
+        listed.append('.copy("Resources/Earth")')
+    else:
+        shutil.rmtree(earth)
+resources = ', resources: [' + ', '.join(listed) + ']'
 # (the catalog's folder, empty once the catalog is left out)
 leftover = os.path.join(root, "Resources")
 if os.path.isdir(leftover) and not os.listdir(leftover):
