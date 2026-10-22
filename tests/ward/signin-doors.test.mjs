@@ -5,7 +5,11 @@
 // night; Google's is Google's own branded button with the multicolour G. Both
 // keep their makers' colours, outside the ten hexes. Android has no sign-in
 // screen and no Google sign-in (android/docs/parity.md), so it gets none.
-// Reads the sources; the launchopening Swift suite checks the lookup.
+// The launchopening Swift suite proves the lookup (LaunchArt.names) on Linux;
+// the screen is SwiftUI, which only a Mac lays out, so here its source is
+// read. The art reaches an app only through the private repository's
+// tools/inject_brand_art.py run on a downloaded IPA: a CI-built app always
+// shows the stand-in.
 import { readFileSync, existsSync } from 'node:fs';
 
 const repo = new URL('../../', import.meta.url).pathname;
@@ -23,9 +27,10 @@ const apple = src.slice(src.indexOf('private var appleDoor: some View {'), src.i
 // 1: the launch mark, not the mode tiles
 check('the masthead draws the launch mark above the name', /SignInLaunchMark\(\)[\s\S]*Text\(Brand\.name\)/.test(mast));
 check('no mode tiles fanned above the name', !/ModeTile\(/.test(src) && !/mastTile|tileAngle|tileLayer/.test(src));
-check('the mark is the launch art by LaunchArt\'s names, the mode\'s first',
-  /LaunchArt\.names\(dark: dark\)\.lazy\.compactMap \{ UIImage\(named: \$0\) \}\.first/.test(src)
-  && /static func names\(dark: Bool\) -> \[String\] \{\s*dark \? \[darkImageName, imageName\] : \[imageName\]/.test(read('ios/RedPen/Shared/LaunchOpening.swift')));
+check('the mark is looked up by LaunchArt\'s names, the mode\'s first',
+  /LaunchArt\.names\(dark: dark\)\.lazy\.compactMap \{ UIImage\(named: \$0\) \}\.first/.test(src));
+check('the mark names the real path the art takes',
+  /tools\/inject_brand_art\.py \(commit 1adb11e\)/.test(src) && /Payload\/<App>\.app\/LaunchLogo\{,@2x,@3x\}\.png/.test(src));
 check('without the art, a stand-in shape in the ink', /Image\(systemName: "stethoscope"\)[\s\S]{0,200}Color\.wardInkSecondary/.test(src));
 check('the private art is not in the public tree',
   !existsSync(repo + 'ios/RedPen/Assets.xcassets/LaunchLogo.imageset') && !existsSync(repo + 'ios/RedPen/Assets.xcassets/LaunchLogo-dark.imageset'));
@@ -41,6 +46,8 @@ check('Google: its light and dark themes are Google\'s own colours',
   /dark \? 0x131314 : 0xFFFFFF/.test(src) && /dark \? 0x8E918F : 0x747775/.test(src) && /dark \? 0xE3E3E3 : 0x1F1F1F/.test(src));
 check('Google: the G in its four colours',
   ['0xEA4335', '0x4285F4', '0xFBBC05', '0x34A853'].every((h) => src.includes(h)));
+check('Google: the label at Google\'s 14 pt, scaled with Dynamic Type',
+  /static let labelSize: CGFloat = 14/.test(src) && /\.scaledFont\(GoogleButtonTheme\.labelSize, relativeTo: \.body, weight: \.medium\)/.test(google));
 check('Google: Apple\'s height and corners beside it', /\.frame\(height: 56\)/.test(google) && /SignInView\.door/.test(google));
 
 // Android: none to add

@@ -179,8 +179,10 @@ struct SignInView: View {
                     GoogleG()
                         .frame(width: 20, height: 20)
                 }
+                // Google's guidelines: the label at 14 pt, medium, here
+                // scaled with Dynamic Type like the rest of the screen
                 Text(L10n.string("Sign in with Google"))
-                    .scaledFont(19, relativeTo: .body, weight: .medium)
+                    .scaledFont(GoogleButtonTheme.labelSize, relativeTo: .body, weight: .medium)
                     .foregroundStyle(theme.text)
             }
             .frame(maxWidth: .infinity)
@@ -242,9 +244,14 @@ struct SignInView: View {
 /// The launch mark over "Stethoscore" on sign-in and account-deleted: the
 /// owner's stethoscope, the white one by day and the grey one by night, the
 /// same private art the launch draws (LaunchArt). It is not in this
-/// repository; tools/inject_brand_art.py adds it to the built app as loose
-/// PNGs (LaunchLogo@2x.png, LaunchLogo-dark@2x.png, ...). A build without
-/// it shows a stand-in stethoscope in the ink, the same size.
+/// repository and no build step here adds it: the owner's private
+/// Claude-Code repository's tools/inject_brand_art.py (commit 1adb11e) writes
+/// it into a downloaded IPA, from its design/brand-art/red-pen-ios-fed0105/
+/// ios/RedPen/Assets.xcassets/LaunchLogo.imageset/launch-logo{,-dark}@{1,2,3}x.png,
+/// as Payload/<App>.app/LaunchLogo{,@2x,@3x}.png and LaunchLogo-dark{,@2x,@3x}.png,
+/// which UIImage(named:) finds by LaunchArt.names. So every app CI builds
+/// (the simulator tours, the IPA before that tool runs on it) shows the
+/// stand-in: a stethoscope in the ink, the same size.
 private struct SignInLaunchMark: View {
     @Environment(\.colorScheme) private var scheme
 
@@ -280,6 +287,9 @@ private struct SignInLaunchMark: View {
 /// hairline, #E3E3E3 words). Google's, not the app's: exempt from the ten
 /// hexes, as Apple's black and white button is.
 private struct GoogleButtonTheme {
+    /// The label's size in Google's guidelines, before Dynamic Type.
+    static let labelSize: CGFloat = 14
+
     let fill: Color
     let stroke: Color
     let text: Color
