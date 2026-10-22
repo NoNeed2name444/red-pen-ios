@@ -20,6 +20,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Cancel
@@ -123,6 +124,8 @@ import kotlinx.coroutines.withContext
     var nothingYet by mutableStateOf<CategoryFeature?>(null)
     var morePractise by mutableStateOf(false)
     var moveMenu by mutableStateOf(false)
+    /** The set whose "Turn into…" picker is up (iOS turning). */
+    var turning by mutableStateOf<StudySet?>(null)
 
     fun stopSelecting() { selecting = false; selected = emptySet() }
     fun toggle(id: String) { selected = if (id in selected) selected - id else selected + id }
@@ -362,6 +365,9 @@ fun LazyListScope.libraryItems(
                 if (state.selecting) state.selected = state.selected + set.id else { state.selecting = true; state.selected = setOf(set.id) }
             })
             DropdownMenuItem({ Text("Rename") }, { close(); state.naming = Naming.RenameSet(set.id, set.name) })
+            // any mode into any other: rearranged on the spot where it can be, written from the lecture where it cannot
+            if (com.stethoscore.app.data.ModeConversion.targets.any { com.stethoscore.app.data.ModeConversion.canTurn(set, it) })
+                TurnIntoMenuItem(::close) { state.turning = set }
             if (actions.edit != null && (set.kind == StudySetKind.ANKI || set.kind == StudySetKind.MCQ))
                 DropdownMenuItem({ Text(if (set.kind == StudySetKind.MCQ) "Edit questions" else "Edit cards") }, { close(); actions.edit.invoke(set) },
                     leadingIcon = { Icon(Icons.Rounded.Edit, null) })
@@ -462,6 +468,7 @@ fun LazyListScope.libraryItems(
     }
     state.foundCard?.let { (set, card) -> FoundCardSheet(set, card, { state.foundCard = null }, actions.open) }
     state.nothingYet?.let { feature -> LibraryAlert("Nothing here yet", feature.emptyText) { state.nothingYet = null } }
+    TurnIntoPickerHost(state.turning, store) { state.turning = null }
 }
 
 // MARK: - Search
@@ -646,6 +653,7 @@ fun featureIcon(feature: CategoryFeature) = when (feature) {
     CategoryFeature.SUBJECTS -> Icons.Rounded.BarChart
     CategoryFeature.DUE -> Icons.Rounded.Inbox
     CategoryFeature.ADD -> Icons.Rounded.Download
+    CategoryFeature.TURN -> Icons.Rounded.Autorenew
 }
 
 /** Whatever a tile does: a mode's sets, a quiz built now, By subject, or New set (iOS start(feature)). */
@@ -660,6 +668,8 @@ fun start(feature: CategoryFeature, store: StudyStore, state: LibraryState, acti
         feature == CategoryFeature.SUBJECTS -> actions.stats()
         feature == CategoryFeature.DUE -> actions.due()
         feature == CategoryFeature.ADD -> actions.addMaterial?.invoke() ?: actions.newSet(StudySetKind.MCQ)
+        // this category's sets, to pick one to turn (iOS TurnIntoListView)
+        feature == CategoryFeature.TURN -> actions.shelf(feature)
         else -> {}
     }
 }

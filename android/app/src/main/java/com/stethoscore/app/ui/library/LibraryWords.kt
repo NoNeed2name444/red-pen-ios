@@ -63,9 +63,9 @@ enum class StudyCategory(val title: String) {
             else -> emptyList()
         }
         FeatureGroup.TOOLS -> when (this) {
-            QUESTIONS -> listOf(CategoryFeature.SUBJECTS, CategoryFeature.ADD)
-            CARDS, OSCE, AUDIO -> listOf(CategoryFeature.ADD)
-            CASES -> emptyList()
+            QUESTIONS -> listOf(CategoryFeature.SUBJECTS, CategoryFeature.ADD, CategoryFeature.TURN)
+            CARDS, OSCE, AUDIO -> listOf(CategoryFeature.ADD, CategoryFeature.TURN)
+            CASES -> listOf(CategoryFeature.TURN)
         }
     }
 
@@ -106,7 +106,8 @@ enum class CategoryFeature(val rawValue: String, val title: String, val detail: 
     ONE("one", "Just one", "A single question"),
     SUBJECTS("subjects", "By subject", "Your score in each subject"),
     DUE("due", "Due cards", "Cards waiting today"),
-    ADD("add", "Paste or import", "Type, paste, or open Anki, Quizlet or CSV");
+    ADD("add", "Paste or import", "Type, paste, or open Anki, Quizlet or CSV"),
+    TURN("turn", "Turn into\u2026", "Make a set another mode");
 
     /** The kind of set this mode's page lists, for the mode tiles. */
     val shelfKind: StudySetKind? get() = when (this) {

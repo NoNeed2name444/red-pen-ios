@@ -119,11 +119,13 @@ object BookReaderWords {
     }
     val current = pages.getOrNull(index)
     var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    var turning by remember(set.id) { mutableStateOf<StudySet?>(null) }
     // What Check accuracy looks at: the page on screen (iOS BookReaderView's AccuracyAsk)
     val accuracyAsk = AccuracyAsk("Write a textbook page for medical students from the source.") {
         current?.let { it.title + "\n" + it.markdown }
     }
     verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
+    com.stethoscore.app.ui.library.TurnIntoPickerHost(turning, store) { turning = null }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
@@ -138,9 +140,12 @@ object BookReaderWords {
                 else -> false
             }
         }) {
-            // More: Check accuracy for the page on screen (iOS BookReaderView's studyMoreMenu)
+            // More: Check accuracy for the page on screen, and Turn into (iOS BookReaderView's studyMoreMenu)
             ReaderNavBar(set.subject.ifEmpty { "Textbook" }, leading = { ReaderBackButton(onBack) },
-                trailing = { StudyMoreButton { close -> CheckAccuracyMenuItem(accuracyAsk, set, close) { verifying = it } } })
+                trailing = { StudyMoreButton { close ->
+                    CheckAccuracyMenuItem(accuracyAsk, set, close) { verifying = it }
+                    com.stethoscore.app.ui.library.TurnIntoMenuItem(close) { turning = set }
+                } })
             StudyProgressHeader(BookReaderWords.status(index, pages.size), BookReaderWords.detail(current, wordCount),
                 BookReaderWords.fraction(index, pages.size))
             // the page, scrolling under the bar; keyed by the page, so a new page starts at its top

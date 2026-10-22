@@ -157,6 +157,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     var menuOpen by remember { mutableStateOf(false) }
     // the item Check accuracy shows (iOS StudyMoreMenu's verifying)
     var verifying by remember { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    // the set whose "Turn into…" picker is up (iOS StudyMoreMenu's turning)
+    var turning by remember { mutableStateOf<StudySet?>(null) }
 
     if (set.questions.isEmpty()) {
         Column(Modifier.fillMaxSize().padding(WardSpace.gutter.wardDp)) {
@@ -393,6 +395,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         onHighlight = { menuOpen = false; highlighting = !highlighting })
                     HorizontalDivider()
                     CheckAccuracyMenuItem(accuracyAsk, set, { menuOpen = false }) { verifying = it }
+                    // not for a quiz that is not saved yet, nor in the middle of a timed paper
+                    if (!isUnsaved && examEndsAt == null) com.stethoscore.app.ui.library.TurnIntoMenuItem({ menuOpen = false }) { turning = set }
                     if (examEndsAt == null) {
                         HorizontalDivider()
                         DropdownMenuItem(text = { Text("Clinical reference") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
@@ -605,6 +609,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
         com.stethoscore.app.ui.exam.WardPocketScreen(track, { pocketOpen = false }, { made -> runCatching { store.addSet(made) } }, store = store)
     }
     verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
+    com.stethoscore.app.ui.library.TurnIntoPickerHost(turning, store) { turning = null }
 }
 
 /** A skippable question's lead line, tagged optional. */

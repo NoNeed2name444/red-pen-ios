@@ -129,11 +129,13 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
     val complete = run.complete
     val currentStepText = checklist?.steps?.getOrNull(run.stepIndex)
     var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    var turning by remember(set.id) { mutableStateOf<StudySet?>(null) }
     // What Check accuracy looks at: the station on screen (iOS OsceReviewView accuracyAsk)
     val accuracyAsk = AccuracyAsk("Write an OSCE station checklist, in the order the steps are performed, from the source.") {
         checklist?.let { c -> c.title + "\n" + c.steps.joinToString("\n") { "- " + it } }
     }
     verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
+    com.stethoscore.app.ui.library.TurnIntoPickerHost(turning, store) { turning = null }
 
     fun keepPlace() {
         // The whole set finished is not a position to come back to.
@@ -235,8 +237,11 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
 
     Column(Modifier.fillMaxSize()) {
         StudyTitleBar(set.subject.ifEmpty { "OSCE" }, onBack) {
-            // More: Check accuracy for the station on screen (iOS OsceReviewView's studyMoreMenu)
-            StudyMoreButton { close -> CheckAccuracyMenuItem(accuracyAsk, set, close) { verifying = it } }
+            // More: Check accuracy for the station on screen, and Turn into (iOS OsceReviewView's studyMoreMenu)
+            StudyMoreButton { close ->
+                CheckAccuracyMenuItem(accuracyAsk, set, close) { verifying = it }
+                com.stethoscore.app.ui.library.TurnIntoMenuItem(close) { turning = set }
+            }
         }
         if (checklist == null) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

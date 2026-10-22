@@ -51,6 +51,8 @@ import com.stethoscore.app.ui.ward.*
     var studyingAhead by remember(set.id) { mutableStateOf(false) }
     var undoUntil by remember(set.id) { mutableStateOf<Long?>(null) }
     var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    // the set whose "Turn into…" picker is up (iOS StudyMoreMenu's turning)
+    var turning by remember(set.id) { mutableStateOf<StudySet?>(null) }
     // a return to this screen is not a new sitting
     if (queue == null) { queue = store.queue(set); revealed = startRevealed }
     val items = queue.orEmpty()
@@ -83,11 +85,12 @@ import com.stethoscore.app.ui.ward.*
     val header = CardReview.deckHeader(items.size, reviewedCount, studyingAhead)
     ReviewKeys(revealed = revealed, hasCard = current != null, onReveal = { revealed = true }, onRate = ::rate, onUndo = { if (undoUntil != null) undo() },
         onReturn = { if (current == null) { if (canStudyAhead) studyAhead() else onBack() } }) {
-        ReviewTopBar(set.subject.ifEmpty { "Cards" }, onBack, if (current == null) emptyList() else listOf(
+        // Turn into is the deck's, so it stays when no card is on screen
+        ReviewTopBar(set.subject.ifEmpty { "Cards" }, onBack, (if (current == null) emptyList() else listOf(
             MenuEntry("Bury until tomorrow", Icons.Rounded.Bedtime, ::bury),
             MenuEntry("Suspend this card", Icons.Rounded.PauseCircle, ::suspend),
             MenuEntry("Check accuracy", Icons.Rounded.VerifiedUser, { cardAsk(current.card).verifying(set)?.let { verifying = it } }, "checkAccuracy"),
-        ))
+        )) + MenuEntry("Turn into\u2026", Icons.Rounded.Autorenew, { turning = set }, "turnInto"))
         ProgressHeader(header)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (current != null) {
@@ -120,6 +123,7 @@ import com.stethoscore.app.ui.ward.*
         }
     }
     verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
+    com.stethoscore.app.ui.library.TurnIntoPickerHost(turning, store) { turning = null }
 }
 
 /** Everything due right now, from every deck at once. */
