@@ -102,7 +102,7 @@ import kotlinx.coroutines.withContext
                 require(text.length<=20_000_000) { "This file is too large. Import one set at a time." }
                 store.importJson(text)
             } }
-            notice=result.fold({ "Imported $it sets" }) { it.message ?: "Unable to import this file" };refresh()
+            notice=result.fold({ "Imported ${BedPlan.counted(it,"set")}" }) { it.message ?: "Unable to import this file" };refresh()
         }
     }
     val exported=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -123,7 +123,7 @@ import kotlinx.coroutines.withContext
                 val stream=context.contentResolver.openOutputStream(uri) ?: error("Unable to write to that location")
                 stream.use { com.stethoscore.app.export.DeckPdf.write(set,it) }
             } }
-            notice=result.fold({ "Printed ${set.name} as a PDF deck ($it pages)" }) { it.message ?: "Unable to print this set" }
+            notice=result.fold({ "Printed ${set.name} as a PDF deck (${BedPlan.counted(it,"page")})" }) { it.message ?: "Unable to print this set" }
         }
     }
     var sharing by rememberSaveable { mutableStateOf<String?>(null) }

@@ -3130,6 +3130,9 @@ only; Arabic is left for the owner's words (copy deck question 4).
   study." Its "YOUR STUDY WARD" label waits (copy deck question 6), and its
   two buttons keep their words: they load the examples and import a
   library, where iOS's one button makes a new set.
+- [x] Android's import and print notices count in the singular for one,
+  "Imported 1 set", "(1 page)", through the plural helper iOS uses
+  (BedPlan.counted).
 
 ### Waiting on the owner
 
