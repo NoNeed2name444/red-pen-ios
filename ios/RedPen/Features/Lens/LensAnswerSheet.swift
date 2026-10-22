@@ -112,8 +112,15 @@ struct LensAnswerSheet: View {
         case .failed(let why):
             failure(why)
         case .loading, .none:
-            LensShimmer()
-                .accessibilityLabel("Answering")
+            // the one "working" trace (EcgLoader), still under Reduce Motion
+            HStack(spacing: WardSpace.s) {
+                EcgLoader()
+                Text("Answering\u{2026}").font(.caption).foregroundStyle(Color.wardInkSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .wardCard()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Answering")
         }
     }
 
@@ -423,47 +430,6 @@ struct LensBulletStyle: LabelStyle {
             configuration.icon.scaledFont(5, relativeTo: .body).foregroundStyle(Color.wardInkSecondary)
             configuration.title
         }
-    }
-}
-
-/// Grooves pressed into the card, a solid light sweeping along each while
-/// the answer is written (no soft edges: nothing fades); still under
-/// Reduce Motion.
-struct LensShimmer: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase: CGFloat = -1
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            bar(0.9)
-            bar(0.75)
-            bar(0.95)
-            bar(0.6)
-            Text("Answering\u{2026}").font(.caption).foregroundStyle(Color.wardInkSecondary)
-        }
-        .wardCard()
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) { phase = 1 }
-        }
-    }
-
-    private func bar(_ width: CGFloat) -> some View {
-        GeometryReader { geo in
-            let w: CGFloat = geo.size.width * width
-            let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
-            Color.clear
-                .overlay(
-                    Color.wardSurface
-                        .frame(width: w * 0.4)
-                        .offset(x: phase * w)
-                )
-                .clipShape(shape)
-                .wardInset(in: shape, fill: .wardHairline)
-                .frame(width: w)
-        }
-        .frame(height: 14)
-        .accessibilityHidden(true)
     }
 }
 
