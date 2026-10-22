@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
@@ -96,8 +97,18 @@ val LocalWardUnlit = staticCompositionLocalOf { false }
 
 private fun argb(hex: Int, alpha: Double): Int = ((alpha.coerceIn(0.0, 1.0) * 255 + 0.5).toInt() shl 24) or (hex and 0xFFFFFF)
 
-private fun DrawScope.outlinePath(shape: Shape, size: Size = this.size): Path =
-    Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@outlinePath)) }
+/**
+ * [shape]'s outline as a path, keeping a generic outline's own fill rule:
+ * Path.addPath leaves the new path non-zero, which would fill a ring's hole
+ * (WardAnnulus is even-odd), and every face and light drawn on it with it.
+ */
+private fun DrawScope.outlinePath(shape: Shape, size: Size = this.size): Path {
+    val outline = shape.createOutline(size, layoutDirection, this)
+    return Path().apply {
+        addOutline(outline)
+        if (outline is Outline.Generic) fillType = outline.path.fillType
+    }
+}
 
 /** One light cast round [path], under the face. */
 private fun DrawScope.outerLight(path: Path, light: WardReliefLight, face: Color) {

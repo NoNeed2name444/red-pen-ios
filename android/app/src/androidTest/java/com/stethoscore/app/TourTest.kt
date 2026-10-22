@@ -61,6 +61,7 @@ import com.stethoscore.app.ui.exam.ExamPickerScreen
 import com.stethoscore.app.ui.exam.ExamSheet
 import com.stethoscore.app.ui.exam.WardPocketScreen
 import com.stethoscore.app.ui.exam.WardPocketTab
+import com.stethoscore.app.ui.ideas.IdeasSettings
 import com.stethoscore.app.ui.ideas.MoveSheet
 import com.stethoscore.app.ui.learn.LearnRoute
 import com.stethoscore.app.ui.learn.LearnRouter
@@ -343,8 +344,8 @@ class TourTest {
         val store = tour.store()
         val deck = store.first(StudySetKind.ANKI)
         tour.inEachMode(content = { m ->
-            tour.Page(m, cards) { CardsEditorScreen(deck, store) {} }
-            tour.Over(m, cards) { CardEditSheet(deck.cards.first(), emptyList(), {}, {}) }
+            // the app shows the sheet in the editor's place (CardsEditorScreen), not over it
+            tour.Page(m, cards) { CardEditSheet(deck.cards.first(), emptyList(), {}, {}) }
         }) { m -> tour.shot(39, "card-edit", m) }
     }
 
@@ -352,8 +353,7 @@ class TourTest {
         val store = tour.store()
         val set = store.first(StudySetKind.MCQ)
         tour.inEachMode(content = { m ->
-            tour.Page(m, questions) { CardsEditorScreen(set, store) {} }
-            tour.Over(m, questions) { QuestionEditSheet(set.questions.first(), emptyList(), {}, {}) }
+            tour.Page(m, questions) { QuestionEditSheet(set.questions.first(), emptyList(), {}, {}) }
         }) { m -> tour.shot(39, "question-edit", m) }
     }
 
@@ -482,8 +482,8 @@ class TourTest {
 
     @Test fun r059_examKit() = learn(59, "exam-kit") { LearnRoute.ExamKit }
 
-    /** Bedtime is always night (LearnSheet), so it is shot once. */
-    @Test fun r060_bedtime() = learn(60, "bedtime", listOf(Mode.DARK), ::rhythmStore) { LearnRoute.Bedtime }
+    /** Bedtime's panel is always night (LearnSheet), but the sheet round it is not: shot in each mode, as iOS is. */
+    @Test fun r060_bedtime() = learn(60, "bedtime", store = ::rhythmStore) { LearnRoute.Bedtime }
 
     @Test fun r061_morningCheck() = learn(61, "morning-check", store = ::rhythmStore) { LearnRoute.MorningCheck }
 
@@ -726,10 +726,12 @@ class TourTest {
     @Test fun r103_brainMap() { space(); ideas(103, "ideas-map") { mapShown("the Space map of 4 notes", spaceMap) } }
 
     @Test fun r104_millionDemo() {
-        ideasPrefs { putString("vignette.ideas.mode", "space"); putString("vignette.space.theme", "performance"); putInt("vignette.space.perfDemo", 1_000_000) }
+        // the speed readout is a debug tool, kept out of the tour's pictures
+        ideasPrefs { putString("vignette.ideas.mode", "space"); putString("vignette.space.theme", "performance"); putInt("vignette.space.perfDemo", 1_000_000)
+            putBoolean(IdeasSettings.READOUT_KEY, false) }
         ideas(104, "ideas-million", tour::store) {
             // building a million nodes and their octree takes a few seconds on a CI emulator
-            tour.waitFor("the million-note demo's node count", hasText("1,000,000 nodes", substring = true), 120_000)
+            tour.waitFor("the million-note demo's map", hasContentDescription("demo of 1,000,000 synthetic notes", substring = true), 120_000)
             SystemClock.sleep(6_000)
         }
     }

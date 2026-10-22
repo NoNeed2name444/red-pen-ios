@@ -292,8 +292,12 @@ fun WardCornerRadii.shape(): androidx.compose.foundation.shape.RoundedCornerShap
                              content: @Composable ColumnScope.() -> Unit) {
     // a card near the frame's corner is concentric with it (WardCorner.radii)
     val (measure, radii) = rememberWardCorners(WardFaceMetrics.cardRadius)
-    Column(modifier.then(measure).wardRaised(radii, lift).padding(padding),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing), content = content)
+    // words on a card read in the ink, as on iOS (.primary): a Text that names no colour of its
+    // own takes the content colour, which without this is Material's default black in both modes
+    CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides com.stethoscore.app.ui.wardColor(WardToken.ink)) {
+        Column(modifier.then(measure).wardRaised(radii, lift).padding(padding),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing), content = content)
+    }
 }
 
 /**

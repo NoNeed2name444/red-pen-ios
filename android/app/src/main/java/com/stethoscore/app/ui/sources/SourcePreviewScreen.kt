@@ -72,11 +72,18 @@ object SourceReaderWords {
         if (!page.isBlank) page.heading else "No text on this ${source.sourceKind.pageNoun.lowercase()}"
 }
 
+/**
+ * What the reader in its sheet keeps clear of: every system bar. The sheet
+ * fills the window, and Material's own default keeps only the bottom clear,
+ * so Done and the title would sit under the status bar.
+ */
+internal val sourcePreviewInsets: WindowInsets @Composable get() = WindowInsets.safeDrawing
+
 /** The reader in a sheet, as iOS presents it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun SourcePreviewSheet(source: SourceDoc, set: StudySet?, openAt: Int, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = wardColor(WardToken.background), dragHandle = null) {
+        containerColor = wardColor(WardToken.background), dragHandle = null, contentWindowInsets = { sourcePreviewInsets }) {
         SourcePreview(source, set, openAt, onDismiss, Modifier.fillMaxSize())
     }
 }

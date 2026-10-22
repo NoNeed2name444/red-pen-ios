@@ -77,7 +77,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
 
     Box(Modifier.fillMaxSize()) {
         when {
-            demo != null -> DemoMap(demo, recenter)
+            demo != null -> DemoMap(demo, recenter, settings.readout)
             book.notes.isEmpty() -> Box(Modifier.fillMaxSize().background(wardColor(WardToken.background)).padding(bottom = hidden), contentAlignment = Alignment.Center) {
                 WardEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
                     "Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
@@ -125,16 +125,16 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
         "Tap a note to open it. Drag to turn, pinch to zoom."
     Map3DView(ready, Modifier.fillMaxSize(), description = description,
         onOpenNode = { index -> ready.ids.getOrNull(index)?.let(open) },
-        showReadout = theme == GraphTheme.PERFORMANCE, showControls = false, recenter = recenter, corner = 0.dp)
+        showReadout = theme == GraphTheme.PERFORMANCE && settings.readout, showControls = false, recenter = recenter, corner = 0.dp)
 }
 
 /** A seeded demo map (GraphPerfDemo): synthetic notes, not the user's, turning by itself. */
-@Composable private fun DemoMap(size: Int, recenter: Int) {
+@Composable private fun DemoMap(size: Int, recenter: Int, readout: Boolean) {
     val scene by produceState<MapScene?>(null, size) { value = withContext(Dispatchers.Default) { DemoScenes.get(size) } }
     val ready = scene
     if (ready == null) { Building(size); return }
     Map3DView(ready, Modifier.fillMaxSize(), description = "${GraphTheme.PERFORMANCE.mapLabel}: demo of ${grouped(size)} synthetic notes, not your notes",
-        continuous = true, autoOrbit = true, showControls = false, recenter = recenter, corner = 0.dp)
+        continuous = true, autoOrbit = true, showReadout = readout, showControls = false, recenter = recenter, corner = 0.dp)
 }
 
 @Composable private fun Building(size: Int?) {

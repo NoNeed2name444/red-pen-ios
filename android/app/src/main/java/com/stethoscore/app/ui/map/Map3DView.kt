@@ -146,8 +146,8 @@ var SemanticsPropertyReceiver.mapDrawn by MapDrawnKey
     continuous: Boolean = false,
     autoOrbit: Boolean = false,
     onOpenNode: ((Int) -> Unit)? = null,
-    /** The speed readout at the top left, and the zoom and recentre buttons at the bottom right. */
-    showReadout: Boolean = true,
+    /** The speed readout at the top left (a debug tool: off unless asked for), and the zoom and recentre buttons at the bottom right. */
+    showReadout: Boolean = false,
     showControls: Boolean = true,
     /** Each change puts the camera back to its first view (Ideas' Back to the middle). */
     recenter: Int = 0,
