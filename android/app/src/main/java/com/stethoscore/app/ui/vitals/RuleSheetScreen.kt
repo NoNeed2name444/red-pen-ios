@@ -30,6 +30,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -47,15 +48,15 @@ import com.stethoscore.app.data.StudyRule
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
-import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextField
 import com.stethoscore.app.ui.ward.WardTextStyle
@@ -109,7 +110,7 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
                 WardTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp), placeholder = "Search rules")
                 if (sheet.isEmpty()) ReaderFormSection {
                     Box(Modifier.fillMaxWidth().wardRowTile()) {
-                        ReaderEmptyState(Icons.AutoMirrored.Rounded.ListAlt, "No rules yet",
+                        WardEmptyState(Icons.AutoMirrored.Rounded.ListAlt, "No rules yet",
                             "Every question you get wrong can leave one line here to remember. Add them from a quiz’s results, or from your recent mistakes below.")
                     }
                 }
@@ -149,7 +150,7 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
             onLongClickLabel = "Copy or delete"),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (editing) Icon(Icons.Rounded.RemoveCircle, "Delete", tint = wardColor(WardToken.danger),
-                modifier = Modifier.size(44.dp).padding(10.dp).combinedClickable(role = Role.Button, onClick = onDelete))
+                modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onDelete).padding(10.dp))
             Column(Modifier.weight(1f).padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(rule.text, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
                 if (rule.detail.isNotEmpty()) Text(rule.detail, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))

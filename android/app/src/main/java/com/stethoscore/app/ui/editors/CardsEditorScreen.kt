@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,6 +54,7 @@ import com.stethoscore.app.data.MCQQuestion
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardSpace
@@ -153,7 +155,7 @@ import com.stethoscore.app.ui.wardColor
                 .padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp + 2.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 if (editMode) Icon(Icons.Rounded.RemoveCircle, "Delete", tint = wardColor(WardToken.danger),
-                    modifier = Modifier.size(44.dp).padding(10.dp).combinedClickable(role = Role.Button, onClick = onDelete))
+                    modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onDelete).padding(10.dp))
                 Box(Modifier.weight(1f)) { content() }
             }
             DropdownMenu(menu, { menu = false }) {
@@ -289,7 +291,7 @@ private fun String.trimSpaces() = trim { it == ' ' || it == '\t' }
         Box {
             Icon(if (correct) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, null,
                 tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.inkSecondary),
-                modifier = Modifier.size(44.dp).combinedClickable(role = Role.Button, onClick = onMark, onLongClick = { menu = true })
+                modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onMark, onLongClick = { menu = true })
                     .semantics { contentDescription = "Mark correct"; selected = correct }.padding(10.dp))
             DropdownMenu(menu, { menu = false }) {
                 DropdownMenuItem({ Text("Mark correct") }, { menu = false; onMark() }, leadingIcon = { Icon(Icons.Rounded.CheckCircle, null) })
@@ -302,6 +304,6 @@ private fun String.trimSpaces() = trim { it == ' ' || it == '\t' }
             EditorTextArea(question.options.getOrElse(index) { "" }, onText, minHeight = 44.dp, placeholder = "Option", label = "Option ${index + 1}")
         }
         Icon(Icons.Rounded.RemoveCircle, "Delete option", tint = wardColor(WardToken.danger),
-            modifier = Modifier.size(44.dp).combinedClickable(role = Role.Button, onClick = onRemove).padding(10.dp))
+            modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onRemove).padding(10.dp))
     }
 }

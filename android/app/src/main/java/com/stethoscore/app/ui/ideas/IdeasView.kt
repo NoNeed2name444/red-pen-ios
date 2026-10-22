@@ -53,7 +53,6 @@ import com.stethoscore.app.ideas.noteKind
 import com.stethoscore.app.ui.LocalWardDark
 import com.stethoscore.app.ui.LocalWardLook
 import com.stethoscore.app.ui.sources.ReaderBackButton
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderNavBar
 import com.stethoscore.app.ui.sources.wardRowTile
 import com.stethoscore.app.ui.ward.*
@@ -160,7 +159,7 @@ private sealed class FolderPrompt {
     moving?.let { note -> MoveSheet(book, { moving = null }) { book.move(note.id, it) } }
     model.error?.let { message ->
         AlertDialog(onDismissRequest = { model.error = null }, title = { Text("Could not save this idea") }, text = { Text(message) },
-            confirmButton = { TextButton(onClick = { model.error = null }) { Text("OK") } })
+            confirmButton = { TextButton(onClick = { model.error = null }) { Text("Done") } })
     }
 }
 
@@ -241,7 +240,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
         }
         if (book.notes.isEmpty() && book.folders.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(bottom = bottom), contentAlignment = Alignment.Center) {
-                ReaderEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
+                WardEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
                     "Anything worth remembering: a mnemonic, a question to look up, a link between two topics. Join them up later on the board or in the space.") {
                     // gone once typing, when Send is the one main button
                     if (!typing) WardTextButton("Start typing", startTyping, kind = WardButtonKind.primary)
@@ -339,7 +338,8 @@ private fun LazyListScope.sectionHeader(text: String) = item {
     // folded while typing whatever was stored; opening it while typing puts the keyboard away
     val setCollapsed: (Boolean) -> Unit = { now -> if (!now) focusManager.clearFocus(); settings.setSwitcherCollapsed(now) }
     @Composable fun switcher() = FloatingSwitcher(items, settings.mode, settings::setMode, showCollapsed, setCollapsed, "ideasSwitcherToggle")
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+    // it floats over the page: no glow round it, only the edges (iOS bottomBar.wardUnlit())
+    WardUnlit { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp).imePadding(),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (!showCollapsed) switcher()
@@ -369,7 +369,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
                 } else AddMenu(newIdea = { runCatching { focus.requestFocus() } }, newPage = newPage, newFolder = newFolder)
             }
         }
-    }
+    } }
 }
 
 /** With nothing typed: New idea, New page or New folder, from a disc raised as high as the switcher. */

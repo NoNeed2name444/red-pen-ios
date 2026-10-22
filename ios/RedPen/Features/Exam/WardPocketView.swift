@@ -58,7 +58,7 @@ struct WardPocketSheet: View {
             }
             .wardForm()
             .searchable(text: $query, prompt: Text(searchPrompt))
-            .navigationTitle("Ward pocket")
+            .navigationTitle("Clinical reference")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: WardCalc.self) { calc in
                 WardCalcView(calc: calc, conventional: $conventional, practice: $practice)
@@ -220,7 +220,7 @@ extension NewSetPreset {
     /// New set, ready to write MCQs on one Ward pocket calculator or score.
     init(wardPocket title: String, notes text: String) {
         kind = .mcq
-        name = "Ward pocket: " + title
+        name = "Clinical reference: " + title
         subject = title
         notes = text
     }

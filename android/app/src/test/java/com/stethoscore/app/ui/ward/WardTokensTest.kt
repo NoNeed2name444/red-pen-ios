@@ -71,7 +71,8 @@ class WardTokensTest {
 
     @Test fun controlSizes() = checks {
         check("buttons 56, compact and quiet 44, at most 360 wide", WardControlSize.button == 56.0 &&
-            WardControlSize.buttonSmall == 44.0 && WardControlSize.buttonMaxWidth == 360.0 && WardControlSize.target == 44.0)
+            WardControlSize.buttonSmall == 44.0 && WardControlSize.buttonMaxWidth == 360.0)
+        check("the least target is 48 on Android, Android's own (the owner, 22 Oct; iOS keeps 44)", WardControlSize.target == 48.0)
         check("an icon square's corner is WardRadius.icon, less on a small one",
             kotlin.math.abs(WardControlSize.iconRadius(40.0) - 11.2) < 1e-9 && WardControlSize.iconRadius(100.0) == WardRadius.icon)
         check("a big icon square stands at mid", WardControlSize.iconLift(56.0) == WardLift.mid && WardControlSize.iconLift(40.0) == WardLift.low &&
@@ -97,5 +98,82 @@ class WardTokensTest {
         check("at the end of the duration, at rest", WardLookDriver.step(shift, 0.0, WardGlide.duration) == WardGlide.rest(cases))
         check("a shift taken up part way keeps its start", WardLookDriver.step(shift, 0.4, WardGlide.duration * 0.3).progress.let { kotlin.math.abs(it - 0.7) < 1e-9 })
         check("the glide is the scheme's 0.35 seconds", WardGlide.duration == 0.35)
+    }
+
+    /** Where a cubic Bézier easing [c] is at [x] of the time (x(u) is monotonic for these curves). */
+    private fun ease(c: WardPress.Curve, x: Double): Double {
+        fun bez(p1: Double, p2: Double, u: Double): Double { val m = 1 - u; return 3 * m * m * u * p1 + 3 * m * u * u * p2 + u * u * u }
+        var lo = 0.0
+        var hi = 1.0
+        repeat(60) { val mid = (lo + hi) / 2; if (bez(c.x1, c.x2, mid) < x) lo = mid else hi = mid }
+        return bez(c.y1, c.y2, (lo + hi) / 2)
+    }
+
+    /** A spring from rest one unit from its mark, at [damping] and [stiffness] (unit mass): its lowest point and when it is last more than 1% away. */
+    private fun spring(damping: Double, stiffness: Double): Pair<Double, Double> {
+        val w = kotlin.math.sqrt(stiffness)
+        var x = 1.0
+        var v = 0.0
+        var lowest = 1.0
+        var settled = 0.0
+        val dt = 1e-5
+        var t = 0.0
+        while (t < 3.0) {
+            v += (-stiffness * x - 2 * damping * w * v) * dt
+            x += v * dt
+            t += dt
+            lowest = minOf(lowest, x)
+            if (kotlin.math.abs(x) > 0.01) settled = t
+        }
+        return lowest to settled
+    }
+
+    // platform.md: a change moves for 200 to 320 ms on an ease-out, with no
+    // bounce and no overshoot; the durations and curves are iOS's.
+    @Test fun theMotion() = checks {
+        check("the band is 200 to 320 ms", WardMotion.shortest == 0.2 && WardMotion.longest == 0.32)
+        check("iOS's durations: the switch 0.2 (.snappy), a travel 0.3 (.snappy), a fill 0.3 (.easeOut, .smooth)",
+            WardMotion.toggle == 0.2 && WardMotion.travel == 0.3 && WardMotion.fill == 0.3)
+        for ((name, s) in listOf("toggle" to WardMotion.toggle, "travel" to WardMotion.travel, "fill" to WardMotion.fill,
+            "the press's shade in" to WardPress.shadePress, "the press's shade out" to WardPress.shadeRelease)) {
+            check("$name (${f2(s)} s) is in the band", WardMotion.inBand(s))
+        }
+        check("kept outside the band as iOS keeps them: the spoken word's 0.1 and the working trace's 1.2",
+            WardMotion.word == 0.1 && WardMotion.trace == 1.2 && !WardMotion.inBand(WardMotion.word) && !WardMotion.inBand(WardMotion.trace))
+        check("the band's edges are in it, and a 0.9 or 0.6 is not (the old rings and score)",
+            WardMotion.inBand(0.2) && WardMotion.inBand(0.32) && !WardMotion.inBand(0.9) && !WardMotion.inBand(0.6) && !WardMotion.inBand(0.45))
+        check("iOS's curves: ease-out (0, 0, 0.58, 1), ease-in-out (0.42, 0, 0.58, 1)",
+            WardMotion.easeOut == WardPress.Curve(0.0, 0.0, 0.58, 1.0) && WardMotion.easeInOut == WardPress.Curve(0.42, 0.0, 0.58, 1.0))
+        val samples = (0..100).map { it / 100.0 }
+        for ((name, c) in listOf("ease-out" to WardMotion.easeOut, "ease-in-out" to WardMotion.easeInOut)) {
+            val ys = samples.map { ease(c, it) }
+            check("$name runs from 0 to 1 and never past either (no overshoot)", kotlin.math.abs(ys.first()) < 1e-6 &&
+                kotlin.math.abs(ys.last() - 1) < 1e-6 && ys.all { it in -1e-9..1 + 1e-9 } && ys.zipWithNext().all { (a, b) -> b >= a - 1e-9 })
+        }
+        check("the ease-out is fast at the start and settles gently",
+            ease(WardMotion.easeOut, 0.25) > 0.35 && ease(WardMotion.easeOut, 0.5) > 0.6 && ease(WardMotion.easeOut, 0.9) > 0.97,
+            "${f3(ease(WardMotion.easeOut, 0.25))} ${f3(ease(WardMotion.easeOut, 0.5))} ${f3(ease(WardMotion.easeOut, 0.9))}")
+        check("a spring is critically damped", WardMotion.damping == 1.0)
+        check("a spring's stiffness is (2π / duration)²: 438.65 for 0.3 s, 986.96 for 0.2 s",
+            kotlin.math.abs(WardMotion.stiffness(0.3) - 438.65) < 0.01 && kotlin.math.abs(WardMotion.stiffness(0.2) - 986.96) < 0.01,
+            "${f2(WardMotion.stiffness(0.3))} ${f2(WardMotion.stiffness(0.2))}")
+        for ((name, s) in listOf("toggle" to WardMotion.toggle, "travel" to WardMotion.travel, "fill" to WardMotion.fill)) {
+            val (lowest, settled) = spring(WardMotion.damping, WardMotion.stiffness(s))
+            check("$name's spring never passes its mark", lowest >= -1e-6, f3(lowest))
+            check("$name's spring is within 1% of its mark inside the band's 0.32 s", settled <= WardMotion.longest, f3(settled))
+        }
+        val (bounced, _) = spring(0.85, 600.0)
+        check("the old (0.85, 600) spring passed its mark (the check bites)", bounced < -1e-3, f3(bounced))
+        check("animations are off only at the scale's 0 (Remove animations)",
+            WardMotion.reduce(0f) && !WardMotion.reduce(1f) && !WardMotion.reduce(0.5f) && !WardMotion.reduce(10f))
+        val type = File("src/main/java/com/stethoscore/app/ui/ward/WardType.kt").takeIf { it.exists() }?.readText() ?: ""
+        check("the flag is the animator duration scale, watched as it changes",
+            type.contains("Settings.Global.ANIMATOR_DURATION_SCALE") && type.contains("registerContentObserver") &&
+                type.contains("unregisterContentObserver"))
+        check("with animations off a Ward spec is simply there", type.contains("if (reduce) snap() else tween(") &&
+            type.contains("if (reduce) snap() else spring("))
+        check("the theme provides the flag to every surface",
+            (File("src/main/java/com/stethoscore/app/ui/Theme.kt").takeIf { it.exists() }?.readText() ?: "")
+                .contains("LocalWardReduceMotion provides reduceMotion"))
     }
 }

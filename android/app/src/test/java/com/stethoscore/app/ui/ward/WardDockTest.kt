@@ -104,7 +104,18 @@ class WardDockTest {
         check("the ring is the chosen edge's width", WardDock.ringWidth == WardControlStates.chosenEdgeWidth)
         check("the chosen tab is the panel's radius less the inset, in a hollow with the chosen edge",
             dock.contains("val inset=WardDock.barInset") && dock.contains("val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)") &&
-                dock.contains(".wardChosenEdge(tab,selected)") && dock.contains("Modifier.wardInset(tab,WardLift.low)"))
+                dock.contains("Box(Modifier.wardChosenEdge(tab,true).wardInset(tab,WardLift.low))"))
+        // iOS StudyCategory.swift:748: one hollow travels with the choice (.snappy(duration: 0.3)), at once under
+        // Reduce Motion; a held tab that is not chosen sinks into a hollow of its own (WardItemButtonStyle)
+        check("one hollow travels between the tabs, never one per tab shown and hidden",
+            dock.contains("WardDock.hollow(") && !dock.contains(".wardChosenEdge(tab,selected)") &&
+                dock.contains("if(held && !selected) Modifier.wardInset(tab,WardLift.low)"))
+        check("it travels on the travel token, and with animations off or back from Ideas it is simply there",
+            dock.contains("wardSpring(com.stethoscore.app.ui.ward.WardMotion.travel,reduce)") &&
+                dock.contains("if(reduce || from<0) hollow.snapTo(") && dock.contains("val reduce=com.stethoscore.app.ui.ward.wardReduceMotion()"))
+        check("only the dock's layout reads where the hollow is, never the bar's sizing",
+            dock.contains("override fun androidx.compose.ui.layout.IntrinsicMeasureScope.minIntrinsicHeight") &&
+                dock.contains("hollowAt={ if(at<0) null"))
         check("the panel is raised high on its rim, as iOS", dock.contains(".wardRaised(WardDock.panelRadius,WardLift.high,control=true)"))
         check("no flat panel, border, Material colours or ripple",
             !dock.contains(".border(") && !dock.contains("colorScheme") && dock.contains("indication=null") && !dock.contains(".clip("))
@@ -135,6 +146,31 @@ class WardDockTest {
         check("with room to spare, the narrower tabs share it", WardDock.tabWidths(listOf(80.0, 40.0, 40.0), 200.0) == listOf(80.0, 60.0, 60.0) &&
             WardDock.nameScale(listOf(80.0, 40.0, 40.0), 200.0) == 1.0)
         check("the bar's numbers are iOS's", WardDock.barSide == 10.0 && WardDock.ideasWidth == 56.0 && WardDock.barSpacing == 6.0 &&
-            WardDock.barMaxWidth == 560.0 && WardDock.leastTab == 44.0 && WardDock.leastNameScale == 0.5)
+            WardDock.barMaxWidth == 560.0 && WardDock.leastNameScale == 0.5)
+        check("a tab is never narrower than the least target, 48 on Android (iOS 44)", WardDock.leastTab == WardControlSize.target)
+    }
+
+    // The one hollow the choice moves (iOS matchedGeometryEffect): on a tab
+    // it is that tab; between two its place and width are taken that far
+    // from one to the next; it never leaves the row.
+    @Test fun theHollowTravels() = checks {
+        val widths = listOf(60.0, 80.0, 50.0)
+        check("on a tab it is that tab", WardDock.hollow(widths, 0.0) == WardDock.Span(0.0, 60.0) &&
+            WardDock.hollow(widths, 1.0) == WardDock.Span(60.0, 80.0) && WardDock.hollow(widths, 2.0) == WardDock.Span(140.0, 50.0))
+        val half = WardDock.hollow(widths, 0.5)
+        check("half way from the first to the second, half way in place and in width",
+            kotlin.math.abs(half.left - 30.0) < 1e-9 && kotlin.math.abs(half.width - 70.0) < 1e-9, "$half")
+        val quarter = WardDock.hollow(widths, 1.25)
+        check("a quarter of the way from the second to the third",
+            kotlin.math.abs(quarter.left - 80.0) < 1e-9 && kotlin.math.abs(quarter.width - 72.5) < 1e-9, "$quarter")
+        check("it never leaves the first or the last tab",
+            WardDock.hollow(widths, -0.3) == WardDock.Span(0.0, 60.0) && WardDock.hollow(widths, 2.4) == WardDock.Span(140.0, 50.0))
+        val total = widths.sum()
+        check("all the way along it stays on the row, its two edges moving one way",
+            (0..200).map { WardDock.hollow(widths, it / 100.0) }.let { spans ->
+                spans.all { it.left >= 0 && it.left + it.width <= total + 1e-9 } &&
+                    spans.zipWithNext().all { (a, b) -> b.left >= a.left - 1e-9 && b.left + b.width >= a.left + a.width - 1e-9 }
+            })
+        check("no tabs, no hollow", WardDock.hollow(emptyList(), 1.0) == WardDock.Span(0.0, 0.0))
     }
 }

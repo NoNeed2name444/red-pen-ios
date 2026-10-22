@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.AlertDialog
@@ -32,6 +33,7 @@ import com.stethoscore.app.data.ImportPreview
 import com.stethoscore.app.data.ImportSource
 import com.stethoscore.app.data.LibraryImport
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.ui.ward.wardRelief
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardTextButton
@@ -40,7 +42,6 @@ import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
-import com.stethoscore.app.ui.ward.wardRaised
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -140,7 +141,7 @@ private class IncomingMessage(val title: String, val body: String)
 
     reading?.let { name ->
         Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
-            Row(Modifier.wardRaised(20.0, WardLift.high).padding(horizontal = 14.dp, vertical = 8.dp),
+            Row(Modifier.wardRelief(RoundedCornerShape(50), WardLift.high).padding(horizontal = 14.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Download, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(16.dp))
                 Text("Reading $name…", style = WardTextStyle.footnote.textStyle(WardWeight.medium), color = wardColor(WardToken.ink))

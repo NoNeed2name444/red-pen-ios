@@ -53,9 +53,12 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.data.SubjectStats
 import com.stethoscore.app.quiz.MistakeReason
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardEmptyState
+import com.stethoscore.app.ui.ward.WardGroove
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
@@ -96,7 +99,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
 
     Column(Modifier.fillMaxSize()) {
         LibraryPageTop("By subject", onBack)
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             item {
                 LibraryFormSection(footer = tried.firstOrNull()?.let { StatsWords.drillNote(it.subject) }) {
@@ -110,7 +113,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
                     rows.forEach { row ->
                         Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             TitleAndFigure(row.confidence.title, "${StatsWords.percent(row.accuracy)} right", wardColor(WardToken.primaryInk))
-                            LibraryGroove(row.accuracy, wardColor(WardToken.primaryInk), Modifier.clearAndSetSemantics {})
+                            WardGroove(row.accuracy, wardColor(WardToken.primaryInk), Modifier.clearAndSetSemantics {})
                             Text(StatsWords.counted(row.answered, "answer"), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
                         }
                     }
@@ -136,7 +139,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
                                     TitleAndFigure(share.reason.title, StatsWords.percent(share.share), wardColor(WardToken.primaryInk))
                                 }
                             }
-                            LibraryGroove(share.share, wardColor(WardToken.primaryInk), Modifier.clearAndSetSemantics {})
+                            WardGroove(share.share, wardColor(WardToken.primaryInk), Modifier.clearAndSetSemantics {})
                             val questions = StatsWords.counted(share.count, "question")
                             when (share.reason) {
                                 MistakeReason.didntKnow -> ActionLine(Icons.AutoMirrored.Rounded.ArrowForward, "Practise these · $questions") {
@@ -221,7 +224,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
 
 /** A row that opens a page: a glyph, a name, a count and a chevron (iOS NavigationLink). */
 @Composable private fun LinkRow(icon: ImageVector, title: String, count: String?, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
+    Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Icon(icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
         Text(title, style = WardTextStyle.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
@@ -232,7 +235,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
 
 /** A line in the tint that does one thing (iOS borderless Label button). */
 @Composable private fun ActionLine(icon: ImageVector?, text: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
+    Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (icon != null) Icon(icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
         Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.primaryInk), modifier = Modifier.weight(1f))
@@ -252,7 +255,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
     Column(Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Drills up to 20 questions in this subject", onClick = onClick)
         .semantics(mergeDescendants = true) {}.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         TitleAndFigure(s.subject, percent, color)
-        LibraryGroove(if (s.answered == 0) 0.0 else s.accuracy, color, Modifier.clearAndSetSemantics {})
+        WardGroove(if (s.answered == 0) 0.0 else s.accuracy, color, Modifier.clearAndSetSemantics {})
         Text(line, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
     }
 }
@@ -280,7 +283,7 @@ private fun makeQuiz(name: String, picks: List<QuestionPick>): StudySet {
 @Composable private fun InsightQuestionList(list: QuestionList, onBack: () -> Unit, onQuiz: (LibraryQuiz) -> Unit) {
     Column(Modifier.fillMaxSize()) {
         LibraryPageTop(list.title, onBack)
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             list.tip?.let { tip -> item {
                 LibraryFormSection {
@@ -291,7 +294,7 @@ private fun makeQuiz(name: String, picks: List<QuestionPick>): StudySet {
                 }
             } }
             if (list.picks.isEmpty()) item {
-                LibraryFormSection { LibraryEmptyState(Icons.Rounded.Inbox, "Nothing here at the moment.") }
+                LibraryFormSection { WardEmptyState(Icons.Rounded.Inbox, "Nothing here at the moment.") }
             } else item {
                 val count = list.picks.size
                 LibraryFormSection(footer = "$count question${if (count == 1) "" else "s"}. Tap one to see its answer.") {

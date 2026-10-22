@@ -15,7 +15,7 @@ import Foundation
 /// metadata step, which the Playgrounds package does not have.
 struct StudyFocusFilter: SetFocusFilterIntent {
     static var title: LocalizedStringResource = "Study reminders only"
-    static var description = IntentDescription("While this Focus is on, only study reminders from Stethoscore come through: the ward round, due cards and the daily questions.")
+    static var description = IntentDescription("While this Focus is on, only study reminders from Stethoscore come through: your focus session, due cards and the daily questions.")
 
     @Parameter(title: "Only study reminders", default: true)
     var studyOnly: Bool

@@ -18,8 +18,8 @@ object ChartQuiz {
         return if (s.isNotEmpty()) s else if (n.isEmpty()) "Questions" else n
     }
 
-    /** "Patient 7 of 20": each question is a patient on the round. */
-    fun status(current: Int, total: Int): String = "Patient ${current + 1} of $total"
+    /** "Question 7 of 20". */
+    fun status(current: Int, total: Int): String = "Question ${current + 1} of $total"
 
     /**
      * Under it: in a timed paper only how many are answered (the score is
@@ -34,8 +34,8 @@ object ChartQuiz {
     /** How far the amber strip under the title has filled. */
     fun fraction(current: Int, total: Int): Double = current.toDouble() / maxOf(1, total).toDouble()
 
-    /** The chip beside PATIENT CHART. */
-    fun kindChip(retest: Boolean): String = if (retest) "Second try" else "Best answer"
+    /** The chip beside SINGLE BEST ANSWER: "Second try" on a re-test, and none on a first try, where the label already names the kind of question. */
+    fun kindChip(retest: Boolean): String? = if (retest) "Second try" else null
 
     /** The exam clock, "12:30" or "1:05:00". */
     fun clock(seconds: Int): String {
@@ -144,12 +144,12 @@ object ChartQuiz {
         if (holding && !checked) return "Keep reading"
         // a paper is sat as on the day: a question can be skipped and come
         // back to, and nothing is marked until the paper is handed in
-        if (examMode && !checked) return if (last) "Finish paper" else if (picked) "Next patient" else "Skip for now"
+        if (examMode && !checked) return if (last) "Finish paper" else if (picked) "Next question" else "Skip for now"
         if (!checked && !picked) return "Pick an answer"
         if (!checked) return "Check answer"
-        return if (last) "See results" else "Next patient"
+        return if (last) "See results" else "Next question"
     }
 
-    /** Explain sits beside Next patient once the explanation shows; a timed paper keeps explanations for the end. */
+    /** Explain sits beside Next question once the explanation shows; a timed paper keeps explanations for the end. */
     fun explains(checked: Boolean, examMode: Boolean): Boolean = checked && !examMode
 }

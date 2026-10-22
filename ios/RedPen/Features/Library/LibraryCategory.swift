@@ -141,7 +141,7 @@ extension LibraryView {
 
     private static func moreDetail(_ page: SupportPage) -> String {
         switch page {
-        case .analytics: return "Readiness, study rhythm and what needs a consult"
+        case .analytics: return "Readiness, study rhythm and weak topics"
         case .sources: return "Every lecture you have added"
         default: return ""
         }

@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,10 +42,11 @@ import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.OsceGenerator
 import com.stethoscore.app.data.OsceStations
 import com.stethoscore.app.ui.mock.CountField
-import com.stethoscore.app.ui.mock.WardBanner
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextField
@@ -242,7 +244,7 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
 
     @Composable fun Messages() {
         status?.let { Text(it, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary)) }
-        trouble?.let { WardBanner(WardTone.Danger, Icons.Rounded.Warning, it) }
+        trouble?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
     }
 
     @Composable fun Footer(text: String) {
@@ -281,7 +283,7 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
                 }
                 Messages()
             }
-            Row(Modifier.fillMaxWidth().clickable(role = Role.Button) { showMore = !showMore }
+            Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp).clickable(role = Role.Button) { showMore = !showMore }
                 .semantics { stateDescription = if (showMore) "Expanded" else "Collapsed" }.padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Text("More options", Modifier.weight(1f), style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))

@@ -64,6 +64,7 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardCircleButton
@@ -110,9 +111,9 @@ import kotlin.random.Random
                     overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { trailing?.invoke() }
             }
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(20.dp),
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),
                 verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp), content = content)
-            if (bottom != null) Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = WardSpace.m.wardDp),
+            if (bottom != null) Column(Modifier.fillMaxWidth().padding(horizontal = WardSpace.gutter.wardDp, vertical = WardSpace.m.wardDp),
                 verticalArrangement = Arrangement.spacedBy(10.dp), content = bottom)
         }
     }
@@ -146,7 +147,7 @@ import kotlin.random.Random
     AlertDialog(onDismissRequest = onDismiss, containerColor = wardColor(WardToken.raised),
         title = { Text(title, color = wardColor(WardToken.ink)) },
         text = { Text(message, color = wardColor(WardToken.inkSecondary)) },
-        confirmButton = { WardTextButton("OK", onDismiss, kind = WardButtonKind.compact, fills = false) })
+        confirmButton = { WardTextButton("Done", onDismiss, kind = WardButtonKind.compact, fills = false) })
 }
 
 /** A card found by the search, its answer behind Show answer (iOS FoundCardSheet). */
@@ -255,7 +256,7 @@ import kotlin.random.Random
                 WardCircleButton(Icons.Rounded.Add, "More", { filter = filter.copy(limit = (filter.limit + 10).coerceAtMost(200)) }, enabled = filter.limit < 200)
             }
         }
-        note?.let { LibraryBanner(it, Icons.Rounded.Warning, WardTone.Warning) }
+        note?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Warning) }
     }
 }
 

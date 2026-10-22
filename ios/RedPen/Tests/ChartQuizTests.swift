@@ -1,4 +1,4 @@
-// The question screen as a patient chart: what the header says, which parts
+// The question screen: what the header says, which parts
 // of a stem the chart card shows (and a stem with nothing to chart left as
 // it was), the highlighter's marks across story and question, how options
 // are marked - never right or wrong in a timed paper - and the bar's words.
@@ -15,7 +15,7 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
 check("the title is the set's subject", ChartQuiz.title(subject: "Nephrology", name: "Renal 1") == "Nephrology")
 check("no subject: the set's name", ChartQuiz.title(subject: "  ", name: "Renal 1") == "Renal 1")
 check("neither: Questions", ChartQuiz.title(subject: "", name: "") == "Questions")
-check("a question is a patient", ChartQuiz.status(current: 6, total: 20) == "Patient 7 of 20",
+check("a question is a question", ChartQuiz.status(current: 6, total: 20) == "Question 7 of 20",
       ChartQuiz.status(current: 6, total: 20))
 check("a timed paper says only how many are answered",
       ChartQuiz.detail(examMode: true, resuming: false, correct: 2, checked: 3) == "3 answered")
@@ -27,8 +27,8 @@ check("then the running score",
       ChartQuiz.detail(examMode: false, resuming: false, correct: 2, checked: 3) == "2 of 3 right so far")
 check("the strip starts empty and fills with the paper",
       ChartQuiz.fraction(current: 0, total: 20) == 0 && ChartQuiz.fraction(current: 10, total: 20) == 0.5)
-check("the chip says best answer, or second try on a re-test",
-      ChartQuiz.kindChip(retest: false) == "Best answer" && ChartQuiz.kindChip(retest: true) == "Second try")
+check("no chip on a first try, second try on a re-test",
+      ChartQuiz.kindChip(retest: false) == nil && ChartQuiz.kindChip(retest: true) == "Second try")
 check("the clock in minutes", ChartQuiz.clock(750) == "12:30", ChartQuiz.clock(750))
 check("and in hours for a long paper", ChartQuiz.clock(3900) == "1:05:00", ChartQuiz.clock(3900))
 check("VoiceOver hears minutes and seconds", ChartQuiz.spokenClock(125) == "2 minutes 5 seconds left")
@@ -106,9 +106,9 @@ func title(checked: Bool = false, picked: Bool = true, holding: Bool = false, ex
 check("nothing picked says so", title(picked: false) == "Pick an answer")
 check("the slow reading drill holds", title(holding: true) == "Keep reading")
 check("then Check answer", title() == "Check answer")
-check("checked: Next patient", title(checked: true) == "Next patient")
+check("checked: Next question", title(checked: true) == "Next question")
 check("and See results on the last", title(checked: true, last: true) == "See results")
-check("a paper answers and moves on", title(exam: true) == "Next patient" && title(exam: true, last: true) == "Finish paper")
+check("a paper answers and moves on", title(exam: true) == "Next question" && title(exam: true, last: true) == "Finish paper")
 check("a paper's question can be skipped", title(picked: false, exam: true) == "Skip for now"
       && title(picked: false, exam: true, last: true) == "Finish paper")
 check("Explain once checked", ChartQuiz.explains(checked: true, examMode: false))

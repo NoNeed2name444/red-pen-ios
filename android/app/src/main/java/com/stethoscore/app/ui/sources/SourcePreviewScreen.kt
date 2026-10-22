@@ -140,9 +140,11 @@ object SourceReaderWords {
  */
 @Composable fun SourcePageList(source: SourceDoc, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val state = rememberLazyListState()
+    // with animations off the open page is simply in view
+    val reduce = wardReduceMotion()
     LaunchedEffect(selected) {
         val at = source.pages.indexOfFirst { it.number == selected }
-        if (at >= 0) state.animateScrollToItem(maxOf(0, at - 2))
+        if (at >= 0) { if (reduce) state.scrollToItem(maxOf(0, at - 2)) else state.animateScrollToItem(maxOf(0, at - 2)) }
     }
     LazyColumn(modifier, state = state, contentPadding = PaddingValues(vertical = 4.dp)) {
         items(source.pages, key = { it.number }) { p ->
@@ -170,7 +172,7 @@ object SourceReaderWords {
 /** Search results, as somewhere to go rather than a jump: every match with the words around it. */
 @Composable fun SourceResultsList(hits: List<SourceSearch.Hit>, source: SourceDoc, open: (Int) -> Unit) {
     if (hits.isEmpty()) {
-        ReaderEmptyState(Icons.Rounded.Search, "Not in this ${source.sourceKind.label.lowercase()}",
+        WardEmptyState(Icons.Rounded.Search, "Not in this ${source.sourceKind.label.lowercase()}",
             "No ${source.sourceKind.pageNoun.lowercase()} mentions it.")
         return
     }

@@ -851,7 +851,7 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                         }
                         if pocket {
                             Button { showingPocket = true } label: {
-                                Label("Ward pocket", systemImage: "cross.case")
+                                Label("Clinical reference", systemImage: "cross.case")
                             }
                             .accessibilityIdentifier("wardPocket")
                         }

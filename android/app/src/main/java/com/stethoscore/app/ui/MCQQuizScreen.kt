@@ -34,9 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,14 +45,32 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.*
+import com.stethoscore.app.ui.ward.StudyActionBar
+import com.stethoscore.app.ui.ward.WardButtonBox
+import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardCardFace
+import com.stethoscore.app.ui.ward.WardChip
+import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardSmallCapsText
+import com.stethoscore.app.ui.ward.WardTimerPill
+import com.stethoscore.app.ui.mock.StudyTitleBar
+import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.WardTone
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardTypeSpec
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 // A port of ios/RedPen/Features/MCQ/MCQQuizView.swift: the question
 // screen. Pick an option, check it (the right one in the section's colour, a
-// wrong pick faded grey), read the explanation, then Next patient / See
+// wrong pick faded grey), read the explanation, then Next question / See
 // results. The same flow and words as iOS: resuming a saved place, the timed
 // paper, crossing out, the highlighter, the attending's hint, Flag, How sure?,
 // Why did you miss it?, and a re-test a few questions on. What each part
@@ -65,8 +81,7 @@ import kotlin.math.abs
 // Check accuracy and Turn into in the More menu, Save to Ideas, How to reach
 // it (Reasoning), and the keyboard shortcuts. Android has no question writer,
 // so the hint is always the attending's own (AttendingHint.fallback) and
-// Write a twin says that none is set up. The Ward controls are plain Compose
-// stand-ins (ChartQuizViews.kt) until batches 2 and 3 land.
+// Write a twin says that none is set up.
 
 /** Settings the question screen reads (iOS @AppStorage), from the app's one preferences file. */
 internal object QuizPrefs {
@@ -141,12 +156,12 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     var menuOpen by remember { mutableStateOf(false) }
 
     if (set.questions.isEmpty()) {
-        Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Column(Modifier.fillMaxSize().padding(WardSpace.gutter.wardDp)) {
             ScreenHeader(ChartQuiz.title(set.subject, set.name), "", onBack)
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Rounded.QuestionMark, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(44.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("No questions", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
+                Text("No questions", style = WardType.title.textStyle(), modifier = Modifier.semantics { heading() })
                 Text("This set has no questions yet.", color = wardColor(WardToken.inkSecondary))
             }
         }
@@ -330,9 +345,13 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 
     val scroll = rememberScrollState()
     val explain = remember { BringIntoViewRequester() }
-    LaunchedEffect(current) { scroll.animateScrollTo(0) }
+    // with animations off a new question simply starts at the top
+    val reduce = com.stethoscore.app.ui.ward.wardReduceMotion()
+    LaunchedEffect(current) { if (reduce) scroll.scrollTo(0) else scroll.animateScrollTo(0) }
 
-    val inkStyle = TextStyle(color = wardColor(WardToken.ink), lineHeight = 24.sp)
+    // the chart's words as iOS sets them: their face, with 3 points more between the lines (lineSpacing(3))
+    val chartInk = wardColor(WardToken.ink)
+    fun chartStyle(face: WardTypeSpec) = face.textStyle().copy(color = chartInk, lineHeight = (face.line + 3).sp)
     val accent = wardColor(WardToken.primaryInk)
     // a stem's text when nothing is being marked: in the slow reading drill, the key words in the accent and bold
     fun plainText(text: String): AnnotatedString = if (readSeconds <= 0) AnnotatedString(text) else buildAnnotatedString {
@@ -341,15 +360,15 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     }
 
     Column(Modifier.fillMaxSize()) {
-        // the title bar: back, the subject, Save for a set not yet saved, and More
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
-            Text(ChartQuiz.title(set.subject, set.name), Modifier.weight(1f).semantics { heading() }, fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold, maxLines = 1, color = wardColor(WardToken.ink))
-            if (isUnsaved) QuizChip(if (saved) "Saved" else "Save", if (saved) Icons.Rounded.Check else Icons.Rounded.Download, on = false,
-                onClick = { onSave?.invoke(); saved = true }, enabled = !saved)
+        // the title bar (StudyTitleBar): back, the subject, Save for a set not yet saved, and More
+        StudyTitleBar(ChartQuiz.title(set.subject, set.name), onBack) {
+            // iOS's .wardCompact: one fixed style, and disabled once saved (Biro Grey)
+            if (isUnsaved) WardButtonBox({ onSave?.invoke(); saved = true }, kind = WardButtonKind.compact, enabled = !saved) {
+                Icon(if (saved) Icons.Rounded.Check else Icons.Rounded.Download, null, Modifier.size(18.dp))
+                Text(if (saved) "Saved" else "Save", maxLines = 1)
+            }
             Box {
-                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = "More") }
+                WardCircleButton(Icons.Rounded.MoreHoriz, "More", { menuOpen = true })
                 DropdownMenu(menuOpen, { menuOpen = false }, containerColor = wardColor(WardToken.raised)) {
                     if (canStartExam) {
                         val pace = if (track == ExamTrack.general) "revision" else track.title
@@ -362,14 +381,14 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         onHighlight = { menuOpen = false; highlighting = !highlighting })
                     if (examEndsAt == null) {
                         HorizontalDivider()
-                        DropdownMenuItem(text = { Text("Ward pocket") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
+                        DropdownMenuItem(text = { Text("Clinical reference") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
                             onClick = { menuOpen = false; pocketOpen = true }, modifier = Modifier.testTag("wardPocket"))
                     }
                 }
             }
         }
 
-        // the header: "Patient 3 of 20", the running score, the clock or Timed, the amber strip
+        // the header: "Question 3 of 20", the running score, the clock or Timed, the amber strip
         val score = run {
             var correct = 0; var checked = 0
             answers.forEachIndexed { i, ans -> if (ans.checked && !isRetest(i)) { checked += 1; if (isRight(i)) correct += 1 } }
@@ -379,14 +398,15 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
-                    Text(ChartQuiz.status(current, questions.size), fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = wardColor(WardToken.ink))
+                    Text(ChartQuiz.status(current, questions.size), style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
                     Text(ChartQuiz.detail(examMode, pendingResume != null, score.first, if (examMode) picked else score.second),
-                        fontSize = 15.sp, color = wardColor(WardToken.inkSecondary))
+                        style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
                 val ends = examEndsAt
                 if (ends != null) ExamClock(ends)
-                else if (canStartExam && pendingResume == null) QuizChip("Timed", Icons.Rounded.Timer, on = false, onClick = ::startExam,
-                    label = "Start a timed exam, ${ChartQuiz.clock(examSeconds)}")
+                else if (canStartExam && pendingResume == null) WardChipButton("Timed", ::startExam,
+                    Modifier.semantics { contentDescription = "Start a timed exam, ${ChartQuiz.clock(examSeconds)}" },
+                    icon = Icons.Rounded.Timer, role = Role.Button)
             }
             Box(Modifier.clearAndSetSemantics {}) { QuizStrip(ChartQuiz.fraction(current, questions.size)) }
         }
@@ -398,7 +418,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 val whenText = DateUtils.getRelativeTimeSpanString(p.savedAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString().lowercase()
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Rounded.History, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(18.dp))
-                    Text("You left off $whenText · $done of ${set.questions.size} answered", fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                    Text("You left off $whenText · $done of ${set.questions.size} answered", style = WardTextStyle.subheadline.textStyle(WardWeight.medium),
                         color = wardColor(WardToken.inkSecondary))
                 }
             }
@@ -406,42 +426,43 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             // the question as a patient's chart
             val layout = remember(q.stem) { ChartQuiz.layout(q.stem) }
             val marks = highlights[current] ?: emptySet()
-            QuizCard {
+            WardCardFace(Modifier.fillMaxWidth()) {
                 val again = isRetest(current)
                 val flaggable = inLibrary(q.id)
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QuizSmallCaps("Patient chart")
-                        QuizTag(ChartQuiz.kindChip(again), if (again) QuizTone.warning else QuizTone.blue)
+                        WardSmallCapsText("Single best answer", Modifier.semantics { heading() })
+                        ChartQuiz.kindChip(again)?.let { WardChip(it, tone = if (again) WardTone.Warning else WardTone.Blue) }
                     }
                     Spacer(Modifier.weight(1f))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canHint) HintChip(used = hints[q.id] != null, action = ::askHint)
                         if (flaggable) {
                             val on = q.id in flagged
-                            QuizChip(if (on) "Flagged" else "Flag", if (on) Icons.Rounded.Flag else Icons.Outlined.Flag, on = on, warning = true,
-                                label = if (on) "Remove flag" else "Flag this question",
-                                onClick = { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); store.toggleFlag(q.id); flagged = store.flagged })
+                            WardChipButton(if (on) "Flagged" else "Flag",
+                                { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); store.toggleFlag(q.id); flagged = store.flagged },
+                                Modifier.semantics { contentDescription = if (on) "Remove flag" else "Flag this question" },
+                                on = on, tone = WardTone.Warning, icon = if (on) Icons.Rounded.Flag else Icons.Outlined.Flag, role = Role.Button)
                         }
                     }
                 }
                 if (layout.plain) {
                     HighlightableStem(q.stem, plainText(q.stem), marks, { highlights = highlights + (current to it) }, highlighting,
-                        inkStyle.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, lineHeight = 28.sp))
+                        chartStyle(WardType.title))
                 } else {
                     if (layout.chips.isNotEmpty()) ChartChipsRow(layout.chips)
                     if (layout.vitals.isNotEmpty()) ChartVitalsGrid(layout.vitals)
                     if (layout.story.isNotEmpty()) HighlightableStem(layout.story, plainText(layout.story), ChartQuiz.marks(marks, question = false),
                         { highlights = highlights + (current to ChartQuiz.merging(it, question = false, into = highlights[current] ?: emptySet())) },
-                        highlighting, inkStyle.copy(fontSize = 17.sp))
+                        highlighting, chartStyle(WardType.body))
                     if (layout.labs.isNotEmpty()) ChartLabsTable(layout.labs)
                     if (layout.question.isNotEmpty()) HighlightableStem(layout.question, plainText(layout.question), ChartQuiz.marks(marks, question = true),
                         { highlights = highlights + (current to ChartQuiz.merging(it, question = true, into = highlights[current] ?: emptySet())) },
-                        highlighting, inkStyle.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold), prompt = layout.story.isEmpty())
+                        highlighting, chartStyle(WardType.headline), prompt = layout.story.isEmpty())
                 }
                 if (readSeconds > 0 && !a.checked) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Rounded.Visibility, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(18.dp))
-                    Text("Slow reading: the key words are marked, and you can answer after $readSeconds seconds.", fontSize = 15.sp,
+                    Text("Slow reading: the key words are marked, and you can answer after $readSeconds seconds.", style = WardTextStyle.subheadline.textStyle(),
                         color = wardColor(WardToken.inkSecondary))
                 }
                 q.imageIndex?.takeIf { it in set.images.indices }?.let { Box(Modifier.heightIn(max = 220.dp)) { CardImage(set, it) } }
@@ -478,19 +499,19 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             // in exam mode the explanation waits for the results, as it would in the real paper
             if (a.checked && !examMode) {
                 val correct = isRight(current)
-                QuizCard(Modifier.bringIntoViewRequester(explain)) {
+                WardCardFace(Modifier.fillMaxWidth().bringIntoViewRequester(explain)) {
                     Row(Modifier.semantics(mergeDescendants = true) { heading() }, verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.danger)
                         Icon(if (correct) Icons.Rounded.Verified else Icons.Rounded.Info, null, tint = tint, modifier = Modifier.size(20.dp))
-                        Text(if (correct) "Right!" else "Not quite", fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = tint)
+                        Text(if (correct) "Right!" else "Not quite", style = WardType.headline.textStyle(), color = tint)
                     }
                     if (struckTheAnswer) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Rounded.HorizontalRule, null, tint = wardColor(WardToken.warning), modifier = Modifier.size(18.dp))
-                        Text("You crossed out the right answer. What made you rule it out?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        Text("You crossed out the right answer. What made you rule it out?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold),
                             color = wardColor(WardToken.warning))
                     }
-                    Text(q.explanation, style = inkStyle.copy(fontSize = 17.sp))
+                    Text(q.explanation, style = chartStyle(WardType.body))
                 }
             }
 
@@ -502,11 +523,11 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         val chosen = reasons[q.id]
                         MistakeReason.entries.forEach { reason ->
                             val on = chosen == reason
-                            QuizChip(reason.title, reasonIcon(reason), on = on, onClick = {
+                            WardChipButton(reason.title, {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 reasons = if (on) reasons - q.id else reasons + (q.id to reason)
                                 store.noteMistake(if (on) null else reason.rawValue, q.id)
-                            })
+                            }, on = on, icon = reasonIcon(reason), role = Role.Button)
                         }
                     }
                 }
@@ -518,48 +539,48 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                     Skippable(if (confidences[id] == AnswerConfidence.sure)
                         "You were sure, so this is the kind of mistake that comes back. Fix it now:" else "Fix it while it’s fresh:")
                     Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (canRetest) QuizChip("Re-test me soon", Icons.Rounded.Redo, on = false, onClick = ::insertRetest,
-                            modifier = Modifier.semantics { onClick("Asks this question again, re-shuffled, a few questions from now") { insertRetest(); true } })
-                        if (note == null) QuizChip("Write a twin", Icons.Rounded.ContentCopy, on = false, onClick = ::writeTwin,
-                            modifier = Modifier.semantics { onClick("A new question on the same point, in a different patient, for a day or two from now") { writeTwin(); true } })
+                        if (canRetest) WardChipButton("Re-test me soon", ::insertRetest,
+                            Modifier.semantics { onClick("Asks this question again, re-shuffled, a few questions from now") { insertRetest(); true } },
+                            icon = Icons.Rounded.Redo, role = Role.Button)
+                        if (note == null) WardChipButton("Write a twin", ::writeTwin,
+                            Modifier.semantics { onClick("A new question on the same point, in a different patient, for a day or two from now") { writeTwin(); true } },
+                            icon = Icons.Rounded.ContentCopy, role = Role.Button)
                     }
                     if (id in retested && !isRetest(current)) Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Redo, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(14.dp))
-                        Text("It comes back, re-shuffled, a few questions from now.", fontSize = 13.sp, color = wardColor(WardToken.inkSecondary))
+                        Text("It comes back, re-shuffled, a few questions from now.", style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
                     }
-                    if (note != null) Text(note, fontSize = 13.sp, color = wardColor(WardToken.inkSecondary))
+                    if (note != null) Text(note, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
             }
         }
 
-        // the bar: Start again and Resume while a saved place waits, or How sure? before checking.
-        // It sits on the screen's own tone, with no fill of its own, so the dock reads as one
-        // colour with no band or seam (the owner, 21 Oct; iOS WardDeckSlab).
+        // the bar: Start again and Resume while a saved place waits, or How sure? before checking,
+        // on the one study deck (iOS studyBar(folds: true, shown:)): it folds away, and hidden it
+        // keeps its fold for the next question
         val p = pendingResume
-        if (p != null || (!a.checked && asksConfidence)) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                if (p != null) {
-                    val done = p.answers.count { it.checked }
-                    val total = set.questions.size
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        QuizBigButton("Start again", null, QuizButtonKind.companion, onClick = ::startAgain, label = "Start again instead")
-                        QuizBigButton("Resume ($done of $total)", Icons.Rounded.History, QuizButtonKind.primary, onClick = { resume(p) },
-                            modifier = Modifier.weight(1f), label = "Resume, $done of $total answered")
+        StudyActionBar(folds = true, shown = p != null || (!a.checked && asksConfidence)) {
+            if (p != null) {
+                val done = p.answers.count { it.checked }
+                val total = set.questions.size
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    QuizBigButton("Start again", null, QuizButtonKind.companion, onClick = ::startAgain, label = "Start again instead")
+                    QuizBigButton("Resume ($done of $total)", Icons.Rounded.History, QuizButtonKind.primary, onClick = { resume(p) },
+                        modifier = Modifier.weight(1f), label = "Resume, $done of $total answered")
+                }
+            } else {
+                val chosen = confidences[q.id]
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.align(Alignment.CenterVertically).clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("How sure?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
+                        WardChip("optional", tone = WardTone.Grey)
                     }
-                } else {
-                    val chosen = confidences[q.id]
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(Modifier.align(Alignment.CenterVertically).clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("How sure?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
-                            QuizTag("optional", QuizTone.grey)
-                        }
-                        AnswerConfidence.entries.forEach { level ->
-                            QuizChip(level.title, null, on = chosen == level, onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                confidences = if (chosen == level) confidences - q.id else confidences + (q.id to level)
-                            })
-                        }
+                    AnswerConfidence.entries.forEach { level ->
+                        WardChipButton(level.title, {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            confidences = if (chosen == level) confidences - q.id else confidences + (q.id to level)
+                        }, on = chosen == level, role = Role.Button)
                     }
                 }
             }
@@ -574,8 +595,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 /** A skippable question's lead line, tagged optional. */
 @Composable private fun Skippable(lead: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(lead, Modifier.weight(1f, fill = false), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
-        QuizTag("optional", QuizTone.grey)
+        Text(lead, Modifier.weight(1f, fill = false), style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
+        WardChip("optional", tone = WardTone.Grey)
     }
 }
 
@@ -625,12 +646,6 @@ private fun reasonIcon(reason: MistakeReason) = when (reason) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(endsAt) { while (true) { now = System.currentTimeMillis(); delay(1000) } }
     val left = maxOf(0, ((endsAt - now + 999) / 1000).toInt())
-    val ink = if (left < 61) wardColor(WardToken.danger) else wardColor(WardToken.ink)
-    Row(Modifier.quizFace(QuizFace.pressed, CircleShape, 20f).padding(horizontal = 12.dp, vertical = 8.dp)
-        .clearAndSetSemantics { contentDescription = ChartQuiz.spokenClock(left) },
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Icon(Icons.Rounded.Timer, null, tint = ink, modifier = Modifier.size(16.dp))
-        Text(ChartQuiz.clock(left), color = ink, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-    }
+    WardTimerPill(left, Modifier.clearAndSetSemantics { contentDescription = ChartQuiz.spokenClock(left) }, warnBelow = 61)
 }
 

@@ -12,7 +12,12 @@ import com.stethoscore.app.ui.home.homeShortWindow
 import com.stethoscore.app.ui.ward.WardDock
 import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardChosenEdge
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.ward.wardRaised
@@ -80,6 +85,8 @@ import kotlinx.coroutines.withContext
     var libReview by remember { mutableStateOf<StudySet?>(null) }
     var shelf by rememberSaveable { mutableStateOf(com.stethoscore.app.ui.library.CategoryFeature.MULTIPLE_CHOICE.rawValue) }
     var newKind by rememberSaveable { mutableStateOf(StudySetKind.MCQ) }
+    // the step New set opens on: the first, or the material step from Paste or import
+    var newStep by rememberSaveable { mutableStateOf(com.stethoscore.app.ui.library.NewSetStep.KIND) }
     // New set's preset from the exam card's Study next (batch 16)
     var newPreset by remember { mutableStateOf<com.stethoscore.app.exam.NewSetPreset?>(null) }
     val scope=rememberCoroutineScope()
@@ -88,7 +95,7 @@ import kotlinx.coroutines.withContext
     fun refresh() { revision++ }
     /** Library changes the person asked for; a failed save is shown, never a crash. */
     fun change(action:()->Unit) { runCatching(action).onFailure { notice=it.message ?: "Could not save your library." };refresh() }
-    fun goHome() { screen="home";newPreset=null;refresh() }
+    fun goHome() { screen="home";newPreset=null;newStep=com.stethoscore.app.ui.library.NewSetStep.KIND;refresh() }
     fun open(set:StudySet) {
         selectedId=set.id;screen="study"
         // a textbook or narrate set opened for the first time: Guess first over it
@@ -102,7 +109,7 @@ import kotlinx.coroutines.withContext
                 require(text.length<=20_000_000) { "This file is too large. Import one set at a time." }
                 store.importJson(text)
             } }
-            notice=result.fold({ "Imported $it sets" }) { it.message ?: "Unable to import this file" };refresh()
+            notice=result.fold({ "Imported ${BedPlan.counted(it,"set")}" }) { it.message ?: "Couldn’t import that file. Check it’s a Stethoscore library and try again." };refresh()
         }
     }
     val exported=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -123,7 +130,7 @@ import kotlinx.coroutines.withContext
                 val stream=context.contentResolver.openOutputStream(uri) ?: error("Unable to write to that location")
                 stream.use { com.stethoscore.app.export.DeckPdf.write(set,it) }
             } }
-            notice=result.fold({ "Printed ${set.name} as a PDF deck ($it pages)" }) { it.message ?: "Unable to print this set" }
+            notice=result.fold({ "Printed ${set.name} as a PDF deck (${BedPlan.counted(it,"page")})" }) { it.message ?: "Unable to print this set" }
         }
     }
     var sharing by rememberSaveable { mutableStateOf<String?>(null) }
@@ -151,6 +158,7 @@ import kotlinx.coroutines.withContext
         shareJson={ set -> sharing=set.id;shared.launch(set.name.replace(Regex("[^A-Za-z0-9 _-]"),"").trim().ifEmpty { "set" }+".json") },
         change=::change,
         edit={ set -> selectedId=set.id;screen="edit" },
+        addMaterial={ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;newStep=com.stethoscore.app.ui.library.NewSetStep.MATERIAL;screen="newset" },
     )
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
     BackHandler(screen!="home") { when(screen) { "sources", "exam", "models" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
@@ -204,7 +212,7 @@ import kotlinx.coroutines.withContext
                     "libreview" -> libReview?.let { AnkiReviewScreen(it,store,::goHome) } ?: LaunchedEffect(Unit) { goHome() }
                     "shelf" -> com.stethoscore.app.ui.library.KindShelfScreen(com.stethoscore.app.ui.library.CategoryFeature.entries.first { it.rawValue==shelf },store,revision,::goHome,::open) { newKind=it;screen="newset" }
                     "stats" -> com.stethoscore.app.ui.library.StatsScreen(store,revision,::goHome) { libQuiz=it;screen="libquiz" }
-                    "newset" -> com.stethoscore.app.ui.library.LibraryNewSetScreen(store,newKind,::goHome,::goHome)
+                    "newset" -> com.stethoscore.app.ui.library.LibraryNewSetScreen(store,newKind,::goHome,::goHome,newStep)
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
                     "photo" -> com.stethoscore.app.ui.editors.PictureFromPhotoScreen(store,{ refresh();goHome() },onOpen={ refresh();open(it) })
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },
@@ -257,12 +265,15 @@ import kotlinx.coroutines.withContext
                         // list lets the last one scroll clear of them (HomeFit.endSpace). No
                         // soft edge under the bar either: nothing at the bottom fades.
                         var barHeight by remember { mutableStateOf(0.0) }
-                            LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(20.dp,12.dp,20.dp,20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
+                            LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(WardSpace.gutter.wardDp,WardSpace.m.wardDp,WardSpace.gutter.wardDp,WardSpace.xl.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                                     SectionLabel("YOUR STUDY WARD")
-                                    IconButton(onClick={screen="settings"},Modifier.size(44.dp).border(1.dp,MaterialTheme.colorScheme.outline,RoundedCornerShape(22.dp))) { Icon(Icons.Rounded.Settings,"Settings") }
+                                    // a Ward circle, as iOS's toolbar button beside the search (.wardCircle)
+                                    com.stethoscore.app.ui.ward.WardCircleButton(Icons.Rounded.Settings,"Settings",{ screen="settings" })
                                 } }
-                                item { OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Search questions, cards, notes",fontSize=14.sp)},leadingIcon={Icon(Icons.Rounded.Search,null)},singleLine=true,shape=RoundedCornerShape(30.dp),colors=OutlinedTextFieldDefaults.colors(unfocusedContainerColor=MaterialTheme.colorScheme.surface.copy(alpha=.9f))) }
+                                // the search in a Ward well with its magnifier, as iOS's searchField (.wardField)
+                                item { com.stethoscore.app.ui.ward.WardTextField(query,{query=it},Modifier.fillMaxWidth().semantics { contentDescription="Search" },
+                                    placeholder="Search questions, cards, notes",leadingIcon=Icons.Rounded.Search) }
                                 item {
                                     val below=with(androidx.compose.ui.platform.LocalDensity.current) { HomeFit.belowHeader.dp.toPx() }
                                     DisposableEffect(Unit) { onDispose { bandBottom=null } }
@@ -271,15 +282,15 @@ import kotlinx.coroutines.withContext
                                 }
                                 store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
                                     Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
-                                    Text("Your library could not be opened",fontSize=20.sp,fontWeight=FontWeight.Bold)
+                                    Text("Your library could not be opened",style=WardType.title.textStyle())
                                     Text(message,color=MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text("Nothing is saved until it opens, so the file is never overwritten. Restart the app to try again.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                                 } } }
                                 if(store.library.isEmpty() && store.loadError==null) {
                                     item { WardCard(Modifier.fillMaxWidth()) {
                                         Icon(Icons.Rounded.AutoStories,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(36.dp))
-                                        Text("Your ward starts here",fontSize=23.sp,fontWeight=FontWeight.Bold)
-                                        Text("Bring your questions, cards and lecture notes together. Your library stays on this device.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("Make your first set",style=WardType.title.textStyle())
+                                        Text("Add a lecture and Stethoscore turns it into questions or flashcards to study.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                                         WardButton("Explore example sets",{ change(store::loadExamples) },Modifier.fillMaxWidth(),enabled=store.loadError==null)
                                         TextButton(onClick={imported.launch(arrayOf("application/json","text/plain"))}) { Text("Import a Stethoscore library") }
                                     } }
@@ -295,15 +306,16 @@ import kotlinx.coroutines.withContext
                                 // the library: its sets, folders, search and practice tiles (iOS LibraryView and LibraryRows), each row a part of home's book
                                 libraryItems(store,revision,com.stethoscore.app.ui.library.StudyCategory.named(category),query,libSearch,lib,libActions,
                                     rowModifier={ set -> Modifier.homePart(book,"set-${set.id}","a set row") },showsEmpty=false)
-                                item { Text("Study aid · Not for clinical decisions",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
+                                item { Text("Study aid · Not for clinical decisions",style=WardTextStyle.caption2.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
                                 // the page is not cut above the bar, so this row is what lets the last tile scroll wholly clear of it (HomeFit.endSpace)
                                 item { Spacer(Modifier.fillMaxWidth().height(HomeFit.endSpace(barHeight).dp)) }
                             }
                         // New set and the dock float on the page itself, with nothing behind them
                         // but the page: no strip, no line, no cut of the rows above them, so the
-                        // page reads unbroken to the bottom (the owner, 9 and 22 Oct).
+                        // page reads unbroken to the bottom (the owner, 9 and 22 Oct). Without a
+                        // glow round them, only their edges (iOS wardUnlit).
                         val barDensity=androidx.compose.ui.platform.LocalDensity.current.density
-                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) {
+                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
                         // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)
                         if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=6.dp),horizontalArrangement=Arrangement.End) {
                             com.stethoscore.app.ui.ward.WardButtonBox({ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;screen="newset" },
@@ -313,7 +325,7 @@ import kotlinx.coroutines.withContext
                         }
                         if(lib.selecting) com.stethoscore.app.ui.library.LibrarySelectionBar(store,lib,libActions)
                         else CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} })
-                        }
+                        } }
                     }
                 }
                 if(screen=="home") {
@@ -322,8 +334,8 @@ import kotlinx.coroutines.withContext
                 }
                 // a learning screen over the app, in a sheet of its own (LearnRoutes)
                 com.stethoscore.app.ui.learn.LearnSheet(store,dark,section,onPreset={ com.stethoscore.app.ui.learn.LearnRouter.close();newPreset=it;screen="new" }) { set -> refresh();open(set) }
-                if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("OK")}})
-                notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("OK")}}) }
+                if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("Done")}})
+                notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("Done")}}) }
             }
             // Every page but home stands in the paper's opening (iOS WardPaperFrame):
             // still ECG paper round the window, the page scrolling beneath it.
@@ -341,8 +353,8 @@ import kotlinx.coroutines.withContext
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
             Icon(Icons.Rounded.Inbox,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(28.dp))
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
-                Text("Due cards",fontSize=17.sp,fontWeight=FontWeight.SemiBold)
-                Text(if(due>0) "Cards waiting today \u00B7 $due" else "Cards waiting today",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Due cards",style=WardType.headline.textStyle())
+                Text(if(due>0) "Cards waiting today \u00B7 $due" else "Cards waiting today",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(Icons.Rounded.ChevronRight,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -374,21 +386,38 @@ fun homeSection(category:String):WardSection = when(category) {
     val panel=RoundedCornerShape(WardDock.panelRadius.toFloat().dp)
     val inset=WardDock.barInset
     val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)
+    val categories=listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq)
+    // One hollow travels between the five with the choice, never past the tab it goes to (iOS StudyCategory.swift:748:
+    // .snappy(duration: 0.3)), and with animations off it is simply there. On Ideas there is none; back from Ideas it
+    // is simply there, as iOS's appears.
+    val at=categories.indexOfFirst { it.first==chosen }
+    val reduce=com.stethoscore.app.ui.ward.wardReduceMotion()
+    val hollow=remember { androidx.compose.animation.core.Animatable(maxOf(at,0).toFloat()) }
+    val was=remember { mutableIntStateOf(at) }
+    LaunchedEffect(at) {
+        val from=was.intValue
+        was.intValue=at
+        if(at<0) return@LaunchedEffect
+        if(reduce || from<0) hollow.snapTo(at.toFloat())
+        else hollow.animateTo(at.toFloat(),com.stethoscore.app.ui.ward.wardSpring(com.stethoscore.app.ui.ward.WardMotion.travel,reduce))
+    }
     Box(Modifier.fillMaxWidth().padding(horizontal=WardDock.barSide.toFloat().dp).padding(bottom=10.dp),contentAlignment=Alignment.Center) {
         Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp).fillMaxWidth().height(IntrinsicSize.Min),
             horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)) {
             // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
             DockSlots(Modifier.weight(1f)
                 .wardRaised(WardDock.panelRadius,WardLift.high,control=true)
-                .padding(WardDock.barInset.toFloat().dp).selectableGroup()) {
-                listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq).forEach { (name,rest) ->
+                .padding(WardDock.barInset.toFloat().dp).selectableGroup(),
+                hollowAt={ if(at<0) null else if(was.intValue<0) at.toFloat() else hollow.value }) {
+                // the chosen tab's hollow with the accent's ring: one, under the five, where the choice is
+                Box(Modifier.wardChosenEdge(tab,true).wardInset(tab,WardLift.low))
+                categories.forEach { (name,rest) ->
                     val selected=chosen==name
                     val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     val held by source.collectIsPressedAsState()
-                    // the chosen tab stands in its hollow with the accent's ring; a held one sinks into a hollow (iOS WardItemButtonStyle); no ripple
+                    // the chosen tab stands in the hollow; a held one sinks into a hollow of its own (iOS WardItemButtonStyle); no ripple
                     Column(Modifier
-                        .wardChosenEdge(tab,selected)
-                        .then(if(selected || held) Modifier.wardInset(tab,WardLift.low) else Modifier)
+                        .then(if(held && !selected) Modifier.wardInset(tab,WardLift.low) else Modifier)
                         .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
                         .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
                         .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp),
@@ -412,19 +441,53 @@ fun homeSection(category:String):WardSection = when(category) {
     }
 }
 
-/** The tabs side by side in WardDock's slots: each its ideal width (its name and side room, never under WardDock.leastTab), water-filled or shrunk alike to fit (WardDock.tabWidths). */
-@Composable private fun DockSlots(modifier:Modifier,content:@Composable () -> Unit) {
-    androidx.compose.ui.layout.Layout(content,modifier) { measurables,constraints ->
-        val ideals=measurables.map { maxOf(WardDock.leastTab,it.maxIntrinsicWidth(Int.MAX_VALUE).toDouble()/density) }
-        val room=if(constraints.hasBoundedWidth) constraints.maxWidth.toDouble()/density else ideals.sum()
-        val slots=WardDock.tabWidths(ideals,room).map { (it*density).toInt() }
-        val height=measurables.zip(slots).maxOfOrNull { (m,w) -> m.minIntrinsicHeight(w) }?.coerceAtLeast(constraints.minHeight) ?: constraints.minHeight
-        val placeables=measurables.zip(slots).map { (m,w) -> m.measure(androidx.compose.ui.unit.Constraints.fixed(w,height)) }
-        layout(if(constraints.hasBoundedWidth) constraints.maxWidth else slots.sum(),height) {
+/**
+ * The tabs side by side in WardDock's slots: each its ideal width (its name and side room, never under WardDock.leastTab),
+ * water-filled or shrunk alike to fit (WardDock.tabWidths). The first child is the chosen hollow, laid under the tabs where
+ * [hollowAt] has it (WardDock.hollow), or not at all when that is null. Only this layout reads where it is, never the bar's
+ * sizing, so its travel neither recomposes the dock nor measures the bar again.
+ */
+@Composable private fun DockSlots(modifier:Modifier,hollowAt:() -> Float?,content:@Composable () -> Unit) {
+    val policy=remember(hollowAt) { DockSlotsPolicy(hollowAt) }
+    androidx.compose.ui.layout.Layout(content,modifier,policy)
+}
+
+private class DockSlotsPolicy(private val hollowAt:() -> Float?):androidx.compose.ui.layout.MeasurePolicy {
+    /** Each tab's slot in [maxWidth] (their ideals when it is unbounded), in pixels. */
+    private fun androidx.compose.ui.unit.Density.slots(tabs:List<androidx.compose.ui.layout.IntrinsicMeasurable>,maxWidth:Int):List<Int> {
+        val ideals=tabs.map { maxOf(WardDock.leastTab,it.maxIntrinsicWidth(Int.MAX_VALUE).toDouble()/density) }
+        val room=if(maxWidth!=androidx.compose.ui.unit.Constraints.Infinity) maxWidth.toDouble()/density else ideals.sum()
+        return WardDock.tabWidths(ideals,room).map { (it*density).toInt() }
+    }
+
+    /** The row's height: the tallest tab in its slot. */
+    private fun tallest(tabs:List<androidx.compose.ui.layout.IntrinsicMeasurable>,slots:List<Int>):Int =
+        tabs.zip(slots).maxOfOrNull { (m,w) -> m.minIntrinsicHeight(w) } ?: 0
+
+    override fun androidx.compose.ui.layout.MeasureScope.measure(measurables:List<androidx.compose.ui.layout.Measurable>,
+                                                                 constraints:androidx.compose.ui.unit.Constraints):androidx.compose.ui.layout.MeasureResult {
+        val tabs=measurables.drop(1)
+        val slots=slots(tabs,constraints.maxWidth)
+        val height=tallest(tabs,slots).coerceAtLeast(constraints.minHeight)
+        val placeables=tabs.zip(slots).map { (m,w) -> m.measure(androidx.compose.ui.unit.Constraints.fixed(w,height)) }
+        val span=hollowAt()?.let { WardDock.hollow(slots.map { w -> w.toDouble() },it.toDouble()) }
+        val hollow=span?.let { measurables.first().measure(androidx.compose.ui.unit.Constraints.fixed(kotlin.math.round(it.width).toInt(),height)) }
+        return layout(if(constraints.hasBoundedWidth) constraints.maxWidth else slots.sum(),height) {
+            if(span!=null && hollow!=null) hollow.placeRelative(kotlin.math.round(span.left).toInt(),0)
             var x=0
             placeables.forEach { it.placeRelative(x,0);x+=it.width }
         }
     }
+
+    // the bar's sizing asks only the tabs, never where the hollow is
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.minIntrinsicHeight(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,width:Int):Int =
+        measurables.drop(1).let { tabs -> tallest(tabs,slots(tabs,width)) }
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.maxIntrinsicHeight(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,width:Int):Int =
+        minIntrinsicHeight(measurables,width)
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.minIntrinsicWidth(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,height:Int):Int =
+        slots(measurables.drop(1),androidx.compose.ui.unit.Constraints.Infinity).sum()
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.maxIntrinsicWidth(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,height:Int):Int =
+        minIntrinsicWidth(measurables,height)
 }
 
 /** One dock item's face: an outline glyph over its name, Chart Ink at rest and the section's ink when chosen (iOS DockItemFace). The name keeps to one line, shrinking to WardDock.leastNameScale before it would cross the ring. */

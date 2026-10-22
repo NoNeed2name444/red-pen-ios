@@ -225,7 +225,7 @@ enum ExamCatalog {
         BlueprintShare(domain: domain, weight: weight, label: label)
     }
 
-    private static func blocks(_ count: Int, questions: Int, minutes: Int, name: String = "Block") -> [MockSectionSpec] {
+    private static func blocks(_ count: Int, questions: Int, minutes: Int, name: String = MockFormat.partWord) -> [MockSectionSpec] {
         (1...count).map { MockSectionSpec(title: "\(name) \($0)", questions: questions, minutes: minutes) }
     }
 
@@ -303,7 +303,7 @@ enum ExamCatalog {
                     s(.ethics, 8, "Social sciences: ethics, law and patient safety")],
         blueprintSource: "USMLE Step 3 Content Outline (usmle.org): approximate midpoints",
         blueprintIsApproximate: true,
-        sections: blocks(6, questions: 39, minutes: 60, name: "FIP block") + blocks(6, questions: 30, minutes: 45, name: "ACM block"),
+        sections: blocks(6, questions: 39, minutes: 60, name: "FIP " + MockFormat.partWord.lowercased()) + blocks(6, questions: 30, minutes: 45, name: "ACM " + MockFormat.partWord.lowercased()),
         sitsBlockwise: true, sitsSeparately: false,
         paperNote: "Two days: Foundations of Independent Practice (about 232 questions, six 60-minute blocks), then Advanced Clinical Medicine (180 questions, six 45-minute blocks) and 13 case simulations.",
         passMark: 0.60, passNote: "A three-digit score; the passing standard is set by USMLE (about 200). The percent here is a rough guide.",

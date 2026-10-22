@@ -1,8 +1,5 @@
 package com.stethoscore.app.ui.ward
 
-import androidx.compose.animation.core.Easing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +7,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -30,7 +28,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.ui.LocalWardDark
@@ -146,24 +147,28 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
  * Raised off the base (iOS wardRaised, WardReliefFace): a card or a slab by
  * its two lights alone, or with [control] a control's face (a row to tap, a
  * segmented control), which stands on its small rim (WardRelief.rim) with
- * the section's ink edge.
+ * the section's ink edge. Unlit (LocalWardUnlit), a card or a slab keeps
+ * only its fill and edge; a control keeps its rim.
  */
 @Composable fun Modifier.wardRaised(radius: Double = WardFaceMetrics.cardRadius, lift: WardLift = WardLift.mid,
                                     fill: WardToken = WardToken.surface, control: Boolean = false,
                                     held: Boolean = false): Modifier {
     val f = faceLook(fill, held)
     val spec = if (control) WardRelief.rim(lift, f.dark) else WardRelief.raised(lift, f.dark)
-    return drawBehind { drawWardFace(radius, f.fill, listOf(spec.highlight, spec.shade), emptyList(), spec.edgeAlpha, f.edge) }
+    val lights = if (LocalWardUnlit.current && !control) emptyList() else listOf(spec.highlight, spec.shade)
+    return drawBehind { drawWardFace(radius, f.fill, lights, emptyList(), spec.edgeAlpha, f.edge) }
 }
 
 /**
  * Pressed into the base (iOS wardInset): fields, tracks, wells and whatever
  * is chosen; the shade lines the top-left wall and the highlight the
- * bottom-right one. [control] for a field or a switch's track: it takes the
- * ink edge. [held] draws it at night whatever the look (the monitor's well).
+ * bottom-right one, in the well's fill (WardControlStates.wellFill, the page
+ * colour) unless [fill] says otherwise (the monitor's dark well). [control]
+ * for a field or a switch's track: it takes the ink edge. [held] draws it at
+ * night whatever the look (the monitor's well).
  */
 @Composable fun Modifier.wardInset(radius: Double = WardFaceMetrics.fieldRadius, lift: WardLift = WardLift.low,
-                                   fill: WardToken = WardToken.well, control: Boolean = false,
+                                   fill: WardToken = WardControlStates.wellFill, control: Boolean = false,
                                    held: Boolean = false): Modifier {
     val f = faceLook(fill, held)
     val spec = WardRelief.inset(lift, f.dark, control = control)
@@ -174,18 +179,19 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
  * Raised on its rim at rest; glides into a hollow at the same lift while
  * [pressed] (iOS wardRelief, WardPressFace), over WardPress's shade times on
  * its glide curve. A control, with its ink edge, unless [control] is false
- * (an icon tile that only shows a choice, which keeps the wide shade).
+ * (an icon tile that only shows a choice, which keeps the wide shade, and
+ * drops it where the page is unlit, LocalWardUnlit).
  */
 @Composable fun Modifier.wardRelief(pressed: Boolean, radius: Double = WardFaceMetrics.fieldRadius, lift: WardLift = WardLift.low,
                                     fill: WardToken = WardToken.surface, control: Boolean = true): Modifier {
     val f = faceLook(fill, held = false)
-    val glide = Easing { WardPress.glide(it.toDouble()).toFloat() }
-    val depth by animateFloatAsState(if (pressed) 1f else 0f,
-        tween(((if (pressed) WardPress.shadePress else WardPress.shadeRelease) * 1000).toInt(), easing = glide), label = "wardPress")
+    // WardPress's shade times on its glide curve; with animations off simply down or up
+    val depth by wardDepth(pressed)
     val spec = WardPress.spec(lift, depth.toDouble(), f.dark, control = control)
+    val lit = control || !LocalWardUnlit.current
     return drawBehind {
-        drawWardFace(radius, f.fill, listOf(spec.outerHighlight, spec.outerShade), listOf(spec.innerShade, spec.innerHighlight),
-            spec.edgeAlpha, f.edge)
+        drawWardFace(radius, f.fill, if (lit) listOf(spec.outerHighlight, spec.outerShade) else emptyList(),
+            listOf(spec.innerShade, spec.innerHighlight), spec.edgeAlpha, f.edge)
     }
 }
 
@@ -201,7 +207,7 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
  * The vitals monitor (iOS MonitorCard): a dark well, the monitor's colour
  * in both modes, pressed into a bezel raised [lift] off the base.
  */
-@Composable fun WardMonitorCard(modifier: Modifier = Modifier, lift: WardLift = WardLift.mid, spacing: Dp = 18.dp,
+@Composable fun WardMonitorCard(modifier: Modifier = Modifier, lift: WardLift = WardLift.mid, spacing: Dp = WardSpace.m.wardDp,
                                 content: @Composable ColumnScope.() -> Unit) {
     val bezel = WardFaceMetrics.monitorBezel
     Box(modifier.wardRaised(WardFaceMetrics.cardRadius, lift).padding(bezel.dp)) {
@@ -224,9 +230,11 @@ internal fun wardOutlinePath(points: List<WardVec>, density: Float): Path = Path
 /**
  * A line across the opening joined to its outline by [join]'s arcs (iOS
  * WardIslandPath), in pixels; a side with no arc ends at the join's own end,
- * or at [from] / [to] when that side is not joined.
+ * or at [from] / [to] when that side is not joined. With [filledTo] (points),
+ * the island under the line, closed down to that depth (iOS `filled`).
  */
-internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, density: Float): Path = Path().apply {
+internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, density: Float,
+                            filledTo: Double? = null): Path = Path().apply {
     fun deg(rad: Double) = (rad * 180 / PI).toFloat()
     fun box(c: WardEdgeCorner) = Rect(
         ((c.center.x - c.radius) * density).toFloat(), ((c.center.y - c.radius) * density).toFloat(),
@@ -246,6 +254,12 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
         val end = deg(atan2(right.join.y - right.center.y, right.join.x - right.center.x))
         arcTo(box(right), -90f, end + 90f, forceMoveTo = false)
     }
+    if (filledTo != null) {
+        val foot = (filledTo * density).toFloat()
+        lineTo(((right?.join?.x ?: join.toX ?: to) * density).toFloat(), foot)
+        lineTo(((left?.join?.x ?: join.fromX ?: from) * density).toFloat(), foot)
+        close()
+    }
 }
 
 /**
@@ -255,6 +269,7 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
  * [barTop] (points from the frame's top), a bar's line runs across the
  * opening there, joined into the ring by WardEdge's arcs. Fill the window
  * with it, over the page: it takes no touches. Home keeps its own ground.
+ * While it is drawn, the study deck's line joins its ring (WardEdgeStore).
  */
 @Composable fun WardPaperFrame(modifier: Modifier = Modifier, barTop: Double? = null) {
     val look = LocalWardLook.current
@@ -264,7 +279,10 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
     val color = wardRgb(ink.hex)
     val base = wardRgb(glide.hex(WardToken.background, dark))
     val pad = LocalConfiguration.current.smallestScreenWidthDp >= 600
-    Canvas(modifier) {
+    val view = LocalView.current
+    val points = LocalDensity.current.density
+    DisposableEffect(view) { onDispose { WardEdgeStore.leave(view) } }
+    Canvas(modifier.onGloballyPositioned { WardEdgeStore.setWindow(view, it.wardWindowRect(points), pad) }) {
         val panel = WardPaper.panel((size.width / density).toDouble(), (size.height / density).toDouble(), pad = pad) ?: return@Canvas
         val outline = WardEdge.outline(panel, pointsPerCurve = 12)
         val hole = wardOutlinePath(outline, density)

@@ -11,13 +11,14 @@ import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.stethoscore.app.ui.mock.WardGroove
+import com.stethoscore.app.ui.ward.WardGroove
 import com.stethoscore.app.ui.ward.WardSmallCapsText
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
@@ -32,9 +33,9 @@ import com.stethoscore.app.ui.wardColor
 // WardAnnulus are in ui/ward/WardControls.kt, EcgSquiggle in
 // ui/home/WardHome.kt and EcgLoader in ui/editors/EditorKit.kt.
 
-/** The amber strip that fills as something goes on: a Pager Amber beam in a groove pressed into the base (WardGroove at 6). */
+/** The amber strip that fills as something goes on: a Pager Amber beam in a groove pressed into the base (WardGroove at 6), gliding to each new progress. */
 @Composable fun EcgStrip(progress: Double, tone: Color = wardColor(WardToken.beam)) {
-    Box(Modifier.clearAndSetSemantics {}) { WardGroove(progress, tone, 6.dp) }
+    Box(Modifier.clearAndSetSemantics {}) { WardGroove(progress, tone, height = 6.dp) }
 }
 
 /** An observation: a small-caps label over a mono value, flagged high or low in Resus Red. */

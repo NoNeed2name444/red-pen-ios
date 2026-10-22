@@ -33,6 +33,9 @@ enum MockFormat {
     static let usmleBlockQuestions = 40
     static let usmleBlockMinutes = 60
     static let usmleMaxBlocks = 7
+    /// The mock's word for one of those timed parts: "Part 1", "Part 2 of 3".
+    /// The owner's choice (22 Oct): "Block" is the focus timer's word only.
+    static let partWord: String = "Part"
 
     /// The papers a track offers. USMLE's is built from a count of blocks.
     static func papers(for track: ExamTrack, usmleBlocks: Int = 2) -> [MockPaperSpec] {
@@ -58,10 +61,10 @@ enum MockFormat {
         case .usmle:
             let count: Int = min(max(usmleBlocks, 1), usmleMaxBlocks)
             let blocks: [MockSectionSpec] = (1...count).map { n in
-                MockSectionSpec(title: "Block \(n)", questions: usmleBlockQuestions, minutes: usmleBlockMinutes)
+                MockSectionSpec(title: "\(partWord) \(n)", questions: usmleBlockQuestions, minutes: usmleBlockMinutes)
             }
-            let note: String = "Step 1-style blocks: up to 40 questions in 60 minutes each. The real exam has up to seven, with break time between them."
-            return [MockPaperSpec(id: "usmle\(count)", title: "USMLE-style, \(count) block" + (count == 1 ? "" : "s"),
+            let note: String = "Step 1-style \(partWord.lowercased())s: up to 40 questions in 60 minutes each. The real exam has up to seven, with break time between them."
+            return [MockPaperSpec(id: "usmle\(count)", title: "USMLE-style, \(count) \(partWord.lowercased())" + (count == 1 ? "" : "s"),
                                   sections: blocks, note: note)]
         case .general:
             let s = MockSectionSpec(title: "Paper", questions: 100, minutes: 125)

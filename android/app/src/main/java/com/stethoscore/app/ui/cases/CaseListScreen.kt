@@ -19,10 +19,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.CaseChecks
 import com.stethoscore.app.data.CaseFile
 import com.stethoscore.app.data.CaseRun
@@ -30,6 +28,9 @@ import com.stethoscore.app.data.CaseRunStore
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.ScreenHeader
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.textStyle
 
 /**
  * A Cases set: one card per patient - initials, age and sex, where they are
@@ -69,7 +70,7 @@ fun CaseListScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) {
             CaseCard {
                 Text(
                     if (heldCount > 0) "Every patient here is waiting on the accuracy checkers." else "No patients in this set yet.",
-                    fontSize = 15.sp, color = CaseInk.biro,
+                    style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro,
                 )
             }
         }
@@ -80,7 +81,7 @@ fun CaseListScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) {
             val plural = if (heldCount == 1) " is" else "s are"
             Row(Modifier.padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.PanTool, null, tint = CaseInk.biro, modifier = Modifier.size(14.dp))
-                Text("$heldCount patient$plural held while the checkers look at a possible error.", fontSize = 13.sp, color = CaseInk.biro)
+                Text("$heldCount patient$plural held while the checkers look at a possible error.", style = WardTextStyle.footnote.textStyle(), color = CaseInk.biro)
             }
         }
     }
@@ -110,10 +111,10 @@ internal fun CasePatientCard(file: CaseFile, state: CaseRun.State, open: () -> U
             CaseAvatar(file.patient.initials)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(file.patient.ageSex, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                    Text("· " + file.setting.label, fontSize = 15.sp, color = CaseInk.biro)
+                    Text(file.patient.ageSex, style = WardType.headline.textStyle())
+                    Text("· " + file.setting.label, style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
                 }
-                Text(shortComplaint, fontSize = 15.sp, color = CaseInk.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(shortComplaint, style = WardTextStyle.subheadline.textStyle(), color = CaseInk.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 CaseStateChip(state)
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = CaseInk.biro)

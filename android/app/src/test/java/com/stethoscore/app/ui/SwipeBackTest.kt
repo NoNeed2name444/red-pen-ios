@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.ui.learn.LearnRouterClosed
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -20,6 +21,7 @@ import org.robolectric.annotation.Config
 class SwipeBackTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @get:Rule val folder = TemporaryFolder()
+    @get:Rule val learnClosed = LearnRouterClosed()
 
     private fun backFrom(screen: String) {
         val store = StudyStore(folder.newFolder(screen))

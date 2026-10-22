@@ -283,7 +283,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .flagged: return "The ones you flagged"
         case .timed: return "10 against the clock"
         case .mock: return "Your exam\u{2019}s real paper"
-        case .twins: return "Missed points, new patients"
+        case .twins: return "Missed points, asked again"
         case .symptomBlocks: return "One complaint, every cause, mixed"
         case .examPlan: return "Forecast, due days, locked in"
         case .examKit: return "What to bring and do on the day"

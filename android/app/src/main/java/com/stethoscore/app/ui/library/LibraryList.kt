@@ -74,9 +74,11 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.modeIcon
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
@@ -152,6 +154,12 @@ class LibraryActions(
     val change: (() -> Unit) -> Unit,
     /** Edit cards or Edit questions (batch 6's editors), for the kinds that have one. */
     val edit: ((StudySet) -> Unit)? = null,
+    /**
+     * Paste or import: New set for the category's own kind, already on the
+     * step that asks where the material comes from, with typing chosen (iOS
+     * addMaterial, NewSetView(kind:startingAt:)).
+     */
+    val addMaterial: (() -> Unit)? = null,
 )
 
 /** The search's answer for the words typed, worked out off the main thread (iOS LibrarySearchModel). */
@@ -204,7 +212,7 @@ fun LazyListScope.libraryItems(
     if (!searching || state.scope == LibrarySearch.Scope.ALL) {
         if (shown.isEmpty() && searching && search.results.items.isEmpty() && !search.busy) {
             item(key = "no-results") {
-                LibraryEmptyState(Icons.Rounded.Search, "No results for “${query.trim()}”", "Check the spelling or try a new search.")
+                WardEmptyState(Icons.Rounded.Search, "No results for “${query.trim()}”", "Check the spelling or try a new search.")
             }
         } else if (shown.isEmpty() && !searching && store.library.isNotEmpty()) {
             item(key = "sets-heading-empty") { LibraryHeading(category.setsHeading) }
@@ -265,7 +273,7 @@ fun LazyListScope.libraryItems(
 // MARK: - Headers
 
 @Composable private fun HeaderButton(title: String, onClick: () -> Unit) {
-    Box(Modifier.heightIn(min = 44.dp).widthIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.heightIn(min = WardControlSize.target.wardDp).widthIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
         Text(title, style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk), maxLines = 1)
     }
 }
@@ -382,7 +390,7 @@ fun LazyListScope.libraryItems(
     Row(modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = WardSpace.m.wardDp)
         .wardRaised(WardRadius.bar, WardLift.high).padding(WardSpace.m.wardDp),
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clickable(role = Role.Button) { state.stopSelecting() }.semantics { contentDescription = "Done" },
+        Box(Modifier.size(WardControlSize.target.wardDp).clickable(role = Role.Button) { state.stopSelecting() }.semantics { contentDescription = "Done" },
             contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Close, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(18.dp))
         }
@@ -478,7 +486,7 @@ private fun LazyListScope.searchItems(query: String, store: StudyStore, search: 
         }
     } else if (state.scope != LibrarySearch.Scope.ALL && !search.busy) {
         item(key = "hits-none") {
-            LibraryEmptyState(Icons.Rounded.Search, "No results",
+            WardEmptyState(Icons.Rounded.Search, "No results",
                 "Nothing in ${state.scope.title.lowercase()} matches “$query”. Check the spelling or try another word.")
         }
     }
@@ -589,7 +597,7 @@ private fun LazyListScope.practiseSection(category: StudyCategory, store: StudyS
     val rest = features.drop(4)
     if (rest.isEmpty()) return
     item(key = "more-practise") {
-        Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { state.morePractise = !state.morePractise }
+        Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { state.morePractise = !state.morePractise }
             .padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("More ways to practise", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk),
                 modifier = Modifier.weight(1f))
@@ -651,7 +659,7 @@ fun start(feature: CategoryFeature, store: StudyStore, state: LibraryState, acti
         }
         feature == CategoryFeature.SUBJECTS -> actions.stats()
         feature == CategoryFeature.DUE -> actions.due()
-        feature == CategoryFeature.ADD -> actions.newSet(StudySetKind.MCQ)
+        feature == CategoryFeature.ADD -> actions.addMaterial?.invoke() ?: actions.newSet(StudySetKind.MCQ)
         else -> {}
     }
 }

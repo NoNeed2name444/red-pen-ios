@@ -52,6 +52,7 @@ import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardChip
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardMonitorCard
 import com.stethoscore.app.ui.ward.WardRing
@@ -183,21 +184,21 @@ fun monitorPercent(value: Double?): String = if (value == null) "–" else perce
 }
 
 /**
- * "Needs a consult": the weakest subjects as chips with their percentage,
- * each a drill of that subject; a line saying what the ward round does
- * about them (BedPlan.consultNote); and "Treat weak spots now", the drill
+ * "Weak topics": the weakest subjects as chips with their percentage,
+ * each a drill of that subject; a line saying what today's revision does
+ * about them (BedPlan.consultNote); and "Practise weak topics", the drill
  * of the weakest - the same drill as the Weakest topic bed on home.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ConsultCard(spots: List<BedPlan.Topic>, note: String, onDrill: (String) -> Unit) {
     // a List row: as low as the tiles round it, the button proud of it
     WardCardFace(Modifier.fillMaxWidth(), lift = WardLift.low, spacing = WardSpace.m.wardDp) {
-        WardSmallCapsText("Needs a consult", Modifier.semantics { heading() })
+        WardSmallCapsText("Weak topics", Modifier.semantics { heading() })
         if (spots.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             for (spot in spots) {
                 val source = remember(spot.name) { MutableInteractionSource() }
-                Box(Modifier.defaultMinSize(minHeight = 44.dp)
+                Box(Modifier.defaultMinSize(minHeight = WardControlSize.target.wardDp)
                     .clickable(source, indication = null, role = Role.Button, onClickLabel = "Opens a drill of ${spot.name}") { onDrill(spot.name) }
                     .clearAndSetSemantics { contentDescription = "${spot.name}, ${spot.percent} percent" },
                     contentAlignment = Alignment.Center) {
@@ -209,7 +210,7 @@ fun monitorPercent(value: Double?): String = if (value == null) "–" else perce
         spots.firstOrNull()?.let { first ->
             WardButtonBox({ onDrill(first.name) }, Modifier.fillMaxWidth(), WardButtonKind.primary) {
                 Icon(Icons.Rounded.MedicalServices, null, Modifier.size(20.dp))
-                Text("Treat weak spots now")
+                Text("Practise weak topics")
             }
         }
     }

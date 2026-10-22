@@ -33,7 +33,13 @@ struct FirstRunView: View {
             }
             .transition(.identity)
         }
-        .onAppear { FirstRun.start(accountId: accountId) }
+        .onAppear {
+            FirstRun.start(accountId: accountId)
+            // a screenshot run's "first-run-<page>" opens on that page
+            if let shown = FirstRunPage.allCases.first(where: { PreviewLaunch.screen == "first-run-" + $0.name }) {
+                page = shown
+            }
+        }
     }
 
     private func advance() {
@@ -86,7 +92,7 @@ private struct FirstRunDatePage: View {
     var body: some View {
         FirstRunPageFrame(page: .date, symbol: "calendar",
                           title: "When is your exam?",
-                          detail: "Today\u{2019}s ward round counts down to it and paces your reviews to be ready on the day.",
+                          detail: "Today\u{2019}s revision counts down to it and paces your reviews so you are ready on the day.",
                           nextTitle: "Save the date",
                           next: save, skip: next) {
             DatePicker("Exam date", selection: $chosen, in: Date()..., displayedComponents: .date)
@@ -111,7 +117,7 @@ private struct FirstRunGoalPage: View {
     var body: some View {
         FirstRunPageFrame(page: .goal, symbol: "target",
                           title: "A daily goal",
-                          detail: "Cards and questions a day. Today\u{2019}s ward round shows how far through today you are.",
+                          detail: "Cards and questions a day. Today\u{2019}s revision shows how far through today you are.",
                           nextTitle: "Set \(goal) a day",
                           next: save, skip: next) {
             VStack(spacing: 16) {

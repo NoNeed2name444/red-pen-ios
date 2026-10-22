@@ -27,7 +27,7 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.QuestionPick
-import com.stethoscore.app.ui.mock.StudyActionBar
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextStyle
@@ -74,7 +74,7 @@ private fun subtitle(count: Int): String {
     Column(Modifier.padding(vertical = 4.dp).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(q.stem, style = WardType.body.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 4, overflow = TextOverflow.Ellipsis)
         Text(answer, style = WardTextStyle.title2.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
-        if (line.isNotEmpty()) Text(line, style = WardTextStyle.title3.textStyle(), color = wardColor(WardToken.ink).copy(alpha = 0.85f))
+        if (line.isNotEmpty()) Text(line, style = WardTextStyle.title3.textStyle(), color = wardColor(WardToken.inkSecondary))
     }
 }
 

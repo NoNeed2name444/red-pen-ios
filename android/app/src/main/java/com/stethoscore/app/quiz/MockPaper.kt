@@ -35,6 +35,8 @@ object MockFormat {
     const val usmleBlockQuestions = 40
     const val usmleBlockMinutes = 60
     const val usmleMaxBlocks = 7
+    /** The mock's word for one of those timed parts: "Part 1", "Part 2 of 3". The owner's choice (22 Oct): "Block" is the focus timer's word only. */
+    const val partWord = "Part"
 
     /** The papers a track offers. USMLE's is built from a count of blocks. */
     fun papers(track: ExamTrack, usmleBlocks: Int = 2): List<MockPaperSpec> = when (track) {
@@ -53,9 +55,9 @@ object MockFormat {
         }
         ExamTrack.usmle -> {
             val count = usmleBlocks.coerceIn(1, usmleMaxBlocks)
-            val blocks = (1..count).map { MockSectionSpec("Block $it", usmleBlockQuestions, usmleBlockMinutes) }
-            val note = "Step 1-style blocks: up to 40 questions in 60 minutes each. The real exam has up to seven, with break time between them."
-            listOf(MockPaperSpec("usmle$count", "USMLE-style, $count block" + (if (count == 1) "" else "s"), blocks, note))
+            val blocks = (1..count).map { MockSectionSpec("$partWord $it", usmleBlockQuestions, usmleBlockMinutes) }
+            val note = "Step 1-style ${partWord.lowercase()}s: up to 40 questions in 60 minutes each. The real exam has up to seven, with break time between them."
+            listOf(MockPaperSpec("usmle$count", "USMLE-style, $count ${partWord.lowercase()}" + (if (count == 1) "" else "s"), blocks, note))
         }
         ExamTrack.general -> listOf(MockPaperSpec("general", "Practice paper", listOf(MockSectionSpec("Paper", 100, 125)),
             "100 questions in 2 hours 5 minutes. Pick your exam in Settings for its real paper."))

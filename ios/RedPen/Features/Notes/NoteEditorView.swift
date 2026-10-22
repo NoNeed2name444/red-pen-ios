@@ -111,7 +111,7 @@ struct NoteEditorView: View {
                     Text("Links to it from other notes are removed too.")
                 }
                 .alert("Turn into cards", isPresented: cardsAlertShown) {
-                    Button("OK", role: .cancel) {}
+                    Button("Done", role: .cancel) {}
                 } message: {
                     Text(cardsMessage ?? "")
                 }

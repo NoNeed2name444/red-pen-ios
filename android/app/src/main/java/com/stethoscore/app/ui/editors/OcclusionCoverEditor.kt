@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.OcclusionBox
 import com.stethoscore.app.data.PhotoOcclusion
 import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardRaised
 import com.stethoscore.app.ui.wardColor
 
@@ -71,7 +73,7 @@ private const val HANDLE_SIZE = 16f
     tint: Color = wardColor(WardToken.primary),
 ) {
     val ratio = if (aspect > 0) aspect.toFloat() else 1f
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(WardRadius.card.wardDp)
     val beam = wardColor(WardToken.beam)
     val surface = wardColor(WardToken.surface)
     var drawing by remember { mutableStateOf<OcclusionBox?>(null) }
@@ -83,7 +85,7 @@ private const val HANDLE_SIZE = 16f
     Box(
         modifier.fillMaxWidth().aspectRatio(ratio)
             // the picture raised just off the base
-            .wardRaised(14.0, WardLift.low)
+            .wardRaised(WardRadius.card, WardLift.low)
             .clip(shape)
             .semantics {
                 contentDescription = "Picture with ${covers.size} covers"

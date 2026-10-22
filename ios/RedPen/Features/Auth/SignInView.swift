@@ -37,14 +37,14 @@ struct SignInView: View {
         }
         .sheet(isPresented: $joining) { LinkDeviceView(joinOnly: true) }
         .alert(L10n.string("Couldn't sign in"), isPresented: troubleShown) {
-            Button(L10n.string("OK"), role: .cancel) {}
+            Button(L10n.string("Done"), role: .cancel) {}
         } message: {
             Text(account.trouble ?? "")
         }
         // after an Apple account is deleted: the steps from Apple's own
         // support article, the account's last link being in Settings
         .alert(L10n.string("Account deleted"), isPresented: $account.appleStepsDue) {
-            Button(L10n.string("OK"), role: .cancel) {}
+            Button(L10n.string("Done"), role: .cancel) {}
         } message: {
             Text(l10n: "Your Apple Account still lists \(Brand.name) under Sign in with Apple. To remove it, open Settings, tap your name, then Sign in with Apple. Choose \(Brand.name) and tap Delete.")
         }

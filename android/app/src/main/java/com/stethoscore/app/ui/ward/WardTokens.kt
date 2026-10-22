@@ -1,12 +1,15 @@
 package com.stethoscore.app.ui.ward
 
+import kotlin.math.PI
 import kotlin.math.min
 
 // A port of the framework-free parts of ios/RedPen/Shared/Ward/WardTokens.swift:
-// the type, spacing and radii, the small caps, and the step of the animated
-// glide (WardLookDriver). The colours themselves come from WardPalette,
-// WardSection and WardLook; the Compose side (TextStyles in sp, dp, the
-// driver's frame loop) is WardType.kt. Pure Kotlin (WardTokensTest).
+// the type, spacing and radii, the small caps, the step of the animated
+// glide (WardLookDriver), and the motion every animation keeps (WardMotion:
+// platform.md's canon and iOS's durations and curves). The colours themselves
+// come from WardPalette, WardSection and WardLook; the Compose side
+// (TextStyles in sp, dp, the driver's frame loop, the motion's specs and the
+// Remove animations flag) is WardType.kt. Pure Kotlin (WardTokensTest).
 
 /** Gaps and padding, every one a step of WardScale (4, 8, 12, 16, 24, 32), in points (dp). */
 object WardSpace {
@@ -120,8 +123,13 @@ object WardControlSize {
     /** A button, a field's row: 56 tall; compact and quiet, 44. */
     const val button = 56.0
     const val buttonSmall = 44.0
-    /** The least tap target. */
-    const val target = 44.0
+    /**
+     * The least tap target: 48 on Android, Android's own (the owner, 22 Oct;
+     * iOS keeps 44). The touch area grows to it, never what is drawn, so a
+     * control still looks as on iOS: the theme hands it to Material's
+     * minimumInteractiveComponentSize, which the Ward controls wear.
+     */
+    const val target = 48.0
     /** A broad screen's widest button. */
     const val buttonMaxWidth = 360.0
     /** A segment's least height, and the segmented capsule's padding. */
@@ -170,4 +178,61 @@ object WardLookDriver {
         val progress = min(1.0, startProgress + elapsed / WardGlide.duration)
         return if (progress >= 1) WardGlide.rest(glide.to) else glide.copy(progress = progress)
     }
+}
+
+/**
+ * The motion (platform.md): a change moves for 200 to 320 ms, fast at the
+ * start and settling gently, with no bounce and no overshoot; nothing loops
+ * but the working trace; and with animations off (Android's Remove
+ * animations, the animator duration scale at 0, as iOS's Reduce Motion) a
+ * change is simply there. The durations are iOS's, in seconds. iOS's
+ * .easeOut and .easeInOut keep their curves here; its springs (.snappy,
+ * .smooth) become critically damped springs of the same duration, so
+ * nothing passes its mark. The press's own times are WardPress's; the
+ * section's glide is WardGlide.duration. The Compose side is WardType.kt
+ * (wardEaseOut, wardSpring, wardReduceMotion).
+ */
+object WardMotion {
+    /** The band a change moves in. */
+    const val shortest = 0.2
+    const val longest = 0.32
+
+    /** A switch's knob crossing its track (iOS WardToggle: .snappy(duration: 0.2)). */
+    const val toggle = 0.2
+    /** A choice travelling to its new place: the dock's hollow, the ward round's chip (iOS .snappy(duration: 0.3)). */
+    const val travel = 0.3
+    /**
+     * A groove, a ring or a score filling to its value (iOS WardProgressBar,
+     * ThinProgress, EcgStrip, WardRing and ProgressRing: .easeOut(duration:
+     * 0.3); the quiz summary's score: .smooth(duration: 0.3)).
+     */
+    const val fill = 0.3
+
+    /**
+     * Outside the band on purpose, as iOS keeps them: the spoken word's wash,
+     * quick enough to keep up with the voice (iOS NarrateWordFlow:
+     * .easeOut(duration: 0.1)), and one drawing of the working trace, over
+     * and over (iOS EcgLoader: .easeInOut(duration: 1.2)), the one loop.
+     */
+    const val word = 0.1
+    const val trace = 1.2
+
+    /** iOS's .easeOut (fast at the start, settling gently) and .easeInOut, as cubic Béziers. */
+    val easeOut = WardPress.Curve(0.0, 0.0, 0.58, 1.0)
+    val easeInOut = WardPress.Curve(0.42, 0.0, 0.58, 1.0)
+
+    /** A spring's damping ratio: critical, so it settles without passing its mark. */
+    const val damping = 1.0
+
+    /** The stiffness (unit mass) of a spring that takes [seconds], as iOS's spring(duration:) has it: (2π / seconds)². */
+    fun stiffness(seconds: Double): Double {
+        val w = 2 * PI / seconds
+        return w * w
+    }
+
+    /** Whether a change of [seconds] is in the band. */
+    fun inBand(seconds: Double): Boolean = seconds in shortest..longest
+
+    /** Whether animations are off: the animator duration scale at 0 (Remove animations). */
+    fun reduce(animatorScale: Float): Boolean = animatorScale == 0f
 }

@@ -37,7 +37,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -45,7 +44,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
-import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.*
 
 // One card's face, front and back, and the bar under it that turns it over and rates it.
 // Port of ios/RedPen/Features/Anki/AnkiCardFace.swift (AnkiCardFace, AnkiFooter,
@@ -58,15 +57,17 @@ import com.stethoscore.app.ui.ward.WardToken
     val view = LocalView.current
     // turned over: the answer is read out, so a screen reader need not go and find it
     LaunchedEffect(revealed) { if (revealed) @Suppress("DEPRECATION") view.announceForAccessibility(CardReview.spokenBack(card)) }
-    Column(modifier.animateContentSize().clipToBounds(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(CardReview.badge(card.type).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp, color = wardColor(WardToken.primaryInk))
+    // with animations off the answer is simply there (iOS: reduceMotion ? nil : .snappy(duration: 0.28))
+    val reduce = com.stethoscore.app.ui.ward.wardReduceMotion()
+    Column(modifier.then(if (reduce) Modifier else Modifier.animateContentSize()).clipToBounds(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(CardReview.badge(card.type).uppercase(), style = wardSmallCapsStyle(), color = wardColor(WardToken.primaryInk))
         if (card.pictureOnFront) CardPicture(card, images, revealed, deck)
         if (card.type == AnkiCardType.CLOZE) {
             // as Anki shows it: the sentence stays where it is, the answer appears in its gap
-            Text(clozeSentence(card.clozeText, revealed), fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink),
+            Text(clozeSentence(card.clozeText, revealed), style = WardType.title.textStyle(), color = wardColor(WardToken.ink),
                 modifier = Modifier.semantics { contentDescription = CardReview.clozeSpoken(card.clozeText, revealed) })
         } else {
-            Text(card.displayFront, fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink))
+            Text(card.displayFront, style = WardType.title.textStyle(), color = wardColor(WardToken.ink))
         }
         if (revealed) {
             // the answer opens under the question: nothing turns over (a cloze fills its gap instead)
@@ -77,7 +78,7 @@ import com.stethoscore.app.ui.ward.WardToken
                 if (card.why.isNotBlank()) CardWhy(card.why)
             }
         }
-        card.source?.takeIf { it.isNotEmpty() }?.let { Text(it, fontSize = 13.sp, color = wardColor(WardToken.inkSecondary)) }
+        card.source?.takeIf { it.isNotEmpty() }?.let { Text(it, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary)) }
     }
 }
 
@@ -86,23 +87,24 @@ import com.stethoscore.app.ui.ward.WardToken
         AnkiCardType.QA -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             card.bullets.forEach { bullet ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("•", fontSize = 17.sp, color = wardColor(WardToken.ink))
-                    Text(highlighted(bullet), fontSize = 17.sp, lineHeight = 23.sp, color = wardColor(WardToken.ink))
+                    Text("•", style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
+                    Text(highlighted(bullet), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 }
             }
         }
         // filled in where it stood, in the sentence above: nothing to repeat
         AnkiCardType.CLOZE -> Unit
         // the mask comes off the picture above; the answer is the label it was covering
-        AnkiCardType.OCCLUSION -> card.bullets.firstOrNull()?.let { Text(highlighted(it), fontSize = 17.sp, fontWeight = FontWeight.Medium, color = wardColor(WardToken.ink)) }
+        AnkiCardType.OCCLUSION -> card.bullets.firstOrNull()?.let { Text(highlighted(it), style = WardTextStyle.body.textStyle(WardWeight.medium), color = wardColor(WardToken.ink)) }
     }
 }
 
-/** "Why / how": a note pressed into the card. */
+/** "Why / how": a note pressed into the card (iOS: wardInset at the field's radius). */
 @Composable private fun CardWhy(why: String) {
-    Column(Modifier.padding(top = 4.dp).fillMaxWidth().background(wardColor(WardToken.well), RoundedCornerShape(12.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("WHY / HOW", fontSize = 11.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary), modifier = Modifier.semantics { heading() })
-        Text(why, fontSize = 17.sp, lineHeight = 24.sp, color = wardColor(WardToken.ink))
+    Column(Modifier.padding(top = 4.dp).fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        WardSmallCapsText("Why / how", Modifier.semantics { heading() })
+        // iOS sets the note with 2 points more between its lines (lineSpacing(2))
+        Text(why, style = WardType.body.textStyle().copy(lineHeight = (WardType.body.line + 2).sp), color = wardColor(WardToken.ink))
     }
 }
 
@@ -192,7 +194,7 @@ private const val hintsKey = "anki.ratingHintsShown"
     BoxWithConstraints {
         val oneRow = maxWidth >= 600.dp
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            if (hints) Text("How well did you remember it?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
+            if (hints) Text("How well did you remember it?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
             val all = AnkiRating.entries
             val rows = when { large -> all.map { listOf(it) }; oneRow -> listOf(all); else -> all.chunked(2) }
             rows.forEach { row ->
@@ -214,17 +216,18 @@ private const val hintsKey = "anki.ratingHintsShown"
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val ink = tone(rating)
-    val shape = RoundedCornerShape(16.dp)
-    val ground = if (pressed) wardColor(WardToken.well) else wardColor(WardToken.surface)
-    Column(modifier.heightIn(min = 56.dp).then(if (pressed) Modifier else Modifier.wardRaised(16.0)).background(ground, shape)
+    val shape = RoundedCornerShape(WardRadius.button.wardDp)
+    // held, it is a well pressed into the base: the well's fill, told by its inset shadows only
+    val face = if (pressed) Modifier.wardInset(shape) else Modifier.wardRaised(WardRadius.button).background(wardColor(WardToken.surface), shape)
+    Column(modifier.heightIn(min = 56.dp).then(face)
         .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
         .semantics { contentDescription = CardReview.title(rating); stateDescription = CardReview.spokenInterval(whenBack) }
         .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(CardReview.title(rating), color = ink, fontSize = 17.sp, fontWeight = if (rating == AnkiRating.GOOD) FontWeight.Bold else FontWeight.SemiBold, textAlign = TextAlign.Center)
-        if (hints) Text(CardReview.meaning(rating), color = ink, fontSize = 13.sp, textAlign = TextAlign.Center)
+        Text(CardReview.title(rating), color = ink, style = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold), textAlign = TextAlign.Center)
+        if (hints) Text(CardReview.meaning(rating), color = ink, style = WardTextStyle.footnote.textStyle(), textAlign = TextAlign.Center)
         if (whenBack.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("back", color = ink, fontSize = 12.sp)
-            Text(whenBack, color = ink, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold)
+            Text("back", color = ink, style = WardType.caption.textStyle())
+            Text(whenBack, color = ink, style = WardTextStyle.caption.textStyle(WardWeight.semibold, mono = true))
         }
     }
 }

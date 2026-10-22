@@ -55,7 +55,7 @@ struct WardRoundMiniRing: View {
 
 // MARK: the tile
 
-/// "Start a ward round": the choice of 25 or 50 minutes and a 5- or
+/// "Start a focus session": the choice of 25 or 50 minutes and a 5- or
 /// 10-minute break, and the start. While one runs, its ring and a way in.
 struct WardRoundTile: View {
     @ObservedObject private var clock = WardRoundClock.shared
@@ -76,10 +76,10 @@ struct WardRoundTile: View {
 
     @ViewBuilder
     private var setup: some View {
-        Label("Start a ward round", systemImage: "stethoscope")
+        Label("Start a focus session", systemImage: "stethoscope")
             .font(.headline)
             .foregroundStyle(Color.wardInk)
-        Text("Four rounds of focus with a break between. Everything you study while the clock runs counts on the round, and its minutes count for your streak.")
+        Text("Four blocks of focus with a break between. Everything you study while the clock runs counts towards the session, and its minutes count for your streak.")
             .font(.caption)
             .foregroundStyle(Color.wardInkSecondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -96,7 +96,7 @@ struct WardRoundTile: View {
         .accessibilityLabel("Break")
         .accessibilityIdentifier("wardRoundBreak")
         Button(action: start) {
-            Label("Start round 1", systemImage: "play.fill")
+            Label("Start block 1", systemImage: "play.fill")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.wardPrimary)
@@ -153,7 +153,7 @@ struct WardRoundChip: View {
             .frame(minHeight: 44)
             .frame(maxWidth: 300)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Ward round: " + round.caption(at: now))
+            .accessibilityLabel("Focus session: " + round.caption(at: now))
         }
         // floating over every screen, so raised high off the base
         .wardRaised(in: Capsule(), lift: .high)
@@ -162,7 +162,7 @@ struct WardRoundChip: View {
         .sensoryFeedback(.success, trigger: notice) { _, new in new != nil }
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { open() }
-        .accessibilityHint("Opens the ward round. Drag to move it to another corner.")
+        .accessibilityHint("Opens the focus session. Drag to move it to another corner.")
         .accessibilityIdentifier("wardRoundChip")
     }
 
@@ -171,7 +171,7 @@ struct WardRoundChip: View {
         switch round.phase {
         case .focus: return round.isPaused ? "Paused \u{00B7} " + time : time
         case .rest: return "Break \u{00B7} " + time
-        case .ready: return "Round \(round.round + 1) ready"
+        case .ready: return "Block \(round.round + 1) ready"
         case .done: return "Done"
         }
     }
@@ -207,7 +207,7 @@ struct WardRoundPanel: View {
 
     private var header: some View {
         HStack {
-            Label("Ward round", systemImage: "stethoscope")
+            Label("Focus session", systemImage: "stethoscope")
                 .font(.headline)
                 .foregroundStyle(Color.wardInk)
             Spacer(minLength: 8)
@@ -219,7 +219,7 @@ struct WardRoundPanel: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(Color.wardInkSecondary)
-            .accessibilityLabel("Fold the ward round away")
+            .accessibilityLabel("Fold the focus session away")
             .accessibilityIdentifier("wardRoundFold")
         }
     }
@@ -268,17 +268,17 @@ struct WardRoundPanel: View {
                 } else {
                     wide("Pause", symbol: "pause.fill", id: "wardRoundPause") { clock.pause() }
                 }
-                wide("End round", symbol: "forward.end.fill", id: "wardRoundSkip") { clock.skip() }
+                wide("End block", symbol: "forward.end.fill", id: "wardRoundSkip") { clock.skip() }
             }
             stopButton
         case .rest:
             Text("Look away from the screen for a while.")
                 .font(.caption)
                 .foregroundStyle(Color.wardInkSecondary)
-            wide("Start round \(round.round + 1) now", symbol: "play.fill", id: "wardRoundNext") { clock.startNext() }
+            wide("Start block \(round.round + 1) now", symbol: "play.fill", id: "wardRoundNext") { clock.startNext() }
             stopButton
         case .ready:
-            prominent("Start round \(round.round + 1)", symbol: "play.fill", id: "wardRoundNext") { clock.startNext() }
+            prominent("Start block \(round.round + 1)", symbol: "play.fill", id: "wardRoundNext") { clock.startNext() }
             stopButton
         case .done:
             prominent("Close", symbol: "checkmark", id: "wardRoundClose") {
@@ -293,7 +293,7 @@ struct WardRoundPanel: View {
             close()
             clock.stop()
         } label: {
-            Text("Stop the ward round")
+            Text("Stop the focus session")
                 .font(.subheadline)
                 .foregroundStyle(Color.wardDanger)
                 .frame(minHeight: 44)

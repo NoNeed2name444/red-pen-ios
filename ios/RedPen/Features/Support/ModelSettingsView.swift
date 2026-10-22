@@ -69,6 +69,12 @@ struct ModelSettingsView: View {
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .onAppear { llm.refreshStatus() }
+        // a screenshot run's "ai-provider": adding the first preset
+        .task {
+            guard PreviewLaunch.screen == "ai-provider" else { return }
+            editingIsNew = true
+            editing = HostedProvider.presets.first
+        }
     }
 
     @ViewBuilder

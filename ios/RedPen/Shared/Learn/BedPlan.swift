@@ -145,20 +145,20 @@ enum BedPlan {
     struct Bed: Hashable, Identifiable {
         var number: Int
         var kind: Kind
-        /// After "Bed 1 ·" in the small-caps line: "Cardiology", "Morning check".
+        /// After "1 ·" in the small-caps line: "Cardiology", "Morning check".
         var ward: String
         var title: String
         var detail: String
         var status: Status?
         var minutes: Int
 
-        /// "Bed 1 · Cardiology", in the source's own case; the row shows it
+        /// "1 · Cardiology", in the source's own case; the row shows it
         /// in small caps.
-        var overline: String { "Bed \(number) \u{00B7} \(ward)" }
+        var overline: String { "\(number) \u{00B7} \(ward)" }
 
         /// What VoiceOver reads for the whole row.
         var spoken: String {
-            var parts: [String] = ["Bed \(number), \(ward)", title, detail, BedPlan.aboutMinutes(minutes)]
+            var parts: [String] = ["Item \(number), \(ward)", title, detail, BedPlan.aboutMinutes(minutes)]
             if let status { parts.append(status.rawValue) }
             return parts.joined(separator: ". ")
         }
@@ -196,14 +196,14 @@ enum BedPlan {
         let line: Int = Int((consultBelow * 100).rounded())
         guard let first = spots.first else {
             if anyJudged {
-                return "Nothing needs a consult: every subject with \(consultAnswers) or more answers is at \(line)% or better."
+                return "No weak topics: every topic with \(consultAnswers) or more answers is at \(line)% or better."
             }
             return "A subject shows here once it has \(consultAnswers) answers and is under \(line)%."
         }
         if phase == .examDay {
-            return "Exam day: today\u{2019}s ward round is your kit alone, so these can wait."
+            return "Exam day: today\u{2019}s revision is your kit alone, so these can wait."
         }
-        return "\(first.name), the weakest, is on today\u{2019}s ward round automatically."
+        return "\(first.name), the weakest, is in today\u{2019}s revision automatically."
     }
 
     /// Today's beds, numbered from 1.
@@ -346,7 +346,7 @@ enum BedPlan {
                 ?? Topic(name: name, questions: firstSitting, answered: 0, correct: 0)
             return bed(.weakest(topic), number: number, input)
         case .nothing:
-            return Bed(number: number, kind: kind, ward: "All quiet", title: "Nothing is waiting",
+            return Bed(number: number, kind: kind, ward: "Nothing due", title: "Nothing is waiting",
                        detail: "Come back later", status: nil, minutes: 0)
         }
     }
@@ -367,18 +367,18 @@ enum BedPlan {
         beds.reduce(0) { $0 + $1.minutes }
     }
 
-    /// "4 patients · 45 min".
+    /// "4 to do · 45 min".
     static func summary(_ beds: [Bed]) -> String {
-        guard !beds.isEmpty else { return "No patients waiting" }
-        return counted(beds.count, "patient") + " \u{00B7} \(minutes(beds)) min"
+        guard !beds.isEmpty else { return "Nothing due" }
+        return "\(beds.count) to do \u{00B7} \(minutes(beds)) min"
     }
 
-    /// The round's heading as VoiceOver reads it: "Today's ward round: 4
-    /// patients, about 45 minutes."
+    /// The round's heading as VoiceOver reads it: "Today's revision: 4 to
+    /// do, about 45 minutes."
     static func spokenSummary(_ beds: [Bed]) -> String {
-        guard !beds.isEmpty else { return "Today\u{2019}s ward round: no patients waiting." }
+        guard !beds.isEmpty else { return "Today\u{2019}s revision: nothing due." }
         let about: String = aboutMinutes(minutes(beds)).lowercased()
-        return "Today\u{2019}s ward round: " + counted(beds.count, "patient") + ", " + about + "."
+        return "Today\u{2019}s revision: \(beds.count) to do, " + about + "."
     }
 
     /// "About 1 minute", "About 12 minutes".

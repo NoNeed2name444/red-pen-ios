@@ -93,7 +93,7 @@ struct AnalyticsView: View {
         // pushed bare from the examples hub too, so it brings its own backdrop
         // and the solid bar area the rows pass under
         .wardForm()
-        // One main button at a time: Treat weak spots now, in the consult
+        // One main button at a time: Practise weak topics, in the consult
         // card, while any subject needs one; otherwise the best next step,
         // under the thumb, once there is one.
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -101,7 +101,7 @@ struct AnalyticsView: View {
                 StudyActionBar { startButton(top) }
             }
         }
-        .navigationTitle("Vitals")
+        .navigationTitle("Progress")
         .diagnosticsScreen("screen:analytics")
         // the one large title in the app, kept until the owner says whether
         // Vitals stays the hub-style page

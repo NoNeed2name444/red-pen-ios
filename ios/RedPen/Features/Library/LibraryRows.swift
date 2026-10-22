@@ -7,9 +7,9 @@ import SwiftUI
 /// because SwiftUI type-checks a whole view expression at once.
 extension LibraryView {
 
-    // Mission Control, the card that stood here, is now today's ward round
-    // (WardHome): the beds hold what its status lines counted, its lift-off
-    // is "Start ward round", and its Plan button opens the exam plan, where
+    // Mission Control, the card that stood here, is now today's revision
+    // (WardHome): the rows hold what its status lines counted, its lift-off
+    // is "Start revision", and its Open plan button opens the exam plan, where
     // the forecast and what is locked in are shown in full.
 
     /// Starts a mission: the due cards and quick quizzes on the library's own

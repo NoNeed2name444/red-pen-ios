@@ -1,6 +1,5 @@
 package com.stethoscore.app.ui.editors
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -34,6 +33,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -60,16 +59,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardControlStates
+import com.stethoscore.app.ui.ward.WardEaseInOut
+import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
-import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
@@ -78,26 +80,25 @@ import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardField
 import com.stethoscore.app.ui.ward.wardFocusRing
 import com.stethoscore.app.ui.ward.wardInset
+import com.stethoscore.app.ui.ward.wardMillis
 import com.stethoscore.app.ui.ward.wardRaised
+import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.wardColor
 
 // What the library's editors are built from, all of it out of the Ward port
 // (ui/ward): iOS's Form in wardForm (a section's small-caps header, its rows
 // raised off the base, its footer in Biro Grey), a sheet's bar (Cancel quiet,
 // the confirming button compact), TextEditor in its well (popEditorRow),
-// CountField (Shared/CountField.swift), DisclosureGroup, StudyActionBar,
-// WardBanner (Shared/Ward/WardStates.swift) and EcgLoader (WardVitals.swift).
+// CountField (Shared/CountField.swift), DisclosureGroup and EcgLoader
+// (WardVitals.swift). The banner and the bottom deck are the Ward kit's
+// (WardStates.kt, WardDeck.kt).
 
-/** A sheet's bar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
+/** A sheet's bar, StudyTitleBar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
 @Composable internal fun EditorTopBar(title: String, onCancel: (() -> Unit)?, cancelTitle: String = "Cancel", trailing: @Composable () -> Unit = {}) {
-    Box(Modifier.fillMaxWidth().defaultMinSize(minHeight = 56.dp).padding(horizontal = WardSpace.s.wardDp)) {
-        if (onCancel != null) Box(Modifier.align(Alignment.CenterStart)) {
-            WardTextButton(cancelTitle, onCancel, kind = WardButtonKind.quiet, fills = false)
-        }
-        Text(title, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center, maxLines = 1,
-            modifier = Modifier.align(Alignment.Center).widthIn(max = 220.dp).semantics { heading() })
-        Box(Modifier.align(Alignment.CenterEnd)) { trailing() }
+    val cancel: (@Composable () -> Unit)? = if (onCancel == null) null else {
+        { WardTextButton(cancelTitle, onCancel, kind = WardButtonKind.quiet, fills = false) }
     }
+    StudyTitleBar(title, null, leading = cancel) { trailing() }
 }
 
 /**
@@ -158,24 +159,15 @@ import com.stethoscore.app.ui.wardColor
     )
 }
 
-/** WardBanner: a tone's glyph and the words in Chart Ink, in a well pressed into the base. */
-@Composable internal fun EditorBanner(text: String, icon: ImageVector, tone: WardTone = WardTone.Blue, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp)
-            .semantics(mergeDescendants = true) {},
-        horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp),
-    ) {
-        Icon(icon, null, tint = tone.color(), modifier = Modifier.size(18.dp))
-        Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
-    }
-}
-
 /** EcgLoader: an ECG trace drawn again and again in ECG Red, 64 by 24, "Working" to TalkBack. */
 @Composable internal fun EcgLoader(modifier: Modifier = Modifier) {
     val color = wardColor(WardToken.ecg)
-    val drawn by rememberInfiniteTransition(label = "ecg").animateFloat(0f, 1f,
-        infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Restart), label = "trace")
+    // the one loop the canon keeps: iOS's .easeInOut(duration: 1.2), drawn again from the start each time;
+    // with animations off the whole trace stands still, as iOS's does under Reduce Motion
+    val trace = if (wardReduceMotion()) null else rememberInfiniteTransition(label = "ecg").animateFloat(0f, 1f,
+        infiniteRepeatable(tween(wardMillis(WardMotion.trace), easing = WardEaseInOut), RepeatMode.Restart), label = "trace")
     Canvas(modifier.size(64.dp, 24.dp).semantics { contentDescription = "Working" }) {
+        val drawn = trace?.value ?: 1f
         val pts = listOf(0f to .55f, .24f to .55f, .31f to .4f, .4f to .65f, .5f to .05f, .61f to .92f, .69f to .45f, .8f to .55f, 1f to .55f)
         val path = Path().apply { pts.forEachIndexed { i, (x, y) -> if (i == 0) moveTo(x * size.width, y * size.height) else lineTo(x * size.width, y * size.height) } }
         val measure = PathMeasure().apply { setPath(path, false) }
@@ -204,7 +196,7 @@ import com.stethoscore.app.ui.wardColor
         Row(Modifier.wardInset(CircleShape, control = true), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             WardCircleButton(Icons.Rounded.Remove, "One fewer", { onValueChange((value - 1).coerceAtLeast(range.first)) }, enabled = enabled && value > range.first)
             BasicTextField(text, { typed -> text = typed.filter { it.isDigit() }.take(6); text.toIntOrNull()?.let { if (it in range) onValueChange(it) } },
-                modifier = Modifier.widthIn(min = 44.dp, max = 64.dp).semantics { contentDescription = title },
+                modifier = Modifier.minimumInteractiveComponentSize().widthIn(min = 44.dp, max = 64.dp).semantics { contentDescription = title },
                 enabled = enabled, singleLine = true,
                 textStyle = WardTextStyle.body.textStyle(mono = true).copy(color = if (enabled) wardColor(WardToken.ink) else wardDisabledInk(), textAlign = TextAlign.Center, fontFamily = FontFamily.Monospace),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
@@ -218,20 +210,13 @@ import com.stethoscore.app.ui.wardColor
 /** DisclosureGroup: the title with its chevron, the rest shown under it once opened. */
 @Composable internal fun MoreOptions(title: String, expanded: Boolean, onToggle: (Boolean) -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp)
+        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp)
             .clickable(role = Role.Button, onClickLabel = if (expanded) "Collapse" else "Expand") { onToggle(!expanded) },
             verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = WardType.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
             Icon(if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk))
         }
         if (expanded) content()
-    }
-}
-
-/** StudyActionBar: the one main button at the bottom, under the thumb. */
-@Composable internal fun StudyActionBar(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier.fillMaxWidth().padding(horizontal = WardSpace.gutter.wardDp, vertical = WardSpace.m.wardDp), contentAlignment = Alignment.Center) {
-        content()
     }
 }
 

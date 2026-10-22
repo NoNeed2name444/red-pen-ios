@@ -131,8 +131,9 @@ class WardStatesTest {
                         if (look.face == WardToken.primary) {
                             check("$name: on the fill its words are white", look.words == WardToken.onPrimary && look.glyph == null)
                         }
+                        // the knob on a filled track; an empty track is a well, in the well's fill
                         val knob = c.knob
-                        if (knob != null && look.face != WardToken.well) {
+                        if (knob != null && look.face != WardControlStates.wellFill) {
                             val r = WardPalette.contrast(knob, c.face)
                             check("$name: the knob reads 3:1 on the filled track", r >= 3, "${h(knob)} on ${h(c.face)} ${f(r)}",
                                 OwnerCase(statesTest, "the knob reads 3:1 on the filled track", "the $control $state: its knob",

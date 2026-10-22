@@ -112,7 +112,7 @@ private const val CARD_HEIGHT = 88.0
     }
 
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
-        val ink = wardColor(WardToken.inkSecondary).copy(alpha = 0.55f)
+        val ink = wardColor(WardToken.inkSecondary)
         val chosenInk = wardColor(WardToken.primaryInk)
         // the board itself: pan, pinch, double-tap
         Canvas(Modifier.fillMaxSize()
@@ -209,7 +209,7 @@ private const val CARD_HEIGHT = 88.0
 
         if (connecting || source != null) {
             Row(Modifier.align(Alignment.TopCenter).padding(top = 12.dp).padding(horizontal = 16.dp)
-                .wardRaised(22.0, WardLift.high, fill = WardToken.raised).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                .wardRelief(RoundedCornerShape(50), WardLift.high, wardColor(WardToken.raised)).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(if (source == null) "Tap a card to start a connection." else "Tap another card to connect them, or to part them.",
                     Modifier.weight(1f, fill = false), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
@@ -236,14 +236,14 @@ private const val CARD_HEIGHT = 88.0
 /** One card: its kind and folder in small type, the title, washed in its folder's colour. */
 @Composable private fun BoardCard(book: IdeaBook, note: Note, chosen: Boolean, lifted: Boolean, zoom: Double,
                                   chosenInk: androidx.compose.ui.graphics.Color, modifier: Modifier) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(WardRadius.card.wardDp)
     val tone = toneColor(note.folderId, book)
     val kind = note.noteKind
     val caption = book.folder(note.folderId)?.name ?: kind.label
     val scale = (zoom * if (lifted) 1.04 else 1.0).toFloat()
     Column(modifier.graphicsLayer { scaleX = scale; scaleY = scale }
         .width(CARD_WIDTH.dp)
-        .wardRaised(14.0, if (lifted) WardLift.high else WardLift.low, fill = WardToken.raised)
+        .wardRaised(WardRadius.card, if (lifted) WardLift.high else WardLift.low, fill = WardToken.raised)
         .clip(shape).background(tone.copy(alpha = 0.14f))
         .then(if (chosen) Modifier.border(2.dp, chosenInk, shape) else Modifier)
         .padding(10.dp)

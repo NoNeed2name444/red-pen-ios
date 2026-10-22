@@ -185,12 +185,12 @@ final class WardRoundClock: ObservableObject {
         say(Self.line(for: now))
     }
 
-    /// "Round 2 of 4 done - take 5 minutes".
+    /// "Block 2 of 4 done - take 5 minutes".
     private static func line(for round: WardRound) -> String {
         switch round.phase {
         case .rest: return round.roundWords + " done \u{2014} take \(round.plan.breakMinutes) minutes"
-        case .ready: return "Break over \u{2014} round \(round.round + 1) when you\u{2019}re ready"
-        case .done: return "Ward round done \u{2014} \(round.focusMinutes) minutes"
+        case .ready: return "Break over \u{2014} block \(round.round + 1) when you\u{2019}re ready"
+        case .done: return "Focus session done \u{2014} \(round.focusMinutes) minutes"
         case .focus: return round.roundWords
         }
     }

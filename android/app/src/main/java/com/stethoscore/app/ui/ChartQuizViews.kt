@@ -1,9 +1,12 @@
 package com.stethoscore.app.ui
 
-import com.stethoscore.app.ui.ward.wardRaised
+import com.stethoscore.app.ui.ward.WardRadius
+import com.stethoscore.app.ui.ward.WardSmallCapsText
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,90 +19,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.quiz.ChartQuiz
 import com.stethoscore.app.quiz.PatientChart
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardLift
-import com.stethoscore.app.ui.ward.WardRelief
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.WardTone
+import com.stethoscore.app.ui.ward.wardDepth
+import com.stethoscore.app.ui.ward.wardPressFace
 
 // A port of ios/RedPen/Features/MCQ/ChartQuizViews.swift: the
 // question screen's pieces - the option row, and the chart's chips, vitals
-// grid and results table - plus the few Ward controls the question screens
-// need. What each shows is decided, and tested, in quiz/ChartQuiz.kt.
-//
-// The Ward surfaces and controls (WardPressFace, WardChipButtonStyle,
-// .bigPrimary and the rest) are being ported in batches 2 and 3; until they
-// land these are plain Compose in the Ward palette's colours: a raised face is
-// Theme.kt's relief on the surface, a pressed one the well with the section's
-// edge, a flat one its fill and ring alone.
-
-/** How a Ward face sits: raised off the base, pressed into it, or flat on it. */
-internal enum class QuizFace { raised, pressed, flat }
-
-/** A face in the Ward colours, in plain Compose (WardPressFace's stand-in). */
-@Composable internal fun Modifier.quizFace(face: QuizFace, shape: Shape, radius: Float, fill: Color? = null, edge: Color? = null, lift: WardLift = WardLift.mid): Modifier {
-    val dark = LocalWardDark.current
-    val ring = edge ?: wardInk().copy(alpha = WardRelief.edgeAlpha(dark).toFloat() * 0.6f)
-    return when (face) {
-        QuizFace.raised -> this.wardRaised(radius.toDouble(), lift = lift).background(fill ?: wardColor(WardToken.surface), shape)
-        QuizFace.pressed -> this.background(fill ?: wardColor(WardToken.well), shape).border(1.5.dp, ring, shape)
-        QuizFace.flat -> this.background(fill ?: wardColor(WardToken.surface), shape).border(1.dp, ring, shape)
-    }
-}
-
-/** The tone of a small Ward chip (WardChip). */
-internal enum class QuizTone { grey, blue, warning }
-
-/** A small label chip: "optional", "Best answer", "34 y" (WardChip). */
-@Composable internal fun QuizTag(text: String, tone: QuizTone) {
-    val ink = when (tone) {
-        QuizTone.grey -> wardColor(WardToken.inkSecondary)
-        QuizTone.blue -> wardColor(WardToken.primaryInk)
-        QuizTone.warning -> wardColor(WardToken.warning)
-    }
-    Text(text, Modifier.background(ink.copy(alpha = 0.12f), CircleShape).padding(horizontal = 8.dp, vertical = 3.dp),
-        color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-}
-
-/**
- * A chip that is a button (WardChipButtonStyle): 44 points tall, quiet, so it
- * never looks like the main button; chosen, it is pressed in and in the
- * section's colour (or Caution Amber for Flag and Hint).
- */
-@Composable internal fun QuizChip(text: String?, icon: ImageVector?, on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier,
-                                  warning: Boolean = false, enabled: Boolean = true, label: String? = null) {
-    val ink = when {
-        !enabled && !on -> wardColor(WardToken.inkSecondary)
-        on -> if (warning) wardColor(WardToken.warning) else wardColor(WardToken.primaryInk)
-        else -> wardColor(WardToken.ink)
-    }
-    val shape = CircleShape
-    Row(modifier.heightIn(min = 44.dp)
-        .quizFace(if (on) QuizFace.pressed else QuizFace.raised, shape, 22f, lift = WardLift.low)
-        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-        .semantics { selected = on; if (label != null) contentDescription = label }
-        .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (icon != null) Icon(icon, null, tint = ink, modifier = Modifier.size(18.dp))
-        if (text != null) Text(text, color = ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-    }
-}
+// grid and results table - plus the bar's buttons. What each shows is
+// decided, and tested, in quiz/ChartQuiz.kt. The faces and controls are the
+// Ward kit's (ui/ward): the option row stands on WardPressFace, a chip that
+// is a button is WardChipButton, a label chip WardChip, a card WardCardFace.
 
 /**
  * The bar's buttons (.bigPrimary, .bigCompanion, .bigSecondary), drawn by
@@ -117,18 +61,6 @@ internal enum class QuizButtonKind { primary, companion, secondary }
         if (icon != null) Icon(icon, null, Modifier.size(20.dp))
         if (text != null) Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
-}
-
-/** A card on the base (.contentCard). */
-@Composable internal fun QuizCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.fillMaxWidth().quizFace(QuizFace.raised, RoundedCornerShape(20.dp), 20f).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
-}
-
-/** Small caps over a part of a card (wardSmallCaps), read as a heading. */
-@Composable internal fun QuizSmallCaps(text: String) {
-    Text(text.uppercase(), Modifier.semantics { heading() }, fontSize = 12.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.Bold,
-        color = wardColor(WardToken.inkSecondary))
 }
 
 /**
@@ -158,16 +90,18 @@ internal enum class QuizButtonKind { primary, companion, secondary }
     }
     val letterInk = tone ?: wardColor(WardToken.inkSecondary)
     val shape = RoundedCornerShape(16.dp)
-    val face = when {
-        mark == ChartQuiz.Mark.wrong -> Modifier.quizFace(QuizFace.flat, shape, 16f, fill = wardColor(WardToken.faded), edge = faded)
-        mark == ChartQuiz.Mark.chosen -> Modifier.quizFace(QuizFace.pressed, shape, 16f)
-        mark == ChartQuiz.Mark.right -> Modifier.quizFace(QuizFace.pressed, shape, 16f, edge = wardInk())
-        else -> Modifier.quizFace(QuizFace.raised, shape, 16f, lift = if (ChartQuiz.liesLow(struck, mark)) WardLift.low else WardLift.mid)
-    }
+    val wrong = mark == ChartQuiz.Mark.wrong
+    // a wrong pick lies flat on the faded face, in the faded ink's ring, not
+    // pressed in: its face is lighter than the cards at night, and a rim would lift it
+    val face = Modifier.wardPressFace(shape,
+        lift = if (wrong || ChartQuiz.liesLow(struck, mark)) WardLift.low else WardLift.mid,
+        depth = wardDepth(mark == ChartQuiz.Mark.chosen || mark == ChartQuiz.Mark.right),
+        fill = wardColor(if (wrong) WardToken.faded else WardToken.surface),
+        flat = wrong, edge = if (wrong) faded else null)
     Row(modifier.fillMaxWidth().heightIn(min = 56.dp).then(face).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(letter, Modifier.clearAndSetSemantics {}, color = letterInk, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-        Text(text, Modifier.weight(1f), color = textInk, fontSize = 16.sp,
+        Text(letter, Modifier.clearAndSetSemantics {}, color = letterInk, style = WardTextStyle.callout.textStyle(WardWeight.semibold, mono = true))
+        Text(text, Modifier.weight(1f), color = textInk, style = WardTextStyle.callout.textStyle(),
             textDecoration = if (struck || mark == ChartQuiz.Mark.wrong) TextDecoration.LineThrough else null)
         when (mark) {
             ChartQuiz.Mark.right -> Icon(Icons.Rounded.CheckCircle, null, tint = letterInk, modifier = Modifier.size(24.dp))
@@ -181,21 +115,21 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ChartChipsRow(chips: List<String>) {
     FlowRow(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        chips.forEach { QuizTag(it, QuizTone.grey) }
+        chips.forEach { WardChip(it, tone = WardTone.Grey) }
     }
 }
 
 /** The vital signs as observations on a Ward White panel: monospaced values, one high or low in Resus Red with its arrow. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ChartVitalsGrid(vitals: List<PatientChart.Vital>) {
-    FlowRow(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(12.dp)).padding(12.dp),
+    FlowRow(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         vitals.forEach { v ->
             val danger = ChartQuiz.tone(v.flag) == ChartQuiz.Tone.danger
             val arrow = when (v.flag) { PatientChart.Flag.high -> " ↑"; PatientChart.Flag.low -> " ↓"; null -> "" }
             Column(Modifier.widthIn(min = 92.dp).clearAndSetSemantics { contentDescription = ChartQuiz.spoken(v) }) {
-                Text(v.label.uppercase(), fontSize = 11.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = wardColor(WardToken.inkSecondary))
-                Text(v.value + arrow, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 17.sp,
+                WardSmallCapsText(v.label)
+                Text(v.value + arrow, style = WardTextStyle.body.textStyle(WardWeight.semibold, mono = true),
                     color = if (danger) wardColor(WardToken.danger) else wardColor(WardToken.ink))
             }
         }
@@ -204,16 +138,16 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 
 /** The results as a monospaced table - name, value, unit, H or L - with a flagged value and its letter in Resus Red. Each row is read whole. */
 @Composable fun ChartLabsTable(labs: List<PatientChart.Lab>) {
-    Column(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(12.dp)).padding(12.dp),
+    Column(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         labs.forEach { lab ->
             val value = if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)
             Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = ChartQuiz.spoken(lab) }, horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Bottom) {
-                Text(lab.name, Modifier.weight(1f), fontFamily = FontFamily.Monospace, fontSize = 15.sp, color = wardColor(WardToken.ink))
-                Text(lab.value, fontFamily = FontFamily.Monospace, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = value)
-                Text(lab.unit, Modifier.widthIn(min = 64.dp), fontFamily = FontFamily.Monospace, fontSize = 15.sp, color = wardColor(WardToken.inkSecondary))
-                Text(lab.flag?.rawValue ?: "", Modifier.width(14.dp), fontFamily = FontFamily.Monospace, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                Text(lab.name, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle(mono = true), color = wardColor(WardToken.ink))
+                Text(lab.value, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true), color = value)
+                Text(lab.unit, Modifier.widthIn(min = 64.dp), style = WardTextStyle.subheadline.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))
+                Text(lab.flag?.rawValue ?: "", Modifier.width(14.dp), style = WardTextStyle.subheadline.textStyle(WardWeight.bold, mono = true),
                     color = wardColor(WardToken.danger))
             }
         }

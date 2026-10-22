@@ -97,7 +97,7 @@ struct LibraryDataSettingsSection: View {
             if let shareURL { ShareSheet(items: [shareURL]) }
         }
         .alert(message?.title ?? "", isPresented: messageShown) {
-            Button("OK", role: .cancel) {}
+            Button("Done", role: .cancel) {}
         } message: {
             Text(message?.body ?? "")
         }

@@ -5,7 +5,6 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,6 +38,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -81,11 +81,14 @@ import com.stethoscore.app.data.StudyStreak
 import com.stethoscore.app.data.WardRound
 import com.stethoscore.app.data.WardRoundPlan
 import com.stethoscore.app.ui.home.HomeRound
+import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardRing
 import com.stethoscore.app.ui.ward.WardSegmented
@@ -99,7 +102,9 @@ import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardRaised
+import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.ward.wardRelief
+import com.stethoscore.app.ui.ward.wardSpring
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -152,7 +157,7 @@ internal object WardRoundStyle {
 // MARK: the tile
 
 /**
- * "Start a ward round": the choice of 25 or 50 minutes and a 5- or 10-minute
+ * "Start a focus session": the choice of 25 or 50 minutes and a 5- or 10-minute
  * break, and the start. While one runs, its ring and a way in.
  */
 @Composable internal fun WardRoundTile(modifier: Modifier = Modifier) {
@@ -169,9 +174,9 @@ internal object WardRoundStyle {
     var rest by remember { mutableStateOf(defaults.int(WardRoundClock.breakKey) ?: 5) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Rounded.MedicalServices, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
-        Text("Start a ward round", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
+        Text("Start a focus session", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
     }
-    Text("Four rounds of focus with a break between. Everything you study while the clock runs counts on the round, and its minutes count for your streak.",
+    Text("Four blocks of focus with a break between. Everything you study while the clock runs counts towards the session, and its minutes count for your streak.",
         style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
     WardSegmented(focus, WardRoundPlan.focusChoices, { focus = it; defaults.setInt(WardRoundClock.focusKey, it) },
         Modifier.fillMaxWidth().semantics { contentDescription = "Focus" }) { minutes, style, color ->
@@ -183,7 +188,7 @@ internal object WardRoundStyle {
     }
     WardButtonBox({ WardRoundClock.start(WardRoundPlan(focus, rest)) }, kind = WardButtonKind.primary) {
         Icon(Icons.Rounded.PlayArrow, null, Modifier.size(20.dp))
-        Text("Start round 1")
+        Text("Start block 1")
     }
 }
 
@@ -215,13 +220,13 @@ internal object WardRoundStyle {
     }
     val style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true).copy(color = wardColor(WardToken.ink))
     // floating over every screen, so raised high off the base
-    Row(modifier
+    Row(modifier.minimumInteractiveComponentSize()
         .wardRelief(RoundedCornerShape(50), WardLift.high)
         .clickable(remember { MutableInteractionSource() }, indication = null, onClick = open)
         .clearAndSetSemantics {
-            contentDescription = "Ward round: " + round.caption(now)
+            contentDescription = "Focus session: " + round.caption(now)
             role = Role.Button
-            onClick("Open the ward round. Drag to move it to another corner.") { open(); true }
+            onClick("Open the focus session. Drag to move it to another corner.") { open(); true }
         }
         .heightIn(min = 44.dp).widthIn(max = 300.dp)
         .padding(horizontal = 12.dp),
@@ -237,7 +242,7 @@ private fun chipWords(round: WardRound, now: Long): String {
     return when (round.phase) {
         WardRound.Phase.Focus -> if (round.isPaused) "Paused · $time" else time
         WardRound.Phase.Rest -> "Break · $time"
-        WardRound.Phase.Ready -> "Round ${round.round + 1} ready"
+        WardRound.Phase.Ready -> "Block ${round.round + 1} ready"
         WardRound.Phase.Done -> "Done"
     }
 }
@@ -250,15 +255,15 @@ private fun chipWords(round: WardRound, now: Long): String {
     Column(modifier.fillMaxWidth().wardRaised(WardRadius.card, WardLift.mid)
         // a tap on the panel itself is not a tap on the dimming behind
         .clickable(remember { MutableInteractionSource() }, indication = null) {}
-        .padding(20.dp),
+        .padding(WardSpace.gutter.wardDp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.MedicalServices, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
-                Text("Ward round", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
+                Text("Focus session", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             }
-            Box(Modifier.size(44.dp).clickable(onClickLabel = null, role = Role.Button, onClick = close)
-                .semantics { contentDescription = "Fold the ward round away" }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(WardControlSize.target.wardDp).clickable(onClickLabel = null, role = Role.Button, onClick = close)
+                .semantics { contentDescription = "Fold the focus session away" }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.KeyboardArrowDown, null, Modifier.size(20.dp), tint = wardColor(WardToken.inkSecondary))
             }
         }
@@ -297,17 +302,17 @@ private fun phaseWord(round: WardRound): String = when (round.phase) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (round.isPaused) Wide("Resume", Icons.Rounded.PlayArrow, Modifier.weight(1f)) { WardRoundClock.resume() }
                 else Wide("Pause", Icons.Rounded.Pause, Modifier.weight(1f)) { WardRoundClock.pause() }
-                Wide("End round", Icons.Rounded.SkipNext, Modifier.weight(1f)) { WardRoundClock.skip() }
+                Wide("End block", Icons.Rounded.SkipNext, Modifier.weight(1f)) { WardRoundClock.skip() }
             }
             StopButton(close)
         }
         WardRound.Phase.Rest -> {
             Text("Look away from the screen for a while.", style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
-            Wide("Start round ${round.round + 1} now", Icons.Rounded.PlayArrow, Modifier.fillMaxWidth()) { WardRoundClock.startNext() }
+            Wide("Start block ${round.round + 1} now", Icons.Rounded.PlayArrow, Modifier.fillMaxWidth()) { WardRoundClock.startNext() }
             StopButton(close)
         }
         WardRound.Phase.Ready -> {
-            Prominent("Start round ${round.round + 1}", Icons.Rounded.PlayArrow) { WardRoundClock.startNext() }
+            Prominent("Start block ${round.round + 1}", Icons.Rounded.PlayArrow) { WardRoundClock.startNext() }
             StopButton(close)
         }
         WardRound.Phase.Done -> Prominent("Close", Icons.Rounded.Check) {
@@ -318,11 +323,11 @@ private fun phaseWord(round: WardRound): String = when (round.phase) {
 }
 
 @Composable private fun StopButton(close: () -> Unit) {
-    Box(Modifier.heightIn(min = 44.dp).clickable(role = Role.Button) {
+    Box(Modifier.heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) {
         close()
         WardRoundClock.stop()
     }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-        Text("Stop the ward round", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.danger))
+        Text("Stop the focus session", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.danger))
     }
 }
 
@@ -390,6 +395,8 @@ internal enum class WardRoundCorner(val raw: String) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
+    // the chip travels to its corner as iOS's does (.snappy(duration: 0.3)), never past it; with animations off it is simply there
+    val reduce = wardReduceMotion()
     BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = AbsoluteAlignment.TopLeft) {
         val w = constraints.maxWidth.toFloat()
         val h = constraints.maxHeight.toFloat()
@@ -406,16 +413,16 @@ internal enum class WardRoundCorner(val raw: String) {
         LaunchedEffect(corner, chip, w, h) {
             if (chip == IntSize.Zero || dragging) return@LaunchedEffect
             if (!placed) { position.snapTo(target(corner)); placed = true }
-            else position.animateTo(target(corner), spring(dampingRatio = 0.85f, stiffness = 600f))
+            else position.animateTo(target(corner), wardSpring(WardMotion.travel, reduce))
         }
         WardRoundChip(round, notice, { WardRoundClock.expanded = true },
             Modifier.onSizeChanged { chip = it }
                 .absoluteOffset { IntOffset(position.value.x.roundToInt(), position.value.y.roundToInt()) }
-                .pointerInput(w, h, rtl) {
+                .pointerInput(w, h, rtl, reduce) {
                     val tracker = VelocityTracker()
                     detectDragGestures(
                         onDragStart = { dragging = true; tracker.resetTracking() },
-                        onDragCancel = { dragging = false; scope.launch { position.animateTo(target(corner)) } },
+                        onDragCancel = { dragging = false; scope.launch { position.animateTo(target(corner), wardSpring(WardMotion.travel, reduce)) } },
                         onDragEnd = {
                             dragging = false
                             val v = tracker.calculateVelocity()
@@ -427,7 +434,7 @@ internal enum class WardRoundCorner(val raw: String) {
                             val next = WardRoundCorner.nearest(if (rtl) 1 - across else across, (y / maxOf(1f, h)).toDouble())
                             LearnDefaults.shared.set(WardRoundCorner.key, next.raw)
                             corner = next
-                            scope.launch { position.animateTo(target(next), spring(dampingRatio = 0.85f, stiffness = 600f)) }
+                            scope.launch { position.animateTo(target(next), wardSpring(WardMotion.travel, reduce)) }
                         },
                     ) { change, amount ->
                         change.consume()

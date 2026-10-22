@@ -14,8 +14,8 @@ enum ChartQuiz {
         return !s.isEmpty ? s : (n.isEmpty ? "Questions" : n)
     }
 
-    /// "Patient 7 of 20": each question is a patient on the round.
-    static func status(current: Int, total: Int) -> String { "Patient \(current + 1) of \(total)" }
+    /// "Question 7 of 20".
+    static func status(current: Int, total: Int) -> String { "Question \(current + 1) of \(total)" }
 
     /// Under it: in a timed paper only how many are answered (the score is
     /// what it holds back); the resume question; a first nudge; the score.
@@ -28,8 +28,9 @@ enum ChartQuiz {
     /// How far the amber strip under the title has filled.
     static func fraction(current: Int, total: Int) -> Double { Double(current) / Double(max(1, total)) }
 
-    /// The chip beside PATIENT CHART.
-    static func kindChip(retest: Bool) -> String { retest ? "Second try" : "Best answer" }
+    /// The chip beside SINGLE BEST ANSWER: "Second try" on a re-test, and none
+    /// on a first try, where the label already names the kind of question.
+    static func kindChip(retest: Bool) -> String? { retest ? "Second try" : nil }
 
     /// The exam clock, "12:30" or "1:05:00"; and as VoiceOver reads it.
     static func clock(_ seconds: Int) -> String {
@@ -131,13 +132,13 @@ enum ChartQuiz {
         if holding && !checked { return "Keep reading" }
         // a paper is sat as on the day: a question can be skipped and come
         // back to, and nothing is marked until the paper is handed in
-        if examMode && !checked { return last ? "Finish paper" : (picked ? "Next patient" : "Skip for now") }
+        if examMode && !checked { return last ? "Finish paper" : (picked ? "Next question" : "Skip for now") }
         if !checked && !picked { return "Pick an answer" }
         if !checked { return "Check answer" }
-        return last ? "See results" : "Next patient"
+        return last ? "See results" : "Next question"
     }
 
-    /// Explain sits beside Next patient once the explanation shows; a timed
+    /// Explain sits beside Next question once the explanation shows; a timed
     /// paper keeps explanations for the end.
     static func explains(checked: Bool, examMode: Bool) -> Bool { checked && !examMode }
 }

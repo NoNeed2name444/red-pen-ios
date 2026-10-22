@@ -80,7 +80,7 @@ private data class SourceOpen(val source: SourceDoc, val set: StudySet?)
             })
             if (all.isEmpty()) {
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    ReaderEmptyState(Icons.AutoMirrored.Rounded.Article, "No sources yet",
+                    WardEmptyState(Icons.AutoMirrored.Rounded.Article, "No sources yet",
                         "Lectures, slides and notes you make sets from appear here, to read again page by page.") {
                         WardTextButton("Add a lecture", onAdd, kind = WardButtonKind.primary)
                     }

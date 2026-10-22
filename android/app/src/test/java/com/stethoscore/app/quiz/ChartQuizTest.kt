@@ -7,7 +7,7 @@ import org.junit.Test
 import com.stethoscore.app.quiz.ChartQuiz.Mark as M
 
 // A port of ios/RedPen/Tests/ChartQuizTests.swift, case for case.
-// The question screen as a patient chart: what the header says, which parts
+// The question screen: what the header says, which parts
 // of a stem the chart card shows (and a stem with nothing to chart left as
 // it was), the highlighter's marks across story and question, how options
 // are marked - never right or wrong in a timed paper - and the bar's words.
@@ -19,13 +19,13 @@ class ChartQuizTest {
         assertEquals("the title is the set's subject", "Nephrology", ChartQuiz.title("Nephrology", "Renal 1"))
         assertEquals("no subject: the set's name", "Renal 1", ChartQuiz.title("  ", "Renal 1"))
         assertEquals("neither: Questions", "Questions", ChartQuiz.title("", ""))
-        assertEquals("a question is a patient", "Patient 7 of 20", ChartQuiz.status(6, 20))
+        assertEquals("a question is a question", "Question 7 of 20", ChartQuiz.status(6, 20))
         assertEquals("a timed paper says only how many are answered", "3 answered", ChartQuiz.detail(examMode = true, resuming = false, correct = 2, checked = 3))
         assertEquals("a saved place asks first", "Pick up where you left off?", ChartQuiz.detail(examMode = false, resuming = true, correct = 0, checked = 0))
         assertEquals("before the first answer, a nudge", "Tap the answer you think is right", ChartQuiz.detail(examMode = false, resuming = false, correct = 0, checked = 0))
         assertEquals("then the running score", "2 of 3 right so far", ChartQuiz.detail(examMode = false, resuming = false, correct = 2, checked = 3))
         assertTrue("the strip starts empty and fills with the paper", ChartQuiz.fraction(0, 20) == 0.0 && ChartQuiz.fraction(10, 20) == 0.5)
-        assertTrue("the chip says best answer, or second try on a re-test", ChartQuiz.kindChip(false) == "Best answer" && ChartQuiz.kindChip(true) == "Second try")
+        assertTrue("no chip on a first try, second try on a re-test", ChartQuiz.kindChip(false) == null && ChartQuiz.kindChip(true) == "Second try")
         assertEquals("the clock in minutes", "12:30", ChartQuiz.clock(750))
         assertEquals("and in hours for a long paper", "1:05:00", ChartQuiz.clock(3900))
         assertEquals("TalkBack hears minutes and seconds", "2 minutes 5 seconds left", ChartQuiz.spokenClock(125))
@@ -99,9 +99,9 @@ class ChartQuizTest {
         assertEquals("nothing picked says so", "Pick an answer", title(picked = false))
         assertEquals("the slow reading drill holds", "Keep reading", title(holding = true))
         assertEquals("then Check answer", "Check answer", title())
-        assertEquals("checked: Next patient", "Next patient", title(checked = true))
+        assertEquals("checked: Next question", "Next question", title(checked = true))
         assertEquals("and See results on the last", "See results", title(checked = true, last = true))
-        assertTrue("a paper answers and moves on", title(exam = true) == "Next patient" && title(exam = true, last = true) == "Finish paper")
+        assertTrue("a paper answers and moves on", title(exam = true) == "Next question" && title(exam = true, last = true) == "Finish paper")
         assertTrue("a paper's question can be skipped",
             title(picked = false, exam = true) == "Skip for now" && title(picked = false, exam = true, last = true) == "Finish paper")
         assertTrue("Explain once checked", ChartQuiz.explains(checked = true, examMode = false))

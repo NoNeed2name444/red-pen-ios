@@ -220,11 +220,11 @@ struct WardRound: Codable, Equatable {
         count == 1 ? "1 card" : "\(count) cards"
     }
 
-    /// "Round 2 of 4".
-    var roundWords: String { "Round \(round) of \(plan.rounds)" }
+    /// "Block 2 of 4".
+    var roundWords: String { "Block \(round) of \(plan.rounds)" }
 
     /// One line for the chip's label, the panel and the Lock Screen:
-    /// "Round 2 of 4 · 12:40 · 38 cards".
+    /// "Block 2 of 4 · 12:40 · 38 cards".
     func caption(at now: Date) -> String {
         let dot: String = " \u{00B7} "
         let cards: String = Self.cardWords(items)
@@ -235,9 +235,9 @@ struct WardRound: Codable, Equatable {
         case .rest:
             return "Break" + dot + time + dot + cards
         case .ready:
-            return "Round \(round + 1) of \(plan.rounds) when you\u{2019}re ready" + dot + cards
+            return "Block \(round + 1) of \(plan.rounds) when you\u{2019}re ready" + dot + cards
         case .done:
-            return "Ward round done" + dot + "\(focusMinutes) min" + dot + cards
+            return "Focus session done" + dot + "\(focusMinutes) min" + dot + cards
         }
     }
 
@@ -259,17 +259,17 @@ struct WardRound: Codable, Equatable {
         var out: [Alarm] = []
         if phase == .focus {
             if round >= plan.rounds {
-                let body: String = "\(plan.rounds) rounds sat. Well done."
-                out.append(Alarm(id: "wardround-focus", date: phaseEnds, title: "Ward round done", body: body))
+                let body: String = "\(plan.rounds) blocks sat. Well done."
+                out.append(Alarm(id: "wardround-focus", date: phaseEnds, title: "Focus session done", body: body))
                 return out
             }
             let body: String = "Take \(plan.breakMinutes) minutes away from the screen."
             out.append(Alarm(id: "wardround-focus", date: phaseEnds, title: roundWords + " done", body: body))
             let breakEnds: Date = phaseEnds.addingTimeInterval(plan.breakLength)
-            let next: String = "Round \(round + 1) of \(plan.rounds) is ready when you are."
+            let next: String = "Block \(round + 1) of \(plan.rounds) is ready when you are."
             out.append(Alarm(id: "wardround-rest", date: breakEnds, title: "Break over", body: next))
         } else {
-            let next: String = "Round \(round + 1) of \(plan.rounds) is ready when you are."
+            let next: String = "Block \(round + 1) of \(plan.rounds) is ready when you are."
             out.append(Alarm(id: "wardround-rest", date: phaseEnds, title: "Break over", body: next))
         }
         return out.filter { $0.date > now }

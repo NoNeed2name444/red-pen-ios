@@ -2246,6 +2246,177 @@ with the marks on the screens last.
       tile row (IntrinsicSize.Min) asked the Vitals tile's ThatFits, a
       SubcomposeLayout; ThatFits is now a plain Layout answering intrinsics
       (HomeTilesMeasureTest runs the textbook flow under Robolectric).
+  - UX motion on Android (WM-android, T0124; the motion rows of the Android
+    consistency sweep; iOS is the reference, as T0121 is on iOS):
+    - [x] The motion named once (WardMotion in WardTokens.kt): platform.md's
+      200 to 320 ms, iOS's ease-out and ease-in-out, springs critically
+      damped so nothing passes its mark; and Remove animations (the animator
+      duration scale at 0, as iOS's Reduce Motion) read by the theme for
+      every surface (wardReduceMotion; WardTokensTest.theMotion).
+    - [x] The literals become tokens: the switch's knob 0.2; a ring, groove,
+      bar or score filling 0.3 (WardRing was 600 ms, the vitals ring and the
+      results' score 900); the ward round's chip travelling 0.3 (its 0.85
+      spring passed the corner). Kept as iOS keeps them: the spoken word's
+      0.1, the working trace's 1.2 loop (now on iOS's ease-in-out) and the
+      score ring's slow spring (iOS Q8) (WardMotionTest).
+    - [x] Remove animations on every surface that moves: the press's shade
+      and sink (a held control no longer sinks), the card's answer opening,
+      the jumps and scrolls, the working trace standing whole
+      (WardReduceMotionTest).
+    - [x] The dock's hollow travels with the choice as iOS's does
+      (StudyCategory.swift:748, 0.3 s): one hollow under the five tabs,
+      simply there with animations off and back from Ideas; the dock's look
+      is unchanged (WardDock.hollow, WardDockTest).
+  - UX Wave 2 on Android (W2-android, T0122, 22 Oct: the components, iOS the
+    reference one to one; rows in the Android consistency sweep; checked by
+    WardKitPortTest):
+    - [x] The quiz stand-ins are gone: quizFace, QuizChip, QuizTag, QuizCard
+      and QuizSmallCaps give way to wardPressFace, WardChipButton, WardChip,
+      WardCardFace and WardSmallCapsText (Questions, its summary, the exam
+      tools, the chart quiz, the pocket).
+    - [x] The Cases kit is the Ward kit's: WardCardFace, the avatar and clock
+      pressed in (wardInset), WardChip, WardButtonBox, WardSegmented.
+    - [x] wardUnlit as iOS (LocalWardUnlit): what floats over the page (the
+      library's New set row over the dock, the Ideas board's bar) keeps its
+      edges and drops its glow.
+    - [x] WardStates as iOS (ui/ward/WardStates.kt: empty state, banner,
+      groove, progress bar, filter chip); the library's and the mock's copies
+      are gone. Of the 7 own empty states 4 moved (Cards, reader, library,
+      mock); 3 stay, as iOS draws them its own way (the library's empty
+      shelf, stats, insights). Of the 4 banners 3 moved; the narration's
+      transcribing card stays (iOS: a content card with the ECG loader).
+    - [x] One StudyActionBar on WardDeckSlab (ui/ward/WardDeck.kt) for the
+      study screens and editors (21 decks in 17 files): open, on a strip in
+      the page's wash whose top line curves into the paper frame's ring
+      (WardEdgeStore); the fold band and round button where iOS folds it
+      (Questions, Cards, the mock's sitting and results, OSCE, the reader,
+      narration). The mock's, the reader's, the editors' and Cards' own bars
+      are gone; the library's (LibraryStudyBar, on Stats and the shelves) is
+      left, as the sweep's row does not name it.
+    - [x] Waits draw the ECG trace (EcgLoader), never a spinner: the
+      attending hint's wait and the Ideas map's build.
+    - [x] No ripple: the theme gives WardPressIndication as LocalIndication,
+      so a plain clickable sinks to WardPress.sinkScale and shades 0.04, as
+      iOS PressableRowStyle, with the Ward focus ring from a keyboard
+      (WardPressIndicationTest).
+    - [ ] Left: the fold's motion and the press under Reduce Motion (T0124);
+      Material's own buttons, menus and dialogs keep their ripple until
+      Waves 3-4 and the owner's answer on native menus and dialogs.
+  - UX Waves 3-4 on Android (T0123: chrome and polish, no motion; the
+    Android consistency sweep's Waves 3-4 and the owner's answers of 22 Oct):
+    - [x] The starting window's bars stand on ward_ground (light and night)
+      instead of the off-palette #E0E5EC; from the first frame
+      enableEdgeToEdge clears them, as before.
+    - [x] Material's onPrimary is WardToken.onPrimary (white) at night as
+      by day, so words on fills stay white (it was the night base); nothing
+      else in the scheme changes (OwnerPaletteTest).
+    - [x] The question screen's picture (StudyScreens' CardImage) covers an
+      occlusion card's labels in OcclusionCovers' colours, as the card face,
+      not a Care Blue literal; no screen passes it a card yet, so nothing
+      drawn changes (OwnerPaletteTest).
+    - [x] Wells take the page colour (the owner 22 Oct, "wells and sheets
+      one tone"): WardControlStates.wellFill (WardToken.background) fills
+      every Ward well - fields and search boxes, chips, pills, the timer,
+      grooves, a switch's empty track, a chosen or held segment - and
+      wardWellFill() hands it to screens (T0122 uses it); WardToken.well
+      stays in the palette. Cards' progress groove, the Why note, a held
+      rating button and the lab panel's units row were flat wells and are
+      now inset ones. NarrateAudioBar's native slider keeps the palette's
+      well (it draws no inset shadows). OwnerAccepted.kt: 44 values move
+      (chip wells and chosen segments measure on the page colour), each
+      marked "owner 22 Oct, wells and sheets one tone".
+    - [x] Sheets, menus and dialogs are one tone (the owner 22 Oct; they stay
+      Material's own, Android Q4): their containers were already the page
+      colour by token (T0113), but Material's 1 dp tonal elevation laid
+      black over every ModalBottomSheet (surfaceTint is clear), about 5%
+      darker; the theme turns tonal elevation off (WardPaletteTest).
+    - [x] Touch targets are 48 dp on Android (the owner 22 Oct; iOS keeps
+      44): WardControlSize.target is 48 and the theme hands it to Material
+      (LocalMinimumInteractiveComponentSize). The Ward button, chip, circle,
+      switch, segmented control and text field wear
+      minimumInteractiveComponentSize, so the touch area grows and the face
+      keeps iOS's size (the circle stays 44, drawn at buttonSmall); the 44
+      literals that were targets take the token, IconButtons lose their 44
+      cap, and the three under 44 (the tag field's add, the lab units, OSCE's
+      More options) reach 48; a dock tab is never under the target
+      (WardTokensTest and WardDockTest pin 48). Drawn sizes that grow: a
+      tag chip (50 to 54), the tag field (46 to 68: its add sits inside the
+      well; iOS draws it 64) and the count field's well round its circles
+      (44 to 48).
+    - [x] One top bar for the sweep's seven: StudyTitleBar (ui/mock/MockKit.kt),
+      iOS's inline title with Ward toolbar buttons. Back is a Ward circle;
+      the title, in the headline face, stays in the bar's middle and takes
+      the room the wider end leaves it. ScreenHeader (no inset inside its
+      own column, its subtitle under it), ReaderNavBar, EditorTopBar and the
+      quiz's and review's bars are it, ReaderBackButton is the circle, and
+      More on the quiz and review bars is a circle (the review's empty More
+      is a disabled one: it was faded to 40%). The exam card's header is a
+      card's, as iOS ExamDashboardCard's, and stays.
+    - [x] Settings on the Ward controls, as iOS SupportCenter's wardForm and
+      ReviewSettingsSection: Night shift is a WardToggle row (the whole row
+      toggles it), the scheduler a WardSegmented, the daily limits' minus
+      and plus Ward circles (the minus a disabled circle at no limit), and
+      New set's study modes Ward chip buttons, the chosen one pressed in.
+    - [x] Home's search is a WardTextField, iOS's searchField: a Ward well
+      with the magnifier in Biro Grey (WardTextField takes a leading glyph)
+      and the body face, no longer Material's outlined field at 90% surface
+      with a 30 dp radius; Settings beside it is a Ward circle, not an
+      IconButton in a drawn ring. The gear stays filled (Android Q3).
+    - [x] Type on WardType's faces: the sp literals (fontSize with 22 sp
+      lines under them) are now faces with their own leading, at the same
+      sizes, in the quiz, results, cards, settings, home, exam tools and
+      Cases screens. One title role, one face: the empty and error titles
+      (22, 23 and 20 bold) are WardType.title, settings' card titles
+      WardType.title and their row labels the headline (18 was off the
+      scale). As iOS: the card's front is the title (leading 25, not 26),
+      the hint's words and the lab panel's values the body (16 and 14 mono
+      were off), the lab values with even figures; the chart's words keep
+      iOS's 3 points between lines and the Why note its 2. The small caps
+      (cards' badge, Why / how, the due list, the vitals and lab headings)
+      are WardSmallCaps (0.8 tracking, none at the accessibility sizes),
+      not 1 or 1.2. Left: the display numerals at iOS's own scaled sizes
+      (the plan's 40 and 36, the score ring's 38, the calculator's 40 to
+      iOS's 44, the results ring's 30), the dock's autosizing names, the
+      skip glyph's 7, and W2's stand-ins and empty state.
+    - [x] The page gutter is WardSpace.gutter (16, not 20) and the gap
+      between a page's sections WardSpace.section (24, not 20 or 22), as
+      iOS's wardForm: home, settings, AI models, the quiz's empty page, the
+      clinical fallback, Ideas' note page and its legend and name sheets, the
+      shelf, the library sheets, By subject, New set, Guess first, the ward round's
+      panel (a card's padding is the gutter too), the exam picker, the ward
+      pocket, the credits and the plan, kit and symptom pages. Left as they
+      are: the 20s over form rows (ReaderFormSection's header and footer,
+      the exam picker's note, the vitals line, Ideas' and the syllabus'
+      headings), which sit over the rows' words (the tile's 8 and its 12),
+      as iOS's form headers do, and the other off-scale gaps, many of them
+      copies of iOS's own (iOS's sweep leaves those to a screenshot review).
+    - [x] The canon's own off-scale values: WardMonitorCard's default gap is
+      WardSpace.m (18 before; its one caller already passed m, as iOS's
+      VitalsParts), and wardField's 10 above and below stay, with a comment:
+      iOS's wardField has the same 10.
+    - [x] Radii from WardRadius where iOS names one: the Cards progress
+      header (bar), its content card (card), the rating buttons (button),
+      the lab and vitals panels (field), the undo chip (bar, iOS's
+      PopTileStyle), and the board's cards and the occlusion picture (card;
+      they were 14). Capsules where iOS draws Capsule(): the Cards companion
+      button (it was 16), the reader's pager, the board's hint and the
+      import slip. Left: radii iOS writes out itself (the book's 8, 10 and
+      12, the mock's picture's 12, the narrate flow's 10, the stem
+      highlight's 8), the two discs drawn at half their size (34 and 28),
+      the native dialog's 28 (Android Q4), the section switcher's geometry,
+      the Cases screens' 12s (the field radius already), and W2's stand-ins
+      (the answer row, QuizCard, the calculator keys, the hint panel, the
+      empty state's disc).
+    - [x] Nothing faded by alpha where iOS draws it solid (the owner 9 Oct:
+      disabled is solid Biro Grey, wardDisabledInk): a disabled rung on the
+      Cases ladder (ink at 38% before), and the Cases screens' Use and Add
+      when disabled (Material faded them to 38%); the board's link lines
+      are Biro Grey, as iOS's, not 55% of it, and Bedtime's rule line Biro
+      Grey, as iOS's, not ink at 85%. Home's search at 90% and the review's
+      More at 40% went with the bars above. Kept, since iOS draws them so
+      and no colour changes: the board card's 14% wash in its folder's tone,
+      the stem highlighter's beam at 30% and its 6% grey, the analytics
+      bars at 70%; W2's stand-ins keep theirs (QuizTag's and CaseKit's 12%).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
@@ -2682,6 +2853,12 @@ with the marks on the screens last.
   - [ ] Follow-up (docs/, outside T0120's paths): docs/design/palette-2026-10-21.md still runs the light tiers from #DDE2E8 and names the night well #090E15; it should say the well is the page colour since 22 Oct. Android's WardPalette.kt well is T0123's.
   - [ ] Mac run: the app build and Ward previews of the pages above (phone, SE, Pro Max, iPad; light and dark).
   - Waiting on the owner: Vitals' large title; mono sizes other than body and title2; icon-square sizes; the onboarding, paywall and sign-in gutters (24). The sample pictures' colours stay (no colour changes).
+- The iOS tour in stills (22 Oct; task T0126b, from the T0126a screen inventory of 128 rows). Previews only; the shipped app is unchanged.
+  - [x] 130 `-uiPreviewScreen` names in tour order in tools/tour_screens.txt (name, inventory row, plain name): 107 new tour cases in PreviewExtras (fenced out of the Playgrounds packages), plus the screens that already had one. Cases use only the seeded store and the example seeders; a mock sitting and a case run are cleared first, and settings a still needs (exam, Ideas mode) are registered, never written.
+  - [x] Hooks read PreviewLaunch.screen and only run under -uiPreviewScreen: First run's page, the app-lock shield, New set's Make step, the book's contents, the case's differential, the AI provider editor and the writing card.
+  - [x] ios-preview's limit from 45 to 116 minutes: about 12 minutes of build and boot plus up to 37 s a screen for light and dark, with a quarter on top. The whole list is one dispatch, about 77 minutes typical.
+  - Not stilled: the splash (owner's art), study tips (off in previews), the paywall (App Store products), twins and the spoken station (model output), Study Lens's live view (camera), a lecture page preview (a lecture PDF, which only a personal build seeds), Siri sheets (parked in previews), the iPad set window, the insight quiz (no answer history outside a personal build), the map legend (a tap inside the map).
+  - [ ] Mac run: dispatch ios-preview with the list as `screens`, then read every still and fix the cases that come out wrong.
 
 ### The launch mark (design/launch-anim), 15 Oct
 
@@ -2991,8 +3168,11 @@ with the marks on the screens last.
   were about the cut. Tested in homefit (model and source checks).
 - [x] T0112-android: Android home is not cut either (HomeCutPage gone; New set and the dock float over the list in a Box, its end row HomeFit.endSpace), HomeFit.kt and HomeFitTest.kt ported from iOS 3752d114; the textbook flows scroll the set row clear of the bar before tapping it. Open: ScreenshotTest.ideas' Space map drew no coloured samples on CI (11-ideas-map is now shot before the check, for evidence).
 - [x] T0115a-android-ai: Android has the iPhone's hosted-AI client (android/app/src/main/java/com/stethoscore/app/llm/: HostedLLMClient, CloudJobs, CloudJobRules, LLMService, MedicalGenerate with MCQPrompt, AccuracyCheck, OwnerSpend). Make N questions, the Cases maker and the debrief's Another patient like this, and the accuracy checker go through the worker, as iOS's do; Settings > AI models chooses Off or Stethoscore Cloud. Only the personal build (Gradle property stethoscoreOwnerKey, never in the repo) sends the owner key, and it stops at $20.00 counted on the phone (reported usage at Claude's $4/$20 a million, else the request's max_tokens). Rows in android/docs/parity.md ("The hosted AI client").
-- [ ] T0115b-android-ai: the rest of iOS's AI on Android: CloudJobCollector and the Delivery (a job finished with the app closed made into its set), GenerationCenter's one card, the osce() writer and OSCE stations, the card and textbook writers (LectureWriterSection), Write a twin and the attending's hint, the coverage and Vitals AI checks, MCQRepair, Provenance on a generated set, CloudChecks' evidence, the accuracy ledger, weights, background loop, reports and badge, Verify what is generated, a host for MCQGenerateForm in New set. Not to port: Apple Foundation Models, Doctor-R1 and Gemma on the device, providers with the student's own key.
+- [ ] T0115b-android-ai: the rest of iOS's AI on Android: CloudJobCollector and the Delivery (a job finished with the app closed made into its set), GenerationCenter's one card, the osce() writer and OSCE stations, the card and textbook writers (LectureWriterSection), Write a twin and the attending's hint, the coverage and Vitals AI checks, MCQRepair, Provenance on a generated set, CloudChecks' evidence, the accuracy ledger, weights, background loop, reports and badge, Verify what is generated. Not to port: Apple Foundation Models, Doctor-R1 and Gemma on the device, providers with the student's own key.
+- [x] T0115b1-android-reach: the owner reaches Make N questions and the Cases maker on Android the way iOS does. New set's From a lecture file comes first for Practice questions (then Type or paste and Import a file) and for Patient cases (then Import a file), as NewSetView.paths(for:); it hosts MCQGenerateForm, whose questions open unsaved in the quiz (Save there; Back asks Keep these questions? with Save to library, Discard and Cancel), and CaseMakeSection (android ui/cases, ported from iOS: Choose a lecture, How many patients, Make N patients), which saves the patients as a set named for the lecture, with the lecture as its source. Next names the set for the lecture, and a category's Paste or import opens New set on Add your lecture with typing chosen (NewSetView(kind:startingAt:)). NewSetReachTest taps from home's New set to a stand-in worker. The accuracy check is not reachable yet (T0115b2).
+- [ ] T0115b2-android-reach: what iOS reaches that Android still cannot. Check accuracy in the More menu of the quiz, card review, due today, OSCE review and book screens (Theme.swift studyMoreMenu, then AccuracyWhySheet with checksWhenUnchecked and its Check now), over llm/AccuracyCheck: it needs ui/MCQQuizScreen.kt, ui/AnkiReviewScreen.kt, the due screen, ui/osce/OsceReviewScreen.kt and ui/book/BookReaderScreen.kt in scope. New set from a preset (NewSetView(preset:): on Make, the lecture path and its writer) from Coverage's Generate questions, the exam card's Study next, the Ward pocket's Practise this, Turn into and a lecture shared into the app (Android opens the plain NewSetScreen with the text filled in). The dock's floating copy of Make. The card, textbook and OSCE writers on the lecture path are T0115b's.
 - [ ] T0117-mac-suites: since Wave 1 (f3563087) the Mac job's suites dataio, imports and storeload stopped at Brand.swift:37 and :40 (`.wardInk`, `.wardBackground`; run 39735376216). Listing the Ward files (WardTokens, WardLook, WardPalette, WardRelief) could not fix it: WardTokens.swift, and LaunchStage.swift which it needs, import UIKit, and the suites build for macOS, which has SwiftUI but no UIKit (Store.swift fences it for that reason). Done: Brand.swift's look is under `#if canImport(UIKit)` (the app and the Playgrounds zip keep it; the suites read only the name and line, as on Linux), and tools/swift_suite_closure.py, which preflight runs on every suite, reads each as macOS or Linux builds it and fails on a Ward name none of its files define, or a mac-only suite's file importing UIKit. Waits for its Mac run (the push's swift-tests mac job).
+- [x] T0118-android-map: ScreenshotTest.ideas' blank Space map on CI (runs 39745559363, 39736799084) was looked at too early, not drawn wrong. The emulator's software GL (SwiftShader 4.0.0.1) builds each shader on its first draw, so the map's first frame with bodies takes seconds (3.6 s, 5.5 s with the Earth maps, on the emulator's own SwiftShader; later frames 0.03 to 0.08 s), and the frame before it holds only the summary star, a point SwiftShader allows 1 px (its point-size range is 1 to 1), which draws nothing: the fixed 3 s pause sampled that frame (0 coloured samples). The map now keeps a record of its finished frames (MapDrawn, on its node as MapDrawnKey, which accessibility does not read); the test waits on it, up to a minute, then looks once, as strictly as before, and a failure says what the map had drawn and what the screen held. Phones and iOS are not affected. Open: the next screenshots run is the proof, android/scripts/capture-screenshots.sh now reads the test and picture counts from ScreenshotTest.kt (10 and 13) and pulls the pictures before it checks them.
 - [ ] Mac run for T0112: screenshots of home on the 17 Pro, the Pro Max and a
   375 pt phone at the default size and at xxxLarge (the row, the names whole
   or barely smaller, the chosen ring clear of them), and the four UI suites;
@@ -3130,6 +3310,86 @@ docs/design/identity/; the route boards are images kept out of the repo.
 - [ ] A fresh board review, round 3.
 - [ ] The owner picks a route, and the words for the timer's parts and the
   plan's count; then a separate phase applies it.
+
+### The exam wording, built (22 Oct, T0125)
+
+The owner's words from wording.md ("3 to do", "make it block") and the copy
+deck, on iOS and Android in one change set, one pattern per commit. Strings
+only; Arabic is left for the owner's words (copy deck question 4).
+
+- [x] The mock exam's timed parts are "Part n" ("Part n of N" in the
+  sitting), from one constant per platform, MockFormat.partWord
+  (Shared/Exam/MockPaper.swift; quiz/MockPaper.kt). Owner, 22 Oct.
+- [x] The daily plan is "Today's revision": "Start revision", rows "1 ·
+  Cardiology" (spoken "Item 1, …"), "3 to do · 22 min", "Nothing due", the
+  weak-topic lines and the first run's two lines (wording.md rows 1-4, 8-16,
+  64-65; its "items" drift rows now say "to do").
+- [x] The timer is a "Focus session" of "Block 1 of 4": its tile, chip,
+  panel, captions, alarms, spoken lines, the exam plan's line, the Focus
+  filter and the Health settings rows (wording.md rows 32-57). The Live
+  Activity (StethoscoreWidgets) and the Health permission text (project.yml,
+  Arabic) wait: outside this change, and the Arabic word is the owner's.
+- [x] The question screen says "Question 7 of 20", "Next question" and,
+  over the stem, "Single best answer"; its chip shows only on a retest,
+  "Second try" (wording.md rows 17-20).
+- [x] Vitals is "Progress" (title, menu, home tile, "Opens Progress"), its
+  weak list "Weak topics" with "Practise weak topics", and the subtitles that
+  named it (wording.md rows 5-7, 21-26). The menu's "Progress" now meets its
+  Arabic catalogue entry.
+- [x] The reference is "Clinical reference": its title, the exam plan's
+  row, the study menu's item and a set made from it ("Clinical reference:
+  …") (wording.md rows 68-71).
+- [x] The new-set flow drops its "New admission" label: the screen is
+  already titled "New set" (wording.md row 66).
+- [x] Twins' subtitle is "Missed points, asked again" (wording.md row 67;
+  Android has no study-category list yet).
+- [x] An alert that only tells you something closes with "Done", not "OK"
+  (13 on iOS, 7 on Android; the copy deck's majority button). The sign-in
+  screen's two go through the catalogue: "Done" is a new key with no Arabic
+  yet, so the catalogue check reports it until the owner's Arabic word comes.
+- [x] Android's own names give way to iOS's: "New set" and "Save set" on
+  the editor, "Look and feel" over the dark-mode switch. "Night shift" and
+  the settings rows the deck maps to iOS's backup rows wait (copy deck
+  question 6; Android's Import JSON adds sets where iOS's Restore replaces).
+- [x] Android's empty home says what iOS's does: "Make your first set" and
+  "Add a lecture and Stethoscore turns it into questions or flashcards to
+  study." Its "YOUR STUDY WARD" label waits (copy deck question 6), and its
+  two buttons keep their words: they load the examples and import a
+  library, where iOS's one button makes a new set.
+- [x] Android's import and print notices count in the singular for one,
+  "Imported 1 set", "(1 page)", through the plural helper iOS uses
+  (BedPlan.counted).
+- [x] An Android import that fails with no reason of its own says
+  "Couldn’t import that file. Check it’s a Stethoscore library and try
+  again." (iOS's alert pattern). A failure that carries its own message
+  still shows that message, as before.
+- [x] The daily plan's button to the exam plan says what it does, "Open
+  plan" (copy deck rule d), on both phones.
+- [x] The iPad keyboard menu is in sentence case like the rest of the app:
+  "Open last set in new window", "Search library", "Review due cards". The
+  Playgrounds build's stand-in (tools/playgrounds_stubs/core3/Core3Gaps.swift)
+  still says "Review Due Cards".
+- [ ] Waiting on the owner (copy deck section 5): the rhythm words
+  "Steady", "Patchy", "Resting" (question 3: "Steady" is already the trend
+  label; wording.md rows 27-31); Android's "Night shift" and "YOUR STUDY
+  WARD" (question 6); the three shorter overlines, "ONE BEST ANSWER",
+  "WEAKEST FIRST", "BIGGEST GAIN" (question 9); the Arabic for "Done",
+  "Today's revision", "Focus session", "Block" and "Part", and the Health
+  permission's Arabic (question 4); and a yes to the spoken "Item 1",
+  built as wording.md's glossary has it (question 5).
+- [ ] Outside this change set: the Live Activity's words
+  (ios/StethoscoreWidgets, wording.md rows 58-61), the Health permission
+  text (ios/project.yml, row 62), the iPad build's stand-ins
+  (tools/playgrounds_stubs, rows 72-77, plus Core3Gaps.swift's "Review Due
+  Cards" and CoreExports.swift's "OK"), and the design tour, which still
+  tries "Vitals" before "Progress" (ios/UITests/DesignTourUITests.swift).
+- [ ] More than words, so not in this change set: the empty due queue's
+  next-due line and "Study something else" (it needs the next due time and
+  a new action); Android's "Why / how" (it needs the small-caps component,
+  which uppercases, in place of the literal "WHY / HOW"); the model download
+  error, whose text is wrapped twice ("Download failed: Something went
+  wrong — …"); and iOS's account alert "Something went wrong", which also
+  shows failures that are not sign-in.
 
 ### Waiting on the owner
 

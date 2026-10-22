@@ -58,7 +58,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.exam.NewSetPreset
 import com.stethoscore.app.exam.WardBand
@@ -177,9 +176,9 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
     }
     WardDisclaimerFrame {
         Column(Modifier.fillMaxSize()) {
-            ReaderNavBar("Ward pocket", trailing = { ReaderDoneButton(onClick = onDone) })
+            ReaderNavBar("Clinical reference", trailing = { ReaderDoneButton(onClick = onDone) })
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 72.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
                 WardTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp), placeholder = tab.searchPrompt)
                 // the switches sit on the base itself, not on tiles
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -231,8 +230,8 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
 @Composable private fun Chevron() =
     Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, Modifier.size(18.dp), tint = wardColor(WardToken.inkSecondary))
 
-/** SI or US conventional units. */
-@Composable private fun WardUnitsPicker(conventional: Boolean, onChange: (Boolean) -> Unit) {
+/** SI or US conventional units; the quiz's lab values sheet shares it, as on iOS. */
+@Composable internal fun WardUnitsPicker(conventional: Boolean, onChange: (Boolean) -> Unit) {
     WardSegmented(conventional, listOf(false, true), onChange, Modifier.fillMaxWidth().semantics { contentDescription = "Units" }) { us, style, color ->
         Text(if (us) "US conventional" else "SI", style = style, color = color, maxLines = 1)
     }
@@ -263,7 +262,7 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
  */
 @Composable private fun LabRangesSections(query: String, conventional: Boolean) {
     val found = remember(query) { LabRanges.search(query) }
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ReaderFormSection {
             Text(LabRanges.caveat, Modifier.fillMaxWidth().plainRowTile(), style = WardTextStyle.footnote.textStyle(),
                 color = wardColor(WardToken.inkSecondary))
@@ -345,7 +344,7 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
         Column(Modifier.fillMaxSize()) {
             ReaderNavBar(calc.title, leading = { ReaderBackButton(onBack) })
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 72.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
                 if (hasUnits) Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) { WardUnitsPicker(conventional, ::switchUnits) }
                 ReaderFormSection(header = "Values") {
                     for (field in calc.fields) FieldRow(field, conventional, typed[field.id] ?: "", { typed[field.id] = it },
@@ -435,7 +434,7 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
                 WardTextButton("Reset", { picks.clear() }, kind = WardButtonKind.compact, enabled = picks.isNotEmpty(), fills = false)
             })
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 200.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
                 ReaderFormSection {
                     Text(score.purpose, Modifier.fillMaxWidth().plainRowTile(), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
                 }
@@ -503,7 +502,7 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
         .semantics(mergeDescendants = true) {}.testTag("wardScoreTotal"),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
         Text(WardScores.points(total), Modifier.widthIn(min = 48.dp),
-            style = WardType.obsLarge.textStyle().copy(fontSize = 34.sp, fontWeight = FontWeight.Bold), color = wardColor(WardToken.ink))
+            style = WardTextStyle.largeTitle.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.ink))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text(band?.title ?: "", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             Text(band?.detail ?: "", style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 3,

@@ -56,13 +56,13 @@ import com.stethoscore.app.coverage.Syllabus
 import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.ui.QuizPrefs
 import com.stethoscore.app.ui.editors.EcgLoader
-import com.stethoscore.app.ui.editors.EditorBanner
 import com.stethoscore.app.ui.mock.ChipBox
-import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
+import com.stethoscore.app.ui.ward.StudyActionBar
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardChip
@@ -185,7 +185,7 @@ object CoverageWords {
                         Text("Reading your library…", style = WardType.body.textStyle(), color = wardColor(WardToken.inkSecondary))
                     }
                 } else {
-                    notice?.let { EditorBanner(it, Icons.Rounded.Info, modifier = Modifier.padding(horizontal = 16.dp)) }
+                    notice?.let { WardBanner(it, Icons.Rounded.Info, modifier = Modifier.padding(horizontal = 16.dp)) }
                     val all = areas.flatMap { it.subtopics }
                     ReaderFormSection(footer = CoverageWords.summaryFooter(track)) {
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

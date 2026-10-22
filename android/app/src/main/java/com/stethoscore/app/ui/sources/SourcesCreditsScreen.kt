@@ -71,11 +71,11 @@ object CreditsWords {
     var reading by remember { mutableStateOf<SourceDoc?>(null) }
     Column(Modifier.fillMaxSize()) {
         ReaderNavBar(CreditsWords.title, leading = { ReaderBackButton(onBack) })
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = WardSpace.s.wardDp),
+            verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
             if (credits.isEmpty) ReaderFormSection {
                 Box(Modifier.fillMaxWidth().wardRowTile()) {
-                    ReaderEmptyState(Icons.Rounded.FolderOff, CreditsWords.emptyTitle, CreditsWords.emptyMessage, tone = WardTone.Grey)
+                    WardEmptyState(Icons.Rounded.FolderOff, CreditsWords.emptyTitle, CreditsWords.emptyMessage, tone = WardTone.Grey)
                 }
             }
             if (credits.lectures.isNotEmpty() || credits.citedElsewhere.isNotEmpty()) {
@@ -138,8 +138,8 @@ object CreditsWords {
 @Composable fun ContentLicencesScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         ReaderNavBar(CreditsWords.title, leading = { ReaderBackButton(onBack) })
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = WardSpace.s.wardDp),
+            verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
             ReaderFormSection("Your material") {
                 Box(Modifier.fillMaxWidth().wardRowTile()) {
                     Text(CreditsWords.yourMaterial, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.ink))

@@ -46,8 +46,12 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.MockResult
 import com.stethoscore.app.quiz.MockSubjectScore
 import com.stethoscore.app.ui.QuizScreen
+import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardProgressBar
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextStyle
@@ -122,7 +126,8 @@ fun MockResultsScreen(result: MockResult, sitting: MockSitting, selected: Map<St
                 }
             }
         }
-        StudyActionBar {
+        // it folds away (iOS MockResultsView studyBar(folds: true))
+        StudyActionBar(folds = true) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (missed.isNotEmpty()) {
                     BigButton("Practise missed", Icons.Rounded.Replay, BigKind.companion, {
@@ -165,7 +170,7 @@ fun MockResultsScreen(result: MockResult, sitting: MockSitting, selected: Map<St
     val yours = chosen?.let { q.options.getOrNull(it) } ?: "No answer"
     var open by remember(q.id) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp).clickable(role = Role.Button) { open = !open }
+        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp).clickable(role = Role.Button) { open = !open }
             .semantics(mergeDescendants = true) { stateDescription = if (open) "Expanded" else "Collapsed" },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(if (right) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel, if (right) "Right" else "Wrong", Modifier.size(18.dp),

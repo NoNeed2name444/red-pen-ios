@@ -186,6 +186,14 @@ struct NewSetView: View {
                 .navigationTitle("New set")
                 .diagnosticsScreen("screen:new_set")
                 .navigationBarTitleDisplayMode(.inline)
+                // a screenshot run's "new-make": typed questions, on Make
+                .task {
+                    guard PreviewLaunch.screen == "new-make" else { return }
+                    name = SampleData.nephrology.name
+                    subject = SampleData.nephrology.subject
+                    bodyText = PreviewLaunch.typedQuestions
+                    step = .make
+                }
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
@@ -212,7 +220,7 @@ struct NewSetView: View {
                     ImportPreviewSheet(preview: preview) { commitImport(preview) }
                 }
                 .alert("Set imported", isPresented: importNoticeShown) {
-                    Button("OK") { dismiss() }
+                    Button("Done") { dismiss() }
                 } message: {
                     Text(importNotice ?? "")
                 }
@@ -304,7 +312,6 @@ struct NewSetView: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Step \(step.rawValue) of 3")
             VStack(alignment: .leading, spacing: 4) {
-                Text("New admission").wardSmallCaps()
                 Text(step.question)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Color.wardInk)

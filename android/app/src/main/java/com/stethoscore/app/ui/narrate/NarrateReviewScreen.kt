@@ -304,10 +304,14 @@ object NarrateWords {
                 handsOffUntil = System.currentTimeMillis() + NarrateScrollBand.handsOffMillis
         }
     }
+    // with animations off the line being read is simply brought into the band
+    val reduce = wardReduceMotion()
     LaunchedEffect(index) {
         val (top, bottom) = NarrateScrollBand.frame(listState, index)
-        if (texts.isNotEmpty() && NarrateScrollBand.needsScroll(top, bottom, viewport, System.currentTimeMillis(), handsOffUntil))
-            listState.animateScrollToItem(index, -(viewport * NarrateScrollBand.anchor).toInt())
+        if (texts.isNotEmpty() && NarrateScrollBand.needsScroll(top, bottom, viewport, System.currentTimeMillis(), handsOffUntil)) {
+            val offset = -(viewport * NarrateScrollBand.anchor).toInt()
+            if (reduce) listState.scrollToItem(index, offset) else listState.animateScrollToItem(index, offset)
+        }
     }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
@@ -335,7 +339,7 @@ object NarrateWords {
         importer.working?.let { TranscribingBanner(it, onDevice = !importer.inCloud) }
         Box(Modifier.weight(1f).fillMaxWidth().onSizeChanged { viewport = it.height }) {
             if (texts.isEmpty()) {
-                ReaderEmptyState(Icons.Rounded.GraphicEq, NarrateWords.emptyTitle,
+                WardEmptyState(Icons.Rounded.GraphicEq, NarrateWords.emptyTitle,
                     NarrateWords.emptyLine(importer.working != null, hasAudio), modifier = Modifier.padding(top = 32.dp))
             } else {
                 TranscriptCard(listState)
@@ -413,7 +417,7 @@ object NarrateWords {
     AlertDialog(onDismissRequest = onDismiss, containerColor = wardColor(WardToken.raised),
         title = { Text(title, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink)) },
         text = { Text(message, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary)) },
-        confirmButton = { WardTextButton("OK", onDismiss, kind = WardButtonKind.compact, fills = false) })
+        confirmButton = { WardTextButton("Done", onDismiss, kind = WardButtonKind.compact, fills = false) })
 }
 
 /** The picked file's extension, so the player can work out the format: from its name, else its type, else m4a. */

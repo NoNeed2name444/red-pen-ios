@@ -198,14 +198,27 @@ enum class NewSetPath(val title: String, val blurb: String) {
 
 object NewSetWords {
     /**
-     * The paths a kind offers. iOS offers From a lecture file first for every
-     * kind but Narrate; its writers come with batch 6 (MCQGenerateForm,
-     * LectureWriterSection), so here it is left out until then.
+     * The paths a kind offers (iOS NewSetView.paths(for:)). iOS offers From a
+     * lecture file first for every kind but Narrate. Here it is offered where
+     * its writer reaches Stethoscore Cloud: questions (MCQGenerateForm) and
+     * patients (CaseMakeSection). Cards, textbooks and OSCE stations
+     * (LectureWriterSection, OsceGenerateSection) have no writer on Android
+     * yet, so they offer typing and a file until they do.
      */
     fun paths(kind: StudySetKind): List<NewSetPath> = when (kind) {
-        StudySetKind.NARRATE -> listOf(NewSetPath.TYPE, NewSetPath.IMPORT_FILE)
-        StudySetKind.CASES -> listOf(NewSetPath.IMPORT_FILE)
+        StudySetKind.MCQ -> listOf(NewSetPath.LECTURE, NewSetPath.TYPE, NewSetPath.IMPORT_FILE)
+        StudySetKind.CASES -> listOf(NewSetPath.LECTURE, NewSetPath.IMPORT_FILE)
         else -> listOf(NewSetPath.TYPE, NewSetPath.IMPORT_FILE)
+    }
+
+    /**
+     * The path New set opens on: the kind's first, or typing when it opens on
+     * the step that asks where the material comes from (iOS
+     * init(kind:startingAt:), for a category's Paste or import).
+     */
+    fun startPath(kind: StudySetKind, step: NewSetStep): NewSetPath {
+        val offered = paths(kind)
+        return if (step != NewSetStep.KIND && NewSetPath.TYPE in offered) NewSetPath.TYPE else offered.first()
     }
 
     fun plainName(kind: StudySetKind): String = when (kind) {

@@ -78,7 +78,7 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
                     Text(item.title, style = WardTextStyle.caption2.textStyle(WardWeight.bold), color = ink, maxLines = 1)
                 }
             }
-            IconButton(onClick = collapse, Modifier.size(44.dp).semantics { testTag = toggleTag }) {
+            IconButton(onClick = collapse, Modifier.semantics { testTag = toggleTag }) {
                 Icon(Icons.Rounded.KeyboardArrowDown, "Hide the switcher", tint = wardColor(WardToken.ink), modifier = Modifier.size(18.dp))
             }
         }

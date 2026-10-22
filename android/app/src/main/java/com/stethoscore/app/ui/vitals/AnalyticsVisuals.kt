@@ -1,7 +1,6 @@
 package com.stethoscore.app.ui.vitals
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,10 +49,13 @@ import com.stethoscore.app.data.HeatLevel
 import com.stethoscore.app.data.ReasonShare
 import com.stethoscore.app.data.RhythmReading
 import com.stethoscore.app.quiz.AnswerConfidence
+import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardEaseOut
+import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.wardColor
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -89,7 +91,9 @@ data class DayPoint(val day: LocalDate, val count: Int)
                              size: Double = 64.0, lineWidth: Double = 7.0) {
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
-    val grow by animateFloatAsState(if (shown) 1f else 0f, tween(900), label = "ring")
+    // it sweeps in as iOS's ProgressRing does (.easeOut(duration: 0.3)); with animations off it is simply there
+    val reduce = wardReduceMotion()
+    val grow by animateFloatAsState(if (shown || reduce) 1f else 0f, wardEaseOut(WardMotion.fill, reduce), label = "ring")
     val track = wardColor(WardToken.hairline)
     Canvas(modifier.size(size.dp)) {
         val w = lineWidth.dp.toPx()

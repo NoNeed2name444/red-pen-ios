@@ -27,7 +27,7 @@ fun MockFormat.papers(exam: TargetExam, blocks: Int = 2): List<MockPaperSpec> {
         val n = minOf(maxOf(blocks, 1), exam.sections.size)
         val chosen = exam.sections.take(n)
         val unit = chosen[0].title.split(" ").filter { it.isNotEmpty() }.dropLast(1).joinToString(" ").lowercase()
-        val noun = unit.ifEmpty { "block" }
+        val noun = unit.ifEmpty { MockFormat.partWord.lowercase() }
         return listOf(MockPaperSpec("${exam.id}-$n", "${exam.shortName}, $n $noun" + (if (n == 1) "" else "s"), chosen, exam.paperNote))
     }
     if (exam.sitsSeparately) {

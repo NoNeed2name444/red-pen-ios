@@ -38,8 +38,10 @@ import com.stethoscore.app.data.DiagramCards
 import com.stethoscore.app.data.LectureForms
 import com.stethoscore.app.data.ReadSource
 import com.stethoscore.app.data.StudySetKind
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardTextField
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
@@ -47,6 +49,7 @@ import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.wardColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -161,7 +164,7 @@ import kotlinx.coroutines.withContext
                         EditorNote("${src.name} — ${src.pages.size} pages")
                     }
                 }
-                trouble?.let { EditorBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
+                trouble?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     EditorRowTitle("Or paste your notes")
                     EditorTextArea(pastedNotes, { pastedNotes = it }, minHeight = 120.dp, enabled = !working, label = "Or paste your notes")
@@ -191,7 +194,7 @@ import kotlinx.coroutines.withContext
                 if (!hasSource && !(kind == StudySetKind.ANKI && style == CardStyle.image)) {
                     EditorNote("Nothing to write from yet — go Back and add a lecture.")
                 }
-                trouble?.let { EditorBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
+                trouble?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
                 MoreOptions("More options", showMore, { showMore = it }) {
                     WardTextField(subject, onSubject, Modifier.fillMaxWidth(), placeholder = "Subject, e.g. Cardiology", enabled = !working)
                     EditorNote(NoWriter.cards)
@@ -205,7 +208,7 @@ import kotlinx.coroutines.withContext
 @Composable private fun CardTypePicker(style: CardStyle, enabled: Boolean, onChange: (CardStyle) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp)
+        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp)
             .clickable(enabled = enabled, role = Role.DropdownList, onClickLabel = "Choose the card type") { open = true },
             verticalAlignment = Alignment.CenterVertically) {
             Text("Card type", style = WardType.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
