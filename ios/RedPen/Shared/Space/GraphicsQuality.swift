@@ -8,14 +8,18 @@ import Foundation
 //
 //   Automatic      Smooth on an older or low-memory phone, on a hot device
 //                  and in Low Power Mode; High quality otherwise (default)
-//   High quality   everything: 120 frames a second on ProMotion, full star
-//                  field, twinkle, drifting nebula, detailed shaders
+//   High quality   everything: full star field, twinkle, drifting nebula,
+//                  detailed shaders
 //   Smooth         the cheaper version of every piece in every look (the
 //                  space backdrop, the 3D map, and the looks still to come):
 //                  fewer stars, no twinkle, a still nebula, the shaders'
 //                  simple path (no noise loops), fewer samples along each
-//                  link, 60 frames a second, lighter anti-aliasing, fewer
-//                  sparks, no soft haze round small bodies
+//                  link, lighter anti-aliasing, fewer sparks, no soft haze
+//                  round small bodies
+//
+// Both run at the screen's own rate - 120 frames a second on ProMotion, 60
+// elsewhere (the owner, 14 Oct: "i want it to run same as the monitor
+// refresh rate"; plan 4e). Smooth cuts detail, never the rate.
 //
 // Pure Foundation, so the choice and the budgets are tested on Linux
 // (Tests/GraphicsTests.swift). The iOS side - reading the device, the
@@ -96,7 +100,8 @@ nonisolated struct GraphicsBudget: Sendable, Equatable {
     /// 20% - both too little to see (the old six segments strayed by twice
     /// the half-width, the kinks the owner saw).
     let linkSamples: Int
-    /// The most frames a second the 3D map and the pop-out's tilt run at.
+    /// The most frames a second the 3D map and the pop-out's tilt run at:
+    /// above any screen's, so every tier runs at the screen's own rate.
     let maxFPS: Int
     /// Multisampling: 4 or 2.
     let msaa: Int
@@ -117,10 +122,13 @@ nonisolated struct GraphicsBudget: Sendable, Equatable {
     /// glow, the neuron look's gel halo).
     let haze: Bool
 
-    static let high = GraphicsBudget(tier: .high, linkSamples: 40, maxFPS: 120, msaa: 4, shaderDetail: 1,
+    /// No cap below the screen: the fastest screens go to 240.
+    static let screenRate: Int = 240
+
+    static let high = GraphicsBudget(tier: .high, linkSamples: 40, maxFPS: screenRate, msaa: 4, shaderDetail: 1,
                                      particleScale: 1, crowdedAbove: 150, twinkle: true, nebulaDrifts: true,
                                      starStride: 1, haze: true)
-    static let smooth = GraphicsBudget(tier: .smooth, linkSamples: 20, maxFPS: 60, msaa: 2, shaderDetail: 0,
+    static let smooth = GraphicsBudget(tier: .smooth, linkSamples: 20, maxFPS: screenRate, msaa: 2, shaderDetail: 0,
                                        particleScale: 0.4, crowdedAbove: 60, twinkle: false,
                                        nebulaDrifts: false, starStride: 2, haze: false)
 
@@ -128,7 +136,7 @@ nonisolated struct GraphicsBudget: Sendable, Equatable {
         tier == .high ? high : smooth
     }
 
-    /// The frame rate to ask for on a screen that can do `screenFPS`.
+    /// The frame rate to ask for on a screen that can do `screenFPS`: its own.
     func frameRate(screen screenFPS: Int) -> Int {
         let top: Int = max(screenFPS, 30)
         return min(maxFPS, top)
