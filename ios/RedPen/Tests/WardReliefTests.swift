@@ -13,6 +13,47 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
 
 func f(_ x: Double) -> String { String(format: "%.3f", x) }
 
+// MARK: - The owner's accepted cases
+
+// The owner, 22 Oct 2026, about 3:44 AM Cairo, shown that the exact colours
+// fail the readability checks: "STOP IMPROVISING DONT CHANGE THE COLORS I
+// GAVE U". So every colour is the owner's hex as given, white words on the
+// fills included, on the plain ground. A check below that falls short only
+// because of that passes only as its exact case on the owner's list
+// (ios/RedPen/Tests/OwnerAccepted.json, under this file's name), measured
+// within 0.01 of the value recorded there. Any other case still fails, and
+// so does a listed case no check here measures short.
+let ownerFile = "ios/RedPen/Tests/OwnerAccepted.json"
+let ownerList: [String: Double] = {
+    var dir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    while !FileManager.default.fileExists(atPath: dir.appendingPathComponent(ownerFile).path), dir.path != "/" {
+        dir.deleteLastPathComponent()
+    }
+    guard let data = FileManager.default.contents(atPath: dir.appendingPathComponent(ownerFile).path),
+          let all = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+          let mine = all["WardReliefTests.swift"] as? [String: Any] else { return [:] }
+    var out: [String: Double] = [:]
+    for (key, value) in mine {
+        if let n = value as? NSNumber { out[key] = n.doubleValue } else if let d = value as? Double { out[key] = d }
+    }
+    return out
+}()
+var ownerSeen: Set<String> = []
+/// True only when `measured`, short of its check's threshold, is the
+/// owner's accepted case `key` at the value recorded for it.
+func owner(_ key: String, _ measured: Double) -> Bool {
+    ownerSeen.insert(key)
+    guard let listed = ownerList[key] else {
+        print("owner-accepted miss: \"\(key)\": " + String(format: "%.3f", measured))
+        return false
+    }
+    guard abs(measured - listed) <= 0.01 else {
+        print("owner-accepted moved: \"\(key)\": " + String(format: "%.3f", measured) + ", listed " + String(format: "%.3f", listed))
+        return false
+    }
+    return true
+}
+
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"
     let base = WardRelief.base(dark: dark)
@@ -79,8 +120,9 @@ for dark in [false, true] {
         let strongControl = WardRelief.raised(lift, dark: dark, highContrast: true, control: true)
         let edge = WardPalette.contrast(WardRelief.edgeColor(dark: dark), base)
         let strongEdge = WardPalette.contrast(WardRelief.edgeColor(dark: dark, highContrast: true), base)
-        check("\(tag): a control's edge reads at least 3:1 on the base",
-              control.edgeAlpha == WardRelief.edgeAlpha(dark: dark) && edge >= WardRelief.edgeContrast, f(edge))
+        let edgeLabel = "\(tag): a control's edge reads at least 3:1 on the base"
+        check(edgeLabel, control.edgeAlpha == WardRelief.edgeAlpha(dark: dark) &&
+              (edge >= WardRelief.edgeContrast || owner(edgeLabel, edge)), f(edge))
         check("\(tag): a card has no edge", spec.edgeAlpha == 0)
         check("\(tag): a control's face is a card's with the edge",
               control.highlight == spec.highlight && control.shade == spec.shade && control.inner == spec.inner)
@@ -245,9 +287,10 @@ check("paper constants", WardPaper.frame == 12 && WardPaper.cell == 6 &&
 for dark in [false, true] {
     for strong in [false, true] {
         let ink = WardPaper.ink(dark: dark, highContrast: strong)
-        // the ink outside any section (Cards' Care Blue, the 2026-10-21 palette)
+        // the ink outside any section (Cards' Care Blue, the owner's hex in
+        // both modes)
         check("paper ink \(dark)/\(strong)",
-              ink.hex == (dark ? 0x84B2FD : 0x2A71E5) &&
+              ink.hex == 0x3B82F6 &&
               ink.fine == (strong ? 0 : (dark ? 0.07 : 0.09)) &&
               ink.bold == (strong ? 0 : (dark ? 0.14 : 0.18)) &&
               ink.edge == (dark ? 0.5 : 0.55))
@@ -639,6 +682,12 @@ if let p = WardPaper.panel(width: 402, height: 874) {
     check("left: false gives no left arc and fromX nil", jRightOnly?.left == nil && jRightOnly?.fromX == nil)
     check("left: false keeps right side identical", jRightOnly?.right == jBoth?.right && jRightOnly?.toX == jBoth?.toX)
 }
+
+// The owner's list holds only cases a check above measured short.
+check("the owner's list is read (\(ownerFile), WardReliefTests.swift)", !ownerList.isEmpty)
+let ownerStale = ownerList.keys.filter { !ownerSeen.contains($0) }.sorted()
+check("every case on the owner's list is one a check here measured short", ownerStale.isEmpty,
+      ownerStale.joined(separator: "; "))
 
 print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
                        : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")

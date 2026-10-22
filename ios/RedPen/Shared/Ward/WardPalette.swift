@@ -18,11 +18,11 @@ import Foundation
 /// glaring, and cards that lift by lightening, as a dark room shows depth.
 /// The primary is Cards' Care Blue (WardSection.outside), the look outside
 /// any section. Every hue is the owner's 2026-10-21 palette (ten colours,
-/// docs/design/palette-2026-10-21.md): right is Fresh Mint, wrong and the
-/// ECG red Vital Coral, due and the beam Optimistic Amber, each as a shade
-/// of its hue where the colour itself would not read 4.5:1 (3:1 for the
-/// beam) on the tiers; words on any fill are the night well's near-black
-/// (`onPrimary`), since white reads under 4.5:1 on every one. A wrong answer
+/// docs/design/palette-2026-10-21.md), each as the owner's hex exactly in
+/// both modes (the owner, 22 Oct: no shades): right is Fresh Mint, wrong
+/// and the ECG red Vital Coral, due and the beam Optimistic Amber; words on
+/// a fill are white (`onPrimary`). WardPaletteTests asks 4.5:1 (3:1 for
+/// the beam) and says where the owner's colours fall short. A wrong answer
 /// is the faded row (`faded`, `fadedInk`), drawn in colours, never with
 /// opacity. The launch screen and the launch logo are drawn on the bases.
 ///
@@ -42,8 +42,7 @@ enum WardToken: String, CaseIterable {
     case primary
     /// The primary as text and glyphs on a surface (Cards' accent)
     case primaryInk
-    /// Words on a primary or section fill: near-black, as white reads under
-    /// 4.5:1 on every fill of the 2026-10-21 palette
+    /// White on a primary or section fill
     case onPrimary
     /// ECG Red: the secondary accent, Vital Coral
     case ecg
@@ -81,13 +80,13 @@ enum WardPalette {
         .raised:       (0xF1F4F8, 0x2E353F),
         .well:         (0xDDE2E8, 0x090E15),
         .primary:      (0x3B82F6, 0x3B82F6),
-        .primaryInk:   (0x0251C2, 0x84B2FD),
-        .onPrimary:    (0x090E15, 0x090E15),
-        .ecg:          (0xBB2A34, 0xF57875),
-        .beam:         (0x9F7818, 0xFBBF24),
-        .success:      (0x316E56, 0x6EE7B7),
-        .warning:      (0x7D5E14, 0xFBBF24),
-        .danger:       (0xBB2A34, 0xF57875),
+        .primaryInk:   (0x3B82F6, 0x3B82F6),
+        .onPrimary:    (0xFFFFFF, 0xFFFFFF),
+        .ecg:          (0xFF6B6B, 0xFF6B6B),
+        .beam:         (0xFBBF24, 0xFBBF24),
+        .success:      (0x6EE7B7, 0x6EE7B7),
+        .warning:      (0xFBBF24, 0xFBBF24),
+        .danger:       (0xFF6B6B, 0xFF6B6B),
         .ink:          (0x232C39, 0xF1F4F8),
         .inkSecondary: (0x536171, 0xB8C2D0),
         .hairline:     (0xCFD7E2, 0x04070B),
