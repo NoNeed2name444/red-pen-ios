@@ -3133,6 +3133,10 @@ only; Arabic is left for the owner's words (copy deck question 4).
 - [x] Android's import and print notices count in the singular for one,
   "Imported 1 set", "(1 page)", through the plural helper iOS uses
   (BedPlan.counted).
+- [x] An Android import that fails with no reason of its own says
+  "Couldn’t import that file. Check it’s a Stethoscore library and try
+  again." (iOS's alert pattern). A failure that carries its own message
+  still shows that message, as before.
 
 ### Waiting on the owner
 

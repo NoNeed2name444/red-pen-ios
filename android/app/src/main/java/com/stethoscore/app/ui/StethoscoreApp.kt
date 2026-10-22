@@ -102,7 +102,7 @@ import kotlinx.coroutines.withContext
                 require(text.length<=20_000_000) { "This file is too large. Import one set at a time." }
                 store.importJson(text)
             } }
-            notice=result.fold({ "Imported ${BedPlan.counted(it,"set")}" }) { it.message ?: "Unable to import this file" };refresh()
+            notice=result.fold({ "Imported ${BedPlan.counted(it,"set")}" }) { it.message ?: "Couldn’t import that file. Check it’s a Stethoscore library and try again." };refresh()
         }
     }
     val exported=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
