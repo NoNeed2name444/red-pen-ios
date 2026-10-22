@@ -44,6 +44,9 @@ struct GraphThemeParts {
     /// One of the many small bodies whose halo GraphSim may hide when it is
     /// tiny on screen in a crowded map (the Universe's rocky planets).
     var thinnable: Bool = false
+    /// What may shrink away once the body is mostly faded with depth (its
+    /// halo, its finer parts: GraphDepthDetail).
+    var extras: [SCNNode] = []
 }
 
 extension GraphThemeParts {
@@ -128,7 +131,9 @@ enum GraphThemes {
     /// once the answer can be trusted: GraphProbeMemo).
     nonisolated static func prepare(_ theme: GraphTheme) {
         switch theme {
-        case .neurons: _ = NeuronProbe.support
+        case .neurons:
+            _ = NeuronProbe.support
+            _ = GraphDepthProbe.support
         case .space, .performance: break
         }
     }
@@ -282,6 +287,15 @@ extension GraphSceneBuilder {
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines, looks: simLooks,
                            lively: lively, labelReach: 5.5)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
+        // far things dissolve into the background, the band on the focus
+        // (plan 4f, GraphDepthKeeper)
+        let made: [GraphDepth.Made] = zip(infos, parts).map { info, part in
+            GraphDepth.Made(node: info.node, label: info.label, extras: part.extras)
+        }
+        GraphDepth.install(theme: look.theme, scene: scene, world: world, camera: cameraNode, sky: sky,
+                           skyRadius: skyRadius, middle: GraphMapBounds.centre(plan.envelope), contrast: contrast,
+                           still: !lively, sim: sim, bodies: made,
+                           more: [look.linkMaterial, look.farMaterial] + look.hotRing.materials)
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.theme = look.theme

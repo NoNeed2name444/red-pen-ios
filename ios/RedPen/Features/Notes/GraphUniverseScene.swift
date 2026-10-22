@@ -64,6 +64,9 @@ extension GraphSceneBuilder {
             if let tone = galaxyTone[body.galaxy] { folderTone[body.id] = tone }
         }
         kit.tones = folderTone
+        // each body's lean as seen face-on, under the default view's pitch
+        // (on and off alike, so the before and after pictures match)
+        kit.frame = simd_quatf(angle: GraphTilt.angle(.space), axis: SIMD3<Float>(1, 0, 0))
         var clocked: [SCNMaterial] = []
         if shaders.link || beam {
             clocked.append(linkMaterial)
@@ -213,12 +216,20 @@ extension GraphSceneBuilder {
         let dyingLinks = GraphDeathLinks(material: linkMaterial, halfWidth: universe.halfWidth)
         simLooks.dying = GraphDeathStage.make(world: world, keeping: Set(infos.map(\.id)), key: key,
                                               lively: lively, links: dyingLinks)
-        // near crisp, far into the sky; only what is near is drawn (GraphSpaceDepthStage)
-        simLooks.depth = GraphSpaceDepthStage.make(infos: infos, materials: clocked + split.owned.map { $0.0 },
-                                                   contrast: contrast)
+        // near crisp, far into the sky; only what is near is drawn
+        // (GraphSpaceDepthStage); none with -graphDepthOff, the before pictures
+        simLooks.depth = GraphDepth.off ? nil
+            : GraphSpaceDepthStage.make(infos: infos, materials: clocked + split.owned.map { $0.0 },
+                                        contrast: contrast)
         let sim = GraphSim(world: world, rig: rig, infos: infos, edges: edges, lines: lines, looks: simLooks,
                            lively: lively, labelReach: 5.5)
         GraphMemory.remember(sim, edges: edges, styles: styles, key: key)
+        // the depth meter (-graphDepthMeter, plan 4f) reads the stage's
+        // levels; Space's fade itself is the stage's alone
+        GraphDepth.install(theme: .space, scene: scene, world: world, camera: cameraNode, sky: sky,
+                           skyRadius: skyRadius, middle: GraphMapBounds.centre(plan.envelope), contrast: contrast,
+                           still: !lively, sim: sim,
+                           bodies: infos.map { GraphDepth.Made(node: $0.node, label: $0.label) }, more: [])
         var built = GraphScene(scene: scene, camera: cameraNode, sim: sim, homes: plan.envelope, pad: pad)
         built.universe = true
         built.systems = plan.systems

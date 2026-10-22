@@ -818,5 +818,27 @@ let cut: String = String(longName.prefix(20)) + "\u{2026} \u{00B7} 1 note"
 check("a long folder name is cut but the count shows", named.bodies.first?.label == cut, named.bodies.first?.label ?? "")
 check("an empty title shows Untitled", named.bodies.last?.label == "Untitled")
 
+/// The lift the planner chose for a map's galaxies (T0057): A from any
+/// galaxy's z over its u, and whether each sits at A·u(id).
+func galaxyLift(_ plan: UniversePlan, byName: Bool) -> (Float, Bool) {
+    let galaxies: [UniverseBody] = plan.bodies.filter { $0.role == .galaxy && $0.parent < 0 }
+    // the plan may centre the map afterwards, so z is A·u(id) plus one
+    // shift for all: A from the two cells furthest apart in u
+    func key(_ body: UniverseBody) -> String { byName ? body.title : body.id.uuidString }
+    let sorted: [UniverseBody] = galaxies.sorted { GraphTilt.u(key($0)) < GraphTilt.u(key($1)) }
+    guard let low = sorted.first, let high = sorted.last, sorted.count > 1 else { return (0, true) }
+    let spread: Float = GraphTilt.u(key(high)) - GraphTilt.u(key(low))
+    let lift: Float = spread > 0.000_1 ? (high.home.z - low.home.z) / spread : 0
+    let shift: Float = low.home.z - GraphTilt.z(key(low), amplitude: lift)
+    let ok: Bool = lift >= -0.000_1 && galaxies.allSatisfy { body in
+        abs(body.home.z - shift - GraphTilt.z(key(body), amplitude: lift)) <= 0.001 + 0.001 * lift
+    }
+    return (lift, ok)
+}
+for (name, plan, byName) in [("preview", preview, true), ("big vault", bigVault, false), ("scale", scale, false)] {
+    let (lift, ok) = galaxyLift(plan, byName: byName)
+    print("A space \(name): \(lift)")
+    check("lift \(name): every galaxy at A·u(id)", ok)
+}
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)
