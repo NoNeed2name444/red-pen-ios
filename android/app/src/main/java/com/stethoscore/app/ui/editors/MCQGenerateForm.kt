@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +59,20 @@ internal object NoWriter {
     const val cards = "No model is ready: writing new cards and textbooks comes to Android with its AI models."
 }
 
+/**
+ * The AI service New set's writers use (this form and CaseMakeSection). None
+ * given means the app's own, LLMService.from; a test gives one on a fake
+ * transport, so it can tap from home to the worker without the network.
+ */
+val LocalLLMService = staticCompositionLocalOf<LLMService?> { null }
+
+/** The service [LocalLLMService] gives, or the app's own. */
+@Composable internal fun rememberLLMService(): LLMService {
+    val given = LocalLLMService.current
+    val context = LocalContext.current
+    return remember(given) { given ?: LLMService.from(context) }
+}
+
 @Composable fun MCQGenerateForm(
     sourceText: String,
     onSourceText: (String) -> Unit,
@@ -74,7 +89,7 @@ internal object NoWriter {
     onGenerated: (StudySet) -> Unit,
 ) {
     val context = LocalContext.current
-    val llm = remember { LLMService.from(context) }
+    val llm = rememberLLMService()
     val backend: LLMBackend? = remember(step) { llm.backend() }
     val blocker: String? = if (llm.choice() == LLMChoice.cloud) llm.cloudBlocker else null
     val scope = rememberCoroutineScope()
