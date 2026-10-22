@@ -101,7 +101,10 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     // the one animated value: light and dark in one step, a section's hue glides (WardLookDriver)
     val glide = rememberWardGlide(look)
     SideEffect { WardLookNow.shared.set(glide) }
-    CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide) {
+    // whether animations are off (Remove animations), watched once for every surface that moves (wardReduceMotion)
+    val reduceMotion = rememberWardReduceMotion()
+    CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide,
+        LocalWardReduceMotion provides reduceMotion) {
         MaterialTheme(colorScheme=wardColorScheme(look), typography=wardTypography(), content=content)
     }
 }
