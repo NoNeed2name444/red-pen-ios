@@ -1,0 +1,99 @@
+name: Android personal APK (encrypted)
+# The owner's personal build: the owner key is baked in, so the APK is
+# uploaded only encrypted to tools/personal_apk_public.pem. The plain APK is
+# never uploaded, cached or attached; the artifact is useless to anyone
+# without the matching private key.
+on:
+  push:
+    branches: ['design/integration']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-personal-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  personal-apk:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[personal apk]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          cmdline-tools-version: '15859902'
+          packages: 'platform-tools'
+      - name: Make Android 17 tools available
+        run: |
+          mv "$ANDROID_HOME/cmdline-tools/latest" "$ANDROID_HOME/cmdline-tools/preinstalled-backup"
+          ln -s "$ANDROID_HOME/cmdline-tools/15859902" "$ANDROID_HOME/cmdline-tools/latest"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
+      - name: Install Android 17 SDK
+        run: sdkmanager --channel=3 'platforms;android-37.0' 'build-tools;37.0.0'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        with:
+          gradle-version: '9.7.1'
+          # nothing from a keyed build may reach the Actions cache
+          cache-disabled: true
+      - name: Unit tests (default build, no owner key)
+        working-directory: android
+        run: gradle --no-daemon --no-build-cache :app:testDebugUnitTest
+      - name: Build the personal APK with the owner key
+        working-directory: android
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${AI_API_KEY:-}" ]; then
+            echo "::error::AI_API_KEY is not set, so no owner key can be derived. Add the repository secret and run again."
+            exit 1
+          fi
+          # same derivation as worker-deploy.yml's OWNER_KEY
+          owner_key="$(printf 'cramdown-owner:%s' "$AI_API_KEY" | sha256sum | cut -c1-64)"
+          echo "::add-mask::$owner_key"
+          unset AI_API_KEY
+          export ORG_GRADLE_PROJECT_stethoscoreOwnerKey="$owner_key"
+          unset owner_key
+          gradle --no-daemon --no-build-cache :app:assembleDebug
+      - name: Encrypt the APK
+        run: |
+          set -euo pipefail
+          umask 077
+          out="$RUNNER_TEMP/personal-apk"
+          mkdir -p "$out"
+          apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$apk"
+          keyfile="$RUNNER_TEMP/apk.key"
+          openssl rand -out "$keyfile" 32
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass "file:$keyfile" \
+            -in "$apk" -out "$out/app-personal.apk.enc"
+          openssl pkeyutl -encrypt -pubin -inkey tools/personal_apk_public.pem \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+            -in "$keyfile" -out "$out/apk.key.enc"
+          shred -u "$apk" "$keyfile"
+          sha256sum "$out"/*
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: personal-apk-encrypted
+          path: |
+            ${{ runner.temp }}/personal-apk/app-personal.apk.enc
+            ${{ runner.temp }}/personal-apk/apk.key.enc
+          if-no-files-found: error
+          retention-days: 1
+      - name: No plain APK left behind
+        if: always()
+        run: |
+          set -euo pipefail
+          stray="$(find . "$RUNNER_TEMP" -name '*.apk' -not -path './android/app/build/*' -not -path './android/build/*' -print)"
+          rm -rf android/app/build android/build android/.gradle
+          if [ -n "$stray" ]; then
+            echo "::error::plain APK files outside the build dirs:"
+            echo "$stray"
+            exit 1
+          fi
