@@ -2777,6 +2777,24 @@ with the marks on the screens last.
 - [x] Test only (T0105): the UI tests reach each section through the dock's
   buttons or, where it is one dockList button (iPhone 17 Pro, default size),
   through its list (UITests/LibraryDock), so the tour finds home again.
+  Superseded by T0112: the dock is the row again and the UI tests require it.
+- [x] T0112 (owner 22 Oct, "the tabs folded into one Questions button on a
+  17 Pro are wrong"): the dock along the bottom is the full row (Questions,
+  Cards, Cases, OSCE, Audio and Ideas) at every text size short of the
+  accessibility ones, on every phone. Short of width, the five names shrink
+  alike (to half at the least) and keep their side room from the chosen ring;
+  the concentric corner stays (WardDock.form / tabWidths / showsList, tested
+  in wardstates at 375 to 440 pt and all standard sizes). LibraryDock and the
+  four suites that accepted the list button require the row again.
+- [ ] T0112 A1, blocked by scope: the "band" under home's tiles is the page
+  cut (LibraryView.pageCutHeight and its .frame at about :538-547, :617-635,
+  :646-653 and the end spacer at :883; HomeFit.cut and cutRoom at HomeFit.swift
+  :28-59 and its faults at :166-207): the list is cut 12 pt above New set and
+  the dock, so the last tiles end on a hard line. Removing it needs those two
+  files (and homefit's tests) in a task's scope.
+- [ ] Mac run for T0112: screenshots of home on the 17 Pro, the Pro Max and a
+  375 pt phone at the default size and at xxxLarge (the row, the names whole
+  or barely smaller, the chosen ring clear of them), and the four UI suites.
 - [ ] Home's name as the owner's logo, and smaller text on home (the owner,
   on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
   stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,

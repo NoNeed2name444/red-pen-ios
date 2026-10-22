@@ -447,8 +447,8 @@ final class GraphPreviewUITests: XCTestCase {
             target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             return true
         }
-        // the dock as buttons, or as the one list button
-        let dock = LibraryDock(app: app).anyForm
+        // the dock as its full row
+        let dock = LibraryDock(app: app).row
         for _ in 0..<80 where !dock.exists {
             let door = app.buttons["localSignIn"]
             let accept = app.buttons["acceptRecordingTerms"]
