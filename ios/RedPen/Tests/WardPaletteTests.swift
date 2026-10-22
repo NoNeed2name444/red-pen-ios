@@ -98,16 +98,25 @@ check("the monitor card is dark in both modes",
       WardPalette.luminance(WardPalette.hex(.monitor, dark: false)) < 0.05 &&
       WardPalette.luminance(WardPalette.hex(.monitor, dark: true)) < 0.05)
 
-// soft UI on close tiers: a well, the base, a card, a sheet, each a shade
-// off the one before, so a card is told from the ground mostly by relief
+// one tone (the owner, 22 Oct: "there shouldn't be 2 tones"; 21 Oct, of the
+// quiz dock: "one color not two color toned"): a card and a sheet are the
+// page colour exactly, so a card is told from the ground only by relief,
+// edges and rings; a well alone is pressed in a soft step darker
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"
-    let lum = WardPalette.tiers.map { WardPalette.luminance(WardPalette.hex($0, dark: dark)) }
-    check("\(mode): the tiers rise from well to sheet", lum == lum.sorted() && Set(lum).count == lum.count)
-    for (a, b) in zip(WardPalette.tiers, WardPalette.tiers.dropFirst()) {
-        let step = WardPalette.contrast(WardPalette.hex(a, dark: dark), WardPalette.hex(b, dark: dark))
-        check("\(mode): \(a) to \(b) is a soft step", step > 1.02 && step < 1.25, String(format: "%.3f", step))
-    }
+    let base = WardPalette.hex(.background, dark: dark)
+    check("\(mode): a card is the page colour (surface == background)",
+          WardPalette.hex(.surface, dark: dark) == base, String(WardPalette.hex(.surface, dark: dark), radix: 16))
+    check("\(mode): a sheet is the page colour (raised == background)",
+          WardPalette.hex(.raised, dark: dark) == base, String(WardPalette.hex(.raised, dark: dark), radix: 16))
+    check("\(mode): a card and a sheet are one tone (surface == raised)",
+          WardPalette.hex(.surface, dark: dark) == WardPalette.hex(.raised, dark: dark))
+    check("\(mode): the tiers are well, then the base, a card and a sheet in one colour",
+          WardPalette.tiers == [.well, .background, .surface, .raised])
+    let well = WardPalette.hex(.well, dark: dark)
+    check("\(mode): a well sits below the base", WardPalette.luminance(well) < WardPalette.luminance(base))
+    let step = WardPalette.contrast(well, base)
+    check("\(mode): well to background is a soft step", step > 1.02 && step < 1.25, String(format: "%.3f", step))
     let groove = WardPalette.contrast(WardPalette.hex(.hairline, dark: dark), WardPalette.hex(.background, dark: dark))
     check("\(mode): a groove shows but stays soft", groove >= 1.1 && groove < 1.6,
           String(format: "%.2f", groove))
