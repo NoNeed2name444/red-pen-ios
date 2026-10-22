@@ -106,7 +106,7 @@ import java.time.ZoneId
         // Your exam: the chosen exam's blueprint, readiness and what to study next
         Box(Modifier.padding(horizontal = 16.dp)) { com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset) }
         // the streak, the goal ring and a ward round
-        ReaderFormSection("Today", "One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings → Study.") {
+        ReaderFormSection("Today", "One missed day a week is a free rest day and keeps your streak. Minutes in a focus session count for the streak too. Set the daily goal in Settings → Study.") {
             Box(Modifier.wardRowTile()) { TodayGoalRow(read.today) }
         }
         // the tile is its own card, so no row behind it

@@ -192,11 +192,11 @@ data class WardRound(
 
     // MARK: what it says
 
-    /** "Round 2 of 4". */
-    val roundWords: String get() = "Round $round of ${plan.rounds}"
+    /** "Block 2 of 4". */
+    val roundWords: String get() = "Block $round of ${plan.rounds}"
 
     /** One line for the chip's label and the panel:
-     *  "Round 2 of 4 · 12:40 · 38 cards". */
+     *  "Block 2 of 4 · 12:40 · 38 cards". */
     fun caption(now: Long): String {
         val dot = " · "
         val cards = cardWords(items)
@@ -204,8 +204,8 @@ data class WardRound(
         return when (phase) {
             Phase.Focus -> roundWords + dot + time + dot + cards
             Phase.Rest -> "Break" + dot + time + dot + cards
-            Phase.Ready -> "Round ${round + 1} of ${plan.rounds} when you’re ready" + dot + cards
-            Phase.Done -> "Ward round done" + dot + "$focusMinutes min" + dot + cards
+            Phase.Ready -> "Block ${round + 1} of ${plan.rounds} when you’re ready" + dot + cards
+            Phase.Done -> "Focus session done" + dot + "$focusMinutes min" + dot + cards
         }
     }
 
@@ -217,17 +217,17 @@ data class WardRound(
         val out = mutableListOf<Alarm>()
         if (phase == Phase.Focus) {
             if (round >= plan.rounds) {
-                out += Alarm("wardround-focus", phaseEnds, "Ward round done", "${plan.rounds} rounds sat. Well done.")
+                out += Alarm("wardround-focus", phaseEnds, "Focus session done", "${plan.rounds} blocks sat. Well done.")
                 return out
             }
             out += Alarm("wardround-focus", phaseEnds, "$roundWords done",
                 "Take ${plan.breakMinutes} minutes away from the screen.")
             val breakEnds = phaseEnds + (plan.breakLength * 1000).toLong()
             out += Alarm("wardround-rest", breakEnds, "Break over",
-                "Round ${round + 1} of ${plan.rounds} is ready when you are.")
+                "Block ${round + 1} of ${plan.rounds} is ready when you are.")
         } else {
             out += Alarm("wardround-rest", phaseEnds, "Break over",
-                "Round ${round + 1} of ${plan.rounds} is ready when you are.")
+                "Block ${round + 1} of ${plan.rounds} is ready when you are.")
         }
         return out.filter { it.date > now }
     }

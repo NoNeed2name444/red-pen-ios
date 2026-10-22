@@ -95,32 +95,32 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 
 | # | File:line | Current | Proposed | Note | Test |
 |---|---|---|---|---|---|
-| 32 | `ios/RedPen/Features/Learn/WardRoundView.swift:79` | Start a ward round | Start a focus session |  |  |
-| 33 | `ios/RedPen/Features/Learn/WardRoundView.swift:82` | Four rounds of focus with a break between. Everything you study while the clock runs counts on the round, and its minutes count for your streak. | Four blocks of focus with a break between. Everything you study while the clock runs counts towards the session, and its minutes count for your streak. |  |  |
-| 34 | `ios/RedPen/Features/Learn/WardRoundView.swift:99` | Start round 1 | Start block 1 |  |  |
-| 35 | `ios/RedPen/Features/Learn/WardRoundView.swift:156` | Ward round: … | Focus session: … | VoiceOver label of the floating chip. |  |
-| 36 | `ios/RedPen/Features/Learn/WardRoundView.swift:165` | Opens the ward round. Drag to move it to another corner. | Opens the focus session. Drag to move it to another corner. | VoiceOver hint. |  |
-| 37 | `ios/RedPen/Features/Learn/WardRoundView.swift:174` | Round 2 ready | Block 2 ready |  |  |
-| 38 | `ios/RedPen/Features/Learn/WardRoundView.swift:210` | Ward round | Focus session | Panel title. |  |
-| 39 | `ios/RedPen/Features/Learn/WardRoundView.swift:222` | Fold the ward round away | Fold the focus session away | VoiceOver label. |  |
-| 40 | `ios/RedPen/Features/Learn/WardRoundView.swift:271` | End round | End block |  |  |
-| 41 | `ios/RedPen/Features/Learn/WardRoundView.swift:278` | Start round 2 now | Start block 2 now |  |  |
-| 42 | `ios/RedPen/Features/Learn/WardRoundView.swift:281` | Start round 2 | Start block 2 |  |  |
-| 43 | `ios/RedPen/Features/Learn/WardRoundView.swift:296` | Stop the ward round | Stop the focus session |  |  |
-| 44 | `ios/RedPen/Shared/StudySession.swift:224` | Round 1 of 4 | Block 1 of 4 | Used in the caption, the status line and the alarm title "Round 1 of 4 done". | **WardRoundTests.swift:41, :124** |
-| 45 | `ios/RedPen/Shared/StudySession.swift:238` | Round 2 of 4 when you’re ready · … | Block 2 of 4 when you’re ready · … | The test checks the prefix "Round 2 of 4 when you". | **WardRoundTests.swift:56** |
-| 46 | `ios/RedPen/Shared/StudySession.swift:240` | Ward round done · 85 min · 3 cards | Focus session done · 85 min · 3 cards |  | **WardRoundTests.swift:93** |
-| 47 | `ios/RedPen/Shared/StudySession.swift:262` | 4 rounds sat. Well done. | 4 blocks sat. Well done. | "Sat" is already exam English. |  |
-| 48 | `ios/RedPen/Shared/StudySession.swift:263` | Ward round done | Focus session done | Alarm title. | **WardRoundTests.swift:126** |
-| 49 | `ios/RedPen/Shared/StudySession.swift:269` | Round 2 of 4 is ready when you are. | Block 2 of 4 is ready when you are. | Alarm body. |  |
-| 50 | `ios/RedPen/Shared/StudySession.swift:272` | Round 2 of 4 is ready when you are. | Block 2 of 4 is ready when you are. | Alarm body. |  |
-| 51 | `ios/RedPen/Shared/Learn/WardRoundClock.swift:191` | Round 1 of 4 done — take 5 minutes | Block 1 of 4 done — take 5 minutes | Follows StudySession.swift:224. |  |
-| 52 | `ios/RedPen/Shared/Learn/WardRoundClock.swift:192` | Break over — round 2 when you’re ready | Break over — block 2 when you’re ready |  |  |
-| 53 | `ios/RedPen/Shared/Learn/WardRoundClock.swift:193` | Ward round done — 85 minutes | Focus session done — 85 minutes |  |  |
-| 54 | `ios/RedPen/Features/Learn/ExamPlanView.swift:33` | … Minutes on a ward round count for the streak too. … | … Minutes in a focus session count for the streak too. … |  |  |
-| 55 | `ios/RedPen/Shared/Platform/StudyFocusFilter.swift:18` | … only study reminders from Stethoscore come through: the ward round, due cards and the daily questions. | … only study reminders from Stethoscore come through: your focus session, due cards and the daily questions. | iOS Focus filter description. |  |
-| 56 | `ios/RedPen/Features/Support/PlatformSettingsSection.swift:73` | Log focus rounds to Health | Log focus blocks to Health | Each finished block is logged, so "blocks". |  |
-| 57 | `ios/RedPen/Features/Support/PlatformSettingsSection.swift:109` | Finished focus rounds are saved as mindful minutes. Nothing is read from Health. | Finished focus blocks are saved as mindful minutes. Nothing is read from Health. |  |  |
+| 32 | `ios/RedPen/Features/Learn/WardRoundView.swift:79` | Start a ward round | Start a focus session | **Built 22 Oct.** |  |
+| 33 | `ios/RedPen/Features/Learn/WardRoundView.swift:82` | Four rounds of focus with a break between. Everything you study while the clock runs counts on the round, and its minutes count for your streak. | Four blocks of focus with a break between. Everything you study while the clock runs counts towards the session, and its minutes count for your streak. | **Built 22 Oct.** |  |
+| 34 | `ios/RedPen/Features/Learn/WardRoundView.swift:99` | Start round 1 | Start block 1 | **Built 22 Oct.** |  |
+| 35 | `ios/RedPen/Features/Learn/WardRoundView.swift:156` | Ward round: … | Focus session: … | VoiceOver label of the floating chip. **Built 22 Oct.** |  |
+| 36 | `ios/RedPen/Features/Learn/WardRoundView.swift:165` | Opens the ward round. Drag to move it to another corner. | Opens the focus session. Drag to move it to another corner. | VoiceOver hint. **Built 22 Oct.** |  |
+| 37 | `ios/RedPen/Features/Learn/WardRoundView.swift:174` | Round 2 ready | Block 2 ready | **Built 22 Oct.** |  |
+| 38 | `ios/RedPen/Features/Learn/WardRoundView.swift:210` | Ward round | Focus session | Panel title. **Built 22 Oct.** |  |
+| 39 | `ios/RedPen/Features/Learn/WardRoundView.swift:222` | Fold the ward round away | Fold the focus session away | VoiceOver label. **Built 22 Oct.** |  |
+| 40 | `ios/RedPen/Features/Learn/WardRoundView.swift:271` | End round | End block | **Built 22 Oct.** |  |
+| 41 | `ios/RedPen/Features/Learn/WardRoundView.swift:278` | Start round 2 now | Start block 2 now | **Built 22 Oct.** |  |
+| 42 | `ios/RedPen/Features/Learn/WardRoundView.swift:281` | Start round 2 | Start block 2 | **Built 22 Oct.** |  |
+| 43 | `ios/RedPen/Features/Learn/WardRoundView.swift:296` | Stop the ward round | Stop the focus session | **Built 22 Oct.** |  |
+| 44 | `ios/RedPen/Shared/StudySession.swift:224` | Round 1 of 4 | Block 1 of 4 | Used in the caption, the status line and the alarm title "Round 1 of 4 done". **Built 22 Oct.** | **WardRoundTests.swift:41, :124** |
+| 45 | `ios/RedPen/Shared/StudySession.swift:238` | Round 2 of 4 when you’re ready · … | Block 2 of 4 when you’re ready · … | The test checks the prefix "Round 2 of 4 when you". **Built 22 Oct.** | **WardRoundTests.swift:56** |
+| 46 | `ios/RedPen/Shared/StudySession.swift:240` | Ward round done · 85 min · 3 cards | Focus session done · 85 min · 3 cards | **Built 22 Oct.** | **WardRoundTests.swift:93** |
+| 47 | `ios/RedPen/Shared/StudySession.swift:262` | 4 rounds sat. Well done. | 4 blocks sat. Well done. | "Sat" is already exam English. **Built 22 Oct.** |  |
+| 48 | `ios/RedPen/Shared/StudySession.swift:263` | Ward round done | Focus session done | Alarm title. **Built 22 Oct.** | **WardRoundTests.swift:126** |
+| 49 | `ios/RedPen/Shared/StudySession.swift:269` | Round 2 of 4 is ready when you are. | Block 2 of 4 is ready when you are. | Alarm body. **Built 22 Oct.** |  |
+| 50 | `ios/RedPen/Shared/StudySession.swift:272` | Round 2 of 4 is ready when you are. | Block 2 of 4 is ready when you are. | Alarm body. **Built 22 Oct.** |  |
+| 51 | `ios/RedPen/Shared/Learn/WardRoundClock.swift:191` | Round 1 of 4 done — take 5 minutes | Block 1 of 4 done — take 5 minutes | Follows StudySession.swift:224. **Built 22 Oct.** |  |
+| 52 | `ios/RedPen/Shared/Learn/WardRoundClock.swift:192` | Break over — round 2 when you’re ready | Break over — block 2 when you’re ready | **Built 22 Oct.** |  |
+| 53 | `ios/RedPen/Shared/Learn/WardRoundClock.swift:193` | Ward round done — 85 minutes | Focus session done — 85 minutes | **Built 22 Oct.** |  |
+| 54 | `ios/RedPen/Features/Learn/ExamPlanView.swift:33` | … Minutes on a ward round count for the streak too. … | … Minutes in a focus session count for the streak too. … | **Built 22 Oct.** |  |
+| 55 | `ios/RedPen/Shared/Platform/StudyFocusFilter.swift:18` | … only study reminders from Stethoscore come through: the ward round, due cards and the daily questions. | … only study reminders from Stethoscore come through: your focus session, due cards and the daily questions. | iOS Focus filter description. **Built 22 Oct.** |  |
+| 56 | `ios/RedPen/Features/Support/PlatformSettingsSection.swift:73` | Log focus rounds to Health | Log focus blocks to Health | Each finished block is logged, so "blocks". **Built 22 Oct.** |  |
+| 57 | `ios/RedPen/Features/Support/PlatformSettingsSection.swift:109` | Finished focus rounds are saved as mindful minutes. Nothing is read from Health. | Finished focus blocks are saved as mindful minutes. Nothing is read from Health. | **Built 22 Oct.** |  |
 | 58 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:30` | 3 cards this ward round | 3 cards this session | Live Activity (outside ios/RedPen). |  |
 | 59 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:55` | Round 2 of 4 next | Block 2 of 4 next | Live Activity. |  |
 | 60 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:56` | Ward round done | Focus session done | Live Activity. |  |

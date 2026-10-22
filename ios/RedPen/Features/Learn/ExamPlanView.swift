@@ -30,7 +30,7 @@ struct ExamPlanView: View {
             } header: {
                 Text("Today")
             } footer: {
-                Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} Study.")
+                Text("One missed day a week is a free rest day and keeps your streak. Minutes in a focus session count for the streak too. Set the daily goal in Settings \u{2192} Study.")
             }
             .wardRowBackground()
             // the tile is its own card, so no list row behind it

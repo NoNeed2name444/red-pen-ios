@@ -6,8 +6,8 @@ import com.stethoscore.app.ui.ward.checks
 import org.junit.Test
 import kotlin.math.abs
 
-// The ward-round clock parts of ios/RedPen/Tests/WardRoundTests.swift
-// (rounds, breaks, pausing, a locked phone coming back, stopping early),
+// The focus-session clock parts of ios/RedPen/Tests/WardRoundTests.swift
+// (blocks, breaks, pausing, a locked phone coming back, stopping early),
 // case for case. The goal and streak parts are in StudyStreakTest.
 //
 // Swift mutates the round in place and returns the events; the Kotlin value
@@ -47,7 +47,7 @@ class WardRoundTest {
         round = round.noteStudied(0)
         check("items counted while focusing", round.items == 3)
         val twelveForty = t0 + 740_000L
-        check("caption", round.caption(twelveForty) == "Round 1 of 4 · 12:40 · 3 cards",
+        check("caption", round.caption(twelveForty) == "Block 1 of 4 · 12:40 · 3 cards",
             round.caption(twelveForty))
 
         step = round.advance(at(26)); round = step.round
@@ -64,7 +64,7 @@ class WardRoundTest {
         check("waiting has no clock", round.remaining(at(40)) == 0.0 && !round.ticks)
         step = round.advance(at(500)); round = step.round
         check("waiting does not move on by itself", step.events.isEmpty() && round.phase == Phase.Ready)
-        check("ready caption", round.caption(at(40)).startsWith("Round 2 of 4 when you"), round.caption(at(40)))
+        check("ready caption", round.caption(at(40)).startsWith("Block 2 of 4 when you"), round.caption(at(40)))
 
         round = round.startNext(at(40))
         check("round 2 starts when asked",
@@ -100,7 +100,7 @@ class WardRoundTest {
         check("the last round cut short still counts its ten minutes, and finishes",
             events == listOf(Event.FocusEnded(4, 600.0, at(227)), Event.Finished) && round.phase == Phase.Done, "$events")
         check("focus total", round.focusMinutes == 85, "${round.focusMinutes}")
-        check("done caption", round.caption(at(230)) == "Ward round done · 85 min · 3 cards",
+        check("done caption", round.caption(at(230)) == "Focus session done · 85 min · 3 cards",
             round.caption(at(230)))
         round = round.startNext(at(240))
         check("no fifth round", round.phase == Phase.Done && round.round == 4)
@@ -134,9 +134,9 @@ class WardRoundTest {
         check("two alarms: the round's end and the break's end", alarms.size == 2 &&
             alarms[0].date == at(25) && alarms[1].date == at(30), "$alarms")
         check("alarm ids are the known ones", WardRound.alarmIDs.toSet().containsAll(alarms.map { it.id }))
-        check("round alarm says which round", alarms[0].title == "Round 1 of 4 done", alarms[0].title)
+        check("round alarm says which block", alarms[0].title == "Block 1 of 4 done", alarms[0].title)
         var last = WardRound.begin(WardRoundPlan(focusMinutes = 25, breakMinutes = 5, rounds = 1), t0)
-        check("the last round's alarm is the end", last.alarms(t0).map { it.title } == listOf("Ward round done"))
+        check("the last round's alarm is the end", last.alarms(t0).map { it.title } == listOf("Focus session done"))
         last = last.advance(at(26)).round
         check("no alarms when done", last.alarms(at(26)).isEmpty())
 

@@ -3098,6 +3098,11 @@ only; Arabic is left for the owner's words (copy deck question 4).
   Cardiology" (spoken "Item 1, …"), "3 to do · 22 min", "Nothing due", the
   weak-topic lines and the first run's two lines (wording.md rows 1-4, 8-16,
   64-65; its "items" drift rows now say "to do").
+- [x] The timer is a "Focus session" of "Block 1 of 4": its tile, chip,
+  panel, captions, alarms, spoken lines, the exam plan's line, the Focus
+  filter and the Health settings rows (wording.md rows 32-57). The Live
+  Activity (StethoscoreWidgets) and the Health permission text (project.yml,
+  Arabic) wait: outside this change, and the Arabic word is the owner's.
 
 ### Waiting on the owner
 

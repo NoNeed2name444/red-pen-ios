@@ -70,7 +70,7 @@ struct PlatformSettingsSection: View {
                         .accessibilityIdentifier("platformAppLock")
                 }
                 if MindfulMinutes.available {
-                    Toggle("Log focus rounds to Health", isOn: $mindful)
+                    Toggle("Log focus blocks to Health", isOn: $mindful)
                         .accessibilityIdentifier("platformMindful")
                         .onChange(of: mindful) { _, on in
                             guard on else { return }
@@ -106,7 +106,7 @@ struct PlatformSettingsSection: View {
         }
         if MindfulMinutes.available {
             let refused: String = healthRefused ? " Health did not allow it; turn it on in the Health app\u{2019}s Sharing settings." : ""
-            parts.append("Finished focus rounds are saved as mindful minutes. Nothing is read from Health." + refused)
+            parts.append("Finished focus blocks are saved as mindful minutes. Nothing is read from Health." + refused)
         }
         return parts.joined(separator: " ")
     }

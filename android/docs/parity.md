@@ -86,6 +86,7 @@ The owner's exam words (`docs/design/identity/wording.md`), built on both phones
 |---|---|---|
 | The mock's timed parts, "Part n" and "Part n of N" (`Shared/Exam/MockPaper.swift`'s MockFormat.partWord, ExamCatalog, ExamFormats, `Features/Mock/MockPaperView.swift`) | `quiz/MockPaper.kt`'s MockFormat.partWord, `exam/ExamCatalog.kt`, `exam/ExamFormats.kt`, `ui/mock/MockPaperScreen.kt` | same (ExamCatalogTest's Step 3 title); Android's stepper buttons say "Fewer parts" and "More parts" |
 | The daily plan, "Today's revision" (`Features/Library/WardHome.swift`, `Shared/Learn/BedPlan.swift`; `Features/Onboarding/FirstRunView.swift`) | `ui/home/WardHome.kt`, `data/BedPlan.kt` | same words (BedPlanTest); the row's click label is the imperative "Open this item"; no "Starts with item 1" hint on Android's start button and no first run (as before) |
+| The timer, "Focus session" and "Block 1 of 4" (`Features/Learn/WardRoundView.swift`, `Shared/StudySession.swift`, `Shared/Learn/WardRoundClock.swift`, `Features/Learn/ExamPlanView.swift`; the Focus filter and Health rows) | `data/WardRound.kt`, `ui/learn/WardRoundViews.kt`, `ui/learn/WardRoundClock.kt`, `ui/learn/ExamPlanScreen.kt` | same words (WardRoundTest); the chip's click label stays imperative ("Open the focus session. …"); no Focus filter, Health or Live Activity on Android (as before) |
 
 ## Where iOS can't be copied
 
