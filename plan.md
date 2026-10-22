@@ -2912,6 +2912,32 @@ with the marks on the screens last.
 - [x] Test only (T0105): the UI tests reach each section through the dock's
   buttons or, where it is one dockList button (iPhone 17 Pro, default size),
   through its list (UITests/LibraryDock), so the tour finds home again.
+  Superseded by T0112: the dock is the row again and the UI tests require it.
+- [x] T0112 (owner 22 Oct, "the tabs folded into one Questions button on a
+  17 Pro are wrong"): the dock along the bottom is the full row (Questions,
+  Cards, Cases, OSCE, Audio and Ideas) at every text size short of the
+  accessibility ones, on every phone. Short of width, the five names shrink
+  alike (to half at the least) and keep their side room from the chosen ring;
+  the concentric corner stays (WardDock.form / tabWidths / showsList, tested
+  in wardstates at 375 to 440 pt and all standard sizes). LibraryDock and the
+  four suites that accepted the list button require the row again.
+- [x] T0112 A1 (repair): home's page is no longer cut 12 pt above New set
+  and the dock (the owner, 22 Oct: that band was wrong; it replaces the cut of
+  14 Oct). The rows run on behind New set and the dock to the window's bottom
+  edge, with nothing behind them but the page and no soft edge under them
+  (no fading); the list's end row (HomeFit.endSpace: the bar's height and 24)
+  lets the last tile scroll wholly clear above them (HomeFit.lastRowBottom).
+  The preview's gate keeps the card and Start ward round 12 pt above the bar
+  at the standard sizes (HomeFit.barLine) and drops the sliver checks, which
+  were about the cut. Tested in homefit (model and source checks).
+- [ ] Mac run for T0112: screenshots of home on the 17 Pro, the Pro Max and a
+  375 pt phone at the default size and at xxxLarge (the row, the names whole
+  or barely smaller, the chosen ring clear of them), and the four UI suites;
+  and home's bottom with the tiles passing behind New set and the dock (no
+  strip, line or fade), scrolled to the end (the last tile clear above them),
+  plus the ward-preview fit gate on every device. The workflow's comment
+  (.github/workflows/ward-preview.yml:23-26) and WardControls.swift:66 still
+  speak of the cut: word them anew in a task with those files in scope.
 - [ ] Home's name as the owner's logo, and smaller text on home (the owner,
   on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
   stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,

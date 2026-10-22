@@ -62,7 +62,7 @@ final class ArabicUITests: XCTestCase {
             skipExam.tap()
         }
 
-        // the dock as buttons, or as the one list button
+        // the dock as its full row
         guard LibraryDock(app: app).waitForLibrary(timeout: 20) else {
             missing("library")
             XCTFail("the library didn't open in Arabic")

@@ -19,8 +19,7 @@ import XCTest
 ///
 /// Everything is found by the accessibility identifiers in the app's sources:
 /// localSignIn, acceptRecordingTerms, dockCategory-<category>,
-/// dockCategory-ideas (on the dock, or in the list dockList opens where the
-/// dock is one button: LibraryDock), feature-mixed, feature-mock, feature-examPlan,
+/// dockCategory-ideas (on the dock's full row: LibraryDock), feature-mixed, feature-mock, feature-examPlan,
 /// feature-symptomBlocks, morePractise, more-analytics, newSetButton,
 /// newSetNext, setRow-mcq, setRow-anki, ideasMode-list/board/space,
 /// ideasSwitcherToggle, graph3D, examplesBanner, example-ideas,
@@ -33,7 +32,7 @@ import XCTest
 final class DesignTourUITests: XCTestCase {
     private var app: XCUIApplication!
 
-    /// The library's dock, as buttons or as the list button.
+    /// The library's dock, as its full row of tabs.
     private var dock: LibraryDock { LibraryDock(app: app) }
 
     /// The dock's four categories, in the dock's order.
@@ -449,7 +448,7 @@ final class DesignTourUITests: XCTestCase {
         let accept = app.buttons["acceptRecordingTerms"]
         // then, once, "Which exam are you preparing for?" - skipped here
         let skipExam = app.buttons["examOnboardingSkip"]
-        let library = dock.anyForm
+        let library = dock.row
         for _ in 0..<80 {
             if library.exists { return }
             if door.exists && door.isHittable {
@@ -479,8 +478,8 @@ final class DesignTourUITests: XCTestCase {
 
     // MARK: - Moving about
 
-    /// Taps a dock item - a category, or Ideas - on the dock or in its list.
-    /// False, with a "missing" picture, when it is not there.
+    /// Taps a dock item - a category, or Ideas - on the dock's row. False,
+    /// with a "missing" picture, when it is not there.
     @discardableResult
     private func choose(_ place: String) -> Bool {
         guard dock.choose(place, press: { self.press($0) }) else {
@@ -495,7 +494,8 @@ final class DesignTourUITests: XCTestCase {
     /// page is built afresh when the dock moves to it.
     private func chooseFresh(_ category: String) -> Bool {
         let other: String = category == "osce" ? "audio" : "osce"
-        if dock.choose(other, timeout: 0, press: { self.press($0) }) {
+        let away = element("dockCategory-\(other)")
+        if away.exists && away.isHittable, dock.choose(other, timeout: 0, press: { self.press($0) }) {
             sleep(1)
         }
         return choose(category)
@@ -570,10 +570,9 @@ final class DesignTourUITests: XCTestCase {
         }
     }
 
-    /// Whether the library - with its dock, list button or rail - is what is
-    /// on screen.
+    /// Whether the library - with its dock or rail - is what is on screen.
     private func atLibrary() -> Bool {
-        let shown = dock.anyForm
+        let shown = dock.row
         if app.buttons["learnDone"].exists { return false }
         return shown.exists && shown.isHittable
     }
@@ -734,7 +733,7 @@ final class DesignTourUITests: XCTestCase {
     private func bottomLimit() -> CGFloat {
         let height: CGFloat = windowHeight
         var limit: CGFloat = height - 16
-        for id in ["newSetButton", "dockCategory-questions", "dockList"] {
+        for id in ["newSetButton", "dockCategory-questions"] {
             let item = element(id)
             guard item.exists else { continue }
             let top: CGFloat = item.frame.minY

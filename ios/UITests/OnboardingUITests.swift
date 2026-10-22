@@ -103,7 +103,7 @@ final class OnboardingUITests: XCTestCase {
 
     /// The library, not another page: its dock is there.
     private func assertLibrary(_ app: XCUIApplication, _ when: String) {
-        // the dock as buttons, or as the one list button
+        // the dock as its full row
         XCTAssertTrue(LibraryDock(app: app).waitForLibrary(timeout: 20), "the library didn't open \(when)")
         XCTAssertFalse(app.buttons["firstRun-examples-skip"].exists, "the first-run pages are still there \(when)")
         snap(app, "library")
