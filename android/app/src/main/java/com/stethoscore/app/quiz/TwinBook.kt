@@ -13,6 +13,9 @@ import com.stethoscore.app.llm.MedicalGenerate
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.ZoneId
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -37,8 +40,14 @@ data class TwinBook(val queue: TwinQueue = TwinQueue(), val pending: List<Pendin
         /** What the Twins tile says while no twin is due (iOS TwinBook.nothingYet). */
         const val nothingYet = "When you miss a question, tap “Write a twin” under it. The twin - the same point in a different patient - waits here for a day or two."
 
-        fun fromJson(text: String?): TwinBook = runCatching {
-            val o = JSONObject(text ?: return TwinBook())
+        /** A twin of this question is already written or waiting to be: one twin per miss. */
+        const val alreadyOnTheWay = "A twin of this question is already on the way, under Questions → Twins."
+
+        fun fromJson(text: String?): TwinBook = runCatching { parse(text ?: return TwinBook()) }.getOrDefault(TwinBook())
+
+        /** The book in [text]; throws when it is not a whole twin book. */
+        fun parse(text: String): TwinBook {
+            val o = JSONObject(text)
             val entries = o.optJSONArray("twins") ?: JSONArray()
             val queue = TwinQueue((0 until entries.length()).mapNotNull { i ->
                 val e = entries.optJSONObject(i) ?: return@mapNotNull null
@@ -52,8 +61,8 @@ data class TwinBook(val queue: TwinQueue = TwinQueue(), val pending: List<Pendin
                 PendingTwin(p.getString("parentId"), if (p.has("picked")) p.getInt("picked") else null,
                     if (p.has("reason")) p.getString("reason") else null, p.optBoolean("confident"), p.optBoolean("guessed"))
             }
-            TwinBook(queue, pending)
-        }.getOrDefault(TwinBook())
+            return TwinBook(queue, pending)
+        }
     }
 
     /** A written twin joins the queue; its request is no longer pending. */
@@ -71,6 +80,22 @@ data class TwinBook(val queue: TwinQueue = TwinQueue(), val pending: List<Pendin
 
     fun isOnTheWay(parent: String): Boolean = queue.hasTwin(parent) || pending.any { it.parentId == parent }
 
+    /** A twin was ever written for this question, answered or not. */
+    fun hasWritten(parent: String): Boolean = queue.entries.any { it.parentId == parent }
+
+    /** Whether Write a twin should write another for this question: not while one is written or waiting. */
+    fun canWrite(parent: String): Boolean = !hasWritten(parent) && !isOnTheWay(parent)
+
+    /** A backup's twins added to these: entries and requests this book does not have yet; what is here wins. */
+    fun merging(other: TwinBook): TwinBook {
+        val ids = queue.entries.map { it.id }.toSet()
+        val parents = queue.entries.map { it.parentId }.toSet()
+        val entries = queue.entries + other.queue.entries.filter { it.id !in ids && it.parentId !in parents }
+        val written = entries.map { it.parentId }.toSet()
+        val waiting = pending + other.pending.filter { p -> p.parentId !in written && pending.none { it.parentId == p.parentId } }
+        return TwinBook(TwinQueue(entries), waiting.takeLast(pendingLimit))
+    }
+
     fun toJson(): String = JSONObject()
         .put("twins", JSONArray(queue.entries.map { e ->
             JSONObject().put("id", e.id).put("parentId", e.parentId).put("createdAt", e.createdAt).put("dueAt", e.dueAt)
@@ -83,35 +108,95 @@ data class TwinBook(val queue: TwinQueue = TwinQueue(), val pending: List<Pendin
         .toString()
 }
 
-/** The twin book kept on disk beside the library (iOS ExamStore's twins and pending). */
+/**
+ * The twin book kept on disk beside the library (iOS ExamStore's twins and
+ * pending). Every change is one read-modify-write under the shelf's lock, and
+ * is written as the library is (StudyStore.save): a temporary file, fsync,
+ * then an atomic rename, so an interruption never leaves half a book. A file
+ * that cannot be read is never written over: it is kept as
+ * twins.unreadable-<time>.json and [loadError] says so.
+ */
 class TwinShelf(private val file: File) {
-    @Volatile var book: TwinBook = TwinBook.fromJson(runCatching { file.takeIf { it.exists() }?.readText() }.getOrNull())
+    private val lock = Any()
+
+    /** Why the saved twins could not be read, or null; the file itself is kept aside. */
+    @Volatile var loadError: String? = null
         private set
 
-    @Synchronized private fun keep(next: TwinBook) {
-        book = next
-        runCatching { file.parentFile?.mkdirs(); file.writeText(next.toJson()) }
+    @Volatile var book: TwinBook = read()
+        private set
+
+    private fun read(): TwinBook {
+        if (!file.exists()) return TwinBook()
+        return try {
+            TwinBook.parse(file.readText())
+        } catch (e: Exception) {
+            val kept = File(file.parentFile, "twins.unreadable-${System.currentTimeMillis()}.json")
+            val moved = runCatching { file.renameTo(kept) }.getOrDefault(false)
+            loadError = "Your twins could not be read" + (if (moved) "; the file is kept as ${kept.name}." else ".")
+            TwinBook()
+        }
+    }
+
+    /** Why the last change could not be saved, or null; the twins stay as last saved, on screen and on disk. */
+    @Volatile var saveError: String? = null
+        private set
+
+    /** One change, read and written under the lock; on a failed write nothing changes. */
+    private fun change(edit: (TwinBook) -> TwinBook) {
+        synchronized(lock) {
+            val next = edit(book)
+            if (next == book) return
+            try {
+                write(next)
+                book = next
+                saveError = null
+            } catch (e: IllegalStateException) {
+                saveError = e.message
+            }
+        }
+    }
+
+    private fun write(next: TwinBook) {
+        val directory = file.parentFile ?: return
+        val temporary = File(directory, file.name + ".tmp")
+        try {
+            if (!directory.exists()) directory.mkdirs()
+            FileOutputStream(temporary).use { stream -> stream.write(next.toJson().toByteArray(Charsets.UTF_8)); stream.fd.sync() }
+            try {
+                Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
+                check(temporary.renameTo(file)) { "Could not replace the twins file." }
+            }
+        } catch (e: Exception) {
+            temporary.delete()
+            throw IllegalStateException("Could not save your twins: ${e.message.orEmpty()}", e)
+        }
     }
 
     fun addTwin(id: String, parent: String, confident: Boolean, guessed: Boolean,
                 now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()) =
-        keep(book.added(id, parent, confident, guessed, now, zone))
+        change { it.added(id, parent, confident, guessed, now, zone) }
 
     /** A twin answered moves along its own queue; any other question is not a twin and changes nothing. */
-    fun answered(id: String, correct: Boolean, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()) {
-        if (!book.queue.isTwin(id)) return
-        keep(book.copy(queue = book.queue.answered(id, correct, now, zone)))
-    }
+    fun answered(id: String, correct: Boolean, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()) =
+        change { b -> if (!b.queue.isTwin(id)) b else b.copy(queue = b.queue.answered(id, correct, now, zone)) }
 
-    fun later(request: PendingTwin) = keep(book.later(request))
-    fun dropPending(parent: String) = keep(book.dropPending(parent))
+    fun later(request: PendingTwin) = change { it.later(request) }
+    fun dropPending(parent: String) = change { it.dropPending(parent) }
     fun isOnTheWay(parent: String): Boolean = book.isOnTheWay(parent)
+    fun canWrite(parent: String): Boolean = book.canWrite(parent)
+
+    /** Forgets every twin and every waiting request, for a library started afresh. */
+    fun reset() = change { TwinBook() }
+
+    /** A whole-library backup's twins, added to these (StudyStore.importJson). */
+    fun merge(other: TwinBook) = change { it.merging(other) }
 
     /** Forgets twins whose question has left the library. */
     fun prune(store: StudyStore) {
         val ids = store.library.filter { it.kind == StudySetKind.MCQ }.flatMap { s -> s.questions.map { it.id } }.toSet()
-        val next = book.copy(queue = book.queue.prune(ids))
-        if (next.queue.entries.size != book.queue.entries.size) keep(next)
+        change { it.copy(queue = it.queue.prune(ids)) }
     }
 }
 
@@ -175,6 +260,8 @@ object TwinWriter {
                       now: () -> Long = System::currentTimeMillis, zone: ZoneId = ZoneId.systemDefault()): TwinOutcome {
         val pick = LibraryStats.mcqPicks(store) { it.question.id == request.parentId }.firstOrNull()
             ?: return TwinOutcome.Unavailable(gone).also { store.twinShelf.dropPending(request.parentId) }
+        // one twin per miss: not while one is written, nor asked for again from the quiz (a waiting request is retryPending's)
+        if (store.twinShelf.book.hasWritten(request.parentId)) return TwinOutcome.Unavailable(TwinBook.alreadyOnTheWay)
         backend ?: return TwinOutcome.Unavailable(noWriter)
         val q = pick.question
         val input = TwinPrompt.input(q.stem, q.options, q.correctIndex, q.explanation, request.picked, request.reason)

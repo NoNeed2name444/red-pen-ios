@@ -175,15 +175,76 @@ class TwinFlowTest {
         assertEquals("S6 answer: and is kept for the record", true, right.entries.first().answeredCorrectly)
     }
 
-    @Test fun s6AnswerInTheQuizMovesTheTwinOnly() = runBlocking {
+    @Test fun s6OnlyTheQuizMovesATwin() = runBlocking {
         val store = storeWithMiss()
         TwinWriter.write(request, store, twinWriter(), "", { at(22, 21) }, zone)
         val twinId = store.twinShelf.book.queue.entries.single().id
-        store.recordAnswer(missed.id, false)
+        // a mock paper, the commute and a reminder record answers too; as on iOS, they leave the twin where it is
+        store.recordAnswer(twinId, true, picked = 0, saving = false)
+        assertEquals("S6 answer: a twin answered outside the quiz stays in the queue", listOf(twinId),
+            store.twinShelf.book.queue.waiting.map { it.id })
+        // the quiz moves it (MCQQuizScreen's commit; TwinScreensTest taps it)
+        store.twinShelf.answered(missed.id, false)
         assertEquals("S6 answer: answering another question leaves the twin as it was", null,
             store.twinShelf.book.queue.entries.single().answeredCorrectly)
-        store.recordAnswer(twinId, true)
-        assertTrue("S6 answer: the twin answered right in the quiz leaves the queue", store.twinShelf.book.queue.waiting.isEmpty())
+        store.twinShelf.answered(twinId, true)
+        assertTrue("S6 answer: the twin answered right leaves the queue", store.twinShelf.book.queue.waiting.isEmpty())
+    }
+
+    @Test fun s2OneTwinPerMiss() = runBlocking {
+        val store = storeWithMiss()
+        val writer = twinWriter()
+        assertEquals(TwinOutcome.Made(2), TwinWriter.write(request, store, writer, "", { at(22, 21) }, zone))
+        assertFalse("S2 write: a written twin is on the way, so the quiz offers no second", store.twinShelf.canWrite(missed.id))
+        assertEquals("S2 write: a second Write a twin for the same miss writes none",
+            TwinOutcome.Unavailable(TwinBook.alreadyOnTheWay), TwinWriter.write(request, store, writer, "", { at(23, 9) }, zone))
+        assertEquals("S2 write: the writer was asked once", 1, writer.asked.size)
+        assertEquals("S2 write: one twin in the set", 1, store.library.single { it.name == "Twins · Renal" }.questions.size)
+        store.twinShelf.answered(store.twinShelf.book.queue.entries.single().id, true)
+        assertFalse("S2 write: nor once the twin is answered", store.twinShelf.canWrite(missed.id))
+        store.twinShelf.later(PendingTwin("waiting"))
+        assertFalse("S2 write: a twin still waiting to be written is on the way too", store.twinShelf.canWrite("waiting"))
+    }
+
+    @Test fun s7BrokenOrPartialFileIsNotDroppedQuietly() {
+        val file = java.io.File(folder.root, "twins.json")
+        for (broken in listOf("not twins", """{"twins":[{"id":"t1","parentId":"p1","createdAt":1,"due""")) {
+            folder.root.listFiles()?.forEach { it.delete() }
+            file.writeText(broken)
+            val shelf = TwinShelf(file)
+            assertNotNull("S7 relaunch: an unreadable twins file is said, not passed over", shelf.loadError)
+            val kept = folder.root.listFiles()!!.single { it.name.startsWith("twins.unreadable-") }
+            assertEquals("S7 relaunch: and kept as it was", broken, kept.readText())
+            shelf.addTwin("t2", "p2", confident = false, guessed = false, now = at(22, 9), zone = zone)
+            assertEquals("S7 relaunch: a new twin never writes over the kept file", broken, kept.readText())
+            assertEquals("S7 relaunch: the new twin is saved whole", listOf("t2"), TwinShelf(file).book.queue.entries.map { it.id })
+            assertTrue("S7 relaunch: no half-written file is left behind", folder.root.listFiles()!!.none { it.name.endsWith(".tmp") })
+        }
+    }
+
+    @Test fun s7EveryChangeUnderOneLock() {
+        val shelf = TwinShelf(java.io.File(folder.root, "twins.json"))
+        val threads = (0 until 8).map { t ->
+            Thread { repeat(25) { i -> shelf.addTwin("t$t-$i", "p$t-$i", confident = false, guessed = false, now = at(22, 9), zone = zone) } }
+        }
+        threads.forEach { it.start() }; threads.forEach { it.join() }
+        assertEquals("S7 relaunch: no change lost when twins are written at once", 200, shelf.book.queue.entries.size)
+        assertEquals("S7 relaunch: and all of them on disk", 200, TwinShelf(java.io.File(folder.root, "twins.json")).book.queue.entries.size)
+    }
+
+    @Test fun s7ExportImportAndReset() = runBlocking {
+        val store = storeWithMiss()
+        TwinWriter.write(request, store, twinWriter(), "", { at(22, 21) }, zone)
+        store.twinShelf.later(PendingTwin("waiting", guessed = true))
+        val exported = store.exportJson()
+        assertTrue("S7 export: the library export carries the twins", JSONObject(exported).has("twins"))
+        val other = StudyStore(folder.newFolder("other"))
+        other.importJson(exported)
+        assertEquals("S7 import: a backup's twins come with it", store.twinShelf.book, other.twinShelf.book)
+        other.importJson(exported)
+        assertEquals("S7 import: imported twice, still one of each", store.twinShelf.book, other.twinShelf.book)
+        other.twinShelf.reset()
+        assertEquals("S7 reset: a reset leaves no twin and none waiting", TwinBook(), StudyStore(folder.root.resolve("other")).twinShelf.book)
     }
 
     @Test fun s7RelaunchEverythingReadsBack() = runBlocking {

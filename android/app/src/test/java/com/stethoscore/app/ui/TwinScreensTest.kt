@@ -94,6 +94,15 @@ class TwinScreensTest {
 
     private fun shows(text: String) = compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
 
+    /** Which sitting of the quiz is on screen; a new one starts it afresh. */
+    private var sitting by mutableStateOf(0)
+
+    private fun missAgain() {
+        compose.onNode(hasContentDescription("Atenolol tablets", substring = true)).performScrollTo().performClick()
+        compose.onNodeWithText("Check answer").performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
     /** A quiz of one question, missed: Atenolol chosen, Ramipril right. */
     private fun missed(llm: LLMService): Pair<StudyStore, StudySet> {
         val store = StudyStore(folder.newFolder("quiz"))
@@ -101,10 +110,10 @@ class TwinScreensTest {
             questions = listOf(MCQQuestion(stem = stem, options = options, correctIndex = 2, explanation = "ACE inhibitors first in diabetes.")))
         store.addSet(set)
         LearnRouter.close()
-        compose.setContent { CompositionLocalProvider(LocalLLMService provides llm) { StethoscoreTheme { QuizScreen(set, store, onBack = {}) } } }
-        compose.onNode(hasContentDescription("Atenolol tablets", substring = true)).performScrollTo().performClick()
-        compose.onNodeWithText("Check answer").performScrollTo().performClick()
-        compose.waitForIdle()
+        compose.setContent {
+            CompositionLocalProvider(LocalLLMService provides llm) { StethoscoreTheme { androidx.compose.runtime.key(sitting) { QuizScreen(set, store, onBack = {}, keepsProgress = false) } } }
+        }
+        missAgain()
         return store to set
     }
 
@@ -132,6 +141,38 @@ class TwinScreensTest {
         val due = store.twinShelf.book.queue.entries.single().dueAt
         assertTrue(TwinSets.quiz(reopened, due - 1).questions.isEmpty())
         assertEquals(listOf(twinStem), TwinSets.quiz(reopened, due).questions.map { it.stem })
+    }
+
+    @Test fun s2OneTwinPerMissOnScreen() {
+        val llm = service("cloud")
+        val (store, set) = missed(llm)
+        tapWriteATwin()
+        until { shows("Twin written. It comes back in 2 days, under Questions → Twins.") }
+        // the same question missed again in a later sitting
+        compose.runOnUiThread { sitting += 1 }
+        compose.waitForIdle()
+        missAgain()
+        tapWriteATwin()
+        until { shows(TwinBook.alreadyOnTheWay) }
+        assertEquals("the worker was asked once", 1, seen.count { it.path == "/v1/chat/completions" })
+        assertEquals("one twin", 1, store.library.single { it.name == "Twins · Cardiology" }.questions.size)
+    }
+
+    @Test fun s6TheTwinAnsweredInTheQuizMovesOn() {
+        val store = StudyStore(folder.newFolder("due"))
+        val twin = MCQQuestion(stem = twinStem, options = listOf("Lisinopril", "Bisoprolol", "Nifedipine", "Bendroflumethiazide", "Doxazosin"),
+            correctIndex = 0, explanation = "An ACE inhibitor protects the kidney in diabetes.")
+        TwinSets.add(store, twin, "Cardiology", 0)
+        store.twinShelf.addTwin(twin.id, "parent", confident = false, guessed = false, now = 0)
+        val quiz = TwinSets.quiz(store)
+        assertEquals(listOf(twinStem), quiz.questions.map { it.stem })
+        LearnRouter.close()
+        compose.setContent { CompositionLocalProvider(LocalLLMService provides service("off")) { StethoscoreTheme { QuizScreen(quiz, store, onBack = {}, keepsProgress = false) } } }
+        compose.onNode(hasContentDescription("Lisinopril", substring = true)).performScrollTo().performClick()
+        compose.onNodeWithText("Check answer").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertTrue("answered right in the Twins quiz, the twin leaves the queue", store.twinShelf.book.queue.waiting.isEmpty())
+        assertEquals(true, store.twinShelf.book.queue.entries.single().answeredCorrectly)
     }
 
     @Test fun s2NoWriterSetUpSaysSo() {

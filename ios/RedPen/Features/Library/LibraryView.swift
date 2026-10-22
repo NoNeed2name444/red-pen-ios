@@ -551,8 +551,8 @@ struct LibraryView: View {
             .navigationDestination(isPresented: $showingDue) { DueTodayView() }
             // a custom session's cards, reviewed and rescheduled where they live
             .navigationDestination(item: $sessionDeck) { AnkiReviewView(set: $0) }
-            .alert("Nothing here yet", isPresented: nothingYetShown, presenting: nothingYet) { _ in
-                Button("Done", role: .cancel) {}
+            .alert(NothingYetAlert.title, isPresented: nothingYetShown, presenting: nothingYet) { _ in
+                Button(NothingYetAlert.done, role: .cancel) {}
             } message: { feature in
                 Text(feature.emptyText)
             }

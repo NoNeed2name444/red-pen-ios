@@ -121,7 +121,8 @@ class StudyStore(private val directory: File) {
     private fun <T> readMap(o: JSONObject, decode: (JSONObject) -> T): Map<String, T> = o.keys().asSequence().mapNotNull { key -> o.optJSONObject(key)?.let { key to decode(it) } }.toMap()
     private fun <T> writeMap(map: Map<String, T>, encode: (T) -> Any): JSONObject = JSONObject().also { o -> map.forEach { (key, value) -> o.put(key, encode(value)) } }
 
-    @Synchronized fun exportJson(): String = snapshot().toString(2)
+    /** The whole library, with the twins' due dates and waiting twins (twins.json) beside it. */
+    @Synchronized fun exportJson(): String = snapshot().put("twins", JSONObject(twinShelf.book.toJson())).toString(2)
     fun exportSet(set: StudySet): String = StudyJson.encodeSet(set).toString(2)
 
     private fun snapshot(): JSONObject = raw(original.toString())
@@ -275,12 +276,17 @@ class StudyStore(private val directory: File) {
         library = library + additions
         backupOf(text)?.let(::mergeBackup)
         save()
+        // a whole-library backup's twins join these (what is here wins)
+        twinsOf(text)?.let(twinShelf::merge)
         return additions.size
     }
     /** A whole-library export (from Settings) rather than a single set or a list of sets. */
     private fun backupOf(text: String): Saved? = runCatching {
         val root = JSONObject(text)
         if (!root.has("library") || !root.optString("format").startsWith("stethoscore")) null else parse(root)
+    }.getOrNull()
+    private fun twinsOf(text: String): com.stethoscore.app.quiz.TwinBook? = runCatching {
+        JSONObject(text).optJSONObject("twins")?.let { com.stethoscore.app.quiz.TwinBook.parse(it.toString()) }
     }.getOrNull()
     /** Adds what this device does not have yet; anything already here wins. */
     private fun mergeBackup(b: Saved) {
@@ -322,8 +328,6 @@ class StudyStore(private val directory: File) {
     @Synchronized fun recordAnswer(questionId: String, correct: Boolean, confidence: String? = null, picked: Int? = null, hinted: Boolean = false, saving: Boolean = true) {
         answerHistory = answerHistory + (questionId to ((answerHistory[questionId] ?: emptyList()) + correct))
         answerLog = answerLog + AnswerEvent(questionId, correct, confidence = confidence, picked = picked, hinted = if (hinted) true else null)
-        // a twin answered moves along its own queue (iOS ExamStore.twinAnswered)
-        twinShelf.answered(questionId, correct)
         if (saving) saveQuietly()
         onStudied?.invoke(1)
     }

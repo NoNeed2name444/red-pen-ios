@@ -65,6 +65,13 @@ final class ExamStore: ObservableObject {
         Self.keep(book.pending, Self.pendingKey)
     }
 
+    /// The whole book, as Write a twin changed it.
+    func keep(_ next: TwinBook) {
+        book = next
+        Self.keep(book.queue, Self.twinsKey)
+        Self.keep(book.pending, Self.pendingKey)
+    }
+
     func isTwinOnTheWay(for parent: UUID) -> Bool {
         book.isOnTheWay(for: parent)
     }
@@ -157,67 +164,44 @@ extension Store {
 
 // MARK: - writing twins
 
-/// What came of asking for a twin.
-enum TwinOutcome: Equatable {
-    case made
-    /// Nothing can write one on this device; said once, plainly.
-    case unavailable(String)
-    /// Couldn't write it now; it waits and is tried again later.
-    case later(String)
-}
-
 @MainActor
 enum TwinWriter {
     static let noWriter: String = "Twins are written by a question writer: turn on Apple Intelligence, or choose one in AI models."
 
-    /// Writes a twin for `question` and puts it in the queue.
+    /// What Write a twin works with in the app: ExamStore's book, the
+    /// library and the writer New set uses.
+    static func desk(store: Store) -> TwinDesk {
+        let backend = LocalLLMService.shared.writerOrApple()
+        let complete: ((String, String) async throws -> String)? = backend.map { backend in
+            { system, input in
+                try await backend.complete([.system(system), .user(input)], maxTokens: 1_400, temperature: 0.8)
+            }
+        }
+        var viaJob: ((String, String) async throws -> [MCQQuestion])? = nil
+        if let backend, CloudJobs.endpoint(for: backend) != nil {
+            viaJob = { source, subject in
+                try await MedicalGenerate.mcq(sourceText: source, count: 1, subject: subject,
+                                              highYield: false, using: backend)
+            }
+        }
+        return TwinDesk(
+            book: { ExamStore.shared.book },
+            keep: { ExamStore.shared.keep($0) },
+            question: { id in store.pick(for: id).map { (question: $0.question, subject: Store.subjectName($0.set)) } },
+            complete: complete, viaJob: viaJob,
+            parse: { MedicalGenerate.parseQuestions($0) },
+            shelve: { twin, subject in store.addTwin(twin, subject: subject) },
+            style: ExamTrack.current.mcqStyle, noWriter: noWriter)
+    }
+
+    /// Writes a twin for the request's question and puts it in the queue (TwinWriting decides).
     static func write(_ request: PendingTwin, store: Store) async -> TwinOutcome {
-        guard let pick = store.pick(for: request.parentId) else {
-            ExamStore.shared.dropPending(request.parentId)
-            return .unavailable("This question is no longer in the library.")
-        }
-        guard let backend = LocalLLMService.shared.writerOrApple() else {
-            return .unavailable(noWriter)
-        }
-        let q: MCQQuestion = pick.question
-        let input: String = TwinPrompt.input(stem: q.stem, options: q.options, correctIndex: q.correctIndex,
-                                             explanation: q.explanation, picked: request.picked,
-                                             reason: request.reason)
-        let system: String = TwinPrompt.instructions(style: ExamTrack.current.mcqStyle)
-        var found: [MCQQuestion] = []
-        do {
-            let reply: String = try await backend.complete([.system(system), .user(input)],
-                                                           maxTokens: 1_400, temperature: 0.8)
-            found = MedicalGenerate.parseQuestions(reply)
-        } catch {
-            found = []
-        }
-        // the cloud writer's own job path, when the direct call gave nothing
-        if found.isEmpty, CloudJobs.endpoint(for: backend) != nil {
-            let source: String = system + "\n\n" + input
-            let subject: String = Store.subjectName(pick.set)
-            found = (try? await MedicalGenerate.mcq(sourceText: source, count: 1, subject: subject,
-                                                    highYield: false, using: backend)) ?? []
-        }
-        guard let twin = TwinDraft.pick(found, missed: q) else {
-            ExamStore.shared.queueForLater(request)
-            return .later("Couldn\u{2019}t write the twin just now. It will be tried again next time you practise.")
-        }
-        let subject: String = Store.subjectName(pick.set)
-        store.addTwin(twin, subject: subject)
-        ExamStore.shared.addTwin(twin.id, parent: q.id, confident: request.confident, guessed: request.guessed)
-        return .made
+        await TwinWriting.write(request, desk: desk(store: store))
     }
 
     /// Writes the twins asked for while offline, quietly, one at a time.
     static func retryPending(store: Store) async {
-        let waiting: [PendingTwin] = ExamStore.shared.pending
-        for request in waiting.prefix(3) {
-            if Task.isCancelled { return }
-            let outcome: TwinOutcome = await write(request, store: store)
-            if case .later = outcome { return }
-            if case .unavailable = outcome { return }
-        }
+        await TwinWriting.retryPending(desk: desk(store: store))
     }
 }
 

@@ -145,9 +145,88 @@ let twinBack = try! JSONDecoder().decode(MCQQuestion.self, from: twinSaved)
 check("S7 relaunch: the twin question itself reads back", twinBack == twin)
 check("S7 relaunch: a twin whose question left the library is let go", {
     var b = reloaded
-    b.queue.prune(keeping: [twinId])
-    return b.queue.entries.map(\.id) == [twinId]
+    // only the other twin's question is still in the library
+    b.queue.prune(keeping: [laterTwin])
+    return b.queue.entries.map(\.id) == [laterTwin] && !b.queue.entries.contains { $0.id == twinId }
 }())
+
+// MARK: S2 again, through the writer itself (TwinWriting, as TwinWriter runs it)
+
+/// A desk on the stand-in: a library of the one missed question, the book in memory.
+final class Bench {
+    var book = TwinBook()
+    var shelved: [(MCQQuestion, String)] = []
+    var asked = 0
+    var library: [UUID: MCQQuestion] = [missed.id: missed]
+    var writer: ((String, String) async throws -> String)?
+
+    @MainActor func desk(at now: Date) -> TwinDesk {
+        TwinDesk(book: { self.book }, keep: { self.book = $0 },
+                 question: { id in self.library[id].map { (question: $0, subject: "Renal") } },
+                 complete: writer.map { writer in { system, input in self.asked += 1; return try await writer(system, input) } },
+                 viaJob: nil,
+                 parse: { raw in (try? JSONDecoder().decode(Reply.self, from: Data(raw.utf8)))?.questions ?? [] },
+                 shelve: { self.shelved.append(($0, $1)) },
+                 style: "UK finals style.", noWriter: "No writer is set up.",
+                 now: { now }, calendar: calendar)
+    }
+}
+
+struct Reply: Codable { var questions: [MCQQuestion] }
+
+func reply(_ questions: [MCQQuestion]) -> String {
+    String(data: try! JSONEncoder().encode(Reply(questions: questions)), encoding: .utf8)!
+}
+
+struct Offline: Error {}
+
+let bench = Bench()
+bench.writer = { system, input in reply(standInWriter(system: system, input: input)) }
+let written = await TwinWriting.write(request, desk: bench.desk(at: missTime))
+check("S2 writer: the stand-in writes the twin", written == .made, "\(written)")
+check("S2 writer: it goes into the subject's Twins set", bench.shelved.count == 1 && bench.shelved[0].1 == "Renal"
+      && bench.shelved[0].0.stem.hasPrefix("A 52-year-old woman"))
+check("S2 writer: and into the queue, due in two days", bench.book.queue.waiting.map(\.parentId) == [missed.id]
+      && bench.book.queue.due(now: at(24, 0)).count == 1 && bench.book.queue.due(now: at(23, 23)).isEmpty)
+let again = await TwinWriting.write(request, desk: bench.desk(at: at(23, 9)))
+check("S2 writer: a second Write a twin for the same miss writes none", again == .unavailable(TwinBook.alreadyOnTheWay)
+      && bench.shelved.count == 1 && bench.asked == 1 && bench.book.queue.entries.count == 1)
+check("S2 writer: nor after the first is answered", {
+    bench.book.queue.answered(bench.book.queue.entries[0].id, correct: true, now: at(24, 9), calendar: calendar)
+    return !bench.book.canWrite(for: missed.id)
+}())
+
+let noWriter = Bench()
+let none = await TwinWriting.write(request, desk: noWriter.desk(at: missTime))
+check("S2 writer: with no writer set up it says so, and nothing waits", none == .unavailable("No writer is set up.")
+      && noWriter.book == TwinBook())
+
+let away = Bench()
+away.writer = { _, _ in throw Offline() }
+let offlineOutcome = await TwinWriting.write(request, desk: away.desk(at: missTime))
+check("S2 writer: offline, the twin waits to be written", offlineOutcome == .later(TwinWriting.later)
+      && away.book.pending == [request] && away.shelved.isEmpty)
+away.writer = { _, _ in reply([echo]) }
+_ = await TwinWriting.write(request, desk: away.desk(at: missTime))
+check("S2 writer: the missed question echoed back is refused, and still waits once", away.book.pending == [request]
+      && away.shelved.isEmpty)
+away.writer = { system, input in reply(standInWriter(system: system, input: input)) }
+await TwinWriting.retryPending(desk: away.desk(at: at(23, 8)))
+check("S2 writer: back online, retryPending writes it", away.book.pending.isEmpty && away.shelved.count == 1
+      && away.book.queue.hasTwin(for: missed.id))
+
+let left = Bench()
+left.writer = bench.writer
+left.book.later(request)
+left.library = [:]
+let goneOutcome = await TwinWriting.write(request, desk: left.desk(at: missTime))
+check("S2 writer: a question gone from the library is let go", goneOutcome == .unavailable(TwinWriting.gone)
+      && left.book.pending.isEmpty)
+
+// MARK: S5 again: the alert's words
+
+check("S5 nothing yet: the alert is \"Nothing here yet\", closed with Done",
+      NothingYetAlert.title == "Nothing here yet" && NothingYetAlert.done == "Done")
 
 print(failures.isEmpty ? "\nALL TWIN FLOW TESTS PASS" : "\n\(failures.count) TWIN FLOW TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

@@ -930,6 +930,11 @@ struct MCQQuizView: View {
         let question: MCQQuestion = q
         let id: UUID = question.id
         guard !writingTwin.contains(id) else { return }
+        // one twin per miss: not while one is written or waiting for this question
+        guard ExamStore.shared.book.canWrite(for: id) else {
+            twinNotes[id] = TwinBook.alreadyOnTheWay
+            return
+        }
         let picked: Int? = OptionOrder.original(ofSlot: a.selected, in: order(current))
         let confident: Bool = store.confidentMistakeIds.contains(id)
         let guessed: Bool = confidences[id] == .guess

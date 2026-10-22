@@ -265,6 +265,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             store.recordAnswer(question.id, right, confidence = confidences[question.id]?.rawValue,
                 picked = OptionOrder.original(answers[qi].selected, order(qi)),
                 hinted = hints[question.id] != null, saving = !keepsPosition)
+            // a twin answered here moves along its own queue (iOS ExamStore.twinAnswered); a mock paper's do not
+            store.twinShelf.answered(question.id, right)
         }
         return right
     }
@@ -338,8 +340,11 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     fun writeTwin() {
         val id = q.id
         if (id in twinNotes) return
+        // one twin per miss: not while one is written or waiting for this question
+        if (!store.twinShelf.canWrite(id)) { twinNotes = twinNotes + (id to TwinBook.alreadyOnTheWay); return }
+        // sure but wrong as iOS decides it: the question's latest answer, wrong, said sure (confidentMistakeIds)
         val request = PendingTwin(id, OptionOrder.original(a.selected, order(current)), reasons[id]?.title,
-            confident = confidences[id] == AnswerConfidence.sure, guessed = confidences[id] == AnswerConfidence.guess)
+            confident = id in store.confidentMistakeIds, guessed = confidences[id] == AnswerConfidence.guess)
         twinNotes = twinNotes + (id to "Writing a twin\u2026")
         scope.launch {
             val outcome = TwinWriter.write(request, store, llm.backend(), twinStyle)
