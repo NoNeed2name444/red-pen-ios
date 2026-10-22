@@ -396,7 +396,7 @@ struct LibraryView: View {
     private func openTurned(_ set: StudySet?) {
         guard let set else { return }
         modeSwitch.opening = nil
-        withAnimation(.snappy) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
             dockSelection.wrappedValue = StudyCategory(kind: set.kind)
             inIdeas = false
             arrived = set.id
@@ -436,7 +436,7 @@ struct LibraryView: View {
     /// sections' hues shifting); or straight to Ideas.
     private func previewDockStep(toIdeas: Bool = false) {
         let all: [StudyCategory] = StudyCategory.allCases
-        withAnimation(.snappy(duration: 0.3)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.3))) {
             if toIdeas {
                 inIdeas = true
             } else if inIdeas {
@@ -452,7 +452,7 @@ struct LibraryView: View {
     /// Ideas in place of the category's page. It sits after the four
     /// categories, so it always slides in from the trailing side.
     func goToIdeas() {
-        withAnimation(.snappy(duration: 0.3)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.3))) {
             forward = true
             selecting = false
             selected = []
@@ -799,7 +799,7 @@ struct LibraryView: View {
             .onChange(of: opened.isEmpty) { _, back in
                 guard back, let id = arrived else { return }
                 arrived = nil
-                withAnimation(.snappy) { proxy.scrollTo(id, anchor: .center) }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { proxy.scrollTo(id, anchor: .center) }
             }
             .task(id: dockHeight) {
                 guard PreviewLaunch.screen == "library-end", dockHeight > 0 else { return }
@@ -945,7 +945,7 @@ struct LibraryView: View {
         let title: String = selecting ? "Done" : "Select"
         let hint: String = selecting ? "Stop choosing sets" : "Choose sets to group, mix or combine"
         return Button {
-            withAnimation(.snappy) { selecting.toggle(); selected = [] }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting.toggle(); selected = [] }
         } label: {
             headerButtonFace(title)
         }
@@ -992,7 +992,7 @@ struct LibraryView: View {
                 Spacer()
                 Menu {
                     Button("Select sets", systemImage: "checkmark.circle") {
-                        withAnimation(.snappy) { selecting = true; selected = [] }
+                        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = true; selected = [] }
                     }
                     Button("Rename folder", systemImage: "pencil") {
                         draftName = folder.name; renamingFolder = folder
@@ -1144,7 +1144,7 @@ struct LibraryView: View {
         reviews.forget(cards)
         selected.subtract(ids)
         if selecting && selected.isEmpty {
-            withAnimation(.snappy) { selecting = false }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = false }
         }
     }
 
@@ -1224,10 +1224,10 @@ private struct KeyboardWatch: ViewModifier {
         content
             .onReceive(KeyboardWatch.shows) { note in
                 let soft: Bool = KeyboardWatch.isSoftKeyboard(note)
-                withAnimation(.snappy) { up = soft }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { up = soft }
             }
             .onReceive(KeyboardWatch.hides) { _ in
-                withAnimation(.snappy) { up = false }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { up = false }
             }
     }
 }

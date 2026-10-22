@@ -53,7 +53,7 @@ struct WardRing: View {
         .background {
             WardReliefFace(shape: WardAnnulus(width: lineWidth + 2 * clear), lift: .low, inset: true)
         }
-        .animation(.easeOut(duration: 0.6), value: v)
+        .animation(Motion.gentle(.easeOut(duration: 0.3)), value: v)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Progress")
         .accessibilityValue(spoken ?? "\(percent) percent")
@@ -115,7 +115,7 @@ struct EcgStrip: View {
 
     var body: some View {
         WardGroove(fraction: progress, tint: tone, height: 6)
-            .animation(.easeOut(duration: 0.3), value: progress)
+            .animation(Motion.gentle(.easeOut(duration: 0.3)), value: progress)
             .accessibilityHidden(true)
     }
 }

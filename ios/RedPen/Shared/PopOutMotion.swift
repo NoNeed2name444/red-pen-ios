@@ -149,7 +149,7 @@ final class PopOutMotion {
         if !idle { link?.preferredFrameRateRange = PopOutMotion.fullRate() }
         if style != .live {
             smooth = .zero
-            withAnimation(.smooth(duration: 0.5)) {
+            withAnimation(.smooth(duration: 0.3)) {
                 style = .live
                 eye = PopOutTuning.restEye
             }
@@ -222,7 +222,7 @@ final class PopOutMotion {
         PopOutMotion.snapshot.write(SIMD2<Float>(0, 0))
         source = .motion
         guard style != now || eye != rest || gain != 1 else { return }
-        withAnimation(.smooth(duration: 0.5)) {
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) {
             style = now
             eye = rest
             gain = 1

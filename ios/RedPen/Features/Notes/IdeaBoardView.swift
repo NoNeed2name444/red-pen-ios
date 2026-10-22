@@ -82,7 +82,7 @@ struct IdeaBoardView: View {
         .ideaTools {
             IdeaToolButton(symbol: "scope", label: "Back to the middle") {
                 moved = false
-                withAnimation(.snappy) { fitAll() }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { fitAll() }
             }
             IdeaToolButton(symbol: connectSymbol, label: connectLabel, active: connecting) {
                 connecting.toggle()

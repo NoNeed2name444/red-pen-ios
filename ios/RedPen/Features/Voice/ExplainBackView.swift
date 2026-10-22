@@ -109,7 +109,7 @@ struct ExplainBackView: View {
             transcriptBox
             notes
         }
-        .animation(.snappy(duration: 0.2), value: writing)
+        .animation(Motion.gentle(.snappy(duration: 0.2)), value: writing)
         .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 8)
         .padding(.bottom, 12)

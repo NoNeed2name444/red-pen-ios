@@ -360,10 +360,10 @@ struct Graph3DView: View {
         .padding(.horizontal, WardSpace.gutter)
         .padding(.trailing, 44 + 12)
         .padding(.bottom, 16)
-        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: selection.selected)
-        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: selection.cardShown)
-        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: tuningLinks)
-        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: options == nil)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: selection.selected)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: selection.cardShown)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: tuningLinks)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: options == nil)
     }
 
     /// A body's options, held still on it: a glass list beside where it

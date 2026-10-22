@@ -96,7 +96,7 @@ struct FloatingActionButton: View {
 
     var body: some View {
         let item: FloatingAction.Item? = shown
-        let change: Animation = .snappy(duration: 0.25)
+        let change: Animation? = Motion.gentle(.snappy(duration: 0.25))
         ZStack {
             if let item {
                 FloatingActionFace(item: item, shortcut: shortcut)
@@ -139,6 +139,6 @@ private struct FloatingActionBar: View {
                 .transition(.slideIn(.bottom))
             }
         }
-        .animation(.snappy(duration: 0.25), value: showing)
+        .animation(Motion.gentle(.snappy(duration: 0.25)), value: showing)
     }
 }

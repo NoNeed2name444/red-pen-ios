@@ -140,7 +140,7 @@ struct AnalyticsView: View {
 
     /// Scrolls the list to one of its places, gently.
     private func jump(_ proxy: ScrollViewProxy, to anchor: String) {
-        withAnimation(.snappy) { proxy.scrollTo(anchor, anchor: .top) }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { proxy.scrollTo(anchor, anchor: .top) }
     }
 
     // MARK: - Opening things

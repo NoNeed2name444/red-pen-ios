@@ -558,7 +558,7 @@ private struct WardScoreTotal: View {
         .wardRaised(in: shape, lift: .high)
         .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, WardSpace.s)
-        .animation(.snappy, value: total)
+        .animation(Motion.gentle(.snappy(duration: 0.25)), value: total)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("wardScoreTotal")
     }

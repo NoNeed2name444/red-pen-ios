@@ -108,7 +108,7 @@ extension LibraryView {
         return NameSheet(title: title, prompt: prompt, initial: initial, confirm: confirm) { name in
             if folder { store.group(selected, into: name) }
             else { store.combine(selectedSets.map(\.id), name: name) }
-            withAnimation(.snappy) { selecting = false; selected = [] }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = false; selected = [] }
         }
     }
 

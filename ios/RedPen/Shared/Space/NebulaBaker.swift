@@ -471,7 +471,7 @@ final class SkyNebula {
 
     private func accept(_ layers: NebulaLayers?) {
         guard let layers else { return }
-        withAnimation(.easeInOut(duration: 1.2)) {
+        withAnimation(Motion.gentle(.easeInOut(duration: 1.2))) {
             gas = Image(decorative: layers.gas, scale: 1)
             dust = Image(decorative: layers.dust, scale: 1)
         }

@@ -134,7 +134,7 @@ struct ProgressRing<Centre: View>: View {
             if reduceMotion {
                 shown = true
             } else {
-                withAnimation(.easeOut(duration: 0.9)) { shown = true }
+                withAnimation(.easeOut(duration: 0.3)) { shown = true }
             }
         }
         .accessibilityElement(children: .ignore)

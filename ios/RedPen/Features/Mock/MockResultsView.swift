@@ -116,7 +116,7 @@ struct MockResultsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             WardSectionLabel(showAll ? "Every question" : "The ones you missed") {
                 Button(showAll ? "Missed only" : "Show all") {
-                    withAnimation(.snappy) { showAll.toggle() }
+                    withAnimation(Motion.gentle(.snappy(duration: 0.25))) { showAll.toggle() }
                 }
                 .frame(minHeight: 44)
             }

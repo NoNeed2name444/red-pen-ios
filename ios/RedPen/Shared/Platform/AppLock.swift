@@ -88,7 +88,7 @@ private final class AppLockState: ObservableObject {
         asking = false
         cancelled = !ok
         if ok {
-            withAnimation(.easeOut(duration: 0.2)) { locked = false }
+            withAnimation(Motion.gentle(.easeOut(duration: 0.2))) { locked = false }
         }
     }
 }

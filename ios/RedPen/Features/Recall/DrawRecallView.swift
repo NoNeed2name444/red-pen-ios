@@ -255,7 +255,7 @@ struct DrawRecallView: View {
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
             if frame != pillRow { pillRow = frame }
         }
-        .animation(.snappy(duration: 0.2), value: lift)
+        .animation(Motion.gentle(.snappy(duration: 0.2)), value: lift)
     }
 
     /// How far the Compare row must rise to sit above a docked tool picker.

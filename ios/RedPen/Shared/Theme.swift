@@ -238,7 +238,7 @@ struct ThinProgress: View {
 
     var body: some View {
         WardGroove(fraction: fraction, tint: .wardPrimaryInk, height: 6)
-            .animation(.easeOut(duration: 0.3), value: fraction)
+            .animation(Motion.gentle(.easeOut(duration: 0.3)), value: fraction)
     }
 }
 

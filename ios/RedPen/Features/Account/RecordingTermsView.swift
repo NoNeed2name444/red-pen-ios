@@ -82,7 +82,7 @@ struct RecordingTermsView: View {
             while remaining > 0 {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 if Task.isCancelled { return }
-                withAnimation { remaining -= 1 }
+                withAnimation(Motion.gentle(.default)) { remaining -= 1 }
             }
         }
     }
@@ -137,7 +137,7 @@ struct RecordingTermsView: View {
                 .contentTransition(.numericText(countsDown: true))
         }
         .buttonStyle(.bigPrimary)
-        .animation(.snappy, value: remaining == 0)
+        .animation(Motion.gentle(.snappy(duration: 0.25)), value: remaining == 0)
         .keyboardShortcut(.defaultAction)
         .disabled(remaining > 0)
         .accessibilityLabel(spoken)
@@ -173,7 +173,7 @@ final class RecordingTermsStore: ObservableObject {
 
     func agree(_ accountId: String) {
         RecordingTerms.accept(for: accountId)
-        withAnimation { _ = agreed.insert(accountId) }
+        withAnimation(Motion.gentle(.default)) { _ = agreed.insert(accountId) }
     }
 }
 

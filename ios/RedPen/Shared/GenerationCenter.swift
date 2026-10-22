@@ -146,7 +146,7 @@ struct GenerationHUD: View {
                     .transition(.slideIn(.bottom))
             }
         }
-        .animation(.spring(duration: 0.3), value: center.job?.id)
+        .animation(Motion.gentle(.spring(duration: 0.3)), value: center.job?.id)
     }
 }
 
