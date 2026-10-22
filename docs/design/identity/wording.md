@@ -8,7 +8,7 @@ This reverses `docs/design/targets-2026-10-01.md` §1, which kept “beds, chart
 
 Written 15 Oct 2026 against `personal` at bc611221, and checked again at 2b7ef11e, which changes nothing under `ios/`. Every file:line below is checked with `git show origin/personal:<path>` each time this file is generated; line numbers move as code changes, so search for the quoted text. No app code changes in this phase; this is the list a later phase applies.
 
-**Built, 22 Oct 2026 (T0125).** The rows marked “Built 22 Oct” are in the app on iOS, with their Android twins in the same change set; the rows not marked wait on the reason given in that change’s result (an owner question, or a file outside it).
+**Built, 22 Oct 2026 (T0125).** The rows marked “Built 22 Oct” are in the app on iOS, with their Android twins in the same change set. The rows not marked wait: rows 27-31, the rhythm words, on the owner’s answer to the copy deck’s question 3 (“Steady” is already the trend label); rows 58-61 (the Live Activity, `ios/StethoscoreWidgets`), row 62 (the Health permission text, `ios/project.yml`) and rows 72-77 (the iPad build’s stand-ins, `tools/playgrounds_stubs`) because those files were outside that change; and row 63 on the owner’s Arabic words (question 4). The spoken “Item 1” is built as the glossary has it; the copy deck’s question 5 still asks the owner to confirm it.
 
 ## The rule
 

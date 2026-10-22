@@ -3143,6 +3143,27 @@ only; Arabic is left for the owner's words (copy deck question 4).
   "Open last set in new window", "Search library", "Review due cards". The
   Playgrounds build's stand-in (tools/playgrounds_stubs/core3/Core3Gaps.swift)
   still says "Review Due Cards".
+- [ ] Waiting on the owner (copy deck section 5): the rhythm words
+  "Steady", "Patchy", "Resting" (question 3: "Steady" is already the trend
+  label; wording.md rows 27-31); Android's "Night shift" and "YOUR STUDY
+  WARD" (question 6); the three shorter overlines, "ONE BEST ANSWER",
+  "WEAKEST FIRST", "BIGGEST GAIN" (question 9); the Arabic for "Done",
+  "Today's revision", "Focus session", "Block" and "Part", and the Health
+  permission's Arabic (question 4); and a yes to the spoken "Item 1",
+  built as wording.md's glossary has it (question 5).
+- [ ] Outside this change set: the Live Activity's words
+  (ios/StethoscoreWidgets, wording.md rows 58-61), the Health permission
+  text (ios/project.yml, row 62), the iPad build's stand-ins
+  (tools/playgrounds_stubs, rows 72-77, plus Core3Gaps.swift's "Review Due
+  Cards" and CoreExports.swift's "OK"), and the design tour, which still
+  tries "Vitals" before "Progress" (ios/UITests/DesignTourUITests.swift).
+- [ ] More than words, so not in this change set: the empty due queue's
+  next-due line and "Study something else" (it needs the next due time and
+  a new action); Android's "Why / how" (it needs the small-caps component,
+  which uppercases, in place of the literal "WHY / HOW"); the model download
+  error, whose text is wrapped twice ("Download failed: Something went
+  wrong — …"); and iOS's account alert "Something went wrong", which also
+  shows failures that are not sign-in.
 
 ### Waiting on the owner
 
