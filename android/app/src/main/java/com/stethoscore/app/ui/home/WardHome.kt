@@ -60,7 +60,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.MultiContentMeasurePolicy
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -566,19 +572,36 @@ fun streakText(streak: Int): String = if (streak > 0) "$streak-day streak" else 
 
 /**
  * The first of two layouts that fits the width whole (ViewThatFits): the
- * first is measured at its own width, and the second is used when that is
- * wider than the room.
+ * first is used when its own width (its widest intrinsic width) fits the
+ * room, the second when it is wider. A plain Layout, not a SubcomposeLayout,
+ * so it answers intrinsic measurements: the tiles' row asks them
+ * (IntrinsicSize.Min), and a SubcomposeLayout there crashed the app ("Asking
+ * for intrinsic measurements of SubcomposeLayout layouts is not supported",
+ * the screenshots run 39646961250).
  */
 @Composable private fun ThatFits(first: @Composable () -> Unit, second: @Composable () -> Unit) {
-    SubcomposeLayout { constraints ->
-        val wide = subcompose("first", first).map { it.measure(Constraints(maxHeight = constraints.maxHeight)) }
-        val fits = wide.maxOfOrNull { it.width }?.let { it <= constraints.maxWidth } ?: true
-        val placeables = if (fits) subcompose("fits", first).map { it.measure(constraints.copy(minWidth = 0)) }
-        else subcompose("under", second).map { it.measure(constraints.copy(minWidth = 0)) }
+    Layout(contents = listOf(first, second), measurePolicy = ThatFitsPolicy)
+}
+
+private object ThatFitsPolicy : MultiContentMeasurePolicy {
+    private fun wide(first: List<IntrinsicMeasurable>): Int = first.maxOfOrNull { it.maxIntrinsicWidth(Constraints.Infinity) } ?: 0
+    private fun <M : IntrinsicMeasurable> chosen(all: List<List<M>>, width: Int): List<M> = if (wide(all[0]) <= width) all[0] else all[1]
+
+    override fun MeasureScope.measure(measurables: List<List<Measurable>>, constraints: Constraints): MeasureResult {
+        val placeables = chosen(measurables, constraints.maxWidth).map { it.measure(constraints.copy(minWidth = 0)) }
         val w = placeables.maxOfOrNull { it.width } ?: 0
         val h = placeables.maxOfOrNull { it.height } ?: 0
-        layout(w, h) { placeables.forEach { it.place(0, 0) } }
+        return layout(w, h) { placeables.forEach { it.place(0, 0) } }
     }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(measurables: List<List<IntrinsicMeasurable>>, width: Int): Int =
+        chosen(measurables, width).maxOfOrNull { it.minIntrinsicHeight(width) } ?: 0
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(measurables: List<List<IntrinsicMeasurable>>, width: Int): Int =
+        chosen(measurables, width).maxOfOrNull { it.maxIntrinsicHeight(width) } ?: 0
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(measurables: List<List<IntrinsicMeasurable>>, height: Int): Int =
+        minOf(measurables[0].maxOfOrNull { it.minIntrinsicWidth(height) } ?: 0, measurables[1].maxOfOrNull { it.minIntrinsicWidth(height) } ?: 0)
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(measurables: List<List<IntrinsicMeasurable>>, height: Int): Int =
+        measurables[0].maxOfOrNull { it.maxIntrinsicWidth(height) } ?: 0
 }
 
 /**

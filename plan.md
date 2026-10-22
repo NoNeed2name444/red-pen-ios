@@ -2239,6 +2239,11 @@ with the marks on the screens last.
       unchanged. WardPaletteTest checks equality; OwnerAccepted.kt: 167
       entries take their new measured value, 19 that now pass are removed;
       no tolerance changed.
+    - [x] The screenshots run's crash (39646961250, "Asking for intrinsic
+      measurements of SubcomposeLayout layouts is not supported"): home's
+      tile row (IntrinsicSize.Min) asked the Vitals tile's ThatFits, a
+      SubcomposeLayout; ThatFits is now a plain Layout answering intrinsics
+      (HomeTilesMeasureTest runs the textbook flow under Robolectric).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
