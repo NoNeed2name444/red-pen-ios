@@ -2007,17 +2007,22 @@ with the marks on the screens last.
       (GraphPerfChunkSettings; C17).
     - [x] D2 depth fog, 4f's one curve: f = clamp((z - start) / (end -
       start), 0, 1)^1.2 towards GraphPerfScene.background; the band follows
-      the focus (1 to 1.4 times the camera's distance at High, 1.32 Smooth,
-      1.25 Saver); bundles and glows times 1 - f; past the end culled;
+      the focus (1 to 1.4 times the camera's distance at High, 1.36 Smooth,
+      1.32 Saver, and every level 1 to 1.46 inside the map, eased in from
+      0.6 to 1.2 map radii); bundles and glows times 1 - f; past the end culled;
       Increase Contrast starts 15% later and stops at 0.6, culling nothing;
       the frame budget may pull the end in to 0.7 of the band, never the
       rate (GraphPerfDepth.swift, the node shader; C9, B6).
     - [x] D3 loading follows the turn: leaves wanted by depth and size, a
       body budget a frame, 0.2 s detail ramps, and opening or closing
       bounded to a quarter second end to end, so a half turn in a second
-      swaps front and back detail within 8 frames of settling and no
-      body's brightness moves more than 0.13 of its range in a frame (the
-      bar is a sixth; C10, C17, C18).
+      swaps front and back detail within 15 frames of settling and no
+      on-screen body's brightness moves more than a sixth of its range in a
+      frame, at every level, from the edge (0.12 to 0.14), the whole map
+      (0.04 to 0.05) and inside (0.15) (C10, C17, C18). A flick of a full
+      turn a second steps 0.22 to 0.26, which the fog itself sets (a body
+      at the screen's edge crosses the band that fast); a fade that lags
+      the camera was tried and made it worse, so C18 reports it only.
     - [x] D4 a faded body is picked like any other, one past the band's end
       is not; choosing a note brings its leaf and its neighbours' to full
       detail, prepared first (C16, C19). With it, the selection: links
@@ -2034,8 +2039,9 @@ with the marks on the screens last.
         unchanged from design/ui-suite-fix, 0dbb1f74) before launch.
         Rerun as preview/perf-proof-2.
     - Merged (T0108, 22 Oct): design/perf-proof, with design/perf-million
-      under it, went into design/merge-graph, so the integration build has
-      the million map; D5's proof is taken on that build.
+      under it, and then design/perf-fade-band (D2's wider bands, 15 Oct)
+      went into design/merge-graph, so the integration build has the
+      million map; D5's proof is taken on that build.
   - [ ] Space, on design/space-bodies (after its current step). Code done
     (T0082, on design/integration fed0105), waiting for its Mac run:
     - The band (SpaceDepth.band, GraphSpaceDepth.swift) runs from 1.15x

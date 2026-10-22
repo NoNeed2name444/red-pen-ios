@@ -531,7 +531,8 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         if abs(pull - budget.pull) < 1e-3 { pull = budget.pull }
         let range = camera.depthRange(centre: map.centre, radius: map.radius)
         let here = GraphPerfChunkView(camera: camera, width: width, height: height, near: range.near, far: range.far,
-                                      motion: motion, band: depthFade ? band : nil, pull: pull)
+                                      motion: motion, band: depthFade ? band : nil, pull: pull,
+                                      mapRadius: map.radius)
 
         // plan: the one made a frame ahead on the planning thread (from the
         // last frame's view; the guard band covers the motion), or now

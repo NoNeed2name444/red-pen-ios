@@ -1,6 +1,6 @@
 // The million map's depth fade and depth detail (plan 4f with D1 to D5;
 // docs/design/depth-fade.md), with its numbers pinned here and tested on
-// Linux (Tests/GraphPerfChunkTests.swift, Tests/GraphPerfDesignTests.swift).
+// Linux (Tests/GraphPerfChunkTests.swift, Tests/GraphPerfBudgetTests.swift).
 //
 // The owner, 15 Oct: "u know how deep see videos or cell 3d high quality
 // videos have fade for far objects ? that's how i want performance mode to
@@ -44,10 +44,15 @@ nonisolated struct GraphPerfDepthBand: Sendable, Equatable {
     /// Only a band that fades fully may cull what lies past it.
     var culls: Bool { most >= 1 }
 
-    /// The Graphics levels' bands: a lower level pulls the end in.
+    /// The Graphics levels' bands: a lower level pulls the end in, but no
+    /// band is narrower than about a third of the focus distance. A body
+    /// seen at the screen's edge sweeps through the band as the map turns,
+    /// and a narrower band would move its brightness more than a sixth of
+    /// its range a frame in a half turn a second (D3; GraphPerfChunkTests'
+    /// C18 measures it at every level, from the whole map and from inside).
     static let high = GraphPerfDepthBand(start: 1.0, end: 1.4, k: 1.2, most: 1)
-    static let smooth = GraphPerfDepthBand(start: 1.0, end: 1.32, k: 1.2, most: 1)
-    static let saver = GraphPerfDepthBand(start: 1.0, end: 1.25, k: 1.2, most: 1)
+    static let smooth = GraphPerfDepthBand(start: 1.0, end: 1.36, k: 1.2, most: 1)
+    static let saver = GraphPerfDepthBand(start: 1.0, end: 1.32, k: 1.2, most: 1)
     /// Increase Contrast: start and end this much later, and at most this faded.
     static let contrastLater: Float = 1.15
     static let contrastMost: Float = 0.6
@@ -66,6 +71,27 @@ nonisolated struct GraphPerfDepthBand: Sendable, Equatable {
             band.end *= contrastLater
             band.most = contrastMost
         }
+        return band
+    }
+
+    /// Inside the map a body seen at the screen's edge is near, so it sweeps
+    /// through the band fast as the map turns: there every level fades over
+    /// insideWidth times the focus distance, a little wider than High's
+    /// (from under insideBelow times the map's radius away from the focus),
+    /// and over its own from outsideFrom on, eased in between, so a zoom
+    /// never moves the band in a step.
+    static let insideWidth: Float = 0.46
+    static let insideBelow: Float = 0.6
+    static let outsideFrom: Float = 1.2
+
+    /// This band seen from `distance` away from the focus of a map of
+    /// `mapRadius` (0: as it is).
+    func seen(from distance: Float, mapRadius: Float) -> GraphPerfDepthBand {
+        guard mapRadius > 0 else { return self }
+        let outside = GraphPerfDepthLook.smoothstep(Self.insideBelow, Self.outsideFrom, distance / mapRadius)
+        let full = Self.insideWidth * start / Self.high.start
+        var band = self
+        band.end = start + max(end - start, full - (full - (end - start)) * outside)
         return band
     }
 
