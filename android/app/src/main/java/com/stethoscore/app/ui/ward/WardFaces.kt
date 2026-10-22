@@ -1,13 +1,21 @@
 package com.stethoscore.app.ui.ward
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -16,31 +24,46 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.currentValueOf
 import com.stethoscore.app.ui.LocalWardLook
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.wardInk
+import com.stethoscore.app.ui.wardRgb
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // The soft UI faces the controls stand on, from WardRelief's and WardPress's
 // numbers (the port of WardSurfaces.swift's WardPressFace and WardReliefFace,
 // as far as the controls need them; the rest of the surfaces are batch 2):
 // lights cast round a raised face, lights inside a pressed one, the face's
 // fill and a control's 1-point ink edge; the 2-point chosen edge; Android's
-// focus ring; and the small sink a held control makes (capPop). Lights are
-// framework shadow layers on the face's outline; the inner ones fall inside
-// it from a frame drawn round it and clipped away.
+// focus ring; the small sink a held control makes (capPop); and the press a
+// plain clickable shows in place of a ripple (WardPressIndication). Lights
+// are framework shadow layers on the face's outline; the inner ones fall
+// inside it from a frame drawn round it and clipped away.
 
 /**
  * Draws the controls inside as held, with no finger on them: the states
@@ -48,6 +71,20 @@ import com.stethoscore.app.ui.wardInk
  * disabled control ignores it, as it ignores a finger. Off everywhere else.
  */
 val LocalWardShowsPressed = staticCompositionLocalOf { false }
+
+/**
+ * Faces drawn without their lights (iOS WardUnlitKey): no shade cast round
+ * them, only the face, its edge and, held or chosen, the hollow inside it;
+ * a control keeps its small rim, the one soft light the app allows. For
+ * what floats over a page (the home's New set and dock, the Ideas bar, the
+ * folded study deck: the owner, 9 Oct, "remove the glow around the deck and
+ * floating buttons"). Off everywhere else.
+ */
+val LocalWardUnlit = staticCompositionLocalOf { false }
+
+/** The Ward faces inside [content] are drawn without their lights (iOS wardUnlit). */
+@Composable fun WardUnlit(unlit: Boolean = true, content: @Composable () -> Unit) =
+    CompositionLocalProvider(LocalWardUnlit provides unlit, content = content)
 
 /** How far to dark the look is this frame: the glide's, or the look's at rest. */
 @Composable fun wardNight(): Double {
@@ -107,7 +144,9 @@ private fun DrawScope.innerStroke(path: Path, color: Color, width: Double) {
  * A pressable face (WardPressFace): raised by its lights at [lift] at depth
  * 0, pressed into the base with the lights inside at depth 1, every depth
  * between as the press glides. A control's face (`control`) stands on its
- * small rim and carries the 1-point ink edge; [flat] drops every light.
+ * small rim and carries the 1-point ink edge; [flat] drops every light;
+ * [unlit] (LocalWardUnlit) drops the lights round a face that is not a
+ * control's, keeping its hollow.
  */
 fun Modifier.wardPressFace(
     shape: Shape,
@@ -119,10 +158,12 @@ fun Modifier.wardPressFace(
     control: Boolean = true,
     flat: Boolean = false,
     edge: Color? = null,
+    unlit: Boolean = false,
 ): Modifier = drawBehind {
     val path = outlinePath(shape)
     val spec = WardPress.spec(lift, depth().toDouble(), night, highContrast = false, control = control)
-    if (!flat) {
+    // a button keeps its small rim even where the page is unlit (WardRelief.rim)
+    if ((control || !unlit) && !flat) {
         outerLight(path, spec.outerShade, fill)
         outerLight(path, spec.outerHighlight, fill)
     }
@@ -137,7 +178,8 @@ fun Modifier.wardPressFace(
 /**
  * A still face (WardReliefFace): raised off the base, or [inset] into it
  * (a well, a track, a groove); a control's carries the ink edge and, raised,
- * stands on its rim as a button does.
+ * stands on its rim as a button does. [unlit] (LocalWardUnlit) drops the
+ * lights round a raised face that is not on its rim; a well keeps its own.
  */
 fun Modifier.wardReliefFace(
     shape: Shape,
@@ -147,6 +189,7 @@ fun Modifier.wardReliefFace(
     ink: Color,
     inset: Boolean = false,
     control: Boolean = false,
+    unlit: Boolean = false,
 ): Modifier = drawBehind {
     val path = outlinePath(shape)
     val rim = control && !inset
@@ -155,7 +198,7 @@ fun Modifier.wardReliefFace(
         rim -> WardRelief.rim(lift, night)
         else -> WardRelief.raised(lift, night, control = control)
     }
-    if (!spec.inner) {
+    if (!spec.inner && !(unlit && !rim)) {
         outerLight(path, spec.shade, fill)
         outerLight(path, spec.highlight, fill)
     }
@@ -171,12 +214,12 @@ fun Modifier.wardReliefFace(
 @Composable fun Modifier.wardPressFace(
     shape: Shape, lift: WardLift, depth: State<Float>, fill: Color = wardColor(WardToken.surface),
     control: Boolean = true, flat: Boolean = false, edge: Color? = null,
-): Modifier = wardPressFace(shape, lift, { depth.value }, fill, wardNight(), wardInk(), control, flat, edge)
+): Modifier = wardPressFace(shape, lift, { depth.value }, fill, wardNight(), wardInk(), control, flat, edge, LocalWardUnlit.current)
 
 @Composable fun Modifier.wardRelief(
     shape: Shape, lift: WardLift = WardLift.mid, fill: Color = wardColor(WardToken.surface),
     inset: Boolean = false, control: Boolean = false,
-): Modifier = wardReliefFace(shape, lift, fill, wardNight(), wardInk(), inset, control)
+): Modifier = wardReliefFace(shape, lift, fill, wardNight(), wardInk(), inset, control, LocalWardUnlit.current)
 
 /** Pressed into the base: a well with a control's edge (wardInset). */
 @Composable fun Modifier.wardInset(shape: Shape, lift: WardLift = WardLift.low, control: Boolean = false): Modifier =
@@ -242,4 +285,106 @@ fun Modifier.capPop(held: Boolean): Modifier = composed {
         label = "capPop",
     )
     graphicsLayer { scaleX = scale; scaleY = scale }
+}
+
+/**
+ * The press of a plain clickable (iOS PressableRowStyle, Shared/Theme.swift):
+ * held, what it draws sinks to WardPress.sinkScale and shades a little
+ * (SwiftUI's brightness -0.04), both on the press's quick curve, and a quick
+ * tap still shows the whole sink before it lets go (WardPress.releaseHold,
+ * as iOS's capPop holds it). The theme gives it as LocalIndication, so a
+ * plain clickable never draws Material's ink; focused from a keyboard, it
+ * takes the Ward focus ring round its bounds. A Ward control draws its own
+ * press face and passes indication = null.
+ */
+object WardPressIndication : IndicationNodeFactory {
+    /** SwiftUI's brightness(-0.04) on a held row (iOS PressableRowFace), as a share of full white. */
+    const val shade = 0.04
+
+    /** The scale at [held] of the way down (0 at rest, 1 held). */
+    fun scale(held: Float): Float = 1f - (1f - WardPress.sinkScale.toFloat()) * held
+
+    /** How much darker, as a share of full white, at [held] of the way down. */
+    fun shade(held: Float): Float = shade.toFloat() * held
+
+    override fun create(interactionSource: InteractionSource): DelegatableNode = WardPressNode(interactionSource)
+    override fun equals(other: Any?): Boolean = other === this
+    override fun hashCode(): Int = javaClass.hashCode()
+}
+
+private class WardPressNode(private val source: InteractionSource) :
+    Modifier.Node(), DrawModifierNode, CompositionLocalConsumerModifierNode {
+    /** 0 at rest, 1 held: the sink and the shade together. */
+    private val held = Animatable(0f)
+    private var focused by mutableStateOf(false)
+    private var pressedAt = 0L
+    private var letGo: Job? = null
+
+    override fun onAttach() {
+        if (held.value != 0f) coroutineScope.launch { held.snapTo(0f) }
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val presses = mutableListOf<PressInteraction.Press>()
+            val focuses = mutableListOf<FocusInteraction.Focus>()
+            source.interactions.collect { interaction ->
+                val was = presses.isNotEmpty()
+                when (interaction) {
+                    is PressInteraction.Press -> presses += interaction
+                    is PressInteraction.Release -> presses -= interaction.press
+                    is PressInteraction.Cancel -> presses -= interaction.press
+                    is FocusInteraction.Focus -> focuses += interaction
+                    is FocusInteraction.Unfocus -> focuses -= interaction.focus
+                }
+                focused = focuses.isNotEmpty()
+                val down = presses.isNotEmpty()
+                if (down && !was) press() else if (!down && was) release()
+            }
+        }
+    }
+
+    private fun press() {
+        letGo?.cancel()
+        pressedAt = System.nanoTime()
+        coroutineScope.launch { held.animateTo(1f, tween((WardPress.press * 1000).toInt(), easing = WardQuickEasing)) }
+    }
+
+    /** Lets go once the press has had its time (WardPress.releaseHold), then rises. */
+    private fun release() {
+        val wait = WardPress.releaseHold((System.nanoTime() - pressedAt) / 1e9)
+        letGo = coroutineScope.launch {
+            delay((wait * 1000).toLong())
+            held.animateTo(0f, tween((WardPress.release * 1000).toInt(), easing = WardQuickEasing))
+        }
+    }
+
+    override fun ContentDrawScope.draw() {
+        val down = held.value
+        if (down <= 0f) drawContent() else {
+            val content = this
+            // the layer reaches as far as the strongest light a face inside it can cast
+            val reach = (WardRelief.offset(WardLift.peak) + WardRelief.radius(WardLift.peak)).wardDp.toPx()
+            val dim = -255f * WardPressIndication.shade(down)
+            val paint = Paint().apply {
+                colorFilter = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
+                    1f, 0f, 0f, 0f, dim,
+                    0f, 1f, 0f, 0f, dim,
+                    0f, 0f, 1f, 0f, dim,
+                    0f, 0f, 0f, 1f, 0f,
+                )))
+            }
+            scale(WardPressIndication.scale(down), pivot = center) {
+                drawIntoCanvas { it.saveLayer(Rect(-reach, -reach, size.width + reach, size.height + reach), paint) }
+                content.drawContent()
+                drawIntoCanvas { it.restore() }
+            }
+        }
+        if (focused) {
+            val look = currentValueOf(LocalWardLook)
+            val glide = currentValueOf(LocalWardGlide) ?: WardGlide.rest(look)
+            val ink = wardRgb(glide.hex(WardControlStates.focusInk, look.dark))
+            val out = (WardControlStates.focusRingGap + WardControlStates.focusRingWidth).wardDp.toPx()
+            translate(-out, -out) {
+                innerStroke(outlinePath(RectangleShape, Size(size.width + 2 * out, size.height + 2 * out)), ink, WardControlStates.focusRingWidth)
+            }
+        }
+    }
 }

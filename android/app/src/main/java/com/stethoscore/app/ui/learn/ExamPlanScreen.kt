@@ -58,7 +58,7 @@ import com.stethoscore.app.data.ExamWeekPlanner
 import com.stethoscore.app.data.RetentionForecast
 import com.stethoscore.app.data.SecuredRule
 import com.stethoscore.app.data.StudyStore
-import com.stethoscore.app.ui.mock.WardProgressBar
+import com.stethoscore.app.ui.ward.WardProgressBar
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.WardRowItem
 import com.stethoscore.app.ui.sources.wardRowTile

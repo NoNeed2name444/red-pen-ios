@@ -231,8 +231,8 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
 @Composable private fun Chevron() =
     Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, Modifier.size(18.dp), tint = wardColor(WardToken.inkSecondary))
 
-/** SI or US conventional units. */
-@Composable private fun WardUnitsPicker(conventional: Boolean, onChange: (Boolean) -> Unit) {
+/** SI or US conventional units; the quiz's lab values sheet shares it, as on iOS. */
+@Composable internal fun WardUnitsPicker(conventional: Boolean, onChange: (Boolean) -> Unit) {
     WardSegmented(conventional, listOf(false, true), onChange, Modifier.fillMaxWidth().semantics { contentDescription = "Units" }) { us, style, color ->
         Text(if (us) "US conventional" else "SI", style = style, color = color, maxLines = 1)
     }

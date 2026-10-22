@@ -68,6 +68,8 @@ import com.stethoscore.app.quiz.MockSittingSave
 import com.stethoscore.app.quiz.MockSittingStore
 import com.stethoscore.app.ui.QuizPrefs
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.StudyActionBar
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
@@ -364,8 +366,9 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
 @Composable private fun LibraryNote(available: Int, paper: MockPaperSpec, target: TargetExam?) {
     val wanted = paper.questionCount
     when {
-        available < MockAssembler.minimumQuestions -> WardBanner(WardTone.Warning, Icons.Rounded.Warning,
-            "A mock needs at least ${MockAssembler.minimumQuestions} questions in your library. Make a question set first.")
+        available < MockAssembler.minimumQuestions -> WardBanner(
+            "A mock needs at least ${MockAssembler.minimumQuestions} questions in your library. Make a question set first.",
+            Icons.Rounded.Warning, WardTone.Warning)
         available < wanted -> {
             val sections = MockAssembler.fitted(paper.sections, available)
             NoteCard(Icons.Rounded.Info, MockAssembler.shortfall(available, paper, sections))

@@ -31,15 +31,18 @@ import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.StudyActionBar
+import com.stethoscore.app.ui.ward.WardEmptyState
+import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardToken
 
 // The card review screens: one deck at a time, and everything due across the library. Ports
 // of ios/RedPen/Features/Anki/AnkiReviewView.swift and DueTodayView.swift at dcb4745: the
 // same sitting (a rating is written to the schedule, and a card due again within twenty
 // minutes stays in the queue), the same words, the same finishes and the same Undo, Bury and
-// Suspend. Plain Compose in the Ward colours; the header, the bar and the big buttons here
-// stand in for iOS's StudyProgressHeader, studyBar and big button styles until the Ward
-// surfaces and controls batches bring the shared ones.
+// Suspend. Plain Compose in the Ward colours; the header and the big buttons here stand in
+// for iOS's StudyProgressHeader and big button styles until the Ward surfaces and controls
+// batches bring the shared ones. The bar is the Ward kit's StudyActionBar (ui/ward/WardDeck.kt).
 //
 // Not carried over, because Android has no such feature yet: Quiz me (QuizFromCards), Check
 // accuracy and its badge, Save to Ideas, opening a citation's lecture page, and Due today's
@@ -100,19 +103,20 @@ import com.stethoscore.app.ui.ward.WardToken
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 32.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     val next = CardReview.nextLine(store.nextDue(set), System.currentTimeMillis())
                     when {
-                        set.cards.isEmpty() -> EmptyState(Icons.Rounded.Inbox, "No cards yet", "This deck has no cards.", grey = true)
+                        set.cards.isEmpty() -> WardEmptyState(Icons.Rounded.Inbox, "No cards yet", "This deck has no cards.", WardTone.Grey)
                         reviewedCount > 0 -> FinishHero(Icons.Rounded.Verified, "Done for now", CardReview.doneLine(reviewedCount, next))
-                        else -> EmptyState(Icons.Rounded.Schedule, "Nothing to review", "No cards in this deck are due yet. $next")
+                        else -> WardEmptyState(Icons.Rounded.Schedule, "Nothing to review", "No cards in this deck are due yet. $next")
                     }
                 }
             }
             ReviewUndoChip(undoUntil, { undoUntil = null }, ::undo)
         }
-        StudyBar {
-            if (current != null) {
-                val labels = ReviewOptions.previewLabels(ReviewPlan.record(current.card, store.reviews), System.currentTimeMillis(), store.examDate, store.reviewSettings.scheduler)
-                AnkiFooter(revealed, labels, { revealed = true }, ::rate)
-            } else if (canStudyAhead) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        // the card's bar folds away; the finish's does not (iOS AnkiReviewView)
+        if (current != null) StudyActionBar(folds = true) {
+            val labels = ReviewOptions.previewLabels(ReviewPlan.record(current.card, store.reviews), System.currentTimeMillis(), store.examDate, store.reviewSettings.scheduler)
+            AnkiFooter(revealed, labels, { revealed = true }, ::rate)
+        } else StudyActionBar {
+            if (canStudyAhead) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CardsCompanionButton("Done", onBack, Modifier.weight(1f))
                 CardsPrimaryButton("Study it anyway", ::studyAhead, Modifier.weight(1f))
             } else CardsPrimaryButton("Done", onBack, Modifier.fillMaxWidth())
@@ -178,12 +182,12 @@ import com.stethoscore.app.ui.ward.WardToken
             } else {
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 32.dp)) {
                     if (reviewedCount > 0) FinishHero(Icons.Rounded.Verified, "That's everything", CardReview.dueEmptyLine(reviewedCount))
-                    else EmptyState(Icons.Rounded.Schedule, "Nothing due today", CardReview.dueEmptyLine(reviewedCount))
+                    else WardEmptyState(Icons.Rounded.Schedule, "Nothing due today", CardReview.dueEmptyLine(reviewedCount))
                 }
             }
             ReviewUndoChip(undoUntil, { undoUntil = null }, ::undo)
         }
-        StudyBar {
+        StudyActionBar {
             if (due != null) {
                 val labels = ReviewOptions.previewLabels(ReviewPlan.record(due.card, store.reviews), System.currentTimeMillis(), store.examDate, store.reviewSettings.scheduler)
                 AnkiFooter(revealed, labels, { revealed = true }, ::rate)
@@ -255,24 +259,6 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 @Composable private fun SmallCaps(text: String) =
     Text(text.uppercase(), fontSize = 12.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis)
-
-/** The bar at the bottom with the one thing to do next, the card scrolling above it. */
-@Composable private fun StudyBar(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxWidth().background(wardColor(WardToken.raised)).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.widthIn(max = 700.dp)) { content() }
-    }
-}
-
-/** An empty state: a symbol on a soft disc, a title and what it means. */
-@Composable private fun EmptyState(icon: ImageVector, title: String, message: String, grey: Boolean = false) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.size(72.dp).background(wardColor(WardToken.well), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(32.dp), tint = if (grey) wardColor(WardToken.inkSecondary) else wardColor(WardToken.primaryInk))
-        }
-        Text(title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
-        Text(message, fontSize = 15.sp, textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
-    }
-}
 
 /** The end of a sitting: the done seal on a raised disc, large, and a line saying what happened. */
 @Composable private fun FinishHero(icon: ImageVector, title: String, message: String) {

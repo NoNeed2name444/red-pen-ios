@@ -65,6 +65,8 @@ import com.stethoscore.app.data.SourcePage
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.ui.ward.StudyActionBar
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
@@ -268,7 +270,7 @@ private data class Saved(val set: StudySet, val cards: Int, val lecture: Boolean
                     Text(words, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
             }
-            problem?.let { EditorBanner(it, Icons.Rounded.Warning, WardTone.Warning) }
+            problem?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Warning) }
         }
         // the save slab only once there is something to save
         if (saved == null && pages.isNotEmpty()) StudyActionBar {

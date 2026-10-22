@@ -2267,6 +2267,41 @@ with the marks on the screens last.
       (StudyCategory.swift:748, 0.3 s): one hollow under the five tabs,
       simply there with animations off and back from Ideas; the dock's look
       is unchanged (WardDock.hollow, WardDockTest).
+  - UX Wave 2 on Android (W2-android, T0122, 22 Oct: the components, iOS the
+    reference one to one; rows in the Android consistency sweep; checked by
+    WardKitPortTest):
+    - [x] The quiz stand-ins are gone: quizFace, QuizChip, QuizTag, QuizCard
+      and QuizSmallCaps give way to wardPressFace, WardChipButton, WardChip,
+      WardCardFace and WardSmallCapsText (Questions, its summary, the exam
+      tools, the chart quiz, the pocket).
+    - [x] The Cases kit is the Ward kit's: WardCardFace, the avatar and clock
+      pressed in (wardInset), WardChip, WardButtonBox, WardSegmented.
+    - [x] wardUnlit as iOS (LocalWardUnlit): what floats over the page (the
+      library's New set row over the dock, the Ideas board's bar) keeps its
+      edges and drops its glow.
+    - [x] WardStates as iOS (ui/ward/WardStates.kt: empty state, banner,
+      groove, progress bar, filter chip); the library's and the mock's copies
+      are gone. Of the 7 own empty states 4 moved (Cards, reader, library,
+      mock); 3 stay, as iOS draws them its own way (the library's empty
+      shelf, stats, insights). Of the 4 banners 3 moved; the narration's
+      transcribing card stays (iOS: a content card with the ECG loader).
+    - [x] One StudyActionBar on WardDeckSlab (ui/ward/WardDeck.kt) for the
+      study screens and editors (21 decks in 17 files): open, on a strip in
+      the page's wash whose top line curves into the paper frame's ring
+      (WardEdgeStore); the fold band and round button where iOS folds it
+      (Questions, Cards, the mock's sitting and results, OSCE, the reader,
+      narration). The mock's, the reader's, the editors' and Cards' own bars
+      are gone; the library's (LibraryStudyBar, on Stats and the shelves) is
+      left, as the sweep's row does not name it.
+    - [x] Waits draw the ECG trace (EcgLoader), never a spinner: the
+      attending hint's wait and the Ideas map's build.
+    - [x] No ripple: the theme gives WardPressIndication as LocalIndication,
+      so a plain clickable sinks to WardPress.sinkScale and shades 0.04, as
+      iOS PressableRowStyle, with the Ward focus ring from a keyboard
+      (WardPressIndicationTest).
+    - [ ] Left: the fold's motion and the press under Reduce Motion (T0124);
+      Material's own buttons, menus and dialogs keep their ripple until
+      Waves 3-4 and the owner's answer on native menus and dialogs.
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

@@ -206,15 +206,20 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
  * base, a 44-point target. Chosen, or held, it is pressed in; chosen, its
  * words take [tone] (the accent when it has none) and a solid edge in the
  * same colour goes round it. Disabled, Biro Grey and low; chosen and
- * disabled, it stays pressed in with its edge. Never a fill.
+ * disabled, it stays pressed in with its edge. Never a fill. Its label is
+ * any of iOS's: words, a glyph ([icon]) before the words, or the glyph
+ * alone. [role] is how TalkBack names it: a toggle by default, a button for
+ * a chip that acts (Timed, Re-test me soon), as iOS's are plain buttons.
  */
 @Composable fun WardChipButton(
-    text: String,
+    text: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     on: Boolean = false,
     tone: WardTone? = null,
     enabled: Boolean = true,
+    icon: ImageVector? = null,
+    role: Role = Role.Checkbox,
 ) {
     val source = remember { MutableInteractionSource() }
     val touch = wardTouch(source, enabled)
@@ -225,16 +230,21 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
     Box(
         modifier
             .defaultMinSize(WardControlSize.target.wardDp, WardControlSize.target.wardDp)
-            .selectable(on, enabled = enabled, role = Role.Checkbox, interactionSource = source, indication = null, onClick = onClick)
+            .selectable(on, enabled = enabled, role = role, interactionSource = source, indication = null, onClick = onClick)
             .capPop(touch.held),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, style = WardType.chip.textStyle(), color = ink, maxLines = 1,
-            modifier = Modifier
+        Row(
+            Modifier
                 .wardFocusRing(shape, touch.focused, chosenInk)
                 .wardChosenEdge(shape, on, chosenInk)
                 .wardPressFace(shape, WardLift.low, wardDepth(look.stand.isPressedIn))
-                .padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp))
+                .padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp),
+            horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) Icon(icon, null, tint = ink, modifier = Modifier.size(18.dp))
+            if (text != null) Text(text, style = WardType.chip.textStyle(), color = ink, maxLines = 1)
+        }
     }
 }
 

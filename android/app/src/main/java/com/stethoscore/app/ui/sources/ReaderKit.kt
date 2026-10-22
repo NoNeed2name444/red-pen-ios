@@ -13,21 +13,17 @@ import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Notes
 import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Slideshow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -41,10 +37,10 @@ import com.stethoscore.app.ui.ward.*
 // The pieces the textbook reader and the lecture reader share, each a port of
 // the iOS part it names, built from the Ward port (wardRaised, wardInset,
 // wardRelief, WardButtonBox, WardIconSquare, the type and the tokens): the
-// study header (StudyProgressHeader, ThinProgress), the bottom deck
-// (StudyActionBar), the empty state (WardEmptyState), the etched groove
+// study header (StudyProgressHeader, ThinProgress), the etched groove
 // (WardEtch), a tiled row (WardRowTile, WardRow), a form section and the
-// navigation bar's title with its Back or Done.
+// navigation bar's title with its Back or Done. The empty state and the
+// bottom deck are the Ward kit's (ui/ward/WardStates.kt, WardDeck.kt).
 
 /** iOS WindowSpan.broad: 700 points and wider, where two columns stop being a squeeze. */
 internal fun isBroad(width: Dp): Boolean = width >= 700.dp
@@ -121,57 +117,6 @@ internal fun decodePicture(stored: String): ImageBitmap? = runCatching {
 /** A reading surface (contentCard): a soft card raised off the base, padded wide. */
 @Composable internal fun Modifier.contentCard(): Modifier =
     this.wardRaised(WardRadius.card, WardLift.mid).padding(WardSpace.xl.wardDp)
-
-/**
- * The bottom study deck (StudyActionBar): an open slab with its controls,
- * and, when it [folds], a band whose small pill folds it away into one round
- * button at the trailing edge.
- */
-@Composable internal fun StudyActionBar(folds: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
-    var folded by rememberSaveable { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp), contentAlignment = Alignment.BottomCenter) {
-        if (folds && folded) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                WardButtonBox({ folded = false }, Modifier.semantics { contentDescription = "Show buttons" },
-                    kind = WardButtonKind.secondary, fills = false) {
-                    Icon(Icons.Rounded.KeyboardArrowUp, null, Modifier.size(16.dp))
-                }
-            }
-        } else {
-            Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.bar, WardLift.high, fill = WardToken.raised)) {
-                if (folds) FoldBand { folded = true }
-                Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = if (folds) 0.dp else 12.dp, bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
-            }
-        }
-    }
-}
-
-/** The open deck's folding band: the chevron in a small pill at the trailing end, pressed in while held. */
-@Composable private fun FoldBand(onFold: () -> Unit) {
-    Row(Modifier.fillMaxWidth().height(44.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-        WardTile(onFold, Modifier.padding(end = 12.dp).size(width = 44.dp, height = 28.dp).semantics { contentDescription = "Hide buttons" },
-            cornerRadius = 14.0) {
-            Icon(Icons.Rounded.KeyboardArrowDown, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(18.dp))
-        }
-    }
-}
-
-/** Nothing here yet (WardEmptyState): an icon square, a title, a line saying what to do, and the buttons that do it. */
-@Composable internal fun ReaderEmptyState(
-    icon: ImageVector, title: String, message: String? = null, tone: WardTone = WardTone.Blue,
-    modifier: Modifier = Modifier, actions: (@Composable ColumnScope.() -> Unit)? = null,
-) {
-    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 420.dp).padding(WardSpace.xl.wardDp), horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-            WardIconSquare(icon, tone = tone, size = 56.0)
-            Text(title, Modifier.semantics { heading() }, style = WardType.title.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
-            if (message != null) Text(message, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary), textAlign = TextAlign.Center)
-            if (actions != null) Column(Modifier.padding(top = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), content = actions)
-        }
-    }
-}
 
 /** A line cut into the base (WardEtch): a shade line over a highlight line; upright, shade left of highlight. */
 @Composable internal fun ReaderEtch(vertical: Boolean = false, modifier: Modifier = Modifier) {

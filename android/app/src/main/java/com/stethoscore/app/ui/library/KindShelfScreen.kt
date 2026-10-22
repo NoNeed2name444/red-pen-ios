@@ -32,6 +32,7 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.modeIcon
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.wardRaised
@@ -50,7 +51,7 @@ import com.stethoscore.app.ui.ward.wardRaised
         LazyColumn(Modifier.weight(1f).fillMaxWidth().widthIn(max = 760.dp), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { LibraryHeading(heading, Modifier.padding(horizontal = 4.dp)) }
-            if (sets.isEmpty()) item { LibraryEmptyState(modeIcon(kind), "None yet", "Tap New to make one.") }
+            if (sets.isEmpty()) item { WardEmptyState(modeIcon(kind), "None yet", "Tap New to make one.") }
             items(sets, key = { it.id }) { set ->
                 val due = remember(revision, set) { if (set.kind == StudySetKind.ANKI) store.dueCards(set).size else 0 }
                 LibrarySetRow(set, due, null, Modifier.fillMaxWidth().wardRaised(WardRadius.card, WardLift.low)

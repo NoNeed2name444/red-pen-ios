@@ -48,7 +48,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -70,7 +69,6 @@ import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
-import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
@@ -88,8 +86,9 @@ import com.stethoscore.app.ui.wardColor
 // (ui/ward): iOS's Form in wardForm (a section's small-caps header, its rows
 // raised off the base, its footer in Biro Grey), a sheet's bar (Cancel quiet,
 // the confirming button compact), TextEditor in its well (popEditorRow),
-// CountField (Shared/CountField.swift), DisclosureGroup, StudyActionBar,
-// WardBanner (Shared/Ward/WardStates.swift) and EcgLoader (WardVitals.swift).
+// CountField (Shared/CountField.swift), DisclosureGroup and EcgLoader
+// (WardVitals.swift). The banner and the bottom deck are the Ward kit's
+// (WardStates.kt, WardDeck.kt).
 
 /** A sheet's bar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
 @Composable internal fun EditorTopBar(title: String, onCancel: (() -> Unit)?, cancelTitle: String = "Cancel", trailing: @Composable () -> Unit = {}) {
@@ -161,18 +160,6 @@ import com.stethoscore.app.ui.wardColor
     )
 }
 
-/** WardBanner: a tone's glyph and the words in Chart Ink, in a well pressed into the base. */
-@Composable internal fun EditorBanner(text: String, icon: ImageVector, tone: WardTone = WardTone.Blue, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp)
-            .semantics(mergeDescendants = true) {},
-        horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp),
-    ) {
-        Icon(icon, null, tint = tone.color(), modifier = Modifier.size(18.dp))
-        Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
-    }
-}
-
 /** EcgLoader: an ECG trace drawn again and again in ECG Red, 64 by 24, "Working" to TalkBack. */
 @Composable internal fun EcgLoader(modifier: Modifier = Modifier) {
     val color = wardColor(WardToken.ecg)
@@ -231,13 +218,6 @@ import com.stethoscore.app.ui.wardColor
             Icon(if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk))
         }
         if (expanded) content()
-    }
-}
-
-/** StudyActionBar: the one main button at the bottom, under the thumb. */
-@Composable internal fun StudyActionBar(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier.fillMaxWidth().padding(horizontal = WardSpace.gutter.wardDp, vertical = WardSpace.m.wardDp), contentAlignment = Alignment.Center) {
-        content()
     }
 }
 

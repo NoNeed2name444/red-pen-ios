@@ -172,7 +172,7 @@ object SourceReaderWords {
 /** Search results, as somewhere to go rather than a jump: every match with the words around it. */
 @Composable fun SourceResultsList(hits: List<SourceSearch.Hit>, source: SourceDoc, open: (Int) -> Unit) {
     if (hits.isEmpty()) {
-        ReaderEmptyState(Icons.Rounded.Search, "Not in this ${source.sourceKind.label.lowercase()}",
+        WardEmptyState(Icons.Rounded.Search, "Not in this ${source.sourceKind.label.lowercase()}",
             "No ${source.sourceKind.pageNoun.lowercase()} mentions it.")
         return
     }

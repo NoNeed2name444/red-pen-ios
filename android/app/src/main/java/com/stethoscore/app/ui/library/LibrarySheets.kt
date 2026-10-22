@@ -64,6 +64,7 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardCircleButton
@@ -255,7 +256,7 @@ import kotlin.random.Random
                 WardCircleButton(Icons.Rounded.Add, "More", { filter = filter.copy(limit = (filter.limit + 10).coerceAtMost(200)) }, enabled = filter.limit < 200)
             }
         }
-        note?.let { LibraryBanner(it, Icons.Rounded.Warning, WardTone.Warning) }
+        note?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Warning) }
     }
 }
 

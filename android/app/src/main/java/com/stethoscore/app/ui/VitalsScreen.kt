@@ -80,10 +80,8 @@ import com.stethoscore.app.ui.home.HomeRound
 import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.MockLibrary
-import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
 import com.stethoscore.app.ui.vitals.CalibrationChart
@@ -113,7 +111,9 @@ import com.stethoscore.app.ui.vitals.WeeklyChart
 import com.stethoscore.app.ui.vitals.WrongAnswer
 import com.stethoscore.app.ui.vitals.percentText
 import com.stethoscore.app.ui.vitals.reasonIcon
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardTone
@@ -300,7 +300,7 @@ private fun focusIcon(item: FocusItem): ImageVector = when (item.glyph) {
     ReaderFormSection(header = "Focus next",
         footer = if (items.isEmpty()) null else "Ranked by how many marks each is likely worth: weak subjects by how often they are missed, then confident mistakes, cards waiting, syllabus gaps and your commonest reason for losing a mark.") {
         if (items.isEmpty()) Box(Modifier.fillMaxWidth().wardRowTile()) {
-            ReaderEmptyState(Icons.Rounded.GpsFixed, "Nothing to focus on yet",
+            WardEmptyState(Icons.Rounded.GpsFixed, "Nothing to focus on yet",
                 "Make an MCQ set and answer a few questions. The most useful next steps will show here, best first.")
         } else items.forEachIndexed { index, item ->
             val spark = item.subject?.let { sparks[it] }.orEmpty()
@@ -327,7 +327,7 @@ private fun focusIcon(item: FocusItem): ImageVector = when (item.glyph) {
 @Composable private fun TrendsSection(s: VitalsSnapshot, passMark: Double) {
     ReaderFormSection(header = "Trends") {
         if (s.weeks.isEmpty()) Box(Modifier.fillMaxWidth().wardRowTile()) {
-            ReaderEmptyState(Icons.AutoMirrored.Rounded.ShowChart, "No trends yet",
+            WardEmptyState(Icons.AutoMirrored.Rounded.ShowChart, "No trends yet",
                 "Answer questions on a few different days and your weekly accuracy and daily practice will show here.")
         } else {
             ChartBlock("Accuracy by week", "The last 8 weeks. The dashed line is the typical pass mark.") { WeeklyChart(s.weeks, passMark) }
@@ -354,7 +354,7 @@ private fun focusIcon(item: FocusItem): ImageVector = when (item.glyph) {
     ReaderFormSection(header = "Mistakes",
         footer = if (s.wrong.isEmpty()) null else "Your latest wrong answer to each question, newest first. Tap one to try it again; the list icon opens its line on the rule sheet.") {
         if (s.wrong.isEmpty() && s.shares.isEmpty() && s.calibration.isEmpty()) Box(Modifier.fillMaxWidth().wardRowTile()) {
-            ReaderEmptyState(Icons.Rounded.Verified, "No mistakes yet", "Questions you get wrong, and the reasons you give for them, will show here.", WardTone.Green)
+            WardEmptyState(Icons.Rounded.Verified, "No mistakes yet", "Questions you get wrong, and the reasons you give for them, will show here.", WardTone.Green)
         } else {
             if (s.shares.isNotEmpty()) ChartBlock("Why you lose marks",
                 "The last ${StoreInsight.reasonWindowDays} days, from the reason picked after each wrong answer. Your commonest one has its fix under Focus next.") { ReasonDonut(s.shares) }
@@ -428,7 +428,7 @@ internal fun wrongLine(answer: WrongAnswer, zone: ZoneId = ZoneId.systemDefault(
     ReaderFormSection(header = "Subjects",
         footer = if (s.stats.isEmpty()) null else "Weakest first; tap one to drill it. The arrow compares the last two weeks with before, when both have a few answers.") {
         if (s.stats.isEmpty()) Box(Modifier.fillMaxWidth().wardRowTile()) {
-            ReaderEmptyState(Icons.AutoMirrored.Rounded.LibraryBooks, "No subjects yet", "Make an MCQ set and each subject you study will show here with its accuracy.")
+            WardEmptyState(Icons.AutoMirrored.Rounded.LibraryBooks, "No subjects yet", "Make an MCQ set and each subject you study will show here with its accuracy.")
         } else for (subject in s.stats) {
             val trend = s.trends[subject.name]
             Row(Modifier.fillMaxWidth().wardRowTile()

@@ -75,7 +75,7 @@ object CreditsWords {
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
             if (credits.isEmpty) ReaderFormSection {
                 Box(Modifier.fillMaxWidth().wardRowTile()) {
-                    ReaderEmptyState(Icons.Rounded.FolderOff, CreditsWords.emptyTitle, CreditsWords.emptyMessage, tone = WardTone.Grey)
+                    WardEmptyState(Icons.Rounded.FolderOff, CreditsWords.emptyTitle, CreditsWords.emptyMessage, tone = WardTone.Grey)
                 }
             }
             if (credits.lectures.isNotEmpty() || credits.citedElsewhere.isNotEmpty()) {

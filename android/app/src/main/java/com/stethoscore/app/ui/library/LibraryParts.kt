@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -14,9 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MoreHoriz
@@ -25,8 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -38,6 +33,7 @@ import com.stethoscore.app.ui.modeIcon
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardGroove
 import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
@@ -50,42 +46,16 @@ import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDp
-import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.ward.wardRaised
 
 // The library's small pieces, drawn from the Ward port: a set's row (iOS
-// SetRow in WardHome), the heading over a group (CategoryHeading), and the
-// parts of Shared/Ward/WardStates.swift the library uses (WardEmptyState,
-// WardBanner, WardEtch, WardGroove, EcgStrip). They live here, inside the
-// library, until a shared home for them is ported.
+// SetRow in WardHome), the heading over a group (CategoryHeading), the
+// etched line (WardEtch) and the set's strip (EcgStrip). The empty state,
+// the banner and the groove are the Ward kit's (ui/ward/WardStates.kt).
 
 /** A group's heading in small caps (iOS CategoryHeading). */
 @Composable fun LibraryHeading(title: String, modifier: Modifier = Modifier) {
     WardSmallCapsText(title, modifier.semantics { heading() })
-}
-
-/** An empty state: an icon square, a title, a line, and any actions (iOS WardEmptyState). */
-@Composable fun LibraryEmptyState(icon: ImageVector, title: String, message: String? = null, modifier: Modifier = Modifier,
-                                  tone: WardTone = WardTone.Blue, actions: @Composable ColumnScope.() -> Unit = {}) {
-    Column(modifier.fillMaxWidth().padding(WardSpace.xl.wardDp), horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-        WardIconSquare(icon, tone = tone, size = 56.0)
-        Text(title, style = WardType.title.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center,
-            modifier = Modifier.semantics { heading() })
-        if (message != null) Text(message, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary),
-            textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 420.dp))
-        Column(Modifier.padding(top = WardSpace.xs.wardDp), horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), content = actions)
-    }
-}
-
-/** A line pressed into the base, its glyph in the tone (iOS WardBanner). */
-@Composable fun LibraryBanner(text: String, icon: ImageVector, tone: WardTone, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().wardInset(WardRadius.field).padding(WardSpace.m.wardDp),
-        horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        Icon(icon, null, tint = tone.color(), modifier = Modifier.size(18.dp))
-        Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
-    }
 }
 
 /** A groove between rows: a shade line over a highlight (iOS WardEtch). */
@@ -96,21 +66,9 @@ import com.stethoscore.app.ui.ward.wardRaised
     }
 }
 
-/** A bar run in a groove pressed into the base (iOS WardGroove). */
-@Composable fun LibraryGroove(fraction: Double, tint: Color, modifier: Modifier = Modifier, height: Double = 8.0) {
-    val f = fraction.coerceIn(0.0, 1.0)
-    val pad = if (height >= 8) 2.0 else 1.5
-    val bar = maxOf(0.0, height - 2 * pad)
-    BoxWithConstraints(modifier.fillMaxWidth().height(height.wardDp).wardInset(height / 2)) {
-        val inner = maxOf(0.0, maxWidth.value.toDouble() - 2 * pad)
-        val width = if (f > 0) minOf(inner, maxOf(bar, inner * f)) else 0.0
-        Box(Modifier.padding(pad.wardDp).width(width.wardDp).height(bar.wardDp).background(tint, CircleShape))
-    }
-}
-
 /** A set's progress strip, in Pager Amber (iOS EcgStrip). */
 @Composable fun LibraryProgressStrip(progress: Double, modifier: Modifier = Modifier) {
-    LibraryGroove(progress, wardColor(WardToken.beam), modifier, height = 6.0)
+    WardGroove(progress, wardColor(WardToken.beam), modifier, height = 6.dp)
 }
 
 /** The face of a "more" menu: an ellipsis on a small soft disc inside a 44-point target (iOS moreMenuFace). */

@@ -58,14 +58,14 @@ import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.MockLibrary
 import com.stethoscore.app.ui.mock.QuestionPick
-import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderEtch
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardChip
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
@@ -258,7 +258,7 @@ fun insightQuiz(name: String, picks: List<QuestionPick>): StudySet {
                     }
                 }
                 if (picks.isEmpty()) ReaderFormSection {
-                    Box(Modifier.fillMaxWidth().wardRowTile()) { ReaderEmptyState(Icons.Rounded.Inbox, "Nothing here at the moment.") }
+                    Box(Modifier.fillMaxWidth().wardRowTile()) { WardEmptyState(Icons.Rounded.Inbox, "Nothing here at the moment.") }
                 } else ReaderFormSection(footer = "${picks.size} question${if (picks.size == 1) "" else "s"}. Tap one to see its answer.") {
                     for (pick in picks) InsightQuestionRow(pick)
                 }

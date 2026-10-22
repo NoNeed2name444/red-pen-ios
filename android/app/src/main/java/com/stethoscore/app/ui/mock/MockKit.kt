@@ -4,18 +4,17 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.foundation.text.BasicTextField
@@ -60,7 +58,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -75,9 +72,9 @@ import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardControl
+import com.stethoscore.app.ui.ward.WardGroove
 import com.stethoscore.app.ui.ward.WardControlState
 import com.stethoscore.app.ui.ward.WardControlStates
-import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.WardRadius
@@ -101,13 +98,13 @@ import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.ward.wardRelief
 
 // The study screens' frame for OSCE and the mock paper, ported from
-// ios/RedPen/Shared/Theme.swift (StudyProgressHeader, StudyActionBar,
-// FinishHero, FinishSymbol, ScoreRing, ThinProgress, contentCard,
-// readableColumn, the big button styles) and Shared/Ward/WardStates.swift
-// (WardEmptyState, WardBanner, WardGroove, WardProgressBar), every face and
-// control drawn by the Ward port in ui/ward (wardRaised, wardInset,
-// WardButtonBox, the chip's look and press). Not ported: the study bar's
-// fold, the finish's aurora and its sound, and the pop-out's lean.
+// ios/RedPen/Shared/Theme.swift (StudyProgressHeader, FinishHero,
+// FinishSymbol, ScoreRing, ThinProgress, contentCard, readableColumn, the
+// big button styles), every face and control drawn by the Ward port in
+// ui/ward (wardRaised, wardInset, WardButtonBox, the chip's look and press;
+// the empty state, banner, groove and score bar are its WardStates.kt, the
+// bottom deck its WardDeck.kt). Not ported: the finish's aurora and its
+// sound, and the pop-out's lean.
 
 /** iOS's bar and screen widths: a phone's column, at most 700 wide on a big screen (readableColumn). */
 internal fun Modifier.readableColumn(): Modifier = this.widthIn(max = 700.dp).fillMaxWidth()
@@ -145,16 +142,12 @@ internal fun Modifier.readableColumn(): Modifier = this.widthIn(max = 700.dp).fi
                 }
                 accessory()
             }
-            if (fraction != null) Box(Modifier.clearAndSetSemantics {}) { WardGroove(fraction, wardColor(WardToken.primaryInk), 6.dp) }
+            // ThinProgress: the groove at 6, gliding to each new fraction
+            if (fraction != null) Box(Modifier.clearAndSetSemantics {}) {
+                val shown by animateFloatAsState(fraction.coerceIn(0.0, 1.0).toFloat(), tween(300), label = "groove")
+                WardGroove(shown.toDouble(), wardColor(WardToken.primaryInk), height = 6.dp)
+            }
         }
-    }
-}
-
-/** The bottom deck (StudyActionBar): a slab raised off the base holding the screen's buttons. */
-@Composable internal fun StudyActionBar(content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp, top = 4.dp), contentAlignment = Alignment.Center) {
-        Column(Modifier.readableColumn().wardRaised(WardRadius.bar, WardLift.low).padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
     }
 }
 
@@ -203,47 +196,6 @@ internal enum class BigKind { primary, secondary, companion }
     !enabled -> wardDisabledInk()
     on -> tone?.ink() ?: wardColor(WardToken.primaryInk)
     else -> wardColor(WardToken.ink)
-}
-
-/** A groove pressed into the base, the tint filling it from the leading edge (WardGroove). */
-@Composable internal fun WardGroove(fraction: Double, tint: Color, height: Dp = 8.dp) {
-    // it fills as iOS's grooves do (.easeOut(duration: 0.3)); with animations off it is simply there
-    val f by animateFloatAsState(fraction.coerceIn(0.0, 1.0).toFloat(), wardEaseOut(WardMotion.fill, wardReduceMotion()), label = "groove")
-    val pad = if (height >= 8.dp) 2.dp else 1.5.dp
-    Box(Modifier.fillMaxWidth().height(height).wardInset(CircleShape)) {
-        BoxWithConstraints(Modifier.fillMaxSize().padding(pad)) {
-            val bar = maxHeight
-            val width = if (f > 0) maxOf(bar, maxWidth * f).coerceAtMost(maxWidth) else 0.dp
-            Box(Modifier.width(width).fillMaxHeight().background(tint, CircleShape))
-        }
-    }
-}
-
-/** A bar for a score (WardProgressBar): Resus Red under half, Caution Amber under three quarters, Discharge Green above. */
-@Composable internal fun WardProgressBar(value: Double, label: String) {
-    val v = value.coerceIn(0.0, 1.0)
-    val tone = if (v < 0.5) WardTone.Danger else if (v < 0.75) WardTone.Warning else WardTone.Green
-    Box(Modifier.clearAndSetSemantics { contentDescription = label; stateDescription = "${Math.round(v * 100)} percent" }) {
-        WardGroove(v, tone.color())
-    }
-}
-
-/** A line of news across a screen (WardBanner): the tone's glyph and the words in a well pressed into the base. */
-@Composable internal fun WardBanner(tone: WardTone, icon: ImageVector, text: String) {
-    Row(Modifier.fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp)
-        .semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        Icon(icon, null, tint = tone.color(), modifier = Modifier.size(18.dp))
-        Text(text, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
-    }
-}
-
-/** Nothing here (WardEmptyState): an icon square, the title. */
-@Composable internal fun WardEmptyState(icon: ImageVector, title: String, tone: WardTone = WardTone.Blue, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().padding(WardSpace.xl.wardDp), horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp, Alignment.CenterVertically)) {
-        WardIconSquare(icon, tone = tone, size = 56.0)
-        Text(title, Modifier.semantics { heading() }, style = WardType.title.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
-    }
 }
 
 /** The end of a session (FinishHero): the result on a soft disc raised off the base, the title, and what it means. */

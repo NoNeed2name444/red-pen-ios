@@ -30,11 +30,11 @@ import com.stethoscore.app.map.MapGraph
 import com.stethoscore.app.map.NoteLike
 import com.stethoscore.app.map.SpaceStyle
 import com.stethoscore.app.map.SyntheticGraph
+import com.stethoscore.app.ui.editors.EcgLoader
 import com.stethoscore.app.ui.map.Map3DView
 import com.stethoscore.app.ui.map.MapScene
 import com.stethoscore.app.ui.map.MapTheme
 import com.stethoscore.app.ui.sources.ReaderDoneButton
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderNavBar
 import com.stethoscore.app.ui.ward.*
 import com.stethoscore.app.ui.wardColor
@@ -79,7 +79,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
         when {
             demo != null -> DemoMap(demo, recenter)
             book.notes.isEmpty() -> Box(Modifier.fillMaxSize().background(wardColor(WardToken.background)).padding(bottom = hidden), contentAlignment = Alignment.Center) {
-                ReaderEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
+                WardEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
                     "Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
             }
             else -> NotesMap(book, settings, theme, recenter, open)
@@ -140,7 +140,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
 @Composable private fun Building(size: Int?) {
     Box(Modifier.fillMaxSize().background(wardColor(WardToken.background)), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CircularProgressIndicator(color = wardColor(WardToken.primaryInk))
+            EcgLoader()
             Text(if (size == null) "Laying out your notes" else "Building ${grouped(size)} notes and their links",
                 style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
         }

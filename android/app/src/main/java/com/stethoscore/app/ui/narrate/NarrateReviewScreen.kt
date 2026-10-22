@@ -339,7 +339,7 @@ object NarrateWords {
         importer.working?.let { TranscribingBanner(it, onDevice = !importer.inCloud) }
         Box(Modifier.weight(1f).fillMaxWidth().onSizeChanged { viewport = it.height }) {
             if (texts.isEmpty()) {
-                ReaderEmptyState(Icons.Rounded.GraphicEq, NarrateWords.emptyTitle,
+                WardEmptyState(Icons.Rounded.GraphicEq, NarrateWords.emptyTitle,
                     NarrateWords.emptyLine(importer.working != null, hasAudio), modifier = Modifier.padding(top = 32.dp))
             } else {
                 TranscriptCard(listState)

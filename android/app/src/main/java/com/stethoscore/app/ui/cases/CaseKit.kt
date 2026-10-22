@@ -1,10 +1,7 @@
 package com.stethoscore.app.ui.cases
 
 import android.view.View
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,11 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -34,14 +29,18 @@ import com.stethoscore.app.data.CaseStep
 import com.stethoscore.app.ui.SectionLabel
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardCardFace
+import com.stethoscore.app.ui.ward.WardChip
+import com.stethoscore.app.ui.ward.WardSegmented
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.WardTone
+import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.wardColor
 
-// What the Cases screens add to the Ward look: port of iOS Features/Cases/CaseKit.swift.
-// The Ward surfaces and controls (WardChip, WardSegmented, WardOptionRow, the
-// raised and inset faces) are ported by their own batches; until they land
-// here these are plain Compose drawn in the Ward palette's colours, so the
-// screens can move onto the Ward controls without changing what they say.
+// What the Cases screens add to the Ward kit: port of iOS Features/Cases/CaseKit.swift.
+// The card is WardCardFace, the avatar and the clock are pressed in (wardInset),
+// a chip is WardChip, the choices WardSegmented and the buttons WardButtonBox,
+// under the Cases screens' own names so the screens keep what they say.
 
 /** The Ward tokens as the Cases screens use them. */
 internal object CaseInk {
@@ -59,13 +58,10 @@ internal object CaseInk {
 
 internal val CaseCardShape = RoundedCornerShape(16.dp)
 
-/** A card, full width (iOS caseCard over wardCard). */
+/** A card, full width (iOS caseCard over wardCard): raised off the base. */
 @Composable
 internal fun CaseCard(modifier: Modifier = Modifier, padding: Dp = 16.dp, spacing: Dp = 10.dp, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier.fillMaxWidth().background(CaseInk.surface, CaseCardShape).border(1.dp, CaseInk.hairline, CaseCardShape).padding(padding),
-        verticalArrangement = Arrangement.spacedBy(spacing), content = content,
-    )
+    WardCardFace(modifier.fillMaxWidth(), padding = padding, spacing = spacing, content = content)
 }
 
 /** A small heading in the kit's small capitals, read as a heading. */
@@ -78,7 +74,7 @@ internal fun CaseLabel(text: String, modifier: Modifier = Modifier) {
 @Composable
 internal fun CaseAvatar(initials: String, size: Dp = 44.dp) {
     Box(
-        Modifier.size(size).background(CaseInk.well, CircleShape).border(1.dp, CaseInk.hairline, CircleShape).clearAndSetSemantics { },
+        Modifier.size(size).wardInset(CircleShape).clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) { Text(initials, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = CaseInk.theatre) }
 }
@@ -98,7 +94,8 @@ internal fun CaseClockPill(used: Int, budget: Int) {
     }
     val tint = if (over) CaseInk.resus else CaseInk.ink
     Row(
-        Modifier.background(CaseInk.well, CircleShape).border(1.dp, CaseInk.hairline, CircleShape).padding(horizontal = 10.dp, vertical = 5.dp)
+        // pressed in, like the kit's timer pill: read, not touched
+        Modifier.wardInset(CircleShape).padding(horizontal = 10.dp, vertical = 5.dp)
             .clearAndSetSemantics { contentDescription = spoken },
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
@@ -109,61 +106,44 @@ internal fun CaseClockPill(used: Int, budget: Int) {
 
 internal enum class CaseTone { blue, grey, warning, green }
 
-/** A small capsule of text in a tone (the kit's WardChip, drawn plainly). */
+/** A small capsule of text in a tone: the kit's WardChip. */
 @Composable
 internal fun CaseChip(text: String, tone: CaseTone) {
-    val colour = when (tone) {
-        CaseTone.blue -> CaseInk.theatre
-        CaseTone.grey -> CaseInk.biro
-        CaseTone.warning -> CaseInk.caution
-        CaseTone.green -> CaseInk.discharge
-    }
-    Text(
-        text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = colour,
-        modifier = Modifier.background(colour.copy(alpha = 0.12f), CircleShape).padding(horizontal = 9.dp, vertical = 3.dp),
-    )
+    WardChip(text, tone = when (tone) {
+        CaseTone.blue -> WardTone.Blue
+        CaseTone.grey -> WardTone.Grey
+        CaseTone.warning -> WardTone.Warning
+        CaseTone.green -> WardTone.Green
+    })
 }
 
-/** The state chip on a patient's card. */
+/** The state chip on a patient's card (WardChip). */
 @Composable
 internal fun CaseStateChip(state: CaseRun.State) = when (state) {
-    CaseRun.State.New -> CaseChip("New", CaseTone.blue)
-    CaseRun.State.Seen -> CaseChip("Seen", CaseTone.warning)
-    is CaseRun.State.Discharged -> CaseChip("Discharged · ${state.score}", CaseTone.green)
+    CaseRun.State.New -> WardChip("New", tone = WardTone.Blue)
+    CaseRun.State.Seen -> WardChip("Seen", tone = WardTone.Warning)
+    is CaseRun.State.Discharged -> WardChip("Discharged · ${state.score}", tone = WardTone.Green)
 }
 
-/** The kit's primary (WardButtonBox, as iOS) and secondary buttons, as full-height capsules. */
+/**
+ * The kit's buttons as on iOS: .bigPrimary and .wardSecondary, both
+ * WardButtonBox, raised capsules whose kind shows in their words (the
+ * section's ink, Chart Ink), never a fill or an outline.
+ */
 @Composable
 internal fun CaseButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, primary: Boolean = false, enabled: Boolean = true,
                         icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
-    val content: @Composable RowScope.() -> Unit = {
-        if (icon != null) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
-        // the primary takes WardButtonBox's own words (buttonPrimary)
-        if (primary) Text(text) else Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-    }
-    if (primary) {
-        // the main button as on iOS (.bigPrimary): raised, its words in the section's ink, never a fill
-        WardButtonBox(onClick, modifier, kind = WardButtonKind.primary, enabled = enabled, content = content)
-    } else {
-        OutlinedButton(onClick, modifier.heightIn(min = 50.dp), enabled = enabled, shape = CircleShape,
-            border = BorderStroke(1.dp, CaseInk.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = CaseInk.theatre), content = content)
+    WardButtonBox(onClick, modifier, kind = if (primary) WardButtonKind.primary else WardButtonKind.secondary, enabled = enabled) {
+        if (icon != null) Icon(icon, null, Modifier.size(18.dp))
+        Text(text)
     }
 }
 
-/** Two or more choices side by side, one chosen (the kit's WardSegmented). */
+/** Two or more choices side by side, one chosen: the kit's WardSegmented. */
 @Composable
 internal fun <T> CaseSegmented(selection: T, options: List<T>, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().background(CaseInk.well, CircleShape).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        for (option in options) {
-            val chosen = option == selection
-            Box(
-                Modifier.weight(1f).heightIn(min = 44.dp)
-                    .background(if (chosen) CaseInk.surface else Color.Transparent, CircleShape)
-                    .clickable(role = Role.Tab) { onSelect(option) }
-                    .semantics { selected = chosen },
-                contentAlignment = Alignment.Center,
-            ) { Text(label(option), fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal, color = if (chosen) CaseInk.ink else CaseInk.biro) }
-        }
+    WardSegmented(selection, options, onSelect, modifier.fillMaxWidth()) { option, style, color ->
+        Text(label(option), style = style, color = color, maxLines = 1)
     }
 }
 

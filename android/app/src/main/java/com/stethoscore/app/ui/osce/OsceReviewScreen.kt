@@ -58,10 +58,10 @@ import com.stethoscore.app.ui.mock.ChipBox
 import com.stethoscore.app.ui.mock.ContentCard
 import com.stethoscore.app.ui.mock.FinishHero
 import com.stethoscore.app.ui.mock.FinishSymbol
-import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyProgressHeader
 import com.stethoscore.app.ui.mock.StudyTitleBar
-import com.stethoscore.app.ui.mock.WardEmptyState
+import com.stethoscore.app.ui.ward.StudyActionBar
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.mock.readableColumn
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardTimerPill
@@ -309,7 +309,8 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
                     }
                 }
             }
-            StudyActionBar {
+            // the station's bar folds away (iOS OsceReviewView studyBar(folds: true))
+            StudyActionBar(folds = true) {
                 if (revealed) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     BigButton("Start over", Icons.Rounded.Replay, BigKind.secondary, ::startOver,
                         Modifier.weight(1f).semantics { stateDescription = "Back to step 1, with the clock reset" })

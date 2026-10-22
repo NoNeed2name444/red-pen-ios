@@ -77,6 +77,7 @@ import com.stethoscore.app.ui.modeIcon
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
@@ -210,7 +211,7 @@ fun LazyListScope.libraryItems(
     if (!searching || state.scope == LibrarySearch.Scope.ALL) {
         if (shown.isEmpty() && searching && search.results.items.isEmpty() && !search.busy) {
             item(key = "no-results") {
-                LibraryEmptyState(Icons.Rounded.Search, "No results for “${query.trim()}”", "Check the spelling or try a new search.")
+                WardEmptyState(Icons.Rounded.Search, "No results for “${query.trim()}”", "Check the spelling or try a new search.")
             }
         } else if (shown.isEmpty() && !searching && store.library.isNotEmpty()) {
             item(key = "sets-heading-empty") { LibraryHeading(category.setsHeading) }
@@ -484,7 +485,7 @@ private fun LazyListScope.searchItems(query: String, store: StudyStore, search: 
         }
     } else if (state.scope != LibrarySearch.Scope.ALL && !search.busy) {
         item(key = "hits-none") {
-            LibraryEmptyState(Icons.Rounded.Search, "No results",
+            WardEmptyState(Icons.Rounded.Search, "No results",
                 "Nothing in ${state.scope.title.lowercase()} matches “$query”. Check the spelling or try another word.")
         }
     }
