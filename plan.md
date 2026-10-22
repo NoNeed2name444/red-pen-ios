@@ -2322,6 +2322,18 @@ with the marks on the screens last.
       (the plan's 40 and 36, the score ring's 38, the calculator's 40 to
       iOS's 44, the results ring's 30), the dock's autosizing names, the
       skip glyph's 7, and W2's stand-ins and empty state.
+    - [x] The page gutter is WardSpace.gutter (16, not 20) and the gap
+      between a page's sections WardSpace.section (24, not 20 or 22), as
+      iOS's wardForm: home, settings, AI models, the quiz's empty page, the
+      clinical fallback, Ideas' note page and its legend and name sheets, the
+      shelf, the library sheets, By subject, New set, Guess first, the ward round's
+      panel (a card's padding is the gutter too), the exam picker, the ward
+      pocket, the credits and the plan, kit and symptom pages. Left as they
+      are: the 20s over form rows (ReaderFormSection's header and footer,
+      the exam picker's note, the vitals line, Ideas' and the syllabus'
+      headings), which sit over the rows' words (the tile's 8 and its 12),
+      as iOS's form headers do, and the other off-scale gaps, many of them
+      copies of iOS's own (iOS's sweep leaves those to a screenshot review).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

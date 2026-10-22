@@ -47,12 +47,14 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.*
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardTypeSpec
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -146,7 +148,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     var menuOpen by remember { mutableStateOf(false) }
 
     if (set.questions.isEmpty()) {
-        Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Column(Modifier.fillMaxSize().padding(WardSpace.gutter.wardDp)) {
             ScreenHeader(ChartQuiz.title(set.subject, set.name), "", onBack)
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Rounded.QuestionMark, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(44.dp))

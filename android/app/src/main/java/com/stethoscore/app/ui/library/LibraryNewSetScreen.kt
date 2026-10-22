@@ -208,7 +208,7 @@ import kotlinx.coroutines.withContext
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f).semantics { heading() })
             Spacer(Modifier.widthIn(min = 88.dp).size(width = 88.dp, height = 1.dp))
         }
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.gutter.wardDp, vertical = WardSpace.s.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             StepHeader(step) { step = it }
             when (step) {

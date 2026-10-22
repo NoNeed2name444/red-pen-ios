@@ -22,11 +22,13 @@ import com.stethoscore.app.data.*
 import com.stethoscore.app.ui.ward.WardChipButton
 import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardSegmented
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToggle
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 
 /** New set; a [preset] (the exam's Study next, the Ward pocket's Practise this) fills in its name, subject and mode. */
 @Composable fun NewSetScreen(onSave:(StudySet)->Unit,onBack:()->Unit,preset:com.stethoscore.app.exam.NewSetPreset?=null) {
@@ -36,7 +38,7 @@ import com.stethoscore.app.ui.ward.textStyle
     val kind=StudySetKind.valueOf(kindName)
     var content by rememberSaveable { mutableStateOf("") }
     var error by remember {mutableStateOf<String?>(null)}
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ScreenHeader("New study set","Make something worth remembering",onBack)
         OutlinedTextField(name,{name=it},Modifier.fillMaxWidth(),label={Text("Set name")},singleLine=true)
         OutlinedTextField(subject,{subject=it},Modifier.fillMaxWidth(),label={Text("Subject")},singleLine=true)
@@ -84,7 +86,7 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
 @Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit,
     review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={},
     onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null,onExam:(()->Unit)?=null,onModels:(()->Unit)?=null) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Appearance")

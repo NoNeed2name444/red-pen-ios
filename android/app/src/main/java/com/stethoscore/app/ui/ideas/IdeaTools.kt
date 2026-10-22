@@ -102,7 +102,7 @@ import com.stethoscore.app.ui.wardColor
         ReaderNavBar(title,
             leading = { WardTextButton("Cancel", onDismiss, kind = WardButtonKind.quiet, fills = false) },
             trailing = { WardTextButton(confirm, ::submit, kind = WardButtonKind.compact, fills = false, enabled = !blank) })
-        Box(Modifier.padding(20.dp)) {
+        Box(Modifier.padding(WardSpace.gutter.wardDp)) {
             androidx.compose.foundation.text.BasicTextField(name, { name = it },
                 Modifier.fillMaxWidth().focusRequester(focus).semantics { contentDescription = prompt },
                 singleLine = true, textStyle = WardType.body.textStyle().copy(color = wardColor(WardToken.ink)),

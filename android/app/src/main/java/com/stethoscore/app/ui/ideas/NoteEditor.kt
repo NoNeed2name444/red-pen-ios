@@ -135,7 +135,7 @@ import kotlinx.coroutines.delay
                 }
             })
 
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.gutter.wardDp),
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
             // the title, large, on the page
             BasicTextField(title, { title = it }, Modifier.fillMaxWidth().semantics { contentDescription = "Title" },

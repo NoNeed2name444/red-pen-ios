@@ -97,7 +97,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
 
     Column(Modifier.fillMaxSize()) {
         LibraryPageTop("By subject", onBack)
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             item {
                 LibraryFormSection(footer = tried.firstOrNull()?.let { StatsWords.drillNote(it.subject) }) {
@@ -281,7 +281,7 @@ private fun makeQuiz(name: String, picks: List<QuestionPick>): StudySet {
 @Composable private fun InsightQuestionList(list: QuestionList, onBack: () -> Unit, onQuiz: (LibraryQuiz) -> Unit) {
     Column(Modifier.fillMaxSize()) {
         LibraryPageTop(list.title, onBack)
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             list.tip?.let { tip -> item {
                 LibraryFormSection {

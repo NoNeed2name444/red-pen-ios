@@ -49,11 +49,13 @@ import com.stethoscore.app.ui.mock.ContentCard
 import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardRelief
 import com.stethoscore.app.ui.wardColor
 
@@ -76,7 +78,7 @@ import com.stethoscore.app.ui.wardColor
     val dismiss: () -> Unit = { LearnRouter.close() }
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(WardSpace.gutter.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
                 when {
                     questions.isEmpty() -> Text("Nothing to ask from this one yet.", style = WardType.body.textStyle(),
                         color = wardColor(WardToken.inkSecondary))

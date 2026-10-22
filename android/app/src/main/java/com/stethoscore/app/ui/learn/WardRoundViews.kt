@@ -83,6 +83,7 @@ import com.stethoscore.app.data.WardRound
 import com.stethoscore.app.data.WardRoundPlan
 import com.stethoscore.app.ui.home.HomeRound
 import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
@@ -252,7 +253,7 @@ private fun chipWords(round: WardRound, now: Long): String {
     Column(modifier.fillMaxWidth().wardRaised(WardRadius.card, WardLift.mid)
         // a tap on the panel itself is not a tap on the dimming behind
         .clickable(remember { MutableInteractionSource() }, indication = null) {}
-        .padding(20.dp),
+        .padding(WardSpace.gutter.wardDp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

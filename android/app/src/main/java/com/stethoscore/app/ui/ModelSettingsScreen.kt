@@ -28,10 +28,12 @@ import com.stethoscore.app.llm.LLMChoice
 import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.llm.OwnerSpend
 import com.stethoscore.app.quiz.ChartQuiz
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 
 /**
  * Settings > AI models. Port of the parts of iOS
@@ -50,8 +52,8 @@ fun ModelSettingsScreen(onBack: () -> Unit, service: LLMService? = null) {
     var choice by remember { mutableStateOf(llm.choice()) }
     val brandCloud = "${HostedProvider.BRAND} Cloud · Pro"
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),
+        verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp),
     ) {
         ScreenHeader("AI models", "The writer and ${HostedProvider.BRAND} Cloud", onBack)
         WardCard(Modifier.fillMaxWidth()) {

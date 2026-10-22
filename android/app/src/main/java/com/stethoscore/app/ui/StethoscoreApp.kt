@@ -12,10 +12,12 @@ import com.stethoscore.app.ui.home.homeShortWindow
 import com.stethoscore.app.ui.ward.WardDock
 import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardChosenEdge
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.ward.wardRaised
@@ -260,7 +262,7 @@ import kotlinx.coroutines.withContext
                         // list lets the last one scroll clear of them (HomeFit.endSpace). No
                         // soft edge under the bar either: nothing at the bottom fades.
                         var barHeight by remember { mutableStateOf(0.0) }
-                            LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(20.dp,12.dp,20.dp,20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
+                            LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(WardSpace.gutter.wardDp,WardSpace.m.wardDp,WardSpace.gutter.wardDp,WardSpace.xl.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                                     SectionLabel("YOUR STUDY WARD")
                                     // a Ward circle, as iOS's toolbar button beside the search (.wardCircle)

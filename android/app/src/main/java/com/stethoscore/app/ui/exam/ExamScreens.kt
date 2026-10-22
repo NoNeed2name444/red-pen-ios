@@ -184,8 +184,8 @@ fun ExamPickerScreen(store: StudyStore, onClose: () -> Unit, isOnboarding: Boole
                 WardTextButton("Save", ::save, Modifier.testTag("examPickerSave"), kind = WardButtonKind.compact,
                     enabled = primary.isNotEmpty() || isOnboarding, fills = false)
             })
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = WardSpace.s.wardDp),
+            verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
             if (isOnboarding) {
                 Text("Questions, study plan, coverage map and mock papers will follow its format and blueprint. You can change it any time.",
                     Modifier.padding(horizontal = 20.dp), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
