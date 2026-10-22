@@ -47,6 +47,7 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.*
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
@@ -546,34 +547,32 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             }
         }
 
-        // the bar: Start again and Resume while a saved place waits, or How sure? before checking.
-        // It sits on the screen's own tone, with no fill of its own, so the dock reads as one
-        // colour with no band or seam (the owner, 21 Oct; iOS WardDeckSlab).
+        // the bar: Start again and Resume while a saved place waits, or How sure? before checking,
+        // on the one study deck (iOS studyBar(folds: true, shown:)): it folds away, and hidden it
+        // keeps its fold for the next question
         val p = pendingResume
-        if (p != null || (!a.checked && asksConfidence)) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                if (p != null) {
-                    val done = p.answers.count { it.checked }
-                    val total = set.questions.size
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        QuizBigButton("Start again", null, QuizButtonKind.companion, onClick = ::startAgain, label = "Start again instead")
-                        QuizBigButton("Resume ($done of $total)", Icons.Rounded.History, QuizButtonKind.primary, onClick = { resume(p) },
-                            modifier = Modifier.weight(1f), label = "Resume, $done of $total answered")
+        StudyActionBar(folds = true, shown = p != null || (!a.checked && asksConfidence)) {
+            if (p != null) {
+                val done = p.answers.count { it.checked }
+                val total = set.questions.size
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    QuizBigButton("Start again", null, QuizButtonKind.companion, onClick = ::startAgain, label = "Start again instead")
+                    QuizBigButton("Resume ($done of $total)", Icons.Rounded.History, QuizButtonKind.primary, onClick = { resume(p) },
+                        modifier = Modifier.weight(1f), label = "Resume, $done of $total answered")
+                }
+            } else {
+                val chosen = confidences[q.id]
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.align(Alignment.CenterVertically).clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("How sure?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
+                        WardChip("optional", tone = WardTone.Grey)
                     }
-                } else {
-                    val chosen = confidences[q.id]
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(Modifier.align(Alignment.CenterVertically).clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("How sure?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
-                            WardChip("optional", tone = WardTone.Grey)
-                        }
-                        AnswerConfidence.entries.forEach { level ->
-                            WardChipButton(level.title, {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                confidences = if (chosen == level) confidences - q.id else confidences + (q.id to level)
-                            }, on = chosen == level, role = Role.Button)
-                        }
+                    AnswerConfidence.entries.forEach { level ->
+                        WardChipButton(level.title, {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            confidences = if (chosen == level) confidences - q.id else confidences + (q.id to level)
+                        }, on = chosen == level, role = Role.Button)
                     }
                 }
             }

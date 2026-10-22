@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -30,7 +31,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.ui.LocalWardDark
@@ -228,9 +232,11 @@ internal fun wardOutlinePath(points: List<WardVec>, density: Float): Path = Path
 /**
  * A line across the opening joined to its outline by [join]'s arcs (iOS
  * WardIslandPath), in pixels; a side with no arc ends at the join's own end,
- * or at [from] / [to] when that side is not joined.
+ * or at [from] / [to] when that side is not joined. With [filledTo] (points),
+ * the island under the line, closed down to that depth (iOS `filled`).
  */
-internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, density: Float): Path = Path().apply {
+internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, density: Float,
+                            filledTo: Double? = null): Path = Path().apply {
     fun deg(rad: Double) = (rad * 180 / PI).toFloat()
     fun box(c: WardEdgeCorner) = Rect(
         ((c.center.x - c.radius) * density).toFloat(), ((c.center.y - c.radius) * density).toFloat(),
@@ -250,6 +256,12 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
         val end = deg(atan2(right.join.y - right.center.y, right.join.x - right.center.x))
         arcTo(box(right), -90f, end + 90f, forceMoveTo = false)
     }
+    if (filledTo != null) {
+        val foot = (filledTo * density).toFloat()
+        lineTo(((right?.join?.x ?: join.toX ?: to) * density).toFloat(), foot)
+        lineTo(((left?.join?.x ?: join.fromX ?: from) * density).toFloat(), foot)
+        close()
+    }
 }
 
 /**
@@ -259,6 +271,7 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
  * [barTop] (points from the frame's top), a bar's line runs across the
  * opening there, joined into the ring by WardEdge's arcs. Fill the window
  * with it, over the page: it takes no touches. Home keeps its own ground.
+ * While it is drawn, the study deck's line joins its ring (WardEdgeStore).
  */
 @Composable fun WardPaperFrame(modifier: Modifier = Modifier, barTop: Double? = null) {
     val look = LocalWardLook.current
@@ -268,7 +281,10 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
     val color = wardRgb(ink.hex)
     val base = wardRgb(glide.hex(WardToken.background, dark))
     val pad = LocalConfiguration.current.smallestScreenWidthDp >= 600
-    Canvas(modifier) {
+    val view = LocalView.current
+    val points = LocalDensity.current.density
+    DisposableEffect(view) { onDispose { WardEdgeStore.leave(view) } }
+    Canvas(modifier.onGloballyPositioned { WardEdgeStore.setWindow(view, it.wardWindowRect(points), pad) }) {
         val panel = WardPaper.panel((size.width / density).toDouble(), (size.height / density).toDouble(), pad = pad) ?: return@Canvas
         val outline = WardEdge.outline(panel, pointsPerCurve = 12)
         val hole = wardOutlinePath(outline, density)

@@ -58,12 +58,12 @@ import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.MockLibrary
 import com.stethoscore.app.ui.mock.QuestionPick
-import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
 import com.stethoscore.app.ui.sources.ReaderEtch
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardSectionLabel

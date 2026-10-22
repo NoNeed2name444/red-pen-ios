@@ -27,7 +27,7 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.QuestionPick
-import com.stethoscore.app.ui.mock.StudyActionBar
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextStyle

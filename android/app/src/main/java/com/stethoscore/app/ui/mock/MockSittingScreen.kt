@@ -102,6 +102,7 @@ import com.stethoscore.app.ui.ExamToolSheets
 import com.stethoscore.app.ui.HighlightableStem
 import com.stethoscore.app.ui.WardOptionRow
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardEmptyState
@@ -369,9 +370,9 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
                         }
                     }
                 }
-                // the bar
+                // the bar, which folds away (iOS MockSittingView studyBar(folds: true))
                 val last = current >= picks.size - 1
-                StudyActionBar {
+                StudyActionBar(folds = true) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         BigButton("Back", Icons.Rounded.ChevronLeft, BigKind.companion, { go(current - 1) }, enabled = current > 0,
                             label = "Previous question")

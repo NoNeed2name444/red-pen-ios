@@ -46,7 +46,7 @@ import com.stethoscore.app.quiz.SpokenText
 import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.ContentCard
-import com.stethoscore.app.ui.mock.StudyActionBar
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardTextStyle

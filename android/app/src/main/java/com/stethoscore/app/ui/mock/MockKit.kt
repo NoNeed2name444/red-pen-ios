@@ -93,13 +93,13 @@ import com.stethoscore.app.ui.ward.wardRaised
 import com.stethoscore.app.ui.ward.wardRelief
 
 // The study screens' frame for OSCE and the mock paper, ported from
-// ios/RedPen/Shared/Theme.swift (StudyProgressHeader, StudyActionBar,
-// FinishHero, FinishSymbol, ScoreRing, ThinProgress, contentCard,
-// readableColumn, the big button styles), every face and control drawn by
-// the Ward port in ui/ward (wardRaised, wardInset, WardButtonBox, the chip's
-// look and press; the empty state, banner, groove and score bar are its
-// WardStates.kt). Not ported: the study bar's fold, the finish's aurora and
-// its sound, and the pop-out's lean.
+// ios/RedPen/Shared/Theme.swift (StudyProgressHeader, FinishHero,
+// FinishSymbol, ScoreRing, ThinProgress, contentCard, readableColumn, the
+// big button styles), every face and control drawn by the Ward port in
+// ui/ward (wardRaised, wardInset, WardButtonBox, the chip's look and press;
+// the empty state, banner, groove and score bar are its WardStates.kt, the
+// bottom deck its WardDeck.kt). Not ported: the finish's aurora and its
+// sound, and the pop-out's lean.
 
 /** iOS's bar and screen widths: a phone's column, at most 700 wide on a big screen (readableColumn). */
 internal fun Modifier.readableColumn(): Modifier = this.widthIn(max = 700.dp).fillMaxWidth()
@@ -143,14 +143,6 @@ internal fun Modifier.readableColumn(): Modifier = this.widthIn(max = 700.dp).fi
                 WardGroove(shown.toDouble(), wardColor(WardToken.primaryInk), height = 6.dp)
             }
         }
-    }
-}
-
-/** The bottom deck (StudyActionBar): a slab raised off the base holding the screen's buttons. */
-@Composable internal fun StudyActionBar(content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp, top = 4.dp), contentAlignment = Alignment.Center) {
-        Column(Modifier.readableColumn().wardRaised(WardRadius.bar, WardLift.low).padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
     }
 }
 

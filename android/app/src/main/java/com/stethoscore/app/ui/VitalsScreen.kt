@@ -80,7 +80,6 @@ import com.stethoscore.app.ui.home.HomeRound
 import com.stethoscore.app.ui.mock.BigButton
 import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.MockLibrary
-import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
 import com.stethoscore.app.ui.sources.ReaderFormSection
@@ -112,6 +111,7 @@ import com.stethoscore.app.ui.vitals.WeeklyChart
 import com.stethoscore.app.ui.vitals.WrongAnswer
 import com.stethoscore.app.ui.vitals.percentText
 import com.stethoscore.app.ui.vitals.reasonIcon
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardSpace

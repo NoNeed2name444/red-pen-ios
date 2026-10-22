@@ -83,8 +83,9 @@ import com.stethoscore.app.ui.wardColor
 // (ui/ward): iOS's Form in wardForm (a section's small-caps header, its rows
 // raised off the base, its footer in Biro Grey), a sheet's bar (Cancel quiet,
 // the confirming button compact), TextEditor in its well (popEditorRow),
-// CountField (Shared/CountField.swift), DisclosureGroup, StudyActionBar and
-// EcgLoader (WardVitals.swift). The banner is the Ward kit's (WardStates.kt).
+// CountField (Shared/CountField.swift), DisclosureGroup and EcgLoader
+// (WardVitals.swift). The banner and the bottom deck are the Ward kit's
+// (WardStates.kt, WardDeck.kt).
 
 /** A sheet's bar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
 @Composable internal fun EditorTopBar(title: String, onCancel: (() -> Unit)?, cancelTitle: String = "Cancel", trailing: @Composable () -> Unit = {}) {
@@ -211,13 +212,6 @@ import com.stethoscore.app.ui.wardColor
             Icon(if (expanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk))
         }
         if (expanded) content()
-    }
-}
-
-/** StudyActionBar: the one main button at the bottom, under the thumb. */
-@Composable internal fun StudyActionBar(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier.fillMaxWidth().padding(horizontal = WardSpace.gutter.wardDp, vertical = WardSpace.m.wardDp), contentAlignment = Alignment.Center) {
-        content()
     }
 }
 

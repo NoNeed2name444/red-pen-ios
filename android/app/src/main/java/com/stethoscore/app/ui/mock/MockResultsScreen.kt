@@ -47,6 +47,7 @@ import com.stethoscore.app.quiz.MockResult
 import com.stethoscore.app.quiz.MockSubjectScore
 import com.stethoscore.app.ui.QuizScreen
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardProgressBar
 import com.stethoscore.app.ui.ward.WardSectionLabel
@@ -123,7 +124,8 @@ fun MockResultsScreen(result: MockResult, sitting: MockSitting, selected: Map<St
                 }
             }
         }
-        StudyActionBar {
+        // it folds away (iOS MockResultsView studyBar(folds: true))
+        StudyActionBar(folds = true) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (missed.isNotEmpty()) {
                     BigButton("Practise missed", Icons.Rounded.Replay, BigKind.companion, {
