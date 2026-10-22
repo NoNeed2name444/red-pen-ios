@@ -2662,6 +2662,7 @@ with the marks on the screens last.
 - UX Waves 3-4 on iPhone, chrome and polish without motion (22 Oct; task T0120, from the 22 Oct iOS consistency sweep). The owner: "start all waves at once". Motion is T0121's and components T0119's; no colour, tone or wash changes.
   - [x] Stats and Vitals on wardForm(): the solid bar area (the 9 Oct no-fading rule), 56 pt rows, section spacing and the Ward controls. Stats keeps its inline title; Vitals keeps the app's one large title until the owner's word.
   - [x] Waits shown on their own take the working trace (EcgLoader) in place of the system spinner: the library loading under the splash, a second window before the library is read, and the 3D map while it is built. The small spinners inside buttons stay.
+  - [x] The empty 3D map takes WardEmptyState, as every other empty page does, in place of the system's ContentUnavailableView.
   - [ ] Mac run: the app build and Ward previews of the pages above (phone, SE, Pro Max, iPad; light and dark).
   - Waiting on the owner: Vitals' large title; mono sizes other than body and title2; icon-square sizes; the onboarding, paywall and sign-in gutters (24). The sample pictures' colours stay (no colour changes).
 
