@@ -1806,6 +1806,7 @@ They answer four questions, in order:
      Worker deploy the owner has allowed.
    - [x] 16 Oct, design/paid-lane: Claude is in the paid lane only while PRO_PAYS is "on" (GEMINI_BILLING or a seen bill no longer open it for Claude), and the hold covers its thinking room; the Worker deploy waits for the owner's word.
    - [x] 16 Oct, design/paid-lane: the paid writer, Jev and the paid voice open only on PRO_PAYS (closing the wallet opened by GEMINI_BILLING or a seen bill), and an unpriced paid model is never asked; the Worker deploy waits for the owner's word. Review S-1016 (R1): a paid source joins only when GEMINI_PRICES itself names it (pricedIn); priceOf's Opus 5.5 default for an unnamed claude- model stays, for the Claude checks' hold. Once deployed, if a seen bill (gemini:billed) is set in D1, the owner's chats and Pro accounts that reached Claude and Novita on it get Gemini instead, as the rule wants.
+   - [x] 22 Oct, T0116 (the owner: "Claude for my key only"): the owner key's writer (chat and jobs) gets Claude first even with PRO_PAYS "off", within OWNER_MONTHLY_USD (ownerClaudeWallet) and OWNER_DAILY_LIMIT, falling back to Gemini past the cap or without the key; every other caller unchanged (tests/owner-claude.test.mjs); the Worker deploy waits for the owner's word.
 3. Explained in chat: a Worker deploy (the server going live) and the
    launch splash colour.
 4. No Apple Developer account: no TestFlight or App Store for now; the
