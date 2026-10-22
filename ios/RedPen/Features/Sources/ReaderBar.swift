@@ -52,7 +52,7 @@ struct ReaderBar: View {
                     .transition(.identity)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, 8)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)
@@ -94,7 +94,7 @@ private struct ReaderPagesButton: View {
                 .contentShape(Circle())
         }
         // a 44-point square rounded by half its side: the disc
-        .buttonStyle(PopTileStyle(cornerRadius: 22, plane: .floating))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar, plane: .floating))
         .accessibilityLabel(label)
     }
 }
@@ -114,7 +114,7 @@ private struct ReaderPager: View {
         let before: String = "Previous \(noun.lowercased())"
         let after: String = "Next \(noun.lowercased())"
         HStack(spacing: 0) {
-            ReaderPagerArrow(symbol: "chevron.left", label: before, key: .leftArrow,
+            ReaderPagerArrow(symbol: "chevron.backward", label: before, key: .leftArrow,
                              enabled: !atStart) { turn(-1) }
             Text(place)
                 .font(.system(.footnote, design: .monospaced).weight(.semibold))

@@ -176,7 +176,7 @@ extension EnvironmentValues {
 /// finger, and the ring and its label lift under the pointer.
 struct RingButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return configuration.label
             .environment(\.ringPressed, configuration.isPressed)
             .contentShape(shape)

@@ -178,7 +178,7 @@ struct StudyLensView: View {
         if reading {
             banner(Label("Reading\u{2026}", systemImage: "text.viewfinder"))
         } else if let problem {
-            banner(Label(problem, systemImage: "exclamationmark.triangle"))
+            banner(Label(problem, systemImage: "exclamationmark.triangle.fill"))
                 .onTapGesture { self.problem = nil }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint("Dismisses this message")
@@ -200,7 +200,7 @@ struct StudyLensView: View {
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Color.wardMonitor.opacity(0.85), in: Capsule())
             .padding(.top, 8)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
     }
 
     private var controls: some View {
@@ -230,13 +230,13 @@ struct StudyLensView: View {
             }
             if let still, still.pageCount > 1 { pageStepper(still) }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, 8)
     }
 
     private func pageStepper(_ still: LensStill) -> some View {
         HStack(spacing: 16) {
-            Button { showPage(still.page - 1) } label: { Image(systemName: "chevron.left") }
+            Button { showPage(still.page - 1) } label: { Image(systemName: "chevron.backward") }
                 .disabled(still.page <= 0)
                 .accessibilityLabel("Previous page")
             Text("Page \(still.page + 1) of \(still.pageCount)")

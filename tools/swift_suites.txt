@@ -489,7 +489,7 @@ suite librarypictures LibraryPicturesTests.swift $S/LibraryPictures.swift $S/Blo
 suite wardstates WardStatesTests.swift $S/Ward/WardControlStates.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
 # the launch opening: the heartbeat in step with its sound, the ECG drawn
 # with it, the hole that uncovers home, the art and the sound it uses
-suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift $S/LaunchDiagnostics.swift
+suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift $S/LaunchDiagnostics.swift $S/Ward/WardPalette.swift
 # home's name as the owner's bundle logo: day and night lookup across no file,
 # the day file only, and both
 suite brandlogo BrandLogoTests.swift $S/BrandLogo.swift

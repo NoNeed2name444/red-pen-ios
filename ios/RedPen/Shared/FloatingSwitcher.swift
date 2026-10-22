@@ -173,7 +173,7 @@ private struct SwitcherStrip<Value: Hashable>: View {
     let choose: (Value) -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
         // the floating plane's relief is the strip's face
         HStack(spacing: 2) {
             ForEach(items) { item in
@@ -199,7 +199,7 @@ private struct SwitcherSegment<Value: Hashable>: View {
 
     var body: some View {
         let ink: Color = !enabled ? Color.wardDisabledInk : chosen ? tint : Color.wardInk
-        let shape = RoundedRectangle(cornerRadius: 21, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: CGFloat(WardDock.tabRadius(inset: 5)), style: .continuous)
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         Button(action: action) {
             VStack(spacing: 3) {
@@ -288,7 +288,7 @@ private struct SwitcherBubble<Value: Hashable>: View {
                 .contentShape(Circle())
         }
         // a 48-point square rounded by half its side: the disc
-        .buttonStyle(PopTileStyle(cornerRadius: 24, plane: .floating))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar, plane: .floating))
         .contentShape(.contextMenuPreview, Circle())
         .contextMenu {
             ForEach(items) { item in

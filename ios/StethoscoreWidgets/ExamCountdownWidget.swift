@@ -55,11 +55,11 @@ struct ExamCountdownView: View {
                 Text(days.map { "\($0)" } ?? "\u{2013}")
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.5)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GlanceStyle.ink)
                 Text(days == nil ? "Set your exam date" : (days == 1 ? "day to " : "days to ") + name)
                     .font(.caption)
                     .lineLimit(2)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(GlanceStyle.inkSecondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }

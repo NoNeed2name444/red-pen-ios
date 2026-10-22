@@ -503,7 +503,7 @@ struct AnalyticsView: View {
             items.append(FocusItem(
                 id: "confident", title: "Confident mistakes quiz",
                 detail: "\(n) question\(n == 1 ? "" : "s") you were sure of and got wrong",
-                symbol: "exclamationmark.triangle",
+                symbol: "exclamationmark.triangle.fill",
                 score: min(95, 40 + Double(n) * 5), action: .confidentQuiz))
         }
 
@@ -698,7 +698,7 @@ struct AnalyticsView: View {
                 if s.confidentWrong > 0 {
                     Button { route = .confident } label: {
                         HStack {
-                            Label("Confident but wrong", systemImage: "exclamationmark.triangle")
+                            Label("Confident but wrong", systemImage: "exclamationmark.triangle.fill")
                             Spacer(minLength: 8)
                             Text("\(s.confidentWrong)")
                                 .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)

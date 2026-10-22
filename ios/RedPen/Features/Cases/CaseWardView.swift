@@ -68,7 +68,7 @@ struct CaseWardView: View {
                         clinicalNote.transition(.identity)
                     }
                 }
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .frame(maxWidth: 760)
                 .frame(maxWidth: .infinity)
             }
@@ -211,7 +211,7 @@ struct CaseWardView: View {
 
     private func actionChip(_ step: CaseStep) -> some View {
         let done: Bool = run.hasTaken(step.id)
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return Button { take(step) } label: {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: done ? "checkmark.circle.fill" : "plus.circle")
@@ -407,7 +407,7 @@ struct CaseLadderPanel: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
         }
         .wardScreen()
     }

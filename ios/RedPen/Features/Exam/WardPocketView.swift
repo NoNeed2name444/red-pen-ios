@@ -553,10 +553,10 @@ private struct WardScoreTotal: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.vertical, WardSpace.m)
         .wardRaised(in: shape, lift: .high)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, WardSpace.s)
         .animation(.snappy, value: total)
         .accessibilityElement(children: .combine)

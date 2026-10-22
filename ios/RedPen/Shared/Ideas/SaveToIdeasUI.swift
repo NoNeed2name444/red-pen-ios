@@ -243,7 +243,7 @@ private struct SaveToIdeasHost: ViewModifier {
                                        onDismiss: { saver.dismiss(shown.id) })
                             .wardUnlit()
                             .padding(.top, 8)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, WardSpace.gutter)
                             .transition(.slideIn(.top))
                     }
                 }
@@ -274,7 +274,7 @@ private struct SavedIdeaToast: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         HStack(spacing: 12) {
             Image(systemName: "lightbulb.fill")
                 .font(.title3)
@@ -305,7 +305,7 @@ private struct SavedIdeaToast: View {
                 .accessibilityIdentifier("ideaToastUndo")
             }
         }
-        .padding(.leading, 16)
+        .padding(.leading, WardSpace.gutter)
         .padding(.trailing, toast.undo == nil ? 16 : 4)
         .padding(.vertical, toast.undo == nil ? 12 : 4)
         .frame(maxWidth: 520)
@@ -350,7 +350,7 @@ struct SaveToIdeasButton: View {
                 capsule(symbol, title: title, saved: saved)
             }
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 22))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar))
         .help(title)
         .accessibilityLabel(title)
         .accessibilityHint(hint)
@@ -375,7 +375,7 @@ struct SaveToIdeasButton: View {
                 .foregroundStyle(Color.wardInk)
         }
         .font(.subheadline.weight(.semibold))
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .frame(minHeight: 44)
         .contentShape(Capsule())
     }

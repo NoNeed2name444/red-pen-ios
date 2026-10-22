@@ -176,7 +176,7 @@ private struct SpokenStationScreen: View {
     }
 
     private func failed(_ message: String) -> some View {
-        WardEmptyState(symbol: "exclamationmark.triangle", title: "Couldn't mark the station",
+        WardEmptyState(symbol: "exclamationmark.triangle.fill", title: "Couldn't mark the station",
                        message: message, tone: .danger)
             .frame(maxHeight: .infinity)
             .studyBar {
@@ -355,7 +355,7 @@ private struct SpokenStationComposer: View {
 
     /// The typed box: a well pressed into the bar.
     private var field: some View {
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return TextField("Or type what you say", text: $draft, axis: .vertical)
             .lineLimit(1...4)
             .padding(.horizontal, 12)

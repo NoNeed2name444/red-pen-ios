@@ -185,7 +185,7 @@ struct TextPagesView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(16)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: 720, alignment: .leading)
         .wardRaised(in: shape)
     }

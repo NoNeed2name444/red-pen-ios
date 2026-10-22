@@ -12,8 +12,8 @@ struct WardRoundLiveActivity: Widget {
         ActivityConfiguration(for: WardRoundAttributes.self) { context in
             WardRoundLockView(state: context.state, stale: context.isStale)
                 .padding(16)
-                .activityBackgroundTint(GlanceStyle.night)
-                .activitySystemActionForegroundColor(.white)
+                .activityBackgroundTint(GlanceStyle.ground)
+                .activitySystemActionForegroundColor(GlanceStyle.ink)
                 .widgetURL(AppLink.examPlan.url)
         } dynamicIsland: { context in
             DynamicIsland {
@@ -103,15 +103,15 @@ struct WardRoundLockView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(WardRoundWords.title(state))
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GlanceStyle.ink)
                 Text(cardWords(state.items))
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(GlanceStyle.inkSecondary)
             }
             Spacer(minLength: 8)
             WardRoundLiveClock(state: state, stale: stale)
                 .font(.title3.monospacedDigit().weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(GlanceStyle.ink)
         }
     }
 }

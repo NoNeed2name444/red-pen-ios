@@ -137,7 +137,7 @@ private struct ReasoningSetBody: View {
                     .foregroundStyle(Color.wardInkSecondary)
                     .padding(.horizontal, 4)
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: 820)
             .frame(maxWidth: .infinity)
         }
@@ -193,7 +193,7 @@ private struct ReasoningToolTile: View {
                 .accessibilityHidden(true)
         }
         .multilineTextAlignment(.leading)
-        .padding(16)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
         .contentShape(shape)
     }
@@ -326,7 +326,7 @@ private struct ReasoningCountMenu: View {
             }
             .font(.headline)
             .foregroundStyle(Color.wardPrimaryInk)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.vertical, 12)
             .frame(minWidth: 56, minHeight: 56)
             .wardRaised(in: shape)

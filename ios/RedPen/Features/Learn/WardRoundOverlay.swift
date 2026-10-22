@@ -169,7 +169,7 @@ struct WardRoundFloat: View {
                         // gesture (two fingers, a Z) folds it away
                         .accessibilityAddTraits(.isModal)
                         .accessibilityAction(.escape) { setExpanded(false) }
-                        .padding(16)
+                        .padding(WardSpace.gutter)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                         .transition(.slideIn(.bottom))
                 } else {
@@ -197,7 +197,7 @@ struct WardRoundFloat: View {
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
                 model.chipFrame = frame
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.vertical, corner.isBottom ? 84 : 52)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: corner.alignment)
     }

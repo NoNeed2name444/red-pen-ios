@@ -198,7 +198,7 @@ struct StatsView: View {
                         picks: confidentWrong)
                 } label: {
                     HStack {
-                        Label("Confident but wrong", systemImage: "exclamationmark.triangle")
+                        Label("Confident but wrong", systemImage: "exclamationmark.triangle.fill")
                         Spacer(minLength: 8)
                         Text("\(confidentWrong.count)")
                             .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)

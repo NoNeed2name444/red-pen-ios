@@ -158,7 +158,7 @@ struct DuelView: View {
                         .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
                 }
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
             }
@@ -294,7 +294,7 @@ struct DuelView: View {
     private var summaryScreen: some View {
         ScrollView {
             summary
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
         }
@@ -435,7 +435,7 @@ struct ComparisonTableView: View {
                         }
                     }
                 }
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .wardRaised(in: shape)
                 if !pair.bottomLine.isEmpty {
                     Text(pair.bottomLine)

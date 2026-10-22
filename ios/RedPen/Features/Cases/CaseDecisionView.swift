@@ -36,7 +36,7 @@ struct CaseDecisionView: View {
                     nextStepCard
                     reasonCard
                 }
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .frame(maxWidth: 760)
                 .frame(maxWidth: .infinity)
             }

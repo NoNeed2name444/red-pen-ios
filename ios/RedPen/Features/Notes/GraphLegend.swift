@@ -405,7 +405,7 @@ struct GraphUniverseHint: View {
             }
         }
         .foregroundStyle(Color.wardInk)
-        .padding(16)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: 320, alignment: .leading)
         .wardRaised(in: RoundedRectangle(cornerRadius: 22, style: .continuous), lift: .high)
         .accessibilityElement(children: .contain)
@@ -441,7 +441,7 @@ struct GraphEmptyHint: View {
                 .buttonStyle(.wardQuiet)
                 .accessibilityIdentifier("graphAddFolder")
         }
-        .padding(14)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: 340)
         .wardRaised(in: RoundedRectangle(cornerRadius: 20, style: .continuous), lift: .high)
         .accessibilityElement(children: .contain)

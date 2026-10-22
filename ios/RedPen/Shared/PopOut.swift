@@ -208,7 +208,7 @@ extension View {
     /// base. It never moves, so the caret stays steady. `insets` is the
     /// room inside the well around the field; pass a tighter one when the
     /// well holds its own keys (CountField's minus and plus).
-    func popField(cornerRadius: CGFloat = 12, insets: EdgeInsets = PopOutField.insets) -> some View {
+    func popField(cornerRadius: CGFloat = WardRadius.field, insets: EdgeInsets = PopOutField.insets) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return padding(insets)
             .frame(minHeight: 44)
@@ -217,7 +217,7 @@ extension View {
 
     /// popField as a Form row of its own: the row's own background goes, so
     /// the well is pressed into the form's base, not into a cell.
-    func popFieldRow(cornerRadius: CGFloat = 12) -> some View {
+    func popFieldRow(cornerRadius: CGFloat = WardRadius.field) -> some View {
         popField(cornerRadius: cornerRadius)
             .listRowBackground(Color.clear)
             .listRowInsets(PopOutField.rowInsets)
@@ -225,7 +225,7 @@ extension View {
 
     /// A multi-line TextEditor as a well pressed into the base (create and
     /// edit forms). The editor's own background is hidden so the well shows.
-    func popEditor(cornerRadius: CGFloat = 12) -> some View {
+    func popEditor(cornerRadius: CGFloat = WardRadius.field) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return scrollContentBackground(.hidden)
             .padding(.horizontal, 7)
@@ -235,7 +235,7 @@ extension View {
     }
 
     /// popEditor as a Form row of its own.
-    func popEditorRow(cornerRadius: CGFloat = 12) -> some View {
+    func popEditorRow(cornerRadius: CGFloat = WardRadius.field) -> some View {
         popEditor(cornerRadius: cornerRadius)
             .listRowBackground(Color.clear)
             .listRowInsets(PopOutField.rowInsets)
@@ -258,7 +258,7 @@ enum PopOutField {
 /// The label draws no background of its own: the relief is its face. Its
 /// colours are the caller's.
 struct PopTileStyle: ButtonStyle {
-    var cornerRadius: CGFloat = 20
+    var cornerRadius: CGFloat = WardRadius.card
     var plane: PopOutPlane = .raised
     /// Accepted for older callers (see popOut); not drawn.
     var tint: Color? = nil
@@ -268,7 +268,7 @@ struct PopTileStyle: ButtonStyle {
     /// List row, which cuts anything that reaches further.
     var lift: WardLift? = nil
 
-    init(cornerRadius: CGFloat = 20, plane: PopOutPlane = .raised, tint: Color? = nil, selected: Bool = false,
+    init(cornerRadius: CGFloat = WardRadius.card, plane: PopOutPlane = .raised, tint: Color? = nil, selected: Bool = false,
          lift: WardLift? = nil) {
         self.cornerRadius = cornerRadius
         self.plane = plane

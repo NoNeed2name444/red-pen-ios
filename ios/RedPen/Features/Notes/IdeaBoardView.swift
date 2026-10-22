@@ -122,7 +122,7 @@ struct IdeaBoardView: View {
                     }
 
                 Canvas { context, _ in
-                    let ink: Color = Color.wardInkSecondary.opacity(0.55)
+                    let ink: Color = Color.wardInkSecondary
                     let stroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     for (k, edge) in edges.enumerated() {
                         guard let p = points[edge.0], let q = points[edge.1] else { continue }
@@ -195,7 +195,7 @@ struct IdeaBoardView: View {
         let wash: Color = tone.opacity(0.14)
         let place: String = notes.folder(note.folderId)?.name ?? note.kind.label
         let title: String = note.title.isEmpty ? "Untitled" : note.title
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 5) {
                 Image(systemName: note.kind.symbol)
@@ -269,11 +269,11 @@ struct IdeaBoardView: View {
                     .contentShape(Rectangle())
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.vertical, 10)
         .foregroundStyle(Color.wardPrimaryInk)
         .wardRaised(in: Capsule(), lift: .high)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 12)
     }
 

@@ -128,7 +128,7 @@ struct AnkiReviewView: View {
                 .contentCard()
                 // the answer opens under the question (AnkiCardFace): no flip
                 .reviewCardActions(onBury: buryCurrent, onSuspend: suspendCurrent)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, WardSpace.gutter)
                 .padding(.top, 8)
                 .padding(.bottom, revealed ? 8 : 24)
                 .readableColumn()
@@ -141,7 +141,7 @@ struct AnkiReviewView: View {
                     SaveToIdeasButton(clip: SaveToIdeas.clip(card: item.card, in: studySet,
                                                              library: store.library))
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, WardSpace.gutter)
                 .padding(.bottom, 24)
                 .readableColumn()
             }
@@ -159,7 +159,7 @@ struct AnkiReviewView: View {
                 // Quiz me needs five cards to find wrong answers among
                 if studySet.cards.count >= 5 { quizMeButton }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.top, 32)
             .padding(.bottom, 24)
             .readableColumn()

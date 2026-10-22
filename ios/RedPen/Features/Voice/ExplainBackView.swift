@@ -110,7 +110,7 @@ struct ExplainBackView: View {
             notes
         }
         .animation(.snappy(duration: 0.2), value: writing)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 8)
         .padding(.bottom, 12)
         .frame(maxWidth: 760, maxHeight: .infinity, alignment: .top)
@@ -179,7 +179,7 @@ struct ExplainBackView: View {
     /// The explanation: a well pressed into the base, read and corrected,
     /// so it never moves with the pop-out.
     private var transcriptBox: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return VStack(alignment: .leading, spacing: WardSpace.s) {
             ExplainBoxHeader(words: wordCount)
             transcriptBody

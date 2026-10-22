@@ -21,7 +21,7 @@ struct ReviewUndoChip: View {
                 .padding(.vertical, 8)
                 .frame(minHeight: 44)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 22, plane: .floating))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar, plane: .floating))
         // Cmd-Z, as anywhere else
         .keyboardShortcut("z", modifiers: .command)
         .accessibilityLabel("Undo last rating")
@@ -61,7 +61,7 @@ private struct ReviewUndoOverlay: ViewModifier {
                         // once reviews are familiar (StudyTips)
                         .studyTip(.undo)
                         .padding(.top, 8)
-                        .padding(.trailing, 16)
+                        .padding(.trailing, WardSpace.gutter)
                         .transition(.identity)
                 }
             }

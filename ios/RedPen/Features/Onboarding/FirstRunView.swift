@@ -143,7 +143,7 @@ private struct FirstRunGoalPage: View {
                 .foregroundStyle(ink)
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 14, selected: picked))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, selected: picked))
         .accessibilityAddTraits(picked ? .isSelected : [])
         .accessibilityIdentifier("firstRunGoal-\(value)")
     }
@@ -233,7 +233,7 @@ private struct FirstRunExamplesPage: View {
                 Spacer(minLength: 0)
             }
             .multilineTextAlignment(.leading)
-            .padding(16)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
         }
         .buttonStyle(.popTile)
@@ -261,7 +261,7 @@ private struct FirstRunPageFrame<Content: View>: View {
             VStack(alignment: .leading, spacing: 18) {
                 FirstRunHeading(symbol: symbol, title: title, detail: detail)
                 content()
-                    .padding(16)
+                    .padding(WardSpace.gutter)
                     .frame(maxWidth: .infinity)
                     .wardRaised(in: shape)
             }

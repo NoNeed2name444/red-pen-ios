@@ -271,7 +271,7 @@ struct CalculatorSheet: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.4)
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, WardSpace.gutter)
                     .padding(.vertical, 12)
                     .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous), lift: .mid)
                     .accessibilityLabel("Display, \(calc.display)")
@@ -298,7 +298,7 @@ struct CalculatorSheet: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: 420)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .wardScreen()

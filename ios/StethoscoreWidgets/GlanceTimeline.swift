@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WidgetKit
 
 /// One moment of the digest.
@@ -42,28 +43,36 @@ struct GlanceProvider: TimelineProvider {
     }
 }
 
-// MARK: - The look: the night sky and the pen's red, drawn flat
+// MARK: - The look: the app's plain grey ground and ink, and the pen's red, drawn flat
 
 enum GlanceStyle {
-    static let night = Color(red: 0.035, green: 0.047, blue: 0.11)
-    static let dusk = Color(red: 0.11, green: 0.09, blue: 0.24)
-    /// Vital Coral #FF6B6B and Care Blue #3B82F6 (docs/design/palette-2026-10-21.md):
-    /// 6.1:1 and 4.6:1 on the dusk, the lighter end of the sky.
+    /// The app's ground, ink and second ink (WardPalette .background, .ink
+    /// and .inkSecondary, by day and at night), flat as the app is (the
+    /// owner: flat colours only, the plain grey grounds #E9EDF2 / #171C24).
+    /// The widget target does not build Ward, so the values are repeated
+    /// here; they must stay WardPalette's.
+    static let ground = Color(uiColor: dynamic(light: 0xE9EDF2, dark: 0x171C24))
+    static let ink = Color(uiColor: dynamic(light: 0x232C39, dark: 0xF1F4F8))
+    static let inkSecondary = Color(uiColor: dynamic(light: 0x536171, dark: 0xB8C2D0))
+    /// Vital Coral #FF6B6B and Care Blue #3B82F6 (docs/design/palette-2026-10-21.md).
     static let pen = Color(red: 255 / 255, green: 107 / 255, blue: 107 / 255)
     static let star = Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
 
-    /// The sky behind a Home Screen widget. Lock Screen and StandBy tint
-    /// it themselves, so the accessory families get none.
-    static var sky: LinearGradient {
-        LinearGradient(colors: [dusk, night], startPoint: .topLeading, endPoint: .bottomTrailing)
+    private static func dynamic(light: UInt32, dark: UInt32) -> UIColor {
+        UIColor { traits in
+            let hex = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                           blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        }
     }
 }
 
 extension View {
-    /// The widget's background in every family.
+    /// The widget's background in every family: the app's flat grey.
+    /// Lock Screen and StandBy tint it themselves.
     func glanceBackground() -> some View {
         containerBackground(for: .widget) {
-            GlanceStyle.sky
+            GlanceStyle.ground
         }
     }
 }

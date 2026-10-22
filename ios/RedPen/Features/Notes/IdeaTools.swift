@@ -206,7 +206,7 @@ private struct IdeaToolsPlacement<Tools: View>: ViewModifier {
         content
             .overlay(alignment: spot) {
                 IdeaToolCluster { tools }
-                    .padding(16)
+                    .padding(WardSpace.gutter)
             }
     }
 }

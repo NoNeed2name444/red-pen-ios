@@ -171,7 +171,7 @@ struct MCQSummaryView: View {
                 otherActions
                 reviewList
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.top, 8)
             .padding(.bottom, 24)
             .readableColumn()

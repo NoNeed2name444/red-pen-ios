@@ -42,7 +42,7 @@ struct NameSheet: View {
                 field
                 Spacer(minLength: 0)
             }
-            .padding(20)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .wardScreen()
             .navigationTitle(title)

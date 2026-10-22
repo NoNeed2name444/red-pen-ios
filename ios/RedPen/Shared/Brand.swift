@@ -30,14 +30,14 @@ enum Brand {
     /// The tagline, where there is room for one.
     static let line = "Listen \u{00B7} Learn \u{00B7} Score"
 
-    /// Near-black with a trace of blue: ink on paper, not a pure grey.
+    /// The ink on the page: the app's own ink, by day and at night.
     // the look (SwiftUI only; the name and line above also build on Linux,
     // where the test suites run)
     #if canImport(SwiftUI)
-    static let ink = Color(red: 14 / 255, green: 27 / 255, blue: 44 / 255)        // Chart Ink
+    static var ink: Color { .wardInk }              // WardPalette .ink (was Chart Ink #0E1B2C)
 
-    /// The page. Warm rather than white, so long reading is easy on the eye.
-    static let paper = Color(red: 243 / 255, green: 246 / 255, blue: 249 / 255)   // Ward White
+    /// The page: the app's plain grey ground.
+    static var paper: Color { .wardBackground }     // WardPalette .background (was #F3F6F9)
 
     /// The icon's scarlet, and the colour of the one thing that should ever
     /// shout: how long is left.

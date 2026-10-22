@@ -116,7 +116,7 @@ struct LibraryDataSettingsSection: View {
             Label {
                 Text("Last backup")
             } icon: {
-                Image(systemName: stale ? "exclamationmark.triangle" : "checkmark.shield").foregroundStyle(tone.color)
+                Image(systemName: stale ? "exclamationmark.triangle.fill" : "checkmark.shield").foregroundStyle(tone.color)
             }
         }
         .accessibilityElement(children: .combine)

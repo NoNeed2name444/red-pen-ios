@@ -92,7 +92,7 @@ struct BookReaderView: View {
             }
             .foregroundStyle(Color.wardInk)
             .contentCard()
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.top, 8)
             .padding(.bottom, 24)
             .readableColumn()
@@ -237,8 +237,8 @@ struct BookReaderView: View {
             HStack(spacing: 12) {
                 Button { index = max(0, index - 1) } label: {
                     ViewThatFits(in: .horizontal) {
-                        Label("Back", systemImage: "chevron.left")
-                        Image(systemName: "chevron.left")
+                        Label("Back", systemImage: "chevron.backward")
+                        Image(systemName: "chevron.backward")
                     }
                 }
                 .buttonStyle(.bigCompanion)

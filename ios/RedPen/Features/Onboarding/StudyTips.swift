@@ -142,7 +142,7 @@ private struct IdeasThemeTipModifier: ViewModifier {
                 if shown {
                     TipView(IdeasThemeTip())
                         .frame(maxWidth: 520)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, WardSpace.gutter)
                         .padding(.top, 8)
                 }
             }

@@ -90,7 +90,7 @@ struct RecordingTermsView: View {
     /// The part nobody may miss: what the app is not for, and that its AI
     /// can be wrong. Red, boxed, first, and read as one element by VoiceOver.
     private var warningBox: some View {
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return VStack(alignment: .leading, spacing: 10) {
             Text(l10n: "\(Brand.name) is a study aid for students. It is NOT a medical tool.")
                 .font(.headline)
@@ -102,7 +102,7 @@ struct RecordingTermsView: View {
                 .font(.subheadline)
         }
         .foregroundStyle(Color.wardInk)
-        .padding(16)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: .infinity, alignment: .leading)
         // a well pressed into the base, rimmed in red
         .wardInset(in: shape)

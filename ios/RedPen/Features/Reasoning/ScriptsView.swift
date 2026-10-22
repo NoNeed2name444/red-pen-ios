@@ -57,7 +57,7 @@ struct ScriptsView: View {
                 SavedToIdeasToast(message: savedMessage) { self.savedMessage = nil }
                     .wardUnlit()
                     .padding(.top, 8)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, WardSpace.gutter)
                     .transition(.slideIn(.top))
             }
         }
@@ -176,7 +176,7 @@ private struct SavedToIdeasToast: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.vertical, 12)
         .frame(maxWidth: 520)
         .wardRaised(in: shape, lift: .high)

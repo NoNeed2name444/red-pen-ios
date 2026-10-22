@@ -24,7 +24,7 @@ struct ImportPreviewSheet: View {
                     if !preview.notes.isEmpty { notes }
                     importTile
                 }
-                .padding(20)
+                .padding(WardSpace.gutter)
             }
             .scrollBounceBehavior(.basedOnSize)
             .wardScreen()
@@ -103,7 +103,7 @@ struct ImportPreviewSheet: View {
                     Text("and \(preview.sets.count - listed) more")
                         .font(.footnote)
                         .foregroundStyle(Color.wardInkSecondary)
-                        .padding(14)
+                        .padding(WardSpace.gutter)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -141,7 +141,7 @@ struct ImportPreviewSheet: View {
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInkSecondary)
         }
-        .padding(14)
+        .padding(WardSpace.gutter)
         .accessibilityElement(children: .combine)
     }
 

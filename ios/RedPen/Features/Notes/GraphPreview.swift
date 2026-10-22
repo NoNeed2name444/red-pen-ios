@@ -350,7 +350,7 @@ struct GraphPreviewBar: View {
             HStack {
                 Button {
                 } label: {
-                    Image(systemName: "chevron.left")
+                    Image(systemName: "chevron.backward")
                         .font(.body.weight(.semibold))
                         .frame(width: 44, height: 44)
                 }
@@ -361,7 +361,7 @@ struct GraphPreviewBar: View {
             }
         }
         .foregroundStyle(.primary)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 4)
     }
 }

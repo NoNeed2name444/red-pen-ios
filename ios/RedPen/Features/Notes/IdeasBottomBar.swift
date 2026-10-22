@@ -42,7 +42,7 @@ struct IdeasBottomBar: View {
             }
             captureRow
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, 8)
         .frame(maxWidth: 560)
         .animation(change, value: showCollapsed)
@@ -151,7 +151,7 @@ private struct IdeaSendButton: View {
                 .contentShape(Circle())
         }
         // a 48-point square rounded by half its side: the disc
-        .buttonStyle(PopTileStyle(cornerRadius: 24, plane: .floating))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar, plane: .floating))
         .accessibilityLabel("Save idea")
     }
 }

@@ -264,7 +264,7 @@ struct ScoreRing: View {
                 .rotationEffect(.degrees(-90))
                 // clockwise from the top, anticlockwise right to left
                 .fillsFromLeading()
-                .padding(16)
+                .padding(WardSpace.gutter)
             VStack(spacing: 2) {
                 // digits that roll rather than blink when the label changes,
                 // and that keep their width while they do
@@ -765,7 +765,7 @@ struct FinishHero<Graphic: View>: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         // a ScoreRing inside reports its score upwards (FinishScoreKey)
         .backgroundPreferenceValue(FinishScoreKey.self, alignment: .top) { reported in
             let result: Double? = score ?? reported

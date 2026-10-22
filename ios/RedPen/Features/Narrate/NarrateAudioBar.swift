@@ -140,6 +140,6 @@ struct TranscribingBanner: View {
             Spacer(minLength: 0)
         }
         .contentCard()
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
     }
 }
