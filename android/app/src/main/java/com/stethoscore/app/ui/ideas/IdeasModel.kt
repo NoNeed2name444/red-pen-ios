@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.stethoscore.app.BuildConfig
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ideas.GraphLineStyle
 import com.stethoscore.app.ideas.GraphStyleChoice
@@ -104,12 +105,22 @@ class IdeasSettings(context: Context) {
     val perfDemo: Int get() = heldPerfDemo
     fun setPerfDemo(value: Int) { heldPerfDemo = value; put { putInt(PERF_DEMO_KEY, value) } }
 
+    /**
+     * The map's speed readout (fps, node counts): a debug build's tool, never
+     * a release's; a debug build can turn it off too (the tour does).
+     */
+    val readout: Boolean get() = readoutShown(BuildConfig.DEBUG, runCatching { prefs?.getBoolean(READOUT_KEY, true) }.getOrNull() ?: true)
+
     companion object {
         const val FILE = "ideas"
+        const val READOUT_KEY = "vignette.space.readout"
         const val SWITCHER_KEY = "vignette.ideas.switcherCollapsed"
         const val PERF_DEMO_KEY = "vignette.space.perfDemo"
         /** The demo maps the readout offers (iOS GraphPerfDemo), and Android's own million. */
         val perfDemoSizes = listOf(100_000, 300_000, 1_000_000)
+
+        /** The readout shows only in a debug build, and there only while it is not turned off. */
+        fun readoutShown(debug: Boolean, wanted: Boolean): Boolean = debug && wanted
     }
 }
 

@@ -322,7 +322,11 @@ import kotlinx.coroutines.withContext
                         // page reads unbroken to the bottom (the owner, 9 and 22 Oct). Without a
                         // glow round them, only their edges (iOS wardUnlit).
                         val barDensity=androidx.compose.ui.platform.LocalDensity.current.density
-                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
+                        // while the keyboard is up the bar stays behind it, as iOS's does, so it never
+                        // rides up over the search's results ("No results for…")
+                        val typing=keyboardShown()
+                        if(typing) SideEffect { barHeight=0.0 }
+                        if(!typing) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
                         // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)
                         if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=6.dp),horizontalArrangement=Arrangement.End) {
                             com.stethoscore.app.ui.ward.WardButtonBox({ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;screen="newset" },
@@ -353,6 +357,10 @@ import kotlinx.coroutines.withContext
         } }
     }
 }
+
+/** Whether the soft keyboard is showing. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable internal fun keyboardShown():Boolean = androidx.compose.foundation.layout.WindowInsets.isImeVisible
 
 /** The Cards page's "Due cards" tile: every deck's waiting cards in one queue (iOS CategoryFeature.due). */
 @Composable private fun DueCardsTile(store:StudyStore,revision:Int,open:()->Unit) {

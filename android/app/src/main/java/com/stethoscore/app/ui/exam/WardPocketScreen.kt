@@ -48,6 +48,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.exam.NewSetPreset
@@ -174,10 +177,10 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
         val q = query.trim()
         return q.isEmpty() || name.contains(q, ignoreCase = true)
     }
-    WardDisclaimerFrame {
+    WardDisclaimerFrame { foot ->
         Column(Modifier.fillMaxSize()) {
             ReaderNavBar("Clinical reference", trailing = { ReaderDoneButton(onClick = onDone) })
-            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 72.dp),
+            Column(Modifier.weight(1f).fillMaxWidth().padding(bottom = foot).verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = WardSpace.l.wardDp),
                 verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
                 WardTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp), placeholder = tab.searchPrompt)
                 // the switches sit on the base itself, not on tiles
@@ -239,12 +242,18 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
 
 /**
  * "For learning only - not for patient care", a small soft chip with amber
- * words at the foot of the screen, always in view, over [content].
+ * words at the foot of the screen, always in view, below [content]. The page
+ * gets the room it must leave at its foot (what floats there, as measured,
+ * and a gap) and ends above it, so no row runs under the chip or the
+ * score's total.
  */
-@Composable private fun WardDisclaimerFrame(bottomExtra: (@Composable ColumnScope.() -> Unit)? = null, content: @Composable () -> Unit) {
+@Composable private fun WardDisclaimerFrame(bottomExtra: (@Composable ColumnScope.() -> Unit)? = null, content: @Composable (foot: Dp) -> Unit) {
+    val density = LocalDensity.current
+    var floating by remember { mutableStateOf(WardDisclaimer.reserve.dp) }
     Box(Modifier.fillMaxSize()) {
-        content()
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        content(floating + WardSpace.s.wardDp)
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { floating = with(density) { it.height.toDp() } },
+            horizontalAlignment = Alignment.CenterHorizontally) {
             bottomExtra?.invoke(this)
             Row(Modifier.padding(bottom = WardSpace.s.wardDp).wardRaised(radius = 100.0, lift = WardLift.mid)
                 .padding(horizontal = WardSpace.l.wardDp, vertical = 8.dp).semantics(mergeDescendants = true) {}.testTag("wardDisclaimer"),
@@ -254,6 +263,11 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
             }
         }
     }
+}
+
+/** The disclaimer's own room before it is measured: the chip's height at the standard text size. */
+internal object WardDisclaimer {
+    const val reserve = 48
 }
 
 /**
@@ -340,10 +354,10 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
     }
 
     val outcome = calc.compute(values(), conventional)
-    WardDisclaimerFrame {
+    WardDisclaimerFrame { foot ->
         Column(Modifier.fillMaxSize()) {
             ReaderNavBar(calc.title, leading = { ReaderBackButton(onBack) })
-            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 72.dp),
+            Column(Modifier.weight(1f).fillMaxWidth().padding(bottom = foot).verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = WardSpace.l.wardDp),
                 verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
                 if (hasUnits) Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) { WardUnitsPicker(conventional, ::switchUnits) }
                 ReaderFormSection(header = "Values") {
@@ -428,12 +442,12 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
     val now = picks.toMap()
     val total = score.total(now)
     val verdict = score.verdict(now)
-    WardDisclaimerFrame(bottomExtra = { WardScoreTotal(total, verdict) }) {
+    WardDisclaimerFrame(bottomExtra = { WardScoreTotal(total, verdict) }) { foot ->
         Column(Modifier.fillMaxSize()) {
             ReaderNavBar(score.name, leading = { ReaderBackButton(onBack) }, trailing = {
                 WardTextButton("Reset", { picks.clear() }, kind = WardButtonKind.compact, enabled = picks.isNotEmpty(), fills = false)
             })
-            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 200.dp),
+            Column(Modifier.weight(1f).fillMaxWidth().padding(bottom = foot).verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = WardSpace.l.wardDp),
                 verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
                 ReaderFormSection {
                     Text(score.purpose, Modifier.fillMaxWidth().plainRowTile(), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))

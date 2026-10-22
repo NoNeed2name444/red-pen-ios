@@ -570,25 +570,58 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 }
             } else {
                 val chosen = confidences[q.id]
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(Modifier.align(Alignment.CenterVertically).clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
+                // iOS's confidencePicker: Sure, Maybe and Guess on the label's line wherever they fit, the
+                // optional tag dropped first to make room (TalkBack still says it), and only past that the
+                // chips on a line of their own
+                @Composable fun SureLabel(tagged: Boolean) =
+                    Row(Modifier.clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("How sure?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
-                        WardChip("optional", tone = WardTone.Grey)
+                        if (tagged) WardChip("optional", tone = WardTone.Grey)
                     }
-                    AnswerConfidence.entries.forEach { level ->
-                        WardChipButton(level.title, {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            confidences = if (chosen == level) confidences - q.id else confidences + (q.id to level)
-                        }, on = chosen == level, role = Role.Button)
-                    }
+                @Composable fun SureChips() = AnswerConfidence.entries.forEach { level ->
+                    WardChipButton(level.title, {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        confidences = if (chosen == level) confidences - q.id else confidences + (q.id to level)
+                    }, on = chosen == level, role = Role.Button)
                 }
+                FirstThatFits(
+                    { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureLabel(true); SureChips() } },
+                    { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureLabel(false); SureChips() } },
+                    { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SureLabel(true)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureChips() }
+                    } },
+                )
             }
         }
     }
     ExamToolSheets(toolSheet, track) { toolSheet = null }
     if (pocketOpen) com.stethoscore.app.ui.exam.ExamSheet({ pocketOpen = false }) {
         com.stethoscore.app.ui.exam.WardPocketScreen(track, { pocketOpen = false }, { made -> runCatching { store.addSet(made) } })
+    }
+}
+
+/**
+ * The first of [choices] that fits the width at its own natural width
+ * (SwiftUI's ViewThatFits in .horizontal); the last, laid out in the width
+ * given, when none does.
+ */
+@Composable internal fun FirstThatFits(vararg choices: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    androidx.compose.ui.layout.SubcomposeLayout(modifier) { constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        var placed: List<androidx.compose.ui.layout.Placeable>? = null
+        for (i in choices.indices) {
+            val last = i == choices.lastIndex
+            val parts = subcompose(i, choices[i]).map {
+                it.measure(if (last) loose else loose.copy(maxWidth = androidx.compose.ui.unit.Constraints.Infinity))
+            }
+            if (last || parts.all { it.width <= constraints.maxWidth }) { placed = parts; break }
+        }
+        val parts = placed.orEmpty()
+        val width = (parts.maxOfOrNull { it.width } ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
+        val height = (parts.maxOfOrNull { it.height } ?: 0).coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(width, height) { parts.forEach { it.placeRelative(0, 0) } }
     }
 }
 
