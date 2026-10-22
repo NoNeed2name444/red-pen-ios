@@ -163,10 +163,11 @@ enum class ExamToolSheet { labs, calculator }
         LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
                 // the units switch sits on the base itself, not on a tile: a well, told by its inset shadows
-                Row(Modifier.fillMaxWidth().wardInset(CircleShape).padding(4.dp).semantics { contentDescription = "Units" }) {
+                Row(Modifier.fillMaxWidth().wardInset(CircleShape).padding(horizontal = 4.dp).semantics { contentDescription = "Units" }) {
                     listOf(false to "SI", true to "US conventional").forEach { (us, label) ->
                         val on = conventional == us
-                        Text(label, Modifier.weight(1f).heightIn(min = 40.dp)
+                        // each half's touch area is the least target; its face stays 40, 4 inside the well
+                        Text(label, Modifier.weight(1f).minimumInteractiveComponentSize().heightIn(min = 40.dp)
                             .then(if (on) Modifier.quizFace(QuizFace.raised, CircleShape, 20f) else Modifier)
                             .clickable(role = Role.Tab) { conventional = us }.semantics { selected = on }
                             .wrapContentHeight(Alignment.CenterVertically),

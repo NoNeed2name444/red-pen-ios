@@ -2274,6 +2274,19 @@ with the marks on the screens last.
       colour by token (T0113), but Material's 1 dp tonal elevation laid
       black over every ModalBottomSheet (surfaceTint is clear), about 5%
       darker; the theme turns tonal elevation off (WardPaletteTest).
+    - [x] Touch targets are 48 dp on Android (the owner 22 Oct; iOS keeps
+      44): WardControlSize.target is 48 and the theme hands it to Material
+      (LocalMinimumInteractiveComponentSize). The Ward button, chip, circle,
+      switch, segmented control and text field wear
+      minimumInteractiveComponentSize, so the touch area grows and the face
+      keeps iOS's size (the circle stays 44, drawn at buttonSmall); the 44
+      literals that were targets take the token, IconButtons lose their 44
+      cap, and the three under 44 (the tag field's add, the lab units, OSCE's
+      More options) reach 48; a dock tab is never under the target
+      (WardTokensTest and WardDockTest pin 48). Drawn sizes that grow: a
+      tag chip (50 to 54), the tag field (46 to 68: its add sits inside the
+      well; iOS draws it 64) and the count field's well round its circles
+      (44 to 48).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

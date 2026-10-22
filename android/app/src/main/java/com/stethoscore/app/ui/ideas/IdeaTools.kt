@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,7 +58,7 @@ import com.stethoscore.app.ui.wardColor
                                value: String? = null, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val held by source.collectIsPressedAsState()
-    Box(modifier.size(44.dp).capPop(held)
+    Box(modifier.minimumInteractiveComponentSize().size(44.dp).capPop(held)
         .wardRelief(pressed = active || held, radius = 22.0, lift = WardLift.high, fill = WardToken.raised, control = false)
         .clickable(source, indication = null, role = Role.Button, onClick = onClick)
         .semantics { contentDescription = label; selected = active; if (value != null) stateDescription = value },

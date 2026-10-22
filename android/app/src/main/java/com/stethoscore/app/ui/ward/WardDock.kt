@@ -48,8 +48,8 @@ object WardDock {
     const val ideasWidth = 56.0
     const val barSpacing = 6.0
     const val barMaxWidth = 560.0
-    /** A tab is never narrower than a finger. */
-    const val leastTab = 44.0
+    /** A tab is never narrower than a finger: the least target (48 on Android, iOS 44). */
+    const val leastTab = WardControlSize.target
     /** How small a name may get (all five by the same amount) so the row still fits: never its side room, so it stays clear of the ring. */
     const val leastNameScale = 0.5
 

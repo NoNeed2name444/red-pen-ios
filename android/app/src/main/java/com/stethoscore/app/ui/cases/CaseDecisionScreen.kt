@@ -32,6 +32,8 @@ import com.stethoscore.app.data.CaseNames
 import com.stethoscore.app.data.CaseRun
 import com.stethoscore.app.data.candidates
 import com.stethoscore.app.data.resolve
+import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.wardDp
 
 /**
  * The decision: the leading diagnosis confirmed (the top of the ladder, or
@@ -89,7 +91,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
                     for (name in file.candidates) {
                         val picked = CaseNames.same(name, diagnosis)
                         Row(
-                            Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { diagnosis = name; choosing = false }
+                            Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { diagnosis = name; choosing = false }
                                 .semantics { selected = picked },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {

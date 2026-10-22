@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
 import com.stethoscore.app.ui.ScreenHeader
+import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.wardDp
 
 /**
  * One patient, from arrival to the decision, and then the debrief. Port of
@@ -214,7 +216,7 @@ private fun ClerkingFolded(file: CaseFile) {
     var open by rememberSaveable(file.id) { mutableStateOf(false) }
     CaseCard(padding = 12.dp) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { open = !open }
+            Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { open = !open }
                 .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -247,7 +249,7 @@ private fun ActionChip(step: CaseStep, done: Boolean, modifier: Modifier, take: 
     val shape = RoundedCornerShape(12.dp)
     val minutes = "${step.label}, ${step.minutes} minute${if (step.minutes == 1) "" else "s"}"
     Row(
-        modifier.heightIn(min = 44.dp)
+        modifier.minimumInteractiveComponentSize().heightIn(min = 44.dp)
             // raised to be tapped; once taken, pressed into the card
             .background(if (done) CaseInk.well else CaseInk.surface, shape)
             .border(1.dp, CaseInk.hairline, shape)
@@ -337,7 +339,7 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
             for (name in pickable) {
                 val shape = RoundedCornerShape(12.dp)
                 Box(
-                    Modifier.widthIn(min = 140.dp).heightIn(min = 44.dp).background(CaseInk.surface, shape).border(1.dp, CaseInk.hairline, shape)
+                    Modifier.minimumInteractiveComponentSize().widthIn(min = 140.dp).heightIn(min = 44.dp).background(CaseInk.surface, shape).border(1.dp, CaseInk.hairline, shape)
                         .clickable(role = Role.Button, onClickLabel = "Adds it to your ladder") { add(name) }.padding(horizontal = 12.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) { Text(name, fontSize = 15.sp) }
@@ -348,7 +350,7 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
 
 @Composable
 private fun RungButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean, action: () -> Unit) {
-    IconButton(action, Modifier.size(44.dp), enabled = enabled) {
+    IconButton(action, enabled = enabled) {
         Icon(icon, label, tint = if (enabled) CaseInk.theatre else CaseInk.ink.copy(alpha = 0.38f))
     }
 }

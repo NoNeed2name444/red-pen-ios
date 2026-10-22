@@ -37,7 +37,9 @@ import com.stethoscore.app.ui.ward.*
 // Sheets, menus and dialogs stay Material's own and stand in the page colour
 // (the owner, 22 Oct: one tone covers them): the slots their containers take
 // are the base's colour, and Material's tonal elevation is off, since with a
-// clear surfaceTint it would lay black over a sheet.
+// clear surfaceTint it would lay black over a sheet. Every touch area is at
+// least WardControlSize.target (48 on Android): Material's controls and
+// minimumInteractiveComponentSize read it from here.
 val LocalWardDark = staticCompositionLocalOf { false }
 val LocalWardLook = staticCompositionLocalOf { WardLook(dark = false, section = WardSection.outside) }
 
@@ -107,7 +109,7 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     val glide = rememberWardGlide(look)
     SideEffect { WardLookNow.shared.set(glide) }
     CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide,
-        LocalTonalElevationEnabled provides false) {
+        LocalTonalElevationEnabled provides false, LocalMinimumInteractiveComponentSize provides WardControlSize.target.wardDp) {
         MaterialTheme(colorScheme=wardColorScheme(look), typography=wardTypography(), content=content)
     }
 }

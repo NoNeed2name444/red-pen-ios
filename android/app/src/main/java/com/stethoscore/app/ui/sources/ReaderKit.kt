@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Slideshow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -149,8 +150,8 @@ internal fun decodePicture(stored: String): ImageBitmap? = runCatching {
 
 /** The open deck's folding band: the chevron in a small pill at the trailing end, pressed in while held. */
 @Composable private fun FoldBand(onFold: () -> Unit) {
-    Row(Modifier.fillMaxWidth().height(44.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-        WardTile(onFold, Modifier.padding(end = 12.dp).size(width = 44.dp, height = 28.dp).semantics { contentDescription = "Hide buttons" },
+    Row(Modifier.fillMaxWidth().height(WardControlSize.target.wardDp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        WardTile(onFold, Modifier.padding(end = 12.dp).minimumInteractiveComponentSize().size(width = 44.dp, height = 28.dp).semantics { contentDescription = "Hide buttons" },
             cornerRadius = 14.0) {
             Icon(Icons.Rounded.KeyboardArrowDown, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(18.dp))
         }

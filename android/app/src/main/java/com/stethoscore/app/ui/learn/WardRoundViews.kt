@@ -39,6 +39,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -81,6 +82,7 @@ import com.stethoscore.app.data.StudyStreak
 import com.stethoscore.app.data.WardRound
 import com.stethoscore.app.data.WardRoundPlan
 import com.stethoscore.app.ui.home.HomeRound
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
@@ -215,7 +217,7 @@ internal object WardRoundStyle {
     }
     val style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true).copy(color = wardColor(WardToken.ink))
     // floating over every screen, so raised high off the base
-    Row(modifier
+    Row(modifier.minimumInteractiveComponentSize()
         .wardRelief(RoundedCornerShape(50), WardLift.high)
         .clickable(remember { MutableInteractionSource() }, indication = null, onClick = open)
         .clearAndSetSemantics {
@@ -257,7 +259,7 @@ private fun chipWords(round: WardRound, now: Long): String {
                 Icon(Icons.Rounded.MedicalServices, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
                 Text("Ward round", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             }
-            Box(Modifier.size(44.dp).clickable(onClickLabel = null, role = Role.Button, onClick = close)
+            Box(Modifier.size(WardControlSize.target.wardDp).clickable(onClickLabel = null, role = Role.Button, onClick = close)
                 .semantics { contentDescription = "Fold the ward round away" }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.KeyboardArrowDown, null, Modifier.size(20.dp), tint = wardColor(WardToken.inkSecondary))
             }
@@ -318,7 +320,7 @@ private fun phaseWord(round: WardRound): String = when (round.phase) {
 }
 
 @Composable private fun StopButton(close: () -> Unit) {
-    Box(Modifier.heightIn(min = 44.dp).clickable(role = Role.Button) {
+    Box(Modifier.heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) {
         close()
         WardRoundClock.stop()
     }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {

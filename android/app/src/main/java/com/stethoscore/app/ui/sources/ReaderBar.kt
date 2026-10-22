@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.ViewSidebar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,7 +82,7 @@ private val modes = listOf(
 
 /** Every page, as a list: a 44-point disc on the floating plane, pressed in under the finger. */
 @Composable private fun ReaderPagesButton(noun: String, action: () -> Unit) {
-    WardTile(action, Modifier.size(44.dp).semantics { contentDescription = "All ${noun.lowercase()}s" }, cornerRadius = 22.0) {
+    WardTile(action, Modifier.minimumInteractiveComponentSize().size(44.dp).semantics { contentDescription = "All ${noun.lowercase()}s" }, cornerRadius = 22.0) {
         Icon(Icons.Rounded.ViewSidebar, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
     }
 }
@@ -98,7 +99,7 @@ private val modes = listOf(
 }
 
 @Composable private fun PagerArrow(icon: ImageVector, label: String, enabled: Boolean, action: () -> Unit) {
-    IconButton(onClick = action, enabled = enabled, modifier = Modifier.size(44.dp)) {
+    IconButton(onClick = action, enabled = enabled) {
         Icon(icon, label, tint = if (enabled) wardColor(WardToken.primaryInk) else wardDisabledInk(), modifier = Modifier.size(22.dp))
     }
 }

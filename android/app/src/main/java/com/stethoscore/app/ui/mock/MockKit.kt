@@ -33,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
@@ -68,6 +69,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardAnnulus
 import com.stethoscore.app.ui.ward.WardButtonBox
@@ -112,7 +114,8 @@ internal fun Modifier.readableColumn(): Modifier = this.widthIn(max = 700.dp).fi
 /** The navigation bar: back (or [leading]), the title in the middle, [trailing] at the end. */
 @Composable internal fun StudyTitleBar(title: String, onBack: (() -> Unit)?, leading: (@Composable () -> Unit)? = null,
                                        trailing: @Composable RowScope.() -> Unit = {}) {
-    Box(Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp).padding(horizontal = 12.dp, vertical = 4.dp)) {
+    // 52 tall, as iOS: the back circle's touch area (the least target) fits inside it
+    Box(Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp).padding(horizontal = 12.dp)) {
         Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) {
             if (leading != null) leading()
             else if (onBack != null) WardCircleButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
@@ -185,7 +188,7 @@ internal enum class BigKind { primary, secondary, companion }
     val held = enabled && pressed
     val look = WardControl.chip.look(WardControlState(isChosen = on, isHeld = held, isEnabled = enabled))
     val chosenInk = tone?.ink() ?: wardColor(WardToken.primaryInk)
-    Box(modifier.defaultMinSize(44.dp, 44.dp)
+    Box(modifier.defaultMinSize(WardControlSize.target.wardDp, WardControlSize.target.wardDp)
         .selectable(on, enabled = enabled, role = Role.Button, interactionSource = source, indication = null, onClick = onClick)
         .capPop(held), contentAlignment = Alignment.Center) {
         Row(Modifier.wardChosenEdge(CircleShape, on, chosenInk)
@@ -305,7 +308,7 @@ internal val chosenEdgeWidth: Dp get() = WardControlStates.chosenEdgeWidth.wardD
             WardCircleButton(Icons.Rounded.Remove, "One fewer", { onValue((value - 1).coerceAtLeast(range.first)) },
                 enabled = enabled && value > range.first)
             BasicTextField(text, { text = it.filter { c -> c.isDigit() }.take(6) },
-                Modifier.widthIn(min = 44.dp, max = 64.dp).onFocusChanged { if (!it.isFocused) commit() }
+                Modifier.minimumInteractiveComponentSize().widthIn(min = 44.dp, max = 64.dp).onFocusChanged { if (!it.isFocused) commit() }
                     .semantics { contentDescription = "$title, between ${range.first} and ${range.last}" },
                 enabled = enabled, singleLine = true,
                 textStyle = WardType.body.textStyle().copy(fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center,

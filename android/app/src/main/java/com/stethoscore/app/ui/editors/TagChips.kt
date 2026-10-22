@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.CardTags
 import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
@@ -85,7 +87,7 @@ import com.stethoscore.app.ui.wardColor
             }
             val canAdd = CardTags.parse(typed).isNotEmpty()
             Icon(Icons.Rounded.AddCircle, "Add tag", tint = if (canAdd) wardColor(WardToken.primaryInk) else wardDisabledInk(),
-                modifier = Modifier.size(26.dp).clickable(enabled = canAdd, role = Role.Button) { add() })
+                modifier = Modifier.minimumInteractiveComponentSize().size(26.dp).clickable(enabled = canAdd, role = Role.Button) { add() })
         }
         val offered = CardTags.suggestions(typed, known, tags, limit = 8)
         if (offered.isNotEmpty() && (focused || typed.isNotEmpty())) Row(
@@ -100,7 +102,7 @@ import com.stethoscore.app.ui.wardColor
     Row(Modifier.wardInset(CircleShape).padding(start = 10.dp, end = 4.dp, top = 3.dp, bottom = 3.dp)
         .semantics { contentDescription = "Tag $tag" }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(CardTags.label(tag), style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Box(Modifier.size(44.dp).padding(11.dp).clickable(role = Role.Button, onClickLabel = "Remove tag $tag", onClick = onRemove)
+        Box(Modifier.size(WardControlSize.target.wardDp).clickable(role = Role.Button, onClickLabel = "Remove tag $tag", onClick = onRemove)
             .semantics { contentDescription = "Remove tag $tag" }, contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Close, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(12.dp))
         }

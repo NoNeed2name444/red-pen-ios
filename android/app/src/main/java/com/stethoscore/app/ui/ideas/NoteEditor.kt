@@ -208,7 +208,7 @@ import kotlinx.coroutines.delay
             WardSegmented(reading, listOf(false, true), { save(); settings.setReading(it) }, Modifier.semantics { contentDescription = "Write or read" }) { r, text, ink ->
                 Text(if (r) "Read" else "Write", style = text, color = ink)
             }
-            WardTile({ save(); picking = true }, Modifier.size(44.dp).semantics { contentDescription = "Link to…" }, cornerRadius = 22.0) {
+            WardTile({ save(); picking = true }, Modifier.minimumInteractiveComponentSize().size(44.dp).semantics { contentDescription = "Link to…" }, cornerRadius = 22.0) {
                 Icon(Icons.Rounded.Link, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
             }
             WardTile({
@@ -219,7 +219,7 @@ import kotlinx.coroutines.delay
                     val name = now.title.trim().ifEmpty { "Untitled" }
                     if (model.addSet(StudySet(name = name, subject = "Ideas", kind = StudySetKind.ANKI, cards = cards))) NoteEditing.cardsMade(name, cards.size) else null
                 }
-            }, Modifier.size(44.dp).semantics { contentDescription = "Turn into cards" }, cornerRadius = 22.0) {
+            }, Modifier.minimumInteractiveComponentSize().size(44.dp).semantics { contentDescription = "Turn into cards" }, cornerRadius = 22.0) {
                 Icon(Icons.Rounded.Style, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
             }
         }

@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui
 
+import androidx.compose.material3.minimumInteractiveComponentSize
 import com.stethoscore.app.ui.ward.wardRaised
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.background
@@ -62,7 +63,7 @@ private fun android.view.View.say(text: String) = announceForAccessibility(text)
         onExpire()
     }
     if (until == null) return
-    Row(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 16.dp).heightIn(min = 44.dp)
+    Row(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 16.dp).minimumInteractiveComponentSize().heightIn(min = 44.dp)
         .wardRaised(22.0).background(wardColor(WardToken.raised), RoundedCornerShape(22.dp))
         .clickable(role = Role.Button, onClickLabel = "Brings the last card back as it was") { onUndo(); view.say("Rating undone. The card is back.") }
         .semantics(mergeDescendants = true) { contentDescription = "Undo last rating" }

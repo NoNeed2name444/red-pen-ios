@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -76,6 +77,9 @@ import kotlin.math.roundToInt
 //   the lowest lift: nothing looks faded;
 // - chosen, it is pressed in, its words take the accent and a 2-point accent
 //   edge goes round it.
+// Every control's touch area is at least WardControlSize.target (48 on
+// Android; iOS 44): minimumInteractiveComponentSize grows the area round
+// what is drawn, so the faces keep iOS's sizes.
 
 /**
  * The semantic tones a chip, an icon square or a ring can take. `blue` is
@@ -141,7 +145,8 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
 
 /**
  * The buttons: soft capsules raised off the base, 56 tall (compact and
- * quiet 44), at most 360 wide on a broad screen. The kind shows in the
+ * quiet 44, in a touch area the least target tall), at most 360 wide on a
+ * broad screen. The kind shows in the
  * label's colour (the accent, Chart Ink, Resus Red), never a fill, and the
  * primary stands a step higher; held, a button is pressed into the base;
  * disabled, it sinks to the lowest step and says its word in Biro Grey.
@@ -176,6 +181,7 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
     Row(
         modifier
             .then(width)
+            .minimumInteractiveComponentSize()
             .defaultMinSize(minWidth = height.wardDp, minHeight = height.wardDp)
             .capPop(touch.held)
             .wardFocusRing(shape, touch.focused, wardColor(WardControlStates.focusInk))
@@ -207,10 +213,11 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
 
 /**
  * A chip that is a button (Sure, Hint, Flag): a capsule raised just off the
- * base, a 44-point target. Chosen, or held, it is pressed in; chosen, its
- * words take [tone] (the accent when it has none) and a solid edge in the
- * same colour goes round it. Disabled, Biro Grey and low; chosen and
- * disabled, it stays pressed in with its edge. Never a fill.
+ * base, in a touch area the least target across. Chosen, or held, it is
+ * pressed in; chosen, its words take [tone] (the accent when it has none)
+ * and a solid edge in the same colour goes round it. Disabled, Biro Grey
+ * and low; chosen and disabled, it stays pressed in with its edge. Never a
+ * fill.
  */
 @Composable fun WardChipButton(
     text: String,
@@ -244,8 +251,9 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
 
 /**
  * A round button for a glyph (a stepper's minus and plus): a soft circle 44
- * across, the glyph in Chart Ink; chosen, the glyph and an edge in the
- * accent, pressed in. Disabled, Biro Grey and low.
+ * across (a compact button's height, as iOS), in a touch area the least
+ * target across; the glyph in Chart Ink; chosen, the glyph and an edge in
+ * the accent, pressed in. Disabled, Biro Grey and low.
  */
 @Composable fun WardCircleButton(
     icon: ImageVector,
@@ -261,7 +269,8 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
     val look = WardControl.circle.look(WardControlState(isChosen = on, isHeld = touch.held, isEnabled = enabled))
     Box(
         modifier
-            .size(WardControlSize.target.wardDp)
+            .minimumInteractiveComponentSize()
+            .size(WardControlSize.buttonSmall.wardDp)
             .capPop(touch.held)
             .wardFocusRing(CircleShape, touch.focused, wardColor(WardControlStates.focusInk))
             .wardChosenEdge(CircleShape, on)
@@ -404,6 +413,7 @@ fun wardTimerText(seconds: Int): String {
     val track = CircleShape
     Row(
         modifier
+            .minimumInteractiveComponentSize()
             .toggleable(checked, source, indication = null, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
             .then(if (label == null) Modifier else Modifier.fillMaxWidth()),
         horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically,
@@ -444,7 +454,8 @@ fun wardTimerText(seconds: Int): String {
     label: @Composable (T, TextStyle, Color) -> Unit,
 ) {
     Row(
-        modifier.wardRelief(CircleShape, WardLift.low, control = true).padding(WardControlSize.segmentedPadding.wardDp),
+        modifier.minimumInteractiveComponentSize()
+            .wardRelief(CircleShape, WardLift.low, control = true).padding(WardControlSize.segmentedPadding.wardDp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         for (option in options) {
@@ -495,7 +506,7 @@ fun wardTimerText(seconds: Int): String {
     val ink = if (enabled) wardColor(WardToken.ink) else wardDisabledInk()
     BasicTextField(
         value, onValueChange,
-        modifier = modifier.wardFocusRing(shape, focused, wardColor(WardControlStates.focusInk)),
+        modifier = modifier.minimumInteractiveComponentSize().wardFocusRing(shape, focused, wardColor(WardControlStates.focusInk)),
         enabled = enabled, singleLine = singleLine, interactionSource = source,
         textStyle = WardType.body.textStyle().copy(color = ink),
         cursorBrush = SolidColor(wardColor(WardToken.primaryInk)),

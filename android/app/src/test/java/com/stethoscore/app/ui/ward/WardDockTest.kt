@@ -135,6 +135,7 @@ class WardDockTest {
         check("with room to spare, the narrower tabs share it", WardDock.tabWidths(listOf(80.0, 40.0, 40.0), 200.0) == listOf(80.0, 60.0, 60.0) &&
             WardDock.nameScale(listOf(80.0, 40.0, 40.0), 200.0) == 1.0)
         check("the bar's numbers are iOS's", WardDock.barSide == 10.0 && WardDock.ideasWidth == 56.0 && WardDock.barSpacing == 6.0 &&
-            WardDock.barMaxWidth == 560.0 && WardDock.leastTab == 44.0 && WardDock.leastNameScale == 0.5)
+            WardDock.barMaxWidth == 560.0 && WardDock.leastNameScale == 0.5)
+        check("a tab is never narrower than the least target, 48 on Android (iOS 44)", WardDock.leastTab == WardControlSize.target)
     }
 }

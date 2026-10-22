@@ -40,6 +40,7 @@ import com.stethoscore.app.data.ReadSource
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardTextField
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
@@ -47,6 +48,7 @@ import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.wardColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -205,7 +207,7 @@ import kotlinx.coroutines.withContext
 @Composable private fun CardTypePicker(style: CardStyle, enabled: Boolean, onChange: (CardStyle) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp)
+        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp)
             .clickable(enabled = enabled, role = Role.DropdownList, onClickLabel = "Choose the card type") { open = true },
             verticalAlignment = Alignment.CenterVertically) {
             Text("Card type", style = WardType.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))

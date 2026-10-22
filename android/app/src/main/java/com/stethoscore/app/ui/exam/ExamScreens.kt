@@ -75,6 +75,7 @@ import com.stethoscore.app.ui.sources.ReaderNavBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardChip
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardPill
 import com.stethoscore.app.ui.ward.WardRadius
@@ -365,7 +366,7 @@ fun ExamDashboardCard(store: StudyStore, revision: Int, onPreset: (NewSetPreset)
             if (second != null) Text("with ${second.shortName}", style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
         }
         WardPill(ExamWords.countdown(days), Modifier.clearAndSetSemantics { contentDescription = days?.let { "$it days to go" } ?: "No exam date" })
-        Box(Modifier.size(44.dp).clickable(role = Role.Button, onClickLabel = null, onClick = onChange)
+        Box(Modifier.size(WardControlSize.target.wardDp).clickable(role = Role.Button, onClickLabel = null, onClick = onChange)
             .semantics { contentDescription = "Change exam" }.testTag("examDashboardChange"), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Tune, null, tint = wardColor(WardToken.primaryInk))
         }
@@ -397,7 +398,7 @@ fun ExamDashboardCard(store: StudyStore, revision: Int, onPreset: (NewSetPreset)
     Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         WardSectionLabel("Study next")
         for (s in ExamBlueprint.studyNext(standings, limit = 3)) {
-            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp)
+            Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp)
                 .clickable(role = Role.Button, onClickLabel = "Makes a question set on it in ${exam.shortName} format") {
                     onPreset(NewSetPreset.blueprintArea(s.area.title, exam))
                 },

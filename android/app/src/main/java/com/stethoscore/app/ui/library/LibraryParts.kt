@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.ui.modeIcon
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardCircleButton
@@ -113,9 +114,9 @@ import com.stethoscore.app.ui.ward.wardRaised
     LibraryGroove(progress, wardColor(WardToken.beam), modifier, height = 6.0)
 }
 
-/** The face of a "more" menu: an ellipsis on a small soft disc inside a 44-point target (iOS moreMenuFace). */
+/** The face of a "more" menu: an ellipsis on a small soft disc inside the least target (iOS moreMenuFace's 44; 48 on Android). */
 @Composable fun LibraryMoreFace(spoken: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.size(44.dp).clickable(onClick = onClick).semantics { contentDescription = spoken }, contentAlignment = Alignment.Center) {
+    Box(modifier.size(WardControlSize.target.wardDp).clickable(onClick = onClick).semantics { contentDescription = spoken }, contentAlignment = Alignment.Center) {
         Box(Modifier.size(34.dp).wardRaised(17.0, WardLift.low), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.MoreHoriz, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(18.dp))
         }
