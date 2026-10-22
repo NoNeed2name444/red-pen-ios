@@ -1,9 +1,11 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardSmallCapsText
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardRaised
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -191,7 +193,7 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 /** The vital signs as observations on a Ward White panel: monospaced values, one high or low in Resus Red with its arrow. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ChartVitalsGrid(vitals: List<PatientChart.Vital>) {
-    FlowRow(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(12.dp)).padding(12.dp),
+    FlowRow(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         vitals.forEach { v ->
             val danger = ChartQuiz.tone(v.flag) == ChartQuiz.Tone.danger
@@ -207,7 +209,7 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 
 /** The results as a monospaced table - name, value, unit, H or L - with a flagged value and its letter in Resus Red. Each row is read whole. */
 @Composable fun ChartLabsTable(labs: List<PatientChart.Lab>) {
-    Column(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(12.dp)).padding(12.dp),
+    Column(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         labs.forEach { lab ->
             val value = if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)

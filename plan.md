@@ -2334,6 +2334,19 @@ with the marks on the screens last.
       headings), which sit over the rows' words (the tile's 8 and its 12),
       as iOS's form headers do, and the other off-scale gaps, many of them
       copies of iOS's own (iOS's sweep leaves those to a screenshot review).
+    - [x] Radii from WardRadius where iOS names one: the Cards progress
+      header (bar), its content card (card), the rating buttons (button),
+      the lab and vitals panels (field), the undo chip (bar, iOS's
+      PopTileStyle), and the board's cards and the occlusion picture (card;
+      they were 14). Capsules where iOS draws Capsule(): the Cards companion
+      button (it was 16), the reader's pager, the board's hint and the
+      import slip. Left: radii iOS writes out itself (the book's 8, 10 and
+      12, the mock's picture's 12, the narrate flow's 10, the stem
+      highlight's 8), the two discs drawn at half their size (34 and 28),
+      the native dialog's 28 (Android Q4), the section switcher's geometry,
+      the Cases screens' 12s (the field radius already), and W2's stand-ins
+      (the answer row, QuizCard, the calculator keys, the hint panel, the
+      empty state's disc).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

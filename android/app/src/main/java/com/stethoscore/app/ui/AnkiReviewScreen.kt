@@ -230,8 +230,8 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 /** Where you are and how far there is to go: a thin raised slab over the content. */
 @Composable private fun ProgressHeader(header: CardReview.Header) {
     Box(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(24.0, lift = com.stethoscore.app.ui.ward.WardLift.low)
-            .background(wardColor(WardToken.surface), RoundedCornerShape(24.dp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.bar, lift = com.stethoscore.app.ui.ward.WardLift.low)
+            .background(wardColor(WardToken.surface), RoundedCornerShape(WardRadius.bar.wardDp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(header.status, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
                 Text(header.detail, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
@@ -247,7 +247,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** A card standing on the base: raised, a shade off it. */
 @Composable private fun ContentCard(spacing: androidx.compose.ui.unit.Dp = 0.dp, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(16.0).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp)).padding(16.dp),
+    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.card).background(wardColor(WardToken.surface), RoundedCornerShape(WardRadius.card.wardDp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(spacing), content = content)
 }
 
@@ -292,7 +292,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** The quieter button beside it: raised, its words in the primary's ink. */
 @Composable internal fun CardsCompanionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.heightIn(min = 56.dp).wardRaised(16.0).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp))
+    Box(modifier.heightIn(min = 56.dp).wardRelief(RoundedCornerShape(50)).background(wardColor(WardToken.surface), RoundedCornerShape(50))
         .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Text(text, style = WardType.headline.textStyle(), color = wardColor(WardToken.primaryInk), textAlign = TextAlign.Center)
     }

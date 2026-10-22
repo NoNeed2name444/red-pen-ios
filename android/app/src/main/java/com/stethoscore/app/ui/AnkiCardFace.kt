@@ -214,9 +214,9 @@ private const val hintsKey = "anki.ratingHintsShown"
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val ink = tone(rating)
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(WardRadius.button.wardDp)
     // held, it is a well pressed into the base: the well's fill, told by its inset shadows only
-    val face = if (pressed) Modifier.wardInset(shape) else Modifier.wardRaised(16.0).background(wardColor(WardToken.surface), shape)
+    val face = if (pressed) Modifier.wardInset(shape) else Modifier.wardRaised(WardRadius.button).background(wardColor(WardToken.surface), shape)
     Column(modifier.heightIn(min = 56.dp).then(face)
         .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
         .semantics { contentDescription = CardReview.title(rating); stateDescription = CardReview.spokenInterval(whenBack) }
