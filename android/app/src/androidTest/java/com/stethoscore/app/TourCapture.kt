@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import com.stethoscore.app.ui.learn.WardRoundClock
 import com.stethoscore.app.ui.library.IncomingFiles
 import com.stethoscore.app.ui.ward.WardPaperFrame
 import com.stethoscore.app.ui.ward.WardSection
+import com.stethoscore.app.ui.ward.wardFrameClearance
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -77,7 +77,8 @@ class TourCapture(private val compose: ComposeContentTestRule) {
         StethoscoreTheme(m.dark, section) {
             Box(Modifier.fillMaxSize()) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Box(Modifier.fillMaxSize().safeDrawingPadding()) { content() }
+                    // inside the frame's ring, as StethoscoreApp places every framed page (wardFrameClearance)
+                    Box(Modifier.fillMaxSize().wardFrameClearance()) { content() }
                 }
                 WardPaperFrame(Modifier.fillMaxSize())
             }
