@@ -26,12 +26,12 @@ enum LaunchArt {
         dark ? (0.7728, 0.2924, 0.1098) : (0.7770, 0.3022, 0.1123)
     }
 
-    /// The ECG's colour (0xRRGGBB). By night the grey tube's lit side, which
-    /// reads on the dark base (about 5.8:1); by day a dark slate, since the
-    /// white tube's own colour is too faint as a thin line on the pale base
-    /// (about 1.2:1).
+    /// The ECG's colour (0xRRGGBB): the title squiggle's own token
+    /// (WardPalette .ecg, what home draws beside "Stethoscore"), so the line
+    /// that travels up and lands as the squiggle is one colour all the way
+    /// (docs/design/identity/routes.md, platform.md: one Trace token).
     static func trace(dark: Bool) -> UInt32 {
-        dark ? 0xA9A8A8 : 0x43566F
+        WardPalette.hex(.ecg, dark: dark)
     }
 }
 
