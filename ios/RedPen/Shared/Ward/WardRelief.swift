@@ -368,6 +368,61 @@ enum WardCorner {
     static func concentric(device: Double, inset: Double, floor: Double) -> Double {
         max(floor, device - inset)
     }
+
+    /// How near a corner must come to the frame's corner to follow it: one
+    /// gutter (WardSpace.gutter).
+    static let reach = WardScale.l
+
+    /// Each corner of `element` (window points): a corner within `reach` of
+    /// both edges of `frame`'s corner is concentric with it (its radius the
+    /// frame corner's less the larger of the two distances, floored at
+    /// `own`); every other corner keeps `own`. None is rounder than half
+    /// the element's shorter side.
+    static func radii(element: CGRect, frame: WardCornerFrame, own: Double, reach: Double = WardCorner.reach) -> WardCornerRadii {
+        let f = frame.rect
+        let left = max(0, Double(element.minX - f.minX))
+        let right = max(0, Double(f.maxX - element.maxX))
+        let top = max(0, Double(element.minY - f.minY))
+        let bottom = max(0, Double(f.maxY - element.maxY))
+        let cap = max(own, Double(min(element.width, element.height)) / 2)
+        func corner(_ dx: Double, _ dy: Double, _ radius: Double) -> Double {
+            dx <= reach && dy <= reach ? min(cap, concentric(device: radius, inset: max(dx, dy), floor: own)) : own
+        }
+        return WardCornerRadii(topLeft: corner(left, top, frame.top), topRight: corner(right, top, frame.top),
+                               bottomRight: corner(right, bottom, frame.bottom),
+                               bottomLeft: corner(left, bottom, frame.bottom))
+    }
+}
+
+/// One radius for each corner, clockwise from the top left, in points.
+struct WardCornerRadii: Equatable, Sendable {
+    var topLeft: Double
+    var topRight: Double
+    var bottomRight: Double
+    var bottomLeft: Double
+
+    static func all(_ radius: Double) -> WardCornerRadii {
+        WardCornerRadii(topLeft: radius, topRight: radius, bottomRight: radius, bottomLeft: radius)
+    }
+}
+
+/// What a corner element is concentric with, in window points: the paper
+/// frame's ring on a framed page (the owner, 22 Oct, "clear bars, small
+/// top": things near the top take the ring's top corner), or the screen
+/// with the display's own corner where there is no frame (home).
+struct WardCornerFrame: Equatable, Sendable {
+    var rect: CGRect
+    var top: Double
+    var bottom: Double
+
+    static func screen(width: Double, height: Double, device: Double) -> WardCornerFrame {
+        WardCornerFrame(rect: CGRect(x: 0, y: 0, width: width, height: height), top: device, bottom: device)
+    }
+
+    static func ring(_ panel: WardPaperPanel) -> WardCornerFrame {
+        WardCornerFrame(rect: CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height),
+                        top: panel.radius, bottom: panel.bottomRadius)
+    }
 }
 
 enum WardPaper {

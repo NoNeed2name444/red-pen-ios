@@ -72,5 +72,40 @@ check("a reported 0: the frame's corners at their floor",
       WardPaper.panel(width: 375, height: 667, safe: WardSystemInsets(top: 20), device: 0).map {
           $0.radius == WardEdge.minRadius && $0.bottomRadius == WardEdge.minRadius } == true)
 
+// The corner elements (WardCorner.radii), the cases of Android's
+// cornerElements: 411.43 x 914.29 with a 47 px corner at 2.625 (17.9),
+// 24-point bars at top and bottom.
+do {
+    let w = 411.43, h = 914.29, device = 47 / 2.625
+    let safe = WardSystemInsets(top: 24, bottom: 24)
+    let panel = WardPaper.panel(width: w, height: h, safe: safe, device: device)!
+    let ring = WardCornerFrame.ring(panel)
+    let screen = WardCornerFrame.screen(width: w, height: h, device: device)
+    let left = WardPaper.contentEdge(safe.left), top = safe.top + WardPaper.edgeWidth
+    let bottom = h - safe.bottom - WardPaper.edgeWidth
+    let done = CGRect(x: left + 8, y: top + 8, width: 72, height: 36)
+    check("Done keeps its capsule", WardCorner.radii(element: done, frame: ring, own: 18) == .all(18))
+    let bar = CGRect(x: left, y: bottom - 64, width: w - 2 * left, height: 64)
+    let corners = WardCorner.radii(element: bar, frame: ring, own: 0)
+    let expected = WardCorner.concentric(device: panel.bottomRadius,
+                                         inset: max(left - panel.x, panel.y + panel.height - Double(bar.maxY)), floor: 0)
+    check("a bar's bottom corners follow the ring", corners.bottomLeft == expected && corners.bottomRight == expected && expected > 0)
+    check("a bar's top corners stay square", corners.topLeft == 0 && corners.topRight == 0)
+    let dock = CGRect(x: 10, y: h - 24 - 10 - 72, width: w - 20 - 56 - 6, height: 72)
+    check("the dock keeps its radius here", WardCorner.radii(element: dock, frame: screen, own: 24) == .all(24))
+    let card = CGRect(x: left + 16, y: top + 60, width: w - 2 * (left + 16), height: 120)
+    check("a mid-page card keeps its radius", WardCorner.radii(element: card, frame: ring, own: 16) == .all(16))
+    let round = WardCornerFrame.screen(width: w, height: h, device: 55)
+    let low = CGRect(x: 12, y: h - 140, width: w - 24, height: 136)
+    let lowCorners = WardCorner.radii(element: low, frame: round, own: 24)
+    check("near a round corner the dock is concentric", lowCorners.bottomLeft == 43 && lowCorners.bottomRight == 43 && lowCorners.topLeft == 24)
+    check("never rounder than half its height",
+          WardCorner.radii(element: CGRect(x: 0, y: h - 20, width: w, height: 20), frame: round, own: 0).bottomLeft == 10)
+    let square = WardCornerFrame.screen(width: w, height: h, device: 0)
+    for own in [24.0, 16, 0, 18] {
+        check("corner 0: \(own) keeps its own minimum", WardCorner.radii(element: low, frame: square, own: own) == .all(own))
+    }
+}
+
 print("\(failures) WARD FRAME CLEAR FAILURES")
 exit(failures == 0 ? 0 : 1)

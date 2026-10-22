@@ -8,6 +8,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -94,20 +104,35 @@ private fun roundRectPath(size: Size, radius: Float): Path = Path().apply {
  * below, as WardReliefDrawing and WardPressDrawing share one drawing on iOS.
  */
 internal fun DrawScope.drawWardFace(radiusDp: Double, fill: Color, outer: List<WardReliefLight>, inner: List<WardReliefLight>,
+                                    edgeAlpha: Double, edge: Color) =
+    drawWardFace(WardCornerRadii.all(radiusDp), fill, outer, inner, edgeAlpha, edge)
+
+/** The face's outline with a radius per corner, in pixels, each at most half the shorter side, inset by [by]. */
+private fun DrawScope.cornerPath(radiiDp: WardCornerRadii, by: Float = 0f): Path = Path().apply {
+    fun c(r: Double) = CornerRadius(max(0f, min(r.toFloat() * density, size.minDimension / 2) - by))
+    addRoundRect(RoundRect(Rect(by, by, size.width - by, size.height - by),
+        c(radiiDp.topLeft), c(radiiDp.topRight), c(radiiDp.bottomRight), c(radiiDp.bottomLeft)))
+}
+
+/** As above, with a radius per corner (WardCorner.radii); one radius draws exactly as before. */
+internal fun DrawScope.drawWardFace(radiiDp: WardCornerRadii, fill: Color, outer: List<WardReliefLight>, inner: List<WardReliefLight>,
                                     edgeAlpha: Double, edge: Color) {
     if (size.width <= 0f || size.height <= 0f) return
-    val r = min(radiusDp.toFloat() * density, size.minDimension / 2)
-    val shape = roundRectPath(size, r)
+    val uniform = radiiDp.uniform
+    val r = min(radiiDp.topLeft.toFloat() * density, size.minDimension / 2)
+    val shape = if (uniform) roundRectPath(size, r) else cornerPath(radiiDp)
     drawIntoCanvas { canvas ->
         val native = canvas.nativeCanvas
         val paint = Paint().asFrameworkPaint().apply { isAntiAlias = true; color = fill.toArgb() }
+        fun face() = if (uniform) native.drawRoundRect(0f, 0f, size.width, size.height, r, r, paint)
+            else native.drawPath(shape.asAndroidPath(), paint)
         // raised: each light is the face drawn again with its shadow, the shade over the highlight
         val lit = outer.filter { it.lit }
         if (lit.isEmpty()) {
-            native.drawRoundRect(0f, 0f, size.width, size.height, r, r, paint)
+            face()
         } else for (light in lit) {
             paint.setShadowLayer(shadowRadius(light.radius), light.x.toFloat() * density, light.y.toFloat() * density, argb(light))
-            native.drawRoundRect(0f, 0f, size.width, size.height, r, r, paint)
+            face()
         }
         paint.clearShadowLayer()
     }
@@ -130,8 +155,9 @@ internal fun DrawScope.drawWardFace(radiusDp: Double, fill: Color, outer: List<W
     }
     if (edgeAlpha > 0) {
         val w = 1.dp.toPx()
-        drawRoundRect(edge.copy(alpha = edgeAlpha.toFloat()), Offset(w / 2, w / 2), Size(size.width - w, size.height - w),
+        if (uniform) drawRoundRect(edge.copy(alpha = edgeAlpha.toFloat()), Offset(w / 2, w / 2), Size(size.width - w, size.height - w),
             CornerRadius(max(0f, r - w / 2)), style = Stroke(w))
+        else drawPath(cornerPath(radiiDp, by = w / 2), edge.copy(alpha = edgeAlpha.toFloat()), style = Stroke(w))
     }
 }
 
@@ -153,11 +179,72 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
  */
 @Composable fun Modifier.wardRaised(radius: Double = WardFaceMetrics.cardRadius, lift: WardLift = WardLift.mid,
                                     fill: WardToken = WardToken.surface, control: Boolean = false,
+                                    held: Boolean = false): Modifier =
+    wardRaised(WardCornerRadii.all(radius), lift, fill, control, held)
+
+/** As wardRaised, with a radius per corner (a corner element's WardCorner.radii, from rememberWardCorners). */
+@Composable fun Modifier.wardRaised(radii: WardCornerRadii, lift: WardLift = WardLift.mid,
+                                    fill: WardToken = WardToken.surface, control: Boolean = false,
                                     held: Boolean = false): Modifier {
     val f = faceLook(fill, held)
     val spec = if (control) WardRelief.rim(lift, f.dark) else WardRelief.raised(lift, f.dark)
-    return drawBehind { drawWardFace(radius, f.fill, listOf(spec.highlight, spec.shade), emptyList(), spec.edgeAlpha, f.edge) }
+    return drawBehind { drawWardFace(radii, f.fill, listOf(spec.highlight, spec.shade), emptyList(), spec.edgeAlpha, f.edge) }
 }
+
+/**
+ * What corner elements are concentric with on this screen (WardCornerFrame):
+ * the paper frame's ring on a framed page, the screen with the display's
+ * corner where there is none; null until the window is measured.
+ */
+val LocalWardCornerFrame = compositionLocalOf<WardCornerFrame?> { null }
+
+/**
+ * The window's root (it must fill the window from its top left): measures
+ * it and gives [content] the frame its corner elements follow, the ring
+ * when [framed], otherwise the screen.
+ */
+@Composable fun WardCornerScope(framed: Boolean, content: @Composable () -> Unit) {
+    var size by remember { mutableStateOf(IntSize.Zero) }
+    val safe = wardSystemInsets()
+    val device = wardDisplayCorner()
+    val pad = LocalConfiguration.current.smallestScreenWidthDp >= 600
+    val density = LocalDensity.current.density.toDouble()
+    val frame = remember(size, safe, device, pad, framed, density) {
+        if (size.width <= 0 || size.height <= 0) null else {
+            val w = size.width / density
+            val h = size.height / density
+            if (framed) WardPaper.panel(w, h, safe, device, pad)?.let(WardCornerFrame::ring)
+            else WardCornerFrame.screen(w, h, device ?: WardPaper.deviceRadius(w, h, pad))
+        }
+    }
+    Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
+        CompositionLocalProvider(LocalWardCornerFrame provides frame, content = content)
+    }
+}
+
+/**
+ * A corner element's radii (WardCorner.radii against LocalWardCornerFrame)
+ * and the modifier that measures where it stands: put the modifier on the
+ * element, draw its corners with the radii. [own] until it is measured, and
+ * anywhere away from the frame's corners.
+ */
+@Composable fun rememberWardCorners(own: Double): Pair<Modifier, WardCornerRadii> {
+    val frame = LocalWardCornerFrame.current
+    var bounds by remember { mutableStateOf<WardRect?>(null) }
+    val density = LocalDensity.current.density.toDouble()
+    val radii = remember(frame, bounds, own) {
+        val b = bounds
+        if (frame == null || b == null) WardCornerRadii.all(own) else WardCorner.radii(b, frame, own)
+    }
+    return Modifier.onGloballyPositioned {
+        val r = it.boundsInWindow()
+        bounds = WardRect(r.left / density, r.top / density, r.width / density, r.height / density)
+    } to radii
+}
+
+/** A Compose shape from per-corner radii in dp. */
+fun WardCornerRadii.shape(): androidx.compose.foundation.shape.RoundedCornerShape =
+    androidx.compose.foundation.shape.RoundedCornerShape(topLeft.dp, topRight.dp, bottomRight.dp, bottomLeft.dp)
 
 /**
  * Pressed into the base (iOS wardInset): fields, tracks, wells and whatever
@@ -195,7 +282,9 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
 @Composable fun WardCardFace(modifier: Modifier = Modifier, lift: WardLift = WardLift.mid,
                              padding: Dp = WardFaceMetrics.cardPadding.dp, spacing: Dp = WardScale.m.dp,
                              content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.wardRaised(WardFaceMetrics.cardRadius, lift).padding(padding),
+    // a card near the frame's corner is concentric with it (WardCorner.radii)
+    val (measure, radii) = rememberWardCorners(WardFaceMetrics.cardRadius)
+    Column(modifier.then(measure).wardRaised(radii, lift).padding(padding),
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(spacing), content = content)
 }
 

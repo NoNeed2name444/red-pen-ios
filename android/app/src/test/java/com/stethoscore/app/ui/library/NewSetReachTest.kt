@@ -204,6 +204,8 @@ class NewSetReachTest {
         assertTrue(made.caseFiles.isNotEmpty())
         assertEquals("Heart failure", made.sources.single().name)
         compose.waitForIdle()
+        // home comes back on the test clock, a frame or two after the save (as the other waits here)
+        until { compose.onAllNodesWithText("YOUR STUDY WARD").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("YOUR STUDY WARD").assertExists()
     }
 

@@ -1,6 +1,7 @@
 package com.stethoscore.app.ui
 
 import com.stethoscore.app.ui.ward.wardRaised
+import com.stethoscore.app.ui.ward.shape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -258,7 +259,9 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** The bar at the bottom with the one thing to do next, the card scrolling above it. */
 @Composable private fun StudyBar(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxWidth().background(wardColor(WardToken.raised)).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+    // square, but its corners at the frame's bottom corners follow the ring (WardCorner.radii)
+    val (measure, corners) = com.stethoscore.app.ui.ward.rememberWardCorners(own = 0.0)
+    Box(Modifier.fillMaxWidth().then(measure).background(wardColor(WardToken.raised), corners.shape()).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Box(Modifier.widthIn(max = 700.dp)) { content() }
     }
 }

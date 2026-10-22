@@ -474,6 +474,9 @@ final class WardEdgeStore {
     private(set) var entries: [UUID: Entry] = [:]
     private(set) var window: CGRect = .zero
     private(set) var page: CGRect = .zero
+    /// What corner elements follow (WardCorner.radii), in window points:
+    /// the ring off home, the screen with the display's corner on home.
+    private(set) var cornerFrame: WardCornerFrame?
     @ObservationIgnored private var requests: [UUID: Request] = [:]
     @ObservationIgnored private var panel: WardPaperPanel?
     @ObservationIgnored private var outline: [SIMD2<Double>] = []
@@ -491,6 +494,11 @@ final class WardEdgeStore {
         // corners concentric with the display's (WardPaper.panel)
         let next = WardPaper.panel(width: frame.width, height: frame.height,
                                    top: Double(top ?? 0) - frame.minY, safe: safe, device: nil, pad: pad)
+        let corners: WardCornerFrame? = WardPaperTop.shared.home
+            ? WardCornerFrame.screen(width: Double(frame.width), height: Double(frame.height),
+                                     device: WardPaper.deviceRadius(width: Double(frame.width), height: Double(frame.height), pad: pad))
+            : next.map(WardCornerFrame.ring)
+        if cornerFrame != corners { cornerFrame = corners }
         guard window != frame || panel != next else { return }
         window = frame
         panel = next
@@ -1124,10 +1132,41 @@ struct WardCardStyle: ViewModifier {
     var lift: WardLift = .mid
 
     func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous), lift: lift)
+        // a card near the frame's corner is concentric with it (WardCorner.radii)
+        WardCorners(own: WardRadius.card) { radii in
+            content
+                .padding(padding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .wardRaised(in: radii.shape, lift: lift)
+        }
+    }
+}
+
+/// A corner element: `content` drawn with its WardCorner.radii against the
+/// window's corner frame (WardEdgeStore.cornerFrame), measured where it
+/// stands; `own` until it is measured and anywhere away from the corners.
+struct WardCorners<Content: View>: View {
+    let own: Double
+    @ViewBuilder let content: (WardCornerRadii) -> Content
+    @Environment(\.wardEdgeStore) private var store
+    @State private var frame: CGRect = .zero
+
+    var body: some View {
+        let radii: WardCornerRadii = {
+            guard let store, let corners = store.cornerFrame, frame.width > 0 else { return .all(own) }
+            let local = frame.offsetBy(dx: -store.window.minX, dy: -store.window.minY)
+            return WardCorner.radii(element: local, frame: corners, own: own)
+        }()
+        content(radii)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+    }
+}
+
+extension WardCornerRadii {
+    /// The continuous rounded rectangle with these corners.
+    var shape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: topLeft, bottomLeadingRadius: bottomLeft,
+                               bottomTrailingRadius: bottomRight, topTrailingRadius: topRight, style: .continuous)
     }
 }
 

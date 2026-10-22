@@ -14,6 +14,9 @@ import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.wardChosenEdge
 import com.stethoscore.app.ui.ward.wardFrameClearance
+import com.stethoscore.app.ui.ward.WardCornerScope
+import com.stethoscore.app.ui.ward.rememberWardCorners
+import com.stethoscore.app.ui.ward.shape
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.ward.wardRaised
@@ -187,7 +190,7 @@ import kotlinx.coroutines.withContext
         // the header as the list scrolls; gone with the header
         var bandBottom by remember { mutableStateOf<Float?>(null) }
         if(onGround) WardGroundBackground(WardGround.home(section, dark),Modifier.fillMaxSize(),gridBottom={ bandBottom })
-        Surface(Modifier.fillMaxSize(),color=if(onGround) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) {
+        Surface(Modifier.fillMaxSize(),color=if(onGround) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) { WardCornerScope(framed=!onGround) {
             // a page in the paper's opening sits inside its ring (wardFrameClearance); home has
             // no frame, and the map (ui/map) keeps its own full-bleed layout
             val inFrame=!onGround && screen!="ideas"
@@ -338,7 +341,7 @@ import kotlinx.coroutines.withContext
             if(!onGround) WardPaperFrame(Modifier.fillMaxSize())
             // a ward round's chip, over every screen while one runs
             com.stethoscore.app.ui.learn.WardRoundFloat()
-        }
+        } }
     }
 }
 
@@ -379,7 +382,6 @@ fun homeSection(category:String):WardSection = when(category) {
  * to WardDock.leastNameScale at the least) rather than crossing the ring.
  */
 @Composable fun CategoryDock(chosen:String,choose:(String)->Unit) {
-    val panel=RoundedCornerShape(WardDock.panelRadius.toFloat().dp)
     val inset=WardDock.barInset
     val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)
     val categories=listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq)
@@ -397,12 +399,15 @@ fun homeSection(category:String):WardSection = when(category) {
         if(reduce || from<0) hollow.snapTo(at.toFloat())
         else hollow.animateTo(at.toFloat(),com.stethoscore.app.ui.ward.wardSpring(com.stethoscore.app.ui.ward.WardMotion.travel,reduce))
     }
+    // the panel and the Ideas pill sit at the screen's bottom corners: concentric with the display's (WardCorner.radii)
+    val (panelAt,panelCorners)=rememberWardCorners(WardDock.panelRadius)
+    val (ideasAt,ideasCorners)=rememberWardCorners(WardDock.panelRadius)
     Box(Modifier.fillMaxWidth().padding(horizontal=WardDock.barSide.toFloat().dp).padding(bottom=10.dp),contentAlignment=Alignment.Center) {
         Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp).fillMaxWidth().height(IntrinsicSize.Min),
             horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)) {
             // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
-            DockSlots(Modifier.weight(1f)
-                .wardRaised(WardDock.panelRadius,WardLift.high,control=true)
+            DockSlots(Modifier.weight(1f).then(panelAt)
+                .wardRaised(panelCorners,WardLift.high,control=true)
                 .padding(WardDock.barInset.toFloat().dp).selectableGroup(),
                 hollowAt={ if(at<0) null else if(was.intValue<0) at.toFloat() else hollow.value }) {
                 // the chosen tab's hollow with the accent's ring: one, under the five, where the choice is
@@ -426,9 +431,10 @@ fun homeSection(category:String):WardSection = when(category) {
             val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
             val held by source.collectIsPressedAsState()
             val ideas=chosen=="Ideas"
-            Column(Modifier.width(WardDock.ideasWidth.toFloat().dp).fillMaxHeight().heightIn(min=56.dp)
-                .wardChosenEdge(panel,ideas)
-                .wardPressFace(panel,WardLift.high,com.stethoscore.app.ui.ward.wardDepth(ideas || held))
+            val ideasShape=ideasCorners.shape()
+            Column(Modifier.width(WardDock.ideasWidth.toFloat().dp).fillMaxHeight().heightIn(min=56.dp).then(ideasAt)
+                .wardChosenEdge(ideasShape,ideas)
+                .wardPressFace(ideasShape,WardLift.high,com.stethoscore.app.ui.ward.wardDepth(ideas || held))
                 .selectable(selected=ideas,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose("Ideas") }),
                 horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
                 DockItemFace(if(ideas) Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"Ideas",ideas)

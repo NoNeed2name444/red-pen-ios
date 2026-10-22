@@ -313,6 +313,52 @@ data class WardSystemInsets(val top: Double = 0.0, val bottom: Double = 0.0, val
  */
 object WardCorner {
     fun concentric(device: Double, inset: Double, floor: Double): Double = max(floor, device - inset)
+
+    /** How near a corner must come to the frame's corner to follow it: one gutter (WardSpace.gutter). */
+    const val reach = WardScale.l
+
+    /**
+     * Each corner of [element] (window points): a corner within [reach] of
+     * both edges of [frame]'s corner is concentric with it (its radius the
+     * frame corner's less the larger of the two distances, floored at [own]);
+     * every other corner keeps [own]. None is rounder than half the
+     * element's shorter side.
+     */
+    fun radii(element: WardRect, frame: WardCornerFrame, own: Double, reach: Double = this.reach): WardCornerRadii {
+        val f = frame.rect
+        val left = max(0.0, element.minX - f.minX)
+        val right = max(0.0, f.maxX - element.maxX)
+        val top = max(0.0, element.minY - f.minY)
+        val bottom = max(0.0, f.maxY - element.maxY)
+        val cap = max(own, min(element.width, element.height) / 2)
+        fun corner(dx: Double, dy: Double, radius: Double): Double =
+            if (dx <= reach && dy <= reach) min(cap, concentric(radius, max(dx, dy), own)) else own
+        return WardCornerRadii(corner(left, top, frame.top), corner(right, top, frame.top),
+            corner(right, bottom, frame.bottom), corner(left, bottom, frame.bottom))
+    }
+}
+
+/** One radius for each corner, clockwise from the top left, in points. */
+data class WardCornerRadii(val topLeft: Double, val topRight: Double, val bottomRight: Double, val bottomLeft: Double) {
+    val uniform: Boolean get() = topLeft == topRight && topRight == bottomRight && bottomRight == bottomLeft
+
+    companion object {
+        fun all(radius: Double) = WardCornerRadii(radius, radius, radius, radius)
+    }
+}
+
+/**
+ * What a corner element is concentric with, in window points: the paper
+ * frame's ring on a framed page (the owner, 22 Oct, "clear bars, small
+ * top": things near the top take the ring's top corner), or the screen with
+ * the display's own corner where there is no frame (home).
+ */
+data class WardCornerFrame(val rect: WardRect, val top: Double, val bottom: Double) {
+    companion object {
+        fun screen(width: Double, height: Double, device: Double) = WardCornerFrame(WardRect(0.0, 0.0, width, height), device, device)
+        fun ring(panel: WardPaperPanel) =
+            WardCornerFrame(WardRect(panel.x, panel.y, panel.width, panel.height), panel.radius, panel.bottomRadius)
+    }
 }
 
 data class WardPaperLine(val at: Double, val bold: Boolean)

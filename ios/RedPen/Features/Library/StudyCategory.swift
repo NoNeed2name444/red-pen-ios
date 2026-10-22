@@ -660,20 +660,27 @@ struct CategoryDock: View {
         .padding(.bottom, 10)
     }
 
+    /// At the screen's bottom corners its corners are concentric with the
+    /// display's (WardCorner.radii); elsewhere WardDock's radius.
     private var categoriesPanel: some View {
-        DockSlots {
-            ForEach(StudyCategory.allCases) { category in
-                item(category)
+        WardCorners(own: WardDock.panelRadius) { radii in
+            DockSlots {
+                ForEach(StudyCategory.allCases) { category in
+                    item(category)
+                }
             }
+            .padding(CGFloat(WardDock.barInset))
+            .wardRaised(in: radii.shape, lift: .high, control: true)
         }
-        .padding(CGFloat(WardDock.barInset))
-        .wardRaised(in: panelShape, lift: .high, control: true)
     }
 
     /// Ideas, on a panel of its own beside the categories.
     private var ideasPill: some View {
+        WardCorners(own: WardDock.panelRadius) { radii in ideasPill(shape: radii.shape) }
+    }
+
+    private func ideasPill(shape: UnevenRoundedRectangle) -> some View {
         let chosen: Bool = inIdeas
-        let shape: RoundedRectangle = panelShape
         return Button(action: chooseIdeas) {
             ideasFace(chosen: chosen)
                 .frame(width: CGFloat(WardDock.ideasWidth))

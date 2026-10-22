@@ -3259,9 +3259,22 @@ should match each device corner radius".
   fills the window. The 3D map keeps its own layout (T0118's).
 - [x] Tests: WardFrameClearTest (Android) and the wardframeclear suite (iOS).
 - [ ] The next CI screenshots and the tour are the proof (no emulator or
-  Mac here). The dock, the deck slab, corner cards and Done are not yet
-  wired to WardCorner: at their distances from the edge the rule gives
-  their own radius on today's phones.
+  Mac here).
+- [x] T0127b: the corner elements follow the same rule, WardCorner.radii
+  (each corner within a gutter of the frame's corner is concentric with
+  it, floored at the element's own radius; at most half its shorter
+  side). They measure where they stand against the window's corner frame:
+  the ring off home ("clear bars, small top": near the top they take the
+  ring's top corner), the screen with the display's corner on home
+  (Android WardCornerScope and rememberWardCorners; iOS
+  WardEdgeStore.cornerFrame and WardCorners). Wired: the dock's panel and
+  Ideas pill and the shared card (Android WardCardFace and WardCard, iOS
+  wardCard) on both phones; Android's two study bars
+  (square, their bottom corners now follow the ring). Already following
+  the ring on iOS: the deck slab and study bar (WardDeckSlab's
+  slabTopRadius and the island mask). Capsule buttons (Done, back, More)
+  are on the rule and stay capsules: no concentric radius exceeds half
+  their height.
 
 ### Waiting on the owner
 
