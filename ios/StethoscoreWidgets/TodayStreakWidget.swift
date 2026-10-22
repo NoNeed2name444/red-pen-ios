@@ -46,10 +46,10 @@ struct TodayStreakView: View {
                 Text("\(today)")
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.5)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GlanceStyle.ink)
                 Text(streak == 1 ? "done today \u{00B7} 1 day" : "done today \u{00B7} \(streak) days")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(GlanceStyle.inkSecondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }

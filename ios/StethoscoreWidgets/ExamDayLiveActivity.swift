@@ -12,8 +12,8 @@ struct ExamDayLiveActivity: Widget {
         ActivityConfiguration(for: ExamDayAttributes.self) { context in
             ExamDayLockView(attributes: context.attributes, state: context.state)
                 .padding(16)
-                .activityBackgroundTint(GlanceStyle.night)
-                .activitySystemActionForegroundColor(.white)
+                .activityBackgroundTint(GlanceStyle.ground)
+                .activitySystemActionForegroundColor(GlanceStyle.ink)
                 .widgetURL(AppLink.examPlan.url)
         } dynamicIsland: { context in
             DynamicIsland {
@@ -75,15 +75,15 @@ struct ExamDayLockView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(attributes.examName)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(GlanceStyle.ink)
                 Text(state.dueNow == 0 ? "All caught up \u{2013} good luck" : cardWords(state.dueNow) + " for a last look")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .foregroundStyle(GlanceStyle.inkSecondary)
             }
             Spacer(minLength: 8)
             ExamDayClock(state: state, examDay: attributes.examDay)
                 .font(.title3.monospacedDigit().weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(GlanceStyle.ink)
         }
     }
 }

@@ -69,7 +69,7 @@ struct DueCardsView: View {
                         .tint(GlanceStyle.pen)
                     }
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(GlanceStyle.ink)
             }
         default:
             bigCount
@@ -85,11 +85,11 @@ struct DueCardsView: View {
             Text("\(due)")
                 .font(.system(size: 44, weight: .bold, design: .rounded))
                 .minimumScaleFactor(0.5)
-                .foregroundStyle(.white)
+                .foregroundStyle(GlanceStyle.ink)
                 .contentTransition(.numericText())
             Text(due == 0 ? "All caught up" : "due now")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(GlanceStyle.inkSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
