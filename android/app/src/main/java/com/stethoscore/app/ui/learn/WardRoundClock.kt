@@ -159,11 +159,11 @@ internal object WardRoundClock {
         say(line(current))
     }
 
-    /** "Round 2 of 4 done — take 5 minutes". */
+    /** "Block 2 of 4 done — take 5 minutes". */
     fun line(round: WardRound): String = when (round.phase) {
         WardRound.Phase.Rest -> round.roundWords + " done — take ${round.plan.breakMinutes} minutes"
-        WardRound.Phase.Ready -> "Break over — round ${round.round + 1} when you’re ready"
-        WardRound.Phase.Done -> "Ward round done — ${round.focusMinutes} minutes"
+        WardRound.Phase.Ready -> "Break over — block ${round.round + 1} when you’re ready"
+        WardRound.Phase.Done -> "Focus session done — ${round.focusMinutes} minutes"
         WardRound.Phase.Focus -> round.roundWords
     }
 

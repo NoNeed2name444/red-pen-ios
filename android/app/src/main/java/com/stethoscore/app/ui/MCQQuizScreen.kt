@@ -54,7 +54,7 @@ import kotlin.math.abs
 
 // A port of ios/RedPen/Features/MCQ/MCQQuizView.swift: the question
 // screen. Pick an option, check it (the right one in the section's colour, a
-// wrong pick faded grey), read the explanation, then Next patient / See
+// wrong pick faded grey), read the explanation, then Next question / See
 // results. The same flow and words as iOS: resuming a saved place, the timed
 // paper, crossing out, the highlighter, the attending's hint, Flag, How sure?,
 // Why did you miss it?, and a re-test a few questions on. What each part
@@ -364,14 +364,14 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         onHighlight = { menuOpen = false; highlighting = !highlighting })
                     if (examEndsAt == null) {
                         HorizontalDivider()
-                        DropdownMenuItem(text = { Text("Ward pocket") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
+                        DropdownMenuItem(text = { Text("Clinical reference") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
                             onClick = { menuOpen = false; pocketOpen = true }, modifier = Modifier.testTag("wardPocket"))
                     }
                 }
             }
         }
 
-        // the header: "Patient 3 of 20", the running score, the clock or Timed, the amber strip
+        // the header: "Question 3 of 20", the running score, the clock or Timed, the amber strip
         val score = run {
             var correct = 0; var checked = 0
             answers.forEachIndexed { i, ans -> if (ans.checked && !isRetest(i)) { checked += 1; if (isRight(i)) correct += 1 } }
@@ -413,8 +413,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 val flaggable = inLibrary(q.id)
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QuizSmallCaps("Patient chart")
-                        QuizTag(ChartQuiz.kindChip(again), if (again) QuizTone.warning else QuizTone.blue)
+                        QuizSmallCaps("Single best answer")
+                        ChartQuiz.kindChip(again)?.let { QuizTag(it, if (again) QuizTone.warning else QuizTone.blue) }
                     }
                     Spacer(Modifier.weight(1f))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

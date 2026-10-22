@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// The exam plan: where the run-up stands, today's goal and a ward round,
-/// what the student would remember on the day, the next two weeks of
-/// reviews, how much is locked in per subject, and what this phase asks for.
+/// The exam plan: where the run-up stands, today's goal and a focus
+/// session, what the student would remember on the day, the next two weeks
+/// of reviews, how much is locked in per subject, and what this phase asks
+/// for.
 ///
-/// Opened from Today's ward round's "Plan". Everything on it is an estimate
+/// Opened from Today's revision's "Open plan". Everything on it is an estimate
 /// from the app's own schedule and answer history, and it says so.
 struct ExamPlanView: View {
     @EnvironmentObject private var store: Store
@@ -30,7 +31,7 @@ struct ExamPlanView: View {
             } header: {
                 Text("Today")
             } footer: {
-                Text("One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings \u{2192} Study.")
+                Text("One missed day a week is a free rest day and keeps your streak. Minutes in a focus session count for the streak too. Set the daily goal in Settings \u{2192} Study.")
             }
             .wardRowBackground()
             // the tile is its own card, so no list row behind it
@@ -68,7 +69,7 @@ struct ExamPlanView: View {
             Section("What this phase is for") { phaseActions(phase) }
             .wardRowBackground()
             Section {
-                planRow("Ward pocket", symbol: "cross.case") { showingPocket = true }
+                planRow("Clinical reference", symbol: "cross.case") { showingPocket = true }
                     .accessibilityIdentifier("planWardPocket")
             } footer: {
                 Text("Lab values, clinical calculators and scores, each with how it is worked out. For learning only.")

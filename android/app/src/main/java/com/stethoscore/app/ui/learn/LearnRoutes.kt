@@ -32,8 +32,8 @@ import com.stethoscore.app.ui.wardColor
 
 // A port of ios/RedPen/Shared/Learn/LearnRouter.swift and
 // Features/Learn/LearnRoutes.swift: one learning screen at a time, over the
-// app in a sheet of its own with a Done button - from home's round, its
-// Plan button or a set opened for the first time. A quiz or the mock paper
+// app in a sheet of its own with a Done button - from today's revision, its
+// Open plan button or a set opened for the first time. A quiz or the mock paper
 // started from one of them is pushed inside the sheet.
 
 /** What the learning sheet can show. */
@@ -174,5 +174,5 @@ internal object LearnRouter {
 @Composable internal fun NotYetNotice(message: String?, onDismiss: () -> Unit) {
     if (message == null) return
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Library") }, text = { Text(message) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } })
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } })
 }

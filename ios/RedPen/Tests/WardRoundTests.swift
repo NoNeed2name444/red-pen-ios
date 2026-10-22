@@ -1,4 +1,4 @@
-// The ward round's clock (rounds, breaks, pausing, a locked phone coming
+// The focus session's clock (blocks, breaks, pausing, a locked phone coming
 // back, stopping early), the daily goal, and the streak's free rest day.
 import Foundation
 
@@ -38,7 +38,7 @@ round.noteStudied(3)
 round.noteStudied(0)
 check("items counted while focusing", round.items == 3)
 let twelveForty: Date = t0.addingTimeInterval(740)
-check("caption", round.caption(at: twelveForty) == "Round 1 of 4 \u{00B7} 12:40 \u{00B7} 3 cards",
+check("caption", round.caption(at: twelveForty) == "Block 1 of 4 \u{00B7} 12:40 \u{00B7} 3 cards",
       round.caption(at: twelveForty))
 
 var events = round.advance(to: at(26))
@@ -53,7 +53,7 @@ events = round.advance(to: at(31))
 check("the break ends and waits", events == [.restEnded(round: 1)] && round.phase == .ready, "\(events)")
 check("waiting has no clock", round.remaining(at: at(40)) == 0 && !round.ticks)
 check("waiting does not move on by itself", round.advance(to: at(500)).isEmpty && round.phase == .ready)
-check("ready caption", round.caption(at: at(40)).hasPrefix("Round 2 of 4 when you"), round.caption(at: at(40)))
+check("ready caption", round.caption(at: at(40)).hasPrefix("Block 2 of 4 when you"), round.caption(at: at(40)))
 
 round.startNext(at: at(40))
 check("round 2 starts when asked", round.round == 2 && round.phase == .focus && round.remaining(at: at(40)) == 25 * 60)
@@ -90,7 +90,7 @@ events = round.skip(at: at(227))
 check("the last round cut short still counts its ten minutes, and finishes",
       events == [.focusEnded(round: 4, seconds: 600, end: at(227)), .finished] && round.phase == .done, "\(events)")
 check("focus total", round.focusMinutes == 85, "\(round.focusMinutes)")
-check("done caption", round.caption(at: at(230)) == "Ward round done \u{00B7} 85 min \u{00B7} 3 cards",
+check("done caption", round.caption(at: at(230)) == "Focus session done \u{00B7} 85 min \u{00B7} 3 cards",
       round.caption(at: at(230)))
 round.startNext(at: at(240))
 check("no fifth round", round.phase == .done && round.round == 4)
@@ -121,9 +121,9 @@ let alarms = fresh.alarms(at: t0)
 check("two alarms: the round's end and the break's end", alarms.count == 2
       && alarms[0].date == at(25) && alarms[1].date == at(30), "\(alarms)")
 check("alarm ids are the known ones", Set(alarms.map(\.id)).isSubset(of: Set(WardRound.alarmIDs)))
-check("round alarm says which round", alarms[0].title == "Round 1 of 4 done", alarms[0].title)
+check("round alarm says which block", alarms[0].title == "Block 1 of 4 done", alarms[0].title)
 var last = WardRound.begin(WardRoundPlan(focusMinutes: 25, breakMinutes: 5, rounds: 1), at: t0)
-check("the last round's alarm is the end", last.alarms(at: t0).map(\.title) == ["Ward round done"])
+check("the last round's alarm is the end", last.alarms(at: t0).map(\.title) == ["Focus session done"])
 _ = last.advance(to: at(26))
 check("no alarms when done", last.alarms(at: at(26)).isEmpty)
 

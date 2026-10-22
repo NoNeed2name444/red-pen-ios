@@ -300,7 +300,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
         spacing = WardSpace.m.wardDp) {
         val spoken = BedPlan.spokenSummary(beds)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-            HomeSmallCaps("Today’s ward round · " + BedPlan.summary(beds),
+            HomeSmallCaps("Today’s revision · " + BedPlan.summary(beds),
                 Modifier.weight(1f).semantics { heading(); contentDescription = spoken })
             HomePlanButton(onPlan)
         }
@@ -322,7 +322,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
             }
             WardButtonBox({ onOpen(beds.first()) }, Modifier.homePart(book, "start", "Start ward round"), kind = WardButtonKind.primary) {
                 Icon(Icons.Rounded.Bolt, null, Modifier.size(18.dp))
-                Text("Start ward round", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
+                Text("Start revision", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
             }
         }
     }
@@ -342,7 +342,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
         .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))
-        Text("Plan", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
+        Text("Open plan", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
     }
 }
 
@@ -417,7 +417,7 @@ fun homeBedChip(bed: BedPlan.Bed): Pair<String, WardTone>? {
         .capPop(pressed)
         // brightness -0.04 while held: a veil of black at that strength
         .drawWithContent { drawContent(); if (pressed) drawRect(Color.Black.copy(alpha = 0.04f)) }
-        .clickable(source, indication = null, role = Role.Button, onClickLabel = "Opens this bed", onClick = onClick)
+        .clickable(source, indication = null, role = Role.Button, onClickLabel = "Open this item", onClick = onClick)
         .clearAndSetSemantics { contentDescription = bed.spoken }
         .padding(vertical = WardSpace.s.wardDp)) {
         if (stacked) Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
@@ -466,11 +466,11 @@ fun homeBedChip(bed: BedPlan.Bed): Pair<String, WardTone>? {
         if (links > 0) line += " · " + BedPlan.counted(links, "link")
         line
     }
-    val vitalsSpoken = listOf("Vitals", if (readiness != null) "Readiness ${Math.round(readiness.center * 100)} percent" else "Readiness not estimated yet",
+    val vitalsSpoken = listOf("Progress", if (readiness != null) "Readiness ${Math.round(readiness.center * 100)} percent" else "Readiness not estimated yet",
         streakText(streak), rhythm.spoken).joinToString(". ")
     val reach = WardRelief.rimOffset(WardLift.low) + WardRelief.rimBlur(WardLift.low)
     val vitals: @Composable (Modifier) -> Unit = { m ->
-        HomeTile(onVitals, "$vitalsSpoken. Opens Vitals", m) { VitalsTileFace(readiness, streak, rhythm) }
+        HomeTile(onVitals, "$vitalsSpoken. Opens Progress", m) { VitalsTileFace(readiness, streak, rhythm) }
     }
     val brain: @Composable (Modifier) -> Unit = { m ->
         HomeTile(onIdeas, "Brain map. $brainLine. Opens Ideas: the idea dump, its board and the 3D map", m) { BrainMapTileFace(brainLine) }
@@ -508,7 +508,7 @@ fun streakText(streak: Int): String = if (streak > 0) "$streak-day streak" else 
 /** The Vitals tile: the readiness ring, the streak with a heart, and the last two weeks as a rhythm strip. */
 @Composable private fun VitalsTileFace(readiness: com.stethoscore.app.data.ReadinessEstimate?, streak: Int, rhythm: RhythmReading.Reading) {
     Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        HomeSmallCaps("Vitals")
+        HomeSmallCaps("Progress")
         // the figures beside the ring only where they fit whole; otherwise under it
         ThatFits(
             { Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) { ReadinessRing(readiness); Figures(streak) } },

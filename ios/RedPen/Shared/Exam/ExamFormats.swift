@@ -16,7 +16,7 @@ extension MockFormat {
             let n: Int = min(max(blocks, 1), exam.sections.count)
             let chosen: [MockSectionSpec] = Array(exam.sections.prefix(n))
             let unit: String = chosen[0].title.split(separator: " ").dropLast().joined(separator: " ").lowercased()
-            let noun: String = unit.isEmpty ? "block" : unit
+            let noun: String = unit.isEmpty ? MockFormat.partWord.lowercased() : unit
             return [MockPaperSpec(id: "\(exam.id)-\(n)", title: "\(exam.shortName), \(n) \(noun)" + (n == 1 ? "" : "s"),
                                   sections: chosen, note: exam.paperNote)]
         }

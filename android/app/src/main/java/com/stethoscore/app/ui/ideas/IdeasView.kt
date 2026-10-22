@@ -160,7 +160,7 @@ private sealed class FolderPrompt {
     moving?.let { note -> MoveSheet(book, { moving = null }) { book.move(note.id, it) } }
     model.error?.let { message ->
         AlertDialog(onDismissRequest = { model.error = null }, title = { Text("Could not save this idea") }, text = { Text(message) },
-            confirmButton = { TextButton(onClick = { model.error = null }) { Text("OK") } })
+            confirmButton = { TextButton(onClick = { model.error = null }) { Text("Done") } })
     }
 }
 

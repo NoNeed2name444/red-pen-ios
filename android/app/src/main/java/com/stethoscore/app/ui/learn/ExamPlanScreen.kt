@@ -72,11 +72,11 @@ import java.time.Instant
 import java.time.ZoneId
 
 // A port of ios/RedPen/Features/Learn/ExamPlanView.swift: where the run-up
-// stands, today's goal and a ward round, what the student would remember on
-// the day, the next two weeks of reviews, how much is locked in per subject,
-// and what this phase asks for. Opened from Today's ward round's "Plan".
-// Everything on it is an estimate from the app's own schedule and answer
-// history, and it says so. The chosen exam's card (Your exam,
+// stands, today's goal and a focus session, what the student would remember
+// on the day, the next two weeks of reviews, how much is locked in per
+// subject, and what this phase asks for. Opened from Today's revision's
+// "Open plan". Everything on it is an estimate from the app's own schedule
+// and answer history, and it says so. The chosen exam's card (Your exam,
 // ExamDashboardCard), the rule sheet and the ward pocket open the exam and
 // Vitals batches' screens.
 
@@ -106,7 +106,7 @@ import java.time.ZoneId
         // Your exam: the chosen exam's blueprint, readiness and what to study next
         Box(Modifier.padding(horizontal = 16.dp)) { com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset) }
         // the streak, the goal ring and a ward round
-        ReaderFormSection("Today", "One missed day a week is a free rest day and keeps your streak. Minutes on a ward round count for the streak too. Set the daily goal in Settings → Study.") {
+        ReaderFormSection("Today", "One missed day a week is a free rest day and keeps your streak. Minutes in a focus session count for the streak too. Set the daily goal in Settings → Study.") {
             Box(Modifier.wardRowTile()) { TodayGoalRow(read.today) }
         }
         // the tile is its own card, so no row behind it
@@ -147,7 +147,7 @@ import java.time.ZoneId
             PlanRow("Exam-day kit", Icons.Rounded.Checklist) { LearnRouter.open(LearnRoute.ExamKit) }
         }
         ReaderFormSection(footer = "Lab values, clinical calculators and scores, each with how it is worked out. For learning only.") {
-            PlanRow("Ward pocket", Icons.Rounded.MedicalInformation) { pocketOpen = true }
+            PlanRow("Clinical reference", Icons.Rounded.MedicalInformation) { pocketOpen = true }
         }
     }
     NotYetNotice(notice) { notice = null }

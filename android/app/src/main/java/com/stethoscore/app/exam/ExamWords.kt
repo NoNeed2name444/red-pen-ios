@@ -17,7 +17,7 @@ data class NewSetPreset(val kind: StudySetKind, val name: String, val subject: S
 
         /** New set, ready to write MCQs on one Ward pocket calculator or score. */
         fun wardPocket(title: String, notes: String): NewSetPreset =
-            NewSetPreset(StudySetKind.MCQ, "Ward pocket: $title", title, notes)
+            NewSetPreset(StudySetKind.MCQ, "Clinical reference: $title", title, notes)
     }
 }
 

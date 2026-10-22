@@ -238,7 +238,7 @@ check("never more blocks than the exam", MockFormat.papers(for: step1, blocks: 9
 check("MRCP: two papers sat apart", MockFormat.papers(for: ExamCatalog.mrcp1).map(\.questionCount) == [100, 100])
 let neetPaper: [MockPaperSpec] = MockFormat.papers(for: ExamCatalog.neetpg)
 check("NEET-PG: one paper, 200 in 210 minutes", neetPaper.count == 1 && neetPaper[0].questionCount == 200 && neetPaper[0].minutes == 210)
-check("Step 3's blocks are named for the day", MockFormat.papers(for: ExamCatalog.step3, blocks: 2)[0].title.contains("fip block"))
+check("Step 3's parts are named for the day", MockFormat.papers(for: ExamCatalog.step3, blocks: 2)[0].title.contains("fip part"))
 check("exam-day kit: a Step 2 CK block", ExamWeekPlanner.paper(for: ck).questions == 40 && ExamWeekPlanner.paper(for: ck).minutes == 60)
 check("exam-day kit: all of NEET-PG", ExamWeekPlanner.paper(for: ExamCatalog.neetpg).questions == 200)
 check("exam-day kit: an unconfirmed format is not called published", !ExamWeekPlanner.paper(for: ExamCatalog.emle).published)

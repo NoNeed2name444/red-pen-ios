@@ -344,11 +344,11 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
         }
         if (most > 0) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("$blocks block" + (if (blocks == 1) "" else "s") + " of $per", Modifier.weight(1f),
+                Text("$blocks ${MockFormat.partWord.lowercase()}" + (if (blocks == 1) "" else "s") + " of $per", Modifier.weight(1f),
                     style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
-                WardCircleButton(Icons.Rounded.Remove, "Fewer blocks", { onBlocks(blocks - 1) }, enabled = blocks > 1)
+                WardCircleButton(Icons.Rounded.Remove, "Fewer ${MockFormat.partWord.lowercase()}s", { onBlocks(blocks - 1) }, enabled = blocks > 1)
                 Spacer(Modifier.width(8.dp))
-                WardCircleButton(Icons.Rounded.Add, "More blocks", { onBlocks(blocks + 1) }, enabled = blocks < most)
+                WardCircleButton(Icons.Rounded.Add, "More ${MockFormat.partWord.lowercase()}s", { onBlocks(blocks + 1) }, enabled = blocks < most)
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

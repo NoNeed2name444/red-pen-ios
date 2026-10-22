@@ -154,7 +154,7 @@ internal object WardRoundStyle {
 // MARK: the tile
 
 /**
- * "Start a ward round": the choice of 25 or 50 minutes and a 5- or 10-minute
+ * "Start a focus session": the choice of 25 or 50 minutes and a 5- or 10-minute
  * break, and the start. While one runs, its ring and a way in.
  */
 @Composable internal fun WardRoundTile(modifier: Modifier = Modifier) {
@@ -171,9 +171,9 @@ internal object WardRoundStyle {
     var rest by remember { mutableStateOf(defaults.int(WardRoundClock.breakKey) ?: 5) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Rounded.MedicalServices, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
-        Text("Start a ward round", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
+        Text("Start a focus session", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
     }
-    Text("Four rounds of focus with a break between. Everything you study while the clock runs counts on the round, and its minutes count for your streak.",
+    Text("Four blocks of focus with a break between. Everything you study while the clock runs counts towards the session, and its minutes count for your streak.",
         style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
     WardSegmented(focus, WardRoundPlan.focusChoices, { focus = it; defaults.setInt(WardRoundClock.focusKey, it) },
         Modifier.fillMaxWidth().semantics { contentDescription = "Focus" }) { minutes, style, color ->
@@ -185,7 +185,7 @@ internal object WardRoundStyle {
     }
     WardButtonBox({ WardRoundClock.start(WardRoundPlan(focus, rest)) }, kind = WardButtonKind.primary) {
         Icon(Icons.Rounded.PlayArrow, null, Modifier.size(20.dp))
-        Text("Start round 1")
+        Text("Start block 1")
     }
 }
 
@@ -221,9 +221,9 @@ internal object WardRoundStyle {
         .wardRelief(RoundedCornerShape(50), WardLift.high)
         .clickable(remember { MutableInteractionSource() }, indication = null, onClick = open)
         .clearAndSetSemantics {
-            contentDescription = "Ward round: " + round.caption(now)
+            contentDescription = "Focus session: " + round.caption(now)
             role = Role.Button
-            onClick("Open the ward round. Drag to move it to another corner.") { open(); true }
+            onClick("Open the focus session. Drag to move it to another corner.") { open(); true }
         }
         .heightIn(min = 44.dp).widthIn(max = 300.dp)
         .padding(horizontal = 12.dp),
@@ -239,7 +239,7 @@ private fun chipWords(round: WardRound, now: Long): String {
     return when (round.phase) {
         WardRound.Phase.Focus -> if (round.isPaused) "Paused · $time" else time
         WardRound.Phase.Rest -> "Break · $time"
-        WardRound.Phase.Ready -> "Round ${round.round + 1} ready"
+        WardRound.Phase.Ready -> "Block ${round.round + 1} ready"
         WardRound.Phase.Done -> "Done"
     }
 }
@@ -257,10 +257,10 @@ private fun chipWords(round: WardRound, now: Long): String {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.MedicalServices, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
-                Text("Ward round", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
+                Text("Focus session", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             }
             Box(Modifier.size(44.dp).clickable(onClickLabel = null, role = Role.Button, onClick = close)
-                .semantics { contentDescription = "Fold the ward round away" }, contentAlignment = Alignment.Center) {
+                .semantics { contentDescription = "Fold the focus session away" }, contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.KeyboardArrowDown, null, Modifier.size(20.dp), tint = wardColor(WardToken.inkSecondary))
             }
         }
@@ -299,17 +299,17 @@ private fun phaseWord(round: WardRound): String = when (round.phase) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (round.isPaused) Wide("Resume", Icons.Rounded.PlayArrow, Modifier.weight(1f)) { WardRoundClock.resume() }
                 else Wide("Pause", Icons.Rounded.Pause, Modifier.weight(1f)) { WardRoundClock.pause() }
-                Wide("End round", Icons.Rounded.SkipNext, Modifier.weight(1f)) { WardRoundClock.skip() }
+                Wide("End block", Icons.Rounded.SkipNext, Modifier.weight(1f)) { WardRoundClock.skip() }
             }
             StopButton(close)
         }
         WardRound.Phase.Rest -> {
             Text("Look away from the screen for a while.", style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
-            Wide("Start round ${round.round + 1} now", Icons.Rounded.PlayArrow, Modifier.fillMaxWidth()) { WardRoundClock.startNext() }
+            Wide("Start block ${round.round + 1} now", Icons.Rounded.PlayArrow, Modifier.fillMaxWidth()) { WardRoundClock.startNext() }
             StopButton(close)
         }
         WardRound.Phase.Ready -> {
-            Prominent("Start round ${round.round + 1}", Icons.Rounded.PlayArrow) { WardRoundClock.startNext() }
+            Prominent("Start block ${round.round + 1}", Icons.Rounded.PlayArrow) { WardRoundClock.startNext() }
             StopButton(close)
         }
         WardRound.Phase.Done -> Prominent("Close", Icons.Rounded.Check) {
@@ -324,7 +324,7 @@ private fun phaseWord(round: WardRound): String = when (round.phase) {
         close()
         WardRoundClock.stop()
     }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-        Text("Stop the ward round", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.danger))
+        Text("Stop the focus session", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.danger))
     }
 }
 

@@ -3152,6 +3152,86 @@ docs/design/identity/; the route boards are images kept out of the repo.
 - [ ] The owner picks a route, and the words for the timer's parts and the
   plan's count; then a separate phase applies it.
 
+### The exam wording, built (22 Oct, T0125)
+
+The owner's words from wording.md ("3 to do", "make it block") and the copy
+deck, on iOS and Android in one change set, one pattern per commit. Strings
+only; Arabic is left for the owner's words (copy deck question 4).
+
+- [x] The mock exam's timed parts are "Part n" ("Part n of N" in the
+  sitting), from one constant per platform, MockFormat.partWord
+  (Shared/Exam/MockPaper.swift; quiz/MockPaper.kt). Owner, 22 Oct.
+- [x] The daily plan is "Today's revision": "Start revision", rows "1 ·
+  Cardiology" (spoken "Item 1, …"), "3 to do · 22 min", "Nothing due", the
+  weak-topic lines and the first run's two lines (wording.md rows 1-4, 8-16,
+  64-65; its "items" drift rows now say "to do").
+- [x] The timer is a "Focus session" of "Block 1 of 4": its tile, chip,
+  panel, captions, alarms, spoken lines, the exam plan's line, the Focus
+  filter and the Health settings rows (wording.md rows 32-57). The Live
+  Activity (StethoscoreWidgets) and the Health permission text (project.yml,
+  Arabic) wait: outside this change, and the Arabic word is the owner's.
+- [x] The question screen says "Question 7 of 20", "Next question" and,
+  over the stem, "Single best answer"; its chip shows only on a retest,
+  "Second try" (wording.md rows 17-20).
+- [x] Vitals is "Progress" (title, menu, home tile, "Opens Progress"), its
+  weak list "Weak topics" with "Practise weak topics", and the subtitles that
+  named it (wording.md rows 5-7, 21-26). The menu's "Progress" now meets its
+  Arabic catalogue entry.
+- [x] The reference is "Clinical reference": its title, the exam plan's
+  row, the study menu's item and a set made from it ("Clinical reference:
+  …") (wording.md rows 68-71).
+- [x] The new-set flow drops its "New admission" label: the screen is
+  already titled "New set" (wording.md row 66).
+- [x] Twins' subtitle is "Missed points, asked again" (wording.md row 67;
+  Android has no study-category list yet).
+- [x] An alert that only tells you something closes with "Done", not "OK"
+  (13 on iOS, 7 on Android; the copy deck's majority button). The sign-in
+  screen's two go through the catalogue: "Done" is a new key with no Arabic
+  yet, so the catalogue check reports it until the owner's Arabic word comes.
+- [x] Android's own names give way to iOS's: "New set" and "Save set" on
+  the editor, "Look and feel" over the dark-mode switch. "Night shift" and
+  the settings rows the deck maps to iOS's backup rows wait (copy deck
+  question 6; Android's Import JSON adds sets where iOS's Restore replaces).
+- [x] Android's empty home says what iOS's does: "Make your first set" and
+  "Add a lecture and Stethoscore turns it into questions or flashcards to
+  study." Its "YOUR STUDY WARD" label waits (copy deck question 6), and its
+  two buttons keep their words: they load the examples and import a
+  library, where iOS's one button makes a new set.
+- [x] Android's import and print notices count in the singular for one,
+  "Imported 1 set", "(1 page)", through the plural helper iOS uses
+  (BedPlan.counted).
+- [x] An Android import that fails with no reason of its own says
+  "Couldn’t import that file. Check it’s a Stethoscore library and try
+  again." (iOS's alert pattern). A failure that carries its own message
+  still shows that message, as before.
+- [x] The daily plan's button to the exam plan says what it does, "Open
+  plan" (copy deck rule d), on both phones.
+- [x] The iPad keyboard menu is in sentence case like the rest of the app:
+  "Open last set in new window", "Search library", "Review due cards". The
+  Playgrounds build's stand-in (tools/playgrounds_stubs/core3/Core3Gaps.swift)
+  still says "Review Due Cards".
+- [ ] Waiting on the owner (copy deck section 5): the rhythm words
+  "Steady", "Patchy", "Resting" (question 3: "Steady" is already the trend
+  label; wording.md rows 27-31); Android's "Night shift" and "YOUR STUDY
+  WARD" (question 6); the three shorter overlines, "ONE BEST ANSWER",
+  "WEAKEST FIRST", "BIGGEST GAIN" (question 9); the Arabic for "Done",
+  "Today's revision", "Focus session", "Block" and "Part", and the Health
+  permission's Arabic (question 4); and a yes to the spoken "Item 1",
+  built as wording.md's glossary has it (question 5).
+- [ ] Outside this change set: the Live Activity's words
+  (ios/StethoscoreWidgets, wording.md rows 58-61), the Health permission
+  text (ios/project.yml, row 62), the iPad build's stand-ins
+  (tools/playgrounds_stubs, rows 72-77, plus Core3Gaps.swift's "Review Due
+  Cards" and CoreExports.swift's "OK"), and the design tour, which still
+  tries "Vitals" before "Progress" (ios/UITests/DesignTourUITests.swift).
+- [ ] More than words, so not in this change set: the empty due queue's
+  next-due line and "Study something else" (it needs the next due time and
+  a new action); Android's "Why / how" (it needs the small-caps component,
+  which uppercases, in place of the literal "WHY / HOW"); the model download
+  error, whose text is wrapped twice ("Download failed: Something went
+  wrong — …"); and iOS's account alert "Something went wrong", which also
+  shows failures that are not sign-in.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.

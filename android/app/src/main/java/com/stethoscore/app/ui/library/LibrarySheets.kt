@@ -146,7 +146,7 @@ import kotlin.random.Random
     AlertDialog(onDismissRequest = onDismiss, containerColor = wardColor(WardToken.raised),
         title = { Text(title, color = wardColor(WardToken.ink)) },
         text = { Text(message, color = wardColor(WardToken.inkSecondary)) },
-        confirmButton = { WardTextButton("OK", onDismiss, kind = WardButtonKind.compact, fills = false) })
+        confirmButton = { WardTextButton("Done", onDismiss, kind = WardButtonKind.compact, fills = false) })
 }
 
 /** A card found by the search, its answer behind Show answer (iOS FoundCardSheet). */

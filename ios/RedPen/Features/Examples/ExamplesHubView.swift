@@ -125,7 +125,7 @@ struct ExamplesHubView: View {
         let progress: String = seeded ? "Ten days of example answers" : "Your own answers, filling in as you study"
         row("By subject: readiness, confidence, why you lose marks", "chart.bar.xaxis",
             progress, id: "progress") { StatsView() }
-        row("Vitals: rhythm, rings, what needs a consult, trends", "waveform.path.ecg",
+        row("Progress: rhythm, rings, weak topics, trends", "waveform.path.ecg",
             "Ranked next steps, weekly accuracy, recent wrong answers", id: "analytics") { AnalyticsView() }
         row("Rule sheet", "list.bullet.rectangle",
             "One line per mistake, by subject", id: "rules") { RuleSheetView() }

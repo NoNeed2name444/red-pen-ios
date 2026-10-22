@@ -203,13 +203,13 @@ struct NarrateReviewView: View {
                 FixWordSheet(target: target) { fix(target, to: $0) }
             }
             .alert("Couldn't use that recording", isPresented: troubleShowing) {
-                Button("OK", role: .cancel) {}
+                Button("Done", role: .cancel) {}
             } message: {
                 Text(importer.trouble ?? "")
             }
             .alert("Transcribed", isPresented: Binding(get: { importer.notice != nil },
                                                        set: { if !$0 { importer.notice = nil } })) {
-                Button("OK", role: .cancel) {}
+                Button("Done", role: .cancel) {}
             } message: {
                 Text(importer.notice ?? "")
             }

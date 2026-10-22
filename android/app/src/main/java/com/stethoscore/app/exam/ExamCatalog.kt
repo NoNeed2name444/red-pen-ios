@@ -1,6 +1,7 @@
 package com.stethoscore.app.exam
 
 import com.stethoscore.app.quiz.ExamTrack
+import com.stethoscore.app.quiz.MockFormat
 import com.stethoscore.app.quiz.MockSectionSpec
 
 // A port of ios/RedPen/Shared/Exam/ExamCatalog.swift: the most common
@@ -208,7 +209,7 @@ object ExamCatalog {
     private fun s(domain: ExamDomain, weight: Number, label: String? = null): BlueprintShare =
         BlueprintShare(domain, weight.toDouble(), label)
 
-    private fun blocks(count: Int, questions: Int, minutes: Int, name: String = "Block"): List<MockSectionSpec> =
+    private fun blocks(count: Int, questions: Int, minutes: Int, name: String = MockFormat.partWord): List<MockSectionSpec> =
         (1..count).map { MockSectionSpec("$name $it", questions, minutes) }
 
     val usUnits: String = "US conventional units (mg/dL, °F alongside °C), US generic drug names (acetaminophen, epinephrine) and current US guidelines"
@@ -285,7 +286,7 @@ object ExamCatalog {
                     s(ExamDomain.ethics, 8, "Social sciences: ethics, law and patient safety")),
         blueprintSource = "USMLE Step 3 Content Outline (usmle.org): approximate midpoints",
         blueprintIsApproximate = true,
-        sections = blocks(6, questions = 39, minutes = 60, name = "FIP block") + blocks(6, questions = 30, minutes = 45, name = "ACM block"),
+        sections = blocks(6, questions = 39, minutes = 60, name = "FIP " + MockFormat.partWord.lowercase()) + blocks(6, questions = 30, minutes = 45, name = "ACM " + MockFormat.partWord.lowercase()),
         sitsBlockwise = true, sitsSeparately = false,
         paperNote = "Two days: Foundations of Independent Practice (about 232 questions, six 60-minute blocks), then Advanced Clinical Medicine (180 questions, six 45-minute blocks) and 13 case simulations.",
         passMark = 0.60, passNote = "A three-digit score; the passing standard is set by USMLE (about 200). The percent here is a rough guide.",

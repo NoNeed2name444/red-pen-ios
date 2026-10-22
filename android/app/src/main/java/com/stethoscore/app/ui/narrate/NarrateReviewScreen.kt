@@ -417,7 +417,7 @@ object NarrateWords {
     AlertDialog(onDismissRequest = onDismiss, containerColor = wardColor(WardToken.raised),
         title = { Text(title, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink)) },
         text = { Text(message, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary)) },
-        confirmButton = { WardTextButton("OK", onDismiss, kind = WardButtonKind.compact, fills = false) })
+        confirmButton = { WardTextButton("Done", onDismiss, kind = WardButtonKind.compact, fills = false) })
 }
 
 /** The picked file's extension, so the player can work out the format: from its name, else its type, else m4a. */

@@ -212,7 +212,7 @@ struct NewSetView: View {
                     ImportPreviewSheet(preview: preview) { commitImport(preview) }
                 }
                 .alert("Set imported", isPresented: importNoticeShown) {
-                    Button("OK") { dismiss() }
+                    Button("Done") { dismiss() }
                 } message: {
                     Text(importNotice ?? "")
                 }
@@ -304,7 +304,6 @@ struct NewSetView: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Step \(step.rawValue) of 3")
             VStack(alignment: .leading, spacing: 4) {
-                Text("New admission").wardSmallCaps()
                 Text(step.question)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Color.wardInk)

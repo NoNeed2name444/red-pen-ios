@@ -102,7 +102,7 @@ import kotlinx.coroutines.withContext
                 require(text.length<=20_000_000) { "This file is too large. Import one set at a time." }
                 store.importJson(text)
             } }
-            notice=result.fold({ "Imported $it sets" }) { it.message ?: "Unable to import this file" };refresh()
+            notice=result.fold({ "Imported ${BedPlan.counted(it,"set")}" }) { it.message ?: "Couldn’t import that file. Check it’s a Stethoscore library and try again." };refresh()
         }
     }
     val exported=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -123,7 +123,7 @@ import kotlinx.coroutines.withContext
                 val stream=context.contentResolver.openOutputStream(uri) ?: error("Unable to write to that location")
                 stream.use { com.stethoscore.app.export.DeckPdf.write(set,it) }
             } }
-            notice=result.fold({ "Printed ${set.name} as a PDF deck ($it pages)" }) { it.message ?: "Unable to print this set" }
+            notice=result.fold({ "Printed ${set.name} as a PDF deck (${BedPlan.counted(it,"page")})" }) { it.message ?: "Unable to print this set" }
         }
     }
     var sharing by rememberSaveable { mutableStateOf<String?>(null) }
@@ -278,8 +278,8 @@ import kotlinx.coroutines.withContext
                                 if(store.library.isEmpty() && store.loadError==null) {
                                     item { WardCard(Modifier.fillMaxWidth()) {
                                         Icon(Icons.Rounded.AutoStories,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(36.dp))
-                                        Text("Your ward starts here",fontSize=23.sp,fontWeight=FontWeight.Bold)
-                                        Text("Bring your questions, cards and lecture notes together. Your library stays on this device.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("Make your first set",fontSize=23.sp,fontWeight=FontWeight.Bold)
+                                        Text("Add a lecture and Stethoscore turns it into questions or flashcards to study.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                                         WardButton("Explore example sets",{ change(store::loadExamples) },Modifier.fillMaxWidth(),enabled=store.loadError==null)
                                         TextButton(onClick={imported.launch(arrayOf("application/json","text/plain"))}) { Text("Import a Stethoscore library") }
                                     } }
@@ -322,8 +322,8 @@ import kotlinx.coroutines.withContext
                 }
                 // a learning screen over the app, in a sheet of its own (LearnRoutes)
                 com.stethoscore.app.ui.learn.LearnSheet(store,dark,section,onPreset={ com.stethoscore.app.ui.learn.LearnRouter.close();newPreset=it;screen="new" }) { set -> refresh();open(set) }
-                if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("OK")}})
-                notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("OK")}}) }
+                if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("Done")}})
+                notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("Done")}}) }
             }
             // Every page but home stands in the paper's opening (iOS WardPaperFrame):
             // still ECG paper round the window, the page scrolling beneath it.

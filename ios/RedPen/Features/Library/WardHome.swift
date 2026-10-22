@@ -499,7 +499,7 @@ struct HomeRoundCard: View {
 
     private var heading: some View {
         HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
-            Text("Today\u{2019}s ward round \u{00B7} " + BedPlan.summary(beds))
+            Text("Today\u{2019}s revision \u{00B7} " + BedPlan.summary(beds))
                 .homeSmallCaps()
                 .accessibilityLabel(BedPlan.spokenSummary(beds))
                 .accessibilityAddTraits(.isHeader)
@@ -513,7 +513,7 @@ struct HomeRoundCard: View {
             // a 44-point target that takes only the words' height in the
             // heading's row, so the row is no taller than its two lines and
             // the round's button stays clear of New set
-            Label("Plan", systemImage: "chart.line.uptrend.xyaxis")
+            Label("Open plan", systemImage: "chart.line.uptrend.xyaxis")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .padding(.vertical, 12)
@@ -550,7 +550,7 @@ struct HomeRoundCard: View {
         }
         .buttonStyle(.pressableRow)
         .accessibilityLabel(bed.spoken)
-        .accessibilityHint("Opens this bed")
+        .accessibilityHint("Opens this item")
         .accessibilityIdentifier("wardBed-\(bed.number)")
         .wardPart("bed \(bed.number)")
     }
@@ -563,11 +563,11 @@ struct HomeRoundCard: View {
 
     private var startButton: some View {
         let first: BedPlan.Bed? = beds.first
-        let hint: String = first.map { "Starts with bed 1: " + $0.title } ?? ""
+        let hint: String = first.map { "Starts with item 1: " + $0.title } ?? ""
         return Button {
             if let first { onOpen(first) }
         } label: {
-            Label("Start ward round", systemImage: "bolt.fill")
+            Label("Start revision", systemImage: "bolt.fill")
                 .font(.subheadline.weight(.semibold))
         }
         .buttonStyle(.wardPrimary)
@@ -667,7 +667,7 @@ struct HomeTiles: View {
         }
         .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
         .accessibilityLabel(vitalsSpoken)
-        .accessibilityHint("Opens Vitals")
+        .accessibilityHint("Opens Progress")
         .accessibilityIdentifier("homeVitals")
     }
 
@@ -682,7 +682,7 @@ struct HomeTiles: View {
     }
 
     private var vitalsSpoken: String {
-        var parts: [String] = ["Vitals"]
+        var parts: [String] = ["Progress"]
         if let readiness {
             parts.append("Readiness \(Int((readiness.center * 100).rounded())) percent")
         } else {
@@ -711,7 +711,7 @@ private struct VitalsTileFace: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
-            Text("Vitals").homeSmallCaps()
+            Text("Progress").homeSmallCaps()
             // the figures beside the ring only where they fit whole: squeezed
             // there, "No streak yet" broke inside its word ("No strea / k
             // yet"); otherwise under the ring, at the tile's full width

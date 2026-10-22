@@ -504,7 +504,7 @@ struct MCQQuizView: View {
         .accessibilityLabel(on ? "Remove flag" : "Flag this question")
     }
 
-    /// The subject is the title (the navigation bar's); under it "Patient 3
+    /// The subject is the title (the navigation bar's); under it "Question 3
     /// of 20" with the running score - or, in exam mode, only how many are
     /// answered, since the score is what it holds back - the timer pill, and
     /// the Pager Amber strip filling as the paper goes on.
@@ -522,7 +522,7 @@ struct MCQQuizView: View {
         }
     }
 
-    /// The question as a patient's chart: PATIENT CHART, Hint and Flag; once
+    /// The question as a patient's chart: SINGLE BEST ANSWER, Hint and Flag; once
     /// answered, the accuracy badge; who the patient is, the vitals grid, the
     /// story, the results table and the question in bold - or, with nothing
     /// to chart, the stem as plain text - then its picture if it has one.
@@ -588,7 +588,7 @@ struct MCQQuizView: View {
         }
     }
 
-    /// PATIENT CHART and its chip - Best answer, or Second try on a re-test -
+    /// SINGLE BEST ANSWER and, on a re-test, its Second try chip -
     /// then Hint and Flag: with their words where they fit, as symbols where
     /// they do not, and on a line of their own when even those do not.
     private var chartTitle: some View {
@@ -603,8 +603,10 @@ struct MCQQuizView: View {
     private var chartLabel: some View {
         let again: Bool = isRetest(current)
         return HStack(spacing: 8) {
-            Text("Patient chart").wardSmallCaps().accessibilityAddTraits(.isHeader)
-            WardChip(text: ChartQuiz.kindChip(retest: again), tone: again ? .warning : .blue)
+            Text("Single best answer").wardSmallCaps().accessibilityAddTraits(.isHeader)
+            if let chip = ChartQuiz.kindChip(retest: again) {
+                WardChip(text: chip, tone: again ? .warning : .blue)
+            }
         }
     }
 

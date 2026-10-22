@@ -5,7 +5,7 @@ import HealthKit
 
 // MARK: - Mindful minutes in Apple Health
 //
-// Settings > "Log focus rounds to Health" (PlatformSettingsSection, off by
+// Settings > "Log focus blocks to Health" (PlatformSettingsSection, off by
 // default). When a focus round ends, whoever runs the timer posts
 // PlatformNotice.focusRoundEnded with its start and end; this writes it to
 // Health as a Mindful Session. Nothing is read from Health.

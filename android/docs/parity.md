@@ -78,6 +78,28 @@ Everything goes through the worker (`BuildConfig.WORKER_URL`, BackendClient's ba
 | `Features/Library/MCQGenerateForm.swift` | `ui/editors/MCQGenerateForm.kt` | differs: Make writes with the chosen writer and hands the set to onGenerated (no host screen calls the form yet); no Apple or Gemma path, Delivery, verification screen or Provenance |
 | `Features/Cases/CaseMaker.swift`, `CaseDebriefView.swift` (another) | `data/CaseMaker.kt` (BackendWriter, cloudWrite), `ui/cases/CaseDebriefScreen.kt` (CaseAnother) | differs: the backend writer and the cloud job as iOS; no Apple or Gemma writer, no GenerationCenter card |
 
+## The exam wording (T0125)
+
+The owner's exam words (`docs/design/identity/wording.md`), built on both phones in the same change set. One row per family of words.
+
+| iOS | Kotlin | Verdict |
+|---|---|---|
+| The mock's timed parts, "Part n" and "Part n of N" (`Shared/Exam/MockPaper.swift`'s MockFormat.partWord, ExamCatalog, ExamFormats, `Features/Mock/MockPaperView.swift`) | `quiz/MockPaper.kt`'s MockFormat.partWord, `exam/ExamCatalog.kt`, `exam/ExamFormats.kt`, `ui/mock/MockPaperScreen.kt` | same (ExamCatalogTest's Step 3 title); Android's stepper buttons say "Fewer parts" and "More parts" |
+| The daily plan, "Today's revision" (`Features/Library/WardHome.swift`, `Shared/Learn/BedPlan.swift`; `Features/Onboarding/FirstRunView.swift`) | `ui/home/WardHome.kt`, `data/BedPlan.kt` | same words (BedPlanTest); the row's click label is the imperative "Open this item"; no "Starts with item 1" hint on Android's start button and no first run (as before) |
+| The timer, "Focus session" and "Block 1 of 4" (`Features/Learn/WardRoundView.swift`, `Shared/StudySession.swift`, `Shared/Learn/WardRoundClock.swift`, `Features/Learn/ExamPlanView.swift`; the Focus filter and Health rows) | `data/WardRound.kt`, `ui/learn/WardRoundViews.kt`, `ui/learn/WardRoundClock.kt`, `ui/learn/ExamPlanScreen.kt` | same words (WardRoundTest); the chip's click label stays imperative ("Open the focus session. …"); no Focus filter, Health or Live Activity on Android (as before) |
+| The question screen, "Question 7 of 20", "Next question", "Single best answer" with the chip on a retest only (`Features/MCQ/ChartQuiz.swift`, `MCQQuizView.swift`) | `quiz/ChartQuiz.kt`, `ui/MCQQuizScreen.kt` | same (ChartQuizTest) |
+| Progress, "Weak topics" and "Practise weak topics" (`Features/Analytics/AnalyticsView.swift`, `VitalsParts.swift`, `Features/Library/WardHome.swift`'s tile, `Features/Support/SupportCenter.swift`) | `ui/VitalsScreen.kt`, `ui/vitals/VitalsParts.kt`, `ui/home/WardHome.kt` | same (HomeTilesMeasureTest finds "Opens Progress"); the subtitles that name it on iOS (library category, examples hub, review settings) have no Android screen yet |
+| The reference, "Clinical reference" (`Features/Exam/WardPocketView.swift`'s title and set name, `Features/Learn/ExamPlanView.swift`'s row, `Shared/Theme.swift`'s study menu) | `ui/exam/WardPocketScreen.kt`, `exam/ExamWords.kt`, `ui/learn/ExamPlanScreen.kt`, `ui/MCQQuizScreen.kt`'s menu | same |
+| The new-set flow's header, the question alone without "New admission" (`Features/Library/NewSetView.swift`) | `ui/library/LibraryNewSetScreen.kt` | same |
+| Twins' subtitle, "Missed points, asked again" (`Features/Library/StudyCategory.swift`) | none | iOS only: Android has no study-category list yet |
+| An info-only alert's button, "Done" (13 alerts: AppIntentsRouting, SignInView's two, AccountView, LibraryDataSettingsSection, AnkiReviewView, NoteEditorView, NarrateReviewView's two, IncomingImport, NewSetView, LibrarySheets, LibraryView) | `ui/library/LibrarySheets.kt`'s LibraryAlert, `ui/narrate/NarrateReviewScreen.kt`'s NarrateAlert, `ui/StethoscoreApp.kt`'s two, `ui/ideas/NoteEditor.kt`, `ui/ideas/IdeasView.kt`, `ui/learn/LearnRoutes.kt`'s NotYetNotice | same |
+| "New set", "Save set" (`Features/Library/NewSetView.swift`) and "Look and feel" (`Features/Support/SupportCenter.swift`) | `ui/EditorSettings.kt`'s editor header, save button and settings section | same words; Android's "Night shift" switch and its library rows keep their names (copy deck question 6; no one-to-one iOS row) |
+| The empty library's "Make your first set" and its sentence (`Features/Library/LibraryRows.swift`'s emptyState) | `ui/StethoscoreApp.kt`'s empty home card (as `ui/library/LibraryList.kt`'s LibraryEmpty already says) | same words; the home card keeps "YOUR STUDY WARD" (copy deck question 6) and its two buttons, which load the examples and import a library |
+| Counted notices, "1 set", "1 page" (`Shared/Learn/BedPlan.swift`'s counted) | `ui/StethoscoreApp.kt`'s import and print notices, through `data/BedPlan.kt`'s counted | same |
+| A failed import, "Couldn’t … Check … and try again." (iOS's alert pattern) | `ui/StethoscoreApp.kt`'s import notice, when the failure has no message of its own | same pattern; the other "Unable to …" and "Could not …" notices keep their words (the deck gives words for the import only) |
+| Today's revision's "Open plan" button (`Features/Library/WardHome.swift`'s planButton) | `ui/home/WardHome.kt`'s plan button | same words; Android's click label still reads "Opens the exam plan and forecast" (no deck row names it) |
+| The iPad keyboard menu in sentence case (`Shared/AppIntentsRouting.swift`'s StethoscoreCommands) | none | iOS only: Android has no keyboard menu |
+
 ## Where iOS can't be copied
 
 - SwiftUI shadows and blurs: Compose has no inner shadow. Draw the inset lights with `drawBehind` and a blur-masked `Paint` (or `RenderEffect` on API 31+), from WardRelief's numbers.
