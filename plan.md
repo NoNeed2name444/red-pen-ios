@@ -2347,6 +2347,16 @@ with the marks on the screens last.
       the Cases screens' 12s (the field radius already), and W2's stand-ins
       (the answer row, QuizCard, the calculator keys, the hint panel, the
       empty state's disc).
+    - [x] Nothing faded by alpha where iOS draws it solid (the owner 9 Oct:
+      disabled is solid Biro Grey, wardDisabledInk): a disabled rung on the
+      Cases ladder (ink at 38% before), and the Cases screens' Use and Add
+      when disabled (Material faded them to 38%); the board's link lines
+      are Biro Grey, as iOS's, not 55% of it, and Bedtime's rule line Biro
+      Grey, as iOS's, not ink at 85%. Home's search at 90% and the review's
+      More at 40% went with the bars above. Kept, since iOS draws them so
+      and no colour changes: the board card's 14% wash in its folder's tone,
+      the stem highlighter's beam at 30% and its 6% grey, the analytics
+      bars at 70%; W2's stand-ins keep theirs (QuizTag's and CaseKit's 12%).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

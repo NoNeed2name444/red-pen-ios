@@ -112,7 +112,7 @@ private const val CARD_HEIGHT = 88.0
     }
 
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
-        val ink = wardColor(WardToken.inkSecondary).copy(alpha = 0.55f)
+        val ink = wardColor(WardToken.inkSecondary)
         val chosenInk = wardColor(WardToken.primaryInk)
         // the board itself: pan, pinch, double-tap
         Canvas(Modifier.fillMaxSize()

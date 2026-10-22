@@ -46,6 +46,7 @@ import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDisabledInk
 import com.stethoscore.app.ui.ward.wardDp
 
 /**
@@ -335,7 +336,7 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(typed, { typed = it }, Modifier.weight(1f), placeholder = { Text("Type a diagnosis") }, singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { addTyped() }))
-            TextButton(::addTyped, enabled = typed.isNotBlank()) { Text("Add", fontWeight = FontWeight.SemiBold) }
+            TextButton(::addTyped, enabled = typed.isNotBlank(), colors = ButtonDefaults.textButtonColors(disabledContentColor = wardDisabledInk())) { Text("Add", fontWeight = FontWeight.SemiBold) }
         }
         if (run.ladder.size >= CaseRun.RUNGS) Text("The ladder is full: a new diagnosis takes the bottom rung.", style = WardType.caption.textStyle(), color = CaseInk.biro)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -354,6 +355,6 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
 @Composable
 private fun RungButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean, action: () -> Unit) {
     IconButton(action, enabled = enabled) {
-        Icon(icon, label, tint = if (enabled) CaseInk.theatre else CaseInk.ink.copy(alpha = 0.38f))
+        Icon(icon, label, tint = if (enabled) CaseInk.theatre else wardDisabledInk())
     }
 }

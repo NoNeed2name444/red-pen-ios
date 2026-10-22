@@ -34,6 +34,7 @@ import com.stethoscore.app.data.resolve
 import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDisabledInk
 import com.stethoscore.app.ui.ward.wardDp
 
 /**
@@ -87,7 +88,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(typed, { typed = it }, Modifier.weight(1f), placeholder = { Text("Type a diagnosis") }, singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { useTyped() }))
-                        TextButton(::useTyped, enabled = typed.isNotBlank()) { Text("Use", fontWeight = FontWeight.SemiBold) }
+                        TextButton(::useTyped, enabled = typed.isNotBlank(), colors = ButtonDefaults.textButtonColors(disabledContentColor = wardDisabledInk())) { Text("Use", fontWeight = FontWeight.SemiBold) }
                     }
                     for (name in file.candidates) {
                         val picked = CaseNames.same(name, diagnosis)
