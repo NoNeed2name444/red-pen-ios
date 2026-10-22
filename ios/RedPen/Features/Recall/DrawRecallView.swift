@@ -160,8 +160,9 @@ struct DrawRecallView: View {
         }
     }
 
-    /// Shows or hides the figure's title: an eye on a soft disc beside the
-    /// prompt, pressed in while the title shows.
+    /// Shows or hides the figure's title: an eye on the round Ward button
+    /// beside the prompt, chosen (pressed in, the accent's edge) while the
+    /// title shows.
     private var titleEye: some View {
         let symbol: String = showTitle ? "eye.slash" : "eye"
         let label: String = showTitle ? "Hide title" : "Show title"
@@ -169,15 +170,8 @@ struct DrawRecallView: View {
             showTitle.toggle()
         } label: {
             Image(systemName: symbol)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
-                .frame(width: 40, height: 40)
-                .wardRelief(in: Circle(), pressed: showTitle)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .hoverEffect(.highlight)
+        .buttonStyle(WardCircleButtonStyle(on: showTitle))
         .accessibilityLabel(label)
     }
 
@@ -782,21 +776,8 @@ struct DrawRecallExampleRow: View {
             opening = RecallExamples.seedIfNeeded()
             figure = RecallExamples.figure
         } label: {
-            HStack(spacing: WardSpace.l) {
-                Image(systemName: "pencil.and.scribble")
-                    .font(.title3)
-                    .foregroundStyle(Color.wardPrimaryInk)
-                    .frame(width: 30)
-                VStack(alignment: .leading, spacing: WardSpace.xs) {
-                    Text("Draw it from memory").font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
-                    Text("An inguinal canal drawing ready to Compare")
-                        .font(.caption)
-                        .foregroundStyle(Color.wardInkSecondary)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.vertical, WardSpace.xs)
-            .contentShape(Rectangle())
+            WardRow(symbol: "pencil.and.scribble", title: "Draw it from memory",
+                    detail: "An inguinal canal drawing ready to Compare")
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("example-draw")

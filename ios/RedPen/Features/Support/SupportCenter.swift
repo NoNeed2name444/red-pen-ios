@@ -537,22 +537,15 @@ struct HelpPage: View {
     ]
 }
 
-/// One mode on the help page: its tile, its name and what it is for.
+/// One mode on the help page: its glyph in its section's accent, its name
+/// and what it is for, as a WardRow. Nothing here is tapped, so no chevron.
 private struct HelpModeRow: View {
     let kind: StudySetKind
     let detail: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ModeTile(kind: kind, size: 34)
-            VStack(alignment: .leading, spacing: WardSpace.xs) {
-                Text(kind.label).font(.headline).foregroundStyle(Color.wardInk)
-                Text(detail)
-                    .font(.footnote)
-                    .foregroundStyle(Color.wardInkSecondary)
-            }
-        }
-        .padding(.vertical, WardSpace.xs)
+        WardRow(symbol: kind.symbol, tone: .accent(WardSection(kindRaw: kind.rawValue)), title: kind.label,
+                detail: detail, chevron: false)
     }
 }
 

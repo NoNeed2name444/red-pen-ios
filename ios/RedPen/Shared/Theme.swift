@@ -36,70 +36,20 @@ extension StudySetKind {
     }
 }
 
-/// The icon tile used on library rows and screen headers.
+/// The icon tile used on library rows and screen headers: WardIconSquare
+/// with the mode's glyph in its section's accent (its `tint`). The glyph
+/// alone tells the modes apart, so no wash of colour behind it.
 struct ModeTile: View {
     let kind: StudySetKind
     var size: CGFloat = 44
-    /// The chosen one: pressed into the base, its glyph still its mode's
-    /// accent.
+    /// The chosen one: pressed into the base, its glyph in the section's
+    /// accent, as every chosen icon square's is. Where a mode is chosen (New
+    /// set) the screen takes that mode's section, so it is the mode's own.
     var selected = false
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    // A soft tile raised off the base, the mode's glyph in its tone; the
-    // glyph alone tells the modes apart, so no wash of colour behind it.
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: min(WardRadius.icon, size * 0.28), style: .continuous)
-        Image(systemName: kind.symbol)
-            .font(.system(size: size * 0.42, weight: .semibold))
-            .foregroundStyle(kind.tint)
-            .frame(width: size, height: size)
-            // the row or header around it is what is tapped: no edge here
-            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected, control: false)
-            .animation(reduceMotion ? nil : .wardShade(down: selected), value: selected)
-            .accessibilityHidden(true)
-    }
-}
-
-/// A soft coronal glow in `tint`: strongest in the middle, gone at `reach`
-/// of the size. At SpaceQuality.full it breathes, 6% either way over 4 s.
-struct CoronaGlow: View {
-    let tint: Color
-    /// Where the glow has faded out, as a fraction of the shorter side.
-    var reach: CGFloat = 0.9
-    /// The middle's opacity.
-    var strength: Double = 0.75
-    @Environment(\.spaceQuality) private var quality
-
-    var body: some View {
-        GeometryReader { geo in
-            let side: CGFloat = min(geo.size.width, geo.size.height)
-            let colours: [Color] = [tint.opacity(strength), tint.opacity(strength * 0.45), tint.opacity(0)]
-            let glow = RadialGradient(colors: colours, center: .center,
-                                      startRadius: 0, endRadius: side * reach)
-            Rectangle()
-                .fill(glow)
-                .modifier(CoronaBreath(breathes: quality.isFull))
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
-private struct CoronaBreath: ViewModifier {
-    let breathes: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if breathes {
-            content.phaseAnimator([false, true]) { view, out in
-                view.scaleEffect(out ? 1.06 : 0.94)
-            } animation: { _ in
-                .easeInOut(duration: 2)
-            }
-        } else {
-            content
-        }
+        WardIconSquare(symbol: kind.symbol, tone: .accent(WardSection(kindRaw: kind.rawValue)),
+                       size: size, selected: selected)
     }
 }
 
@@ -692,20 +642,6 @@ struct StudyProgressHeader<Accessory: View>: View {
 extension StudyProgressHeader where Accessory == EmptyView {
     init(_ status: String, detail: String? = nil, fraction: Double? = nil) {
         self.init(status, detail: detail, fraction: fraction) { EmptyView() }
-    }
-}
-
-/// A small grey "optional" tag, for a question the student can happily skip -
-/// how sure they were, why an answer was wrong - so nobody thinks they are
-/// stuck until they answer it.
-struct OptionalTag: View {
-    var body: some View {
-        Text("optional")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(Color.wardInkSecondary)
-            .padding(.horizontal, WardSpace.s)
-            .padding(.vertical, WardSpace.xs)
-            .wardInset(in: Capsule())
     }
 }
 

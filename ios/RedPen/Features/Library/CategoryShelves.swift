@@ -30,7 +30,7 @@ struct KindShelfView: View {
         List {
             if feature == .pictures {
                 Section {
-                    PhotoCardsTile(tint: kind.tint)
+                    PhotoCardsTile(kind: kind)
                 }
             }
             Section {
@@ -129,36 +129,20 @@ extension CategoryFeature {
     }
 }
 
-/// Picture cards: "From a photo or scan", a soft tile raised above the decks
-/// and pressed in under the finger. Its page is pushed with its destination,
-/// as every link on this page is.
+/// Picture cards: "From a photo or scan", a WardRow on a soft tile raised
+/// above the decks and pressed in under the finger, its glyph in the mode's
+/// section accent. Its page is pushed with its destination, as every link on
+/// this page is.
 struct PhotoCardsTile: View {
-    let tint: Color
+    let kind: StudySetKind
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         NavigationLink {
             PictureFromPhotoView()
         } label: {
-            HStack(spacing: WardSpace.m) {
-                Image(systemName: "camera.viewfinder")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 40, height: 40)
-                    .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous), lift: .low)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("From a photo or scan").font(.headline).foregroundStyle(Color.wardInk)
-                    Text("Labels read and covered for you, then adjust")
-                        .font(.caption)
-                        .foregroundStyle(Color.wardInkSecondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.wardInkSecondary)
-                    .accessibilityHidden(true)
-            }
+            WardRow(symbol: "camera.viewfinder", tone: .accent(WardSection(kindRaw: kind.rawValue)),
+                    title: "From a photo or scan", detail: "Labels read and covered for you, then adjust")
             .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
             .contentShape(shape)

@@ -224,12 +224,6 @@ private struct SaveToIdeasHost: ViewModifier {
                        set: { if !$0 { saver.stopAsking(host: here) } })
     }
 
-    /// Long enough to reach Undo; longer when it is read aloud and Undo
-    /// has to be found by swiping.
-    private static var showFor: Duration {
-        UIAccessibility.isVoiceOverRunning ? .seconds(10) : .seconds(4)
-    }
-
     func body(content: Content) -> some View {
         let shown: IdeaToast? = mine
         return content
@@ -252,7 +246,7 @@ private struct SaveToIdeasHost: ViewModifier {
             // it says what happened and goes by itself
             .task(id: shown?.id) {
                 guard let showing = shown?.id else { return }
-                try? await Task.sleep(for: Self.showFor)
+                try? await Task.sleep(for: SavedIdeaToast.showFor)
                 guard !Task.isCancelled else { return }
                 saver.dismiss(showing)
             }
@@ -267,11 +261,18 @@ private struct SaveToIdeasHost: ViewModifier {
 }
 
 /// "Saved to Ideas", at the top: a soft slip raised high off the base that
-/// stops nothing, with Undo. A tap elsewhere on it puts it away.
-private struct SavedIdeaToast: View {
+/// stops nothing, with Undo when there is one. A tap elsewhere on it puts it
+/// away. The one slip for a save: Disease scripts shows it too, without Undo.
+struct SavedIdeaToast: View {
     let toast: IdeaToast
     let onUndo: () -> Void
     let onDismiss: () -> Void
+
+    /// Long enough to reach Undo; longer when it is read aloud and Undo
+    /// has to be found by swiping.
+    static var showFor: Duration {
+        UIAccessibility.isVoiceOverRunning ? .seconds(10) : .seconds(4)
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
@@ -290,6 +291,8 @@ private struct SavedIdeaToast: View {
                     .lineLimit(2)
             }
             .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityAction(named: "Dismiss", onDismiss)
             Spacer(minLength: 0)
             if toast.undo != nil {
                 Button(action: onUndo) {
@@ -528,9 +531,9 @@ final class IdeaPDFView: PDFView {
 
 // MARK: - The backlink
 
-/// A saved note's way back: "Question · Cardiology" on a white chip, opening
-/// the question in its set (AppLink.openItem, which the library acts on the
-/// way a search result is opened).
+/// A saved note's way back: "Question · Cardiology" on a chip button
+/// (WardChipButtonStyle), opening the question in its set (AppLink.openItem,
+/// which the library acts on the way a search result is opened).
 struct NoteSourceChip: View {
     let source: NoteSource
 
@@ -539,12 +542,9 @@ struct NoteSourceChip: View {
             AppRouter.shared.open(.openItem(source))
         } label: {
             Label(source.chipLabel, systemImage: source.kind.symbol)
-                .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
-                .padding(.horizontal, 4)
-                .frame(minHeight: 32)
         }
-        .buttonStyle(.wardCompact)
+        .buttonStyle(WardChipButtonStyle())
         .accessibilityLabel("From " + source.chipLabel)
         .accessibilityHint("Opens it where it is in your library")
         .accessibilityIdentifier("noteSourceChip")
