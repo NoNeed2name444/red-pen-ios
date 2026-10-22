@@ -28,9 +28,10 @@ import com.stethoscore.app.data.*
     val encoded=set.images.getOrNull(index)
     val bitmap=remember(encoded) { runCatching { if(encoded==null || encoded.startsWith("blob:")) null else {val bytes=Base64.decode(encoded.substringAfter("base64,",encoded),Base64.DEFAULT);BitmapFactory.decodeByteArray(bytes,0,bytes.size)?.asImageBitmap()} }.getOrNull() }
     if(bitmap==null) {Text("Image unavailable on this device",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant);return}
-    val masks=if(card?.type==AnkiCardType.OCCLUSION) card.siblings+if(!revealed) listOfNotNull(card.occlusion) else emptyList() else emptyList()
+    // an occlusion card's covers in OcclusionCovers' colours, as the card face draws them
+    val masks=if(card?.type==AnkiCardType.OCCLUSION) card.siblings.map { it to OcclusionCovers.otherRgb }+if(!revealed) listOfNotNull(card.occlusion).map { it to OcclusionCovers.targetRgb } else emptyList() else emptyList()
     Box(Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height)) {
         Image(bitmap,"Study illustration",Modifier.fillMaxSize())
-        if(masks.isNotEmpty()) Canvas(Modifier.fillMaxSize()) { masks.forEach {m->drawRect(Color(0xFF3B82F6),Offset(m.x.toFloat()*size.width,m.y.toFloat()*size.height),Size(m.w.toFloat()*size.width,m.h.toFloat()*size.height))} }
+        if(masks.isNotEmpty()) Canvas(Modifier.fillMaxSize()) { masks.forEach {(m,c)->drawRect(Color(c.first.toFloat(),c.second.toFloat(),c.third.toFloat()),Offset(m.x.toFloat()*size.width,m.y.toFloat()*size.height),Size(m.w.toFloat()*size.width,m.h.toFloat()*size.height))} }
     }
 }

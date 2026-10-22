@@ -2254,6 +2254,10 @@ with the marks on the screens last.
     - [x] Material's onPrimary is WardToken.onPrimary (white) at night as
       by day, so words on fills stay white (it was the night base); nothing
       else in the scheme changes (OwnerPaletteTest).
+    - [x] The question screen's picture (StudyScreens' CardImage) covers an
+      occlusion card's labels in OcclusionCovers' colours, as the card face,
+      not a Care Blue literal; no screen passes it a card yet, so nothing
+      drawn changes (OwnerPaletteTest).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

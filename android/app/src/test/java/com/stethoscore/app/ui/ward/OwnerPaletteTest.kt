@@ -83,11 +83,13 @@ class OwnerPaletteTest {
         check("the folders are Pulse Teal, Electric Indigo, Peach Glow, Soft Lilac, Lime Zest, Bubblegum Pink and Care Blue",
             tones == folders, tones.joinToString { hx(it) })
 
-        // the occlusion cover (the asked label) is Peach Glow; Android's occlusion masks are Care Blue
+        // the occlusion cover (the asked label) is Peach Glow; the question screen's picture
+        // (StudyScreens' CardImage) covers labels in OcclusionCovers' colours too, with no literal
         val cover = OcclusionCovers.targetRgb.let { hex(it.first, it.second, it.third) }
         check("the occlusion cover is Peach Glow", cover == peachGlow, hx(cover))
         val study = File("src/main/java/com/stethoscore/app/ui/StudyScreens.kt").takeIf { it.exists() }?.readText() ?: ""
-        check("the occlusion masks are Care Blue", study.contains("drawRect(Color(0xFF3B82F6)"))
+        check("the question screen's occlusion masks take OcclusionCovers' colours",
+            study.contains("OcclusionCovers.targetRgb") && study.contains("OcclusionCovers.otherRgb") && !study.contains("Color(0xFF"))
 
         // the exported deck: each mode's colour is its section's fill, and its bars and words are that hex
         val deck = mapOf(
