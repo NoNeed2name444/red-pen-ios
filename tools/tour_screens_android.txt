@@ -47,7 +47,7 @@
 57	Symptom blocks	r057_symptomBlocks	r057-symptom-blocks-light r057-symptom-blocks-dark
 58	Exam plan	r058_examPlan	r058-exam-plan-light r058-exam-plan-dark
 59	Exam-day kit	r059_examKit	r059-exam-kit-light r059-exam-kit-dark
-60	Bedtime re-read (dark only: the screen is always dark)	r060_bedtime	r060-bedtime-dark
+60	Bedtime re-read	r060_bedtime	r060-bedtime-light r060-bedtime-dark
 61	Morning check	r061_morningCheck	r061-morning-check-light r061-morning-check-dark
 62	Question from a notification	r062_question	r062-learn-question-light r062-learn-question-dark
 62	Question gone	r062_questionGone	r062-learn-question-gone-light r062-learn-question-gone-dark
