@@ -28,6 +28,7 @@ import com.stethoscore.app.ui.sources.ReaderNavBar
 import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.wardFrameClearance
 import com.stethoscore.app.ui.wardColor
 
 // A port of ios/RedPen/Shared/Learn/LearnRouter.swift and
@@ -111,7 +112,8 @@ internal object LearnRouter {
     val route = LearnRouter.route ?: return
     // the bedtime re-read is drawn dark whatever the phone's setting
     StethoscoreTheme(dark = dark || route == LearnRoute.Bedtime, section = section) {
-        Box(Modifier.fillMaxSize().background(wardColor(WardToken.background))) {
+        // the sheet's face fills the window; its screen sits inside the paper frame's ring
+        Box(Modifier.fillMaxSize().background(wardColor(WardToken.background))) { Box(Modifier.fillMaxSize().wardFrameClearance()) {
             BackHandler { LearnRouter.close() }
             Screen(route, store, onPreset, onOpenSet)
             when (val pushed = LearnRouter.pushed) {
@@ -129,7 +131,7 @@ internal object LearnRouter {
                 }
                 null -> Unit
             }
-        }
+        } }
     }
 }
 

@@ -428,6 +428,9 @@ suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift $S/Ward/WardL
 suite wardrelief WardReliefTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
 # window/page joins, clearance clips, iPad corners and the fold pill
 suite wardisland WardIslandTests.swift $S/Ward/WardIsland.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+# the paper frame clear of the system bars, its corners concentric with
+# the display's (WardCorner)
+suite wardframeclear WardFrameClearTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
 # one animated value for every Ward colour: the light/dark shift and the move
 # between sections, with each section's hue
 suite wardlook WardLookTests.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift

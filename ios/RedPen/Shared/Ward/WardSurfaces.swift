@@ -442,6 +442,10 @@ final class WardPaperTop {
     /// True while home is on screen (or warming beneath the launch splash);
     /// false when a page is pushed over home or another root screen is shown.
     var home: Bool = LaunchSplash.wanted
+    /// The system bars the paper's opening stays clear of, set by
+    /// WardPaperFrame from its window's safe area (none on home), so the
+    /// paper's cut (WardPaperCutStage) and the ring agree.
+    var safe: WardSystemInsets = .none
 }
 
 /// Each window owns this store. A sheet inherits it, but its edges do not
@@ -470,6 +474,9 @@ final class WardEdgeStore {
     private(set) var entries: [UUID: Entry] = [:]
     private(set) var window: CGRect = .zero
     private(set) var page: CGRect = .zero
+    /// What corner elements follow (WardCorner.radii), in window points:
+    /// the ring off home, the screen with the display's corner on home.
+    private(set) var cornerFrame: WardCornerFrame?
     @ObservationIgnored private var requests: [UUID: Request] = [:]
     @ObservationIgnored private var panel: WardPaperPanel?
     @ObservationIgnored private var outline: [SIMD2<Double>] = []
@@ -482,9 +489,16 @@ final class WardEdgeStore {
         refresh()
     }
 
-    func setWindow(_ frame: CGRect, pad: Bool, top: CGFloat?) {
+    func setWindow(_ frame: CGRect, pad: Bool, top: CGFloat?, safe: WardSystemInsets = .none) {
+        // the same opening the frame strokes: clear of the system bars, its
+        // corners concentric with the display's (WardPaper.panel)
         let next = WardPaper.panel(width: frame.width, height: frame.height,
-                                   top: Double(top ?? 0) - frame.minY, pad: pad)
+                                   top: Double(top ?? 0) - frame.minY, safe: safe, device: nil, pad: pad)
+        let corners: WardCornerFrame? = WardPaperTop.shared.home
+            ? WardCornerFrame.screen(width: Double(frame.width), height: Double(frame.height),
+                                     device: WardPaper.deviceRadius(width: Double(frame.width), height: Double(frame.height), pad: pad))
+            : next.map(WardCornerFrame.ring)
+        if cornerFrame != corners { cornerFrame = corners }
         guard window != frame || panel != next else { return }
         window = frame
         panel = next
@@ -568,8 +582,13 @@ private enum WardPanelPath {
     }
 
     static func hole(_ panel: WardPaperPanel) -> Path {
-        RoundedRectangle(cornerRadius: panel.radius, style: .continuous)
-            .path(in: CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height))
+        let rect = CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height)
+        if panel.bottomRadius == panel.radius {
+            return RoundedRectangle(cornerRadius: panel.radius, style: .continuous).path(in: rect)
+        }
+        return UnevenRoundedRectangle(topLeadingRadius: panel.radius, bottomLeadingRadius: panel.bottomRadius,
+                                      bottomTrailingRadius: panel.bottomRadius, topTrailingRadius: panel.radius,
+                                      style: .continuous).path(in: rect)
     }
 
     static func ring(_ panel: WardPaperPanel) -> Path {
@@ -717,11 +736,17 @@ struct WardPaperFrame: View {
         let color = Color(red: r, green: g, blue: b)
         GeometryReader { geometry in
             let size = geometry.size
+            // Off home, the opening stops short of the status bar, the
+            // Dynamic Island and the home indicator, so the ring never runs
+            // through them (the owner, 22 Oct); home keeps its ringless
+            // opening as it was.
+            let safe = onHome ? WardSystemInsets.none : WardSystemInsets(geometry.safeAreaInsets)
             ZStack {
                 WardPaperCutStage()
                 if !onHome,
                    let moved = WardPaper.panel(width: size.width, height: size.height,
-                                               top: Double(top ?? 0) - window.minY, pad: WardPanelPath.pad) {
+                                               top: Double(top ?? 0) - window.minY, safe: safe, device: nil,
+                                               pad: WardPanelPath.pad) {
                     ZStack {
                         Canvas { context, _ in
                             context.fill(WardPanelPath.ring(moved), with: .color(color))
@@ -738,13 +763,25 @@ struct WardPaperFrame: View {
             }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
                 window = frame
-                edges.setWindow(frame, pad: WardPanelPath.pad, top: top)
+                edges.setWindow(frame, pad: WardPanelPath.pad, top: top, safe: safe)
             }
-            .onChange(of: top) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: now) }
+            .onChange(of: top) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: now, safe: safe) }
+            .onChange(of: safe, initial: true) { _, now in
+                paperTop.safe = now
+                edges.setWindow(window, pad: WardPanelPath.pad, top: top, safe: now)
+            }
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+extension WardSystemInsets {
+    /// A view's safe area insets, leading and trailing as left and right.
+    init(_ insets: EdgeInsets) {
+        self.init(top: Double(insets.top), bottom: Double(insets.bottom),
+                  left: Double(insets.leading), right: Double(insets.trailing))
     }
 }
 
@@ -762,6 +799,8 @@ struct WardPaperCut: Equatable {
     var ink: WardPaperInk
     var base: UInt32
     var pad: Bool
+    /// The system bars the opening stays clear of (none on home).
+    var safe: WardSystemInsets = .none
     var displayScale: CGFloat
 
     /// The paper's opening, as a path in the window.
@@ -791,10 +830,12 @@ private struct WardPaperCutStage: View {
         // the base with the section's wash, as WardBackground draws it
         let base = look.wash(dark: dark, held: held)
         let top = WardPaperTop.shared.y.map { $0 - (edges?.window.minY ?? 0) }
+        // the bars the frame's ring stays clear of (WardPaperFrame sets them)
+        let safe = WardPaperTop.shared.safe
         #if canImport(UIKit)
         WardPaperCutSheet(cut: WardPaperCut(scale: pose?.scale, drop: pose?.drop ?? 0,
                                             top: top, dark: dark, highContrast: strong,
-                                            ink: ink, base: base, pad: WardPanelPath.pad,
+                                            ink: ink, base: base, pad: WardPanelPath.pad, safe: safe,
                                             displayScale: displayScale))
         #endif
     }
@@ -859,8 +900,10 @@ final class WardPaperCutView: UIView {
         defer { CATransaction.commit() }
         guard bounds.width > 0, bounds.height > 0 else { return }
         let w = Double(bounds.width), h = Double(bounds.height)
-        guard let panel = WardPaper.panel(width: w, height: h, pad: cut.pad) else { return }
-        let moved: WardPaperPanel? = cut.top.flatMap { WardPaper.panel(width: w, height: h, top: Double($0), pad: cut.pad) }
+        guard let panel = WardPaper.panel(width: w, height: h, safe: cut.safe, device: nil, pad: cut.pad) else { return }
+        let moved: WardPaperPanel? = cut.top.flatMap {
+            WardPaper.panel(width: w, height: h, top: Double($0), safe: cut.safe, device: nil, pad: cut.pad)
+        }
             .flatMap { $0.y > panel.y ? $0 : nil }
         let opening = moved ?? panel
         // A pose moves the mask, never the picture. Everything that changes
@@ -1089,10 +1132,41 @@ struct WardCardStyle: ViewModifier {
     var lift: WardLift = .mid
 
     func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous), lift: lift)
+        // a card near the frame's corner is concentric with it (WardCorner.radii)
+        WardCorners(own: WardRadius.card) { radii in
+            content
+                .padding(padding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .wardRaised(in: radii.shape, lift: lift)
+        }
+    }
+}
+
+/// A corner element: `content` drawn with its WardCorner.radii against the
+/// window's corner frame (WardEdgeStore.cornerFrame), measured where it
+/// stands; `own` until it is measured and anywhere away from the corners.
+struct WardCorners<Content: View>: View {
+    let own: Double
+    @ViewBuilder let content: (WardCornerRadii) -> Content
+    @Environment(\.wardEdgeStore) private var store
+    @State private var frame: CGRect = .zero
+
+    var body: some View {
+        let radii: WardCornerRadii = {
+            guard let store, let corners = store.cornerFrame, frame.width > 0 else { return .all(own) }
+            let local = frame.offsetBy(dx: -store.window.minX, dy: -store.window.minY)
+            return WardCorner.radii(element: local, frame: corners, own: own)
+        }()
+        content(radii)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+    }
+}
+
+extension WardCornerRadii {
+    /// The continuous rounded rectangle with these corners.
+    var shape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: topLeft, bottomLeadingRadius: bottomLeft,
+                               bottomTrailingRadius: bottomRight, topTrailingRadius: topRight, style: .continuous)
     }
 }
 

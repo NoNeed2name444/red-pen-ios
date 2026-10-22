@@ -289,7 +289,77 @@ object WardPress {
 /** ECG paper ink, independent of the rendering framework. */
 data class WardPaperInk(val hex: Int, val fine: Double, val bold: Double, val edge: Double)
 
-data class WardPaperPanel(val x: Double, val y: Double, val width: Double, val height: Double, val radius: Double)
+/**
+ * The page's opening in the paper: its frame in points and its corner
+ * radii, [radius] for the top corners and [bottomRadius] for the bottom ones
+ * (equal unless the system bars set the top and bottom apart).
+ */
+data class WardPaperPanel(val x: Double, val y: Double, val width: Double, val height: Double, val radius: Double,
+                          val bottomRadius: Double = radius)
+
+/** How far the system's bars and cut-outs reach in from each screen edge, in points (dp). */
+data class WardSystemInsets(val top: Double = 0.0, val bottom: Double = 0.0, val left: Double = 0.0, val right: Double = 0.0) {
+    companion object {
+        val none = WardSystemInsets()
+    }
+}
+
+/**
+ * The one corner rule for anything with a radius near the screen's corner
+ * (iOS WardCorner): concentric with the display's own corner, so its radius
+ * is the display's less its distance from the screen edge, never under the
+ * element's own [floor]. A screen with square corners (device 0) leaves
+ * every element at its floor.
+ */
+object WardCorner {
+    fun concentric(device: Double, inset: Double, floor: Double): Double = max(floor, device - inset)
+
+    /** How near a corner must come to the frame's corner to follow it: one gutter (WardSpace.gutter). */
+    const val reach = WardScale.l
+
+    /**
+     * Each corner of [element] (window points): a corner within [reach] of
+     * both edges of [frame]'s corner is concentric with it (its radius the
+     * frame corner's less the larger of the two distances, floored at [own]);
+     * every other corner keeps [own]. None is rounder than half the
+     * element's shorter side.
+     */
+    fun radii(element: WardRect, frame: WardCornerFrame, own: Double, reach: Double = this.reach): WardCornerRadii {
+        val f = frame.rect
+        val left = max(0.0, element.minX - f.minX)
+        val right = max(0.0, f.maxX - element.maxX)
+        val top = max(0.0, element.minY - f.minY)
+        val bottom = max(0.0, f.maxY - element.maxY)
+        val cap = max(own, min(element.width, element.height) / 2)
+        fun corner(dx: Double, dy: Double, radius: Double): Double =
+            if (dx <= reach && dy <= reach) min(cap, concentric(radius, max(dx, dy), own)) else own
+        return WardCornerRadii(corner(left, top, frame.top), corner(right, top, frame.top),
+            corner(right, bottom, frame.bottom), corner(left, bottom, frame.bottom))
+    }
+}
+
+/** One radius for each corner, clockwise from the top left, in points. */
+data class WardCornerRadii(val topLeft: Double, val topRight: Double, val bottomRight: Double, val bottomLeft: Double) {
+    val uniform: Boolean get() = topLeft == topRight && topRight == bottomRight && bottomRight == bottomLeft
+
+    companion object {
+        fun all(radius: Double) = WardCornerRadii(radius, radius, radius, radius)
+    }
+}
+
+/**
+ * What a corner element is concentric with, in window points: the paper
+ * frame's ring on a framed page (the owner, 22 Oct, "clear bars, small
+ * top": things near the top take the ring's top corner), or the screen with
+ * the display's own corner where there is no frame (home).
+ */
+data class WardCornerFrame(val rect: WardRect, val top: Double, val bottom: Double) {
+    companion object {
+        fun screen(width: Double, height: Double, device: Double) = WardCornerFrame(WardRect(0.0, 0.0, width, height), device, device)
+        fun ring(panel: WardPaperPanel) =
+            WardCornerFrame(WardRect(panel.x, panel.y, panel.width, panel.height), panel.radius, panel.bottomRadius)
+    }
+}
 
 data class WardPaperLine(val at: Double, val bold: Boolean)
 
@@ -313,6 +383,61 @@ object WardPaper {
             bold = if (highContrast) 0.0 else if (dark) 0.14 else 0.18,
             edge = if (dark) 0.5 else 0.55,
         )
+
+    /**
+     * The display's corner radius when the device reports none (below
+     * Android 12, or no rounded corner given): the corner this frame was
+     * drawn for, its opening's share of the width plus the frame, or the
+     * iPad's with the frame.
+     */
+    fun deviceRadius(width: Double, height: Double, pad: Boolean = false): Double =
+        if (pad) padRadius + frame else (min(width, height) - 2 * frame) * cornerShare + frame
+
+    /**
+     * The opening's edge on a side whose system bar reaches [inset] in: the
+     * frame's own 12 points, or just past the bar, so the ring's whole width
+     * lies clear of it (the owner, 22 Oct: the frame never crosses a system bar).
+     */
+    fun edge(inset: Double): Double = max(frame, inset + edgeWidth / 2)
+
+    /**
+     * Where page content starts on a side whose system bar reaches [inset] in:
+     * [sideInset] past the bar, four points inside the ring's line at its
+     * nearest (iOS SkyRoot's padding, inside the safe area).
+     */
+    fun contentEdge(inset: Double): Double = inset + sideInset
+
+    /**
+     * The opening clear of the system bars ([safe]), its corners concentric
+     * with the display's corner [device] (null: [deviceRadius]): each corner
+     * is WardCorner.concentric of its larger distance from the two screen
+     * edges it meets, floored at WardEdge.minRadius.
+     */
+    fun panel(width: Double, height: Double, safe: WardSystemInsets, device: Double?, pad: Boolean = false): WardPaperPanel? {
+        if (!(width > 4 * frame && height > 4 * frame)) return null
+        val left = edge(safe.left)
+        val right = edge(safe.right)
+        val top = edge(safe.top)
+        val bottom = edge(safe.bottom)
+        val w = width - left - right
+        val h = height - top - bottom
+        if (!(w > 2 * frame && h > 2 * frame)) return null
+        val d = device ?: deviceRadius(width, height, pad)
+        val side = max(left, right)
+        // a continuous corner reaches 1.53 radii along each edge: two must fit
+        val cap = min(w, h) / (2 * 1.52866483)
+        fun corner(inset: Double) = min(cap, WardCorner.concentric(d, max(side, inset), WardEdge.minRadius))
+        return WardPaperPanel(left, top, w, h, corner(top), corner(bottom))
+    }
+
+    /** As [panel] clear of the bars, with its top moved down to [top], held to what fits. */
+    fun panel(width: Double, height: Double, top: Double, safe: WardSystemInsets, device: Double?, pad: Boolean = false): WardPaperPanel? {
+        val p = panel(width, height, safe, device, pad) ?: return null
+        val bottom = p.y + p.height
+        val y = min(max(top, p.y), bottom - p.radius - p.bottomRadius)
+        if (!(y > p.y)) return p
+        return p.copy(y = y, height = bottom - y)
+    }
 
     fun panel(width: Double, height: Double, pad: Boolean = false): WardPaperPanel? {
         if (!(width > 4 * frame && height > 4 * frame)) return null
@@ -429,17 +554,18 @@ object WardEdge {
         val minY = panel.y
         val maxY = panel.y + panel.height
         val r = panel.radius
+        val b = panel.bottomRadius
         val c = k0
         val poly = mutableListOf(WardVec(minX + c * r, minY))
         // top straight run, then the top-right corner
         poly += WardVec(maxX - c * r, minY)
         corner(poly, pointsPerCurve) { u, v -> WardVec(maxX + r * u, minY + r * v) }
-        // right straight run, then the bottom-right corner
-        poly += WardVec(maxX, maxY - c * r)
-        corner(poly, pointsPerCurve) { u, v -> WardVec(maxX - r * v, maxY + r * u) }
+        // right straight run, then the bottom-right corner (the bottom corners' own radius)
+        poly += WardVec(maxX, maxY - c * b)
+        corner(poly, pointsPerCurve) { u, v -> WardVec(maxX - b * v, maxY + b * u) }
         // bottom straight run, then the bottom-left corner
-        poly += WardVec(minX + c * r, maxY)
-        corner(poly, pointsPerCurve) { u, v -> WardVec(minX - r * u, maxY - r * v) }
+        poly += WardVec(minX + c * b, maxY)
+        corner(poly, pointsPerCurve) { u, v -> WardVec(minX - b * u, maxY - b * v) }
         // left straight run, then the top-left corner
         poly += WardVec(minX, minY + c * r)
         corner(poly, pointsPerCurve) { u, v -> WardVec(minX + r * v, minY - r * u) }

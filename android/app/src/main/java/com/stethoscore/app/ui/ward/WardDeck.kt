@@ -77,14 +77,17 @@ import kotlin.math.max
  * The paper frame on show, as the bars see it (iOS WardEdgeStore's window
  * and panel): where it lies in its window and its opening, in points.
  */
-internal class WardEdgeWindow(view: View, val bounds: WardRect, val pad: Boolean) {
+internal class WardEdgeWindow(view: View, val bounds: WardRect, val pad: Boolean,
+                              val safe: WardSystemInsets = WardSystemInsets.none, val device: Double? = null) {
     private val view = WeakReference(view)
-    val panel: WardPaperPanel? = WardPaper.panel(bounds.width, bounds.height, pad = pad)
+    /** The frame's own opening: clear of the system bars, corners concentric with the display's. */
+    val panel: WardPaperPanel? = WardPaper.panel(bounds.width, bounds.height, safe, device, pad)
     /** The outline the frame strokes, the very one the joins are solved on. */
     val outline: List<WardVec> = panel?.let { WardEdge.outline(it, pointsPerCurve = 12) } ?: emptyList()
 
     fun frames(view: View): Boolean = this.view.get() === view
-    fun same(view: View, bounds: WardRect, pad: Boolean): Boolean = frames(view) && this.bounds == bounds && this.pad == pad
+    fun same(view: View, bounds: WardRect, pad: Boolean, safe: WardSystemInsets, device: Double?): Boolean =
+        frames(view) && this.bounds == bounds && this.pad == pad && this.safe == safe && this.device == device
 }
 
 /**
@@ -96,9 +99,10 @@ internal object WardEdgeStore {
     var window: WardEdgeWindow? by mutableStateOf(null)
         private set
 
-    fun setWindow(view: View, bounds: WardRect, pad: Boolean) {
-        if (window?.same(view, bounds, pad) == true) return
-        window = WardEdgeWindow(view, bounds, pad)
+    fun setWindow(view: View, bounds: WardRect, pad: Boolean,
+                  safe: WardSystemInsets = WardSystemInsets.none, device: Double? = null) {
+        if (window?.same(view, bounds, pad, safe, device) == true) return
+        window = WardEdgeWindow(view, bounds, pad, safe, device)
     }
 
     fun leave(view: View) {

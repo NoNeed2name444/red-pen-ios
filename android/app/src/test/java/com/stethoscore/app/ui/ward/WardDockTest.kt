@@ -97,7 +97,9 @@ class WardDockTest {
         val dock = if (start >= 0) app.substring(start) else ""
         check("found the dock's source", dock.isNotEmpty())
         check("home draws the dock, not Material's NavigationBar", app.contains("CategoryDock(category,") && !app.contains("NavigationBar("))
-        check("the panel is WardDock's radius", dock.contains("val panel=RoundedCornerShape(WardDock.panelRadius.toFloat().dp)"))
+        // WardDock's radius, concentric with the display's only where a corner meets a screen corner (WardCorner.radii)
+        check("the panel is WardDock's radius", dock.contains("val (panelAt,panelCorners)=rememberWardCorners(WardDock.panelRadius)") &&
+            dock.contains("val (ideasAt,ideasCorners)=rememberWardCorners(WardDock.panelRadius)"))
         // iOS (StudyCategory.swift): the panel raised high on its rim, the chosen
         // tab in a low hollow with the chosen edge (WardDock.ringWidth is
         // WardControlStates.chosenEdgeWidth, the width wardChosenEdge draws)
@@ -116,7 +118,9 @@ class WardDockTest {
         check("only the dock's layout reads where the hollow is, never the bar's sizing",
             dock.contains("override fun androidx.compose.ui.layout.IntrinsicMeasureScope.minIntrinsicHeight") &&
                 dock.contains("hollowAt={ if(at<0) null"))
-        check("the panel is raised high on its rim, as iOS", dock.contains(".wardRaised(WardDock.panelRadius,WardLift.high,control=true)"))
+        // its corners WardDock's radius, concentric with the display's where it meets a screen corner (WardCorner.radii)
+        check("the panel is raised high on its rim, as iOS", dock.contains("rememberWardCorners(WardDock.panelRadius)") &&
+            dock.contains(".wardRaised(panelCorners,WardLift.high,control=true)"))
         check("no flat panel, border, Material colours or ripple",
             !dock.contains(".border(") && !dock.contains("colorScheme") && dock.contains("indication=null") && !dock.contains(".clip("))
         check("the bar as iOS's: the five on the panel, Ideas on its own pill, at most barMaxWidth wide",

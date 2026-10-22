@@ -326,12 +326,103 @@ struct WardPaperInk: Equatable, Sendable {
     var edge: Double
 }
 
+/// The page's opening in the paper: its frame in points and its corner
+/// radii, `radius` for the top corners and `bottomRadius` for the bottom
+/// ones (equal unless the system bars set the top and bottom apart).
 struct WardPaperPanel: Equatable, Sendable {
     var x: Double
     var y: Double
     var width: Double
     var height: Double
     var radius: Double
+    var bottomRadius: Double
+
+    init(x: Double, y: Double, width: Double, height: Double, radius: Double, bottomRadius: Double? = nil) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.radius = radius
+        self.bottomRadius = bottomRadius ?? radius
+    }
+}
+
+/// How far the system's bars reach in from each screen edge (the window's
+/// safe area insets: the status bar, the Dynamic Island, the home
+/// indicator), in points.
+struct WardSystemInsets: Equatable, Sendable {
+    var top: Double = 0
+    var bottom: Double = 0
+    var left: Double = 0
+    var right: Double = 0
+
+    static let none = WardSystemInsets()
+}
+
+/// The one corner rule for anything with a radius near the screen's corner
+/// (Android WardCorner): concentric with the display's own corner, so its
+/// radius is the display's less its distance from the screen edge, never
+/// under the element's own `floor`. A screen with square corners (device 0)
+/// leaves every element at its floor.
+enum WardCorner {
+    static func concentric(device: Double, inset: Double, floor: Double) -> Double {
+        max(floor, device - inset)
+    }
+
+    /// How near a corner must come to the frame's corner to follow it: one
+    /// gutter (WardSpace.gutter).
+    static let reach = WardScale.l
+
+    /// Each corner of `element` (window points): a corner within `reach` of
+    /// both edges of `frame`'s corner is concentric with it (its radius the
+    /// frame corner's less the larger of the two distances, floored at
+    /// `own`); every other corner keeps `own`. None is rounder than half
+    /// the element's shorter side.
+    static func radii(element: CGRect, frame: WardCornerFrame, own: Double, reach: Double = WardCorner.reach) -> WardCornerRadii {
+        let f = frame.rect
+        let left = max(0, Double(element.minX - f.minX))
+        let right = max(0, Double(f.maxX - element.maxX))
+        let top = max(0, Double(element.minY - f.minY))
+        let bottom = max(0, Double(f.maxY - element.maxY))
+        let cap = max(own, Double(min(element.width, element.height)) / 2)
+        func corner(_ dx: Double, _ dy: Double, _ radius: Double) -> Double {
+            dx <= reach && dy <= reach ? min(cap, concentric(device: radius, inset: max(dx, dy), floor: own)) : own
+        }
+        return WardCornerRadii(topLeft: corner(left, top, frame.top), topRight: corner(right, top, frame.top),
+                               bottomRight: corner(right, bottom, frame.bottom),
+                               bottomLeft: corner(left, bottom, frame.bottom))
+    }
+}
+
+/// One radius for each corner, clockwise from the top left, in points.
+struct WardCornerRadii: Equatable, Sendable {
+    var topLeft: Double
+    var topRight: Double
+    var bottomRight: Double
+    var bottomLeft: Double
+
+    static func all(_ radius: Double) -> WardCornerRadii {
+        WardCornerRadii(topLeft: radius, topRight: radius, bottomRight: radius, bottomLeft: radius)
+    }
+}
+
+/// What a corner element is concentric with, in window points: the paper
+/// frame's ring on a framed page (the owner, 22 Oct, "clear bars, small
+/// top": things near the top take the ring's top corner), or the screen
+/// with the display's own corner where there is no frame (home).
+struct WardCornerFrame: Equatable, Sendable {
+    var rect: CGRect
+    var top: Double
+    var bottom: Double
+
+    static func screen(width: Double, height: Double, device: Double) -> WardCornerFrame {
+        WardCornerFrame(rect: CGRect(x: 0, y: 0, width: width, height: height), top: device, bottom: device)
+    }
+
+    static func ring(_ panel: WardPaperPanel) -> WardCornerFrame {
+        WardCornerFrame(rect: CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height),
+                        top: panel.radius, bottom: panel.bottomRadius)
+    }
 }
 
 enum WardPaper {
@@ -353,6 +444,58 @@ enum WardPaper {
                      fine: highContrast ? 0 : (dark ? 0.07 : 0.09),
                      bold: highContrast ? 0 : (dark ? 0.14 : 0.18),
                      edge: dark ? 0.5 : 0.55)
+    }
+
+    /// The display's corner radius. iOS gives no public value for it, so
+    /// this is the corner the frame has always been drawn for: its
+    /// opening's share of the width (cornerShare) plus the frame, or the
+    /// iPad's 18 points plus the frame. It is also the fallback for a
+    /// device that reports none.
+    static func deviceRadius(width: Double, height: Double, pad: Bool = false) -> Double {
+        pad ? padRadius + frame : (min(width, height) - 2 * frame) * cornerShare + frame
+    }
+
+    /// The opening's edge on a side whose system bar reaches `inset` in:
+    /// the frame's own 12 points, or just past the bar, so the ring's whole
+    /// width lies clear of it (the owner, 22 Oct: the frame never crosses a
+    /// system bar).
+    static func edge(_ inset: Double) -> Double { max(frame, inset + edgeWidth / 2) }
+
+    /// Where page content starts on a side whose bar reaches `inset` in:
+    /// sideInset past it (SkyRoot's padding inside the safe area).
+    static func contentEdge(_ inset: Double) -> Double { inset + sideInset }
+
+    /// The opening clear of the system bars (`safe`), its corners
+    /// concentric with the display's corner `device` (nil: deviceRadius):
+    /// each corner is WardCorner.concentric of its larger distance from the
+    /// two screen edges it meets, floored at WardEdge.minRadius.
+    static func panel(width: Double, height: Double, safe: WardSystemInsets, device: Double?,
+                      pad: Bool = false) -> WardPaperPanel? {
+        guard width > 4 * frame, height > 4 * frame else { return nil }
+        let left = edge(safe.left), right = edge(safe.right), top = edge(safe.top), bottom = edge(safe.bottom)
+        let w = width - left - right, h = height - top - bottom
+        guard w > 2 * frame, h > 2 * frame else { return nil }
+        let d = device ?? deviceRadius(width: width, height: height, pad: pad)
+        let side = max(left, right)
+        // a continuous corner reaches 1.53 radii along each edge: two must fit
+        let cap = min(w, h) / (2 * 1.52866483)
+        func corner(_ inset: Double) -> Double {
+            min(cap, WardCorner.concentric(device: d, inset: max(side, inset), floor: WardEdge.minRadius))
+        }
+        return WardPaperPanel(x: left, y: top, width: w, height: h, radius: corner(top), bottomRadius: corner(bottom))
+    }
+
+    /// As panel(width:height:safe:device:pad:), its top moved down to `top`,
+    /// held to what fits.
+    static func panel(width: Double, height: Double, top: Double, safe: WardSystemInsets, device: Double?,
+                      pad: Bool = false) -> WardPaperPanel? {
+        guard var p = panel(width: width, height: height, safe: safe, device: device, pad: pad) else { return nil }
+        let bottom = p.y + p.height
+        let y = min(max(top, p.y), bottom - p.radius - p.bottomRadius)
+        guard y > p.y else { return p }
+        p.y = y
+        p.height = bottom - y
+        return p
     }
 
     static func panel(width: Double, height: Double, pad: Bool = false) -> WardPaperPanel? {
@@ -455,6 +598,8 @@ enum WardEdge {
         let minY = panel.y
         let maxY = panel.y + panel.height
         let r = panel.radius
+        // the bottom corners' own radius
+        let b = panel.bottomRadius
         let c = 1.52866483
 
         // Start at top edge's left end of straight run
@@ -484,11 +629,11 @@ enum WardEdge {
         poly.append(contentsOf: sampleCubic(p0: tr_c3_p0, p1: tr_c3_p1, p2: tr_c3_p2, p3: tr_c3_p3, n: pointsPerCurve))
 
         // 3. Right straight run
-        poly.append(SIMD2<Double>(maxX, maxY - c * r))
+        poly.append(SIMD2<Double>(maxX, maxY - c * b))
 
         // 4. Bottom-right corner (mirroring TR)
         func brPoint(u: Double, v: Double) -> SIMD2<Double> {
-            SIMD2<Double>(maxX - r * v, maxY + r * u)
+            SIMD2<Double>(maxX - b * v, maxY + b * u)
         }
         let br_c1_p0 = brPoint(u: -1.52866483, v: 0)
         let br_c1_p1 = brPoint(u: -1.08849299, v: 0)
@@ -510,11 +655,11 @@ enum WardEdge {
         poly.append(contentsOf: sampleCubic(p0: br_c3_p0, p1: br_c3_p1, p2: br_c3_p2, p3: br_c3_p3, n: pointsPerCurve))
 
         // 5. Bottom straight run
-        poly.append(SIMD2<Double>(minX + c * r, maxY))
+        poly.append(SIMD2<Double>(minX + c * b, maxY))
 
         // 6. Bottom-left corner (mirroring TR)
         func blPoint(u: Double, v: Double) -> SIMD2<Double> {
-            SIMD2<Double>(minX - r * u, maxY - r * v)
+            SIMD2<Double>(minX - b * u, maxY - b * v)
         }
         let bl_c1_p0 = blPoint(u: -1.52866483, v: 0)
         let bl_c1_p1 = blPoint(u: -1.08849299, v: 0)

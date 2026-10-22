@@ -3391,6 +3391,47 @@ only; Arabic is left for the owner's words (copy deck question 4).
   wrong — …"); and iOS's account alert "Something went wrong", which also
   shows failures that are not sign-in.
 
+### The paper frame clear of the system bars (22 Oct, T0127)
+
+The owner's marked Android shot (CI 39812806603, 11-ideas-map, a "Guess
+first" sheet): the frame's ring ran through the status bar's time and
+icons and along the gesture bar, and cut the sheet's Done. Then: "they
+should match each device corner radius".
+
+- [x] The opening stops short of every system bar: each side sits at
+  max(frame, bar + half the ring), WardPaper.edge, so the ring's whole width
+  is clear of the status bar, the navigation or gesture bar, the Dynamic
+  Island, the home indicator and a landscape cut-out (Android
+  WindowInsets.safeDrawing; iOS the window's safe area, off home only).
+- [x] Its corners are concentric with the display's: WardCorner.concentric
+  (radius = device - distance from the edge, floored at the element's own
+  minimum), one function per platform. Android reads the display corner
+  (getRoundedCorner, API 31+); below 31, when none is reported, and on iOS
+  (no public value) it is WardPaper.deviceRadius, the corner the frame was
+  drawn for. Top and bottom corners take their own radius (bottomRadius).
+- [x] Android pages and the learning sheet sit inside the ring
+  (wardFrameClearance: the safe area, sideInset at the sides, the ring's
+  width at top and bottom, iOS SkyRoot's padding); the sheet's face still
+  fills the window. The 3D map keeps its own layout (T0118's).
+- [x] Tests: WardFrameClearTest (Android) and the wardframeclear suite (iOS).
+- [ ] The next CI screenshots and the tour are the proof (no emulator or
+  Mac here).
+- [x] T0127b: the corner elements follow the same rule, WardCorner.radii
+  (each corner within a gutter of the frame's corner is concentric with
+  it, floored at the element's own radius; at most half its shorter
+  side). They measure where they stand against the window's corner frame:
+  the ring off home ("clear bars, small top": near the top they take the
+  ring's top corner), the screen with the display's corner on home
+  (Android WardCornerScope and rememberWardCorners; iOS
+  WardEdgeStore.cornerFrame and WardCorners). Wired: the dock's panel and
+  Ideas pill and the shared card (Android WardCardFace and WardCard, iOS
+  wardCard) on both phones; Android's two study bars
+  (square, their bottom corners now follow the ring). Already following
+  the ring on iOS: the deck slab and study bar (WardDeckSlab's
+  slabTopRadius and the island mask). Capsule buttons (Done, back, More)
+  are on the rule and stay capsules: no concentric radius exceeds half
+  their height.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
