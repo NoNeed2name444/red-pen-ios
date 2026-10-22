@@ -12,6 +12,10 @@ import com.stethoscore.app.ui.home.homeRoundItems
 import com.stethoscore.app.ui.home.homeShortWindow
 import com.stethoscore.app.ui.ward.WardDock
 import com.stethoscore.app.ui.ward.WardGround
+import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.wardChosenEdge
+import com.stethoscore.app.ui.ward.wardInset
+import com.stethoscore.app.ui.ward.wardRaised
 import com.stethoscore.app.ui.ward.WardPaperFrame
 import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.WardToken
@@ -27,7 +31,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -352,20 +358,25 @@ fun homeSection(category:String):WardSection = when(category) {
     val panel=RoundedCornerShape(WardDock.panelRadius.toFloat().dp)
     val inset=WardDock.barInset
     val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)
-    val accent=MaterialTheme.colorScheme.primary
+    // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
     Row(Modifier.fillMaxWidth().padding(horizontal=10.dp).padding(bottom=10.dp)
-        .background(MaterialTheme.colorScheme.surface,panel).border(1.dp,MaterialTheme.colorScheme.outline,panel)
+        .wardRaised(WardDock.panelRadius,WardLift.high,control=true)
         .padding(WardDock.barInset.toFloat().dp).selectableGroup()) {
-        listOf("Questions" to Icons.Rounded.FactCheck,"Cards" to Icons.Rounded.Style,"Cases" to Icons.Rounded.MedicalServices,"OSCE" to Icons.Rounded.Assignment,"Audio" to Icons.Rounded.GraphicEq,"Ideas" to Icons.Rounded.Lightbulb).forEach { (name,icon) ->
+        listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq,"Ideas" to Icons.Outlined.Lightbulb).forEach { (name,rest) ->
             val selected=chosen==name
+            val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            val held by source.collectIsPressedAsState()
+            // the chosen tab stands in its hollow with the accent's ring; a held one sinks into a hollow (iOS WardItemButtonStyle); no ripple
             Column(Modifier.weight(1f)
-                .then(if(selected) Modifier.background(wardColor(WardToken.well),tab).border(WardDock.ringWidth.toFloat().dp,accent,tab) else Modifier)
-                .clip(tab).selectable(selected=selected,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
+                .wardChosenEdge(tab,selected)
+                .then(if(selected || held) Modifier.wardInset(tab,WardLift.low) else Modifier)
+                .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
                 .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
                 .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp),
                 horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
-                val tint=if(selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
-                Icon(icon,null,Modifier.size(23.dp),tint=tint)
+                // Chart Ink at rest, the section's ink when chosen (iOS DockItemFace); outline glyphs, the bulb filled once Ideas is chosen
+                val tint=if(selected) wardColor(WardToken.primaryInk) else wardColor(WardToken.ink)
+                Icon(if(selected && name=="Ideas") Icons.Rounded.Lightbulb else rest,null,Modifier.size(23.dp),tint=tint)
                 Spacer(Modifier.height(3.dp))
                 androidx.compose.foundation.text.BasicText(name,maxLines=1,softWrap=false,
                     style=androidx.compose.ui.text.TextStyle(color=tint,fontSize=11.sp,fontWeight=FontWeight.Bold),

@@ -2224,6 +2224,10 @@ with the marks on the screens last.
       header (HomeFit.belowHeader), following it as the list scrolls, the
       plain base below; no fading (WardGroundBackground gridBottom;
       HomeBandTest).
+    - [x] Home's dock as iOS's: the panel raised high on its rim, the chosen
+      tab in a low hollow with the chosen edge, a held tab sinking into one,
+      Chart Ink at rest and the section's ink chosen, outline glyphs at rest,
+      no ripple (WardDockTest checks the source).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

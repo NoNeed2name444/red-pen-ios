@@ -98,9 +98,17 @@ class WardDockTest {
         check("found the dock's source", dock.isNotEmpty())
         check("home draws the dock, not Material's NavigationBar", app.contains("CategoryDock(category,") && !app.contains("NavigationBar("))
         check("the panel is WardDock's radius", dock.contains("val panel=RoundedCornerShape(WardDock.panelRadius.toFloat().dp)"))
-        check("the chosen tab is the panel's radius less the inset",
+        // iOS (StudyCategory.swift): the panel raised high on its rim, the chosen
+        // tab in a low hollow with the chosen edge (WardDock.ringWidth is
+        // WardControlStates.chosenEdgeWidth, the width wardChosenEdge draws)
+        check("the ring is the chosen edge's width", WardDock.ringWidth == WardControlStates.chosenEdgeWidth)
+        check("the chosen tab is the panel's radius less the inset, in a hollow with the chosen edge",
             dock.contains("val inset=WardDock.barInset") && dock.contains("val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)") &&
-                dock.contains(".background(wardColor(WardToken.well),tab).border(WardDock.ringWidth.toFloat().dp,accent,tab)"))
+                dock.contains(".wardChosenEdge(tab,selected)") && dock.contains("Modifier.wardInset(tab,WardLift.low)"))
+        check("the panel is raised high on its rim, as iOS", dock.contains(".wardRaised(WardDock.panelRadius,WardLift.high,control=true)"))
+        check("no flat panel, border, Material colours or ripple",
+            !dock.contains(".border(") && !dock.contains("colorScheme") && dock.contains("indication=null") && !dock.contains(".clip("))
+        check("outline glyphs at rest", dock.contains("Icons.Outlined.FactCheck") && !dock.contains("\"Questions\" to Icons.Rounded"))
         check("the inset is WardDock's", dock.contains(".padding(WardDock.barInset.toFloat().dp)"))
         check("every tab keeps its name's room and least height",
             dock.contains(".heightIn(min=WardDock.tabMinHeight.toFloat().dp)") &&
