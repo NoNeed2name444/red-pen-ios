@@ -77,7 +77,7 @@ struct NarrateLine: View, Equatable {
     var body: some View {
         let words: [String] = text.split(separator: " ").map(String.init)
         let ink: Color = current ? Color.wardPrimaryInk : Color.wardInk
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
         FlowLayout(spacing: 4, lineSpacing: 6) {
             ForEach(words.indices, id: \.self) { w in
                 word(words[w], at: w, ink: ink)
@@ -115,7 +115,10 @@ struct NarrateLine: View, Equatable {
             .underline(wrong, color: Color.wardFadedInk)
             .foregroundStyle(shown)
             .background {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                // concentric with the line's well: its radius less the 5 points
+                // between them (the line's 8 and 6 of padding, less the 3 and 1
+                // the mark spills past the word)
+                RoundedRectangle(cornerRadius: WardRadius.field - 5, style: .continuous)
                     .fill(mark)
                     .padding(.horizontal, -3)
                     .padding(.vertical, -1)
