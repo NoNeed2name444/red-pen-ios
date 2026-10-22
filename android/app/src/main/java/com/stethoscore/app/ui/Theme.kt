@@ -34,6 +34,10 @@ import com.stethoscore.app.ui.ward.*
 // under white words. Words on fills stay white (the owner), so onPrimary is
 // WardToken.onPrimary in both modes. outline is the section's ink at a
 // control's edge strength, as it lands on the base (WardRelief.edgeColor).
+// Sheets, menus and dialogs stay Material's own and stand in the page colour
+// (the owner, 22 Oct: one tone covers them): the slots their containers take
+// are the base's colour, and Material's tonal elevation is off, since with a
+// clear surfaceTint it would lay black over a sheet.
 val LocalWardDark = staticCompositionLocalOf { false }
 val LocalWardLook = staticCompositionLocalOf { WardLook(dark = false, section = WardSection.outside) }
 
@@ -102,7 +106,8 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     // the one animated value: light and dark in one step, a section's hue glides (WardLookDriver)
     val glide = rememberWardGlide(look)
     SideEffect { WardLookNow.shared.set(glide) }
-    CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide) {
+    CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide,
+        LocalTonalElevationEnabled provides false) {
         MaterialTheme(colorScheme=wardColorScheme(look), typography=wardTypography(), content=content)
     }
 }

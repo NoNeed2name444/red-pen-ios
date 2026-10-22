@@ -2269,6 +2269,11 @@ with the marks on the screens last.
       well (it draws no inset shadows). OwnerAccepted.kt: 44 values move
       (chip wells and chosen segments measure on the page colour), each
       marked "owner 22 Oct, wells and sheets one tone".
+    - [x] Sheets, menus and dialogs are one tone (the owner 22 Oct; they stay
+      Material's own, Android Q4): their containers were already the page
+      colour by token (T0113), but Material's 1 dp tonal elevation laid
+      black over every ModalBottomSheet (surfaceTint is clear), about 5%
+      darker; the theme turns tonal elevation off (WardPaletteTest).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

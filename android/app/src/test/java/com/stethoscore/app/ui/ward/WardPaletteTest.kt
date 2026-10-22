@@ -104,6 +104,24 @@ class WardPaletteTest {
             WardPalette.hex(WardToken.background, false) == 0xE9EDF2 && WardPalette.hex(WardToken.background, true) == 0x171C24)
     }
 
+    // sheets, menus and dialogs are one tone too (the owner, 22 Oct), and stay
+    // Material's own: the slots their containers take (a sheet's
+    // surfaceContainerLow, a menu's surfaceContainer, a dialog's and the date
+    // picker's surfaceContainerHigh) are the page colour, and the theme turns
+    // Material's tonal elevation off, which would lay its tint over a sheet
+    @Test fun sheetsMenusAndDialogsAreThePageColour() = checks {
+        for (dark in modes) for (s in WardSection.entries) {
+            val scheme = com.stethoscore.app.ui.wardColorScheme(WardLook(dark, s))
+            val page = com.stethoscore.app.ui.wardRgb(WardPalette.hex(WardToken.background, dark))
+            for ((what, slot) in listOf("a sheet" to scheme.surfaceContainerLow, "a menu" to scheme.surfaceContainer,
+                "a dialog" to scheme.surfaceContainerHigh)) {
+                check("${mode(dark)} $s: $what's container is the page colour", slot == page, slot.toString())
+            }
+        }
+        val theme = File("src/main/java/com/stethoscore/app/ui/Theme.kt").takeIf { it.exists() }?.readText() ?: ""
+        check("the theme turns Material's tonal elevation off", theme.contains("LocalTonalElevationEnabled provides false"))
+    }
+
     // two characters, not one palette inverted: every text colour differs
     // between the modes. The primary is the look outside any section: Cards'.
     @Test fun twoCharacters() = checks {
