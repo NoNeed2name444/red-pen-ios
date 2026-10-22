@@ -4,18 +4,19 @@ import Foundation
 /// light and dark values that every colour in the app is drawn from, and the
 /// contrast each text colour is promised against the surface it sits on.
 ///
-/// Soft UI on four close tiers per mode: a well pressed in, the matte base,
-/// a card a shade off it, and a sheet or a bar a shade further, so a card
-/// is told from the ground by its relief (WardRelief) and a whisper of
-/// colour, never by an edge.
+/// Soft UI in one tone per mode (the owner, 22 Oct: "there shouldn't be 2
+/// tones", and 21 Oct of the quiz dock: "one color not two color toned"):
+/// cards (.surface) and sheets, bars and panels (.raised) are the page
+/// colour itself (.background), so a card is told from the ground only by
+/// its relief (WardRelief), its edge and its ring. Only a well is pressed
+/// in a shade darker.
 ///
 /// The two modes are two characters, not one palette inverted (the owner,
 /// 14 Oct: "lacks color difference for each mode"). The neutrals and the
 /// indigo primary are the owner's palette direction 3 (16 Oct): day is cool
-/// grey paper (#E9EDF2) with slate Chart Ink and cards a touch lighter than
-/// the ground; night is a deep blue-black ward (#171C24) with near-white
-/// ink, a brighter secondary grey, warmer reds and greens that glow without
-/// glaring, and cards that lift by lightening, as a dark room shows depth.
+/// grey paper (#E9EDF2) with slate Chart Ink; night is a deep blue-black
+/// ward (#171C24) with near-white ink and a brighter secondary grey. In
+/// both, cards and sheets wear the page colour and lift by relief alone.
 /// The primary is Cards' Care Blue (WardSection.outside), the look outside
 /// any section. Every hue is the owner's 2026-10-21 palette (ten colours,
 /// docs/design/palette-2026-10-21.md), each as the owner's hex exactly in
@@ -31,9 +32,9 @@ import Foundation
 enum WardToken: String, CaseIterable {
     /// The matte base every screen sits on
     case background
-    /// Cards and rows: a shade off the base, raised by relief
+    /// Cards and rows: the base's own colour, raised by relief alone
     case surface
-    /// Sheets, floating bars, popovers: a shade further than a card
+    /// Sheets, floating bars, popovers: the base's own colour too
     case raised
     /// Wells pressed into the base: fields, tracks, a chosen segment
     case well
@@ -76,8 +77,8 @@ enum WardPalette {
     /// (light, dark) as 0xRRGGBB.
     static let table: [WardToken: (light: UInt32, dark: UInt32)] = [
         .background:   (0xE9EDF2, 0x171C24),
-        .surface:      (0xEEF1F5, 0x242B35),
-        .raised:       (0xF1F4F8, 0x2E353F),
+        .surface:      (0xE9EDF2, 0x171C24),
+        .raised:       (0xE9EDF2, 0x171C24),
         .well:         (0xDDE2E8, 0x090E15),
         .primary:      (0x3B82F6, 0x3B82F6),
         .primaryInk:   (0x3B82F6, 0x3B82F6),
@@ -96,6 +97,7 @@ enum WardPalette {
     ]
 
     /// The tiers from deepest to highest: a well, the base, a card, a sheet.
+    /// The base, a card and a sheet are one colour (the owner, 22 Oct).
     static let tiers: [WardToken] = [.well, .background, .surface, .raised]
 
     static func hex(_ token: WardToken, dark: Bool) -> UInt32 {
