@@ -71,7 +71,7 @@ private struct BedtimeItem: View {
             if !line.isEmpty {
                 Text(line)
                     .font(.title3)
-                    .foregroundStyle(Color.wardInk.opacity(0.85))
+                    .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

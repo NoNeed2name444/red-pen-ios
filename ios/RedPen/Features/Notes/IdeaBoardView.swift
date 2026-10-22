@@ -122,7 +122,7 @@ struct IdeaBoardView: View {
                     }
 
                 Canvas { context, _ in
-                    let ink: Color = Color.wardInkSecondary.opacity(0.55)
+                    let ink: Color = Color.wardInkSecondary
                     let stroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     for (k, edge) in edges.enumerated() {
                         guard let p = points[edge.0], let q = points[edge.1] else { continue }

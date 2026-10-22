@@ -105,12 +105,14 @@ struct NarrateLine: View, Equatable {
     private func word(_ text: String, at w: Int, ink: Color) -> some View {
         let speaking: Bool = spoken == w
         let wrong: Bool = misheard == w
-        let wash: Color = wrong ? Color.wardDanger.opacity(0.12) : Color.clear
+        // a misheard word fades (the owner, 15 Oct): the faded row's
+        // colours, never red and never an opacity
+        let wash: Color = wrong ? Color.wardFaded : Color.clear
         let mark: Color = speaking ? Color.wardPrimary.opacity(WardWash.alpha) : wash
-        let shown: Color = wrong ? Color.wardDanger : ink
+        let shown: Color = wrong ? Color.wardFadedInk : ink
         return Text(text)
             .font(.body)
-            .underline(wrong, color: Color.wardDanger)
+            .underline(wrong, color: Color.wardFadedInk)
             .foregroundStyle(shown)
             .background {
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
