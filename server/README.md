@@ -168,3 +168,5 @@ do that, which is why the app says so before it deletes anything.
 **The subscription row is a convenience, never the authority.** What unlocks the
 app is StoreKit on the device. A server that overrules the App Store is a server
 that locks paying people out when it has a bad day.
+
+**The owner's key writes with Claude even before Pro pays.** Only the owner key's `cramdown-writer` (chat and jobs) gets Claude first while PRO_PAYS is "off", held and counted in the owner's wallet (OWNER_MONTHLY_USD, OWNER_DAILY_LIMIT); past that cap, or with no ANTHROPIC_API_KEY or price, it gets the Gemini chain as before, and every other caller routes exactly as before (ai.js routeFor, ownerClaudeWallet; tests/owner-claude.test.mjs).

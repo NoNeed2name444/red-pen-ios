@@ -70,7 +70,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     if (refused) return refused;
   }
 
-  const route = routeFor(env, body.model);
+  const route = routeFor(env, body.model, { owner: owner && !bench });
   if (!route) return fail(400, 'Unknown model.');
   if (!route.base) return fail(503, `${route.name} in the cloud isn't set up yet.`);
 
@@ -80,7 +80,11 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   route.owner = owner;
   if (rounds) route.rounds = rounds;
   route.wallet = await wallet(env, accountId, owner);
+  // the owner's Claude while Pro does not pay (routeFor): its own wallet
+  if (!route.wallet && owner && route.sources.some(s => s.kind === 'anthropic')) route.wallet = ownerClaudeWallet(env);
   route.canPay = await canPay(env, accountId, owner, route.wallet);
+  // that wallet's month used: the free chain answers, and the reply says why
+  if (route.wallet?.claudeOnly && !route.canPay && route.wallet.cap > 0) route.capped = true;
   const gemini = route.sources?.find(s => s.kind === 'gemini');
   if (gemini) gemini.models = await geminiModels(env, accountId, owner, 'modes', route.canPay);
   // The checker is a different model from the writer: a model grading its
@@ -176,6 +180,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   return json({
     choices: [{ message: { role: 'assistant', content: result.content } }],
     source: result.source,
+    // the owner's Claude month used up (ownerClaudeWallet), in askClaudeVoter's words
+    ...(route.capped ? { notice: `Claude has spent this month's ${route.wallet.cap} dollars.` } : {}),
     // what the checker was shown, so the app can cite it
     ...(evidence.length ? { evidence: evidence.map(({ id, source, title, url }) => ({ id, source, title, url })) } : {}),
   });
@@ -394,13 +400,16 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
   // after, from what Google or Novita actually counted.
   let reserved = 0, actual = 0;
   const gemini = route.sources.find(s => s.kind === 'gemini');
+  // the owner's Claude while Pro does not pay (ownerClaudeWallet): only Claude
+  // is held back and counted; the free Gemini chain stays free and whole
+  const claudeOnly = !!route.wallet?.claudeOnly;
   if (route.canPay && route.wallet) {
     // Each paid model at the output it is really asked for: Claude gets the
     // reply and its thinking room (anthropicMaxTokens, the figure askAnthropic
     // sends), every other model twice the reply. Held any lower, calls running
     // together could pass the wallet's cap by the difference.
     const models = [
-      ...(gemini?.models || []).map(model => ({ model, output: maxTokens * 2 })),
+      ...(claudeOnly ? [] : gemini?.models || []).map(model => ({ model, output: maxTokens * 2 })),
       ...route.sources.filter(s => s.paid).map(s => ({
         model: s.model, output: s.kind === 'anthropic' ? anthropicMaxTokens(maxTokens) : maxTokens * 2 })),
     ];
@@ -409,17 +418,19 @@ async function complete(env, route, messages, maxTokens, temperature, fetcher) {
     if (!await reserve(env, route.wallet, reserved)) {
       reserved = 0;
       route.canPay = false;
-      if (gemini) gemini.models = list(env.BUDGET_MODELS || 'gemma-4-31b-it');
+      if (claudeOnly) route.capped = true;
+      else if (gemini) gemini.models = list(env.BUDGET_MODELS || 'gemma-4-31b-it');
     }
   }
   const counted = (model, usage) => { actual += costOf(env, model, usage); };
+  const geminiCounted = claudeOnly ? () => {} : counted;
   // which providers were really asked, and which were skipped because their
   // breaker is open (breakers.js)
   const trace = { calls: 0, resting: [] };
   for (const source of route.sources) {
     // a paid host (Baichuan on Novita) only while Pro money covers it
     if (source.paid && !route.canPay) continue;
-    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models, counted, route, trace);
+    if (source.kind === 'gemini') result = await askGemini(env, messages, maxTokens, temperature, fetcher, source.models, geminiCounted, route, trace);
     else if (source.kind === 'workers-ai') result = await askWorkersAI(env, messages, maxTokens, temperature, source.model, route.account || 'owner', !!route.owner, trace);
     else if (source.kind === 'anthropic') {
       result = await askAnthropic(env, source, messages, maxTokens, fetcher, trace);
@@ -957,6 +968,14 @@ async function spentBy(env, key) {
   } catch { return 0; }
 }
 
+/// The owner's wallet for Claude while Pro does not pay (routeFor's owner
+/// exception): the same "owner" key and OWNER_MONTHLY_USD cap as the paid
+/// lane's owner wallet, marked so complete() holds back and counts Claude only
+/// and the free Gemini chain stays as it is today.
+export function ownerClaudeWallet(env) {
+  return { keys: ['owner'], cap: finite(env.OWNER_MONTHLY_USD, 20), money: null, claudeOnly: true };
+}
+
 export async function canPay(env, accountId, owner = false, known) {
   const payer = known === undefined ? await wallet(env, accountId, owner) : known;
   if (!payer || payer.cap <= 0) return false;
@@ -1250,7 +1269,7 @@ const pricedIn = (env, model) => list(env.GEMINI_PRICES || '').some(entry => {
 
 /// Where each of the app's model names goes: which server, which key, which
 /// model name that server expects. Unknown names get nothing.
-export function routeFor(env, name) {
+export function routeFor(env, name, { owner = false } = {}) {
   const sources = [];
   // Claude Opus on Anthropic, the Pro frontier model: first while Pro money
   // covers it (paid), and only when its key is set, so a server without the
@@ -1264,7 +1283,14 @@ export function routeFor(env, name) {
   // set on that key. Claude's other way in, askClaudeVoter, takes its source
   // from pinnedSource and never from here, so it keeps its own cap and this
   // gate leaves it alone.
-  if (env.ANTHROPIC_API_KEY && env.PRO_PAYS === 'on') {
+  //
+  // The one exception is the owner's own key writing (the owner, 22 Oct:
+  // "Claude for my key only"): Claude first whatever PRO_PAYS says, paid from
+  // the owner's wallet alone (ownerClaudeWallet, OWNER_MONTHLY_USD), which then
+  // holds back and counts Claude and nothing else. The checker, the benchmarks
+  // (chat passes owner only without `bench`) and every other caller are as above.
+  const ownerWrites = owner && name === 'cramdown-writer';
+  if (env.ANTHROPIC_API_KEY && (env.PRO_PAYS === 'on' || ownerWrites)) {
     const claudeModel = env.STETHOSCORE_DEFAULT_MODEL || DEFAULT_ANTHROPIC_MODEL;
     if (pricedIn(env, claudeModel)) {
       sources.push({ kind: 'anthropic', key: env.ANTHROPIC_API_KEY, paid: true,
