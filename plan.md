@@ -2233,6 +2233,12 @@ with the marks on the screens last.
       WardDock.tabWidths (water-filled, or every name shrunk alike to half at
       the least), so the full row stands at the default text size (WardDock,
       WardDockTest).
+    - [x] One tone on Android (the owner 22 Oct, "there shouldn't be 2
+      tones"; as iOS 90674e8): WardPalette surface and raised are the
+      background pair (#E9EDF2 / #171C24); wells, relief, edges and rings
+      unchanged. WardPaletteTest checks equality; OwnerAccepted.kt: 167
+      entries take their new measured value, 19 that now pass are removed;
+      no tolerance changed.
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

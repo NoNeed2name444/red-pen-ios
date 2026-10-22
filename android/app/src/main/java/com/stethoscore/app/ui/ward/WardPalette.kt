@@ -10,10 +10,12 @@ import kotlin.math.pow
 // light and dark values that every colour in the app is drawn from, and the
 // contrast each text colour is promised against the surface it sits on.
 //
-// Soft UI on four close tiers per mode: a well pressed in, the matte base, a
-// card a shade off it, and a sheet or a bar a shade further, so a card is told
-// from the ground by its relief (WardRelief) and a whisper of colour, never by
-// an edge. Day is cool grey paper (#E9EDF2) with slate Chart Ink; night is a
+// Soft UI in one tone per mode (the owner, 22 Oct: "there shouldn't be 2
+// tones", and 21 Oct of the quiz dock: "one color not two color toned"):
+// cards (surface) and sheets, bars and panels (raised) are the page colour
+// itself (background), so a card is told from the ground only by its relief
+// (WardRelief), its edge and its ring. Only a well is pressed in a shade
+// darker. Day is cool grey paper (#E9EDF2) with slate Chart Ink; night is a
 // deep blue-black ward (#171C24) with near-white ink. The primary is Cards'
 // Care Blue (WardSection.outside), the look outside any section. Every accent
 // is the owner's 2026-10-21 hex exactly, in both modes (iOS repo
@@ -29,9 +31,9 @@ import kotlin.math.pow
 enum class WardToken {
     /** The matte base every screen sits on */
     background,
-    /** Cards and rows: a shade off the base, raised by relief */
+    /** Cards and rows: the base's own colour, raised by relief alone */
     surface,
-    /** Sheets, floating bars, popovers: a shade further than a card */
+    /** Sheets, floating bars, popovers: the base's own colour too */
     raised,
     /** Wells pressed into the base: fields, tracks, a chosen segment */
     well,
@@ -82,8 +84,8 @@ object WardPalette {
     /** (light, dark) as 0xRRGGBB. */
     val table: Map<WardToken, WardPair> = mapOf(
         WardToken.background to WardPair(0xE9EDF2, 0x171C24),
-        WardToken.surface to WardPair(0xEEF1F5, 0x242B35),
-        WardToken.raised to WardPair(0xF1F4F8, 0x2E353F),
+        WardToken.surface to WardPair(0xE9EDF2, 0x171C24),
+        WardToken.raised to WardPair(0xE9EDF2, 0x171C24),
         WardToken.well to WardPair(0xDDE2E8, 0x090E15),
         WardToken.primary to WardPair(0x3B82F6, 0x3B82F6),
         WardToken.primaryInk to WardPair(0x3B82F6, 0x3B82F6),
@@ -101,7 +103,7 @@ object WardPalette {
         WardToken.fadedInk to WardPair(0x52606F, 0xBEC8D3),
     )
 
-    /** The tiers from deepest to highest: a well, the base, a card, a sheet. */
+    /** The tiers from deepest to highest: a well, the base, a card, a sheet. The base, a card and a sheet are one colour (the owner, 22 Oct). */
     val tiers: List<WardToken> = listOf(WardToken.well, WardToken.background, WardToken.surface, WardToken.raised)
 
     fun hex(token: WardToken, dark: Boolean): Int = table.getValue(token).of(dark)

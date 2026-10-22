@@ -75,17 +75,24 @@ class WardPaletteTest {
         everyOwnerCaseMade(chipsTest)
     }
 
-    // soft UI on close tiers: a well, the base, a card, a sheet, each a shade
-    // off the one before, so a card is told from the ground mostly by relief
+    // one tone (the owner, 22 Oct: "there shouldn't be 2 tones"; 21 Oct, of the
+    // quiz dock: "one color not two color toned"): a card and a sheet are the
+    // page colour exactly, so a card is told from the ground only by relief,
+    // edges and rings; a well alone is pressed in a soft step darker (as iOS
+    // WardPaletteTests)
     @Test fun tiersAreSoftSteps() = checks {
         for (dark in modes) {
             val m = mode(dark)
-            val lum = WardPalette.tiers.map { WardPalette.luminance(WardPalette.hex(it, dark)) }
-            check("$m: the tiers rise from well to sheet", lum == lum.sorted() && lum.toSet().size == lum.size)
-            for ((a, b) in WardPalette.tiers.zipWithNext()) {
-                val step = WardPalette.contrast(WardPalette.hex(a, dark), WardPalette.hex(b, dark))
-                check("$m: $a to $b is a soft step", step > 1.02 && step < 1.25, f3(step))
-            }
+            val base = WardPalette.hex(WardToken.background, dark)
+            check("$m: a card is the page colour (surface == background)", WardPalette.hex(WardToken.surface, dark) == base, hx(WardPalette.hex(WardToken.surface, dark)))
+            check("$m: a sheet is the page colour (raised == background)", WardPalette.hex(WardToken.raised, dark) == base, hx(WardPalette.hex(WardToken.raised, dark)))
+            check("$m: a card and a sheet are one tone (surface == raised)", WardPalette.hex(WardToken.surface, dark) == WardPalette.hex(WardToken.raised, dark))
+            check("$m: the tiers are well, then the base, a card and a sheet in one colour",
+                WardPalette.tiers == listOf(WardToken.well, WardToken.background, WardToken.surface, WardToken.raised))
+            val well = WardPalette.hex(WardToken.well, dark)
+            check("$m: a well sits below the base", WardPalette.luminance(well) < WardPalette.luminance(base))
+            val step = WardPalette.contrast(well, base)
+            check("$m: well to background is a soft step", step > 1.02 && step < 1.25, f3(step))
             val groove = WardPalette.contrast(WardPalette.hex(WardToken.hairline, dark), WardPalette.hex(WardToken.background, dark))
             check("$m: a groove shows but stays soft", groove >= 1.1 && groove < 1.6, f2(groove))
         }

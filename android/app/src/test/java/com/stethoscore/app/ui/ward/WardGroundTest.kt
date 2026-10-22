@@ -72,11 +72,12 @@ class WardGroundTest {
             check("${mode(dark)}: ward_ground, the window's and the splash's ground, is the plain base",
                 res == want, res?.let(::hx) ?: "none")
         }
-        // the base, cards and the dock's and deck's slabs (surface), sheets (raised) and wells
+        // the base, cards and the dock's and deck's slabs (surface), sheets (raised) and wells;
+        // cards and sheets are the base's own colour (one tone, the owner 22 Oct: "there shouldn't be 2 tones")
         val tiers = mapOf(
             WardToken.background to WardPair(0xE9EDF2, 0x171C24),
-            WardToken.surface to WardPair(0xEEF1F5, 0x242B35),
-            WardToken.raised to WardPair(0xF1F4F8, 0x2E353F),
+            WardToken.surface to WardPair(0xE9EDF2, 0x171C24),
+            WardToken.raised to WardPair(0xE9EDF2, 0x171C24),
             WardToken.well to WardPair(0xDDE2E8, 0x090E15),
         )
         for ((token, pair) in tiers) for (dark in modes) {
