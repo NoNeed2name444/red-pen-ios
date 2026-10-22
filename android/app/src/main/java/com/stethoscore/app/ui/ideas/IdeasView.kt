@@ -339,7 +339,8 @@ private fun LazyListScope.sectionHeader(text: String) = item {
     // folded while typing whatever was stored; opening it while typing puts the keyboard away
     val setCollapsed: (Boolean) -> Unit = { now -> if (!now) focusManager.clearFocus(); settings.setSwitcherCollapsed(now) }
     @Composable fun switcher() = FloatingSwitcher(items, settings.mode, settings::setMode, showCollapsed, setCollapsed, "ideasSwitcherToggle")
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+    // it floats over the page: no glow round it, only the edges (iOS bottomBar.wardUnlit())
+    WardUnlit { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp).imePadding(),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (!showCollapsed) switcher()
@@ -369,7 +370,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
                 } else AddMenu(newIdea = { runCatching { focus.requestFocus() } }, newPage = newPage, newFolder = newFolder)
             }
         }
-    }
+    } }
 }
 
 /** With nothing typed: New idea, New page or New folder, from a disc raised as high as the switcher. */

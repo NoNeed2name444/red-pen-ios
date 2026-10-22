@@ -146,14 +146,16 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
  * Raised off the base (iOS wardRaised, WardReliefFace): a card or a slab by
  * its two lights alone, or with [control] a control's face (a row to tap, a
  * segmented control), which stands on its small rim (WardRelief.rim) with
- * the section's ink edge.
+ * the section's ink edge. Unlit (LocalWardUnlit), a card or a slab keeps
+ * only its fill and edge; a control keeps its rim.
  */
 @Composable fun Modifier.wardRaised(radius: Double = WardFaceMetrics.cardRadius, lift: WardLift = WardLift.mid,
                                     fill: WardToken = WardToken.surface, control: Boolean = false,
                                     held: Boolean = false): Modifier {
     val f = faceLook(fill, held)
     val spec = if (control) WardRelief.rim(lift, f.dark) else WardRelief.raised(lift, f.dark)
-    return drawBehind { drawWardFace(radius, f.fill, listOf(spec.highlight, spec.shade), emptyList(), spec.edgeAlpha, f.edge) }
+    val lights = if (LocalWardUnlit.current && !control) emptyList() else listOf(spec.highlight, spec.shade)
+    return drawBehind { drawWardFace(radius, f.fill, lights, emptyList(), spec.edgeAlpha, f.edge) }
 }
 
 /**
@@ -174,7 +176,8 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
  * Raised on its rim at rest; glides into a hollow at the same lift while
  * [pressed] (iOS wardRelief, WardPressFace), over WardPress's shade times on
  * its glide curve. A control, with its ink edge, unless [control] is false
- * (an icon tile that only shows a choice, which keeps the wide shade).
+ * (an icon tile that only shows a choice, which keeps the wide shade, and
+ * drops it where the page is unlit, LocalWardUnlit).
  */
 @Composable fun Modifier.wardRelief(pressed: Boolean, radius: Double = WardFaceMetrics.fieldRadius, lift: WardLift = WardLift.low,
                                     fill: WardToken = WardToken.surface, control: Boolean = true): Modifier {
@@ -183,9 +186,10 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
     val depth by animateFloatAsState(if (pressed) 1f else 0f,
         tween(((if (pressed) WardPress.shadePress else WardPress.shadeRelease) * 1000).toInt(), easing = glide), label = "wardPress")
     val spec = WardPress.spec(lift, depth.toDouble(), f.dark, control = control)
+    val lit = control || !LocalWardUnlit.current
     return drawBehind {
-        drawWardFace(radius, f.fill, listOf(spec.outerHighlight, spec.outerShade), listOf(spec.innerShade, spec.innerHighlight),
-            spec.edgeAlpha, f.edge)
+        drawWardFace(radius, f.fill, if (lit) listOf(spec.outerHighlight, spec.outerShade) else emptyList(),
+            listOf(spec.innerShade, spec.innerHighlight), spec.edgeAlpha, f.edge)
     }
 }
 

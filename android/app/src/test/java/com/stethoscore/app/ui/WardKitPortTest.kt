@@ -43,4 +43,22 @@ class WardKitPortTest {
         for (piece in listOf(".border(", "OutlinedButton(", "alpha = 0.12f", ".clickable("))
             assertTrue("CaseKit no longer draws $piece", !text.contains(piece))
     }
+
+    @Test fun whatFloatsOverAPageIsUnlit() {
+        // iOS WardSurfaces.swift WardUnlitKey, read by the faces: no lights round
+        // a face, but a control keeps its rim and a well its hollow
+        val faces = File(ui, "ward/WardFaces.kt").readText()
+        assertTrue("an unlit local, off by default", faces.contains("val LocalWardUnlit = staticCompositionLocalOf { false }"))
+        assertTrue("a press face keeps a control's rim", faces.contains("if ((control || !unlit) && !flat)"))
+        assertTrue("a still face drops lights off its rim only", faces.contains("if (!spec.inner && !(unlit && !rim))"))
+        assertTrue("the composable forms read it", faces.split("LocalWardUnlit.current").size - 1 == 2)
+        val surfaces = File(ui, "ward/WardSurfaces.kt").readText()
+        assertTrue("a raised card or slab drops its lights", surfaces.contains("LocalWardUnlit.current && !control"))
+        assertTrue("a pressable tile drops its lights unless a control", surfaces.contains("val lit = control || !LocalWardUnlit.current"))
+        // the owner, 9 Oct: "remove the glow around the deck and floating buttons"
+        assertTrue("home's New set and dock", File(ui, "StethoscoreApp.kt").readText().contains("ward.WardUnlit {"))
+        assertTrue("the Ideas bar", File(ui, "ideas/IdeasView.kt").readText().contains("WardUnlit { Box("))
+        val decks = sources().map { it.readText() }.filter { it.contains("fun StudyActionBar(folds") }
+        assertTrue("the folded study deck", decks.isNotEmpty() && decks.all { it.contains("WardUnlit {") })
+    }
 }

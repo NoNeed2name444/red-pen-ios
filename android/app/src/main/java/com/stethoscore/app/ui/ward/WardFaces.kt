@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -47,6 +48,20 @@ import com.stethoscore.app.ui.wardInk
  * disabled control ignores it, as it ignores a finger. Off everywhere else.
  */
 val LocalWardShowsPressed = staticCompositionLocalOf { false }
+
+/**
+ * Faces drawn without their lights (iOS WardUnlitKey): no shade cast round
+ * them, only the face, its edge and, held or chosen, the hollow inside it;
+ * a control keeps its small rim, the one soft light the app allows. For
+ * what floats over a page (the home's New set and dock, the Ideas bar, the
+ * folded study deck: the owner, 9 Oct, "remove the glow around the deck and
+ * floating buttons"). Off everywhere else.
+ */
+val LocalWardUnlit = staticCompositionLocalOf { false }
+
+/** The Ward faces inside [content] are drawn without their lights (iOS wardUnlit). */
+@Composable fun WardUnlit(unlit: Boolean = true, content: @Composable () -> Unit) =
+    CompositionLocalProvider(LocalWardUnlit provides unlit, content = content)
 
 /** How far to dark the look is this frame: the glide's, or the look's at rest. */
 @Composable fun wardNight(): Double {
@@ -106,7 +121,9 @@ private fun DrawScope.innerStroke(path: Path, color: Color, width: Double) {
  * A pressable face (WardPressFace): raised by its lights at [lift] at depth
  * 0, pressed into the base with the lights inside at depth 1, every depth
  * between as the press glides. A control's face (`control`) stands on its
- * small rim and carries the 1-point ink edge; [flat] drops every light.
+ * small rim and carries the 1-point ink edge; [flat] drops every light;
+ * [unlit] (LocalWardUnlit) drops the lights round a face that is not a
+ * control's, keeping its hollow.
  */
 fun Modifier.wardPressFace(
     shape: Shape,
@@ -118,10 +135,12 @@ fun Modifier.wardPressFace(
     control: Boolean = true,
     flat: Boolean = false,
     edge: Color? = null,
+    unlit: Boolean = false,
 ): Modifier = drawBehind {
     val path = outlinePath(shape)
     val spec = WardPress.spec(lift, depth().toDouble(), night, highContrast = false, control = control)
-    if (!flat) {
+    // a button keeps its small rim even where the page is unlit (WardRelief.rim)
+    if ((control || !unlit) && !flat) {
         outerLight(path, spec.outerShade, fill)
         outerLight(path, spec.outerHighlight, fill)
     }
@@ -136,7 +155,8 @@ fun Modifier.wardPressFace(
 /**
  * A still face (WardReliefFace): raised off the base, or [inset] into it
  * (a well, a track, a groove); a control's carries the ink edge and, raised,
- * stands on its rim as a button does.
+ * stands on its rim as a button does. [unlit] (LocalWardUnlit) drops the
+ * lights round a raised face that is not on its rim; a well keeps its own.
  */
 fun Modifier.wardReliefFace(
     shape: Shape,
@@ -146,6 +166,7 @@ fun Modifier.wardReliefFace(
     ink: Color,
     inset: Boolean = false,
     control: Boolean = false,
+    unlit: Boolean = false,
 ): Modifier = drawBehind {
     val path = outlinePath(shape)
     val rim = control && !inset
@@ -154,7 +175,7 @@ fun Modifier.wardReliefFace(
         rim -> WardRelief.rim(lift, night)
         else -> WardRelief.raised(lift, night, control = control)
     }
-    if (!spec.inner) {
+    if (!spec.inner && !(unlit && !rim)) {
         outerLight(path, spec.shade, fill)
         outerLight(path, spec.highlight, fill)
     }
@@ -170,12 +191,12 @@ fun Modifier.wardReliefFace(
 @Composable fun Modifier.wardPressFace(
     shape: Shape, lift: WardLift, depth: State<Float>, fill: Color = wardColor(WardToken.surface),
     control: Boolean = true, flat: Boolean = false, edge: Color? = null,
-): Modifier = wardPressFace(shape, lift, { depth.value }, fill, wardNight(), wardInk(), control, flat, edge)
+): Modifier = wardPressFace(shape, lift, { depth.value }, fill, wardNight(), wardInk(), control, flat, edge, LocalWardUnlit.current)
 
 @Composable fun Modifier.wardRelief(
     shape: Shape, lift: WardLift = WardLift.mid, fill: Color = wardColor(WardToken.surface),
     inset: Boolean = false, control: Boolean = false,
-): Modifier = wardReliefFace(shape, lift, fill, wardNight(), wardInk(), inset, control)
+): Modifier = wardReliefFace(shape, lift, fill, wardNight(), wardInk(), inset, control, LocalWardUnlit.current)
 
 /** Pressed into the base: a well with a control's edge (wardInset). */
 @Composable fun Modifier.wardInset(shape: Shape, lift: WardLift = WardLift.low, control: Boolean = false): Modifier =

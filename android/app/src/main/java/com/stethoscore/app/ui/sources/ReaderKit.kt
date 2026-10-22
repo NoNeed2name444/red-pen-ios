@@ -131,12 +131,13 @@ internal fun decodePicture(stored: String): ImageBitmap? = runCatching {
     var folded by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp), contentAlignment = Alignment.BottomCenter) {
         if (folds && folded) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+            // folded, it floats over the page with no strip: no glow to haze what scrolls under it
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { WardUnlit {
                 WardButtonBox({ folded = false }, Modifier.semantics { contentDescription = "Show buttons" },
                     kind = WardButtonKind.secondary, fills = false) {
                     Icon(Icons.Rounded.KeyboardArrowUp, null, Modifier.size(16.dp))
                 }
-            }
+            } }
         } else {
             Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.bar, WardLift.high, fill = WardToken.raised)) {
                 if (folds) FoldBand { folded = true }

@@ -301,9 +301,10 @@ import kotlinx.coroutines.withContext
                             }
                         // New set and the dock float on the page itself, with nothing behind them
                         // but the page: no strip, no line, no cut of the rows above them, so the
-                        // page reads unbroken to the bottom (the owner, 9 and 22 Oct).
+                        // page reads unbroken to the bottom (the owner, 9 and 22 Oct). Without a
+                        // glow round them, only their edges (iOS wardUnlit).
                         val barDensity=androidx.compose.ui.platform.LocalDensity.current.density
-                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) {
+                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
                         // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)
                         if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=6.dp),horizontalArrangement=Arrangement.End) {
                             com.stethoscore.app.ui.ward.WardButtonBox({ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;screen="newset" },
@@ -313,7 +314,7 @@ import kotlinx.coroutines.withContext
                         }
                         if(lib.selecting) com.stethoscore.app.ui.library.LibrarySelectionBar(store,lib,libActions)
                         else CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} })
-                        }
+                        } }
                     }
                 }
                 if(screen=="home") {
