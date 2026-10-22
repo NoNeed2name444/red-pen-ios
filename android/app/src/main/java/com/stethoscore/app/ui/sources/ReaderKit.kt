@@ -3,7 +3,6 @@ package com.stethoscore.app.ui.sources
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -112,7 +111,8 @@ internal fun decodePicture(stored: String): ImageBitmap? = runCatching {
 
 /** A thin progress bar (ThinProgress): a beam in a groove pressed into the base, filling from the leading edge. */
 @Composable internal fun ThinProgress(fraction: Double) {
-    val shown by animateFloatAsState(fraction.toFloat().coerceIn(0f, 1f), tween(300), label = "thinProgress")
+    // it fills as iOS's ThinProgress does (.easeOut(duration: 0.3)); with animations off it is simply there
+    val shown by animateFloatAsState(fraction.toFloat().coerceIn(0f, 1f), wardEaseOut(WardMotion.fill, wardReduceMotion()), label = "thinProgress")
     Box(Modifier.fillMaxWidth().height(6.dp).wardInset(CircleShape)) {
         Box(Modifier.fillMaxWidth(shown).fillMaxHeight().background(wardColor(WardToken.primaryInk), CircleShape))
     }

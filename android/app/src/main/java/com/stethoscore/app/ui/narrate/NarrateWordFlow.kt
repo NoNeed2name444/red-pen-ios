@@ -1,7 +1,6 @@
 package com.stethoscore.app.ui.narrate
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -75,9 +74,10 @@ private class HoldConfiguration(private val base: ViewConfiguration) : ViewConfi
                 val speaking = look.spoken == w
                 val wrong = look.misheard == w
                 val wash = if (wrong) danger.copy(alpha = 0.12f) else Color.Transparent
-                // quick enough to keep up with the voice, slow enough to glide
-                val mark by animateColorAsState(if (speaking) primary.copy(alpha = WardWash.alpha.toFloat()) else wash, tween(100),
-                    label = "spokenWash")
+                // quick enough to keep up with the voice, slow enough to glide: iOS's .easeOut(duration: 0.1), kept
+                // under the 200 to 320 ms on purpose; with animations off the wash simply moves
+                val mark by animateColorAsState(if (speaking) primary.copy(alpha = WardWash.alpha.toFloat()) else wash,
+                    wardEaseOut(WardMotion.word, wardReduceMotion()), label = "spokenWash")
                 Text(word,
                     Modifier
                         .drawBehind {

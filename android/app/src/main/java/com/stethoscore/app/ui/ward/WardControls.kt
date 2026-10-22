@@ -2,7 +2,6 @@ package com.stethoscore.app.ui.ward
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -396,8 +395,9 @@ fun wardTimerText(seconds: Int): String {
     val source = remember { MutableInteractionSource() }
     val touch = wardTouch(source, enabled)
     val look = WardControl.toggle.look(WardControlState(isChosen = checked, isHeld = touch.held, isEnabled = enabled))
+    // the knob crosses as iOS's does (.snappy(duration: 0.2)), never past its end; with animations off it is simply there
     val travel by animateDpAsState(if (checked) (WardControlSize.toggleWidth - WardControlSize.knob - 8).wardDp else 0.dp,
-        tween(200), label = "knob")
+        wardSpring(WardMotion.toggle, wardReduceMotion()), label = "knob")
     val track = CircleShape
     Row(
         modifier
@@ -526,7 +526,8 @@ fun wardTimerText(seconds: Int): String {
     val percent = (v * 100).roundToInt()
     val shown = centre ?: "$percent%"
     val clear = WardControlSize.ringClear(lineWidth)
-    val sweep by animateFloatAsState(v.toFloat(), tween(600), label = "ring")
+    // the arc sweeps to its value as iOS's WardRing does (.easeOut(duration: 0.3)); with animations off it is simply there
+    val sweep by animateFloatAsState(v.toFloat(), wardEaseOut(WardMotion.fill, wardReduceMotion()), label = "ring")
     val arc = tone.color()
     Box(
         modifier.aspectRatio(1f)

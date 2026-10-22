@@ -2253,7 +2253,7 @@ with the marks on the screens last.
       damped so nothing passes its mark; and Remove animations (the animator
       duration scale at 0, as iOS's Reduce Motion) read by the theme for
       every surface (wardReduceMotion; WardTokensTest.theMotion).
-    - [ ] The literals become tokens: the switch's knob 0.2; a ring, groove,
+    - [x] The literals become tokens: the switch's knob 0.2; a ring, groove,
       bar or score filling 0.3 (WardRing was 600 ms, the vitals ring and the
       results' score 900); the ward round's chip travelling 0.3 (its 0.85
       spring passed the corner). Kept as iOS keeps them: the spoken word's

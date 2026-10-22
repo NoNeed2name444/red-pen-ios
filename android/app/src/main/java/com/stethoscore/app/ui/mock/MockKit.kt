@@ -1,8 +1,8 @@
 package com.stethoscore.app.ui.mock
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -79,6 +79,7 @@ import com.stethoscore.app.ui.ward.WardControlState
 import com.stethoscore.app.ui.ward.WardControlStates
 import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
@@ -92,9 +93,11 @@ import com.stethoscore.app.ui.ward.wardChosenEdge
 import com.stethoscore.app.ui.ward.wardDepth
 import com.stethoscore.app.ui.ward.wardDisabledInk
 import com.stethoscore.app.ui.ward.wardDp
+import com.stethoscore.app.ui.ward.wardEaseOut
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.ward.wardRaised
+import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.ward.wardRelief
 
 // The study screens' frame for OSCE and the mock paper, ported from
@@ -204,7 +207,8 @@ internal enum class BigKind { primary, secondary, companion }
 
 /** A groove pressed into the base, the tint filling it from the leading edge (WardGroove). */
 @Composable internal fun WardGroove(fraction: Double, tint: Color, height: Dp = 8.dp) {
-    val f by animateFloatAsState(fraction.coerceIn(0.0, 1.0).toFloat(), tween(300), label = "groove")
+    // it fills as iOS's grooves do (.easeOut(duration: 0.3)); with animations off it is simply there
+    val f by animateFloatAsState(fraction.coerceIn(0.0, 1.0).toFloat(), wardEaseOut(WardMotion.fill, wardReduceMotion()), label = "groove")
     val pad = if (height >= 8.dp) 2.dp else 1.5.dp
     Box(Modifier.fillMaxWidth().height(height).wardInset(CircleShape)) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(pad)) {
@@ -264,7 +268,10 @@ internal enum class BigKind { primary, secondary, companion }
 @Composable internal fun ScoreRing(fraction: Double, label: String, sublabel: String) {
     var target by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(fraction) { target = fraction.coerceIn(0.0, 1.0).toFloat() }
-    val shown by animateFloatAsState(target, spring(dampingRatio = 0.72f, stiffness = 30f), label = "score")
+    // iOS ScoreRing's slow spring (response 1.1, damping 0.72), kept as it is: a celebration outside the
+    // 200 to 320 ms that waits on the owner (iOS Q8); with animations off the score is simply there, as iOS shows it
+    val reduce = wardReduceMotion()
+    val shown by animateFloatAsState(target, if (reduce) snap() else spring(dampingRatio = 0.72f, stiffness = 30f), label = "score")
     val arc = wardColor(WardToken.primaryInk)
     Box(Modifier.size(168.dp).clearAndSetSemantics { contentDescription = "$label $sublabel" }, contentAlignment = Alignment.Center) {
         Box(Modifier.fillMaxSize().padding(10.dp).wardRelief(WardAnnulus(12.dp), WardLift.low, wardColor(WardToken.surface), inset = true))

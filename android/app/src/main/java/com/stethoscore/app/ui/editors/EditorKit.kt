@@ -1,6 +1,5 @@
 package com.stethoscore.app.ui.editors
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -63,6 +62,8 @@ import androidx.compose.ui.unit.dp
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardControlStates
+import com.stethoscore.app.ui.ward.WardEaseInOut
+import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardSpace
@@ -78,7 +79,9 @@ import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardField
 import com.stethoscore.app.ui.ward.wardFocusRing
 import com.stethoscore.app.ui.ward.wardInset
+import com.stethoscore.app.ui.ward.wardMillis
 import com.stethoscore.app.ui.ward.wardRaised
+import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.wardColor
 
 // What the library's editors are built from, all of it out of the Ward port
@@ -173,9 +176,12 @@ import com.stethoscore.app.ui.wardColor
 /** EcgLoader: an ECG trace drawn again and again in ECG Red, 64 by 24, "Working" to TalkBack. */
 @Composable internal fun EcgLoader(modifier: Modifier = Modifier) {
     val color = wardColor(WardToken.ecg)
-    val drawn by rememberInfiniteTransition(label = "ecg").animateFloat(0f, 1f,
-        infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Restart), label = "trace")
+    // the one loop the canon keeps: iOS's .easeInOut(duration: 1.2), drawn again from the start each time;
+    // with animations off the whole trace stands still, as iOS's does under Reduce Motion
+    val trace = if (wardReduceMotion()) null else rememberInfiniteTransition(label = "ecg").animateFloat(0f, 1f,
+        infiniteRepeatable(tween(wardMillis(WardMotion.trace), easing = WardEaseInOut), RepeatMode.Restart), label = "trace")
     Canvas(modifier.size(64.dp, 24.dp).semantics { contentDescription = "Working" }) {
+        val drawn = trace?.value ?: 1f
         val pts = listOf(0f to .55f, .24f to .55f, .31f to .4f, .4f to .65f, .5f to .05f, .61f to .92f, .69f to .45f, .8f to .55f, 1f to .55f)
         val path = Path().apply { pts.forEachIndexed { i, (x, y) -> if (i == 0) moveTo(x * size.width, y * size.height) else lineTo(x * size.width, y * size.height) } }
         val measure = PathMeasure().apply { setPath(path, false) }
