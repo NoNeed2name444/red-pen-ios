@@ -3094,6 +3094,10 @@ only; Arabic is left for the owner's words (copy deck question 4).
 - [x] The mock exam's timed parts are "Part n" ("Part n of N" in the
   sitting), from one constant per platform, MockFormat.partWord
   (Shared/Exam/MockPaper.swift; quiz/MockPaper.kt). Owner, 22 Oct.
+- [x] The daily plan is "Today's revision": "Start revision", rows "1 ·
+  Cardiology" (spoken "Item 1, …"), "3 to do · 22 min", "Nothing due", the
+  weak-topic lines and the first run's two lines (wording.md rows 1-4, 8-16,
+  64-65; its "items" drift rows now say "to do").
 
 ### Waiting on the owner
 

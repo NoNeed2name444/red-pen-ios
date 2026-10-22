@@ -10,9 +10,9 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 // A port of ios/RedPen/Tests/BedPlanTests.swift, case for case:
-// today's ward round and the Vitals screen's readings - which beds a round
+// today's revision and the Vitals screen's readings - which items the plan
 // holds and in what order, the weak spots that need a consult (and that the
-// weakest of them always has a bed, which is what the Vitals screen
+// weakest of them always has a place, which is what the Vitals screen
 // promises), the minutes, the study rhythm read from the days studied, and
 // the words around the numbers.
 class BedPlanTest {
@@ -68,7 +68,7 @@ class BedPlanTest {
             kinds(round) == listOf("due", "weakest", "fresh", "station"), "${kinds(round)}")
         check("beds are numbered from one", round.map { it.number } == listOf(1, 2, 3, 4))
         check("bed 1 is overlined with the one subject the due cards come from",
-            round[0].overline == "Bed 1 · Cardiology", round[0].overline)
+            round[0].overline == "1 · Cardiology", round[0].overline)
         check("and says how many are due", round[0].title == "12 cards due" && round[0].status == BedPlan.Status.due)
         check("the weakest topic is the first weak spot",
             round[1].ward == "Renal" && round[1].title == "Weakest topic · 48%" && round[1].status == BedPlan.Status.weak, "${round[1]}")
@@ -80,16 +80,16 @@ class BedPlanTest {
             round[3].ward == "OSCE station" && round[3].detail == "8 min timed" && round[3].status == null)
         check("minutes: 12 cards at 10 s is 2, 20 MCQs at 75 s is 25, 20 of a new set 25, a station 8",
             round.map { it.minutes } == listOf(2, 25, 25, 8), "${round.map { it.minutes }}")
-        check("the summary counts patients and adds the minutes",
-            BedPlan.summary(round) == "4 patients · 60 min", BedPlan.summary(round))
-        check("one patient is singular", BedPlan.summary(listOf(round[3])) == "1 patient · 8 min")
-        check("an empty round says so", BedPlan.summary(emptyList()) == "No patients waiting")
+        check("the summary counts what is to do and adds the minutes",
+            BedPlan.summary(round) == "4 to do · 60 min", BedPlan.summary(round))
+        check("one is 1 to do", BedPlan.summary(listOf(round[3])) == "1 to do · 8 min")
+        check("an empty round says so", BedPlan.summary(emptyList()) == "Nothing due")
         check("VoiceOver hears the heading without separators",
-            BedPlan.spokenSummary(round) == "Today’s ward round: 4 patients, about 60 minutes.", BedPlan.spokenSummary(round))
-        check("and an empty round in words", BedPlan.spokenSummary(emptyList()) == "Today’s ward round: no patients waiting.")
+            BedPlan.spokenSummary(round) == "Today’s revision: 4 to do, about 60 minutes.", BedPlan.spokenSummary(round))
+        check("and an empty round in words", BedPlan.spokenSummary(emptyList()) == "Today’s revision: nothing due.")
         check("each bed has its own id", round.map { it.id }.toSet().size == round.size)
         check("VoiceOver hears the bed whole",
-            round[0].spoken == "Bed 1, Cardiology. 12 cards due. Spaced review. About 2 minutes. Due", round[0].spoken)
+            round[0].spoken == "Item 1, Cardiology. 12 cards due. Spaced review. About 2 minutes. Due", round[0].spoken)
 
         // the planner's priority goes first, and pushes the station off a full round
         val morningRound = BedPlan.beds(full.copy(mission = Mission.MorningCheck(3)))
@@ -165,17 +165,17 @@ class BedPlanTest {
             val input = full.copy(phase = phase, mission = if (phase == Phase.ExamDay) Mission.ExamKit else Mission.LockIn(3))
             val spotsNow = BedPlan.weakSpots(input.topics)
             val note = BedPlan.consultNote(spotsNow, phase, anyJudged = true)
-            val named = note.startsWith(spotsNow[0].name + ", the weakest, is on today")
+            val named = note.startsWith(spotsNow[0].name + ", the weakest, is in today")
             val onRound = BedPlan.beds(input).any { (it.kind as? BedPlan.Kind.Weakest)?.topic?.name == spotsNow[0].name }
             check("the consult line names the weakest only when the round holds it ($phase)", named == onRound, "$note / on round: $onRound")
         }
         check("the consult line on exam day says why they wait",
             BedPlan.consultNote(spots, Phase.ExamDay, anyJudged = true).startsWith("Exam day"))
         check("the consult line names the weakest",
-            BedPlan.consultNote(spots, Phase.Building(20), anyJudged = true) == "Renal, the weakest, is on today’s ward round automatically.")
+            BedPlan.consultNote(spots, Phase.Building(20), anyJudged = true) == "Renal, the weakest, is in today’s revision automatically.")
         check("no weak spot, but subjects judged",
             BedPlan.consultNote(emptyList(), Phase.NoDate, anyJudged = true)
-                == "Nothing needs a consult: every subject with 5 or more answers is at 75% or better.")
+                == "No weak topics: every topic with 5 or more answers is at 75% or better.")
         check("no subject judged yet",
             BedPlan.consultNote(emptyList(), Phase.NoDate, anyJudged = false) == "A subject shows here once it has 5 answers and is under 75%.")
     }

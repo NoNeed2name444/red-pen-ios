@@ -300,7 +300,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
         spacing = WardSpace.m.wardDp) {
         val spoken = BedPlan.spokenSummary(beds)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-            HomeSmallCaps("Today’s ward round · " + BedPlan.summary(beds),
+            HomeSmallCaps("Today’s revision · " + BedPlan.summary(beds),
                 Modifier.weight(1f).semantics { heading(); contentDescription = spoken })
             HomePlanButton(onPlan)
         }
@@ -322,7 +322,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
             }
             WardButtonBox({ onOpen(beds.first()) }, Modifier.homePart(book, "start", "Start ward round"), kind = WardButtonKind.primary) {
                 Icon(Icons.Rounded.Bolt, null, Modifier.size(18.dp))
-                Text("Start ward round", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
+                Text("Start revision", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
             }
         }
     }
@@ -417,7 +417,7 @@ fun homeBedChip(bed: BedPlan.Bed): Pair<String, WardTone>? {
         .capPop(pressed)
         // brightness -0.04 while held: a veil of black at that strength
         .drawWithContent { drawContent(); if (pressed) drawRect(Color.Black.copy(alpha = 0.04f)) }
-        .clickable(source, indication = null, role = Role.Button, onClickLabel = "Opens this bed", onClick = onClick)
+        .clickable(source, indication = null, role = Role.Button, onClickLabel = "Open this item", onClick = onClick)
         .clearAndSetSemantics { contentDescription = bed.spoken }
         .padding(vertical = WardSpace.s.wardDp)) {
         if (stacked) Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {

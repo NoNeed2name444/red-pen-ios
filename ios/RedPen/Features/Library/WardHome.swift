@@ -499,7 +499,7 @@ struct HomeRoundCard: View {
 
     private var heading: some View {
         HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
-            Text("Today\u{2019}s ward round \u{00B7} " + BedPlan.summary(beds))
+            Text("Today\u{2019}s revision \u{00B7} " + BedPlan.summary(beds))
                 .homeSmallCaps()
                 .accessibilityLabel(BedPlan.spokenSummary(beds))
                 .accessibilityAddTraits(.isHeader)
@@ -550,7 +550,7 @@ struct HomeRoundCard: View {
         }
         .buttonStyle(.pressableRow)
         .accessibilityLabel(bed.spoken)
-        .accessibilityHint("Opens this bed")
+        .accessibilityHint("Opens this item")
         .accessibilityIdentifier("wardBed-\(bed.number)")
         .wardPart("bed \(bed.number)")
     }
@@ -563,11 +563,11 @@ struct HomeRoundCard: View {
 
     private var startButton: some View {
         let first: BedPlan.Bed? = beds.first
-        let hint: String = first.map { "Starts with bed 1: " + $0.title } ?? ""
+        let hint: String = first.map { "Starts with item 1: " + $0.title } ?? ""
         return Button {
             if let first { onOpen(first) }
         } label: {
-            Label("Start ward round", systemImage: "bolt.fill")
+            Label("Start revision", systemImage: "bolt.fill")
                 .font(.subheadline.weight(.semibold))
         }
         .buttonStyle(.wardPrimary)

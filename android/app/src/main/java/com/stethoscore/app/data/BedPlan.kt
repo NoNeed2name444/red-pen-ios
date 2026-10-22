@@ -292,12 +292,12 @@ object BedPlan {
 
     data class Bed(val number: Int, val kind: Kind, val ward: String, val title: String, val detail: String,
                    val status: Status?, val minutes: Int) {
-        /** "Bed 1 · Cardiology"; the row shows it in small caps. */
-        val overline: String get() = "Bed $number · $ward"
+        /** "1 · Cardiology"; the row shows it in small caps. */
+        val overline: String get() = "$number · $ward"
 
         /** What TalkBack reads for the whole row. */
         val spoken: String get() {
-            val parts = mutableListOf("Bed $number, $ward", title, detail, aboutMinutes(minutes))
+            val parts = mutableListOf("Item $number, $ward", title, detail, aboutMinutes(minutes))
             if (status != null) parts.add(status.rawValue)
             return parts.joinToString(". ")
         }
@@ -327,11 +327,11 @@ object BedPlan {
         val line = Math.round(consultBelow * 100).toInt()
         val first = spots.firstOrNull()
         if (first == null) {
-            if (anyJudged) return "Nothing needs a consult: every subject with $consultAnswers or more answers is at $line% or better."
+            if (anyJudged) return "No weak topics: every topic with $consultAnswers or more answers is at $line% or better."
             return "A subject shows here once it has $consultAnswers answers and is under $line%."
         }
-        if (phase == ExamWeekPlanner.Phase.ExamDay) return "Exam day: today’s ward round is your kit alone, so these can wait."
-        return "${first.name}, the weakest, is on today’s ward round automatically."
+        if (phase == ExamWeekPlanner.Phase.ExamDay) return "Exam day: today’s revision is your kit alone, so these can wait."
+        return "${first.name}, the weakest, is in today’s revision automatically."
     }
 
     /** Today's beds, numbered from 1. */
@@ -433,7 +433,7 @@ object BedPlan {
                 val topic = input.topics.firstOrNull { it.name == mission.subject } ?: Topic(mission.subject, firstSitting, 0, 0)
                 bed(Kind.Weakest(topic), number, input)
             }
-            ExamWeekPlanner.Mission.Nothing -> Bed(number, kind, "All quiet", "Nothing is waiting", "Come back later", null, 0)
+            ExamWeekPlanner.Mission.Nothing -> Bed(number, kind, "Nothing due", "Nothing is waiting", "Come back later", null, 0)
         }
     }
 
@@ -447,17 +447,17 @@ object BedPlan {
     /** The round's minutes: each bed's, added up. */
     fun minutes(beds: List<Bed>): Int = beds.sumOf { it.minutes }
 
-    /** "4 patients · 45 min". */
+    /** "4 to do · 45 min". */
     fun summary(beds: List<Bed>): String {
-        if (beds.isEmpty()) return "No patients waiting"
-        return counted(beds.size, "patient") + " · ${minutes(beds)} min"
+        if (beds.isEmpty()) return "Nothing due"
+        return "${beds.size} to do · ${minutes(beds)} min"
     }
 
-    /** "Today's ward round: 4 patients, about 45 minutes." */
+    /** "Today's revision: 4 to do, about 45 minutes." */
     fun spokenSummary(beds: List<Bed>): String {
-        if (beds.isEmpty()) return "Today’s ward round: no patients waiting."
+        if (beds.isEmpty()) return "Today’s revision: nothing due."
         val about = aboutMinutes(minutes(beds)).lowercase()
-        return "Today’s ward round: " + counted(beds.size, "patient") + ", " + about + "."
+        return "Today’s revision: ${beds.size} to do, " + about + "."
     }
 
     /** "About 1 minute", "About 12 minutes". */

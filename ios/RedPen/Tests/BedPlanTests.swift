@@ -1,6 +1,6 @@
-// Today's ward round and the Vitals screen's readings: which beds a round
+// Today's revision and the Vitals screen's readings: which items the plan
 // holds and in what order, the weak spots that need a consult (and that the
-// weakest of them always has a bed, which is what the Vitals screen promises),
+// weakest of them always has a place, which is what the Vitals screen promises),
 // the minutes, the study rhythm read from StudyLog's days, and the words
 // around the numbers - all choices that look right on screen whether or not
 // they are, so they are pinned here.
@@ -81,7 +81,7 @@ check("the round: cards due, weakest, a new set, a station",
       kinds(round) == ["due", "weakest", "fresh", "station"], "\(kinds(round))")
 check("beds are numbered from one", round.map(\.number) == [1, 2, 3, 4])
 check("bed 1 is overlined with the one subject the due cards come from",
-      round[0].overline == "Bed 1 \u{00B7} Cardiology", round[0].overline)
+      round[0].overline == "1 \u{00B7} Cardiology", round[0].overline)
 check("and says how many are due", round[0].title == "12 cards due" && round[0].status == .due)
 check("the weakest topic is the first weak spot",
       round[1].ward == "Renal" && round[1].title == "Weakest topic \u{00B7} 48%" && round[1].status == .weak,
@@ -94,17 +94,17 @@ check("the station is timed at the exam's station length, with no chip",
       round[3].ward == "OSCE station" && round[3].detail == "8 min timed" && round[3].status == nil)
 check("minutes: 12 cards at 10 s is 2, 20 MCQs at 75 s is 25, 20 of a new set 25, a station 8",
       round.map(\.minutes) == [2, 25, 25, 8], "\(round.map(\.minutes))")
-check("the summary counts patients and adds the minutes",
-      BedPlan.summary(round) == "4 patients \u{00B7} 60 min", BedPlan.summary(round))
-check("one patient is singular", BedPlan.summary([round[3]]) == "1 patient \u{00B7} 8 min")
-check("an empty round says so", BedPlan.summary([]) == "No patients waiting")
+check("the summary counts what is to do and adds the minutes",
+      BedPlan.summary(round) == "4 to do \u{00B7} 60 min", BedPlan.summary(round))
+check("one is 1 to do", BedPlan.summary([round[3]]) == "1 to do \u{00B7} 8 min")
+check("an empty round says so", BedPlan.summary([]) == "Nothing due")
 check("VoiceOver hears the heading without separators",
-      BedPlan.spokenSummary(round) == "Today\u{2019}s ward round: 4 patients, about 60 minutes.",
+      BedPlan.spokenSummary(round) == "Today\u{2019}s revision: 4 to do, about 60 minutes.",
       BedPlan.spokenSummary(round))
-check("and an empty round in words", BedPlan.spokenSummary([]) == "Today\u{2019}s ward round: no patients waiting.")
+check("and an empty round in words", BedPlan.spokenSummary([]) == "Today\u{2019}s revision: nothing due.")
 check("each bed has its own id", Set(round.map(\.id)).count == round.count)
 check("VoiceOver hears the bed whole",
-      round[0].spoken == "Bed 1, Cardiology. 12 cards due. Spaced review. About 2 minutes. Due", round[0].spoken)
+      round[0].spoken == "Item 1, Cardiology. 12 cards due. Spaced review. About 2 minutes. Due", round[0].spoken)
 
 // the planner's priority goes first, and pushes the station off a full round
 var morning = full
@@ -205,7 +205,7 @@ for phase in phases {
     input.mission = phase == .examDay ? .examKit : .lockIn(3)
     let spotsNow = BedPlan.weakSpots(input.topics)
     let note = BedPlan.consultNote(spotsNow, phase: phase, anyJudged: true)
-    let named: Bool = note.hasPrefix(spotsNow[0].name + ", the weakest, is on today")
+    let named: Bool = note.hasPrefix(spotsNow[0].name + ", the weakest, is in today")
     let onRound: Bool = BedPlan.beds(input).contains { bed in
         if case .weakest(let topic) = bed.kind { return topic.name == spotsNow[0].name }
         return false
@@ -217,10 +217,10 @@ check("the consult line on exam day says why they wait",
       BedPlan.consultNote(spots, phase: .examDay, anyJudged: true).hasPrefix("Exam day"))
 check("the consult line names the weakest",
       BedPlan.consultNote(spots, phase: .building(days: 20), anyJudged: true)
-        == "Renal, the weakest, is on today\u{2019}s ward round automatically.")
+        == "Renal, the weakest, is in today\u{2019}s revision automatically.")
 check("no weak spot, but subjects judged",
       BedPlan.consultNote([], phase: .noDate, anyJudged: true)
-        == "Nothing needs a consult: every subject with 5 or more answers is at 75% or better.")
+        == "No weak topics: every topic with 5 or more answers is at 75% or better.")
 check("no subject judged yet",
       BedPlan.consultNote([], phase: .noDate, anyJudged: false)
         == "A subject shows here once it has 5 answers and is under 75%.")
