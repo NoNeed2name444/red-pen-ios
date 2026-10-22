@@ -3,8 +3,12 @@
 // strip (what the trace is, the streak's beat), the trace filling the channel
 // on the left, a thin rule, and the parameter column on the right, each
 // readout its label over its big number in its own colour - the same on both
-// platforms, in the ten hexes' tokens only. Reads the sources; Android's
-// laid-out screen is VitalsMonitorTest.
+// platforms, in the ten hexes' tokens only. Android is proved laid out
+// (Robolectric): VitalsMonitorTest lays the whole panel out in the dark well
+// and checks the layout, the trace as tall as the column, and every word's
+// contrast in light and dark. The iOS card is SwiftUI, which only a Mac lays
+// out, so here its source is read; colour literals are a source matter on
+// both.
 import { readFileSync } from 'node:fs';
 
 const repo = new URL('../../', import.meta.url).pathname;
@@ -27,24 +31,17 @@ const mon = block(ios, 'struct RhythmMonitor: View {');
 const reading = block(ios, 'private struct MonitorReading: View {');
 check('iOS: still a monitor panel (MonitorCard)', /MonitorCard\(lift: \.low\)/.test(mon));
 check('iOS: a status strip with the streak on the right', /private var statusStrip/.test(mon) && /Spacer\(minLength:[^)]*\)\s*streakReading/.test(mon));
-check('iOS: trace left, rule, readouts right in one HStack',
-  /HStack\(alignment: \.top, spacing: WardSpace\.m\) \{\s*trace\s*\.frame\(maxWidth: \.infinity\)\s*Rectangle\(\)\s*\.fill\(Color\.wardHairline\)[\s\S]*?readouts\s*\.frame\(width: RhythmMonitor\.column\)/.test(mon));
-check('iOS: the trace fills the channel', /static let channel: CGFloat = 112/.test(mon) && /\.frame\(height: RhythmMonitor\.channel\)/.test(mon));
+check('iOS: trace left, rule, readouts right in one HStack, the trace and rule as tall as the readouts',
+  /HStack\(alignment: \.top, spacing: WardSpace\.m\) \{\s*trace\s*\.frame\(maxWidth: \.infinity, maxHeight: \.infinity\)\s*Rectangle\(\)\s*\.fill\(Color\.wardHairline\)\s*\.frame\(width: 1\)\s*\.frame\(maxHeight: \.infinity\)\s*readouts\s*\.frame\(width: RhythmMonitor\.column\)\s*\}\s*\.fixedSize\(horizontal: false, vertical: true\)/.test(mon));
+check('iOS: no fixed height beside the column; 112 only when the column is under the trace',
+  !/\.frame\(width: 1, height:/.test(mon) && (mon.match(/\.frame\(height: RhythmMonitor\.channel\)/g) || []).length === 1
+  && /trace\s*\.frame\(height: RhythmMonitor\.channel\)\s*readouts/.test(mon));
 check('iOS: RDY, ACC, Q/D in the column', /label: "RDY"[\s\S]*label: "ACC"[\s\S]*label: "Q\/D"/.test(mon));
 check('iOS: no ViewThatFits row of readings under the trace', !/ViewThatFits/.test(mon));
 check('iOS: a readout is its label over a big mono number, right-aligned, in its colour',
   /WardType\.obsLarge/.test(reading) && /alignment: \.trailing/.test(reading) && /\.foregroundStyle\(tint\)/.test(reading));
 
 const kt = read('android/app/src/main/java/com/stethoscore/app/ui/vitals/VitalsParts.kt');
-check('Android: still a monitor panel (WardMonitorCard)', /WardMonitorCard\(/.test(kt));
-check('Android: a status strip with the streak on the right',
-  /Box\(Modifier\.weight\(1f\)\) \{ WardSmallCapsText\("Study rhythm · " \+ reading\.words\) \}\s*MonitorStreak\(streak\)/.test(kt));
-check('Android: trace left, rule, readouts right in one Row',
-  /MonitorTrace\(reading, Modifier\.weight\(1f\)\)\s*Box\(Modifier\.width\(1\.dp\)\.height\(MonitorChannel\.channel\.dp\)\.background\(wardColor\(WardToken\.hairline\)\)\)\s*MonitorReadouts\([^)]*Modifier\.width\(MonitorChannel\.column\.dp\)\)/.test(kt));
-check('Android: the same channel and column as iOS', /const val channel: Int = 112/.test(kt) && /const val column: Int = 112/.test(kt));
-check('Android: a readout is its label over a big mono number, end-aligned',
-  /WardType\.obsLarge\.textStyle\(\)/.test(kt) && /textAlign = TextAlign\.End/.test(kt));
-check('Android: no MonitorFits row of readings under the trace', !/MonitorFits/.test(kt));
 
 for (const [name, src] of [['iOS', mon + reading], ['Android', kt.slice(kt.indexOf('fun RhythmMonitor'), kt.indexOf('fun VitalsRings'))]]) {
   check(`${name}: no colour literals on the monitor`, !/#[0-9A-Fa-f]{6}|0x[0-9A-Fa-f]{6,8}|Color\((?:red|0x|\.sRGB)/.test(src));

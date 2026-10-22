@@ -29,7 +29,9 @@ struct RhythmMonitor: View {
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
-    /// The trace channel's height, as tall as the three readouts beside it.
+    /// The trace's height when the column stands under it (the accessibility
+    /// sizes). Beside the column, the trace and its divider take the column's
+    /// own height at every text size.
     static let channel: CGFloat = 112
     /// The parameter column's width.
     static let column: CGFloat = 112
@@ -42,18 +44,24 @@ struct RhythmMonitor: View {
                 if typeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: WardSpace.m) {
                         trace
+                            .frame(height: RhythmMonitor.channel)
                         readouts
                     }
                 } else {
+                    // as tall as the readouts, whatever the text size: the
+                    // row takes the column's height and the trace and the
+                    // divider fill it
                     HStack(alignment: .top, spacing: WardSpace.m) {
                         trace
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         Rectangle()
                             .fill(Color.wardHairline)
-                            .frame(width: 1, height: RhythmMonitor.channel)
+                            .frame(width: 1)
+                            .frame(maxHeight: .infinity)
                         readouts
                             .frame(width: RhythmMonitor.column)
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(reading.line)
                     .font(.footnote)
@@ -75,11 +83,10 @@ struct RhythmMonitor: View {
         }
     }
 
-    /// The trace in its channel, the full height of the column beside it.
+    /// The trace; its height is set where it stands.
     private var trace: some View {
         RhythmTrace(beats: reading.beats)
             .stroke(Color.wardSuccess, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            .frame(height: RhythmMonitor.channel)
     }
 
     /// The parameter column: each readout a label over its number, parted by
