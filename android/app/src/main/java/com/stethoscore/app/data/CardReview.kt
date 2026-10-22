@@ -86,6 +86,8 @@ object CardReview {
 
     /** Each rating button's height (dp): the 48 dp target. */
     const val ratingHeight: Int = 48
+    /** The least a rating's word shrinks to, of its size, before the row would clip it (iOS minimumScaleFactor 0.8). */
+    const val leastWordScale: Float = 0.8f
 
     /**
      * How the four buttons stand: one row of four, Again to Easy (the owner, 22 Oct: side by

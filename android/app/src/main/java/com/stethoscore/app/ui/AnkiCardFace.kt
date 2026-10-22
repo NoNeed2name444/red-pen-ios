@@ -225,7 +225,12 @@ private const val hintsKey = "anki.ratingHintsShown"
         .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = CardReview.meaning(rating), onClick = onClick)
         .semantics { contentDescription = CardReview.title(rating); stateDescription = CardReview.spokenInterval(whenBack) }
         .padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
-        Text(CardReview.title(rating), color = ink, style = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold),
-            textAlign = TextAlign.Center, maxLines = 1)
+        // one line, never clipped: it shrinks to CardReview.leastWordScale of its size before it
+        // would cross the button's edge, as iOS's minimumScaleFactor does
+        val style = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold)
+            .copy(color = ink, textAlign = TextAlign.Center)
+        androidx.compose.foundation.text.BasicText(CardReview.title(rating), style = style, maxLines = 1, softWrap = false,
+            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+                minFontSize = style.fontSize * CardReview.leastWordScale, maxFontSize = style.fontSize, stepSize = 0.25.sp))
     }
 }
