@@ -2832,6 +2832,59 @@ independent review, a merge into personal, then the Worker deploy.
 - T5 (a model reranker) and T6 (a dense leg) only when their triggers fire
   (A26).
 
+### The identity (15 Oct, on design/identity)
+
+The owner asked for a real identity, exam wording instead of ward wording
+(they typed "an example"; read as "an exam"), and one detailed ECG line, the
+same colour beside the name and in the opening. Docs and boards only; the
+app does not change until the owner picks a route. Docs in
+docs/design/identity/; the route boards are images kept out of the repo.
+
+- [x] audit.md: what is generic today (pointing at shots/ward-r9) and the
+  nine-competitor table.
+- [x] palettes.md: the three routes' grounds, inks and mode hues, light and
+  dark, with every contrast ratio.
+- [x] platform.md: the idea, three traits, audience, never-feel-like, and the
+  ECG line's role and colour (one Trace token, equal to the hero).
+- [x] routes.md: A Red Pen, B Answer Sheet, C Steel & Silicone, each with why
+  it is ownable, its risks and what changes in the app; the shared lockup,
+  Trace token, marks and font licences; the recommendation (A, with B's mono
+  readouts) and three questions for the owner.
+- [x] The dark LaunchLogo is the grey tube on design/launch-anim at
+  202825ea; the boards composite both marks from that commit, as they are.
+- [x] Review 1 (15 Oct) fixed on all three boards: flat cards (no soft lift),
+  no rule across home, chips are ink or the item's own mode hue with status
+  shown by form, pencil darkened so text on the grid clears 4.5:1 over its
+  bold lines (worst case printed), A's margin note on a plain paper plate.
+  A: Pen Red's reason over #D32F45 and the ecgLine note; dark Pen Red is a
+  crimson, #FF5D6D. C: rebuilt around steel and silicone (correct is the
+  mode's hue, wrong is bare steel), Lilac moved to 302 degrees. The boards
+  are re-checked by a new reviewer before the owner sees them.
+- [x] wording.md: ward-to-exam glossary and the full string inventory (77
+  strings to change, 21 of them asserted by tests, and the ward words that
+  stay because they are the content).
+- [x] Docs review 1 (15 Oct) fixed in the docs: the soft rim is on buttons
+  only (fields and the tab bar are flat); every accent follows the mode (A's
+  tick in the mode's ink; B's correct in the mode's hue, wrong in pencil,
+  no green or red); C's Plum, Lilac and Raspberry moved apart (342, 298 and
+  20 degrees) and steel is exactly neutral; the paper is a 6 pt grid with a
+  bold line every 30 pt; fonts reach the Playgrounds build as package
+  resources registered at launch, with system fallbacks; the progress
+  screen is Progress (Results is taken), the reference is Clinical
+  reference; Block/Item clash with USMLE and NBME usage, so the owner picks
+  those words; the Playgrounds stand-ins and the Arabic Health text are in
+  the inventory; a token map to the code on design/ward-polish; ecgLine is
+  planned, not yet pushed.
+- [x] One combined board render: the docs-review changes above (flat fields
+  and tab bar, B's marking, C's hues and steel) and board review 2's
+  must-fixes (the phone frame clears the home indicator; B's "3x" label off
+  the clear-space line) and nits (C keeps the letter on its correct and
+  wrong rows; the lab flag is ink). Checked at 1:1; all three boards are
+  5640 x 8964.
+- [ ] A fresh board review, round 3.
+- [ ] The owner picks a route, and the words for the timer's parts and the
+  plan's count; then a separate phase applies it.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
