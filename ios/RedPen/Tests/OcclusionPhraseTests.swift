@@ -284,6 +284,77 @@ let joined = OcclusionFilter.joinedOnLines([
 check("the filter joins a wrapped label too", joined.map(\.text) == ["Superior vena cava"], "\(joined.map(\.text))")
 check("and knows its line height", abs((joined.first?.textHeight ?? 0) - 0.03) < 1e-9)
 
+// MARK: the heart example, word boxes drawn tight round the glyphs (T0133)
+//
+// The occlusion-example tour still showed "Superior vena cava" uncovered
+// while every other label had its cover. Vision's word boxes hug the
+// glyphs: "Superior" (a capital and a descender) is boxed far taller than
+// "vena" and "cava" (x-height only), so the size checks split the label
+// into "Superior", "vena" and "cava", and the filter dropped each piece.
+// "Inferior vena cava" (no descender) stayed whole. The example's own
+// geometry (OcclusionExample.labels: 900 x 640, 22 pt, 25 pt line pitch).
+
+/// A word's box as Vision draws it: from the top of its tallest glyph to
+/// the bottom of its lowest, on a 22 pt line whose baseline is `baseline`.
+func glyphWord(_ text: String, left: Double, baseline: Double) -> Word {
+    let em = 22.0
+    let ascends = text.contains { $0.isUppercase || $0.isNumber || "bdfhklt".contains($0) }
+    let descends = text.contains { "gjpqy".contains($0) }
+    let top = baseline - (ascends ? 0.72 : 0.53) * em
+    let bottom = baseline + (descends ? 0.21 : 0) * em
+    let width = Double(text.count) * 12
+    return Word(text: text, box: OcclusionBox(x: left / 900, y: top / 640, w: width / 900, h: (bottom - top) / 640))
+}
+
+/// One drawn label's words: each line set from its left edge, or ending at
+/// `x` when right-aligned, as OcclusionExample.draw sets it.
+func drawnLabel(_ lines: [String], x: Double, y: Double, rightAligned: Bool) -> [Word] {
+    var out: [Word] = []
+    for (i, line) in lines.enumerated() {
+        let parts = line.split(separator: " ").map(String.init)
+        let width = Double(parts.map(\.count).reduce(0, +)) * 12 + Double(parts.count - 1) * 6
+        var left = rightAligned ? x - width : x
+        let baseline = y + 21 + 25 * Double(i)
+        for part in parts {
+            out.append(glyphWord(part, left: left, baseline: baseline))
+            left += Double(part.count) * 12 + 6
+        }
+    }
+    return out
+}
+
+let heartLabels: [(lines: [String], x: Double, y: Double, right: Bool)] = [
+    (["Superior vena", "cava"], 190, 70, true), (["Right atrium"], 190, 245, true),
+    (["Tricuspid valve"], 190, 345, true), (["Right ventricle"], 190, 440, true),
+    (["Inferior vena", "cava"], 190, 548, true), (["Aorta"], 700, 58, false),
+    (["Pulmonary", "trunk"], 700, 150, false), (["Left atrium"], 700, 255, false),
+    (["Mitral valve"], 700, 335, false), (["Left ventricle"], 700, 430, false),
+    (["Interventricular", "septum"], 700, 540, false),
+]
+let heartWords: [Word] = heartLabels.flatMap { drawnLabel($0.lines, x: $0.x, y: $0.y, rightAligned: $0.right) }
+let heartCovers = OcclusionPhrases.layout(heartWords, figure: OcclusionBox(x: 0, y: 0, w: 1, h: 1),
+                                          pageBands: false, aspect: 900.0 / 640.0)
+let heartAnswers: Set<String> = Set(heartLabels.map { $0.lines.joined(separator: " ") })
+check("the heart example: a cover for every one of its 11 labels", heartCovers.count == 11,
+      "\(heartCovers.map(\.answer))")
+check("the heart example: Superior vena cava is covered whole",
+      heartCovers.contains { $0.answer == "Superior vena cava" }, "\(heartCovers.map(\.answer))")
+check("the heart example: each answer is a whole label", Set(heartCovers.map(\.answer)) == heartAnswers,
+      "\(heartCovers.map(\.answer))")
+let bare = heartWords.filter { w in !heartCovers.contains { inside(w.box, $0.box) } }
+check("the heart example: no word of any label is left showing", bare.isEmpty, "\(bare.map(\.text))")
+let heartCards = OcclusionPhrases.cards(from: heartCovers, imageIndex: 0)
+check("the heart example: on every card each label is masked (its own or a sibling)",
+      heartCards.count == 11 && heartCards.allSatisfy { $0.siblings.count == 10 && $0.occlusion != nil },
+      "\(heartCards.map(\.siblings.count))")
+// a heading beside a label is still not part of it, glyph boxes or not
+let headed = [glyphWord("Heart", left: 100, baseline: 100)] + [glyphWord("vena", left: 170, baseline: 100)]
+let tallHeading = [Word(text: "Heart", box: OcclusionBox(x: headed[0].box.x, y: headed[0].box.y - headed[0].box.h,
+                                                        w: headed[0].box.w * 2, h: headed[0].box.h * 2)), headed[1]]
+check("a heading twice the size beside a word stays apart",
+      OcclusionPhrases.group(tallHeading, aspect: 900.0 / 640.0).count == 2,
+      "\(OcclusionPhrases.group(tallHeading, aspect: 900.0 / 640.0).map(\.text))")
+
 print(failures.isEmpty ? "\nALL OCCLUSION PHRASE TESTS PASS"
                        : "\n\(failures.count) OCCLUSION PHRASE TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

@@ -201,6 +201,12 @@ enum OcclusionFilter {
             best = index
         }
         guard let found = best, lines[found].textHeight >= median * 1.25 else { return nil }
+        // and taller in its type, not only in its glyphs: a label with a
+        // capital and a descender ("Pulmonary trunk") is boxed taller than
+        // one in x-height letters, in the same size (T0133)
+        let types = lines.map { $0.textHeight / OcclusionPhrases.glyphReach($0.text) }
+        let typeMedian = types.sorted()[types.count / 2]
+        guard types[found] >= typeMedian * 1.25 else { return nil }
         return found
     }
 
