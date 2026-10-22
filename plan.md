@@ -1068,6 +1068,57 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     still fails five of the six proof budget checks. design/map-lighter
     9cc61b1 (Server tests 37931566404 green), merged into personal with
     steps 22 to 24.
+27. [ ] The UI suite's red of 15 Oct (App build 38684974986, bc611221),
+    on design/ui-suite-fix. Not a freeze of the app's own: the tour
+    (DesignTourUITests) timed out three times on one query on Ideas >
+    Space (foldSwitcher, "ideasMode-list", line 626); then
+    ExamplesUITests could not end the app and GraphPreviewUITests could
+    not launch it. Read from the run's bundle (session log, the app's
+    stdout and stderr):
+    - xcodebuild starts the app with stdout and stderr on a terminal
+      (/dev/ttys001) that only it drains, with OS_ACTIVITY_DT_MODE=YES,
+      OS_ACTIVITY_MODE=info and NSUnbufferedIO. XCTest (Xcode 26.6)
+      evaluates each query inside the app, on its main thread, and logs
+      every accessibility lookup there: 52 MB over the tour, at 100 to
+      540 KB/s.
+    - xcodebuild fell behind the test runner (by up to 321 s, against
+      under 1 s the rest of the run; silent 229 s after the tour ended).
+      The app's console then filled, and its main thread moved about
+      1 KB at a time (77 stalls of 0.3 to 7.7 s); one line waited 293 s
+      and went through 20 ms after xcodebuild woke. The map kept
+      turning: its render thread writes nothing. The terminate (sent
+      05:28:29) and the next launch (05:29:41) reached xcodebuild only at
+      05:33:49; the app was gone 4 s later. An earlier stall (05:23:08 to
+      05:24:03) slowed the tour too, and it got through.
+    - The same query took 14.3 s on 9 Oct's green run, 1.8 s on
+      check/ward-polish and 0.18 s on check/perf-million: it depends on
+      how fast xcodebuild drains the console. What kept xcodebuild busy is
+      not in the logs (XCTest's spindump is not supported there).
+    - Fix: every UI test launches the app with OS_ACTIVITY_MODE=disable
+      and OS_ACTIVITY_DT_MODE=NO (XCUIApplication.keepTraceOffConsole(),
+      ios/UITests/QuietConsole.swift, called before each launch), so
+      XCTest's trace stays out of the console; the next largest console
+      was GraphPreview's testStraightLines (25 MB). No step, check or
+      picture changes. A still sky (-stillSky) would not have helped: the
+      trace is the same with it, and the tour's pictures would change. A
+      new UI test calls it too (the perf streams' testPerformanceMillion
+      and GraphPerfProofUITests when they land). Merged into the
+      integration build (design/merge-launch): its later launches,
+      testBodyCloseUps, testIslandDeckFold and testIslandPushAndBack,
+      call it as well.
+    - The AX5 walk (AccessibilityUITests) failed the same day with "no
+      example mcq/anki set" and "could not choose audio/ideas" (runs
+      38689063193 and 38684974986): openSet() and choose() waited 8 s and
+      5 s for the row before any swipe, but at AX5 the header fills the
+      screen and the list makes a row only once it is scrolled to. Both
+      now scroll to find it (scrollToFind: up to 6 swipes down the
+      Sections sheet; up to 16 down the library, then 24 back up, as a
+      section chosen again keeps the page below the sets), then wait for
+      it to be pressable. Checks and messages unchanged.
+    - [ ] Its check run: the two variables in the session log's launch
+      environment, every test's console in the bundle small (the tour's
+      52 MB down to a few KB), the suite green, and the AX5 walk past
+      choose() and openSet().
 
 ## 4. M3: the Neurons rebuild
 
@@ -2458,6 +2509,41 @@ with the marks on the screens last.
 - [ ] Sent back to be redrawn: the dark launch drawing's thin blue line
   where the grey tube meets the chest piece's stem (the day drawing has
   none); the blue-tube test allows only that line until it is fixed.
+- [x] One master ECG (design/launch-ecg): ios/RedPen/Shared/Brand/EcgTrace.swift
+  is one normal-sinus lead II beat at 60 a minute (PR 0.16, QRS 0.09, QT
+  0.38 s by the tangent, Tp-e/QT about 0.2), runs of it at 55-68 a minute
+  (where its QTc stays normal), its landmarks, its heart sounds (S1 20 ms
+  after R, S2 on T's end, 0.36 s apart) and ECG paper (25 mm/s, 10 mm/mV)
+  at any size, evenly sampled so equal windows pair point for point, every
+  number cited in the file; suite ecgtrace. The heartbeat's lub-dub gap is
+  now that 0.36 s (tools/make_heartbeat.py SYSTOLE, heartbeat.caf
+  re-mastered: S1 0.0304 s, S2 0.3909 s, peak 29203 counts, -1.0 dBFS).
+- [ ] The launch stream wires it in (lines as at design/launch-ecg):
+  1. Done on design/launch-ecg: LaunchOpening.swift:43 HeartbeatSound.s2
+     is 0.3909, the re-mastered file's S2.
+  2. LaunchOpening.swift:79-89: S1 is heard EcgTrace.s1AfterR after R, so
+     s2 = r + s1AfterR + (HeartbeatSound.s2 - HeartbeatSound.s1) and
+     audioAt = r + s1AfterR - HeartbeatSound.s1, and the :79 comment ("the
+     R peak, which is when S1 is heard") changes. With the lub at
+     0.30 s (done), r is 0.28 and S2 lands 0.5 ms after T's end.
+  3. LaunchOpening.swift:263-272 ecgHeight: EcgTrace.millivolts(at: t -
+     (r - EcgTrace.time(of: .r))).
+  4. LaunchOpening.swift:276-292 trace: EcgTrace.points. Decide the scale
+     first: in LaunchSplash's 176 x 36 box (LaunchSplash.swift:271-272) one
+     beat at paper scale is about 58 pt wide; fill the width with a window
+     of about 2.4 s, or keep one beat across 176 pt with R about 90 pt tall.
+  5. LaunchOpening.swift:365-368 and 376-414 (squiggle, morph) and
+     WardVitals.swift:94-108 (EcgSquiggle): draw EcgTrace.points over
+     windows of the same length and pair them by index.
+  6. LaunchOpeningTests.swift: done on design/launch-ecg: :124 passes,
+     :126 checks the file's 0.36 s, and :51 still bounds the opening at 1.7 s
+     (the lub is now at 0.30 s, not 0.33 s, a 0.03 s trim: it is 1.6905 s). Still to do:
+     :134 and :149-150 to S1 = R + 0.020; :139's "on S1"; :165 (full
+     width) and :166 (R 30 pt) under paper scale; :246-272 (morph,
+     squiggle). :135 and :140-146 hold.
+  7. tools/swift_suites.txt:435: add $S/Brand/EcgTrace.swift to launchopening.
+  8. tools/launch_film.py:41-45: :44's regex needs a literal r, and
+     audioAt becomes r + 0.020 - s1.
 
 - [x] A4, the opening's hand-off hold (final attempt, task launch-a4): the
   Launch recording 38723188012 on 446bbb36 measured gaps of 115 and 209 ms in
@@ -2750,6 +2836,59 @@ independent review, a merge into personal, then the Worker deploy.
   (design/lecture-passages). They never back anything.
 - T5 (a model reranker) and T6 (a dense leg) only when their triggers fire
   (A26).
+
+### The identity (15 Oct, on design/identity)
+
+The owner asked for a real identity, exam wording instead of ward wording
+(they typed "an example"; read as "an exam"), and one detailed ECG line, the
+same colour beside the name and in the opening. Docs and boards only; the
+app does not change until the owner picks a route. Docs in
+docs/design/identity/; the route boards are images kept out of the repo.
+
+- [x] audit.md: what is generic today (pointing at shots/ward-r9) and the
+  nine-competitor table.
+- [x] palettes.md: the three routes' grounds, inks and mode hues, light and
+  dark, with every contrast ratio.
+- [x] platform.md: the idea, three traits, audience, never-feel-like, and the
+  ECG line's role and colour (one Trace token, equal to the hero).
+- [x] routes.md: A Red Pen, B Answer Sheet, C Steel & Silicone, each with why
+  it is ownable, its risks and what changes in the app; the shared lockup,
+  Trace token, marks and font licences; the recommendation (A, with B's mono
+  readouts) and three questions for the owner.
+- [x] The dark LaunchLogo is the grey tube on design/launch-anim at
+  202825ea; the boards composite both marks from that commit, as they are.
+- [x] Review 1 (15 Oct) fixed on all three boards: flat cards (no soft lift),
+  no rule across home, chips are ink or the item's own mode hue with status
+  shown by form, pencil darkened so text on the grid clears 4.5:1 over its
+  bold lines (worst case printed), A's margin note on a plain paper plate.
+  A: Pen Red's reason over #D32F45 and the ecgLine note; dark Pen Red is a
+  crimson, #FF5D6D. C: rebuilt around steel and silicone (correct is the
+  mode's hue, wrong is bare steel), Lilac moved to 302 degrees. The boards
+  are re-checked by a new reviewer before the owner sees them.
+- [x] wording.md: ward-to-exam glossary and the full string inventory (77
+  strings to change, 21 of them asserted by tests, and the ward words that
+  stay because they are the content).
+- [x] Docs review 1 (15 Oct) fixed in the docs: the soft rim is on buttons
+  only (fields and the tab bar are flat); every accent follows the mode (A's
+  tick in the mode's ink; B's correct in the mode's hue, wrong in pencil,
+  no green or red); C's Plum, Lilac and Raspberry moved apart (342, 298 and
+  20 degrees) and steel is exactly neutral; the paper is a 6 pt grid with a
+  bold line every 30 pt; fonts reach the Playgrounds build as package
+  resources registered at launch, with system fallbacks; the progress
+  screen is Progress (Results is taken), the reference is Clinical
+  reference; Block/Item clash with USMLE and NBME usage, so the owner picks
+  those words; the Playgrounds stand-ins and the Arabic Health text are in
+  the inventory; a token map to the code on design/ward-polish; ecgLine is
+  planned, not yet pushed.
+- [x] One combined board render: the docs-review changes above (flat fields
+  and tab bar, B's marking, C's hues and steel) and board review 2's
+  must-fixes (the phone frame clears the home indicator; B's "3x" label off
+  the clear-space line) and nits (C keeps the letter on its correct and
+  wrong rows; the lab flag is ink). Checked at 1:1; all three boards are
+  5640 x 8964.
+- [ ] A fresh board review, round 3.
+- [ ] The owner picks a route, and the words for the timer's parts and the
+  plan's count; then a separate phase applies it.
 
 ### Waiting on the owner
 

@@ -13,6 +13,7 @@ import XCTest
 final class GraphPreviewUITests: XCTestCase {
     func testGraphAtRest() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview"]
         app.launch()
         let space = app.otherElements["graph3D"]
@@ -32,6 +33,7 @@ final class GraphPreviewUITests: XCTestCase {
 
     func testGraphWhileDragging() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewDrag"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -51,6 +53,7 @@ final class GraphPreviewUITests: XCTestCase {
         let styles: [String] = ["blackHole", "sun", "rocky", "gasGiant", "pulsar", "comet"]
         for (k, style) in styles.enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewStyle", style]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -68,6 +71,7 @@ final class GraphPreviewUITests: XCTestCase {
         for (k, style) in styles.enumerated() {
             for dragged in [false, true] {
                 let app = XCUIApplication()
+                app.keepTraceOffConsole()
                 app.launchArguments += ["-graphPreview", "-graphPreviewStyle", style, "-graphPreviewCloseUp"]
                 if dragged { app.launchArguments += ["-graphPreviewDrag"] }
                 app.launch()
@@ -87,6 +91,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// companion - with its name pill held.
     func testUniverseFlyIn() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewFly", "Inguinal"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -97,6 +102,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// "How your universe is built", opened by the app a second after the space.
     func testUniverseLegend() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewLegend"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -110,6 +116,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// legend.
     func testLookMenu() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -135,6 +142,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// in landscape.
     func testNeuronsAtRest() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons"]
         app.launch()
         let space = app.otherElements["graph3D"]
@@ -157,6 +165,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// granules.
     func testNeuronsFlyIn() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewFly", "Examples"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -171,6 +180,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// part) and Inguinal's notes growing out inside it.
     func testNeuronsOpenInTurn() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewFly", "Examples,Inguinal"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -186,6 +196,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// Anatomy, the relay beyond it, follow.
     func testNeuronsWhileDragging() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewDrag"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -198,6 +209,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// "How your network is built", opened by the app a second after the map.
     func testNeuronsLegend() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons", "-graphPreviewLegend"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -209,6 +221,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// The Look menu offers the themes, and in Neurons its legend.
     func testNeuronsLookMenu() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-graphPreview", "-graphPreviewTheme", "neurons"]
         app.launch()
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -235,6 +248,7 @@ final class GraphPreviewUITests: XCTestCase {
         let themes: [String] = ["space", "neurons"]
         for (k, theme) in themes.enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewRemove"]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -256,6 +270,7 @@ final class GraphPreviewUITests: XCTestCase {
     func testRemovingATopFolder() {
         for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewRemove", "Cardiology"]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -276,6 +291,7 @@ final class GraphPreviewUITests: XCTestCase {
         let themes: [(String, String)] = [("space", "Heart failure"), ("neurons", "Heart failure")]
         for (k, pair) in themes.enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", pair.0, "-graphPreviewSelect", pair.1]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -297,6 +313,7 @@ final class GraphPreviewUITests: XCTestCase {
     func testTapFolder() {
         for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewSelect", "Inguinal"]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -314,6 +331,7 @@ final class GraphPreviewUITests: XCTestCase {
     func testHoldForOptions() {
         for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewHold", "Heart failure"]
             if theme == "neurons" { app.launchArguments += ["-graphPreviewFly", "Cardiology"] }
             app.launch()
@@ -333,6 +351,7 @@ final class GraphPreviewUITests: XCTestCase {
     func testHoldDrag() {
         for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewDrag"]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -350,6 +369,7 @@ final class GraphPreviewUITests: XCTestCase {
                                                  ("neurons", "Cardiology", "Heart failure")]
         for (k, entry) in cases.enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", entry.0, "-graphPreviewFly", entry.1,
                                     "-graphPreviewSelect", entry.2]
             app.launch()
@@ -365,6 +385,7 @@ final class GraphPreviewUITests: XCTestCase {
     func testLinkLength() {
         for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme, "-graphPreviewLinkLength", "1.8"]
             app.launch()
             XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
@@ -391,6 +412,7 @@ final class GraphPreviewUITests: XCTestCase {
     func testStraightLines() {
         for (k, theme) in ["space", "neurons"].enumerated() {
             let app = XCUIApplication()
+            app.keepTraceOffConsole()
             app.launchArguments += ["-graphPreview", "-graphPreviewTheme", theme,
                                     "-ideasLines", "straight"]
             app.launch()
@@ -410,6 +432,7 @@ final class GraphPreviewUITests: XCTestCase {
 
         // the board: signed in locally, the Ideas example, Board
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-personalBuild", "-ideasLines", "straight"]
         app.launch()
         func find(_ id: String) -> XCUIElement {
@@ -467,6 +490,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// scrolled up and back so the scroll edge's line appears and goes.
     func testIslandDeckFold() throws {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-uiPreviewScreen", "quiz"]
         app.launch()
 
@@ -501,6 +525,7 @@ final class GraphPreviewUITests: XCTestCase {
     /// push again, swipe back halfway and let go (a cancelled back).
     func testIslandPushAndBack() throws {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-uiPreviewScreen", "anki-quizable"]
         app.launch()
 

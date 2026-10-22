@@ -232,6 +232,7 @@ final class AccessibilityUITests: XCTestCase {
             return false
         }
         app = XCUIApplication()
+        app.keepTraceOffConsole()
         // the example sets to open, and a still sky so a busy simulator does
         // not drop taps
         app.launchArguments += ["-personalBuild", "-stillSky"] + Self.largestText
@@ -270,8 +271,8 @@ final class AccessibilityUITests: XCTestCase {
         guard list.waitForExistence(timeout: 8) else { return false }
         list.tap()
         let row = element("dockCategory-\(place)")
-        guard row.waitForExistence(timeout: 5) else { return false }
-        if !row.isHittable { _ = reveal(row, swipes: 4) }
+        // the sheet opens at its top, so only down it
+        guard scrollToFind(row, down: 6) else { return false }
         row.tap()
         // the sheet goes once a row is chosen
         let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: row)
@@ -282,7 +283,9 @@ final class AccessibilityUITests: XCTestCase {
 
     private func openSet(_ kind: String) -> Bool {
         let row = element("setRow-\(kind)")
-        guard row.waitForExistence(timeout: 8), reveal(row, swipes: 16) else {
+        // down the page, then back up: the same section chosen again keeps
+        // the page where it was, perhaps below the sets
+        guard scrollToFind(row, down: 16, up: 24) else {
             XCTFail("no example \(kind) set in the library")
             return false
         }
@@ -321,6 +324,26 @@ final class AccessibilityUITests: XCTestCase {
             usleep(500_000)
         }
         return target.exists && target.isHittable
+    }
+
+    /// Scrolls until `target` can be pressed: down the page up to `down`
+    /// swipes, then back up up to `up`, then waits for it to be pressable.
+    /// At AX sizes the header fills the screen and a list makes a row only
+    /// once it is scrolled to, so the row is looked for while scrolling
+    /// rather than waited for first. True once it can be pressed.
+    private func scrollToFind(_ target: XCUIElement, down: Int, up: Int = 0) -> Bool {
+        // the page, or the sheet, a moment to arrive
+        _ = target.waitForExistence(timeout: 3)
+        if !reveal(target, swipes: down) {
+            for _ in 0..<up {
+                if target.exists && target.isHittable { break }
+                app.swipeDown(velocity: .slow)
+                usleep(500_000)
+            }
+        }
+        guard target.exists else { return false }
+        let pressable = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isHittable == true"), object: target)
+        return XCTWaiter.wait(for: [pressable], timeout: 5) == .completed
     }
 
     /// On screen, pressable and inside the window side to side - not pushed

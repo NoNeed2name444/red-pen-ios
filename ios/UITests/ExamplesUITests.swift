@@ -8,6 +8,7 @@ final class ExamplesUITests: XCTestCase {
 
     func testEveryExampleOpens() {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         // a still sky: this checks what each tap opens, and a simulator busy
         // drawing the moving one on its CPU can drop a tap
         app.launchArguments += ["-personalBuild", "-stillSky"]

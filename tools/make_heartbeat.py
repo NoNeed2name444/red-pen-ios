@@ -13,7 +13,9 @@ How it is made, as a heart sounds through a stethoscope's bell:
 - S1 ("lub"): the mitral then the tricuspid valve closing 22 ms apart, each a
   damped low body (about 30-65 Hz) with content at 100-150 Hz, 0.13 s long;
 - S2 ("dub"): the aortic then the pulmonary valve 28 ms apart, shorter
-  (0.09 s) and higher (about 70-210 Hz), 0.30 s after S1 (a resting systole);
+  (0.09 s) and higher (about 70-210 Hz), 0.36 s after S1, the master ECG's
+  S1 to S2 (ios/RedPen/Shared/Brand/EcgTrace.swift: S1 just after R, S2 on
+  T's end, at 60 a minute);
 - both with a fast rise and an exponential fall, and a little band-limited
   noise for the tissue's texture;
 - then coloured as the chest and the tubing colour it: a band from 20 to
@@ -47,7 +49,7 @@ import numpy as np
 
 RATE = 44100
 LEAD = 0.030          # silence before S1
-SYSTOLE = 0.300       # S1 onset to S2 onset
+SYSTOLE = 0.360       # S1 onset to S2 onset: EcgTrace's S1 to S2
 LENGTH = 0.56
 KNOCK = 1.6          # the knock's peak against the thump's
 OUT = Path("ios/RedPen/Assets.xcassets/Heartbeat.dataset")
@@ -134,7 +136,10 @@ def heartbeat(seed: int = 7) -> np.ndarray:
 
 def write_caf(path: Path, x: np.ndarray) -> None:
     """Mono 16-bit big-endian linear PCM in a Core Audio Format file."""
-    pcm = np.round(np.clip(x, -1, 1) * 32767).astype(">i2").tobytes()
+    # rounded to the nearest count, but never past -1 dBFS of 32767: the
+    # loudest sample is rounded down, not up
+    cap = np.floor(32767 * 10 ** (-1 / 20))
+    pcm = np.clip(np.round(np.clip(x, -1, 1) * 32767), -cap, cap).astype(">i2").tobytes()
     desc = struct.pack(">dIIIIII", float(RATE), int.from_bytes(b"lpcm", "big"), 0, 2, 1, 1, 16)
     data = struct.pack(">I", 0) + pcm
     path.write_bytes(b"caff" + struct.pack(">HH", 1, 0)
