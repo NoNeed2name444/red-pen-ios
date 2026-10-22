@@ -185,7 +185,13 @@ enum OcclusionPhrases {
         guard short > 0, sameSize(upper, upperText, lower, lowerText, ratio: wrapHeightRatio) else { return false }
         guard hasLetters(upperText), hasLetters(lowerText) else { return false }
         let gap: Double = lower.minY - upper.maxY
-        guard gap >= -0.25 * short, gap <= wrapGap * tall || glyphGap(upper, upperText, lower, lowerText) else {
+        // the gap is measured as type is set only when the boxes hug the
+        // glyphs (their heights differ as the letters do); boxes a line high
+        // whatever the letters are measured as they are, or "vein" over
+        // "artery", two labels, would read as one (T0133)
+        let hugsGlyphs: Bool = tall > short * wrapHeightRatio
+        guard gap >= -0.25 * short,
+              gap <= wrapGap * tall || (hugsGlyphs && glyphGap(upper, upperText, lower, lowerText)) else {
             return false
         }
         guard linedUp(upper, lower, slack: alignSlack * tall) else { return false }

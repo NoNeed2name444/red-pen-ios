@@ -65,6 +65,46 @@ class OcclusionFlowTest {
         assertTrue("O1 masked: each card asks one, under its own \"?\"", deck.all { it.occlusion != null && it.bullets.size == 1 })
     }
 
+    /** The owner's rule on [cards]: each label under exactly one cover, all its words inside with a margin, no other label's word under it. */
+    private fun oneEach(name: String, cards: List<AnkiCard>) {
+        val boxes = cards.flatMap { listOfNotNull(it.occlusion) + it.siblings }
+            .distinctBy { listOf(it.x, it.y, it.w, it.h) }
+        for (label in labels) {
+            val touching = boxes.filter { box -> label.words.any { w -> OcclusionCovers.overlapShare(w, box) > 0 } }
+            assertEquals("$name: \"${label.answer}\" has exactly one cover", 1, touching.size)
+            val cover = touching.single()
+            assertTrue("$name: every word of \"${label.answer}\" is wholly under it", label.words.all { inside(it, cover) })
+            val x0 = label.words.minOf { it.x }; val y0 = label.words.minOf { it.y }
+            val x1 = label.words.maxOf { it.x + it.w }; val y1 = label.words.maxOf { it.y + it.h }
+            assertTrue("$name: \"${label.answer}\" has a margin all round",
+                listOf(x0 - cover.x, y0 - cover.y, cover.x + cover.w - x1, cover.y + cover.h - y1).all { it > 0 })
+            val swallowed = labels.filter { it.answer != label.answer }.flatMap { it.words }.filter { OcclusionCovers.overlapShare(it, cover) > 0.05 }
+            assertTrue("$name: \"${label.answer}\"'s cover reaches no other label", swallowed.isEmpty())
+        }
+    }
+
+    @Test fun o1OneRectanglePerLabel() {
+        oneEach("O1 heart", deck)
+        // the photo path: a two-line label dragged line by line is still one cover over both lines
+        val byLine = labels.flatMap { label ->
+            val lines = label.words.groupBy { it.y }.values.toList()
+            if (lines.size < 2) listOf(PhotoOcclusion.Cover(box = label.cover, answer = label.answer))
+            else lines.map { line ->
+                val x0 = line.minOf { it.x } - 4.0 / 900; val y0 = line.minOf { it.y } - 4.0 / 640
+                PhotoOcclusion.Cover(box = OcclusionBox(x0, y0, line.maxOf { it.x + it.w } + 4.0 / 900 - x0, line.maxOf { it.y + it.h } + 4.0 / 640 - y0),
+                    answer = if (line === lines[0]) label.answer else "  ${label.answer.lowercase()} ")
+            }
+        }
+        assertTrue("O1 photo: the two-line labels were dragged twice", byLine.size > labels.size)
+        val saved = PhotoOcclusion.cards(byLine, 0)
+        assertEquals("O1 photo: one card per label", 11, saved.size)
+        oneEach("O1 photo", saved)
+        // the same term in two far places keeps a cover at each; it is two labels, not one
+        val twice = PhotoOcclusion.oneEach(listOf(PhotoOcclusion.Cover(box = OcclusionBox(0.7, 0.1, 0.1, 0.04), answer = "Aorta"),
+            PhotoOcclusion.Cover(box = OcclusionBox(0.7, 0.8, 0.1, 0.04), answer = "Aorta")))
+        assertEquals("O1 photo: a term in two far places keeps both covers", 2, twice.size)
+    }
+
     @Test fun o2RevealTakesOffTheOneAskedAndOnlyIt() {
         for (card in deck) {
             val label = labels.first { it.answer == card.bullets[0] }
