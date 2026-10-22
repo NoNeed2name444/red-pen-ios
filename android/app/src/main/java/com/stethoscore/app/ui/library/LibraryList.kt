@@ -183,7 +183,7 @@ fun shownSets(store: StudyStore, category: StudyCategory, searching: Boolean, se
 
 /**
  * The library's part of home's list. [rowModifier] lets home tag each row
- * for its page cut (HomePartBook) without the library knowing about it.
+ * for its book of parts (HomePartBook) without the library knowing about it.
  */
 fun LazyListScope.libraryItems(
     store: StudyStore, revision: Int, category: StudyCategory, query: String, search: LibrarySearchState,

@@ -83,9 +83,11 @@ class ScreenshotTest {
         val store=store();val set=store.library.first {it.kind==StudySetKind.ANKI}
         compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {AnkiReviewScreen(set,store,{})}}}}
         shot("05-cards")
-        compose.onNodeWithText("Reveal").performScrollTo().performClick()
+        // Reveal and the ratings sit in the review's fixed bottom bar (StudyBar), outside the
+        // card's scroll: they are tapped where they stand, and must be on screen to be tapped
+        compose.onNodeWithText("Reveal").assertIsDisplayed().performClick()
         shot("06-card-revealed")
-        compose.onNodeWithContentDescription("Good").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Good").assertIsDisplayed().performClick()
         check(store.reviews.isNotEmpty())
     }
     @Test fun osce() { val store=store();val set=store.library.first {it.kind==StudySetKind.OSCE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("07-osce") }
@@ -107,9 +109,8 @@ class ScreenshotTest {
         compose.waitUntil(30_000) { compose.onAllNodesWithContentDescription("Space of ideas: 4 notes, 4 links",substring=true).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Space of ideas: 4 notes, 4 links",substring=true).assertIsDisplayed()
         SystemClock.sleep(3_000) // let the chunks open (a fifth of a second)
-        requireMapDrawn("Space of ideas: 4 notes, 4 links")
-        shot("11-ideas-map")
-        ideasPrefs {}
+        shot("11-ideas-map") // kept even when the check below fails, to see why
+        try { requireMapDrawn("Space of ideas: 4 notes, 4 links") } finally { ideasPrefs {} }
     }
     @Test fun millionNodeDemo() {
         val store=store()
@@ -156,6 +157,12 @@ class ScreenshotTest {
         // a textbook lives under Cards, as on iOS (StudyCategory.cards: Flashcards and Textbooks)
         compose.onNode(hasText("Cards") and hasClickAction()).performClick()
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
+        // home's list runs on behind New set and the dock (T0112): bring the
+        // row to the list's top, clear of them, before tapping it
+        val list=compose.onNode(hasScrollToNodeAction())
+        val rise=compose.onNodeWithText(set.name).fetchSemanticsNode().boundsInRoot.top-list.fetchSemanticsNode().boundsInRoot.top
+        list.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) { it(0f,rise) }
+        compose.waitForIdle()
         compose.onNodeWithText(set.name).performClick()
         compose.onNodeWithContentDescription("Contents").assertIsDisplayed()
         shot("10-textbook")

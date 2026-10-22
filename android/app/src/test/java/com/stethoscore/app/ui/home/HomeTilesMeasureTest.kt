@@ -1,6 +1,7 @@
 package com.stethoscore.app.ui.home
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.StethoscoreApp
@@ -44,6 +46,12 @@ class HomeTilesMeasureTest {
         compose.onNode(hasContentDescription("Opens Ideas", substring = true)).assertExists()
         compose.onNode(hasText("Cards") and hasClickAction()).performClick()
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
+        // home's list runs on behind New set and the dock (T0112): bring the
+        // row to the list's top, clear of them, before tapping it
+        val list = compose.onNode(hasScrollToNodeAction())
+        val rise = compose.onNodeWithText(set.name).fetchSemanticsNode().boundsInRoot.top - list.fetchSemanticsNode().boundsInRoot.top
+        list.performSemanticsAction(SemanticsActions.ScrollBy) { it(0f, rise) }
+        compose.waitForIdle()
         compose.onNodeWithText(set.name).performClick()
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Contents").assertExists()

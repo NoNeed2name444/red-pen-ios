@@ -2964,7 +2964,7 @@ with the marks on the screens last.
   The preview's gate keeps the card and Start ward round 12 pt above the bar
   at the standard sizes (HomeFit.barLine) and drops the sliver checks, which
   were about the cut. Tested in homefit (model and source checks).
-- [ ] T0112-android: Android home is not cut either (HomeCutPage gone; New set and the dock float over the list in a Box, its end row HomeFit.endSpace), HomeFit.kt and HomeFitTest.kt ported from iOS 3752d114; open: HomeTilesMeasureTest taps a set row that now rests behind the bar (needs that test in scope).
+- [x] T0112-android: Android home is not cut either (HomeCutPage gone; New set and the dock float over the list in a Box, its end row HomeFit.endSpace), HomeFit.kt and HomeFitTest.kt ported from iOS 3752d114; the textbook flows scroll the set row clear of the bar before tapping it. Open: ScreenshotTest.ideas' Space map drew no coloured samples on CI (11-ideas-map is now shot before the check, for evidence).
 - [ ] Mac run for T0112: screenshots of home on the 17 Pro, the Pro Max and a
   375 pt phone at the default size and at xxxLarge (the row, the names whole
   or barely smaller, the chosen ring clear of them), and the four UI suites;
