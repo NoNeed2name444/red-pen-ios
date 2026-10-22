@@ -200,7 +200,7 @@ struct WardTile: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-        .wardCard(padding: 14)
+        .wardCard()
         .accessibilityElement(children: .combine)
     }
 }

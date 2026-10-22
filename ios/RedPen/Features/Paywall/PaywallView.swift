@@ -132,7 +132,7 @@ struct PaywallView: View {
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInk)
             }
-            .padding(14)
+            .padding(WardSpace.gutter)
             .wardRelief(in: PaywallView.row, lift: .mid, pressed: picked)
             .contentShape(PaywallView.row)
         }

@@ -200,7 +200,7 @@ struct StudyLensView: View {
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Color.wardMonitor.opacity(0.85), in: Capsule())
             .padding(.top, 8)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
     }
 
     private var controls: some View {
@@ -230,7 +230,7 @@ struct StudyLensView: View {
             }
             if let still, still.pageCount > 1 { pageStepper(still) }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, 8)
     }
 

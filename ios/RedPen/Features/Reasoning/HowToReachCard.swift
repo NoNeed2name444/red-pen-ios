@@ -24,7 +24,7 @@ struct HowToReachCard: View {
             }
             sources
         }
-        .padding(14)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: .infinity, alignment: .leading)
         // a well pressed into the card
         .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))

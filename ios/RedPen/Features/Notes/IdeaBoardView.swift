@@ -269,11 +269,11 @@ struct IdeaBoardView: View {
                     .contentShape(Rectangle())
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.vertical, 10)
         .foregroundStyle(Color.wardPrimaryInk)
         .wardRaised(in: Capsule(), lift: .high)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 12)
     }
 

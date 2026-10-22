@@ -43,7 +43,7 @@ struct CaseDebriefView: View {
                 teachingCard
                 actionsCard
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)
         }

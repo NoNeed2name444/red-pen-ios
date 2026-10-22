@@ -87,7 +87,7 @@ struct DueTodayView: View {
             .contentCard()
             // the answer opens under the question (AnkiCardFace): no flip
             .reviewCardActions(onBury: { bury(due) }, onSuspend: { suspend(due) })
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.top, 8)
             .padding(.bottom, revealed ? 8 : 24)
             .readableColumn()
@@ -98,7 +98,7 @@ struct DueTodayView: View {
                     SaveToIdeasButton(clip: SaveToIdeas.clip(card: due.card, in: set,
                                                              library: store.library))
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, WardSpace.gutter)
                 .padding(.bottom, 24)
                 .readableColumn()
             }
@@ -111,7 +111,7 @@ struct DueTodayView: View {
     private var emptyScroll: some View {
         ScrollView {
             emptyHero
-                .padding(.horizontal, 16)
+                .padding(.horizontal, WardSpace.gutter)
                 .padding(.top, 32)
                 .readableColumn()
         }

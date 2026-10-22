@@ -361,7 +361,7 @@ struct GraphPreviewBar: View {
             }
         }
         .foregroundStyle(.primary)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 4)
     }
 }

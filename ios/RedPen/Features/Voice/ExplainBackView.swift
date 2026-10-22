@@ -110,7 +110,7 @@ struct ExplainBackView: View {
             notes
         }
         .animation(.snappy(duration: 0.2), value: writing)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 8)
         .padding(.bottom, 12)
         .frame(maxWidth: 760, maxHeight: .infinity, alignment: .top)

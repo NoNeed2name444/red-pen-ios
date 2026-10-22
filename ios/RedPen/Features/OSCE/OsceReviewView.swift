@@ -225,7 +225,7 @@ struct OsceReviewView: View {
                         // all its lines: at XXL it was cut to one, "Say it
                         // ou..." (15 Oct)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(16)
+                        .padding(WardSpace.gutter)
                         .frame(maxWidth: .infinity)
                         .transition(.identity)
                 }
@@ -237,7 +237,7 @@ struct OsceReviewView: View {
                         .transition(.identity)
                 }
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             // a start over slides the station back in from the top
             .id(run.restarts)
             .transition(.asymmetric(insertion: .slideIn(.top), removal: .identity))
@@ -319,7 +319,7 @@ struct OsceReviewView: View {
                 .buttonStyle(.bigSecondary)
                 .accessibilityHint("Runs this station out loud, with a patient who answers")
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.top, 16)
             .padding(.bottom, 24)
             .readableColumn()

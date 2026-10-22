@@ -43,7 +43,7 @@ struct GraphPerfSpace: View {
             }
             .ignoresSafeArea()
             readout
-                .padding(.leading, 16)
+                .padding(.leading, WardSpace.gutter)
                 .padding(.top, 8)
         }
     }

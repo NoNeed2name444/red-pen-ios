@@ -61,7 +61,7 @@ private struct ReviewUndoOverlay: ViewModifier {
                         // once reviews are familiar (StudyTips)
                         .studyTip(.undo)
                         .padding(.top, 8)
-                        .padding(.trailing, 16)
+                        .padding(.trailing, WardSpace.gutter)
                         .transition(.identity)
                 }
             }

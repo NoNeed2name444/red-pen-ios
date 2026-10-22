@@ -159,7 +159,7 @@ struct PhotoCardsTile: View {
                     .foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(true)
             }
-            .padding(14)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
             .contentShape(shape)
             .accessibilityElement(children: .combine)

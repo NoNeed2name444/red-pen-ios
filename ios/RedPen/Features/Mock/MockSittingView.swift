@@ -249,7 +249,7 @@ struct MockSittingView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.top, 8)
             .padding(.bottom, 24)
             .readableColumn()
@@ -428,7 +428,7 @@ struct MockSittingView: View {
                         gridCell(i)
                     }
                 }
-                .padding(16)
+                .padding(WardSpace.gutter)
             }
             .wardScreen()
             .navigationTitle(spec.title)
@@ -484,7 +484,7 @@ struct MockSittingView: View {
         return ScrollView {
             FinishHero(symbol: "cup.and.saucer", title: "Section closed", message: line)
                 .contentCard()
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .readableColumn()
         }
         .studyBar {

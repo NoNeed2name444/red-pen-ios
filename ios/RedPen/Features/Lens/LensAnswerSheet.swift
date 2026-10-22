@@ -35,7 +35,7 @@ struct LensAnswerSheet: View {
                     questionCard
                     stateContent
                 }
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .frame(maxWidth: 720, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
@@ -153,7 +153,7 @@ struct LensAnswerSheet: View {
             .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
             .disabled(model.state(for: question) == .loading)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.vertical, 8)
     }
 }
@@ -205,7 +205,7 @@ struct LensAnswerBody: View {
             Label(isTrue ? "True" : "False", systemImage: isTrue ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(colour)
-                .padding(.horizontal, 16).padding(.vertical, 10)
+                .padding(.horizontal, WardSpace.gutter).padding(.vertical, 10)
                 .wardInset(in: Capsule())
             if !answer.correction.isEmpty {
                 section("Put right") { Text(answer.correction) }
@@ -318,7 +318,7 @@ struct LensAnswerBody: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         }
-        .padding(16)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: .infinity, alignment: .leading)
         // a well pressed into the base with a rim in the section's accent:
         // the answer

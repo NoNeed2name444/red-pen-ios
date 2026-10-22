@@ -418,7 +418,7 @@ struct NarrateReviewView: View {
                             onJump: { jump(to: $0) },
                             onFix: { fixing = $0 })
                 .contentCard()
-                .padding(.horizontal, 16)
+                .padding(.horizontal, WardSpace.gutter)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
                 .readableColumn()

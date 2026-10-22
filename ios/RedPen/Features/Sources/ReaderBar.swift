@@ -52,7 +52,7 @@ struct ReaderBar: View {
                     .transition(.identity)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, 8)
         .frame(maxWidth: 560)
         .frame(maxWidth: .infinity)

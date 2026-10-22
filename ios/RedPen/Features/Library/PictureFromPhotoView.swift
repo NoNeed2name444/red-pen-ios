@@ -65,7 +65,7 @@ struct PictureFromPhotoView: View {
             VStack(alignment: .leading, spacing: 18) {
                 content
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)
         }
@@ -153,7 +153,7 @@ struct PictureFromPhotoView: View {
                     Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
-            .padding(14)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
             .contentShape(shape)
             .accessibilityElement(children: .combine)

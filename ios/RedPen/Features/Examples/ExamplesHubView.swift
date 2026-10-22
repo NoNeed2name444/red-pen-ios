@@ -87,7 +87,7 @@ struct ExamplesHubView: View {
                         .wardCard()
                 }
             }
-            .padding(20)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
         }
@@ -246,7 +246,7 @@ private struct HowToReachExample: View {
             HowToReachCard(differential: ReasoningExamples.herniaDifferential,
                            lecture: ReasoningExamples.sourceLabel)
                 .wardCard(padding: 0)
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .frame(maxWidth: 700)
                 .frame(maxWidth: .infinity)
         }

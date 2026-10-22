@@ -97,7 +97,7 @@ extension LibraryView {
                     .foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(true)
             }
-            .padding(14)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(shape)
         }
@@ -243,7 +243,7 @@ struct FoundCardSheet: View {
                     .buttonStyle(.wardPrimary)
                     .accessibilityIdentifier("foundCardOpenDeck")
                 }
-                .padding(20)
+                .padding(WardSpace.gutter)
             }
             .wardScreen()
             .navigationTitle("Card")

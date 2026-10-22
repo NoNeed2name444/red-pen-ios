@@ -170,7 +170,7 @@ private struct GenerationCard: View {
             }
             GenerationProgress(fraction: job.fraction)
         }
-        .padding(14)
+        .padding(WardSpace.gutter)
         .wardRaised(in: shape, lift: .high)
     }
 }

@@ -74,7 +74,7 @@ struct GraphPeekCardView: View {
             if !content.chips.isEmpty { chipRow }
             buttons
         }
-        .padding(16)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: 520, alignment: .leading)
         .wardRaised(in: RoundedRectangle(cornerRadius: 24, style: .continuous), lift: .high)
         .contentShape(RoundedRectangle(cornerRadius: 24))
@@ -386,7 +386,7 @@ struct GraphLinkLengthBar: View {
                 .accessibilityLabel("Longer")
             }
         }
-        .padding(14)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: 520)
         .wardRaised(in: RoundedRectangle(cornerRadius: 20, style: .continuous), lift: .high)
         .accessibilityElement(children: .contain)
@@ -432,7 +432,7 @@ struct GraphRegionPill: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Color.wardInk)
             .lineLimit(1)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.vertical, 8)
             .wardInset(in: Capsule())
             .accessibilityAddTraits(.isHeader)

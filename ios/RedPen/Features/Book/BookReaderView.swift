@@ -92,7 +92,7 @@ struct BookReaderView: View {
             }
             .foregroundStyle(Color.wardInk)
             .contentCard()
-            .padding(.horizontal, 16)
+            .padding(.horizontal, WardSpace.gutter)
             .padding(.top, 8)
             .padding(.bottom, 24)
             .readableColumn()

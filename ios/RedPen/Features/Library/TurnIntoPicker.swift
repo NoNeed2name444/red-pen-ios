@@ -57,7 +57,7 @@ struct TurnIntoPicker: View {
                         }
                     }
                 }
-                .padding(20)
+                .padding(WardSpace.gutter)
             }
             .accessibilityIdentifier("turnIntoPicker")
             .wardScreen()
@@ -102,7 +102,7 @@ struct TurnIntoPicker: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
             }
-            .padding(14)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, minHeight: 124, alignment: .topLeading)
             .contentShape(shape)
         }

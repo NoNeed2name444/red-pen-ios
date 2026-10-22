@@ -68,7 +68,7 @@ struct CaseWardView: View {
                         clinicalNote.transition(.identity)
                     }
                 }
-                .padding(16)
+                .padding(WardSpace.gutter)
                 .frame(maxWidth: 760)
                 .frame(maxWidth: .infinity)
             }
@@ -407,7 +407,7 @@ struct CaseLadderPanel: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
         }
         .wardScreen()
     }

@@ -294,7 +294,7 @@ struct Graph3DView: View {
                     markCardSeen(built.theme)
                 })
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 16)
+                .padding(.leading, WardSpace.gutter)
                 .padding(.trailing, 16 + 44 + 12)
                 .padding(.bottom, 16)
             }
@@ -357,7 +357,7 @@ struct Graph3DView: View {
                     .transition(.move(edge: .bottom))
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.trailing, 44 + 12)
         .padding(.bottom, 16)
         .animation(reduceMotion ? nil : .spring(duration: 0.35), value: selection.selected)

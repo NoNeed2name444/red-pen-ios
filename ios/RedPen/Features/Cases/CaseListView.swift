@@ -46,7 +46,7 @@ struct CaseListView: View {
                         .padding(.horizontal, 4)
                 }
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             // one comfortable column on a wide iPad
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)

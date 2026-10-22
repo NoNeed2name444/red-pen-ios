@@ -42,7 +42,7 @@ struct IdeasBottomBar: View {
             }
             captureRow
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .padding(.bottom, 8)
         .frame(maxWidth: 560)
         .animation(change, value: showCollapsed)

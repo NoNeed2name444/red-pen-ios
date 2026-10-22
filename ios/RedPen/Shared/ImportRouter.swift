@@ -247,7 +247,7 @@ struct ImportInboxSheet: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(20)
+            .padding(WardSpace.gutter)
             .navigationTitle("Received")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

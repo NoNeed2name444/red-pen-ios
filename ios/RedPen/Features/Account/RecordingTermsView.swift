@@ -102,7 +102,7 @@ struct RecordingTermsView: View {
                 .font(.subheadline)
         }
         .foregroundStyle(Color.wardInk)
-        .padding(16)
+        .padding(WardSpace.gutter)
         .frame(maxWidth: .infinity, alignment: .leading)
         // a well pressed into the base, rimmed in red
         .wardInset(in: shape)

@@ -448,7 +448,7 @@ struct NewSetView: View {
                     .foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(true)
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
             .wardRelief(in: shape, lift: .mid, pressed: chosen,
                         edge: Color.wardEdgeInk(WardSection(kindRaw: option.rawValue)))
@@ -493,7 +493,7 @@ struct NewSetView: View {
                     .contentTransition(.identity)
                     .accessibilityHidden(true)
             }
-            .padding(16)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
             .wardRelief(in: shape, lift: .mid, pressed: chosen)
             .contentShape(shape)

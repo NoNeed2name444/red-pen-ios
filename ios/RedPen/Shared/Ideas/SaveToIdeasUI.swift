@@ -243,7 +243,7 @@ private struct SaveToIdeasHost: ViewModifier {
                                        onDismiss: { saver.dismiss(shown.id) })
                             .wardUnlit()
                             .padding(.top, 8)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, WardSpace.gutter)
                             .transition(.slideIn(.top))
                     }
                 }
@@ -305,7 +305,7 @@ private struct SavedIdeaToast: View {
                 .accessibilityIdentifier("ideaToastUndo")
             }
         }
-        .padding(.leading, 16)
+        .padding(.leading, WardSpace.gutter)
         .padding(.trailing, toast.undo == nil ? 16 : 4)
         .padding(.vertical, toast.undo == nil ? 12 : 4)
         .frame(maxWidth: 520)
@@ -375,7 +375,7 @@ struct SaveToIdeasButton: View {
                 .foregroundStyle(Color.wardInk)
         }
         .font(.subheadline.weight(.semibold))
-        .padding(.horizontal, 16)
+        .padding(.horizontal, WardSpace.gutter)
         .frame(minHeight: 44)
         .contentShape(Capsule())
     }

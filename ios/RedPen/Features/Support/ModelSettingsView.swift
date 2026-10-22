@@ -178,7 +178,7 @@ struct ModelSettingsView: View {
             } label: {
                 Label("Add a hosted model", systemImage: "plus.circle")
                     .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, WardSpace.gutter)
                     .frame(minHeight: 44)
                     .foregroundStyle(Color.wardPrimaryInk)
                     .wardRaised(in: Capsule(), lift: .low)
