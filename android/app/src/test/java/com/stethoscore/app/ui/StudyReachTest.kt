@@ -152,7 +152,8 @@ class StudyReachTest {
         compose.waitForIdle()
         assertTrue(compose.onAllNodesWithText("CHECKER MODELS").fetchSemanticsNodes().isEmpty())
         assertTrue(seen.isEmpty())
-        compose.onNode(hasContentDescription("Ramipril tablets", substring = true)).performClick()
+        // the options are shuffled, so the answer may stand below the fold
+        compose.onNode(hasContentDescription("Ramipril tablets", substring = true)).performScrollTo().performClick()
         compose.onNodeWithText("Check answer").performScrollTo().performClick()
         val item = checkAccuracy("mcq")
         assertEquals(stem, item.getString("stem"))
