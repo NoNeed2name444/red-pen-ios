@@ -2263,7 +2263,7 @@ with the marks on the screens last.
       and sink (a held control no longer sinks), the card's answer opening,
       the jumps and scrolls, the working trace standing whole
       (WardReduceMotionTest).
-    - [ ] The dock's hollow travels with the choice as iOS's does
+    - [x] The dock's hollow travels with the choice as iOS's does
       (StudyCategory.swift:748, 0.3 s): one hollow under the five tabs,
       simply there with animations off and back from Ideas; the dock's look
       is unchanged (WardDock.hollow, WardDockTest).

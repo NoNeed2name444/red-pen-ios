@@ -374,21 +374,38 @@ fun homeSection(category:String):WardSection = when(category) {
     val panel=RoundedCornerShape(WardDock.panelRadius.toFloat().dp)
     val inset=WardDock.barInset
     val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)
+    val categories=listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq)
+    // One hollow travels between the five with the choice, never past the tab it goes to (iOS StudyCategory.swift:748:
+    // .snappy(duration: 0.3)), and with animations off it is simply there. On Ideas there is none; back from Ideas it
+    // is simply there, as iOS's appears.
+    val at=categories.indexOfFirst { it.first==chosen }
+    val reduce=com.stethoscore.app.ui.ward.wardReduceMotion()
+    val hollow=remember { androidx.compose.animation.core.Animatable(maxOf(at,0).toFloat()) }
+    val was=remember { mutableIntStateOf(at) }
+    LaunchedEffect(at) {
+        val from=was.intValue
+        was.intValue=at
+        if(at<0) return@LaunchedEffect
+        if(reduce || from<0) hollow.snapTo(at.toFloat())
+        else hollow.animateTo(at.toFloat(),com.stethoscore.app.ui.ward.wardSpring(com.stethoscore.app.ui.ward.WardMotion.travel,reduce))
+    }
     Box(Modifier.fillMaxWidth().padding(horizontal=WardDock.barSide.toFloat().dp).padding(bottom=10.dp),contentAlignment=Alignment.Center) {
         Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp).fillMaxWidth().height(IntrinsicSize.Min),
             horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)) {
             // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
             DockSlots(Modifier.weight(1f)
                 .wardRaised(WardDock.panelRadius,WardLift.high,control=true)
-                .padding(WardDock.barInset.toFloat().dp).selectableGroup()) {
-                listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq).forEach { (name,rest) ->
+                .padding(WardDock.barInset.toFloat().dp).selectableGroup(),
+                hollowAt={ if(at<0) null else if(was.intValue<0) at.toFloat() else hollow.value }) {
+                // the chosen tab's hollow with the accent's ring: one, under the five, where the choice is
+                Box(Modifier.wardChosenEdge(tab,true).wardInset(tab,WardLift.low))
+                categories.forEach { (name,rest) ->
                     val selected=chosen==name
                     val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     val held by source.collectIsPressedAsState()
-                    // the chosen tab stands in its hollow with the accent's ring; a held one sinks into a hollow (iOS WardItemButtonStyle); no ripple
+                    // the chosen tab stands in the hollow; a held one sinks into a hollow of its own (iOS WardItemButtonStyle); no ripple
                     Column(Modifier
-                        .wardChosenEdge(tab,selected)
-                        .then(if(selected || held) Modifier.wardInset(tab,WardLift.low) else Modifier)
+                        .then(if(held && !selected) Modifier.wardInset(tab,WardLift.low) else Modifier)
                         .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
                         .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
                         .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp),
@@ -412,19 +429,53 @@ fun homeSection(category:String):WardSection = when(category) {
     }
 }
 
-/** The tabs side by side in WardDock's slots: each its ideal width (its name and side room, never under WardDock.leastTab), water-filled or shrunk alike to fit (WardDock.tabWidths). */
-@Composable private fun DockSlots(modifier:Modifier,content:@Composable () -> Unit) {
-    androidx.compose.ui.layout.Layout(content,modifier) { measurables,constraints ->
-        val ideals=measurables.map { maxOf(WardDock.leastTab,it.maxIntrinsicWidth(Int.MAX_VALUE).toDouble()/density) }
-        val room=if(constraints.hasBoundedWidth) constraints.maxWidth.toDouble()/density else ideals.sum()
-        val slots=WardDock.tabWidths(ideals,room).map { (it*density).toInt() }
-        val height=measurables.zip(slots).maxOfOrNull { (m,w) -> m.minIntrinsicHeight(w) }?.coerceAtLeast(constraints.minHeight) ?: constraints.minHeight
-        val placeables=measurables.zip(slots).map { (m,w) -> m.measure(androidx.compose.ui.unit.Constraints.fixed(w,height)) }
-        layout(if(constraints.hasBoundedWidth) constraints.maxWidth else slots.sum(),height) {
+/**
+ * The tabs side by side in WardDock's slots: each its ideal width (its name and side room, never under WardDock.leastTab),
+ * water-filled or shrunk alike to fit (WardDock.tabWidths). The first child is the chosen hollow, laid under the tabs where
+ * [hollowAt] has it (WardDock.hollow), or not at all when that is null. Only this layout reads where it is, never the bar's
+ * sizing, so its travel neither recomposes the dock nor measures the bar again.
+ */
+@Composable private fun DockSlots(modifier:Modifier,hollowAt:() -> Float?,content:@Composable () -> Unit) {
+    val policy=remember(hollowAt) { DockSlotsPolicy(hollowAt) }
+    androidx.compose.ui.layout.Layout(content,modifier,policy)
+}
+
+private class DockSlotsPolicy(private val hollowAt:() -> Float?):androidx.compose.ui.layout.MeasurePolicy {
+    /** Each tab's slot in [maxWidth] (their ideals when it is unbounded), in pixels. */
+    private fun androidx.compose.ui.unit.Density.slots(tabs:List<androidx.compose.ui.layout.IntrinsicMeasurable>,maxWidth:Int):List<Int> {
+        val ideals=tabs.map { maxOf(WardDock.leastTab,it.maxIntrinsicWidth(Int.MAX_VALUE).toDouble()/density) }
+        val room=if(maxWidth!=androidx.compose.ui.unit.Constraints.Infinity) maxWidth.toDouble()/density else ideals.sum()
+        return WardDock.tabWidths(ideals,room).map { (it*density).toInt() }
+    }
+
+    /** The row's height: the tallest tab in its slot. */
+    private fun tallest(tabs:List<androidx.compose.ui.layout.IntrinsicMeasurable>,slots:List<Int>):Int =
+        tabs.zip(slots).maxOfOrNull { (m,w) -> m.minIntrinsicHeight(w) } ?: 0
+
+    override fun androidx.compose.ui.layout.MeasureScope.measure(measurables:List<androidx.compose.ui.layout.Measurable>,
+                                                                 constraints:androidx.compose.ui.unit.Constraints):androidx.compose.ui.layout.MeasureResult {
+        val tabs=measurables.drop(1)
+        val slots=slots(tabs,constraints.maxWidth)
+        val height=tallest(tabs,slots).coerceAtLeast(constraints.minHeight)
+        val placeables=tabs.zip(slots).map { (m,w) -> m.measure(androidx.compose.ui.unit.Constraints.fixed(w,height)) }
+        val span=hollowAt()?.let { WardDock.hollow(slots.map { w -> w.toDouble() },it.toDouble()) }
+        val hollow=span?.let { measurables.first().measure(androidx.compose.ui.unit.Constraints.fixed(kotlin.math.round(it.width).toInt(),height)) }
+        return layout(if(constraints.hasBoundedWidth) constraints.maxWidth else slots.sum(),height) {
+            if(span!=null && hollow!=null) hollow.placeRelative(kotlin.math.round(span.left).toInt(),0)
             var x=0
             placeables.forEach { it.placeRelative(x,0);x+=it.width }
         }
     }
+
+    // the bar's sizing asks only the tabs, never where the hollow is
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.minIntrinsicHeight(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,width:Int):Int =
+        measurables.drop(1).let { tabs -> tallest(tabs,slots(tabs,width)) }
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.maxIntrinsicHeight(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,width:Int):Int =
+        minIntrinsicHeight(measurables,width)
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.minIntrinsicWidth(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,height:Int):Int =
+        slots(measurables.drop(1),androidx.compose.ui.unit.Constraints.Infinity).sum()
+    override fun androidx.compose.ui.layout.IntrinsicMeasureScope.maxIntrinsicWidth(measurables:List<androidx.compose.ui.layout.IntrinsicMeasurable>,height:Int):Int =
+        minIntrinsicWidth(measurables,height)
 }
 
 /** One dock item's face: an outline glyph over its name, Chart Ink at rest and the section's ink when chosen (iOS DockItemFace). The name keeps to one line, shrinking to WardDock.leastNameScale before it would cross the ring. */

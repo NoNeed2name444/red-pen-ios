@@ -88,6 +88,27 @@ object WardDock {
         return ideals.map { maxOf(it, level) }
     }
 
+    /** Where the chosen hollow lies along the row: its left edge and its width. */
+    data class Span(val left: Double, val width: Double)
+
+    /**
+     * The chosen tab's hollow among tabs [widths] wide, side by side from 0,
+     * at [at] tabs along: on a tab at a whole number, and between two while
+     * it travels, its left edge and its width taken that far from one tab's
+     * to the next. It never leaves the first or the last tab. iOS moves one
+     * hollow between the tabs with the choice (matchedGeometryEffect,
+     * StudyCategory.swift:748) rather than one per tab shown and hidden.
+     */
+    fun hollow(widths: List<Double>, at: Double): Span {
+        if (widths.isEmpty()) return Span(0.0, 0.0)
+        val along = at.coerceIn(0.0, (widths.size - 1).toDouble())
+        val i = along.toInt()
+        val left = widths.take(i).sum()
+        if (i == widths.size - 1) return Span(left, widths[i])
+        val f = along - i
+        return Span(left + widths[i] * f, widths[i] + (widths[i + 1] - widths[i]) * f)
+    }
+
     /** Where a continuous corner leaves the straight edge, in radii from the corner. */
     const val continuousReach = 1.52866
 
