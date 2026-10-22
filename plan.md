@@ -3121,6 +3121,10 @@ only; Arabic is left for the owner's words (copy deck question 4).
   (13 on iOS, 7 on Android; the copy deck's majority button). The sign-in
   screen's two go through the catalogue: "Done" is a new key with no Arabic
   yet, so the catalogue check reports it until the owner's Arabic word comes.
+- [x] Android's own names give way to iOS's: "New set" and "Save set" on
+  the editor, "Look and feel" over the dark-mode switch. "Night shift" and
+  the settings rows the deck maps to iOS's backup rows wait (copy deck
+  question 6; Android's Import JSON adds sets where iOS's Restore replaces).
 
 ### Waiting on the owner
 

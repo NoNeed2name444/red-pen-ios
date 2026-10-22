@@ -25,7 +25,7 @@ import com.stethoscore.app.data.*
     var content by rememberSaveable { mutableStateOf("") }
     var error by remember {mutableStateOf<String?>(null)}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
-        ScreenHeader("New study set","Make something worth remembering",onBack)
+        ScreenHeader("New set","Make something worth remembering",onBack)
         OutlinedTextField(name,{name=it},Modifier.fillMaxWidth(),label={Text("Set name")},singleLine=true)
         OutlinedTextField(subject,{subject=it},Modifier.fillMaxWidth(),label={Text("Subject")},singleLine=true)
         SectionLabel("Study mode")
@@ -39,7 +39,7 @@ import com.stethoscore.app.data.*
         if(kind==StudySetKind.OSCE) com.stethoscore.app.ui.osce.OsceGenerateSection(content,{content=it;error=null},subject,{subject=it})
         OutlinedTextField(content,{content=it;error=null},Modifier.fillMaxWidth().heightIn(min=230.dp),label={Text("Study content")},minLines=8)
         error?.let {Text(it,color=MaterialTheme.colorScheme.error)}
-        WardButton("Save study set",{
+        WardButton("Save set",{
             runCatching { onSave(parseStudySet(name,subject,kind,content)) }.onFailure {error=it.message ?: "Check your content and try again."}
         },Modifier.fillMaxWidth(),name.isNotBlank() && content.isNotBlank())
         Text("To add a Cases set, import a Stethoscore JSON file from Settings.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -74,7 +74,7 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
-            SectionLabel("Appearance")
+            SectionLabel("Look and feel")
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {Column {Text("Night shift",fontSize=18.sp,fontWeight=FontWeight.SemiBold);Text("Stethoscore's dark palette",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};Switch(dark,onDark)}
         }
         // iOS: Settings, "Your exam" (ExamPickerView)
