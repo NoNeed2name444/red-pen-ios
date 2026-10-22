@@ -40,9 +40,10 @@ import com.stethoscore.app.ui.wardColor
 // A port of ios/RedPen/Features/Learn/BedtimeReviewView.swift.
 //
 // Bedtime lock-in: a calm re-read of today's misses, each as the answer and
-// one line to remember. Not a test - nothing to tap, nothing scored. Dim and
-// large, and the whole sheet is drawn dark whatever the phone's setting
-// (LearnSheet holds it dark). Tomorrow morning's check asks the same items.
+// one line to remember. Not a test - nothing to tap, nothing scored. Large and
+// calm, on the page colour of whichever mode the app is in, in one tone (the
+// owner, 22 Oct: it no longer stays dark in light mode; LearnSheet follows the
+// app's mode). Tomorrow morning's check asks the same items.
 // The line is the explanation's first sentence: Android has no rule sheet yet.
 
 @Composable internal fun BedtimeReviewScreen(store: StudyStore) {
