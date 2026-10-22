@@ -32,6 +32,7 @@ import com.stethoscore.app.ui.StethoscoreApp
 import com.stethoscore.app.ui.StethoscoreTheme
 import com.stethoscore.app.ui.editors.LocalLLMService
 import com.stethoscore.app.ui.learn.LearnRouter
+import com.stethoscore.app.ui.learn.LearnRouterClosed
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -57,6 +58,8 @@ import java.util.zip.ZipOutputStream
 class NewSetReachTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @get:Rule val folder = TemporaryFolder()
+    // the shared rule every test that drives the app wears (open() still closes too)
+    @get:Rule val learnClosed = LearnRouterClosed()
 
     private val seen = CopyOnWriteArrayList<FakeServer.Request>()
 
@@ -203,7 +206,11 @@ class NewSetReachTest {
         val made = store.library.single { it.kind == StudySetKind.CASES && it.name == "Heart failure" }
         assertTrue(made.caseFiles.isNotEmpty())
         assertEquals("Heart failure", made.sources.single().name)
+        // The test's effects run unconfined, so the save and New set's close go on
+        // on the thread the last job's reply came back on: the set can be in the
+        // library a moment before home is asked for. Wait for home, then look.
         compose.waitForIdle()
+        until { compose.onAllNodesWithText("YOUR STUDY WARD").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("YOUR STUDY WARD").assertExists()
     }
 
