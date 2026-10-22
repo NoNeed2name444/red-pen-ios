@@ -84,47 +84,15 @@ struct SignInView: View {
 
     private var masthead: some View {
         VStack(spacing: 10) {
-            HStack(spacing: -10) {
-                ForEach([StudySetKind.mcq, .anki, .osce], id: \.self) { kind in
-                    mastTile(kind)
-                }
-            }
-            .padding(.bottom, 6)
-            // a picture, not a row: fanned the same way in either direction
-            .keepsLeftToRight()
-            .accessibilityHidden(true)
+            // the launch's stethoscope, white by day and grey by night (the
+            // owner, 22 Oct), where the three mode tiles stood
+            SignInLaunchMark()
+                .padding(.bottom, 6)
+                .accessibilityHidden(true)
             Text(Brand.name).font(WardType.display).foregroundStyle(Color.wardInk)
             Text(l10n: "Turn your lectures into questions and flashcards.")
                 .font(.body).foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
-        }
-    }
-
-    /// One of the three fanned tiles, big enough to stand a lift higher than
-    /// a row's.
-    private func mastTile(_ kind: StudySetKind) -> some View {
-        let angle: Double = SignInView.tileAngle(kind)
-        let layer: Double = SignInView.tileLayer(kind)
-        return ModeTile(kind: kind, size: 56)
-            .rotationEffect(.degrees(angle))
-            .zIndex(layer)
-    }
-
-    /// Questions to the left, cards upright in the middle, stations to the right.
-    private static func tileAngle(_ kind: StudySetKind) -> Double {
-        switch kind {
-        case .anki: return 0
-        case .mcq: return -10
-        default: return 10
-        }
-    }
-
-    /// The highest tile is drawn on top of its neighbours.
-    private static func tileLayer(_ kind: StudySetKind) -> Double {
-        switch kind {
-        case .anki: return 2
-        case .osce: return 1
-        default: return 0
         }
     }
 
@@ -194,19 +162,31 @@ struct SignInView: View {
         .accessibilityIdentifier("joinWithCode")
     }
 
-    /// Drawn to match Apple's button - same height, corners, weight and
-    /// colours - so the two read as one pair.
+    /// Google's own branded button (the owner, 22 Oct), as Google's sign-in
+    /// branding guidelines draw it: the multicolour G on the left, "Sign in
+    /// with Google", Google's light theme by day (white, a grey hairline) and
+    /// its dark theme by night - Apple's height and corners beside it. Its
+    /// colours are Google's, exempt from the ten hexes, as Apple's are.
     private var googleDoor: some View {
-        let dark: Bool = scheme == .dark
-        let ink: Color = dark ? Color.black : Color.white
-        let fill: Color = dark ? Color.white : Color.black
+        let theme = GoogleButtonTheme(dark: scheme == .dark)
         return Button {
             Task { await account.signInWithGoogle() }
         } label: {
-            doorLabel(L10n.string("Sign in with Google"), symbol: "globe", busy: account.busy)
-                .frame(height: 56)
-                .foregroundStyle(ink)
-                .background(fill, in: SignInView.door)
+            HStack(spacing: 10) {
+                if account.busy {
+                    EcgLoader()
+                } else {
+                    GoogleG()
+                        .frame(width: 20, height: 20)
+                }
+                Text(L10n.string("Sign in with Google"))
+                    .scaledFont(19, relativeTo: .body, weight: .medium)
+                    .foregroundStyle(theme.text)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(theme.fill, in: SignInView.door)
+            .overlay(SignInView.door.strokeBorder(theme.stroke, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .contentShape(SignInView.door)
@@ -256,5 +236,132 @@ struct SignInView: View {
             Text(title).scaledFont(19, relativeTo: .body, weight: .medium)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// The launch mark over "Stethoscore" on sign-in and account-deleted: the
+/// owner's stethoscope, the white one by day and the grey one by night, the
+/// same private art the launch draws (LaunchArt). It is not in this
+/// repository; tools/inject_brand_art.py adds it to the built app as loose
+/// PNGs (LaunchLogo@2x.png, LaunchLogo-dark@2x.png, ...). A build without
+/// it shows a stand-in stethoscope in the ink, the same size.
+private struct SignInLaunchMark: View {
+    @Environment(\.colorScheme) private var scheme
+
+    /// The mark's side in points, a little over half the launch's own.
+    static let side: CGFloat = 120
+
+    var body: some View {
+        let dark: Bool = scheme == .dark
+        Group {
+            if let art = Self.art(dark: dark) {
+                Image(uiImage: art)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: "stethoscope")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(Self.side / 5)
+                    .foregroundStyle(Color.wardInkSecondary)
+            }
+        }
+        .frame(width: Self.side, height: Self.side)
+    }
+
+    /// The mode's picture, or the day one by night when only that is there.
+    private static func art(dark: Bool) -> UIImage? {
+        LaunchArt.names(dark: dark).lazy.compactMap { UIImage(named: $0) }.first
+    }
+}
+
+/// Google's sign-in button colours, from its branding guidelines (light:
+/// white, #747775 hairline, #1F1F1F words; dark: #131314, #8E918F
+/// hairline, #E3E3E3 words). Google's, not the app's: exempt from the ten
+/// hexes, as Apple's black and white button is.
+private struct GoogleButtonTheme {
+    let fill: Color
+    let stroke: Color
+    let text: Color
+
+    init(dark: Bool) {
+        fill = GoogleButtonTheme.rgb(dark ? 0x131314 : 0xFFFFFF)
+        stroke = GoogleButtonTheme.rgb(dark ? 0x8E918F : 0x747775)
+        text = GoogleButtonTheme.rgb(dark ? 0xE3E3E3 : 0x1F1F1F)
+    }
+
+    static func rgb(_ hex: UInt32) -> Color {
+        Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
+              blue: Double(hex & 0xFF) / 255)
+    }
+}
+
+/// Google's "G", in its four colours, drawn from Google's own 48-point
+/// artwork and scaled to the frame it is given.
+private struct GoogleG: View {
+    enum Part: CaseIterable { case red, blue, yellow, green }
+
+    var body: some View {
+        Canvas { context, size in
+            let scale: CGFloat = min(size.width, size.height) / 48
+            for part in Part.allCases {
+                context.fill(Self.path(part, scale: scale), with: .color(Self.color(part)))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    static func color(_ part: Part) -> Color {
+        switch part {
+        case .red: return GoogleButtonTheme.rgb(0xEA4335)
+        case .blue: return GoogleButtonTheme.rgb(0x4285F4)
+        case .yellow: return GoogleButtonTheme.rgb(0xFBBC05)
+        case .green: return GoogleButtonTheme.rgb(0x34A853)
+        }
+    }
+
+    static func path(_ part: Part, scale: CGFloat) -> Path {
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * scale, y: y * scale) }
+        var p = Path()
+        switch part {
+        case .red:
+            p.move(to: pt(24, 9.5))
+            p.addCurve(to: pt(33.21, 13.1), control1: pt(27.54, 9.5), control2: pt(30.71, 10.72))
+            p.addLine(to: pt(40.06, 6.25))
+            p.addCurve(to: pt(24, 0), control1: pt(35.9, 2.38), control2: pt(30.47, 0))
+            p.addCurve(to: pt(2.56, 13.22), control1: pt(14.62, 0), control2: pt(6.51, 5.38))
+            p.addLine(to: pt(10.54, 19.41))
+            p.addCurve(to: pt(24, 9.5), control1: pt(12.43, 13.72), control2: pt(17.74, 9.5))
+            p.closeSubpath()
+        case .blue:
+            p.move(to: pt(46.98, 24.55))
+            p.addCurve(to: pt(46.6, 20), control1: pt(46.98, 22.98), control2: pt(46.83, 21.46))
+            p.addLine(to: pt(24, 20))
+            p.addLine(to: pt(24, 29.02))
+            p.addLine(to: pt(36.94, 29.02))
+            p.addCurve(to: pt(32.16, 36.2), control1: pt(36.36, 31.98), control2: pt(34.68, 34.5))
+            p.addLine(to: pt(39.89, 42.2))
+            p.addCurve(to: pt(46.98, 24.55), control1: pt(44.4, 38.02), control2: pt(46.98, 31.84))
+            p.closeSubpath()
+        case .yellow:
+            p.move(to: pt(10.53, 28.59))
+            p.addCurve(to: pt(9.77, 24), control1: pt(10.05, 27.14), control2: pt(9.77, 25.6))
+            p.addCurve(to: pt(10.53, 19.41), control1: pt(9.77, 22.4), control2: pt(10.04, 20.86))
+            p.addLine(to: pt(2.55, 13.22))
+            p.addCurve(to: pt(0, 24), control1: pt(0.92, 16.46), control2: pt(0, 20.12))
+            p.addCurve(to: pt(2.56, 34.78), control1: pt(0, 27.88), control2: pt(0.92, 31.54))
+            p.addLine(to: pt(10.53, 28.59))
+            p.closeSubpath()
+        case .green:
+            p.move(to: pt(24, 48))
+            p.addCurve(to: pt(39.89, 42.19), control1: pt(30.48, 48), control2: pt(35.93, 45.87))
+            p.addLine(to: pt(32.16, 36.19))
+            p.addCurve(to: pt(24, 38.49), control1: pt(30.01, 37.64), control2: pt(27.24, 38.49))
+            p.addCurve(to: pt(10.53, 28.58), control1: pt(17.74, 38.49), control2: pt(12.43, 34.27))
+            p.addLine(to: pt(2.55, 34.77))
+            p.addCurve(to: pt(24, 48), control1: pt(6.51, 42.62), control2: pt(14.62, 48))
+            p.closeSubpath()
+        }
+        return p
     }
 }

@@ -13,6 +13,14 @@ enum LaunchArt {
     /// The night picture, looked up first by night; the day one otherwise.
     static let darkImageName = "LaunchLogo-dark"
 
+    /// The names to look the mark up by, in order: by night the night
+    /// picture then the day one, by day the day one. Sign-in's masthead uses
+    /// it (the owner, 22 Oct: the launch's stethoscopes stand above the
+    /// name there); neither found, it draws its stand-in.
+    static func names(dark: Bool) -> [String] {
+        dark ? [darkImageName, imageName] : [imageName]
+    }
+
     /// The image's side in points (both modes): the system launch screen
     /// draws it at this size, centred in the safe area.
     static let side: Double = 200
