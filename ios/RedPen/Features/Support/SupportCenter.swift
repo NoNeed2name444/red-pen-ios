@@ -51,7 +51,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .notes: return "Ideas"
-        case .analytics: return "Vitals"
+        case .analytics: return "Progress"
         case .progress: return "By subject"
         case .sources: return "Your lectures"
         case .examples: return "Try every feature"

@@ -66,7 +66,7 @@ struct ReviewSettingsSection: View {
         case .fsrs:
             how = "FSRS-5 is the scheduler modern Anki uses: it learns how well you remember each card and aims for 90% recall. Your existing schedule carries over."
         }
-        let hold: String = "Hold a card (or swipe it sideways) to bury it until tomorrow or suspend it. \u{201C}How sure are you?\u{201D} feeds Vitals."
+        let hold: String = "Hold a card (or swipe it sideways) to bury it until tomorrow or suspend it. \u{201C}How sure are you?\u{201D} feeds Progress."
         return how + " Limits count from 4 am. " + hold
     }
 }

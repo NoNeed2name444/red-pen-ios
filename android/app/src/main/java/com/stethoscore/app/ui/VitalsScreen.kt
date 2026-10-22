@@ -224,7 +224,7 @@ private sealed class VitalsRoute {
     fun Modifier.anchor(name: String) = onGloballyPositioned { anchors[name] = it.positionInParent().y.toInt() }
 
     Column(Modifier.fillMaxSize()) {
-        StudyTitleBar("Vitals", onBack)
+        StudyTitleBar("Progress", onBack)
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll), horizontalAlignment = Alignment.CenterHorizontally) {
             Column(Modifier.readableColumn().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 VitalsLine(s, store)
@@ -266,7 +266,7 @@ private sealed class VitalsRoute {
                 TimeSection(s)
             }
         }
-        // one main button at a time: Treat weak spots now, in the consult card, while any subject needs one;
+        // one main button at a time: Practise weak topics, in the consult card, while any subject needs one;
         // otherwise the best next step, under the thumb, once there is one
         val top = items.firstOrNull()
         if (spots.isEmpty() && top != null) StudyActionBar {

@@ -184,9 +184,9 @@ struct VitalsRings: View {
     }
 }
 
-/// "Needs a consult": the weakest subjects as chips with their percentage,
-/// each a drill of that subject; a line saying what the ward round does
-/// about them (BedPlan.consultNote); and "Treat weak spots now", the drill
+/// "Weak topics": the weakest subjects as chips with their percentage,
+/// each a drill of that subject; a line saying what today's revision does
+/// about them (BedPlan.consultNote); and "Practise weak topics", the drill
 /// of the weakest - the same drill as Drill weakest and the Weakest topic
 /// tile.
 struct ConsultCard: View {
@@ -196,7 +196,7 @@ struct ConsultCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.m) {
-            Text("Needs a consult")
+            Text("Weak topics")
                 .wardSmallCaps()
                 .accessibilityAddTraits(.isHeader)
             if !spots.isEmpty {
@@ -231,7 +231,7 @@ struct ConsultCard: View {
 
     private func treatButton(_ first: BedPlan.Topic) -> some View {
         Button { onDrill(first.name) } label: {
-            Label("Treat weak spots now", systemImage: "cross.case.fill")
+            Label("Practise weak topics", systemImage: "cross.case.fill")
         }
         .buttonStyle(.wardPrimary)
         .accessibilityHint("Up to 20 questions from \(first.name), the ones you got wrong first")

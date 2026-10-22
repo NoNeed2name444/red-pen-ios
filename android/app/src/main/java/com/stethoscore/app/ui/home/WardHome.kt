@@ -466,11 +466,11 @@ fun homeBedChip(bed: BedPlan.Bed): Pair<String, WardTone>? {
         if (links > 0) line += " · " + BedPlan.counted(links, "link")
         line
     }
-    val vitalsSpoken = listOf("Vitals", if (readiness != null) "Readiness ${Math.round(readiness.center * 100)} percent" else "Readiness not estimated yet",
+    val vitalsSpoken = listOf("Progress", if (readiness != null) "Readiness ${Math.round(readiness.center * 100)} percent" else "Readiness not estimated yet",
         streakText(streak), rhythm.spoken).joinToString(". ")
     val reach = WardRelief.rimOffset(WardLift.low) + WardRelief.rimBlur(WardLift.low)
     val vitals: @Composable (Modifier) -> Unit = { m ->
-        HomeTile(onVitals, "$vitalsSpoken. Opens Vitals", m) { VitalsTileFace(readiness, streak, rhythm) }
+        HomeTile(onVitals, "$vitalsSpoken. Opens Progress", m) { VitalsTileFace(readiness, streak, rhythm) }
     }
     val brain: @Composable (Modifier) -> Unit = { m ->
         HomeTile(onIdeas, "Brain map. $brainLine. Opens Ideas: the idea dump, its board and the 3D map", m) { BrainMapTileFace(brainLine) }
@@ -508,7 +508,7 @@ fun streakText(streak: Int): String = if (streak > 0) "$streak-day streak" else 
 /** The Vitals tile: the readiness ring, the streak with a heart, and the last two weeks as a rhythm strip. */
 @Composable private fun VitalsTileFace(readiness: com.stethoscore.app.data.ReadinessEstimate?, streak: Int, rhythm: RhythmReading.Reading) {
     Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        HomeSmallCaps("Vitals")
+        HomeSmallCaps("Progress")
         // the figures beside the ring only where they fit whole; otherwise under it
         ThatFits(
             { Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) { ReadinessRing(readiness); Figures(streak) } },

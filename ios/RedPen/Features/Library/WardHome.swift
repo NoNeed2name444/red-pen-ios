@@ -667,7 +667,7 @@ struct HomeTiles: View {
         }
         .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
         .accessibilityLabel(vitalsSpoken)
-        .accessibilityHint("Opens Vitals")
+        .accessibilityHint("Opens Progress")
         .accessibilityIdentifier("homeVitals")
     }
 
@@ -682,7 +682,7 @@ struct HomeTiles: View {
     }
 
     private var vitalsSpoken: String {
-        var parts: [String] = ["Vitals"]
+        var parts: [String] = ["Progress"]
         if let readiness {
             parts.append("Readiness \(Int((readiness.center * 100).rounded())) percent")
         } else {
@@ -711,7 +711,7 @@ private struct VitalsTileFace: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
-            Text("Vitals").homeSmallCaps()
+            Text("Progress").homeSmallCaps()
             // the figures beside the ring only where they fit whole: squeezed
             // there, "No streak yet" broke inside its word ("No strea / k
             // yet"); otherwise under the ring, at the tile's full width

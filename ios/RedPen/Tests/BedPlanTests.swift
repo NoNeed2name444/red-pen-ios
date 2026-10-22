@@ -1,6 +1,6 @@
-// Today's revision and the Vitals screen's readings: which items the plan
-// holds and in what order, the weak spots that need a consult (and that the
-// weakest of them always has a place, which is what the Vitals screen promises),
+// Today's revision and the Progress screen's readings: which items the plan
+// holds and in what order, the weak topics (and that the weakest of them
+// always has a place, which is what the Progress screen promises),
 // the minutes, the study rhythm read from StudyLog's days, and the words
 // around the numbers - all choices that look right on screen whether or not
 // they are, so they are pinned here.

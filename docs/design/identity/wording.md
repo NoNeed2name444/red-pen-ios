@@ -53,9 +53,9 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 | 2 | `ios/RedPen/Features/Library/WardHome.swift:473` | Opens this bed | Opens this item | VoiceOver hint on each row. **Built 22 Oct.** |  |
 | 3 | `ios/RedPen/Features/Library/WardHome.swift:485` | Starts with bed 1: … | Starts with item 1: … | VoiceOver hint on the start button. **Built 22 Oct.** |  |
 | 4 | `ios/RedPen/Features/Library/WardHome.swift:489` | Start ward round | Start revision | The primary button. **Built 22 Oct.** |  |
-| 5 | `ios/RedPen/Features/Library/WardHome.swift:585` | Opens Vitals | Opens Progress | VoiceOver hint on the progress tile. |  |
-| 6 | `ios/RedPen/Features/Library/WardHome.swift:600` | Vitals | Progress | Spoken label of the progress tile. |  |
-| 7 | `ios/RedPen/Features/Library/WardHome.swift:629` | Vitals | Progress | Title of the progress tile. |  |
+| 5 | `ios/RedPen/Features/Library/WardHome.swift:585` | Opens Vitals | Opens Progress | VoiceOver hint on the progress tile. **Built 22 Oct.** |  |
+| 6 | `ios/RedPen/Features/Library/WardHome.swift:600` | Vitals | Progress | Spoken label of the progress tile. **Built 22 Oct.** |  |
+| 7 | `ios/RedPen/Features/Library/WardHome.swift:629` | Vitals | Progress | Title of the progress tile. **Built 22 Oct.** |  |
 | 8 | `ios/RedPen/Shared/Learn/BedPlan.swift:157` | Bed 1 · Cardiology | 1 · Cardiology | Row overline. The number keeps the order without the role-play. **Built 22 Oct.** | **BedPlanTests.swift:84** |
 | 9 | `ios/RedPen/Shared/Learn/BedPlan.swift:161` | Bed 1, Cardiology. 12 cards due. … | Item 1, Cardiology. 12 cards due. … | Spoken row. **Built 22 Oct.** | **BedPlanTests.swift:107** |
 | 10 | `ios/RedPen/Shared/Learn/BedPlan.swift:372` | No patients waiting | Nothing due | The summary when the plan is empty. **Built 22 Oct.** | **BedPlanTests.swift:100** |
@@ -79,12 +79,12 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 
 | # | File:line | Current | Proposed | Note | Test |
 |---|---|---|---|---|---|
-| 21 | `ios/RedPen/Features/Analytics/AnalyticsView.swift:104` | Vitals | Progress | Screen title. Not "Results": "See results" (ChartQuiz.swift:137) opens a paper’s own Results screen (MCQSummaryView.swift:183), so that name is taken. The UI test already falls back to "Progress" (DesignTourUITests.swift:292). | **DesignTourUITests.swift:291** |
-| 22 | `ios/RedPen/Features/Support/SupportCenter.swift:54` | Vitals | Progress | Menu and help name of the same screen. | **DesignTourUITests.swift:291** |
-| 23 | `ios/RedPen/Features/Analytics/VitalsParts.swift:199` | Needs a consult | Weak topics | Section header. |  |
-| 24 | `ios/RedPen/Features/Library/LibraryCategory.swift:134` | Readiness, study rhythm and what needs a consult | Readiness, study rhythm and weak topics | Subtitle of the Progress entry. |  |
-| 25 | `ios/RedPen/Features/Examples/ExamplesHubView.swift:128` | Vitals: rhythm, rings, what needs a consult, trends | Progress: rhythm, rings, weak topics, trends | Examples hub row. |  |
-| 26 | `ios/RedPen/Features/Support/ReviewSettingsSection.swift:69` | … “How sure are you?” feeds Vitals. | … “How sure are you?” feeds Progress. | Settings footnote. |  |
+| 21 | `ios/RedPen/Features/Analytics/AnalyticsView.swift:104` | Vitals | Progress | Screen title. Not "Results": "See results" (ChartQuiz.swift:137) opens a paper’s own Results screen (MCQSummaryView.swift:183), so that name is taken. The UI test already falls back to "Progress" (DesignTourUITests.swift:292). **Built 22 Oct; the UI test still tries “Vitals” first and finds “Progress” (ios/UITests was outside the change).** | **DesignTourUITests.swift:291** |
+| 22 | `ios/RedPen/Features/Support/SupportCenter.swift:54` | Vitals | Progress | Menu and help name of the same screen. **Built 22 Oct; the UI test still tries “Vitals” first and finds “Progress” (ios/UITests was outside the change).** | **DesignTourUITests.swift:291** |
+| 23 | `ios/RedPen/Features/Analytics/VitalsParts.swift:199` | Needs a consult | Weak topics | Section header. Its button, “Treat weak spots now” (VitalsParts.swift:234), becomes “Practise weak topics” with it (copy deck, 22 Oct). **Built 22 Oct.** |  |
+| 24 | `ios/RedPen/Features/Library/LibraryCategory.swift:134` | Readiness, study rhythm and what needs a consult | Readiness, study rhythm and weak topics | Subtitle of the Progress entry. **Built 22 Oct.** |  |
+| 25 | `ios/RedPen/Features/Examples/ExamplesHubView.swift:128` | Vitals: rhythm, rings, what needs a consult, trends | Progress: rhythm, rings, weak topics, trends | Examples hub row. **Built 22 Oct.** |  |
+| 26 | `ios/RedPen/Features/Support/ReviewSettingsSection.swift:69` | … “How sure are you?” feeds Vitals. | … “How sure are you?” feeds Progress. | Settings footnote. **Built 22 Oct.** |  |
 | 27 | `ios/RedPen/Shared/Learn/RhythmReading.swift:53` | Sinus · regular | Steady | The rhythm reading of your study days. "Study rhythm" stays: plain English, and the ECG stays the brand’s picture. "Sinus" is ECG jargon used as a joke. | **BedPlanTests.swift:257** |
 | 28 | `ios/RedPen/Shared/Learn/RhythmReading.swift:54` | Sinus · irregular | Patchy | As above. |  |
 | 29 | `ios/RedPen/Shared/Learn/RhythmReading.swift:55` | Sinus · resting | Resting | As above. |  |

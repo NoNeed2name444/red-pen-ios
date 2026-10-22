@@ -10,11 +10,11 @@ import java.time.ZonedDateTime
 import java.util.UUID
 
 // A port of ios/RedPen/Tests/BedPlanTests.swift, case for case:
-// today's revision and the Vitals screen's readings - which items the plan
-// holds and in what order, the weak spots that need a consult (and that the
-// weakest of them always has a place, which is what the Vitals screen
-// promises), the minutes, the study rhythm read from the days studied, and
-// the words around the numbers.
+// today's revision and the Progress screen's readings - which items the
+// plan holds and in what order, the weak topics (and that the weakest of
+// them always has a place, which is what the Progress screen promises), the
+// minutes, the study rhythm read from the days studied, and the words
+// around the numbers.
 class BedPlanTest {
     private val zone: ZoneId = ZoneId.of("Europe/London")
     private val day = 86_400_000L

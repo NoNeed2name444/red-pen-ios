@@ -3106,6 +3106,10 @@ only; Arabic is left for the owner's words (copy deck question 4).
 - [x] The question screen says "Question 7 of 20", "Next question" and,
   over the stem, "Single best answer"; its chip shows only on a retest,
   "Second try" (wording.md rows 17-20).
+- [x] Vitals is "Progress" (title, menu, home tile, "Opens Progress"), its
+  weak list "Weak topics" with "Practise weak topics", and the subtitles that
+  named it (wording.md rows 5-7, 21-26). The menu's "Progress" now meets its
+  Arabic catalogue entry.
 
 ### Waiting on the owner
 
