@@ -48,6 +48,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -125,6 +127,13 @@ private fun Context.findActivity(): Activity? {
 private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physicalHeight, refreshRate)
 
 /**
+ * The map's [MapDrawn] record on its node, for tests (ScreenshotTest waits on it before it looks
+ * at the screen). A key of its own: accessibility services do not read it.
+ */
+val MapDrawnKey = SemanticsPropertyKey<MapDrawn>("MapDrawn")
+var SemanticsPropertyReceiver.mapDrawn by MapDrawnKey
+
+/**
  * The 3D map on screen. Frames follow Choreographer's vsync; the window asks for the
  * display's highest refresh mode and the surface for its highest frame rate, so the map
  * runs at the screen's own rate (plan 4e). With [continuous] false the map stops drawing
@@ -153,6 +162,7 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
     val maxHz = remember(modes) { RefreshRate.maxHz(modes, display?.refreshRate ?: 60f) }
     var readout by remember { mutableStateOf(MapReadout(displayMaxHz = maxHz)) }
     var screenNodes by remember { mutableStateOf<List<ScreenNode>>(emptyList()) }
+    var drawn by remember { mutableStateOf(MapDrawn()) }
     val hz = remember { floatArrayOf(display?.refreshRate ?: 60f) }
     val tree = scene.tree
     val camera = remember(scene) {
@@ -171,6 +181,7 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
             onScreenNodes = if (scene.titles.isEmpty()) null else { nodes -> mainHandler.post { screenNodes = nodes } },
             theme = scene.theme, assets = context.assets,
             density = context.resources.displayMetrics.density, contrast = increaseContrast(context),
+            onDrawn = { d -> mainHandler.post { drawn = d } },
         )
     }
     val gles3 = remember(context) { supportsGles3(context) }
@@ -190,7 +201,8 @@ private fun Display.Mode.info() = DisplayModeInfo(modeId, physicalWidth, physica
     }
 
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    Box(modifier.background(Color(0xFF0E1B2C), RoundedCornerShape(corner)).semantics { contentDescription = description }) {
+    val drawnNow = drawn
+    Box(modifier.background(Color(0xFF0E1B2C), RoundedCornerShape(corner)).semantics { contentDescription = description; mapDrawn = drawnNow }) {
         if (!gles3) {
             Text("This device has no OpenGL ES 3, which the 3D map needs.", Modifier.align(Alignment.Center).padding(24.dp), color = Color.White)
             return@Box
