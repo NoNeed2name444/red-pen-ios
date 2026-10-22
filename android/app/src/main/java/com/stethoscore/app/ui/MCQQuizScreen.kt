@@ -330,7 +330,9 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 
     val scroll = rememberScrollState()
     val explain = remember { BringIntoViewRequester() }
-    LaunchedEffect(current) { scroll.animateScrollTo(0) }
+    // with animations off a new question simply starts at the top
+    val reduce = com.stethoscore.app.ui.ward.wardReduceMotion()
+    LaunchedEffect(current) { if (reduce) scroll.scrollTo(0) else scroll.animateScrollTo(0) }
 
     val inkStyle = TextStyle(color = wardColor(WardToken.ink), lineHeight = 24.sp)
     val accent = wardColor(WardToken.primaryInk)

@@ -220,7 +220,9 @@ private sealed class VitalsRoute {
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
     val anchors = remember { mutableStateMapOf<String, Int>() }
-    fun jump(anchor: String) { anchors[anchor]?.let { y -> scope.launch { scroll.animateScrollTo(y) } } }
+    // with animations off a jump simply lands there
+    val reduce = com.stethoscore.app.ui.ward.wardReduceMotion()
+    fun jump(anchor: String) { anchors[anchor]?.let { y -> scope.launch { if (reduce) scroll.scrollTo(y) else scroll.animateScrollTo(y) } } }
     fun Modifier.anchor(name: String) = onGloballyPositioned { anchors[name] = it.positionInParent().y.toInt() }
 
     Column(Modifier.fillMaxSize()) {

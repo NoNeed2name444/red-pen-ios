@@ -304,10 +304,14 @@ object NarrateWords {
                 handsOffUntil = System.currentTimeMillis() + NarrateScrollBand.handsOffMillis
         }
     }
+    // with animations off the line being read is simply brought into the band
+    val reduce = wardReduceMotion()
     LaunchedEffect(index) {
         val (top, bottom) = NarrateScrollBand.frame(listState, index)
-        if (texts.isNotEmpty() && NarrateScrollBand.needsScroll(top, bottom, viewport, System.currentTimeMillis(), handsOffUntil))
-            listState.animateScrollToItem(index, -(viewport * NarrateScrollBand.anchor).toInt())
+        if (texts.isNotEmpty() && NarrateScrollBand.needsScroll(top, bottom, viewport, System.currentTimeMillis(), handsOffUntil)) {
+            val offset = -(viewport * NarrateScrollBand.anchor).toInt()
+            if (reduce) listState.scrollToItem(index, offset) else listState.animateScrollToItem(index, offset)
+        }
     }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }

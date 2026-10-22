@@ -2246,6 +2246,27 @@ with the marks on the screens last.
       tile row (IntrinsicSize.Min) asked the Vitals tile's ThatFits, a
       SubcomposeLayout; ThatFits is now a plain Layout answering intrinsics
       (HomeTilesMeasureTest runs the textbook flow under Robolectric).
+  - UX motion on Android (WM-android, T0124; the motion rows of the Android
+    consistency sweep; iOS is the reference, as T0121 is on iOS):
+    - [x] The motion named once (WardMotion in WardTokens.kt): platform.md's
+      200 to 320 ms, iOS's ease-out and ease-in-out, springs critically
+      damped so nothing passes its mark; and Remove animations (the animator
+      duration scale at 0, as iOS's Reduce Motion) read by the theme for
+      every surface (wardReduceMotion; WardTokensTest.theMotion).
+    - [x] The literals become tokens: the switch's knob 0.2; a ring, groove,
+      bar or score filling 0.3 (WardRing was 600 ms, the vitals ring and the
+      results' score 900); the ward round's chip travelling 0.3 (its 0.85
+      spring passed the corner). Kept as iOS keeps them: the spoken word's
+      0.1, the working trace's 1.2 loop (now on iOS's ease-in-out) and the
+      score ring's slow spring (iOS Q8) (WardMotionTest).
+    - [x] Remove animations on every surface that moves: the press's shade
+      and sink (a held control no longer sinks), the card's answer opening,
+      the jumps and scrolls, the working trace standing whole
+      (WardReduceMotionTest).
+    - [x] The dock's hollow travels with the choice as iOS's does
+      (StudyCategory.swift:748, 0.3 s): one hollow under the five tabs,
+      simply there with animations off and back from Ideas; the dock's look
+      is unchanged (WardDock.hollow, WardDockTest).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

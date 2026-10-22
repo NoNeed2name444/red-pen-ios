@@ -1,7 +1,6 @@
 package com.stethoscore.app.ui
 
 import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -30,6 +29,9 @@ import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.QuizSummary
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.WardMotion
+import com.stethoscore.app.ui.ward.wardReduceMotion
+import com.stethoscore.app.ui.ward.wardSpring
 import kotlin.math.roundToInt
 
 // A port of ios/RedPen/Features/MCQ/MCQSummaryView.swift: the
@@ -135,7 +137,9 @@ fun QuizSummaryScreen(
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
     val target = (fraction * 100).roundToInt()
-    val shown by animateIntAsState(if (started) target else 0, tween(900), label = "score")
+    // the percentage counts up as iOS's does (.smooth(duration: 0.3)), never past the score; with animations off it is simply there
+    val reduce = wardReduceMotion()
+    val shown by animateIntAsState(if (started || reduce) target else 0, wardSpring(WardMotion.fill, reduce), label = "score")
     val track = wardColor(WardToken.hairline)
     val fill = wardColor(WardToken.primaryInk)
     Box(Modifier.size(140.dp).clearAndSetSemantics { contentDescription = "$target% correct" }, contentAlignment = Alignment.Center) {

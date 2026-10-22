@@ -5,7 +5,6 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -86,6 +85,7 @@ import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardRing
 import com.stethoscore.app.ui.ward.WardSegmented
@@ -99,7 +99,9 @@ import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardRaised
+import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.ward.wardRelief
+import com.stethoscore.app.ui.ward.wardSpring
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -390,6 +392,8 @@ internal enum class WardRoundCorner(val raw: String) {
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
+    // the chip travels to its corner as iOS's does (.snappy(duration: 0.3)), never past it; with animations off it is simply there
+    val reduce = wardReduceMotion()
     BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = AbsoluteAlignment.TopLeft) {
         val w = constraints.maxWidth.toFloat()
         val h = constraints.maxHeight.toFloat()
@@ -406,16 +410,16 @@ internal enum class WardRoundCorner(val raw: String) {
         LaunchedEffect(corner, chip, w, h) {
             if (chip == IntSize.Zero || dragging) return@LaunchedEffect
             if (!placed) { position.snapTo(target(corner)); placed = true }
-            else position.animateTo(target(corner), spring(dampingRatio = 0.85f, stiffness = 600f))
+            else position.animateTo(target(corner), wardSpring(WardMotion.travel, reduce))
         }
         WardRoundChip(round, notice, { WardRoundClock.expanded = true },
             Modifier.onSizeChanged { chip = it }
                 .absoluteOffset { IntOffset(position.value.x.roundToInt(), position.value.y.roundToInt()) }
-                .pointerInput(w, h, rtl) {
+                .pointerInput(w, h, rtl, reduce) {
                     val tracker = VelocityTracker()
                     detectDragGestures(
                         onDragStart = { dragging = true; tracker.resetTracking() },
-                        onDragCancel = { dragging = false; scope.launch { position.animateTo(target(corner)) } },
+                        onDragCancel = { dragging = false; scope.launch { position.animateTo(target(corner), wardSpring(WardMotion.travel, reduce)) } },
                         onDragEnd = {
                             dragging = false
                             val v = tracker.calculateVelocity()
@@ -427,7 +431,7 @@ internal enum class WardRoundCorner(val raw: String) {
                             val next = WardRoundCorner.nearest(if (rtl) 1 - across else across, (y / maxOf(1f, h)).toDouble())
                             LearnDefaults.shared.set(WardRoundCorner.key, next.raw)
                             corner = next
-                            scope.launch { position.animateTo(target(next), spring(dampingRatio = 0.85f, stiffness = 600f)) }
+                            scope.launch { position.animateTo(target(next), wardSpring(WardMotion.travel, reduce)) }
                         },
                     ) { change, amount ->
                         change.consume()
