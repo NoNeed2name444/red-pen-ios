@@ -457,7 +457,7 @@ struct MockSittingView: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 Text("\(i + 1)")
-                    .font(.system(.body, design: .monospaced).weight(.semibold))
+                    .font(WardType.obs.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(answered ? Color.wardPrimaryInk : Color.wardInk)
                     .frame(maxWidth: .infinity, minHeight: 48)

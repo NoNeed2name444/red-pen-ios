@@ -66,8 +66,7 @@ struct PictureFromPhotoView: View {
                 content
             }
             .padding(WardSpace.gutter)
-            .frame(maxWidth: 760)
-            .frame(maxWidth: .infinity)
+            .readableColumn()
         }
         .scrollDismissesKeyboard(.interactively)
         .wardScreen()

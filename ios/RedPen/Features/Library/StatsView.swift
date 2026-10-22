@@ -102,8 +102,7 @@ struct StatsView: View {
                 .wardRowBackground()
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        .wardForm()
         .navigationTitle("By subject")
         .navigationBarTitleDisplayMode(.inline)
     }

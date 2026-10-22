@@ -48,7 +48,7 @@ struct ReviewSettingsSection: View {
 
     private func obs(_ value: String) -> some View {
         Text(value)
-            .font(.system(.body, design: .monospaced))
+            .font(WardType.obs)
             .monospacedDigit()
             .foregroundStyle(Color.wardInkSecondary)
     }

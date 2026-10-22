@@ -247,8 +247,7 @@ private struct HowToReachExample: View {
                            lecture: ReasoningExamples.sourceLabel)
                 .wardCard(padding: 0)
                 .padding(WardSpace.gutter)
-                .frame(maxWidth: 700)
-                .frame(maxWidth: .infinity)
+                .readableColumn()
         }
         .wardScreen()
         .navigationTitle("How to reach it")

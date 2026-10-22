@@ -43,7 +43,7 @@ struct BookReaderView: View {
                         index = p.id; showToc = false
                     } label: {
                         HStack {
-                            Text("\(p.id + 1).").font(.system(.body, design: .monospaced)).monospacedDigit()
+                            Text("\(p.id + 1).").font(WardType.obs).monospacedDigit()
                                 .foregroundStyle(Color.wardInkSecondary)
                             Text(p.title).foregroundStyle(Color.wardInk)
                             Spacer()
@@ -145,7 +145,7 @@ struct BookReaderView: View {
             // the header row pressed into the page, the others flat on it
             .background {
                 if header {
-                    WardReliefFace(shape: RoundedRectangle(cornerRadius: 8, style: .continuous), lift: .low, inset: true)
+                    WardReliefFace(shape: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), lift: .low, inset: true)
                 }
             }
         case .paragraph(let text):
@@ -174,8 +174,8 @@ struct BookReaderView: View {
                 VStack(alignment: .leading, spacing: WardSpace.s) {
                     Image(uiImage: picture)
                         .resizable().scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .wardRaised(in: RoundedRectangle(cornerRadius: 10, style: .continuous), lift: .low)
+                        .clipShape(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+                        .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), lift: .low)
                         .accessibilityLabel(caption.isEmpty ? "Figure" : caption)
                     if !caption.isEmpty {
                         Text(md(caption)).font(.subheadline).foregroundStyle(Color.wardInkSecondary)

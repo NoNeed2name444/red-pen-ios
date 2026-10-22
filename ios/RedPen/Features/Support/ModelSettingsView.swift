@@ -437,7 +437,7 @@ private struct AccuracyEngineSection: View {
         Section {
             Toggle("Check my whole library in the background", isOn: $accuracy.background)
             LabeledContent {
-                Text("\(checked)").font(.system(.body, design: .monospaced)).monospacedDigit()
+                Text("\(checked)").font(WardType.obs).monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
             } label: {
                 Text("Items checked")

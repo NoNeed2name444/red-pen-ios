@@ -69,8 +69,7 @@ struct CaseWardView: View {
                     }
                 }
                 .padding(WardSpace.gutter)
-                .frame(maxWidth: 760)
-                .frame(maxWidth: .infinity)
+                .readableColumn()
             }
             if wide && !arriving {
                 WardEtch(vertical: true)

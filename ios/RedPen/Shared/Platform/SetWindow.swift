@@ -47,7 +47,7 @@ struct SetWindowRoot: View {
         NavigationStack {
             if !store.loaded {
                 // a window brought back with the app, before the library is read
-                ProgressView()
+                EcgLoader()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .wardScreen()
             } else if let set = store.library.first(where: { $0.id == setID }) {

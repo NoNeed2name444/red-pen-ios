@@ -418,7 +418,7 @@ struct LensChipLayer: View {
     }
 
     private func outline(_ rect: CGRect) -> some View {
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
+        RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
             .strokeBorder(Color.white.opacity(0.55), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
             .frame(width: max(rect.width, 1), height: max(rect.height, 1))
             .offset(x: rect.minX, y: rect.minY)

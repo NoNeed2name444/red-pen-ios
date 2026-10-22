@@ -608,12 +608,12 @@ final class LaunchOpeningView: UIView {
 }
 
 /// What shows beneath the splash while a big library is still being read
-/// (Store): the matte base and a spinner, and no screen that could show the
-/// library, or write into it, before it is in.
+/// (Store): the matte base and the working trace, and no screen that could
+/// show the library, or write into it, before it is in.
 struct LibraryLoadingView: View {
     var body: some View {
         VStack(spacing: WardSpace.m) {
-            ProgressView()
+            EcgLoader()
             Text("Opening your library…")
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)

@@ -36,7 +36,8 @@ enum WardControlStates {
     static let chosenEdgeWidth = 2.0
 
     /// The edge a disabled switch's flat knob keeps, in the disabled ink: a
-    /// flat face on the light well would be 1.2:1, so it would disappear.
+    /// flat face on the well, the page colour like the knob, would be 1:1,
+    /// so it would disappear.
     static let knobEdgeWidth = 1.0
 }
 

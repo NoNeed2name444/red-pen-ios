@@ -101,7 +101,10 @@ check("the monitor card is dark in both modes",
 // one tone (the owner, 22 Oct: "there shouldn't be 2 tones"; 21 Oct, of the
 // quiz dock: "one color not two color toned"): a card and a sheet are the
 // page colour exactly, so a card is told from the ground only by relief,
-// edges and rings; a well alone is pressed in a soft step darker
+// edges and rings. And a well too (the owner, 22 Oct, asked whether wells
+// and sheets take the one tone: yes): a field, a track or a chosen segment
+// is the page colour, shown as a well by its inset shade alone (the shade
+// at a chip's edge is checked above), no longer a soft step darker.
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"
     let base = WardPalette.hex(.background, dark: dark)
@@ -114,9 +117,7 @@ for dark in [false, true] {
     check("\(mode): the tiers are well, then the base, a card and a sheet in one colour",
           WardPalette.tiers == [.well, .background, .surface, .raised])
     let well = WardPalette.hex(.well, dark: dark)
-    check("\(mode): a well sits below the base", WardPalette.luminance(well) < WardPalette.luminance(base))
-    let step = WardPalette.contrast(well, base)
-    check("\(mode): well to background is a soft step", step > 1.02 && step < 1.25, String(format: "%.3f", step))
+    check("\(mode): a well is the page colour (well == background)", well == base, String(well, radix: 16))
     let groove = WardPalette.contrast(WardPalette.hex(.hairline, dark: dark), WardPalette.hex(.background, dark: dark))
     check("\(mode): a groove shows but stays soft", groove >= 1.1 && groove < 1.6,
           String(format: "%.2f", groove))

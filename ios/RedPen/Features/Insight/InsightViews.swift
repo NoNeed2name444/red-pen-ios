@@ -102,7 +102,7 @@ struct ReadinessCard: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
-                .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
                 .hoverEffect(.highlight)
                 .accessibilityHint("Opens a drill of \(lever.subject)")
             }

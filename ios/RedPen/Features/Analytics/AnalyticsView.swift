@@ -91,8 +91,8 @@ struct AnalyticsView: View {
             .frame(maxWidth: .infinity)
         }
         // pushed bare from the examples hub too, so it brings its own backdrop
-        .scrollContentBackground(.hidden)
-        .background(LibraryBackdrop())
+        // and the solid bar area the rows pass under
+        .wardForm()
         // One main button at a time: Treat weak spots now, in the consult
         // card, while any subject needs one; otherwise the best next step,
         // under the thumb, once there is one.
@@ -103,6 +103,8 @@ struct AnalyticsView: View {
         }
         .navigationTitle("Vitals")
         .diagnosticsScreen("screen:analytics")
+        // the one large title in the app, kept until the owner says whether
+        // Vitals stays the hub-style page
         .navigationBarTitleDisplayMode(.large)
         .task(id: coverageKey) { await findGaps() }
         .onAppear {

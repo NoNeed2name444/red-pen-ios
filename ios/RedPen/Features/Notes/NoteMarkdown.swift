@@ -53,7 +53,7 @@ struct NoteMarkdownView: View {
                 .font(.callout.monospaced())
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .wardInset(in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
         case .rule:
             WardEtch()
         case .paragraph(let line):

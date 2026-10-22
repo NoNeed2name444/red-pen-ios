@@ -143,17 +143,15 @@ struct Graph3DView: View {
     var body: some View {
         Group {
             if notes.notes.isEmpty {
-                ContentUnavailableView {
-                    Label("Dump your first idea", systemImage: "cube.transparent")
-                } description: {
-                    Text("Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
-                }
+                WardEmptyState(symbol: "cube.transparent", title: "Dump your first idea",
+                               message: "Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if theme == .performance {
                 perfSpace
             } else if let built {
                 space(built)
             } else {
-                ProgressView()
+                EcgLoader()
             }
         }
         .task(id: signature) { await rebuild() }

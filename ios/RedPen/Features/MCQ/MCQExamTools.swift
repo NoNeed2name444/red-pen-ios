@@ -91,7 +91,7 @@ struct HighlightableStem: View {
     private func pieceButton(index: Int, piece: String) -> some View {
         let on: Bool = marked.contains(index)
         let fill: Color = on ? Self.ink : Color.wardInkSecondary.opacity(0.06)
-        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
         return Button {
             UISelectionFeedbackGenerator().selectionChanged()
             if on { marked.remove(index) } else { marked.insert(index) }
@@ -341,7 +341,7 @@ struct CalculatorSheet: View {
                 action()
             } label: {
                 Text(title)
-                    .font(.system(.title2, design: .monospaced).weight(.semibold))
+                    .font(WardType.obsLarge)
                     .foregroundStyle(Self.ink(role))
                     .frame(maxWidth: .infinity, minHeight: 56)
                     .contentShape(shape)

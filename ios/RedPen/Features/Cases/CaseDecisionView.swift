@@ -37,8 +37,7 @@ struct CaseDecisionView: View {
                     reasonCard
                 }
                 .padding(WardSpace.gutter)
-                .frame(maxWidth: 760)
-                .frame(maxWidth: .infinity)
+                .readableColumn()
             }
             .wardScreen()
             .navigationTitle("Decision")

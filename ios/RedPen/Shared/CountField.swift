@@ -44,7 +44,7 @@ struct CountField: View {
                 TextField(placeholder, text: $text)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(steppers ? .center : .trailing)
-                    .font(.system(.body, design: .monospaced))
+                    .font(WardType.obs)
                     .monospacedDigit()
                     .focused($focused)
                     .frame(minWidth: 44, maxWidth: steppers ? 64 : 90, minHeight: 44)
