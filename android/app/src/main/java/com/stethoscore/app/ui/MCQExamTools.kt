@@ -65,7 +65,7 @@ enum class ExamToolSheet { labs, calculator }
 /** A menu section's title, the one piece of text a menu reliably shows. */
 @Composable internal fun MenuSection(title: String) {
     Text(title, Modifier.padding(horizontal = 16.dp, vertical = 8.dp).widthIn(max = 280.dp).semantics { heading() },
-        fontSize = 12.sp, color = wardColor(WardToken.inkSecondary))
+        style = WardType.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
 }
 
 /** The lab values and calculator sheets, opened from the More menu. */
@@ -83,7 +83,7 @@ enum class ExamToolSheet { labs, calculator }
 @Composable private fun SheetTitle(title: String, onDone: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Spacer(Modifier.width(64.dp))
-        Text(title, Modifier.weight(1f).semantics { heading() }, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+        Text(title, Modifier.weight(1f).semantics { heading() }, textAlign = TextAlign.Center, style = WardType.headline.textStyle())
         QuizChip("Done", null, on = false, onClick = onDone, modifier = Modifier.widthIn(min = 64.dp))
     }
 }
@@ -104,7 +104,7 @@ enum class ExamToolSheet { labs, calculator }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (prompt) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Rounded.BorderColor, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(14.dp))
-                Text("Tap a phrase to highlight it", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
+                Text("Tap a phrase to highlight it", style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
             }
             pieces.forEachIndexed { index, piece ->
                 val on = index in marked
@@ -136,9 +136,9 @@ enum class ExamToolSheet { labs, calculator }
     QuizCard(Modifier.semantics(mergeDescendants = true) {}) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Rounded.MedicalServices, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
-            Text("Attending’s hint", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.primaryInk))
+            Text("Attending’s hint", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
         }
-        if (text != null) Text(text, fontSize = 16.sp, color = wardColor(WardToken.ink))
+        if (text != null) Text(text, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
         else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = wardColor(WardToken.ecg))
             Text("Thinking it through…", color = wardColor(WardToken.inkSecondary))
@@ -180,18 +180,18 @@ enum class ExamToolSheet { labs, calculator }
                 OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), placeholder = { Text("Search lab values") },
                     leadingIcon = { Icon(Icons.Rounded.Search, null) }, singleLine = true, shape = CircleShape)
             }
-            item { Text(LabRanges.caveat, fontSize = 13.sp, color = wardColor(WardToken.inkSecondary)) }
+            item { Text(LabRanges.caveat, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary)) }
             LabRanges.groups.forEach { group ->
                 val rows = found.filter { it.group == group }
                 if (rows.isNotEmpty()) {
-                    item(key = group) { Text(group.uppercase(), Modifier.padding(top = 12.dp).semantics { heading() }, fontSize = 12.sp, letterSpacing = 1.sp,
-                        fontWeight = FontWeight.Bold, color = wardColor(WardToken.inkSecondary)) }
+                    item(key = group) { WardSmallCapsText(group, Modifier.padding(top = 12.dp).semantics { heading() }) }
                     items(rows, key = { it.id }) { row ->
                         Row(Modifier.fillMaxWidth().quizFace(QuizFace.raised, RoundedCornerShape(12.dp), 12f).padding(12.dp).semantics(mergeDescendants = true) {},
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(row.name, Modifier.weight(1f), color = wardColor(WardToken.ink))
-                            Text(row.value(conventional), Modifier.weight(1f), textAlign = TextAlign.End, fontFamily = FontFamily.Monospace,
-                                fontSize = 14.sp, color = wardColor(WardToken.inkSecondary))
+                            // the body face with even figures, as iOS's monospacedDigit
+                            Text(row.value(conventional), Modifier.weight(1f), textAlign = TextAlign.End,
+                                style = WardType.body.textStyle().copy(fontFeatureSettings = "tnum"), color = wardColor(WardToken.inkSecondary))
                         }
                     }
                 }
@@ -220,7 +220,7 @@ private enum class KeyRole { digit, function, op, equals, blank }
         val shape = RoundedCornerShape(14.dp)
         Text(title, Modifier.weight(1f).heightIn(min = 56.dp).quizFace(if (chosen) QuizFace.pressed else QuizFace.raised, shape, 14f)
             .clickable(role = Role.Button) { press(action) }.semantics { selected = chosen }.wrapContentHeight(Alignment.CenterVertically),
-            textAlign = TextAlign.Center, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = ink)
+            textAlign = TextAlign.Center, style = WardType.obsLarge.textStyle(), color = ink)
     }
     @Composable fun RowScope.opKey(op: ExamCalculator.Op) = key(op.rawValue, KeyRole.op, chosen = shown.second == op) { op(op) }
     Column(Modifier.fillMaxWidth()) {

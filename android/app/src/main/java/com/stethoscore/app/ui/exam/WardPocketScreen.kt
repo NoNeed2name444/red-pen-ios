@@ -58,7 +58,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.exam.NewSetPreset
 import com.stethoscore.app.exam.WardBand
@@ -503,7 +502,7 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
         .semantics(mergeDescendants = true) {}.testTag("wardScoreTotal"),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
         Text(WardScores.points(total), Modifier.widthIn(min = 48.dp),
-            style = WardType.obsLarge.textStyle().copy(fontSize = 34.sp, fontWeight = FontWeight.Bold), color = wardColor(WardToken.ink))
+            style = WardTextStyle.largeTitle.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.ink))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text(band?.title ?: "", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             Text(band?.detail ?: "", style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 3,

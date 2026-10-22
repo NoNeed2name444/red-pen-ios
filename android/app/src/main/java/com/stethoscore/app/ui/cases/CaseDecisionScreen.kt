@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.accuracy.AccuracyItem
 import com.stethoscore.app.data.CaseFile
 import com.stethoscore.app.data.CaseNames
@@ -33,6 +32,8 @@ import com.stethoscore.app.data.CaseRun
 import com.stethoscore.app.data.candidates
 import com.stethoscore.app.data.resolve
 import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDp
 
 /**
@@ -67,7 +68,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onBack) { Text("Back") }
-            Text("Decision", Modifier.weight(1f), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text("Decision", Modifier.weight(1f), style = WardType.headline.textStyle(), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Spacer(Modifier.width(64.dp))
         }
         Column(
@@ -78,7 +79,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
                 CaseLabel("Leading diagnosis")
                 if (diagnosis.isNotEmpty()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(diagnosis, Modifier.weight(1f), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                        Text(diagnosis, Modifier.weight(1f), style = WardType.title.textStyle())
                         TextButton({ choosing = !choosing }, Modifier.heightIn(min = 44.dp)) { Text(if (choosing) "Keep" else "Change") }
                     }
                 }
@@ -95,7 +96,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
                                 .semantics { selected = picked },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(name, Modifier.weight(1f), fontSize = 17.sp)
+                            Text(name, Modifier.weight(1f), style = WardType.body.textStyle())
                             if (picked) Icon(Icons.Filled.Check, null, tint = CaseInk.theatre)
                         }
                     }
@@ -103,7 +104,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
             }
             CaseCard {
                 CaseLabel("Next step")
-                Text("What is the single best next step?", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text("What is the single best next step?", style = WardType.headline.textStyle())
                 file.nextStep.options.forEachIndexed { index, text ->
                     WardOptionRow(AccuracyItem.letter(index), text, if (option == index) ChartQuiz.Mark.chosen else ChartQuiz.Mark.idle, modifier =
                         Modifier.clickable(role = Role.RadioButton) { option = index }.semantics(mergeDescendants = true) {

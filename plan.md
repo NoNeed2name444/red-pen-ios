@@ -2306,6 +2306,22 @@ with the marks on the screens last.
       and the body face, no longer Material's outlined field at 90% surface
       with a 30 dp radius; Settings beside it is a Ward circle, not an
       IconButton in a drawn ring. The gear stays filled (Android Q3).
+    - [x] Type on WardType's faces: the sp literals (fontSize with 22 sp
+      lines under them) are now faces with their own leading, at the same
+      sizes, in the quiz, results, cards, settings, home, exam tools and
+      Cases screens. One title role, one face: the empty and error titles
+      (22, 23 and 20 bold) are WardType.title, settings' card titles
+      WardType.title and their row labels the headline (18 was off the
+      scale). As iOS: the card's front is the title (leading 25, not 26),
+      the hint's words and the lab panel's values the body (16 and 14 mono
+      were off), the lab values with even figures; the chart's words keep
+      iOS's 3 points between lines and the Why note its 2. The small caps
+      (cards' badge, Why / how, the due list, the vitals and lab headings)
+      are WardSmallCaps (0.8 tracking, none at the accessibility sizes),
+      not 1 or 1.2. Left: the display numerals at iOS's own scaled sizes
+      (the plan's 40 and 36, the score ring's 38, the calculator's 40 to
+      iOS's 44, the results ring's 30), the dock's autosizing names, the
+      skip glyph's 7, and W2's stand-ins and empty state.
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

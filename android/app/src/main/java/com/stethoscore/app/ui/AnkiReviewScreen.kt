@@ -233,8 +233,8 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
         Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(24.0, lift = com.stethoscore.app.ui.ward.WardLift.low)
             .background(wardColor(WardToken.surface), RoundedCornerShape(24.dp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(header.status, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink))
-                Text(header.detail, fontSize = 15.sp, color = wardColor(WardToken.inkSecondary))
+                Text(header.status, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
+                Text(header.detail, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
             // the same thing as a length, in a groove pressed into the slab (iOS ThinProgress:
             // a WardGroove 6 high, its bar 1.5 in from the groove's wall)
@@ -252,7 +252,7 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 }
 
 @Composable private fun SmallCaps(text: String) =
-    Text(text.uppercase(), fontSize = 12.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(text.uppercase(), style = wardSmallCapsStyle(), color = wardColor(WardSmallCaps.colour), maxLines = 1, overflow = TextOverflow.Ellipsis)
 
 /** The bar at the bottom with the one thing to do next, the card scrolling above it. */
 @Composable private fun StudyBar(content: @Composable () -> Unit) {
@@ -278,8 +278,8 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
         Box(Modifier.size(96.dp).wardRaised(48.0).background(wardColor(WardToken.surface), CircleShape), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(48.dp), tint = wardColor(WardToken.success))
         }
-        Text(title, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
-        if (message.isNotEmpty()) Text(message, fontSize = 17.sp, textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
+        Text(title, style = WardTextStyle.title.textStyle(WardWeight.bold), textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
+        if (message.isNotEmpty()) Text(message, style = WardType.body.textStyle(), textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
     }
 }
 
@@ -294,6 +294,6 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 @Composable internal fun CardsCompanionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier.heightIn(min = 56.dp).wardRaised(16.0).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp))
         .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.primaryInk), textAlign = TextAlign.Center)
+        Text(text, style = WardType.headline.textStyle(), color = wardColor(WardToken.primaryInk), textAlign = TextAlign.Center)
     }
 }

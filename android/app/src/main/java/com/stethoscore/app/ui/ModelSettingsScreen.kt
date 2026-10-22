@@ -22,14 +22,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.llm.HostedProvider
 import com.stethoscore.app.llm.LLMChoice
 import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.llm.OwnerSpend
 import com.stethoscore.app.quiz.ChartQuiz
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
 
 /**
  * Settings > AI models. Port of the parts of iOS
@@ -54,7 +56,7 @@ fun ModelSettingsScreen(onBack: () -> Unit, service: LLMService? = null) {
         ScreenHeader("AI models", "The writer and ${HostedProvider.BRAND} Cloud", onBack)
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Use")
-            Text("Writer", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text("Writer", style = WardType.headline.textStyle())
             listOf(LLMChoice.off to "Off", LLMChoice.cloud to brandCloud).forEachIndexed { i, (option, label) ->
                 WardOptionRow(
                     ('A' + i).toString(), label,
@@ -84,11 +86,11 @@ fun ModelSettingsScreen(onBack: () -> Unit, service: LLMService? = null) {
 
 @Composable private fun Line(label: String, value: String) {
     Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(label, Modifier.weight(1f), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        Text(value, Modifier.weight(1.4f), fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, Modifier.weight(1f), style = WardTextStyle.callout.textStyle(WardWeight.semibold))
+        Text(value, Modifier.weight(1.4f), style = WardTextStyle.subheadline.textStyle(), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable private fun Note(text: String) {
-    Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(text, style = WardType.caption.textStyle(), color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

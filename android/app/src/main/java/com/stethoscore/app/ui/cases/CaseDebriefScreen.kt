@@ -30,13 +30,15 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
 import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.ui.ScreenHeader
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -149,8 +151,8 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             CaseAvatar(file.patient.initials)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Discharge summary", Modifier.semantics { heading() }, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("${file.patient.ageSex} · ${file.setting.label} · “${file.complaint}”", fontSize = 15.sp, color = CaseInk.biro, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text("Discharge summary", Modifier.semantics { heading() }, style = WardTextStyle.title2.textStyle(WardWeight.bold))
+                Text("${file.patient.ageSex} · ${file.setting.label} · “${file.complaint}”", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro, maxLines = 3, overflow = TextOverflow.Ellipsis)
             }
         }
 
@@ -158,7 +160,7 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
         CaseCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CaseLabel("Score", Modifier.weight(1f))
-                Text("${score.total} / 100", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                Text("${score.total} / 100", style = WardTextStyle.title2.textStyle(WardWeight.bold, mono = true))
             }
             for (part in score.parts) {
                 Row(Modifier.clearAndSetSemantics { contentDescription = "${part.label}: ${part.points} of ${part.of}" }) {
@@ -169,7 +171,7 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
             if (score.capped) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Warning, null, tint = CaseInk.resus, modifier = Modifier.size(16.dp))
-                    Text("Capped at 60: a must-not-miss red flag was missed.", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = CaseInk.resus)
+                    Text("Capped at 60: a must-not-miss red flag was missed.", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = CaseInk.resus)
                 }
             }
         }
@@ -179,9 +181,9 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                 CaseLabel("Missed red flags")
                 for (step in debrief.missedRedFlags) {
                     Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text((if (step.mustNotMiss) "Must not miss · " else "") + step.label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CaseInk.resus)
+                        Text((if (step.mustNotMiss) "Must not miss · " else "") + step.label, style = WardTextStyle.subheadline.textStyle(WardWeight.bold), color = CaseInk.resus)
                         Text(step.finding, color = CaseInk.resus)
-                        if (step.note.isNotEmpty()) Text(step.note, fontSize = 13.sp, color = CaseInk.resus)
+                        if (step.note.isNotEmpty()) Text(step.note, style = WardTextStyle.footnote.textStyle(), color = CaseInk.resus)
                     }
                 }
             }
@@ -196,12 +198,12 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(if (debrief.diagnosisRight) Icons.Filled.CheckCircle else Icons.Filled.Cancel, null, tint = if (debrief.diagnosisRight) CaseInk.discharge else CaseInk.resus)
-                Text(file.diagnosis.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                Text(file.diagnosis.name, style = WardType.title.textStyle())
             }
-            if (!debrief.diagnosisRight) Text("You said: ${debrief.chosenDiagnosis}", fontSize = 15.sp, color = CaseInk.biro)
+            if (!debrief.diagnosisRight) Text("You said: ${debrief.chosenDiagnosis}", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
             val other = file.runnerUp
             if (other != null && debrief.separating.isNotEmpty()) {
-                Text("What tells it from ${other.name}:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text("What tells it from ${other.name}:", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
                 for (item in debrief.separating) FindingRow(item)
             }
             HorizontalDivider(color = CaseInk.hairline)
@@ -211,22 +213,22 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                 WardOptionRow(AccuracyItem.letter(run.decision?.nextStep ?: 0), chosen, ChartQuiz.Mark.wrong, modifier = Modifier.clearAndSetSemantics { contentDescription = "Your choice: $chosen, wrong" })
             }
             WardOptionRow(AccuracyItem.letter(file.nextStep.key), debrief.rightNextStep, ChartQuiz.Mark.right, modifier = Modifier.clearAndSetSemantics { contentDescription = "Right next step: ${debrief.rightNextStep}" })
-            if (file.nextStep.why.isNotEmpty()) Text(file.nextStep.why, fontSize = 15.sp)
+            if (file.nextStep.why.isNotEmpty()) Text(file.nextStep.why, style = WardTextStyle.subheadline.textStyle())
             val reason = run.decision?.reason.orEmpty()
-            if (reason.isNotEmpty()) Text("Your reason: $reason", fontSize = 13.sp, color = CaseInk.biro)
+            if (reason.isNotEmpty()) Text("Your reason: $reason", style = WardTextStyle.footnote.textStyle(), color = CaseInk.biro)
         }
 
         CaseCard {
             Row(Modifier.semantics(mergeDescendants = true) { }, verticalAlignment = Alignment.CenterVertically) {
                 CaseLabel("Key findings", Modifier.weight(1f))
-                Text("${debrief.keyFound} of ${debrief.keyFindings.size} found", fontFamily = FontFamily.Monospace, fontSize = 15.sp)
+                Text("${debrief.keyFound} of ${debrief.keyFindings.size} found", style = WardTextStyle.subheadline.textStyle(mono = true))
             }
             for (item in debrief.keyFindings) FindingRow(item)
         }
 
         CaseCard(spacing = 8.dp) {
             CaseLabel("Turning point")
-            Text(debrief.turningSaid, fontSize = 15.sp)
+            Text(debrief.turningSaid, style = WardTextStyle.subheadline.textStyle())
             if (run.ladders.isNotEmpty()) {
                 // the lead of the ladder after each step, in order
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -238,9 +240,9 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                             Modifier.clearAndSetSemantics { contentDescription = "After ${label ?: "a step"}, your leading diagnosis was $lead" },
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("${taken.at} min", Modifier.widthIn(min = 48.dp), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = CaseInk.biro)
-                            Text(label ?: "", Modifier.weight(1f), fontSize = 12.sp)
-                            Text(lead, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = if (right) CaseInk.discharge else CaseInk.ink)
+                            Text("${taken.at} min", Modifier.widthIn(min = 48.dp), style = WardTextStyle.caption.textStyle(mono = true), color = CaseInk.biro)
+                            Text(label ?: "", Modifier.weight(1f), style = WardType.caption.textStyle())
+                            Text(lead, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = if (right) CaseInk.discharge else CaseInk.ink)
                         }
                     }
                 }
@@ -253,13 +255,13 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                 CaseClockPill(debrief.minutesUsed, file.budgetMinutes)
             }
             if (debrief.lowYield.isEmpty()) {
-                Text("No low-yield steps.", fontSize = 15.sp, color = CaseInk.biro)
+                Text("No low-yield steps.", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
             } else {
-                Text("Low-yield here:", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text("Low-yield here:", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
                 for (step in debrief.lowYield) {
                     Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("${step.label} · ${step.minutes} min", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        if (step.note.isNotEmpty()) Text(step.note, fontSize = 15.sp)
+                        Text("${step.label} · ${step.minutes} min", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
+                        if (step.note.isNotEmpty()) Text(step.note, style = WardTextStyle.subheadline.textStyle())
                     }
                 }
             }
@@ -269,12 +271,12 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
             CaseLabel("Teaching")
             file.teaching.forEachIndexed { index, point ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${index + 1}.", Modifier.clearAndSetSemantics { }, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = CaseInk.theatre)
-                    Text(point, fontSize = 15.sp)
+                    Text("${index + 1}.", Modifier.clearAndSetSemantics { }, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true), color = CaseInk.theatre)
+                    Text(point, style = WardTextStyle.subheadline.textStyle())
                 }
             }
             val cited = file.source.cited
-            if (cited.isNotEmpty()) Text("Source: $cited", fontSize = 13.sp, color = CaseInk.biro)
+            if (cited.isNotEmpty()) Text("Source: $cited", style = WardTextStyle.footnote.textStyle(), color = CaseInk.biro)
         }
 
         // what to do with it
@@ -317,11 +319,11 @@ private fun FindingRow(item: CaseDebrief.Item) {
         Icon(if (item.found) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked, null,
             tint = if (item.found) CaseInk.discharge else CaseInk.biro, modifier = Modifier.size(18.dp).padding(top = 2.dp))
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(item.step.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Text(item.step.finding, fontSize = 15.sp)
+            Text(item.step.label, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
+            Text(item.step.finding, style = WardTextStyle.subheadline.textStyle())
         }
     }
 }
 
 @Composable
-private fun NoteLine(text: String) = Text(text, fontSize = 13.sp, color = CaseInk.biro)
+private fun NoteLine(text: String) = Text(text, style = WardTextStyle.footnote.textStyle(), color = CaseInk.biro)

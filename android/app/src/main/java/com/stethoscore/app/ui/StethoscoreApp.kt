@@ -12,6 +12,9 @@ import com.stethoscore.app.ui.home.homeShortWindow
 import com.stethoscore.app.ui.ward.WardDock
 import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardLift
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardChosenEdge
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.ward.wardPressFace
@@ -274,14 +277,14 @@ import kotlinx.coroutines.withContext
                                 }
                                 store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
                                     Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
-                                    Text("Your library could not be opened",fontSize=20.sp,fontWeight=FontWeight.Bold)
+                                    Text("Your library could not be opened",style=WardType.title.textStyle())
                                     Text(message,color=MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text("Nothing is saved until it opens, so the file is never overwritten. Restart the app to try again.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                                 } } }
                                 if(store.library.isEmpty() && store.loadError==null) {
                                     item { WardCard(Modifier.fillMaxWidth()) {
                                         Icon(Icons.Rounded.AutoStories,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(36.dp))
-                                        Text("Your ward starts here",fontSize=23.sp,fontWeight=FontWeight.Bold)
+                                        Text("Your ward starts here",style=WardType.title.textStyle())
                                         Text("Bring your questions, cards and lecture notes together. Your library stays on this device.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                                         WardButton("Explore example sets",{ change(store::loadExamples) },Modifier.fillMaxWidth(),enabled=store.loadError==null)
                                         TextButton(onClick={imported.launch(arrayOf("application/json","text/plain"))}) { Text("Import a Stethoscore library") }
@@ -298,7 +301,7 @@ import kotlinx.coroutines.withContext
                                 // the library: its sets, folders, search and practice tiles (iOS LibraryView and LibraryRows), each row a part of home's book
                                 libraryItems(store,revision,com.stethoscore.app.ui.library.StudyCategory.named(category),query,libSearch,lib,libActions,
                                     rowModifier={ set -> Modifier.homePart(book,"set-${set.id}","a set row") },showsEmpty=false)
-                                item { Text("Study aid · Not for clinical decisions",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
+                                item { Text("Study aid · Not for clinical decisions",style=WardTextStyle.caption2.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
                                 // the page is not cut above the bar, so this row is what lets the last tile scroll wholly clear of it (HomeFit.endSpace)
                                 item { Spacer(Modifier.fillMaxWidth().height(HomeFit.endSpace(barHeight).dp)) }
                             }
@@ -344,8 +347,8 @@ import kotlinx.coroutines.withContext
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
             Icon(Icons.Rounded.Inbox,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(28.dp))
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
-                Text("Due cards",fontSize=17.sp,fontWeight=FontWeight.SemiBold)
-                Text(if(due>0) "Cards waiting today \u00B7 $due" else "Cards waiting today",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Due cards",style=WardType.headline.textStyle())
+                Text(if(due>0) "Cards waiting today \u00B7 $due" else "Cards waiting today",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(Icons.Rounded.ChevronRight,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)
         }

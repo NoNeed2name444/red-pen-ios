@@ -34,9 +34,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,7 +47,12 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.*
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardTypeSpec
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -148,7 +151,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Rounded.QuestionMark, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(44.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("No questions", fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
+                Text("No questions", style = WardType.title.textStyle(), modifier = Modifier.semantics { heading() })
                 Text("This set has no questions yet.", color = wardColor(WardToken.inkSecondary))
             }
         }
@@ -334,7 +337,9 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     val explain = remember { BringIntoViewRequester() }
     LaunchedEffect(current) { scroll.animateScrollTo(0) }
 
-    val inkStyle = TextStyle(color = wardColor(WardToken.ink), lineHeight = 24.sp)
+    // the chart's words as iOS sets them: their face, with 3 points more between the lines (lineSpacing(3))
+    val chartInk = wardColor(WardToken.ink)
+    fun chartStyle(face: WardTypeSpec) = face.textStyle().copy(color = chartInk, lineHeight = (face.line + 3).sp)
     val accent = wardColor(WardToken.primaryInk)
     // a stem's text when nothing is being marked: in the slow reading drill, the key words in the accent and bold
     fun plainText(text: String): AnnotatedString = if (readSeconds <= 0) AnnotatedString(text) else buildAnnotatedString {
@@ -378,9 +383,9 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
-                    Text(ChartQuiz.status(current, questions.size), fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = wardColor(WardToken.ink))
+                    Text(ChartQuiz.status(current, questions.size), style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
                     Text(ChartQuiz.detail(examMode, pendingResume != null, score.first, if (examMode) picked else score.second),
-                        fontSize = 15.sp, color = wardColor(WardToken.inkSecondary))
+                        style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
                 val ends = examEndsAt
                 if (ends != null) ExamClock(ends)
@@ -397,7 +402,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 val whenText = DateUtils.getRelativeTimeSpanString(p.savedAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString().lowercase()
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Rounded.History, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(18.dp))
-                    Text("You left off $whenText · $done of ${set.questions.size} answered", fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                    Text("You left off $whenText · $done of ${set.questions.size} answered", style = WardTextStyle.subheadline.textStyle(WardWeight.medium),
                         color = wardColor(WardToken.inkSecondary))
                 }
             }
@@ -426,21 +431,21 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 }
                 if (layout.plain) {
                     HighlightableStem(q.stem, plainText(q.stem), marks, { highlights = highlights + (current to it) }, highlighting,
-                        inkStyle.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold, lineHeight = 28.sp))
+                        chartStyle(WardType.title))
                 } else {
                     if (layout.chips.isNotEmpty()) ChartChipsRow(layout.chips)
                     if (layout.vitals.isNotEmpty()) ChartVitalsGrid(layout.vitals)
                     if (layout.story.isNotEmpty()) HighlightableStem(layout.story, plainText(layout.story), ChartQuiz.marks(marks, question = false),
                         { highlights = highlights + (current to ChartQuiz.merging(it, question = false, into = highlights[current] ?: emptySet())) },
-                        highlighting, inkStyle.copy(fontSize = 17.sp))
+                        highlighting, chartStyle(WardType.body))
                     if (layout.labs.isNotEmpty()) ChartLabsTable(layout.labs)
                     if (layout.question.isNotEmpty()) HighlightableStem(layout.question, plainText(layout.question), ChartQuiz.marks(marks, question = true),
                         { highlights = highlights + (current to ChartQuiz.merging(it, question = true, into = highlights[current] ?: emptySet())) },
-                        highlighting, inkStyle.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold), prompt = layout.story.isEmpty())
+                        highlighting, chartStyle(WardType.headline), prompt = layout.story.isEmpty())
                 }
                 if (readSeconds > 0 && !a.checked) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Rounded.Visibility, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(18.dp))
-                    Text("Slow reading: the key words are marked, and you can answer after $readSeconds seconds.", fontSize = 15.sp,
+                    Text("Slow reading: the key words are marked, and you can answer after $readSeconds seconds.", style = WardTextStyle.subheadline.textStyle(),
                         color = wardColor(WardToken.inkSecondary))
                 }
                 q.imageIndex?.takeIf { it in set.images.indices }?.let { Box(Modifier.heightIn(max = 220.dp)) { CardImage(set, it) } }
@@ -482,14 +487,14 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.danger)
                         Icon(if (correct) Icons.Rounded.Verified else Icons.Rounded.Info, null, tint = tint, modifier = Modifier.size(20.dp))
-                        Text(if (correct) "Right!" else "Not quite", fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = tint)
+                        Text(if (correct) "Right!" else "Not quite", style = WardType.headline.textStyle(), color = tint)
                     }
                     if (struckTheAnswer) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Rounded.HorizontalRule, null, tint = wardColor(WardToken.warning), modifier = Modifier.size(18.dp))
-                        Text("You crossed out the right answer. What made you rule it out?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        Text("You crossed out the right answer. What made you rule it out?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold),
                             color = wardColor(WardToken.warning))
                     }
-                    Text(q.explanation, style = inkStyle.copy(fontSize = 17.sp))
+                    Text(q.explanation, style = chartStyle(WardType.body))
                 }
             }
 
@@ -524,9 +529,9 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                     }
                     if (id in retested && !isRetest(current)) Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Redo, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(14.dp))
-                        Text("It comes back, re-shuffled, a few questions from now.", fontSize = 13.sp, color = wardColor(WardToken.inkSecondary))
+                        Text("It comes back, re-shuffled, a few questions from now.", style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
                     }
-                    if (note != null) Text(note, fontSize = 13.sp, color = wardColor(WardToken.inkSecondary))
+                    if (note != null) Text(note, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
             }
         }
@@ -550,7 +555,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(Modifier.align(Alignment.CenterVertically).clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("How sure?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
+                            Text("How sure?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
                             QuizTag("optional", QuizTone.grey)
                         }
                         AnswerConfidence.entries.forEach { level ->
@@ -573,7 +578,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 /** A skippable question's lead line, tagged optional. */
 @Composable private fun Skippable(lead: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(lead, Modifier.weight(1f, fill = false), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
+        Text(lead, Modifier.weight(1f, fill = false), style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
         QuizTag("optional", QuizTone.grey)
     }
 }
@@ -629,7 +634,7 @@ private fun reasonIcon(reason: MistakeReason) = when (reason) {
         .clearAndSetSemantics { contentDescription = ChartQuiz.spokenClock(left) },
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(Icons.Rounded.Timer, null, tint = ink, modifier = Modifier.size(16.dp))
-        Text(ChartQuiz.clock(left), color = ink, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        Text(ChartQuiz.clock(left), color = ink, style = WardType.timer.textStyle())
     }
 }
 

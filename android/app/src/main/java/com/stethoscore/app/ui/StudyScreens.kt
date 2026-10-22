@@ -19,15 +19,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.textStyle
 
 // The question screen is MCQQuizScreen.kt (a port of iOS's MCQQuizView).
 
 @Composable fun CardImage(set:StudySet,index:Int,card:AnkiCard?=null,revealed:Boolean=false) {
     val encoded=set.images.getOrNull(index)
     val bitmap=remember(encoded) { runCatching { if(encoded==null || encoded.startsWith("blob:")) null else {val bytes=Base64.decode(encoded.substringAfter("base64,",encoded),Base64.DEFAULT);BitmapFactory.decodeByteArray(bytes,0,bytes.size)?.asImageBitmap()} }.getOrNull() }
-    if(bitmap==null) {Text("Image unavailable on this device",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant);return}
+    if(bitmap==null) {Text("Image unavailable on this device",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant);return}
     // an occlusion card's covers in OcclusionCovers' colours, as the card face draws them
     val masks=if(card?.type==AnkiCardType.OCCLUSION) card.siblings.map { it to OcclusionCovers.otherRgb }+if(!revealed) listOfNotNull(card.occlusion).map { it to OcclusionCovers.targetRgb } else emptyList() else emptyList()
     Box(Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height)) {

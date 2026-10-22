@@ -1,5 +1,9 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.ward.WardSmallCapsText
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardRaised
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,7 +28,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -166,8 +169,8 @@ internal enum class QuizButtonKind { primary, companion, secondary }
     }
     Row(modifier.fillMaxWidth().heightIn(min = 56.dp).then(face).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(letter, Modifier.clearAndSetSemantics {}, color = letterInk, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-        Text(text, Modifier.weight(1f), color = textInk, fontSize = 16.sp,
+        Text(letter, Modifier.clearAndSetSemantics {}, color = letterInk, style = WardTextStyle.callout.textStyle(WardWeight.semibold, mono = true))
+        Text(text, Modifier.weight(1f), color = textInk, style = WardTextStyle.callout.textStyle(),
             textDecoration = if (struck || mark == ChartQuiz.Mark.wrong) TextDecoration.LineThrough else null)
         when (mark) {
             ChartQuiz.Mark.right -> Icon(Icons.Rounded.CheckCircle, null, tint = letterInk, modifier = Modifier.size(24.dp))
@@ -194,8 +197,8 @@ internal enum class QuizButtonKind { primary, companion, secondary }
             val danger = ChartQuiz.tone(v.flag) == ChartQuiz.Tone.danger
             val arrow = when (v.flag) { PatientChart.Flag.high -> " ↑"; PatientChart.Flag.low -> " ↓"; null -> "" }
             Column(Modifier.widthIn(min = 92.dp).clearAndSetSemantics { contentDescription = ChartQuiz.spoken(v) }) {
-                Text(v.label.uppercase(), fontSize = 11.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = wardColor(WardToken.inkSecondary))
-                Text(v.value + arrow, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 17.sp,
+                WardSmallCapsText(v.label)
+                Text(v.value + arrow, style = WardTextStyle.body.textStyle(WardWeight.semibold, mono = true),
                     color = if (danger) wardColor(WardToken.danger) else wardColor(WardToken.ink))
             }
         }
@@ -210,10 +213,10 @@ internal enum class QuizButtonKind { primary, companion, secondary }
             val value = if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)
             Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = ChartQuiz.spoken(lab) }, horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Bottom) {
-                Text(lab.name, Modifier.weight(1f), fontFamily = FontFamily.Monospace, fontSize = 15.sp, color = wardColor(WardToken.ink))
-                Text(lab.value, fontFamily = FontFamily.Monospace, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = value)
-                Text(lab.unit, Modifier.widthIn(min = 64.dp), fontFamily = FontFamily.Monospace, fontSize = 15.sp, color = wardColor(WardToken.inkSecondary))
-                Text(lab.flag?.rawValue ?: "", Modifier.width(14.dp), fontFamily = FontFamily.Monospace, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                Text(lab.name, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle(mono = true), color = wardColor(WardToken.ink))
+                Text(lab.value, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true), color = value)
+                Text(lab.unit, Modifier.widthIn(min = 64.dp), style = WardTextStyle.subheadline.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))
+                Text(lab.flag?.rawValue ?: "", Modifier.width(14.dp), style = WardTextStyle.subheadline.textStyle(WardWeight.bold, mono = true),
                     color = wardColor(WardToken.danger))
             }
         }

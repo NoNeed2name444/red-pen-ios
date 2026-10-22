@@ -1,6 +1,9 @@
 package com.stethoscore.app.ui
 
 import androidx.compose.material3.minimumInteractiveComponentSize
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardRaised
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.background
@@ -31,9 +34,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.CardReview
 import com.stethoscore.app.ui.ward.WardToken
 import kotlinx.coroutines.delay
@@ -69,7 +70,7 @@ private fun android.view.View.say(text: String) = announceForAccessibility(text)
         .semantics(mergeDescendants = true) { contentDescription = "Undo last rating" }
         .padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(Icons.AutoMirrored.Rounded.Undo, null, Modifier.size(16.dp), tint = wardColor(WardToken.primaryInk))
-        Text("Undo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.primaryInk))
+        Text("Undo", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
     }
 }
 
