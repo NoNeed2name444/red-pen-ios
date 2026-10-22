@@ -3,10 +3,6 @@ package com.stethoscore.app.ui.sources
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -35,19 +31,14 @@ class SourcePreviewSheetTest {
     private val lecture = SourceDoc(name = "Renal lecture", kind = "pdf", pages = listOf(SourcePage(1, "Nephritic syndrome")))
 
     @Test fun theReaderSitsBelowTheStatusBar() {
-        compose.setContent {
-            StethoscoreTheme {
-                // the sheet's content, kept clear of the bars as SourcePreviewSheet keeps it
-                Box(Modifier.fillMaxSize().windowInsetsPadding(sourcePreviewInsets)) {
-                    SourcePreview(lecture, null, 1, {}, Modifier.fillMaxSize())
-                }
-            }
-        }
-        // a status bar 40 dp tall over the window
+        compose.setContent { StethoscoreTheme { SourcePreviewSheet(lecture, null, 1) {} } }
+        compose.waitForIdle()
+        // a status bar 40 dp tall over every window, the sheet's own among them
         val bar = (40 * compose.activity.resources.displayMetrics.density).toInt()
         compose.runOnIdle {
-            val view = checkNotNull(composeView(compose.activity.window.decorView)) { "no Compose view" }
-            ViewCompat.dispatchApplyWindowInsets(view, WindowInsetsCompat.Builder()
+            val views = windowRoots().flatMap { composeViews(it) }
+            assertTrue("the sheet has a window of its own", views.size >= 2)
+            for (view in views) ViewCompat.dispatchApplyWindowInsets(view, WindowInsetsCompat.Builder()
                 .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, bar, 0, 0)).build())
         }
         compose.waitForIdle()
@@ -55,10 +46,19 @@ class SourcePreviewSheetTest {
         assertTrue("Done starts below the 40 dp status bar, at $top", top >= 40.dp)
     }
 
-    /** The view Compose reads the window's insets from. */
-    private fun composeView(view: View): View? {
-        if (view.javaClass.name == "androidx.compose.ui.platform.AndroidComposeView") return view
-        if (view is ViewGroup) for (i in 0 until view.childCount) composeView(view.getChildAt(i))?.let { return it }
-        return null
+    /** Every window's root view: the activity's and the sheet's. */
+    @Suppress("UNCHECKED_CAST")
+    private fun windowRoots(): List<View> {
+        val global = Class.forName("android.view.WindowManagerGlobal")
+        val instance = global.getMethod("getInstance").invoke(null)
+        val views = global.getDeclaredField("mViews").apply { isAccessible = true }.get(instance) as List<View>
+        return views.toList()
+    }
+
+    /** The views Compose reads a window's insets from. */
+    private fun composeViews(view: View): List<View> {
+        if (view.javaClass.name == "androidx.compose.ui.platform.AndroidComposeView") return listOf(view)
+        if (view is ViewGroup) return (0 until view.childCount).flatMap { composeViews(view.getChildAt(it)) }
+        return emptyList()
     }
 }

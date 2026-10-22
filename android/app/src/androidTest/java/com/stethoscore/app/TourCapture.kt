@@ -30,6 +30,7 @@ import com.stethoscore.app.ui.StethoscoreTheme
 import com.stethoscore.app.ui.learn.LearnRouter
 import com.stethoscore.app.ui.learn.WardRoundClock
 import com.stethoscore.app.ui.library.IncomingFiles
+import com.stethoscore.app.ui.ward.WardCornerScope
 import com.stethoscore.app.ui.ward.WardPaperFrame
 import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.wardFrameClearance
@@ -76,10 +77,11 @@ class TourCapture(private val compose: ComposeContentTestRule) {
     @Composable fun Page(m: Mode, section: WardSection, content: @Composable () -> Unit) {
         StethoscoreTheme(m.dark, section) {
             Box(Modifier.fillMaxSize()) {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    // inside the frame's ring, as StethoscoreApp places every framed page (wardFrameClearance)
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { WardCornerScope(framed = true) {
+                    // inside the frame's ring, as StethoscoreApp places every framed page (wardFrameClearance),
+                    // its corners concentric with the ring's (WardCornerScope)
                     Box(Modifier.fillMaxSize().wardFrameClearance()) { content() }
-                }
+                } }
                 WardPaperFrame(Modifier.fillMaxSize())
             }
         }

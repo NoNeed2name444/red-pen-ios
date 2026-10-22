@@ -125,9 +125,8 @@ class ScreenshotTest {
         ideasPrefs { putString("vignette.ideas.mode","space"); putString("vignette.space.theme","performance"); putInt("vignette.space.perfDemo",1_000_000) }
         compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
         // building a million nodes and their octree takes a few seconds on a CI emulator
-        compose.waitUntil(120_000) { compose.onAllNodesWithText("1,000,000 nodes",substring=true).fetchSemanticsNodes().isNotEmpty() }
-        compose.waitUntil(60_000) { compose.onAllNodesWithText(" fps · ",substring=true).fetchSemanticsNodes().any { node ->
-            node.config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.Text) { null }?.joinToString()?.trim()?.startsWith("0 fps")==false } }
+        // the map itself, not the debug readout (a debug build's tool, not always shown)
+        compose.waitUntil(120_000) { compose.onAllNodesWithContentDescription("demo of 1,000,000 synthetic notes",substring=true).fetchSemanticsNodes().isNotEmpty() }
         SystemClock.sleep(6_000) // the adaptive budget settles on what this emulator can draw at its refresh rate
         awaitMapFrames("demo of 1,000,000 synthetic notes",bodies=false)
         shot("12-ideas-million") // kept even when the check below fails, to see why

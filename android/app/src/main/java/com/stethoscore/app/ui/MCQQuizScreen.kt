@@ -571,8 +571,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             } else {
                 val chosen = confidences[q.id]
                 // iOS's confidencePicker: Sure, Maybe and Guess on the label's line wherever they fit, the
-                // optional tag dropped first to make room (TalkBack still says it), and only past that the
-                // chips on a line of their own
+                // optional tag dropped first to make room (TalkBack still says it)
                 @Composable fun SureLabel(tagged: Boolean) =
                     Row(Modifier.clearAndSetSemantics { contentDescription = "How sure are you? Optional" },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -588,9 +587,11 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 FirstThatFits(
                     { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureLabel(true); SureChips() } },
                     { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureLabel(false); SureChips() } },
-                    { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SureLabel(true)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureChips() }
+                    // past that, as before: the label and chips flow onto as many lines as they need, so no
+                    // chip is clipped at a large text size or on a narrow window
+                    { FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.align(Alignment.CenterVertically)) { SureLabel(true) }
+                        SureChips()
                     } },
                 )
             }
@@ -605,20 +606,19 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 /**
  * The first of [choices] that fits the width at its own natural width
  * (SwiftUI's ViewThatFits in .horizontal); the last, laid out in the width
- * given, when none does.
+ * given, when none does. A choice is tried in a probe kept out of TalkBack and
+ * never placed; only the one chosen is composed where it is shown.
  */
 @Composable internal fun FirstThatFits(vararg choices: @Composable () -> Unit, modifier: Modifier = Modifier) {
     androidx.compose.ui.layout.SubcomposeLayout(modifier) { constraints ->
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
-        var placed: List<androidx.compose.ui.layout.Placeable>? = null
-        for (i in choices.indices) {
-            val last = i == choices.lastIndex
-            val parts = subcompose(i, choices[i]).map {
-                it.measure(if (last) loose else loose.copy(maxWidth = androidx.compose.ui.unit.Constraints.Infinity))
-            }
-            if (last || parts.all { it.width <= constraints.maxWidth }) { placed = parts; break }
-        }
-        val parts = placed.orEmpty()
+        val wide = loose.copy(maxWidth = androidx.compose.ui.unit.Constraints.Infinity)
+        val chosen = choices.indices.firstOrNull { i ->
+            i == choices.lastIndex || subcompose("probe" to i) {
+                Box(Modifier.clearAndSetSemantics {}) { choices[i]() }
+            }.all { it.measure(wide).width <= constraints.maxWidth }
+        } ?: return@SubcomposeLayout layout(constraints.minWidth, constraints.minHeight) {}
+        val parts = subcompose("shown" to chosen, choices[chosen]).map { it.measure(if (chosen == choices.lastIndex) loose else wide) }
         val width = (parts.maxOfOrNull { it.width } ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
         val height = (parts.maxOfOrNull { it.height } ?: 0).coerceIn(constraints.minHeight, constraints.maxHeight)
         layout(width, height) { parts.forEach { it.placeRelative(0, 0) } }
