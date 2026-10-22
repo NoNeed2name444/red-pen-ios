@@ -2246,6 +2246,11 @@ with the marks on the screens last.
       tile row (IntrinsicSize.Min) asked the Vitals tile's ThatFits, a
       SubcomposeLayout; ThatFits is now a plain Layout answering intrinsics
       (HomeTilesMeasureTest runs the textbook flow under Robolectric).
+  - UX Waves 3-4 on Android (T0123: chrome and polish, no motion; the
+    Android consistency sweep's Waves 3-4 and the owner's answers of 22 Oct):
+    - [x] The starting window's bars stand on ward_ground (light and night)
+      instead of the off-palette #E0E5EC; from the first frame
+      enableEdgeToEdge clears them, as before.
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
