@@ -33,4 +33,14 @@ class WardKitPortTest {
         assertTrue("a wrong pick lies flat", row.contains("flat = wrong"))
         assertTrue("chosen and right are pressed in", row.contains("wardDepth(mark == ChartQuiz.Mark.chosen || mark == ChartQuiz.Mark.right)"))
     }
+
+    @Test fun theCasesKitDrawsTheWardKit() {
+        // iOS Features/Cases/CaseKit.swift: caseCard over wardCard, the avatar and
+        // the clock pressed in, WardChip, WardSegmented and the Ward buttons
+        val text = File(ui, "cases/CaseKit.kt").readText()
+        for (piece in listOf("WardCardFace(", "WardChip(", "WardSegmented(", "WardButtonBox(", "wardInset(CircleShape)"))
+            assertTrue("CaseKit draws $piece", text.contains(piece))
+        for (piece in listOf(".border(", "OutlinedButton(", "alpha = 0.12f", ".clickable("))
+            assertTrue("CaseKit no longer draws $piece", !text.contains(piece))
+    }
 }
