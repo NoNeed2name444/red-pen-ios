@@ -4,6 +4,8 @@ import com.stethoscore.app.ui.ward.WardDeckEdge
 import com.stethoscore.app.ui.ward.WardEdge
 import com.stethoscore.app.ui.ward.WardIsland
 import com.stethoscore.app.ui.ward.WardPaper
+import com.stethoscore.app.ui.ward.WardPress
+import com.stethoscore.app.ui.ward.WardPressIndication
 import com.stethoscore.app.ui.ward.WardRect
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.wardScoreTone
@@ -139,6 +141,18 @@ class WardKitPortTest {
             assertTrue("${file.name} still spins", !spinner.containsMatchIn(file.readText()))
         for (name in listOf("MCQExamTools.kt", "ideas/IdeasSpace.kt"))
             assertTrue("$name waits on the ECG trace", File(ui, name).readText().contains("EcgLoader()"))
+    }
+
+    @Test fun aPlainPressSinksAndShadesAndNeverRipples() {
+        // iOS PressableRowStyle (Shared/Theme.swift): held, a plain row sinks (capPop) and shades (brightness -0.04)
+        assertTrue("the theme gives every plain clickable the Ward press",
+            File(ui, "Theme.kt").readText().contains("LocalIndication provides WardPressIndication"))
+        assertTrue("at rest it is drawn as it is", WardPressIndication.scale(0f) == 1f && WardPressIndication.shade(0f) == 0f)
+        assertTrue("held it sinks as capPop does", Math.abs(WardPressIndication.scale(1f) - WardPress.sinkScale) < 1e-6)
+        assertTrue("and shades as iOS's brightness(-0.04)", Math.abs(WardPressIndication.shade(1f) - 0.04) < 1e-6)
+        val ink = Regex("(?<![A-Za-z])(ripple|rememberRipple)\\(")
+        for (file in sources().filter { !it.path.contains("/ui/map/") })
+            assertTrue("${file.name} asks for Material's ripple", !ink.containsMatchIn(file.readText()))
     }
 
     @Test fun aScoreBarTakesTheScoresTone() {

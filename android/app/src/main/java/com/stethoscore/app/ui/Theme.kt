@@ -5,6 +5,7 @@ import android.content.ContextWrapper
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -102,7 +103,10 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     val glide = rememberWardGlide(look)
     SideEffect { WardLookNow.shared.set(glide) }
     CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide) {
-        MaterialTheme(colorScheme=wardColorScheme(look), typography=wardTypography(), content=content)
+        MaterialTheme(colorScheme=wardColorScheme(look), typography=wardTypography()) {
+            // a plain clickable sinks and shades as a Ward face does, never a ripple (iOS PressableRowStyle)
+            CompositionLocalProvider(LocalIndication provides WardPressIndication, content=content)
+        }
     }
 }
 
