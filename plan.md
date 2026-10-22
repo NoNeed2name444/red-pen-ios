@@ -2853,6 +2853,12 @@ with the marks on the screens last.
   - [ ] Follow-up (docs/, outside T0120's paths): docs/design/palette-2026-10-21.md still runs the light tiers from #DDE2E8 and names the night well #090E15; it should say the well is the page colour since 22 Oct. Android's WardPalette.kt well is T0123's.
   - [ ] Mac run: the app build and Ward previews of the pages above (phone, SE, Pro Max, iPad; light and dark).
   - Waiting on the owner: Vitals' large title; mono sizes other than body and title2; icon-square sizes; the onboarding, paywall and sign-in gutters (24). The sample pictures' colours stay (no colour changes).
+- The iOS tour in stills (22 Oct; task T0126b, from the T0126a screen inventory of 128 rows). Previews only; the shipped app is unchanged.
+  - [x] 130 `-uiPreviewScreen` names in tour order in tools/tour_screens.txt (name, inventory row, plain name): 107 new tour cases in PreviewExtras (fenced out of the Playgrounds packages), plus the screens that already had one. Cases use only the seeded store and the example seeders; a mock sitting and a case run are cleared first, and settings a still needs (exam, Ideas mode) are registered, never written.
+  - [x] Hooks read PreviewLaunch.screen and only run under -uiPreviewScreen: First run's page, the app-lock shield, New set's Make step, the book's contents, the case's differential, the AI provider editor and the writing card.
+  - [x] ios-preview's limit from 45 to 116 minutes: about 12 minutes of build and boot plus up to 37 s a screen for light and dark, with a quarter on top. The whole list is one dispatch, about 77 minutes typical.
+  - Not stilled: the splash (owner's art), study tips (off in previews), the paywall (App Store products), twins and the spoken station (model output), Study Lens's live view (camera), a lecture page preview (a lecture PDF, which only a personal build seeds), Siri sheets (parked in previews), the iPad set window, the insight quiz (no answer history outside a personal build), the map legend (a tap inside the map).
+  - [ ] Mac run: dispatch ios-preview with the list as `screens`, then read every still and fix the cases that come out wrong.
 
 ### The launch mark (design/launch-anim), 15 Oct
 

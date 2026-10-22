@@ -81,6 +81,8 @@ struct CaseWardView: View {
         }
         .wardScreen()
         .studyBar(folds: true) { bottomBar }
+        // a screenshot run's "case-differential": the ladder open
+        .task { if PreviewLaunch.screen == "case-differential" { showingLadder = true } }
         .sheet(isPresented: $showingLadder) {
             NavigationStack {
                 CaseLadderPanel(file: file, run: $run)

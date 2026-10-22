@@ -33,7 +33,13 @@ struct FirstRunView: View {
             }
             .transition(.identity)
         }
-        .onAppear { FirstRun.start(accountId: accountId) }
+        .onAppear {
+            FirstRun.start(accountId: accountId)
+            // a screenshot run's "first-run-<page>" opens on that page
+            if let shown = FirstRunPage.allCases.first(where: { PreviewLaunch.screen == "first-run-" + $0.name }) {
+                page = shown
+            }
+        }
     }
 
     private func advance() {

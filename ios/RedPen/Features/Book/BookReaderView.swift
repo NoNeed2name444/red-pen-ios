@@ -27,6 +27,8 @@ struct BookReaderView: View {
         }
         .onAppear {
             if index == 0 { index = store.reading(for: studySet.id, count: pages.count) }
+            // a screenshot run's "book-contents": the contents open
+            if PreviewLaunch.screen == "book-contents" { showToc = true }
         }
         .onChange(of: index) { _, now in store.saveReading(at: now, for: studySet.id) }
         .modeScreen(.book)
