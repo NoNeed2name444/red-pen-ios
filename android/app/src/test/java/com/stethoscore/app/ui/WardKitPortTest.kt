@@ -132,6 +132,15 @@ class WardKitPortTest {
         assertTrue("no opening, no join", WardDeckEdge.solve(WardRect(0.0, 0.0, 40.0, 10.0), WardRect(0.0, 0.0, 40.0, 40.0), null, emptyList()) == null)
     }
 
+    @Test fun aWaitIsTheEcgTrace() {
+        // iOS EcgLoader (Shared/Ward/WardVitals.swift), the one loader: no spinner is left
+        val spinner = Regex("(Circular|Linear)ProgressIndicator\\(")
+        for (file in sources().filter { !it.path.contains("/ui/map/") })
+            assertTrue("${file.name} still spins", !spinner.containsMatchIn(file.readText()))
+        for (name in listOf("MCQExamTools.kt", "ideas/IdeasSpace.kt"))
+            assertTrue("$name waits on the ECG trace", File(ui, name).readText().contains("EcgLoader()"))
+    }
+
     @Test fun aScoreBarTakesTheScoresTone() {
         // WardProgressBar.tone: Resus Red under half, Caution Amber under three quarters, Discharge Green above
         assertTrue(wardScoreTone(0.0) == WardTone.Danger && wardScoreTone(0.49) == WardTone.Danger)

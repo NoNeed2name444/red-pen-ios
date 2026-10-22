@@ -42,6 +42,7 @@ import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.quiz.LabRanges
 import com.stethoscore.app.quiz.LabUnits
 import com.stethoscore.app.quiz.StemPieces
+import com.stethoscore.app.ui.editors.EcgLoader
 import com.stethoscore.app.ui.exam.WardUnitsPicker
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
@@ -155,7 +156,7 @@ enum class ExamToolSheet { labs, calculator }
         }
         if (text != null) Text(text, fontSize = 16.sp, color = wardColor(WardToken.ink))
         else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = wardColor(WardToken.ecg))
+            EcgLoader()
             Text("Thinking it through…", color = wardColor(WardToken.inkSecondary))
         }
     }
