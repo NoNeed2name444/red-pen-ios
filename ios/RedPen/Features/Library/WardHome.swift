@@ -1124,9 +1124,6 @@ final class HomeFitProbe {
     var newSet: CGRect?
     var bar: CGRect?
     var tiles: CGRect?
-    /// Where the page was actually cut (its bottom), after the layout moved
-    /// the cut up for any part (HomeFit.settledCut).
-    var pageEnd: CGFloat?
     /// The text size is above the standard ones: the page may scroll.
     var large = false
     /// Each probed text's laid-out width, and its widest word's on its own.
@@ -1144,20 +1141,6 @@ final class HomeFitProbe {
     var pushLastKeptCut: Double?
     var pushBookCountBefore = 0
     var pushBookCountLastLook = 0
-    /// From the push on, each new cut of home's page (nil, not cut), with
-    /// the bar's top, the page's frame and the booked tops it came from, and
-    /// when, so a cut that moves while home is pushed shows what moved it.
-    var pushStarted: Date?
-    private(set) var pushCuts: [String] = []
-
-    func notePushCut(_ cut: Double?, barTop: CGFloat?, page: CGRect, tops: [Double]) {
-        guard PreviewLaunch.pushBack, let pushStarted, pushCuts.count < 40 else { return }
-        func text(_ value: Double?) -> String { value.map { String(format: "%.2f", $0) } ?? "none" }
-        let at: Double = Date().timeIntervalSince(pushStarted)
-        pushCuts.append("\(text(at))s cut \(text(cut)) bar \(text(barTop.map(Double.init))) "
-                        + "page \(text(Double(page.minY)))+\(text(Double(page.height))) "
-                        + "tops \(tops.count) from \(text(tops.first))")
-    }
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -1189,8 +1172,7 @@ final class HomeFitProbe {
         }.sorted { ($0.box.minY, $0.name) < ($1.box.minY, $1.name) }
         var faults: [String] = HomeFit.faults(card: Self.box(card), start: Self.box(start),
                                               bar: Self.box(bar), newSet: Self.box(newSet),
-                                              tiles: Self.box(tiles), large: large, words: words,
-                                              pageEnd: pageEnd.map { Double($0) }, parts: parts)
+                                              large: large, words: words)
         // a probe that measured nothing would call any home fitting
         if parts.isEmpty { faults.append("no row or part of the page was measured") }
         if PreviewLaunch.pushBack {
@@ -1231,12 +1213,11 @@ final class HomeFitProbe {
             lines.append("push and back: home covered: \(pushLostParts ? "yes" : "no")")
             let cutStr = pushLastKeptCut.map { $0.rounded() == $0 ? "\(Int($0))" : "\($0)" } ?? "none"
             lines.append("push and back: drops removed \(pushDropsRemoved), kept \(pushDropsKept) (cut \(cutStr)), book \(pushBookCountBefore) parts before the push, \(pushBookCountLastLook) at its last look")
-            lines.append("push and back: cuts: " + (pushCuts.isEmpty ? "none" : pushCuts.joined(separator: "; ")))
         }
-        let cut: String = bar.map { "\(Int($0.minY - HomeFit.cutRoom))" } ?? "none"
+        let line: String = bar.map { "\(Int(HomeFit.barLine(barTop: Double($0.minY))))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
-                     + "tiles \(edges(tiles)), bar \(edges(bar)), cut \(cut), large text \(large)")
-        lines.append("page ends \(pageEnd.map { String(Int($0)) } ?? "none"), \(parts.count) parts measured: "
+                     + "tiles \(edges(tiles)), bar \(edges(bar)), bar's line \(line), not cut, large text \(large)")
+        lines.append("\(parts.count) parts measured: "
                      + parts.prefix(40).map { "\($0.name) \($0.box.text)" }.joined(separator: ", "))
         lines.append("words: " + words.map { "\($0.name) \(Int($0.width))/\(Int($0.widest))" }
             .joined(separator: ", "))

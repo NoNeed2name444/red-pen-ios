@@ -2211,6 +2211,39 @@ with the marks on the screens last.
   far: cloud generation, sign-in and sync, recording, billing. Small: on
   the 4-idea map the BNP label overlaps Pulmonary oedema, and the 1M demo
   header reads 0 ideas.
+  The Android app now lives in android/ on design/integration (from 7e3a249).
+  - UX Wave 1 on Android (W1-android, the owner 22 Oct: "use the same things
+    from ios"; findings in the Android consistency sweep, section 7):
+    - [x] Filled buttons as iOS .bigPrimary: QuizBigButton, CardsPrimaryButton
+      and CaseButton's primary draw through WardButtonBox (raised capsule,
+      words in the section's ink, never a fill; BigButtonPathsTest).
+    - [x] Cases answers on WardOptionRow, as iOS (the owner 15 Oct: wrong
+      fades, right takes the mode's colour); CaseOptionRow and its green and
+      red are gone (CaseAnswerRowsTest).
+    - [x] Home's grid as iOS HomeBand: from the window's top to 10 under the
+      header (HomeFit.belowHeader), following it as the list scrolls, the
+      plain base below; no fading (WardGroundBackground gridBottom;
+      HomeBandTest).
+    - [x] Home's dock as iOS's: the panel raised high on its rim, the chosen
+      tab in a low hollow with the chosen edge, a held tab sinking into one,
+      Chart Ink at rest and the section's ink chosen, outline glyphs at rest,
+      no ripple (WardDockTest checks the source).
+    - [x] The dock's row as iOS T0112: the five categories on the panel and
+      Ideas on its own 56 pill, the bar at most 560 wide; the tabs take
+      WardDock.tabWidths (water-filled, or every name shrunk alike to half at
+      the least), so the full row stands at the default text size (WardDock,
+      WardDockTest).
+    - [x] One tone on Android (the owner 22 Oct, "there shouldn't be 2
+      tones"; as iOS 90674e8): WardPalette surface and raised are the
+      background pair (#E9EDF2 / #171C24); wells, relief, edges and rings
+      unchanged. WardPaletteTest checks equality; OwnerAccepted.kt: 167
+      entries take their new measured value, 19 that now pass are removed;
+      no tolerance changed.
+    - [x] The screenshots run's crash (39646961250, "Asking for intrinsic
+      measurements of SubcomposeLayout layouts is not supported"): home's
+      tile row (IntrinsicSize.Min) asked the Vitals tile's ThatFits, a
+      SubcomposeLayout; ThatFits is now a plain Layout answering intrinsics
+      (HomeTilesMeasureTest runs the textbook flow under Robolectric).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
@@ -2622,6 +2655,8 @@ with the marks on the screens last.
 - [x] 12a. The backgrounds as they were before the section wash (22 Oct; T0107 repair, design/vivid): the wash added on 21 Oct (73f09a7, the base mixed toward the section's fill) was never asked for, and the owner's phone build of 16 Oct has plain grey grounds, so every section's wash, home's ground and the launch ground are the plain base again, #E9EDF2 by day and #171C24 at night, as at ca4ddb4 (WardSection.wash returns it; pinned in WardLookTests). Grid lines, rims, rings and every colour are unchanged.
 - [x] 12b. The owner's decision in the checks (22 Oct, about 3:44 AM Cairo, shown that the exact colours fail the readability checks: "STOP IMPROVISING DONT CHANGE THE COLORS I GAVE U"). Every check and threshold is kept; a case that falls short only because of the owner's colours, or the plain ground, passes only as itself on the owner's list at its measured value (within 0.01): ios/RedPen/Tests/OwnerAccepted.json for WardLookTests, WardPaletteTests, WardReliefTests, WardStatesTests and DeckTests, tests/ward/owner-accepted.json for accent-blue.test.mjs and tools/ward_accents.py --check. A case not listed, a moved value or a listed case no longer short fails. tests/ward/owner-palette.test.mjs pins the ten hexes in the page's roles.
 - [ ] Follow-up to 12a and 12b (docs/, outside T0107's paths): docs/design/palette-2026-10-21.md's 22 Oct note still says each section's wash is pinned to its value before T0104 and that the failing checks stay failing; it should say the ground is the plain base and those checks pass on the owner's list.
+- [x] 12c. One tone on iPhone (22 Oct; task T0113-ios). The owner, 22 Oct, circling home's ward-round card block: "there shouldn't be 2 tones"; 21 Oct, of the quiz dock: "one color not two color toned". Cards (.surface) and sheets, bars and panels (.raised) are the page colour, #E9EDF2 by day and #171C24 at night (WardPalette.table), on every screen; depth comes only from the relief, edges and rings, all unchanged. WardPaletteTests pins surface == raised == background in both modes. Wells (.well) are unchanged pending the owner's word (asked 22 Oct). The owner's lists hold the re-measured values: in OwnerAccepted.json 154 values moved and 19 cases removed because they now pass at night; in tests/ward/owner-accepted.json 8 moved, 5 removed, and 7 ward_accents ink cases renamed from "on the surface" to "on the background", the lowest ground now.
+- [ ] Follow-up to 12c: the owner's word on wells (fields, tracks, a chosen segment), which still sit a shade below the page.
 
 ### The launch mark (design/launch-anim), 15 Oct
 
@@ -2911,6 +2946,32 @@ with the marks on the screens last.
 - [x] Test only (T0105): the UI tests reach each section through the dock's
   buttons or, where it is one dockList button (iPhone 17 Pro, default size),
   through its list (UITests/LibraryDock), so the tour finds home again.
+  Superseded by T0112: the dock is the row again and the UI tests require it.
+- [x] T0112 (owner 22 Oct, "the tabs folded into one Questions button on a
+  17 Pro are wrong"): the dock along the bottom is the full row (Questions,
+  Cards, Cases, OSCE, Audio and Ideas) at every text size short of the
+  accessibility ones, on every phone. Short of width, the five names shrink
+  alike (to half at the least) and keep their side room from the chosen ring;
+  the concentric corner stays (WardDock.form / tabWidths / showsList, tested
+  in wardstates at 375 to 440 pt and all standard sizes). LibraryDock and the
+  four suites that accepted the list button require the row again.
+- [x] T0112 A1 (repair): home's page is no longer cut 12 pt above New set
+  and the dock (the owner, 22 Oct: that band was wrong; it replaces the cut of
+  14 Oct). The rows run on behind New set and the dock to the window's bottom
+  edge, with nothing behind them but the page and no soft edge under them
+  (no fading); the list's end row (HomeFit.endSpace: the bar's height and 24)
+  lets the last tile scroll wholly clear above them (HomeFit.lastRowBottom).
+  The preview's gate keeps the card and Start ward round 12 pt above the bar
+  at the standard sizes (HomeFit.barLine) and drops the sliver checks, which
+  were about the cut. Tested in homefit (model and source checks).
+- [ ] Mac run for T0112: screenshots of home on the 17 Pro, the Pro Max and a
+  375 pt phone at the default size and at xxxLarge (the row, the names whole
+  or barely smaller, the chosen ring clear of them), and the four UI suites;
+  and home's bottom with the tiles passing behind New set and the dock (no
+  strip, line or fade), scrolled to the end (the last tile clear above them),
+  plus the ward-preview fit gate on every device. The workflow's comment
+  (.github/workflows/ward-preview.yml:23-26) and WardControls.swift:66 still
+  speak of the cut: word them anew in a task with those files in scope.
 - [ ] Home's name as the owner's logo, and smaller text on home (the owner,
   on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
   stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,

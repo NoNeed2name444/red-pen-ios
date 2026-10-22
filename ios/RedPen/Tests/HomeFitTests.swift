@@ -1,11 +1,12 @@
 // Home on a short phone (HomeFit): which windows count as short, how many
-// beds the round shows there, how much of the page shows above the bar (the
-// page's cut), and the check the preview runs on a laid-out home: at the
-// standard text sizes the round card and its Start ward round button end
-// above the cut; at large sizes the page scrolls but the cut slices no
-// button and leaves no sliver; New set sits on no part of the card that
-// shows; no word breaks. The faults are what the r7 picture at the iPhone
-// SE's size and the r11 pictures at XXL and AX1 showed.
+// beds the round shows there, the page that is not cut above the bar (the
+// owner, 22 Oct) and the row that lets its last tile scroll clear of the bar,
+// and the check the preview runs on a laid-out home: at the standard text
+// sizes the round card and its Start ward round button end above the bar's
+// line; at large sizes the page scrolls but that line slices no button; New
+// set sits on no part of the card above it; no word breaks. The faults are
+// what the r7 picture at the iPhone SE's size and the r11 pictures at XXL
+// and AX1 showed.
 import Foundation
 
 var failures: [String] = []
@@ -34,17 +35,17 @@ check("a short window shows two of four beds", HomeFit.shownBeds(4, short: true)
 check("a short window shows a lone bed", HomeFit.shownBeds(1, short: true) == 1)
 check("a tall window shows every bed", HomeFit.shownBeds(4, short: false) == 4)
 check("no beds stay none", HomeFit.shownBeds(0, short: true) == 0)
-// large text: a bed comes off while the cut slices Start, one always stays
+// large text: a bed comes off while the bar's line slices Start, one always stays
 check("a trim takes a bed off a tall window", HomeFit.shownBeds(3, short: false, trimmed: 1) == 2)
 check("a trim goes on from a short window's two", HomeFit.shownBeds(4, short: true, trimmed: 1) == 1)
 check("a trim leaves one bed", HomeFit.shownBeds(3, short: false, trimmed: 9) == 1)
 check("a trim leaves none as none", HomeFit.shownBeds(0, short: false, trimmed: 2) == 0)
 
-// the cut through a button (the iPad at AX1: Start 967-1025, cut 1020)
-check("a cut through the middle slices", HomeFit.slices(minY: 967, maxY: 1025, cut: 1020))
-check("a button wholly above the cut is not sliced", !HomeFit.slices(minY: 600, maxY: 656, cut: 1020))
-check("a button wholly past the cut is not sliced", !HomeFit.slices(minY: 1049, maxY: 1107, cut: 768))
-check("a button ending on the cut is not sliced", !HomeFit.slices(minY: 964, maxY: 1020, cut: 1020))
+// the line through a button (the iPad at AX1: Start 967-1025, line 1020)
+check("a line through the middle slices", HomeFit.slices(minY: 967, maxY: 1025, cut: 1020))
+check("a button wholly above the line is not sliced", !HomeFit.slices(minY: 600, maxY: 656, cut: 1020))
+check("a button wholly past the line is not sliced", !HomeFit.slices(minY: 1049, maxY: 1107, cut: 768))
+check("a button ending on the line is not sliced", !HomeFit.slices(minY: 964, maxY: 1020, cut: 1020))
 
 // MARK: - The preview's check
 
@@ -57,11 +58,11 @@ let fitting = HomeFit.faults(card: box(204, 527), start: box(460, 510), bar: box
 check("a home that fits has no faults", fitting.isEmpty, fitting.joined(separator: "; "))
 
 // the r7 SE picture: the card to 603, the bar from 570. New set sat on the
-// card then; under the page's cut the card stops 12 points above the bar,
-// so only the button and the card are caught
+// card then; the card has to stop 12 points above the bar, so only the
+// button and the card are caught
 let cut = HomeFit.faults(card: box(204, 603), start: box(538, 590), bar: box(570, 720),
                          newSet: box(580, 632, x0: 232, x1: 359))
-check("the button and the card past the cut are both caught",
+check("the button and the card past the bar's line are both caught",
       cut.count == 2 && cut[0].hasPrefix("Start ward round") && cut[1].hasPrefix("the round card"),
       cut.joined(separator: "; "))
 
@@ -74,8 +75,9 @@ check("New set on the card's top is caught", up.count == 1 && up[0].hasPrefix("N
 // MARK: - Large text: the page scrolls
 
 // r11's iPhone at XXL: the card 283-797 with Start at 725-781, the bar
-// (New set over the dock) from 708. The page runs on under the cut at 696
-// and scrolls; Start is wholly below it; nothing sits on what shows
+// (New set over the dock) from 708. The page runs on behind the bar, its
+// line at 696, and scrolls; Start is wholly below it; nothing sits on the
+// card above the line
 let xxl = HomeFit.faults(card: box(283, 797), start: box(725, 781), bar: box(708, 860),
                          newSet: box(708, 764, x0: 232, x1: 386), large: true)
 check("at XXL a home that runs on and scrolls fits", xxl.isEmpty, xxl.joined(separator: "; "))
@@ -83,20 +85,19 @@ let xxlDefault = HomeFit.faults(card: box(283, 797), start: box(725, 781), bar: 
                                 newSet: box(708, 764, x0: 232, x1: 386))
 check("the same page at the standard sizes does not", xxlDefault.count == 2, xxlDefault.joined(separator: "; "))
 let sliced = HomeFit.faults(card: box(283, 760), start: box(680, 736), bar: box(708, 860), newSet: nil, large: true)
-check("a Start button sliced by the cut is caught",
+check("a Start button sliced by the bar's line is caught",
       sliced.count == 1 && sliced[0].contains("sliced"), sliced.joined(separator: "; "))
 let whole = HomeFit.faults(card: box(283, 700), start: box(620, 676), bar: box(708, 860), newSet: nil, large: true)
-check("a Start button wholly above the cut is fine", whole.isEmpty, whole.joined(separator: "; "))
+check("a Start button wholly above the bar's line is fine", whole.isEmpty, whole.joined(separator: "; "))
 
-// MARK: - Slivers and words
+// MARK: - Tiles behind the bar, and words
 
-let sliver = HomeFit.faults(card: box(204, 527), start: box(460, 510), bar: box(557, 647), newSet: nil,
-                            tiles: box(539, 700))
-check("6 points of the tiles over the cut is a sliver", sliver.count == 1 && sliver[0].contains("sliver"),
-      sliver.joined(separator: "; "))
-for (tiles, what) in [(box(500, 700), "a good part of the tiles"), (box(560, 700), "tiles wholly under the cut")] {
-    let f = HomeFit.faults(card: box(204, 480), start: box(420, 470), bar: box(557, 647), newSet: nil, tiles: tiles)
-    check("\(what) is fine", f.isEmpty, f.joined(separator: "; "))
+// Tiles and rows past the bar's line are no fault: they pass behind New set
+// and the dock, which hide nothing a scroll cannot bring clear
+for (card, what) in [(box(204, 527), "the card fitting, the tiles under it"),
+                     (box(204, 480), "the card well clear")] {
+    let f = HomeFit.faults(card: card, start: box(420, 470), bar: box(557, 647), newSet: nil)
+    check("\(what): no fault", f.isEmpty, f.joined(separator: "; "))
 }
 let broken = HomeFit.faults(card: box(204, 527), start: box(460, 510), bar: box(557, 647), newSet: nil,
                             words: [HomeFit.Words(name: "the Vitals tile's streak", width: 46, widest: 52),
@@ -105,85 +106,57 @@ check("a text narrower than its widest word is caught, and only that one",
       broken.count == 1 && broken[0].hasPrefix("the Vitals tile's streak breaks inside a word"),
       broken.joined(separator: "; "))
 
-// MARK: - Slivers of any row or part (the review's B1)
+// MARK: - Not cut above the bar (the owner, 22 Oct)
 
-// the iPad at the default size: the PRACTISE tiles' tops at 1098, the bar
-// from 1118, so the cut at 1106 shows 8 points of them
-let ipadTiles = HomeFit.Part(name: "a Practise tile", box: box(1098, 1190))
-let ipadBar = box(1118, 1194)
-let ipadSliver = HomeFit.faults(card: box(300, 980), start: box(920, 976), bar: ipadBar, newSet: nil,
-                                parts: [ipadTiles])
-check("iPad at the default size: 8 points of the Practise tiles are caught",
-      ipadSliver.count == 1 && ipadSliver[0].contains("a Practise tile (1098-1190)")
-        && ipadSliver[0].contains("cut at 1106"), ipadSliver.joined(separator: "; "))
-check("the cut moves up to the tiles' top", HomeFit.settledCut(1106, tops: [1098]) == 1098)
-check("the page, cut there, shows none of them",
-      HomeFit.cut(barTop: 1118, pageTop: 0, tops: [1098]) == 1098)
-let ipadHonoured = HomeFit.faults(card: box(300, 980), start: box(920, 976), bar: ipadBar, newSet: nil,
-                                  pageEnd: 1098, parts: [ipadTiles])
-check("with the cut moved up, the tiles are no sliver", ipadHonoured.isEmpty, ipadHonoured.joined(separator: "; "))
-
-// AX1: the top of bed 1's Due chip, 682.3-700, over the cut at 686 (bar 698)
-let dueChip = HomeFit.Part(name: "bed 1's Due chip", box: box(682.3, 700, x0: 300, x1: 359))
-let ax1Bar = box(698, 860)
-let ax1Sliver = HomeFit.faults(card: box(283, 900), start: box(820, 876), bar: ax1Bar, newSet: nil,
-                               large: true, parts: [dueChip])
-check("AX1: 4 points of the Due chip over the cut are caught",
-      ax1Sliver.count == 1 && ax1Sliver[0].contains("bed 1's Due chip"), ax1Sliver.joined(separator: "; "))
-check("AX1: the cut moves up to the chip's top", HomeFit.settledCut(686, tops: [682.3]) == 682.3)
-let ax1Honoured = HomeFit.faults(card: box(283, 900), start: box(820, 876), bar: ax1Bar, newSet: nil,
-                                 large: true, pageEnd: 682.3, parts: [dueChip])
-check("AX1: with the cut moved up, the chip is no sliver", ax1Honoured.isEmpty, ax1Honoured.joined(separator: "; "))
-
-// AX1 phone, preview run 38820624486: the chip's top 682.3, the bar 698, the page
-// 0 to 874 from a top at 0. The cut moved up to 682.3, yet the frame was snapped
-// to the 3x grid and ended at 682.67: 0.37 of the chip showed. On the grid at or
-// above the cut, the end is 682.0 (and likewise from an off-grid page top).
-let ax1Height = HomeFit.shown(barTop: 698, pageTop: 0, pageHeight: 874, tops: [682.3], scale: 3)
-check("AX1: the page ends on the 3x grid at or above the chip's top", ax1Height <= 682.3 && ax1Height > 682.3 - 1.0 / 3
-      && (ax1Height * 3).rounded() == ax1Height * 3, "\(ax1Height)")
-for top in [0.0, 0.17, 59.4, 62.5] {
-    let h = HomeFit.shown(barTop: 698, pageTop: top, pageHeight: 874, tops: [682.3], scale: 3)
-    let grid = (top + h) * 3
-    check("AX1: from a page top at \(top), an end snapped to the grid either way is not below the chip",
-          top + h <= 682.3 + 1e-9 && (grid.rounded() / 3) <= 682.3 + 1e-9, "\(top + h)")
+// The bar's line is only where the first screen's round has to end
+check("the bar's line is barRoom (12) above the bar", HomeFit.barRoom == 12 && HomeFit.barLine(barTop: 700) == 688)
+// the row that ends the list: as tall as the bar, and 24 more
+check("the end row is the bar's height and 24", HomeFit.endSpace(barHeight: 140) == 164 && HomeFit.endRoom == 24)
+check("no bar measured: the end row is 24", HomeFit.endSpace(barHeight: 0) == 24)
+check("an unmeasurable bar is not counted", HomeFit.endSpace(barHeight: .nan) == 24 && HomeFit.endSpace(barHeight: -5) == 24)
+// the last tile, scrolled to the end, rests above the bar's top: the list
+// runs on to the bar's bottom, and the end row lifts the last tile clear,
+// whether or not the list keeps its own inset for the bar too, for bars
+// from none to AX5's height (New set over the dock, the dock alone, the
+// selection bar) and tops from a short phone's to an iPad's.
+var clear: Bool = true
+var worst: Double = -.infinity
+for barTop in [520.0, 700, 742, 790, 1118] {
+    for barHeight in [0.0, 56, 76, 132, 152, 220, 400] {
+        for honoured in [false, true] {
+            let bottom: Double = HomeFit.lastRowBottom(barTop: barTop, barHeight: barHeight, insetHonoured: honoured)
+            worst = max(worst, bottom - barTop)
+            if !(bottom <= barTop - HomeFit.endRoom + 1e-9) { clear = false }
+        }
+    }
 }
-let ax1Snapped = HomeFit.faults(card: box(413, 1173), start: box(1098, 1156), bar: box(698, 840), newSet: box(698, 755),
-                                large: true, pageEnd: 682 + 0.0, parts: [dueChip])
-check("AX1: the snapped page end clears the chip in the gate", ax1Snapped.isEmpty, ax1Snapped.joined(separator: "; "))
-check("no scale known: the cut as it was", HomeFit.shown(barTop: 698, pageTop: 0, pageHeight: 874, tops: [682.3]) == 682.3)
+check("the last tile can sit wholly above the bar, endRoom clear of it", clear, "worst \(worst)")
+check("a bar from 700, 132 tall: the last tile ends at 676",
+      HomeFit.lastRowBottom(barTop: 700, barHeight: 132) == 676)
 
-// the cut is left alone by tops at it, 12 or more over it, or past it
-check("a top at the cut leaves it", HomeFit.settledCut(686, tops: [686]) == 686)
-check("a top 12 points over the cut leaves it", HomeFit.settledCut(686, tops: [674]) == 686)
-check("a top past the cut leaves it", HomeFit.settledCut(686, tops: [690, 900]) == 686)
-check("no tops, no move", HomeFit.settledCut(686, tops: []) == 686)
-// moving up can bring another top into the band: it goes on until none is
-check("a chain of tops moves the cut to the last", HomeFit.settledCut(686, tops: [680, 670, 640]) == 670)
-check("tops in any order settle the same", HomeFit.settledCut(686, tops: [670, 640, 680]) == 670)
-// a part twice reported is one sliver
-let twice = HomeFit.faults(card: box(204, 480), start: box(420, 470), bar: box(557, 647), newSet: nil,
-                           tiles: box(539, 700), parts: [HomeFit.Part(name: "the tiles", box: box(539, 700))])
-check("the same sliver reported twice is one fault", twice.count == 1, twice.joined(separator: "; "))
-// a part wholly past the cut, or well over it, is fine
-let partsFine = HomeFit.faults(card: box(204, 480), start: box(420, 470), bar: box(557, 647), newSet: nil,
-                               parts: [HomeFit.Part(name: "a row", box: box(545, 600)),
-                                       HomeFit.Part(name: "a tile", box: box(400, 500))])
-check("parts wholly past the cut or well over it are fine", partsFine.isEmpty, partsFine.joined(separator: "; "))
-
-// MARK: - How much of the page shows
-
-check("no bar measured: all of the page", HomeFit.shown(barTop: nil, pageTop: 0, pageHeight: 874) == 874)
-check("a bar at 700: down to 688", HomeFit.shown(barTop: 700, pageTop: 0, pageHeight: 874) == 688)
-check("measured from the page's own top", HomeFit.shown(barTop: 700, pageTop: 100, pageHeight: 774) == 588)
-check("a bar not below the page's top: all of it", HomeFit.shown(barTop: 50, pageTop: 100, pageHeight: 774) == 774)
-check("an endless bar top: all of it", HomeFit.shown(barTop: .infinity, pageTop: 0, pageHeight: 874) == 874)
-check("the cut, from the page's top", HomeFit.cut(barTop: 700, pageTop: 100) == 588)
-check("the cut below a short page's frame is kept", HomeFit.cut(barTop: 700, pageTop: 100) == 588
-      && HomeFit.shown(barTop: 700, pageTop: 100, pageHeight: 500) == 500)
-check("no bar, no cut", HomeFit.cut(barTop: nil, pageTop: 0) == nil)
-check("a bar over the page's top, no cut", HomeFit.cut(barTop: 50, pageTop: 100) == nil)
-check("a bar just under the page's top cuts at its top", HomeFit.cut(barTop: 105, pageTop: 100) == 0)
+// The app's page is not cut: no frame shortens it above the bar, the bar
+// floats over it with nothing drawn behind it, its last row is the end row,
+// and nothing fades under the bar (the source, read from the repository root)
+let library = (try? String(contentsOfFile: "ios/RedPen/Features/Library/LibraryView.swift", encoding: .utf8)) ?? ""
+let fit = (try? String(contentsOfFile: "ios/RedPen/Shared/Learn/HomeFit.swift", encoding: .utf8)) ?? ""
+check("found home's source", !library.isEmpty && !fit.isEmpty)
+check("no page cut in HomeFit", !fit.contains("cutRoom") && !fit.contains("static func cut(")
+      && !fit.contains("static func shown(") && !fit.contains("settledCut"))
+check("no page cut in the library", !library.contains("pageCutHeight") && !library.contains("HomeFit.cut(")
+      && !library.contains("HomeFit.shown(") && !library.contains("cutRoom"))
+check("the bar floats over the page", library.contains(".safeAreaInset(edge: .bottom) { bottomBar }"))
+let barStart = library.range(of: "private var bottomBar: some View {")
+let barEnd = library.range(of: "private var newSetShown: Bool")
+let barSource = barStart.flatMap { a in barEnd.map { String(library[a.lowerBound..<$0.lowerBound]) } } ?? ""
+check("nothing is drawn behind New set and the dock: no fill, strip, line or glow",
+      !barSource.isEmpty && !barSource.contains(".background") && !barSource.contains("Divider")
+      && !barSource.contains("WardEtch") && !barSource.contains("Rectangle(") && !barSource.contains("wardBarBase")
+      && barSource.components(separatedBy: ".wardUnlit()").count == 3)
+check("the list ends with the end row",
+      library.contains(".frame(height: CGFloat(HomeFit.endSpace(barHeight: Double(dockHeight))))"))
+check("no soft edge fades the rows under the bar (no fading, the owner, 9 Oct)",
+      library.contains(".scrollEdgeEffectHidden(true, for: .bottom)"))
+check("Start ward round keeps clear of the bar's line", library.contains("HomeFit.barLine(barTop: Double(barTop))"))
 
 let close = HomeFit.faults(card: box(204, 553), start: box(500, 545), bar: box(557, 647), newSet: nil)
 check("ending 4 points above the bar is too close", close.count == 1, close.joined(separator: "; "))
@@ -193,6 +166,22 @@ check("a card with no button is a fault",
       HomeFit.faults(card: box(0, 1), start: nil, bar: nil, newSet: nil).count == 1)
 
 // MARK: - The parts book (WardPartBook's ledger)
+
+// The ledger still guards a cut a page may set (WardPartBook.cut, nil on
+// home now): the cut once no part shows under 12 points over it, as the
+// ledger's loop guard expects it to settle.
+func settled(_ cut: Double, tops: [Double]) -> Double {
+    var at: Double = cut
+    var moved: Bool = true
+    while moved {
+        moved = false
+        for top in tops where top.isFinite && top < at && at - top < 12 {
+            at = top
+            moved = true
+        }
+    }
+    return at
+}
 
 // N3: a top is booked floored onto the pixel grid, never rounded to a half
 // point: 682.78 at 3x is 682.667 (a half-point round gave 683, below the
@@ -220,7 +209,7 @@ ledger.set(1, name: "chip", rect: CGRect(x: 0, y: 682.78, width: 80, height: 24)
 check("the ledger lists the floored top", ledger.tops.count == 1 && abs(ledger.tops[0] - 2048.0 / 3) < 1e-9,
       "\(ledger.tops)")
 check("a cut at 683 settles on the chip's pixel line",
-      abs(HomeFit.settledCut(683, tops: ledger.tops) - 2048.0 / 3) < 1e-9)
+      abs(settled(683, tops: ledger.tops) - 2048.0 / 3) < 1e-9)
 // a row's tile stands out above its frame
 ledger.set(2, name: "row", rect: CGRect(x: 0, y: 700, width: 300, height: 60), reach: 8, scale: 2)
 check("reach lifts a row's top", ledger.entries[2]?.top == 692 && ledger.entries[2]?.rect.height == 68)
@@ -344,13 +333,13 @@ do {
     book.cut = 686
     _ = book.set(1, name: "chip", rect: CGRect(x: 0, y: 682, width: 60, height: 18), reach: 0, scale: 2, atRest: true)
     _ = book.set(2, name: "upper row", rect: CGRect(x: 0, y: 400, width: 300, height: 50), reach: 0, scale: 2, atRest: true)
-    let movedCut = HomeFit.settledCut(686, tops: book.tops)
+    let movedCut = settled(686, tops: book.tops)
     check("the chip at 682 moves the cut from 686 to 682", movedCut == 682)
     book.cut = movedCut
     let loopDrop = book.drop(1, atRest: true, cut: 682)
     check("dropping a part at or below the settled cut keeps its entry so settledCut stays at 682",
           !loopDrop && book.entries[1]?.top == 682 && book.sightings[1] != nil
-            && HomeFit.settledCut(686, tops: book.tops) == 682)
+            && settled(686, tops: book.tops) == 682)
     // the next rest books the hidden part where it was: nothing published,
     // so the cut never falls back to show it and hide it again
     let restAfterHide = book.rebook()
@@ -407,7 +396,7 @@ do {
     book.cut = 686
     let pruned = book.rebook()
     let prunedGhost = pruned && book.entries[1] == nil && book.sightings[1] == nil && book.told == [600]
-        && HomeFit.settledCut(686, tops: book.tops) == 686
+        && settled(686, tops: book.tops) == 686
     book.set(3, name: "reappeared", rect: CGRect(x: 0, y: 690, width: 100, height: 44), reach: 0, scale: 3)
     book.drop(3)
     book.set(3, name: "reappeared", rect: CGRect(x: 0, y: 680, width: 100, height: 44), reach: 0, scale: 3)
@@ -437,7 +426,7 @@ do {
     let rested = book.rebook()
     let keptHolder = !publishedWhileMoving && !dropped && !rested && book.entries[1]?.top == 680
         && book.sightings[1] != nil && book.told == [680]
-        && HomeFit.settledCut(686, tops: book.tops) == 680
+        && settled(686, tops: book.tops) == 680
     // The previous rest frame must not protect a row that is now above the
     // cut (including a real fraction of a pixel, beyond floating slack).
     book.set(1, name: "More ways to practise", rect: CGRect(x: 0, y: 679.9, width: 300, height: 44),

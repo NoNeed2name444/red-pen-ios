@@ -536,6 +536,9 @@ enum IdeasPlace {
 /// Slots fit their names, then share spare room by filling the narrower slots
 /// equally. The chosen hollow travels between categories with the selection.
 /// Wide windows use the leading rail; accessibility sizes open a list instead.
+/// At every other size the bottom is the full row, on every phone: where the
+/// names and their room are wider than the window, the names shrink a little,
+/// all by the same amount, and never their room from the ring (WardDock).
 struct CategoryDock: View {
     @Binding var selection: StudyCategory
     /// Whether Ideas, rather than a category, is the page on show.
@@ -572,15 +575,12 @@ struct CategoryDock: View {
     }
 
     var body: some View {
-        if typeSize.isAccessibilitySize {
+        if WardDock.showsList(accessibilitySize: typeSize.isAccessibilitySize) {
             listButton
         } else if axis == .vertical {
             rail
         } else {
-            ViewThatFits(in: .horizontal) {
-                bar
-                listButton
-            }
+            bar
         }
     }
 
@@ -649,14 +649,14 @@ struct CategoryDock: View {
     // MARK: along the bottom
 
     private var bar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: CGFloat(WardDock.barSpacing)) {
             categoriesPanel
             ideasPill
         }
         // the pill as tall as the panel, whatever the text size
         .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: 560)
-        .padding(.horizontal, 10)
+        .frame(maxWidth: CGFloat(WardDock.barMaxWidth))
+        .padding(.horizontal, CGFloat(WardDock.barSide))
         .padding(.bottom, 10)
     }
 
@@ -676,7 +676,7 @@ struct CategoryDock: View {
         let shape: RoundedRectangle = panelShape
         return Button(action: chooseIdeas) {
             ideasFace(chosen: chosen)
-                .frame(width: 56)
+                .frame(width: CGFloat(WardDock.ideasWidth))
                 .frame(minHeight: 56, maxHeight: .infinity)
                 .contentShape(shape)
                 .contentShape(.hoverEffect, shape)
@@ -768,8 +768,9 @@ struct CategoryDock: View {
             DockItemFace(symbol: category.symbol, title: L10n.lookup(category.title), chosen: chosen)
                 // The name keeps clear of the chosen ring, its corners too,
                 // at every text size the dock is drawn at: room at the
-                // sides and above and below (WardDock.labelFits). The slot
-                // is never narrower than the name and this room (DockSlots).
+                // sides and above and below (WardDock.labelFits). A slot
+                // keeps this room; where the row is short of width the
+                // names shrink instead (DockSlots, WardDock.tabWidths).
                 .padding(.horizontal, CGFloat(WardDock.labelSide))
                 .padding(.vertical, CGFloat(WardDock.labelVertical))
                 .frame(maxWidth: .infinity, minHeight: CGFloat(WardDock.tabMinHeight))
@@ -912,27 +913,18 @@ extension DockListSheet {
     }
 }
 
-/// Name-sized slots with spare width shared by water-filling the narrower ones.
+/// Name-sized slots with spare width shared by water-filling the narrower
+/// ones; short of width, the names shrink alike and keep their side room.
 private struct DockSlots: Layout {
     private func widths(_ subviews: Subviews, offered: CGFloat?) -> [CGFloat] {
         // Each label already contains its side room (WardDock.labelSide).
-        let ideals = subviews.map { max(44, $0.sizeThatFits(.unspecified).width) }
-        let total = ideals.reduce(0, +)
-        guard let offered, total > 0 else { return ideals }
-        let width = max(0, offered)
-        // Never compress away label clearance. ViewThatFits uses the
-        // list button when the names cannot fit at their shared font size.
-        if width < total { return ideals }
-        var remaining = width
-        var count = ideals.count
-        var level: CGFloat = 0
-        for ideal in ideals.sorted(by: >) {
-            level = remaining / CGFloat(count)
-            if ideal <= level { break }
-            remaining -= ideal
-            count -= 1
+        let ideals: [Double] = subviews.map {
+            max(WardDock.leastTab, Double($0.sizeThatFits(.unspecified).width))
         }
-        return ideals.map { max($0, level) }
+        guard let offered else { return ideals.map { CGFloat($0) } }
+        // Never compress away label clearance: the names shrink instead
+        // (DockItemFace), so the row fits every phone.
+        return WardDock.tabWidths(ideals, room: Double(offered)).map { CGFloat($0) }
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
@@ -974,10 +966,12 @@ private struct DockItemFace: View {
             Image(systemName: symbol)
                 .scaledFont(19, relativeTo: .body, weight: .semibold, maxSize: 30)
                 .frame(minHeight: 24)
+            // whole at its size where the row has room; a little smaller,
+            // all five alike, where it has not (DockSlots)
             Text(title)
                 .font(.caption2.weight(.bold))
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
+                .minimumScaleFactor(CGFloat(WardDock.leastNameScale))
         }
         .foregroundStyle(ink)
     }

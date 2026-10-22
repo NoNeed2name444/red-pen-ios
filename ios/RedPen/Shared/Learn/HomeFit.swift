@@ -8,13 +8,16 @@ import Foundation
 // the account button, and the round shows its first two beds, so the card
 // ends above the dock.
 //
-// The page ends at a clean cut `cutRoom` above the bar (`shown` is how
-// tall it is): nothing scrolled under New set or the dock shows, a row
-// past the cut is off screen to taps and VoiceOver, and there is no strip
-// or line under them, so the page reads unbroken to the bottom (the owner,
-// 9 and 14 Oct). The preview checks the result with `faults`: the card
-// above the cut, no sliver of the tiles peeking over it, New set off the
-// card, and no word of home's text broken across two lines.
+// The page is not cut above the bar (the owner, 22 Oct: the band under
+// New set and the tabs was wrong). The list runs on to the window's bottom
+// edge behind New set and the dock, which float on the page with nothing
+// behind them but the page itself; a row as tall as the bar, and `endRoom`
+// more, ends the list (`endSpace`), so the last tile scrolls wholly clear
+// above them (`lastRowBottom`). The preview checks the first screen with
+// `faults`: at the standard sizes the card and its button end `barRoom`
+// above the bar, at the large sizes the bar's line slices no button, New
+// set sits on no part of the card above that line, and no word of home's
+// text is broken across two lines.
 
 enum HomeFit {
     /// Window heights (points, inside the safe area) under this are short:
@@ -24,63 +27,31 @@ enum HomeFit {
     static let shortBeds: Int = 2
     /// The least room between the card's end and the bar.
     static let gap: Double = 8
-    /// The room between the page's cut and the bar's top.
-    static let cutRoom: Double = 12
-    /// The least of a row that may show over the cut at rest: less reads as
-    /// a stray line, not as more to scroll to.
-    static let leastShown: Double = 12
+    /// At the standard text sizes, the least room between the round card's
+    /// end (and its Start ward round button's) and the bar's top. Not a line
+    /// on screen: where the first screen's round has to end.
+    static let barRoom: Double = 12
+    /// The room under the last row once the list has scrolled to its end.
+    static let endRoom: Double = 24
 
-    /// Where the page's cut falls, from the page's top: `cutRoom` above the
-    /// bar, however tall the page's own frame is (a list runs on past it,
-    /// under the bar). Nil, no cut: there is no bar (the keyboard is up,
-    /// the sky is behind) or it has not been measured. Global points in.
-    /// `tops` are the global tops, at rest, of the rows and parts that can
-    /// meet the cut (`settledCut`).
-    static func cut(barTop: Double?, pageTop: Double, tops: [Double] = []) -> Double? {
-        guard let barTop, barTop.isFinite, barTop > pageTop else { return nil }
-        return max(0, settledCut(barTop - cutRoom, tops: tops) - pageTop)
+    /// The bar's line: `barRoom` above its top (global points).
+    static func barLine(barTop: Double) -> Double { barTop - barRoom }
+
+    /// How tall the row that ends the list is: as tall as the bar (New set
+    /// over the dock, or the selection bar), and `endRoom` more. Nothing
+    /// cuts the page, so this row is all that keeps the last tile clear of
+    /// the bar: the list's own inset for the bar is not relied on.
+    static func endSpace(barHeight: Double) -> Double {
+        max(0, barHeight.isFinite ? barHeight : 0) + endRoom
     }
 
-    /// How tall a page with this much room is, from its top: down to the
-    /// cut, or all of it.
-    ///
-    /// `scale` is the screen's pixels to a point (2 or 3), 0 when unknown.
-    /// SwiftUI snaps a frame to the pixel grid, and it snaps up as readily as
-    /// down: the AX1 phone's chip top, 682.3, became a page end of 682.67 and
-    /// a hairline of the chip showed over the cut. So the cut is settled onto
-    /// the grid at or above itself, and the height onto the grid again, so
-    /// the page's end falls at or above the cut however the frame is snapped.
-    static func shown(barTop: Double?, pageTop: Double, pageHeight: Double, tops: [Double] = [],
-                      scale: Double = 0) -> Double {
-        guard let cut = cut(barTop: barTop, pageTop: pageTop, tops: tops) else { return pageHeight }
-        guard scale > 0, scale.isFinite else { return min(pageHeight, cut) }
-        let end: Double = onGrid(pageTop + cut, scale: scale)
-        return min(pageHeight, max(0, onGrid(end - pageTop, scale: scale)))
-    }
-
-    /// The pixel line at or above `value` (a hair of slack for the float
-    /// error of a value already on the grid).
-    static func onGrid(_ value: Double, scale: Double) -> Double {
-        (value * scale + 1e-6).rounded(.down) / scale
-    }
-
-    /// The cut (global points) once no part shows less than `leastShown`
-    /// over it: where a part's top falls within `leastShown` above the cut,
-    /// the cut moves up to that top, so the part is wholly past it and no
-    /// stray sliver shows. A part's top at the cut, or `leastShown` or more
-    /// above it, leaves the cut where it is. Moving the cut up can bring
-    /// another top into that band, so it goes on until none is.
-    static func settledCut(_ cut: Double, tops: [Double]) -> Double {
-        var at: Double = cut
-        var moved: Bool = true
-        while moved {
-            moved = false
-            for top in tops where top.isFinite && top < at && at - top < leastShown {
-                at = top
-                moved = true
-            }
-        }
-        return at
+    /// Where the last row's bottom rests once the list has scrolled to its
+    /// end, the list running on to the bar's bottom (it is not cut above the
+    /// bar). `insetHonoured`: the list also keeps its own inset for the bar,
+    /// which only lifts the row further. Global points.
+    static func lastRowBottom(barTop: Double, barHeight: Double, insetHonoured: Bool = false) -> Double {
+        let listEnd: Double = barTop + max(0, barHeight)
+        return listEnd - endSpace(barHeight: barHeight) - (insetHonoured ? max(0, barHeight) : 0)
     }
 
     /// Whether a push and back showed home covered by the pushed page: a
@@ -104,14 +75,14 @@ enum HomeFit {
 
     /// How many of the round's beds are shown.
     /// `trimmed` is how many more were taken off, one at a time, while the
-    /// page's cut sliced Start ward round at large text (`slices`); one
+    /// bar's line sliced Start ward round at large text (`slices`); one
     /// bed always stays.
     static func shownBeds(_ count: Int, short: Bool, trimmed: Int = 0) -> Int {
         let base: Int = short ? min(count, shortBeds) : count
         return max(min(base, 1), base - max(0, trimmed))
     }
 
-    /// Whether a cut at `cut` falls inside something spanning `minY` to
+    /// Whether a line at `cut` falls inside something spanning `minY` to
     /// `maxY`: neither wholly above it nor wholly below.
     static func slices(minY: Double, maxY: Double, cut: Double) -> Bool {
         minY < cut && maxY > cut
@@ -131,8 +102,8 @@ enum HomeFit {
         var text: String { "\(Int(minY.rounded()))-\(Int(maxY.rounded()))" }
     }
 
-    /// A row or part of the page that can meet the cut, as laid out at rest:
-    /// a Practise tile, a set's row, the Due chip inside the round card.
+    /// A row or part of the page, as laid out at rest: a Practise tile, a
+    /// set's row, the Due chip inside the round card.
     struct Part: Equatable {
         var name: String
         var box: Box
@@ -150,51 +121,38 @@ enum HomeFit {
     /// What is wrong with home as laid out at rest; empty when it fits.
     ///
     /// At the standard text sizes the round card and its Start ward round
-    /// button end above the page's cut, so the first screen holds the whole
-    /// round. At the larger sizes (`large`: XL and up) the page may run on
-    /// past the cut and scroll, as Apple's large-text guidance expects, but
-    /// the cut must not slice the Start button (whole above it or wholly
-    /// out of sight) and no sliver of the card or the tiles may peek over
-    /// it. At any size New set sits on no part of the card that shows, and
-    /// no word of home's text is broken across two lines.
-    ///
-    /// `pageEnd` is where the page was actually cut, when it was measured
-    /// (the layout may have moved the cut up, `settledCut`): the cut is the
-    /// higher of it and the one the bar gives. `parts` are the other rows
-    /// and parts that can meet the cut: none may show under `leastShown`
-    /// over it.
-    static func faults(card: Box?, start: Box?, bar: Box?, newSet: Box?, tiles: Box? = nil,
-                       large: Bool = false, words: [Words] = [],
-                       pageEnd: Double? = nil, parts: [Part] = []) -> [String] {
+    /// button end `barRoom` above the bar, so the first screen holds the
+    /// whole round. At the larger sizes (`large`: XL and up) the page may
+    /// run on behind the bar and scroll, as Apple's large-text guidance
+    /// expects, but the bar's line must not slice the Start button (whole
+    /// above it or wholly past it). At any size New set sits on no part of
+    /// the card above the bar's line, and no word of home's text is broken
+    /// across two lines. Rows and tiles past the line are not faults: they
+    /// pass behind New set and the dock, and scroll clear (`endSpace`).
+    static func faults(card: Box?, start: Box?, bar: Box?, newSet: Box?,
+                       large: Bool = false, words: [Words] = []) -> [String] {
         guard let card else { return ["no round card was laid out"] }
         guard let start else { return ["no Start ward round button was laid out"] }
         guard let bar else { return ["no bottom bar was laid out"] }
         var out: [String] = []
-        let cut: Double = min(bar.minY - cutRoom, pageEnd ?? .infinity)
-        let at: String = "\(Int(cut.rounded()))"
+        let line: Double = barLine(barTop: bar.minY)
+        let at: String = "\(Int(line.rounded()))"
         if large {
-            if slices(minY: start.minY, maxY: start.maxY, cut: cut) {
-                out.append("Start ward round (\(start.text)) is sliced by the page's cut at \(at)")
+            if slices(minY: start.minY, maxY: start.maxY, cut: line) {
+                out.append("Start ward round (\(start.text)) is sliced by the bar's line at \(at)")
             }
         } else {
-            if start.maxY > cut {
-                out.append("Start ward round (\(start.text)) runs past the page's cut at \(at), above the bar")
+            if start.maxY > line {
+                out.append("Start ward round (\(start.text)) runs past the bar's line at \(at), above the bar")
             }
-            if card.maxY > cut {
-                out.append("the round card (\(card.text)) runs past the page's cut at \(at)")
+            if card.maxY > line {
+                out.append("the round card (\(card.text)) runs past the bar's line at \(at)")
             }
         }
-        var named: [(String, Box?)] = [("the round card", card), ("the tiles", tiles)]
-        named += parts.map { ($0.name, Optional($0.box)) }
-        for (name, box) in named {
-            guard let box, box.minY < cut, cut - box.minY < leastShown else { continue }
-            let line: String = "a sliver of \(name) (\(box.text)) peeks over the page's cut at \(at)"
-            if !out.contains(line) { out.append(line) }
-        }
-        // the part of the card that shows: down to the cut
-        if let newSet, card.minY < cut {
+        // the part of the card on the first screen: down to the bar's line
+        if let newSet, card.minY < line {
             var shown: Box = card
-            shown.maxY = min(card.maxY, cut)
+            shown.maxY = min(card.maxY, line)
             if newSet.overlaps(shown) {
                 out.append("New set (\(newSet.text)) sits on the round card (\(shown.text))")
             }

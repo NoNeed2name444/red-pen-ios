@@ -174,15 +174,9 @@ struct LibraryView: View {
     @State private var dockHeight: CGFloat = 0
     /// Where the bottom bar (New set over the dock, or the selection bar)
     /// begins, in global points; nil while there is none (the keyboard has
-    /// put it away). The page ends a little above it (pageCutHeight).
+    /// put it away). The page is not cut above it: its rows run on behind
+    /// it (HomeFit); Start ward round keeps clear of its line (trimSlicedStart).
     @State private var barTop: CGFloat?
-    /// The room the page has, in global points, for its cut.
-    @State private var pageFrame: CGRect = .zero
-    /// The tops, in global points, of the rows and parts that stood where
-    /// the page's cut can fall, at rest (WardPartBook): the cut moves up to
-    /// any that it would leave a sliver of (HomeFit.settledCut). Written
-    /// only at rest, so a scroll never re-runs the page for it.
-    @State private var restTops: [Double] = []
 
     /// Where the home's grid band ends, followed through a scroll without
     /// redrawing the list (HomeBandTrack).
@@ -205,15 +199,13 @@ struct LibraryView: View {
     /// button end above the dock.
     @State var shortWindow = false
     /// At large text, how many of the round's beds were taken off so the
-    /// page's cut does not slice Start ward round (HomeFit.slices), and
+    /// bar's line does not slice Start ward round (HomeFit.slices), and
     /// where Start was last laid out, in global points.
     @State var bedsTrimmed = 0
     @State var startFrame: CGRect = .zero
     /// At the accessibility text sizes the dock is one button over a list
     /// (CategoryDock), so it sits at the bottom even on a wide iPad.
     @Environment(\.dynamicTypeSize) var typeSize
-    /// Pixels to a point, so the page's cut can sit on the pixel grid (HomeFit.shown).
-    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         layout
@@ -222,7 +214,6 @@ struct LibraryView: View {
             // Past the default text size the page may scroll (HomeFit).
             .task {
                 WardPartBook.shared.atRest = { [bandTrack] in bandTrack.isAtRest }
-                WardPartBook.shared.changed = { restTops = $0 }
                 HomeFitProbe.shared.large = typeSize > .large
                 async let trip: Void = previewPushBack()
                 await HomeFitProbe.shared.report()
@@ -269,7 +260,6 @@ struct LibraryView: View {
         let restCut: Double? = WardPartBook.shared.cut
         let faces: [Double] = before.values.map { Double($0.rect.minY) }
         WardPartBook.shared.resetDropCounts()
-        HomeFitProbe.shared.pushStarted = Date()
         opened = [set]
         // Home's parts leave the book once the pushed page covers it. A busy
         // Mac can take longer than 1.5 s to get there (one look then missed
@@ -504,7 +494,7 @@ struct LibraryView: View {
             // the dock steps aside while typing, and the page runs to the
             // keyboard
             .onChange(of: keyboardUp) { _, up in if up { barTop = nil } }
-            // Start ward round is whole above the page's cut or wholly past
+            // Start ward round is whole above the bar's line or wholly past
             // it, never sliced by it, at any text size
             .onChange(of: startFrame) { trimSlicedStart() }
             .onChange(of: barTop) { trimSlicedStart() }
@@ -535,22 +525,14 @@ struct LibraryView: View {
                 .id(pageKey)
                 .transition(pageTransition)
         }
-            // The page ends at a clean cut a little above the bottom bar
-            // (pageCutHeight), its frame rather than a clip: past the cut a
-            // row is out of the list's bounds, so it is off screen to a tap,
-            // to VoiceOver and to the UI tests alike, and scrolls into view
-            // instead of hiding under New set or the dock.
-            .frame(height: pageCutHeight, alignment: .top)
-            .onChange(of: pageCut, initial: true) { _, cut in
-                WardPartBook.shared.cut = cut
-                HomeFitProbe.shared.notePushCut(cut, barTop: barTop, page: pageFrame, tops: restTops)
-            }
-            // where the page really ends, for the preview's fit check
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: {
-                HomeFitProbe.shared.pageEnd = $0
-            }
+            // The page is not cut above the bottom bar (the owner, 22 Oct:
+            // the band under New set and the tabs was wrong): its rows run
+            // on behind New set and the dock to the window's bottom edge,
+            // and the row that ends the list lets the last one scroll clear
+            // of them (HomeFit.endSpace). No soft edge under the bar either:
+            // nothing at the bottom fades (the owner, 9 Oct).
+            .scrollEdgeEffectHidden(true, for: .bottom)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { pageFrame = $0 }
             // a new page's list starts at its top, its header not yet seen
             .onChange(of: pageKey) {
                 bandTrack.reset()
@@ -611,42 +593,23 @@ struct LibraryView: View {
     /// header steps aside), not in Ideas and never under the sky.
     private var bandShown: Bool { !inIdeas && !underSky && !searching }
 
-    /// How far Ideas' lists run on past their last row: a little, when
-    /// the page ends at its cut above the dock; the dock's height when it
-    /// runs on under it; nothing while the keyboard has put the dock away.
+    /// How far Ideas' lists run on past their last row: the dock's height,
+    /// as they run on under it; nothing while the keyboard has put the dock
+    /// away.
     private var ideasClearance: CGFloat {
         if keyboardUp { return 0 }
-        return pageCutHeight == nil ? dockHeight : 16
+        return dockHeight
     }
 
-    /// How tall the page is, from its top to its cut (HomeFit.cut): a
-    /// little above the bottom bar, so nothing scrolled under New set or the
-    /// dock shows round or below them, with no strip or line under them, so
-    /// the page reads unbroken to the bottom (the owner, 9 and 14 Oct). The
-    /// backdrop is not cut: its grid runs on under the bar. Under the sky,
-    /// while the keyboard is up, and until the page and the bar have been
-    /// measured, no cut: the page has all its room.
-    private var pageCutHeight: CGFloat? {
-        guard !underSky, let barTop, pageFrame.height > 0 else { return nil }
-        let top: Double = Double(pageFrame.minY)
-        guard HomeFit.cut(barTop: Double(barTop), pageTop: top, tops: restTops) != nil else { return nil }
-        return CGFloat(HomeFit.shown(barTop: Double(barTop), pageTop: top, pageHeight: Double(pageFrame.height),
-                                     tops: restTops, scale: Double(displayScale)))
-    }
-
-    /// The page's cut y in global points, or nil when the page is not cut.
-    private var pageCut: Double? {
-        pageCutHeight.map { Double(pageFrame.minY + $0) }
-    }
-
-    /// At large text the round can run past the cut and scroll, but with
-    /// the page at rest the cut must not fall through Start ward round: it
-    /// would show half a button. Then the round gives up a bed (Plan has the
-    /// whole day) and Start rises clear. A page being scrolled is left alone.
+    /// At large text the round can run on behind the bar and scroll, but
+    /// with the page at rest the bar's line must not fall through Start ward
+    /// round: half a button would stand behind New set and the dock. Then
+    /// the round gives up a bed (Plan has the whole day) and Start rises
+    /// clear. A page being scrolled is left alone.
     private func trimSlicedStart() {
         guard typeSize > .large, bedsTrimmed < 8, bandTrack.isAtRest,
               let barTop, startFrame.height > 0 else { return }
-        let cut: Double = Double(barTop) - HomeFit.cutRoom
+        let cut: Double = HomeFit.barLine(barTop: Double(barTop))
         if HomeFit.slices(minY: Double(startFrame.minY), maxY: Double(startFrame.maxY), cut: cut) {
             bedsTrimmed += 1
         }
@@ -719,7 +682,7 @@ struct LibraryView: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                     dockHeight = $0
                 }
-                // where it begins: the page ends above it (pageCutHeight)
+                // where it begins (Start ward round keeps clear of its line)
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: {
                     barTop = $0
                 }
@@ -744,19 +707,18 @@ struct LibraryView: View {
                         .launchEntrance()
                 }
             }
-            // New set and the dock float on the page itself, with no strip
-            // under them, so the page reads unbroken to the bottom (the
-            // owner, 9 Oct); the page's rows end at a clean cut above them
-            // (pageCutHeight), so nothing scrolled under them shows through
-            // or peeks out below the dock (the owner, 14 Oct). Without a glow
-            // round them, only their edges.
+            // New set and the dock float on the page itself, with nothing
+            // behind them but the page: no strip, no line, no cut of the
+            // rows above them, so the page reads unbroken to the bottom (the
+            // owner, 9 and 22 Oct). Without a glow round them, only their
+            // edges.
             .wardUnlit()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
                 dockHeight = $0
             }
-            // where the bar begins: the page's cut, and the preview's fit
-            // check. Beside the rail with no New set (Ideas) the bar holds
-            // nothing, and the page runs on to the bottom.
+            // where the bar begins: Start ward round's line, and the
+            // preview's fit check. Beside the rail with no New set (Ideas)
+            // the bar holds nothing, and the page runs on to the bottom.
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
                 HomeFitProbe.shared.bar = $0
                 barTop = $0.height > 0 ? $0.minY : nil
@@ -877,11 +839,10 @@ struct LibraryView: View {
         // contentMargins were supposed to keep the last card clear of the
         // floating bar and neither did; a row cannot be ignored, because
         // the list has to make room for it like any other.
-        // Once the page ends at its cut above the bar, the list already
-        // stops clear of it, and the row is only the room under the last
-        // card.
+        // The page is not cut above the bar, so this row is what lets the
+        // last card scroll wholly clear of it (HomeFit.endSpace).
         Color.clear
-            .frame(height: (pageCutHeight == nil ? dockHeight : 0) + 24)
+            .frame(height: CGFloat(HomeFit.endSpace(barHeight: Double(dockHeight))))
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
