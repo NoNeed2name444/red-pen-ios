@@ -44,8 +44,7 @@ struct CaseDebriefView: View {
                 actionsCard
             }
             .padding(WardSpace.gutter)
-            .frame(maxWidth: 760)
-            .frame(maxWidth: .infinity)
+            .readableColumn()
         }
         .wardScreen()
         .saveToIdeasHost(ideaHost)

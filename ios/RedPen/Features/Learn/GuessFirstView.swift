@@ -31,8 +31,7 @@ struct GuessFirstView: View {
             Spacer(minLength: 0)
         }
         .padding(20)
-        .frame(maxWidth: 640, alignment: .leading)
-        .frame(maxWidth: .infinity)
+        .readableColumn()
         .wardScreen()
         .studyBar { bar }
         .navigationTitle("Guess first")

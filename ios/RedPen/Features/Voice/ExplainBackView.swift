@@ -113,8 +113,8 @@ struct ExplainBackView: View {
         .padding(.horizontal, WardSpace.gutter)
         .padding(.top, 8)
         .padding(.bottom, 12)
-        .frame(maxWidth: 760, maxHeight: .infinity, alignment: .top)
-        .frame(maxWidth: .infinity)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .readableColumn()
         .studyBar { recordBar }
     }
 

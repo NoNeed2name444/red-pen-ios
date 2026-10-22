@@ -31,8 +31,7 @@ struct BedtimeReviewView: View {
                     .buttonStyle(.wardSecondary)
             }
             .padding(24)
-            .frame(maxWidth: 640, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .readableColumn()
         }
         .background(WardBackground())
         .tint(Color.wardPrimaryInk)

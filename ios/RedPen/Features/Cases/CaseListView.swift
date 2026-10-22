@@ -48,8 +48,7 @@ struct CaseListView: View {
             }
             .padding(WardSpace.gutter)
             // one comfortable column on a wide iPad
-            .frame(maxWidth: 760)
-            .frame(maxWidth: .infinity)
+            .readableColumn()
         }
         .wardScreen()
         // the Cases hue on the paper's grid and the controls' edges

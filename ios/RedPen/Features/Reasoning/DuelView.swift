@@ -159,8 +159,7 @@ struct DuelView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding(WardSpace.gutter)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableColumn()
             }
             .studyBar { choices }
         }
@@ -295,8 +294,7 @@ struct DuelView: View {
         ScrollView {
             summary
                 .padding(WardSpace.gutter)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableColumn()
         }
         .studyBar { summaryButtons }
     }
@@ -446,8 +444,7 @@ struct ComparisonTableView: View {
                 }
             }
             .padding()
-            .frame(maxWidth: 760)
-            .frame(maxWidth: .infinity)
+            .readableColumn()
         }
         .wardScreen()
         .navigationTitle("Comparison")
