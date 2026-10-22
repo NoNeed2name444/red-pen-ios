@@ -528,9 +528,9 @@ final class IdeaPDFView: PDFView {
 
 // MARK: - The backlink
 
-/// A saved note's way back: "Question · Cardiology" on a white chip, opening
-/// the question in its set (AppLink.openItem, which the library acts on the
-/// way a search result is opened).
+/// A saved note's way back: "Question · Cardiology" on a chip button
+/// (WardChipButtonStyle), opening the question in its set (AppLink.openItem,
+/// which the library acts on the way a search result is opened).
 struct NoteSourceChip: View {
     let source: NoteSource
 
@@ -539,12 +539,9 @@ struct NoteSourceChip: View {
             AppRouter.shared.open(.openItem(source))
         } label: {
             Label(source.chipLabel, systemImage: source.kind.symbol)
-                .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
-                .padding(.horizontal, 4)
-                .frame(minHeight: 32)
         }
-        .buttonStyle(.wardCompact)
+        .buttonStyle(WardChipButtonStyle())
         .accessibilityLabel("From " + source.chipLabel)
         .accessibilityHint("Opens it where it is in your library")
         .accessibilityIdentifier("noteSourceChip")

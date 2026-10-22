@@ -237,7 +237,7 @@ struct CoverageView: View {
         } label: {
             CoverageCountChip(count: count, status: status, chosen: chosen)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(WardChipButtonStyle(on: chosen, tone: CoverageView.tone(status)))
         .accessibilityAddTraits(traits)
         .accessibilityHint(hint)
     }
@@ -459,9 +459,11 @@ struct CoverageView: View {
     }
 }
 
-/// One of the three counts at the top, as a chip that filters the rows to
-/// its status: raised off the base; the chosen one is pressed in and its
-/// words take its tone.
+/// One of the three counts at the top, the label of a chip button that
+/// filters the rows to its status. WardChipButtonStyle draws the chip:
+/// raised off the base; the chosen one pressed in, with an edge in its tone.
+/// The count is in its status's colour; the words under it are secondary
+/// until chosen, when they take its tone, as the style's words do.
 private struct CoverageCountChip: View {
     let count: Int
     let status: CoverageStatus
@@ -470,7 +472,6 @@ private struct CoverageCountChip: View {
     var body: some View {
         let colour: Color = CoverageView.color(status)
         let words: Color = chosen ? CoverageView.tone(status).ink : Color.wardInkSecondary
-        let shape = Capsule()
         VStack(spacing: 2) {
             Text("\(count)")
                 .font(WardType.obsLarge)
@@ -483,13 +484,8 @@ private struct CoverageCountChip: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, minHeight: 56)
-        .wardRelief(in: shape, pressed: chosen)
-        .contentShape(shape)
-        .contentShape(.hoverEffect, shape)
-        .hoverEffect(.highlight)
+        // 56 tall with the chip's own padding, as the three counts were
+        .frame(maxWidth: .infinity, minHeight: 56 - 2 * WardSpace.s)
         .accessibilityElement(children: .combine)
     }
 }

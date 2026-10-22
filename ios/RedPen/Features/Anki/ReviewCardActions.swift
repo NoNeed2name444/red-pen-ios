@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// "Undo" for a few seconds after each rating: a small soft capsule floating
-/// at the top corner of the card, pressed in under the finger. It is shown
-/// by a timestamp rather than an animation, so nothing runs while it waits;
-/// it simply goes when the time is up or the next card is rated. With
+/// "Undo" for a few seconds after each rating: a chip button
+/// (WardChipButtonStyle) at the top corner of the card, a small soft
+/// capsule pressed in under the finger. It is shown by a timestamp rather
+/// than an animation, so nothing runs while it waits; it simply goes when
+/// the time is up or the next card is rated. With
 /// VoiceOver on it stays until the next rating: five seconds is not long
 /// enough to find it by swiping.
 struct ReviewUndoChip: View {
@@ -15,13 +16,8 @@ struct ReviewUndoChip: View {
             Announce.say("Rating undone. The card is back.")
         } label: {
             Label("Undo", systemImage: "arrow.uturn.backward")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .frame(minHeight: 44)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar, plane: .floating))
+        .buttonStyle(WardChipButtonStyle())
         // Cmd-Z, as anywhere else
         .keyboardShortcut("z", modifiers: .command)
         .accessibilityLabel("Undo last rating")
