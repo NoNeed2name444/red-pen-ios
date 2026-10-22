@@ -92,6 +92,70 @@ struct TwinQueue: Codable, Hashable {
     }
 }
 
+/// A twin asked for while it could not be written - no network, the model
+/// busy - kept so it can be written the next time a quiz opens.
+struct PendingTwin: Codable, Hashable {
+    var parentId: UUID
+    var picked: Int?
+    var reason: String?
+    var confident: Bool
+    var guessed: Bool
+}
+
+/// What this device keeps about twins (ExamStore saves it): the queue and
+/// the twins still to be written. Plain values, so the whole flow - written,
+/// waiting, due, answered, reloaded after a relaunch - is tested on Linux.
+struct TwinBook: Codable, Hashable {
+    var queue = TwinQueue()
+    var pending: [PendingTwin] = []
+
+    /// The most twins kept waiting to be written.
+    static let pendingLimit = 30
+
+    /// What the Twins tile says while no twin is due.
+    static let nothingYet: String = "When you miss a question, tap \u{201C}Write a twin\u{201D} under it. The twin - the same point in a different patient - waits here for a day or two."
+
+    /// A written twin joins the queue; its request is no longer pending.
+    mutating func added(_ id: UUID, parent: UUID, confident: Bool, guessed: Bool,
+                        now: Date = Date(), calendar: Calendar = .current) {
+        queue.add(twin: id, parent: parent, now: now, confident: confident, guessed: guessed, calendar: calendar)
+        pending.removeAll { $0.parentId == parent }
+    }
+
+    /// A twin that could not be written now waits, once per question.
+    mutating func later(_ request: PendingTwin) {
+        guard !pending.contains(where: { $0.parentId == request.parentId }) else { return }
+        pending.append(request)
+        if pending.count > Self.pendingLimit { pending.removeFirst(pending.count - Self.pendingLimit) }
+    }
+
+    mutating func dropPending(_ parent: UUID) {
+        pending.removeAll { $0.parentId == parent }
+    }
+
+    func isOnTheWay(for parent: UUID) -> Bool {
+        queue.hasTwin(for: parent) || pending.contains { $0.parentId == parent }
+    }
+}
+
+/// The twin a writer's questions give, or nil when none will do: the first
+/// that is not the missed question again, with an id of its own and where
+/// it came from.
+enum TwinDraft {
+    static func pick(_ found: [MCQQuestion], missed: MCQQuestion, id: UUID = UUID()) -> MCQQuestion? {
+        guard var twin = found.first(where: { !TwinPrompt.isTooClose($0.stem, to: missed.stem) }) else { return nil }
+        twin.id = id
+        twin.source = missed.source.map { "Twin of a question from " + $0 } ?? "Twin of a missed question"
+        return twin
+    }
+
+    /// What the quiz says under the question once the twin is written.
+    static func madeNote(days: Int) -> String {
+        let when: String = days == 1 ? "tomorrow" : "in \(days) days"
+        return "Twin written. It comes back \(when), under Questions \u{2192} Twins."
+    }
+}
+
 /// Where the immediate re-test goes: a few questions on, or at the end when
 /// the quiz is nearly over. `current` and `count` are positions in the quiz.
 enum TwinRetest {

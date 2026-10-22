@@ -13,6 +13,9 @@ suite learn LearnTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiC
 # attending's hint that never names the answer, calculator, lab ranges
 suite examtools ExamToolsTests.swift $M/MCQQuestion.swift $M/Differential.swift $S/ExamTrack.swift \
       $S/Exam/MockPaper.swift $S/Exam/TwinQueue.swift $S/Exam/AttendingHint.swift $S/Exam/ExamTools.swift
+# Write a twin step by step: written by a stand-in, waiting on a fake
+# clock, due in review, answered, and read back after a relaunch (T0133)
+suite twinflow TwinFlowTests.swift $M/MCQQuestion.swift $M/Differential.swift $S/Exam/TwinQueue.swift
 suite quality CardQualityTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $S/CardQuality.swift $S/QuizFromCards.swift
 suite learning LearningTests.swift $S/SoundKey.swift $S/PronunciationStore.swift \
@@ -365,6 +368,10 @@ suite dataio DataIOTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/Ank
 # and drawn, and the cards they make
 suite photoocclusion PhotoOcclusionTests.swift $M/AnkiCard.swift $S/OcclusionFilter.swift \
       $S/OcclusionPhrases.swift $S/PhotoOcclusion.swift
+# picture cards step by step: every label masked, Reveal, the next card,
+# the photo path to saved cards, and a relaunch (T0133)
+suite occlusionflow OcclusionFlowTests.swift $M/AnkiCard.swift $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift \
+      $S/AnkiExportSchedule.swift $S/OcclusionFilter.swift $S/OcclusionPhrases.swift $S/PhotoOcclusion.swift
 # the platform lane: links and where they go, "quiz me on cardio",
 # what kind of file arrived, the widgets' digest, the exam-day
 # window and the age signal

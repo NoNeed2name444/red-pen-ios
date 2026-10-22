@@ -934,10 +934,9 @@ struct MCQQuizView: View {
         Task {
             let outcome: TwinOutcome = await TwinWriter.write(request, store: store)
             let days: Int = TwinQueue.delayDays(confident: confident, guessed: guessed)
-            let when: String = days == 1 ? "tomorrow" : "in \(days) days"
             let said: String
             switch outcome {
-            case .made: said = "Twin written. It comes back \(when), under Questions \u{2192} Twins."
+            case .made: said = TwinDraft.madeNote(days: days)
             case .unavailable(let why): said = why
             case .later(let why): said = why
             }

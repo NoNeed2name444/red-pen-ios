@@ -357,7 +357,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .due: return "No cards are due right now. Come back later."
         case .flagged: return "Flag a question while you answer it and it will wait here."
         case .mistakes, .confident: return "Answer a few questions first. Anything you get wrong comes back here."
-        case .twins: return "When you miss a question, tap \u{201C}Write a twin\u{201D} under it. The twin - the same point in a different patient - waits here for a day or two."
+        case .twins: return TwinBook.nothingYet
         case .bedtime: return "Nothing missed today. Anything you get wrong comes back here tonight, to re-read before sleep."
         case .symptomBlocks: return "Make a question set first. Blocks gather questions that start from the same complaint."
         case .examPlan, .examKit: return "Set your exam date in Settings \u{2192} Your exam, and the plan fills in."
