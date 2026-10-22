@@ -29,9 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
-import com.stethoscore.app.ui.ward.WardButtonBox
-import com.stethoscore.app.ui.ward.WardButtonKind
-import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.*
 
 // The card review screens: one deck at a time, and everything due across the library. Ports
 // of ios/RedPen/Features/Anki/AnkiReviewView.swift and DueTodayView.swift at dcb4745: the
@@ -239,9 +237,10 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
                 Text(header.status, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink))
                 Text(header.detail, fontSize = 15.sp, color = wardColor(WardToken.inkSecondary))
             }
-            // the same thing as a length, in a groove pressed into the slab
-            Box(Modifier.fillMaxWidth().height(6.dp).background(wardColor(WardToken.well), CircleShape)) {
-                Box(Modifier.fillMaxWidth(header.fraction.toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(wardColor(WardToken.primaryInk), CircleShape))
+            // the same thing as a length, in a groove pressed into the slab (iOS ThinProgress:
+            // a WardGroove 6 high, its bar 1.5 in from the groove's wall)
+            Box(Modifier.fillMaxWidth().height(6.dp).wardInset(CircleShape)) {
+                Box(Modifier.padding(1.5.dp).fillMaxWidth(header.fraction.toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(wardColor(WardToken.primaryInk), CircleShape))
             }
         }
     }

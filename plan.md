@@ -2258,6 +2258,17 @@ with the marks on the screens last.
       occlusion card's labels in OcclusionCovers' colours, as the card face,
       not a Care Blue literal; no screen passes it a card yet, so nothing
       drawn changes (OwnerPaletteTest).
+    - [x] Wells take the page colour (the owner 22 Oct, "wells and sheets
+      one tone"): WardControlStates.wellFill (WardToken.background) fills
+      every Ward well - fields and search boxes, chips, pills, the timer,
+      grooves, a switch's empty track, a chosen or held segment - and
+      wardWellFill() hands it to screens (T0122 uses it); WardToken.well
+      stays in the palette. Cards' progress groove, the Why note, a held
+      rating button and the lab panel's units row were flat wells and are
+      now inset ones. NarrateAudioBar's native slider keeps the palette's
+      well (it draws no inset shadows). OwnerAccepted.kt: 44 values move
+      (chip wells and chosen segments measure on the page colour), each
+      marked "owner 22 Oct, wells and sheets one tone".
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

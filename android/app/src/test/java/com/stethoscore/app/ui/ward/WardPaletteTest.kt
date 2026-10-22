@@ -47,15 +47,18 @@ class WardPaletteTest {
     // The words of a chip or a pill sit on a well pressed into what is under
     // it, with the well's inner shade over its edge. Every ink a chip can wear
     // reads 4.5:1 on it, in light and dark, with and without Increase Contrast.
+    // The well is drawn in the well's fill, the page colour (the owner, 22 Oct:
+    // wells and sheets one tone).
     @Test fun chipInksReadOnTheirWell() = checks {
         check("the shade is there at a chip's edge and gone where its words start",
             WardRelief.shadeCoverage(WardLift.low, depth = 0.0) > 0.5 && WardRelief.shadeCoverage(WardLift.low, depth = 6.0) < 0.01)
+        check("a chip's well is drawn in the page colour", WardControlStates.wellFill == WardToken.background)
         val chipInks = listOf(WardToken.primaryInk, WardToken.ecg, WardToken.success, WardToken.warning, WardToken.danger,
             WardToken.inkSecondary, WardToken.ink)
         for (dark in modes) {
             for (hc in listOf(false, true)) {
                 val m = "${mode(dark)}${if (hc) " with Increase Contrast" else ""}"
-                val well = WardPalette.hex(WardToken.well, dark)
+                val well = WardPalette.hex(WardControlStates.wellFill, dark)
                 val ground = WardRelief.insetGround(well, WardLift.low, dark, hc, chipTextDepth)
                 for (token in chipInks) {
                     val r = WardPalette.contrast(WardPalette.hex(token, dark), ground)

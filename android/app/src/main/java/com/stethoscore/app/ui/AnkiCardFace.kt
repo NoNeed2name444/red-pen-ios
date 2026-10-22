@@ -45,7 +45,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
-import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.*
 
 // One card's face, front and back, and the bar under it that turns it over and rates it.
 // Port of ios/RedPen/Features/Anki/AnkiCardFace.swift (AnkiCardFace, AnkiFooter,
@@ -98,9 +98,9 @@ import com.stethoscore.app.ui.ward.WardToken
     }
 }
 
-/** "Why / how": a note pressed into the card. */
+/** "Why / how": a note pressed into the card (iOS: wardInset at the field's radius). */
 @Composable private fun CardWhy(why: String) {
-    Column(Modifier.padding(top = 4.dp).fillMaxWidth().background(wardColor(WardToken.well), RoundedCornerShape(12.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.padding(top = 4.dp).fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text("WHY / HOW", fontSize = 11.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary), modifier = Modifier.semantics { heading() })
         Text(why, fontSize = 17.sp, lineHeight = 24.sp, color = wardColor(WardToken.ink))
     }
@@ -215,8 +215,9 @@ private const val hintsKey = "anki.ratingHintsShown"
     val pressed by interaction.collectIsPressedAsState()
     val ink = tone(rating)
     val shape = RoundedCornerShape(16.dp)
-    val ground = if (pressed) wardColor(WardToken.well) else wardColor(WardToken.surface)
-    Column(modifier.heightIn(min = 56.dp).then(if (pressed) Modifier else Modifier.wardRaised(16.0)).background(ground, shape)
+    // held, it is a well pressed into the base: the well's fill, told by its inset shadows only
+    val face = if (pressed) Modifier.wardInset(shape) else Modifier.wardRaised(16.0).background(wardColor(WardToken.surface), shape)
+    Column(modifier.heightIn(min = 56.dp).then(face)
         .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
         .semantics { contentDescription = CardReview.title(rating); stateDescription = CardReview.spokenInterval(whenBack) }
         .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {

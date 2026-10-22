@@ -40,7 +40,7 @@ import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.quiz.LabRanges
 import com.stethoscore.app.quiz.LabUnits
 import com.stethoscore.app.quiz.StemPieces
-import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.*
 
 // A port of ios/RedPen/Features/MCQ/MCQExamTools.swift: the exam
 // screen's tools, as the real test interfaces have them, for the question
@@ -162,8 +162,8 @@ enum class ExamToolSheet { labs, calculator }
         SheetTitle("Lab values", onDone)
         LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
-                // the units switch sits on the base itself, not on a tile
-                Row(Modifier.fillMaxWidth().background(wardColor(WardToken.well), CircleShape).padding(4.dp).semantics { contentDescription = "Units" }) {
+                // the units switch sits on the base itself, not on a tile: a well, told by its inset shadows
+                Row(Modifier.fillMaxWidth().wardInset(CircleShape).padding(4.dp).semantics { contentDescription = "Units" }) {
                     listOf(false to "SI", true to "US conventional").forEach { (us, label) ->
                         val on = conventional == us
                         Text(label, Modifier.weight(1f).heightIn(min = 40.dp)

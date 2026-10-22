@@ -177,9 +177,9 @@ fun Modifier.wardReliefFace(
     inset: Boolean = false, control: Boolean = false,
 ): Modifier = wardReliefFace(shape, lift, fill, wardNight(), wardInk(), inset, control)
 
-/** Pressed into the base: a well with a control's edge (wardInset). */
+/** Pressed into the base: a well in the well's fill (the page colour), with a control's edge (wardInset). */
 @Composable fun Modifier.wardInset(shape: Shape, lift: WardLift = WardLift.low, control: Boolean = false): Modifier =
-    wardRelief(shape, lift, wardColor(WardToken.well), inset = true, control = control)
+    wardRelief(shape, lift, wardColor(WardControlStates.wellFill), inset = true, control = control)
 
 /**
  * A chosen control's mark: a solid edge in [color] (the section's accent)

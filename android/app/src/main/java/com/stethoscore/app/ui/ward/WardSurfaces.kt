@@ -159,11 +159,13 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
 /**
  * Pressed into the base (iOS wardInset): fields, tracks, wells and whatever
  * is chosen; the shade lines the top-left wall and the highlight the
- * bottom-right one. [control] for a field or a switch's track: it takes the
- * ink edge. [held] draws it at night whatever the look (the monitor's well).
+ * bottom-right one, in the well's fill (WardControlStates.wellFill, the page
+ * colour) unless [fill] says otherwise (the monitor's dark well). [control]
+ * for a field or a switch's track: it takes the ink edge. [held] draws it at
+ * night whatever the look (the monitor's well).
  */
 @Composable fun Modifier.wardInset(radius: Double = WardFaceMetrics.fieldRadius, lift: WardLift = WardLift.low,
-                                   fill: WardToken = WardToken.well, control: Boolean = false,
+                                   fill: WardToken = WardControlStates.wellFill, control: Boolean = false,
                                    held: Boolean = false): Modifier {
     val f = faceLook(fill, held)
     val spec = WardRelief.inset(lift, f.dark, control = control)

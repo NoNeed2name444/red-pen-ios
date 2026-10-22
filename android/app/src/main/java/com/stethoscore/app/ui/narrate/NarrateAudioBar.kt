@@ -63,6 +63,8 @@ internal object NarrateSkip {
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Position in the recording" },
                 valueRange = 0f..length.toFloat(),
                 onValueChangeFinished = { scrubbing = false; player.seek(held) },
+                // a native slider, as iOS's system Slider: it draws no inset shadows, so its
+                // empty track keeps the palette's well rather than the page colour wells take
                 colors = SliderDefaults.colors(thumbColor = wardColor(WardToken.primaryInk),
                     activeTrackColor = wardColor(WardToken.primaryInk), inactiveTrackColor = wardColor(WardToken.well)))
             Row(Modifier.fillMaxWidth().clearAndSetSemantics {}) {

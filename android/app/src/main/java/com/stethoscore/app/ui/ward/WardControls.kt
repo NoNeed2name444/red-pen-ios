@@ -118,6 +118,9 @@ sealed class WardTone {
 /** A disabled control's words, glyphs and switch track: Biro Grey, solid. */
 @Composable fun wardDisabledInk(): Color = wardColor(WardControlStates.disabledInk)
 
+/** A well's fill (WardControlStates.wellFill): the page colour, told as a well by its inset shadows (wardInset). */
+@Composable fun wardWellFill(): Color = wardColor(WardControlStates.wellFill)
+
 /** A control's interaction: held (or drawn held by the gallery) and focused. */
 private class WardTouch(val held: Boolean, val focused: Boolean)
 
