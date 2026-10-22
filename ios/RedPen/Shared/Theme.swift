@@ -61,48 +61,6 @@ struct ModeTile: View {
     }
 }
 
-/// A soft coronal glow in `tint`: strongest in the middle, gone at `reach`
-/// of the size. At SpaceQuality.full it breathes, 6% either way over 4 s.
-struct CoronaGlow: View {
-    let tint: Color
-    /// Where the glow has faded out, as a fraction of the shorter side.
-    var reach: CGFloat = 0.9
-    /// The middle's opacity.
-    var strength: Double = 0.75
-    @Environment(\.spaceQuality) private var quality
-
-    var body: some View {
-        GeometryReader { geo in
-            let side: CGFloat = min(geo.size.width, geo.size.height)
-            let colours: [Color] = [tint.opacity(strength), tint.opacity(strength * 0.45), tint.opacity(0)]
-            let glow = RadialGradient(colors: colours, center: .center,
-                                      startRadius: 0, endRadius: side * reach)
-            Rectangle()
-                .fill(glow)
-                .modifier(CoronaBreath(breathes: quality.isFull))
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
-private struct CoronaBreath: ViewModifier {
-    let breathes: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if breathes {
-            content.phaseAnimator([false, true]) { view, out in
-                view.scaleEffect(out ? 1.06 : 0.94)
-            } animation: { _ in
-                .easeInOut(duration: 2)
-            }
-        } else {
-            content
-        }
-    }
-}
-
 /// A one-pixel photon-ring edge (the map's orange into white-gold).
 enum PhotonRim {
     static var style: AngularGradient {
@@ -692,20 +650,6 @@ struct StudyProgressHeader<Accessory: View>: View {
 extension StudyProgressHeader where Accessory == EmptyView {
     init(_ status: String, detail: String? = nil, fraction: Double? = nil) {
         self.init(status, detail: detail, fraction: fraction) { EmptyView() }
-    }
-}
-
-/// A small grey "optional" tag, for a question the student can happily skip -
-/// how sure they were, why an answer was wrong - so nobody thinks they are
-/// stuck until they answer it.
-struct OptionalTag: View {
-    var body: some View {
-        Text("optional")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(Color.wardInkSecondary)
-            .padding(.horizontal, WardSpace.s)
-            .padding(.vertical, WardSpace.xs)
-            .wardInset(in: Capsule())
     }
 }
 
