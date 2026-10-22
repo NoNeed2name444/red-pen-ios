@@ -304,7 +304,6 @@ struct NewSetView: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Step \(step.rawValue) of 3")
             VStack(alignment: .leading, spacing: 4) {
-                Text("New admission").wardSmallCaps()
                 Text(step.question)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Color.wardInk)

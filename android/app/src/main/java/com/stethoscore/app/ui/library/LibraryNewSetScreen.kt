@@ -69,7 +69,6 @@ import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardSegmented
-import com.stethoscore.app.ui.ward.WardSmallCapsText
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextField
@@ -306,7 +305,6 @@ import kotlinx.coroutines.withContext
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            WardSmallCapsText("New admission")
             Text(step.question, style = WardTextStyle.title2.textStyle(WardWeight.bold), color = wardColor(WardToken.ink),
                 modifier = Modifier.semantics { heading() })
         }

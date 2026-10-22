@@ -3113,6 +3113,8 @@ only; Arabic is left for the owner's words (copy deck question 4).
 - [x] The reference is "Clinical reference": its title, the exam plan's
   row, the study menu's item and a set made from it ("Clinical reference:
   …") (wording.md rows 68-71).
+- [x] The new-set flow drops its "New admission" label: the screen is
+  already titled "New set" (wording.md row 66).
 
 ### Waiting on the owner
 
