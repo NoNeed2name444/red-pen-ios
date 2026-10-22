@@ -3103,6 +3103,9 @@ only; Arabic is left for the owner's words (copy deck question 4).
   filter and the Health settings rows (wording.md rows 32-57). The Live
   Activity (StethoscoreWidgets) and the Health permission text (project.yml,
   Arabic) wait: outside this change, and the Arabic word is the owner's.
+- [x] The question screen says "Question 7 of 20", "Next question" and,
+  over the stem, "Single best answer"; its chip shows only on a retest,
+  "Second try" (wording.md rows 17-20).
 
 ### Waiting on the owner
 

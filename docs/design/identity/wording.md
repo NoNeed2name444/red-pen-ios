@@ -70,10 +70,10 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 
 | # | File:line | Current | Proposed | Note | Test |
 |---|---|---|---|---|---|
-| 17 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:18` | Patient 7 of 20 | Question 7 of 20 | The header. A question is a question; the patient is inside its stem. | **ChartQuizTests.swift:18** |
-| 18 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:134` | Next patient (in a paper) | Next question | Beside "Finish paper" and "Skip for now", which stay. | **ChartQuizTests.swift:111** |
-| 19 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:137` | Next patient | Next question | Beside "See results", which stays. | **ChartQuizTests.swift:109** |
-| 20 | `ios/RedPen/Features/MCQ/MCQQuizView.swift:606` | Patient chart | Single best answer | Small-caps label over the stem. The header already says "Question 7 of 20", so the label names the kind of question instead of repeating it. The "Best answer" chip beside it (line 607) would then repeat the label, so it shows only on a retest, as "Second try". The chip is tinted blue today (tone .blue); it should follow the chip rule in routes.md. The comments at ChartQuiz.swift:31 and MCQQuizView.swift:591 ("PATIENT CHART") change with it. | **ChartQuizTests.swift:31** |
+| 17 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:18` | Patient 7 of 20 | Question 7 of 20 | The header. A question is a question; the patient is inside its stem. **Built 22 Oct.** | **ChartQuizTests.swift:18** |
+| 18 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:134` | Next patient (in a paper) | Next question | Beside "Finish paper" and "Skip for now", which stay. **Built 22 Oct.** | **ChartQuizTests.swift:111** |
+| 19 | `ios/RedPen/Features/MCQ/ChartQuiz.swift:137` | Next patient | Next question | Beside "See results", which stays. **Built 22 Oct.** | **ChartQuizTests.swift:109** |
+| 20 | `ios/RedPen/Features/MCQ/MCQQuizView.swift:606` | Patient chart | Single best answer | Small-caps label over the stem. The header already says "Question 7 of 20", so the label names the kind of question instead of repeating it. The "Best answer" chip beside it (line 607) would then repeat the label, so it shows only on a retest, as "Second try". The chip is tinted blue today (tone .blue); it should follow the chip rule in routes.md. The comments at ChartQuiz.swift:31 and MCQQuizView.swift:591 ("PATIENT CHART") change with it. **Built 22 Oct: the words, and the chip on a retest only; its tone is left to the components work.** | **ChartQuizTests.swift:31** |
 
 ### Progress (today “Vitals”) and weak topics
 
