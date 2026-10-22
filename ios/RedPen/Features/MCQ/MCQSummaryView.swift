@@ -161,7 +161,7 @@ struct MCQSummaryView: View {
                               label: "\(shownPercent)%",
                               sublabel: "correct")
                         .onAppear {
-                            withAnimation(Motion.gentle(.smooth(duration: 0.9))) {
+                            withAnimation(Motion.gentle(.smooth(duration: 0.3))) {
                                 shownPercent = Int((fraction * 100).rounded())
                             }
                         }

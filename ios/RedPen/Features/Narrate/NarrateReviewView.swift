@@ -365,7 +365,7 @@ struct NarrateReviewView: View {
                     // and then gently, to a spot a third of the way down
                     guard band.needsScroll(to: line) else { return }
                     let anchor = UnitPoint(x: 0.5, y: 0.3)
-                    withAnimation(Motion.gentle(.easeInOut(duration: 0.45))) { proxy.scrollTo(line, anchor: anchor) }
+                    withAnimation(Motion.gentle(.easeInOut(duration: 0.3))) { proxy.scrollTo(line, anchor: anchor) }
                 }
         }
     }

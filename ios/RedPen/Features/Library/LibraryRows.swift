@@ -105,7 +105,7 @@ extension LibraryView {
         Group {
             if selecting {
                 Button {
-                    withAnimation(Motion.gentle(.snappy(duration: 0.15))) {
+                    withAnimation(Motion.gentle(.snappy(duration: 0.2))) {
                         if selected.contains(set.id) { selected.remove(set.id) }
                         else { selected.insert(set.id) }
                     }

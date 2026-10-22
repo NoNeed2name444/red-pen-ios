@@ -2662,7 +2662,7 @@ with the marks on the screens last.
 - 12d. Motion on iPhone (22 Oct; task T0121, UX Waves 3-4, the motion rows of the iOS consistency sweep). Canon: platform.md, 200 to 320 ms with an ease-out, no bounce, nothing fades, nothing loops but the trace; Motion.gentle and .slideIn / .growIn (AccessibilitySupport.swift).
   - [x] Reduce Motion everywhere: the 86 withAnimation, .animation and animated bindings in 39 files that ignored it go through Motion.gentle, so nothing moves under Reduce Motion. A bare withAnimation keeps the system's default curve.
   - [x] Bare .snappy (0.5 s) as .snappy(duration: 0.25): 57 sites in 23 files.
-  - [ ] Durations into 200 to 320 ms.
+  - [x] Durations into 200 to 320 ms, each curve kept: the pop-out's settle 0.5 s, WardRing 0.6 s, the Vitals ring 0.9 s, the quiz summary's score 0.9 s and Narrate's scroll 0.45 s to 0.3 s; the Ideas map's panels 0.35 s to 0.3 s; the library's select tick 0.15 s to 0.2 s.
   - [ ] OSCE review's Start over without the bounce.
   - [ ] Lens's looping "Answering…" bars as EcgLoader.
   - Kept: FinishHero's aurora, ScoreRing's spring and RiseIn's staggered spring (owner question, iOS Q8); NarrateWordFlow's 0.1 s word highlight, which keeps up with the voice (its comment says so); the WardPress press curves; the scenes (sky, map). No .transition(.opacity) anywhere.
