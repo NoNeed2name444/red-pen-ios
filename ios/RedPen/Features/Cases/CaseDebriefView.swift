@@ -76,14 +76,14 @@ struct CaseDebriefView: View {
                 CaseLabel("Score")
                 Spacer()
                 Text("\(score.total) / 100")
-                    .font(.system(.title2, design: .monospaced).weight(.bold))
+                    .font(WardType.obsLarge.weight(.bold))
             }
             ForEach(Array(score.parts.enumerated()), id: \.offset) { _, part in
                 HStack {
                     Text(part.label)
                     Spacer()
                     Text("\(part.points) / \(part.of)")
-                        .font(.system(.body, design: .monospaced))
+                        .font(WardType.obs)
                         .foregroundStyle(part.points == part.of ? CaseInk.discharge : Color.primary)
                 }
                 .accessibilityElement(children: .ignore)

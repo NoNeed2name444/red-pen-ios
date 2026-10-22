@@ -89,7 +89,7 @@ struct DiagnosticsSettingsView: View {
 
     private func obs(_ n: Int) -> some View {
         Text("\(n)")
-            .font(.system(.body, design: .monospaced))
+            .font(WardType.obs)
             .monospacedDigit()
             .foregroundStyle(Color.wardInkSecondary)
     }

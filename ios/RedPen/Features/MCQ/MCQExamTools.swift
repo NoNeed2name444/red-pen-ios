@@ -341,7 +341,7 @@ struct CalculatorSheet: View {
                 action()
             } label: {
                 Text(title)
-                    .font(.system(.title2, design: .monospaced).weight(.semibold))
+                    .font(WardType.obsLarge)
                     .foregroundStyle(Self.ink(role))
                     .frame(maxWidth: .infinity, minHeight: 56)
                     .contentShape(shape)

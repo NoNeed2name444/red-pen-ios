@@ -43,7 +43,7 @@ struct BookReaderView: View {
                         index = p.id; showToc = false
                     } label: {
                         HStack {
-                            Text("\(p.id + 1).").font(.system(.body, design: .monospaced)).monospacedDigit()
+                            Text("\(p.id + 1).").font(WardType.obs).monospacedDigit()
                                 .foregroundStyle(Color.wardInkSecondary)
                             Text(p.title).foregroundStyle(Color.wardInk)
                             Spacer()
