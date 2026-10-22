@@ -48,24 +48,16 @@ enum WardSection: String, CaseIterable, Sendable {
     func fill(dark: Bool) -> UInt32 { dark ? fill.dark : fill.light }
     func ink(dark: Bool) -> UInt32 { dark ? ink.dark : ink.light }
 
-    /// The wash behind every page, (light, dark) as 0xRRGGBB, pinned: the
-    /// owner, 22 Oct, wanted the backgrounds as they were before the
-    /// ten-colour palette, so the wash no longer follows the fill. Each is
-    /// the base mixed toward the section's earlier fill in linear light
-    /// (0.06 by day, 0.10 at night), as it was then.
-    var wash: (light: UInt32, dark: UInt32) { WardSection.washes[self]! }
+    /// The ground behind every page, (light, dark) as 0xRRGGBB: the plain
+    /// base (WardPalette's .background) in every section. The owner never
+    /// asked for a wash of the section's colour (added 21 Oct, the base
+    /// mixed toward the fill), and the owner's phone build of 16 Oct has
+    /// plain grey grounds, so since 22 Oct the ground is the base again, as
+    /// it was before the wash. Kept as the one route every caller takes
+    /// (home's ground, the dock's slab, the bars, the launch pictures).
+    var wash: (light: UInt32, dark: UInt32) { (wash(dark: false), wash(dark: true)) }
 
-    func wash(dark: Bool) -> UInt32 { dark ? wash.dark : wash.light }
-
-    private static let washes: [WardSection: (light: UInt32, dark: UInt32)] = [
-        .questions: (0xE7E7EC, 0x49212A),
-        .cards:     (0xE3E8EF, 0x242B4C),
-        .textbook:  (0xE3E8ED, 0x193335),
-        .cases:     (0xE6E7EC, 0x402824),
-        .osce:      (0xE3E8EC, 0x1E322B),
-        .audio:     (0xE4E7EF, 0x332747),
-        .ideas:     (0xE6E7ED, 0x43223A),
-    ]
+    func wash(dark: Bool) -> UInt32 { WardPalette.hex(.background, dark: dark) }
 
     /// The colours that mean something, which no section's accent may
     /// look like.
@@ -74,7 +66,9 @@ enum WardSection: String, CaseIterable, Sendable {
     /// Every section's colours: the owner's hex in every role and both
     /// modes. Written here by hand: tools/ward_accents.py, which works
     /// shades out from the hue, exits 1 on these fills (white reads under
-    /// 4.6:1 on each), so it cannot --write them, and its --check says so.
+    /// 4.6:1 on each), so it cannot --write them; its --check holds this
+    /// table to it but for the owner's accepted cases
+    /// (tests/ward/owner-accepted.json).
     /// (ink, accent, fill) as (light, dark) 0xRRGGBB.
     // ward_accents.py: begin
     private static let table: [WardSection: WardSectionColours] = [

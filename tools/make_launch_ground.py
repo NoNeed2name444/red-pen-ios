@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Draw home's ground as a picture, for the launch screen's first frame.
 
-Home stands on its section's ground (WardGround in the app): the Ward base
-with the section's wash (WardSection.wash: the base mixed toward the
-section's fill in linear light) and the ECG paper's grid over it, in the
+Home stands on its section's ground (WardGround in the app): the section's
+wash (WardSection.wash, the plain Ward base in every section since 22 Oct)
+and the ECG paper's grid over it, in the
 section's ink at the mode's strengths, a fine line every 6 points and a bold
 one every fifth, counted from the window's top left (WardPaper,
 WardPaperInk.drawPaper). The system launch screen
@@ -19,9 +19,10 @@ frame to home at rest the ground is one and never changes:
     python3 tools/make_launch_ground.py --table        # every section's ground, as JSON
 
 Every number is read from the Swift sources, so the two cannot drift apart:
-the base from WardPalette.swift, each section's fill and ink and the wash's
-strength from WardLook.swift, the paper's cell, line and ink strengths from
-WardRelief.swift. The colours are mixed as WardPalette.mix mixes them. Each
+the base from WardPalette.swift, each section's ink and its wash from
+WardLook.swift (the tool stops if the wash is anything but the base, which
+it would not know how to draw), the paper's cell, line and ink strengths from
+WardRelief.swift. Each
 picture carries the ground it was drawn with in a text chunk ("WardGround"),
 which WardLookTests reads back and checks against home's. The iPhone's
 picture is drawn at 2x and 3x and the iPad's at 2x, so no line is scaled.
@@ -34,7 +35,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import re
 from pathlib import Path
 
@@ -60,14 +60,18 @@ def sources() -> dict:
         raise SystemExit(f"the base (.background) not found in {PALETTE}")
     sections = {}
     for m in re.finditer(r"\.(\w+): WardSectionColours\(hue: [0-9.]+, ink: (\([^)]*\)), "
-                         r"accent: \([^)]*\), fill: (\([^)]*\))\)", look):
-        sections[m.group(1)] = {"ink": _hexes(m.group(2)), "fill": _hexes(m.group(3))}
+                         r"accent: \([^)]*\), fill: \([^)]*\)\)", look):
+        sections[m.group(1)] = {"ink": _hexes(m.group(2))}
     if not sections:
         raise SystemExit(f"WardSection.table not found in {LOOK}")
-    wash = re.search(r"func wash\(dark: Bool\) -> UInt32 \{[^}]*?let t = dark \? ([0-9.]+) : ([0-9.]+)", look, re.S)
+    # The section's wash (WardSection.wash): the plain base in every section
+    # since 22 Oct, the owner's grey ground.
+    wash = re.search(r"func wash\(dark: Bool\) -> UInt32 \{\s*WardPalette\.hex\(\.background, dark: dark\)\s*\}", look)
+    if not wash:
+        raise SystemExit(f"WardSection.wash in {LOOK} is not the plain base (WardPalette's .background)")
     opening = re.search(r"static let opening: WardSection = \.(\w+)", look)
-    if not wash or not opening:
-        raise SystemExit(f"the wash's strength or WardSection.opening not found in {LOOK}")
+    if not opening:
+        raise SystemExit(f"WardSection.opening not found in {LOOK}")
 
     def num(name: str) -> float:
         m = re.search(rf"static let {name} = ([0-9.]+)", relief)
@@ -81,7 +85,6 @@ def sources() -> dict:
     return {
         "base": {False: int(bg.group(1), 16), True: int(bg.group(2), 16)},
         "sections": sections,
-        "wash": {True: float(wash.group(1)), False: float(wash.group(2))},
         "opening": opening.group(1),
         "cell": num("cell"), "line": num("line"), "every": int(num("boldEvery")),
         "fine": {True: float(ink.group(1)), False: float(ink.group(2))},
@@ -89,30 +92,11 @@ def sources() -> dict:
     }
 
 
-def mix(a: int, b: int, t: float) -> int:
-    """WardPalette.mix: part way from a to b in linear light."""
-    t = min(1.0, max(0.0, t))
-
-    def linear(c: float) -> float:
-        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
-
-    def gamma(c: float) -> float:
-        return c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
-
-    out = 0
-    for shift in (16, 8, 0):
-        x, y = ((a >> shift) & 0xFF) / 255, ((b >> shift) & 0xFF) / 255
-        v = gamma(linear(x) + (linear(y) - linear(x)) * t)
-        # Swift's rounded(): half away from zero
-        out |= int(math.floor(min(1.0, max(0.0, v)) * 255 + 0.5)) << shift
-    return out
-
-
 def ground(src: dict, section: str, dark: bool) -> dict:
-    """WardGround.home(section, dark:) at the standard contrast."""
+    """WardGround.home(section, dark:) at the standard contrast: the
+    section's wash, which is the base, and its grid."""
     colours = src["sections"][section]
-    base = mix(src["base"][dark], colours["fill"][1 if dark else 0], src["wash"][dark])
-    return {"base": base, "ink": colours["ink"][1 if dark else 0],
+    return {"base": src["base"][dark], "ink": colours["ink"][1 if dark else 0],
             "fine": src["fine"][dark], "bold": src["bold"][dark]}
 
 
