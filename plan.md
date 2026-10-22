@@ -2296,6 +2296,11 @@ with the marks on the screens last.
       More on the quiz and review bars is a circle (the review's empty More
       is a disabled one: it was faded to 40%). The exam card's header is a
       card's, as iOS ExamDashboardCard's, and stays.
+    - [x] Settings on the Ward controls, as iOS SupportCenter's wardForm and
+      ReviewSettingsSection: Night shift is a WardToggle row (the whole row
+      toggles it), the scheduler a WardSegmented, the daily limits' minus
+      and plus Ward circles (the minus a disabled circle at no limit), and
+      New set's study modes Ward chip buttons, the chosen one pressed in.
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
