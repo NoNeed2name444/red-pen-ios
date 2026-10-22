@@ -552,7 +552,7 @@ struct LibraryView: View {
             // a custom session's cards, reviewed and rescheduled where they live
             .navigationDestination(item: $sessionDeck) { AnkiReviewView(set: $0) }
             .alert("Nothing here yet", isPresented: nothingYetShown, presenting: nothingYet) { _ in
-                Button("OK", role: .cancel) {}
+                Button("Done", role: .cancel) {}
             } message: { feature in
                 Text(feature.emptyText)
             }

@@ -68,7 +68,7 @@ private struct IncomingImport: ViewModifier {
                 Text("Sets, schedules, notes and files this phone doesn\u{2019}t have are added. Nothing here is replaced or deleted.")
             }
             .alert(message?.title ?? "", isPresented: messageShown) {
-                Button("OK", role: .cancel) {}
+                Button("Done", role: .cancel) {}
             } message: {
                 Text(message?.body ?? "")
             }

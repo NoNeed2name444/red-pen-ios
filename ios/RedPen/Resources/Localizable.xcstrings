@@ -357,6 +357,10 @@
         }
       }
     },
+    "Done" : {
+      "comment" : "Alert button that only closes the alert (it replaced OK, 22 Oct). No Arabic yet.",
+      "extractionState" : "manual"
+    },
     "Everything stays on this device" : {
       "comment" : "Sign-in screen (SignInView). VoiceOver hint on Start without an account.",
       "extractionState" : "manual",

@@ -82,7 +82,7 @@ struct AnkiReviewView: View {
         .alert("Not enough to quiz on", isPresented: Binding(
             get: { quizNote != nil }, set: { if !$0 { quizNote = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button("Done", role: .cancel) {}
         } message: {
             Text(quizNote ?? "")
         }

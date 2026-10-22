@@ -229,7 +229,7 @@ private struct PlatformRoutes: ViewModifier {
                 PlatformSheetView(sheet: sheet)
             }
             .alert("Stethoscore", isPresented: noticeShown) {
-                Button("OK", role: .cancel) { router.notice = nil }
+                Button("Done", role: .cancel) { router.notice = nil }
             } message: {
                 Text(router.notice ?? "")
             }

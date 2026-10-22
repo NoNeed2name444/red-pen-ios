@@ -232,7 +232,7 @@ import kotlinx.coroutines.delay
         dismissButton = { TextButton(onClick = { deleting = false }) { Text("Cancel") } })
     cardsMessage?.let { message ->
         AlertDialog(onDismissRequest = { cardsMessage = null }, title = { Text("Turn into cards") }, text = { Text(message) },
-            confirmButton = { TextButton(onClick = { cardsMessage = null }) { Text("OK") } })
+            confirmButton = { TextButton(onClick = { cardsMessage = null }) { Text("Done") } })
     }
 }
 

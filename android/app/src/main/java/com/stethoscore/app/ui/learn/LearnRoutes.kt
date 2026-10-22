@@ -174,5 +174,5 @@ internal object LearnRouter {
 @Composable internal fun NotYetNotice(message: String?, onDismiss: () -> Unit) {
     if (message == null) return
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Library") }, text = { Text(message) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } })
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } })
 }

@@ -68,7 +68,7 @@ extension LibraryView {
                 get: { exportFailedSetName != nil },
                 set: { if !$0 { exportFailedSetName = nil } }
             )) {
-                Button("OK", role: .cancel) {}
+                Button("Done", role: .cancel) {}
             } message: {
                 Text("Something went wrong building the file for \(exportFailedSetName ?? "this set").")
             }

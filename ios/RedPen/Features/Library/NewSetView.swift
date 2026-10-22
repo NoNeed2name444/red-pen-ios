@@ -212,7 +212,7 @@ struct NewSetView: View {
                     ImportPreviewSheet(preview: preview) { commitImport(preview) }
                 }
                 .alert("Set imported", isPresented: importNoticeShown) {
-                    Button("OK") { dismiss() }
+                    Button("Done") { dismiss() }
                 } message: {
                     Text(importNotice ?? "")
                 }

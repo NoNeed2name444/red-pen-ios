@@ -322,8 +322,8 @@ import kotlinx.coroutines.withContext
                 }
                 // a learning screen over the app, in a sheet of its own (LearnRoutes)
                 com.stethoscore.app.ui.learn.LearnSheet(store,dark,section,onPreset={ com.stethoscore.app.ui.learn.LearnRouter.close();newPreset=it;screen="new" }) { set -> refresh();open(set) }
-                if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("OK")}})
-                notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("OK")}}) }
+                if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("Done")}})
+                notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("Done")}}) }
             }
             // Every page but home stands in the paper's opening (iOS WardPaperFrame):
             // still ECG paper round the window, the page scrolling beneath it.

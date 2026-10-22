@@ -3117,6 +3117,10 @@ only; Arabic is left for the owner's words (copy deck question 4).
   already titled "New set" (wording.md row 66).
 - [x] Twins' subtitle is "Missed points, asked again" (wording.md row 67;
   Android has no study-category list yet).
+- [x] An alert that only tells you something closes with "Done", not "OK"
+  (13 on iOS, 7 on Android; the copy deck's majority button). The sign-in
+  screen's two go through the catalogue: "Done" is a new key with no Arabic
+  yet, so the catalogue check reports it until the owner's Arabic word comes.
 
 ### Waiting on the owner
 

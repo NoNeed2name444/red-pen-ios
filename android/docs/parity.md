@@ -92,6 +92,7 @@ The owner's exam words (`docs/design/identity/wording.md`), built on both phones
 | The reference, "Clinical reference" (`Features/Exam/WardPocketView.swift`'s title and set name, `Features/Learn/ExamPlanView.swift`'s row, `Shared/Theme.swift`'s study menu) | `ui/exam/WardPocketScreen.kt`, `exam/ExamWords.kt`, `ui/learn/ExamPlanScreen.kt`, `ui/MCQQuizScreen.kt`'s menu | same |
 | The new-set flow's header, the question alone without "New admission" (`Features/Library/NewSetView.swift`) | `ui/library/LibraryNewSetScreen.kt` | same |
 | Twins' subtitle, "Missed points, asked again" (`Features/Library/StudyCategory.swift`) | none | iOS only: Android has no study-category list yet |
+| An info-only alert's button, "Done" (13 alerts: AppIntentsRouting, SignInView's two, AccountView, LibraryDataSettingsSection, AnkiReviewView, NoteEditorView, NarrateReviewView's two, IncomingImport, NewSetView, LibrarySheets, LibraryView) | `ui/library/LibrarySheets.kt`'s LibraryAlert, `ui/narrate/NarrateReviewScreen.kt`'s NarrateAlert, `ui/StethoscoreApp.kt`'s two, `ui/ideas/NoteEditor.kt`, `ui/ideas/IdeasView.kt`, `ui/learn/LearnRoutes.kt`'s NotYetNotice | same |
 
 ## Where iOS can't be copied
 

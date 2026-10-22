@@ -54,7 +54,7 @@ struct AccountView: View {
             Text("This cannot be undone. Your study material stays on this phone.")
         }
         .alert("Something went wrong", isPresented: troubleShown) {
-            Button("OK", role: .cancel) {}
+            Button("Done", role: .cancel) {}
         } message: {
             Text(account.trouble ?? "")
         }
