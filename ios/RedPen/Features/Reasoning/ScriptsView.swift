@@ -54,7 +54,10 @@ struct ScriptsView: View {
         .wardScreen()
         .overlay(alignment: .top) {
             if let savedMessage {
-                SavedToIdeasToast(message: savedMessage) { self.savedMessage = nil }
+                // the one slip after a save (SaveToIdeasUI), with nothing to undo
+                SavedIdeaToast(toast: IdeaToast(host: nil, title: "Saved to Ideas",
+                                                message: savedMessage, undo: nil),
+                               onUndo: {}, onDismiss: { self.savedMessage = nil })
                     .wardUnlit()
                     .padding(.top, 8)
                     .padding(.horizontal, WardSpace.gutter)
@@ -63,9 +66,10 @@ struct ScriptsView: View {
         }
         .animation(.snappy, value: savedMessage)
         .task(id: savedMessage) {
-            // non-modal: it says what happened and goes by itself
+            // non-modal: it says what happened and goes by itself, as long
+            // as every save's slip stays
             guard savedMessage != nil else { return }
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: SavedIdeaToast.showFor)
             guard !Task.isCancelled else { return }
             savedMessage = nil
         }
@@ -149,42 +153,6 @@ struct ScriptsView: View {
         savedMessage = message
         let spoken: String = "Saved to Ideas: " + message
         UIAccessibility.post(notification: .announcement, argument: spoken)
-    }
-}
-
-/// "Saved to Ideas", for two seconds, at the top: a soft slip raised high off
-/// the base that does not stop anything. A tap puts it away.
-private struct SavedToIdeasToast: View {
-    let message: String
-    let onDismiss: () -> Void
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        HStack(spacing: 12) {
-            Image(systemName: "lightbulb.fill")
-                .font(.title3)
-                .foregroundStyle(Color.wardBeam)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Saved to Ideas")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.wardInk)
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(Color.wardInkSecondary)
-                    .lineLimit(2)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, WardSpace.gutter)
-        .padding(.vertical, 12)
-        .frame(maxWidth: 520)
-        .wardRaised(in: shape, lift: .high)
-        .contentShape(shape)
-        .onTapGesture(perform: onDismiss)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isStaticText)
-        .accessibilityAction(named: "Dismiss", onDismiss)
     }
 }
 
