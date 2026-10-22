@@ -74,6 +74,7 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.modeIcon
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardChipButton
@@ -272,7 +273,7 @@ fun LazyListScope.libraryItems(
 // MARK: - Headers
 
 @Composable private fun HeaderButton(title: String, onClick: () -> Unit) {
-    Box(Modifier.heightIn(min = 44.dp).widthIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.heightIn(min = WardControlSize.target.wardDp).widthIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
         Text(title, style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk), maxLines = 1)
     }
 }
@@ -389,7 +390,7 @@ fun LazyListScope.libraryItems(
     Row(modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = WardSpace.m.wardDp)
         .wardRaised(WardRadius.bar, WardLift.high).padding(WardSpace.m.wardDp),
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clickable(role = Role.Button) { state.stopSelecting() }.semantics { contentDescription = "Done" },
+        Box(Modifier.size(WardControlSize.target.wardDp).clickable(role = Role.Button) { state.stopSelecting() }.semantics { contentDescription = "Done" },
             contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Close, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(18.dp))
         }
@@ -596,7 +597,7 @@ private fun LazyListScope.practiseSection(category: StudyCategory, store: StudyS
     val rest = features.drop(4)
     if (rest.isEmpty()) return
     item(key = "more-practise") {
-        Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { state.morePractise = !state.morePractise }
+        Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { state.morePractise = !state.morePractise }
             .padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("More ways to practise", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk),
                 modifier = Modifier.weight(1f))

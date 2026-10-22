@@ -203,7 +203,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
 @Composable private fun LegendSheet(theme: GraphTheme, onDone: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDone, containerColor = wardColor(WardToken.background)) {
         ReaderNavBar(theme.legendTitle, trailing = { ReaderDoneButton(onClick = onDone) })
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.gutter.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
             Text(theme.cardTitle, Modifier.semantics { heading() }, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             Text(theme.cardText, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
             theme.cardSteps.forEachIndexed { i, step ->

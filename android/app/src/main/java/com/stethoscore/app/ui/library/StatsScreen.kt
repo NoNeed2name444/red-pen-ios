@@ -53,6 +53,7 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.data.SubjectStats
 import com.stethoscore.app.quiz.MistakeReason
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
@@ -98,7 +99,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
 
     Column(Modifier.fillMaxSize()) {
         LibraryPageTop("By subject", onBack)
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             item {
                 LibraryFormSection(footer = tried.firstOrNull()?.let { StatsWords.drillNote(it.subject) }) {
@@ -223,7 +224,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
 
 /** A row that opens a page: a glyph, a name, a count and a chevron (iOS NavigationLink). */
 @Composable private fun LinkRow(icon: ImageVector, title: String, count: String?, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
+    Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Icon(icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
         Text(title, style = WardTextStyle.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
@@ -234,7 +235,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
 
 /** A line in the tint that does one thing (iOS borderless Label button). */
 @Composable private fun ActionLine(icon: ImageVector?, text: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
+    Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (icon != null) Icon(icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
         Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.primaryInk), modifier = Modifier.weight(1f))
@@ -282,7 +283,7 @@ private fun makeQuiz(name: String, picks: List<QuestionPick>): StudySet {
 @Composable private fun InsightQuestionList(list: QuestionList, onBack: () -> Unit, onQuiz: (LibraryQuiz) -> Unit) {
     Column(Modifier.fillMaxSize()) {
         LibraryPageTop(list.title, onBack)
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             list.tip?.let { tip -> item {
                 LibraryFormSection {

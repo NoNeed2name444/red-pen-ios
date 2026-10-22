@@ -2302,6 +2302,121 @@ with the marks on the screens last.
     - [ ] Left: the fold's motion and the press under Reduce Motion (T0124);
       Material's own buttons, menus and dialogs keep their ripple until
       Waves 3-4 and the owner's answer on native menus and dialogs.
+  - UX Waves 3-4 on Android (T0123: chrome and polish, no motion; the
+    Android consistency sweep's Waves 3-4 and the owner's answers of 22 Oct):
+    - [x] The starting window's bars stand on ward_ground (light and night)
+      instead of the off-palette #E0E5EC; from the first frame
+      enableEdgeToEdge clears them, as before.
+    - [x] Material's onPrimary is WardToken.onPrimary (white) at night as
+      by day, so words on fills stay white (it was the night base); nothing
+      else in the scheme changes (OwnerPaletteTest).
+    - [x] The question screen's picture (StudyScreens' CardImage) covers an
+      occlusion card's labels in OcclusionCovers' colours, as the card face,
+      not a Care Blue literal; no screen passes it a card yet, so nothing
+      drawn changes (OwnerPaletteTest).
+    - [x] Wells take the page colour (the owner 22 Oct, "wells and sheets
+      one tone"): WardControlStates.wellFill (WardToken.background) fills
+      every Ward well - fields and search boxes, chips, pills, the timer,
+      grooves, a switch's empty track, a chosen or held segment - and
+      wardWellFill() hands it to screens (T0122 uses it); WardToken.well
+      stays in the palette. Cards' progress groove, the Why note, a held
+      rating button and the lab panel's units row were flat wells and are
+      now inset ones. NarrateAudioBar's native slider keeps the palette's
+      well (it draws no inset shadows). OwnerAccepted.kt: 44 values move
+      (chip wells and chosen segments measure on the page colour), each
+      marked "owner 22 Oct, wells and sheets one tone".
+    - [x] Sheets, menus and dialogs are one tone (the owner 22 Oct; they stay
+      Material's own, Android Q4): their containers were already the page
+      colour by token (T0113), but Material's 1 dp tonal elevation laid
+      black over every ModalBottomSheet (surfaceTint is clear), about 5%
+      darker; the theme turns tonal elevation off (WardPaletteTest).
+    - [x] Touch targets are 48 dp on Android (the owner 22 Oct; iOS keeps
+      44): WardControlSize.target is 48 and the theme hands it to Material
+      (LocalMinimumInteractiveComponentSize). The Ward button, chip, circle,
+      switch, segmented control and text field wear
+      minimumInteractiveComponentSize, so the touch area grows and the face
+      keeps iOS's size (the circle stays 44, drawn at buttonSmall); the 44
+      literals that were targets take the token, IconButtons lose their 44
+      cap, and the three under 44 (the tag field's add, the lab units, OSCE's
+      More options) reach 48; a dock tab is never under the target
+      (WardTokensTest and WardDockTest pin 48). Drawn sizes that grow: a
+      tag chip (50 to 54), the tag field (46 to 68: its add sits inside the
+      well; iOS draws it 64) and the count field's well round its circles
+      (44 to 48).
+    - [x] One top bar for the sweep's seven: StudyTitleBar (ui/mock/MockKit.kt),
+      iOS's inline title with Ward toolbar buttons. Back is a Ward circle;
+      the title, in the headline face, stays in the bar's middle and takes
+      the room the wider end leaves it. ScreenHeader (no inset inside its
+      own column, its subtitle under it), ReaderNavBar, EditorTopBar and the
+      quiz's and review's bars are it, ReaderBackButton is the circle, and
+      More on the quiz and review bars is a circle (the review's empty More
+      is a disabled one: it was faded to 40%). The exam card's header is a
+      card's, as iOS ExamDashboardCard's, and stays.
+    - [x] Settings on the Ward controls, as iOS SupportCenter's wardForm and
+      ReviewSettingsSection: Night shift is a WardToggle row (the whole row
+      toggles it), the scheduler a WardSegmented, the daily limits' minus
+      and plus Ward circles (the minus a disabled circle at no limit), and
+      New set's study modes Ward chip buttons, the chosen one pressed in.
+    - [x] Home's search is a WardTextField, iOS's searchField: a Ward well
+      with the magnifier in Biro Grey (WardTextField takes a leading glyph)
+      and the body face, no longer Material's outlined field at 90% surface
+      with a 30 dp radius; Settings beside it is a Ward circle, not an
+      IconButton in a drawn ring. The gear stays filled (Android Q3).
+    - [x] Type on WardType's faces: the sp literals (fontSize with 22 sp
+      lines under them) are now faces with their own leading, at the same
+      sizes, in the quiz, results, cards, settings, home, exam tools and
+      Cases screens. One title role, one face: the empty and error titles
+      (22, 23 and 20 bold) are WardType.title, settings' card titles
+      WardType.title and their row labels the headline (18 was off the
+      scale). As iOS: the card's front is the title (leading 25, not 26),
+      the hint's words and the lab panel's values the body (16 and 14 mono
+      were off), the lab values with even figures; the chart's words keep
+      iOS's 3 points between lines and the Why note its 2. The small caps
+      (cards' badge, Why / how, the due list, the vitals and lab headings)
+      are WardSmallCaps (0.8 tracking, none at the accessibility sizes),
+      not 1 or 1.2. Left: the display numerals at iOS's own scaled sizes
+      (the plan's 40 and 36, the score ring's 38, the calculator's 40 to
+      iOS's 44, the results ring's 30), the dock's autosizing names, the
+      skip glyph's 7, and W2's stand-ins and empty state.
+    - [x] The page gutter is WardSpace.gutter (16, not 20) and the gap
+      between a page's sections WardSpace.section (24, not 20 or 22), as
+      iOS's wardForm: home, settings, AI models, the quiz's empty page, the
+      clinical fallback, Ideas' note page and its legend and name sheets, the
+      shelf, the library sheets, By subject, New set, Guess first, the ward round's
+      panel (a card's padding is the gutter too), the exam picker, the ward
+      pocket, the credits and the plan, kit and symptom pages. Left as they
+      are: the 20s over form rows (ReaderFormSection's header and footer,
+      the exam picker's note, the vitals line, Ideas' and the syllabus'
+      headings), which sit over the rows' words (the tile's 8 and its 12),
+      as iOS's form headers do, and the other off-scale gaps, many of them
+      copies of iOS's own (iOS's sweep leaves those to a screenshot review).
+    - [x] The canon's own off-scale values: WardMonitorCard's default gap is
+      WardSpace.m (18 before; its one caller already passed m, as iOS's
+      VitalsParts), and wardField's 10 above and below stay, with a comment:
+      iOS's wardField has the same 10.
+    - [x] Radii from WardRadius where iOS names one: the Cards progress
+      header (bar), its content card (card), the rating buttons (button),
+      the lab and vitals panels (field), the undo chip (bar, iOS's
+      PopTileStyle), and the board's cards and the occlusion picture (card;
+      they were 14). Capsules where iOS draws Capsule(): the Cards companion
+      button (it was 16), the reader's pager, the board's hint and the
+      import slip. Left: radii iOS writes out itself (the book's 8, 10 and
+      12, the mock's picture's 12, the narrate flow's 10, the stem
+      highlight's 8), the two discs drawn at half their size (34 and 28),
+      the native dialog's 28 (Android Q4), the section switcher's geometry,
+      the Cases screens' 12s (the field radius already), and W2's stand-ins
+      (the answer row, QuizCard, the calculator keys, the hint panel, the
+      empty state's disc).
+    - [x] Nothing faded by alpha where iOS draws it solid (the owner 9 Oct:
+      disabled is solid Biro Grey, wardDisabledInk): a disabled rung on the
+      Cases ladder (ink at 38% before), and the Cases screens' Use and Add
+      when disabled (Material faded them to 38%); the board's link lines
+      are Biro Grey, as iOS's, not 55% of it, and Bedtime's rule line Biro
+      Grey, as iOS's, not ink at 85%. Home's search at 90% and the review's
+      More at 40% went with the bars above. Kept, since iOS draws them so
+      and no colour changes: the board card's 14% wash in its folder's tone,
+      the stem highlighter's beam at 30% and its 6% grey, the analytics
+      bars at 70%; W2's stand-ins keep theirs (QuizTag's and CaseKit's 12%).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

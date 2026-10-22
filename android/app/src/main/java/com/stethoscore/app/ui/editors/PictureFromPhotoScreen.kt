@@ -71,6 +71,7 @@ import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardSectionLabel
@@ -341,7 +342,7 @@ private data class Saved(val set: StudySet, val cards: Int, val lecture: Boolean
     val blank = covers.size - asked
     val summary = "$asked card${if (asked == 1) "" else "s"} on this picture${if (blank > 0) ", $blank without an answer" else ""}"
     Column(Modifier.fillMaxWidth().wardRaised().padding(horizontal = 14.dp)) {
-        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp).clickable(role = Role.Button) { open = !open }, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp).clickable(role = Role.Button) { open = !open }, verticalAlignment = Alignment.CenterVertically) {
             Text(summary, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
             Icon(if (open) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk))
         }
@@ -349,7 +350,7 @@ private data class Saved(val set: StudySet, val cards: Int, val lecture: Boolean
             covers.forEach { cover ->
                 val answer = PhotoOcclusion.tidied(cover.answer)
                 val chosen = cover.id == selected
-                Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp).clickable(role = Role.Button) { onSelect(cover.id) },
+                Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp).clickable(role = Role.Button) { onSelect(cover.id) },
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(if (chosen) Icons.Rounded.RadioButtonChecked else Icons.Rounded.Rectangle, null,
                         tint = if (chosen) wardColor(WardToken.primaryInk) else wardColor(WardToken.beam), modifier = Modifier.size(18.dp))
@@ -370,7 +371,7 @@ private data class Saved(val set: StudySet, val cards: Int, val lecture: Boolean
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         WardSectionLabel("Save to")
         if (decks.isNotEmpty()) Box {
-            Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp).clickable(role = Role.Button) { menu = true }
+            Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp).clickable(role = Role.Button) { menu = true }
                 .semantics { contentDescription = "Deck" }, verticalAlignment = Alignment.CenterVertically) {
                 Text("Deck", style = WardType.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
                 Text(decks.firstOrNull { it.id == destination }?.name ?: "A new deck", style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))

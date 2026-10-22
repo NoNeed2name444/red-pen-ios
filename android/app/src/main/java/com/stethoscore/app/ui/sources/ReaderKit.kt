@@ -15,7 +15,6 @@ import androidx.compose.material.icons.automirrored.rounded.Notes
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Slideshow
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,11 +25,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.reading.SourceKind
+import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.*
 
@@ -61,24 +60,16 @@ internal fun decodePicture(stored: String): ImageBitmap? = runCatching {
     }
 }.getOrNull()
 
-/** The navigation bar: its title inline, Back or Done at the leading end, an action at the trailing one. */
+/** The navigation bar, StudyTitleBar: its title inline, Back or Done at the leading end, an action at the trailing one. */
 @Composable internal fun ReaderNavBar(
     title: String,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
-) {
-    Box(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = WardSpace.s.wardDp)) {
-        Row(Modifier.align(Alignment.CenterStart)) { leading?.invoke() }
-        Text(title, Modifier.align(Alignment.Center).padding(horizontal = 96.dp).semantics { heading() },
-            style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Row(Modifier.align(Alignment.CenterEnd)) { trailing?.invoke() }
-    }
-}
+) = StudyTitleBar(title, null, leading = leading) { trailing?.invoke() }
 
-/** Back, to the page before. */
+/** Back, to the page before: a Ward circle, as iOS's toolbar buttons (wardCircle). */
 @Composable internal fun ReaderBackButton(onBack: () -> Unit) {
-    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = wardColor(WardToken.primaryInk)) }
+    WardCircleButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
 }
 
 /** A sheet's Done (wardCompact). */

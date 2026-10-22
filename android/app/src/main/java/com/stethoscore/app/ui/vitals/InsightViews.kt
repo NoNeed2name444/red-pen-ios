@@ -66,6 +66,7 @@ import com.stethoscore.app.ui.sources.wardRowTile
 import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardEmptyState
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
@@ -174,7 +175,7 @@ fun passLine(e: ReadinessEstimate, track: ExamTrack): String {
         ReaderEtch()
         WardSectionLabel("What would move it most")
         for (lever in e.levers) {
-            Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp)
+            Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp)
                 .clickable(role = Role.Button, onClickLabel = "Opens a drill of ${lever.subject}") { onDrill(lever.subject) }
                 .semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {

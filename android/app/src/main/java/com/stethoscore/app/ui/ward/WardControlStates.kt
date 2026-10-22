@@ -42,6 +42,17 @@ object WardControlStates {
     val disabledInk: WardToken = WardToken.inkSecondary
 
     /**
+     * Every well's fill: text fields and search boxes, chips and pills,
+     * progress tracks and grooves, a switch's track and a chosen or held
+     * segment. The page colour: wells take the page colour and show as
+     * wells through their inset shadows only (the owner, 22 Oct: "wells
+     * and sheets one tone"). WardToken.well stays in the palette as it was;
+     * no Ward well draws it. This is the one place the well's fill is named;
+     * wardInset and wardWellFill read it.
+     */
+    val wellFill: WardToken = WardToken.background
+
+    /**
      * The solid edge round a chosen chip, circle, segment or tile, in
      * points: the section's accent at full strength, twice the width of a
      * control's own 1-point edge.
@@ -50,7 +61,8 @@ object WardControlStates {
 
     /**
      * The edge a disabled switch's flat knob keeps, in the disabled ink: a
-     * flat face on the light well would be 1.2:1, so it would disappear.
+     * flat face on its track (the well's fill, the page colour) would not
+     * be told from it, so it would disappear.
      */
     const val knobEdgeWidth = 1.0
 
@@ -218,16 +230,16 @@ enum class WardControl {
             circle -> WardControlLook(glyph = if (enabled) chosenInk else disabledInk, face = WardToken.surface,
                 stand = stand, mark = chosenEdge)
             // a segment sits on the control's raised capsule; held or chosen,
-            // it is a well pressed into it
+            // it is a well pressed into it (the well's fill, WardControlStates.wellFill)
             segment -> WardControlLook(words = if (enabled) chosenInk else disabledInk,
-                face = if (down) WardToken.well else WardToken.surface,
+                face = if (down) WardControlStates.wellFill else WardToken.surface,
                 stand = if (down) WardStand.PressedIn(WardLift.low) else WardStand.Raised(WardLift.low), mark = chosenEdge)
-            // the track is a well; on, the tint fills it, Biro Grey when
-            // disabled; the knob sinks while held and lies flat, with an
-            // edge, when disabled; its words, on the row beside it, go Biro
-            // Grey too
+            // the track is a well (the well's fill); on, the tint fills it,
+            // Biro Grey when disabled; the knob sinks while held and lies
+            // flat, with an edge, when disabled; its words, on the row beside
+            // it, go Biro Grey too
             toggle -> {
-                val track = if (state.isChosen) (if (enabled) WardToken.primaryInk else disabledInk) else WardToken.well
+                val track = if (state.isChosen) (if (enabled) WardToken.primaryInk else disabledInk) else WardControlStates.wellFill
                 val knobStand: WardStand = when {
                     !enabled -> WardStand.Flat
                     state.isHeld -> WardStand.PressedIn(WardLift.low)

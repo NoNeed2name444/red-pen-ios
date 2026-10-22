@@ -111,9 +111,9 @@ import kotlin.random.Random
                     overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { trailing?.invoke() }
             }
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(20.dp),
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),
                 verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp), content = content)
-            if (bottom != null) Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = WardSpace.m.wardDp),
+            if (bottom != null) Column(Modifier.fillMaxWidth().padding(horizontal = WardSpace.gutter.wardDp, vertical = WardSpace.m.wardDp),
                 verticalArrangement = Arrangement.spacedBy(10.dp), content = bottom)
         }
     }

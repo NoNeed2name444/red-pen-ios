@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,8 +59,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardControlStates
 import com.stethoscore.app.ui.ward.WardEaseInOut
 import com.stethoscore.app.ui.ward.WardMotion
@@ -90,16 +93,12 @@ import com.stethoscore.app.ui.wardColor
 // (WardVitals.swift). The banner and the bottom deck are the Ward kit's
 // (WardStates.kt, WardDeck.kt).
 
-/** A sheet's bar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
+/** A sheet's bar, StudyTitleBar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
 @Composable internal fun EditorTopBar(title: String, onCancel: (() -> Unit)?, cancelTitle: String = "Cancel", trailing: @Composable () -> Unit = {}) {
-    Box(Modifier.fillMaxWidth().defaultMinSize(minHeight = 56.dp).padding(horizontal = WardSpace.s.wardDp)) {
-        if (onCancel != null) Box(Modifier.align(Alignment.CenterStart)) {
-            WardTextButton(cancelTitle, onCancel, kind = WardButtonKind.quiet, fills = false)
-        }
-        Text(title, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center, maxLines = 1,
-            modifier = Modifier.align(Alignment.Center).widthIn(max = 220.dp).semantics { heading() })
-        Box(Modifier.align(Alignment.CenterEnd)) { trailing() }
+    val cancel: (@Composable () -> Unit)? = if (onCancel == null) null else {
+        { WardTextButton(cancelTitle, onCancel, kind = WardButtonKind.quiet, fills = false) }
     }
+    StudyTitleBar(title, null, leading = cancel) { trailing() }
 }
 
 /**
@@ -197,7 +196,7 @@ import com.stethoscore.app.ui.wardColor
         Row(Modifier.wardInset(CircleShape, control = true), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             WardCircleButton(Icons.Rounded.Remove, "One fewer", { onValueChange((value - 1).coerceAtLeast(range.first)) }, enabled = enabled && value > range.first)
             BasicTextField(text, { typed -> text = typed.filter { it.isDigit() }.take(6); text.toIntOrNull()?.let { if (it in range) onValueChange(it) } },
-                modifier = Modifier.widthIn(min = 44.dp, max = 64.dp).semantics { contentDescription = title },
+                modifier = Modifier.minimumInteractiveComponentSize().widthIn(min = 44.dp, max = 64.dp).semantics { contentDescription = title },
                 enabled = enabled, singleLine = true,
                 textStyle = WardTextStyle.body.textStyle(mono = true).copy(color = if (enabled) wardColor(WardToken.ink) else wardDisabledInk(), textAlign = TextAlign.Center, fontFamily = FontFamily.Monospace),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
@@ -211,7 +210,7 @@ import com.stethoscore.app.ui.wardColor
 /** DisclosureGroup: the title with its chevron, the rest shown under it once opened. */
 @Composable internal fun MoreOptions(title: String, expanded: Boolean, onToggle: (Boolean) -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp)
+        Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp)
             .clickable(role = Role.Button, onClickLabel = if (expanded) "Collapse" else "Expand") { onToggle(!expanded) },
             verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = WardType.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))

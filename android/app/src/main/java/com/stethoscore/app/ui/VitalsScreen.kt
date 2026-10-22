@@ -431,9 +431,9 @@ internal fun wrongLine(answer: WrongAnswer, zone: ZoneId = ZoneId.systemDefault(
             WardEmptyState(Icons.AutoMirrored.Rounded.LibraryBooks, "No subjects yet", "Make an MCQ set and each subject you study will show here with its accuracy.")
         } else for (subject in s.stats) {
             val trend = s.trends[subject.name]
-            Row(Modifier.fillMaxWidth().wardRowTile()
+            Row(Modifier.fillMaxWidth()
                 .clickable(role = Role.Button, onClickLabel = "Opens a drill of ${subject.name}") { onDrill(subject.name) }
-                .defaultMinSize(minHeight = 44.dp).padding(vertical = WardSpace.xs.wardDp).semantics(mergeDescendants = true) {},
+                .wardRowTile().defaultMinSize(minHeight = 44.dp).padding(vertical = WardSpace.xs.wardDp).semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                     Text(subject.name, style = WardTextStyle.body.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink), maxLines = 1, overflow = TextOverflow.Ellipsis)

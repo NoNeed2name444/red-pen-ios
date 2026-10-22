@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -11,10 +14,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
+import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardSegmented
+import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardToggle
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 
 /** New set; a [preset] (the exam's Study next, the Ward pocket's Practise this) fills in its name, subject and mode. */
 @Composable fun NewSetScreen(onSave:(StudySet)->Unit,onBack:()->Unit,preset:com.stethoscore.app.exam.NewSetPreset?=null) {
@@ -24,25 +38,26 @@ import com.stethoscore.app.data.*
     val kind=StudySetKind.valueOf(kindName)
     var content by rememberSaveable { mutableStateOf("") }
     var error by remember {mutableStateOf<String?>(null)}
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ScreenHeader("New set","Make something worth remembering",onBack)
         OutlinedTextField(name,{name=it},Modifier.fillMaxWidth(),label={Text("Set name")},singleLine=true)
         OutlinedTextField(subject,{subject=it},Modifier.fillMaxWidth(),label={Text("Subject")},singleLine=true)
         SectionLabel("Study mode")
-        StudySetKind.entries.filter {it!=StudySetKind.CASES}.chunked(3).forEach { row -> Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {row.forEach { mode -> FilterChip(selected=kind==mode,onClick={kindName=mode.name},label={Text(mode.label,fontSize=12.sp)})} } }
+        // the mode, one chosen: Ward chip buttons (the chosen one pressed in with its accent edge)
+        StudySetKind.entries.filter {it!=StudySetKind.CASES}.chunked(3).forEach { row -> Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {row.forEach { mode -> WardChipButton(mode.label,{kindName=mode.name},on=kind==mode)} } }
         WardCard(Modifier.fillMaxWidth()) {
             Text(when(kind) {StudySetKind.ANKI->"One card per line";StudySetKind.MCQ->"One question per block";StudySetKind.OSCE->"One checklist step per line";StudySetKind.NARRATE->"One transcript segment per line";else->"Write or paste your notes"},fontWeight=FontWeight.Bold)
-            Text(when(kind) {StudySetKind.ANKI->"Question | Answer\nUse {{c1::answer}} for a cloze card.";StudySetKind.MCQ->"Question\nA) Option\n*B) Correct option\nC) Option\nWhy: Explanation\n\nSeparate questions with a blank line.";StudySetKind.BOOK->"Use # headings and ## page titles. Your text stays editable in exported JSON.";StudySetKind.OSCE->"Use the set name as the station title. Each non-empty line becomes a recall step.";else->"Paste the transcript. Playback uses the text-to-speech voice installed on your device."},fontSize=13.sp,lineHeight=21.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(when(kind) {StudySetKind.ANKI->"Question | Answer\nUse {{c1::answer}} for a cloze card.";StudySetKind.MCQ->"Question\nA) Option\n*B) Correct option\nC) Option\nWhy: Explanation\n\nSeparate questions with a blank line.";StudySetKind.BOOK->"Use # headings and ## page titles. Your text stays editable in exported JSON.";StudySetKind.OSCE->"Use the set name as the station title. Each non-empty line becomes a recall step.";else->"Paste the transcript. Playback uses the text-to-speech voice installed on your device."},style=WardTextStyle.footnote.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         // what the questions are to be written on (iOS gives it to the writer as its notes)
-        if(preset!=null && preset.notes.isNotBlank()) WardCard(Modifier.fillMaxWidth()) { SectionLabel("Notes");Text(preset.notes,fontSize=13.sp,lineHeight=21.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+        if(preset!=null && preset.notes.isNotBlank()) WardCard(Modifier.fillMaxWidth()) { SectionLabel("Notes");Text(preset.notes,style=WardTextStyle.footnote.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant) }
         if(kind==StudySetKind.OSCE) com.stethoscore.app.ui.osce.OsceGenerateSection(content,{content=it;error=null},subject,{subject=it})
         OutlinedTextField(content,{content=it;error=null},Modifier.fillMaxWidth().heightIn(min=230.dp),label={Text("Study content")},minLines=8)
         error?.let {Text(it,color=MaterialTheme.colorScheme.error)}
         WardButton("Save set",{
             runCatching { onSave(parseStudySet(name,subject,kind,content)) }.onFailure {error=it.message ?: "Check your content and try again."}
         },Modifier.fillMaxWidth(),name.isNotBlank() && content.isNotBlank())
-        Text("To add a Cases set, import a Stethoscore JSON file from Settings.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("To add a Cases set, import a Stethoscore JSON file from Settings.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -71,11 +86,13 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
 @Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit,
     review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={},
     onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null,onExam:(()->Unit)?=null,onModels:(()->Unit)?=null) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Look and feel")
-            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {Column {Text("Night shift",fontSize=18.sp,fontWeight=FontWeight.SemiBold);Text("Stethoscore's dark palette",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)};Switch(dark,onDark)}
+            // a Ward switch, the whole row toggling it (iOS's Toggle in wardForm), its note under it
+            WardToggle(dark,onDark,label="Night shift")
+            Text("Stethoscore's dark palette",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         // iOS: Settings, "Your exam" (ExamPickerView)
         if(onExam!=null) WardCard(Modifier.fillMaxWidth()) {
@@ -83,32 +100,33 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
             val exam=remember { com.stethoscore.app.exam.ExamChoice.current(context) }
             SectionLabel("Your exam")
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-                Text("Exam",Modifier.weight(1f),fontSize=18.sp,fontWeight=FontWeight.SemiBold)
-                Text(exam?.shortName ?: "Choose",fontSize=16.sp,color=MaterialTheme.colorScheme.primary)
+                Text("Exam",Modifier.weight(1f),style=WardType.headline.textStyle())
+                Text(exam?.shortName ?: "Choose",style=WardTextStyle.callout.textStyle(),color=MaterialTheme.colorScheme.primary)
             }
             WardButton(if(exam==null) "Choose your exam" else "Change exam",onExam,Modifier.fillMaxWidth().testTag("chooseExam"))
-            Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         // iOS: Settings, "AI models" (ModelSettingsView)
         if(onModels!=null) WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("AI models")
-            Text("The writer and Stethoscore Cloud",fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+            Text("The writer and Stethoscore Cloud",style=WardType.title.textStyle())
             WardButton("AI models",onModels,Modifier.fillMaxWidth().testTag("aiModels"))
         }
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Review")
-            Text("Scheduler",fontSize=18.sp,fontWeight=FontWeight.SemiBold)
-            Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-                ReviewScheduler.entries.forEach { s -> FilterChip(review.scheduler==s,{ onReview(review.copy(scheduler=s)) },{ Text(s.title) }) }
+            Text("Scheduler",style=WardType.headline.textStyle())
+            // as iOS ReviewSettingsSection: the scheduler on the segmented control
+            WardSegmented(review.scheduler,ReviewScheduler.entries,{ onReview(review.copy(scheduler=it)) },Modifier.semantics { contentDescription="Scheduler" }) { s,style,ink ->
+                Text(s.title,style=style,color=ink)
             }
-            Text(if(review.scheduler==ReviewScheduler.FSRS) "FSRS-5 with its published weights: each card's stability and difficulty set its next interval." else "Classic: the web app's intervals, the default.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if(review.scheduler==ReviewScheduler.FSRS) "FSRS-5 with its published weights: each card's stability and difficulty set its next interval." else "Classic: the web app's intervals, the default.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
             LimitStepper("New cards a day",review.limits.newPerDay,5) { onReview(review.copy(limits=review.limits.copy(newPerDay=it))) }
             LimitStepper("Reviews a day",review.limits.reviewsPerDay,10) { onReview(review.copy(limits=review.limits.copy(reviewsPerDay=it))) }
-            Text("Learning cards always come back when due. A study day turns over at 4 am.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Learning cards always come back when due. A study day turns over at 4 am.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Your library")
-            Text("Saved on this device",fontSize=20.sp,fontWeight=FontWeight.SemiBold)
+            Text("Saved on this device",style=WardType.title.textStyle())
             Text("Import sets from Stethoscore or export a backup of your library, notes and review history.",color=MaterialTheme.colorScheme.onSurfaceVariant)
             WardButton("Import JSON",onImport,Modifier.fillMaxWidth())
             WardButton("Export library backup",onExport,Modifier.fillMaxWidth())
@@ -123,19 +141,20 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
         }
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Android preview · 0.1")
-            Text("Native Kotlin. Same study foundations.",fontSize=20.sp,fontWeight=FontWeight.SemiBold)
-            Text("Questions, spaced cards, OSCE, textbook, transcript playback, Cases and linked notes work locally. Account sync, cloud AI, audio transcription and the 3D renderer are still being ported.",lineHeight=24.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Built from the audited October 9 Stethoscore source.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Native Kotlin. Same study foundations.",style=WardType.title.textStyle())
+            Text("Questions, spaced cards, OSCE, textbook, transcript playback, Cases and linked notes work locally. Account sync, cloud AI, audio transcription and the 3D renderer are still being ported.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Built from the audited October 9 Stethoscore source.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text("Stethoscore is a study aid. Source material and sample answers have not been independently verified for clinical use.",fontSize=12.sp,lineHeight=18.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Stethoscore is a study aid. Source material and sample answers have not been independently verified for clinical use.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable private fun LimitStepper(label:String,value:Int,step:Int,onChange:(Int)->Unit) {
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(label,fontSize=16.sp,fontWeight=FontWeight.SemiBold); Text(if(value<=0) "No limit" else "$value",fontSize=13.sp,color=MaterialTheme.colorScheme.primary) }
-        OutlinedButton(onClick={ onChange((value-step).coerceAtLeast(0)) },enabled=value>0) { Text("−") }
+        Column(Modifier.weight(1f)) { Text(label,style=WardTextStyle.callout.textStyle(WardWeight.semibold)); Text(if(value<=0) "No limit" else "$value",style=WardTextStyle.footnote.textStyle(),color=MaterialTheme.colorScheme.primary) }
+        // a stepper's minus and plus: Ward circles
+        WardCircleButton(Icons.Rounded.Remove,"Fewer ${label.lowercase()}",{ onChange((value-step).coerceAtLeast(0)) },enabled=value>0)
         Spacer(Modifier.width(8.dp))
-        OutlinedButton(onClick={ onChange((value+step).coerceAtMost(9999)) }) { Text("+") }
+        WardCircleButton(Icons.Rounded.Add,"More ${label.lowercase()}",{ onChange((value+step).coerceAtMost(9999)) })
     }
 }

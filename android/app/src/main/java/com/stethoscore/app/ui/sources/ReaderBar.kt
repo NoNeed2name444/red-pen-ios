@@ -2,6 +2,7 @@ package com.stethoscore.app.ui.sources
 
 import android.content.Context
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.rounded.ViewSidebar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,14 +83,14 @@ private val modes = listOf(
 
 /** Every page, as a list: a 44-point disc on the floating plane, pressed in under the finger. */
 @Composable private fun ReaderPagesButton(noun: String, action: () -> Unit) {
-    WardTile(action, Modifier.size(44.dp).semantics { contentDescription = "All ${noun.lowercase()}s" }, cornerRadius = 22.0) {
+    WardTile(action, Modifier.minimumInteractiveComponentSize().size(44.dp).semantics { contentDescription = "All ${noun.lowercase()}s" }, cornerRadius = 22.0) {
         Icon(Icons.Rounded.ViewSidebar, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
     }
 }
 
 /** "‹ Page 3 of 12 ›": a soft capsule on the floating plane. */
 @Composable private fun ReaderPager(page: Int, onPage: (Int) -> Unit, count: Int, noun: String) {
-    Row(Modifier.wardRaised(22.0, WardLift.high, fill = WardToken.raised).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.wardRelief(RoundedCornerShape(50), WardLift.high, wardColor(WardToken.raised)).padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         PagerArrow(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, "Previous ${noun.lowercase()}", !ReaderPaging.atStart(page)) { onPage(ReaderPaging.turn(page, -1, count)) }
         Text(ReaderPaging.place(noun, page, count), Modifier.widthIn(min = 88.dp),
             style = WardTextStyle.footnote.textStyle(WardWeight.semibold, mono = true), color = wardColor(WardToken.ink),
@@ -98,7 +100,7 @@ private val modes = listOf(
 }
 
 @Composable private fun PagerArrow(icon: ImageVector, label: String, enabled: Boolean, action: () -> Unit) {
-    IconButton(onClick = action, enabled = enabled, modifier = Modifier.size(44.dp)) {
+    IconButton(onClick = action, enabled = enabled) {
         Icon(icon, label, tint = if (enabled) wardColor(WardToken.primaryInk) else wardDisabledInk(), modifier = Modifier.size(22.dp))
     }
 }

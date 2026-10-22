@@ -50,12 +50,14 @@ import com.stethoscore.app.data.SymptomBlocks
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
 import com.stethoscore.app.ui.ward.WardIconSquare
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.wardColor
 
 // A port of ios/RedPen/Features/Learn/SymptomBlocksView.swift: "Chest pain
@@ -71,8 +73,8 @@ import com.stethoscore.app.ui.wardColor
     val all = remember(version) { SymptomBlocks.blocks(LearnLibrary.symptomItems(store), includeThin = true) }
     val ready = all.filter(::isReady)
     val thin = all.filter { !isReady(it) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = WardSpace.m.wardDp),
+        verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ReaderFormSection {
             Box(Modifier.wardRowTile()) {
                 Text("Questions from every set that start from the same complaint, mixed, so you learn to tell the lookalikes apart the way the exam asks.",

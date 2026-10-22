@@ -35,6 +35,8 @@ import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
+import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardRaised
 
 // iOS Features/Library/CategoryShelves.swift, KindShelfView: every set of one
@@ -48,14 +50,14 @@ import com.stethoscore.app.ui.ward.wardRaised
     val heading = if (sets.size == 1) "Your set" else "All ${sets.size}"
     Column(Modifier.fillMaxSize()) {
         LibraryPageTop(feature.title, onBack)
-        LazyColumn(Modifier.weight(1f).fillMaxWidth().widthIn(max = 760.dp), contentPadding = PaddingValues(20.dp, 8.dp, 20.dp, 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth().widthIn(max = 760.dp), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { LibraryHeading(heading, Modifier.padding(horizontal = 4.dp)) }
             if (sets.isEmpty()) item { WardEmptyState(modeIcon(kind), "None yet", "Tap New to make one.") }
             items(sets, key = { it.id }) { set ->
                 val due = remember(revision, set) { if (set.kind == StudySetKind.ANKI) store.dueCards(set).size else 0 }
                 LibrarySetRow(set, due, null, Modifier.fillMaxWidth().wardRaised(WardRadius.card, WardLift.low)
-                    .clickable(role = Role.Button) { onOpen(set) }.padding(horizontal = 20.dp, vertical = 10.dp))
+                    .clickable(role = Role.Button) { onOpen(set) }.padding(horizontal = WardSpace.gutter.wardDp, vertical = 10.dp))
             }
         }
         LibraryStudyBar {

@@ -383,10 +383,11 @@ class WardLookTest {
             accentSwap.settled && accentSwap.hex(WardToken.primaryInk, true) == WardSection.cards.accent.dark)
 
         // Audio's highlighted line: the word being spoken washed in the
-        // accent's fill, its words in Chart Ink, which keeps 4.5:1 on the wash.
+        // accent's fill, its words in Chart Ink, which keeps 4.5:1 on the wash;
+        // the line is a well, in the well's fill (the page colour, the owner 22 Oct).
         for (dark in modes) {
             for (s in sections) {
-                val well = WardPalette.hex(WardToken.well, dark)
+                val well = WardPalette.hex(WardControlStates.wellFill, dark)
                 val wash = WardRelief.composite(WardReliefLight(s.fill(dark), WardWash.alpha, 0.0, 0.0, 0.0), on = well)
                 val c = WardPalette.contrast(WardPalette.hex(WardToken.ink, dark), wash)
                 check("${mode(dark)} $s: words on the spoken word's wash read 4.5:1", c >= 4.5, f3(c))

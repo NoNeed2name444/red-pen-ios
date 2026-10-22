@@ -30,9 +30,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.Icon
@@ -64,6 +66,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardAnnulus
 import com.stethoscore.app.ui.ward.WardButtonBox
@@ -108,18 +111,41 @@ import com.stethoscore.app.ui.ward.wardRelief
 /** iOS's bar and screen widths: a phone's column, at most 700 wide on a big screen (readableColumn). */
 internal fun Modifier.readableColumn(): Modifier = this.widthIn(max = 700.dp).fillMaxWidth()
 
-/** The navigation bar: back (or [leading]), the title in the middle, [trailing] at the end. */
+/**
+ * The navigation bar, every screen's (iOS's inline title with Ward toolbar
+ * buttons): back as a Ward circle (or [leading]), the title in the middle in
+ * the headline face, [trailing] at the end. The title stays in the bar's
+ * middle: it takes the room the wider end leaves it on both sides, with an
+ * ellipsis when that is too little. [inset] is the room at the bar's sides,
+ * none where the page's own column already keeps its gutter (ScreenHeader).
+ * ReaderNavBar, EditorTopBar and ScreenHeader are this bar.
+ */
 @Composable internal fun StudyTitleBar(title: String, onBack: (() -> Unit)?, leading: (@Composable () -> Unit)? = null,
-                                       trailing: @Composable RowScope.() -> Unit = {}) {
-    Box(Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp).padding(horizontal = 12.dp, vertical = 4.dp)) {
-        Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) {
-            if (leading != null) leading()
-            else if (onBack != null) WardCircleButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
+                                       inset: Dp = WardSpace.m.wardDp, trailing: @Composable RowScope.() -> Unit = {}) {
+    // 52 tall: the back circle's touch area (the least target) fits inside it
+    Layout(
+        content = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (leading != null) leading()
+                else if (onBack != null) WardCircleButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onBack)
+            }
+            Text(title, Modifier.semantics { heading() }, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink),
+                textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), content = trailing)
+        },
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp).padding(horizontal = inset),
+    ) { (start, name, end), constraints ->
+        val free = constraints.copy(minWidth = 0, minHeight = 0)
+        val ends = listOf(start.measure(free), end.measure(free))
+        val widest = ends.maxOf { it.width }
+        val side = if (widest == 0) 0 else widest + WardSpace.s.wardDp.roundToPx()
+        val words = name.measure(free.copy(maxWidth = (constraints.maxWidth - 2 * side).coerceAtLeast(0)))
+        val height = maxOf(constraints.minHeight, words.height, ends.maxOf { it.height })
+        layout(constraints.maxWidth, height) {
+            ends[0].place(0, (height - ends[0].height) / 2)
+            words.place((constraints.maxWidth - words.width) / 2, (height - words.height) / 2)
+            ends[1].place(constraints.maxWidth - ends[1].width, (height - ends[1].height) / 2)
         }
-        Text(title, Modifier.align(Alignment.Center).padding(horizontal = 88.dp).semantics { heading() },
-            style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp), content = trailing)
     }
 }
 
@@ -179,7 +205,7 @@ internal enum class BigKind { primary, secondary, companion }
     val held = enabled && pressed
     val look = WardControl.chip.look(WardControlState(isChosen = on, isHeld = held, isEnabled = enabled))
     val chosenInk = tone?.ink() ?: wardColor(WardToken.primaryInk)
-    Box(modifier.defaultMinSize(44.dp, 44.dp)
+    Box(modifier.defaultMinSize(WardControlSize.target.wardDp, WardControlSize.target.wardDp)
         .selectable(on, enabled = enabled, role = Role.Button, interactionSource = source, indication = null, onClick = onClick)
         .capPop(held), contentAlignment = Alignment.Center) {
         Row(Modifier.wardChosenEdge(CircleShape, on, chosenInk)
@@ -262,7 +288,7 @@ internal val chosenEdgeWidth: Dp get() = WardControlStates.chosenEdgeWidth.wardD
             WardCircleButton(Icons.Rounded.Remove, "One fewer", { onValue((value - 1).coerceAtLeast(range.first)) },
                 enabled = enabled && value > range.first)
             BasicTextField(text, { text = it.filter { c -> c.isDigit() }.take(6) },
-                Modifier.widthIn(min = 44.dp, max = 64.dp).onFocusChanged { if (!it.isFocused) commit() }
+                Modifier.minimumInteractiveComponentSize().widthIn(min = 44.dp, max = 64.dp).onFocusChanged { if (!it.isFocused) commit() }
                     .semantics { contentDescription = "$title, between ${range.first} and ${range.last}" },
                 enabled = enabled, singleLine = true,
                 textStyle = WardType.body.textStyle().copy(fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center,

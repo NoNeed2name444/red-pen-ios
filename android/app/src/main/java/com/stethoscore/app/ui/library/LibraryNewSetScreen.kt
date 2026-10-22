@@ -68,6 +68,7 @@ import com.stethoscore.app.ui.cases.CaseMakeSection
 import com.stethoscore.app.ui.editors.LectureStep
 import com.stethoscore.app.ui.editors.MCQGenerateForm
 import com.stethoscore.app.ui.modeIcon
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
@@ -263,7 +264,7 @@ import kotlinx.coroutines.withContext
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f).semantics { heading() })
             Spacer(Modifier.widthIn(min = 88.dp).size(width = 88.dp, height = 1.dp))
         }
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.gutter.wardDp, vertical = WardSpace.s.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp)) {
             StepHeader(step) { step = it }
             when (step) {
@@ -299,7 +300,7 @@ import kotlinx.coroutines.withContext
                         WardTextField(name, { name = it }, Modifier.fillMaxWidth().semantics { contentDescription = "Name" }, placeholder = "e.g. Cardiology week 3")
                     }
                     if (showsCreate) LibraryFormSection(footer = NewSetWords.readiness(kind, itemCount, name)) {
-                        Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { moreOptions = !moreOptions },
+                        Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { moreOptions = !moreOptions },
                             verticalAlignment = Alignment.CenterVertically) {
                             Text("More options", style = WardTextStyle.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
                             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk),
@@ -397,7 +398,7 @@ import kotlinx.coroutines.withContext
     val ink = wardColor(if (done || here) WardToken.primaryInk else WardToken.inkSecondary)
     val tap = if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick)
         .semantics { contentDescription = "Back to step ${one.number}, ${one.short}" } else Modifier
-    Row(Modifier.heightIn(min = 44.dp).then(tap), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(Modifier.heightIn(min = WardControlSize.target.wardDp).then(tap), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.size(28.dp).then(if (done) Modifier.wardRaised(14.0, WardLift.low) else Modifier.wardInset(CircleShape)),
             contentAlignment = Alignment.Center) {
             if (done) Icon(Icons.Rounded.Check, null, tint = ink, modifier = Modifier.size(14.dp))
@@ -448,7 +449,7 @@ import kotlinx.coroutines.withContext
     Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         WardSectionLabel(title)
         LibraryFormSection {
-            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button, onClick = toggleFormat),
+            Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = toggleFormat),
                 verticalAlignment = Alignment.CenterVertically) {
                 Text("How to lay it out", style = WardTextStyle.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk),

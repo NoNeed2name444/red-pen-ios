@@ -45,11 +45,13 @@ import com.stethoscore.app.ui.editors.EditorTextArea
 import com.stethoscore.app.ui.sources.ReaderEtch
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
+import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.wardColor
 import java.time.Instant
 import java.time.ZoneId
@@ -89,8 +91,8 @@ private const val ticksDayKey = "learn.kit.day"
             ticks = emptySet()
         }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = WardSpace.m.wardDp),
+        verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ReaderFormSection("Pacing · ${paper.name}", paceNote(paper, track.secondsPerQuestion)) {
             Box(Modifier.wardRowTile()) { PacingTable(paper) }
         }

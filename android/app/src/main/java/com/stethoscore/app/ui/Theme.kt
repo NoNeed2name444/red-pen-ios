@@ -10,16 +10,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.ui.ward.*
 
 // Every colour comes from the Ward core (ui/ward: WardPalette, WardSection,
@@ -32,8 +28,15 @@ import com.stethoscore.app.ui.ward.*
 // How the tokens land in Material: the tint (primary) is what iOS's
 // AccentColor is, the section's fill by day and its accent at night (so text
 // buttons and icons read 4.5:1 on every tier); primaryContainer is the fill
-// under white words. outline is the section's ink at a control's edge
-// strength, as it lands on the base (WardRelief.edgeColor).
+// under white words. Words on fills stay white (the owner), so onPrimary is
+// WardToken.onPrimary in both modes. outline is the section's ink at a
+// control's edge strength, as it lands on the base (WardRelief.edgeColor).
+// Sheets, menus and dialogs stay Material's own and stand in the page colour
+// (the owner, 22 Oct: one tone covers them): the slots their containers take
+// are the base's colour, and Material's tonal elevation is off, since with a
+// clear surfaceTint it would lay black over a sheet. Every touch area is at
+// least WardControlSize.target (48 on Android): Material's controls and
+// minimumInteractiveComponentSize read it from here.
 val LocalWardDark = staticCompositionLocalOf { false }
 val LocalWardLook = staticCompositionLocalOf { WardLook(dark = false, section = WardSection.outside) }
 
@@ -46,7 +49,7 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     val glide = WardGlide.rest(look)
     fun c(token: WardToken) = wardRgb(glide.hex(token, dark))
     val tint = wardRgb(if (dark) look.section.accent(true) else look.section.fill(false))
-    val onTint = if (dark) c(WardToken.background) else c(WardToken.onPrimary)
+    val onTint = c(WardToken.onPrimary)
     val edge = wardRgb(WardRelief.edgeColor(look.section, dark))
     val base = if (dark) darkColorScheme() else lightColorScheme()
     return base.copy(
@@ -105,7 +108,8 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     // whether animations are off (Remove animations), watched once for every surface that moves (wardReduceMotion)
     val reduceMotion = rememberWardReduceMotion()
     CompositionLocalProvider(LocalWardDark provides dark, LocalWardLook provides look, LocalWardGlide provides glide,
-        LocalWardReduceMotion provides reduceMotion) {
+        LocalWardReduceMotion provides reduceMotion,
+        LocalTonalElevationEnabled provides false, LocalMinimumInteractiveComponentSize provides WardControlSize.target.wardDp) {
         MaterialTheme(colorScheme=wardColorScheme(look), typography=wardTypography()) {
             // a plain clickable sinks and shades as a Ward face does, never a ripple (iOS PressableRowStyle)
             CompositionLocalProvider(LocalIndication provides WardPressIndication, content=content)
@@ -121,10 +125,12 @@ fun wardColorScheme(look: WardLook): ColorScheme {
 }
 /** A section's small-caps label (WardSmallCaps). */
 @Composable fun SectionLabel(text:String) { WardSmallCapsText(text) }
+/** A page's top inside its own column: the one bar (StudyTitleBar, no inset: the column keeps the gutter), then its subtitle. */
 @Composable fun ScreenHeader(title:String,subtitle:String,onBack:()->Unit) {
-    Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
-        IconButton(onClick=onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack,contentDescription="Back") }
-        Column(Modifier.weight(1f)) { Text(title,fontSize=25.sp,fontWeight=FontWeight.Bold); if(subtitle.isNotBlank()) Text(subtitle,fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+    Column(Modifier.fillMaxWidth().padding(bottom=WardSpace.s.wardDp)) {
+        com.stethoscore.app.ui.mock.StudyTitleBar(title, onBack, inset = 0.dp)
+        if(subtitle.isNotBlank()) Text(subtitle, Modifier.fillMaxWidth(), style=WardTextStyle.caption.textStyle(), color=wardColor(WardToken.inkSecondary),
+            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
 /** The ECG paper (WardPaper): a line every cell, bold every fifth, in the section's ink at the paper's strengths. */

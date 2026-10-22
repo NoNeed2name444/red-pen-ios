@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.ward.wardRaised
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,18 +23,11 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
-import com.stethoscore.app.ui.ward.WardButtonBox
-import com.stethoscore.app.ui.ward.WardButtonKind
-import com.stethoscore.app.ui.ward.StudyActionBar
-import com.stethoscore.app.ui.ward.WardEmptyState
-import com.stethoscore.app.ui.ward.WardTone
-import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.*
 
 // The card review screens: one deck at a time, and everything due across the library. Ports
 // of ios/RedPen/Features/Anki/AnkiReviewView.swift and DueTodayView.swift at dcb4745: the
@@ -219,14 +212,13 @@ private val ratingKeys = listOf(Key.One, Key.Two, Key.Three, Key.Four)
 
 private data class MenuEntry(val title: String, val icon: ImageVector, val action: () -> Unit)
 
-/** Back, the screen's title inline, and More with what can be done to the card on screen. */
+/** Back, the screen's title inline, and More with what can be done to the card on screen (StudyTitleBar). */
 @Composable private fun ReviewTopBar(title: String, onBack: () -> Unit, menu: List<MenuEntry>) {
     var open by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = wardColor(WardToken.primaryInk)) }
-        Text(title, Modifier.weight(1f).semantics { heading() }, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis, color = wardColor(WardToken.ink))
+    StudyTitleBar(title, onBack) {
         Box {
-            IconButton(onClick = { open = true }, enabled = menu.isNotEmpty()) { Icon(Icons.Rounded.MoreHoriz, "More", tint = if (menu.isEmpty()) wardColor(WardToken.inkSecondary).copy(alpha = .4f) else wardColor(WardToken.primaryInk)) }
+            // with nothing to do, More is a disabled circle: Biro Grey, solid, never faded
+            WardCircleButton(Icons.Rounded.MoreHoriz, "More", { open = true }, enabled = menu.isNotEmpty())
             DropdownMenu(open, { open = false }) {
                 menu.forEach { entry -> DropdownMenuItem(text = { Text(entry.title) }, leadingIcon = { Icon(entry.icon, null) }, onClick = { open = false; entry.action() }) }
             }
@@ -237,15 +229,16 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 /** Where you are and how far there is to go: a thin raised slab over the content. */
 @Composable private fun ProgressHeader(header: CardReview.Header) {
     Box(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(24.0, lift = com.stethoscore.app.ui.ward.WardLift.low)
-            .background(wardColor(WardToken.surface), RoundedCornerShape(24.dp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.bar, lift = com.stethoscore.app.ui.ward.WardLift.low)
+            .background(wardColor(WardToken.surface), RoundedCornerShape(WardRadius.bar.wardDp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(header.status, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink))
-                Text(header.detail, fontSize = 15.sp, color = wardColor(WardToken.inkSecondary))
+                Text(header.status, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
+                Text(header.detail, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
-            // the same thing as a length, in a groove pressed into the slab
-            Box(Modifier.fillMaxWidth().height(6.dp).background(wardColor(WardToken.well), CircleShape)) {
-                Box(Modifier.fillMaxWidth(header.fraction.toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(wardColor(WardToken.primaryInk), CircleShape))
+            // the same thing as a length, in a groove pressed into the slab (iOS ThinProgress:
+            // a WardGroove 6 high, its bar 1.5 in from the groove's wall)
+            Box(Modifier.fillMaxWidth().height(6.dp).wardInset(CircleShape)) {
+                Box(Modifier.padding(1.5.dp).fillMaxWidth(header.fraction.toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(wardColor(WardToken.primaryInk), CircleShape))
             }
         }
     }
@@ -253,12 +246,12 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** A card standing on the base: raised, a shade off it. */
 @Composable private fun ContentCard(spacing: androidx.compose.ui.unit.Dp = 0.dp, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(16.0).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp)).padding(16.dp),
+    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.card).background(wardColor(WardToken.surface), RoundedCornerShape(WardRadius.card.wardDp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(spacing), content = content)
 }
 
 @Composable private fun SmallCaps(text: String) =
-    Text(text.uppercase(), fontSize = 12.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(text.uppercase(), style = wardSmallCapsStyle(), color = wardColor(WardSmallCaps.colour), maxLines = 1, overflow = TextOverflow.Ellipsis)
 
 /** The end of a sitting: the done seal on a raised disc, large, and a line saying what happened. */
 @Composable private fun FinishHero(icon: ImageVector, title: String, message: String) {
@@ -266,8 +259,8 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
         Box(Modifier.size(96.dp).wardRaised(48.0).background(wardColor(WardToken.surface), CircleShape), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(48.dp), tint = wardColor(WardToken.success))
         }
-        Text(title, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
-        if (message.isNotEmpty()) Text(message, fontSize = 17.sp, textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
+        Text(title, style = WardTextStyle.title.textStyle(WardWeight.bold), textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
+        if (message.isNotEmpty()) Text(message, style = WardType.body.textStyle(), textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
     }
 }
 
@@ -280,8 +273,8 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 
 /** The quieter button beside it: raised, its words in the primary's ink. */
 @Composable internal fun CardsCompanionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.heightIn(min = 56.dp).wardRaised(16.0).background(wardColor(WardToken.surface), RoundedCornerShape(16.dp))
+    Box(modifier.heightIn(min = 56.dp).wardRelief(RoundedCornerShape(50)).background(wardColor(WardToken.surface), RoundedCornerShape(50))
         .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.primaryInk), textAlign = TextAlign.Center)
+        Text(text, style = WardType.headline.textStyle(), color = wardColor(WardToken.primaryInk), textAlign = TextAlign.Center)
     }
 }

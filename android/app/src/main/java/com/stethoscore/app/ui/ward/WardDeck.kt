@@ -139,7 +139,7 @@ internal fun LayoutCoordinates.wardWindowRect(density: Float): WardRect {
 
 /**
  * The bottom study deck (StudyActionBar): an open slab with the screen's
- * buttons, and, when it [folds], a 44-point band whose small pill folds it
+ * buttons, and, when it [folds], a band the least target tall whose small pill folds it
  * away into one round button at the trailing edge. Hidden (not [shown]), it
  * takes no room and keeps its fold for the next question. It starts open.
  */
@@ -202,7 +202,7 @@ internal fun LayoutCoordinates.wardWindowRect(density: Float): WardRect {
     val source = remember { MutableInteractionSource() }
     val held by source.collectIsPressedAsState()
     val focused by source.collectIsFocusedAsState()
-    Row(Modifier.fillMaxWidth().height(44.dp)
+    Row(Modifier.fillMaxWidth().height(WardControlSize.target.wardDp)
         .clickable(source, indication = null, role = Role.Button, onClick = onFold)
         .semantics { contentDescription = "Hide buttons" },
         horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {

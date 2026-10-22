@@ -123,8 +123,13 @@ object WardControlSize {
     /** A button, a field's row: 56 tall; compact and quiet, 44. */
     const val button = 56.0
     const val buttonSmall = 44.0
-    /** The least tap target. */
-    const val target = 44.0
+    /**
+     * The least tap target: 48 on Android, Android's own (the owner, 22 Oct;
+     * iOS keeps 44). The touch area grows to it, never what is drawn, so a
+     * control still looks as on iOS: the theme hands it to Material's
+     * minimumInteractiveComponentSize, which the Ward controls wear.
+     */
+    const val target = 48.0
     /** A broad screen's widest button. */
     const val buttonMaxWidth = 360.0
     /** A segment's least height, and the segmented capsule's padding. */

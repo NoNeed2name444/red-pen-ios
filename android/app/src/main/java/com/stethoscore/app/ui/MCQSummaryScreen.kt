@@ -30,10 +30,14 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.QuizSummary
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardSmallCapsText
+import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardMotion
 import com.stethoscore.app.ui.ward.wardReduceMotion
 import com.stethoscore.app.ui.ward.wardSpring
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
 import kotlin.math.roundToInt
 
 // A port of ios/RedPen/Features/MCQ/MCQSummaryView.swift: the
@@ -74,15 +78,15 @@ fun QuizSummaryScreen(
 
     Column(Modifier.fillMaxSize()) {
         Text("Results", Modifier.fillMaxWidth().padding(vertical = 12.dp).semantics { heading() }, textAlign = TextAlign.Center,
-            fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink))
+            style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             WardCardFace(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     ScoreRing(fraction)
-                    Text("$correctCount of $total right", Modifier.semantics { heading() }, fontSize = 28.sp, fontWeight = FontWeight.Bold,
+                    Text("$correctCount of $total right", Modifier.semantics { heading() }, style = WardTextStyle.title.textStyle(WardWeight.bold),
                         textAlign = TextAlign.Center, color = wardColor(WardToken.ink))
-                    Text(QuizSummary.verdict(fraction), fontSize = 17.sp, textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
+                    Text(QuizSummary.verdict(fraction), style = WardType.body.textStyle(), textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
                 }
             }
 
@@ -101,9 +105,9 @@ fun QuizSummaryScreen(
                         Icon(if (correct) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel, if (correct) "Right" else "Wrong",
                             tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.danger), modifier = Modifier.size(24.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(q.stem, fontSize = 17.sp, color = wardColor(WardToken.ink))
+                            Text(q.stem, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                             val key = q.options.getOrNull(q.correctIndex)
-                            if (!correct && key != null) Text("Answer: $key", fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                            if (!correct && key != null) Text("Answer: $key", style = WardTextStyle.subheadline.textStyle(WardWeight.medium),
                                 color = wardColor(WardToken.success))
                         }
                     }
@@ -130,7 +134,7 @@ fun QuizSummaryScreen(
 @Composable private fun Done(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(Icons.Rounded.Check, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(16.dp))
-        Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.inkSecondary))
+        Text(text, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
     }
 }
 
@@ -152,7 +156,7 @@ fun QuizSummaryScreen(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("$shown%", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = wardColor(WardToken.ink))
-            Text("correct", fontSize = 13.sp, color = wardColor(WardToken.inkSecondary))
+            Text("correct", style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
         }
     }
 }

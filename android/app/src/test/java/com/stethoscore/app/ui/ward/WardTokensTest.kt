@@ -71,7 +71,8 @@ class WardTokensTest {
 
     @Test fun controlSizes() = checks {
         check("buttons 56, compact and quiet 44, at most 360 wide", WardControlSize.button == 56.0 &&
-            WardControlSize.buttonSmall == 44.0 && WardControlSize.buttonMaxWidth == 360.0 && WardControlSize.target == 44.0)
+            WardControlSize.buttonSmall == 44.0 && WardControlSize.buttonMaxWidth == 360.0)
+        check("the least target is 48 on Android, Android's own (the owner, 22 Oct; iOS keeps 44)", WardControlSize.target == 48.0)
         check("an icon square's corner is WardRadius.icon, less on a small one",
             kotlin.math.abs(WardControlSize.iconRadius(40.0) - 11.2) < 1e-9 && WardControlSize.iconRadius(100.0) == WardRadius.icon)
         check("a big icon square stands at mid", WardControlSize.iconLift(56.0) == WardLift.mid && WardControlSize.iconLift(40.0) == WardLift.low &&
