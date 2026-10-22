@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
+import com.stethoscore.app.ui.ward.WardButtonBox
+import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardToken
 
 // The card review screens: one deck at a time, and everything due across the library. Ports
@@ -283,11 +285,10 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
     }
 }
 
-/** The screen's one main button: filled in the primary, under white words. */
+/** The screen's one main button (.bigPrimary): raised a step higher, its words in the section's ink, never a fill. */
 @Composable internal fun CardsPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, hint: String? = null) {
-    Box(modifier.heightIn(min = 56.dp).wardRaised(16.0).background(wardColor(WardToken.primary), RoundedCornerShape(16.dp))
-        .clickable(role = Role.Button, onClickLabel = hint, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.onPrimary), textAlign = TextAlign.Center)
+    WardButtonBox(onClick, modifier, kind = WardButtonKind.primary, clickLabel = hint) {
+        Text(text, textAlign = TextAlign.Center)
     }
 }
 

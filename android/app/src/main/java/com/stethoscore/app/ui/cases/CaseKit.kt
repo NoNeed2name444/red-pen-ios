@@ -35,6 +35,8 @@ import com.stethoscore.app.data.CaseFile
 import com.stethoscore.app.data.CaseRun
 import com.stethoscore.app.data.CaseStep
 import com.stethoscore.app.ui.SectionLabel
+import com.stethoscore.app.ui.ward.WardButtonBox
+import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.wardColor
 
@@ -133,17 +135,18 @@ internal fun CaseStateChip(state: CaseRun.State) = when (state) {
     is CaseRun.State.Discharged -> CaseChip("Discharged · ${state.score}", CaseTone.green)
 }
 
-/** The kit's primary and secondary buttons, as full-height capsules. */
+/** The kit's primary (WardButtonBox, as iOS) and secondary buttons, as full-height capsules. */
 @Composable
 internal fun CaseButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, primary: Boolean = false, enabled: Boolean = true,
                         icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
     val content: @Composable RowScope.() -> Unit = {
         if (icon != null) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
-        Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        // the primary takes WardButtonBox's own words (buttonPrimary)
+        if (primary) Text(text) else Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
     }
     if (primary) {
-        Button(onClick, modifier.heightIn(min = 50.dp), enabled = enabled, shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(containerColor = wardColor(WardToken.primary), contentColor = wardColor(WardToken.onPrimary)), content = content)
+        // the main button as on iOS (.bigPrimary): raised, its words in the section's ink, never a fill
+        WardButtonBox(onClick, modifier, kind = WardButtonKind.primary, enabled = enabled, content = content)
     } else {
         OutlinedButton(onClick, modifier.heightIn(min = 50.dp), enabled = enabled, shape = CircleShape,
             border = BorderStroke(1.dp, CaseInk.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = CaseInk.theatre), content = content)

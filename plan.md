@@ -2212,6 +2212,11 @@ with the marks on the screens last.
   the 4-idea map the BNP label overlaps Pulmonary oedema, and the 1M demo
   header reads 0 ideas.
   The Android app now lives in android/ on design/integration (from 7e3a249).
+  - UX Wave 1 on Android (W1-android, the owner 22 Oct: "use the same things
+    from ios"; findings in the Android consistency sweep, section 7):
+    - [x] Filled buttons as iOS .bigPrimary: QuizBigButton, CardsPrimaryButton
+      and CaseButton's primary draw through WardButtonBox (raised capsule,
+      words in the section's ink, never a fill; BigButtonPathsTest).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

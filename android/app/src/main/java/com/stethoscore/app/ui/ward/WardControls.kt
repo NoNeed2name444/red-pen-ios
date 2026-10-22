@@ -150,6 +150,7 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
     enabled: Boolean = true,
     fills: Boolean = true,
     broad: Boolean = false,
+    clickLabel: String? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val source = remember { MutableInteractionSource() }
@@ -176,7 +177,7 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
             .capPop(touch.held)
             .wardFocusRing(shape, touch.focused, wardColor(WardControlStates.focusInk))
             .wardPressFace(shape, lift, depth, fill = wardColor(look.face))
-            .clickable(source, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
+            .clickable(source, indication = null, enabled = enabled, onClickLabel = clickLabel, role = Role.Button, onClick = onClick)
             .padding(horizontal = (if (kind.small) WardSpace.m else WardSpace.xl).wardDp,
                 vertical = (if (kind.small) WardSpace.s else WardSpace.m).wardDp),
         horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp, Alignment.CenterHorizontally),

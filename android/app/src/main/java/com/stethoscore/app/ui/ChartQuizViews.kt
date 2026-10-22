@@ -27,11 +27,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.quiz.ChartQuiz
 import com.stethoscore.app.quiz.PatientChart
+import com.stethoscore.app.ui.ward.WardButtonBox
+import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRelief
 import com.stethoscore.app.ui.ward.WardToken
@@ -98,30 +101,21 @@ internal enum class QuizTone { grey, blue, warning }
     }
 }
 
-/** The bar's buttons (.bigPrimary, .bigCompanion, .bigSecondary): the main one filled in the section's colour. */
+/**
+ * The bar's buttons (.bigPrimary, .bigCompanion, .bigSecondary), drawn by
+ * WardButtonBox as on iOS: a capsule raised off the base, never a fill; the
+ * primary stands a step higher and says its words in the section's ink, the
+ * others in Chart Ink; a companion takes only the room its words need.
+ */
 internal enum class QuizButtonKind { primary, companion, secondary }
 
 @Composable internal fun QuizBigButton(text: String?, icon: ImageVector?, kind: QuizButtonKind, onClick: () -> Unit, modifier: Modifier = Modifier,
                                        enabled: Boolean = true, label: String? = null) {
-    val shape = RoundedCornerShape(16.dp)
-    val primary = kind == QuizButtonKind.primary
-    // a disabled Ward button goes Biro Grey
-    val ink = when {
-        !enabled -> wardColor(WardToken.inkSecondary)
-        primary -> wardColor(WardToken.onPrimary)
-        else -> wardColor(WardToken.primaryInk)
-    }
-    val face = when {
-        primary && enabled -> Modifier.wardRaised(16.0).background(wardColor(WardToken.primary), shape)
-        primary -> Modifier.quizFace(QuizFace.pressed, shape, 16f)
-        else -> Modifier.quizFace(QuizFace.raised, shape, 16f, lift = WardLift.low)
-    }
-    Row(modifier.heightIn(min = 52.dp).then(face).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-        .semantics { if (label != null) contentDescription = label }
-        .padding(horizontal = 18.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
-        if (icon != null) Icon(icon, null, tint = ink, modifier = Modifier.size(20.dp))
-        if (text != null) Text(text, color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+    WardButtonBox(onClick, modifier.then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier),
+        kind = if (kind == QuizButtonKind.primary) WardButtonKind.primary else WardButtonKind.secondary,
+        enabled = enabled, fills = kind != QuizButtonKind.companion) {
+        if (icon != null) Icon(icon, null, Modifier.size(20.dp))
+        if (text != null) Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
