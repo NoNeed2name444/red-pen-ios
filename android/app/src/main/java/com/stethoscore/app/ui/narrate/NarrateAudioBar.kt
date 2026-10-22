@@ -63,10 +63,10 @@ internal object NarrateSkip {
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Position in the recording" },
                 valueRange = 0f..length.toFloat(),
                 onValueChangeFinished = { scrubbing = false; player.seek(held) },
-                // a native slider, as iOS's system Slider: it draws no inset shadows, so its
-                // empty track keeps the palette's well rather than the page colour wells take
+                // a native slider, as iOS's system Slider; its empty track is a well, so it
+                // takes the page colour every well takes (WardControlStates.wellFill)
                 colors = SliderDefaults.colors(thumbColor = wardColor(WardToken.primaryInk),
-                    activeTrackColor = wardColor(WardToken.primaryInk), inactiveTrackColor = wardColor(WardToken.well)))
+                    activeTrackColor = wardColor(WardToken.primaryInk), inactiveTrackColor = wardWellFill()))
             Row(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
                 val clockStyle = WardTextStyle.subheadline.textStyle(mono = true)
                 Text(LectureAudio.clock(position), style = clockStyle, color = wardColor(WardToken.inkSecondary))

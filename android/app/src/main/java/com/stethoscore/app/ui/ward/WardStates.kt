@@ -79,7 +79,7 @@ import com.stethoscore.app.ui.wardColor
     text: String, icon: ImageVector = Icons.Rounded.Info, tone: WardTone = WardTone.Blue, modifier: Modifier = Modifier,
     actionTitle: String? = null, action: (() -> Unit)? = null,
 ) {
-    Row(modifier.fillMaxWidth().wardInset(WardRadius.field, fill = WardToken.well).padding(WardSpace.m.wardDp)
+    Row(modifier.fillMaxWidth().wardInset(WardRadius.field, fill = WardControlStates.wellFill).padding(WardSpace.m.wardDp)
         .semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         Icon(icon, null, tint = tone.color(), modifier = Modifier.size(18.dp))
         Text(text, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
@@ -98,7 +98,7 @@ import com.stethoscore.app.ui.wardColor
     // it fills as iOS's grooves do (.easeOut(duration: 0.3)); with animations off it is simply there
     val f by animateFloatAsState(fraction.coerceIn(0.0, 1.0).toFloat(), wardEaseOut(WardMotion.fill, wardReduceMotion()), label = "groove")
     val pad = if (height >= 8.dp) 2.dp else 1.5.dp
-    BoxWithConstraints(modifier.fillMaxWidth().height(height).wardInset(height.value / 2.0, fill = WardToken.well).padding(pad)) {
+    BoxWithConstraints(modifier.fillMaxWidth().height(height).wardInset(height.value / 2.0, fill = WardControlStates.wellFill).padding(pad)) {
         val width = if (f > 0) maxOf(maxHeight, maxWidth * f).coerceAtMost(maxWidth) else 0.dp
         Box(Modifier.width(width).fillMaxHeight().background(tint, CircleShape))
     }

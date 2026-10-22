@@ -2325,6 +2325,7 @@ with the marks on the screens last.
       well (it draws no inset shadows). OwnerAccepted.kt: 44 values move
       (chip wells and chosen segments measure on the page colour), each
       marked "owner 22 Oct, wells and sheets one tone".
+    - [x] T0123b: banner, groove, Cases wells, the narrate slider's track and Material's well slots take wellFill too.
     - [x] Sheets, menus and dialogs are one tone (the owner 22 Oct; they stay
       Material's own, Android Q4): their containers were already the page
       colour by token (T0113), but Material's 1 dp tonal elevation laid
