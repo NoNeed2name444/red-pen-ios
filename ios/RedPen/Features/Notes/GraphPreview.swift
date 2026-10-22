@@ -340,13 +340,7 @@ struct GraphPreviewRoot: View {
 struct GraphPreviewBar: View {
     var body: some View {
         ZStack {
-            Text("Ideas")
-                .font(.headline)
-                .foregroundStyle(Color.wardInk)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 9)
-                .wardInset(in: Capsule())
-                .accessibilityAddTraits(.isHeader)
+            IdeasTitlePill()
             HStack {
                 Button {
                 } label: {

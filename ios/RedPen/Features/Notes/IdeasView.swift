@@ -429,19 +429,28 @@ private struct IdeasChrome: ViewModifier {
                 // design targets draw the Ideas screen
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        Text("Ideas")
-                            .font(.headline)
-                            .foregroundStyle(Color.wardInk)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 9)
-                            .wardInset(in: Capsule())
+                        IdeasTitlePill()
                             .environment(\.colorScheme, night ? .dark : scheme)
-                            .accessibilityAddTraits(.isHeader)
                     }
                     .sharedBackgroundVisibility(.hidden)
                 }
                 .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .automatic),
                             prompt: "Search ideas")
         }
+    }
+}
+
+/// The "Ideas" title on its own plate, pressed in as a label is: one drawing
+/// for the screen's bar (IdeasChrome) and the design preview's
+/// (GraphPreviewBar), so the two cannot drift apart.
+struct IdeasTitlePill: View {
+    var body: some View {
+        Text("Ideas")
+            .font(.headline)
+            .foregroundStyle(Color.wardInk)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 9)
+            .wardInset(in: Capsule())
+            .accessibilityAddTraits(.isHeader)
     }
 }
