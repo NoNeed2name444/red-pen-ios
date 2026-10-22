@@ -252,7 +252,7 @@ class TourTest {
 
     @Test fun r023_deleteSets() = overHome(23, "library-delete") { DeleteSetsDialog(2, {}, {}) }
 
-    @Test fun r024_nothingHereYet() = overHome(24, "nothing-yet") { LibraryAlert("Nothing here yet", CategoryFeature.MISTAKES.emptyText) {} }
+    @Test fun r024_nothingHereYet() = overHome(24, "nothing-yet") { LibraryAlert("Nothing here yet", CategoryFeature.TWINS.emptyText) {} }
 
     @Test fun r025_wardRound() {
         val stores = Mode.entries.associateWith { tour.store() }

@@ -15,6 +15,8 @@ class StudyStore(private val directory: File) {
     private val reviewSettingsFile = File(directory, "review-settings.json")
     var reviewSettings: ReviewSettings = readReviewSettings()
         private set
+    /** The twins' due dates and the twins still to be written, beside the library (iOS ExamStore). */
+    val twinShelf: com.stethoscore.app.quiz.TwinShelf by lazy { com.stethoscore.app.quiz.TwinShelf(File(directory, "twins.json")) }
     private var original = JSONObject()
     private var unknownSets = emptyList<JSONObject>()
     var loadError: String? = null
@@ -320,6 +322,8 @@ class StudyStore(private val directory: File) {
     @Synchronized fun recordAnswer(questionId: String, correct: Boolean, confidence: String? = null, picked: Int? = null, hinted: Boolean = false, saving: Boolean = true) {
         answerHistory = answerHistory + (questionId to ((answerHistory[questionId] ?: emptyList()) + correct))
         answerLog = answerLog + AnswerEvent(questionId, correct, confidence = confidence, picked = picked, hinted = if (hinted) true else null)
+        // a twin answered moves along its own queue (iOS ExamStore.twinAnswered)
+        twinShelf.answered(questionId, correct)
         if (saving) saveQuietly()
         onStudied?.invoke(1)
     }
