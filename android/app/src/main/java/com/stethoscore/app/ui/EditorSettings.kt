@@ -70,7 +70,7 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
 
 @Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit,
     review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={},
-    onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null,onExam:(()->Unit)?=null) {
+    onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null,onExam:(()->Unit)?=null,onModels:(()->Unit)?=null) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
@@ -88,6 +88,12 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
             }
             WardButton(if(exam==null) "Choose your exam" else "Change exam",onExam,Modifier.fillMaxWidth().testTag("chooseExam"))
             Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        // iOS: Settings, "AI models" (ModelSettingsView)
+        if(onModels!=null) WardCard(Modifier.fillMaxWidth()) {
+            SectionLabel("AI models")
+            Text("The writer and Stethoscore Cloud",fontSize=18.sp,fontWeight=FontWeight.SemiBold)
+            WardButton("AI models",onModels,Modifier.fillMaxWidth().testTag("aiModels"))
         }
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Review")

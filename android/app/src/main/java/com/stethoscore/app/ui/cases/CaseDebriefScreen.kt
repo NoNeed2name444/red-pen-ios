@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -34,7 +35,30 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
+import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.ui.ScreenHeader
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+
+/** "Another patient like this", the debrief's writer half (iOS CaseDebriefView.another), kept apart so it is tested. */
+internal object CaseAnother {
+    /** The brief: the same diagnosis unlike this presentation, or the runner-up's. */
+    fun brief(file: CaseFile, sameDiagnosis: Boolean): CaseWriting.Brief =
+        if (sameDiagnosis) CaseWriting.Brief(diagnosis = file.diagnosis.name,
+            unlike = "${file.patient.ageSex}, ${file.setting.rawValue}, \u201C${file.complaint}\u201D")
+        else CaseWriting.Brief(diagnosis = file.runnerUp?.name)
+
+    /** One new patient from the set's lecture (or, with none kept, what this case asserts). */
+    suspend fun write(file: CaseFile, set: StudySet, sameDiagnosis: Boolean, writer: CaseMaker.Writer): List<CaseFile> {
+        val pages = set.sources.flatMap { doc -> doc.pages.map { it.number to it.text } }
+        val source = if (pages.isEmpty()) file.assertedText else CaseMaker.sourceText(pages)
+        val lecture = set.sources.firstOrNull()?.name ?: file.source.lecture
+        return CaseMaker.write(1, source, lecture, set.subject, brief(file, sameDiagnosis), writer).cases
+    }
+
+    const val ready = "A new patient is waiting in this set\u2019s list."
+}
 
 /**
  * The debrief, as a discharge summary: missed red flags first in Resus Red,
@@ -45,8 +69,8 @@ import com.stethoscore.app.ui.ScreenHeader
  * Port of iOS CaseDebriefView.
  *
  * Three things to do with it: cards from what was missed, a note in the
- * Ideas map, and another patient like this one (which needs a case writer,
- * not on Android yet: it says so, in CaseMaker's words).
+ * Ideas map, and another patient like this one, written by the writer chosen
+ * in AI models (with none, it says so, in CaseMaker's words).
  */
 @Composable
 internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, store: StudyStore, title: String, onBack: () -> Unit, again: () -> Unit) {
@@ -55,6 +79,9 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
     var cardsNote by rememberSaveable(file.id, run.finished) { mutableStateOf<String?>(null) }
     var ideaNote by rememberSaveable(file.id, run.finished) { mutableStateOf<String?>(null) }
     var anotherNote by rememberSaveable(file.id, run.finished) { mutableStateOf<String?>(null) }
+    var writing by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val set = store.library.firstOrNull { it.id == setID }
 
     /** One basic card per missed key finding or red flag, into a deck of their own so they come up in review with the rest. */
@@ -86,10 +113,31 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
         view.announce(ideaNote ?: "")
     }
 
-    /** A new patient, the same diagnosis or the runner-up's: needs a writer, which Android does not have yet. */
-    fun another() {
+    /** A new patient, the same diagnosis or the runner-up's, into this set's list. */
+    fun another(sameDiagnosis: Boolean) {
         anotherNote = null
-        if (CaseMaker.writer() == null) anotherNote = CaseMaker.noWriter()
+        val current = set ?: return
+        if (writing != null) return
+        val llm = LLMService.from(context)
+        val writer = CaseMaker.writer(llm.backend()) ?: run {
+            anotherNote = CaseMaker.noWriter(llm.cloudBlocker.takeIf { llm.choice() != com.stethoscore.app.llm.LLMChoice.off })
+            return
+        }
+        anotherNote = "Writing another patient\u2026"
+        writing = scope.launch {
+            try {
+                val made = CaseAnother.write(file, current, sameDiagnosis, writer)
+                store.library.firstOrNull { it.id == setID }?.let { latest -> store.updateSet(latest.copy(caseFiles = latest.caseFiles + made)) }
+                anotherNote = CaseAnother.ready
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                anotherNote = e.message ?: "The patient could not be written."
+            } finally {
+                writing = null
+            }
+            view.announce(anotherNote ?: "")
+        }
     }
 
     Column(
@@ -241,13 +289,13 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
             ideaNote?.let { NoteLine(it) }
 
             CaseLabel("Another patient like this")
-            CaseButton("Same diagnosis, a new presentation", ::another,
+            CaseButton("Same diagnosis, a new presentation", { another(true) },
                 Modifier.fillMaxWidth().semantics { stateDescription = "Writes another patient with ${file.diagnosis.name}, presented differently, into this set" },
-                icon = Icons.Filled.PersonAdd)
+                enabled = writing == null, icon = Icons.Filled.PersonAdd)
             file.runnerUp?.let { other ->
-                CaseButton("The runner-up: ${other.name}", ::another,
+                CaseButton("The runner-up: ${other.name}", { another(false) },
                     Modifier.fillMaxWidth().semantics { stateDescription = "Writes a patient whose diagnosis is ${other.name} into this set" },
-                    icon = Icons.Filled.Group)
+                    enabled = writing == null, icon = Icons.Filled.Group)
             }
             anotherNote?.let { NoteLine(it) }
 

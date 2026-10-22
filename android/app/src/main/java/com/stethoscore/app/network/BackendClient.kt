@@ -16,7 +16,12 @@ import java.time.Instant
  * Calls are synchronous: invoke on an executor or Dispatchers.IO. Creating this
  * client never connects. There is no default server and no automatic retry.
  */
-class BackendClient(baseUrl: String, private val tokenProvider: () -> String? = { null }) {
+class BackendClient(
+    baseUrl: String,
+    private val tokenProvider: () -> String? = { null },
+    /** How a request reaches the server; tests pass a fake, so nothing goes on the network. */
+    private val transport: Transport = HttpTransport,
+) {
     val baseUrl: String = validateBaseUrl(baseUrl)
 
     fun createDeviceAccount(): JSONObject = request("POST", "/auth/device", JSONObject(), authenticated = false)
@@ -69,6 +74,18 @@ class BackendClient(baseUrl: String, private val tokenProvider: () -> String? = 
         return request("POST", "/jobs", spec, timeoutMillis = 60_000)
     }
 
+    /**
+     * The hosted writer and checker, OpenAI-style (iOS HostedLLMClient's
+     * request to the worker's /v1): `model` is "cramdown-writer" or
+     * "cramdown-checker", which the worker maps to whatever it runs. Never a
+     * provider's own address: everything goes through this worker.
+     */
+    fun chat(body: JSONObject): JSONObject {
+        require(body.optString("model") in setOf("cramdown-writer", "cramdown-checker")) { "Unknown model." }
+        require((body.optJSONArray("messages")?.length() ?: 0) > 0) { "Nothing to send." }
+        return request("POST", "/v1/chat/completions", body, timeoutMillis = 180_000)
+    }
+
     fun listJobs(): JSONObject = request("GET", "/jobs")
     fun jobStatus(id: String): JSONObject = request("GET", "/jobs/${jobId(id)}")
     fun jobResult(id: String): JSONObject = request("GET", "/jobs/${jobId(id)}?outputs=1", timeoutMillis = 60_000)
@@ -86,56 +103,74 @@ class BackendClient(baseUrl: String, private val tokenProvider: () -> String? = 
         authenticated: Boolean = true,
         timeoutMillis: Int = 20_000
     ): JSONObject {
-        check(Looper.myLooper() != Looper.getMainLooper()) { "Run backend requests off the main thread." }
         val token = if (authenticated) tokenProvider()?.trim()?.takeIf { it.isNotEmpty() }
             ?: throw BackendException(0, Failure.SIGNED_OUT, "Add a session token in Settings before connecting.") else null
         require(token == null || (token.length <= 16_384 && token.none { it.code < 32 || it.code == 127 })) { "Invalid session token." }
         val encoded = body?.toString()?.toByteArray(Charsets.UTF_8)
         require(encoded == null || encoded.size <= MAX_BODY_BYTES) { "That request is too large." }
-        val connection = URL(baseUrl + path).openConnection() as HttpURLConnection
-        try {
-            connection.requestMethod = method
-            connection.connectTimeout = minOf(timeoutMillis, 30_000)
-            connection.readTimeout = timeoutMillis
-            // Never forward a bearer token to another host through a redirect.
-            connection.instanceFollowRedirects = false
-            connection.useCaches = false
-            connection.setRequestProperty("Accept", "application/json")
-            if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
-            if (encoded != null) {
-                connection.doOutput = true
-                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                connection.setFixedLengthStreamingMode(encoded.size)
-                connection.outputStream.use { it.write(encoded) }
-            }
-            val status = connection.responseCode
-            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val raw = stream?.use { input ->
-                val result = ByteArrayOutputStream()
-                val buffer = ByteArray(8192)
-                while (true) {
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    if (result.size() + count > MAX_RESPONSE_BYTES) throw IOException("The server response is too large.")
-                    result.write(buffer, 0, count)
-                }
-                result.toString(Charsets.UTF_8.name())
-            }.orEmpty()
-            val reply = if (raw.isBlank()) JSONObject() else try { JSONObject(raw) } catch (_: Exception) { null }
-            if (status !in 200..299) {
-                val code = (reply?.opt("code") as? String)?.trim().orEmpty()
-                val said = (reply?.opt("message") as? String) ?: (reply?.opt("error") as? String)
-                val failure = classify(status, code, said)
-                val message = said?.takeIf { it.isNotBlank() } ?: defaultMessage(failure)
-                throw BackendException(status, failure, message, code, reply, connection.getHeaderField("Retry-After"))
-            }
-            return reply ?: throw BackendException(status, Failure.SERVER, "The server sent an unreadable response.")
-        } catch (e: BackendException) {
-            throw e
+        val answer = try {
+            transport.send(method, baseUrl + path, encoded, token, timeoutMillis)
         } catch (e: IOException) {
             throw BackendException(0, Failure.OFFLINE, "The server could not be reached. Your local library is still available.", cause = e)
-        } finally {
-            connection.disconnect()
+        }
+        val status = answer.status
+        val raw = answer.body
+        val reply = if (raw.isBlank()) JSONObject() else try { JSONObject(raw) } catch (_: Exception) { null }
+        if (status !in 200..299) {
+            val code = (reply?.opt("code") as? String)?.trim().orEmpty()
+            val said = (reply?.opt("message") as? String) ?: (reply?.opt("error") as? String)
+            val failure = classify(status, code, said)
+            val message = said?.takeIf { it.isNotBlank() } ?: defaultMessage(failure)
+            throw BackendException(status, failure, message, code, reply, answer.retryAfter)
+        }
+        return reply ?: throw BackendException(status, Failure.SERVER, "The server sent an unreadable response.")
+    }
+
+    /** What came back: the status, the body as text, and Retry-After when the server sent one. */
+    class Reply(val status: Int, val body: String, val retryAfter: String? = null)
+
+    /** One request to the server. Throws IOException when it cannot be reached. */
+    fun interface Transport {
+        fun send(method: String, url: String, body: ByteArray?, bearer: String?, timeoutMillis: Int): Reply
+    }
+
+    /** The real network: HttpURLConnection, off the main thread, no redirects, bounded replies. */
+    object HttpTransport : Transport {
+        override fun send(method: String, url: String, body: ByteArray?, bearer: String?, timeoutMillis: Int): Reply {
+            check(Looper.myLooper() != Looper.getMainLooper()) { "Run backend requests off the main thread." }
+            val connection = URL(url).openConnection() as HttpURLConnection
+            try {
+                connection.requestMethod = method
+                connection.connectTimeout = minOf(timeoutMillis, 30_000)
+                connection.readTimeout = timeoutMillis
+                // Never forward a bearer token to another host through a redirect.
+                connection.instanceFollowRedirects = false
+                connection.useCaches = false
+                connection.setRequestProperty("Accept", "application/json")
+                if (bearer != null) connection.setRequestProperty("Authorization", "Bearer $bearer")
+                if (body != null) {
+                    connection.doOutput = true
+                    connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                    connection.setFixedLengthStreamingMode(body.size)
+                    connection.outputStream.use { it.write(body) }
+                }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val raw = stream?.use { input ->
+                    val result = ByteArrayOutputStream()
+                    val buffer = ByteArray(8192)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        if (result.size() + count > MAX_RESPONSE_BYTES) throw IOException("The server response is too large.")
+                        result.write(buffer, 0, count)
+                    }
+                    result.toString(Charsets.UTF_8.name())
+                }.orEmpty()
+                return Reply(status, raw, connection.getHeaderField("Retry-After"))
+            } finally {
+                connection.disconnect()
+            }
         }
     }
 

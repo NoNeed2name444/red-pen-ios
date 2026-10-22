@@ -1,6 +1,11 @@
 package com.stethoscore.app.data
 
+import com.stethoscore.app.llm.ChatTurn
+import com.stethoscore.app.llm.CloudJobs
+import com.stethoscore.app.llm.LLMBackend
+import com.stethoscore.app.llm.LLMError
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
@@ -10,10 +15,11 @@ import kotlin.coroutines.coroutineContext
  * and the accuracy rules before it is kept (CaseChecks). Port of the
  * Foundation part of iOS Features/Cases/CaseMaker.swift.
  *
- * iOS's writers (a chosen backend, Apple's on-device model, the downloaded
- * Gemma, Vignette Cloud) are not on Android yet, so [writer] finds none and
- * the screens say so ([noWriter]); the loop itself is here, run by any
- * [Writer], and tested.
+ * Android's one writer is the backend chosen in AI models (Stethoscore
+ * Cloud, [BackendWriter]); with Stethoscore Cloud the server writes every case
+ * as one job, as iOS's cloudWrite does. Apple's on-device model and the
+ * downloaded Gemma are Apple-only or not on Android, so with nothing chosen
+ * [writer] finds none and the screens say so ([noWriter]).
  */
 object CaseMaker {
 
@@ -23,6 +29,21 @@ object CaseMaker {
 
         /** Characters of lecture one call can read. */
         val sourceChars: Int get() = CaseWriting.onDeviceSourceChars
+
+        /** The model behind this writer, when it is one (iOS Writer.backend). */
+        val backend: LLMBackend? get() = null
+    }
+
+    /** A chosen backend as a case writer: one patient a call, as iOS's one() asks a backend. */
+    class BackendWriter(override val backend: LLMBackend) : Writer {
+        override val sourceChars: Int get() =
+            if (backend.isOnDevice) CaseWriting.onDeviceSourceChars else minOf(backend.promptBudgetChars, 12_000)
+
+        override suspend fun one(window: String, lecture: String, subject: String, brief: CaseWriting.Brief): List<CaseFile> {
+            val rules = CaseWriting.instructions(window, subject, brief, json = true)
+            val reply = backend.complete(listOf(ChatTurn.system(rules), ChatTurn.user(CaseWriting.requestJSON)), 3_500, 0.7)
+            return CaseWriting.parse(reply, lecture)
+        }
     }
 
     /** A failure the writer will not get past by asking again (a missing key, a refused request). */
@@ -42,11 +63,16 @@ object CaseMaker {
         val dropped: Int,
     )
 
-    /** The writer to use here, or null when there is none. Android has no case writer yet. */
-    fun writer(): Writer? = null
+    /** The writer to use here: the backend chosen in AI models, or null when there is none. */
+    fun writer(backend: LLMBackend?): Writer? = backend?.let { BackendWriter(it) }
 
-    /** Why there is no writer, in the student's words. */
-    fun noWriter(): String = "On-device writing isn't available here. Writing new patients comes to Android with its AI models."
+    /**
+     * Why there is no writer, in the student's words: Stethoscore Cloud's
+     * blocker when it is chosen, else iOS's words for a phone with no model
+     * (its offline-model download is not on Android, so only AI models is named).
+     */
+    fun noWriter(blocker: String? = null): String =
+        blocker ?: "On-device writing isn't available here. Choose a writer in Settings \u25B8 AI models."
 
     /** The lecture as the writers read it, each page marked with its number so the teaching can cite it. */
     fun sourceText(pages: List<Pair<Int, String>>): String =
@@ -56,8 +82,12 @@ object CaseMaker {
         count: Int, source: String, lecture: String, subject: String,
         brief: CaseWriting.Brief = CaseWriting.Brief(), using: Writer,
         onProgress: (Int, Int) -> Unit = { _, _ -> },
+        store: CloudJobs.PendingStore = CloudJobs.MemoryStore(),
+        pause: suspend (Long) -> Unit = { delay(it) },
     ): Made {
         val wanted = count.coerceIn(1, CaseWriting.maxCases)
+        val cloud = using.backend?.let { CloudJobs.endpoint(it) }
+        if (cloud != null) return cloudWrite(wanted, source, lecture, subject, brief, using.backend!!, cloud, store, pause, onProgress)
         val windows = TextSlicing.windows(source, using.sourceChars)
         val kept = mutableListOf<CaseFile>()
         var dropped = 0
@@ -90,6 +120,9 @@ object CaseMaker {
                 throw e
             } catch (e: Trouble.Unavailable) {
                 throw e
+            } catch (e: LLMError) {
+                // a missing key or a refused request will not fix itself on retry
+                if (e is LLMError.EmptyReply) failures += 1 else throw e
             } catch (e: Exception) {
                 failures += 1
             }
@@ -97,6 +130,27 @@ object CaseMaker {
         onProgress(kept.size, wanted)
         if (kept.isEmpty()) throw Trouble.NothingUsable(dropped)
         return Made(kept, dropped)
+    }
+
+    /** Stethoscore Cloud writes every case in one job, a prompt per case (iOS cloudWrite). */
+    private suspend fun cloudWrite(
+        wanted: Int, source: String, lecture: String, subject: String, brief: CaseWriting.Brief,
+        backend: LLMBackend, at: com.stethoscore.app.llm.CloudEndpoint,
+        store: CloudJobs.PendingStore, pause: suspend (Long) -> Unit, onProgress: (Int, Int) -> Unit,
+    ): Made {
+        val windows = TextSlicing.windows(source, minOf(backend.promptBudgetChars, 12_000)).take(60)
+        val sources = windows.ifEmpty { listOf("") }
+        val steps = (0 until wanted).map { i ->
+            var asked = brief
+            if (asked.setting == null && asked.diagnosis == null) asked = asked.copy(setting = CaseWriting.setting(i))
+            CloudJobs.Step(CaseWriting.instructions("{{SOURCE}}", subject, asked, json = true),
+                CaseWriting.requestJSON, i % sources.size, 3_500, 0.7)
+        }
+        val spec = CloudJobs.Spec("Writing $wanted case" + if (wanted == 1) "" else "s", "each", "pages", wanted, sources, steps)
+        val replies = CloudJobs.run(spec, at, store, pause, onProgress)
+        val screened = CaseChecks.screen(replies.flatMap { CaseWriting.parse(it, lecture) })
+        if (screened.kept.isEmpty()) throw Trouble.NothingUsable(screened.dropped.size)
+        return Made(screened.kept.take(wanted), screened.dropped.size)
     }
 }
 

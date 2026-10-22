@@ -13,8 +13,15 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // The worker every AI mode goes through (iOS AuthAPI.baseURL); never a provider's own address.
+        val workerUrl = providers.gradleProperty("stethoscoreWorkerUrl").orNull ?: "https://redpen-auth.vv7sh4rnnw.workers.dev"
+        buildConfigField("String", "WORKER_URL", "\"" + workerUrl.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
+        // The owner key (iOS RedPenOwnerKey): empty unless the owner's personal build passes
+        // -PstethoscoreOwnerKey=...; never written in the repository.
+        val ownerKey = providers.gradleProperty("stethoscoreOwnerKey").orNull ?: ""
+        buildConfigField("String", "OWNER_KEY", "\"" + ownerKey.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     testOptions { unitTests.isIncludeAndroidResources = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
