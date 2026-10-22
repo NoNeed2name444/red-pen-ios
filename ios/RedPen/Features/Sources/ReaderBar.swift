@@ -114,7 +114,7 @@ private struct ReaderPager: View {
         let before: String = "Previous \(noun.lowercased())"
         let after: String = "Next \(noun.lowercased())"
         HStack(spacing: 0) {
-            ReaderPagerArrow(symbol: "chevron.left", label: before, key: .leftArrow,
+            ReaderPagerArrow(symbol: "chevron.backward", label: before, key: .leftArrow,
                              enabled: !atStart) { turn(-1) }
             Text(place)
                 .font(.system(.footnote, design: .monospaced).weight(.semibold))

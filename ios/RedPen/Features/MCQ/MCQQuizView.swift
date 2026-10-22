@@ -1102,10 +1102,10 @@ struct MCQQuizView: View {
     private func backButton(short: Bool) -> some View {
         Button { if current > 0 { current -= 1 } } label: {
             if short {
-                Image(systemName: "chevron.left")
+                Image(systemName: "chevron.backward")
                     .transition(.identity)
             } else {
-                Label("Back", systemImage: "chevron.left")
+                Label("Back", systemImage: "chevron.backward")
                     .transition(.identity)
             }
         }

@@ -366,7 +366,7 @@ struct MockSittingView: View {
         let nextSymbol: String = last ? "flag.checkered" : "arrow.right"
         return HStack(spacing: 12) {
             Button { go(to: current - 1) } label: {
-                Label("Back", systemImage: "chevron.left")
+                Label("Back", systemImage: "chevron.backward")
             }
             .buttonStyle(.bigCompanion)
             .keyboardShortcut(.leftArrow, modifiers: [])

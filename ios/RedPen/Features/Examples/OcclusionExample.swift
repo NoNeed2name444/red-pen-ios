@@ -303,7 +303,7 @@ struct OcclusionExampleView: View {
             if let made {
                 AnkiReviewView(set: made)
             } else if failed {
-                WardEmptyState(symbol: "exclamationmark.triangle",
+                WardEmptyState(symbol: "exclamationmark.triangle.fill",
                                title: "The diagram's labels could not be read on this device.", tone: .warning)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .wardScreen()

@@ -237,8 +237,8 @@ struct BookReaderView: View {
             HStack(spacing: 12) {
                 Button { index = max(0, index - 1) } label: {
                     ViewThatFits(in: .horizontal) {
-                        Label("Back", systemImage: "chevron.left")
-                        Image(systemName: "chevron.left")
+                        Label("Back", systemImage: "chevron.backward")
+                        Image(systemName: "chevron.backward")
                     }
                 }
                 .buttonStyle(.bigCompanion)
