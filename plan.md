@@ -2211,6 +2211,7 @@ with the marks on the screens last.
   far: cloud generation, sign-in and sync, recording, billing. Small: on
   the 4-idea map the BNP label overlaps Pulmonary oedema, and the 1M demo
   header reads 0 ideas.
+  The Android app now lives in android/ on design/integration (from 7e3a249).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
