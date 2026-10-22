@@ -34,6 +34,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -170,7 +172,11 @@ import kotlinx.coroutines.withContext
         // background shows from the first frame (MainActivity), so nothing
         // changes at the hand-over.
         val onGround = screen=="home"
-        if(onGround) WardGroundBackground(WardGround.home(section, dark),Modifier.fillMaxSize())
+        // the grid only from the window's top to just under the header's
+        // last line (iOS HomeBand, HomeBandTrack.belowHeader 10), following
+        // the header as the list scrolls; gone with the header
+        var bandBottom by remember { mutableStateOf<Float?>(null) }
+        if(onGround) WardGroundBackground(WardGround.home(section, dark),Modifier.fillMaxSize(),gridBottom={ bandBottom })
         Surface(Modifier.fillMaxSize(),color=if(onGround) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) {
             Box(Modifier.fillMaxSize().safeDrawingPadding()) {
                 when(screen) {
@@ -244,7 +250,12 @@ import kotlinx.coroutines.withContext
                                     IconButton(onClick={screen="settings"},Modifier.size(44.dp).border(1.dp,MaterialTheme.colorScheme.outline,RoundedCornerShape(22.dp))) { Icon(Icons.Rounded.Settings,"Settings") }
                                 } }
                                 item { OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),placeholder={Text("Search questions, cards, notes",fontSize=14.sp)},leadingIcon={Icon(Icons.Rounded.Search,null)},singleLine=true,shape=RoundedCornerShape(30.dp),colors=OutlinedTextFieldDefaults.colors(unfocusedContainerColor=MaterialTheme.colorScheme.surface.copy(alpha=.9f))) }
-                                item { HomeHeader(remember(revision) { ExamCountdown.text(store.examDate,examName=ExamCountdown.examName(com.stethoscore.app.exam.ExamChoice.defaults(context))) }) }
+                                item {
+                                    val below=with(androidx.compose.ui.platform.LocalDensity.current) { HomeFit.belowHeader.dp.toPx() }
+                                    DisposableEffect(Unit) { onDispose { bandBottom=null } }
+                                    HomeHeader(remember(revision) { ExamCountdown.text(store.examDate,examName=ExamCountdown.examName(com.stethoscore.app.exam.ExamChoice.defaults(context))) },
+                                        Modifier.onGloballyPositioned { bandBottom=it.positionInWindow().y+it.size.height+below })
+                                }
                                 store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
                                     Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
                                     Text("Your library could not be opened",fontSize=20.sp,fontWeight=FontWeight.Bold)

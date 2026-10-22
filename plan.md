@@ -2220,6 +2220,10 @@ with the marks on the screens last.
     - [x] Cases answers on WardOptionRow, as iOS (the owner 15 Oct: wrong
       fades, right takes the mode's colour); CaseOptionRow and its green and
       red are gone (CaseAnswerRowsTest).
+    - [x] Home's grid as iOS HomeBand: from the window's top to 10 under the
+      header (HomeFit.belowHeader), following it as the list scrolls, the
+      plain base below; no fading (WardGroundBackground gridBottom;
+      HomeBandTest).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

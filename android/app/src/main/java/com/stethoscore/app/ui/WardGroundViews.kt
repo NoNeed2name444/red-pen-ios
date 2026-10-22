@@ -7,8 +7,12 @@ import android.graphics.PixelFormat
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardPaper
@@ -57,21 +61,34 @@ class WardGroundDrawable(private val ground: WardGround, private val density: Fl
     override fun getOpacity(): Int = PixelFormat.OPAQUE
 }
 
-/** The ground behind a page, filling [modifier]'s bounds from the window's top left. */
-@Composable fun WardGroundBackground(ground: WardGround, modifier: Modifier = Modifier) {
+/**
+ * The ground behind a page, filling [modifier]'s bounds from the window's top
+ * left. With [gridBottom] (window pixels, read as it draws) the paper's grid
+ * is a band from the window's top down to that line and the plain base below
+ * it, as iOS WardPaperBand (home: the owner, 9 Oct, "the grid from upwards
+ * till under the stethoscore word"); a null bottom draws no grid. Without
+ * it, the grid fills the page.
+ */
+@Composable fun WardGroundBackground(ground: WardGround, modifier: Modifier = Modifier, gridBottom: (() -> Float?)? = null) {
     val base = wardRgb(ground.base)
     val ink = wardRgb(ground.ink.hex)
-    Canvas(modifier) {
+    val origin = remember { floatArrayOf(0f) }
+    Canvas(modifier.onGloballyPositioned { origin[0] = it.positionInWindow().y }) {
         drawRect(base)
         if (ground.ink.fine <= 0 && ground.ink.bold <= 0) return@Canvas
+        val height = if (gridBottom == null) size.height else (gridBottom() ?: return@Canvas) - origin[0]
+        val band = minOf(size.height, height)
+        if (band <= 0f) return@Canvas
         val cell = WardPaper.cell.toFloat().dp.toPx()
         val line = WardPaper.line.toFloat().dp.toPx()
         fun color(bold: Boolean) = ink.copy(alpha = (if (bold) ground.ink.bold else ground.ink.fine).toFloat())
-        for ((x, bold) in wardGridLines(size.width, cell)) {
-            drawRect(color(bold), Offset(x - line / 2, 0f), androidx.compose.ui.geometry.Size(line, size.height))
-        }
-        for ((y, bold) in wardGridLines(size.height, cell)) {
-            drawRect(color(bold), Offset(0f, y - line / 2), androidx.compose.ui.geometry.Size(size.width, line))
+        clipRect(bottom = band) {
+            for ((x, bold) in wardGridLines(size.width, cell)) {
+                drawRect(color(bold), Offset(x - line / 2, 0f), androidx.compose.ui.geometry.Size(line, band))
+            }
+            for ((y, bold) in wardGridLines(band, cell)) {
+                drawRect(color(bold), Offset(0f, y - line / 2), androidx.compose.ui.geometry.Size(size.width, line))
+            }
         }
     }
 }

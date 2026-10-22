@@ -34,6 +34,8 @@ object HomeFit {
     const val cutRoom: Double = 12.0
     /** The least of a row that may show over the cut at rest: less reads as a stray line, not as more to scroll to. */
     const val leastShown: Double = 12.0
+    /** How far under the header's last line home's grid band ends (iOS HomeBandTrack.belowHeader). */
+    const val belowHeader: Double = 10.0
 
     /**
      * Where the page's cut falls, from the page's top: `cutRoom` above the
