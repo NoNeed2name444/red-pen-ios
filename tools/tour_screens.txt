@@ -19,6 +19,7 @@ home-cards	14	Home: Cards
 home-cases	14	Home: Cases
 home-osce	14	Home: OSCE
 home-audio	14	Home: Audio
+library-end	14	Home at the end of its list (the last cards clear New set and the dock)
 library-empty	15	Empty library
 category-empty	17	Empty category
 search-empty	18	Search, no results

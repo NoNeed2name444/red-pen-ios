@@ -57,7 +57,9 @@ struct WardPocketSheet: View {
                 }
             }
             .wardForm()
-            .searchable(text: $query, prompt: Text(searchPrompt))
+            // the search field under the title, never at the foot over the last
+            // rows (the owner, 22 Oct: the page ends above what stands there)
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text(searchPrompt))
             .navigationTitle("Clinical reference")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: WardCalc.self) { calc in
@@ -154,22 +156,39 @@ struct WardUnitsPicker: View {
     }
 }
 
+/// What stands at a pocket page's foot, under the page rather than over it:
+/// the page ends above it, so no row is ever behind it (the owner, 22 Oct;
+/// Android's WardDisclaimerFrame pads its page the same way).
+private struct WardFoot<Foot: View>: ViewModifier {
+    @ViewBuilder let foot: () -> Foot
+
+    func body(content: Content) -> some View {
+        VStack(spacing: 0) {
+            content
+            foot()
+        }
+        .background { WardBackground().ignoresSafeArea() }
+    }
+}
+
 /// "For learning only - not for patient care", a small soft chip with amber
-/// words at the foot of the screen, always in view.
+/// words at the foot of the screen, always in view, under the page.
 private struct WardDisclaimer: ViewModifier {
     func body(content: Content) -> some View {
-        // it floats over the page, so its chip has no glow
-        content.safeAreaInset(edge: .bottom, spacing: 0) {
+        content.modifier(WardFoot {
+            // as low as it was when it floated: no glow
             Label(WardPocket.disclaimer, systemImage: "graduationcap")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardWarning)
                 .padding(.horizontal, WardSpace.l)
                 .padding(.vertical, 8)
                 .wardRaised(in: Capsule())
+                .padding(.top, WardSpace.s)
                 .padding(.bottom, WardSpace.s)
+                .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("wardDisclaimer")
                 .wardUnlit()
-        }
+        })
     }
 }
 
@@ -459,10 +478,12 @@ struct WardScoreView: View {
             }
             .sharedBackgroundVisibility(.hidden)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // the total under the criteria, never over the last of them
+        .modifier(WardFoot {
             WardScoreTotal(total: total, band: verdict)
+                .padding(.top, WardSpace.s)
                 .wardUnlit()
-        }
+        })
         .wardDisclaimer()
     }
 
