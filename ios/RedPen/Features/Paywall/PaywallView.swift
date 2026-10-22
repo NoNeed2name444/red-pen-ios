@@ -168,13 +168,16 @@ struct PaywallView: View {
         .buttonStyle(.wardPrimary)
         .keyboardShortcut(.defaultAction)
         .disabled(cannotBuy)
-        // required in the app itself, not only on a website
+        // required in the app itself, not only on a website; each 44 points
+        // to press, though the words stay footnote-sized
         HStack(spacing: 16) {
-            Button("Restore") { Task { await subscriptions.restore() } }
-                .disabled(subscriptions.busy)
+            Button { Task { await subscriptions.restore() } } label: {
+                Text("Restore").minimumHitTarget()
+            }
+            .disabled(subscriptions.busy)
             // served by our own server (server/legal.js), not the retired redpen.app
-            Link("Terms", destination: LegalLinks.url(.terms))
-            Link("Privacy", destination: LegalLinks.url(.privacy))
+            Link(destination: LegalLinks.url(.terms)) { Text("Terms").minimumHitTarget() }
+            Link(destination: LegalLinks.url(.privacy)) { Text("Privacy").minimumHitTarget() }
         }
         .font(.footnote)
         .buttonStyle(.borderless)
