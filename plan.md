@@ -3125,6 +3125,11 @@ only; Arabic is left for the owner's words (copy deck question 4).
   the editor, "Look and feel" over the dark-mode switch. "Night shift" and
   the settings rows the deck maps to iOS's backup rows wait (copy deck
   question 6; Android's Import JSON adds sets where iOS's Restore replaces).
+- [x] Android's empty home says what iOS's does: "Make your first set" and
+  "Add a lecture and Stethoscore turns it into questions or flashcards to
+  study." Its "YOUR STUDY WARD" label waits (copy deck question 6), and its
+  two buttons keep their words: they load the examples and import a
+  library, where iOS's one button makes a new set.
 
 ### Waiting on the owner
 

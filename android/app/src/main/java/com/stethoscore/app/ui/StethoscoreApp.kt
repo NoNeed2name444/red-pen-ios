@@ -278,8 +278,8 @@ import kotlinx.coroutines.withContext
                                 if(store.library.isEmpty() && store.loadError==null) {
                                     item { WardCard(Modifier.fillMaxWidth()) {
                                         Icon(Icons.Rounded.AutoStories,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(36.dp))
-                                        Text("Your ward starts here",fontSize=23.sp,fontWeight=FontWeight.Bold)
-                                        Text("Bring your questions, cards and lecture notes together. Your library stays on this device.",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("Make your first set",fontSize=23.sp,fontWeight=FontWeight.Bold)
+                                        Text("Add a lecture and Stethoscore turns it into questions or flashcards to study.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                                         WardButton("Explore example sets",{ change(store::loadExamples) },Modifier.fillMaxWidth(),enabled=store.loadError==null)
                                         TextButton(onClick={imported.launch(arrayOf("application/json","text/plain"))}) { Text("Import a Stethoscore library") }
                                     } }

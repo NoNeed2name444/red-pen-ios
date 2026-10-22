@@ -94,6 +94,7 @@ The owner's exam words (`docs/design/identity/wording.md`), built on both phones
 | Twins' subtitle, "Missed points, asked again" (`Features/Library/StudyCategory.swift`) | none | iOS only: Android has no study-category list yet |
 | An info-only alert's button, "Done" (13 alerts: AppIntentsRouting, SignInView's two, AccountView, LibraryDataSettingsSection, AnkiReviewView, NoteEditorView, NarrateReviewView's two, IncomingImport, NewSetView, LibrarySheets, LibraryView) | `ui/library/LibrarySheets.kt`'s LibraryAlert, `ui/narrate/NarrateReviewScreen.kt`'s NarrateAlert, `ui/StethoscoreApp.kt`'s two, `ui/ideas/NoteEditor.kt`, `ui/ideas/IdeasView.kt`, `ui/learn/LearnRoutes.kt`'s NotYetNotice | same |
 | "New set", "Save set" (`Features/Library/NewSetView.swift`) and "Look and feel" (`Features/Support/SupportCenter.swift`) | `ui/EditorSettings.kt`'s editor header, save button and settings section | same words; Android's "Night shift" switch and its library rows keep their names (copy deck question 6; no one-to-one iOS row) |
+| The empty library's "Make your first set" and its sentence (`Features/Library/LibraryRows.swift`'s emptyState) | `ui/StethoscoreApp.kt`'s empty home card (as `ui/library/LibraryList.kt`'s LibraryEmpty already says) | same words; the home card keeps "YOUR STUDY WARD" (copy deck question 6) and its two buttons, which load the examples and import a library |
 
 ## Where iOS can't be copied
 
