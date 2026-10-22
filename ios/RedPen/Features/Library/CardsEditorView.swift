@@ -60,7 +60,7 @@ struct CardsEditorView: View {
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     if changed { saveBar }
                 }
-                .animation(.snappy(duration: 0.25), value: changed)
+                .animation(Motion.gentle(.snappy(duration: 0.25)), value: changed)
                 .sheet(item: $editingCard) { card in
                     CardEditSheet(card: card, knownTags: knownTags) { edited in replace(edited) }
                 }

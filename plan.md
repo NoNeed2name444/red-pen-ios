@@ -2659,6 +2659,14 @@ with the marks on the screens last.
 - [ ] Follow-up to 12a and 12b (docs/, outside T0107's paths): docs/design/palette-2026-10-21.md's 22 Oct note still says each section's wash is pinned to its value before T0104 and that the failing checks stay failing; it should say the ground is the plain base and those checks pass on the owner's list.
 - [x] 12c. One tone on iPhone (22 Oct; task T0113-ios). The owner, 22 Oct, circling home's ward-round card block: "there shouldn't be 2 tones"; 21 Oct, of the quiz dock: "one color not two color toned". Cards (.surface) and sheets, bars and panels (.raised) are the page colour, #E9EDF2 by day and #171C24 at night (WardPalette.table), on every screen; depth comes only from the relief, edges and rings, all unchanged. WardPaletteTests pins surface == raised == background in both modes. Wells (.well) are unchanged pending the owner's word (asked 22 Oct). The owner's lists hold the re-measured values: in OwnerAccepted.json 154 values moved and 19 cases removed because they now pass at night; in tests/ward/owner-accepted.json 8 moved, 5 removed, and 7 ward_accents ink cases renamed from "on the surface" to "on the background", the lowest ground now.
 - [ ] Follow-up to 12c: the owner's word on wells (fields, tracks, a chosen segment), which still sit a shade below the page.
+- 12d. Motion on iPhone (22 Oct; task T0121, UX Waves 3-4, the motion rows of the iOS consistency sweep). Canon: platform.md, 200 to 320 ms with an ease-out, no bounce, nothing fades, nothing loops but the trace; Motion.gentle and .slideIn / .growIn (AccessibilitySupport.swift).
+  - [x] Reduce Motion everywhere: the 86 withAnimation, .animation and animated bindings in 39 files that ignored it go through Motion.gentle, so nothing moves under Reduce Motion. A bare withAnimation keeps the system's default curve.
+  - [ ] Bare .snappy (0.5 s) as .snappy(duration: 0.25).
+  - [ ] Durations into 200 to 320 ms.
+  - [ ] OSCE review's Start over without the bounce.
+  - [ ] Lens's looping "Answering…" bars as EcgLoader.
+  - Kept: FinishHero's aurora, ScoreRing's spring and RiseIn's staggered spring (owner question, iOS Q8); NarrateWordFlow's 0.1 s word highlight, which keeps up with the voice (its comment says so); the WardPress press curves; the scenes (sky, map). No .transition(.opacity) anywhere.
+  - [ ] Mac run: the app build (Motion.gentle is main-actor only, so every site was checked to be in a view or a main-actor class), then a look at the quiz, the library and New set at the shorter durations.
 
 ### The launch mark (design/launch-anim), 15 Oct
 

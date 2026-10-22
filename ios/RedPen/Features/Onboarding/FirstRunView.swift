@@ -41,7 +41,7 @@ struct FirstRunView: View {
             onDone()
             return
         }
-        withAnimation(.snappy) { page = next }
+        withAnimation(Motion.gentle(.snappy)) { page = next }
     }
 }
 
@@ -120,7 +120,7 @@ private struct FirstRunGoalPage: View {
                     .foregroundStyle(Color.wardInk)
                     .contentTransition(.numericText())
                     .accessibilityHidden(true)
-                Stepper("\(goal) a day", value: $goal.animation(.snappy), in: DailyGoal.range, step: 10)
+                Stepper("\(goal) a day", value: $goal.animation(Motion.gentle(.snappy)), in: DailyGoal.range, step: 10)
                     .contentTransition(.identity)
                     .accessibilityIdentifier("firstRunGoalStepper")
                 HStack(spacing: 8) {
@@ -136,7 +136,7 @@ private struct FirstRunGoalPage: View {
         let picked: Bool = value == goal
         let ink: Color = picked ? Color.wardPrimaryInk : Color.wardInk
         return Button {
-            withAnimation(.snappy) { goal = value }
+            withAnimation(Motion.gentle(.snappy)) { goal = value }
         } label: {
             Text("\(value)")
                 .font(.system(.subheadline, design: .monospaced).weight(.semibold).monospacedDigit())
@@ -397,6 +397,6 @@ final class FirstRunStore: ObservableObject {
 
     func finish(_ accountId: String) {
         FirstRun.finish(accountId: accountId)
-        withAnimation { _ = finished.insert(accountId) }
+        withAnimation(Motion.gentle(.default)) { _ = finished.insert(accountId) }
     }
 }

@@ -120,7 +120,7 @@ struct DuelView: View {
         .wardScreen()
         .navigationTitle("Duel")
         .navigationBarTitleDisplayMode(.inline)
-        .animation(.snappy, value: index)
+        .animation(Motion.gentle(.snappy), value: index)
     }
 
     private func name(_ side: LookalikeSide) -> String {
@@ -195,7 +195,7 @@ struct DuelView: View {
                     .onChanged { drag = $0.translation }
                     .onEnded { value in
                         let side = sideFor(value.translation)
-                        withAnimation(.snappy) { drag = .zero }
+                        withAnimation(Motion.gentle(.snappy)) { drag = .zero }
                         if let side { answer(side) }
                     }
             )

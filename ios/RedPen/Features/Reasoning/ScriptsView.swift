@@ -41,7 +41,7 @@ struct ScriptsView: View {
                             onJump: { name in
                                 guard let target = scripts.first(where: { $0.disease.lowercased() == name.lowercased() })
                                 else { return }
-                                withAnimation(.snappy) { reader.scrollTo(target.id, anchor: .top) }
+                                withAnimation(Motion.gentle(.snappy)) { reader.scrollTo(target.id, anchor: .top) }
                             })
                         .id(script.id)
                     }
@@ -61,7 +61,7 @@ struct ScriptsView: View {
                     .transition(.slideIn(.top))
             }
         }
-        .animation(.snappy, value: savedMessage)
+        .animation(Motion.gentle(.snappy), value: savedMessage)
         .task(id: savedMessage) {
             // non-modal: it says what happened and goes by itself
             guard savedMessage != nil else { return }

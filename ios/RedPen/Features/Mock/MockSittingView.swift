@@ -333,7 +333,7 @@ struct MockSittingView: View {
         return Button {
             guard !out, let orig else { return }
             UISelectionFeedbackGenerator().selectionChanged()
-            withAnimation(.snappy(duration: 0.2)) { selected[id] = orig }
+            withAnimation(Motion.gentle(.snappy(duration: 0.2))) { selected[id] = orig }
         } label: {
             WardOptionRow(letter: letter, text: optionText(slot), mark: mark, struck: out)
         }
@@ -352,7 +352,7 @@ struct MockSittingView: View {
         var set: Set<Int> = struck[id] ?? []
         let on: Bool = set.contains(orig)
         if on { set.remove(orig) } else { set.insert(orig) }
-        withAnimation(.snappy(duration: 0.2)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.2))) {
             struck[id] = set
             if !on && selected[id] == orig { selected[id] = nil }
         }
@@ -552,7 +552,7 @@ struct MockSittingView: View {
         // marked and kept in the history: nothing left to resume
         MockSittingStore.clear()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        withAnimation(.snappy) {
+        withAnimation(Motion.gentle(.snappy)) {
             onBreak = false
             result = made
         }

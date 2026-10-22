@@ -194,7 +194,7 @@ struct MCQQuizView: View {
             if isUnsaved {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        onSave?(); withAnimation(.snappy) { saved.wrappedValue = true }
+                        onSave?(); withAnimation(Motion.gentle(.snappy)) { saved.wrappedValue = true }
                     } label: {
                         Label(saved.wrappedValue ? "Saved" : "Save", systemImage: saved.wrappedValue ? "checkmark" : "square.and.arrow.down")
                             .labelStyle(.titleAndIcon)
@@ -297,7 +297,7 @@ struct MCQQuizView: View {
     }
 
     private func resume(_ p: QuizProgress) {
-        withAnimation(.snappy) {
+        withAnimation(Motion.gentle(.snappy)) {
             answers = p.answers; orders = p.optionOrders
             current = min(p.current, max(0, studySet.questions.count - 1))
             pendingResume = nil
@@ -306,7 +306,7 @@ struct MCQQuizView: View {
 
     private func startAgain() {
         forgetPlace()
-        withAnimation(.snappy) { pendingResume = nil }
+        withAnimation(Motion.gentle(.snappy)) { pendingResume = nil }
     }
 
     /// Whether `persist()` really writes. Never from the screenshot launch,
@@ -446,7 +446,7 @@ struct MCQQuizView: View {
 
     private func startExam() {
         forgetPlace()
-        withAnimation(.snappy) {
+        withAnimation(Motion.gentle(.snappy)) {
             pendingResume = nil
             examMode = true
             examEndsAt = Date().addingTimeInterval(TimeInterval(examSeconds))
@@ -485,7 +485,7 @@ struct MCQQuizView: View {
         let symbol: String = on ? "flag.fill" : "flag"
         return Button {
             UISelectionFeedbackGenerator().selectionChanged()
-            withAnimation(.snappy) { store.toggleFlag(q.id) }
+            withAnimation(Motion.gentle(.snappy)) { store.toggleFlag(q.id) }
         } label: {
             if labelled {
                 // the word swaps at once; the flag keeps its replace below
@@ -653,13 +653,13 @@ struct MCQQuizView: View {
         let question: MCQQuestion = q
         guard hints[question.id] == nil else { return }
         UISelectionFeedbackGenerator().selectionChanged()
-        withAnimation(.snappy) { hints[question.id] = "" }
+        withAnimation(Motion.gentle(.snappy)) { hints[question.id] = "" }
         let answer: String = question.options.indices.contains(question.correctIndex)
             ? question.options[question.correctIndex] : ""
         Task {
             let text: String = await HintWriter.hint(id: question.id, stem: question.stem, options: question.options,
                                                      answer: answer, differential: question.differential)
-            withAnimation(.snappy) { hints[question.id] = text }
+            withAnimation(Motion.gentle(.snappy)) { hints[question.id] = text }
         }
     }
 
@@ -682,7 +682,7 @@ struct MCQQuizView: View {
         return Button {
             // a crossed-out option is never chosen by a stray tap: restore it first
             guard !a.checked, !out else { return }
-            withAnimation(.snappy(duration: 0.2)) { answers[current].selected = idx }
+            withAnimation(Motion.gentle(.snappy(duration: 0.2))) { answers[current].selected = idx }
         } label: {
             WardOptionRow(letter: letter(idx), text: text, mark: mark, struck: out)
         }
@@ -720,7 +720,7 @@ struct MCQQuizView: View {
         var set: Set<Int> = struck[current] ?? []
         let on: Bool = set.contains(original)
         if on { set.remove(original) } else { set.insert(original) }
-        withAnimation(.snappy(duration: 0.2)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.2))) {
             struck[current] = set
             if !on && answers[current].selected == slot { answers[current].selected = nil }
         }
@@ -939,7 +939,7 @@ struct MCQQuizView: View {
             case .unavailable(let why): said = why
             case .later(let why): said = why
             }
-            withAnimation(.snappy) {
+            withAnimation(Motion.gentle(.snappy)) {
                 writingTwin.remove(id)
                 twinNotes[id] = said
             }
@@ -952,7 +952,7 @@ struct MCQQuizView: View {
     private func chip(_ title: String, symbol: String?, on: Bool, action: @escaping () -> Void) -> some View {
         Button {
             UISelectionFeedbackGenerator().selectionChanged()
-            withAnimation(.snappy(duration: 0.2)) { action() }
+            withAnimation(Motion.gentle(.snappy(duration: 0.2))) { action() }
         } label: {
             HStack(spacing: WardSpace.s) {
                 if let symbol { Image(systemName: symbol).accessibilityHidden(true) }
@@ -1077,7 +1077,7 @@ struct MCQQuizView: View {
 
             if explains {
                 Button("Explain") {
-                    withAnimation(.snappy) { proxy.scrollTo(explainID, anchor: .top) }
+                    withAnimation(Motion.gentle(.snappy)) { proxy.scrollTo(explainID, anchor: .top) }
                 }
                 .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
                 .accessibilityHint("Scrolls to the explanation")
@@ -1085,7 +1085,7 @@ struct MCQQuizView: View {
             }
 
             Button {
-                withAnimation(.snappy) { onCheckOrNext() }
+                withAnimation(Motion.gentle(.snappy)) { onCheckOrNext() }
             } label: {
                 Label(title, systemImage: symbol)
                     .labelStyle(.titleAndIcon)

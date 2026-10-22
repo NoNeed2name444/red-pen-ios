@@ -29,7 +29,7 @@ extension LibraryView {
         // (a link can arrive from anywhere) is put away first
         closeOpenPlaces()
         if inIdeas {
-            withAnimation(.snappy(duration: 0.3)) { inIdeas = false }
+            withAnimation(Motion.gentle(.snappy(duration: 0.3))) { inIdeas = false }
             category = StudyCategory(kind: set.kind)
         }
         let hit: LibrarySearch.Hit = Self.hit(for: source, in: set)

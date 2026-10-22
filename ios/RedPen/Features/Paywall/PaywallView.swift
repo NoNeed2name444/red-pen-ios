@@ -137,7 +137,7 @@ struct PaywallView: View {
             .contentShape(PaywallView.row)
         }
         .buttonStyle(.plain)
-        .animation(.snappy(duration: 0.2), value: picked)
+        .animation(Motion.gentle(.snappy(duration: 0.2)), value: picked)
         .hoverEffect(.highlight)
         .accessibilityAddTraits(traits)
     }

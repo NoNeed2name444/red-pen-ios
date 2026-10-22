@@ -222,7 +222,7 @@ final class PopOutMotion {
         PopOutMotion.snapshot.write(SIMD2<Float>(0, 0))
         source = .motion
         guard style != now || eye != rest || gain != 1 else { return }
-        withAnimation(.smooth(duration: 0.5)) {
+        withAnimation(Motion.gentle(.smooth(duration: 0.5))) {
             style = now
             eye = rest
             gain = 1

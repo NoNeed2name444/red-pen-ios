@@ -235,7 +235,7 @@ private struct SpokenTranscript: View {
             }
             .onChange(of: session.lines.count) { _, _ in
                 if let last = session.lines.last?.id {
-                    withAnimation { proxy.scrollTo(last, anchor: .bottom) }
+                    withAnimation(Motion.gentle(.default)) { proxy.scrollTo(last, anchor: .bottom) }
                 }
             }
         }

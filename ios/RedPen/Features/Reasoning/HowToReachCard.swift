@@ -57,7 +57,7 @@ struct HowToReachCard: View {
         return VStack(alignment: .leading, spacing: 6) {
             if entry.hasDetail {
                 Button {
-                    withAnimation(.snappy) {
+                    withAnimation(Motion.gentle(.snappy)) {
                         if isOpen { open.remove(key) } else { open.insert(key) }
                     }
                 } label: {

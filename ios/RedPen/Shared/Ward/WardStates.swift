@@ -175,7 +175,7 @@ struct WardProgressBar: View {
     var body: some View {
         let v: Double = max(0, min(1, value))
         WardGroove(fraction: v, tint: Self.tone(v).color)
-            .animation(.easeOut(duration: 0.3), value: v)
+            .animation(Motion.gentle(.easeOut(duration: 0.3)), value: v)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(label ?? "Score")
             .accessibilityValue("\(Int((v * 100).rounded())) percent")

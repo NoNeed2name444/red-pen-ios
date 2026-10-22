@@ -65,7 +65,7 @@ struct ExamPickerView: View {
     private var chosenSection: some View {
         if let exam = ExamCatalog.exam(primary) {
             Section {
-                Toggle("Also preparing for a second exam", isOn: $choosingSecond.animation())
+                Toggle("Also preparing for a second exam", isOn: $choosingSecond.animation(Motion.gentle(.default)))
                 if choosingSecond {
                     Picker("Second exam", selection: $secondary) {
                         Text("None").tag("")
@@ -98,7 +98,7 @@ struct ExamPickerView: View {
         let chosen: Bool = exam.id == primary
         let detail: String = ExamPickerView.detail(exam)
         return Button {
-            withAnimation(.snappy) {
+            withAnimation(Motion.gentle(.snappy)) {
                 primary = exam.id
                 if secondary == exam.id { secondary = "" }
             }

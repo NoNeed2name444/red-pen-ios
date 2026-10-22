@@ -299,7 +299,7 @@ struct NarrateReviewView: View {
         lastOutcome = outcome
         persistText()
         relayout()
-        withAnimation(.snappy) { report = outcome.summary() }
+        withAnimation(Motion.gentle(.snappy)) { report = outcome.summary() }
     }
 
     private func undo() {
@@ -308,7 +308,7 @@ struct NarrateReviewView: View {
         lastOutcome = nil
         persistText()
         relayout()
-        withAnimation(.snappy) { report = nil }
+        withAnimation(Motion.gentle(.snappy)) { report = nil }
     }
 
     /// A correction is an edit to the transcript, so it outlives the screen.
@@ -365,7 +365,7 @@ struct NarrateReviewView: View {
                     // and then gently, to a spot a third of the way down
                     guard band.needsScroll(to: line) else { return }
                     let anchor = UnitPoint(x: 0.5, y: 0.3)
-                    withAnimation(.easeInOut(duration: 0.45)) { proxy.scrollTo(line, anchor: anchor) }
+                    withAnimation(Motion.gentle(.easeInOut(duration: 0.45))) { proxy.scrollTo(line, anchor: anchor) }
                 }
         }
     }

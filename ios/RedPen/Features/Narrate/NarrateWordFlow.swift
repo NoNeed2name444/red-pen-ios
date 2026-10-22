@@ -92,7 +92,7 @@ struct NarrateLine: View, Equatable {
         // one modifier per line, not one per word
         .contentShape(.hoverEffect, shape)
         .hoverEffect(.highlight)
-        .animation(.easeInOut(duration: 0.2), value: current)
+        .animation(Motion.gentle(.easeInOut(duration: 0.2)), value: current)
         .environment(\.layoutDirection, rtl ? .rightToLeft : .leftToRight)
         .onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .named(NarrateScrollBand.space))
@@ -121,7 +121,7 @@ struct NarrateLine: View, Equatable {
                     .padding(.vertical, -1)
             }
             // quick enough to keep up with the voice, slow enough to glide
-            .animation(.easeOut(duration: 0.1), value: speaking)
+            .animation(Motion.gentle(.easeOut(duration: 0.1)), value: speaking)
             .contentShape(Rectangle())
             .onTapGesture { onJump(index) }
             .onLongPressGesture(minimumDuration: 0.35) {

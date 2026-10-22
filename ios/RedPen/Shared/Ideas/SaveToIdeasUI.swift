@@ -247,7 +247,7 @@ private struct SaveToIdeasHost: ViewModifier {
                             .transition(.slideIn(.top))
                     }
                 }
-                .animation(.snappy, value: shown?.id)
+                .animation(Motion.gentle(.snappy), value: shown?.id)
             }
             // it says what happened and goes by itself
             .task(id: shown?.id) {

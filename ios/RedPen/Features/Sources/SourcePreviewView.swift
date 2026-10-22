@@ -207,7 +207,7 @@ struct SourcePageList: View {
             .scrollContentBackground(.hidden)
             .onAppear { scroll.scrollTo(selected, anchor: .center) }
             .onChange(of: selected) { _, now in
-                withAnimation { scroll.scrollTo(now, anchor: .center) }
+                withAnimation(Motion.gentle(.default)) { scroll.scrollTo(now, anchor: .center) }
             }
         }
     }

@@ -380,7 +380,7 @@ struct OsceReviewView: View {
 
     private func gotIt() {
         StudyLog.shared.record()
-        withAnimation(.snappy) {
+        withAnimation(Motion.gentle(.snappy)) {
             run.gotIt()
             revealed = false
         }
@@ -394,7 +394,7 @@ struct OsceReviewView: View {
         let wasRunning: Bool = clockEndsAt != nil
         clockLeft = Self.stationSeconds
         clockEndsAt = wasRunning ? Date().addingTimeInterval(clockLeft) : nil
-        withAnimation(.spring(duration: 0.35, bounce: 0.15)) {
+        withAnimation(Motion.gentle(.spring(duration: 0.35, bounce: 0.15))) {
             run.startOver()
             revealed = false
         }
