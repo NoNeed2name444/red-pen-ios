@@ -374,13 +374,13 @@ struct OsceReviewView: View {
     /// Shows the step - and reads it out, since the button VoiceOver was on
     /// has just given way to two others.
     private func reveal() {
-        withAnimation(Motion.gentle(.snappy)) { revealed = true }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { revealed = true }
         if let text = currentStepText { Announce.say("Step \(run.stepIndex + 1): " + text) }
     }
 
     private func gotIt() {
         StudyLog.shared.record()
-        withAnimation(Motion.gentle(.snappy)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
             run.gotIt()
             revealed = false
         }

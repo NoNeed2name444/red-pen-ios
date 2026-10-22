@@ -396,7 +396,7 @@ struct LibraryView: View {
     private func openTurned(_ set: StudySet?) {
         guard let set else { return }
         modeSwitch.opening = nil
-        withAnimation(Motion.gentle(.snappy)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
             dockSelection.wrappedValue = StudyCategory(kind: set.kind)
             inIdeas = false
             arrived = set.id
@@ -799,7 +799,7 @@ struct LibraryView: View {
             .onChange(of: opened.isEmpty) { _, back in
                 guard back, let id = arrived else { return }
                 arrived = nil
-                withAnimation(Motion.gentle(.snappy)) { proxy.scrollTo(id, anchor: .center) }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { proxy.scrollTo(id, anchor: .center) }
             }
             .task(id: dockHeight) {
                 guard PreviewLaunch.screen == "library-end", dockHeight > 0 else { return }
@@ -945,7 +945,7 @@ struct LibraryView: View {
         let title: String = selecting ? "Done" : "Select"
         let hint: String = selecting ? "Stop choosing sets" : "Choose sets to group, mix or combine"
         return Button {
-            withAnimation(Motion.gentle(.snappy)) { selecting.toggle(); selected = [] }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting.toggle(); selected = [] }
         } label: {
             headerButtonFace(title)
         }
@@ -992,7 +992,7 @@ struct LibraryView: View {
                 Spacer()
                 Menu {
                     Button("Select sets", systemImage: "checkmark.circle") {
-                        withAnimation(Motion.gentle(.snappy)) { selecting = true; selected = [] }
+                        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = true; selected = [] }
                     }
                     Button("Rename folder", systemImage: "pencil") {
                         draftName = folder.name; renamingFolder = folder
@@ -1144,7 +1144,7 @@ struct LibraryView: View {
         reviews.forget(cards)
         selected.subtract(ids)
         if selecting && selected.isEmpty {
-            withAnimation(Motion.gentle(.snappy)) { selecting = false }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = false }
         }
     }
 
@@ -1224,10 +1224,10 @@ private struct KeyboardWatch: ViewModifier {
         content
             .onReceive(KeyboardWatch.shows) { note in
                 let soft: Bool = KeyboardWatch.isSoftKeyboard(note)
-                withAnimation(Motion.gentle(.snappy)) { up = soft }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { up = soft }
             }
             .onReceive(KeyboardWatch.hides) { _ in
-                withAnimation(Motion.gentle(.snappy)) { up = false }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { up = false }
             }
     }
 }

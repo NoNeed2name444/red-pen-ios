@@ -323,13 +323,13 @@ struct CaseWardView: View {
     // MARK: acting
 
     private func begin() {
-        withAnimation(reduceMotion ? nil : .snappy) { arriving = false }
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { arriving = false }
     }
 
     private func take(_ step: CaseStep) {
         var next: CaseRun = run
         guard next.take(step.id, in: file) else { return }
-        withAnimation(reduceMotion ? nil : .snappy) { run = next }
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { run = next }
         // the finding, read out, since it lands below the chips
         UIAccessibility.post(notification: .announcement, argument: step.finding)
     }
@@ -337,12 +337,12 @@ struct CaseWardView: View {
     private func decide(_ decision: CaseRun.Decision) {
         var next: CaseRun = run
         next.decide(decision, in: file)
-        withAnimation(reduceMotion ? nil : .snappy) { run = next }
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { run = next }
     }
 
     private func startAgain() {
         runs.reset(file)
-        withAnimation(reduceMotion ? nil : .snappy) {
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
             run = CaseRun(caseID: file.id)
             arriving = true
             group = .examine
@@ -454,7 +454,7 @@ struct CaseLadderPanel: View {
     private func change(_ edit: (inout CaseRun) -> Void) {
         var next: CaseRun = run
         edit(&next)
-        withAnimation(reduceMotion ? nil : .snappy) { run = next }
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { run = next }
     }
 
     private func add(_ name: String) {

@@ -87,7 +87,7 @@ extension LibraryView {
         let subject = subjects.count == 1 ? (subjects.first ?? "Mixed") : "Mixed"
         let quiz = Store.temporaryQuiz(named: "Mixed quiz", subject: subject,
                                        from: Array(picks.shuffled().prefix(50)))
-        withAnimation(Motion.gentle(.snappy)) { selecting = false; selected = [] }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = false; selected = [] }
         quickQuiz = quiz
     }
 
@@ -155,7 +155,7 @@ extension LibraryView {
         // picking several sets starts from any one of them, ticked; while
         // already picking, it adds this one rather than starting over
         Button("Select", systemImage: "checkmark.circle") {
-            withAnimation(Motion.gentle(.snappy)) {
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
                 if selecting {
                     selected.insert(set.id)
                 } else {
@@ -248,7 +248,7 @@ extension LibraryView {
 
     private var selectionDoneButton: some View {
         Button {
-            withAnimation(Motion.gentle(.snappy)) { selecting = false; selected = [] }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = false; selected = [] }
         } label: {
             Image(systemName: "xmark")
                 .font(.subheadline.weight(.semibold))
@@ -284,7 +284,7 @@ extension LibraryView {
     /// Every selected set into a folder.
     func moveSelected(to folderId: UUID?) {
         for id in selected { store.move(id, to: folderId) }
-        withAnimation(Motion.gentle(.snappy)) { selecting = false; selected = [] }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = false; selected = [] }
     }
 
     /// Move, Quiz, Combine, then Delete - with their names, or as symbols

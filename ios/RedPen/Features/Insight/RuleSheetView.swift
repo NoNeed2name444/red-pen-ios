@@ -135,7 +135,7 @@ struct RuleSheetView: View {
         let added = store.addRulesForMissed()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         let plural: String = added == 1 ? "" : "s"
-        withAnimation(Motion.gentle(.snappy)) { note = "Added \(added) rule\(plural)." }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { note = "Added \(added) rule\(plural)." }
     }
 
     /// Whether there is a writer model and something for it to rewrite.

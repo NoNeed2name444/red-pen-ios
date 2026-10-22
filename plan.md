@@ -2661,7 +2661,7 @@ with the marks on the screens last.
 - [ ] Follow-up to 12c: the owner's word on wells (fields, tracks, a chosen segment), which still sit a shade below the page.
 - 12d. Motion on iPhone (22 Oct; task T0121, UX Waves 3-4, the motion rows of the iOS consistency sweep). Canon: platform.md, 200 to 320 ms with an ease-out, no bounce, nothing fades, nothing loops but the trace; Motion.gentle and .slideIn / .growIn (AccessibilitySupport.swift).
   - [x] Reduce Motion everywhere: the 86 withAnimation, .animation and animated bindings in 39 files that ignored it go through Motion.gentle, so nothing moves under Reduce Motion. A bare withAnimation keeps the system's default curve.
-  - [ ] Bare .snappy (0.5 s) as .snappy(duration: 0.25).
+  - [x] Bare .snappy (0.5 s) as .snappy(duration: 0.25): 57 sites in 23 files.
   - [ ] Durations into 200 to 320 ms.
   - [ ] OSCE review's Start over without the bounce.
   - [ ] Lens's looping "Answering…" bars as EcgLoader.

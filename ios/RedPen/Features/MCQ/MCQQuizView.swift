@@ -194,7 +194,7 @@ struct MCQQuizView: View {
             if isUnsaved {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        onSave?(); withAnimation(Motion.gentle(.snappy)) { saved.wrappedValue = true }
+                        onSave?(); withAnimation(Motion.gentle(.snappy(duration: 0.25))) { saved.wrappedValue = true }
                     } label: {
                         Label(saved.wrappedValue ? "Saved" : "Save", systemImage: saved.wrappedValue ? "checkmark" : "square.and.arrow.down")
                             .labelStyle(.titleAndIcon)
@@ -297,7 +297,7 @@ struct MCQQuizView: View {
     }
 
     private func resume(_ p: QuizProgress) {
-        withAnimation(Motion.gentle(.snappy)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
             answers = p.answers; orders = p.optionOrders
             current = min(p.current, max(0, studySet.questions.count - 1))
             pendingResume = nil
@@ -306,7 +306,7 @@ struct MCQQuizView: View {
 
     private func startAgain() {
         forgetPlace()
-        withAnimation(Motion.gentle(.snappy)) { pendingResume = nil }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { pendingResume = nil }
     }
 
     /// Whether `persist()` really writes. Never from the screenshot launch,
@@ -446,7 +446,7 @@ struct MCQQuizView: View {
 
     private func startExam() {
         forgetPlace()
-        withAnimation(Motion.gentle(.snappy)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
             pendingResume = nil
             examMode = true
             examEndsAt = Date().addingTimeInterval(TimeInterval(examSeconds))
@@ -485,7 +485,7 @@ struct MCQQuizView: View {
         let symbol: String = on ? "flag.fill" : "flag"
         return Button {
             UISelectionFeedbackGenerator().selectionChanged()
-            withAnimation(Motion.gentle(.snappy)) { store.toggleFlag(q.id) }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { store.toggleFlag(q.id) }
         } label: {
             if labelled {
                 // the word swaps at once; the flag keeps its replace below
@@ -653,13 +653,13 @@ struct MCQQuizView: View {
         let question: MCQQuestion = q
         guard hints[question.id] == nil else { return }
         UISelectionFeedbackGenerator().selectionChanged()
-        withAnimation(Motion.gentle(.snappy)) { hints[question.id] = "" }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { hints[question.id] = "" }
         let answer: String = question.options.indices.contains(question.correctIndex)
             ? question.options[question.correctIndex] : ""
         Task {
             let text: String = await HintWriter.hint(id: question.id, stem: question.stem, options: question.options,
                                                      answer: answer, differential: question.differential)
-            withAnimation(Motion.gentle(.snappy)) { hints[question.id] = text }
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { hints[question.id] = text }
         }
     }
 
@@ -939,7 +939,7 @@ struct MCQQuizView: View {
             case .unavailable(let why): said = why
             case .later(let why): said = why
             }
-            withAnimation(Motion.gentle(.snappy)) {
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
                 writingTwin.remove(id)
                 twinNotes[id] = said
             }
@@ -1077,7 +1077,7 @@ struct MCQQuizView: View {
 
             if explains {
                 Button("Explain") {
-                    withAnimation(Motion.gentle(.snappy)) { proxy.scrollTo(explainID, anchor: .top) }
+                    withAnimation(Motion.gentle(.snappy(duration: 0.25))) { proxy.scrollTo(explainID, anchor: .top) }
                 }
                 .buttonStyle(WardButtonStyle(kind: .secondary, fills: false))
                 .accessibilityHint("Scrolls to the explanation")
@@ -1085,7 +1085,7 @@ struct MCQQuizView: View {
             }
 
             Button {
-                withAnimation(Motion.gentle(.snappy)) { onCheckOrNext() }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) { onCheckOrNext() }
             } label: {
                 Label(title, systemImage: symbol)
                     .labelStyle(.titleAndIcon)

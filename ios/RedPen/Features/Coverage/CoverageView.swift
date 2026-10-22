@@ -226,7 +226,7 @@ struct CoverageView: View {
         let hint: String = chosen ? "Shows every row again" : "Shows only these"
         let isGap: Bool = status != .covered
         return Button {
-            withAnimation(Motion.gentle(.snappy)) {
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
                 if chosen {
                     statusFilter = nil
                 } else {

@@ -137,7 +137,7 @@ struct RecordingTermsView: View {
                 .contentTransition(.numericText(countsDown: true))
         }
         .buttonStyle(.bigPrimary)
-        .animation(Motion.gentle(.snappy), value: remaining == 0)
+        .animation(Motion.gentle(.snappy(duration: 0.25)), value: remaining == 0)
         .keyboardShortcut(.defaultAction)
         .disabled(remaining > 0)
         .accessibilityLabel(spoken)

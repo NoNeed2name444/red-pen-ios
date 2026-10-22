@@ -299,7 +299,7 @@ struct NarrateReviewView: View {
         lastOutcome = outcome
         persistText()
         relayout()
-        withAnimation(Motion.gentle(.snappy)) { report = outcome.summary() }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { report = outcome.summary() }
     }
 
     private func undo() {
@@ -308,7 +308,7 @@ struct NarrateReviewView: View {
         lastOutcome = nil
         persistText()
         relayout()
-        withAnimation(Motion.gentle(.snappy)) { report = nil }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { report = nil }
     }
 
     /// A correction is an edit to the transcript, so it outlives the screen.

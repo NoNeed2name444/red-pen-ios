@@ -552,7 +552,7 @@ struct MockSittingView: View {
         // marked and kept in the history: nothing left to resume
         MockSittingStore.clear()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        withAnimation(Motion.gentle(.snappy)) {
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
             onBreak = false
             result = made
         }

@@ -352,12 +352,12 @@ struct NewSetView: View {
 
     private func goBack() {
         guard let before = NewSetStep(rawValue: step.rawValue - 1) else { return }
-        withAnimation(Motion.gentle(.snappy)) { step = before }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { step = before }
     }
 
     private func goTo(_ earlier: NewSetStep) {
         guard earlier < step else { return }
-        withAnimation(Motion.gentle(.snappy)) { step = earlier }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { step = earlier }
     }
 
     private func goForward() {
@@ -366,7 +366,7 @@ struct NewSetView: View {
         if next == .make, name.trimmingCharacters(in: .whitespaces).isEmpty, let readSource {
             name = readSource.name
         }
-        withAnimation(Motion.gentle(.snappy)) { step = next }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { step = next }
     }
 
     /// The bottom slab: Back at the leading end, and at the trailing end
@@ -429,7 +429,7 @@ struct NewSetView: View {
         let title: Color = chosen ? option.tint : Color.wardInk
         let traits: AccessibilityTraits = chosen ? .isSelected : []
         return Button {
-            withAnimation(Motion.gentle(.snappy)) {
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
                 kind = option
                 step = .material
             }
@@ -478,7 +478,7 @@ struct NewSetView: View {
         let mark: String = chosen ? "checkmark.circle.fill" : "circle"
         let markInk: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         let traits: AccessibilityTraits = chosen ? .isSelected : []
-        return Button { withAnimation(Motion.gentle(.snappy)) { path = option } } label: {
+        return Button { withAnimation(Motion.gentle(.snappy(duration: 0.25))) { path = option } } label: {
             HStack(spacing: 16) {
                 WardIconSquare(symbol: option.symbol, size: 40, selected: chosen)
                 VStack(alignment: .leading, spacing: 4) {

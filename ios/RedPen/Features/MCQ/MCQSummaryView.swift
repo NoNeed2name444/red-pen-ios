@@ -72,7 +72,7 @@ struct MCQSummaryView: View {
                 Button {
                     let added = store.addRules(for: checkedMistakes, subject: Store.subjectName(studySet))
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    withAnimation(Motion.gentle(.snappy)) { rulesAdded = added }
+                    withAnimation(Motion.gentle(.snappy(duration: 0.25))) { rulesAdded = added }
                 } label: {
                     Label("Add \(fresh) rule\(plural)", systemImage: "text.badge.plus")
                         .frame(maxHeight: .infinity)
@@ -117,7 +117,7 @@ struct MCQSummaryView: View {
             store.addSet(set)
         }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        withAnimation(Motion.gentle(.snappy)) { mistakesSaved = true }
+        withAnimation(Motion.gentle(.snappy(duration: 0.25))) { mistakesSaved = true }
     }
 
     /// Whether question `i` was answered right: checked, and the option
@@ -208,7 +208,7 @@ struct MCQSummaryView: View {
         switch next {
         case .save:
             Button {
-                onSave?(); withAnimation(Motion.gentle(.snappy)) { saved.wrappedValue = true }
+                onSave?(); withAnimation(Motion.gentle(.snappy(duration: 0.25))) { saved.wrappedValue = true }
             } label: {
                 Label("Save to library", systemImage: "square.and.arrow.down")
             }

@@ -98,7 +98,7 @@ struct ExamPickerView: View {
         let chosen: Bool = exam.id == primary
         let detail: String = ExamPickerView.detail(exam)
         return Button {
-            withAnimation(Motion.gentle(.snappy)) {
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
                 primary = exam.id
                 if secondary == exam.id { secondary = "" }
             }
