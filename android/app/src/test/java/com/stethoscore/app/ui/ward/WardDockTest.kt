@@ -108,6 +108,15 @@ class WardDockTest {
         check("the panel is raised high on its rim, as iOS", dock.contains(".wardRaised(WardDock.panelRadius,WardLift.high,control=true)"))
         check("no flat panel, border, Material colours or ripple",
             !dock.contains(".border(") && !dock.contains("colorScheme") && dock.contains("indication=null") && !dock.contains(".clip("))
+        check("the bar as iOS's: the five on the panel, Ideas on its own pill, at most barMaxWidth wide",
+            dock.contains("Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp)") &&
+                dock.contains("horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)") &&
+                dock.contains("padding(horizontal=WardDock.barSide.toFloat().dp)") &&
+                dock.contains("Column(Modifier.width(WardDock.ideasWidth.toFloat().dp)") &&
+                !dock.contains("\"Audio\" to Icons.Outlined.GraphicEq,\"Ideas\""))
+        check("the slots are WardDock's, and the names shrink alike to WardDock's least",
+            dock.contains("WardDock.tabWidths(ideals,room)") && dock.contains("maxOf(WardDock.leastTab,") &&
+                dock.contains("minFontSize=(11*WardDock.leastNameScale).sp"))
         check("outline glyphs at rest", dock.contains("Icons.Outlined.FactCheck") && !dock.contains("\"Questions\" to Icons.Rounded"))
         check("the inset is WardDock's", dock.contains(".padding(WardDock.barInset.toFloat().dp)"))
         check("every tab keeps its name's room and least height",
@@ -115,5 +124,17 @@ class WardDockTest {
                 dock.contains(".padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp)"))
         check("a name too long for its slot gets smaller, on one line, rather than crossing the ring",
             dock.contains("maxLines=1,softWrap=false") && dock.contains("autoSize="))
+    }
+
+    // iOS WardStatesTests (T0112): short of room every name shrinks alike and
+    // every tab keeps its side room; with room to spare the narrower tabs
+    // share it equally.
+    @Test fun theRowFitsAsIOSDoes() = checks {
+        check("short of room, the names shrink alike", WardDock.tabWidths(listOf(80.0, 40.0, 40.0), 110.0) == listOf(50.0, 30.0, 30.0) &&
+            WardDock.nameScale(listOf(80.0, 40.0, 40.0), 110.0) == 0.5)
+        check("with room to spare, the narrower tabs share it", WardDock.tabWidths(listOf(80.0, 40.0, 40.0), 200.0) == listOf(80.0, 60.0, 60.0) &&
+            WardDock.nameScale(listOf(80.0, 40.0, 40.0), 200.0) == 1.0)
+        check("the bar's numbers are iOS's", WardDock.barSide == 10.0 && WardDock.ideasWidth == 56.0 && WardDock.barSpacing == 6.0 &&
+            WardDock.barMaxWidth == 560.0 && WardDock.leastTab == 44.0 && WardDock.leastNameScale == 0.5)
     }
 }

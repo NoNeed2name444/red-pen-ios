@@ -15,6 +15,7 @@ import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.wardChosenEdge
 import com.stethoscore.app.ui.ward.wardInset
+import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.ward.wardRaised
 import com.stethoscore.app.ui.ward.WardPaperFrame
 import com.stethoscore.app.ui.ward.WardSection
@@ -347,41 +348,78 @@ fun homeSection(category:String):WardSection = when(category) {
 }
 
 /**
- * Home's dock along the bottom (iOS CategoryDock): a panel of WardDock's
- * radius, and the chosen tab's hollow and ring concentric with it, their
- * radius the panel's less the inset between them, so the two corners run
- * parallel. Each tab keeps WardDock's room round its symbol and name, so the
- * name always sits inside the ring, clear of its corners; a name too long
- * for its slot gets smaller rather than crossing the ring.
+ * Home's dock along the bottom (iOS CategoryDock): the five categories on a
+ * panel of WardDock's radius, and Ideas on a pill of its own beside it, the
+ * bar at most WardDock.barMaxWidth wide. The chosen tab's hollow and ring are
+ * concentric with the panel, their radius the panel's less the inset between
+ * them, so the two corners run parallel. Each tab keeps WardDock's room round
+ * its symbol and name, so the name always sits inside the ring, clear of its
+ * corners; short of width, the five names shrink alike (WardDock.tabWidths,
+ * to WardDock.leastNameScale at the least) rather than crossing the ring.
  */
 @Composable fun CategoryDock(chosen:String,choose:(String)->Unit) {
     val panel=RoundedCornerShape(WardDock.panelRadius.toFloat().dp)
     val inset=WardDock.barInset
     val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)
-    // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
-    Row(Modifier.fillMaxWidth().padding(horizontal=10.dp).padding(bottom=10.dp)
-        .wardRaised(WardDock.panelRadius,WardLift.high,control=true)
-        .padding(WardDock.barInset.toFloat().dp).selectableGroup()) {
-        listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq,"Ideas" to Icons.Outlined.Lightbulb).forEach { (name,rest) ->
-            val selected=chosen==name
+    Box(Modifier.fillMaxWidth().padding(horizontal=WardDock.barSide.toFloat().dp).padding(bottom=10.dp),contentAlignment=Alignment.Center) {
+        Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp).fillMaxWidth().height(IntrinsicSize.Min),
+            horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)) {
+            // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
+            DockSlots(Modifier.weight(1f)
+                .wardRaised(WardDock.panelRadius,WardLift.high,control=true)
+                .padding(WardDock.barInset.toFloat().dp).selectableGroup()) {
+                listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq).forEach { (name,rest) ->
+                    val selected=chosen==name
+                    val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    val held by source.collectIsPressedAsState()
+                    // the chosen tab stands in its hollow with the accent's ring; a held one sinks into a hollow (iOS WardItemButtonStyle); no ripple
+                    Column(Modifier
+                        .wardChosenEdge(tab,selected)
+                        .then(if(selected || held) Modifier.wardInset(tab,WardLift.low) else Modifier)
+                        .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
+                        .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
+                        .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp),
+                        horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
+                        DockItemFace(rest,name,selected)
+                    }
+                }
+            }
+            // Ideas, on a panel of its own beside the categories: pressed in with the accent edge when chosen, sinking when held
             val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
             val held by source.collectIsPressedAsState()
-            // the chosen tab stands in its hollow with the accent's ring; a held one sinks into a hollow (iOS WardItemButtonStyle); no ripple
-            Column(Modifier.weight(1f)
-                .wardChosenEdge(tab,selected)
-                .then(if(selected || held) Modifier.wardInset(tab,WardLift.low) else Modifier)
-                .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
-                .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
-                .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp),
+            val ideas=chosen=="Ideas"
+            Column(Modifier.width(WardDock.ideasWidth.toFloat().dp).fillMaxHeight().heightIn(min=56.dp)
+                .wardChosenEdge(panel,ideas)
+                .wardPressFace(panel,WardLift.high,com.stethoscore.app.ui.ward.wardDepth(ideas || held))
+                .selectable(selected=ideas,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose("Ideas") }),
                 horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
-                // Chart Ink at rest, the section's ink when chosen (iOS DockItemFace); outline glyphs, the bulb filled once Ideas is chosen
-                val tint=if(selected) wardColor(WardToken.primaryInk) else wardColor(WardToken.ink)
-                Icon(if(selected && name=="Ideas") Icons.Rounded.Lightbulb else rest,null,Modifier.size(23.dp),tint=tint)
-                Spacer(Modifier.height(3.dp))
-                androidx.compose.foundation.text.BasicText(name,maxLines=1,softWrap=false,
-                    style=androidx.compose.ui.text.TextStyle(color=tint,fontSize=11.sp,fontWeight=FontWeight.Bold),
-                    autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=6.sp,maxFontSize=11.sp,stepSize=0.25.sp))
+                DockItemFace(if(ideas) Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"Ideas",ideas)
             }
         }
     }
+}
+
+/** The tabs side by side in WardDock's slots: each its ideal width (its name and side room, never under WardDock.leastTab), water-filled or shrunk alike to fit (WardDock.tabWidths). */
+@Composable private fun DockSlots(modifier:Modifier,content:@Composable () -> Unit) {
+    androidx.compose.ui.layout.Layout(content,modifier) { measurables,constraints ->
+        val ideals=measurables.map { maxOf(WardDock.leastTab,it.maxIntrinsicWidth(Int.MAX_VALUE).toDouble()/density) }
+        val room=if(constraints.hasBoundedWidth) constraints.maxWidth.toDouble()/density else ideals.sum()
+        val slots=WardDock.tabWidths(ideals,room).map { (it*density).toInt() }
+        val height=measurables.zip(slots).maxOfOrNull { (m,w) -> m.minIntrinsicHeight(w) }?.coerceAtLeast(constraints.minHeight) ?: constraints.minHeight
+        val placeables=measurables.zip(slots).map { (m,w) -> m.measure(androidx.compose.ui.unit.Constraints.fixed(w,height)) }
+        layout(if(constraints.hasBoundedWidth) constraints.maxWidth else slots.sum(),height) {
+            var x=0
+            placeables.forEach { it.placeRelative(x,0);x+=it.width }
+        }
+    }
+}
+
+/** One dock item's face: an outline glyph over its name, Chart Ink at rest and the section's ink when chosen (iOS DockItemFace). The name keeps to one line, shrinking to WardDock.leastNameScale before it would cross the ring. */
+@Composable private fun DockItemFace(icon:ImageVector,name:String,selected:Boolean) {
+    val tint=if(selected) wardColor(WardToken.primaryInk) else wardColor(WardToken.ink)
+    Icon(icon,null,Modifier.size(23.dp),tint=tint)
+    Spacer(Modifier.height(3.dp))
+    androidx.compose.foundation.text.BasicText(name,maxLines=1,softWrap=false,
+        style=androidx.compose.ui.text.TextStyle(color=tint,fontSize=11.sp,fontWeight=FontWeight.Bold),
+        autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=(11*WardDock.leastNameScale).sp,maxFontSize=11.sp,stepSize=0.25.sp))
 }

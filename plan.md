@@ -2228,6 +2228,11 @@ with the marks on the screens last.
       tab in a low hollow with the chosen edge, a held tab sinking into one,
       Chart Ink at rest and the section's ink chosen, outline glyphs at rest,
       no ripple (WardDockTest checks the source).
+    - [x] The dock's row as iOS T0112: the five categories on the panel and
+      Ideas on its own 56 pill, the bar at most 560 wide; the tabs take
+      WardDock.tabWidths (water-filled, or every name shrunk alike to half at
+      the least), so the full row stands at the default text size (WardDock,
+      WardDockTest).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

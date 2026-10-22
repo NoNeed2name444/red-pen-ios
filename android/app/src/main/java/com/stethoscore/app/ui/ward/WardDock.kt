@@ -40,6 +40,54 @@ object WardDock {
     /** A tab's least height. */
     const val tabMinHeight = 56.0
 
+    // The row along the bottom, on every phone (iOS T0112: the full row at
+    // every text size short of the accessibility ones).
+
+    /** The bar: room at its sides, the Ideas pill's width, the gap between the panel and the pill, and the widest the bar grows. */
+    const val barSide = 10.0
+    const val ideasWidth = 56.0
+    const val barSpacing = 6.0
+    const val barMaxWidth = 560.0
+    /** A tab is never narrower than a finger. */
+    const val leastTab = 44.0
+    /** How small a name may get (all five by the same amount) so the row still fits: never its side room, so it stays clear of the ring. */
+    const val leastNameScale = 0.5
+
+    /** How much the names shrink so the tabs, each a name with its side room ([ideals]), fit [room]: 1 when they fit as they are. */
+    fun nameScale(ideals: List<Double>, room: Double): Double {
+        val total = ideals.sum()
+        if (total <= room) return 1.0
+        val sides = 2 * labelSide * ideals.size
+        val names = ideals.sumOf { maxOf(0.0, it - 2 * labelSide) }
+        if (names <= 0) return 0.0
+        return minOf(1.0, maxOf(0.0, (room - sides) / names))
+    }
+
+    /**
+     * The tabs' widths in [room]: where there is spare room the narrower tabs
+     * share it equally (water-filling); where there is too little, every name
+     * shrinks by the same amount and each keeps its side room.
+     */
+    fun tabWidths(ideals: List<Double>, room: Double): List<Double> {
+        val total = ideals.sum()
+        if (total <= 0) return ideals
+        val width = maxOf(0.0, room)
+        if (width < total) {
+            val scale = nameScale(ideals, width)
+            return ideals.map { 2 * labelSide + maxOf(0.0, it - 2 * labelSide) * scale }
+        }
+        var remaining = width
+        var count = ideals.size
+        var level = 0.0
+        for (ideal in ideals.sortedDescending()) {
+            level = remaining / count
+            if (ideal <= level) break
+            remaining -= ideal
+            count -= 1
+        }
+        return ideals.map { maxOf(it, level) }
+    }
+
     /** Where a continuous corner leaves the straight edge, in radii from the corner. */
     const val continuousReach = 1.52866
 
