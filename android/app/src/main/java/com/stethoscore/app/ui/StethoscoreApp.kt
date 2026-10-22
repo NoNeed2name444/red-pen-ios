@@ -209,7 +209,10 @@ import kotlinx.coroutines.withContext
                             else -> ClinicalScreen(set,store,::goHome)
                         } else LaunchedEffect(Unit) { goHome() }
                     }
-                    "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { newPreset=null;refresh();open(set) }.onFailure { notice=it.message } },::goHome,newPreset)
+                    // a preset (Coverage's Generate questions, the exam card's Study next) opens New set on
+                    // Make with its writer (iOS NewSetView(preset:)); Your lectures' New set is the plain one
+                    "new" -> newPreset?.let { p -> key(p) { com.stethoscore.app.ui.library.LibraryNewSetScreen(store,p.kind,::goHome,::goHome,preset=p) } }
+                        ?: NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { newPreset=null;refresh();open(set) }.onFailure { notice=it.message } },::goHome,null)
                     "quick" -> quick?.let { q -> QuizScreen(q,store,{ quick=null;goHome() },onOpen={ refresh();open(it) },keepsProgress=false) } ?: LaunchedEffect(Unit) { goHome() }
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome) { newPreset=it;screen="new" }

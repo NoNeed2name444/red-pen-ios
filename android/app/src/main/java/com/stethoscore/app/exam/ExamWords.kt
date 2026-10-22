@@ -7,9 +7,35 @@ import com.stethoscore.app.data.StudySetKind
 // from the exam and the Ward pocket (iOS NewSetPreset's blueprintArea and
 // wardPocket initialisers). Pure Kotlin, so the screens only lay them out.
 
-/** New set, ready to write questions on something the exam screens offer (iOS NewSetPreset). */
-data class NewSetPreset(val kind: StudySetKind, val name: String, val subject: String, val notes: String) {
+/**
+ * New set, ready to write questions on something the exam screens offer (iOS
+ * NewSetPreset, Features/Library/TurnIntoPicker.swift:168): New set opens on
+ * Make, on the lecture path, with [text] as its material. [lecture] is a
+ * lecture already read (iOS NewSetPreset(lecture:)); [notes] stand in when
+ * there is none.
+ */
+data class NewSetPreset(val kind: StudySetKind, val name: String, val subject: String, val notes: String,
+                        val lecture: com.stethoscore.app.data.ReadSource? = null) {
+    /** The material as one piece of text, for the forms that take text (iOS NewSetPreset.text). */
+    val text: String get() = lecture?.text ?: notes
+
     companion object {
+        /**
+         * New set, ready to write MCQs on one subtopic of the syllabus (iOS
+         * NewSetPreset(syllabus:area:exam:suggestion:), CoverageView.swift:532,
+         * and CoverageView.generate's wording for a chosen exam, :362-367).
+         */
+        fun syllabus(subtopic: String, area: String, examTitle: String, target: TargetExam? = null, suggestion: String? = null): NewSetPreset {
+            val extra = suggestion?.takeIf { it.isNotEmpty() }?.let { " $it" } ?: ""
+            val notes = if (target != null) "Write ${target.name} questions on $subtopic ($area), in its format and at its level.$extra"
+                else "Write exam questions on $subtopic ($area) for $examTitle.$extra"
+            return NewSetPreset(StudySetKind.MCQ, subtopic, subtopic, notes)
+        }
+
+        /** New set on its last step with a lecture opened from another app (iOS NewSetPreset(lecture:), ImportRouter.swift:449). */
+        fun lecture(source: com.stethoscore.app.data.ReadSource): NewSetPreset =
+            NewSetPreset(StudySetKind.MCQ, source.name, "General", "", lecture = source)
+
         /** New set, ready to write MCQs on one area of the chosen exam's blueprint. */
         fun blueprintArea(title: String, exam: TargetExam): NewSetPreset =
             NewSetPreset(StudySetKind.MCQ, "${exam.shortName}: $title", title,

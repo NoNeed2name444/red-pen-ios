@@ -40,6 +40,8 @@ import com.stethoscore.app.ui.editors.EcgLoader
 import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.editors.EditorNote
 import com.stethoscore.app.ui.editors.EditorSection
+import com.stethoscore.app.ui.editors.FloatingActionRegistration
+import com.stethoscore.app.ui.editors.floatingActionAnchor
 import com.stethoscore.app.ui.editors.LectureFiles
 import com.stethoscore.app.ui.editors.LectureStep
 import com.stethoscore.app.ui.editors.MoreOptions
@@ -160,6 +162,9 @@ import kotlinx.coroutines.withContext
         job.start()
     }
 
+    // registered for New set's dock: "cases" once a lecture is read, as iOS (CaseMakeSection.swift:54)
+    if (step == LectureStep.make) FloatingActionRegistration(if (sourceName.isEmpty()) "cases-unread" else "cases", makeTitle, canMake,
+        task != null, modeIcon(StudySetKind.CASES), ::start)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         if (step == LectureStep.material) {
             EditorSection("Add a lecture",
@@ -186,7 +191,8 @@ import kotlinx.coroutines.withContext
                     EditorNote("Nothing to write from yet — go Back and add a lecture.")
                 } else {
                     CountField("How many patients", caseCount, 1..CaseWriting.maxCases, { caseCount = it }, enabled = !working)
-                    WardButtonBox(::start, Modifier.fillMaxWidth(), kind = WardButtonKind.primary, enabled = canMake) {
+                    // the same as its floating copy in New set's dock (iOS floatingAction "cases")
+                    WardButtonBox(::start, Modifier.fillMaxWidth().floatingActionAnchor("cases"), kind = WardButtonKind.primary, enabled = canMake) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (task != null) EcgLoader()
                             Icon(modeIcon(StudySetKind.CASES), null)

@@ -57,6 +57,10 @@ import com.stethoscore.app.reading.BookPage
 import com.stethoscore.app.reading.BookPages
 import com.stethoscore.app.ui.sources.*
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.AccuracyAsk
+import com.stethoscore.app.ui.AccuracyWhySheet
+import com.stethoscore.app.ui.CheckAccuracyMenuItem
+import com.stethoscore.app.ui.StudyMoreButton
 import com.stethoscore.app.ui.ward.*
 import java.text.NumberFormat
 
@@ -67,8 +71,8 @@ import java.text.NumberFormat
 // and the set's figures), and at the bottom Back, Contents and Next page, or
 // Done on the last page. The place is kept per set (store.readingProgress).
 //
-// Not here, for want of the feature on Android: the More menu's Check
-// accuracy and Turn into, the page's accuracy badge, Guess first's five
+// The More menu holds Check accuracy (iOS studyMoreMenu, T0115b2). Not here,
+// for want of the feature on Android: Turn into, the page's accuracy badge, Guess first's five
 // questions before a first reading, and Draw from memory under a figure.
 
 /** The words iOS's header and bar say, kept apart from the view so they can be checked. */
@@ -114,6 +118,12 @@ object BookReaderWords {
         store.saveReadingProgress(set.id, to)
     }
     val current = pages.getOrNull(index)
+    var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    // What Check accuracy looks at: the page on screen (iOS BookReaderView's AccuracyAsk)
+    val accuracyAsk = AccuracyAsk("Write a textbook page for medical students from the source.") {
+        current?.let { it.title + "\n" + it.markdown }
+    }
+    verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
@@ -128,7 +138,9 @@ object BookReaderWords {
                 else -> false
             }
         }) {
-            ReaderNavBar(set.subject.ifEmpty { "Textbook" }, leading = { ReaderBackButton(onBack) })
+            // More: Check accuracy for the page on screen (iOS BookReaderView's studyMoreMenu)
+            ReaderNavBar(set.subject.ifEmpty { "Textbook" }, leading = { ReaderBackButton(onBack) },
+                trailing = { StudyMoreButton { close -> CheckAccuracyMenuItem(accuracyAsk, set, close) { verifying = it } } })
             StudyProgressHeader(BookReaderWords.status(index, pages.size), BookReaderWords.detail(current, wordCount),
                 BookReaderWords.fraction(index, pages.size))
             // the page, scrolling under the bar; keyed by the page, so a new page starts at its top

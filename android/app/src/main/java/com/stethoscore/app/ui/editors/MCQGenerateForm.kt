@@ -5,10 +5,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,6 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.MCQGenerator
@@ -65,6 +73,60 @@ internal object NoWriter {
  * transport, so it can tap from home to the worker without the network.
  */
 val LocalLLMService = staticCompositionLocalOf<LLMService?> { null }
+
+/**
+ * A New set section's main button, copied into the dock while the real one
+ * is out of sight (iOS Shared/FloatingAction.swift): the section registers
+ * what its button does ([FloatingActionRegistration]) and marks the button
+ * ([floatingActionAnchor]); the dock floats the copy only for the section it
+ * expects, and never while one of them is writing.
+ */
+class FloatingAction {
+    data class Item(val id: String, val title: String, val enabled: Boolean, val busy: Boolean, val icon: ImageVector)
+
+    val items = mutableStateMapOf<String, Item>()
+    /** Which real buttons are on screen; a button counts as off screen until it reports in. */
+    val visible = mutableStateMapOf<String, Boolean>()
+    private val runs = HashMap<String, () -> Unit>()
+
+    internal fun register(item: Item, run: () -> Unit) {
+        runs[item.id] = run
+        if (items[item.id] != item) items[item.id] = item
+    }
+
+    internal fun remove(id: String) { items.remove(id); visible.remove(id); runs.remove(id) }
+
+    internal fun setVisible(id: String, now: Boolean) { if (visible[id] != now) visible[id] = now }
+
+    /** The copy to float for [expecting]: only while its real button is out of sight, and never while something is being written. */
+    fun floating(expecting: String?): Item? {
+        if (expecting == null || items.values.any { it.busy }) return null
+        val item = items[expecting] ?: return null
+        return if (visible[expecting] == true) null else item
+    }
+
+    fun run(id: String) { runs[id]?.invoke() }
+}
+
+/** New set's floating action, for the sections it hosts; none outside New set. */
+val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
+
+/** Registers a section's main action, kept current as its title and whether it can run change (iOS floatingAction). */
+@Composable internal fun FloatingActionRegistration(id: String, title: String, enabled: Boolean, busy: Boolean, icon: ImageVector, run: () -> Unit) {
+    val floating = LocalFloatingAction.current ?: return
+    val latest by rememberUpdatedState(run)
+    SideEffect { floating.register(FloatingAction.Item(id, title, enabled, busy, icon)) { latest() } }
+    DisposableEffect(floating, id) { onDispose { floating.remove(id) } }
+}
+
+/** Marks the real button, so the floating copy knows when it is on screen: 60% of it in sight (iOS floatingActionAnchor). */
+@Composable internal fun Modifier.floatingActionAnchor(id: String): Modifier {
+    val floating = LocalFloatingAction.current ?: return this
+    return onGloballyPositioned { c ->
+        val height = c.size.height
+        floating.setVisible(id, height > 0 && c.boundsInWindow().height >= 0.6f * height)
+    }
+}
 
 /** The service [LocalLLMService] gives, or the app's own. */
 @Composable internal fun rememberLLMService(): LLMService {
@@ -159,7 +221,8 @@ val LocalLLMService = staticCompositionLocalOf<LLMService?> { null }
             EditorSection(null) {
                 CountField("How many questions", questionCount, 3..MCQGenerator.maxQuestionsTotal, onQuestionCount, enabled = !isGenerating)
                 // the same as its floating copy in the dock
-                WardButtonBox(::generate, Modifier.fillMaxWidth(), kind = WardButtonKind.primary, enabled = canStart) {
+                FloatingActionRegistration("mcq", "Make $questionCount questions", canStart, isGenerating, Icons.Rounded.AutoAwesome, ::generate)
+                WardButtonBox(::generate, Modifier.fillMaxWidth().floatingActionAnchor("mcq"), kind = WardButtonKind.primary, enabled = canStart) {
                     Text(if (isGenerating) generationStatus ?: "Writing\u2026" else "Make $questionCount questions")
                 }
                 if (isGenerating) {

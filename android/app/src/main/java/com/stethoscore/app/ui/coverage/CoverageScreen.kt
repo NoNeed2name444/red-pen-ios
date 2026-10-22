@@ -152,12 +152,14 @@ object CoverageWords {
     val ready = !(computing && areas.isEmpty())
     val check = CoverageChecker.check
     fun shown(sub: SubtopicCoverage): CoverageStatus = check?.verdicts?.get(sub.id)?.status ?: sub.status
-    fun generate(sub: SubtopicCoverage) {
+    // Generate questions: New set on Make with the subtopic's brief as its
+    // material, written to the chosen exam (iOS CoverageView.generate, :360-368)
+    fun generate(sub: SubtopicCoverage, area: String) {
         val exam = com.stethoscore.app.exam.ExamChoice.effective(track, com.stethoscore.app.exam.ExamChoice.defaults(context))
         val open = onNewSet
         if (open == null) { notice = "Writing questions on one subtopic is not on Android yet. Make an MCQ set on it from New set."; return }
-        open(if (exam != null) com.stethoscore.app.exam.NewSetPreset.blueprintArea(sub.subtopic.name, exam)
-            else com.stethoscore.app.exam.NewSetPreset(com.stethoscore.app.data.StudySetKind.MCQ, sub.subtopic.name, sub.subtopic.name, "Write questions on ${sub.subtopic.name}."))
+        val examTitle = if (track == com.stethoscore.app.quiz.ExamTrack.general) "general medical revision" else track.title
+        open(com.stethoscore.app.exam.NewSetPreset.syllabus(sub.subtopic.name, area, examTitle, exam, check?.verdicts?.get(sub.id)?.suggestion))
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -212,7 +214,7 @@ object CoverageWords {
                                 Text("$covered of ${area.subtopics.size} covered", style = WardTextStyle.caption.textStyle(mono = true),
                                     color = wardColor(WardToken.inkSecondary))
                             }
-                            for (sub in rows) SubtopicRow(sub, shown(sub)) { generate(sub) }
+                            for (sub in rows) SubtopicRow(sub, shown(sub)) { generate(sub, area.area.name) }
                         }
                     }
                 }
