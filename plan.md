@@ -143,6 +143,7 @@ Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8)
   `python3 tools/ci_status.py wip/3d-neurons-m3 --wait`.
   SceneKit files can't be type-checked on Linux, so this is the only compile
   check for GraphNeuronLook, GraphThemeScene, Graph3DView and GraphSim.
+- android-personal.yml (T0115c) builds the owner-keyed APK on a design/integration push whose message has `[personal apk]` (or by dispatch) and uploads it only encrypted (artifact personal-apk-encrypted, 1 day): decrypt apk.key.enc with the private key (`openssl pkeyutl -decrypt -inkey private.pem -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256`), then the APK with `openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:apk.key`.
 - Round C (3a21e75): App build 37829324782 and preview run 37829333699,
   both green; the shots were sent (8 Oct, about 10:40 PM). Two things
   still showed: the soma's crisp rim across each tube's mouth (#17, done
