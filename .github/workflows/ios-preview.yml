@@ -124,6 +124,13 @@ jobs:
           BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
+          # the keyboard's first-use introductions (slide to type and the
+          # rest) answered, so the first sheet with a field (name-sheet)
+          # shows the keyboard rather than the grey intro panel
+          for key in DidShowContinuousPathIntroduction KeyboardDidShowProductivityTutorial \
+            DidShowGestureKeyboardIntroduction KeyboardDidShowInternationalInfoIntroduction; do
+            xcrun simctl spawn "$UDID" defaults write com.apple.Preferences "$key" -bool true || true
+          done
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 --batteryState charged \
             --cellularMode active --cellularBars 4 --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
