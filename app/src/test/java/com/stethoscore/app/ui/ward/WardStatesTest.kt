@@ -46,6 +46,10 @@ class WardStatesTest {
     private val sections = WardSection.entries
     private val modes = listOf(false, true)
     private fun modeName(dark: Boolean) = if (dark) "dark" else "light"
+
+    // The tests whose cases the owner's exact colours fail (OwnerAccepted).
+    private val statesTest = "WardStatesTest.theStatesAsDrawn"
+    private val focusTest = "WardStatesTest.theFocusRing"
     private fun f(x: Double) = f3(x)
     private fun h(x: Int) = hx(x)
 
@@ -103,7 +107,8 @@ class WardStatesTest {
             for (s in sections) {
                 // a chosen state that stands on the section's fill has white words
                 val white = WardPalette.contrast(WardPalette.hex(WardToken.onPrimary, dark), s.fill(dark))
-                check("$mode $s: white reads 4.5:1 on its fill", white >= 4.5, f(white))
+                check("$mode $s: white reads 4.5:1 on its fill", white >= 4.5, f(white),
+                    OwnerCase(statesTest, "white reads 4.5:1 on its fill", "onPrimary", "$s", mode, "its fill"), white)
                 for (control in WardControl.entries) {
                     for (state in control.states) {
                         val look = control.look(state)
@@ -118,7 +123,9 @@ class WardStatesTest {
                         for ((what, ink) in listOf("words" to c.words, "glyph" to c.glyph)) {
                             if (ink == null) continue
                             val r = WardPalette.contrast(ink, c.readOn)
-                            check("$name: its $what read 4.5:1 on its face", r >= 4.5, "${h(ink)} on ${h(c.readOn)} ${f(r)}")
+                            check("$name: its $what read 4.5:1 on its face", r >= 4.5, "${h(ink)} on ${h(c.readOn)} ${f(r)}",
+                                OwnerCase(statesTest, "its words and glyphs read 4.5:1 on its face", "the $control $state: its $what",
+                                    "$s", mode, "its face"), r)
                         }
                         // what sits on a fill reads on it
                         if (look.face == WardToken.primary) {
@@ -127,7 +134,9 @@ class WardStatesTest {
                         val knob = c.knob
                         if (knob != null && look.face != WardToken.well) {
                             val r = WardPalette.contrast(knob, c.face)
-                            check("$name: the knob reads 3:1 on the filled track", r >= 3, "${h(knob)} on ${h(c.face)} ${f(r)}")
+                            check("$name: the knob reads 3:1 on the filled track", r >= 3, "${h(knob)} on ${h(c.face)} ${f(r)}",
+                                OwnerCase(statesTest, "the knob reads 3:1 on the filled track", "the $control $state: its knob",
+                                    "$s", mode, "the filled track"), r)
                         }
                         // no state is a blue outside Cards, whose indigo the primary is
                         if (s != WardSection.outside) {
@@ -172,7 +181,9 @@ class WardStatesTest {
                         if (state.isChosen) {
                             val twin = control.look(state.unchosenTwin).colours(s, dark)
                             val d = told(c, twin, unmarked(twin))
-                            check("$name: told apart from unchosen by more than relief", d >= apart, f(d))
+                            check("$name: told apart from unchosen by more than relief", d >= apart, f(d),
+                                OwnerCase(statesTest, "told apart from unchosen by more than relief", "the $control $state",
+                                    "$s", mode, "unchosen"), d)
                             if (control != WardControl.toggle) {
                                 check("$name: pressed in", look.stand.isPressedIn)
                                 check("$name: a solid edge in the accent", look.mark == WardToken.primaryInk)
@@ -182,6 +193,7 @@ class WardStatesTest {
                 }
             }
         }
+        everyOwnerCaseMade(statesTest)
     }
 
     // The model's rules, as WardControls draws them: a disabled control says its word in the disabled
@@ -222,8 +234,10 @@ class WardStatesTest {
             val ring = WardGlide.rest(WardLook(dark, s)).hex(WardControlStates.focusInk, dark)
             for (tier in WardPalette.tiers) {
                 val r = WardPalette.contrast(ring, WardPalette.hex(tier, dark))
-                check("${modeName(dark)} $s: the focus ring reads 3:1 on the $tier", r >= WardRelief.edgeContrast, f(r))
+                check("${modeName(dark)} $s: the focus ring reads 3:1 on the $tier", r >= WardRelief.edgeContrast, f(r),
+                    OwnerCase(focusTest, "the focus ring reads 3:1", "the focus ring", "$s", modeName(dark), "$tier"), r)
             }
         }
+        everyOwnerCaseMade(focusTest)
     }
 }

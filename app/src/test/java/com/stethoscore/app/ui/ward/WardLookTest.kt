@@ -147,6 +147,10 @@ class WardLookTest {
     // means something, must sit to be told apart at a glance.
     private val sectionsApart = 0.075
 
+    // The tests whose cases the owner's exact colours fail (OwnerAccepted).
+    private val sectionsTest = "WardLookTest.sections"
+    private val accentsTest = "WardLookTest.eachSectionsAccents"
+
     @Test fun sections() = checks {
         check("seven sections", sections.size == 7)
         check("outside any section the look is Cards", WardSection.outside == WardSection.cards)
@@ -180,7 +184,8 @@ class WardLookTest {
                 for (tier in listOf(WardToken.background, WardToken.surface)) {
                     val base = WardPalette.hex(tier, dark)
                     val c = WardPalette.contrast(WardRelief.edgeColor(s, dark, on = base), base)
-                    check("$m $s: a control's edge reads 3:1 on the $tier", c >= WardRelief.edgeContrast, f3(c))
+                    check("$m $s: a control's edge reads 3:1 on the $tier", c >= WardRelief.edgeContrast, f3(c),
+                        OwnerCase(sectionsTest, "a control's edge reads 3:1", "a control's edge", "$s", m, "$tier"), c)
                 }
             }
         }
@@ -208,6 +213,7 @@ class WardLookTest {
         val expect = WardPalette.mix(WardPalette.mix(WardSection.outside.ink.light, WardSection.outside.ink.dark, n),
             WardPalette.mix(WardSection.textbook.ink.light, WardSection.textbook.ink.dark, n), both.eased)
         check("mode and section move together, at the same point", both.ink(true) == expect)
+        everyOwnerCaseMade(sectionsTest)
     }
 
     // MARK: - What moves, and what changes in one step
@@ -288,11 +294,14 @@ class WardLookTest {
                 val fill = s.fill(dark)
                 for (tier in WardPalette.tiers) {
                     val c = WardPalette.contrast(accent, WardPalette.hex(tier, dark))
-                    check("$m $s: accent words read 4.5:1 on the $tier", c >= 4.5, "${hx(accent)} ${f3(c)}")
-                    check("$m $s: accent glyphs read 3:1 on the $tier", c >= 3, f3(c))
+                    check("$m $s: accent words read 4.5:1 on the $tier", c >= 4.5, "${hx(accent)} ${f3(c)}",
+                        OwnerCase(accentsTest, "accent words read 4.5:1", "accent", "$s", m, "$tier"), c)
+                    check("$m $s: accent glyphs read 3:1 on the $tier", c >= 3, f3(c),
+                        OwnerCase(accentsTest, "accent glyphs read 3:1", "accent", "$s", m, "$tier"), c)
                 }
                 val white = WardPalette.contrast(WardPalette.hex(WardToken.onPrimary, dark), fill)
-                check("$m $s: the on-fill words read 4.5:1 on the fill", white >= 4.5, "${hx(fill)} ${f3(white)}")
+                check("$m $s: the on-fill words read 4.5:1 on the fill", white >= 4.5, "${hx(fill)} ${f3(white)}",
+                    OwnerCase(accentsTest, "the on-fill words read 4.5:1 on the fill", "onPrimary", "$s", m, "its fill"), white)
                 if (dark) {
                     val mc = WardPalette.contrast(accent, WardPalette.hex(WardToken.monitor, true))
                     check("$s: the accent reads 4.5:1 on the monitor", mc >= 4.5, f3(mc))
@@ -331,7 +340,8 @@ class WardLookTest {
                     if (d < near) { near = d; what = "the primary's Care Blue" }
                 }
                 check("$m $s: the accent is not mistaken for a colour that means something", near >= sectionsApart,
-                    "$what ${f3(near)}")
+                    "$what ${f3(near)}", OwnerCase(accentsTest, "the accent is not mistaken for a colour that means something",
+                        "accent", "$s", m, "the nearest colour that means something"), near)
                 // a wrong answer's faded ink is a grey, never taken for an accent
                 val faded = distance(s.accent(dark), WardPalette.hex(WardToken.fadedInk, dark))
                 check("$m $s: the faded ink is 0.095 or more from the accent", faded >= 0.095, f3(faded))
@@ -365,7 +375,9 @@ class WardLookTest {
         }
         // within a byte's rounding of the lower end, and never under 4.5:1
         check("a section's shift never drops the accent's contrast below either end", worstAccent >= 0.99, f3(worstAccent))
-        check("a section's shift keeps the accent at 4.5:1 on every frame", leastAccent >= 4.5, f3(leastAccent))
+        check("a section's shift keeps the accent at 4.5:1 on every frame", leastAccent >= 4.5, f3(leastAccent),
+            OwnerCase(accentsTest, "a section's shift keeps the accent at 4.5:1 on every frame", "accent",
+                "every section to every other", "light and dark", "every tier"), leastAccent)
         val accentSwap = WardGlide.toward(WardLook(true, WardSection.cards), from = WardGlide.rest(WardLook(false, WardSection.cards)))
         check("light to dark swaps the accents in one step",
             accentSwap.settled && accentSwap.hex(WardToken.primaryInk, true) == WardSection.cards.accent.dark)
@@ -380,6 +392,7 @@ class WardLookTest {
                 check("${mode(dark)} $s: words on the spoken word's wash read 4.5:1", c >= 4.5, f3(c))
             }
         }
+        everyOwnerCaseMade(accentsTest)
     }
 
     // A colour reads the look as it is drawn (WardLookNow), not as it was

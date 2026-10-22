@@ -7,6 +7,11 @@ import com.stethoscore.app.data.MCQQuestion
 import com.stethoscore.app.data.OsceChecklist
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
+import com.stethoscore.app.ui.ward.OwnerCase
+import com.stethoscore.app.ui.ward.check
+import com.stethoscore.app.ui.ward.checks
+import com.stethoscore.app.ui.ward.everyOwnerCaseMade
+import com.stethoscore.app.ui.ward.f3
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -80,12 +85,20 @@ class DeckCardsTest {
         assertEquals(0xFFFF6B6B.toInt(), p.argb())
     }
 
-    @Test fun everyModeBarCarriesWhiteAndItsWordsReadOnPaper() {
+    // The owner's exact colours fail the last two (OwnerAccepted): each listed case passes while it measures what it did.
+    @Test fun everyModeBarCarriesWhiteAndItsWordsReadOnPaper() = checks {
+        val test = "DeckCardsTest.everyModeBarCarriesWhiteAndItsWordsReadOnPaper"
         for (kind in StudySetKind.values()) {
             val p = DeckPalette.of(kind)
-            assertTrue("$kind: white is under 4.5:1 on the bright tint as drawn", !p.carriesWhiteText)
-            assertTrue("$kind: its bar carries white", p.barFill().carriesWhiteText)
-            assertTrue("$kind: its words read 5:1 on white", 1.05 / (p.ink().wcagLuminance + 0.05) >= 5)
+            check("$kind: white is under 4.5:1 on the bright tint as drawn", !p.carriesWhiteText)
+            val bar = p.barFill()
+            val white = 1.05 / (bar.wcagLuminance + 0.05)
+            check("$kind: its bar carries white", bar.carriesWhiteText, f3(white),
+                OwnerCase(test, "its bar carries white", "white words", "$kind", "print", "its bar"), white)
+            val words = 1.05 / (p.ink().wcagLuminance + 0.05)
+            check("$kind: its words read 5:1 on white", words >= 5, f3(words),
+                OwnerCase(test, "its words read 5:1 on white", "its words", "$kind", "print", "white paper"), words)
         }
+        everyOwnerCaseMade(test)
     }
 }

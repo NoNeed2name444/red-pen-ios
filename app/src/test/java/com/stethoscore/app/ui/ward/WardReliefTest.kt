@@ -22,6 +22,9 @@ class WardReliefTest {
     private fun near(a: Double, b: Double) = abs(a - b) <= 1e-9
     private fun nearTol(a: Double, b: Double, eps: Double = 0.01) = abs(a - b) <= eps
 
+    // The test whose cases the owner's exact colours fail (OwnerAccepted).
+    private val reliefTest = "WardReliefTest.relief"
+
     @Test fun relief() = checks {
         for (dark in listOf(false, true)) {
             val mode = if (dark) "dark" else "light"
@@ -87,8 +90,9 @@ class WardReliefTest {
                 val strongControl = WardRelief.raised(lift, dark, highContrast = true, control = true)
                 val edge = WardPalette.contrast(WardRelief.edgeColor(dark), base)
                 val strongEdge = WardPalette.contrast(WardRelief.edgeColor(dark, highContrast = true), base)
-                check("$tag: a control's edge reads at least 3:1 on the base",
-                    control.edgeAlpha == WardRelief.edgeAlpha(dark) && edge >= WardRelief.edgeContrast, f(edge))
+                check("$tag: a control's edge reads at least 3:1 on the base", edge >= WardRelief.edgeContrast, f(edge),
+                    OwnerCase(reliefTest, "a control's edge reads at least 3:1 on the base", "a control's edge at the $lift lift",
+                        "outside", mode, "background"), edge, alsoHolds = control.edgeAlpha == WardRelief.edgeAlpha(dark))
                 check("$tag: a card has no edge", spec.edgeAlpha == 0.0)
                 check("$tag: a control's face is a card's with the edge",
                     control.highlight == spec.highlight && control.shade == spec.shade && control.inner == spec.inner)
@@ -122,6 +126,7 @@ class WardReliefTest {
         for ((alpha, expected) in listOf(0.0 to false, 1e-4 to false, 2e-4 to true)) {
             check("light visibility at $alpha", WardReliefLight(0xFFFFFF, alpha, 0.0, 0.0, 0.0).lit == expected)
         }
+        everyOwnerCaseMade(reliefTest)
     }
 
     // The retro press has separate click and shade tracks, with no overshoot.

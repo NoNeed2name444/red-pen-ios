@@ -41,12 +41,12 @@ enum class WardSection {
     fun ink(dark: Boolean): Int = ink.of(dark)
 
     /**
-     * The wash behind every page, pinned to its value at 7af549b (before the
-     * owner's ten colours): the base mixed toward the section's fill of then
-     * in linear light (WardPalette.mix), 0.06 by day, 0.10 at night. It no
-     * longer follows the fill, so a new fill leaves the grounds as they were.
+     * The ground behind every page: the plain base (WardPalette background),
+     * #E9EDF2 by day and #171C24 at night, in every section. This is the ground
+     * from before the section's wash (iOS 73f09a7, 21 Oct), which the owner
+     * never asked for; the owner's phone build has plain grey grounds.
      */
-    val wash: WardPair get() = washes.getValue(this)
+    val wash: WardPair get() = WardPalette.table.getValue(WardToken.background)
 
     fun wash(dark: Boolean): Int = wash.of(dark)
 
@@ -81,23 +81,6 @@ enum class WardSection {
                 osce to WardSectionColours(129.0, WardPair(0xA3E635, 0xA3E635), WardPair(0xA3E635, 0xA3E635), WardPair(0xA3E635, 0xA3E635)),
                 audio to WardSectionColours(294.0, WardPair(0xA78BFA, 0xA78BFA), WardPair(0xA78BFA, 0xA78BFA), WardPair(0xA78BFA, 0xA78BFA)),
                 ideas to WardSectionColours(350.0, WardPair(0xF472B6, 0xF472B6), WardPair(0xF472B6, 0xF472B6), WardPair(0xF472B6, 0xF472B6)),
-            )
-        }
-
-        // Each section's wash as it was at 7af549b, (light, dark) 0xRRGGBB:
-        // the base mixed toward that commit's fill (questions #C03946/#CB3E4B,
-        // cards #5260BC/#5A68C5, textbook #227D75/#258279, cases
-        // #AC5A21/#B05C23, osce #3D7C49/#42814F, audio #8150AD/#8B57B8, ideas
-        // #B23E86/#BA438E).
-        private val washes: Map<WardSection, WardPair> by lazy {
-            mapOf(
-                questions to WardPair(0xE7E7EC, 0x49212A),
-                cards to WardPair(0xE3E8EF, 0x242B4C),
-                textbook to WardPair(0xE3E8ED, 0x193335),
-                cases to WardPair(0xE6E7EC, 0x402824),
-                osce to WardPair(0xE3E8EC, 0x1E322B),
-                audio to WardPair(0xE4E7EF, 0x332747),
-                ideas to WardPair(0xE6E7ED, 0x43223A),
             )
         }
 

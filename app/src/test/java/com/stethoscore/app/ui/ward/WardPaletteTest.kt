@@ -18,6 +18,17 @@ class WardPaletteTest {
     private val modes = listOf(false, true)
     private fun mode(dark: Boolean) = if (dark) "dark" else "light"
 
+    // The tests whose cases the owner's exact colours fail (OwnerAccepted).
+    private val promisesTest = "WardPaletteTest.promisesHold"
+    private val chipsTest = "WardPaletteTest.chipInksReadOnTheirWell"
+    private val twoCharactersTest = "WardPaletteTest.twoCharacters"
+
+    private fun distance(x: Int, y: Int): Double {
+        val p = oklab(x)
+        val q = oklab(y)
+        return sqrt((p.L - q.L) * (p.L - q.L) + (p.a - q.a) * (p.a - q.a) + (p.b - q.b) * (p.b - q.b))
+    }
+
     @Test fun promisesHold() = checks {
         check("every token has a value", WardToken.entries.all { WardPalette.table[it] != null })
         check("white on black is 21", abs(WardPalette.contrast(0xFFFFFF, 0x000000) - 21) < 0.01)
@@ -26,9 +37,11 @@ class WardPaletteTest {
         for (dark in modes) {
             for (p in WardPalette.promises) {
                 val r = WardPalette.contrast(WardPalette.hex(p.text, dark), WardPalette.hex(p.on, dark))
-                check("${mode(dark)}: ${p.text} on ${p.on} at least ${p.ratio}", r >= p.ratio, f2(r))
+                check("${mode(dark)}: ${p.text} on ${p.on} at least ${p.ratio}", r >= p.ratio, f2(r),
+                    OwnerCase(promisesTest, "a text colour on what it sits on at least ${p.ratio}", "${p.text}", "the palette", mode(dark), "${p.on}"), r)
             }
         }
+        everyOwnerCaseMade(promisesTest)
     }
 
     // The words of a chip or a pill sit on a well pressed into what is under
@@ -46,17 +59,20 @@ class WardPaletteTest {
                 val ground = WardRelief.insetGround(well, WardLift.low, dark, hc, chipTextDepth)
                 for (token in chipInks) {
                     val r = WardPalette.contrast(WardPalette.hex(token, dark), ground)
-                    check("$m: $token reads 4.5:1 on a chip's well", r >= 4.5, f3(r))
+                    check("$m: $token reads 4.5:1 on a chip's well", r >= 4.5, f3(r),
+                        OwnerCase(chipsTest, "reads 4.5:1 on a chip's well", "$token", "the palette", m, "a chip's well"), r)
                 }
                 for (section in WardSection.entries) {
                     val r = WardPalette.contrast(section.accent(dark), ground)
-                    check("$m: $section's accent reads 4.5:1 on a chip's well", r >= 4.5, f3(r))
+                    check("$m: $section's accent reads 4.5:1 on a chip's well", r >= 4.5, f3(r),
+                        OwnerCase(chipsTest, "reads 4.5:1 on a chip's well", "accent", "$section", m, "a chip's well"), r)
                 }
             }
         }
         check("the monitor card is dark in both modes",
             WardPalette.luminance(WardPalette.hex(WardToken.monitor, false)) < 0.05 &&
                 WardPalette.luminance(WardPalette.hex(WardToken.monitor, true)) < 0.05)
+        everyOwnerCaseMade(chipsTest)
     }
 
     // soft UI on close tiers: a well, the base, a card, a sheet, each a shade
@@ -89,13 +105,19 @@ class WardPaletteTest {
         }
         for (token in listOf(WardToken.primaryInk, WardToken.ecg, WardToken.success, WardToken.warning, WardToken.danger,
             WardToken.ink, WardToken.inkSecondary, WardToken.beam)) {
-            check("$token has a value of its own in each mode", WardPalette.hex(token, false) != WardPalette.hex(token, true))
+            val day = WardPalette.hex(token, false)
+            val night = WardPalette.hex(token, true)
+            // how far apart the two values are (OKLab): 0 when one value serves both modes
+            val apart = distance(day, night)
+            check("$token has a value of its own in each mode", day != night, "${hx(day)} / ${hx(night)} ${f3(apart)}",
+                OwnerCase(twoCharactersTest, "a value of its own in each mode", "$token", "the palette", "light and dark", "the other mode"), apart)
         }
         // night reads its secondary text more strongly than day: dim rooms need it
         val daySecondary = WardPalette.contrast(WardPalette.hex(WardToken.inkSecondary, false), WardPalette.hex(WardToken.background, false))
         val nightSecondary = WardPalette.contrast(WardPalette.hex(WardToken.inkSecondary, true), WardPalette.hex(WardToken.background, true))
         check("night's secondary text has more contrast than day's", nightSecondary > daySecondary,
             "${f2(nightSecondary)} vs ${f2(daySecondary)}")
+        everyOwnerCaseMade(twoCharactersTest)
     }
 
     // the contrast maths, against WCAG's own worked values
