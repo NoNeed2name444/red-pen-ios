@@ -3139,6 +3139,10 @@ only; Arabic is left for the owner's words (copy deck question 4).
   still shows that message, as before.
 - [x] The daily plan's button to the exam plan says what it does, "Open
   plan" (copy deck rule d), on both phones.
+- [x] The iPad keyboard menu is in sentence case like the rest of the app:
+  "Open last set in new window", "Search library", "Review due cards". The
+  Playgrounds build's stand-in (tools/playgrounds_stubs/core3/Core3Gaps.swift)
+  still says "Review Due Cards".
 
 ### Waiting on the owner
 

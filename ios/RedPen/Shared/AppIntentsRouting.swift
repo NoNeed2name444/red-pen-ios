@@ -350,17 +350,17 @@ struct StethoscoreCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
-            Button("Open Last Set in New Window") { openLastSetWindow() }
+            Button("Open last set in new window") { openLastSetWindow() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(!SetWindow.available)
         }
         CommandGroup(after: .textEditing) {
             // the library's search observes this (PlatformNotice.search)
-            Button("Search Library") { PlatformNotice.post(PlatformNotice.search, ["text": ""]) }
+            Button("Search library") { PlatformNotice.post(PlatformNotice.search, ["text": ""]) }
                 .keyboardShortcut("f", modifiers: .command)
         }
         CommandMenu("Study") {
-            Button("Review Due Cards") { AppRouter.shared.open(.reviewDue) }
+            Button("Review due cards") { AppRouter.shared.open(.reviewDue) }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
         }
     }

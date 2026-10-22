@@ -98,6 +98,7 @@ The owner's exam words (`docs/design/identity/wording.md`), built on both phones
 | Counted notices, "1 set", "1 page" (`Shared/Learn/BedPlan.swift`'s counted) | `ui/StethoscoreApp.kt`'s import and print notices, through `data/BedPlan.kt`'s counted | same |
 | A failed import, "Couldn’t … Check … and try again." (iOS's alert pattern) | `ui/StethoscoreApp.kt`'s import notice, when the failure has no message of its own | same pattern; the other "Unable to …" and "Could not …" notices keep their words (the deck gives words for the import only) |
 | Today's revision's "Open plan" button (`Features/Library/WardHome.swift`'s planButton) | `ui/home/WardHome.kt`'s plan button | same words; Android's click label still reads "Opens the exam plan and forecast" (no deck row names it) |
+| The iPad keyboard menu in sentence case (`Shared/AppIntentsRouting.swift`'s StethoscoreCommands) | none | iOS only: Android has no keyboard menu |
 
 ## Where iOS can't be copied
 
