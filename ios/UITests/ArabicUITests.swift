@@ -25,6 +25,7 @@ final class ArabicUITests: XCTestCase {
     func testArabicRightToLeft() {
         continueAfterFailure = true
         app = XCUIApplication()
+        app.keepTraceOffConsole()
         app.launchArguments += ["-AppleLanguages", "(ar)", "-AppleLocale", "ar_EG"]
         app.launch()
 

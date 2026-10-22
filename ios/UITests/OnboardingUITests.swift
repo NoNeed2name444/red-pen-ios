@@ -72,6 +72,7 @@ final class OnboardingUITests: XCTestCase {
     /// has run the app before.
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
+        app.keepTraceOffConsole()
         // a still sky, so the simulator's main thread has time for the taps
         app.launchArguments += ["-showOnboarding", "-stillSky"]
         app.launch()

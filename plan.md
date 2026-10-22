@@ -1068,6 +1068,57 @@ PM) and the app compiles (run 37781812785's Build step, 4:25 PM).
     still fails five of the six proof budget checks. design/map-lighter
     9cc61b1 (Server tests 37931566404 green), merged into personal with
     steps 22 to 24.
+27. [ ] The UI suite's red of 15 Oct (App build 38684974986, bc611221),
+    on design/ui-suite-fix. Not a freeze of the app's own: the tour
+    (DesignTourUITests) timed out three times on one query on Ideas >
+    Space (foldSwitcher, "ideasMode-list", line 626); then
+    ExamplesUITests could not end the app and GraphPreviewUITests could
+    not launch it. Read from the run's bundle (session log, the app's
+    stdout and stderr):
+    - xcodebuild starts the app with stdout and stderr on a terminal
+      (/dev/ttys001) that only it drains, with OS_ACTIVITY_DT_MODE=YES,
+      OS_ACTIVITY_MODE=info and NSUnbufferedIO. XCTest (Xcode 26.6)
+      evaluates each query inside the app, on its main thread, and logs
+      every accessibility lookup there: 52 MB over the tour, at 100 to
+      540 KB/s.
+    - xcodebuild fell behind the test runner (by up to 321 s, against
+      under 1 s the rest of the run; silent 229 s after the tour ended).
+      The app's console then filled, and its main thread moved about
+      1 KB at a time (77 stalls of 0.3 to 7.7 s); one line waited 293 s
+      and went through 20 ms after xcodebuild woke. The map kept
+      turning: its render thread writes nothing. The terminate (sent
+      05:28:29) and the next launch (05:29:41) reached xcodebuild only at
+      05:33:49; the app was gone 4 s later. An earlier stall (05:23:08 to
+      05:24:03) slowed the tour too, and it got through.
+    - The same query took 14.3 s on 9 Oct's green run, 1.8 s on
+      check/ward-polish and 0.18 s on check/perf-million: it depends on
+      how fast xcodebuild drains the console. What kept xcodebuild busy is
+      not in the logs (XCTest's spindump is not supported there).
+    - Fix: every UI test launches the app with OS_ACTIVITY_MODE=disable
+      and OS_ACTIVITY_DT_MODE=NO (XCUIApplication.keepTraceOffConsole(),
+      ios/UITests/QuietConsole.swift, called before each launch), so
+      XCTest's trace stays out of the console; the next largest console
+      was GraphPreview's testStraightLines (25 MB). No step, check or
+      picture changes. A still sky (-stillSky) would not have helped: the
+      trace is the same with it, and the tour's pictures would change. A
+      new UI test calls it too (the perf streams' testPerformanceMillion
+      and GraphPerfProofUITests when they land). Merged into the
+      integration build (design/merge-launch): its later launches,
+      testBodyCloseUps, testIslandDeckFold and testIslandPushAndBack,
+      call it as well.
+    - The AX5 walk (AccessibilityUITests) failed the same day with "no
+      example mcq/anki set" and "could not choose audio/ideas" (runs
+      38689063193 and 38684974986): openSet() and choose() waited 8 s and
+      5 s for the row before any swipe, but at AX5 the header fills the
+      screen and the list makes a row only once it is scrolled to. Both
+      now scroll to find it (scrollToFind: up to 6 swipes down the
+      Sections sheet; up to 16 down the library, then 24 back up, as a
+      section chosen again keeps the page below the sets), then wait for
+      it to be pressable. Checks and messages unchanged.
+    - [ ] Its check run: the two variables in the session log's launch
+      environment, every test's console in the bundle small (the tour's
+      52 MB down to a few KB), the suite green, and the AX5 walk past
+      choose() and openSet().
 
 ## 4. M3: the Neurons rebuild
 
