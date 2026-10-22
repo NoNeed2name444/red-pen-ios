@@ -355,7 +355,7 @@ private struct SpokenStationComposer: View {
 
     /// The typed box: a well pressed into the bar.
     private var field: some View {
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return TextField("Or type what you say", text: $draft, axis: .vertical)
             .lineLimit(1...4)
             .padding(.horizontal, 12)

@@ -274,7 +274,7 @@ private struct SavedIdeaToast: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         HStack(spacing: 12) {
             Image(systemName: "lightbulb.fill")
                 .font(.title3)
@@ -350,7 +350,7 @@ struct SaveToIdeasButton: View {
                 capsule(symbol, title: title, saved: saved)
             }
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 22))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar))
         .help(title)
         .accessibilityLabel(title)
         .accessibilityHint(hint)

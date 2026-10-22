@@ -367,7 +367,7 @@ struct LensOptionRow: View {
     let state: Mark
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         let right: Bool = state == .right
         let wrong: Bool = state == .wrong
         let letterInk: Color = right ? Color.wardPrimaryInk : (wrong ? Color.wardFadedInk : Color.wardInk)

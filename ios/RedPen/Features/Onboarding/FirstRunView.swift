@@ -143,7 +143,7 @@ private struct FirstRunGoalPage: View {
                 .foregroundStyle(ink)
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .buttonStyle(PopTileStyle(cornerRadius: 14, selected: picked))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, selected: picked))
         .accessibilityAddTraits(picked ? .isSelected : [])
         .accessibilityIdentifier("firstRunGoal-\(value)")
     }

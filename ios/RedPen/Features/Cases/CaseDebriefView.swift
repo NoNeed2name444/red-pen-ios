@@ -116,7 +116,7 @@ struct CaseDebriefView: View {
             }
         }
         .caseCard()
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(CaseInk.resus, lineWidth: 2))
+        .overlay(RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous).strokeBorder(CaseInk.resus, lineWidth: 2))
     }
 
     private var diagnosisCard: some View {

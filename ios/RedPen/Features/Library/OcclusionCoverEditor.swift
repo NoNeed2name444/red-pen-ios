@@ -36,7 +36,7 @@ struct OcclusionCoverEditor: View {
 
     var body: some View {
         let ratio: CGFloat = CGFloat(aspect > 0 ? aspect : 1)
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         picture
             .aspectRatio(ratio, contentMode: .fit)
             .overlay {

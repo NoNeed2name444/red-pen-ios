@@ -195,7 +195,7 @@ struct IdeaBoardView: View {
         let wash: Color = tone.opacity(0.14)
         let place: String = notes.folder(note.folderId)?.name ?? note.kind.label
         let title: String = note.title.isEmpty ? "Untitled" : note.title
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 5) {
                 Image(systemName: note.kind.symbol)

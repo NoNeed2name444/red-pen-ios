@@ -94,7 +94,7 @@ private struct ReaderPagesButton: View {
                 .contentShape(Circle())
         }
         // a 44-point square rounded by half its side: the disc
-        .buttonStyle(PopTileStyle(cornerRadius: 22, plane: .floating))
+        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.bar, plane: .floating))
         .accessibilityLabel(label)
     }
 }
