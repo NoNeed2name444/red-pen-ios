@@ -272,8 +272,8 @@ final class PopOutMotion {
         #endif
     }
 
-    /// Up to 120 a second at High quality; Smooth holds the tilt to 60, so
-    /// the pop-out never asks the screen for more than the rest runs at.
+    /// Up to 120 a second in either tier (the screen's own rate; Smooth
+    /// cuts detail, never the rate - GraphicsBudget).
     private static func fullRate() -> CAFrameRateRange {
         let top: Float = GraphQuality.current.maxFPS >= 120 ? 120 : 60
         return CAFrameRateRange(minimum: 60, maximum: top, preferred: top)

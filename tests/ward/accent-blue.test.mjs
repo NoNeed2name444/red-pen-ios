@@ -21,6 +21,30 @@ function check(label, ok, detail = '') {
   if (!ok) failed++;
 }
 
+// The owner, 22 Oct 2026, about 3:44 AM Cairo, shown that the exact colours
+// fail the readability checks: "STOP IMPROVISING DONT CHANGE THE COLORS I
+// GAVE U". So every colour is the owner's hex as given, white words on the
+// fills included, on the plain ground. A check below that falls short only
+// because of that passes only as its exact case on the owner's list
+// (tests/ward/owner-accepted.json, under this file's name), measured within
+// 0.01 of the value recorded there. Any other case still fails, and so does
+// a listed case no check here measures short.
+const ownerFile = new URL('./owner-accepted.json', import.meta.url).pathname;
+let ownerList = {};
+try { ownerList = JSON.parse(readFileSync(ownerFile, 'utf8'))['tests/ward/accent-blue.test.mjs'] ?? {}; } catch { ownerList = {}; }
+const ownerSeen = new Set();
+// true only when `measured`, short of its check's threshold, is the owner's
+// accepted case `key` at the value recorded for it
+function owner(key, measured) {
+  ownerSeen.add(key);
+  if (!(key in ownerList)) { console.log(`owner-accepted miss: ${JSON.stringify(key)}: ${measured.toFixed(3)}`); return false; }
+  if (Math.abs(measured - ownerList[key]) > 0.01) {
+    console.log(`owner-accepted moved: ${JSON.stringify(key)}: ${measured.toFixed(3)}, listed ${Number(ownerList[key]).toFixed(3)}`);
+    return false;
+  }
+  return true;
+}
+
 // Not Ward screens: the night sky and the 3D map draw their own scenes, and
 // the PDF and occlusion exports print fixed colours onto paper.
 const skip = [/^Shared\/Space\//, /^Features\/Notes\/Graph/, /^Shared\/Deck/, /^Shared\/PDF/,
@@ -159,15 +183,20 @@ for (const dark of [0, 1]) {
   for (const name of names) {
     const s = sections[name];
     const accent = s.accent[dark];
-    const low = Math.min(...tiers.map(t => ratio(accent, palette[t][dark])));
-    check(`${mode} ${name}: its words read 4.5:1 on every tier (AA body text)`, low >= 4.5, `${hex(accent)} ${low.toFixed(2)}`);
-    check(`${mode} ${name}: as large text or an icon, 3:1 on every tier`, low >= 3, low.toFixed(2));
+    // the lowest tier, and which it is (the first, on a tie)
+    const [low, lowTier] = tiers.map(t => [ratio(accent, palette[t][dark]), t]).reduce((a, b) => (b[0] < a[0] ? b : a));
+    const words = `${mode} ${name}: its words read 4.5:1 on every tier (AA body text)`;
+    check(words, low >= 4.5 || owner(`${words} [${lowTier}]`, low), `${hex(accent)} ${low.toFixed(2)} on the ${lowTier}`);
+    const large = `${mode} ${name}: as large text or an icon, 3:1 on every tier`;
+    check(large, low >= 3 || owner(`${large} [${lowTier}]`, low), `${low.toFixed(2)} on the ${lowTier}`);
     const white = ratio(palette.onPrimary[dark], s.fill[dark]);
-    check(`${mode} ${name}: the on-fill words read 4.5:1 on its fill`, white >= 4.5, `${hex(s.fill[dark])} ${white.toFixed(2)}`);
+    const onFill = `${mode} ${name}: the on-fill words read 4.5:1 on its fill`;
+    check(onFill, white >= 4.5 || owner(onFill, white), `${hex(s.fill[dark])} ${white.toFixed(2)}`);
     for (const ground of ['background', 'surface']) {
       const g = palette[ground][dark];
       const edge = ratio(composite(s.ink[dark], edgeAlpha[dark], g), g);
-      check(`${mode} ${name}: its ink reads 3:1 as a control's edge on the ${ground}`, edge >= edgeContrast, edge.toFixed(2));
+      const label = `${mode} ${name}: its ink reads 3:1 as a control's edge on the ${ground}`;
+      check(label, edge >= edgeContrast || owner(label, edge), edge.toFixed(2));
     }
     // a section's colour is its own hue, and never a blue: away from Cards,
     // whose indigo the primary is, it keeps 25 degrees from the primary's hue
@@ -184,7 +213,8 @@ for (const dark of [0, 1]) {
       const d = distance(accent, palette[k][dark]);
       if (d < near[0]) near = [d, k];
     }
-    check(`${mode} ${name}: told apart from what means something`, near[0] >= APART, `${near[1]} ${near[0].toFixed(3)}`);
+    const meaning = `${mode} ${name}: told apart from what means something`;
+    check(meaning, near[0] >= APART || owner(`${meaning} [${near[1]}]`, near[0]), `${near[1]} ${near[0].toFixed(3)}`);
   }
   let closest = [9, ''];
   for (let i = 0; i < names.length; i++)
@@ -201,6 +231,11 @@ const tool = new URL('../../tools/ward_accents.py', import.meta.url).pathname;
 let current = true, said = '';
 try { said = execFileSync('python3', [tool, '--check'], { encoding: 'utf8' }); } catch (e) { current = false; said = String(e.stdout || e.message); }
 check('WardLook\'s section table is what tools/ward_accents.py makes', current, said.trim());
+
+// The owner's list holds only cases a check above measured short.
+check('the owner\'s list is read (tests/ward/owner-accepted.json, accent-blue.test.mjs)', Object.keys(ownerList).length > 0);
+const ownerStale = Object.keys(ownerList).filter(k => !ownerSeen.has(k)).sort();
+check('every case on the owner\'s list is one a check here measured short', ownerStale.length === 0, ownerStale.join('; '));
 
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('all passed');

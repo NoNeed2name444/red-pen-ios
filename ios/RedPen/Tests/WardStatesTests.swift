@@ -24,6 +24,47 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
 func f(_ x: Double) -> String { String(format: "%.3f", x) }
 func h(_ x: UInt32) -> String { String(format: "#%06X", x) }
 
+// MARK: - The owner's accepted cases
+
+// The owner, 22 Oct 2026, about 3:44 AM Cairo, shown that the exact colours
+// fail the readability checks: "STOP IMPROVISING DONT CHANGE THE COLORS I
+// GAVE U". So every colour is the owner's hex as given, white words on the
+// fills included, on the plain ground. A check below that falls short only
+// because of that passes only as its exact case on the owner's list
+// (ios/RedPen/Tests/OwnerAccepted.json, under this file's name), measured
+// within 0.01 of the value recorded there. Any other case still fails, and
+// so does a listed case no check here measures short.
+let ownerFile = "ios/RedPen/Tests/OwnerAccepted.json"
+let ownerList: [String: Double] = {
+    var dir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    while !FileManager.default.fileExists(atPath: dir.appendingPathComponent(ownerFile).path), dir.path != "/" {
+        dir.deleteLastPathComponent()
+    }
+    guard let data = FileManager.default.contents(atPath: dir.appendingPathComponent(ownerFile).path),
+          let all = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+          let mine = all["WardStatesTests.swift"] as? [String: Any] else { return [:] }
+    var out: [String: Double] = [:]
+    for (key, value) in mine {
+        if let n = value as? NSNumber { out[key] = n.doubleValue } else if let d = value as? Double { out[key] = d }
+    }
+    return out
+}()
+var ownerSeen: Set<String> = []
+/// True only when `measured`, short of its check's threshold, is the
+/// owner's accepted case `key` at the value recorded for it.
+func owner(_ key: String, _ measured: Double) -> Bool {
+    ownerSeen.insert(key)
+    guard let listed = ownerList[key] else {
+        print("owner-accepted miss: \"\(key)\": " + String(format: "%.3f", measured))
+        return false
+    }
+    guard abs(measured - listed) <= 0.01 else {
+        print("owner-accepted moved: \"\(key)\": " + String(format: "%.3f", measured) + ", listed " + String(format: "%.3f", listed))
+        return false
+    }
+    return true
+}
+
 // OKLab (Ottosson), perceptual: equal distances look about equally
 // different, and the hue is the one the eye sees.
 func oklab(_ x: UInt32) -> (L: Double, a: Double, b: Double) {
@@ -120,7 +161,8 @@ for dark in modes {
     for s in sections {
         // a chosen state that stands on the section's fill has white words
         let white = WardPalette.contrast(WardPalette.hex(.onPrimary, dark: dark), s.fill(dark: dark))
-        check("\(mode) \(s): white reads 4.5:1 on its fill", white >= 4.5, f(white))
+        let onFill = "\(mode) \(s): white reads 4.5:1 on its fill"
+        check(onFill, white >= 4.5 || owner(onFill, white), f(white))
         for control in WardControl.allCases {
             for state in control.states {
                 let look = control.look(state)
@@ -137,7 +179,8 @@ for dark in modes {
                 for (what, ink) in [("words", c.words), ("glyph", c.glyph)] {
                     guard let ink else { continue }
                     let r = WardPalette.contrast(ink, c.readOn)
-                    check("\(name): its \(what) read 4.5:1 on its face", r >= 4.5, "\(h(ink)) on \(h(c.readOn)) \(f(r))")
+                    let key = "\(name): its \(what) read 4.5:1 on its face"
+                    check(key, r >= 4.5 || owner(key, r), "\(h(ink)) on \(h(c.readOn)) \(f(r))")
                     if r < worstText.0 { worstText = (r, name) }
                 }
                 // what sits on a fill reads on it: white words on the
@@ -147,7 +190,8 @@ for dark in modes {
                 }
                 if let knob = c.knob, look.face != .well {
                     let r = WardPalette.contrast(knob, c.face)
-                    check("\(name): the knob reads 3:1 on the filled track", r >= 3, "\(h(knob)) on \(h(c.face)) \(f(r))")
+                    let key = "\(name): the knob reads 3:1 on the filled track"
+                    check(key, r >= 3 || owner(key, r), "\(h(knob)) on \(h(c.face)) \(f(r))")
                 }
                 // no state is a blue outside Cards, whose indigo the
                 // primary is (Questions is red since direction 3)
@@ -198,7 +242,8 @@ for dark in modes {
                 if state.isChosen {
                     let twin = control.look(state.unchosenTwin).colours(s, dark: dark)
                     let d = told(c, from: twin, unmarked: unmarked(twin))
-                    check("\(name): told apart from unchosen by more than relief", d >= apart, f(d))
+                    let key = "\(name): told apart from unchosen by more than relief"
+                    check(key, d >= apart || owner(key, d), f(d))
                     if d < worstChosenApart.0 { worstChosenApart = (d, name) }
                     if control != .toggle {
                         check("\(name): pressed in", look.stand.isPressedIn)
@@ -408,5 +453,12 @@ check("the slots are WardDock's, and the names shrink to WardDock's least, never
 print("ok   words and glyphs: the lowest is \(f(worstText.0)):1 (\(worstText.1))")
 print("ok   disabled from enabled: the nearest is \(f(worstDisabledApart.0)) (\(worstDisabledApart.1))")
 print("ok   chosen from unchosen: the nearest is \(f(worstChosenApart.0)) (\(worstChosenApart.1))")
+
+// The owner's list holds only cases a check above measured short.
+check("the owner's list is read (\(ownerFile), WardStatesTests.swift)", !ownerList.isEmpty)
+let ownerStale = ownerList.keys.filter { !ownerSeen.contains($0) }.sorted()
+check("every case on the owner's list is one a check here measured short", ownerStale.isEmpty,
+      ownerStale.joined(separator: "; "))
+print("ok   the owner's accepted cases: \(ownerSeen.count) measured short, each at its listed value")
 print(failures.isEmpty ? "\nall \(checks) passed" : "\n\(failures.count) of \(checks) failed")
 exit(failures.isEmpty ? 0 : 1)

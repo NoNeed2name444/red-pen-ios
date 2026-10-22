@@ -466,12 +466,44 @@ let none7 = GraphPerfFrameStats([], target: target)
 check("P7 no frames, zeros", none7.count == 0 && none7.p50 == 0 && none7.p95 == 0 && none7.hitches == 0)
 var readout = GraphPerfStats(notes: 100_000, links: 230_080, drawnBodies: 98_412, drawnGlows: 236, drawnLines: 231_940,
                              fps: 119.6, cpuP95: 0.004, settling: false)
-check("P7 the readout: notes, links, frames a second; what was drawn",
-      readout.line == "100,000 notes \u{00B7} 230,080 links \u{00B7} 120 fps"
+check("P7 the readout: notes, links; what was drawn",
+      readout.line == "100,000 notes \u{00B7} 230,080 links"
       && readout.drawn == "98,412 drawn \u{00B7} 236 glows \u{00B7} 231,940 lines", readout.line + " / " + readout.drawn)
+check("P7 the pace without a known screen: frames a second and a frame's time",
+      readout.pace == "120 fps \u{00B7} 4.0 ms a frame", readout.pace)
+readout.screenFPS = 120
+readout.gpuP95 = 0.0061
+check("P7 the pace on ProMotion: the rate of the screen's 120, the slower of CPU and GPU against 8.3 ms",
+      readout.pace == "120 of 120 fps \u{00B7} 6.1 ms a frame of 8.3", readout.pace)
+check("P7 the 100,000 map names no stages", readout.stages.isEmpty)
+var paced = readout
+paced.fpsLow = 112.4
+check("P7 once measured, the 5th percentile follows the rate",
+      paced.pace == "120 of 120 fps (low 112) \u{00B7} 6.1 ms a frame of 8.3", paced.pace)
+// 3 s at 60 with a jittered frame now and then, and one slow stretch
+var steadyRun: [Double] = Array(repeating: 1.0 / 60, count: 180)
+for k in stride(from: 3, to: 180, by: 7) { steadyRun[k] = 1.0 / 60 + 0.004; steadyRun[k + 1] = 1.0 / 60 - 0.004 }
+let calmRates = GraphPerfStats.rates(steadyRun)
+for k in 60..<66 { steadyRun[k] = 1.0 / 30 }
+let slowRates = GraphPerfStats.rates(steadyRun)
+check("P7 rates: jitter between neighbours reads as 60, median and 5th percentile",
+      abs(calmRates.median - 60) < 1 && calmRates.low > 58.5, "\(calmRates)")
+check("P7 rates: a tenth of a second at 30 shows in the 5th percentile of 15 fifths, not the median",
+      abs(slowRates.median - 60) < 1 && slowRates.low < 45, "\(slowRates)")
+check("P7 rates of nothing are zero", GraphPerfStats.rates([]).median == 0)
+var staged = readout
+staged.detail = 26
+staged.cpuMedian = 0.0009; staged.planMedian = 0.0003; staged.nearMedian = 0.0031; staged.farMedian = 0.0012
+check("P7 the million map's readout: the split and the three stages",
+      staged.drawn.hasSuffix(" \u{00B7} opens at 26 pt") && staged.stages == "cpu 0.9 \u{00B7} plan 0.3 \u{00B7} near 3.1 \u{00B7} far 1.2 ms",
+      staged.drawn + " / " + staged.stages)
+staged.saturated = 0.0137
+check("P7 once measured, the share of the screen at 250 or more ends the stages",
+      staged.stages.hasSuffix(" ms \u{00B7} 1.4% at 250+") && GraphPerfStats.percent(0) == "0.0%", staged.stages)
+check("P7 the median", GraphPerfStats.median([]) == 0 && GraphPerfStats.median([3, 1, 2]) == 2)
 readout.notes = 1; readout.links = 1; readout.drawnGlows = 1
 check("P7 one of each is singular, and small numbers have no commas",
-      readout.line == "1 note \u{00B7} 1 link \u{00B7} 120 fps" && GraphPerfStats.grouped(999) == "999"
+      readout.line == "1 note \u{00B7} 1 link" && GraphPerfStats.grouped(999) == "999"
       && GraphPerfStats.grouped(1_000) == "1,000" && GraphPerfStats.grouped(-12_345) == "-12,345")
 
 // MARK: - P8 linear time

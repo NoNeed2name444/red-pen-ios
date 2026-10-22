@@ -291,7 +291,10 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     private let rest: [Float]
     private let lines: SCNNode
     private let lineMaterial: SCNMaterial
-    /// False with Reduce Motion or SpaceQuality .still: nothing animates.
+    /// `-graphFreeze`: stops GraphSim's own motion (orbits, spins, pulses)
+    /// but not the keeper (ruling 7, brief step 7).
+    static let freeze: Bool = ProcessInfo.processInfo.arguments.contains("-graphFreeze")
+    /// False with Reduce Motion, SpaceQuality .still or -graphFreeze: nothing animates.
     let lively: Bool
 
     // the black holes
@@ -549,7 +552,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         self.rig = rig
         self.lines = lines
         self.lineMaterial = looks.linkMaterial
-        self.lively = lively
+        self.lively = lively && !Self.freeze
         self.hotRing = looks.hotRing
         self.hotDisk = looks.hotDisk
         self.clocked = looks.clocked
@@ -949,6 +952,26 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             found.append((i, position[i], size, bodyKind[i] != .note))
         }
         return found
+    }
+
+    /// Whether body `i` can be picked now, as in `pickables`: shown, not a
+    /// ghost, and not past the Space depth fade's far end.
+    func isPickable(_ i: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard i >= 0, i < visible.count else { return false }
+        return visible[i] && !ghost[i] && !beyondBand(i)
+    }
+
+    /// The Space depth stage this frame, for the depth meter
+    /// (GraphDepthKeeper): per body, whether anything of it is drawn (its
+    /// look or its point) and how far it has faded; nil with no stage (the
+    /// other looks, or `-graphDepthOff`). Read under one lock.
+    func depthReading() -> (shown: [Bool], fade: [Float])? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let depth else { return nil }
+        return (depth.level.map { $0 != .gone }, depth.fade)
     }
 
     /// Past the Space depth fade's far end (fully faded, not drawn), so it

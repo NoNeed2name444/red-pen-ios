@@ -22,6 +22,14 @@ Metal. Only Metal's own functions are declared, with Metal's argument types,
 so a GLSL or HLSL name (mod, lerp, vec3, inversesqrt) or a scalar where
 Metal wants a vector fails here as it would on the device.
 
+The Performance map's whole Metal libraries (LIBRARIES: GraphPerfShaders,
+GraphPerfMillionShaders - render and compute functions compiled at run time
+with makeLibrary(source:)) are checked the same way, each as one file: the
+raw string is read straight from the Swift file, Metal's address spaces and
+function qualifiers become nothing, its attributes ([[buffer(0)]]) are
+unknown ones clang ignores, and the few Metal-only calls they use (as_type,
+unpack_unorm4x8_to_float, discard_fragment) are declared.
+
 Needs swiftc and clang++ (both ship with the Swift toolchain, e.g.
 /opt/swift/usr/bin). Exit status: 0 all compile, 1 something failed.
 """
@@ -151,7 +159,10 @@ inline float2 reflect(float2 i, float2 n) { return i - n * (2.0f * dot(n, i)); }
 // textures and samplers, by Metal's names. The check only needs them to
 // exist; the lab (tools/space_lab) gives a texture its pixels and defines
 // rp_texture_sample and rp_derivative. A sampler is declared the way Metal
-// declares one (constexpr sampler s(coord::normalized, filter::linear, ...)).
+// declares one (constexpr sampler s(coord::normalized, filter::linear, ...)),
+// and a texture as Metal's texture2d<float, access::read>, whose read, write
+// and size the Performance map's libraries use: one set for both checks.
+enum class access { read, write, read_write, sample };
 enum class coord { normalized, pixel };
 enum class filter { nearest, linear };
 enum class mip_filter { none, nearest, linear };
@@ -163,11 +174,15 @@ struct sampler { template <typename... A> constexpr sampler(A...) {} };
 struct gradient2d { float2 dx, dy; gradient2d(float2 a, float2 b) : dx(a), dy(b) {} };
 struct level { float lod; explicit level(float l) : lod(l) {} };
 float4 rp_texture_sample(const void *pixels, float2 uv, float2 dx, float2 dy, int how);
-template <typename T, int A = 0> struct texture2d {
+template <typename T, access A = access::sample> struct texture2d {
     const void *rp_pixels = nullptr;
     float4 sample(sampler, float2 uv) const { return rp_texture_sample(rp_pixels, uv, mk_float2(0.0f), mk_float2(0.0f), 0); }
     float4 sample(sampler, float2 uv, gradient2d g) const { return rp_texture_sample(rp_pixels, uv, g.dx, g.dy, 1); }
     float4 sample(sampler, float2 uv, level l) const { return rp_texture_sample(rp_pixels, uv, mk_float2(l.lod), mk_float2(0.0f), 2); }
+    float4 read(uint2 at) const { return mk_float4(0.0f); }
+    void write(float4 c, uint2 at) const {}
+    uint get_width() const { return 1u; }
+    uint get_height() const { return 1u; }
 };
 // screen-space derivatives (a fragment's neighbours to the right and below)
 float4 rp_derivative(float4 v, int axis);
@@ -199,6 +214,43 @@ struct SCNFrameBuffer {
     float4x4 viewTransform; float4x4 inverseViewTransform; float4x4 projectionTransform;
     float4x4 viewProjectionTransform; float time; float sinTime; float cosTime; float random01;
 };
+"""
+
+# the Performance map's Metal libraries: (Swift file, the string's name)
+LIBRARIES = [("GraphPerfShaders.swift", "source"), ("GraphPerfMillionShaders.swift", "source")]
+
+LIBRARY_HEADER = r"""
+#include <cstring>
+typedef unsigned short ushort;
+typedef unsigned char uchar;
+typedef ushort ushort2 __attribute__((ext_vector_type(2)));
+typedef ushort ushort3 __attribute__((ext_vector_type(3)));
+typedef ushort ushort4 __attribute__((ext_vector_type(4)));
+typedef uint uint4 __attribute__((ext_vector_type(4)));
+typedef uchar uchar4 __attribute__((ext_vector_type(4)));
+#define device
+#define constant
+#define threadgroup
+#define thread
+#define kernel
+#define vertex
+#define fragment
+namespace metal {}
+inline ushort4 mk_ushort4(ushort a, ushort b, ushort c, ushort d) { ushort4 v; v.x = a; v.y = b; v.z = c; v.w = d; return v; }
+inline ushort4 mk_ushort4(ushort3 a, ushort b) { ushort4 v; v.x = a.x; v.y = a.y; v.z = a.z; v.w = b; return v; }
+inline uint4 mk_uint4(uint a, uint b, uint c, uint d) { uint4 v; v.x = a; v.y = b; v.z = c; v.w = d; return v; }
+inline float3 mk_float3(ushort3 a) { float3 v; v.x = a.x; v.y = a.y; v.z = a.z; return v; }
+inline float3 mk_float3(uint3 a) { float3 v; v.x = a.x; v.y = a.y; v.z = a.z; return v; }
+inline float4 mk_float4(float2 a, float b, float c) { float4 v; v.x = a.x; v.y = a.y; v.z = b; v.w = c; return v; }
+template <class T, class U> inline T as_type(U u) { static_assert(sizeof(T) == sizeof(U), "as_type sizes differ"); T t; std::memcpy(&t, &u, sizeof(T)); return t; }
+inline float4 unpack_unorm4x8_to_float(uint c) { return mk_float4((float)(c & 255u), (float)(c >> 8 & 255u), (float)(c >> 16 & 255u), (float)(c >> 24)) / 255.0f; }
+inline void discard_fragment() {}
+inline float rp_rint1(float a) { return std::rint(a); }
+RP_UNARY(rint, rp_rint1)
+inline float3 clamp(float3 x, float a, float b) = delete;
+inline uint2 mk_uint2(float2 a) { uint2 v; v.x = (uint)a.x; v.y = (uint)a.y; return v; }
+inline uint2 min(uint2 a, uint2 b) { return mk_uint2(min(a.x, b.x), min(a.y, b.y)); }
+// access, filter, address, sampler and texture2d are HEADER's
 """
 
 ENTRY = {
@@ -271,6 +323,63 @@ def wrap(entry, source):
     return pre + "\n".join(metal(b) for b in body) + "\n}\n", start, first_body + 1
 
 
+def library_source(swift_file, name):
+    """The Metal source in `static let <name>: String = #\"\"\" ... \"\"\"#`, dedented."""
+    text = open(os.path.join(NOTES, swift_file)).read()
+    m = re.search(r"static let " + name + r": String = #\"\"\"\n(.*?)\n\s*\"\"\"#", text, re.S)
+    if not m:
+        return None
+    lines = m.group(1).split("\n")
+    indent = min((len(l) - len(l.lstrip()) for l in lines if l.strip()), default=0)
+    return "\n".join(l[indent:] for l in lines)
+
+
+def check_libraries(clang, work, keep):
+    """Each Performance library as one C++ file. Returns how many failed."""
+    bad = 0
+    for swift_file, name in LIBRARIES:
+        source = library_source(swift_file, name)
+        label = swift_file.replace(".swift", "")
+        if source is None:
+            print(f"FAIL {label}: no Metal source found")
+            bad += 1
+            continue
+        problems = []
+        for k, line in enumerate(source.split("\n"), 1):
+            code = line.split("//")[0]
+            m = GLSL.search(code)
+            if m:
+                problems.append(f"line {k}: not Metal: {m.group(0)}")
+            if SPLAT.search(code):
+                problems.append(f"line {k}: a vector set from a bare number: {code.strip()}")
+        body = "\n".join("" if l.strip().startswith("#include") or l.strip().startswith("using namespace")
+                         else l for l in source.split("\n"))
+        body = re.sub(r"\b(ushort|uint)([234])\(", r"mk_\1\2(", body)
+        body = re.sub(r"\b(float|int)([234])\(", r"mk_\1\2(", body)
+        body = re.sub(r"(?<![\w.])(\d+\.\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)(?![\w.])", r"\1f", body)
+        pre = HEADER + LIBRARY_HEADER
+        start = pre.count("\n") + 1
+        path = os.path.join(work, label + ".cpp")
+        open(path, "w").write(pre + body + "\n")
+        if keep:
+            shutil.copy(path, os.path.join(ROOT, "build", "shaders", label + ".cpp"))
+        run = subprocess.run([clang, "-fsyntax-only", "-std=c++17", "-Wno-unused-variable", "-Wno-unknown-attributes",
+                              "-Wno-unused-but-set-variable", "-ferror-limit=20", path],
+                             capture_output=True, text=True)
+        for l in (run.stdout + run.stderr).split("\n"):
+            m = re.match(r".*\.cpp:(\d+):(\d+): (error|warning): (.*)", l)
+            if m and m.group(3) == "error":
+                problems.append(f"line {int(m.group(1)) - start + 1}: {m.group(4)}")
+        if problems:
+            bad += 1
+            print(f"FAIL {label} (library)")
+            for p in problems[:12]:
+                print("    " + p)
+        else:
+            print(f"ok   {label} (library)")
+    return bad
+
+
 def main():
     keep = "--keep" in sys.argv
     clang = shutil.which("clang++") or "/opt/swift/usr/bin/clang++"
@@ -310,9 +419,11 @@ def main():
                 print("    " + p)
         else:
             print(f"ok   {name} ({entry})")
+    libs_bad = check_libraries(clang, work, keep)
     shutil.rmtree(work, ignore_errors=True)
-    print(f"{len(shaders) - bad}/{len(shaders)} shaders compile")
-    return 1 if bad else 0
+    print(f"{len(shaders) - bad}/{len(shaders)} shaders compile; "
+          f"{len(LIBRARIES) - libs_bad}/{len(LIBRARIES)} Metal libraries compile")
+    return 1 if bad or libs_bad else 0
 
 
 if __name__ == "__main__":

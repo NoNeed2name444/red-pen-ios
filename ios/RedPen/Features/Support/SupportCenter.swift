@@ -309,7 +309,7 @@ struct SettingsPage: View {
         case .high:
             return "Graphics: High quality draws every star, link and glow in full, at up to 120 frames a second."
         case .smooth:
-            return "Graphics: Smooth uses lighter stars, links and glows and 60 frames a second in every look, for older phones that stutter."
+            return "Graphics: Smooth uses lighter stars, links and glows in every look, for older phones that stutter; it still runs at the screen's own frame rate."
         case .automatic:
             let now: String = smooth ? "Smooth" : "High quality"
             return "Graphics: Automatic picks Smooth on older phones, when the phone is warm or in Low Power Mode, and High quality otherwise - \(now) right now."

@@ -39,7 +39,7 @@ struct PictureFromPhotoView: View {
 /// Where the covers of a picture card go (Shared/OcclusionFilter.swift).
 enum OcclusionCovers {
     static let targetRGB: (red: Double, green: Double, blue: Double) = (255.0 / 255, 159.0 / 255, 122.0 / 255)
-    static let markRGB: (red: Double, green: Double, blue: Double) = (9.0 / 255, 14.0 / 255, 21.0 / 255)
+    static let markRGB: (red: Double, green: Double, blue: Double) = (1, 1, 1)
     static let otherRGB: (red: Double, green: Double, blue: Double) = (0.56, 0.58, 0.62)
     static let drawPadding: CGFloat = 0
     static let drawMinimum: CGFloat = 6

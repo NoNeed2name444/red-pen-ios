@@ -885,6 +885,25 @@ func flowInput() -> UniverseInput {
     return UniverseInput(notes: notes, folders: folders, edges: edges, seedByName: true)
 }
 
+/// The lift the planner chose for a Neurons map's top cells (A, from any
+/// cell's z over its u), and whether every top cell sits at A·u(id) with
+/// |z| <= A (T0057).
+func cellLift(_ plan: ThemePlan, byName: Bool) -> (Float, Bool) {
+    let tops: [ThemeBody] = plan.bodies.filter { $0.depth == 0 && $0.kind != .note }
+    // the plan may centre the map afterwards, so z is A·u(id) plus one
+    // shift for all: A from the two cells furthest apart in u
+    func key(_ body: ThemeBody) -> String { byName ? body.title : body.id.uuidString }
+    let sorted: [ThemeBody] = tops.sorted { GraphTilt.u(key($0)) < GraphTilt.u(key($1)) }
+    guard let low = sorted.first, let high = sorted.last, sorted.count > 1 else { return (0, true) }
+    let spread: Float = GraphTilt.u(key(high)) - GraphTilt.u(key(low))
+    let lift: Float = spread > 0.000_1 ? (high.home.z - low.home.z) / spread : 0
+    let shift: Float = low.home.z - GraphTilt.z(key(low), amplitude: lift)
+    let ok: Bool = lift >= -0.000_1 && tops.allSatisfy { body in
+        abs(body.home.z - shift - GraphTilt.z(key(body), amplitude: lift)) <= 0.001 + 0.001 * lift
+    }
+    return (lift, ok)
+}
+
 let flow: ThemePlan = GraphNeurons.plan(flowInput())
 if let zeta = bodyNamed(flow, "Zeta"), let mid = bodyNamed(flow, "Mid"), let alpha = bodyNamed(flow, "Alpha") {
     let z: ThemeBody = flow.bodies[zeta]
@@ -897,9 +916,14 @@ if let zeta = bodyNamed(flow, "Zeta"), let mid = bodyNamed(flow, "Mid"), let alp
     check("T5 Zeta faces Mid and Mid faces Alpha",
           (z.axis * toMid).sum() > 0.95 && (m.axis * toAlpha).sum() > 0.95, "\(z.axis) \(m.axis)")
     check("T5 Alpha, sending nowhere, faces down the sheet", a.axis == SIMD3<Float>(0, -1, 0), "\(a.axis)")
-    let biggest: Float = [z.sphere, m.sphere, a.sphere].max() ?? 0
-    check("T5 the sheet is flat, facing the camera",
-          [z, m, a].allSatisfy { abs($0.home.z) <= 0.3 * biggest + 0.02 }, "\([z.home.z, m.home.z, a.home.z])")
+    // T0057: the old random jitter (within 0.3 of the biggest cell) is now
+    // each cell's own bounded lift, A·u(id) (GraphTilt)
+    let xs: [Float] = [z, m, a].map { $0.home.x }
+    let ys: [Float] = [z, m, a].map { $0.home.y }
+    let reach: Float = ([z, m, a].map { $0.sphere }.max() ?? 0) * 2
+    let half: Float = max(xs.max()! - xs.min()!, ys.max()! - ys.min()!) * 0.5 + reach
+    check("T5 the sheet faces the camera, each cell within its bounded depth (0.35 of the half extent)",
+          [z, m, a].allSatisfy { abs($0.home.z) <= 0.35 * half + 0.02 }, "\([z.home.z, m.home.z, a.home.z])")
     check("T5 the processes run with the flow",
           Set(flow.links.map { "\(flow.bodies[$0.a].title)>\(flow.bodies[$0.b].title)" }) == ["Zeta>Mid", "Mid>Alpha"]
           && flow.links.allSatisfy { $0.kind == 6 }, "\(flow.links)")
@@ -1166,5 +1190,11 @@ check("T10 the per-frame check agrees with the full list", agree)
 check("T10 the rhythm follows the whole seed", NeuronImpulse.hash(5) == NeuronImpulse.hash(5)
       && NeuronImpulse.rhythm(seed: 1024 + 5) != NeuronImpulse.rhythm(seed: 5))
 
+for (name, plan, byName) in [("preview closed", closed, true), ("preview all open", openAll, true),
+                              ("dye", dyeShut, true)] {
+    let (lift, ok) = cellLift(plan, byName: byName)
+    print("A neurons \(name): \(lift)")
+    check("T5 \(name): every top cell at A·u(id), |z| <= A", ok)
+}
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)
