@@ -26,6 +26,9 @@ import java.util.regex.Pattern
 @RunWith(AndroidJUnit4::class)
 class ScreenshotTest {
     @get:Rule val compose = createComposeRule()
+    // textbook() opens a textbook for the first time, which puts Guess first over the app:
+    // the one learning sheet must not stay over the tests that run after it
+    @get:Rule val learnClosed = LearnRouterClosed()
     private fun store(): StudyStore {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         return StudyStore(File(context.cacheDir,"preview-${System.nanoTime()}")).also {it.loadExamples()}

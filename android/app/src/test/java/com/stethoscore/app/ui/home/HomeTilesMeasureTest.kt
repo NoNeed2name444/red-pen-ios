@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.StethoscoreApp
+import com.stethoscore.app.ui.learn.LearnRouterClosed
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -33,6 +34,7 @@ import org.robolectric.annotation.Config
 class HomeTilesMeasureTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @get:Rule val folder = TemporaryFolder()
+    @get:Rule val learnClosed = LearnRouterClosed()
 
     @Test fun homeWithTheExamplesMeasuresAndOpensTheTextbook() {
         val store = StudyStore(folder.newFolder("home")).also { it.loadExamples() }
