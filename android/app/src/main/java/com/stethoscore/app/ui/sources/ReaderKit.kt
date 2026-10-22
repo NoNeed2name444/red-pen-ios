@@ -43,9 +43,9 @@ import com.stethoscore.app.ui.ward.*
 // the iOS part it names, built from the Ward port (wardRaised, wardInset,
 // wardRelief, WardButtonBox, WardIconSquare, the type and the tokens): the
 // study header (StudyProgressHeader, ThinProgress), the bottom deck
-// (StudyActionBar), the empty state (WardEmptyState), the etched groove
-// (WardEtch), a tiled row (WardRowTile, WardRow), a form section and the
-// navigation bar's title with its Back or Done.
+// (StudyActionBar), the etched groove (WardEtch), a tiled row (WardRowTile,
+// WardRow), a form section and the navigation bar's title with its Back or
+// Done. The empty state is the Ward kit's (ui/ward/WardStates.kt).
 
 /** iOS WindowSpan.broad: 700 points and wider, where two columns stop being a squeeze. */
 internal fun isBroad(width: Dp): Boolean = width >= 700.dp
@@ -154,22 +154,6 @@ internal fun decodePicture(stored: String): ImageBitmap? = runCatching {
         WardTile(onFold, Modifier.padding(end = 12.dp).size(width = 44.dp, height = 28.dp).semantics { contentDescription = "Hide buttons" },
             cornerRadius = 14.0) {
             Icon(Icons.Rounded.KeyboardArrowDown, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(18.dp))
-        }
-    }
-}
-
-/** Nothing here yet (WardEmptyState): an icon square, a title, a line saying what to do, and the buttons that do it. */
-@Composable internal fun ReaderEmptyState(
-    icon: ImageVector, title: String, message: String? = null, tone: WardTone = WardTone.Blue,
-    modifier: Modifier = Modifier, actions: (@Composable ColumnScope.() -> Unit)? = null,
-) {
-    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 420.dp).padding(WardSpace.xl.wardDp), horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-            WardIconSquare(icon, tone = tone, size = 56.0)
-            Text(title, Modifier.semantics { heading() }, style = WardType.title.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
-            if (message != null) Text(message, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary), textAlign = TextAlign.Center)
-            if (actions != null) Column(Modifier.padding(top = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), content = actions)
         }
     }
 }

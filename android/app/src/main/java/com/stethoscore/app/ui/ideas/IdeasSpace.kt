@@ -34,7 +34,6 @@ import com.stethoscore.app.ui.map.Map3DView
 import com.stethoscore.app.ui.map.MapScene
 import com.stethoscore.app.ui.map.MapTheme
 import com.stethoscore.app.ui.sources.ReaderDoneButton
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderNavBar
 import com.stethoscore.app.ui.ward.*
 import com.stethoscore.app.ui.wardColor
@@ -79,7 +78,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
         when {
             demo != null -> DemoMap(demo, recenter)
             book.notes.isEmpty() -> Box(Modifier.fillMaxSize().background(wardColor(WardToken.background)).padding(bottom = hidden), contentAlignment = Alignment.Center) {
-                ReaderEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
+                WardEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
                     "Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
             }
             else -> NotesMap(book, settings, theme, recenter, open)

@@ -53,7 +53,6 @@ import com.stethoscore.app.ideas.noteKind
 import com.stethoscore.app.ui.LocalWardDark
 import com.stethoscore.app.ui.LocalWardLook
 import com.stethoscore.app.ui.sources.ReaderBackButton
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderNavBar
 import com.stethoscore.app.ui.sources.wardRowTile
 import com.stethoscore.app.ui.ward.*
@@ -241,7 +240,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
         }
         if (book.notes.isEmpty() && book.folders.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(bottom = bottom), contentAlignment = Alignment.Center) {
-                ReaderEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
+                WardEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
                     "Anything worth remembering: a mnemonic, a question to look up, a link between two topics. Join them up later on the board or in the space.") {
                     // gone once typing, when Send is the one main button
                     if (!typing) WardTextButton("Start typing", startTyping, kind = WardButtonKind.primary)

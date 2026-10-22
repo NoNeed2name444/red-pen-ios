@@ -69,7 +69,7 @@ import com.stethoscore.app.exam.NewSetPreset
 import com.stethoscore.app.exam.TargetExam
 import com.stethoscore.app.ui.editors.EcgLoader
 import com.stethoscore.app.ui.home.ExamCountdown
-import com.stethoscore.app.ui.mock.WardProgressBar
+import com.stethoscore.app.ui.ward.WardProgressBar
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.ReaderNavBar
 import com.stethoscore.app.ui.ward.WardButtonKind

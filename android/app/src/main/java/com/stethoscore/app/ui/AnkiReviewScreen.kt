@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardEmptyState
+import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardToken
 
 // The card review screens: one deck at a time, and everything due across the library. Ports
@@ -100,9 +102,9 @@ import com.stethoscore.app.ui.ward.WardToken
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 32.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     val next = CardReview.nextLine(store.nextDue(set), System.currentTimeMillis())
                     when {
-                        set.cards.isEmpty() -> EmptyState(Icons.Rounded.Inbox, "No cards yet", "This deck has no cards.", grey = true)
+                        set.cards.isEmpty() -> WardEmptyState(Icons.Rounded.Inbox, "No cards yet", "This deck has no cards.", WardTone.Grey)
                         reviewedCount > 0 -> FinishHero(Icons.Rounded.Verified, "Done for now", CardReview.doneLine(reviewedCount, next))
-                        else -> EmptyState(Icons.Rounded.Schedule, "Nothing to review", "No cards in this deck are due yet. $next")
+                        else -> WardEmptyState(Icons.Rounded.Schedule, "Nothing to review", "No cards in this deck are due yet. $next")
                     }
                 }
             }
@@ -178,7 +180,7 @@ import com.stethoscore.app.ui.ward.WardToken
             } else {
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 32.dp)) {
                     if (reviewedCount > 0) FinishHero(Icons.Rounded.Verified, "That's everything", CardReview.dueEmptyLine(reviewedCount))
-                    else EmptyState(Icons.Rounded.Schedule, "Nothing due today", CardReview.dueEmptyLine(reviewedCount))
+                    else WardEmptyState(Icons.Rounded.Schedule, "Nothing due today", CardReview.dueEmptyLine(reviewedCount))
                 }
             }
             ReviewUndoChip(undoUntil, { undoUntil = null }, ::undo)
@@ -260,17 +262,6 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
 @Composable private fun StudyBar(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxWidth().background(wardColor(WardToken.raised)).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Box(Modifier.widthIn(max = 700.dp)) { content() }
-    }
-}
-
-/** An empty state: a symbol on a soft disc, a title and what it means. */
-@Composable private fun EmptyState(icon: ImageVector, title: String, message: String, grey: Boolean = false) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.size(72.dp).background(wardColor(WardToken.well), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(32.dp), tint = if (grey) wardColor(WardToken.inkSecondary) else wardColor(WardToken.primaryInk))
-        }
-        Text(title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
-        Text(message, fontSize = 15.sp, textAlign = TextAlign.Center, color = wardColor(WardToken.inkSecondary))
     }
 }
 

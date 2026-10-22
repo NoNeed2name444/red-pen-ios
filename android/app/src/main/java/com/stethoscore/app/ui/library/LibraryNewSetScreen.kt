@@ -62,6 +62,7 @@ import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.modeIcon
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardIconSquare
@@ -229,7 +230,7 @@ import kotlinx.coroutines.withContext
                         when {
                             reading != null -> Text("Reading “$reading”…", style = WardTextStyle.footnote.textStyle(),
                                 color = wardColor(WardToken.ink), maxLines = 2)
-                            error != null -> LibraryBanner(error, Icons.Rounded.Warning, WardTone.Danger)
+                            error != null -> WardBanner(error, Icons.Rounded.Warning, WardTone.Danger)
                             else -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(sourceIcon(importSource), null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(16.dp))
                                 Text(importSource.help, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))

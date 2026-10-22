@@ -61,7 +61,7 @@ import com.stethoscore.app.ui.mock.FinishSymbol
 import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyProgressHeader
 import com.stethoscore.app.ui.mock.StudyTitleBar
-import com.stethoscore.app.ui.mock.WardEmptyState
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.mock.readableColumn
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardTimerPill

@@ -48,6 +48,7 @@ import com.stethoscore.app.quiz.MockSubjectScore
 import com.stethoscore.app.ui.QuizScreen
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardProgressBar
 import com.stethoscore.app.ui.ward.WardSectionLabel
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextStyle

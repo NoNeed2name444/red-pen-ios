@@ -24,8 +24,8 @@ import com.stethoscore.app.ui.QuizScreen
 import com.stethoscore.app.ui.StethoscoreTheme
 import com.stethoscore.app.ui.mock.MockPaperScreen
 import com.stethoscore.app.ui.sources.ReaderDoneButton
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderNavBar
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.wardColor
@@ -148,7 +148,7 @@ internal object LearnRouter {
             val set = LearnLibrary.singleQuestionQuiz(store, route.id)
             if (set != null) QuizScreen(set, store, done, onOpen = { done(); onOpenSet(it) }, keepsProgress = false)
             else Framed("") {
-                ReaderEmptyState(Icons.AutoMirrored.Rounded.HelpOutline, "That question has gone",
+                WardEmptyState(Icons.AutoMirrored.Rounded.HelpOutline, "That question has gone",
                     "It may have been deleted, or edited on another device.", modifier = Modifier.fillMaxSize())
             }
         }
@@ -156,7 +156,7 @@ internal object LearnRouter {
             val set = store.library.firstOrNull { it.id == route.id }
             Framed("Guess first") {
                 if (set != null) GuessFirstScreen(set)
-                else ReaderEmptyState(Icons.AutoMirrored.Rounded.HelpOutline, "That set has gone", modifier = Modifier.fillMaxSize())
+                else WardEmptyState(Icons.AutoMirrored.Rounded.HelpOutline, "That set has gone", modifier = Modifier.fillMaxSize())
             }
         }
     }

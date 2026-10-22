@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.OsceGenerator
 import com.stethoscore.app.data.OsceStations
 import com.stethoscore.app.ui.mock.CountField
-import com.stethoscore.app.ui.mock.WardBanner
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
@@ -242,7 +242,7 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
 
     @Composable fun Messages() {
         status?.let { Text(it, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary)) }
-        trouble?.let { WardBanner(WardTone.Danger, Icons.Rounded.Warning, it) }
+        trouble?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
     }
 
     @Composable fun Footer(text: String) {

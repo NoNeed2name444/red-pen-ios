@@ -104,6 +104,7 @@ import com.stethoscore.app.ui.WardOptionRow
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
@@ -311,7 +312,7 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
                 }
             }
             pick == null -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                WardEmptyState(Icons.Rounded.HelpOutline, "No questions", WardTone.Grey)
+                WardEmptyState(Icons.Rounded.HelpOutline, "No questions", tone = WardTone.Grey)
             }
             else -> {
                 val q = pick.question

@@ -50,12 +50,12 @@ import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.StudyActionBar
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
-import com.stethoscore.app.ui.sources.ReaderEmptyState
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardCircleButton
+import com.stethoscore.app.ui.ward.WardEmptyState
 import com.stethoscore.app.ui.ward.WardTextButton
 import com.stethoscore.app.ui.ward.WardTextField
 import com.stethoscore.app.ui.ward.WardTextStyle
@@ -109,7 +109,7 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
                 WardTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp), placeholder = "Search rules")
                 if (sheet.isEmpty()) ReaderFormSection {
                     Box(Modifier.fillMaxWidth().wardRowTile()) {
-                        ReaderEmptyState(Icons.AutoMirrored.Rounded.ListAlt, "No rules yet",
+                        WardEmptyState(Icons.AutoMirrored.Rounded.ListAlt, "No rules yet",
                             "Every question you get wrong can leave one line here to remember. Add them from a quiz’s results, or from your recent mistakes below.")
                     }
                 }
