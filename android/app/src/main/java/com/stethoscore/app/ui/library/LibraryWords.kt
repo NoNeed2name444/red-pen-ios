@@ -63,9 +63,9 @@ enum class StudyCategory(val title: String) {
             else -> emptyList()
         }
         FeatureGroup.TOOLS -> when (this) {
-            QUESTIONS -> listOf(CategoryFeature.SUBJECTS, CategoryFeature.ADD)
-            CARDS, OSCE, AUDIO -> listOf(CategoryFeature.ADD)
-            CASES -> emptyList()
+            QUESTIONS -> listOf(CategoryFeature.SUBJECTS, CategoryFeature.ADD, CategoryFeature.TURN)
+            CARDS, OSCE, AUDIO -> listOf(CategoryFeature.ADD, CategoryFeature.TURN)
+            CASES -> listOf(CategoryFeature.TURN)
         }
     }
 
@@ -106,7 +106,8 @@ enum class CategoryFeature(val rawValue: String, val title: String, val detail: 
     ONE("one", "Just one", "A single question"),
     SUBJECTS("subjects", "By subject", "Your score in each subject"),
     DUE("due", "Due cards", "Cards waiting today"),
-    ADD("add", "Paste or import", "Type, paste, or open Anki, Quizlet or CSV");
+    ADD("add", "Paste or import", "Type, paste, or open Anki, Quizlet or CSV"),
+    TURN("turn", "Turn into\u2026", "Make a set another mode");
 
     /** The kind of set this mode's page lists, for the mode tiles. */
     val shelfKind: StudySetKind? get() = when (this) {
@@ -267,6 +268,17 @@ object NewSetWords {
         val ready = "$count ${noun(kind)}$plural ready."
         if (name.trim().isEmpty()) return "$ready Give the set a name to save it."
         return ready
+    }
+
+    /**
+     * Whose Make the dock floats on step 3 of the lecture path (iOS
+     * NewSetView.floatingID, NewSetView.swift:562-575): the questions' or the
+     * patients' writer; the other kinds have no writer here yet.
+     */
+    fun floatingID(kind: StudySetKind): String? = when (kind) {
+        StudySetKind.MCQ -> "mcq"
+        StudySetKind.CASES -> "cases"
+        else -> null
     }
 
     /** The dock's hint while the material step cannot go on. */

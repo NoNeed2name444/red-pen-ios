@@ -69,6 +69,10 @@ import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.AccuracyAsk
+import com.stethoscore.app.ui.AccuracyWhySheet
+import com.stethoscore.app.ui.CheckAccuracyMenuItem
+import com.stethoscore.app.ui.StudyMoreButton
 import kotlinx.coroutines.delay
 
 // Port of ios/RedPen/Features/OSCE/OsceReviewView.swift.
@@ -81,8 +85,9 @@ import kotlinx.coroutines.delay
 // can say which steps tripped the student up. When a checklist is got all the
 // way through, move on to the next one in the set.
 //
-// Not ported: the spoken patient (the Voice batch), Check accuracy and Save
-// to Ideas (with their More menu), the accuracy badge and keyboard shortcuts.
+// More holds Check accuracy (iOS studyMoreMenu, T0115b2). Not ported: the
+// spoken patient (the Voice batch), Turn into, Report a problem, Save to
+// Ideas, the accuracy badge and keyboard shortcuts.
 
 /** Spoken length of the station clock ("7 minutes 5 seconds"), as iOS's SpokenText.duration. */
 internal fun spokenDuration(seconds: Int): String {
@@ -123,6 +128,14 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
     val checklist = checklists.getOrNull(checklistIndex)
     val complete = run.complete
     val currentStepText = checklist?.steps?.getOrNull(run.stepIndex)
+    var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    var turning by remember(set.id) { mutableStateOf<StudySet?>(null) }
+    // What Check accuracy looks at: the station on screen (iOS OsceReviewView accuracyAsk)
+    val accuracyAsk = AccuracyAsk("Write an OSCE station checklist, in the order the steps are performed, from the source.") {
+        checklist?.let { c -> c.title + "\n" + c.steps.joinToString("\n") { "- " + it } }
+    }
+    verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
+    com.stethoscore.app.ui.library.TurnIntoPickerHost(turning, store) { turning = null }
 
     fun keepPlace() {
         // The whole set finished is not a position to come back to.
@@ -223,7 +236,13 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
     }
 
     Column(Modifier.fillMaxSize()) {
-        StudyTitleBar(set.subject.ifEmpty { "OSCE" }, onBack)
+        StudyTitleBar(set.subject.ifEmpty { "OSCE" }, onBack) {
+            // More: Check accuracy for the station on screen, and Turn into (iOS OsceReviewView's studyMoreMenu)
+            StudyMoreButton { close ->
+                CheckAccuracyMenuItem(accuracyAsk, set, close) { verifying = it }
+                com.stethoscore.app.ui.library.TurnIntoMenuItem(close) { turning = set }
+            }
+        }
         if (checklist == null) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 WardEmptyState(Icons.Rounded.Checklist, "No checklists in this set.")

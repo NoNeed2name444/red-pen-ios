@@ -77,8 +77,9 @@ import kotlin.math.abs
 // says is decided, and tested, in quiz/ (ChartQuiz, OptionOrder, TwinRetest,
 // SpokenText).
 //
-// Not here yet, because their batches have not come: the accuracy badge,
-// Check accuracy and Turn into in the More menu, Save to Ideas, How to reach
+// Check accuracy is in the More menu (iOS studyMoreMenu, T0115b2), opening
+// AccuracyWhySheet. Not here yet, because their batches have not come: the
+// accuracy badge, Turn into, Report a problem, Save to Ideas, How to reach
 // it (Reasoning), and the keyboard shortcuts. Android has no question writer,
 // so the hint is always the attending's own (AttendingHint.fallback) and
 // Write a twin says that none is set up.
@@ -154,6 +155,10 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     var flagged by remember { mutableStateOf(store.flagged) }
     var saved by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    // the item Check accuracy shows (iOS StudyMoreMenu's verifying)
+    var verifying by remember { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    // the set whose "Turn into…" picker is up (iOS StudyMoreMenu's turning)
+    var turning by remember { mutableStateOf<StudySet?>(null) }
 
     if (set.questions.isEmpty()) {
         Column(Modifier.fillMaxSize().padding(WardSpace.gutter.wardDp)) {
@@ -169,6 +174,15 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     }
 
     val questions = reordered ?: set.questions
+    // What Check accuracy looks at: the question on screen, and only once it
+    // has been answered, because the check shows the answer (iOS MCQQuizView accuracyAsk)
+    val accuracyAsk = AccuracyAsk("Write a single-best-answer medical exam question, with its answer and explanation, from the source.",
+        item = { questions.getOrNull(current)?.let { com.stethoscore.app.accuracy.AccuracyItem.mcq(it) } }) {
+        val q = questions.getOrNull(current)
+        if (examMode || q == null || answers.getOrNull(current)?.checked != true) null
+        else (listOf(q.stem) + q.options.mapIndexed { i, o -> "${letter(minOf(i, 5))}. $o" } +
+            listOf("Answer: " + letter(q.correctIndex.coerceIn(0, 5)), "Explanation: " + q.explanation)).joinToString("\n")
+    }
     if (current !in questions.indices) current = questions.lastIndex
     val q = questions[current]
     val a = answers.getOrElse(current) { MCQAnswer() }
@@ -379,6 +393,10 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                     }
                     ExamToolMenuItems(track, highlighting, onSheet = { menuOpen = false; toolSheet = it },
                         onHighlight = { menuOpen = false; highlighting = !highlighting })
+                    HorizontalDivider()
+                    CheckAccuracyMenuItem(accuracyAsk, set, { menuOpen = false }) { verifying = it }
+                    // not for a quiz that is not saved yet, nor in the middle of a timed paper
+                    if (!isUnsaved && examEndsAt == null) com.stethoscore.app.ui.library.TurnIntoMenuItem({ menuOpen = false }) { turning = set }
                     if (examEndsAt == null) {
                         HorizontalDivider()
                         DropdownMenuItem(text = { Text("Clinical reference") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
@@ -588,8 +606,10 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     }
     ExamToolSheets(toolSheet, track) { toolSheet = null }
     if (pocketOpen) com.stethoscore.app.ui.exam.ExamSheet({ pocketOpen = false }) {
-        com.stethoscore.app.ui.exam.WardPocketScreen(track, { pocketOpen = false }, { made -> runCatching { store.addSet(made) } })
+        com.stethoscore.app.ui.exam.WardPocketScreen(track, { pocketOpen = false }, { made -> runCatching { store.addSet(made) } }, store = store)
     }
+    verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
+    com.stethoscore.app.ui.library.TurnIntoPickerHost(turning, store) { turning = null }
 }
 
 /** A skippable question's lead line, tagged optional. */

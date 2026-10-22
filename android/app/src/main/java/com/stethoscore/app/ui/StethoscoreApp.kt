@@ -164,6 +164,11 @@ import kotlinx.coroutines.withContext
         edit={ set -> selectedId=set.id;screen="edit" },
         addMaterial={ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;newStep=com.stethoscore.app.ui.library.NewSetStep.MATERIAL;screen="newset" },
     )
+    // "Turn into…": an instant set opens straight away, in place of whatever
+    // was open; a written one goes to New set, filled in (iOS LibraryView's modeSwitch)
+    val modeSwitch=com.stethoscore.app.ui.library.ModeSwitch
+    LaunchedEffect(modeSwitch.opening) { modeSwitch.opening?.let { set -> modeSwitch.opening=null;refresh();open(set) } }
+    LaunchedEffect(modeSwitch.writing) { modeSwitch.writing?.let { p -> modeSwitch.writing=null;newPreset=p;screen="new" } }
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
     BackHandler(screen!="home") { when(screen) { "sources", "exam", "models" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
@@ -209,7 +214,10 @@ import kotlinx.coroutines.withContext
                             else -> ClinicalScreen(set,store,::goHome)
                         } else LaunchedEffect(Unit) { goHome() }
                     }
-                    "new" -> NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { newPreset=null;refresh();open(set) }.onFailure { notice=it.message } },::goHome,newPreset)
+                    // a preset (Coverage's Generate questions, the exam card's Study next) opens New set on
+                    // Make with its writer (iOS NewSetView(preset:)); Your lectures' New set is the plain one
+                    "new" -> newPreset?.let { p -> key(p) { com.stethoscore.app.ui.library.LibraryNewSetScreen(store,p.kind,::goHome,::goHome,preset=p) } }
+                        ?: NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { newPreset=null;refresh();open(set) }.onFailure { notice=it.message } },::goHome,null)
                     "quick" -> quick?.let { q -> QuizScreen(q,store,{ quick=null;goHome() },onOpen={ refresh();open(it) },keepsProgress=false) } ?: LaunchedEffect(Unit) { goHome() }
                     "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome) { newPreset=it;screen="new" }
@@ -217,7 +225,9 @@ import kotlinx.coroutines.withContext
                     "due" -> DueTodayScreen(store,::goHome)
                     "libquiz" -> libQuiz?.let { q -> QuizScreen(q.set,store,::goHome,keepsProgress=false,minReadSeconds=q.minReadSeconds,startsTimed=q.timed) } ?: LaunchedEffect(Unit) { goHome() }
                     "libreview" -> libReview?.let { AnkiReviewScreen(it,store,::goHome) } ?: LaunchedEffect(Unit) { goHome() }
-                    "shelf" -> com.stethoscore.app.ui.library.KindShelfScreen(com.stethoscore.app.ui.library.CategoryFeature.entries.first { it.rawValue==shelf },store,revision,::goHome,::open) { newKind=it;screen="newset" }
+                    // the Turn into… tile's page lists the category's sets (iOS TurnIntoListView)
+                    "shelf" -> if(shelf==com.stethoscore.app.ui.library.CategoryFeature.TURN.rawValue) com.stethoscore.app.ui.library.TurnIntoListScreen(com.stethoscore.app.ui.library.StudyCategory.named(category).kinds,store,revision,::goHome)
+                        else com.stethoscore.app.ui.library.KindShelfScreen(com.stethoscore.app.ui.library.CategoryFeature.entries.first { it.rawValue==shelf },store,revision,::goHome,::open) { newKind=it;screen="newset" }
                     "stats" -> com.stethoscore.app.ui.library.StatsScreen(store,revision,::goHome) { libQuiz=it;screen="libquiz" }
                     "newset" -> com.stethoscore.app.ui.library.LibraryNewSetScreen(store,newKind,::goHome,::goHome,newStep)
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
@@ -337,7 +347,8 @@ import kotlinx.coroutines.withContext
                 }
                 if(screen=="home") {
                     com.stethoscore.app.ui.library.LibraryOverlays(store,lib,libActions)
-                    com.stethoscore.app.ui.library.IncomingImportHost(store,busy=notice!=null || lib.naming!=null || lib.session!=null || lib.pendingDelete!=null,onChanged=::refresh)
+                    com.stethoscore.app.ui.library.IncomingImportHost(store,busy=notice!=null || lib.naming!=null || lib.session!=null || lib.pendingDelete!=null || lib.turning!=null,onChanged=::refresh,
+                        onLecture={ newPreset=it;screen="new" })
                 }
                 if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("Done")}})
                 notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("Done")}}) }

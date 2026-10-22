@@ -136,11 +136,15 @@ internal fun wardCalcIcon(calc: WardCalc): ImageVector = when (calc.symbol) {
 
 /**
  * The Ward pocket. [track] sets the units it opens in (US conventional for a
- * USMLE track, SI for every other); "Practise this" opens New set, and a set
- * made there goes to [onSaveSet].
+ * USMLE track, SI for every other); "Practise this" opens New set. Given the
+ * [store], it is New set on Make with the question writer, the calculator's
+ * notes as its material (iOS WardPocketView's NewSetView(preset:),
+ * WardPocketView.swift:80); without one, the plain New set, whose set goes
+ * to [onSaveSet].
  */
 @Composable
-fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet) -> Unit, start: WardPocketTab = WardPocketTab.calculators) {
+fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet) -> Unit, start: WardPocketTab = WardPocketTab.calculators,
+                     store: com.stethoscore.app.data.StudyStore? = null) {
     var tab by rememberSaveable { mutableStateOf(start) }
     var conventional by rememberSaveable { mutableStateOf(LabUnits.conventional(track)) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -151,7 +155,8 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
     val preset = practice
     if (preset != null) {
         BackHandler { practice = null }
-        NewSetScreen({ set -> onSaveSet(set); practice = null }, { practice = null }, preset = preset)
+        if (store != null) com.stethoscore.app.ui.library.LibraryNewSetScreen(store, preset.kind, { practice = null }, { practice = null }, preset = preset)
+        else NewSetScreen({ set -> onSaveSet(set); practice = null }, { practice = null }, preset = preset)
         return
     }
     val calc = WardCalc.from(calcId)

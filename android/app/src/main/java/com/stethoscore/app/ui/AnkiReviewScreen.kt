@@ -23,6 +23,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,8 +38,9 @@ import com.stethoscore.app.ui.ward.*
 // for iOS's StudyProgressHeader and big button styles until the Ward surfaces and controls
 // batches bring the shared ones. The bar is the Ward kit's StudyActionBar (ui/ward/WardDeck.kt).
 //
-// Not carried over, because Android has no such feature yet: Quiz me (QuizFromCards), Check
-// accuracy and its badge, Save to Ideas, opening a citation's lecture page, and Due today's
+// Check accuracy is in More (iOS studyMoreMenu, T0115b2), opening AccuracyWhySheet. Not carried
+// over, because Android has no such feature yet: Quiz me (QuizFromCards), the accuracy badge,
+// Turn into, Report a problem, Save to Ideas, opening a citation's lecture page, and Due today's
 // Listen (commute mode).
 
 /** One deck's review. */
@@ -48,6 +50,9 @@ import com.stethoscore.app.ui.ward.*
     var reviewedCount by remember(set.id) { mutableIntStateOf(0) }
     var studyingAhead by remember(set.id) { mutableStateOf(false) }
     var undoUntil by remember(set.id) { mutableStateOf<Long?>(null) }
+    var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
+    // the set whose "Turn into…" picker is up (iOS StudyMoreMenu's turning)
+    var turning by remember(set.id) { mutableStateOf<StudySet?>(null) }
     // a return to this screen is not a new sitting
     if (queue == null) { queue = store.queue(set); revealed = startRevealed }
     val items = queue.orEmpty()
@@ -80,10 +85,12 @@ import com.stethoscore.app.ui.ward.*
     val header = CardReview.deckHeader(items.size, reviewedCount, studyingAhead)
     ReviewKeys(revealed = revealed, hasCard = current != null, onReveal = { revealed = true }, onRate = ::rate, onUndo = { if (undoUntil != null) undo() },
         onReturn = { if (current == null) { if (canStudyAhead) studyAhead() else onBack() } }) {
-        ReviewTopBar(set.subject.ifEmpty { "Cards" }, onBack, if (current == null) emptyList() else listOf(
+        // Turn into is the deck's, so it stays when no card is on screen
+        ReviewTopBar(set.subject.ifEmpty { "Cards" }, onBack, (if (current == null) emptyList() else listOf(
             MenuEntry("Bury until tomorrow", Icons.Rounded.Bedtime, ::bury),
             MenuEntry("Suspend this card", Icons.Rounded.PauseCircle, ::suspend),
-        ))
+            MenuEntry("Check accuracy", Icons.Rounded.VerifiedUser, { cardAsk(current.card).verifying(set)?.let { verifying = it } }, "checkAccuracy"),
+        )) + MenuEntry("Turn into\u2026", Icons.Rounded.Autorenew, { turning = set }, "turnInto"))
         ProgressHeader(header)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (current != null) {
@@ -115,6 +122,8 @@ import com.stethoscore.app.ui.ward.*
             } else CardsPrimaryButton("Done", onBack, Modifier.fillMaxWidth())
         }
     }
+    verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
+    com.stethoscore.app.ui.library.TurnIntoPickerHost(turning, store) { turning = null }
 }
 
 /** Everything due right now, from every deck at once. */
@@ -125,6 +134,7 @@ import com.stethoscore.app.ui.ward.*
     var undoUntil by remember { mutableStateOf<Long?>(null) }
     // where the undone card came from, so it can go back in front
     var lastRated by remember { mutableStateOf<ReviewPlan.Due?>(null) }
+    var verifying by remember { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
     if (queue == null) { queue = store.dueAcross(); revealed = false }
     val items = queue.orEmpty()
     val due = items.firstOrNull()
@@ -159,6 +169,7 @@ import com.stethoscore.app.ui.ward.*
         ReviewTopBar("Due today", onBack, if (due != null && deckOf(due) != null) listOf(
             MenuEntry("Bury until tomorrow", Icons.Rounded.Bedtime, ::bury),
             MenuEntry("Suspend this card", Icons.Rounded.PauseCircle, ::suspend),
+            MenuEntry("Check accuracy", Icons.Rounded.VerifiedUser, { deckOf(due)?.let { cardAsk(due.card).verifying(it) }?.let { verifying = it } }, "checkAccuracy"),
         ) else emptyList())
         ProgressHeader(header)
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -187,6 +198,7 @@ import com.stethoscore.app.ui.ward.*
             } else CardsPrimaryButton("Done", onBack, Modifier.fillMaxWidth())
         }
     }
+    verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
 }
 
 /**
@@ -210,7 +222,13 @@ import com.stethoscore.app.ui.ward.*
 
 private val ratingKeys = listOf(Key.One, Key.Two, Key.Three, Key.Four)
 
-private data class MenuEntry(val title: String, val icon: ImageVector, val action: () -> Unit)
+private data class MenuEntry(val title: String, val icon: ImageVector, val action: () -> Unit, val tag: String? = null)
+
+/** What Check accuracy looks at on a card (iOS AnkiReviewView and DueTodayView accuracyAsk). */
+private fun cardAsk(card: AnkiCard): AccuracyAsk =
+    AccuracyAsk("Write a flashcard (question and answer) from the source.", item = { com.stethoscore.app.accuracy.AccuracyItem.card(card) }) {
+        (listOf(card.front, card.clozeText) + card.bullets + listOf(card.why)).filter { it.isNotEmpty() }.joinToString("\n")
+    }
 
 /** Back, the screen's title inline, and More with what can be done to the card on screen (StudyTitleBar). */
 @Composable private fun ReviewTopBar(title: String, onBack: () -> Unit, menu: List<MenuEntry>) {
@@ -220,7 +238,8 @@ private data class MenuEntry(val title: String, val icon: ImageVector, val actio
             // with nothing to do, More is a disabled circle: Biro Grey, solid, never faded
             WardCircleButton(Icons.Rounded.MoreHoriz, "More", { open = true }, enabled = menu.isNotEmpty())
             DropdownMenu(open, { open = false }) {
-                menu.forEach { entry -> DropdownMenuItem(text = { Text(entry.title) }, leadingIcon = { Icon(entry.icon, null) }, onClick = { open = false; entry.action() }) }
+                menu.forEach { entry -> DropdownMenuItem(text = { Text(entry.title) }, leadingIcon = { Icon(entry.icon, null) }, onClick = { open = false; entry.action() },
+                    modifier = entry.tag?.let { Modifier.testTag(it) } ?: Modifier) }
             }
         }
     }
