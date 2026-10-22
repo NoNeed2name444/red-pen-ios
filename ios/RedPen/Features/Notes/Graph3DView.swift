@@ -153,7 +153,7 @@ struct Graph3DView: View {
             } else if let built {
                 space(built)
             } else {
-                ProgressView()
+                EcgLoader()
             }
         }
         .task(id: signature) { await rebuild() }
