@@ -41,13 +41,14 @@ enum class WardSection {
     fun ink(dark: Boolean): Int = ink.of(dark)
 
     /**
-     * The wash behind every page: the base mixed toward the section's fill
-     * in linear light (WardPalette.mix): 0.06 by day, 0.10 at night.
+     * The wash behind every page, pinned to its value at 7af549b (before the
+     * owner's ten colours): the base mixed toward the section's fill of then
+     * in linear light (WardPalette.mix), 0.06 by day, 0.10 at night. It no
+     * longer follows the fill, so a new fill leaves the grounds as they were.
      */
-    val wash: WardPair get() = WardPair(wash(false), wash(true))
+    val wash: WardPair get() = washes.getValue(this)
 
-    fun wash(dark: Boolean): Int =
-        WardPalette.mix(WardPalette.hex(WardToken.background, dark), fill(dark), if (dark) 0.10 else 0.06)
+    fun wash(dark: Boolean): Int = wash.of(dark)
 
     companion object {
         /**
@@ -68,17 +69,35 @@ enum class WardSection {
         val semanticTokens: List<WardToken> =
             listOf(WardToken.success, WardToken.danger, WardToken.warning, WardToken.ecg, WardToken.beam)
 
-        // Generated on iOS by tools/ward_accents.py; copied verbatim.
+        // The owner's 2026-10-21 hexes, exactly, in every role and both modes
+        // (the mapping of docs/design/palette-2026-10-21.md).
         // (ink, accent, fill) as (light, dark) 0xRRGGBB.
         private val table: Map<WardSection, WardSectionColours> by lazy {
             mapOf(
-                questions to WardSectionColours(23.0, WardPair(0xBE2130, 0xFEBAB5), WardPair(0x8A0219, 0xFEBAB5), WardPair(0xFF6B6B, 0xFF6B6B)),
-                cards to WardSectionColours(260.0, WardPair(0x2A71E5, 0x84B2FD), WardPair(0x0251C2, 0x84B2FD), WardPair(0x3B82F6, 0x3B82F6)),
-                textbook to WardSectionColours(182.0, WardPair(0x157C70, 0x1EC8B4), WardPair(0x0A574D, 0x1EC8B4), WardPair(0x14B8A6, 0x14B8A6)),
-                cases to WardSectionColours(42.0, WardPair(0xCE4F08, 0xFE9F79), WardPair(0x983803, 0xFF9F7A), WardPair(0xFF9F7A, 0xFF9F7A)),
-                osce to WardSectionColours(129.0, WardPair(0x476A05, 0xAFE172), WardPair(0x2D4601, 0xA3E635), WardPair(0xA3E635, 0xA3E635)),
-                audio to WardSectionColours(294.0, WardPair(0x845BDD, 0xB097FD), WardPair(0x6538B8, 0xB097FD), WardPair(0xA78BFA, 0xA78BFA)),
-                ideas to WardSectionColours(350.0, WardPair(0xCA3F8D, 0xF383BB), WardPair(0xA00B69, 0xF383BB), WardPair(0xF472B6, 0xF472B6)),
+                questions to WardSectionColours(23.0, WardPair(0xFF6B6B, 0xFF6B6B), WardPair(0xFF6B6B, 0xFF6B6B), WardPair(0xFF6B6B, 0xFF6B6B)),
+                cards to WardSectionColours(260.0, WardPair(0x3B82F6, 0x3B82F6), WardPair(0x3B82F6, 0x3B82F6), WardPair(0x3B82F6, 0x3B82F6)),
+                textbook to WardSectionColours(182.0, WardPair(0x14B8A6, 0x14B8A6), WardPair(0x14B8A6, 0x14B8A6), WardPair(0x14B8A6, 0x14B8A6)),
+                cases to WardSectionColours(42.0, WardPair(0xFF9F7A, 0xFF9F7A), WardPair(0xFF9F7A, 0xFF9F7A), WardPair(0xFF9F7A, 0xFF9F7A)),
+                osce to WardSectionColours(129.0, WardPair(0xA3E635, 0xA3E635), WardPair(0xA3E635, 0xA3E635), WardPair(0xA3E635, 0xA3E635)),
+                audio to WardSectionColours(294.0, WardPair(0xA78BFA, 0xA78BFA), WardPair(0xA78BFA, 0xA78BFA), WardPair(0xA78BFA, 0xA78BFA)),
+                ideas to WardSectionColours(350.0, WardPair(0xF472B6, 0xF472B6), WardPair(0xF472B6, 0xF472B6), WardPair(0xF472B6, 0xF472B6)),
+            )
+        }
+
+        // Each section's wash as it was at 7af549b, (light, dark) 0xRRGGBB:
+        // the base mixed toward that commit's fill (questions #C03946/#CB3E4B,
+        // cards #5260BC/#5A68C5, textbook #227D75/#258279, cases
+        // #AC5A21/#B05C23, osce #3D7C49/#42814F, audio #8150AD/#8B57B8, ideas
+        // #B23E86/#BA438E).
+        private val washes: Map<WardSection, WardPair> by lazy {
+            mapOf(
+                questions to WardPair(0xE7E7EC, 0x49212A),
+                cards to WardPair(0xE3E8EF, 0x242B4C),
+                textbook to WardPair(0xE3E8ED, 0x193335),
+                cases to WardPair(0xE6E7EC, 0x402824),
+                osce to WardPair(0xE3E8EC, 0x1E322B),
+                audio to WardPair(0xE4E7EF, 0x332747),
+                ideas to WardPair(0xE6E7ED, 0x43223A),
             )
         }
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Home's ground for the section home opens on, dark (see values/colors.xml). -->
-    <color name="ward_ground">#FF5C2C31</color>
+    <color name="ward_ground">#FF49212A</color>
 </resources>

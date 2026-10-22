@@ -184,20 +184,11 @@ data class DeckPalette(val red: Double, val green: Double, val blue: Double) {
     /** White words read 4.5:1 on it (WCAG AA). */
     val carriesWhiteText: Boolean get() = 1.05 / (wcagLuminance + 0.05) >= 4.5
 
-    /** A bar under white words: the tint, or the lightest shade of it from 0.38 down that carries white. */
-    fun barFill(): DeckPalette {
-        if (carriesWhiteText) return this
-        var amount = 0.38
-        while (!shade(amount).carriesWhiteText && amount < 1) amount += 0.02
-        return shade(amount)
-    }
+    /** A bar under white words: the mode's colour itself, the owner's exact hex (no shade). */
+    fun barFill(): DeckPalette = this
 
-    /** Words in the mode's colour on the paper: the lightest shade from 0.10 down that reads 5:1 on white. */
-    fun ink(): DeckPalette {
-        var amount = 0.10
-        while (1.05 / (shade(amount).wcagLuminance + 0.05) < 5 && amount < 1) amount += 0.02
-        return shade(amount)
-    }
+    /** Words in the mode's colour on the paper: the mode's colour itself, the owner's exact hex (no shade). */
+    fun ink(): DeckPalette = this
 
     companion object {
         private fun hex(rgb: Int) = DeckPalette(((rgb shr 16) and 0xFF) / 255.0, ((rgb shr 8) and 0xFF) / 255.0, (rgb and 0xFF) / 255.0)

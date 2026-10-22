@@ -16,14 +16,36 @@ class WardGroundTest {
     private val modes = listOf(false, true)
     private fun mode(dark: Boolean) = if (dark) "dark" else "light"
 
+    // The grounds are pinned to 7af549b, before the owner's ten colours, so
+    // they no longer follow the fills: each section's fill then, and the wash
+    // it made (light, dark).
+    private val fillsAt7af549b = mapOf(
+        WardSection.questions to WardPair(0xC03946, 0xCB3E4B),
+        WardSection.cards to WardPair(0x5260BC, 0x5A68C5),
+        WardSection.textbook to WardPair(0x227D75, 0x258279),
+        WardSection.cases to WardPair(0xAC5A21, 0xB05C23),
+        WardSection.osce to WardPair(0x3D7C49, 0x42814F),
+        WardSection.audio to WardPair(0x8150AD, 0x8B57B8),
+        WardSection.ideas to WardPair(0xB23E86, 0xBA438E),
+    )
+    private val washesAt7af549b = mapOf(
+        WardSection.questions to WardPair(0xE7E7EC, 0x49212A),
+        WardSection.cards to WardPair(0xE3E8EF, 0x242B4C),
+        WardSection.textbook to WardPair(0xE3E8ED, 0x193335),
+        WardSection.cases to WardPair(0xE6E7EC, 0x402824),
+        WardSection.osce to WardPair(0xE3E8EC, 0x1E322B),
+        WardSection.audio to WardPair(0xE4E7EF, 0x332747),
+        WardSection.ideas to WardPair(0xE6E7ED, 0x43223A),
+    )
+
     @Test fun eachSectionsWash() = checks {
         for (dark in modes) {
             val chartInk = WardPalette.hex(WardToken.ink, dark)
             val biroGrey = WardPalette.hex(WardToken.inkSecondary, dark)
             for (s in WardSection.entries) {
                 val wash = s.wash(dark)
-                check("${mode(dark)} $s: wash is the base mixed toward the fill (0.06 by day, 0.10 at night)",
-                    wash == WardPalette.mix(WardPalette.hex(WardToken.background, dark), s.fill(dark), if (dark) 0.10 else 0.06) &&
+                check("${mode(dark)} $s: wash is the base mixed toward its 7af549b fill (0.06 by day, 0.10 at night)",
+                    wash == WardPalette.mix(WardPalette.hex(WardToken.background, dark), fillsAt7af549b.getValue(s).of(dark), if (dark) 0.10 else 0.06) &&
                         s.wash.of(dark) == wash, hx(wash))
                 val cChart = WardPalette.contrast(chartInk, wash)
                 check("${mode(dark)} $s: Chart Ink keeps 4.5:1 on its wash", cChart >= 4.5, "${hx(wash)} ${f2(cChart)}")
@@ -44,6 +66,41 @@ class WardGroundTest {
         now.set(shift)
         val expect = WardPalette.mix(WardSection.cards.wash(false), WardSection.questions.wash(false), shift.eased)
         check("mid-shift, wash is linear-light mix", now.wash(false) == expect, "${hx(now.wash(false))} vs ${hx(expect)}")
+    }
+
+    // The backgrounds are exactly as they were at 7af549b, whatever the
+    // fills: every section's wash, the outside look's ground, home's ground
+    // and the window's and the splash's (ward_ground), and the neutral tiers
+    // the dock's panel and the bottom deck's slab stand on.
+    @Test fun theGroundsAreAsAt7af549b() = checks {
+        for (dark in modes) {
+            for (s in WardSection.entries) {
+                val want = washesAt7af549b.getValue(s).of(dark)
+                check("${mode(dark)} $s: the wash is 7af549b's", s.wash(dark) == want, "${hx(s.wash(dark))} vs ${hx(want)}")
+                check("${mode(dark)} $s: home's ground stands on it", WardGround.home(s, dark).base == want, hx(WardGround.home(s, dark).base))
+            }
+            val outside = WardGround.home(WardSection.outside, dark).base
+            check("${mode(dark)}: the outside look's ground is 7af549b's", outside == (if (dark) 0x242B4C else 0xE3E8EF), hx(outside))
+            val home = WardGround.home(dark = dark).base
+            check("${mode(dark)}: home's ground (Questions) is 7af549b's", home == (if (dark) 0x49212A else 0xE7E7EC), hx(home))
+            val res = colour(if (dark) "values-night" else "values", "ward_ground")
+            check("${mode(dark)}: ward_ground, the window's and the splash's ground, is 7af549b's",
+                res == (if (dark) 0x49212A else 0xE7E7EC), res?.let(::hx) ?: "none")
+        }
+        // the base, cards and the dock's and deck's slabs (surface), sheets (raised) and wells
+        val tiers = mapOf(
+            WardToken.background to WardPair(0xE9EDF2, 0x171C24),
+            WardToken.surface to WardPair(0xEEF1F5, 0x242B35),
+            WardToken.raised to WardPair(0xF1F4F8, 0x2E353F),
+            WardToken.well to WardPair(0xDDE2E8, 0x090E15),
+        )
+        for ((token, pair) in tiers) for (dark in modes) {
+            val hex = WardPalette.hex(token, dark)
+            check("${mode(dark)} $token is 7af549b's", hex == pair.of(dark), hx(hex))
+            for (s in WardSection.entries) {
+                check("${mode(dark)} $token stays put in $s", WardGlide.rest(WardLook(dark, s)).hex(token, dark) == pair.of(dark))
+            }
+        }
     }
 
     @Test fun theOpeningsGroundIsHomes() = checks {

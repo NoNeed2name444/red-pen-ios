@@ -15,9 +15,10 @@ import kotlin.math.pow
 // from the ground by its relief (WardRelief) and a whisper of colour, never by
 // an edge. Day is cool grey paper (#E9EDF2) with slate Chart Ink; night is a
 // deep blue-black ward (#171C24) with near-white ink. The primary is Cards'
-// Care Blue (WardSection.outside), the look outside any section. Every hue is
-// the owner's 2026-10-21 palette (iOS repo docs/design/palette-2026-10-21.md);
-// words on any fill are near-black (onPrimary), as white reads under 4.5:1.
+// Care Blue (WardSection.outside), the look outside any section. Every accent
+// is the owner's 2026-10-21 hex exactly, in both modes (iOS repo
+// docs/design/palette-2026-10-21.md, its mapping); words on a fill are white
+// (onPrimary).
 //
 // Pure Kotlin (no Android imports), so the promises are tested on the JVM
 // (WardPaletteTest); ui/Theme.kt turns the table into Compose colours.
@@ -85,13 +86,13 @@ object WardPalette {
         WardToken.raised to WardPair(0xF1F4F8, 0x2E353F),
         WardToken.well to WardPair(0xDDE2E8, 0x090E15),
         WardToken.primary to WardPair(0x3B82F6, 0x3B82F6),
-        WardToken.primaryInk to WardPair(0x0251C2, 0x84B2FD),
-        WardToken.onPrimary to WardPair(0x090E15, 0x090E15),
-        WardToken.ecg to WardPair(0xBB2A34, 0xF57875),
-        WardToken.beam to WardPair(0x9F7818, 0xFBBF24),
-        WardToken.success to WardPair(0x316E56, 0x6EE7B7),
-        WardToken.warning to WardPair(0x7D5E14, 0xFBBF24),
-        WardToken.danger to WardPair(0xBB2A34, 0xF57875),
+        WardToken.primaryInk to WardPair(0x3B82F6, 0x3B82F6),
+        WardToken.onPrimary to WardPair(0xFFFFFF, 0xFFFFFF),
+        WardToken.ecg to WardPair(0xFF6B6B, 0xFF6B6B),
+        WardToken.beam to WardPair(0xFBBF24, 0xFBBF24),
+        WardToken.success to WardPair(0x6EE7B7, 0x6EE7B7),
+        WardToken.warning to WardPair(0xFBBF24, 0xFBBF24),
+        WardToken.danger to WardPair(0xFF6B6B, 0xFF6B6B),
         WardToken.ink to WardPair(0x232C39, 0xF1F4F8),
         WardToken.inkSecondary to WardPair(0x536171, 0xB8C2D0),
         WardToken.hairline to WardPair(0xCFD7E2, 0x04070B),

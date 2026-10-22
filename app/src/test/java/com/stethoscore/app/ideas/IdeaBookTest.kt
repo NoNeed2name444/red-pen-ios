@@ -147,7 +147,7 @@ class IdeaBookTest {
         assertNull("loose notes are grey", NoteTone.index(null, b))
         assertEquals("a folder's place among the top level, by name", 0, NoteTone.index(first.id, b))
         assertEquals("a subfolder takes its top folder's", 1, NoteTone.index(inside.id, b))
-        assertTrue("the palette", NoteTone.palette.size == 7 && NoteTone.palette[0].contentEquals(floatArrayOf(0.36f, 0.62f, 0.60f)))
+        assertTrue("the palette", NoteTone.palette.size == 7 && NoteTone.palette[0].contentEquals(floatArrayOf(20 / 255f, 184 / 255f, 166 / 255f)))
         assertTrue("wrapping", NoteTone.at(-1).contentEquals(NoteTone.palette[6]) && NoteTone.at(7).contentEquals(NoteTone.palette[0]))
     }
 

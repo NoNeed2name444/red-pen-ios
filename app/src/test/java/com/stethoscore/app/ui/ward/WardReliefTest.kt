@@ -255,9 +255,9 @@ class WardReliefTest {
         for (dark in listOf(false, true)) {
             for (strong in listOf(false, true)) {
                 val ink = WardPaper.ink(dark, highContrast = strong)
-                // the ink outside any section (Cards' Care Blue, the 2026-10-21 palette)
+                // the ink outside any section (Cards' Care Blue, the owner's 2026-10-21 hex in both modes)
                 check("paper ink $dark/$strong",
-                    ink.hex == (if (dark) 0x84B2FD else 0x2A71E5) &&
+                    ink.hex == 0x3B82F6 &&
                         ink.fine == (if (strong) 0.0 else if (dark) 0.07 else 0.09) &&
                         ink.bold == (if (strong) 0.0 else if (dark) 0.14 else 0.18) &&
                         ink.edge == (if (dark) 0.5 else 0.55))

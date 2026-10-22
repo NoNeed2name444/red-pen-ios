@@ -391,9 +391,9 @@ class WardLookTest {
             now.glide == WardGlide.rest(outside) && WardLookNow.shared.glide == WardGlide.rest(outside))
         now.set(WardGlide.rest(WardLook(false, WardSection.questions)))
         check("a right answer made outside any section shows Questions' accent by day",
-            now.hex(WardToken.primaryInk, false) == 0x8A0219, hx(now.hex(WardToken.primaryInk, false)))
-        check("and at night", now.hex(WardToken.primaryInk, true) == 0xFEBAB5, hx(now.hex(WardToken.primaryInk, true)))
-        check("and its edges Questions' ink", now.ink(false) == 0xBE2130 && now.ink(true) == 0xFEBAB5)
+            now.hex(WardToken.primaryInk, false) == 0xFF6B6B, hx(now.hex(WardToken.primaryInk, false)))
+        check("and at night", now.hex(WardToken.primaryInk, true) == 0xFF6B6B, hx(now.hex(WardToken.primaryInk, true)))
+        check("and its edges Questions' ink", now.ink(false) == 0xFF6B6B && now.ink(true) == 0xFF6B6B)
         for (section in WardSection.entries) {
             for (dark in modes) {
                 now.set(WardGlide.rest(WardLook(dark, section)))

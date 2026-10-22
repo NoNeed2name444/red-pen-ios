@@ -171,8 +171,8 @@ object CardReview {
 
 /** Every tested label on an occlusion card's picture, covered. Port of iOS OcclusionCovers. */
 object OcclusionCovers {
-    /** The label this card asks about: a strong orange. */
-    val targetRgb = Triple(0.93, 0.45, 0.09)
+    /** The label this card asks about: Peach Glow #FF9F7A, the owner's 2026-10-21 hex. */
+    val targetRgb = Triple(255 / 255.0, 159 / 255.0, 122 / 255.0)
     /** Every other label on the picture: a flat, neutral grey. */
     val otherRgb = Triple(0.56, 0.58, 0.62)
     const val drawPadding: Double = 0.0

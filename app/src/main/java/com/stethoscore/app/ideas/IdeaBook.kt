@@ -332,18 +332,19 @@ object NaturalOrder : Comparator<String> {
 }
 
 /**
- * The quiet colour each top-level folder is known by (NoteTone): seven muted tones by the
- * folder's place among the top-level folders; loose notes plain grey. Colours as 0...1 sRGB.
+ * The colour each top-level folder is known by (NoteTone): seven of the owner's 2026-10-21
+ * hexes, exactly, by the folder's place among the top-level folders; loose notes plain grey.
+ * Colours as 0...1 sRGB.
  */
 object NoteTone {
     val palette: List<FloatArray> = listOf(
-        floatArrayOf(0.36f, 0.62f, 0.60f), // sea green
-        floatArrayOf(0.45f, 0.47f, 0.75f), // slate blue
-        floatArrayOf(0.78f, 0.58f, 0.40f), // sand
-        floatArrayOf(0.62f, 0.46f, 0.66f), // heather
-        floatArrayOf(0.47f, 0.63f, 0.42f), // sage
-        floatArrayOf(0.76f, 0.47f, 0.47f), // clay
-        floatArrayOf(0.40f, 0.58f, 0.76f), // sky
+        floatArrayOf(20 / 255f, 184 / 255f, 166 / 255f),  // Pulse Teal #14B8A6 (was sea green)
+        floatArrayOf(99 / 255f, 102 / 255f, 241 / 255f),  // Electric Indigo #6366F1 (was slate blue)
+        floatArrayOf(255 / 255f, 159 / 255f, 122 / 255f), // Peach Glow #FF9F7A (was sand)
+        floatArrayOf(167 / 255f, 139 / 255f, 250 / 255f), // Soft Lilac #A78BFA (was heather)
+        floatArrayOf(163 / 255f, 230 / 255f, 53 / 255f),  // Lime Zest #A3E635 (was sage)
+        floatArrayOf(244 / 255f, 114 / 255f, 182 / 255f), // Bubblegum Pink #F472B6 (was clay)
+        floatArrayOf(59 / 255f, 130 / 255f, 246 / 255f),  // Care Blue #3B82F6 (was sky)
     )
 
     /** UIKit's systemGray (light), what Color.gray reads as on iOS: 142, 142, 147. */
