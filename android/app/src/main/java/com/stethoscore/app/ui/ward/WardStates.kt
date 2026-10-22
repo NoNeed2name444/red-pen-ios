@@ -1,7 +1,6 @@
 package com.stethoscore.app.ui.ward
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -115,9 +114,8 @@ fun wardScoreTone(value: Double): WardTone = when {
 /** A bar for a score (WardProgressBar): the groove in the score's tone. The number is said, never only shown in a colour. */
 @Composable fun WardProgressBar(value: Double, label: String = "Score", modifier: Modifier = Modifier) {
     val v = value.coerceIn(0.0, 1.0)
-    val shown by animateFloatAsState(v.toFloat(), tween(300), label = "progress")
     Box(modifier.clearAndSetSemantics { contentDescription = label; stateDescription = "${Math.round(v * 100)} percent" }) {
-        WardGroove(shown.toDouble(), wardScoreTone(v).color())
+        WardGroove(v, wardScoreTone(v).color())
     }
 }
 

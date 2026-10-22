@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -144,8 +143,7 @@ internal fun Modifier.readableColumn(): Modifier = this.widthIn(max = 700.dp).fi
             }
             // ThinProgress: the groove at 6, gliding to each new fraction
             if (fraction != null) Box(Modifier.clearAndSetSemantics {}) {
-                val shown by animateFloatAsState(fraction.coerceIn(0.0, 1.0).toFloat(), tween(300), label = "groove")
-                WardGroove(shown.toDouble(), wardColor(WardToken.primaryInk), height = 6.dp)
+                WardGroove(fraction, wardColor(WardToken.primaryInk), height = 6.dp)
             }
         }
     }

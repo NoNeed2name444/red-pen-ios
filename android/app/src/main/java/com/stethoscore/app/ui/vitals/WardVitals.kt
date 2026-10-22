@@ -1,7 +1,5 @@
 package com.stethoscore.app.ui.vitals
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,8 +35,7 @@ import com.stethoscore.app.ui.wardColor
 
 /** The amber strip that fills as something goes on: a Pager Amber beam in a groove pressed into the base (WardGroove at 6), gliding to each new progress. */
 @Composable fun EcgStrip(progress: Double, tone: Color = wardColor(WardToken.beam)) {
-    val shown by animateFloatAsState(progress.coerceIn(0.0, 1.0).toFloat(), tween(300), label = "groove")
-    Box(Modifier.clearAndSetSemantics {}) { WardGroove(shown.toDouble(), tone, height = 6.dp) }
+    Box(Modifier.clearAndSetSemantics {}) { WardGroove(progress, tone, height = 6.dp) }
 }
 
 /** An observation: a small-caps label over a mono value, flagged high or low in Resus Red. */
