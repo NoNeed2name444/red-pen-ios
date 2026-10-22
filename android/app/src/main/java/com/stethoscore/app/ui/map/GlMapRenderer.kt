@@ -50,6 +50,48 @@ data class MapReadout(
     val bodies: Int = 0,
 )
 
+/**
+ * What the map has finished drawing on its GL context, for tests: Map3DView puts it on the
+ * map's node as [MapDrawnKey], which accessibility services do not read. The counts stop at
+ * [ENOUGH], so the record changes a few times per context, never every frame. A frame counts
+ * once its draw calls are issued; the next frame starts only after it was handed to the screen.
+ * The rest says what this GL draws with: its renderer, the widest point it allows (summary
+ * stars and the plain theme's nodes are points), the surface's size, and how many of the six
+ * Space styles have their body shader (0 in the plain theme).
+ */
+data class MapDrawn(
+    val frames: Int = 0,
+    /** Frames that drew Space bodies, and how many bodies the latest of them drew. */
+    val bodyFrames: Int = 0,
+    val bodies: Int = 0,
+    /** Milliseconds from the surface's start to the first frame, and to the first with bodies; -1 before. */
+    val firstFrameMs: Long = -1,
+    val firstBodyFrameMs: Long = -1,
+    val width: Int = 0,
+    val height: Int = 0,
+    val renderer: String = "",
+    val maxPointSize: Float = 0f,
+    val bodyStyles: Int = 0,
+) {
+    /** This record after one more finished frame that drew [bodiesNow] bodies, [elapsedMs] after the surface's start. */
+    fun after(bodiesNow: Int, elapsedMs: Long): MapDrawn {
+        val withBodies = bodiesNow > 0
+        if (frames >= ENOUGH && (bodyFrames >= ENOUGH || !withBodies)) return this
+        return copy(
+            frames = min(frames + 1, ENOUGH),
+            bodyFrames = if (withBodies) min(bodyFrames + 1, ENOUGH) else bodyFrames,
+            bodies = if (withBodies) bodiesNow else bodies,
+            firstFrameMs = if (firstFrameMs < 0) elapsedMs else firstFrameMs,
+            firstBodyFrameMs = if (withBodies && firstBodyFrameMs < 0) elapsedMs else firstBodyFrameMs,
+        )
+    }
+
+    companion object {
+        /** Finished frames worth counting: by the last of them, the ones before it were handed to the screen. */
+        const val ENOUGH = 3
+    }
+}
+
 /** How the map draws its notes: plain coloured points, or the Space theme's bodies. */
 enum class MapTheme { PLAIN, SPACE }
 
@@ -91,6 +133,8 @@ class GlMapRenderer(
     private val tier: GraphicsTier = GraphicsTier.HIGH,
     /** Increase Contrast: the fade starts later and stops short of the sky. */
     private val contrast: Boolean = false,
+    /** Called on the GL thread each time the [MapDrawn] record changes (a few times per context). */
+    private val onDrawn: ((MapDrawn) -> Unit)? = null,
 ) : GLSurfaceView.Renderer {
     private val space = theme == MapTheme.SPACE
     private val bodies: SpaceBodies? = if (space) SpaceBodies(tree, nodeRadius) else null
@@ -128,6 +172,10 @@ class GlMapRenderer(
     private var lastReadout = 0L
     private var width = 1; private var height = 1
     private var maxPointSize = 64f
+    /** This context's record of finished frames (MapDrawn), the one last handed out, and when the surface started. */
+    private var record = MapDrawn()
+    private var recordPublished: MapDrawn? = null
+    private var surfaceNanos = System.nanoTime()
 
     private var nodeProgram = 0; private var edgeProgram = 0; private var summaryProgram = 0; private var bundleProgram = 0
     private var nodeVao = 0; private var edgeVao = 0; private var summaryVao = 0; private var bundleVao = 0
@@ -149,6 +197,7 @@ class GlMapRenderer(
     init { require(tree.leafCount < 65_536) { "chunk ids are 16-bit" } }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        surfaceNanos = System.nanoTime()
         nodeProgram = program(NODE_VS, NODE_FS)
         edgeProgram = program(EDGE_VS, EDGE_FS)
         summaryProgram = program(SUMMARY_VS, SUMMARY_FS)
@@ -198,11 +247,15 @@ class GlMapRenderer(
         cache = newCache()
         lod = LodSelector(tree, cache)
         if (bodies != null) spaceGl?.create(bodies, budget.detail)
+        // a new context: its frames are counted afresh
+        record = MapDrawn(renderer = GLES30.glGetString(GLES30.GL_RENDERER) ?: "", maxPointSize = maxPointSize,
+            bodyStyles = bodies?.enabled?.count { it } ?: 0)
     }
 
     override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) {
         width = max(w, 1); height = max(h, 1)
         GLES30.glViewport(0, 0, width, height)
+        record = record.copy(width = width, height = height)
     }
 
     override fun onDrawFrame(gl: GL10?) {
@@ -271,6 +324,8 @@ class GlMapRenderer(
                 bodies = bodyCount,
             ))
         }
+        record = record.after(bodyCount, (System.nanoTime() - surfaceNanos) / 1_000_000)
+        if (record != recordPublished) { recordPublished = record; onDrawn?.invoke(record) }
     }
 
     // ---- uploads ----
