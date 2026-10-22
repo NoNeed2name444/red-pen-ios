@@ -2989,6 +2989,28 @@ with the marks on the screens last.
   with the logo's frame as the title target. On home only, every text style
   steps one Dynamic Type size smaller. Waits for its Ward preview and Launch
   recording.
+- [x] T0119 (iOS Wave 2, components; the consistency sweep's rows, owner 22
+  Oct "start all waves at once"): one Ward component per role where a row
+  names a rebuilt one. Done: the dead CoronaGlow (and CoronaBreath),
+  OptionalTag and LiquidGlass.swift deleted (WardTile kept); ModeTile draws
+  WardIconSquare; Draw from memory's title eye is WardCircleButtonStyle(on:);
+  HelpModeRow, DrawRecallExampleRow and PhotoCardsTile are WardRows; the
+  Coverage count chips, ReviewUndoChip and NoteSourceChip are
+  WardChipButtonStyle; Disease scripts shows the shared SavedIdeaToast for its
+  4 s (10 s with VoiceOver). Already so: BigButtonStyle, ContentCard and the
+  slip's card radius. Left, and why: HomeBedRow, SetRow, HomeChip, HomePill
+  and FeatureTile (Q3: home one size smaller, 21 Oct); fields (Q6); retiring
+  the old names (Q7); TodayGoalRow (a trailing ring, and WardRow has no
+  trailing slot); the Q&A disclosures, transcript lines, attempt rows and the
+  narrate bar (not the row role); FeatureTile, ExampleTile and
+  ReasoningToolTile as WardTiles (WardTile draws its own card, which would
+  cover a PopTile button's press; canon has no tappable tile); WardRoundTile
+  (a card of controls); CaseClockPill (minutes used of a budget, which
+  WardTimerPill's countdown cannot say); ThinProgress and EcgStrip (already
+  WardGroove wrappers; WardProgressBar would colour progress as a score);
+  GraphRegionPill and LensChip (documented). Waits for a Mac run: shots of the
+  help page, the tour list, Draw from memory, the picture-cards shelf,
+  Coverage's counts, review's Undo, a note's source chip and Scripts' slip.
 
 ### The owner's answers of 16 Oct: retrieval for proof, and fact chains
 
