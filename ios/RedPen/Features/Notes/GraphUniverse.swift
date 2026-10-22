@@ -576,8 +576,7 @@ nonisolated struct UniversePlanner: Sendable {
     }
 
     func cSeed(_ c: Int) -> UInt64 {
-        let key: String = input.seedByName ? cName(c) : cID(c).uuidString
-        return GraphUniverse.fnv(key)
+        GraphUniverse.fnv(liftKey(c))
     }
 
     func nSeed(_ n: Int) -> UInt64 {
@@ -1180,6 +1179,7 @@ nonisolated struct UniversePlanner: Sendable {
         cHome = [SIMD3<Double>](repeating: SIMD3<Double>(0, 0, 0), count: cCount)
         let middle: SIMD2<Double> = (placed.lo + placed.hi) * 0.5
         let quarter: UniverseFrame = GraphUniverse.rotZ(Double.pi / 2)
+        var homes: [(g: Int, home: SIMD3<Double>, frame: UniverseFrame)] = []
         for g in placed.order {
             let xy: SIMD2<Double> = ((placed.centre[g] ?? middle) - middle) * stretch
             var home = SIMD3<Double>(xy.x, xy.y, 0)
@@ -1188,8 +1188,34 @@ nonisolated struct UniversePlanner: Sendable {
                 home = SIMD3<Double>(-xy.y, xy.x, 0)
                 frame = quarter.times(frame)
             }
-            putContainer(g, home: home, frame: frame, parentC: -1)
+            homes.append((g, home, frame))
         }
+        // real depth (T0057): after the 2D layout each galaxy is lifted to
+        // A·u(id) (GraphTilt), its stars and planets with it - they are put
+        // at its home plus their own step (putContainer), and orbit it
+        let clusters: [GraphTilt.Cluster] = homes.map { item in
+            (id: liftKey(item.g), centre: SIMD2<Float>(Float(item.home.x), Float(item.home.y)),
+             radius: Float(galaxyReach(item.g)))
+        }
+        let lift: Float = GraphTilt.amplitude(clusters: clusters, theme: .space)
+        for item in homes {
+            var home: SIMD3<Double> = item.home
+            home.z = Double(GraphTilt.z(liftKey(item.g), amplitude: lift))
+            putContainer(item.g, home: home, frame: item.frame, parentC: -1)
+        }
+    }
+
+    /// A container's stable id for its seed and its lift: its name for a
+    /// map seeded by name, else its id.
+    func liftKey(_ c: Int) -> String {
+        input.seedByName ? cName(c) : cID(c).uuidString
+    }
+
+    /// How far a galaxy's circles reach from its home, stretched.
+    func galaxyReach(_ g: Int) -> Double {
+        var reach: Double = 0
+        for k in comp[g] { reach = max(reach, (k.q.x * k.q.x + k.q.y * k.q.y).squareRoot() + k.r) }
+        return max(reach * stretch, cSphere[g])
     }
 
     mutating func putContainer(_ c: Int, home: SIMD3<Double>, frame: UniverseFrame, parentC: Int) {

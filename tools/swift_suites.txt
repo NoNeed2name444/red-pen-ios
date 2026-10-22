@@ -154,7 +154,7 @@ suite differential DifferentialTests.swift $M/MCQQuestion.swift $M/Differential.
       $S/RecoveryFiles.swift $S/LibraryFile.swift
 # the Universe look: folders as black holes and stars, notes as planets,
 # moons, pulsars and comets - the size ladder, no overlaps, determinism
-suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift
+suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphTilt.swift $F/Notes/GraphTheme.swift
 # the Graphics setting (Automatic / High quality / Smooth), even
 # frame steps, and every link one smooth curve
 suite graphics GraphicsTests.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphLinkCurve.swift
@@ -164,7 +164,7 @@ suite forcelayout ForceLayoutTests.swift $F/Notes/ForceLayout3D.swift
 # what the map's picture takes from the notes, as one number: it changes
 # with every name, folder, link and size step, not while typing inside a
 # step, and a note's words are counted again only when its text changes
-suite shapekey GraphShapeKeyTests.swift $F/Notes/GraphShapeKey.swift $F/Notes/GraphUniverse.swift
+suite shapekey GraphShapeKeyTests.swift $F/Notes/GraphShapeKey.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphTilt.swift $F/Notes/GraphTheme.swift
 # a shader check's answer is kept only when it can be trusted: every
 # shader passed, or the app was in front for the whole check
 suite probememo GraphProbeMemoTests.swift $F/Notes/GraphProbeMemo.swift
@@ -184,14 +184,14 @@ suite shaders ShaderSourceTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/Gra
 # nothing meeting, opening never moving anything, impulses at random times
 suite neurons NeuronHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
       $F/Notes/GraphNeurons.swift $F/Notes/GraphAnatomy.swift $F/Notes/GraphNeuronImpulses.swift \
-      $F/Notes/GraphTheme.swift
+      $F/Notes/GraphTheme.swift $F/Notes/GraphTilt.swift
 # the Neurons' look: green, cyan, pink and amber on deep blue, the six
 # cell states mirroring the space styles, the Look menu's choice, the bokeh
 suite neuronlook NeuronLookTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift \
       $F/Notes/GraphNeurons.swift $F/Notes/GraphAnatomy.swift $F/Notes/GraphNeuronImpulses.swift \
       $F/Notes/GraphTheme.swift \
       $F/Notes/GraphSpaceOptics.swift $F/Notes/GraphNeuronStates.swift $F/Notes/GraphShaderKit.swift \
-      $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift
+      $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphNeuronShaders.swift $F/Notes/GraphTilt.swift
 # a Neurons cell's membrane: soma and dendrites one closed surface -
 # no holes, facing out, one piece, on the surface, apart, in range
 suite membrane NeuronMembraneTests.swift $F/Notes/GraphNeuronMembrane.swift
@@ -205,7 +205,7 @@ suite death GraphDeathTests.swift $F/Notes/GraphDeath.swift $F/Notes/GraphFrameS
 # link length: every theme's guarantees at 0.6-1.8, links grow with
 # the setting, bodies keep their size
 suite linklength LinkLengthTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphThemePlan.swift $F/Notes/GraphNeurons.swift \
-      $F/Notes/GraphAnatomy.swift $S/Space/GraphicsQuality.swift
+      $F/Notes/GraphAnatomy.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphTilt.swift $F/Notes/GraphTheme.swift
 # name pills stay readable: contrast maths, style choice, no flicker
 suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 # touching the map: tap, double tap, hold, drag, orbit, the peek card
@@ -216,11 +216,23 @@ suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
 # seven parts, files and bullets, read from the notes; links as fibres
 # (strength, kind);
 # levels 3-4 built only up close, bounded, never smaller than a page
-suite anatomy GraphAnatomyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphAnatomy.swift
+suite anatomy GraphAnatomyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/GraphAnatomy.swift $F/Notes/GraphTilt.swift $F/Notes/GraphTheme.swift
 # each theme's lens: none at Smooth or in Performance, HDR, bloom and
 # depth of field only at High, lensing with the shaders' detail, and
 # the same blur at every zoom
 suite graphlens GraphLensTests.swift $F/Notes/GraphLens.swift $F/Notes/GraphTheme.swift $S/Space/GraphicsQuality.swift
+# the depth fade in the SceneKit themes (plan 4f): SceneKit's fog curve
+# along the view, the band following the focus at every zoom, Smooth
+# pulling it in, Increase Contrast fading less, nothing drawn or picked
+# past the end, detail dropping only where mostly faded, pills never
+# half-faded
+suite graphdepth GraphDepthTests.swift $F/Notes/GraphDepthFade.swift $F/Notes/GraphTilt.swift $F/Notes/GraphTheme.swift \
+      $S/Space/GraphicsQuality.swift
+# the tilted default view (T0057): the tilted fit against its closed form,
+# the least distance, u(id) stable and order-free, the amplitude rule, the
+# discs' overlap, and the band and shader text the tilt hands over to
+suite graphtilt GraphTiltTests.swift $F/Notes/GraphTilt.swift $F/Notes/GraphDepthFade.swift $F/Notes/GraphTheme.swift \
+      $S/Space/GraphicsQuality.swift
 # the Performance theme's engine at 100,000 notes and 300,000: the
 # graph, the seed and the force layout a slice a frame, cluster level of
 # detail (fewer bodies and lines as the camera goes back), picks against

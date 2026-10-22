@@ -42,6 +42,9 @@ nonisolated final class GraphSpaceDepthStage: @unchecked Sendable {
     private(set) var crisp: [Bool]
     /// Whose look GraphSim may animate this frame (level .body).
     private(set) var drawn: [Bool]
+    /// How far each body has faded this frame (the band's f), for the
+    /// depth meter (GraphDepthKeeper).
+    private(set) var fade: [Float]
     private var shownOpacity: [Float]
     private var shownLevel: [SpaceBodyLevel?]
     private(set) var band: SpaceDepthBand = .off
@@ -89,6 +92,7 @@ nonisolated final class GraphSpaceDepthStage: @unchecked Sendable {
         pastBand = [Bool](repeating: false, count: n)
         crisp = [Bool](repeating: true, count: n)
         drawn = [Bool](repeating: true, count: n)
+        fade = [Float](repeating: 0, count: n)
         shownOpacity = [Float](repeating: 1, count: n)
         shownLevel = [SpaceBodyLevel?](repeating: nil, count: n)
     }
@@ -144,11 +148,12 @@ nonisolated final class GraphSpaceDepthStage: @unchecked Sendable {
             let gone: Bool = !kept && band.gone(depth)
             let inView: Bool = kept || SpaceDepth.inView(view, centre: position[i], radius: size, reach: reach[i])
             let px: Float = GraphPerfLOD.pixelRadius(size, depth: depth, focal: focal)
-            let fade: Float = band.fade(depth)
-            var now: SpaceBodyLevel = SpaceDepth.level(level[i], pixelRadius: px, fade: fade, gone: gone,
+            let faded: Float = band.fade(depth)
+            var now: SpaceBodyLevel = SpaceDepth.level(level[i], pixelRadius: px, fade: faded, gone: gone,
                                                        inView: inView)
             if kept { now = .body }
             level[i] = now
+            fade[i] = faded
             pastBand[i] = gone
             crisp[i] = band.crisp(depth)
             drawn[i] = now == .body

@@ -2015,7 +2015,91 @@ with the marks on the screens last.
       - the link fade (_surface.position) works;
       - the look up close is unchanged and nothing pops;
       - the frame numbers below.
-  - [ ] Neurons, on design/neurons-depth (a new stream).
+    - Merged with design/neurons-depth on design/merge-graph (T0108, 22
+      Oct): this stage is Space's only depth fade. neurons-depth's own
+      Space fade (each body's gate at 1 - f, its band on the framing's
+      reach, the far plane at the band's end, the glow holders shrinking,
+      the node-opacity probe) gave way to it. Its tilt (45°), meter and
+      -graphDepthOff stay: -graphDepthOff leaves the stage out, and the
+      meter counts what the stage draws and fades. U6 is kept by turning
+      each body's own frame (GraphStyleKit.frame) rather than wrapping it
+      in a tiltFrame node, which turned the beams, tails and photon ring
+      the animator poses in the world's frame. VoiceOver finds no body
+      past the band's end (testDepthGlide).
+    - Open: in the tilted default view this band hardly fades the far
+      edge, which lies at 1.24 to 1.32 times the focus's depth in graphdepth
+      D14's framings: f 0.03 to 0.07 on High, 0.10 to 0.18 on Smooth, and
+      nothing culled, where depth-fade.md's C2 rule 1 asks 0.7 and a cull.
+      The next Space step decides.
+  - [ ] Neurons, on design/neurons-depth (a new stream). Step 1 (15 Oct):
+    the band's numbers and maths for both SceneKit themes, Foundation only
+    (GraphDepthFade.swift, suite graphdepth), and SceneKit's fog on the
+    Neurons scene toward black, its band on what the camera orbits each
+    frame (GraphDepthKeeper.swift; Graph3DView hands over the camera
+    controller in one line), the fluid's dome kept inside the fog's start.
+    Step 2 (15 Oct): SceneKit's fog replaced by a fragment shader of our
+    own on every material of the map (added by walking the built scene,
+    no theme's shader files touched; pills and the backdrop left alone):
+    depth along the view, the focus's depth found per pixel from the
+    point looked at, so zooming and turning write nothing; light fades to
+    nothing, see-through things go see-through, solid ones toward the
+    background. Nothing past the end is drawn or picked (the far plane and
+    a gate per body); pills show only in the crisp zone or when chosen;
+    the Neurons' halo and dendrites shrink away once mostly faded and grow
+    back (a quarter second, hysteresis); the shader is checked on the
+    device first and, if it fails, the map is drawn as before and the
+    meter says "fallback". A link chip's glide to a body past the end
+    (Graph3DView's ease(to:glide:), GraphDepthGlide) brings it to the
+    middle at the focus's depth instead of doing nothing. Suite graphdepth
+    266 checks. Proof hooks: -graphDepthOff (before), -graphDepthMeter
+    (SceneKit's statistics and the frame-time meter); preview tests
+    testDepthBeforeAfter, testDepthTurnNeurons, testDepthTurnSpace,
+    testDepthMeasure and testDepthGlide. The first Mac run read "no meter"
+    for all 16 takes: GraphDepth.follow ran in makeUIView, before the view
+    had a window, so the meter label went onto the SCNView, whose
+    accessibilityElements (the bodies) hide it; it now waits for the window
+    (GraphDepth.place). Next: the Mac's pictures,
+    recordings and numbers, then tuning the band.
+    The independent review of the first pictures (15 Oct): nothing fades.
+    Both maps are flat sheets facing the camera (Neurons' rows at z = ±0.3
+    of the biggest radius, Space's galaxy homes at z = 0, the default
+    framing turning only about z), so everything sits at about the focus's
+    depth, under every band's start: "after" is the same picture as
+    "before" (whole-picture light 0.96 to 1.06 of it), nothing is culled,
+    and Space's mean frame was 16 to 34 ms longer with the shader on (the
+    simulator, one take each: indicative only). testDepthMeasure turned the
+    map twice, back to face-on; it now turns once, so its pictures and
+    numbers show the fade where a turn tilts the sheet. Proposed values,
+    not applied: Neurons High end 1.6, Smooth 1.45; Space High end 1.9,
+    Smooth 1.6; k 1.0 (GraphDepthFade.swift:70-75), which breaks D4e
+    (end ≥ 2), a check whose premise the flat maps disprove. The owner
+    decides how far things should fade on a flat map: tilt the default
+    framing so the sheet recedes, fade by distance from the focus, or give
+    the maps real depth. Nothing goes to the owner as done before that.
+    The meter's numbers (neurons-depth-3, 67fe38c2, one turn, simulator):
+    nothing is culled in any take (Neurons 4/4 whole, 9/9 near; Space
+    35/35), and the shader costs time in Space: the iPhone's mean frame
+    66.6 ms on against 44.9 off (High, whole), 61.7 against 40.9 (High,
+    near), 60.9 against 45.3 and 50.4 against 39.5 (Smooth); the iPad's
+    up to 80 against 40. Neurons is mixed (iPhone High near 37.5 against
+    30.6; Smooth whole 21.4 against 23.6). As built, the fade neither
+    shows on the flat maps nor makes anything smoother; it waits on the
+    owner's choice above.
+    Step 3 (16 Oct, T0057/T0062): depth completed with rulings and user requirements U1–U9:
+    - U1: Graph3DView: worldUp (0,0,1) normal to the map, turntable horizontal drag, vertical drag limits keeping tilt within 10–75° (SceneKit elevation 15° to 80°).
+    - θ = 0 keeps SceneKit's camera defaults.
+    - U2: Bands follow reach R = (deepest/F) - 1 in [0.15, 1.0], crisp reach c = a·R (whole) or R + 0.02 (fly-in), span F·(1+c) to F·(1+c+(b-a)·R).
+    - U3: Bounded real depth: cluster z = A·u(id) with FNV-1a 64, A from {0.35, 0.25, 0.15, 0} × H passing legibility rule (overlap/cover ≤ 15%).
+    - U4: Space fades per body (gate opacity 1 - f in steps ≥ 1/255, hidden at f ≥ 1); Neurons stays per pixel.
+    - U5: No tint: see-through dissolution, depthTint and solid mode removed, opaque materials switched to blended with no depth write.
+    - U6: Space bodies sit in tiltFrame turned by Rx(θ) always (on and off) to preserve disk lean seen face-on.
+    - U7: Faster by construction: Space culls far strip (High b=0.85, Smooth b=0.75; Neurons High b=1.05, Smooth b=0.90); glow holders shrink at f ≥ 0.62 via depthExtra node untouched by GraphSim.
+    - U8: Probe checks node opacity on additive and solid planes at 0.5 reading 0.5 ± 0.1, read as linear light (the snapshot is sRGB); falls back to on/glowpx if additive check fails, and on/glowpx shades Space's added-light materials per pixel while see-through bodies stay on gate opacity.
+    - U9: Double tap on empty map re-frames the default view via recentre(), which also ends a fly-in.
+    Independent review (16 Oct, R-T0062): REPAIR, five items, all in: the glow fallback's two halves (R1, R2), the double tap during a fly-in (R3), and wording (R4, R5). Open for the owner: Space gets no real depth (A = 0 on all three Space sample maps), because the legibility rule takes each galaxy's whole reach as a sphere while the 45° pitch foreshortens the sheet; the choice is foreshortened discs, a smaller cluster radius, or spreading the galaxies.
+    What the Mac proof must show: 70-* pose-matched pairs with -stillSky -graphFreeze -graphDepthMeter; 74-depth-numbers with ablation takes; 75-body-frames analyzed by tools/depth_crops.py; 72-*/73-* spin and tilt reads; 71-* lively stills without freeze.
+    At the merge (T0108, 22 Oct) U4, U6's tiltFrame, U7's Space half and
+    U8 gave way to Space's own stage (above); the Neurons are unchanged.
   - [ ] Frame time and draw calls before and after for each theme, at
     each Graphics level, and the independent review, before the owner
     sees it.
