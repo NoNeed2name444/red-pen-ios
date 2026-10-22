@@ -66,6 +66,11 @@ class OwnerPaletteTest {
             val got = WardPalette.hex(token, dark)
             check("${mode(dark)} $token is ${hx(want)}", got == want, hx(got))
         }
+        // Material's words on its fills (onPrimary) are white in both modes too
+        for (s in WardSection.entries) for (dark in modes) {
+            val on = com.stethoscore.app.ui.wardColorScheme(WardLook(dark, s)).onPrimary
+            check("${mode(dark)} $s: Material's onPrimary is white", on == com.stethoscore.app.ui.wardRgb(0xFFFFFF), on.toString())
+        }
         for (dark in modes) for (hc in listOf(false, true)) {
             val got = WardPaper.ink(dark, highContrast = hc).hex
             check("${mode(dark)}${if (hc) " with Increase Contrast" else ""}: the paper's ink outside a section is Care Blue",

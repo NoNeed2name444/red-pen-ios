@@ -31,8 +31,9 @@ import com.stethoscore.app.ui.ward.*
 // How the tokens land in Material: the tint (primary) is what iOS's
 // AccentColor is, the section's fill by day and its accent at night (so text
 // buttons and icons read 4.5:1 on every tier); primaryContainer is the fill
-// under white words. outline is the section's ink at a control's edge
-// strength, as it lands on the base (WardRelief.edgeColor).
+// under white words. Words on fills stay white (the owner), so onPrimary is
+// WardToken.onPrimary in both modes. outline is the section's ink at a
+// control's edge strength, as it lands on the base (WardRelief.edgeColor).
 val LocalWardDark = staticCompositionLocalOf { false }
 val LocalWardLook = staticCompositionLocalOf { WardLook(dark = false, section = WardSection.outside) }
 
@@ -45,7 +46,7 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     val glide = WardGlide.rest(look)
     fun c(token: WardToken) = wardRgb(glide.hex(token, dark))
     val tint = wardRgb(if (dark) look.section.accent(true) else look.section.fill(false))
-    val onTint = if (dark) c(WardToken.background) else c(WardToken.onPrimary)
+    val onTint = c(WardToken.onPrimary)
     val edge = wardRgb(WardRelief.edgeColor(look.section, dark))
     val base = if (dark) darkColorScheme() else lightColorScheme()
     return base.copy(
