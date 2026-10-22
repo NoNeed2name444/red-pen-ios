@@ -2,6 +2,8 @@ package com.stethoscore.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,7 +42,19 @@ import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.quiz.LabRanges
 import com.stethoscore.app.quiz.LabUnits
 import com.stethoscore.app.quiz.StemPieces
+import com.stethoscore.app.ui.exam.WardUnitsPicker
+import com.stethoscore.app.ui.ward.WardButtonBox
+import com.stethoscore.app.ui.ward.WardButtonKind
+import com.stethoscore.app.ui.ward.WardCardFace
+import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.WardTone
+import com.stethoscore.app.ui.ward.capPop
+import com.stethoscore.app.ui.ward.wardDepth
+import com.stethoscore.app.ui.ward.wardInset
+import com.stethoscore.app.ui.ward.wardPressFace
+import com.stethoscore.app.ui.ward.wardRaised
 
 // A port of ios/RedPen/Features/MCQ/MCQExamTools.swift: the exam
 // screen's tools, as the real test interfaces have them, for the question
@@ -84,7 +98,8 @@ enum class ExamToolSheet { labs, calculator }
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Spacer(Modifier.width(64.dp))
         Text(title, Modifier.weight(1f).semantics { heading() }, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
-        QuizChip("Done", null, on = false, onClick = onDone, modifier = Modifier.widthIn(min = 64.dp))
+        // iOS's .wardCompact Done
+        WardButtonBox(onDone, Modifier.widthIn(min = 64.dp), kind = WardButtonKind.compact) { Text("Done", maxLines = 1) }
     }
 }
 
@@ -133,7 +148,7 @@ enum class ExamToolSheet { labs, calculator }
 
 /** The hint, once asked for: the next step in the reasoning, never the answer. */
 @Composable fun AttendingHintCard(text: String?) {
-    QuizCard(Modifier.semantics(mergeDescendants = true) {}) {
+    WardCardFace(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Rounded.MedicalServices, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
             Text("Attending’s hint", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.primaryInk))
@@ -148,8 +163,10 @@ enum class ExamToolSheet { labs, calculator }
 
 /** The small Hint button beside Flag: a Ward chip, 44 points tall, lit in Caution Amber once used. */
 @Composable fun HintChip(used: Boolean, labelled: Boolean = true, action: () -> Unit) {
-    QuizChip(if (labelled) (if (used) "Hint shown" else "Hint") else null, if (used) Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,
-        on = used, onClick = action, warning = true, enabled = !used, label = if (used) "Hint shown" else "Show a hint")
+    WardChipButton(if (labelled) (if (used) "Hint shown" else "Hint") else null, action,
+        Modifier.semantics { contentDescription = if (used) "Hint shown" else "Show a hint" },
+        on = used, tone = WardTone.Warning, enabled = !used, icon = if (used) Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,
+        role = Role.Button)
 }
 
 // MARK: - reference ranges
@@ -163,17 +180,7 @@ enum class ExamToolSheet { labs, calculator }
         LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
                 // the units switch sits on the base itself, not on a tile
-                Row(Modifier.fillMaxWidth().background(wardColor(WardToken.well), CircleShape).padding(4.dp).semantics { contentDescription = "Units" }) {
-                    listOf(false to "SI", true to "US conventional").forEach { (us, label) ->
-                        val on = conventional == us
-                        Text(label, Modifier.weight(1f).heightIn(min = 40.dp)
-                            .then(if (on) Modifier.quizFace(QuizFace.raised, CircleShape, 20f) else Modifier)
-                            .clickable(role = Role.Tab) { conventional = us }.semantics { selected = on }
-                            .wrapContentHeight(Alignment.CenterVertically),
-                            textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold,
-                            color = if (on) wardColor(WardToken.primaryInk) else wardColor(WardToken.inkSecondary))
-                    }
-                }
+                WardUnitsPicker(conventional) { conventional = it }
             }
             item {
                 OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), placeholder = { Text("Search lab values") },
@@ -186,7 +193,7 @@ enum class ExamToolSheet { labs, calculator }
                     item(key = group) { Text(group.uppercase(), Modifier.padding(top = 12.dp).semantics { heading() }, fontSize = 12.sp, letterSpacing = 1.sp,
                         fontWeight = FontWeight.Bold, color = wardColor(WardToken.inkSecondary)) }
                     items(rows, key = { it.id }) { row ->
-                        Row(Modifier.fillMaxWidth().quizFace(QuizFace.raised, RoundedCornerShape(12.dp), 12f).padding(12.dp).semantics(mergeDescendants = true) {},
+                        Row(Modifier.fillMaxWidth().wardRaised(12.0).padding(12.dp).semantics(mergeDescendants = true) {},
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(row.name, Modifier.weight(1f), color = wardColor(WardToken.ink))
                             Text(row.value(conventional), Modifier.weight(1f), textAlign = TextAlign.End, fontFamily = FontFamily.Monospace,
@@ -217,15 +224,18 @@ private enum class KeyRole { digit, function, op, equals, blank }
             else -> wardColor(WardToken.ink)
         }
         val shape = RoundedCornerShape(14.dp)
-        Text(title, Modifier.weight(1f).heightIn(min = 56.dp).quizFace(if (chosen) QuizFace.pressed else QuizFace.raised, shape, 14f)
-            .clickable(role = Role.Button) { press(action) }.semantics { selected = chosen }.wrapContentHeight(Alignment.CenterVertically),
+        // iOS's PopPressStyle: raised at mid, pressed in while held or while chosen (a pending operation)
+        val source = remember { MutableInteractionSource() }
+        val held by source.collectIsPressedAsState()
+        Text(title, Modifier.weight(1f).heightIn(min = 56.dp).capPop(held).wardPressFace(shape, WardLift.mid, wardDepth(held || chosen))
+            .clickable(source, indication = null, role = Role.Button) { press(action) }.semantics { selected = chosen }.wrapContentHeight(Alignment.CenterVertically),
             textAlign = TextAlign.Center, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = ink)
     }
     @Composable fun RowScope.opKey(op: ExamCalculator.Op) = key(op.rawValue, KeyRole.op, chosen = shown.second == op) { op(op) }
     Column(Modifier.fillMaxWidth()) {
         SheetTitle("Calculator", onDone)
         Column(Modifier.widthIn(max = 420.dp).align(Alignment.CenterHorizontally).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(shown.first, Modifier.fillMaxWidth().quizFace(QuizFace.pressed, RoundedCornerShape(20.dp), 20f).padding(horizontal = 16.dp, vertical = 12.dp)
+            Text(shown.first, Modifier.fillMaxWidth().wardInset(RoundedCornerShape(20.dp), WardLift.mid).padding(horizontal = 16.dp, vertical = 12.dp)
                 .semantics { contentDescription = "Display, ${shown.first}" }, textAlign = TextAlign.End, fontFamily = FontFamily.Monospace,
                 fontSize = 40.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Clip, color = wardColor(WardToken.ink))
             val gap = Arrangement.spacedBy(10.dp)

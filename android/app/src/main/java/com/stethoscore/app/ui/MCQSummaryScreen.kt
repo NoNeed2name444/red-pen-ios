@@ -29,6 +29,8 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.QuizSummary
+import com.stethoscore.app.ui.ward.WardCardFace
+import com.stethoscore.app.ui.ward.WardSmallCapsText
 import com.stethoscore.app.ui.ward.WardToken
 import kotlin.math.roundToInt
 
@@ -73,7 +75,7 @@ fun QuizSummaryScreen(
             fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = wardColor(WardToken.ink))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            QuizCard {
+            WardCardFace(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     ScoreRing(fraction)
                     Text("$correctCount of $total right", Modifier.semantics { heading() }, fontSize = 28.sp, fontWeight = FontWeight.Bold,
@@ -87,8 +89,8 @@ fun QuizSummaryScreen(
             if (onRetake != null) QuizBigButton("Try again", Icons.Rounded.Refresh, QuizButtonKind.secondary, onClick = onRetake,
                 modifier = Modifier.fillMaxWidth(), label = "Try this set again")
 
-            QuizCard {
-                QuizSmallCaps("Your answers")
+            WardCardFace(Modifier.fillMaxWidth()) {
+                WardSmallCapsText("Your answers", Modifier.semantics { heading() })
                 questions.indices.forEach { i ->
                     val q = questions[i]
                     val correct = QuizSummary.isRight(questions, answers, i)
