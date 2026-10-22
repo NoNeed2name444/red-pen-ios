@@ -2,16 +2,24 @@ package com.stethoscore.app.ui.vitals
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.stethoscore.app.data.RhythmReading
 import com.stethoscore.app.ui.StethoscoreTheme
+import com.stethoscore.app.ui.ward.WardMonitorCard
+import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.wardColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -25,9 +33,12 @@ import java.time.ZoneOffset
 // Vitals' rhythm card (the owner, 22 Oct: "make it like the monitor"): laid out
 // as a bedside monitor in both modes - the trace fills the channel on the left
 // and the parameter column (RDY, ACC, Q/D, each a label over a big number)
-// stands beside it on the right, level with it, as iOS's RhythmMonitor does.
-// The card speaks as one (clearAndSetSemantics), so the screen inside it is
-// laid out on its own here, and the card is checked for what TalkBack hears.
+// stands beside it on the right, level with it and as tall as it, as iOS's
+// RhythmMonitor does. The monitor's well is dark in both modes, so every word
+// on it (status strip, readouts, footnote) reads against that dark well in
+// light mode as well as dark. The card speaks as one (clearAndSetSemantics),
+// so its panel is laid out on its own in the same well here, and the card is
+// checked for what TalkBack hears.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class VitalsMonitorTest {
@@ -37,11 +48,22 @@ class VitalsMonitorTest {
     private val now = Instant.parse("2026-10-22T12:00:00Z")
     private val reading = RhythmReading.read(
         (0 until 10).associate { RhythmReading.key(now.minusSeconds(86_400L * it), ZoneOffset.UTC) to 5 }, now, ZoneOffset.UTC)
+    private var well = Color.Unspecified
+
+    private fun panel() = compose.setContent {
+        StethoscoreTheme(dark.value) {
+            well = wardColor(WardToken.monitor, held = true)
+            WardMonitorCard { MonitorPanel(reading, readiness = 0.68, accuracy = 0.74, today = 12, target = 30, streak = 10) }
+        }
+    }
+
+    private fun contrast(a: Color, b: Color): Double {
+        val (hi, lo) = listOf(a.luminance() + 0.05, b.luminance() + 0.05).sortedDescending()
+        return (hi / lo).toDouble()
+    }
 
     @Test fun theReadoutsStandBesideTheTraceLikeAMonitor() {
-        compose.setContent {
-            StethoscoreTheme(dark.value) { MonitorScreen(reading, readiness = 0.68, accuracy = 0.74, today = 12, target = 30) }
-        }
+        panel()
         for (mode in listOf(false, true)) {
             dark.value = mode
             compose.waitForIdle()
@@ -50,9 +72,33 @@ class VitalsMonitorTest {
             val column = compose.onNodeWithTag("monitorReadouts").getUnclippedBoundsInRoot()
             assertTrue("$name: the readouts stand right of the trace (${column.left} >= ${trace.right})", column.left >= trace.right)
             assertEquals("$name: the column starts level with the trace", trace.top, column.top)
-            assertEquals("$name: the trace fills its channel", MonitorChannel.channel.dp, trace.height)
+            assertEquals("$name: the trace is as tall as the column", column.height, trace.height)
             assertTrue("$name: the trace takes the wider share (${trace.width} > ${column.width})", trace.width > column.width)
-            for (words in listOf("RDY", "ACC", "Q/D", "68%", "74%", "12/30")) compose.onNodeWithText(words).assertExists()
+            for (words in listOf("RDY", "ACC", "Q/D", "68%", "74%", "12/30", "10 day streak", reading.line))
+                compose.onNodeWithText(words, useUnmergedTree = true).assertExists()
+            compose.onNodeWithText("STUDY RHYTHM", substring = true, useUnmergedTree = true).assertExists()
+        }
+    }
+
+    @Test fun everyWordReadsOnTheDarkWellInBothModes() {
+        panel()
+        for (mode in listOf(false, true)) {
+            dark.value = mode
+            compose.waitForIdle()
+            val name = if (mode) "dark" else "light"
+            val nodes = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Text), useUnmergedTree = true)
+                .fetchSemanticsNodes()
+            assertTrue("$name: the strip, readouts and footnote are all there (${nodes.size})", nodes.size >= 8)
+            for (node in nodes) {
+                val layouts = mutableListOf<TextLayoutResult>()
+                node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+                val style = layouts.single().layoutInput.style
+                val words = layouts.single().layoutInput.text.text
+                val large = style.fontSize.value >= 18f
+                val ratio = contrast(style.color, well)
+                val least = if (large) 3.0 else 4.5
+                assertTrue("$name: \"$words\" is $ratio:1 on the monitor, at least $least", ratio >= least)
+            }
         }
     }
 
