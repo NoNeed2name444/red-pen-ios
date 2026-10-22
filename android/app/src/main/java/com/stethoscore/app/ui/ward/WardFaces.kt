@@ -46,6 +46,7 @@ import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.platform.LocalContext
 import com.stethoscore.app.ui.LocalWardLook
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.wardInk
@@ -344,15 +345,22 @@ private class WardPressNode(private val source: InteractionSource) :
     private fun press() {
         letGo?.cancel()
         pressedAt = System.nanoTime()
-        coroutineScope.launch { held.animateTo(1f, tween((WardPress.press * 1000).toInt(), easing = WardQuickEasing)) }
+        val reduce = reduce()
+        coroutineScope.launch { held.animateTo(1f, if (reduce) snap() else tween(wardMillis(WardPress.press), easing = WardQuickEasing)) }
     }
+
+    /** Remove animations, from the theme's flag (LocalWardReduceMotion) or, with none given, the system's scale (wardReduceMotion). */
+    private fun reduce(): Boolean =
+        currentValueOf(LocalWardReduceMotion) ?: WardMotion.reduce(wardAnimatorScale(currentValueOf(LocalContext)))
 
     /** Lets go once the press has had its time (WardPress.releaseHold), then rises. */
     private fun release() {
-        val wait = WardPress.releaseHold((System.nanoTime() - pressedAt) / 1e9)
+        val reduce = reduce()
+        // with animations off it lets go at once, as iOS's press does
+        val wait = if (reduce) 0.0 else WardPress.releaseHold((System.nanoTime() - pressedAt) / 1e9)
         letGo = coroutineScope.launch {
             delay((wait * 1000).toLong())
-            held.animateTo(0f, tween((WardPress.release * 1000).toInt(), easing = WardQuickEasing))
+            held.animateTo(0f, if (reduce) snap() else tween(wardMillis(WardPress.release), easing = WardQuickEasing))
         }
     }
 
@@ -371,7 +379,8 @@ private class WardPressNode(private val source: InteractionSource) :
                     0f, 0f, 0f, 1f, 0f,
                 )))
             }
-            scale(WardPressIndication.scale(down), pivot = center) {
+            // with animations off it does not sink, it only shades (iOS CapPop: pressed && !reduceMotion)
+            scale(if (reduce()) 1f else WardPressIndication.scale(down), pivot = center) {
                 drawIntoCanvas { it.saveLayer(Rect(-reach, -reach, size.width + reach, size.height + reach), paint) }
                 content.drawContent()
                 drawIntoCanvas { it.restore() }
