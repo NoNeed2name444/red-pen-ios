@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui.vitals
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -12,8 +13,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
@@ -34,13 +35,13 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.BedPlan
 import com.stethoscore.app.data.Readiness
@@ -62,7 +63,6 @@ import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardType
-import com.stethoscore.app.ui.ward.WardTypeSpec
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardAccessibilitySize
@@ -76,10 +76,15 @@ import com.stethoscore.app.ui.wardColor
 // subjects and time; the numbers are its own.
 
 /**
- * The monitor: "Study rhythm · Sinus · Regular", the last two weeks as a
- * green trace (a beat for each day studied), and the observations under it -
- * readiness, accuracy, questions today against the day's target, and the
- * streak.
+ * The monitor, laid out like a bedside monitor (the owner, 22 Oct: "make it
+ * like the monitor"): a status strip along the top - "Study rhythm · Sinus ·
+ * Regular" on the left, the streak with its heart on the right - then the
+ * screen, the last two weeks as a green trace (a beat for each day studied)
+ * filling the channel on the left, and the parameter column on the right,
+ * each readout its label over its big number in the parameter's colour,
+ * parted by thin rules: readiness, accuracy, and questions today against the
+ * day's target. A dark panel in both modes. At the accessibility text sizes
+ * the column moves under the trace.
  */
 @Composable fun RhythmMonitor(reading: RhythmReading.Reading, readiness: Double?, accuracy: Double?, today: Int, target: Int, streak: Int) {
     val spoken = remember(reading, readiness, accuracy, today, target, streak) {
@@ -93,52 +98,81 @@ import com.stethoscore.app.ui.wardColor
     // a List row: the bezel as low as the tiles round it
     WardMonitorCard(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }, lift = WardLift.low,
         spacing = WardSpace.m.wardDp) {
-        WardSmallCapsText("Study rhythm · " + reading.words)
-        // RhythmTrace in Discharge Green: its ECG Red stroke recoloured where it is drawn
-        val green = wardColor(WardToken.success)
-        RhythmTrace(reading.beats, Modifier.fillMaxWidth().height(44.dp)
-            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-            .drawWithContent { drawContent(); drawRect(green, blendMode = BlendMode.SrcIn) })
-        MonitorFits(
-            { Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.xl.wardDp), verticalAlignment = Alignment.Top) { MonitorReadings(readiness, accuracy, today, target, streak) } },
-            { Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) { MonitorReadings(readiness, accuracy, today, target, streak) } },
-        )
+        // the status strip: what the trace is on the left, the beat on the right
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { WardSmallCapsText("Study rhythm · " + reading.words) }
+            MonitorStreak(streak)
+        }
+        MonitorScreen(reading, readiness, accuracy, today, target)
         Text(reading.line, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
     }
+}
+
+/**
+ * The monitor's screen: the trace's channel on the left, a thin rule, and the
+ * parameter column on the right; at the accessibility text sizes the column
+ * goes under the trace.
+ */
+@Composable internal fun MonitorScreen(reading: RhythmReading.Reading, readiness: Double?, accuracy: Double?, today: Int, target: Int) {
+    if (wardAccessibilitySize()) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
+            MonitorTrace(reading, Modifier.fillMaxWidth())
+            MonitorReadouts(readiness, accuracy, today, target, Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.Top) {
+            MonitorTrace(reading, Modifier.weight(1f))
+            Box(Modifier.width(1.dp).height(MonitorChannel.channel.dp).background(wardColor(WardToken.hairline)))
+            MonitorReadouts(readiness, accuracy, today, target, Modifier.width(MonitorChannel.column.dp))
+        }
+    }
+}
+
+/** The monitor's sizes in points and dp, as RhythmMonitor.channel and .column on iOS. */
+object MonitorChannel {
+    /** The trace channel's height, as tall as the three readouts beside it. */
+    const val channel: Int = 112
+    /** The parameter column's width. */
+    const val column: Int = 112
 }
 
 /** "68%", or a dash with nothing to show (RhythmMonitor.percent). */
 fun monitorPercent(value: Double?): String = if (value == null) "–" else percentText(value)
 
-@Composable private fun MonitorReadings(readiness: Double?, accuracy: Double?, today: Int, target: Int, streak: Int) {
-    MonitorReading("RDY", monitorPercent(readiness), wardColor(WardToken.beam))
-    MonitorReading("ACC", monitorPercent(accuracy), wardColor(WardToken.success))
-    MonitorReading("Q/D", "$today/$target", wardColor(WardToken.onPrimary))
-    Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+/** The trace in its channel: RhythmTrace in Discharge Green, its ECG Red stroke recoloured where it is drawn. */
+@Composable private fun MonitorTrace(reading: RhythmReading.Reading, modifier: Modifier) {
+    val green = wardColor(WardToken.success)
+    RhythmTrace(reading.beats, modifier.testTag("rhythmTrace").height(MonitorChannel.channel.dp)
+        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+        .drawWithContent { drawContent(); drawRect(green, blendMode = BlendMode.SrcIn) })
+}
+
+/** The parameter column: each readout a label over its number, parted by thin rules. */
+@Composable private fun MonitorReadouts(readiness: Double?, accuracy: Double?, today: Int, target: Int, modifier: Modifier) {
+    val rule = wardColor(WardToken.hairline)
+    Column(modifier.testTag("monitorReadouts"), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
+        MonitorReading("RDY", monitorPercent(readiness), wardColor(WardToken.beam))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(rule))
+        MonitorReading("ACC", monitorPercent(accuracy), wardColor(WardToken.success))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(rule))
+        MonitorReading("Q/D", "$today/$target", wardColor(WardToken.onPrimary))
+    }
+}
+
+@Composable private fun MonitorStreak(streak: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Rounded.Favorite, null, tint = wardColor(WardToken.ecg), modifier = Modifier.size(14.dp))
         Text(if (streak > 0) "$streak day streak" else "No streak yet", style = WardTextStyle.footnote.textStyle(WardWeight.semibold),
             color = wardColor(WardToken.ink))
     }
 }
 
-/** One observation on the monitor: a short label over a mono value. */
+/** One parameter on the monitor: its label at the top left and its number large at the right, both in its colour. */
 @Composable private fun MonitorReading(label: String, value: String, tint: androidx.compose.ui.graphics.Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        Text(label, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
-        Text(value, style = WardTypeSpec(WardType.obs.style, WardWeight.semibold, mono = true).textStyle(), color = tint)
-    }
-}
-
-/** ViewThatFits(in: .horizontal): [first] at its own width when the room holds it, otherwise [second]. */
-@Composable private fun MonitorFits(first: @Composable () -> Unit, second: @Composable () -> Unit) {
-    SubcomposeLayout { constraints ->
-        val wide = subcompose("first", first).map { it.measure(Constraints(maxHeight = constraints.maxHeight)) }
-        val fits = wide.maxOfOrNull { it.width }?.let { it <= constraints.maxWidth } ?: true
-        val placeables = if (fits) subcompose("fits", first).map { it.measure(constraints.copy(minWidth = 0)) }
-        else subcompose("under", second).map { it.measure(constraints.copy(minWidth = 0)) }
-        val w = placeables.maxOfOrNull { it.width } ?: 0
-        val h = placeables.maxOfOrNull { it.height } ?: 0
-        layout(w, h) { placeables.forEach { it.place(0, 0) } }
+    Column(Modifier.fillMaxWidth()) {
+        Text(label, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = tint)
+        Text(value, Modifier.fillMaxWidth(), style = WardType.obsLarge.textStyle(), color = tint, maxLines = 1,
+            textAlign = TextAlign.End)
     }
 }
 

@@ -6,10 +6,17 @@ import SwiftUI
 // AnalyticsView puts them above its Focus next, readiness, trends, mistakes,
 // subjects and time; the numbers are its own.
 
-/// The monitor: "Study rhythm · Sinus · Regular", the last two weeks as a
-/// green trace (a beat for each day studied), and the observations under it -
-/// readiness, accuracy, questions today against the day's target, and the
-/// streak.
+/// The monitor, laid out like a bedside monitor (the owner, 22 Oct: "make it
+/// like the monitor"): a status strip along the top - "Study rhythm · Sinus ·
+/// Regular" on the left, the streak with its heart on the right where a
+/// monitor shows the heart rate's beat - then the screen itself, the last two
+/// weeks as a green trace (a beat for each day studied) filling the channel
+/// on the left, and the parameter column on the right, each readout its
+/// label over its big number in the parameter's own colour, parted by thin
+/// rules: readiness, accuracy, and questions today against the day's target.
+/// The line under them says what the trace means. A dark panel in both
+/// modes, its colours the ten hexes'. At the accessibility text sizes the
+/// column moves under the trace.
 struct RhythmMonitor: View {
     let reading: RhythmReading.Reading
     /// 0...1, or nil before there is an estimate.
@@ -20,16 +27,34 @@ struct RhythmMonitor: View {
     let target: Int
     let streak: Int
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// The trace channel's height, as tall as the three readouts beside it.
+    static let channel: CGFloat = 112
+    /// The parameter column's width.
+    static let column: CGFloat = 112
+
     var body: some View {
         // a List row: the bezel as low as the tiles round it
         MonitorCard(lift: .low) {
             VStack(alignment: .leading, spacing: WardSpace.m) {
-                Text("Study rhythm \u{00B7} " + reading.words)
-                    .wardSmallCaps()
-                RhythmTrace(beats: reading.beats)
-                    .stroke(Color.wardSuccess, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                    .frame(height: 44)
-                observations
+                statusStrip
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: WardSpace.m) {
+                        trace
+                        readouts
+                    }
+                } else {
+                    HStack(alignment: .top, spacing: WardSpace.m) {
+                        trace
+                            .frame(maxWidth: .infinity)
+                        Rectangle()
+                            .fill(Color.wardHairline)
+                            .frame(width: 1, height: RhythmMonitor.channel)
+                        readouts
+                            .frame(width: RhythmMonitor.column)
+                    }
+                }
                 Text(reading.line)
                     .font(.footnote)
                     .foregroundStyle(Color.wardInkSecondary)
@@ -40,23 +65,33 @@ struct RhythmMonitor: View {
         .accessibilityLabel(spoken)
     }
 
-    private var observations: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: WardSpace.xl) {
-                readings
-            }
-            VStack(alignment: .leading, spacing: WardSpace.s) {
-                readings
-            }
+    /// The monitor's top line: what the trace is, and the beat.
+    private var statusStrip: some View {
+        HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
+            Text("Study rhythm \u{00B7} " + reading.words)
+                .wardSmallCaps()
+            Spacer(minLength: WardSpace.s)
+            streakReading
         }
     }
 
-    @ViewBuilder
-    private var readings: some View {
-        MonitorReading(label: "RDY", value: RhythmMonitor.percent(readiness), tint: Color.wardBeam)
-        MonitorReading(label: "ACC", value: RhythmMonitor.percent(accuracy), tint: Color.wardSuccess)
-        MonitorReading(label: "Q/D", value: "\(today)/\(target)", tint: Color.wardInk)
-        streakReading
+    /// The trace in its channel, the full height of the column beside it.
+    private var trace: some View {
+        RhythmTrace(beats: reading.beats)
+            .stroke(Color.wardSuccess, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            .frame(height: RhythmMonitor.channel)
+    }
+
+    /// The parameter column: each readout a label over its number, parted by
+    /// thin rules, as a monitor stacks its parameters.
+    private var readouts: some View {
+        VStack(alignment: .leading, spacing: WardSpace.xs) {
+            MonitorReading(label: "RDY", value: RhythmMonitor.percent(readiness), tint: Color.wardBeam)
+            Rectangle().fill(Color.wardHairline).frame(height: 1)
+            MonitorReading(label: "ACC", value: RhythmMonitor.percent(accuracy), tint: Color.wardSuccess)
+            Rectangle().fill(Color.wardHairline).frame(height: 1)
+            MonitorReading(label: "Q/D", value: "\(today)/\(target)", tint: Color.wardInk)
+        }
     }
 
     private var streakReading: some View {
@@ -66,8 +101,8 @@ struct RhythmMonitor: View {
                 .foregroundStyle(Color.wardEcg)
             Text(words)
                 .font(.footnote.weight(.semibold))
+                .monospacedDigit()
         }
-        .padding(.top, 2)
     }
 
     private var spoken: String {
@@ -86,22 +121,25 @@ struct RhythmMonitor: View {
     }
 }
 
-/// One observation on the monitor: a short label over a mono value.
+/// One parameter on the monitor: its label at the top left and its number
+/// large at the right, both in the parameter's colour.
 private struct MonitorReading: View {
     let label: String
     let value: String
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(label)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.wardInkSecondary)
             Text(value)
-                .font(WardType.obs.weight(.semibold))
+                .font(WardType.obsLarge)
                 .monospacedDigit()
-                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
+        .foregroundStyle(tint)
     }
 }
 
