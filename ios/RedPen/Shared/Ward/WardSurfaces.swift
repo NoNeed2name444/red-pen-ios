@@ -482,9 +482,11 @@ final class WardEdgeStore {
         refresh()
     }
 
-    func setWindow(_ frame: CGRect, pad: Bool, top: CGFloat?) {
+    func setWindow(_ frame: CGRect, pad: Bool, top: CGFloat?, safe: WardSystemInsets = .none) {
+        // the same opening the frame strokes: clear of the system bars, its
+        // corners concentric with the display's (WardPaper.panel)
         let next = WardPaper.panel(width: frame.width, height: frame.height,
-                                   top: Double(top ?? 0) - frame.minY, pad: pad)
+                                   top: Double(top ?? 0) - frame.minY, safe: safe, device: nil, pad: pad)
         guard window != frame || panel != next else { return }
         window = frame
         panel = next
@@ -568,8 +570,13 @@ private enum WardPanelPath {
     }
 
     static func hole(_ panel: WardPaperPanel) -> Path {
-        RoundedRectangle(cornerRadius: panel.radius, style: .continuous)
-            .path(in: CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height))
+        let rect = CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height)
+        if panel.bottomRadius == panel.radius {
+            return RoundedRectangle(cornerRadius: panel.radius, style: .continuous).path(in: rect)
+        }
+        return UnevenRoundedRectangle(topLeadingRadius: panel.radius, bottomLeadingRadius: panel.bottomRadius,
+                                      bottomTrailingRadius: panel.bottomRadius, topTrailingRadius: panel.radius,
+                                      style: .continuous).path(in: rect)
     }
 
     static func ring(_ panel: WardPaperPanel) -> Path {
@@ -717,11 +724,17 @@ struct WardPaperFrame: View {
         let color = Color(red: r, green: g, blue: b)
         GeometryReader { geometry in
             let size = geometry.size
+            // Off home, the opening stops short of the status bar, the
+            // Dynamic Island and the home indicator, so the ring never runs
+            // through them (the owner, 22 Oct); home keeps its ringless
+            // opening as it was.
+            let safe = onHome ? WardSystemInsets.none : WardSystemInsets(geometry.safeAreaInsets)
             ZStack {
-                WardPaperCutStage()
+                WardPaperCutStage(safe: safe)
                 if !onHome,
                    let moved = WardPaper.panel(width: size.width, height: size.height,
-                                               top: Double(top ?? 0) - window.minY, pad: WardPanelPath.pad) {
+                                               top: Double(top ?? 0) - window.minY, safe: safe, device: nil,
+                                               pad: WardPanelPath.pad) {
                     ZStack {
                         Canvas { context, _ in
                             context.fill(WardPanelPath.ring(moved), with: .color(color))
@@ -738,13 +751,22 @@ struct WardPaperFrame: View {
             }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
                 window = frame
-                edges.setWindow(frame, pad: WardPanelPath.pad, top: top)
+                edges.setWindow(frame, pad: WardPanelPath.pad, top: top, safe: safe)
             }
-            .onChange(of: top) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: now) }
+            .onChange(of: top) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: now, safe: safe) }
+            .onChange(of: safe) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: top, safe: now) }
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+extension WardSystemInsets {
+    /// A view's safe area insets, leading and trailing as left and right.
+    init(_ insets: EdgeInsets) {
+        self.init(top: Double(insets.top), bottom: Double(insets.bottom),
+                  left: Double(insets.leading), right: Double(insets.trailing))
     }
 }
 
@@ -762,6 +784,8 @@ struct WardPaperCut: Equatable {
     var ink: WardPaperInk
     var base: UInt32
     var pad: Bool
+    /// The system bars the opening stays clear of (none on home).
+    var safe: WardSystemInsets = .none
     var displayScale: CGFloat
 
     /// The paper's opening, as a path in the window.
@@ -770,6 +794,7 @@ struct WardPaperCut: Equatable {
 
 /// Reads the opening's frame from LaunchStage, for the sheet.
 private struct WardPaperCutStage: View {
+    var safe: WardSystemInsets = .none
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
@@ -794,7 +819,7 @@ private struct WardPaperCutStage: View {
         #if canImport(UIKit)
         WardPaperCutSheet(cut: WardPaperCut(scale: pose?.scale, drop: pose?.drop ?? 0,
                                             top: top, dark: dark, highContrast: strong,
-                                            ink: ink, base: base, pad: WardPanelPath.pad,
+                                            ink: ink, base: base, pad: WardPanelPath.pad, safe: safe,
                                             displayScale: displayScale))
         #endif
     }
@@ -859,8 +884,10 @@ final class WardPaperCutView: UIView {
         defer { CATransaction.commit() }
         guard bounds.width > 0, bounds.height > 0 else { return }
         let w = Double(bounds.width), h = Double(bounds.height)
-        guard let panel = WardPaper.panel(width: w, height: h, pad: cut.pad) else { return }
-        let moved: WardPaperPanel? = cut.top.flatMap { WardPaper.panel(width: w, height: h, top: Double($0), pad: cut.pad) }
+        guard let panel = WardPaper.panel(width: w, height: h, safe: cut.safe, device: nil, pad: cut.pad) else { return }
+        let moved: WardPaperPanel? = cut.top.flatMap {
+            WardPaper.panel(width: w, height: h, top: Double($0), safe: cut.safe, device: nil, pad: cut.pad)
+        }
             .flatMap { $0.y > panel.y ? $0 : nil }
         let opening = moved ?? panel
         // A pose moves the mask, never the picture. Everything that changes

@@ -27,7 +27,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.ui.LocalWardDark
@@ -244,10 +250,47 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
     }
 }
 
+/** How far the system bars and cut-outs reach in (WindowInsets.safeDrawing, what the pages pad by), in dp. */
+@Composable fun wardSystemInsets(): WardSystemInsets {
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    val safe = WindowInsets.safeDrawing
+    val d = density.density.toDouble()
+    return WardSystemInsets(top = safe.getTop(density) / d, bottom = safe.getBottom(density) / d,
+        left = safe.getLeft(density, direction) / d, right = safe.getRight(density, direction) / d)
+}
+
+/**
+ * The display's own corner radius in dp, as the device reports it
+ * (WindowInsets.getRoundedCorner, Android 12 and later; the largest of the
+ * four corners); null below Android 12 or when the device reports none, so
+ * the caller takes WardPaper.deviceRadius.
+ */
+@Composable fun wardDisplayCorner(): Double? {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return null
+    val insets = LocalView.current.rootWindowInsets ?: return null
+    val density = LocalDensity.current.density.toDouble()
+    val radii = listOf(android.view.RoundedCorner.POSITION_TOP_LEFT, android.view.RoundedCorner.POSITION_TOP_RIGHT,
+        android.view.RoundedCorner.POSITION_BOTTOM_LEFT, android.view.RoundedCorner.POSITION_BOTTOM_RIGHT)
+        .mapNotNull { insets.getRoundedCorner(it)?.radius }
+    return radii.maxOrNull()?.let { it / density }
+}
+
+/**
+ * A page inside the paper's opening (iOS SkyRoot's padding): clear of the
+ * system bars, [WardPaper.sideInset] in from each side, and the ring's width
+ * in from the top and bottom, so every control sits wholly inside the ring.
+ */
+fun Modifier.wardFrameClearance(): Modifier =
+    safeDrawingPadding().padding(horizontal = WardPaper.sideInset.dp, vertical = WardPaper.edgeWidth.dp)
+
 /**
  * Still ECG paper round the screen (iOS WardPaperFrame): the paper outside
  * the page's opening, its grid on the window's, and the opening's ring in the
- * paper's edge ink, the continuous corners of WardEdge.outline. With
+ * paper's edge ink, the continuous corners of WardEdge.outline. The opening
+ * stops short of the status and navigation bars and takes the display's
+ * corner (WardPaper.panel with the system insets), so the ring never runs
+ * through a bar; pages sit inside it by wardFrameClearance. With
  * [barTop] (points from the frame's top), a bar's line runs across the
  * opening there, joined into the ring by WardEdge's arcs. Fill the window
  * with it, over the page: it takes no touches. Home keeps its own ground.
@@ -260,8 +303,12 @@ internal fun wardIslandPath(join: WardEdgeJoin, from: Double, to: Double, densit
     val color = wardRgb(ink.hex)
     val base = wardRgb(glide.hex(WardToken.background, dark))
     val pad = LocalConfiguration.current.smallestScreenWidthDp >= 600
+    // clear of the status and navigation bars, its corners concentric with the display's
+    val safe = wardSystemInsets()
+    val device = wardDisplayCorner()
     Canvas(modifier) {
-        val panel = WardPaper.panel((size.width / density).toDouble(), (size.height / density).toDouble(), pad = pad) ?: return@Canvas
+        val panel = WardPaper.panel((size.width / density).toDouble(), (size.height / density).toDouble(), safe, device, pad = pad)
+            ?: return@Canvas
         val outline = WardEdge.outline(panel, pointsPerCurve = 12)
         val hole = wardOutlinePath(outline, density)
         // the paper, outside the opening

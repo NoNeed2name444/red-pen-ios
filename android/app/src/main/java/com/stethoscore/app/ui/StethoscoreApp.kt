@@ -13,6 +13,7 @@ import com.stethoscore.app.ui.ward.WardDock
 import com.stethoscore.app.ui.ward.WardGround
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.wardChosenEdge
+import com.stethoscore.app.ui.ward.wardFrameClearance
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.ward.wardRaised
@@ -187,7 +188,10 @@ import kotlinx.coroutines.withContext
         var bandBottom by remember { mutableStateOf<Float?>(null) }
         if(onGround) WardGroundBackground(WardGround.home(section, dark),Modifier.fillMaxSize(),gridBottom={ bandBottom })
         Surface(Modifier.fillMaxSize(),color=if(onGround) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) {
-            Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+            // a page in the paper's opening sits inside its ring (wardFrameClearance); home has
+            // no frame, and the map (ui/map) keeps its own full-bleed layout
+            val inFrame=!onGround && screen!="ideas"
+            Box(if(inFrame) Modifier.fillMaxSize().wardFrameClearance() else Modifier.fillMaxSize().safeDrawingPadding()) {
                 when(screen) {
                     "study" -> {
                         val set=store.library.firstOrNull { it.id==selectedId }
@@ -323,11 +327,12 @@ import kotlinx.coroutines.withContext
                     com.stethoscore.app.ui.library.LibraryOverlays(store,lib,libActions)
                     com.stethoscore.app.ui.library.IncomingImportHost(store,busy=notice!=null || lib.naming!=null || lib.session!=null || lib.pendingDelete!=null,onChanged=::refresh)
                 }
-                // a learning screen over the app, in a sheet of its own (LearnRoutes)
-                com.stethoscore.app.ui.learn.LearnSheet(store,dark,section,onPreset={ com.stethoscore.app.ui.learn.LearnRouter.close();newPreset=it;screen="new" }) { set -> refresh();open(set) }
                 if(nothingDue) AlertDialog(onDismissRequest={nothingDue=false},title={Text("Nothing here yet")},text={Text("No cards are due right now. Come back later.")},confirmButton={TextButton(onClick={nothingDue=false}) {Text("Done")}})
                 notice?.let { message -> AlertDialog(onDismissRequest={notice=null},title={Text("Library")},text={Text(message)},confirmButton={TextButton(onClick={notice=null}) {Text("Done")}}) }
             }
+            // a learning screen over the app, in a sheet of its own (LearnRoutes): its face fills
+            // the window, its screen sits inside the frame's ring
+            com.stethoscore.app.ui.learn.LearnSheet(store,dark,section,onPreset={ com.stethoscore.app.ui.learn.LearnRouter.close();newPreset=it;screen="new" }) { set -> refresh();open(set) }
             // Every page but home stands in the paper's opening (iOS WardPaperFrame):
             // still ECG paper round the window, the page scrolling beneath it.
             if(!onGround) WardPaperFrame(Modifier.fillMaxSize())
