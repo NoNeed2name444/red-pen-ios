@@ -23,9 +23,9 @@ val WardRect.isEmpty: Boolean get() = !(width > 0) || !(height > 0)
 
 /**
  * The parts of a page that reported themselves at rest, by key (the view's
- * id): the logic of WardPartBook without the views (HomeFit's settledCut
- * reads its tops). A part that goes away is dropped; a new page clears the
- * lot.
+ * id): the logic of WardPartBook without the views (home's book,
+ * HomePartBook, reads its tops). A part that goes away is dropped; a new
+ * page clears the lot.
  */
 class WardPartLedger<K> {
     /** A live part's latest reported frame, kept whether or not the page is at rest so the next rest can book it. */

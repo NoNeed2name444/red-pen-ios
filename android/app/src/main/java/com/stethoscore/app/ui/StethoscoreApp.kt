@@ -1,7 +1,6 @@
 package com.stethoscore.app.ui
 
 import com.stethoscore.app.ui.home.ExamCountdown
-import com.stethoscore.app.ui.home.HomeCutPage
 import com.stethoscore.app.ui.home.HomeFit
 import com.stethoscore.app.ui.home.HomeHeader
 import com.stethoscore.app.ui.home.HomePartBook
@@ -220,7 +219,7 @@ import kotlinx.coroutines.withContext
                         if(set!=null) com.stethoscore.app.ui.sources.SetCreditsScreen(set,::goHome) { licencesFrom="credits";screen="licences" }
                         else LaunchedEffect(Unit) { goHome() }
                     }
-                    else -> Column(Modifier.fillMaxSize()) {
+                    else -> Box(Modifier.fillMaxSize()) {
                         val libSearch=com.stethoscore.app.ui.library.rememberLibrarySearch(store,revision,query,lib.scope)
                         // home: the header, today's ward round and its tiles (ui/home, iOS WardHome)
                         val shortWindow=homeShortWindow()
@@ -250,8 +249,14 @@ import kotlinx.coroutines.withContext
                         LaunchedEffect(category,query) { book.clear() }
                         val listState=androidx.compose.foundation.lazy.rememberLazyListState()
                         val atRest by remember { derivedStateOf { !listState.isScrollInProgress && listState.firstVisibleItemIndex==0 && listState.firstVisibleItemScrollOffset==0 } }
-                        HomeCutPage(book,atRest,Modifier.weight(1f)) { cut ->
-                            LazyColumn(cut,state=listState,contentPadding=PaddingValues(20.dp,12.dp,20.dp,20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
+                        LaunchedEffect(atRest) { book.settle(atRest) }
+                        // The page is not cut above the bottom bar (the owner, 22 Oct: the band
+                        // under New set and the tabs was wrong): its rows run on behind New set
+                        // and the dock to the window's bottom edge, and the row that ends the
+                        // list lets the last one scroll clear of them (HomeFit.endSpace). No
+                        // soft edge under the bar either: nothing at the bottom fades.
+                        var barHeight by remember { mutableStateOf(0.0) }
+                            LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(20.dp,12.dp,20.dp,20.dp),verticalArrangement=Arrangement.spacedBy(22.dp)) {
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                                     SectionLabel("YOUR STUDY WARD")
                                     IconButton(onClick={screen="settings"},Modifier.size(44.dp).border(1.dp,MaterialTheme.colorScheme.outline,RoundedCornerShape(22.dp))) { Icon(Icons.Rounded.Settings,"Settings") }
@@ -286,12 +291,18 @@ import kotlinx.coroutines.withContext
                                 }
                                 if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
                                 if(query.isBlank() && category=="Cards" && store.loadError==null) item { com.stethoscore.app.ui.editors.PhotoCardsTile({ screen="photo" },Modifier.fillMaxWidth()) }
-                                // the library: its sets, folders, search and practice tiles (iOS LibraryView and LibraryRows), each row a part of home's cut
+                                // the library: its sets, folders, search and practice tiles (iOS LibraryView and LibraryRows), each row a part of home's book
                                 libraryItems(store,revision,com.stethoscore.app.ui.library.StudyCategory.named(category),query,libSearch,lib,libActions,
                                     rowModifier={ set -> Modifier.homePart(book,"set-${set.id}","a set row") },showsEmpty=false)
                                 item { Text("Study aid · Not for clinical decisions",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
+                                // the page is not cut above the bar, so this row is what lets the last tile scroll wholly clear of it (HomeFit.endSpace)
+                                item { Spacer(Modifier.fillMaxWidth().height(HomeFit.endSpace(barHeight).dp)) }
                             }
-                        }
+                        // New set and the dock float on the page itself, with nothing behind them
+                        // but the page: no strip, no line, no cut of the rows above them, so the
+                        // page reads unbroken to the bottom (the owner, 9 and 22 Oct).
+                        val barDensity=androidx.compose.ui.platform.LocalDensity.current.density
+                        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) {
                         // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)
                         if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=6.dp),horizontalArrangement=Arrangement.End) {
                             com.stethoscore.app.ui.ward.WardButtonBox({ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;screen="newset" },
@@ -301,6 +312,7 @@ import kotlinx.coroutines.withContext
                         }
                         if(lib.selecting) com.stethoscore.app.ui.library.LibrarySelectionBar(store,lib,libActions)
                         else CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} })
+                        }
                     }
                 }
                 if(screen=="home") {

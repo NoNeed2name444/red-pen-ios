@@ -5,13 +5,17 @@ import com.stethoscore.app.ui.ward.WardRect
 import com.stethoscore.app.ui.ward.checks
 import com.stethoscore.app.ui.ward.wardBookedTop
 import org.junit.Test
+import java.io.File
 import kotlin.math.abs
 
 // The port of ios/RedPen/Tests/HomeFitTests.swift, check for check
 // and number for number: which windows count as short, how many beds the
-// round shows there, how much of the page shows above the bar (the page's
-// cut), the check run on a laid-out home, and the parts book
-// (WardPartLedger) the cut reads.
+// round shows there, the page that is not cut above the bar (the owner,
+// 22 Oct) and the row that lets its last tile scroll clear of the bar, the
+// check run on a laid-out home (at the standard text sizes the round card
+// and its Start ward round button end above the bar's line; at large sizes
+// the page scrolls but that line slices no button; New set sits on no part
+// of the card above it; no word breaks), and the parts book (WardPartLedger).
 class HomeFitTest {
     private fun box(y0: Double, y1: Double, x0: Double = 16.0, x1: Double = 359.0) = HomeFit.Box(x0, y0, x1, y1)
     private fun rect(x: Double, y: Double, w: Double, h: Double) = WardRect(x, y, w, h)
@@ -31,24 +35,25 @@ class HomeFitTest {
         check("a short window shows a lone bed", HomeFit.shownBeds(1, short = true) == 1)
         check("a tall window shows every bed", HomeFit.shownBeds(4, short = false) == 4)
         check("no beds stay none", HomeFit.shownBeds(0, short = true) == 0)
-        // large text: a bed comes off while the cut slices Start, one always stays
+        // large text: a bed comes off while the bar's line slices Start, one always stays
         check("a trim takes a bed off a tall window", HomeFit.shownBeds(3, short = false, trimmed = 1) == 2)
         check("a trim goes on from a short window's two", HomeFit.shownBeds(4, short = true, trimmed = 1) == 1)
         check("a trim leaves one bed", HomeFit.shownBeds(3, short = false, trimmed = 9) == 1)
         check("a trim leaves none as none", HomeFit.shownBeds(0, short = false, trimmed = 2) == 0)
-        // the cut through a button (the iPad at AX1: Start 967-1025, cut 1020)
-        check("a cut through the middle slices", HomeFit.slices(967.0, 1025.0, 1020.0))
-        check("a button wholly above the cut is not sliced", !HomeFit.slices(600.0, 656.0, 1020.0))
-        check("a button wholly past the cut is not sliced", !HomeFit.slices(1049.0, 1107.0, 768.0))
-        check("a button ending on the cut is not sliced", !HomeFit.slices(964.0, 1020.0, 1020.0))
+        // the line through a button (the iPad at AX1: Start 967-1025, line 1020)
+        check("a line through the middle slices", HomeFit.slices(967.0, 1025.0, 1020.0))
+        check("a button wholly above the line is not sliced", !HomeFit.slices(600.0, 656.0, 1020.0))
+        check("a button wholly past the line is not sliced", !HomeFit.slices(1049.0, 1107.0, 768.0))
+        check("a button ending on the line is not sliced", !HomeFit.slices(964.0, 1020.0, 1020.0))
     }
 
     @Test fun thePreviewsCheck() = checks {
         val fitting = HomeFit.faults(box(204.0, 527.0), box(460.0, 510.0), box(557.0, 647.0), box(8.0, 52.0, x0 = 300.0, x1 = 344.0))
         check("a home that fits has no faults", fitting.isEmpty(), fitting.joined())
-        // the r7 SE picture: the card to 603, the bar from 570
+        // the r7 SE picture: the card to 603, the bar from 570. The card has to
+        // stop 12 points above the bar, so only the button and the card are caught
         val cut = HomeFit.faults(box(204.0, 603.0), box(538.0, 590.0), box(570.0, 720.0), box(580.0, 632.0, x0 = 232.0, x1 = 359.0))
-        check("the button and the card past the cut are both caught",
+        check("the button and the card past the bar's line are both caught",
             cut.size == 2 && cut[0].startsWith("Start ward round") && cut[1].startsWith("the round card"), cut.joined())
         // on a short window New set is up in the top row: on the card there, it is caught
         val up = HomeFit.faults(box(120.0, 500.0), box(440.0, 490.0), box(557.0, 647.0), box(131.0, 175.0, x0 = 300.0, x1 = 344.0))
@@ -56,22 +61,26 @@ class HomeFitTest {
     }
 
     @Test fun largeTextThePageScrolls() = checks {
+        // r11's iPhone at XXL: the card 283-797 with Start at 725-781, the bar
+        // (New set over the dock) from 708. The page runs on behind the bar, its
+        // line at 696, and scrolls; Start is wholly below it; nothing sits on the
+        // card above the line
         val xxl = HomeFit.faults(box(283.0, 797.0), box(725.0, 781.0), box(708.0, 860.0), box(708.0, 764.0, x0 = 232.0, x1 = 386.0), large = true)
         check("at XXL a home that runs on and scrolls fits", xxl.isEmpty(), xxl.joined())
         val xxlDefault = HomeFit.faults(box(283.0, 797.0), box(725.0, 781.0), box(708.0, 860.0), box(708.0, 764.0, x0 = 232.0, x1 = 386.0))
         check("the same page at the standard sizes does not", xxlDefault.size == 2, xxlDefault.joined())
         val sliced = HomeFit.faults(box(283.0, 760.0), box(680.0, 736.0), box(708.0, 860.0), null, large = true)
-        check("a Start button sliced by the cut is caught", sliced.size == 1 && sliced[0].contains("sliced"), sliced.joined())
+        check("a Start button sliced by the bar's line is caught", sliced.size == 1 && sliced[0].contains("sliced"), sliced.joined())
         val whole = HomeFit.faults(box(283.0, 700.0), box(620.0, 676.0), box(708.0, 860.0), null, large = true)
-        check("a Start button wholly above the cut is fine", whole.isEmpty(), whole.joined())
+        check("a Start button wholly above the bar's line is fine", whole.isEmpty(), whole.joined())
     }
 
-    @Test fun sliversAndWords() = checks {
-        val sliver = HomeFit.faults(box(204.0, 527.0), box(460.0, 510.0), box(557.0, 647.0), null, tiles = box(539.0, 700.0))
-        check("6 points of the tiles over the cut is a sliver", sliver.size == 1 && sliver[0].contains("sliver"), sliver.joined())
-        for ((tiles, what) in listOf(box(500.0, 700.0) to "a good part of the tiles", box(560.0, 700.0) to "tiles wholly under the cut")) {
-            val f = HomeFit.faults(box(204.0, 480.0), box(420.0, 470.0), box(557.0, 647.0), null, tiles = tiles)
-            check("$what is fine", f.isEmpty(), f.joined())
+    @Test fun tilesBehindTheBarAndWords() = checks {
+        // Tiles and rows past the bar's line are no fault: they pass behind New set
+        // and the dock, which hide nothing a scroll cannot bring clear
+        for ((card, what) in listOf(box(204.0, 527.0) to "the card fitting, the tiles under it", box(204.0, 480.0) to "the card well clear")) {
+            val f = HomeFit.faults(card, box(420.0, 470.0), box(557.0, 647.0), null)
+            check("$what: no fault", f.isEmpty(), f.joined())
         }
         val broken = HomeFit.faults(box(204.0, 527.0), box(460.0, 510.0), box(557.0, 647.0), null,
             words = listOf(HomeFit.Words("the Vitals tile's streak", 46.0, 52.0), HomeFit.Words("the brain map's line", 120.0, 48.0)))
@@ -79,78 +88,87 @@ class HomeFitTest {
             broken.size == 1 && broken[0].startsWith("the Vitals tile's streak breaks inside a word"), broken.joined())
     }
 
-    @Test fun sliversOfAnyRowOrPart() = checks {
-        // the iPad at the default size: the PRACTISE tiles' tops at 1098, the bar from 1118
-        val ipadTiles = HomeFit.Part("a Practise tile", box(1098.0, 1190.0))
-        val ipadBar = box(1118.0, 1194.0)
-        val ipadSliver = HomeFit.faults(box(300.0, 980.0), box(920.0, 976.0), ipadBar, null, parts = listOf(ipadTiles))
-        check("iPad at the default size: 8 points of the Practise tiles are caught",
-            ipadSliver.size == 1 && ipadSliver[0].contains("a Practise tile (1098-1190)") && ipadSliver[0].contains("cut at 1106"), ipadSliver.joined())
-        check("the cut moves up to the tiles' top", HomeFit.settledCut(1106.0, listOf(1098.0)) == 1098.0)
-        check("the page, cut there, shows none of them", HomeFit.cut(1118.0, 0.0, listOf(1098.0)) == 1098.0)
-        val ipadHonoured = HomeFit.faults(box(300.0, 980.0), box(920.0, 976.0), ipadBar, null, pageEnd = 1098.0, parts = listOf(ipadTiles))
-        check("with the cut moved up, the tiles are no sliver", ipadHonoured.isEmpty(), ipadHonoured.joined())
-
-        // AX1: the top of bed 1's Due chip, 682.3-700, over the cut at 686 (bar 698)
-        val dueChip = HomeFit.Part("bed 1's Due chip", box(682.3, 700.0, x0 = 300.0, x1 = 359.0))
-        val ax1Bar = box(698.0, 860.0)
-        val ax1Sliver = HomeFit.faults(box(283.0, 900.0), box(820.0, 876.0), ax1Bar, null, large = true, parts = listOf(dueChip))
-        check("AX1: 4 points of the Due chip over the cut are caught",
-            ax1Sliver.size == 1 && ax1Sliver[0].contains("bed 1's Due chip"), ax1Sliver.joined())
-        check("AX1: the cut moves up to the chip's top", HomeFit.settledCut(686.0, listOf(682.3)) == 682.3)
-        val ax1Honoured = HomeFit.faults(box(283.0, 900.0), box(820.0, 876.0), ax1Bar, null, large = true, pageEnd = 682.3, parts = listOf(dueChip))
-        check("AX1: with the cut moved up, the chip is no sliver", ax1Honoured.isEmpty(), ax1Honoured.joined())
-
-        // AX1 phone: the frame snapped to the 3x grid ended at 682.67; on the
-        // grid at or above the cut, the end is 682.0
-        val ax1Height = HomeFit.shown(698.0, 0.0, 874.0, listOf(682.3), scale = 3.0)
-        check("AX1: the page ends on the 3x grid at or above the chip's top",
-            ax1Height <= 682.3 && ax1Height > 682.3 - 1.0 / 3 && roundedHalfAway(ax1Height * 3) == ax1Height * 3, "$ax1Height")
-        for (top in listOf(0.0, 0.17, 59.4, 62.5)) {
-            val h = HomeFit.shown(698.0, top, 874.0, listOf(682.3), scale = 3.0)
-            val grid = (top + h) * 3
-            check("AX1: from a page top at $top, an end snapped to the grid either way is not below the chip",
-                top + h <= 682.3 + 1e-9 && (roundedHalfAway(grid) / 3) <= 682.3 + 1e-9, "${top + h}")
+    // The owner, 22 Oct: the page is not cut above the bar.
+    @Test fun notCutAboveTheBar() = checks {
+        // The bar's line is only where the first screen's round has to end
+        check("the bar's line is barRoom (12) above the bar", HomeFit.barRoom == 12.0 && HomeFit.barLine(700.0) == 688.0)
+        // the row that ends the list: as tall as the bar, and 24 more
+        check("the end row is the bar's height and 24", HomeFit.endSpace(140.0) == 164.0 && HomeFit.endRoom == 24.0)
+        check("no bar measured: the end row is 24", HomeFit.endSpace(0.0) == 24.0)
+        check("an unmeasurable bar is not counted", HomeFit.endSpace(Double.NaN) == 24.0 && HomeFit.endSpace(-5.0) == 24.0)
+        // the last tile, scrolled to the end, rests above the bar's top: the list
+        // runs on to the bar's bottom, and the end row lifts the last tile clear,
+        // whether or not the list keeps its own inset for the bar too, for bars
+        // from none to AX5's height (New set over the dock, the dock alone, the
+        // selection bar) and tops from a short phone's to an iPad's.
+        var clear = true
+        var worst = Double.NEGATIVE_INFINITY
+        for (barTop in listOf(520.0, 700.0, 742.0, 790.0, 1118.0)) {
+            for (barHeight in listOf(0.0, 56.0, 76.0, 132.0, 152.0, 220.0, 400.0)) {
+                for (honoured in listOf(false, true)) {
+                    val bottom = HomeFit.lastRowBottom(barTop, barHeight, insetHonoured = honoured)
+                    worst = maxOf(worst, bottom - barTop)
+                    if (!(bottom <= barTop - HomeFit.endRoom + 1e-9)) clear = false
+                }
+            }
         }
-        val ax1Snapped = HomeFit.faults(box(413.0, 1173.0), box(1098.0, 1156.0), box(698.0, 840.0), box(698.0, 755.0),
-            large = true, pageEnd = 682 + 0.0, parts = listOf(dueChip))
-        check("AX1: the snapped page end clears the chip in the gate", ax1Snapped.isEmpty(), ax1Snapped.joined())
-        check("no scale known: the cut as it was", HomeFit.shown(698.0, 0.0, 874.0, listOf(682.3)) == 682.3)
-
-        // the cut is left alone by tops at it, 12 or more over it, or past it
-        check("a top at the cut leaves it", HomeFit.settledCut(686.0, listOf(686.0)) == 686.0)
-        check("a top 12 points over the cut leaves it", HomeFit.settledCut(686.0, listOf(674.0)) == 686.0)
-        check("a top past the cut leaves it", HomeFit.settledCut(686.0, listOf(690.0, 900.0)) == 686.0)
-        check("no tops, no move", HomeFit.settledCut(686.0, emptyList()) == 686.0)
-        // moving up can bring another top into the band: it goes on until none is
-        check("a chain of tops moves the cut to the last", HomeFit.settledCut(686.0, listOf(680.0, 670.0, 640.0)) == 670.0)
-        check("tops in any order settle the same", HomeFit.settledCut(686.0, listOf(670.0, 640.0, 680.0)) == 670.0)
-        // a part twice reported is one sliver
-        val twice = HomeFit.faults(box(204.0, 480.0), box(420.0, 470.0), box(557.0, 647.0), null,
-            tiles = box(539.0, 700.0), parts = listOf(HomeFit.Part("the tiles", box(539.0, 700.0))))
-        check("the same sliver reported twice is one fault", twice.size == 1, twice.joined())
-        // a part wholly past the cut, or well over it, is fine
-        val partsFine = HomeFit.faults(box(204.0, 480.0), box(420.0, 470.0), box(557.0, 647.0), null,
-            parts = listOf(HomeFit.Part("a row", box(545.0, 600.0)), HomeFit.Part("a tile", box(400.0, 500.0))))
-        check("parts wholly past the cut or well over it are fine", partsFine.isEmpty(), partsFine.joined())
+        check("the last tile can sit wholly above the bar, endRoom clear of it", clear, "worst $worst")
+        check("a bar from 700, 132 tall: the last tile ends at 676", HomeFit.lastRowBottom(700.0, 132.0) == 676.0)
     }
 
-    @Test fun howMuchOfThePageShows() = checks {
-        check("no bar measured: all of the page", HomeFit.shown(null, 0.0, 874.0) == 874.0)
-        check("a bar at 700: down to 688", HomeFit.shown(700.0, 0.0, 874.0) == 688.0)
-        check("measured from the page's own top", HomeFit.shown(700.0, 100.0, 774.0) == 588.0)
-        check("a bar not below the page's top: all of it", HomeFit.shown(50.0, 100.0, 774.0) == 774.0)
-        check("an endless bar top: all of it", HomeFit.shown(Double.POSITIVE_INFINITY, 0.0, 874.0) == 874.0)
-        check("the cut, from the page's top", HomeFit.cut(700.0, 100.0) == 588.0)
-        check("the cut below a short page's frame is kept", HomeFit.cut(700.0, 100.0) == 588.0 && HomeFit.shown(700.0, 100.0, 500.0) == 500.0)
-        check("no bar, no cut", HomeFit.cut(null, 0.0) == null)
-        check("a bar over the page's top, no cut", HomeFit.cut(50.0, 100.0) == null)
-        check("a bar just under the page's top cuts at its top", HomeFit.cut(105.0, 100.0) == 0.0)
+    // The app's page is not cut: no frame shortens it above the bar, the bar
+    // floats over it with nothing drawn behind it, its last row is the end row,
+    // and nothing fades under the bar (the source, read from the module's directory)
+    @Test fun theAppsPageIsNotCut() = checks {
+        val app = File("src/main/java/com/stethoscore/app/ui/StethoscoreApp.kt").takeIf { it.exists() }?.readText() ?: ""
+        val fit = File("src/main/java/com/stethoscore/app/ui/home/HomeFit.kt").takeIf { it.exists() }?.readText() ?: ""
+        val ward = File("src/main/java/com/stethoscore/app/ui/home/WardHome.kt").takeIf { it.exists() }?.readText() ?: ""
+        check("found home's source", app.isNotEmpty() && fit.isNotEmpty() && ward.isNotEmpty())
+        check("no page cut in HomeFit", !fit.contains("cutRoom") && !fit.contains("fun cut(") &&
+            !fit.contains("fun shown(") && !fit.contains("settledCut"))
+        check("no page cut in the app", !app.contains("HomeCutPage") && !ward.contains("HomeCutPage") && !app.contains("HomeFit.cut(") &&
+            !app.contains("HomeFit.shown(") && !app.contains("cutRoom") && !ward.contains("HomeFit.shown(") && !ward.contains("cutRoom"))
+        val homeStart = app.indexOf("// home: the header, today's ward round")
+        val barStart = app.indexOf("// New set and the dock float on the page itself", homeStart)
+        val barEnd = app.indexOf("if(screen==\"home\")", barStart)
+        val home = if (homeStart >= 0 && barStart > homeStart) app.substring(homeStart, barStart) else ""
+        val bar = if (barStart >= 0 && barEnd > barStart) app.substring(barStart, barEnd) else ""
+        check("the bar floats over the page", app.contains("else -> Box(Modifier.fillMaxSize()) {") &&
+            bar.contains("Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()") &&
+            home.contains("LazyColumn(Modifier.fillMaxSize(),state=listState,") && !home.contains("Modifier.weight(1f)"))
+        check("nothing is drawn behind New set and the dock: no fill, strip, line or glow",
+            bar.isNotEmpty() && !bar.contains(".background") && !bar.contains("Divider") && !bar.contains("drawBehind") &&
+                !bar.contains("Surface(") && !bar.contains(".border(") && !bar.contains(".shadow("))
+        check("the list ends with the end row", home.contains("item { Spacer(Modifier.fillMaxWidth().height(HomeFit.endSpace(barHeight).dp)) }"))
+        check("no soft edge fades the rows under the bar (no fading, the owner, 9 Oct)",
+            home.isNotEmpty() && listOf("Brush.", "Gradient", "fadingEdge", "graphicsLayer").none { home.contains(it) || bar.contains(it) })
+        // Android has no trimSlicedStart: the bar's line is where the preview's
+        // gate keeps Start ward round clear (faults)
+        check("Start ward round keeps clear of the bar's line", fit.contains("val line = barLine(bar.minY)") &&
+            fit.contains("slices(start.minY, start.maxY, line)"))
 
         val close = HomeFit.faults(box(204.0, 553.0), box(500.0, 545.0), box(557.0, 647.0), null)
         check("ending 4 points above the bar is too close", close.size == 1, close.joined())
         check("nothing laid out is a fault", HomeFit.faults(null, null, null, null).size == 1)
         check("a card with no button is a fault", HomeFit.faults(box(0.0, 1.0), null, null, null).size == 1)
+    }
+
+    // The ledger still guards a cut a page may set (WardPartLedger.cut, null on
+    // home now): the cut once no part shows under 12 points over it, as the
+    // ledger's loop guard expects it to settle.
+    private fun settled(cut: Double, tops: List<Double>): Double {
+        var at = cut
+        var moved = true
+        while (moved) {
+            moved = false
+            for (top in tops) {
+                if (top.isFinite() && top < at && at - top < 12) {
+                    at = top
+                    moved = true
+                }
+            }
+        }
+        return at
     }
 
     @Test fun thePartsBook() = checks {
@@ -173,7 +191,7 @@ class HomeFitTest {
         val ledger = WardPartLedger<Int>()
         ledger.set(1, "chip", rect(0.0, 682.78, 80.0, 24.0), reach = 0.0, scale = 3.0)
         check("the ledger lists the floored top", ledger.tops.size == 1 && abs(ledger.tops[0] - 2048.0 / 3) < 1e-9, "${ledger.tops}")
-        check("a cut at 683 settles on the chip's pixel line", abs(HomeFit.settledCut(683.0, ledger.tops) - 2048.0 / 3) < 1e-9)
+        check("a cut at 683 settles on the chip's pixel line", abs(settled(683.0, ledger.tops) - 2048.0 / 3) < 1e-9)
         // a row's tile stands out above its frame
         ledger.set(2, "row", rect(0.0, 700.0, 300.0, 60.0), reach = 8.0, scale = 2.0)
         check("reach lifts a row's top", ledger.entries[2]?.top == 692.0 && ledger.entries[2]?.rect?.height == 68.0)
@@ -271,12 +289,12 @@ class HomeFitTest {
             book.cut = 686.0
             book.set(1, "chip", rect(0.0, 682.0, 60.0, 18.0), reach = 0.0, scale = 2.0, atRest = true)
             book.set(2, "upper row", rect(0.0, 400.0, 300.0, 50.0), reach = 0.0, scale = 2.0, atRest = true)
-            val movedCut = HomeFit.settledCut(686.0, book.tops)
+            val movedCut = settled(686.0, book.tops)
             check("the chip at 682 moves the cut from 686 to 682", movedCut == 682.0)
             book.cut = movedCut
             val loopDrop = book.drop(1, atRest = true, cut = 682.0)
             check("dropping a part at or below the settled cut keeps its entry so settledCut stays at 682",
-                !loopDrop && book.entries[1]?.top == 682.0 && book.sightings[1] != null && HomeFit.settledCut(686.0, book.tops) == 682.0)
+                !loopDrop && book.entries[1]?.top == 682.0 && book.sightings[1] != null && settled(686.0, book.tops) == 682.0)
             // the next rest books the hidden part where it was: nothing published
             val restAfterHide = book.rebook()
             check("a part hidden by the cut stays booked through the next rest",
@@ -331,7 +349,7 @@ class HomeFitTest {
             book.cut = 686.0
             val pruned = book.rebook()
             val prunedGhost = pruned && book.entries[1] == null && book.sightings[1] == null && book.told == listOf(600.0) &&
-                HomeFit.settledCut(686.0, book.tops) == 686.0
+                settled(686.0, book.tops) == 686.0
             book.set(3, "reappeared", rect(0.0, 690.0, 100.0, 44.0), reach = 0.0, scale = 3.0)
             book.drop(3)
             book.set(3, "reappeared", rect(0.0, 680.0, 100.0, 44.0), reach = 0.0, scale = 3.0)
@@ -358,7 +376,7 @@ class HomeFitTest {
             val dropped = book.drop(1, atRest = false)
             val rested = book.rebook()
             val keptHolder = !publishedWhileMoving && !dropped && !rested && book.entries[1]?.top == 680.0 &&
-                book.sightings[1] != null && book.told == listOf(680.0) && HomeFit.settledCut(686.0, book.tops) == 680.0
+                book.sightings[1] != null && book.told == listOf(680.0) && settled(686.0, book.tops) == 680.0
             // The previous rest frame must not protect a row that is now above the cut.
             book.set(1, "More ways to practise", rect(0.0, 679.9, 300.0, 44.0), reach = 0.0, scale = 3.0, atRest = false)
             book.drop(1, atRest = false)

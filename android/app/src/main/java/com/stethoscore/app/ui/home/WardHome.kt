@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -43,8 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -211,16 +208,16 @@ object HomeBrand { const val name = "Stethoscore" }
     }
 }
 
-// MARK: - The parts that can meet the cut
+// MARK: - Home's parts
 
 /**
  * Home's book of parts (iOS WardPartBook): each row and part reports where
- * it lies, and at rest its top is booked, so the page's cut moves up past
- * any that would show a sliver over it (HomeFit.settledCut).
+ * it lies, and at rest its top is booked. The page is not cut above the bar
+ * (the owner, 22 Oct), so its ledger's cut stays null on home.
  */
 class HomePartBook {
     val ledger = WardPartLedger<String>()
-    /** The booked tops last published, in root dp: the page's cut reads them. */
+    /** The booked tops last published, in root dp. */
     var tops by mutableStateOf(emptyList<Double>())
         private set
     /** At rest: the list at its top and not moving. */
@@ -235,7 +232,7 @@ class HomePartBook {
         if (ledger.drop(key, atRest)) tops = ledger.told
     }
 
-    /** A new page (another category, a search): the book empties; the cut is kept. */
+    /** A new page (another category, a search): the book empties. */
     fun clear() {
         if (ledger.clear()) tops = ledger.told
     }
@@ -258,30 +255,6 @@ fun Modifier.homePart(book: HomePartBook?, key: String, name: String, reach: Dou
                 (b.width / density).toDouble(), (b.height / density).toDouble()), reach, density.toDouble())
         }
     }
-
-/**
- * Home's page, cut `HomeFit.cutRoom` above the bar under it (the dock):
- * the list inside is as tall as `HomeFit.shown`, so nothing shows past the
- * cut, and no row shows a sliver over it. [atRest]: the list at its top and
- * not moving.
- */
-@Composable fun HomeCutPage(book: HomePartBook, atRest: Boolean, modifier: Modifier = Modifier,
-                            content: @Composable (Modifier) -> Unit) {
-    val density = LocalDensity.current.density
-    var page by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-    LaunchedEffect(atRest) { book.settle(atRest) }
-    Box(modifier.onGloballyPositioned { c ->
-        val b = c.boundsInRoot()
-        val next = (b.top / density).toDouble() to (b.height / density).toDouble()
-        if (next != page) page = next
-    }) {
-        val p = page
-        val tops = book.tops
-        val shown = p?.let { (top, height) -> HomeFit.shown(top + height, top, height, tops, density.toDouble()) }
-        SideEffect { book.ledger.cut = p?.let { (top, height) -> HomeFit.cut(top + height, top, tops)?.plus(top) } }
-        content(if (shown == null) Modifier.fillMaxSize() else Modifier.fillMaxWidth().height(shown.wardDp))
-    }
-}
 
 /** Whether this window is short (HomeFit.isShort): a phone under 770 points tall. */
 @Composable fun homeShortWindow(): Boolean {
