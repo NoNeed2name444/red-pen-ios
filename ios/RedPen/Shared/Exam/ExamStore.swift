@@ -179,7 +179,8 @@ enum TwinOutcome: Equatable {
 
 @MainActor
 enum TwinWriter {
-    static let noWriter: String = "Twins are written by a question writer: turn on Apple Intelligence, or choose one in AI models."
+    /// Why no twin can be written now: the cloud writer's own reason.
+    static var noWriter: String { LocalLLMService.shared.noWriter }
 
     /// Writes a twin for `question` and puts it in the queue.
     static func write(_ request: PendingTwin, store: Store) async -> TwinOutcome {
@@ -187,7 +188,7 @@ enum TwinWriter {
             ExamStore.shared.dropPending(request.parentId)
             return .unavailable("This question is no longer in the library.")
         }
-        guard let backend = LocalLLMService.shared.writerOrApple() else {
+        guard let backend = LocalLLMService.shared.writer() else {
             return .unavailable(noWriter)
         }
         let q: MCQQuestion = pick.question
@@ -248,7 +249,7 @@ enum HintWriter {
         let others: [String] = options.filter { $0 != answer }
         let fallback: String = AttendingHint.fallback(answer: answer, stem: stem, options: options,
                                                       differential: differential)
-        guard let backend = LocalLLMService.shared.writerOrApple() else { return fallback }
+        guard let backend = LocalLLMService.shared.writer() else { return fallback }
         let input: String = AttendingHint.input(stem: stem, options: options, answer: answer,
                                                 differential: differential)
         let reply: String? = try? await backend.complete([.system(AttendingHint.instructions), .user(input)],

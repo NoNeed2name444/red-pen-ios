@@ -331,7 +331,7 @@ struct AppBackdrop: View {
 }
 
 // MARK: - Screens this build leaves out
-// SyncEngine, LinkDeviceView and ModelSettingsView live in core-shell-out:
+// SyncEngine and LinkDeviceView live in core-shell-out:
 // core3 brings the real ones back and must not also compile these.
 
 struct RuleSheetView: View {

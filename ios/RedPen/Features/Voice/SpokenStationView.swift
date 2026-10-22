@@ -16,7 +16,7 @@ struct SpokenStationView: View {
 
     @EnvironmentObject private var llm: LocalLLMService
     @State private var session: SpokenStationSession?
-    @State private var showModels = false
+    @State private var showPaywall = false
     @State private var shown: StationAttempt?
 
     var body: some View {
@@ -30,9 +30,9 @@ struct SpokenStationView: View {
         .modeScreen(.osce)
         .navigationTitle("Spoken station")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showModels) { ModelSettingsView() }
-        .task(id: llm.writerChoice) {
-            guard session == nil, let backend = llm.writerOrApple() else { return }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
+        .task(id: llm.isPro) {
+            guard session == nil, let backend = llm.writer() else { return }
             session = SpokenStationSession(station: station, backend: backend)
         }
         .onDisappear { session?.end() }
@@ -42,13 +42,13 @@ struct SpokenStationView: View {
         .spaceSoundsHushed()
     }
 
-    /// No model yet: say how to get one, and still show past marks.
+    /// No writer yet: say why, and still show past marks.
     private var noModel: some View {
         List {
             Section {
-                Label("Choose a model to play the patient", systemImage: "person.wave.2")
+                Label("The patient needs \(Brand.name) Cloud", systemImage: "person.wave.2")
                     .font(.headline)
-                Text("The patient and the examiner are played by your writer model. With Pro, use \(Brand.name) Cloud or a model on this device; Apple's own model works for free where Apple Intelligence is on.")
+                Text("The patient and the examiner are played by \(Brand.name) Cloud. \(llm.noWriter)")
                     .font(.callout).foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
@@ -58,14 +58,15 @@ struct SpokenStationView: View {
         .navigationDestination(item: $shown) { attempt in
             StationReportView(attempt: attempt)
         }
-        .studyBar {
-            Button {
-                showModels = true
-            } label: {
-                Label("AI models", systemImage: "cpu")
+        // the one way on, under the thumb, when Pro is what is missing
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !llm.isPro {
+                StudyActionBar {
+                    Button("See Pro") { showPaywall = true }
+                        .buttonStyle(.bigPrimary)
+                        .keyboardShortcut(.return, modifiers: [])
+                }
             }
-            .buttonStyle(.bigPrimary)
-            .keyboardShortcut(.return, modifiers: [])
         }
     }
 }

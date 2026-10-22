@@ -1,9 +1,8 @@
 import Foundation
 
 /// Writing cases with whichever writer this device has, the same order as
-/// question generation: a writer chosen in AI models (the medical models, or
-/// the cloud for Pro) first, then Apple's on-device model, then the
-/// downloaded Gemma. One case per call, each from the next window of the
+/// question generation: the app's one writer (the cloud, for Pro) first,
+/// then Apple's on-device model, then the downloaded Gemma. One case per call, each from the next window of the
 /// lecture, each through the structure checks and the accuracy rules before
 /// it is kept (CaseChecks). The rest of the verification layer takes the
 /// cases once the set is saved, as items of kind "case"; one it grades
@@ -40,7 +39,7 @@ enum CaseMaker {
 
     /// The writer to use here, or nil when there is none.
     @MainActor static func writer(llm: LocalLLMService, gemma: GemmaModel) -> Writer? {
-        if let chosen = llm.backend(for: .writer) { return .backend(chosen) }
+        if let cloud = llm.writer() { return .backend(cloud) }
         if CaseAppleWriter.availability.isAvailable { return .apple }
         if gemma.status == .ready { return .gemma(gemma) }
         return nil
@@ -50,7 +49,7 @@ enum CaseMaker {
     @MainActor static func noWriter(gemma: GemmaModel) -> String {
         var why: String = "On-device writing isn't available here."
         if case .unavailable(let reason) = CaseAppleWriter.availability { why = reason }
-        return why + " Download the offline model in a question set's New set page, or choose a writer in Settings \u{25B8} AI models."
+        return why + " Download the offline model in a question set's New set page, or use \(Brand.name) Cloud with Pro."
     }
 
     /// The lecture as the writers read it, each page marked with its number

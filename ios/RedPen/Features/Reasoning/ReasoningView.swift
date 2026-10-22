@@ -111,7 +111,7 @@ private struct ReasoningSetBody: View {
     private var footnote: String {
         if isExample { return "Ready-made examples, to try each tool without writing anything." }
         let origin: String = set.sources.isEmpty ? "the set\u{2019}s own content" : "the lecture this set was made from"
-        return "Written from \(origin), by the model chosen in AI models."
+        return "Written from \(origin), by \(Brand.name) Cloud."
     }
 
     var body: some View {

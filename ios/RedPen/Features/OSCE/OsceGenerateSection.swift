@@ -190,8 +190,8 @@ struct OsceGenerateSection: View {
         working = true
         let wanted = stationCount, subj = subject, text = sourceText
         status = "Writing 0 of \(wanted)\u{2026}"
-        // a writer chosen in AI models goes first; otherwise Apple's model
-        let writer = llm.backend(for: .writer)
+        // the app's writer goes first; otherwise Apple's model
+        let writer = llm.writer()
         // the verification layer checks what is made (VerificationScreen now,
         // the independent checkers once the set is saved)
         let verify: Bool = llm.checkGenerated

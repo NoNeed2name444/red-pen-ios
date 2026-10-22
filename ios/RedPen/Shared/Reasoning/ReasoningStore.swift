@@ -127,8 +127,8 @@ final class ReasoningStore: ObservableObject {
             trouble[key] = busy
             return
         }
-        guard let backend = LocalLLMService.shared.writerOrApple() else {
-            trouble[key] = "No model is ready to write with. Choose one in AI models."
+        guard let backend = LocalLLMService.shared.writer() else {
+            trouble[key] = LocalLLMService.shared.noWriter
             return
         }
         let source = ReasoningWriter.source(of: set)

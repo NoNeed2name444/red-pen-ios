@@ -6,6 +6,9 @@
 // is a wrong answer shown as right.
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 var failures = 0
 func ok(_ condition: Bool, _ what: String) {
@@ -144,6 +147,31 @@ ok(TextSlicing.windows(unbroken, maxChars: 4_000).map(\.count) == [4_000, 4_000,
 ok(TextSlicing.spread(3, upTo: 8) == [0, 1, 2], "every part is checked when there are few enough")
 ok(TextSlicing.spread(20, upTo: 4) == [0, 6, 13, 19], "a sample runs first to last, not the opening only: \(TextSlicing.spread(20, upTo: 4))")
 ok(TextSlicing.spread(9, upTo: 1) == [0] && TextSlicing.spread(0, upTo: 4).isEmpty, "edge counts")
+
+// MARK: the one writer (the owner, 22 Oct): every role, the same route
+
+let worker = URL(string: "https://worker.example")!
+let turns: [ChatTurn] = [.system("Write questions."), .user("The malar rash of lupus spares the nasolabial folds.")]
+for role in LLMRole.allCases {
+    let request = try! WriterRoute.request(turns, role: role, server: worker, bearer: "session-token", maxTokens: 900, temperature: 0.4)
+    let body = (try? JSONSerialization.jsonObject(with: request.httpBody ?? Data())) as? [String: Any] ?? [:]
+    ok(request.url?.absoluteString == "https://worker.example/v1/chat/completions",
+       "\(role.rawValue): the writer is the worker's chat route: \(request.url?.absoluteString ?? "none")")
+    ok(body["model"] as? String == "cramdown-writer" && WriterRoute.model == "cramdown-writer",
+       "\(role.rawValue): the model asked for is the worker's writer, whatever the role")
+    ok(request.value(forHTTPHeaderField: "Authorization") == "Bearer session-token",
+       "\(role.rawValue): the bearer is the session (or the owner key), never a model's key")
+    ok((body["messages"] as? [[String: String]])?.map { $0["role"] ?? "" } == ["system", "user"], "\(role.rawValue): the turns go as they are")
+}
+ok(LLMRole.allCases == [.writer], "one role: no checker or other model to choose")
+ok(WriterRoute.blocker(isPro: false, bearer: "k", brand: "Stethoscore", google: true) == "Stethoscore Cloud is part of Pro.",
+   "not Pro: the writer is blocked, and says why")
+ok(WriterRoute.blocker(isPro: true, bearer: nil, brand: "Stethoscore", google: false) == "Sign in with Apple to use Stethoscore Cloud.",
+   "Pro with no bearer: sign in, naming only the doors this build has")
+ok(WriterRoute.blocker(isPro: true, bearer: "k", brand: "Stethoscore", google: true) == nil, "Pro and signed in: the writer is ready")
+let replyJSON = Data(#"{"choices":[{"message":{"role":"assistant","content":"Q1. Which rash?"}}]}"#.utf8)
+ok((try? WriterRoute.reply(replyJSON)) == "Q1. Which rash?", "the worker's reply is read from its first choice")
+ok((try? WriterRoute.reply(Data(#"{"content":[{"text":"x"}]}"#.utf8))) == nil, "a reply in any other shape is refused, not guessed at")
 
 print(failures == 0 ? "ALL LLM TESTS PASS" : "\(failures) LLM TEST(S) FAILED")
 exit(failures == 0 ? 0 : 1)

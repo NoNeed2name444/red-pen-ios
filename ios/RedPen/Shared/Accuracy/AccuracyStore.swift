@@ -21,7 +21,7 @@ final class AccuracyStore: ObservableObject {
     @Published private(set) var weights: AccuracyWeights = AccuracyModel.bundled
     /// Item hashes being checked right now, for "Checking…".
     @Published private(set) var inFlight: Set<String> = []
-    /// Check the whole library in the background (Settings > AI models).
+    /// Check the whole library in the background (Settings > Accuracy engine).
     @Published var background: Bool {
         didSet { UserDefaults.standard.set(background, forKey: Self.backgroundKey) }
     }

@@ -18,7 +18,7 @@ struct LensAnswerSheet: View {
     @EnvironmentObject private var notes: NoteStore
     @Environment(\.dismiss) private var dismiss
     @State private var adding = false
-    @State private var showModels = false
+    @State private var showPaywall = false
 
     private var tint: Color { LensStyle.tint(question.type) }
 
@@ -59,10 +59,7 @@ struct LensAnswerSheet: View {
                     .environmentObject(notes)
             }
         }
-        .sheet(isPresented: $showModels) {
-            ModelSettingsView()
-                .environmentObject(LocalLLMService.shared)
-        }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     // MARK: header and question
@@ -130,8 +127,9 @@ struct LensAnswerSheet: View {
             HStack {
                 Button("Try again") { model.answer(question, again: true) }
                     .buttonStyle(.wardCompact)
-                if why == LensModel.noModel {
-                    Button("AI models") { showModels = true }
+                // Pro is the one way on when the cloud is what is missing
+                if why == LensModel.noModel && !LocalLLMService.shared.isPro {
+                    Button("See Pro") { showPaywall = true }
                         .buttonStyle(.wardCompact)
                 }
             }

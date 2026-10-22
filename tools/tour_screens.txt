@@ -122,8 +122,6 @@ rules	113	Rule sheet
 coverage	114	Syllabus check
 stats	115	By subject
 settings	116	Settings
-ai-models	117	AI models
-ai-provider	118	Provider editor
 diagnostics	119	Crash and failure reports
 lectures	120	Your lectures
 set-credits	121	One set's credits

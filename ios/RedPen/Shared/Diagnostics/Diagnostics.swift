@@ -16,7 +16,7 @@ import Foundation
 // name (DiagScrub.error) - its description is never read.
 //
 // Cheap and safe from any thread; does nothing when the student has turned
-// reports off (Settings > AI models > Crash and failure reports). Crashes and
+// reports off (Settings > Crash and failure reports). Crashes and
 // hangs come from MetricKit, and unclean exits from the running marker - both
 // in DiagnosticsPlatform.swift, which also sends the queue.
 enum Diagnostics {

@@ -75,7 +75,7 @@ CORE_DROP = [
     "RedPenApp.swift", "Features/Library/LibraryView.swift", "Features/Library/StudyCategory.swift",
     "Features/Library/LibraryRows.swift", "Features/Library/CategoryShelves.swift", "Features/Library/CategoryPages.swift",
     "Features/Library/LibraryCategory.swift", "Features/Library/LibrarySheets.swift", "Features/Library/WardHome.swift",
-    "Features/Support/SupportCenter.swift", "Features/Support/ModelSettingsView.swift",
+    "Features/Support/SupportCenter.swift",
     "Features/Support/PlatformSettingsSection.swift", "Features/Support/LibraryDataSettingsSection.swift",
     "Features/Support/StudyReminderSettings.swift", "Features/Auth/LinkDeviceView.swift",
     "Shared/PreviewExtras.swift",
@@ -122,7 +122,7 @@ CORE2_DROP = [p for p in CORE1_DROP if p not in STEP2_BACK]
 # Features/Learn. Those come back with the shell: a stand-in bed plan would
 # be a home that cannot plan a round. The core's own entry point and library
 # (CoreApp, CoreLibrary) are not copied in, and neither are the stand-ins
-# for SyncEngine, LinkDeviceView and ModelSettingsView, which the real files
+# for SyncEngine and LinkDeviceView, which the real files
 # replace.
 STEP3_BACK = [
     "Persistence/SyncEngine.swift", "Persistence/SyncPush.swift", "Persistence/SyncState.swift",
@@ -137,7 +137,7 @@ STEP3_BACK = [
     "Features/Library/WardHome.swift",
     "Shared/CustomSession.swift", "Shared/LibrarySearch.swift", "Shared/PreviewExtras.swift",
     "RedPenApp.swift",
-    "Features/Support/SupportCenter.swift", "Features/Support/ModelSettingsView.swift",
+    "Features/Support/SupportCenter.swift",
     "Features/Support/PlatformSettingsSection.swift", "Features/Support/StudyReminderSettings.swift",
     "Features/Auth/LinkDeviceView.swift",
     "Shared/Learn", "Features/Learn",

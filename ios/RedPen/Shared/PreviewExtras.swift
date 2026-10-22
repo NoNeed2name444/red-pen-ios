@@ -254,7 +254,7 @@ extension PreviewExtras {
         // vitals
         "vitals", "insight-questions", "rules", "coverage", "stats",
         // settings, support, platform
-        "ai-models", "ai-provider", "diagnostics", "lectures", "set-credits", "licences", "help", "faq",
+        "diagnostics", "lectures", "set-credits", "licences", "help", "faq",
         "examples", "generation-hud",
     ]
 
@@ -573,9 +573,6 @@ extension PreviewExtras {
             return AnyView(NavigationStack { StatsView() })
 
         // MARK: settings, support, platform
-        case "ai-models", "ai-provider":
-            // ModelSettingsView opens the add screen for "ai-provider"
-            return AnyView(ModelSettingsView())
         case "diagnostics":
             return AnyView(NavigationStack { DiagnosticsSettingsView() })
         case "lectures":

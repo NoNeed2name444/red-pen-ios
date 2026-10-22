@@ -94,10 +94,9 @@ enum LectureWriter {
     }
 
     /// A failed batch in words, and whether every later batch would fail the
-    /// same way (no key; a session refused; a model that needs Pro).
+    /// same way (a session refused; a model that needs Pro).
     static func failure(_ error: Error) -> (reason: String, final: Bool) {
         let reason: String = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        if case LLMError.missingKey = error { return (reason, true) }
         if case LLMError.http(let status, _) = error { return (reason, BatchWriting.isFinal(status: status)) }
         return (reason, false)
     }
