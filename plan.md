@@ -2786,15 +2786,23 @@ with the marks on the screens last.
   the concentric corner stays (WardDock.form / tabWidths / showsList, tested
   in wardstates at 375 to 440 pt and all standard sizes). LibraryDock and the
   four suites that accepted the list button require the row again.
-- [ ] T0112 A1, blocked by scope: the "band" under home's tiles is the page
-  cut (LibraryView.pageCutHeight and its .frame at about :538-547, :617-635,
-  :646-653 and the end spacer at :883; HomeFit.cut and cutRoom at HomeFit.swift
-  :28-59 and its faults at :166-207): the list is cut 12 pt above New set and
-  the dock, so the last tiles end on a hard line. Removing it needs those two
-  files (and homefit's tests) in a task's scope.
+- [x] T0112 A1 (repair): home's page is no longer cut 12 pt above New set
+  and the dock (the owner, 22 Oct: that band was wrong; it replaces the cut of
+  14 Oct). The rows run on behind New set and the dock to the window's bottom
+  edge, with nothing behind them but the page and no soft edge under them
+  (no fading); the list's end row (HomeFit.endSpace: the bar's height and 24)
+  lets the last tile scroll wholly clear above them (HomeFit.lastRowBottom).
+  The preview's gate keeps the card and Start ward round 12 pt above the bar
+  at the standard sizes (HomeFit.barLine) and drops the sliver checks, which
+  were about the cut. Tested in homefit (model and source checks).
 - [ ] Mac run for T0112: screenshots of home on the 17 Pro, the Pro Max and a
   375 pt phone at the default size and at xxxLarge (the row, the names whole
-  or barely smaller, the chosen ring clear of them), and the four UI suites.
+  or barely smaller, the chosen ring clear of them), and the four UI suites;
+  and home's bottom with the tiles passing behind New set and the dock (no
+  strip, line or fade), scrolled to the end (the last tile clear above them),
+  plus the ward-preview fit gate on every device. The workflow's comment
+  (.github/workflows/ward-preview.yml:23-26) and WardControls.swift:66 still
+  speak of the cut: word them anew in a task with those files in scope.
 - [ ] Home's name as the owner's logo, and smaller text on home (the owner,
   on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
   stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,

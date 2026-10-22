@@ -15,8 +15,8 @@ func wardBookedTop(_ value: Double, scale: Double) -> Double {
 }
 
 /// The parts of a page that reported themselves at rest, by key (the
-/// view's id): the logic of WardPartBook without the views (HomeFit's
-/// settledCut reads its tops). A part that
+/// view's id): the logic of WardPartBook without the views (the preview's
+/// fit check, HomeFitProbe, reads them). A part that
 /// goes away is dropped; a new page clears the lot.
 struct WardPartLedger<Key: Hashable> {
     /// A live part's latest reported frame, kept whether or not the page is
