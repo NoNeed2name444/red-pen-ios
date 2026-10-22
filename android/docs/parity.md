@@ -78,6 +78,14 @@ Everything goes through the worker (`BuildConfig.WORKER_URL`, BackendClient's ba
 | `Features/Library/MCQGenerateForm.swift` | `ui/editors/MCQGenerateForm.kt` | differs: Make writes with the chosen writer and hands the set to onGenerated (no host screen calls the form yet); no Apple or Gemma path, Delivery, verification screen or Provenance |
 | `Features/Cases/CaseMaker.swift`, `CaseDebriefView.swift` (another) | `data/CaseMaker.kt` (BackendWriter, cloudWrite), `ui/cases/CaseDebriefScreen.kt` (CaseAnother) | differs: the backend writer and the cloud job as iOS; no Apple or Gemma writer, no GenerationCenter card |
 
+## The exam wording (T0125)
+
+The owner's exam words (`docs/design/identity/wording.md`), built on both phones in the same change set. One row per family of words.
+
+| iOS | Kotlin | Verdict |
+|---|---|---|
+| The mock's timed parts, "Part n" and "Part n of N" (`Shared/Exam/MockPaper.swift`'s MockFormat.partWord, ExamCatalog, ExamFormats, `Features/Mock/MockPaperView.swift`) | `quiz/MockPaper.kt`'s MockFormat.partWord, `exam/ExamCatalog.kt`, `exam/ExamFormats.kt`, `ui/mock/MockPaperScreen.kt` | same (ExamCatalogTest's Step 3 title); Android's stepper buttons say "Fewer parts" and "More parts" |
+
 ## Where iOS can't be copied
 
 - SwiftUI shadows and blurs: Compose has no inner shadow. Draw the inset lights with `drawBehind` and a blur-masked `Paint` (or `RenderEffect` on API 31+), from WardRelief's numbers.

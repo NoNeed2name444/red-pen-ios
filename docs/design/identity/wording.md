@@ -26,6 +26,7 @@ Written 15 Oct 2026 against `personal` at bc611221, and checked again at 2b7ef11
 | No patients waiting | Nothing due | The ordinary revision phrase, and it matches the "Due" chip. |
 | Ward round (the focus timer) | Focus session | In a medical app, "round" reads as a ward round. A session is the plain word for sitting down to study. |
 | Round 1 of 4 (parts of the timer) | **Owner’s choice (15 Oct 2026: “make it block”):** Block (“Block 1 of 4”); Part and Stint were the other options | “Block” clashes three ways: USMLE Step 1 is “divided into seven 60-minute blocks” of up to 40 questions, or from 14 May 2026 fourteen 30-minute blocks of up to 20 (usmle.org/step-exams/step-1), so a 25-minute focus block is not an exam block; in the UK a placement block is weeks long; and on an ECG brand “block” also reads as heart block. “Part 1 of 4” is plain and clashes with nothing; “Stint” is plain but informal. Avoid “Step” too, which is the USMLE’s word and the app’s own “Step 1 of 8”. The rows below write “block” only as a placeholder. |
+| Block 1, Block 2 (the mock exam’s timed parts) | **Owner’s choice (22 Oct 2026):** Part (“Part 1”; “Part 2 of 3” where a total shows) | owner 22 Oct: mock exam blocks become Part. “Block” is the focus timer’s word only, and “Symptom blocks” stays. The word is one constant per platform, `MockFormat.partWord` (ios/RedPen/Shared/Exam/MockPaper.swift, android/app/src/main/java/com/stethoscore/app/quiz/MockPaper.kt); the rows under “The mock exam” below build on it. The real exam’s own “blocks” in a paper’s note (ExamCatalog.swift:262) stay: they are the content. |
 | Patient 7 of 20 (the question header) | Question 7 of 20 | The thing on screen is a question. The patient lives inside its stem, where the clinical words stay. |
 | Next patient | Next question | Pairs with "Finish paper" and "See results", which are already exam words. |
 | Patient chart (label over the stem) | Single best answer | The header already says "Question 7 of 20", so the label names the kind of question; the "Best answer" chip then shows only on a retest ("Second try"). |
@@ -138,6 +139,19 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 | 70 | `ios/RedPen/Features/Learn/ExamPlanView.swift:71` | Ward pocket | Clinical reference | Row in the exam plan. |  |
 | 71 | `ios/RedPen/Shared/Theme.swift:900` | Ward pocket | Clinical reference | Menu item. |  |
 
+### The mock exam (owner, 22 Oct: blocks become Part)
+
+Each row reads `MockFormat.partWord`; the Android twins are in brackets, under `android/app/src/main/java/com/stethoscore/app/`.
+
+| # | File:line | Current | Proposed | Note | Test |
+|---|---|---|---|---|---|
+| 78 | `ios/RedPen/Shared/Exam/MockPaper.swift:64` | Block 1 | Part 1 | The USMLE track’s sections; the sitting’s “Part 2 of 3” (MockSittingView.swift:213) follows. (quiz/MockPaper.kt:58) |  |
+| 79 | `ios/RedPen/Shared/Exam/MockPaper.swift:66` | Step 1-style blocks: … | Step 1-style parts: … | The paper’s note. (quiz/MockPaper.kt:59) |  |
+| 80 | `ios/RedPen/Shared/Exam/MockPaper.swift:67` | USMLE-style, 2 blocks | USMLE-style, 2 parts | The paper’s title. (quiz/MockPaper.kt:60) |  |
+| 81 | `ios/RedPen/Shared/Exam/ExamCatalog.swift:228` | Block 1 (Step 1, Step 2 CK) | Part 1 | A chosen exam’s sections; its title “Step 1, 2 parts” (ExamFormats.swift:19) and the exam-day kit’s “Step 1 part 1” follow. (exam/ExamCatalog.kt:212, exam/ExamFormats.kt:30) |  |
+| 82 | `ios/RedPen/Shared/Exam/ExamCatalog.swift:306` | FIP block 1, ACM block 1 | FIP part 1, ACM part 1 | Step 3’s two days. (exam/ExamCatalog.kt:289) | **ExamCatalogTests.swift:241** |
+| 83 | `ios/RedPen/Features/Mock/MockPaperView.swift:141, :147` | 2 blocks of 40 | 2 parts of 40 | The stepper. (ui/mock/MockPaperScreen.kt:347; its buttons “Fewer parts”, “More parts” at :349, :351) |  |
+
 ### The iPad build: Swift Playgrounds stand-ins (tools/playgrounds_stubs)
 
 | # | File:line | Current | Proposed | Note | Test |
@@ -176,6 +190,7 @@ Change these with their tests in one commit. The test files are in `ios/RedPen/T
 | WardRoundTests.swift:56 | Round 2 of 4 when you’re ready · … | Block 2 of 4 when you’re ready · … | `ios/RedPen/Shared/StudySession.swift:238` |
 | WardRoundTests.swift:93 | Ward round done · 85 min · 3 cards | Focus session done · 85 min · 3 cards | `ios/RedPen/Shared/StudySession.swift:240` |
 | WardRoundTests.swift:126 | Ward round done | Focus session done | `ios/RedPen/Shared/StudySession.swift:263` |
+| ExamCatalogTests.swift:241 (Android ExamCatalogTest.kt:213) | the Step 3 paper’s title holds “fip block” | holds “fip part” | `ios/RedPen/Shared/Exam/ExamCatalog.swift:306` |
 
 Also: `ios/UITests/DesignTourUITests.swift:291` opens `menuItem("Vitals")` and falls back to "Progress" at :292; it becomes `menuItem("Progress")`. `ChartQuizTests.swift:31` asserts the chip words "Best answer" and "Second try"; under row 20 the chip shows only on a retest, so the first half of that check changes. The opening comments of `BedPlanTests.swift`, `ChartQuizTests.swift` and `WardRoundTests.swift` describe the old metaphor; reword them with the strings.
 
@@ -208,6 +223,8 @@ Also: `ios/UITests/DesignTourUITests.swift:291` opens `menuItem("Vitals")` and f
 | `ios/RedPen/Features/Cases/CaseDebriefView.swift:61` | Discharge summary | The case’s own document. |
 | `ios/RedPen/Features/Cases/CaseDecisionView.swift:56` | Discharge and debrief | How a case ends. |
 | `ios/RedPen/Features/Cases/CaseWardView.swift:161` | Clerking note | The case’s own document, as at :149. |
+| `ios/RedPen/Shared/Exam/ExamCatalog.swift:262, :285, :308` | … seven 60-minute blocks of up to 40 … | The real exam’s own word for its parts (usmle.org), in the note on how the real exam runs. |
+| `ios/RedPen/Shared/Learn/ExamWeekPlanner.swift:230` | USMLE block | The exam-day kit names the real exam’s block it paces, with no exam chosen (Android data/BedPlan.kt:191). |
 
 ## Names in code, not on screen
 

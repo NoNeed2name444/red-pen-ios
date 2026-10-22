@@ -210,7 +210,7 @@ class ExamCatalogTest {
         check("MRCP: two papers sat apart", MockFormat.papers(ExamCatalog.mrcp1).map { it.questionCount } == listOf(100, 100))
         val neetPaper = MockFormat.papers(ExamCatalog.neetpg)
         check("NEET-PG: one paper, 200 in 210 minutes", neetPaper.size == 1 && neetPaper[0].questionCount == 200 && neetPaper[0].minutes == 210)
-        check("Step 3's blocks are named for the day", MockFormat.papers(ExamCatalog.step3, blocks = 2)[0].title.contains("fip block"))
+        check("Step 3's parts are named for the day", MockFormat.papers(ExamCatalog.step3, blocks = 2)[0].title.contains("fip part"))
         check("exam-day kit: a Step 2 CK block", ExamWeekPlanner.paper(ck).questions == 40 && ExamWeekPlanner.paper(ck).minutes == 60)
         check("exam-day kit: all of NEET-PG", ExamWeekPlanner.paper(ExamCatalog.neetpg).questions == 200)
         check("exam-day kit: an unconfirmed format is not called published", !ExamWeekPlanner.paper(ExamCatalog.emle).published)

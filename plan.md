@@ -3085,6 +3085,16 @@ docs/design/identity/; the route boards are images kept out of the repo.
 - [ ] The owner picks a route, and the words for the timer's parts and the
   plan's count; then a separate phase applies it.
 
+### The exam wording, built (22 Oct, T0125)
+
+The owner's words from wording.md ("3 to do", "make it block") and the copy
+deck, on iOS and Android in one change set, one pattern per commit. Strings
+only; Arabic is left for the owner's words (copy deck question 4).
+
+- [x] The mock exam's timed parts are "Part n" ("Part n of N" in the
+  sitting), from one constant per platform, MockFormat.partWord
+  (Shared/Exam/MockPaper.swift; quiz/MockPaper.kt). Owner, 22 Oct.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.

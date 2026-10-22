@@ -138,13 +138,13 @@ struct MockPaperView: View {
             if let target, target.sitsBlockwise {
                 let per: Int = target.sections.first?.questions ?? 40
                 Stepper(value: $usmleBlocks, in: 1...max(1, target.sections.count)) {
-                    Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of \(per)")
+                    Text("\(usmleBlocks) \(MockFormat.partWord.lowercased())" + (usmleBlocks == 1 ? "" : "s") + " of \(per)")
                 }
                 .popField()
                 .onChange(of: usmleBlocks) { _, _ in paperId = papers[0].id }
             } else if target == nil && track == .usmle {
                 Stepper(value: $usmleBlocks, in: 1...MockFormat.usmleMaxBlocks) {
-                    Text("\(usmleBlocks) block" + (usmleBlocks == 1 ? "" : "s") + " of 40")
+                    Text("\(usmleBlocks) \(MockFormat.partWord.lowercased())" + (usmleBlocks == 1 ? "" : "s") + " of 40")
                 }
                 .popField()
             }
