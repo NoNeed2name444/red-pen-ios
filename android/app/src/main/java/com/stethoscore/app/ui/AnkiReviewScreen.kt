@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui
 
+import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.ward.wardRaised
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -213,14 +213,13 @@ private val ratingKeys = listOf(Key.One, Key.Two, Key.Three, Key.Four)
 
 private data class MenuEntry(val title: String, val icon: ImageVector, val action: () -> Unit)
 
-/** Back, the screen's title inline, and More with what can be done to the card on screen. */
+/** Back, the screen's title inline, and More with what can be done to the card on screen (StudyTitleBar). */
 @Composable private fun ReviewTopBar(title: String, onBack: () -> Unit, menu: List<MenuEntry>) {
     var open by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = wardColor(WardToken.primaryInk)) }
-        Text(title, Modifier.weight(1f).semantics { heading() }, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis, color = wardColor(WardToken.ink))
+    StudyTitleBar(title, onBack) {
         Box {
-            IconButton(onClick = { open = true }, enabled = menu.isNotEmpty()) { Icon(Icons.Rounded.MoreHoriz, "More", tint = if (menu.isEmpty()) wardColor(WardToken.inkSecondary).copy(alpha = .4f) else wardColor(WardToken.primaryInk)) }
+            // with nothing to do, More is a disabled circle: Biro Grey, solid, never faded
+            WardCircleButton(Icons.Rounded.MoreHoriz, "More", { open = true }, enabled = menu.isNotEmpty())
             DropdownMenu(open, { open = false }) {
                 menu.forEach { entry -> DropdownMenuItem(text = { Text(entry.title) }, leadingIcon = { Icon(entry.icon, null) }, onClick = { open = false; entry.action() }) }
             }

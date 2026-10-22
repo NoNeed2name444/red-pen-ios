@@ -47,6 +47,8 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.*
+import com.stethoscore.app.ui.mock.StudyTitleBar
+import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardToken
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -341,15 +343,12 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     }
 
     Column(Modifier.fillMaxSize()) {
-        // the title bar: back, the subject, Save for a set not yet saved, and More
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
-            Text(ChartQuiz.title(set.subject, set.name), Modifier.weight(1f).semantics { heading() }, fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold, maxLines = 1, color = wardColor(WardToken.ink))
+        // the title bar (StudyTitleBar): back, the subject, Save for a set not yet saved, and More
+        StudyTitleBar(ChartQuiz.title(set.subject, set.name), onBack) {
             if (isUnsaved) QuizChip(if (saved) "Saved" else "Save", if (saved) Icons.Rounded.Check else Icons.Rounded.Download, on = false,
                 onClick = { onSave?.invoke(); saved = true }, enabled = !saved)
             Box {
-                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreHoriz, contentDescription = "More") }
+                WardCircleButton(Icons.Rounded.MoreHoriz, "More", { menuOpen = true })
                 DropdownMenu(menuOpen, { menuOpen = false }, containerColor = wardColor(WardToken.raised)) {
                     if (canStartExam) {
                         val pace = if (track == ExamTrack.general) "revision" else track.title

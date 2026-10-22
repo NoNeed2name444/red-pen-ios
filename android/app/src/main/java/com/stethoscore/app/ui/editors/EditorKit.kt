@@ -61,6 +61,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardControlSize
@@ -90,16 +91,12 @@ import com.stethoscore.app.ui.wardColor
 // CountField (Shared/CountField.swift), DisclosureGroup, StudyActionBar,
 // WardBanner (Shared/Ward/WardStates.swift) and EcgLoader (WardVitals.swift).
 
-/** A sheet's bar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
+/** A sheet's bar, StudyTitleBar: Cancel on the left (wardQuiet), the title inline, the confirming button on the right (wardCompact). */
 @Composable internal fun EditorTopBar(title: String, onCancel: (() -> Unit)?, cancelTitle: String = "Cancel", trailing: @Composable () -> Unit = {}) {
-    Box(Modifier.fillMaxWidth().defaultMinSize(minHeight = 56.dp).padding(horizontal = WardSpace.s.wardDp)) {
-        if (onCancel != null) Box(Modifier.align(Alignment.CenterStart)) {
-            WardTextButton(cancelTitle, onCancel, kind = WardButtonKind.quiet, fills = false)
-        }
-        Text(title, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center, maxLines = 1,
-            modifier = Modifier.align(Alignment.Center).widthIn(max = 220.dp).semantics { heading() })
-        Box(Modifier.align(Alignment.CenterEnd)) { trailing() }
+    val cancel: (@Composable () -> Unit)? = if (onCancel == null) null else {
+        { WardTextButton(cancelTitle, onCancel, kind = WardButtonKind.quiet, fills = false) }
     }
+    StudyTitleBar(title, null, leading = cancel) { trailing() }
 }
 
 /**

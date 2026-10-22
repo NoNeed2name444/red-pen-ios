@@ -9,16 +9,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.ui.ward.*
 
 // Every colour comes from the Ward core (ui/ward: WardPalette, WardSection,
@@ -122,10 +118,12 @@ fun wardColorScheme(look: WardLook): ColorScheme {
 }
 /** A section's small-caps label (WardSmallCaps). */
 @Composable fun SectionLabel(text:String) { WardSmallCapsText(text) }
+/** A page's top inside its own column: the one bar (StudyTitleBar, no inset: the column keeps the gutter), then its subtitle. */
 @Composable fun ScreenHeader(title:String,subtitle:String,onBack:()->Unit) {
-    Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
-        IconButton(onClick=onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack,contentDescription="Back") }
-        Column(Modifier.weight(1f)) { Text(title,fontSize=25.sp,fontWeight=FontWeight.Bold); if(subtitle.isNotBlank()) Text(subtitle,fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+    Column(Modifier.fillMaxWidth().padding(bottom=WardSpace.s.wardDp)) {
+        com.stethoscore.app.ui.mock.StudyTitleBar(title, onBack, inset = 0.dp)
+        if(subtitle.isNotBlank()) Text(subtitle, Modifier.fillMaxWidth(), style=WardTextStyle.caption.textStyle(), color=wardColor(WardToken.inkSecondary),
+            textAlign=androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
 /** The ECG paper (WardPaper): a line every cell, bold every fifth, in the section's ink at the paper's strengths. */

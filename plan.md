@@ -2287,6 +2287,15 @@ with the marks on the screens last.
       tag chip (50 to 54), the tag field (46 to 68: its add sits inside the
       well; iOS draws it 64) and the count field's well round its circles
       (44 to 48).
+    - [x] One top bar for the sweep's seven: StudyTitleBar (ui/mock/MockKit.kt),
+      iOS's inline title with Ward toolbar buttons. Back is a Ward circle;
+      the title, in the headline face, stays in the bar's middle and takes
+      the room the wider end leaves it. ScreenHeader (no inset inside its
+      own column, its subtitle under it), ReaderNavBar, EditorTopBar and the
+      quiz's and review's bars are it, ReaderBackButton is the circle, and
+      More on the quiz and review bars is a circle (the review's empty More
+      is a disabled one: it was faded to 40%). The exam card's header is a
+      card's, as iOS ExamDashboardCard's, and stays.
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
