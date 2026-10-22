@@ -2217,6 +2217,9 @@ with the marks on the screens last.
     - [x] Filled buttons as iOS .bigPrimary: QuizBigButton, CardsPrimaryButton
       and CaseButton's primary draw through WardButtonBox (raised capsule,
       words in the section's ink, never a fill; BigButtonPathsTest).
+    - [x] Cases answers on WardOptionRow, as iOS (the owner 15 Oct: wrong
+      fades, right takes the mode's colour); CaseOptionRow and its green and
+      red are gone (CaseAnswerRowsTest).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.

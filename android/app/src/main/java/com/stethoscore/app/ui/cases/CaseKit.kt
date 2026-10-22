@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
@@ -29,7 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.stethoscore.app.accuracy.AccuracyItem
 import com.stethoscore.app.data.CaseChart
 import com.stethoscore.app.data.CaseFile
 import com.stethoscore.app.data.CaseRun
@@ -166,33 +163,6 @@ internal fun <T> CaseSegmented(selection: T, options: List<T>, label: (T) -> Str
                     .semantics { selected = chosen },
                 contentAlignment = Alignment.Center,
             ) { Text(label(option), fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal, color = if (chosen) CaseInk.ink else CaseInk.biro) }
-        }
-    }
-}
-
-internal enum class CaseMark { idle, chosen, right, wrong }
-
-/** A lettered option (the kit's WardOptionRow). */
-@Composable
-internal fun CaseOptionRow(index: Int, text: String, mark: CaseMark, modifier: Modifier = Modifier) {
-    val edge = when (mark) {
-        CaseMark.idle -> CaseInk.hairline
-        CaseMark.chosen -> CaseInk.theatre
-        CaseMark.right -> CaseInk.discharge
-        CaseMark.wrong -> CaseInk.resus
-    }
-    val shape = RoundedCornerShape(12.dp)
-    Row(
-        modifier.fillMaxWidth().heightIn(min = 44.dp).background(CaseInk.surface, shape).border(if (mark == CaseMark.idle) 1.dp else 2.dp, edge, shape).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(AccuracyItem.letter(index), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = if (mark == CaseMark.idle) CaseInk.biro else edge)
-        Text(text, Modifier.weight(1f), fontSize = 15.sp)
-        when (mark) {
-            CaseMark.right -> Icon(Icons.Filled.CheckCircle, null, tint = CaseInk.discharge)
-            CaseMark.wrong -> Icon(Icons.Filled.Cancel, null, tint = CaseInk.resus)
-            CaseMark.chosen -> Icon(Icons.Filled.CheckCircle, null, tint = CaseInk.theatre)
-            CaseMark.idle -> {}
         }
     }
 }

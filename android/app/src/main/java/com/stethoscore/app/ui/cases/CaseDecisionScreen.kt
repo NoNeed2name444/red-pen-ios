@@ -1,5 +1,7 @@
 package com.stethoscore.app.ui.cases
 
+import com.stethoscore.app.quiz.ChartQuiz
+import com.stethoscore.app.ui.WardOptionRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -101,7 +103,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
                 CaseLabel("Next step")
                 Text("What is the single best next step?", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                 file.nextStep.options.forEachIndexed { index, text ->
-                    CaseOptionRow(index, text, if (option == index) CaseMark.chosen else CaseMark.idle,
+                    WardOptionRow(AccuracyItem.letter(index), text, if (option == index) ChartQuiz.Mark.chosen else ChartQuiz.Mark.idle, modifier =
                         Modifier.clickable(role = Role.RadioButton) { option = index }.semantics(mergeDescendants = true) {
                             contentDescription = "Option ${AccuracyItem.letter(index)}: $text"
                             selected = option == index

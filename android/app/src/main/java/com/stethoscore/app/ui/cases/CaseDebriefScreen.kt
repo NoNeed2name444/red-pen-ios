@@ -1,5 +1,8 @@
 package com.stethoscore.app.ui.cases
 
+import com.stethoscore.app.accuracy.AccuracyItem
+import com.stethoscore.app.quiz.ChartQuiz
+import com.stethoscore.app.ui.WardOptionRow
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -157,9 +160,9 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
             CaseLabel("Next step")
             val chosen = debrief.chosenNextStep
             if (chosen != null && !debrief.nextStepRight) {
-                CaseOptionRow(run.decision?.nextStep ?: 0, chosen, CaseMark.wrong, Modifier.clearAndSetSemantics { contentDescription = "Your choice: $chosen, wrong" })
+                WardOptionRow(AccuracyItem.letter(run.decision?.nextStep ?: 0), chosen, ChartQuiz.Mark.wrong, modifier = Modifier.clearAndSetSemantics { contentDescription = "Your choice: $chosen, wrong" })
             }
-            CaseOptionRow(file.nextStep.key, debrief.rightNextStep, CaseMark.right, Modifier.clearAndSetSemantics { contentDescription = "Right next step: ${debrief.rightNextStep}" })
+            WardOptionRow(AccuracyItem.letter(file.nextStep.key), debrief.rightNextStep, ChartQuiz.Mark.right, modifier = Modifier.clearAndSetSemantics { contentDescription = "Right next step: ${debrief.rightNextStep}" })
             if (file.nextStep.why.isNotEmpty()) Text(file.nextStep.why, fontSize = 15.sp)
             val reason = run.decision?.reason.orEmpty()
             if (reason.isNotEmpty()) Text("Your reason: $reason", fontSize = 13.sp, color = CaseInk.biro)
