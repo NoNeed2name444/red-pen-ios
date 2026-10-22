@@ -83,7 +83,8 @@ struct MCQQuizView: View {
     /// option order without changing the other session behavior.
     init(set studySet: StudySet, initialAnswers: [MCQAnswer]? = nil, isUnsaved: Bool = false,
          saved: Binding<Bool> = .constant(false), onSave: (() -> Void)? = nil,
-         keepsProgress: Bool = true, minReadSeconds: Int = 0, startsTimed: Bool = false) {
+         keepsProgress: Bool = true, minReadSeconds: Int = 0, startsTimed: Bool = false,
+         twinNote: String? = nil) {
         self.studySet = studySet
         self.minReadSeconds = max(0, minReadSeconds)
         self.startsTimed = startsTimed
@@ -98,6 +99,10 @@ struct MCQQuizView: View {
         }
         _answers = State(initialValue: answers)
         _orders = State(initialValue: Self.makeOrders(for: studySet, shuffle: initialAnswers == nil))
+        // the tour's "twin-written" still: the first question's twin already asked for
+        if let twinNote, let first = studySet.questions.first {
+            _twinNotes = State(initialValue: [first.id: twinNote])
+        }
     }
 
     private static func makeOrders(for set: StudySet, shuffle: Bool) -> [[Int]] {
