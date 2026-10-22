@@ -17,6 +17,7 @@ import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -104,6 +105,17 @@ class TourCapture(private val compose: ComposeContentTestRule) {
     fun tap(what: String, matcher: SemanticsMatcher, timeoutMs: Long = 15_000) {
         waitFor(what, matcher, timeoutMs)
         compose.onAllNodes(matcher).onFirst().performClick()
+        compose.waitForIdle()
+    }
+
+    /**
+     * Taps [matcher] in a scrolling page after scrolling it fully into view, as a reader
+     * would. A tap on a node below the fold lands on whatever covers that spot (on the
+     * quiz, the How sure? bar), so it silently does nothing.
+     */
+    fun tapInView(what: String, matcher: SemanticsMatcher, timeoutMs: Long = 15_000) {
+        waitFor(what, matcher, timeoutMs)
+        compose.onAllNodes(matcher).onFirst().performScrollTo().performClick()
         compose.waitForIdle()
     }
 
