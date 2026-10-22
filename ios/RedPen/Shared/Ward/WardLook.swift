@@ -3,15 +3,17 @@ import Foundation
 /// The parts of the app, each with a colour of its own (the owner, 14 Oct:
 /// "colour difference for each mode"; 15 Oct: the buttons, links and
 /// other accents were still blue in every section; 16 Oct: palette
-/// direction 3, seven section colours). Each section has a hue, and every
-/// accent is drawn from it: the paper's grid and the controls' edges
-/// (`ink`), the words and glyphs of buttons, links, the chosen dock tab,
-/// progress and a right answer (`accent`), and the fills under the
-/// near-black on-fill words (`fill`, WardToken.onPrimary). The base, the cards and the body text stay the Ward palette's,
-/// and so do the colours that mean something: Discharge green, Resus red,
-/// Caution amber for due, the ECG red and the beam's orange. The sections
-/// keep apart from those and from each other (at least 0.076 in OKLab,
-/// both modes).
+/// direction 3, seven section colours; 22 Oct: the ten-colour palette's
+/// hexes exactly, no shades). Each section has a hue and one colour, the
+/// owner's hex, in every role and both modes: the paper's grid and the
+/// controls' edges (`ink`), the words and glyphs of buttons, links, the
+/// chosen dock tab, progress and a right answer (`accent`), and the fills
+/// under white words (`fill`). The base, the cards and the body text stay
+/// the Ward palette's, and so do the colours that mean something: Discharge
+/// green, Resus red, Caution amber for due, the ECG red and the beam's
+/// orange. WardLookTests asks the sections to keep apart from those and
+/// from each other (at least 0.075 in OKLab, both modes) and says where
+/// the owner's colours fall short.
 enum WardSection: String, CaseIterable, Sendable {
     case questions, cards, textbook, cases, osce, audio, ideas
 
@@ -26,53 +28,63 @@ enum WardSection: String, CaseIterable, Sendable {
     var hue: Double { WardSection.table[self]!.hue }
 
     /// The section's ink (light, dark) as 0xRRGGBB: the grid's lines and
-    /// the controls' edges. Each reads at least 3:1 on the base and on a
-    /// card at a control's edge strength (WardRelief.edgeAlpha). Questions'
-    /// is red, and its grid red at the paper's own strengths, like real ECG
-    /// paper.
+    /// the controls' edges, the owner's hex as the fill is. WardLookTests
+    /// asks 3:1 on the base and on a card at a control's edge strength
+    /// (WardRelief.edgeAlpha). Questions' is red, and its grid red at the
+    /// paper's own strengths, like real ECG paper.
     var ink: (light: UInt32, dark: UInt32) { WardSection.table[self]!.ink }
 
     /// Words and glyphs in the section's colour (buttons' labels, links,
     /// icons, the chosen tab, progress, a right answer), light and dark:
-    /// 4.5:1 on every tier of its mode, the well to a sheet.
+    /// the owner's hex as the fill is. WardLookTests asks 4.5:1 on every
+    /// tier of its mode, the well to a sheet.
     var accent: (light: UInt32, dark: UInt32) { WardSection.table[self]!.accent }
 
-    /// A fill in the section's colour, the owner's hex (a switch that is
-    /// on, a chosen segment): the on-fill words (onPrimary) read 4.5:1 on it.
+    /// A fill in the section's colour, the owner's hex, under white words
+    /// (onPrimary) (a switch that is on, a chosen segment).
     var fill: (light: UInt32, dark: UInt32) { WardSection.table[self]!.fill }
 
     func accent(dark: Bool) -> UInt32 { dark ? accent.dark : accent.light }
     func fill(dark: Bool) -> UInt32 { dark ? fill.dark : fill.light }
     func ink(dark: Bool) -> UInt32 { dark ? ink.dark : ink.light }
 
-    /// The wash behind every page: the base mixed toward the section's fill
-    /// in linear light (WardPalette.mix): 0.06 by day, 0.10 at night.
-    var wash: (light: UInt32, dark: UInt32) { (wash(dark: false), wash(dark: true)) }
+    /// The wash behind every page, (light, dark) as 0xRRGGBB, pinned: the
+    /// owner, 22 Oct, wanted the backgrounds as they were before the
+    /// ten-colour palette, so the wash no longer follows the fill. Each is
+    /// the base mixed toward the section's earlier fill in linear light
+    /// (0.06 by day, 0.10 at night), as it was then.
+    var wash: (light: UInt32, dark: UInt32) { WardSection.washes[self]! }
 
-    func wash(dark: Bool) -> UInt32 {
-        let base = WardPalette.hex(.background, dark: dark)
-        let t = dark ? 0.10 : 0.06
-        return WardPalette.mix(base, fill(dark: dark), t)
-    }
+    func wash(dark: Bool) -> UInt32 { dark ? wash.dark : wash.light }
+
+    private static let washes: [WardSection: (light: UInt32, dark: UInt32)] = [
+        .questions: (0xE7E7EC, 0x49212A),
+        .cards:     (0xE3E8EF, 0x242B4C),
+        .textbook:  (0xE3E8ED, 0x193335),
+        .cases:     (0xE6E7EC, 0x402824),
+        .osce:      (0xE3E8EC, 0x1E322B),
+        .audio:     (0xE4E7EF, 0x332747),
+        .ideas:     (0xE6E7ED, 0x43223A),
+    ]
 
     /// The colours that mean something, which no section's accent may
     /// look like.
     static let semanticTokens: [WardToken] = [.success, .danger, .warning, .ecg, .beam]
 
-    /// Every section's colours, worked out from its hue by
-    /// tools/ward_accents.py (the fills are the owner's, pinned and
-    /// checked there), which reads the palette and the edges' strength
-    /// from the source: a palette or hue change is one edit there and a
-    /// --write. (ink, accent, fill) as (light, dark) 0xRRGGBB.
+    /// Every section's colours: the owner's hex in every role and both
+    /// modes. Written here by hand: tools/ward_accents.py, which works
+    /// shades out from the hue, exits 1 on these fills (white reads under
+    /// 4.6:1 on each), so it cannot --write them, and its --check says so.
+    /// (ink, accent, fill) as (light, dark) 0xRRGGBB.
     // ward_accents.py: begin
     private static let table: [WardSection: WardSectionColours] = [
-        .questions: WardSectionColours(hue: 23, ink: (0xBE2130, 0xFEBAB5), accent: (0x8A0219, 0xFEBAB5), fill: (0xFF6B6B, 0xFF6B6B)),
-        .cards: WardSectionColours(hue: 260, ink: (0x2A71E5, 0x84B2FD), accent: (0x0251C2, 0x84B2FD), fill: (0x3B82F6, 0x3B82F6)),
-        .textbook: WardSectionColours(hue: 182, ink: (0x157C70, 0x1EC8B4), accent: (0x0A574D, 0x1EC8B4), fill: (0x14B8A6, 0x14B8A6)),
-        .cases: WardSectionColours(hue: 42, ink: (0xCE4F08, 0xFE9F79), accent: (0x983803, 0xFF9F7A), fill: (0xFF9F7A, 0xFF9F7A)),
-        .osce: WardSectionColours(hue: 129, ink: (0x476A05, 0xAFE172), accent: (0x2D4601, 0xA3E635), fill: (0xA3E635, 0xA3E635)),
-        .audio: WardSectionColours(hue: 294, ink: (0x845BDD, 0xB097FD), accent: (0x6538B8, 0xB097FD), fill: (0xA78BFA, 0xA78BFA)),
-        .ideas: WardSectionColours(hue: 350, ink: (0xCA3F8D, 0xF383BB), accent: (0xA00B69, 0xF383BB), fill: (0xF472B6, 0xF472B6)),
+        .questions: WardSectionColours(hue: 23, ink: (0xFF6B6B, 0xFF6B6B), accent: (0xFF6B6B, 0xFF6B6B), fill: (0xFF6B6B, 0xFF6B6B)),
+        .cards: WardSectionColours(hue: 260, ink: (0x3B82F6, 0x3B82F6), accent: (0x3B82F6, 0x3B82F6), fill: (0x3B82F6, 0x3B82F6)),
+        .textbook: WardSectionColours(hue: 182, ink: (0x14B8A6, 0x14B8A6), accent: (0x14B8A6, 0x14B8A6), fill: (0x14B8A6, 0x14B8A6)),
+        .cases: WardSectionColours(hue: 42, ink: (0xFF9F7A, 0xFF9F7A), accent: (0xFF9F7A, 0xFF9F7A), fill: (0xFF9F7A, 0xFF9F7A)),
+        .osce: WardSectionColours(hue: 129, ink: (0xA3E635, 0xA3E635), accent: (0xA3E635, 0xA3E635), fill: (0xA3E635, 0xA3E635)),
+        .audio: WardSectionColours(hue: 294, ink: (0xA78BFA, 0xA78BFA), accent: (0xA78BFA, 0xA78BFA), fill: (0xA78BFA, 0xA78BFA)),
+        .ideas: WardSectionColours(hue: 350, ink: (0xF472B6, 0xF472B6), accent: (0xF472B6, 0xF472B6), fill: (0xF472B6, 0xF472B6)),
     ]
     // ward_accents.py: end
 

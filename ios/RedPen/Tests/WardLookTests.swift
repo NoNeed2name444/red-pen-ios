@@ -389,9 +389,9 @@ do {
     check("the look starts outside any section", now.glide == .rest(outside) && WardLookNow.shared.glide == .rest(outside))
     now.set(.rest(WardLook(dark: false, section: .questions)))
     check("a right answer made outside any section shows Questions' accent by day",
-          now.hex(.primaryInk, dark: false) == 0x8A0219, h(now.hex(.primaryInk, dark: false)))
-    check("and at night", now.hex(.primaryInk, dark: true) == 0xFEBAB5, h(now.hex(.primaryInk, dark: true)))
-    check("and its edges Questions' ink", now.ink(dark: false) == 0xBE2130 && now.ink(dark: true) == 0xFEBAB5)
+          now.hex(.primaryInk, dark: false) == 0xFF6B6B, h(now.hex(.primaryInk, dark: false)))
+    check("and at night", now.hex(.primaryInk, dark: true) == 0xFF6B6B, h(now.hex(.primaryInk, dark: true)))
+    check("and its edges Questions' ink", now.ink(dark: false) == 0xFF6B6B && now.ink(dark: true) == 0xFF6B6B)
     for section in WardSection.allCases {
         for dark in [false, true] {
             now.set(.rest(WardLook(dark: dark, section: section)))
@@ -461,6 +461,27 @@ do {
 }
 
 // MARK: - Each section's wash
+
+// The washes are pinned to what they were before the ten-colour palette
+// (the owner, 22 Oct: the backgrounds were not to change), whatever the
+// fills are: each the base mixed toward the section's earlier fill, 0.06
+// by day and 0.10 at night, as drawn then.
+let earlierWashes: [WardSection: (light: UInt32, dark: UInt32)] = [
+    .questions: (0xE7E7EC, 0x49212A), .cards: (0xE3E8EF, 0x242B4C), .textbook: (0xE3E8ED, 0x193335),
+    .cases: (0xE6E7EC, 0x402824), .osce: (0xE3E8EC, 0x1E322B), .audio: (0xE4E7EF, 0x332747),
+    .ideas: (0xE6E7ED, 0x43223A),
+]
+check("every section's wash is pinned", Set(earlierWashes.keys) == Set(sections))
+for s in sections {
+    for dark in [false, true] {
+        let pinned = dark ? earlierWashes[s]!.dark : earlierWashes[s]!.light
+        check("\(dark ? "dark" : "light") \(s): its wash is the one before the ten-colour palette",
+              s.wash(dark: dark) == pinned && WardGround.home(s, dark: dark).base == pinned,
+              "\(h(s.wash(dark: dark))) vs \(h(pinned))")
+    }
+}
+check("the look outside any section keeps Cards' earlier wash",
+      WardSection.outside.wash.light == 0xE3E8EF && WardSection.outside.wash.dark == 0x242B4C)
 
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"

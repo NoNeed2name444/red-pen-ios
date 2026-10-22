@@ -75,8 +75,8 @@ extension Color {
         WardRestColors.sectionInk(section)
     }
 
-    /// The section's wash this frame (WardSection.wash): the matte base mixed
-    /// toward the section's fill, shifting with the section's glide.
+    /// The section's wash this frame (WardSection.wash, pinned to the
+    /// earlier backgrounds), shifting with the section's glide.
     static var wardWash: Color {
         let glide = WardLookStore.shared.glide
         if glide.settled { return WardRestColors.wash(glide.to.section) }

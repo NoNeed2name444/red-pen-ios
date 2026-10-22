@@ -43,6 +43,14 @@ OKLab from every other and from the colours that mean something (right,
 wrong, due, the ECG red, the beam), in both modes: the least gaps are
 0.082 by day (textbook/success) and 0.084 by night (cards/audio).
 tests/ward/accent-blue.test.mjs and WardLookTests hold them to it.
+
+The wash behind each section's pages is pinned in WardLook.swift
+(WardSection.washes; the owner, 22 Oct: the backgrounds as they were
+before the ten-colour palette), so it is read from there, not mixed from
+the fill. Since the same day every role is the owner's hex exactly (no
+shades) and the on-fill words are white again: white reads under 4.6:1 on
+every fill, so this tool exits 1 at the first fill, and the table in
+WardLook.swift is written by hand; --check exits 1 for the same reason.
 """
 import math, os, re, sys
 
@@ -154,16 +162,16 @@ def from_oklch(L, C, hue):
     return out
 
 
-def mix(a, b, t):
-    """`a` part way to `b` in linear light, as WardPalette.mix does."""
-    out = 0
-    for x, y in zip(rgb(a), rgb(b)):
-        v = to_gamma(to_linear(x) + (to_linear(y) - to_linear(x)) * t)
-        out = out << 8 | int(round(min(1, max(0, v)) * 255))
-    return out
-
-
-WASH = (0.06, 0.10)       # the page's wash: the base this far to the fill (WardSection.wash)
+def washes():
+    """Each section's wash behind the page, (light, dark), as pinned in
+    WardLook.swift (WardSection.washes)."""
+    text = open(LOOK).read()
+    block = re.search(r"static let washes: \[WardSection: \(light: UInt32, dark: UInt32\)\] = \[(.*?)\n    \]",
+                      text, re.S)
+    if not block:
+        raise SystemExit("WardSection.washes not found in WardLook.swift")
+    return {m.group(1): (int(m.group(2), 16), int(m.group(3), 16))
+            for m in re.finditer(r"\.(\w+):\s*\(0x([0-9A-Fa-f]{6}),\s*0x([0-9A-Fa-f]{6})\)", block.group(1))}
 
 
 def composite(top, alpha, base):
@@ -214,7 +222,7 @@ def pinned_fill(name, hue, fill, white):
     return fill
 
 
-def section_colours(table, tiers, edge_alpha, edge_contrast):
+def section_colours(table, tiers, edge_alpha, edge_contrast, wash):
     out, notes = {}, []
     for name, hue, light_L, dark_L, fill_light, fill_dark in SECTIONS:
         row = {}
@@ -222,7 +230,7 @@ def section_colours(table, tiers, edge_alpha, edge_contrast):
             white = table["onPrimary"][dark]
             fill = pinned_fill(name, hue, fill_dark if dark else fill_light, white)
             # every tier, and the section's own wash behind the page
-            grounds = [table[t][dark] for t in tiers] + [mix(table["background"][dark], fill, WASH[dark])]
+            grounds = [table[t][dark] for t in tiers] + [wash[name][dark]]
             base = [table["background"][dark], table["surface"][dark]]
             away = L_STEP if dark else -L_STEP
             words = lambda c: all(contrast(c, g) >= 4.5 + MARGIN for g in grounds)
@@ -279,7 +287,7 @@ def report(colours, table):
 def main():
     table, tiers = palette()
     edge_alpha, edge_contrast = relief()
-    colours, notes = section_colours(table, tiers, edge_alpha, edge_contrast)
+    colours, notes = section_colours(table, tiers, edge_alpha, edge_contrast, washes())
     block = swift_table(colours)
     source = open(LOOK).read()
     if not MARKS.search(source):

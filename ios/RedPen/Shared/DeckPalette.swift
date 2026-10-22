@@ -59,10 +59,10 @@ struct DeckPalette: Equatable {
     /// Whether white text can be read on this colour: WCAG's 4.5:1.
     ///
     /// The header bar is filled with the base colour and its text is white.
-    /// The 2026-10-21 mode tints are all bright, and white on them is under
-    /// AA, so those bars take a darkened shade instead. Measured by WCAG
-    /// contrast rather than by eye, because "it looked fine on my screen" is
-    /// how a printed page ends up illegible.
+    /// Measured by WCAG contrast rather than by eye, because "it looked fine
+    /// on my screen" is how a printed page ends up illegible. The 2026-10-21
+    /// mode tints are all bright, and white on them is under AA; DeckTests
+    /// says so.
     var carriesWhiteText: Bool { 1.05 / (wcagLuminance + 0.05) >= 4.5 }
 
     /// WCAG 2 relative luminance, in linear light.
@@ -75,22 +75,12 @@ struct DeckPalette: Equatable {
     var luminance: Double { 0.2126 * red + 0.7152 * green + 0.0722 * blue }
 
     /// Words in the mode's colour on the paper and its pale tints: the
-    /// lightest shade from 0.10 down that reads 5:1 on white, so it keeps
-    /// 4.5:1 on a tint of 0.86 or paler.
-    var ink: DeckPalette {
-        var amount = 0.10
-        while 1.05 / (shade(amount).wcagLuminance + 0.05) < 5 && amount < 1 { amount += 0.02 }
-        return shade(amount)
-    }
+    /// mode's tint itself, the owner's hex (the owner, 22 Oct: no shades).
+    var ink: DeckPalette { self }
 
-    /// The colour a header bar is actually filled with: the tint, or the
-    /// lightest shade of it from 0.38 down that carries white text.
-    var barFill: DeckPalette {
-        if carriesWhiteText { return self }
-        var amount = 0.38
-        while !shade(amount).carriesWhiteText && amount < 1 { amount += 0.02 }
-        return shade(amount)
-    }
+    /// The colour a header bar is actually filled with: the mode's tint
+    /// itself, the owner's hex.
+    var barFill: DeckPalette { self }
 
     var hex: String {
         String(format: "#%02X%02X%02X",

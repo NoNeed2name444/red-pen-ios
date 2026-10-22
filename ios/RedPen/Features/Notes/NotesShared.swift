@@ -6,20 +6,20 @@ import UIKit
 ///
 /// Seven of the owner's 2026-10-21 palette (docs/design/palette-2026-10-21.md),
 /// in the stored order the folders are matched by index: the 3D map's space
-/// draws its clusters in the colours themselves; a folder's glyph on a
-/// card or a row, which must read 3:1 on the page, takes a shade of the
-/// same hue where the colour itself does not. Vital Coral is left out, so
-/// a folder never reads as a wrong answer.
+/// draws its clusters in them, and a folder's glyph on a card or a row is
+/// the same hex by day and at night (the owner, 22 Oct: the colours as
+/// sent, no shades). Vital Coral is left out, so a folder never reads as a
+/// wrong answer.
 enum NoteTone {
     /// (the owner's colour, the glyph's by day, the glyph's at night), 0xRRGGBB
     private static let palette: [(fill: UInt32, light: UInt32, dark: UInt32)] = [
-        (0x14B8A6, 0x3B8B80, 0x14B8A6),  // Pulse Teal (was sea green)
-        (0x6366F1, 0x6366F1, 0x737CB3),  // Electric Indigo (was slate blue)
-        (0xFF9F7A, 0xBF6642, 0xFF9F7A),  // Peach Glow (was sand)
-        (0xA78BFA, 0x886BD4, 0xA78BFA),  // Soft Lilac (was heather)
-        (0xA3E635, 0x708558, 0xA3E635),  // Lime Zest (was sage)
-        (0xF472B6, 0xCE4F93, 0xF472B6),  // Bubblegum Pink (was clay)
-        (0x3B82F6, 0x367AEC, 0x3B82F6),  // Care Blue (was sky)
+        (0x14B8A6, 0x14B8A6, 0x14B8A6),  // Pulse Teal (was sea green)
+        (0x6366F1, 0x6366F1, 0x6366F1),  // Electric Indigo (was slate blue)
+        (0xFF9F7A, 0xFF9F7A, 0xFF9F7A),  // Peach Glow (was sand)
+        (0xA78BFA, 0xA78BFA, 0xA78BFA),  // Soft Lilac (was heather)
+        (0xA3E635, 0xA3E635, 0xA3E635),  // Lime Zest (was sage)
+        (0xF472B6, 0xF472B6, 0xF472B6),  // Bubblegum Pink (was clay)
+        (0x3B82F6, 0x3B82F6, 0x3B82F6),  // Care Blue (was sky)
     ]
 
     private static func ui(_ hex: UInt32) -> UIColor {
@@ -40,7 +40,7 @@ enum NoteTone {
     }
 
     /// Loose notes are plain grey; a note in a folder takes the colour of
-    /// the top-level folder it sits in (its glyph's shade, light or dark).
+    /// the top-level folder it sits in (its glyph's, light or dark).
     @MainActor
     static func color(for folderId: UUID?, in store: NoteStore) -> Color {
         guard let k = index(for: folderId, in: store) else { return Color.gray }

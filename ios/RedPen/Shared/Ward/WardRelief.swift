@@ -347,8 +347,9 @@ enum WardPaper {
     static let padRadius = 18.0
 
     static func ink(dark: Bool, highContrast: Bool) -> WardPaperInk {
-        // the ink outside any section (WardSection.outside, Cards' Care Blue)
-        WardPaperInk(hex: dark ? 0x84B2FD : 0x2A71E5,
+        // the ink outside any section (WardSection.outside, Cards' Care
+        // Blue, the owner's hex in both modes)
+        WardPaperInk(hex: 0x3B82F6,
                      fine: highContrast ? 0 : (dark ? 0.07 : 0.09),
                      bold: highContrast ? 0 : (dark ? 0.14 : 0.18),
                      edge: dark ? 0.5 : 0.55)

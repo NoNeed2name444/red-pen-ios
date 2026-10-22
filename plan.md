@@ -2437,6 +2437,8 @@ with the marks on the screens last.
       Waits for the Design preview with only=testIsland.
 
 - [x] 11. The owner's 10-colour palette (21 Oct; task T0104, design/palette-genz): every accent remapped onto it by role and hue, neutrals kept, words on fills near-black where white fails; mapping in docs/design/palette-2026-10-21.md.
+- [x] 12. The owner's hexes exactly, the earlier backgrounds (22 Oct; task T0107, design/vivid). The owner: the colours were not the ones sent, the backgrounds should not have changed, "don't improvise". Every section and meaning colour is now the owner's hex in every role and both modes (no shades; NoteTone, DeckPalette, AccentColor, the Anki red pen too), words on fills white again, and each section's wash pinned to its value before T0104 (WardSection.washes, pinned in WardLookTests), the launch pictures redrawn on it. The checks the exact colours fail stay failing (listed in the T0107 result); tools/ward_accents.py exits 1 on these fills, so the WardLook table is written by hand. Note in docs/design/palette-2026-10-21.md.
+- [ ] Follow-up to 12 (outside T0107's paths): tools/make_launch_ground.py still mixes the wash from the fill, so it cannot read the pinned washes and WardLookTests' script checks fail until it reads WardSection.washes; and the core/core1 Playgrounds stand-in (tools/playgrounds_stubs/core-exports-out) keeps the occlusion "?" near-black.
 
 ### The launch mark (design/launch-anim), 15 Oct
 
