@@ -139,7 +139,8 @@ object CloudJobs {
      */
     suspend fun run(
         spec: Spec, at: CloudEndpoint, store: PendingStore = MemoryStore(),
-        pause: suspend (Long) -> Unit = { delay(it) },
+        /** How a wait is made; null waits for real (tests pass one that returns at once). */
+        pause: (suspend (Long) -> Unit)? = null,
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ): List<String> {
         at.meter?.ensureRoom()
@@ -162,7 +163,7 @@ object CloudJobs {
         fun byProgress(): Int = (pending.done + spec.perReply - 1) / maxOf(1, spec.perReply)
         try {
             while (true) {
-                pause(POLL_MILLIS)
+                wait(pause, POLL_MILLIS)
                 val status: Status
                 try {
                     status = status(id, at)
@@ -234,7 +235,7 @@ object CloudJobs {
     }
 
     /** A finished job's result, asked for again after a failed request, with the waits CloudJobRules gives. */
-    suspend fun resultRetrying(id: String, at: CloudEndpoint, pause: suspend (Long) -> Unit = { delay(it) }): List<String> {
+    suspend fun resultRetrying(id: String, at: CloudEndpoint, pause: (suspend (Long) -> Unit)? = null): List<String> {
         var failed = 0
         while (true) {
             try {
@@ -246,11 +247,20 @@ object CloudJobs {
                 failed += 1
                 val code = (e as? LLMError.Http)?.status
                 when (val next = CloudJobRules.afterFailedFetch(failed, code)) {
-                    is CloudJobRules.Retry.After -> pause((next.seconds * 1000).toLong())
+                    is CloudJobRules.Retry.After -> wait(pause, (next.seconds * 1000).toLong())
                     CloudJobRules.Retry.HandOver -> throw e
                 }
             }
         }
+    }
+
+    /**
+     * A wait: the given one, else a real delay. A plain call rather than a
+     * default suspend lambda, which the Kotlin compiler's IR lowering cannot
+     * give a continuation (AddContinuationLowering) on a clean build.
+     */
+    private suspend fun wait(pause: (suspend (Long) -> Unit)?, millis: Long) {
+        if (pause != null) pause(millis) else delay(millis)
     }
 
     /** Stops a job, or clears a collected one off the server. */
