@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// The exam plan: where the run-up stands, today's goal and a ward round,
-/// what the student would remember on the day, the next two weeks of
-/// reviews, how much is locked in per subject, and what this phase asks for.
+/// The exam plan: where the run-up stands, today's goal and a focus
+/// session, what the student would remember on the day, the next two weeks
+/// of reviews, how much is locked in per subject, and what this phase asks
+/// for.
 ///
-/// Opened from Today's ward round's "Plan". Everything on it is an estimate
+/// Opened from Today's revision's "Open plan". Everything on it is an estimate
 /// from the app's own schedule and answer history, and it says so.
 struct ExamPlanView: View {
     @EnvironmentObject private var store: Store

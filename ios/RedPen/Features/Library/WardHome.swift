@@ -513,7 +513,7 @@ struct HomeRoundCard: View {
             // a 44-point target that takes only the words' height in the
             // heading's row, so the row is no taller than its two lines and
             // the round's button stays clear of New set
-            Label("Plan", systemImage: "chart.line.uptrend.xyaxis")
+            Label("Open plan", systemImage: "chart.line.uptrend.xyaxis")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .padding(.vertical, 12)

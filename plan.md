@@ -3137,6 +3137,8 @@ only; Arabic is left for the owner's words (copy deck question 4).
   "Couldn’t import that file. Check it’s a Stethoscore library and try
   again." (iOS's alert pattern). A failure that carries its own message
   still shows that message, as before.
+- [x] The daily plan's button to the exam plan says what it does, "Open
+  plan" (copy deck rule d), on both phones.
 
 ### Waiting on the owner
 
