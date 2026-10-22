@@ -36,28 +36,20 @@ extension StudySetKind {
     }
 }
 
-/// The icon tile used on library rows and screen headers.
+/// The icon tile used on library rows and screen headers: WardIconSquare
+/// with the mode's glyph in its section's accent (its `tint`). The glyph
+/// alone tells the modes apart, so no wash of colour behind it.
 struct ModeTile: View {
     let kind: StudySetKind
     var size: CGFloat = 44
-    /// The chosen one: pressed into the base, its glyph still its mode's
-    /// accent.
+    /// The chosen one: pressed into the base, its glyph in the section's
+    /// accent, as every chosen icon square's is. Where a mode is chosen (New
+    /// set) the screen takes that mode's section, so it is the mode's own.
     var selected = false
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    // A soft tile raised off the base, the mode's glyph in its tone; the
-    // glyph alone tells the modes apart, so no wash of colour behind it.
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: min(WardRadius.icon, size * 0.28), style: .continuous)
-        Image(systemName: kind.symbol)
-            .font(.system(size: size * 0.42, weight: .semibold))
-            .foregroundStyle(kind.tint)
-            .frame(width: size, height: size)
-            // the row or header around it is what is tapped: no edge here
-            .wardRelief(in: shape, lift: size >= 56 ? .mid : .low, pressed: selected, control: false)
-            .animation(reduceMotion ? nil : .wardShade(down: selected), value: selected)
-            .accessibilityHidden(true)
+        WardIconSquare(symbol: kind.symbol, tone: .accent(WardSection(kindRaw: kind.rawValue)),
+                       size: size, selected: selected)
     }
 }
 
