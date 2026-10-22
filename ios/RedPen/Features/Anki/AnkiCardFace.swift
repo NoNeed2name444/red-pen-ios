@@ -24,10 +24,7 @@ struct AnkiCardFace: View {
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.l) {
             Text(badge)
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(Color.wardPrimaryInk)
+                .modifier(WardSmallCaps(colour: .wardPrimaryInk))
 
             if card.pictureOnFront { picture }
 
