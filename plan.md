@@ -3115,6 +3115,8 @@ only; Arabic is left for the owner's words (copy deck question 4).
   …") (wording.md rows 68-71).
 - [x] The new-set flow drops its "New admission" label: the screen is
   already titled "New set" (wording.md row 66).
+- [x] Twins' subtitle is "Missed points, asked again" (wording.md row 67;
+  Android has no study-category list yet).
 
 ### Waiting on the owner
 

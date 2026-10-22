@@ -91,6 +91,7 @@ The owner's exam words (`docs/design/identity/wording.md`), built on both phones
 | Progress, "Weak topics" and "Practise weak topics" (`Features/Analytics/AnalyticsView.swift`, `VitalsParts.swift`, `Features/Library/WardHome.swift`'s tile, `Features/Support/SupportCenter.swift`) | `ui/VitalsScreen.kt`, `ui/vitals/VitalsParts.kt`, `ui/home/WardHome.kt` | same (HomeTilesMeasureTest finds "Opens Progress"); the subtitles that name it on iOS (library category, examples hub, review settings) have no Android screen yet |
 | The reference, "Clinical reference" (`Features/Exam/WardPocketView.swift`'s title and set name, `Features/Learn/ExamPlanView.swift`'s row, `Shared/Theme.swift`'s study menu) | `ui/exam/WardPocketScreen.kt`, `exam/ExamWords.kt`, `ui/learn/ExamPlanScreen.kt`, `ui/MCQQuizScreen.kt`'s menu | same |
 | The new-set flow's header, the question alone without "New admission" (`Features/Library/NewSetView.swift`) | `ui/library/LibraryNewSetScreen.kt` | same |
+| Twins' subtitle, "Missed points, asked again" (`Features/Library/StudyCategory.swift`) | none | iOS only: Android has no study-category list yet |
 
 ## Where iOS can't be copied
 
