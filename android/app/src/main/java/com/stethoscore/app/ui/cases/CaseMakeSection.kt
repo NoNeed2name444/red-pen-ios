@@ -34,6 +34,7 @@ import com.stethoscore.app.data.LectureForms
 import com.stethoscore.app.data.ReadSource
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
+import com.stethoscore.app.llm.CloudJobs
 import com.stethoscore.app.llm.LLMChoice
 import com.stethoscore.app.ui.editors.CountField
 import com.stethoscore.app.ui.editors.EcgLoader
@@ -54,7 +55,6 @@ import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.wardColor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -104,7 +104,7 @@ import kotlinx.coroutines.withContext
         status = "Reading…"
         scope.launch {
             try {
-                val file = withContext(Dispatchers.IO) { LectureFiles.read(context, uri) }
+                val file = withContext(CloudJobs.io) { LectureFiles.read(context, uri) }
                 val lecture = ReadSource(name = file.name, pages = file.pages, kind = LectureForms.writerFileKind(file.extension))
                 read = lecture
                 status = "${file.name} — ${file.pages.size} pages."

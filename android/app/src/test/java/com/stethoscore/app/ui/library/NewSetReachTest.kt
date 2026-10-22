@@ -1,6 +1,7 @@
 package com.stethoscore.app.ui.library
 
 import android.net.Uri
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.result.ActivityResultRegistry
@@ -11,6 +12,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -24,6 +27,7 @@ import com.stethoscore.app.data.CaseJson
 import com.stethoscore.app.data.CaseSamples
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.llm.CloudJobs
 import com.stethoscore.app.llm.FakeJobs
 import com.stethoscore.app.llm.FakeServer
 import com.stethoscore.app.llm.LLMService
@@ -33,10 +37,14 @@ import com.stethoscore.app.ui.StethoscoreTheme
 import com.stethoscore.app.ui.editors.LocalLLMService
 import com.stethoscore.app.ui.learn.LearnRouter
 import com.stethoscore.app.ui.learn.LearnRouterClosed
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -53,6 +61,15 @@ import java.util.zip.ZipOutputStream
 // worker (FakeServer: nothing goes on the network). The service is the owner's
 // build's (Stethoscore Cloud chosen, a stand-in key), given through
 // LocalLLMService. The jobs' 2.5 s polls pass on the test clock.
+//
+// The rule runs effects on an UnconfinedTestDispatcher, which never
+// dispatches: a coroutine back from withContext(Dispatchers.IO) went on on the
+// IO thread, its state writes, the save, New set's close and the Snapshot
+// apply that wakes the recomposer beside the test thread's own frames (a
+// measure on two threads, a wake lost). Here the job's blocking work runs in
+// place (CloudJobs.io): the requests and the lecture read, so all of it runs
+// on the test thread inside the clock's advance, as on the main thread in the
+// app, and every request is checked to come from that thread.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class NewSetReachTest {
@@ -62,10 +79,28 @@ class NewSetReachTest {
     @get:Rule val learnClosed = LearnRouterClosed()
 
     private val seen = CopyOnWriteArrayList<FakeServer.Request>()
+    /** The threads the stand-in worker was asked on. */
+    private val askedOn = CopyOnWriteArrayList<Thread>()
+    private lateinit var ioBefore: CoroutineDispatcher
+
+    @Before fun blockingWorkInPlace() {
+        ioBefore = CloudJobs.io
+        CloudJobs.io = Dispatchers.Unconfined
+    }
+
+    @After fun blockingWorkBack() {
+        CloudJobs.io = ioBefore
+    }
 
     private fun owner(jobs: FakeJobs): LLMService = LLMService(
         LLMService.MemoryPrefs().also { it.set(LLMService.CHOICE_KEY, "cloud") }, FakeServer.standInKey(), { null }, FakeServer.BASE,
-        FakeServer { seen += it; jobs.answer(it) }, OwnerSpend(OwnerSpend.MemoryStore()))
+        FakeServer { askedOn += Thread.currentThread(); seen += it; jobs.answer(it) }, OwnerSpend(OwnerSpend.MemoryStore()))
+
+    /** Every request came on the test's main thread, none from an IO thread. */
+    private fun allAskedOnTheMainThread() {
+        assertTrue("the worker was asked", askedOn.isNotEmpty())
+        assertEquals(setOf(Looper.getMainLooper().thread), askedOn.toSet())
+    }
 
     /** A library with sets in it, so home shows its New set button. */
     private fun library(name: String): StudyStore = StudyStore(folder.newFolder(name)).also { it.loadExamples() }
@@ -147,6 +182,7 @@ class NewSetReachTest {
         val made = store.library.single { set -> set.questions.any { it.stem == stem } }
         assertEquals(StudySetKind.MCQ, made.kind)
         compose.onNodeWithText("YOUR STUDY WARD").assertExists()
+        allAskedOnTheMainThread()
     }
 
     // Make patients (iOS NewSetView .lecture + .cases: CaseMakeSection)
@@ -191,6 +227,8 @@ class NewSetReachTest {
         compose.onNodeWithText("Choose a lecture").performScrollTo().performClick()
         assertEquals(1, picker.launched)
         until { compose.onAllNodesWithText("Heart failure — 1 pages.").fetchSemanticsNodes().isNotEmpty() }
+        // the read is done when its controls are free again (Make is disabled while reading)
+        until { compose.onAllNodes(hasText("Choose a different lecture") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Next").performClick()
         compose.onNodeWithText("How many patients").assertExists()
         compose.onNodeWithText("Make 3 patients").performScrollTo().performClick()
@@ -206,12 +244,12 @@ class NewSetReachTest {
         val made = store.library.single { it.kind == StudySetKind.CASES && it.name == "Heart failure" }
         assertTrue(made.caseFiles.isNotEmpty())
         assertEquals("Heart failure", made.sources.single().name)
-        // The test's effects run unconfined, so the save and New set's close go on
-        // on the thread the last job's reply came back on: the set can be in the
-        // library a moment before home is asked for. Wait for home, then look.
+        // The store is not Compose state: the set is in the library before the
+        // frame that closes New set. Wait for home, then look.
         compose.waitForIdle()
         until { compose.onAllNodesWithText("YOUR STUDY WARD").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("YOUR STUDY WARD").assertExists()
+        allAskedOnTheMainThread()
     }
 
     // Paste or import (iOS NewSetView(kind:startingAt: .material))
