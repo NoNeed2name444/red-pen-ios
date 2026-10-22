@@ -33,6 +33,7 @@ import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardSegmented
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.wardWellFill
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.wardColor
@@ -53,7 +54,7 @@ internal object CaseInk {
     val ward: Color @Composable get() = wardColor(WardToken.background)
     val hairline: Color @Composable get() = wardColor(WardToken.hairline)
     val ink: Color @Composable get() = wardColor(WardToken.ink)
-    val well: Color @Composable get() = wardColor(WardToken.well)
+    val well: Color @Composable get() = wardWellFill()
 }
 
 internal val CaseCardShape = RoundedCornerShape(16.dp)

@@ -80,10 +80,12 @@ class WardKitPortTest {
         }
         val copies = Regex("fun (LibraryEmptyState|LibraryBanner|LibraryGroove|EditorBanner|ReaderEmptyState)\\(|private fun EmptyState\\(")
         for (file in sources()) assertTrue("${file.name} keeps its own empty state or banner", !copies.containsMatchIn(file.readText()))
-        // a groove and a banner are wells: their fill is the shared well token,
-        // so the owner's 22 Oct page-coloured wells reach them too
+        // a groove and a banner are wells: the owner's rule, "wells take the page
+        // colour and are shown by inset shadows only", so both fill with the
+        // page-colour well (iOS WardStates.swift WardBanner, WardGroove: wardInset's .wardWell)
         val states = File(ui, "ward/WardStates.kt").readText()
-        assertTrue("the groove and the banner fill with the well token", states.split("fill = WardToken.well").size - 1 == 2)
+        assertTrue("the groove and the banner fill with the page-colour well", states.split("fill = WardControlStates.wellFill").size - 1 == 2)
+        assertTrue("no groove or banner fills with the old well token", !states.contains("fill = WardToken.well"))
     }
 
     @Test fun theDeckIsOneStudyActionBar() {
