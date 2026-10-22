@@ -491,6 +491,8 @@ fun wardTimerText(seconds: Int): String {
 /**
  * A text field in a well; focused, the accent ring goes round it; disabled,
  * its words go Biro Grey. The placeholder is Biro Grey too, as iOS's prompt.
+ * A [leadingIcon] sits in the well before the words, in Biro Grey, as the
+ * magnifier in iOS's search field.
  */
 @Composable fun WardTextField(
     value: String,
@@ -499,6 +501,7 @@ fun wardTimerText(seconds: Int): String {
     placeholder: String = "",
     enabled: Boolean = true,
     singleLine: Boolean = true,
+    leadingIcon: ImageVector? = null,
 ) {
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
@@ -511,9 +514,13 @@ fun wardTimerText(seconds: Int): String {
         textStyle = WardType.body.textStyle().copy(color = ink),
         cursorBrush = SolidColor(wardColor(WardToken.primaryInk)),
         decorationBox = { inner ->
-            Box(Modifier.fillMaxWidth().wardField(), contentAlignment = Alignment.CenterStart) {
-                if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, style = WardType.body.textStyle(), color = wardDisabledInk())
-                inner()
+            Row(Modifier.fillMaxWidth().wardField(), horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp),
+                verticalAlignment = Alignment.CenterVertically) {
+                if (leadingIcon != null) Icon(leadingIcon, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(18.dp))
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (value.isEmpty() && placeholder.isNotEmpty()) Text(placeholder, style = WardType.body.textStyle(), color = wardDisabledInk())
+                    inner()
+                }
             }
         },
     )

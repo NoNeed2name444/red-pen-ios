@@ -2301,6 +2301,11 @@ with the marks on the screens last.
       toggles it), the scheduler a WardSegmented, the daily limits' minus
       and plus Ward circles (the minus a disabled circle at no limit), and
       New set's study modes Ward chip buttons, the chosen one pressed in.
+    - [x] Home's search is a WardTextField, iOS's searchField: a Ward well
+      with the magnifier in Biro Grey (WardTextField takes a leading glyph)
+      and the body face, no longer Material's outlined field at 90% surface
+      with a 30 dp radius; Settings beside it is a Ward circle, not an
+      IconButton in a drawn ring. The gear stays filled (Android Q3).
 - [x] 5. Merge design/voice-claude into personal (the owner said ok):
   personal fast-forwarded to a6aa7be4 (14 Oct, about 6:05 PM), which holds
   design/voice-claude and this plan.
