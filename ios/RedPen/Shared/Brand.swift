@@ -31,9 +31,9 @@ enum Brand {
     static let line = "Listen \u{00B7} Learn \u{00B7} Score"
 
     /// The ink on the page: the app's own ink, by day and at night.
-    // the look (SwiftUI only; the name and line above also build on Linux,
-    // where the test suites run)
-    #if canImport(SwiftUI)
+    // the look (UIKit only: its Ward tokens need UIKit, and the macOS suites
+    // have SwiftUI without it; the name and line above build in every suite)
+    #if canImport(UIKit)
     static var ink: Color { .wardInk }              // WardPalette .ink (was Chart Ink #0E1B2C)
 
     /// The page: the app's plain grey ground.

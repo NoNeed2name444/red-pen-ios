@@ -4,9 +4,9 @@
 #   tools/preflight.sh            against origin/personal
 #   tools/preflight.sh <ref>      against another base
 # Checks: the Swift suites whose files changed (Linux; the Apple-only few are
-# left to macOS CI), and that each of them lists the files defining the Ward
-# names its files use as macOS or Linux builds it (tools/swift_suite_closure.py,
-# no compiler), every server and governance test, and that the Swift
+# left to macOS CI), that every suite lists the files defining the Ward names
+# its files use as macOS or Linux builds it (tools/swift_suite_closure.py, no
+# compiler), every server and governance test, and that the Swift
 # Playgrounds core packages still assemble and keep no file that names a type
 # they drop.
 set -uo pipefail
@@ -22,8 +22,8 @@ if command -v swiftc >/dev/null; then
 else
   echo "no Swift toolchain here (install: see tools/README or skip); CI will run them"
 fi
-echo "== Ward names those suites use and list (the Apple-only few as macOS reads them)"
-python3 tools/swift_suite_closure.py --affected "$base" || fail=1
+echo "== Ward names every suite uses and lists (the Apple-only few as macOS reads them)"
+python3 tools/swift_suite_closure.py || fail=1
 echo "== Server and governance tests"
 n=0; for t in server/tests/*.test.mjs tests/*/*.test.mjs; do
   [ -f "$t" ] || continue
