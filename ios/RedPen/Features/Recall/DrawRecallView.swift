@@ -53,6 +53,9 @@ struct DrawRecallView: View {
     /// The room the paper stands in, from under the hint line to the foot
     /// of the screen, in window points.
     @State private var paperRoom: CGRect = .zero
+    /// The paper's size when Compare opened: it keeps it while comparing
+    /// (RecallPaper.size), so Compare never resizes it.
+    @State private var drawnOn: CGSize?
 
     init(figure: RecallFigure, opening: RecallAttempt? = nil) {
         self.figure = figure
@@ -73,9 +76,11 @@ struct DrawRecallView: View {
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
-            // one bottom container: the compare panel, or on a wide iPad the
-            // Compare pill
+            // on a wide iPad, the Compare pill under the paper
             .safeAreaInset(edge: .bottom, spacing: 0) { bottomContainer.wardUnlit() }
+            // the compare panel floats over the paper's foot, so opening it
+            // takes no room from the paper and the paper keeps its size
+            .overlay(alignment: .bottom) { comparePanelHost.wardUnlit() }
             .modeScreen(.anki)
             .navigationTitle(comparing ? "Compare" : "Draw from memory")
             .navigationBarTitleDisplayMode(.inline)
@@ -188,14 +193,15 @@ struct DrawRecallView: View {
     /// shadow only, no white sheet - its corners concentric with the
     /// display's (WardCorner.concentric). The ink follows the mode.
     ///
-    /// The compare panel takes room from the paper, and the canvas's strokes
-    /// keep their point positions while the original shrinks with it. So
-    /// while comparing, the canvas stays in place but unseen, and a picture
-    /// of the drawing - taken on the whole paper it was drawn on - is shown
-    /// instead, with the original fitted in that same picture's frame as it
-    /// was on the paper, so the two still line up.
+    /// Compare never resizes the paper: it keeps the size it was drawn at
+    /// (RecallPaper.size) and the compare panel floats over its foot. The
+    /// canvas stays in place but unseen, and a picture of the drawing - taken
+    /// on the whole paper it was drawn on - is shown on that same space, with
+    /// the original fitted in that picture's frame, so the two line up with
+    /// where the strokes were drawn.
     private var paper: some View {
         let shape = RoundedRectangle(cornerRadius: paperRadius, style: .continuous)
+        let held: CGSize? = RecallPaper.size(comparing: comparing, drawnOn: drawnOn)
         return ZStack {
             PencilCanvas(drawing: $drawing, enabled: !comparing, version: canvasVersion,
                          pickerFrame: $pickerFrame)
@@ -204,6 +210,7 @@ struct DrawRecallView: View {
                 RecallCompareLayers(drawn: drawnPicture, original: figure.image, fade: fade)
             }
         }
+        .frame(width: held?.width, height: held?.height)
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -213,9 +220,10 @@ struct DrawRecallView: View {
         )
         .clipShape(shape)
         .wardInset(in: shape, lift: .low, fill: Color.wardBackground)
-        // just above the pen tray where it docks along the bottom
-        .padding(.bottom, comparing ? 0 : Self.trayGap(room: paperRoom, picker: pickerFrame))
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // just above the pen tray where it docks along the bottom; while
+        // comparing the held size stands where the drawing did
+        .padding(.bottom, held == nil ? RecallPaper.trayGap(room: paperRoom, picker: pickerFrame, space: WardSpace.s) : 0)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { room in
             if room != paperRoom { paperRoom = room }
         }
@@ -232,27 +240,23 @@ struct DrawRecallView: View {
         return CGFloat(WardCorner.concentric(device: device, inset: inset, floor: Double(WardRadius.card)))
     }
 
-    /// How far the paper's foot must rise to stand just above a tool picker
-    /// docked along the bottom: the room's foot less the picker's top, and a
-    /// small gap. Both frames are in window points; nothing while the picker
-    /// floats, hides or is clear of the room.
-    static func trayGap(room: CGRect, picker: CGRect) -> CGFloat {
-        guard !picker.isNull, !picker.isEmpty, room.width > 0, room.height > 0 else { return 0 }
-        guard picker.intersects(room) else { return 0 }
-        return max(0, room.maxY - picker.minY + WardSpace.s)
-    }
-
-    /// The screen's one bottom container.
+    /// Under the paper: on a wide iPad, the Compare pill while drawing.
     @ViewBuilder
     private var bottomContainer: some View {
+        if broad && !comparing {
+            comparePillRow
+        }
+    }
+
+    /// Over the paper's foot while comparing: the compare panel.
+    @ViewBuilder
+    private var comparePanelHost: some View {
         if comparing {
             comparePanel
                 .frame(maxWidth: 820)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 .frame(maxWidth: .infinity)
-        } else if broad {
-            comparePillRow
         }
     }
 
@@ -422,9 +426,11 @@ struct DrawRecallView: View {
             attemptID = id
             attempts = RecallAttempts.load(figure.key)
         }
-        // taken now, while the paper is still the size it was drawn on
+        // taken now, while the paper is still the size it was drawn on, and
+        // that size kept while comparing
         let whole = CGRect(origin: .zero, size: paperSize)
         drawnPicture = Self.render(drawing, in: whole, scale: 2, dark: scheme == .dark)
+        drawnOn = paperSize
         fade = 0.5
         comparing = true
     }
@@ -451,6 +457,7 @@ struct DrawRecallView: View {
         got = []
         showTitle = false
         comparing = false
+        drawnOn = nil
     }
 
     /// Puts a kept attempt back on the paper, scaled to this screen. When it
@@ -479,6 +486,7 @@ struct DrawRecallView: View {
             let dark: Bool = scheme == .dark
             let own: UIImage? = Self.render(kept, in: drawnOn, scale: 2, dark: dark)
             drawnPicture = own ?? Self.render(fitted, in: here, scale: 2, dark: dark)
+            drawnOn = paperSize
             fade = 0.5
             comparing = true
         }
@@ -517,12 +525,15 @@ struct DrawRecallView: View {
 /// What Compare lays on the paper: the drawing as a picture, and the original
 /// over it, fitted in the drawing's own frame as it was on the paper it was
 /// drawn on, so the two line up however the paper has changed; the fade runs
-/// from one to the other.
+/// from one to the other. The original takes the mode (RecallPaper.original):
+/// its white is the page's, never a white block on the dark paper.
 private struct RecallCompareLayers: View {
     let drawn: UIImage?
     let original: UIImage
     /// 0 is only the drawing, 1 only the original.
     let fade: Double
+
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         let yours: Double = min(1, 2 * (1 - fade))
@@ -533,9 +544,7 @@ private struct RecallCompareLayers: View {
                     .opacity(yours)
                     .accessibilityLabel("Your drawing")
             }
-            Image(uiImage: original)
-                .resizable()
-                .scaledToFit()
+            originalLayer
                 .opacity(fade)
                 .accessibilityLabel("The original figure")
         }
@@ -546,6 +555,17 @@ private struct RecallCompareLayers: View {
 }
 
 extension RecallCompareLayers {
+    @ViewBuilder
+    private var originalLayer: some View {
+        let picture = Image(uiImage: original).resizable().scaledToFit()
+        switch RecallPaper.original(dark: scheme == .dark) {
+        case .invertedScreen:
+            picture.colorInvert().hueRotation(.degrees(180)).blendMode(.screen)
+        case .multiply:
+            picture.blendMode(.multiply)
+        }
+    }
+
     /// The drawing's picture's width over its height, or nil (the paper's
     /// own shape) with no usable picture.
     static func ratio(_ picture: UIImage?) -> CGFloat? {

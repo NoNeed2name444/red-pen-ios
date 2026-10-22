@@ -428,6 +428,9 @@ suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift $S/Ward/WardL
 suite wardrelief WardReliefTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
 # window/page joins, clearance clips, iPad corners and the fold pill
 suite wardisland WardIslandTests.swift $S/Ward/WardIsland.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+# draw from memory's paper: its foot above a docked tray, held through
+# Compare, and the original taking the mode (no white block in dark)
+suite recallpaper RecallPaperTests.swift ios/RedPen/Features/Recall/RecallPaper.swift
 # the paper frame clear of the system bars, its corners concentric with
 # the display's (WardCorner)
 suite wardframeclear WardFrameClearTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
