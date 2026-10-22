@@ -120,7 +120,7 @@ if let sound = caf("ios/RedPen/Assets.xcassets/Heartbeat.dataset/heartbeat.caf")
     check("the file's S1 is where HeartbeatSound says", near(s1, HeartbeatSound.s1, 0.001), "\(s1)")
     check("the file's S2 is where HeartbeatSound says", near(s2, HeartbeatSound.s2, 0.001), "\(s2)")
     check("the file is as long as it says", near(Double(sound.samples.count) / sound.rate, HeartbeatSound.length, 0.001))
-    check("S1 to S2 is a resting systole (0.25-0.35 s)", (0.25...0.35).contains(s2 - s1), "\(s2 - s1)")
+    check("S1 to S2 is the master ECG's 0.36 s (EcgTrace), within 5 ms", abs(s2 - s1 - 0.36) <= 0.005, "\(s2 - s1)")
 } else {
     check("the heartbeat .caf reads", false, "not found or not a CAF")
 }
