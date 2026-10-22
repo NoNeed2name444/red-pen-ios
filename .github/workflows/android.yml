@@ -8,10 +8,15 @@ on:
       - 'ios/RedPen/Shared/Exam/ExamExemplarData.swift'
       - '.github/workflows/android.yml'
   workflow_dispatch:
+    inputs:
+      tour:
+        description: 'Shoot the app tour (TourTest) instead of the screenshot test'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: android-${{ github.ref }}
+  group: android-${{ github.ref }}${{ inputs.tour && '-tour' || '' }}
   cancel-in-progress: true
 jobs:
   build:
@@ -97,7 +102,7 @@ jobs:
           emulator-options: -no-window -gpu software -noaudio -no-boot-anim -camera-back none -no-snapshot
           working-directory: android
           script: |
-            bash scripts/capture-screenshots.sh
+            bash scripts/capture-screenshots.sh${{ inputs.tour && ' tour' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

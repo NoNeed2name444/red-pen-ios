@@ -1,0 +1,104 @@
+# The Android tour (T0126c): every Android row of the T0126a screen inventory, in its order,
+# one line per still (or per skipped row), tab-separated:
+# inventory row, plain name, TourTest method (or "-"), the PNG names TourTest writes (or "skip: <reason>").
+# Run it: dispatch android.yml with tour: true; the PNGs land in the artifact under screenshots/tour/.
+# capture-screenshots.sh tour counts the expected PNGs from the r<row>-<name>-<mode> names below.
+8	Exam onboarding	r008_examOnboarding	r008-exam-onboarding-light r008-exam-onboarding-dark
+13	Home (Questions)	r013_home	r013-library-light r013-library-dark
+14	Home: the dock places	r014_dockPlaces	r014-home-cards-light r014-home-cards-dark r014-home-cases-light r014-home-cases-dark r014-home-osce-light r014-home-osce-dark r014-home-audio-light r014-home-audio-dark
+15	Empty library	r015_emptyLibrary	r015-library-empty-light r015-library-empty-dark
+16	Library could not be opened	r016_libraryUnreadable	r016-library-unreadable-light r016-library-unreadable-dark
+17	Empty category	r017_emptyCategory	r017-category-empty-light r017-category-empty-dark
+18	Search, no results	r018_searchNoResults	r018-search-empty-light r018-search-empty-dark
+19	Found card	r019_foundCard	r019-found-card-light r019-found-card-dark
+20	Custom session	r020_customSession	r020-custom-session-light r020-custom-session-dark
+21	Selecting sets	r021_selectingSets	r021-library-select-light r021-library-select-dark
+22	Name sheet (new folder)	r022_nameSheet	r022-name-sheet-light r022-name-sheet-dark
+23	Delete sets	r023_deleteSets	r023-library-delete-light r023-library-delete-dark
+24	Nothing here yet	r024_nothingHereYet	r024-nothing-yet-light r024-nothing-yet-dark
+25	Ward round chip and panel	r025_wardRound	r025-ward-round-light r025-ward-round-dark r025-ward-round-panel-light r025-ward-round-panel-dark
+27	Shelf	r027_shelf	r027-shelf-light r027-shelf-dark
+28	Shelf empty	r028_shelfEmpty	r028-shelf-empty-light r028-shelf-empty-dark
+29	New set 1: kind	r029_newSetKind	r029-new-light r029-new-dark
+30	New set 2: material	r030_newSetMaterial	r030-new-material-light r030-new-material-dark
+31	New set 3: make	r031_newSetMake	r031-new-make-light r031-new-make-dark
+32	New set from a preset	r032_newSetPreset	r032-new-preset-light r032-new-preset-dark
+33	AI writer	r033_aiWriter	r033-new-writer-light r033-new-writer-dark
+35	Import preview	r035_importPreview	r035-import-preview-light r035-import-preview-dark
+36	File from another app	r036_incomingFile	r036-import-inbox-light r036-import-inbox-dark
+37	Picture cards from a photo	r037_pictureFromPhoto	r037-picture-from-photo-light r037-picture-from-photo-dark
+38	Edit cards	r038_editCards	r038-cards-editor-light r038-cards-editor-dark
+39	Edit one card	r039_editCard	r039-card-edit-light r039-card-edit-dark
+39	Edit one question	r039_editQuestion	r039-question-edit-light r039-question-edit-dark
+42	Quiz	r042_quiz	r042-quiz-light r042-quiz-dark
+43	Quiz, answer checked	r043_quizChecked	r043-quiz-checked-light r043-quiz-checked-dark
+44	Practice tile: timed	r044_timedPractice	r044-quiz-timed-light r044-quiz-timed-dark
+46	Quiz results	r046_quizResults	r046-summary-light r046-summary-dark
+47	Lab values	r047_labValues	r047-lab-values-light r047-lab-values-dark
+48	Calculator	r048_calculator	r048-calculator-light r048-calculator-dark
+49	Ward pocket	r049_wardPocket	r049-ward-pocket-light r049-ward-pocket-dark
+50	Ward calculator	r050_wardCalculator	r050-ward-calc-light r050-ward-calc-dark
+50	Ward score	r050_wardScore	r050-ward-score-light r050-ward-score-dark
+53	Mock paper	r053_mockPaper	r053-mock-paper-light r053-mock-paper-dark
+54	Mock, too few questions	r054_mockTooFew	r054-mock-too-few-light r054-mock-too-few-dark
+55	Mock sitting	r055_mockSitting	r055-mock-sitting-light r055-mock-sitting-dark
+55	Mock sitting, break between parts	r055_mockBreak	r055-mock-break-light r055-mock-break-dark
+56	Mock results	r056_mockResults	r056-mock-results-light r056-mock-results-dark
+57	Symptom blocks	r057_symptomBlocks	r057-symptom-blocks-light r057-symptom-blocks-dark
+58	Exam plan	r058_examPlan	r058-exam-plan-light r058-exam-plan-dark
+59	Exam-day kit	r059_examKit	r059-exam-kit-light r059-exam-kit-dark
+60	Bedtime re-read (dark only: the screen is always dark)	r060_bedtime	r060-bedtime-dark
+61	Morning check	r061_morningCheck	r061-morning-check-light r061-morning-check-dark
+62	Question from a notification	r062_question	r062-learn-question-light r062-learn-question-dark
+62	Question gone	r062_questionGone	r062-learn-question-gone-light r062-learn-question-gone-dark
+63	Exam picker	r063_examPicker	r063-exam-picker-light r063-exam-picker-dark
+64	Exam card	r064_examCard	r064-exam-card-light r064-exam-card-dark
+65	Card review	r065_cardReview	r065-anki-light r065-anki-dark
+66	Card revealed	r066_cardRevealed	r066-anki-revealed-light r066-anki-revealed-dark
+67	Deck empty	r067_deckEmpty	r067-anki-empty-light r067-anki-empty-dark
+67	Deck done	r067_deckDone	r067-anki-done-light r067-anki-done-dark
+67	Deck, nothing due	r067_deckNotDue	r067-anki-not-due-light r067-anki-not-due-dark
+69	Due cards	r069_dueCards	r069-due-today-light r069-due-today-dark
+70	Nothing due	r070_nothingDue	r070-due-none-light r070-due-none-dark
+71	Textbook	r071_textbook	r071-book-light r071-book-dark
+72	Contents	r072_contents	r072-book-contents-light r072-book-contents-dark
+73	Guess first	r073_guessFirst	r073-guess-first-light r073-guess-first-dark
+74	Lecture preview	r074_lecturePreview	r074-lecture-preview-light r074-lecture-preview-dark
+82	OSCE station	r082_osceStation	r082-osce-light r082-osce-dark
+83	OSCE revealed	r083_osceRevealed	r083-osce-revealed-light r083-osce-revealed-dark
+84	OSCE complete	r084_osceComplete	r084-osce-complete-light r084-osce-complete-dark
+88	Case list	r088_caseList	r088-cases-light r088-cases-dark
+89	Case ward	r089_caseWard	r089-case-ward-light r089-case-ward-dark
+90	Differential	r090_differential	r090-case-differential-light r090-case-differential-dark
+91	Decision	r091_decision	r091-case-decision-light r091-case-decision-dark
+92	Debrief	r092_debrief	r092-case-debrief-light r092-case-debrief-dark
+93	Narrated lecture	r093_narratedLecture	r093-narrate-light r093-narrate-dark
+94	Lecture finished	-	skip: reached only by playing the lecture to its end with live text-to-speech, and NarrateReviewScreen has no start-finished parameter (tests may not change app/src/main)
+95	Fix a word	r095_fixWord	r095-narrate-fixing-light r095-narrate-fixing-dark
+96	Sections sheet	r096_sections	r096-narrate-sections-light r096-narrate-sections-dark
+97	Nothing to read yet	r097_nothingToRead	r097-narrate-empty-light r097-narrate-empty-dark
+100	Ideas list	r100_ideasList	r100-ideas-light r100-ideas-dark
+101	Ideas empty	r101_ideasEmpty	r101-home-ideas-light r101-home-ideas-dark
+101	Ideas empty, map	r101_ideasEmptyMap	r101-ideas-map-empty-light r101-ideas-map-empty-dark
+102	Board	r102_board	r102-ideas-board-light r102-ideas-board-dark
+103	Brain map	r103_brainMap	r103-ideas-map-light r103-ideas-map-dark
+104	Million-note demo	r104_millionDemo	r104-ideas-million-light r104-ideas-million-dark
+105	Legend	r105_legend	r105-ideas-legend-light r105-ideas-legend-dark
+105	Folder looks	r105_folderLooks	r105-ideas-folder-looks-light r105-ideas-folder-looks-dark
+106	Note editor	r106_noteEditorAndLinkPicker	r106-note-editor-light r106-note-editor-dark
+107	Link picker	r106_noteEditorAndLinkPicker	r107-link-picker-light r107-link-picker-dark
+108	Name a new idea	r108_ideaName	r108-idea-name-light r108-idea-name-dark
+108	Move an idea	r108_ideaMove	r108-idea-move-light r108-idea-move-dark
+109	Vitals	r109_vitals	r109-vitals-light r109-vitals-dark
+110	Vitals empty	r110_vitalsEmpty	r110-vitals-empty-light r110-vitals-empty-dark
+111	Insight question list	r111_insightQuestions	r111-insight-questions-light r111-insight-questions-dark
+112	Insight quiz	r112_insightQuiz	r112-insight-quiz-light r112-insight-quiz-dark
+113	Rule sheet	r113_ruleSheet	r113-rules-light r113-rules-dark
+114	Syllabus check	r114_syllabusCheck	r114-coverage-light r114-coverage-dark
+115	By subject	r115_bySubject	r115-stats-light r115-stats-dark
+116	Settings	r116_settings	r116-settings-light r116-settings-dark
+117	AI models	r117_aiModels	r117-ai-models-light r117-ai-models-dark
+120	Your lectures, empty	r120_lecturesEmpty	r120-lectures-empty-light r120-lectures-empty-dark
+120	Your lectures	r120_lectures	r120-lectures-light r120-lectures-dark
+121	One set's credits	r121_setCredits	r121-set-credits-light r121-set-credits-dark
+122	All licences	r122_licences	r122-licences-light r122-licences-dark

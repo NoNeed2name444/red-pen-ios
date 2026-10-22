@@ -30,13 +30,27 @@ adb shell settings put system font_scale 1.0
 adb shell input keyevent 82
 adb install -r -t built-apks/outputs/apk/debug/app-debug.apk
 adb install -r -t built-apks/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+# "tour": only the app tour (TourTest), every listed row in light and dark, into screenshots/tour/.
+if [ "${1:-}" = tour ]; then
+  mkdir -p screenshots/tour
+  tour_source=app/src/androidTest/java/com/stethoscore/app/TourTest.kt
+  tests=$(grep -c '@Test' "$tour_source")
+  shots=$(grep -oE 'r[0-9]{3}-[a-z0-9-]+-(light|dark)' ../tools/tour_screens_android.txt | sort -u | wc -l)
+  echo "expecting OK ($tests tests) and $shots tour pictures" | tee test-results/expected.txt
+  [ "$tests" -gt 0 ] && [ "$shots" -gt 0 ]
+  adb shell am instrument -w -r -e class com.stethoscore.app.TourTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
+  adb pull /sdcard/Download/stethoscore-tour/. screenshots/tour/ || true
+  grep -qF "OK ($tests tests)" test-results/instrumentation.txt
+  test "$(find screenshots/tour -name '*.png' | wc -l)" -eq "$shots"
+  exit 0
+fi
 # What the run must show, read from the test itself: one result per @Test, one picture per shot("...") name.
 test_source=app/src/androidTest/java/com/stethoscore/app/ScreenshotTest.kt
 tests=$(grep -c '@Test' "$test_source")
 shots=$(grep -o 'shot("[^"]*")' "$test_source" | sort -u | wc -l)
 echo "expecting OK ($tests tests) and $shots pictures" | tee test-results/expected.txt
 [ "$tests" -gt 0 ] && [ "$shots" -gt 0 ]
-adb shell am instrument -w -r com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
+adb shell am instrument -w -r -e notClass com.stethoscore.app.TourTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
 # Pull first, so a failed run still uploads the pictures it took.
 adb pull /sdcard/Download/stethoscore-screenshots/. screenshots/ || true
 grep -qF "OK ($tests tests)" test-results/instrumentation.txt
