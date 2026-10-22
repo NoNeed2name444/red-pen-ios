@@ -177,7 +177,7 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
     }
     WardDisclaimerFrame {
         Column(Modifier.fillMaxSize()) {
-            ReaderNavBar("Ward pocket", trailing = { ReaderDoneButton(onClick = onDone) })
+            ReaderNavBar("Clinical reference", trailing = { ReaderDoneButton(onClick = onDone) })
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 72.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 WardTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp), placeholder = tab.searchPrompt)

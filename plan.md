@@ -3110,6 +3110,9 @@ only; Arabic is left for the owner's words (copy deck question 4).
   weak list "Weak topics" with "Practise weak topics", and the subtitles that
   named it (wording.md rows 5-7, 21-26). The menu's "Progress" now meets its
   Arabic catalogue entry.
+- [x] The reference is "Clinical reference": its title, the exam plan's
+  row, the study menu's item and a set made from it ("Clinical reference:
+  …") (wording.md rows 68-71).
 
 ### Waiting on the owner
 

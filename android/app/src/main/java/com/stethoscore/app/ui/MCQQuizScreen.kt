@@ -362,7 +362,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         onHighlight = { menuOpen = false; highlighting = !highlighting })
                     if (examEndsAt == null) {
                         HorizontalDivider()
-                        DropdownMenuItem(text = { Text("Ward pocket") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
+                        DropdownMenuItem(text = { Text("Clinical reference") }, leadingIcon = { Icon(Icons.Rounded.MedicalServices, null) },
                             onClick = { menuOpen = false; pocketOpen = true }, modifier = Modifier.testTag("wardPocket"))
                     }
                 }

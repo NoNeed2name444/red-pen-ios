@@ -147,7 +147,7 @@ import java.time.ZoneId
             PlanRow("Exam-day kit", Icons.Rounded.Checklist) { LearnRouter.open(LearnRoute.ExamKit) }
         }
         ReaderFormSection(footer = "Lab values, clinical calculators and scores, each with how it is worked out. For learning only.") {
-            PlanRow("Ward pocket", Icons.Rounded.MedicalInformation) { pocketOpen = true }
+            PlanRow("Clinical reference", Icons.Rounded.MedicalInformation) { pocketOpen = true }
         }
     }
     NotYetNotice(notice) { notice = null }

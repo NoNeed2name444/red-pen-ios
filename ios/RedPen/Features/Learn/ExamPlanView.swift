@@ -68,7 +68,7 @@ struct ExamPlanView: View {
             Section("What this phase is for") { phaseActions(phase) }
             .wardRowBackground()
             Section {
-                planRow("Ward pocket", symbol: "cross.case") { showingPocket = true }
+                planRow("Clinical reference", symbol: "cross.case") { showingPocket = true }
                     .accessibilityIdentifier("planWardPocket")
             } footer: {
                 Text("Lab values, clinical calculators and scores, each with how it is worked out. For learning only.")

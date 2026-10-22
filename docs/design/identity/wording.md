@@ -136,10 +136,10 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 | 65 | `ios/RedPen/Features/Onboarding/FirstRunView.swift:114` | Cards and questions a day. Today’s ward round shows how far through today you are. | Cards and questions a day. Today’s revision shows how far through today you are. | **Built 22 Oct.** |  |
 | 66 | `ios/RedPen/Features/Library/NewSetView.swift:296` | New admission | (no label) | Small caps over "What do you want to make?". The screen is already titled "New set" (NewSetView.swift:185), so the label goes rather than repeat it. |  |
 | 67 | `ios/RedPen/Features/Library/StudyCategory.swift:286` | Missed points, new patients | Missed points, asked again | Twins: a missed point asked again in a new stem. The longer explanation keeps "a different patient" (content). |  |
-| 68 | `ios/RedPen/Features/Exam/WardPocketView.swift:61` | Ward pocket | Clinical reference | The reference holds three tabs, Lab values, Calculators and Scores (WardPocketView.swift:19-21), so the name covers all three and leaves "score" to the tab and to your own score. |  |
-| 69 | `ios/RedPen/Features/Exam/WardPocketView.swift:223` | Ward pocket: … | Clinical reference: … | The default name of a new MCQ set made from a reference page (NewSetPreset.init(wardPocket:notes:)). |  |
-| 70 | `ios/RedPen/Features/Learn/ExamPlanView.swift:71` | Ward pocket | Clinical reference | Row in the exam plan. |  |
-| 71 | `ios/RedPen/Shared/Theme.swift:900` | Ward pocket | Clinical reference | Menu item. |  |
+| 68 | `ios/RedPen/Features/Exam/WardPocketView.swift:61` | Ward pocket | Clinical reference | The reference holds three tabs, Lab values, Calculators and Scores (WardPocketView.swift:19-21), so the name covers all three and leaves "score" to the tab and to your own score. **Built 22 Oct.** |  |
+| 69 | `ios/RedPen/Features/Exam/WardPocketView.swift:223` | Ward pocket: … | Clinical reference: … | The default name of a new MCQ set made from a reference page (NewSetPreset.init(wardPocket:notes:)). **Built 22 Oct.** |  |
+| 70 | `ios/RedPen/Features/Learn/ExamPlanView.swift:71` | Ward pocket | Clinical reference | Row in the exam plan. **Built 22 Oct.** |  |
+| 71 | `ios/RedPen/Shared/Theme.swift:900` | Ward pocket | Clinical reference | Menu item. **Built 22 Oct.** |  |
 
 ### The mock exam (owner, 22 Oct: blocks become Part)
 
