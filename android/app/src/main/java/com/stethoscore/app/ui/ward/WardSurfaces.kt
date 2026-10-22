@@ -1,8 +1,5 @@
 package com.stethoscore.app.ui.ward
 
-import androidx.compose.animation.core.Easing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -179,9 +176,8 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
 @Composable fun Modifier.wardRelief(pressed: Boolean, radius: Double = WardFaceMetrics.fieldRadius, lift: WardLift = WardLift.low,
                                     fill: WardToken = WardToken.surface, control: Boolean = true): Modifier {
     val f = faceLook(fill, held = false)
-    val glide = Easing { WardPress.glide(it.toDouble()).toFloat() }
-    val depth by animateFloatAsState(if (pressed) 1f else 0f,
-        tween(((if (pressed) WardPress.shadePress else WardPress.shadeRelease) * 1000).toInt(), easing = glide), label = "wardPress")
+    // WardPress's shade times on its glide curve; with animations off simply down or up
+    val depth by wardDepth(pressed)
     val spec = WardPress.spec(lift, depth.toDouble(), f.dark, control = control)
     return drawBehind {
         drawWardFace(radius, f.fill, listOf(spec.outerHighlight, spec.outerShade), listOf(spec.innerShade, spec.innerHighlight),

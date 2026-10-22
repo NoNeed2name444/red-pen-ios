@@ -2259,7 +2259,7 @@ with the marks on the screens last.
       spring passed the corner). Kept as iOS keeps them: the spoken word's
       0.1, the working trace's 1.2 loop (now on iOS's ease-in-out) and the
       score ring's slow spring (iOS Q8) (WardMotionTest).
-    - [ ] Remove animations on every surface that moves: the press's shade
+    - [x] Remove animations on every surface that moves: the press's shade
       and sink (a held control no longer sinks), the card's answer opening,
       the jumps and scrolls, the working trace standing whole
       (WardReduceMotionTest).

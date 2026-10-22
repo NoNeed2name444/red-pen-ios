@@ -3,6 +3,7 @@ package com.stethoscore.app.ui.ward
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -214,18 +215,30 @@ fun Modifier.wardFocusRing(shape: Shape, focused: Boolean, color: Color): Modifi
 val WardQuickEasing: Easing = WardPress.quickCurve.let { CubicBezierEasing(it.x1.toFloat(), it.y1.toFloat(), it.x2.toFloat(), it.y2.toFloat()) }
 val WardShadeEasing: Easing = Easing { WardPress.glide(it.toDouble()).toFloat() }
 
-/** A face's depth, gliding in over WardPress.shadePress and out over shadeRelease. */
-@Composable fun wardDepth(down: Boolean): State<Float> = animateFloatAsState(
-    targetValue = if (down) 1f else 0f,
-    animationSpec = tween(((if (down) WardPress.shadePress else WardPress.shadeRelease) * 1000).toInt(), easing = WardShadeEasing),
-    label = "wardDepth",
-)
+/**
+ * A face's depth, gliding in over WardPress.shadePress and out over
+ * shadeRelease; with animations off it is simply down or up (iOS:
+ * reduceMotion ? nil : .wardShade(down:)).
+ */
+@Composable fun wardDepth(down: Boolean): State<Float> {
+    val reduce = wardReduceMotion()
+    return animateFloatAsState(
+        targetValue = if (down) 1f else 0f,
+        animationSpec = if (reduce) snap() else tween(wardMillis(if (down) WardPress.shadePress else WardPress.shadeRelease), easing = WardShadeEasing),
+        label = "wardDepth",
+    )
+}
 
-/** Held, the whole control sinks a little (WardPress.sinkScale), quickly, rather than dimming. */
+/**
+ * Held, the whole control sinks a little (WardPress.sinkScale), quickly,
+ * rather than dimming; with animations off it does not sink at all (iOS
+ * CapPop: pressed && !reduceMotion ? sinkScale : 1).
+ */
 fun Modifier.capPop(held: Boolean): Modifier = composed {
+    val reduce = wardReduceMotion()
     val scale by animateFloatAsState(
-        targetValue = if (held) WardPress.sinkScale.toFloat() else 1f,
-        animationSpec = tween(((if (held) WardPress.press else WardPress.release) * 1000).toInt(), easing = WardQuickEasing),
+        targetValue = if (held && !reduce) WardPress.sinkScale.toFloat() else 1f,
+        animationSpec = if (reduce) snap() else tween(wardMillis(if (held) WardPress.press else WardPress.release), easing = WardQuickEasing),
         label = "capPop",
     )
     graphicsLayer { scaleX = scale; scaleY = scale }

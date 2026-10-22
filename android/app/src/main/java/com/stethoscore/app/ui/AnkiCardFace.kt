@@ -58,7 +58,9 @@ import com.stethoscore.app.ui.ward.WardToken
     val view = LocalView.current
     // turned over: the answer is read out, so a screen reader need not go and find it
     LaunchedEffect(revealed) { if (revealed) @Suppress("DEPRECATION") view.announceForAccessibility(CardReview.spokenBack(card)) }
-    Column(modifier.animateContentSize().clipToBounds(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    // with animations off the answer is simply there (iOS: reduceMotion ? nil : .snappy(duration: 0.28))
+    val reduce = com.stethoscore.app.ui.ward.wardReduceMotion()
+    Column(modifier.then(if (reduce) Modifier else Modifier.animateContentSize()).clipToBounds(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(CardReview.badge(card.type).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp, color = wardColor(WardToken.primaryInk))
         if (card.pictureOnFront) CardPicture(card, images, revealed, deck)
         if (card.type == AnkiCardType.CLOZE) {
