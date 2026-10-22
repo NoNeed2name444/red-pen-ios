@@ -776,21 +776,8 @@ struct DrawRecallExampleRow: View {
             opening = RecallExamples.seedIfNeeded()
             figure = RecallExamples.figure
         } label: {
-            HStack(spacing: WardSpace.l) {
-                Image(systemName: "pencil.and.scribble")
-                    .font(.title3)
-                    .foregroundStyle(Color.wardPrimaryInk)
-                    .frame(width: 30)
-                VStack(alignment: .leading, spacing: WardSpace.xs) {
-                    Text("Draw it from memory").font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
-                    Text("An inguinal canal drawing ready to Compare")
-                        .font(.caption)
-                        .foregroundStyle(Color.wardInkSecondary)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.vertical, WardSpace.xs)
-            .contentShape(Rectangle())
+            WardRow(symbol: "pencil.and.scribble", title: "Draw it from memory",
+                    detail: "An inguinal canal drawing ready to Compare")
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("example-draw")
