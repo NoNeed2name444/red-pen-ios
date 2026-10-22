@@ -2,6 +2,7 @@ package com.stethoscore.app.llm
 
 import com.stethoscore.app.network.BackendClient
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
@@ -268,8 +269,16 @@ object CloudJobs {
         runCatching { call { at.client.cancelJob(id) } }
     }
 
+    /**
+     * Where the blocking work around a job runs: its requests, and the
+     * lecture read that feeds one (CaseMakeSection). Dispatchers.IO; a test
+     * driving the screens with a stand-in worker runs it in place, so what
+     * follows comes back on the thread that runs the test's clock.
+     */
+    @Volatile internal var io: CoroutineDispatcher = Dispatchers.IO
+
     /** One blocking request, off the main thread, its failure in LLMError's words. */
-    private suspend fun call(block: () -> JSONObject): JSONObject = withContext(Dispatchers.IO) {
+    private suspend fun call(block: () -> JSONObject): JSONObject = withContext(io) {
         try {
             block()
         } catch (e: BackendClient.BackendException) {
