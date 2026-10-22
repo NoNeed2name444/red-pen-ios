@@ -90,7 +90,7 @@ class StudyReachTest {
 
     /** The owner's build's service (Stethoscore Cloud chosen, a stand-in key) on the stand-in worker. */
     private fun owner(jobs: FakeJobs? = null): LLMService = LLMService(
-        LLMService.MemoryPrefs().also { it.set(LLMService.CHOICE_KEY, "cloud") }, FakeServer.standInKey(), { null }, FakeServer.BASE,
+        FakeServer.standInKey(), { null }, FakeServer.BASE,
         FakeServer { seen += it; worker(it, jobs) }, OwnerSpend(OwnerSpend.MemoryStore()))
 
     private fun store(name: String): StudyStore = StudyStore(folder.newFolder(name))

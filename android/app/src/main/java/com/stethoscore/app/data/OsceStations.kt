@@ -229,8 +229,8 @@ object OsceText {
 
 /**
  * Writing stations from a lecture or a mark sheet (iOS OsceGenerator). iOS
- * writes them with a writer chosen in AI models or Apple's on-device model;
- * Android has neither yet, so [writer] finds none and the form says so.
+ * writes them with the writer route; Android does not write stations yet,
+ * so [writer] finds none and the form says so.
  */
 object OsceGenerator {
     const val maxStationsTotal = 1_000

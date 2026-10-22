@@ -6,25 +6,16 @@ import com.stethoscore.app.network.BackendClient
 import com.stethoscore.app.network.SecureTokenStore
 
 /**
- * What a role is set to use (iOS LLMChoice), stored as the same plain string
- * under the same key, "llm.choice.writer". Android has only Off and
- * Stethoscore Cloud: "device" (Doctor-R1 on the phone) and a hosted
- * provider's id (the student's own key) are read as Off.
- */
-@Suppress("EnumEntryName")
-enum class LLMChoice(val stored: String) {
-    off("off"), cloud("cloud");
-
-    companion object {
-        fun from(stored: String?): LLMChoice = if (stored == "cloud") cloud else off
-    }
-}
-
-/**
  * Decides which backend answers, for every screen that wants a model. Port of
- * the cloud half of iOS Shared/LLM/LocalLLMService.swift: the choice, the
- * cloud bearer (the session, else the owner key), whose jobs a bearer reaches,
- * why the cloud cannot be used, and the backend itself.
+ * the cloud half of iOS Shared/LLM/LocalLLMService.swift: the cloud bearer
+ * (the session, else the owner key), whose jobs a bearer reaches, why the
+ * cloud cannot be used, and the backend itself.
+ *
+ * There is no writer to choose (the owner, 22 Oct): every text job goes to
+ * the worker's writer route ([HostedProvider.cloud], model "cramdown-writer"),
+ * which the worker sends to its Claude route for the owner key
+ * (server/ai.js routeFor), inside the owner's monthly cap, and to the free
+ * chain otherwise; PRO_PAYS and this phone's own $20.00 guard still hold.
  *
  * The owner key exists only in the owner's personal build
  * ([BuildConfig.OWNER_KEY], from the Gradle property `stethoscoreOwnerKey`;
@@ -33,7 +24,6 @@ enum class LLMChoice(val stored: String) {
  * Pro, nothing is sent. The key is never logged or put in a message.
  */
 class LLMService(
-    private val prefs: Prefs,
     /** BuildConfig.OWNER_KEY: "" except in the personal build. */
     ownerKey: String,
     /** The saved session, when there is one. */
@@ -43,18 +33,6 @@ class LLMService(
     /** What the owner key has spent; only the owner key's requests are counted. */
     val spend: OwnerSpend = OwnerSpend(OwnerSpend.MemoryStore()),
 ) {
-    /** Where the choice is kept. */
-    interface Prefs {
-        fun string(key: String): String?
-        fun set(key: String, value: String)
-    }
-
-    class MemoryPrefs : Prefs {
-        private val values = mutableMapOf<String, String>()
-        override fun string(key: String): String? = values[key]
-        override fun set(key: String, value: String) { values[key] = value }
-    }
-
     /** iOS ownerKey: present only when it is at least 32 characters, as the worker requires. */
     private val ownerKey: String? = ownerKey.takeIf { it.length >= 32 }
 
@@ -81,24 +59,15 @@ class LLMService(
         else -> null
     }
 
-    fun choice(@Suppress("UNUSED_PARAMETER") role: LLMRole = LLMRole.writer): LLMChoice =
-        LLMChoice.from(prefs.string(CHOICE_KEY))
-
-    fun setChoice(choice: LLMChoice, @Suppress("UNUSED_PARAMETER") role: LLMRole = LLMRole.writer) =
-        prefs.set(CHOICE_KEY, choice.stored)
-
     /** A client that sends this bearer to the worker, and only to the worker. */
     fun client(bearer: String?): BackendClient = BackendClient(baseUrl, { bearer }, transport)
 
-    /** The backend a role would use right now, or null when it is off or blocked. */
-    fun backend(role: LLMRole = LLMRole.writer): LLMBackend? = when (choice(role)) {
-        LLMChoice.off -> null
-        LLMChoice.cloud -> {
-            val token = cloudToken
-            if (cloudBlocker != null || token == null) null
-            else HostedLLMClient(HostedProvider.cloud(role), client(token), token, cloudIdentity(token),
-                if (token == ownerKey) spend else null)
-        }
+    /** The writer route, always: null only while it is blocked ([cloudBlocker] says why). */
+    fun backend(role: LLMRole = LLMRole.writer): LLMBackend? {
+        val token = cloudToken
+        if (cloudBlocker != null || token == null) return null
+        return HostedLLMClient(HostedProvider.cloud(role), client(token), token, cloudIdentity(token),
+            if (token == ownerKey) spend else null)
     }
 
     /** A short line saying what a role is using, for the generate screens. */
@@ -114,23 +83,18 @@ class LLMService(
     }
 
     companion object {
-        const val CHOICE_KEY = "llm.choice.writer"
         private const val SPEND_KEY = "owner.spentMicros"
 
         /** The app's service: the worker in BuildConfig, the saved session, and the spend kept on this phone. */
         fun from(context: Context): LLMService {
             val app = context.applicationContext
             val shared = app.getSharedPreferences("llm", Context.MODE_PRIVATE)
-            val prefs = object : Prefs {
-                override fun string(key: String): String? = runCatching { shared.getString(key, null) }.getOrNull()
-                override fun set(key: String, value: String) { shared.edit().putString(key, value).apply() }
-            }
             val store = object : OwnerSpend.Store {
                 override fun read(): Long = runCatching { shared.getLong(SPEND_KEY, 0) }.getOrDefault(0)
                 override fun write(micros: Long) { shared.edit().putLong(SPEND_KEY, micros).commit() }
             }
             val tokens = SecureTokenStore(app)
-            return LLMService(prefs, BuildConfig.OWNER_KEY, { runCatching { tokens.read() }.getOrNull() },
+            return LLMService(BuildConfig.OWNER_KEY, { runCatching { tokens.read() }.getOrNull() },
                 BuildConfig.WORKER_URL, spend = OwnerSpend(store))
         }
     }

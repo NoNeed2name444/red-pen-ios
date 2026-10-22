@@ -29,7 +29,7 @@ class HostedGenerationTest {
     private fun reply(vararg questions: JSONObject) = JSONObject().put("questions", JSONArray(questions.toList())).toString()
 
     private fun owner(server: FakeServer, spend: OwnerSpend = OwnerSpend(OwnerSpend.MemoryStore())) =
-        LLMService(LLMService.MemoryPrefs().also { it.set(LLMService.CHOICE_KEY, "cloud") }, FakeServer.standInKey(), { null }, FakeServer.BASE, server, spend)
+        LLMService(FakeServer.standInKey(), { null }, FakeServer.BASE, server, spend)
 
     // making questions
 
@@ -187,7 +187,9 @@ class HostedGenerationTest {
     @Test fun withNoWriterTheDebriefSaysSo() {
         assertNull(CaseMaker.writer(null))
         assertEquals("Stethoscore Cloud is part of Pro.", CaseMaker.noWriter("Stethoscore Cloud is part of Pro."))
-        assertTrue(CaseMaker.noWriter().contains("AI models"))
+        // there is no writer to choose, so no settings screen is named: the cloud cannot be reached
+        assertTrue(CaseMaker.noWriter().contains("Stethoscore Cloud can't be reached"))
+        assertFalse(CaseMaker.noWriter().contains("AI models"))
     }
 
     // the accuracy checker

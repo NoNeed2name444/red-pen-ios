@@ -825,7 +825,6 @@ class TourTest {
 
     @Test fun r116_settings() = appRoute(116, "settings", "settings")
 
-    @Test fun r117_aiModels() = appRoute(117, "ai-models", "models")
 
     @Test fun r120_lecturesEmpty() = appRoute(120, "lectures-empty", "sources")
 

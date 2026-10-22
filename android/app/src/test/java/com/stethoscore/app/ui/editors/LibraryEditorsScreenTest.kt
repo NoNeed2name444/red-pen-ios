@@ -124,7 +124,8 @@ class LibraryEditorsScreenTest {
         step = LectureStep.make
         compose.onNodeWithText("How many questions").assertExists()
         compose.onNodeWithText(NoWriter.questions).assertExists()
-        compose.onNodeWithText(NoWriter.questionsHint).assertExists()
+        // the reason Make is greyed is the cloud's own: the default build has no Pro
+        compose.onNodeWithText("Stethoscore Cloud is part of Pro.").assertExists()
         compose.onNodeWithText("Make 10 questions").assertIsNotEnabled()
         compose.onNodeWithText("More options").performClick()
         compose.onNodeWithText("Focus on high-yield facts").assertExists()

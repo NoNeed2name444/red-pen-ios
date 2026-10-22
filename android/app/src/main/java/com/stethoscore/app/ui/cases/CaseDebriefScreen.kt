@@ -72,7 +72,7 @@ internal object CaseAnother {
  *
  * Three things to do with it: cards from what was missed, a note in the
  * Ideas map, and another patient like this one, written by the writer chosen
- * in AI models (with none, it says so, in CaseMaker's words).
+ * the writer route (blocked, it says so, in CaseMaker's words).
  */
 @Composable
 internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, store: StudyStore, title: String, onBack: () -> Unit, again: () -> Unit) {
@@ -122,7 +122,7 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
         if (writing != null) return
         val llm = LLMService.from(context)
         val writer = CaseMaker.writer(llm.backend()) ?: run {
-            anotherNote = CaseMaker.noWriter(llm.cloudBlocker.takeIf { llm.choice() != com.stethoscore.app.llm.LLMChoice.off })
+            anotherNote = CaseMaker.noWriter(llm.cloudBlocker)
             return
         }
         anotherNote = "Writing another patient\u2026"

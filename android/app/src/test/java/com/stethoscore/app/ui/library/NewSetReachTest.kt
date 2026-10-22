@@ -93,7 +93,7 @@ class NewSetReachTest {
     }
 
     private fun owner(jobs: FakeJobs): LLMService = LLMService(
-        LLMService.MemoryPrefs().also { it.set(LLMService.CHOICE_KEY, "cloud") }, FakeServer.standInKey(), { null }, FakeServer.BASE,
+        FakeServer.standInKey(), { null }, FakeServer.BASE,
         FakeServer { askedOn += Thread.currentThread(); seen += it; jobs.answer(it) }, OwnerSpend(OwnerSpend.MemoryStore()))
 
     /** Every request came on the test's main thread, none from an IO thread. */
