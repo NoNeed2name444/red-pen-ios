@@ -2334,6 +2334,10 @@ with the marks on the screens last.
       headings), which sit over the rows' words (the tile's 8 and its 12),
       as iOS's form headers do, and the other off-scale gaps, many of them
       copies of iOS's own (iOS's sweep leaves those to a screenshot review).
+    - [x] The canon's own off-scale values: WardMonitorCard's default gap is
+      WardSpace.m (18 before; its one caller already passed m, as iOS's
+      VitalsParts), and wardField's 10 above and below stay, with a comment:
+      iOS's wardField has the same 10.
     - [x] Radii from WardRadius where iOS names one: the Cards progress
       header (bar), its content card (card), the rating buttons (button),
       the lab and vitals panels (field), the undo chip (bar, iOS's

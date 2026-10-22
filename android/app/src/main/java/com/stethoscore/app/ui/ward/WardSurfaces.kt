@@ -203,7 +203,7 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
  * The vitals monitor (iOS MonitorCard): a dark well, the monitor's colour
  * in both modes, pressed into a bezel raised [lift] off the base.
  */
-@Composable fun WardMonitorCard(modifier: Modifier = Modifier, lift: WardLift = WardLift.mid, spacing: Dp = 18.dp,
+@Composable fun WardMonitorCard(modifier: Modifier = Modifier, lift: WardLift = WardLift.mid, spacing: Dp = WardSpace.m.wardDp,
                                 content: @Composable ColumnScope.() -> Unit) {
     val bezel = WardFaceMetrics.monitorBezel
     Box(modifier.wardRaised(WardFaceMetrics.cardRadius, lift).padding(bezel.dp)) {

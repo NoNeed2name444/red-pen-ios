@@ -483,7 +483,11 @@ fun wardTimerText(seconds: Int): String {
 
 // MARK: - Fields
 
-/** A text field's well: pressed into the base, with a control's ink edge (wardField). */
+/**
+ * A text field's well: pressed into the base, with a control's ink edge
+ * (wardField). Its 10 above and below are off the scale on purpose: iOS's
+ * wardField has them, so a field stands as tall as its twin.
+ */
 @Composable fun Modifier.wardField(): Modifier =
     wardInset(RoundedCornerShape(WardRadius.field.wardDp), control = true)
         .padding(horizontal = WardSpace.m.wardDp, vertical = 10.dp)
