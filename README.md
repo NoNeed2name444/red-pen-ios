@@ -9,4 +9,4 @@ runners are free.
 - `.github/workflows/ios-preview.yml` — builds the app on a macOS runner,
   screenshots every screen in the iOS Simulator (light and dark), and pushes
   the pictures, build log and compile errors to the `previews` branch.
-- `android/` — planned; not started yet.
+- `android/` — the Android app (Kotlin and Compose), built by `.github/workflows/android.yml`.

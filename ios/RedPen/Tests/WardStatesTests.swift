@@ -379,6 +379,77 @@ check("every tab keeps its name's room, and the rail is as wide as its widest na
       && dock.components(separatedBy: "minHeight: CGFloat(WardDock.tabMinHeight)").count == 3
       && dock.contains(".frame(minWidth: 76)\n        .fixedSize(horizontal: true, vertical: false)"))
 
+// The row or the fold (owner 22 Oct: the tabs folded into one "Questions"
+// button on a 17 Pro were wrong). The five names in caption2 bold at the
+// standard size, as measured on the 17 Pro (Questions, Cards, Cases, OSCE,
+// Audio), and 5% wider still for safety; they grow with the text size as
+// caption2's point size does.
+let measuredNames = [56.0, 32.4, 33.4, 30.4, 31.7].map { $0 * 1.05 }
+let caption2Points = [11.0, 11, 11, 11, 13, 15, 17]
+func names(atSize size: Int) -> [Double] { measuredNames.map { $0 * caption2Points[size] / 11 } }
+func row(_ form: WardDock.Form) -> (tabs: [Double], scale: Double)? {
+    if case let .row(tabs, scale) = form { return (tabs, scale) }
+    return nil
+}
+check("the bar's sizes are WardDock's",
+      dock.contains("HStack(spacing: CGFloat(WardDock.barSpacing))")
+      && dock.contains(".frame(maxWidth: CGFloat(WardDock.barMaxWidth))")
+      && dock.contains(".padding(.horizontal, CGFloat(WardDock.barSide))")
+      && dock.contains(".frame(width: CGFloat(WardDock.ideasWidth))"))
+let skyRoot = (try? String(contentsOfFile: "ios/RedPen/Shared/Space/SpaceQuality.swift", encoding: .utf8)) ?? ""
+check("the dock sits inside the page's inset, as tabsRoom counts it (or wider, under the sky)",
+      skyRoot.contains(".padding(.horizontal, center.skyCovered ? 0 : WardPaper.sideInset)"))
+check("the room for the tabs on a 17 Pro is 402 less the page, bar, pill and panel",
+      WardDock.tabsRoom(width: 402) == 402 - 2 * WardPaper.sideInset - 2 * WardDock.barSide
+        - WardDock.ideasWidth - WardDock.barSpacing - 2 * WardDock.barInset,
+      f(WardDock.tabsRoom(width: 402)))
+for (phone, width, least) in [("iPhone 17 Pro", 402.0, 0.9), ("iPhone 17 Pro Max", 440.0, 1.0)] {
+    let form = WardDock.form(width: width, names: names(atSize: 3), accessibilitySize: false)
+    let room = WardDock.tabsRoom(width: width)
+    guard let r = row(form) else { check("\(phone) (\(f(width)) pt), standard size: the full row", false, "folded"); continue }
+    check("\(phone) (\(f(width)) pt), standard size: the full row, five tabs in the room",
+          r.tabs.count == 5 && r.tabs.reduce(0, +) <= room + 1e-9, "\(r.tabs.map(f)) in \(f(room))")
+    check("\(phone): the names at \(f(least * 100))% or more", r.scale >= least, f(r.scale))
+    for (name, tab) in zip(names(atSize: 3), r.tabs) {
+        check("\(phone): a tab keeps its name's side room and its name is clear of the ring",
+              tab >= name * r.scale + 2 * WardDock.labelSide - 1e-9
+              && WardDock.labelFits(width: name * r.scale, below: WardDock.labelVertical, tabWidth: tab, radius: WardDock.barTabRadius),
+              "\(f(name)) in \(f(tab))")
+    }
+}
+check("the Pro Max has room to spare, shared by the narrower tabs",
+      row(WardDock.form(width: 440, names: names(atSize: 3), accessibilitySize: false))
+        .map { abs($0.tabs.reduce(0, +) - WardDock.tabsRoom(width: 440)) < 1e-9 } ?? false)
+for width in [375.0, 390, 393, 402, 414, 420, 430, 440] {
+    for size in caption2Points.indices {
+        let r = row(WardDock.form(width: width, names: names(atSize: size), accessibilitySize: false))
+        check("\(f(width)) pt, text size \(size): the row, not the fold, names no smaller than WardDock allows",
+              r.map { $0.tabs.count == 5 && $0.scale >= WardDock.leastNameScale
+                      && $0.tabs.reduce(0, +) <= WardDock.tabsRoom(width: width) + 1e-9 } ?? false,
+              r.map { f($0.scale) } ?? "folded")
+    }
+    check("\(f(width)) pt, an accessibility size: the one list button",
+          WardDock.form(width: width, names: names(atSize: 6).map { $0 * 2 }, accessibilitySize: true) == .list)
+}
+check("the fold is only for the accessibility sizes",
+      WardDock.showsList(accessibilitySize: true) && !WardDock.showsList(accessibilitySize: false))
+let shortTabs: [Double] = WardDock.tabWidths([80, 40, 40], room: 110)
+let shortScale: Double = WardDock.nameScale([80, 40, 40], room: 110)
+let roomyScale: Double = WardDock.nameScale([80, 40, 40], room: 200)
+let roomyTabs: [Double] = WardDock.tabWidths([80, 40, 40], room: 200)
+check("short of room, every name shrinks alike and every tab keeps its side room",
+      shortTabs == [50.0, 30.0, 30.0] && shortScale == 0.5 && roomyScale == 1, "\(shortTabs) \(shortScale)")
+check("with room to spare, the narrower tabs share it equally", roomyTabs == [80.0, 60.0, 60.0], "\(roomyTabs)")
+let slotsSource = dockSource.range(of: "private struct DockSlots").map { String(dockSource[$0.lowerBound...]) } ?? ""
+check("the view folds only by WardDock's rule, never by width",
+      dock.contains("if WardDock.showsList(accessibilitySize: typeSize.isAccessibilitySize) {")
+      && !dock.contains("ViewThatFits(in: .horizontal) {\n                bar"))
+check("the slots are WardDock's, and the names shrink to WardDock's least, never the room",
+      slotsSource.contains("WardDock.tabWidths(ideals, room: Double(offered))")
+      && slotsSource.contains("max(WardDock.leastTab,")
+      && slotsSource.contains(".minimumScaleFactor(CGFloat(WardDock.leastNameScale))")
+      && !slotsSource.contains(".fixedSize(horizontal: true, vertical: false)"))
+
 print("ok   words and glyphs: the lowest is \(f(worstText.0)):1 (\(worstText.1))")
 print("ok   disabled from enabled: the nearest is \(f(worstDisabledApart.0)) (\(worstDisabledApart.1))")
 print("ok   chosen from unchosen: the nearest is \(f(worstChosenApart.0)) (\(worstChosenApart.1))")

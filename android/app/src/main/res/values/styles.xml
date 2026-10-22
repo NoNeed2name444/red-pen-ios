@@ -1,0 +1,6 @@
+<resources>
+    <style name="Base.AppTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">true</item><item name="android:statusBarColor">#E0E5EC</item><item name="android:navigationBarColor">#E0E5EC</item><item name="android:windowActionModeOverlay">true</item>
+        <!-- the starting window stands on home's ground (ward_ground, light or night) -->
+        <item name="android:windowBackground">@color/ward_ground</item></style>
+    <style name="AppTheme" parent="Base.AppTheme" />
+</resources>

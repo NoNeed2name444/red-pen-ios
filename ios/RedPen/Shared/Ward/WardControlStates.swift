@@ -74,6 +74,85 @@ enum WardDock {
     /// A tab's least height: as tall as before (52 and 2 above and below).
     static let tabMinHeight = 56.0
 
+    // MARK: the row along the bottom, on every phone
+
+    /// The bar: room at its sides, the Ideas pill's width, the gap between
+    /// the panel and the pill, and the widest the bar grows.
+    static let barSide = 10.0
+    static let ideasWidth = 56.0
+    static let barSpacing = 6.0
+    static let barMaxWidth = 560.0
+    /// A tab is never narrower than a finger.
+    static let leastTab = 44.0
+    /// How small a name may get (all five by the same amount) so the row
+    /// still fits: never its side room, so it stays clear of the ring.
+    static let leastNameScale = 0.5
+
+    /// Whether the dock folds into its one list button: at the
+    /// accessibility text sizes only. At every other size, on every width,
+    /// it is the row (owner 22 Oct: the folded "Questions" button on a 17
+    /// Pro was wrong).
+    static func showsList(accessibilitySize: Bool) -> Bool { accessibilitySize }
+
+    /// The room the five tabs share on a window `width` wide: less the
+    /// page's inset, the bar's sides, the pill and its gap, and the panel's
+    /// inset round the tabs.
+    static func tabsRoom(width: Double) -> Double {
+        let bar = min(width - 2 * WardPaper.sideInset - 2 * barSide, barMaxWidth)
+        return bar - ideasWidth - barSpacing - 2 * barInset
+    }
+
+    /// How much the names shrink so the tabs, each a name with its side
+    /// room (`ideals`), fit `room`: 1 when they fit as they are.
+    static func nameScale(_ ideals: [Double], room: Double) -> Double {
+        let total = ideals.reduce(0, +)
+        guard total > room else { return 1 }
+        let sides = 2 * labelSide * Double(ideals.count)
+        let names = ideals.map { max(0, $0 - 2 * labelSide) }.reduce(0, +)
+        guard names > 0 else { return 0 }
+        return min(1, max(0, (room - sides) / names))
+    }
+
+    /// The tabs' widths in `room`: where there is spare room the narrower
+    /// tabs share it equally (water-filling); where there is too little,
+    /// every name shrinks by the same amount and each keeps its side room.
+    static func tabWidths(_ ideals: [Double], room: Double) -> [Double] {
+        let total = ideals.reduce(0, +)
+        guard total > 0 else { return ideals }
+        let width = max(0, room)
+        if width < total {
+            let scale = nameScale(ideals, room: width)
+            return ideals.map { 2 * labelSide + max(0, $0 - 2 * labelSide) * scale }
+        }
+        var remaining = width
+        var count = ideals.count
+        var level = 0.0
+        for ideal in ideals.sorted(by: >) {
+            level = remaining / Double(count)
+            if ideal <= level { break }
+            remaining -= ideal
+            count -= 1
+        }
+        return ideals.map { max($0, level) }
+    }
+
+    /// What the dock draws along the bottom.
+    enum Form: Equatable {
+        /// The row of tabs, their widths, and how much the names shrink.
+        case row(tabs: [Double], nameScale: Double)
+        /// The one list button.
+        case list
+    }
+
+    /// The dock along the bottom on a window `width` wide, for names
+    /// `names` wide at the text size in use.
+    static func form(width: Double, names: [Double], accessibilitySize: Bool) -> Form {
+        if showsList(accessibilitySize: accessibilitySize) { return .list }
+        let ideals = names.map { max(leastTab, $0 + 2 * labelSide) }
+        let room = tabsRoom(width: width)
+        return .row(tabs: tabWidths(ideals, room: room), nameScale: nameScale(ideals, room: room))
+    }
+
     /// SwiftUI's continuous corner (`.continuous`) for radius 1, from the
     /// edge's straight line into the corner's middle: three cubic curves,
     /// as (along the edge, in from it) from where the curve leaves the
