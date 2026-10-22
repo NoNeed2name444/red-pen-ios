@@ -37,7 +37,7 @@ import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.llm.LLMChoice
 import com.stethoscore.app.ui.editors.CountField
 import com.stethoscore.app.ui.editors.EcgLoader
-import com.stethoscore.app.ui.editors.EditorBanner
+import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.editors.EditorNote
 import com.stethoscore.app.ui.editors.EditorSection
 import com.stethoscore.app.ui.editors.LectureFiles
@@ -210,5 +210,5 @@ import kotlinx.coroutines.withContext
 /** What the section is doing, in grey, and what went wrong, in a danger banner (iOS messages). */
 @Composable private fun Messages(status: String?, trouble: String?) {
     status?.let { EditorNote(it, style = WardTextStyle.caption) }
-    trouble?.let { EditorBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
+    trouble?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
 }
