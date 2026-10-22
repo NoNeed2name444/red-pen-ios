@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -175,9 +176,11 @@ private fun rgb(t: Triple<Double, Double, Double>) = Color(t.first.toFloat(), t.
 private const val hintsKey = "anki.ratingHintsShown"
 
 /**
- * The four ratings after a card is turned over: Again, Hard, Good, Easy, each in its tone with
- * when it comes back. Two by two on a phone, one row in a wider window, one to a row at the
- * largest text sizes. For the first few cards each button says what it means.
+ * The four ratings after a card is turned over: Again, Hard, Good, Easy, each one word in its
+ * tone with no caption line, side by side in one row on every window (the owner, 22 Oct: not
+ * two by two), each 48 dp tall; one to a row only at the largest text sizes. What each means and
+ * when it comes back are TalkBack's (hint and state), not lines on the button. For the first
+ * few cards a line above asks the question the buttons answer.
  */
 @Composable fun AnkiRatingBar(labels: Map<AnkiRating, String>, onRate: (AnkiRating) -> Unit) {
     val context = LocalContext.current
@@ -191,14 +194,12 @@ private const val hintsKey = "anki.ratingHintsShown"
         @Suppress("DEPRECATION") view.announceForAccessibility("Rated " + CardReview.spokenRating(rating, labels[rating] ?: "") + ".")
     }
     val large = LocalDensity.current.fontScale >= 1.5f
-    BoxWithConstraints {
-        val oneRow = maxWidth >= 600.dp
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            if (hints) Text("How well did you remember it?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
-            val all = AnkiRating.entries
-            val rows = when { large -> all.map { listOf(it) }; oneRow -> listOf(all); else -> all.chunked(2) }
-            rows.forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { row.forEach { RatingButton(it, labels[it] ?: "", hints, { rate(it) }, Modifier.weight(1f)) } }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (hints) Text("How well did you remember it?", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
+        val rows = CardReview.ratingRows(large)
+        rows.forEach { row ->
+            Row(Modifier.testTag("ratingRow"), horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+                row.forEach { RatingButton(it, labels[it] ?: "", { rate(it) }, Modifier.weight(1f)) }
             }
         }
     }
@@ -212,22 +213,19 @@ private const val hintsKey = "anki.ratingHintsShown"
 })
 
 /** A soft tile raised off the base, its words in the rating's tone; Good, the one to press most, in bold. */
-@Composable private fun RatingButton(rating: AnkiRating, whenBack: String, hints: Boolean, onClick: () -> Unit, modifier: Modifier) {
+@Composable private fun RatingButton(rating: AnkiRating, whenBack: String, onClick: () -> Unit, modifier: Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val ink = tone(rating)
     val shape = RoundedCornerShape(WardRadius.button.wardDp)
     // held, it is a well pressed into the base: the well's fill, told by its inset shadows only
     val face = if (pressed) Modifier.wardInset(shape) else Modifier.wardRaised(WardRadius.button).background(wardColor(WardToken.surface), shape)
-    Column(modifier.heightIn(min = 56.dp).then(face)
-        .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
+    // the word alone: what it means and when the card comes back are TalkBack's
+    Box(modifier.heightIn(min = CardReview.ratingHeight.dp).then(face)
+        .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = CardReview.meaning(rating), onClick = onClick)
         .semantics { contentDescription = CardReview.title(rating); stateDescription = CardReview.spokenInterval(whenBack) }
-        .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(CardReview.title(rating), color = ink, style = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold), textAlign = TextAlign.Center)
-        if (hints) Text(CardReview.meaning(rating), color = ink, style = WardTextStyle.footnote.textStyle(), textAlign = TextAlign.Center)
-        if (whenBack.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("back", color = ink, style = WardType.caption.textStyle())
-            Text(whenBack, color = ink, style = WardTextStyle.caption.textStyle(WardWeight.semibold, mono = true))
-        }
+        .padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
+        Text(CardReview.title(rating), color = ink, style = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold),
+            textAlign = TextAlign.Center, maxLines = 1)
     }
 }

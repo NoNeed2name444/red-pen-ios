@@ -360,15 +360,15 @@ extension AnkiFooter where Companion == EmptyView {
 /// and the one a thumb should find without looking; the other three are the
 /// quiet version of the same button.
 ///
-/// On a phone they sit two by two, big enough to hit without looking; in any
-/// wider window, one row of four, Again to Easy from left to right like the
-/// 1 to 4 keys that press them.
+/// One row of four on every window, Again to Easy from left to right like
+/// the 1 to 4 keys that press them, each one word and no caption line (the
+/// owner, 22 Oct: side by side, not two by two), 44 points tall. Only at the
+/// accessibility text sizes do they stand one to a row, so a word is never
+/// cut off.
 ///
-/// For the first few cards anybody rates, each button also says what it
-/// means in a few words ("I forgot it"), and a line above asks the question
-/// the buttons answer. After that the hints step aside - they are for
-/// learning the buttons, not for reading every time - though VoiceOver keeps
-/// saying them always.
+/// What each one means ("I forgot it") and when it brings the card back are
+/// VoiceOver's (hint and value), not lines on the button. For the first few
+/// cards anybody rates, a line above asks the question the buttons answer.
 struct AnkiRatingBar: View {
     /// When each rating would bring the card back ("1m", "4d").
     let labels: [AnkiRating: String]
@@ -377,12 +377,10 @@ struct AnkiRatingBar: View {
     /// How many cards have been rated while the hints were showing.
     @AppStorage("anki.ratingHintsShown") private var hintsShown = 0
     private static let hintCards = 5
-    @Environment(\.windowSpan) private var span
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let hints: Bool = hintsShown < Self.hintCards
-        let oneRow: Bool = span > .slim
         VStack(spacing: 12) {
             if hints {
                 Text("How well did you remember it?")
@@ -395,19 +393,11 @@ struct AnkiRatingBar: View {
                 button(.hard, hints: hints)
                 button(.good, hints: hints)
                 button(.easy, hints: hints)
-            } else if oneRow {
-                HStack(spacing: 12) {
-                    button(.again, hints: hints)
-                    button(.hard, hints: hints)
-                    button(.good, hints: hints)
-                    button(.easy, hints: hints)
-                }
             } else {
-                HStack(spacing: 12) {
+                // one row of four, never two by two
+                HStack(spacing: WardSpace.s) {
                     button(.again, hints: hints)
                     button(.hard, hints: hints)
-                }
-                HStack(spacing: 12) {
                     button(.good, hints: hints)
                     button(.easy, hints: hints)
                 }
@@ -416,7 +406,7 @@ struct AnkiRatingBar: View {
     }
 
     @ViewBuilder
-    private func button(_ rating: AnkiRating, hints: Bool) -> some View {
+    private func button(_ rating: AnkiRating, hints _: Bool) -> some View {
         let when: String = labels[rating] ?? ""
         let key: Int = (AnkiRating.allCases.firstIndex(of: rating) ?? 9) + 1
         let spoken: String = SpokenText.rating(Self.title(rating), interval: when)
@@ -425,20 +415,11 @@ struct AnkiRatingBar: View {
             onRate(rating)
             Announce.say("Rated " + spoken + ".")
         }
-        let label = VStack(spacing: WardSpace.xs) {
-            Text(Self.title(rating))
-            if hints {
-                Text(Self.meaning(rating)).font(.footnote)
-            }
-            if !when.isEmpty {
-                HStack(spacing: WardSpace.xs) {
-                    Text("back").font(.caption)
-                    Text(when)
-                        .font(.system(.caption, design: .monospaced).weight(.semibold))
-                        .monospacedDigit()
-                }
-            }
-        }
+        // the word alone: what it means and when the card comes back are
+        // VoiceOver's (hint and value), not caption lines
+        let label = Text(Self.title(rating))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
         Button(action: action) { label }
             .buttonStyle(AnkiRatingButtonStyle(tone: Self.tone(rating), filled: rating == .good))
             // 1 to 4, Again to Easy - Anki's own keys
@@ -447,6 +428,9 @@ struct AnkiRatingBar: View {
             .accessibilityValue(SpokenText.interval(when))
             .accessibilityHint(Self.meaning(rating))
     }
+
+    /// Each button's height: the 44-point target.
+    static let height: CGFloat = 44
 
     static func tone(_ rating: AnkiRating) -> WardTone {
         switch rating {
@@ -505,9 +489,9 @@ private struct AnkiRatingFace: View {
             .font(font)
             .multilineTextAlignment(.center)
             .foregroundStyle(tone.ink)
-            .padding(.horizontal, WardSpace.m)
-            .padding(.vertical, WardSpace.m)
-            .frame(maxWidth: .infinity, minHeight: 56)
+            .padding(.horizontal, WardSpace.xs)
+            .padding(.vertical, WardSpace.s)
+            .frame(maxWidth: .infinity, minHeight: AnkiRatingBar.height)
             .background { WardPressFace(shape: shape, lift: lift, pressed: pressed) }
             .contentShape(shape)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)

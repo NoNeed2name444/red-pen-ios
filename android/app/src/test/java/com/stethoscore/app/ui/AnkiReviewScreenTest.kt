@@ -2,11 +2,16 @@ package com.stethoscore.app.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.stethoscore.app.data.*
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -41,7 +46,8 @@ class AnkiReviewScreenTest {
         compose.onNodeWithText("QUESTION").assertExists()
         compose.onNodeWithText("Reveal").performClick()
         compose.onNodeWithText("How well did you remember it?").assertExists()
-        compose.onNodeWithText("I got it").assertExists()
+        // the meaning is no caption on the button (the owner, 22 Oct): TalkBack's click label
+        compose.onNodeWithText("I got it").assertDoesNotExist()
         compose.onNodeWithContentDescription("Easy").performClick()
         compose.onNodeWithText("1 card left").assertExists()
         compose.onNodeWithText("1 done").assertExists()
@@ -58,6 +64,24 @@ class AnkiReviewScreenTest {
         compose.onNodeWithText("Done for now").assertExists()
         compose.onNodeWithText("You went through 2 cards. Next card back in 4 d.").assertExists()
         compose.onNodeWithText("Done").assertExists()
+    }
+
+    // r066, the owner, 22 Oct: Again, Hard, Good, Easy as one word each, no caption lines,
+    // side by side in one row (not two by two), each 48 dp tall.
+    @Test fun theRatingsStandInOneRowOfWords() {
+        val store = StudyStore(folder.newFolder("row"))
+        val set = deck(store)
+        compose.setContent { StethoscoreTheme { AnkiReviewScreen(set, store, onBack = {}) } }
+        compose.onNodeWithText("Reveal").performClick()
+        val buttons = listOf("Again", "Hard", "Good", "Easy").map { compose.onNodeWithContentDescription(it).getUnclippedBoundsInRoot() }
+        val tops = buttons.map { it.top }.toSet()
+        assertEquals("all four share one row", 1, tops.size)
+        for (i in 1 until buttons.size) assertTrue("left to right, Again to Easy", buttons[i].left >= buttons[i - 1].right)
+        buttons.forEach { assertTrue("48 dp tall: ${it.height}", it.height >= 48.dp) }
+        compose.onAllNodesWithTag("ratingRow").assertCountEquals(1)
+        for (caption in listOf("I forgot it", "I just about got it", "I got it", "Too easy", "back")) compose.onNodeWithText(caption).assertDoesNotExist()
+        assertEquals(listOf(AnkiRating.entries.toList()), CardReview.ratingRows(large = false))
+        assertEquals(AnkiRating.entries.map { listOf(it) }, CardReview.ratingRows(large = true))
     }
 
     @Test fun nothingDueOffersToStudyAhead() {

@@ -84,6 +84,18 @@ object CardReview {
 
     fun title(rating: AnkiRating): String = rating.label
 
+    /** Each rating button's height (dp): the 48 dp target. */
+    const val ratingHeight: Int = 48
+
+    /**
+     * How the four buttons stand: one row of four, Again to Easy (the owner, 22 Oct: side by
+     * side, never two by two), or one to a row at the largest text sizes ([large]).
+     */
+    fun ratingRows(large: Boolean): List<List<AnkiRating>> {
+        val all = AnkiRating.entries
+        return if (large) all.map { listOf(it) } else listOf(all)
+    }
+
     /** What each button means, in the student's words rather than Anki's. */
     fun meaning(rating: AnkiRating): String = when (rating) {
         AnkiRating.AGAIN -> "I forgot it"
