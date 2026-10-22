@@ -2659,6 +2659,10 @@ with the marks on the screens last.
 - [ ] Follow-up to 12a and 12b (docs/, outside T0107's paths): docs/design/palette-2026-10-21.md's 22 Oct note still says each section's wash is pinned to its value before T0104 and that the failing checks stay failing; it should say the ground is the plain base and those checks pass on the owner's list.
 - [x] 12c. One tone on iPhone (22 Oct; task T0113-ios). The owner, 22 Oct, circling home's ward-round card block: "there shouldn't be 2 tones"; 21 Oct, of the quiz dock: "one color not two color toned". Cards (.surface) and sheets, bars and panels (.raised) are the page colour, #E9EDF2 by day and #171C24 at night (WardPalette.table), on every screen; depth comes only from the relief, edges and rings, all unchanged. WardPaletteTests pins surface == raised == background in both modes. Wells (.well) are unchanged pending the owner's word (asked 22 Oct). The owner's lists hold the re-measured values: in OwnerAccepted.json 154 values moved and 19 cases removed because they now pass at night; in tests/ward/owner-accepted.json 8 moved, 5 removed, and 7 ward_accents ink cases renamed from "on the surface" to "on the background", the lowest ground now.
 - [ ] Follow-up to 12c: the owner's word on wells (fields, tracks, a chosen segment), which still sit a shade below the page.
+- UX Waves 3-4 on iPhone, chrome and polish without motion (22 Oct; task T0120, from the 22 Oct iOS consistency sweep). The owner: "start all waves at once". Motion is T0121's and components T0119's; no colour, tone or wash changes.
+  - [x] Stats and Vitals on wardForm(): the solid bar area (the 9 Oct no-fading rule), 56 pt rows, section spacing and the Ward controls. Stats keeps its inline title; Vitals keeps the app's one large title until the owner's word.
+  - [ ] Mac run: the app build and Ward previews of the pages above (phone, SE, Pro Max, iPad; light and dark).
+  - Waiting on the owner: Vitals' large title; mono sizes other than body and title2; icon-square sizes; the onboarding, paywall and sign-in gutters (24). The sample pictures' colours stay (no colour changes).
 
 ### The launch mark (design/launch-anim), 15 Oct
 
