@@ -80,6 +80,8 @@ import kotlinx.coroutines.withContext
     var libReview by remember { mutableStateOf<StudySet?>(null) }
     var shelf by rememberSaveable { mutableStateOf(com.stethoscore.app.ui.library.CategoryFeature.MULTIPLE_CHOICE.rawValue) }
     var newKind by rememberSaveable { mutableStateOf(StudySetKind.MCQ) }
+    // the step New set opens on: the first, or the material step from Paste or import
+    var newStep by rememberSaveable { mutableStateOf(com.stethoscore.app.ui.library.NewSetStep.KIND) }
     // New set's preset from the exam card's Study next (batch 16)
     var newPreset by remember { mutableStateOf<com.stethoscore.app.exam.NewSetPreset?>(null) }
     val scope=rememberCoroutineScope()
@@ -88,7 +90,7 @@ import kotlinx.coroutines.withContext
     fun refresh() { revision++ }
     /** Library changes the person asked for; a failed save is shown, never a crash. */
     fun change(action:()->Unit) { runCatching(action).onFailure { notice=it.message ?: "Could not save your library." };refresh() }
-    fun goHome() { screen="home";newPreset=null;refresh() }
+    fun goHome() { screen="home";newPreset=null;newStep=com.stethoscore.app.ui.library.NewSetStep.KIND;refresh() }
     fun open(set:StudySet) {
         selectedId=set.id;screen="study"
         // a textbook or narrate set opened for the first time: Guess first over it
@@ -151,6 +153,7 @@ import kotlinx.coroutines.withContext
         shareJson={ set -> sharing=set.id;shared.launch(set.name.replace(Regex("[^A-Za-z0-9 _-]"),"").trim().ifEmpty { "set" }+".json") },
         change=::change,
         edit={ set -> selectedId=set.id;screen="edit" },
+        addMaterial={ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;newStep=com.stethoscore.app.ui.library.NewSetStep.MATERIAL;screen="newset" },
     )
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
     BackHandler(screen!="home") { when(screen) { "sources", "exam", "models" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
@@ -204,7 +207,7 @@ import kotlinx.coroutines.withContext
                     "libreview" -> libReview?.let { AnkiReviewScreen(it,store,::goHome) } ?: LaunchedEffect(Unit) { goHome() }
                     "shelf" -> com.stethoscore.app.ui.library.KindShelfScreen(com.stethoscore.app.ui.library.CategoryFeature.entries.first { it.rawValue==shelf },store,revision,::goHome,::open) { newKind=it;screen="newset" }
                     "stats" -> com.stethoscore.app.ui.library.StatsScreen(store,revision,::goHome) { libQuiz=it;screen="libquiz" }
-                    "newset" -> com.stethoscore.app.ui.library.LibraryNewSetScreen(store,newKind,::goHome,::goHome)
+                    "newset" -> com.stethoscore.app.ui.library.LibraryNewSetScreen(store,newKind,::goHome,::goHome,newStep)
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
                     "photo" -> com.stethoscore.app.ui.editors.PictureFromPhotoScreen(store,{ refresh();goHome() },onOpen={ refresh();open(it) })
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },

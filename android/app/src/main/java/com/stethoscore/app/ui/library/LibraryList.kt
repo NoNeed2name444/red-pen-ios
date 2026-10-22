@@ -152,6 +152,12 @@ class LibraryActions(
     val change: (() -> Unit) -> Unit,
     /** Edit cards or Edit questions (batch 6's editors), for the kinds that have one. */
     val edit: ((StudySet) -> Unit)? = null,
+    /**
+     * Paste or import: New set for the category's own kind, already on the
+     * step that asks where the material comes from, with typing chosen (iOS
+     * addMaterial, NewSetView(kind:startingAt:)).
+     */
+    val addMaterial: (() -> Unit)? = null,
 )
 
 /** The search's answer for the words typed, worked out off the main thread (iOS LibrarySearchModel). */
@@ -651,7 +657,7 @@ fun start(feature: CategoryFeature, store: StudyStore, state: LibraryState, acti
         }
         feature == CategoryFeature.SUBJECTS -> actions.stats()
         feature == CategoryFeature.DUE -> actions.due()
-        feature == CategoryFeature.ADD -> actions.newSet(StudySetKind.MCQ)
+        feature == CategoryFeature.ADD -> actions.addMaterial?.invoke() ?: actions.newSet(StudySetKind.MCQ)
         else -> {}
     }
 }
