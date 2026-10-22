@@ -442,6 +442,10 @@ final class WardPaperTop {
     /// True while home is on screen (or warming beneath the launch splash);
     /// false when a page is pushed over home or another root screen is shown.
     var home: Bool = LaunchSplash.wanted
+    /// The system bars the paper's opening stays clear of, set by
+    /// WardPaperFrame from its window's safe area (none on home), so the
+    /// paper's cut (WardPaperCutStage) and the ring agree.
+    var safe: WardSystemInsets = .none
 }
 
 /// Each window owns this store. A sheet inherits it, but its edges do not
@@ -730,7 +734,7 @@ struct WardPaperFrame: View {
             // opening as it was.
             let safe = onHome ? WardSystemInsets.none : WardSystemInsets(geometry.safeAreaInsets)
             ZStack {
-                WardPaperCutStage(safe: safe)
+                WardPaperCutStage()
                 if !onHome,
                    let moved = WardPaper.panel(width: size.width, height: size.height,
                                                top: Double(top ?? 0) - window.minY, safe: safe, device: nil,
@@ -754,7 +758,10 @@ struct WardPaperFrame: View {
                 edges.setWindow(frame, pad: WardPanelPath.pad, top: top, safe: safe)
             }
             .onChange(of: top) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: now, safe: safe) }
-            .onChange(of: safe) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: top, safe: now) }
+            .onChange(of: safe, initial: true) { _, now in
+                paperTop.safe = now
+                edges.setWindow(window, pad: WardPanelPath.pad, top: top, safe: now)
+            }
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
@@ -794,7 +801,6 @@ struct WardPaperCut: Equatable {
 
 /// Reads the opening's frame from LaunchStage, for the sheet.
 private struct WardPaperCutStage: View {
-    var safe: WardSystemInsets = .none
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
@@ -816,6 +822,8 @@ private struct WardPaperCutStage: View {
         // the base with the section's wash, as WardBackground draws it
         let base = look.wash(dark: dark, held: held)
         let top = WardPaperTop.shared.y.map { $0 - (edges?.window.minY ?? 0) }
+        // the bars the frame's ring stays clear of (WardPaperFrame sets them)
+        let safe = WardPaperTop.shared.safe
         #if canImport(UIKit)
         WardPaperCutSheet(cut: WardPaperCut(scale: pose?.scale, drop: pose?.drop ?? 0,
                                             top: top, dark: dark, highContrast: strong,
