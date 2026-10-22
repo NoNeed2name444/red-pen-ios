@@ -2663,7 +2663,7 @@ with the marks on the screens last.
   - [x] Reduce Motion everywhere: the 86 withAnimation, .animation and animated bindings in 39 files that ignored it go through Motion.gentle, so nothing moves under Reduce Motion. A bare withAnimation keeps the system's default curve.
   - [x] Bare .snappy (0.5 s) as .snappy(duration: 0.25): 57 sites in 23 files.
   - [x] Durations into 200 to 320 ms, each curve kept: the pop-out's settle 0.5 s, WardRing 0.6 s, the Vitals ring 0.9 s, the quiz summary's score 0.9 s and Narrate's scroll 0.45 s to 0.3 s; the Ideas map's panels 0.35 s to 0.3 s; the library's select tick 0.15 s to 0.2 s.
-  - [ ] OSCE review's Start over without the bounce.
+  - [x] OSCE review's Start over without the bounce: .easeOut(duration: 0.3) for the 0.35 s spring with a 0.15 bounce (the same spring as .snappy, so not that).
   - [ ] Lens's looping "Answering…" bars as EcgLoader.
   - Kept: FinishHero's aurora, ScoreRing's spring and RiseIn's staggered spring (owner question, iOS Q8); NarrateWordFlow's 0.1 s word highlight, which keeps up with the voice (its comment says so); the WardPress press curves; the scenes (sky, map). No .transition(.opacity) anywhere.
   - [ ] Mac run: the app build (Motion.gentle is main-actor only, so every site was checked to be in a view or a main-actor class), then a look at the quiz, the library and New set at the shorter durations.

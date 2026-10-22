@@ -394,7 +394,7 @@ struct OsceReviewView: View {
         let wasRunning: Bool = clockEndsAt != nil
         clockLeft = Self.stationSeconds
         clockEndsAt = wasRunning ? Date().addingTimeInterval(clockLeft) : nil
-        withAnimation(Motion.gentle(.spring(duration: 0.35, bounce: 0.15))) {
+        withAnimation(Motion.gentle(.easeOut(duration: 0.3))) {
             run.startOver()
             revealed = false
         }
