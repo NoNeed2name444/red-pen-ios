@@ -1,0 +1,134 @@
+# The iOS tour: every screen a still can show, in tour order, one per line:
+# the -uiPreviewScreen name, the inventory row (T0126a), a plain name.
+# Pass the names, space-separated, as ios-preview's `screens` input:
+#   grep -v '^#' tools/tour_screens.txt | cut -f1 | paste -sd' '
+library-loading	2	Library loading
+signin	3	Sign in
+account-deleted	4	Signed out after deleting the account
+link-device	5	Link a device
+recording-terms	6	Recording terms
+exam-onboarding	8	Exam onboarding (also First run's exam page)
+first-run-date	7	First run: exam date
+first-run-goal	7	First run: daily goal
+first-run-reminders	7	First run: reminders
+first-run-examples	7	First run: example set
+app-lock	10	App lock
+account	11	Account
+library	13	Home (Questions)
+home-cards	14	Home: Cards
+home-cases	14	Home: Cases
+home-osce	14	Home: OSCE
+home-audio	14	Home: Audio
+library-empty	15	Empty library
+category-empty	17	Empty category
+search-empty	18	Search, no results
+found-card	19	Found card
+custom-session	20	Custom session
+library-select	21	Selecting sets
+name-sheet	22	Name sheet (new folder)
+library-delete	23	Delete sets
+nothing-yet	24	Nothing here yet
+ward-round	25	Ward round chip
+ward-round-panel	25	Ward round panel
+sections	26	Sections list
+shelf	27	Shelf
+shelf-empty	28	Shelf empty
+new	29	New set 1: kind
+new-material	30	New set 2: material
+new-make	31	New set 3: make
+new-preset	32	New set from a preset
+new-writer	33	AI writer
+generated-quiz	34	Generated quiz (unsaved)
+import-preview	35	Import preview
+import-inbox	36	File from another app
+picture-from-photo	37	Picture cards from a photo
+cards-editor	38	Edit cards
+card-edit	39	Edit one card
+question-edit	39	Edit one question
+turn-into	40	Turn into picker
+turn-into-list	41	Turn into list
+quiz	42	Quiz
+quiz-checked	43	Quiz, answer checked
+quiz-timed	44	Practice tile: timed
+summary	46	Quiz results
+lab-values	47	Lab values
+calculator	48	Calculator
+ward-pocket	49	Ward pocket
+ward-calc	50	Ward calculator
+ward-score	50	Ward score
+accuracy-check	51	Accuracy check
+report-error	52	Report an error
+mock-paper	53	Mock paper
+mock-too-few	54	Mock, too few questions
+mock-sitting	55	Mock sitting
+mock-results	56	Mock results
+symptom-blocks	57	Symptom blocks
+exam-plan	58	Exam plan, with the exam card (64)
+exam-kit	59	Exam-day kit
+bedtime	60	Bedtime re-read
+morning-check	61	Morning check
+learn-question	62	Question from a notification
+learn-question-gone	62	Question gone
+exam-picker	63	Exam picker
+anki	65	Card review
+anki-revealed	66	Card revealed
+anki-empty	67	Deck empty
+quiz-from-cards	68	Quiz me (from cards)
+due-today	69	Due cards
+due-none	70	Nothing due
+book	71	Textbook
+book-contents	72	Contents
+guess-first	73	Guess first
+draw-practice	75	Draw practice
+draw-recall	76	Draw from memory
+reasoning	77	Reasoning
+reasoning-set	77	Reasoning, one set
+duels	78	Duels
+scripts	78	Scripts
+duel	79	One duel
+duel-table	79	Comparison table
+lens	81	Lens answer
+lens-add	81	Lens add
+osce	82	OSCE station
+osce-revealed	83	OSCE revealed
+osce-complete	84	OSCE complete
+spoken-patients	85	Talking patients
+station-report	87	Station report
+cases	88	Case list
+case-ward	89	Case ward
+case-differential	90	Differential
+case-decision	91	Decision
+case-debrief	92	Debrief
+narrate	93	Narrated lecture
+narrate-finished	94	Lecture finished
+narrate-fixing	95	Fix a word
+narrate-sections	96	Sections sheet
+narrate-empty	97	Nothing to read yet
+commute	98	Commute mode
+explain-back	99	Explain it back
+explain-result	99	Explain it back: result
+ideas	100	Ideas list
+home-ideas	101	Ideas empty
+ideas-board	102	Board
+ideas-map	103	Brain map
+ideas-million	104	Million-note demo
+note-editor	106	Note editor
+link-picker	107	Link picker
+idea-name	108	Name a new idea
+vitals	109	Vitals (and its empty sections, 110)
+insight-questions	111	Insight question list
+rules	113	Rule sheet
+coverage	114	Syllabus check
+stats	115	By subject
+settings	116	Settings
+ai-models	117	AI models
+ai-provider	118	Provider editor
+diagnostics	119	Crash and failure reports
+lectures	120	Your lectures
+set-credits	121	One set's credits
+licences	122	All licences
+help	123	How it works
+faq	123	FAQ
+examples	124	Try every feature
+occlusion-example	125	Occlusion example
+generation-hud	128	AI writing progress

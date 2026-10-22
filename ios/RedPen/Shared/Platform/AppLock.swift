@@ -103,11 +103,13 @@ private struct AppLockShield: ViewModifier {
     private var enabled: Bool { lockOn && AppLock.supported }
     private var locked: Bool { state.locked }
     private var asking: Bool { state.asking }
+    /// A screenshot run's "app-lock": the shield as a locked app shows it.
+    private var pictured: Bool { PreviewLaunch.screen == "app-lock" }
 
     func body(content: Content) -> some View {
         content
             .overlay {
-                if enabled && (covered || locked) {
+                if (enabled && (covered || locked)) || pictured {
                     shield
                         .transition(.identity)
                 }
@@ -164,7 +166,7 @@ private struct AppLockShield: ViewModifier {
                 Text("Locked")
                     .font(.headline)
                     .foregroundStyle(Color.wardInk)
-                if locked && !covered {
+                if (locked && !covered) || pictured {
                     Button("Unlock") { Task { await unlock() } }
                         .buttonStyle(WardButtonStyle(fills: false))
                         .disabled(asking)

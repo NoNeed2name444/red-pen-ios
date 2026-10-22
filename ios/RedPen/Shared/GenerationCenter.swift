@@ -136,9 +136,15 @@ final class GenerationCenter: ObservableObject {
 struct GenerationHUD: View {
     @ObservedObject private var center = GenerationCenter.shared
 
+    /// A screenshot run's "generation-hud": a job part-way through.
+    private static let pictured: GenerationCenter.Job? = PreviewLaunch.screen == "generation-hud"
+        ? GenerationCenter.Job(id: UUID(), title: "Writing 20 questions", done: 8, total: 20, phase: nil,
+                               started: Date().addingTimeInterval(-150))
+        : nil
+
     var body: some View {
         ZStack {
-            if let job = center.job {
+            if let job = center.job ?? Self.pictured {
                 GenerationCard(job: job, cancel: { center.cancel() })
                     .padding(.horizontal, 12)
                     .padding(.bottom, 8)

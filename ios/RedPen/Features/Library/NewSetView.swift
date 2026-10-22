@@ -186,6 +186,14 @@ struct NewSetView: View {
                 .navigationTitle("New set")
                 .diagnosticsScreen("screen:new_set")
                 .navigationBarTitleDisplayMode(.inline)
+                // a screenshot run's "new-make": typed questions, on Make
+                .task {
+                    guard PreviewLaunch.screen == "new-make" else { return }
+                    name = SampleData.nephrology.name
+                    subject = SampleData.nephrology.subject
+                    bodyText = PreviewLaunch.typedQuestions
+                    step = .make
+                }
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }

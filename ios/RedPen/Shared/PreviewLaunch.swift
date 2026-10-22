@@ -112,6 +112,15 @@ enum PreviewLaunch {
 
     static let screens = ["library", "new", "quiz", "quiz-checked", "summary", "anki", "anki-revealed", "book", "osce", "osce-revealed", "osce-complete", "narrate", "narrate-finished", "cases"]
 
+    /// The sample questions as a student would type them into New set, one
+    /// per line in PlainTextImport's format, for the tour's "new-make" still.
+    static var typedQuestions: String {
+        SampleData.nephrology.questions.map { q in
+            let letter: String = String(UnicodeScalar(UInt8(65 + q.correctIndex)))
+            return "\(q.stem) | \(q.options.joined(separator: "; ")) | \(letter) | \(q.explanation)"
+        }.joined(separator: "\n")
+    }
+
     /// A store that never touches the real library file.
     @MainActor
     static func seededStore() -> Store {
