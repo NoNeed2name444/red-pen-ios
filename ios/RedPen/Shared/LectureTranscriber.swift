@@ -57,7 +57,7 @@ enum LectureTranscriber {
             case .noRecogniser(let locale):
                 return "This phone has no speech recogniser for \(locale)."
             case .notOnDevice(let locale):
-                return "\(locale) can only be recognised on Apple's servers on this phone, and on-device transcription never uploads. Transcribe with Gemini instead, or download the offline language in Settings › General › Keyboard › Dictation."
+                return "\(locale) can only be recognised on Apple's servers on this phone, and on-device transcription never uploads. Transcribe in the cloud instead, or download the offline language in Settings › General › Keyboard › Dictation."
             case .failed(let why):
                 return why
             }

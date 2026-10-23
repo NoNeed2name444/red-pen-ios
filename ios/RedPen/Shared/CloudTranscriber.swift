@@ -180,7 +180,7 @@ enum CloudTranscriber {
     /// it, since at temperature 0 another try would most likely loop again,
     /// otherwise after the second try.
     static func ask(audio: Data, prompt: String, token: String) async throws -> Answer {
-        var lastError: Failure = .failed("Gemini's answer couldn't be read.")
+        var lastError: Failure = .failed("The transcriber's answer couldn't be read.")
         for attempt in 0..<2 {
             let (code, object) = try await post(audio: audio, prompt: prompt, token: token)
             let message = object?["message"] as? String
@@ -202,7 +202,7 @@ enum CloudTranscriber {
                         return Answer(phrases: guarded.phrases, trimmed: true, model: model)
                     }
                 }
-                lastError = .failed("Gemini's answer couldn't be read.")
+                lastError = .failed("The transcriber's answer couldn't be read.")
             case .stop(.signIn): throw Failure.failed("Please sign in again to use cloud transcription.")
             case .stop(.needsPro): throw Failure.needsPro
             case .stop(.busy(let why)): throw Failure.busy(why)

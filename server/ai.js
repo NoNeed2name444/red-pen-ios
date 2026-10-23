@@ -820,7 +820,7 @@ const FREE_MODELS = 'gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it
 /// token too - a billed project has no free tier. So the moment a paid-only
 /// model answers, the server knows the project is billed and behaves as
 /// GEMINI_BILLING = "on" (see billingSeen): every paid call is then counted
-/// against a budget, and with no budget set, students get the free Gemma only.
+/// against a budget, and with no budget set, only the owner is written for.
 const PAID_ONLY = 'gemini-3.1-pro-preview';
 const paidOnly = env => new Set(list(env.PAID_ONLY_MODELS || PAID_ONLY));
 /// The accuracy checker's preference: the fast model first, then the
