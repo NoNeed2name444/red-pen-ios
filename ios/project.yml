@@ -14,17 +14,6 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1,2"
-packages:
-  # Gemma-4-E2B fallback path for devices that can't run Apple's on-device
-  # model (older hardware, Apple Intelligence off) - see GemmaModel.swift.
-  # Pinned to one reviewed commit (main as of 26 Aug 2026), not "branch:
-  # main": every build runs this package's code, macros and plugins
-  # (xcodebuild is given -skipMacroValidation), so whatever landed on its
-  # main branch would otherwise run in the next CI build and ship in the next
-  # .ipa unseen. Move the pin on purpose, after reading what changed.
-  LocalLLMClient:
-    url: https://github.com/tattn/LocalLLMClient.git
-    revision: b68f71244baf308469a190cce4f54edf2fde4887
 targets:
   RedPen:
     type: application
@@ -80,10 +69,6 @@ targets:
         type: folder
         buildPhase: resources
     dependencies:
-      - package: LocalLLMClient
-        product: LocalLLMClient
-      - package: LocalLLMClient
-        product: LocalLLMClientLlama
       # Home and Lock Screen widgets, the Review due control and the exam-day
       # Live Activity (Xcode build only; ios/StethoscoreWidgets)
       - target: StethoscoreWidgets
@@ -263,12 +248,9 @@ targets:
         RED_PEN_OWNER_KEY: ""
         RED_PEN_GOOGLE_CLIENT_ID: ""
         RED_PEN_APP_GROUP: group.com.cramdown.app
-        # LocalLLMClientLlamaC's own header hard-errors ("needs to be
-        # compiled in C++ interoperability mode") unless the CONSUMING
-        # target - this app, not just the package's own target - also
-        # builds with Swift/C++ interop on. The package sets this for
-        # itself in Package.swift (.interoperabilityMode(.Cxx)), but that
-        # doesn't propagate to a plain .xcodeproj app target automatically.
+        # Swift/C++ interop, which the on-device model package needed; the
+        # package is gone (nothing writes on the phone), and the flag stays
+        # until a Mac build shows the app compiles the same without it.
         OTHER_SWIFT_FLAGS: -cxx-interoperability-mode=default
   # Widgets, the Control and the exam-day and ward round Live Activities.
   # Xcode build only: the Playgrounds package copies ios/RedPen and nothing

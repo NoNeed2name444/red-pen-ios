@@ -79,9 +79,9 @@ an in-memory store seeded with sample sets; a normal launch never sees it.
 
 ## The writer: one route, nothing to choose
 
-There is no AI models page and no writer to choose (the owner, 22 Oct). Every text job (questions, stations, cards, textbook pages, cases, twins, hints, Lens answers, marking) goes to the worker's writer route, `cramdown-writer` (`WriterRoute` in `Shared/LLM/LLMCore.swift`). The worker decides what answers it: for the owner key, its Claude route, behind `PRO_PAYS` and its spend cap. The app never holds a model's key; its bearer is the account's session or, in the personal build, the owner key.
+There is no AI models page and no writer to choose (the owner, 22 Oct). Every text job (questions, stations, cards, textbook pages, cases, twins, hints, Lens answers, marking) goes to the worker's writer route, `cramdown-writer` (`WriterRoute` in `Shared/LLM/LLMCore.swift`). The worker decides what answers it: its hosted writer, behind `PRO_PAYS` and its spend caps, with no free fallback for anyone but the owner key. The app never holds a model's key; its bearer is the account's session or, in the personal build, the owner key.
 
-Free, on the device and unchanged: Apple's on-device model and the Gemma download still write questions, stations and cases where the cloud can't be used. Audio goes to the worker's transcription route; no key is in the app.
+Nothing is written on the device (the owner, 23 Oct: "Lock it"): without the writer (not Pro, not signed in, or the cloud out of reach) the question, case and station screens write nothing and show why, the question screen with See Pro (`WriterGate` in `Shared/LLM/LLMCore.swift`). The on-device question writers and the offline model download are gone, and a launch removes the model files earlier builds downloaded (`RetiredModels`). Audio goes to the worker's transcription route; no key is in the app.
 
 Settings shows the cloud's status, **Verify what is generated**, the accuracy engine and **Crash and failure reports** as plain rows.
 

@@ -187,11 +187,16 @@ struct OsceGenerateSection: View {
             trouble = busy
             return
         }
+        // the writer route or nothing (WriterGate): no station is written on the phone
+        let writer: LLMBackend? = llm.writer()
+        let noWriter: String = llm.noWriter
+        guard writer != nil else {
+            trouble = noWriter
+            return
+        }
         working = true
         let wanted = stationCount, subj = subject, text = sourceText
         status = "Writing 0 of \(wanted)\u{2026}"
-        // the app's writer goes first; otherwise Apple's model
-        let writer = llm.writer()
         // the verification layer checks what is made (VerificationScreen now,
         // the independent checkers once the set is saved)
         let verify: Bool = llm.checkGenerated
@@ -222,17 +227,13 @@ struct OsceGenerateSection: View {
                     GenerationCenter.shared.update(job, done: done, total: total)
                     Task { @MainActor in status = "Writing \(done) of \(total)\u{2026}" }
                 }
-                var stations: [OsceChecklist]
-                if let writer {
-                    let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted, source: nil).encoded
-                    stations = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, delivery: delivery)) {
+                let recipe = CloudRecipe(kind: .osce, name: "", subject: subj, count: wanted, source: nil).encoded
+                var stations: [OsceChecklist] = try await WriterGate.write(.stations, with: writer, noWriter: noWriter) { writer in
+                    try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, delivery: delivery)) {
                         try await MedicalGenerate.osce(
                             sourceText: text, count: wanted, subject: subj,
                             using: writer, onProgress: progress)
                     }
-                } else {
-                    stations = try await OsceGenerator.generate(
-                        sourceText: text, count: wanted, subject: subj, onProgress: progress)
                 }
                 try Task.checkCancellation()
                 var checkNote = ""

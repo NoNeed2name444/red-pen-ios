@@ -20,8 +20,8 @@ struct ChatTurn: Codable, Hashable {
     static func assistant(_ text: String) -> ChatTurn { ChatTurn(role: .assistant, text: text) }
 }
 
-/// Anything that can finish a conversation. The on-device models and every
-/// hosted provider sit behind this, so a mode never knows which one it got.
+/// Anything that can finish a conversation: the writer route (and a test's
+/// stand-in) sit behind this, so a mode never knows which one it got.
 protocol LLMBackend: Sendable {
     var label: String { get }
     /// True when this backend runs on the device and sends nothing anywhere.
@@ -68,6 +68,23 @@ enum LLMRole: String, CaseIterable, Identifiable {
     case writer
     var id: String { rawValue }
     var title: String { "Writer" }
+}
+
+/// What a generate screen does when Make is tapped (the owner, 23 Oct: "Lock
+/// it"): the writer route writes, or nothing does. There is no model on the
+/// phone and no free one behind it, so without a writer (not Pro, not signed
+/// in, the cloud out of reach) the job is never started and the reason comes
+/// back for the screen to show beside See Pro.
+enum WriterGate {
+    /// The things the app writes from a lecture.
+    enum Job: String, CaseIterable { case questions, cases, stations }
+
+    /// Runs `write` with the writer, or throws `noWriter` with nothing run.
+    static func write<T>(_ job: Job, with writer: LLMBackend?, noWriter: String,
+                         _ write: (LLMBackend) async throws -> T) async throws -> T {
+        guard let writer else { throw LLMError.notReady(noWriter) }
+        return try await write(writer)
+    }
 }
 
 /// The app's one writer (the owner, 22 Oct): every role goes to the worker's

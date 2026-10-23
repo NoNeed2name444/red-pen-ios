@@ -173,5 +173,58 @@ let replyJSON = Data(#"{"choices":[{"message":{"role":"assistant","content":"Q1.
 ok((try? WriterRoute.reply(replyJSON)) == "Q1. Which rash?", "the worker's reply is read from its first choice")
 ok((try? WriterRoute.reply(Data(#"{"content":[{"text":"x"}]}"#.utf8))) == nil, "a reply in any other shape is refused, not guessed at")
 
+// MARK: the writer route or nothing (the owner, 23 Oct: "Lock it")
+
+/// A writer that counts what it is asked, so a test can see nothing was.
+final class CountingWriter: LLMBackend, @unchecked Sendable {
+    var asked = 0
+    var label: String { "Counting" }
+    var isOnDevice: Bool { false }
+    var promptBudgetChars: Int { 40_000 }
+    func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String {
+        asked += 1
+        return "written"
+    }
+}
+
+let lockedOut = "Stethoscore Cloud is part of Pro."
+for job in WriterGate.Job.allCases {
+    let probe = CountingWriter()
+    var ran = false
+    var reason: String?
+    do {
+        _ = try await WriterGate.write(job, with: nil, noWriter: lockedOut) { writer -> String in
+            ran = true
+            return try await writer.complete([.user("x")], maxTokens: 10, temperature: 0)
+        }
+    } catch {
+        reason = error.localizedDescription
+    }
+    ok(!ran && probe.asked == 0 && reason == lockedOut,
+       "\(job.rawValue): with no writer nothing is written, and the reason is the cloud's own (\(reason ?? "none"))")
+    let written = try? await WriterGate.write(job, with: probe, noWriter: lockedOut) { writer in
+        try await writer.complete([.user("x")], maxTokens: 10, temperature: 0)
+    }
+    ok(written == "written" && probe.asked == 1, "\(job.rawValue): with the writer route, it alone writes, once")
+}
+ok(Set(WriterGate.Job.allCases.map(\.rawValue)) == ["questions", "cases", "stations"],
+   "questions, cases and stations all go through the gate")
+
+// the files earlier builds downloaded to write on the phone are removed
+do {
+    let docs = FileManager.default.temporaryDirectory.appendingPathComponent("retired-\(UUID().uuidString)", isDirectory: true)
+    let models = RetiredModels.directory(in: docs)
+    try? FileManager.default.createDirectory(at: models.appendingPathComponent("Medical"), withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: models.appendingPathComponent("offline-writer.gguf.part").path, contents: Data("x".utf8))
+    FileManager.default.createFile(atPath: models.appendingPathComponent("Medical/writer.gguf").path, contents: Data("x".utf8))
+    let keep = docs.appendingPathComponent("library.json")
+    FileManager.default.createFile(atPath: keep.path, contents: Data("{}".utf8))
+    ok(RetiredModels.removeAll(in: docs) && !FileManager.default.fileExists(atPath: models.path)
+       && FileManager.default.fileExists(atPath: keep.path),
+       "a launch removes Documents/Models, finished and half-finished downloads, and nothing else")
+    ok(!RetiredModels.removeAll(in: docs), "with nothing left, there is nothing to remove")
+    try? FileManager.default.removeItem(at: docs)
+}
+
 print(failures == 0 ? "ALL LLM TESTS PASS" : "\(failures) LLM TEST(S) FAILED")
 exit(failures == 0 ? 0 : 1)

@@ -15,7 +15,6 @@ struct CaseMakeSection: View {
     let onMade: (StudySet) -> Void
 
     @EnvironmentObject private var llm: LocalLLMService
-    @EnvironmentObject private var gemma: GemmaModel
     @Environment(\.generationOwner) private var generationOwner
 
     @State private var picking = false
@@ -161,8 +160,11 @@ struct CaseMakeSection: View {
             trouble = busy
             return
         }
-        guard let writer = CaseMaker.writer(llm: llm, gemma: gemma) else {
-            trouble = CaseMaker.noWriter(gemma: gemma)
+        // the writer route or nothing (WriterGate): no case is written on the phone
+        let writer: LLMBackend? = CaseMaker.writer(llm: llm)
+        let noWriter: String = CaseMaker.noWriter(llm: llm)
+        guard writer != nil else {
+            trouble = noWriter
             return
         }
         working = true
@@ -198,8 +200,10 @@ struct CaseMakeSection: View {
                 let recipe = CloudRecipe(kind: .cases, name: setName, subject: subj, count: wanted, source: doc).encoded
                 let made: CaseMaker.Made = try await CloudJobs.$context.withValue(
                     CloudJobs.Context(recipe: recipe, delivery: delivery)) {
-                    try await CaseMaker.write(count: wanted, source: text, lecture: lecture, subject: subj,
-                                              using: writer, onProgress: progress)
+                    try await WriterGate.write(.cases, with: writer, noWriter: noWriter) { writer in
+                        try await CaseMaker.write(count: wanted, source: text, lecture: lecture, subject: subj,
+                                                  using: writer, onProgress: progress)
+                    }
                 }
                 try Task.checkCancellation()
                 var set = StudySet(name: setName, subject: subj.isEmpty ? "General" : subj, kind: .cases)

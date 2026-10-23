@@ -17,7 +17,6 @@ struct StethoscoreCoreApp: App {
     @StateObject private var sync = SyncEngine()
     @StateObject private var terms = RecordingTermsStore()
     @StateObject private var examQuestion = ExamQuestionStore()
-    @ObservedObject private var gemma = GemmaModel.shared
     @ObservedObject private var llm = LocalLLMService.shared
 
     init() {
@@ -93,7 +92,6 @@ struct StethoscoreCoreApp: App {
             .environmentObject(account)
             .environmentObject(subscriptions)
             .environmentObject(sync)
-            .environmentObject(gemma)
             .environmentObject(llm)
             .coreAudioEnvironment()
             .wardControls()

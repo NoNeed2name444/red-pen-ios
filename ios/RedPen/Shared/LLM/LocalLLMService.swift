@@ -24,7 +24,8 @@ final class LocalLLMService: ObservableObject {
 
     private init() {
         checkGenerated = UserDefaults.standard.object(forKey: Self.checkGeneratedKey) as? Bool ?? true
-        MedicalModel.removeRetired()
+        // the phone writes nothing now: earlier builds' model files go
+        RetiredModels.removeAll()
     }
 
     func attach(account: AccountStore, subscriptions: SubscriptionStore) {

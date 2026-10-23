@@ -51,7 +51,6 @@ enum NewSetStep: Int, CaseIterable, Identifiable, Comparable {
 /// from nothing.
 struct NewSetView: View {
     @EnvironmentObject var store: Store
-    @EnvironmentObject var gemma: GemmaModel
     /// Anki's schedule comes in with an imported deck.
     @EnvironmentObject var reviews: ReviewStore
     @Environment(\.dismiss) private var dismiss
