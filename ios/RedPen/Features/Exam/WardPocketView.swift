@@ -362,7 +362,7 @@ struct WardCalcView: View {
                 .padding(.horizontal, WardSpace.m)
                 .padding(.vertical, WardSpace.s)
                 .frame(maxWidth: 110)
-                .wardInset(in: RoundedRectangle(cornerRadius: 10, style: .continuous), control: true)
+                .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), control: true)
                 .focused($focused, equals: field.id)
                 .accessibilityLabel(spoken)
             if !unitName.isEmpty {

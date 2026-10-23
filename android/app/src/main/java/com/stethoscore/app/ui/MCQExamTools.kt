@@ -63,6 +63,7 @@ import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.wardDp
+import com.stethoscore.app.ui.ward.WardRadius
 
 // A port of ios/RedPen/Features/MCQ/MCQExamTools.swift: the exam
 // screen's tools, as the real test interfaces have them, for the question
@@ -132,7 +133,7 @@ enum class ExamToolSheet { labs, calculator }
             pieces.forEachIndexed { index, piece ->
                 val on = index in marked
                 val fill = if (on) ink else wardColor(WardToken.inkSecondary).copy(alpha = 0.06f)
-                Text(piece.trim(' ', '\t'), Modifier.fillMaxWidth().background(fill, RoundedCornerShape(8.dp))
+                Text(piece.trim(' ', '\t'), Modifier.fillMaxWidth().background(fill, RoundedCornerShape(WardRadius.field.wardDp))
                     .clickable(role = Role.Button, onClickLabel = if (on) "Removes the highlight" else "Highlights this phrase") {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onMarked(if (on) marked - index else marked + index)
@@ -200,7 +201,7 @@ enum class ExamToolSheet { labs, calculator }
                 if (rows.isNotEmpty()) {
                     item(key = group) { WardSmallCapsText(group, Modifier.padding(top = WardSpace.m.wardDp).semantics { heading() }) }
                     items(rows, key = { it.id }) { row ->
-                        Row(Modifier.fillMaxWidth().wardRaised(12.0).padding(WardSpace.m.wardDp).semantics(mergeDescendants = true) {},
+                        Row(Modifier.fillMaxWidth().wardRaised(WardRadius.field).padding(WardSpace.m.wardDp).semantics(mergeDescendants = true) {},
                             horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                             Text(row.name, Modifier.weight(1f), color = wardColor(WardToken.ink))
                             // the body face with even figures, as iOS's monospacedDigit
@@ -231,7 +232,7 @@ private enum class KeyRole { digit, function, op, equals, blank }
             KeyRole.function -> wardColor(WardToken.inkSecondary)
             else -> wardColor(WardToken.ink)
         }
-        val shape = RoundedCornerShape(14.dp)
+        val shape = RoundedCornerShape(WardRadius.button.wardDp)
         // iOS's PopPressStyle: raised at mid, pressed in while held or while chosen (a pending operation)
         val source = remember { MutableInteractionSource() }
         val held by source.collectIsPressedAsState()
@@ -243,7 +244,7 @@ private enum class KeyRole { digit, function, op, equals, blank }
     Column(Modifier.fillMaxWidth()) {
         SheetTitle("Calculator", onDone)
         Column(Modifier.widthIn(max = 420.dp).align(Alignment.CenterHorizontally).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-            Text(shown.first, Modifier.fillMaxWidth().wardInset(RoundedCornerShape(20.dp), WardLift.mid).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp)
+            Text(shown.first, Modifier.fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.card.wardDp), WardLift.mid).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp)
                 .semantics { contentDescription = "Display, ${shown.first}" }, textAlign = TextAlign.End, fontFamily = FontFamily.Monospace,
                 fontSize = 40.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Clip, color = wardColor(WardToken.ink))
             val gap = Arrangement.spacedBy(WardSpace.m.wardDp)

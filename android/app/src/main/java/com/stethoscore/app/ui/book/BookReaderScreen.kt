@@ -270,7 +270,7 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
         is BookPages.Block.Row -> Row(
             Modifier.fillMaxWidth()
                 // the header row pressed into the page, the others flat on it
-                .then(if (block.header) Modifier.wardInset(RoundedCornerShape(8.dp)) else Modifier)
+                .then(if (block.header) Modifier.wardInset(RoundedCornerShape(WardRadius.field.wardDp)) else Modifier)
                 .padding(WardSpace.s.wardDp),
             horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
             block.cells.forEachIndexed { i, cell ->
@@ -302,7 +302,7 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
             val picture = remember(stored) { stored?.let(::decodePicture) }
             if (picture != null) Column(Modifier.padding(vertical = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 Image(picture, block.caption.ifEmpty { "Figure" },
-                    Modifier.fillMaxWidth().wardRaised(10.0, WardLift.low).clip(RoundedCornerShape(10.dp)),
+                    Modifier.fillMaxWidth().wardRaised(WardRadius.field, WardLift.low).clip(RoundedCornerShape(WardRadius.field.wardDp)),
                     contentScale = ContentScale.FillWidth)
                 if (block.caption.isNotEmpty()) Text(inlineMarkdown(block.caption), style = WardTextStyle.subheadline.textStyle(),
                     color = wardColor(WardToken.inkSecondary))

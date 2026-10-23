@@ -171,9 +171,9 @@ extension View {
                                 chosen: chosen))
     }
 
-    /// Shapes this surface at `plane`, in a 20-point rounded rectangle.
+    /// Shapes this surface at `plane`, in a card's rounded rectangle (WardRadius.card).
     func popOut(_ plane: PopOutPlane) -> some View {
-        popOut(plane, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        popOut(plane, in: RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
     }
 
     /// The deep plane's parallax: the backdrop moves WITH the eye.

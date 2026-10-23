@@ -39,6 +39,7 @@ import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.wardDp
+import com.stethoscore.app.ui.ward.WardRadius
 
 // What the Cases screens add to the Ward kit: port of iOS Features/Cases/CaseKit.swift.
 // The card is WardCardFace, the avatar and the clock are pressed in (wardInset),
@@ -59,7 +60,7 @@ internal object CaseInk {
     val well: Color @Composable get() = wardWellFill()
 }
 
-internal val CaseCardShape = RoundedCornerShape(16.dp)
+internal val CaseCardShape = RoundedCornerShape(WardRadius.card.wardDp)
 
 /** A card, full width (iOS caseCard over wardCard): raised off the base. */
 @Composable

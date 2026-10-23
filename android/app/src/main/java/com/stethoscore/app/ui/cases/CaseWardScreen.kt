@@ -49,6 +49,7 @@ import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDisabledInk
 import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.WardRadius
 
 /**
  * One patient, from arrival to the decision, and then the debrief. Port of
@@ -251,7 +252,7 @@ private fun Actions(file: CaseFile, run: CaseRun, group: CaseStep.Group, onGroup
 
 @Composable
 private fun ActionChip(step: CaseStep, done: Boolean, modifier: Modifier, take: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(WardRadius.field.wardDp)
     val minutes = "${step.label}, ${step.minutes} minute${if (step.minutes == 1) "" else "s"}"
     Row(
         modifier.minimumInteractiveComponentSize().heightIn(min = 44.dp)
@@ -342,7 +343,7 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
         if (run.ladder.size >= CaseRun.RUNGS) Text("The ladder is full: a new diagnosis takes the bottom rung.", style = WardType.caption.textStyle(), color = CaseInk.biro)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             for (name in pickable) {
-                val shape = RoundedCornerShape(12.dp)
+                val shape = RoundedCornerShape(WardRadius.field.wardDp)
                 Box(
                     Modifier.minimumInteractiveComponentSize().widthIn(min = 140.dp).heightIn(min = 44.dp).background(CaseInk.surface, shape).border(1.dp, CaseInk.hairline, shape)
                         .clickable(role = Role.Button, onClickLabel = "Adds it to your ladder") { add(name) }.padding(horizontal = WardSpace.m.wardDp),

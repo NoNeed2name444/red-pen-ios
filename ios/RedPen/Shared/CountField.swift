@@ -54,7 +54,7 @@ struct CountField: View {
                     CountStepButton(symbol: "plus", label: "One more", enabled: value < high) { nudge(1) }
                 }
             }
-            .popField(cornerRadius: 22, insets: inside)
+            .popField(cornerRadius: WardRadius.bar, insets: inside)
         }
         .onAppear { text = String(value) }
         .onChange(of: focused) { _, now in if !now { commit() } }

@@ -62,11 +62,11 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
 @Composable private fun <T> SwitcherStrip(items: List<SwitcherItem<T>>, selection: T, onSelect: (T) -> Unit, toggleTag: String, collapse: () -> Unit) {
     val tint = wardColor(WardToken.primaryInk)
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Row(Modifier.wardRaised(26.0, WardLift.high, fill = WardToken.raised).padding(WardSpace.xs.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp),
+        Row(Modifier.wardRaised(WardRadius.bar + WardSpace.xs, WardLift.high, fill = WardToken.raised).padding(WardSpace.xs.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp),
             verticalAlignment = Alignment.CenterVertically) {
             items.forEach { item ->
                 val chosen = item.value == selection
-                val shape = RoundedCornerShape(21.dp)
+                val shape = RoundedCornerShape(WardRadius.bar.wardDp)
                 Column(Modifier.selectable(chosen, role = Role.Tab, interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(item.value) }
                     .semantics { testTag = item.identifier }
                     // the well the chosen segment is pressed into, with its 2-point edge in its ink
@@ -93,7 +93,7 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
     Box {
         Box(Modifier.size(48.dp).combinedClickable(role = Role.Button, onLongClick = { menu = true }, onClick = expand)
             .semantics { contentDescription = "Show the switcher, now ${chosen.title}"; testTag = toggleTag }
-            .wardRaised(24.0, WardLift.high, fill = WardToken.raised), contentAlignment = Alignment.Center) {
+            .wardRaised(WardRadius.bar, WardLift.high, fill = WardToken.raised), contentAlignment = Alignment.Center) {
             Icon(chosen.icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(22.dp))
             // the small chevron at the top trailing corner, tucked 2 points in
             Box(Modifier.align(Alignment.TopEnd).offset(x = (-2).dp, y = 2.dp).wardRaised(8.0, WardLift.low).padding(WardSpace.xs.wardDp)) {

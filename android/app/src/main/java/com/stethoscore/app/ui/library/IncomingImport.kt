@@ -64,6 +64,7 @@ import com.stethoscore.app.ui.ward.textStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.shape.CircleShape
 
 // iOS Features/Library/IncomingImport.swift: a Quizlet / CSV / TSV table or a
 // whole-library backup opened from another app gets the same preview as
@@ -262,7 +263,7 @@ private fun describePicked(context: Context, uri: Uri): Pair<String, Long> {
 
     reading?.let { name ->
         Box(Modifier.fillMaxWidth().padding(top = WardSpace.s.wardDp), contentAlignment = Alignment.TopCenter) {
-            Row(Modifier.wardRelief(RoundedCornerShape(50), WardLift.high).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp),
+            Row(Modifier.wardRelief(CircleShape, WardLift.high).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp),
                 horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Download, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(16.dp))
                 Text("Reading $name…", style = WardTextStyle.footnote.textStyle(WardWeight.medium), color = wardColor(WardToken.ink))

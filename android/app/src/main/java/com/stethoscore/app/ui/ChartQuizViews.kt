@@ -90,7 +90,7 @@ internal enum class QuizButtonKind { primary, companion, secondary }
         else -> wardColor(WardToken.ink)
     }
     val letterInk = tone ?: wardColor(WardToken.inkSecondary)
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(WardRadius.tile.wardDp)
     val wrong = mark == ChartQuiz.Mark.wrong
     // a wrong pick lies flat on the faded face, in the faded ink's ring, not
     // pressed in: its face is lighter than the cards at night, and a rim would lift it

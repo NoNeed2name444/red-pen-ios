@@ -468,7 +468,7 @@ private struct SpokenLineBubble: View {
     let line: SpokenLine
 
     var body: some View {
-        let bubble = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        let bubble = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
         switch line.speaker {
         case .examiner:
             Text(line.text)
@@ -476,7 +476,7 @@ private struct SpokenLineBubble: View {
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(WardSpace.m)
-                .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
         case .student:
             HStack {
                 Spacer(minLength: 40)
