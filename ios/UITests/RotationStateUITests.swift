@@ -127,12 +127,17 @@ final class RotationStateUITests: XCTestCase {
     func testNameSheetKeepsItsDraft() {
         for posture in postures {
             let app = launch("name-sheet", posture: posture)
-            let field = app.textFields.firstMatch
+            // The sheet's own field by its name: the library under the sheet
+            // keeps its search field in the tree, and that came first, so
+            // the draft was typed at a field the sheet covered (App build
+            // 39946874030: "Neither element nor any descendant has keyboard
+            // focus" on librarySearch, with Folder name focused; T0151).
+            let field = app.textFields["nameSheetField"]
             XCTAssertTrue(field.waitForExistence(timeout: 30), "the name sheet did not open")
             field.tap()
             field.typeText("Renal block")
             everyTurn("name sheet (\(posture ?? "phone"))", app) {
-                let now = app.textFields.firstMatch
+                let now = app.textFields["nameSheetField"]
                 XCTAssertTrue(now.exists, "the name sheet closed")
                 XCTAssertEqual(now.value as? String, "Renal block", "the typed name was lost")
             }
@@ -186,26 +191,60 @@ final class RotationStateUITests: XCTestCase {
     func testMockSittingKeepsItsPlace() {
         for posture in postures {
             let app = launch("mock-sitting", posture: posture)
-            let part = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Part '")).firstMatch
-            XCTAssertTrue(part.waitForExistence(timeout: 30), "the mock paper shows no Part")
-            let partLabel = part.label
-            let question = app.staticTexts.matching(
+            // The paper's place: its part, its question, its answer. The
+            // header is one element ("Question 1 of 8, 0 answered"), and
+            // names the part ("Paper 1 of 2 · 0 answered") only when the
+            // paper has more than one, never as "Part ": the mock-sitting
+            // preview is PLAB 1, one part, named by its title in the bar
+            // ("PLAB 1 paper"). This looked for "Part " and found none on a
+            // paper that was there (App build 39946874030's recording,
+            // T0151). The header's count of answers and its pace ("aim: Q2 by
+            // now") change as the paper is sat, so the part and the question
+            // are read out of it rather than the whole line compared.
+            let title = app.navigationBars.staticTexts.firstMatch
+            XCTAssertTrue(title.waitForExistence(timeout: 30), "the mock paper did not open")
+            let paper: String = title.label
+            let header = app.staticTexts.matching(
                 NSPredicate(format: "label BEGINSWITH 'Question ' AND label CONTAINS ' of '")).firstMatch
-            XCTAssertTrue(question.waitForExistence(timeout: 5), "the mock paper shows no question number")
-            let questionLabel = question.label
+            XCTAssertTrue(header.waitForExistence(timeout: 5), "the mock paper shows no question number")
+            // the part's line, should the header's lines be elements of their own
+            let partLine = app.staticTexts.matching(
+                NSPredicate(format: "label MATCHES %@", "^.+ of [0-9]+ \u{00B7} .*")).firstMatch
+            let place: () -> String = { [header, partLine].filter(\.exists).map(\.label).joined(separator: "\n") }
+            let start: String = place()
+            let questionLabel: String = Self.match(Self.questionNumber, in: start) ?? ""
+            XCTAssertFalse(questionLabel.isEmpty, "the mock paper shows no question number: \(start)")
+            // "Paper 1 of 2" where the paper has parts; else the paper is its one part
+            let partLabel: String? = Self.match(Self.partName, in: start)
             let choice = answers(app).element(boundBy: 1)
             reach(choice, in: app)
             choice.tap()
             let chosen = choice.label
             everyTurn("mock sitting (\(posture ?? "phone"))", app) {
-                XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@", partLabel)).firstMatch.exists,
-                              "left \(partLabel)")
-                XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@", questionLabel)).firstMatch.exists,
-                              "left \(questionLabel)")
+                let now: String = place()
+                XCTAssertEqual(app.navigationBars.staticTexts.firstMatch.label, paper, "left \(paper)")
+                if let partLabel {
+                    XCTAssertEqual(Self.match(Self.partName, in: now), partLabel, "left \(partLabel): \(now)")
+                }
+                XCTAssertEqual(Self.match(Self.questionNumber, in: now), questionLabel, "left \(questionLabel): \(now)")
                 let same = answers(app).matching(NSPredicate(format: "label == %@", chosen)).firstMatch
                 XCTAssertTrue(same.exists && same.isSelected, "the paper lost its answer: \(chosen)")
             }
             app.terminate()
         }
+    }
+
+    /// The question number at the head of the mock's header.
+    private static let questionNumber = "^Question [0-9]+ of [0-9]+"
+    /// The part, where the paper has more than one: "Paper 1 of 2" before
+    /// its " · ".
+    private static let partName = "[^,\u{00B7}\\n]+ of [0-9]+(?= \u{00B7} )"
+
+    /// The first match of `pattern` in `text`, trimmed; nil if none.
+    private static func match(_ pattern: String, in text: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let found = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let range = Range(found.range, in: text) else { return nil }
+        return text[range].trimmingCharacters(in: .whitespaces)
     }
 }

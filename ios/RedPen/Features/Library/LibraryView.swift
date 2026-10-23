@@ -181,6 +181,9 @@ struct LibraryView: View {
     /// Where the home's grid band ends, followed through a scroll without
     /// redrawing the list (HomeBandTrack).
     @State var bandTrack = HomeBandTrack()
+    /// Where the set rows stand in the list, so a turn keeps the first one
+    /// in view (HomeRowKeep); followed without redrawing the list.
+    @State var rowTrack = HomeRowTrack()
 
     // The spacer marks the end of the library list for preview scrolling.
     private static let listEndID = "library-list-end"
@@ -541,6 +544,7 @@ struct LibraryView: View {
             .onChange(of: pageKey) {
                 bandTrack.reset()
                 WardPartBook.shared.clear()
+                rowTrack.clear()
             }
             .navigationDestination(for: StudySet.self) { destination(for: $0) }
             // Snapshotted when tapped rather than built live: a flag taken
@@ -579,17 +583,17 @@ struct LibraryView: View {
     /// The category's list; on a wide iPad, one column of a comfortable
     /// width rather than rows stretched across the whole window. The bar
     /// area over it is solid (the masthead).
+    ///
+    /// One list either way, its width capped by a value rather than drawn in
+    /// a branch of its own: a branch per span made a new list whenever the
+    /// span changed, so turning the phone on its side (874 points wide is
+    /// broad) threw away the scroll and put the student back at the top
+    /// (T0151, RotationStateUITests.testLibraryKeepsItsRow).
     private var categoryPage: some View {
-        Group {
-            if span == .broad {
-                content
-                    .frame(maxWidth: 820)
-                    .frame(maxWidth: .infinity)
-            } else {
-                content
-            }
-        }
-        .overlay(alignment: .top) { HomeMasthead(track: bandTrack, band: bandShown) }
+        content
+            .frame(maxWidth: span == .broad ? 820 : .infinity)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .top) { HomeMasthead(track: bandTrack, band: bandShown) }
     }
 
     /// The band runs down from the window's top to just under the header,
@@ -797,7 +801,23 @@ struct LibraryView: View {
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { _, y in
                 bandTrack.scroll = y
             }
-            .onScrollPhaseChange { _, phase in bandTrack.settle(idle: phase == .idle) }
+            .onScrollPhaseChange { _, phase in
+                bandTrack.settle(idle: phase == .idle)
+                // where the student came to rest is the place a turn keeps;
+                // at the list's top there is nothing to keep
+                if phase == .idle { rowTrack.capture(atTop: bandTrack.scroll < 1) }
+            }
+            // The list's own frame and insets, so the rows' frames can be read
+            // against what shows; a new size (the phone turned, the window
+            // resized) scrolls the kept row back into view (HomeRowKeep).
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { rowTrack.list = $0 }
+            .onScrollGeometryChange(for: HomeRowTrack.Band.self) { geometry in
+                HomeRowTrack.Band(size: geometry.containerSize, top: geometry.contentInsets.top,
+                                  bottom: geometry.contentInsets.bottom)
+            } action: { old, now in
+                rowTrack.band = now
+                if old.size != now.size, old.size.width > 0 { keepRow(proxy) }
+            }
             // Back from a set that Turn into just made: the new set in view,
             // not somewhere below the fold.
             .onChange(of: opened.isEmpty) { _, back in
@@ -817,6 +837,24 @@ struct LibraryView: View {
                     proxy.scrollTo(Self.listEndID, anchor: .bottom)
                 }
             }
+        }
+    }
+
+    /// Scrolls the row the student was on back into view after a turn: once
+    /// at once, and again as the turn's animation and the rows' new heights
+    /// settle. Nothing kept, nothing moves.
+    private func keepRow(_ proxy: ScrollViewProxy) {
+        guard let place = rowTrack.kept else { return }
+        rowTrack.turning += 1
+        let anchor = UnitPoint(x: 0.5, y: HomeRowKeep.anchor(place.fraction))
+        Task { @MainActor in
+            for wait in [0, 150, 300] {
+                if wait > 0 {
+                    do { try await Task.sleep(for: .milliseconds(wait)) } catch { break }
+                }
+                proxy.scrollTo(place.id, anchor: anchor)
+            }
+            rowTrack.turning -= 1
         }
     }
 
@@ -1256,5 +1294,64 @@ private struct SearchPrompt: View {
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+/// Where home's set rows stand while the list scrolls, and the row a turn
+/// keeps (HomeRowKeep). A plain object, not observed: the rows write their
+/// frames as they move, and nothing redraws for it.
+@MainActor
+final class HomeRowTrack {
+    /// The list's visible size and its top and bottom insets (the top row,
+    /// the bar).
+    struct Band: Equatable {
+        var size: CGSize = .zero
+        var top: CGFloat = 0
+        var bottom: CGFloat = 0
+    }
+
+    var band = Band()
+    /// The list's frame in the window.
+    var list: CGRect = .zero
+    /// Each set row on screen, by its set's id, in window points.
+    private var rows: [UUID: CGRect] = [:]
+    /// The row to keep through the next turn; nil at the list's top.
+    private(set) var kept: HomeRowKeep.Place<UUID>?
+    /// Turns being kept now: the rows move under the turn, and where they
+    /// pass is not a place the student chose.
+    var turning = 0
+
+    func report(_ id: UUID, _ frame: CGRect) { rows[id] = frame }
+    func gone(_ id: UUID) { rows[id] = nil }
+
+    func clear() {
+        rows = [:]
+        kept = nil
+    }
+
+    /// Notes the first set row in view, where the list came to rest.
+    func capture(atTop: Bool) {
+        guard turning == 0 else { return }
+        guard !atTop else {
+            kept = nil
+            return
+        }
+        let top = Double(list.minY + band.top)
+        let bottom = Double(list.minY + band.size.height - band.bottom)
+        let all: [HomeRowKeep.Row<UUID>] = rows.map { HomeRowKeep.Row(id: $0.key, minY: Double($0.value.minY),
+                                                                       maxY: Double($0.value.maxY)) }
+        kept = HomeRowKeep.place(all, top: top, bottom: bottom)
+    }
+}
+
+/// A set row reports where it stands to HomeRowTrack, and that it left.
+struct HomeRowReport: ViewModifier {
+    let id: UUID
+    let track: HomeRowTrack
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { track.report(id, $0) }
+            .onDisappear { track.gone(id) }
     }
 }

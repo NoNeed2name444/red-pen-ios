@@ -1022,10 +1022,11 @@ extension WardPaperInk {
 /// paper, outside the navigation stack, and the stack's own edge pan (the
 /// system's swipe back) never saw it: from the edge, swiping back did
 /// nothing on any pushed page (the island recording, 21 Oct). A touch in
-/// the leading gutter is hit-tested to what lies just inside the page at the
-/// same height; the touch itself stays where it is, at the screen's edge,
-/// so the stack's edge pan takes it as on any iPhone app. Anywhere else this
-/// view takes nothing.
+/// the leading gutter goes to the navigation stack just inside the page at
+/// the same height, its own view, found without hit-testing again
+/// (WardEdgeReachRule: that crashed); the touch itself stays where it is, at
+/// the screen's edge, so the stack's edge pan takes it as on any iPhone app.
+/// Anywhere else this view takes nothing.
 struct WardEdgeReach: UIViewRepresentable {
     func makeUIView(context: Context) -> WardEdgeReachView { WardEdgeReachView() }
     func updateUIView(_ view: WardEdgeReachView, context: Context) {}
@@ -1042,13 +1043,20 @@ final class WardEdgeReachView: UIView {
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let window, !isHidden, bounds.contains(point) else { return nil }
-        let inset = CGFloat(WardPaper.sideInset)
         let rtl = effectiveUserInterfaceLayoutDirection == .rightToLeft
-        let inGutter = rtl ? point.x >= bounds.maxX - inset : point.x <= bounds.minX + inset
-        guard inGutter else { return nil }
-        // Just inside the page, where this view (outside its gutter) takes nothing.
-        let inside = CGPoint(x: rtl ? bounds.maxX - inset - 1 : bounds.minX + inset + 1, y: point.y)
-        return window.hitTest(convert(inside, to: window), with: event)
+        guard let x = WardEdgeReachRule.inside(x: Double(point.x), minX: Double(bounds.minX),
+                                               maxX: Double(bounds.maxX), rtl: rtl) else { return nil }
+        // Just inside the page, in the window's points.
+        let inside: CGPoint = convert(CGPoint(x: CGFloat(x), y: point.y), to: window)
+        // The stack's own view, never a hosting view the hit test is already
+        // in: handing one of those back is what ran the stack out.
+        return WardEdgeReachRule.stack(
+            from: window as UIView,
+            children: { $0.subviews },
+            holdsPoint: { $0.bounds.contains($0.convert(inside, from: window)) },
+            takesTouches: { !$0.isHidden && $0.alpha > 0.01 && $0.isUserInteractionEnabled },
+            isStack: { $0.next is UINavigationController },
+            holdsReach: { self.isDescendant(of: $0) })
     }
 }
 #endif

@@ -488,6 +488,55 @@ do {
           HomeFit.pushCovered(faces: [682.3333333333333], cut: 682.3333333333333, removed: 0, kept: 1))
 }
 
+// MARK: - A turn keeps the row (T0151, RotationStateUITests.testLibraryKeepsItsRow)
+do {
+    typealias R = HomeRowKeep.Row<String>
+    // the iPhone 17 Pro upright: the list's visible band under the top row
+    // (118) and over the dock (744); rows as the recording after a swipe up
+    let rows: [R] = [R(id: "round", minY: -300, maxY: 40), R(id: "nephrology", minY: 300, maxY: 372),
+                     R(id: "session", minY: 384, maxY: 440), R(id: "mixed", minY: 700, maxY: 900)]
+    let place = HomeRowKeep.place(rows, top: 118, bottom: 744)
+    check("turn: the first row in view is kept", place?.id == "nephrology", "\(String(describing: place))")
+    check("turn: its place is how far down the band it stood",
+          abs((place?.fraction ?? -1) - (300.0 - 118.0) / (744.0 - 118.0)) < 1e-9)
+    // a row half under the top row, its middle in view, is the one a finger finds first
+    let half: [R] = [R(id: "under", minY: 60, maxY: 200), R(id: "next", minY: 212, maxY: 280)]
+    check("turn: a row with its middle in view counts", HomeRowKeep.place(half, top: 118, bottom: 744)?.id == "under")
+    let hidden: [R] = [R(id: "under", minY: 20, maxY: 140), R(id: "next", minY: 152, maxY: 220)]
+    check("turn: a row with its middle under the top row does not",
+          HomeRowKeep.place(hidden, top: 118, bottom: 744)?.id == "next")
+    // a row taller than the band, the only one showing
+    check("turn: a row taller than the band is kept",
+          HomeRowKeep.place([R(id: "tall", minY: -400, maxY: 1200)], top: 118, bottom: 744)?.id == "tall")
+    check("turn: no row in view keeps nothing",
+          HomeRowKeep.place([R(id: "below", minY: 800, maxY: 870)], top: 118, bottom: 744) == nil)
+    check("turn: an empty band keeps nothing", HomeRowKeep.place(rows, top: 300, bottom: 300) == nil)
+    check("turn: a row without height is not a row",
+          HomeRowKeep.place([R(id: "flat", minY: 200, maxY: 200)], top: 118, bottom: 744) == nil)
+    // where it goes after the turn: never under the top row, never under the bar
+    check("turn: a row near the top goes a fifth down", HomeRowKeep.anchor(0.02) == 0.2)
+    check("turn: a row half under the top row too", HomeRowKeep.anchor(-0.1) == 0.2)
+    check("turn: a row in the middle stays there", HomeRowKeep.anchor(0.45) == 0.45)
+    check("turn: a row near the bar comes up", HomeRowKeep.anchor(0.95) == 0.7)
+    check("turn: no number goes to the top's place", HomeRowKeep.anchor(.nan) == 0.2)
+    // On its side the iPhone 17 Pro is 874 wide, a broad span: the list must
+    // be the same list either way, or the turn makes a new one at its top.
+    // The page's width is capped by a value, not chosen in a branch.
+    let page: String = {
+        guard let a = library.range(of: "private var categoryPage: some View {"),
+              let b = library.range(of: "private var bandShown", range: a.upperBound..<library.endIndex)
+        else { return "" }
+        return String(library[a.lowerBound..<b.lowerBound])
+    }()
+    check("turn: categoryPage found", !page.isEmpty)
+    check("turn: categoryPage draws one list at every span", !page.contains("if span") && !page.contains("else"),
+          page)
+    check("turn: the rows report where they stand",
+          ((try? String(contentsOfFile: "ios/RedPen/Features/Library/LibraryRows.swift", encoding: .utf8)) ?? "")
+            .contains("HomeRowReport(id: set.id"))
+    check("turn: a new size scrolls the kept row back", library.contains("keepRow(proxy)"))
+}
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {
