@@ -110,7 +110,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     gemini.models = [body.prefer, ...gemini.models.filter(m => m !== body.prefer)];
   }
   // The owner's benchmarks: one named model and nothing else, so models can
-  // be compared ("gemini:gemini-3.8-flash", "workers-ai:@cf/...", "hf:org/model").
+  // be compared ("gemini:<model>", "workers-ai:@cf/...", "hf:org/model").
   // Never Claude: a pinned `claude:` source is not marked `paid`, so pinning it
   // here would call Anthropic with neither the monthly checker cap nor the Pro
   // wallet holding anything back.
@@ -816,15 +816,15 @@ const FREE_MODELS = 'gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it
 /// Pro pays (PRO_PAYS off) only the owner's own key may use them.
 ///
 /// That alone does not make turning billing on safe: once the Firebase project
-/// is on the Blaze plan, Google bills 3.8 Flash and Flash-Lite from the first
+/// is on the Blaze plan, Google bills every model in the chain from the first
 /// token too - a billed project has no free tier. So the moment a paid-only
 /// model answers, the server knows the project is billed and behaves as
 /// GEMINI_BILLING = "on" (see billingSeen): every paid call is then counted
 /// against a budget, and with no budget set, students get the free Gemma only.
 const PAID_ONLY = 'gemini-3.1-pro-preview';
 const paidOnly = env => new Set(list(env.PAID_ONLY_MODELS || PAID_ONLY));
-/// The accuracy checker's preference: 3.8 Flash, then 3.1 Pro (when the
-/// writer was Flash), then the smaller ones.
+/// The accuracy checker's preference: the fast model first, then the
+/// strongest (when the fast one wrote), then the smaller ones.
 const CHECKER_MODELS = 'gemini-3.8-flash,gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it';
 const PAID_MODELS = 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
 const TRANSCRIBE_MODELS = 'gemini-3.8-flash';

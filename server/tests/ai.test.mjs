@@ -555,9 +555,20 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const models = [];
   const fetcher = async url => { models.push(url.match(/models\/([^:]+):/)[1]);
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'x' }] } }] }), { status: 200 }); };
-  // an account's chat never reaches them (only the owner is written for); its
-  // checks' votes still do (askModel), within the same shares
+  // an account's chat never reaches them (only the owner is written for), and
+  // nor do its checks: checkBatch refuses anyone but the owner before a vote
+  // (the owner, 23 Oct: "only me"). askModel's shares below are the owner's
+  // checks' votes, as checkBatch asks them.
   ok((await chat(withPro(env), 'p1', request, fetcher)).status === 402 && models.length === 0, 'a Pro account\'s chat is refused and no free model is asked');
+  {
+    const { checkBatch } = await import('../accuracy.js');
+    const items = [{ id: 'q1', kind: 'mcq', text: 'Which drug?', answer: 'A', source: 'lecture' }];
+    const fetched = [];
+    const r = await checkBatch(env, 'p1', { items }, async url => { fetched.push(url); return new Response('{}', { status: 200 }); });
+    const said = await r.json();
+    ok(r.status === 402 && said.message === 'The accuracy check is part of Pro.' && fetched.length === 0 && models.length === 0,
+       'a Pro account (not the owner) asking for an accuracy check: 402, no vote asked (askModel never called), no model text back');
+  }
   const vote = (e, use) => askModel(e, 'a1', false, use, request.messages, 50, fetcher);
   const votes = [];
   for (let i = 0; i < 3; i++) votes.push((await vote(env, 'gemini:gemini-3.8-flash')).ok);

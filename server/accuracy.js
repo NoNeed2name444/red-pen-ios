@@ -34,7 +34,8 @@
 
 import { jevOath, oathWithJev, TIMEOUT_MS as JEV_TIMEOUT_MS } from './jev.js';
 import { takeToday, ceiling, REPORTS_PER_DAY } from './limits.js';
-import { proGate, askModel, spend, refund, pinnedSource } from './ai.js';
+import { askModel, spend, refund, pinnedSource } from './ai.js';
+import { rowIsOwner } from './lib/owner.js';
 import { europePMC, medlinePlus, openFDA, forModels } from './evidence.js';
 import { prove, fullyProven, PROOF_VERSION, PROOF_CHARS } from './proof.js';
 import { ruleHits, itemText, sourceMatch, DRUGS } from './accuracy-rules.js';
@@ -779,9 +780,14 @@ export async function cacheStage(env, writes, budget = BUDGETS.cache) {
 /// POST /accuracy/check: the stages above, in order. `budgets` and
 /// `onStage` (each stage's result as it ends) are for tests and benches.
 export async function checkBatch(env, account, body, fetcher = fetch, { owner = false, bench = false, budgets = {}, onStage = null, maxWork = MAX_WORK, gate = claimGate } = {}) {
+  // Checking is model text too (a vote's fix comes back), so it is the
+  // owner's alone (the owner, 23 Oct: "only me"): the owner key, or the owner
+  // signed in, who keeps the account's own shares and daily batches as before.
+  // Anyone else, Pro or not, is refused before any model is asked.
   if (!owner) {
-    const refused = await proGate(env, account, fetcher, 'The accuracy check is part of Pro.');
-    if (refused) return refused;
+    const row = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(account).first();
+    if (!row) return fail(401, 'Please sign in again.');
+    if (!rowIsOwner(env, row)) return fail(402, 'The accuracy check is part of Pro.');
   }
   const raw = Array.isArray(body?.items) ? body.items : [];
   if (!raw.length || raw.length > BATCH) return fail(400, `Send 1 to ${BATCH} items.`);
