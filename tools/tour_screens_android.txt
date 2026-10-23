@@ -83,8 +83,10 @@
 101	Ideas empty, map	r101_ideasEmptyMap	r101-ideas-map-empty-light r101-ideas-map-empty-dark
 102	Board	r102_board	r102-ideas-board-light r102-ideas-board-dark
 103	Brain map	r103_brainMap	r103-ideas-map-light r103-ideas-map-dark
+103	Brain map: Performance	r103_brainMapPerformance	r103-ideas-map-performance-light r103-ideas-map-performance-dark
 104	Million-note demo	r104_millionDemo	r104-ideas-million-light r104-ideas-million-dark
 105	Legend	r105_legend	r105-ideas-legend-light r105-ideas-legend-dark
+105	Legend: Performance	r105_legendPerformance	r105-ideas-legend-performance-light r105-ideas-legend-performance-dark
 105	Folder looks	r105_folderLooks	r105-ideas-folder-looks-light r105-ideas-folder-looks-dark
 106	Note editor	r106_noteEditorAndLinkPicker	r106-note-editor-light r106-note-editor-dark
 107	Link picker	r106_noteEditorAndLinkPicker	r107-link-picker-light r107-link-picker-dark

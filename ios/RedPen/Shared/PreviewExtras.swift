@@ -251,6 +251,8 @@ extension PreviewExtras {
         "narrate-sections", "narrate-empty", "commute", "explain-back", "explain-result",
         // ideas
         "ideas", "ideas-board", "ideas-map", "ideas-million", "note-editor", "link-picker", "idea-name",
+        // the map's other themes, and their legends (T0147)
+        "ideas-map-neurons", "ideas-map-performance", "ideas-legend-neurons", "ideas-legend-performance",
         // vitals
         "vitals", "insight-questions", "rules", "coverage", "stats",
         // settings, support, platform
@@ -540,6 +542,14 @@ extension PreviewExtras {
             return AnyView(TourSetup({ TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue]) }) {
                 TourNotes { _ in LibraryView(inIdeas: true) }
             })
+        case "ideas-map-neurons":
+            return themedMap(.neurons, legend: false)
+        case "ideas-map-performance":
+            return themedMap(.performance, legend: false)
+        case "ideas-legend-neurons":
+            return themedMap(.neurons, legend: true)
+        case "ideas-legend-performance":
+            return themedMap(.performance, legend: true)
         case "ideas-million":
             return AnyView(TourSetup({
                 TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue,
@@ -605,6 +615,37 @@ extension PreviewExtras {
         default:
             return AnyView(EmptyView())
         }
+    }
+}
+
+extension PreviewExtras {
+    /// ideas-map in another theme (GraphTheme.key registered, as the Look
+    /// menu would store it), on the example notes; with `legend`, that
+    /// theme's legend open over the map as the Look menu opens it.
+    @MainActor
+    fileprivate static func themedMap(_ theme: GraphTheme, legend: Bool) -> AnyView {
+        AnyView(TourSetup({
+            TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue, GraphTheme.key: theme.rawValue])
+        }) {
+            TourNotes { _ in
+                if legend {
+                    LibraryView(inIdeas: true).sheet(isPresented: .constant(true)) { TourLegend(theme: theme) }
+                } else {
+                    LibraryView(inIdeas: true)
+                }
+            }
+        })
+    }
+}
+
+/// A theme's legend, sized as the map presents it (Graph3DView).
+private struct TourLegend: View {
+    let theme: GraphTheme
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    var body: some View {
+        GraphLegendSheet(theme: theme)
+            .modifier(GraphLegendPresentation(regular: sizeClass == .regular))
     }
 }
 
