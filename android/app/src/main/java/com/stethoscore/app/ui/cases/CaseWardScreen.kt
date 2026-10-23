@@ -50,6 +50,9 @@ import com.stethoscore.app.ui.ward.wardDisabledInk
 import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardRadius
+import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.wardWellFill
+import com.stethoscore.app.ui.wardColor
 
 /**
  * One patient, from arrival to the decision, and then the debrief. Port of
@@ -118,7 +121,7 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
                         CaseCard {
                             CaseLabel("Your shift")
                             Text("You have ${file.budgetMinutes} minutes. Every examination and test costs time. Keep a ranked differential as you go, then decide the diagnosis and the next step.",
-                                style = WardTextStyle.subheadline.textStyle(), color = CaseInk.ink)
+                                style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
                         }
                     } else {
                         ClerkingFolded(file)
@@ -131,13 +134,13 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
                     }
                 }
                 if (wide && !arriving) {
-                    VerticalDivider(color = CaseInk.hairline)
+                    VerticalDivider(color = wardColor(WardToken.hairline))
                     CaseLadderPanel(file, run, Modifier.width(340.dp).fillMaxHeight()) { edit -> change { edit(it); true } }
                 }
             }
             // the bar at the bottom, under the thumb
-            HorizontalDivider(color = CaseInk.hairline)
-            Row(Modifier.fillMaxWidth().background(CaseInk.ward).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
+            HorizontalDivider(color = wardColor(WardToken.hairline))
+            Row(Modifier.fillMaxWidth().background(wardColor(WardToken.background)).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                 if (arriving) {
                     CaseButton("See the patient", { arriving = false }, Modifier.weight(1f), primary = true, icon = Icons.Rounded.MedicalServices)
                 } else {
@@ -157,7 +160,7 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LadderSheet(file: CaseFile, run: CaseRun, onDone: () -> Unit, edit: ((CaseRun) -> Unit) -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDone, sheetState = rememberModalBottomSheetState(), containerColor = CaseInk.ward) {
+    ModalBottomSheet(onDismissRequest = onDone, sheetState = rememberModalBottomSheetState(), containerColor = wardColor(WardToken.background)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = WardSpace.l.wardDp), verticalAlignment = Alignment.CenterVertically) {
             Text("Differential", Modifier.weight(1f), style = WardType.headline.textStyle())
             TextButton(onDone) { Text("Done", fontWeight = FontWeight.SemiBold) }
@@ -182,7 +185,7 @@ private fun Triage(file: CaseFile, run: CaseRun, arriving: Boolean) {
                     if (file.patient.sexLetter.isNotEmpty()) CaseChip(if (file.patient.isFemale) "Female" else "Male", CaseTone.grey)
                     CaseChip(file.setting.label, CaseTone.blue)
                 }
-                if (file.patient.about.isNotEmpty()) Text(file.patient.about, style = WardTextStyle.footnote.textStyle(), color = CaseInk.biro)
+                if (file.patient.about.isNotEmpty()) Text(file.patient.about, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
             CaseClockPill(run.minutesUsed, file.budgetMinutes)
         }
@@ -200,7 +203,7 @@ private fun ClerkingParts(file: CaseFile) {
     Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         for (part in file.clerking.parts) {
             Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
-                Text(part.label, style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = CaseInk.biro)
+                Text(part.label, style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
                 Text(part.text, style = WardTextStyle.subheadline.textStyle())
             }
         }
@@ -227,7 +230,7 @@ private fun ClerkingFolded(file: CaseFile) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CaseLabel("Clerking note", Modifier.weight(1f))
-            Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, null, tint = CaseInk.theatre)
+            Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, null, tint = wardColor(WardToken.primaryInk))
         }
         if (open) Box(Modifier.padding(top = WardSpace.s.wardDp)) { ClerkingParts(file) }
     }
@@ -257,8 +260,8 @@ private fun ActionChip(step: CaseStep, done: Boolean, modifier: Modifier, take: 
     Row(
         modifier.minimumInteractiveComponentSize().heightIn(min = 44.dp)
             // raised to be tapped; once taken, pressed into the card
-            .background(if (done) CaseInk.well else CaseInk.surface, shape)
-            .border(1.dp, CaseInk.hairline, shape)
+            .background(if (done) wardWellFill() else wardColor(WardToken.surface), shape)
+            .border(1.dp, wardColor(WardToken.hairline), shape)
             .clickable(enabled = !done, role = Role.Button, onClick = take)
             .padding(WardSpace.m.wardDp)
             .clearAndSetSemantics {
@@ -268,10 +271,10 @@ private fun ActionChip(step: CaseStep, done: Boolean, modifier: Modifier, take: 
             },
         horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.Top,
     ) {
-        Icon(if (done) Icons.Rounded.CheckCircle else Icons.Rounded.AddCircleOutline, null, tint = if (done) CaseInk.discharge else CaseInk.theatre, modifier = Modifier.size(20.dp))
+        Icon(if (done) Icons.Rounded.CheckCircle else Icons.Rounded.AddCircleOutline, null, tint = if (done) wardColor(WardToken.success) else wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
-            Text(step.label, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = if (done) CaseInk.biro else CaseInk.ink)
-            Text("${step.minutes} min", style = WardTextStyle.caption.textStyle(mono = true), color = CaseInk.biro)
+            Text(step.label, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = if (done) wardColor(WardToken.inkSecondary) else wardColor(WardToken.ink))
+            Text("${step.minutes} min", style = WardTextStyle.caption.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))
         }
     }
 }
@@ -281,14 +284,14 @@ private fun ActionChip(step: CaseStep, done: Boolean, modifier: Modifier, take: 
 private fun ClinicalNote(file: CaseFile, run: CaseRun) {
     CaseCard(spacing = 12.dp) {
         CaseLabel("Clinical note")
-        if (run.taken.isEmpty()) Text("Findings appear here as you ask, examine and test.", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
+        if (run.taken.isEmpty()) Text("Findings appear here as you ask, examine and test.", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
         for (taken in run.taken.reversed()) {
             val step = file.step(taken.stepID) ?: continue
             Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(step.group.label + " · " + step.label, Modifier.weight(1f), style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = CaseInk.biro)
+                    Text(step.group.label + " · " + step.label, Modifier.weight(1f), style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
                     Spacer(Modifier.width(WardSpace.s.wardDp))
-                    Text("${taken.at} min", style = WardTextStyle.caption.textStyle(mono = true), color = CaseInk.biro)
+                    Text("${taken.at} min", style = WardTextStyle.caption.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))
                 }
                 Text(step.finding, style = WardType.body.textStyle())
                 if (step.results.isNotEmpty()) CaseResultsTable(step.results)
@@ -315,15 +318,15 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
     }
     // the case's list, less what is on the ladder already
     val pickable = file.candidates.filter { name -> run.ladder.none { CaseNames.same(it, name) } }
-    Column(modifier.background(CaseInk.ward).verticalScroll(rememberScrollState()).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
+    Column(modifier.background(wardColor(WardToken.background)).verticalScroll(rememberScrollState()).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
         CaseLabel("Your ladder")
-        if (run.ladder.isEmpty()) Text("Up to three working diagnoses, the most likely first. Change them whenever you like.", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
+        if (run.ladder.isEmpty()) Text("Up to three working diagnoses, the most likely first. Change them whenever you like.", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
         run.ladder.forEachIndexed { index, name ->
             val leading = index == 0
             CaseCard(padding = 8.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-                    Box(Modifier.size(32.dp).background(CaseInk.well, CircleShape).clearAndSetSemantics { }, contentAlignment = Alignment.Center) {
-                        Text("${index + 1}", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, color = if (leading) CaseInk.theatre else CaseInk.biro)
+                    Box(Modifier.size(32.dp).background(wardWellFill(), CircleShape).clearAndSetSemantics { }, contentAlignment = Alignment.Center) {
+                        Text("${index + 1}", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, color = if (leading) wardColor(WardToken.primaryInk) else wardColor(WardToken.inkSecondary))
                     }
                     Text(name, Modifier.weight(1f).clearAndSetSemantics {
                         contentDescription = "Rung ${index + 1} of ${run.ladder.size}: $name" + if (leading) ", leading" else ""
@@ -340,12 +343,12 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { addTyped() }))
             TextButton(::addTyped, enabled = typed.isNotBlank(), colors = ButtonDefaults.textButtonColors(disabledContentColor = wardDisabledInk())) { Text("Add", fontWeight = FontWeight.SemiBold) }
         }
-        if (run.ladder.size >= CaseRun.RUNGS) Text("The ladder is full: a new diagnosis takes the bottom rung.", style = WardType.caption.textStyle(), color = CaseInk.biro)
+        if (run.ladder.size >= CaseRun.RUNGS) Text("The ladder is full: a new diagnosis takes the bottom rung.", style = WardType.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             for (name in pickable) {
                 val shape = RoundedCornerShape(WardRadius.field.wardDp)
                 Box(
-                    Modifier.minimumInteractiveComponentSize().widthIn(min = 140.dp).heightIn(min = 44.dp).background(CaseInk.surface, shape).border(1.dp, CaseInk.hairline, shape)
+                    Modifier.minimumInteractiveComponentSize().widthIn(min = 140.dp).heightIn(min = 44.dp).background(wardColor(WardToken.surface), shape).border(1.dp, wardColor(WardToken.hairline), shape)
                         .clickable(role = Role.Button, onClickLabel = "Adds it to your ladder") { add(name) }.padding(horizontal = WardSpace.m.wardDp),
                     contentAlignment = Alignment.CenterStart,
                 ) { Text(name, style = WardTextStyle.subheadline.textStyle()) }
@@ -357,6 +360,6 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
 @Composable
 private fun RungButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean, action: () -> Unit) {
     IconButton(action, enabled = enabled) {
-        Icon(icon, label, tint = if (enabled) CaseInk.theatre else wardDisabledInk())
+        Icon(icon, label, tint = if (enabled) wardColor(WardToken.primaryInk) else wardDisabledInk())
     }
 }

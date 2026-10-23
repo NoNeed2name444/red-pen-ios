@@ -48,7 +48,11 @@ import com.stethoscore.app.ui.ward.textStyle
 // a chip is WardChip, the choices WardSegmented and the buttons WardButtonBox,
 // under the Cases screens' own names so the screens keep what they say.
 
-/** The Ward tokens as the Cases screens use them. */
+/**
+ * The Ward tokens under the Cases screens' old names. CaseKit and the ward
+ * screen draw from the Ward tokens directly; the debrief, decision and list
+ * screens still read these until they move over too.
+ */
 internal object CaseInk {
     val theatre: Color @Composable get() = wardColor(WardToken.primaryInk)
     val resus: Color @Composable get() = wardColor(WardToken.danger)
@@ -98,7 +102,7 @@ internal fun CaseClockPill(used: Int, budget: Int) {
         over -> "Clock: $used minutes used, ${used - budget} over the $budget allowed"
         else -> "Clock: $used of $budget minutes used"
     }
-    val tint = if (over) CaseInk.resus else CaseInk.ink
+    val tint = if (over) wardColor(WardToken.danger) else wardColor(WardToken.ink)
     Row(
         // pressed in, like the kit's timer pill: read, not touched
         Modifier.wardInset(CircleShape).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.xs.wardDp)
@@ -160,9 +164,9 @@ internal fun CaseVitalsGrid(obs: List<CaseFile.Obs>) {
         for (o in obs) {
             val unit = when (o.sign) { CaseFile.Obs.Sign.temp -> " °C"; CaseFile.Obs.Sign.spo2 -> "%"; else -> "" }
             val flag = CaseChart.flag(o)
-            val tint = if (flag != null) CaseInk.resus else CaseInk.ink
+            val tint = if (flag != null) wardColor(WardToken.danger) else wardColor(WardToken.ink)
             Column(
-                Modifier.widthIn(min = 86.dp).background(CaseInk.well, RoundedCornerShape(10.dp)).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp)
+                Modifier.widthIn(min = 86.dp).background(wardWellFill(), RoundedCornerShape(10.dp)).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp)
                     .clearAndSetSemantics { contentDescription = "${o.sign.spoken} ${o.shown}${unit}" + (flag?.let { ", ${it.spoken}" } ?: "") },
             ) {
                 Text(o.sign.label, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
@@ -178,13 +182,13 @@ internal fun CaseVitalsGrid(obs: List<CaseFile.Obs>) {
 /** Test values in the chart's results table, flagged H or L. */
 @Composable
 internal fun CaseResultsTable(results: List<CaseStep.LabResult>) {
-    Column(Modifier.fillMaxWidth().background(CaseInk.well, RoundedCornerShape(10.dp)).padding(WardSpace.m.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
+    Column(Modifier.fillMaxWidth().background(wardWellFill(), RoundedCornerShape(10.dp)).padding(WardSpace.m.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
         for (r in results) {
             val flag = CaseChart.flag(r)
             Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { }, verticalAlignment = Alignment.CenterVertically) {
                 Text(r.name, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle())
                 Text(CaseFile.Obs.number(r.value), style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true),
-                    color = if (flag != null) CaseInk.resus else CaseInk.ink)
+                    color = if (flag != null) wardColor(WardToken.danger) else wardColor(WardToken.ink))
                 Text(flag?.rawValue ?: "", Modifier.width(18.dp).padding(start = WardSpace.xs.wardDp), style = WardTextStyle.caption.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.danger))
                 Text(r.unit, Modifier.widthIn(min = 64.dp).padding(start = WardSpace.s.wardDp), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
