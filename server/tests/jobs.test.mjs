@@ -243,10 +243,10 @@ ok(qs.length === 1 && qs[0].key.includes('[answer: y]'), 'questions are read fro
 
 // the checker is never the model that wrote the work, while another is left
 {
-  const all = ['gemini-3.1-pro-preview', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemma-4-31b-it'];
-  ok(checkerOrder({}, all, ['gemini-3.1-pro-preview'])[0] === 'gemini-3.5-flash', 'Pro wrote it: 3.5 Flash checks');
-  ok(checkerOrder({}, all, ['gemini-3.5-flash'])[0] === 'gemini-3.1-pro-preview', 'Flash wrote it: 3.1 Pro checks');
-  ok(!checkerOrder({}, all.slice(1), ['gemini-3.5-flash']).includes('gemini-3.5-flash'), 'the writer is left out of the checker chain');
+  const all = ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemma-4-31b-it'];
+  ok(checkerOrder({}, all, ['gemini-3.1-pro-preview'])[0] === 'gemini-3.8-flash', 'Pro wrote it: 3.8 Flash checks');
+  ok(checkerOrder({}, all, ['gemini-3.8-flash'])[0] === 'gemini-3.1-pro-preview', 'Flash wrote it: 3.1 Pro checks');
+  ok(!checkerOrder({}, all.slice(1), ['gemini-3.8-flash']).includes('gemini-3.8-flash'), 'the writer is left out of the checker chain');
   ok(checkerOrder({}, ['gemma-4-31b-it'], ['gemma-4-31b-it']).length === 1, 'with nothing else left, the one model still checks');
 }
 

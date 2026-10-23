@@ -32,7 +32,8 @@ final class LensModel: ObservableObject {
     private var tasks: [String: Task<Void, Never>] = [:]
     private(set) var smooth: Bool
 
-    static let noModel: String = "No model is ready to answer with. Apple Intelligence answers for free on devices that have it; otherwise choose one in AI models."
+    /// Why nothing can answer now: the cloud writer's own reason.
+    static var noModel: String { LocalLLMService.shared.noWriter }
 
     init(smooth: Bool) {
         self.smooth = smooth
@@ -166,7 +167,7 @@ final class LensModel: ObservableObject {
                 return
             }
         }
-        guard let backend = LocalLLMService.shared.writerOrApple() else {
+        guard let backend = LocalLLMService.shared.writer() else {
             answers[key] = .failed(Self.noModel)
             return
         }

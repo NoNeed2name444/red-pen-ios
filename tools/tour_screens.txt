@@ -19,6 +19,7 @@ home-cards	14	Home: Cards
 home-cases	14	Home: Cases
 home-osce	14	Home: OSCE
 home-audio	14	Home: Audio
+library-end	14	Home at the end of its list (the last cards clear New set and the dock)
 library-empty	15	Empty library
 category-empty	17	Empty category
 search-empty	18	Search, no results
@@ -121,8 +122,6 @@ rules	113	Rule sheet
 coverage	114	Syllabus check
 stats	115	By subject
 settings	116	Settings
-ai-models	117	AI models
-ai-provider	118	Provider editor
 diagnostics	119	Crash and failure reports
 lectures	120	Your lectures
 set-credits	121	One set's credits

@@ -15,7 +15,7 @@ import org.junit.Test
 class OwnerKeyAndSpendTest {
 
     private fun service(ownerKey: String, server: FakeServer, session: String? = null, spend: OwnerSpend = OwnerSpend(OwnerSpend.MemoryStore())) =
-        LLMService(LLMService.MemoryPrefs().also { it.set(LLMService.CHOICE_KEY, "cloud") }, ownerKey, { session }, FakeServer.BASE, server, spend)
+        LLMService(ownerKey, { session }, FakeServer.BASE, server, spend)
 
     private val item = AccuracyItem("q1", AccuracyKind.mcq, stem = "Which drug?", options = listOf("A drug", "B drug", "C drug", "D drug"), key = 0, explanation = "Because.")
 

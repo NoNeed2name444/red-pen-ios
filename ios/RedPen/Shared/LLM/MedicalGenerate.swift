@@ -1,13 +1,12 @@
 import Foundation
 
-/// MCQ and OSCE generation through whichever writer is chosen in AI models -
-/// Doctor-R1 on the device or a hosted model.
+/// MCQ and OSCE generation through the app's one writer (WriterRoute) -
+/// the worker's writer route.
 ///
-/// Same prompts, same batching and the same bar for keeping an answer as the
-/// Apple and Gemma paths (MCQPrompt, MCQCoverage, OsceStations are shared), so
-/// a set reads the same whichever model wrote it. What differs is that these
-/// models have no `@Generable`, so they are asked for JSON and it is parsed
-/// here.
+/// The prompts, batching and bar for keeping an answer live in MCQPrompt,
+/// MCQCoverage and OsceStations; the writer is asked for JSON and it is parsed
+/// here. It is the only way questions and stations are written (the owner,
+/// 23 Oct: "Lock it"): with no writer, nothing is (WriterGate).
 enum MedicalGenerate {
 
     static func mcq(

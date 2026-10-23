@@ -170,7 +170,7 @@ import kotlinx.coroutines.withContext
     LaunchedEffect(modeSwitch.opening) { modeSwitch.opening?.let { set -> modeSwitch.opening=null;refresh();open(set) } }
     LaunchedEffect(modeSwitch.writing) { modeSwitch.writing?.let { p -> modeSwitch.writing=null;newPreset=p;screen="new" } }
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
-    BackHandler(screen!="home") { when(screen) { "sources", "exam", "models" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
+    BackHandler(screen!="home") { when(screen) { "sources", "exam" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
     // takes its kind's, the brain map Ideas', everywhere else the outside look.
     val section = com.stethoscore.app.ui.learn.LearnRouter.section(store) ?: when(screen) {
@@ -233,8 +233,7 @@ import kotlinx.coroutines.withContext
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
                     "photo" -> com.stethoscore.app.ui.editors.PictureFromPhotoScreen(store,{ refresh();goHome() },onOpen={ refresh();open(it) })
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },
-                        onSources={ screen="sources" },onLicences={ licencesFrom="settings";screen="licences" },onExam={ screen="exam" },onModels={ screen="models" })
-                    "models" -> ModelSettingsScreen({ screen="settings" })
+                        onSources={ screen="sources" },onLicences={ licencesFrom="settings";screen="licences" },onExam={ screen="exam" })
                     // batch 16: Settings, Your exam
                     "exam" -> com.stethoscore.app.ui.exam.ExamPickerScreen(store,{ screen="settings";refresh() })
                     // batch 9: the lectures in the library, the app's own sources, and one set's credits

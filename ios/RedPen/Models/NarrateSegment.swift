@@ -22,10 +22,9 @@ struct NarrateSegment: Identifiable, Codable, Hashable {
     /// Where each word sits, when the recogniser reported it. A line with no
     /// word times still plays; the highlight just moves a line at a time.
     var words: [SpokenTiming]?
-    /// The cloud model that transcribed this line, such as gemini-3.5-flash;
+    /// The cloud model that transcribed this line, as the server names it;
     /// nil for a line heard on the phone, typed, or saved before this was
-    /// kept. Transcription falls back from Flash to Flash-Lite once the day's
-    /// Flash requests are spent, and only Flash was measured keeping every
+    /// kept. Only the server's usual transcriber was measured keeping every
     /// English term, so a line from another model is worth knowing about.
     var model: String? = nil
 

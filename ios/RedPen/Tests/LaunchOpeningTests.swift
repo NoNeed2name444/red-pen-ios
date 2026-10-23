@@ -387,6 +387,16 @@ check("the opening looks up the night mark, then the day one, and draws nothing 
       splashCode.contains("UIImage(named: LaunchArt.darkImageName, in: nil, compatibleWith: traits) : nil)")
       && splashCode.contains("?? UIImage(named: LaunchArt.imageName, in: nil, compatibleWith: traits)")
       && splashCode.contains("l.contents = image?.cgImage"))
+check("the mark is looked up night then day by night, day alone by day",
+      LaunchArt.names(dark: true) == ["LaunchLogo-dark", "LaunchLogo"] && LaunchArt.names(dark: false) == ["LaunchLogo"])
+// Sign-in and account-deleted (the owner, 22 Oct): the launch's white and grey
+// stethoscopes over "Stethoscore", not the three mode tiles; the private art
+// is looked up by the same names, and only a stand-in shape is kept here.
+let signInCode = (try? String(contentsOfFile: "ios/RedPen/Features/Auth/SignInView.swift", encoding: .utf8)) ?? ""
+check("sign-in's masthead draws the launch mark by its names, with a stand-in when the art is absent",
+      signInCode.contains("LaunchArt.names(dark: dark).lazy.compactMap { UIImage(named: $0) }.first")
+      && signInCode.contains("Image(systemName: \"stethoscope\")")
+      && !signInCode.contains("ModeTile("))
 for dark in [false, true] {
     let c = LaunchArt.chest(dark: dark)
     check("chest piece inside the \(dark ? "night" : "day") image",

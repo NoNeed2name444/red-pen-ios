@@ -1,28 +1,19 @@
 import Foundation
 
-/// Writing cases with whichever writer this device has, the same order as
-/// question generation: a writer chosen in AI models (the medical models, or
-/// the cloud for Pro) first, then Apple's on-device model, then the
-/// downloaded Gemma. One case per call, each from the next window of the
-/// lecture, each through the structure checks and the accuracy rules before
+/// Writing cases with the app's one writer, the hosted writer route (Pro),
+/// and nothing else (the owner, 23 Oct: "Lock it"): without it no case is
+/// written and the screen says why (noWriter). One case per call, each from
+/// the next window of the lecture, each through the structure checks and the accuracy rules before
 /// it is kept (CaseChecks). The rest of the verification layer takes the
 /// cases once the set is saved, as items of kind "case"; one it grades
 /// Flagged is held off the list (AccuracyHolds).
 enum CaseMaker {
 
-    enum Writer {
-        case backend(LLMBackend)
-        case apple
-        case gemma(GemmaModel)
-    }
-
     enum Trouble: LocalizedError {
-        case unavailable(String)
         case nothingUsable(dropped: Int)
 
         var errorDescription: String? {
             switch self {
-            case .unavailable(let why): return why
             case .nothingUsable(let dropped):
                 if dropped > 0 {
                     return "The cases written from this lecture did not pass the structure and accuracy checks. A lecture about a condition - its presentation, tests and treatment - works best."
@@ -38,20 +29,12 @@ enum CaseMaker {
         var dropped: Int
     }
 
-    /// The writer to use here, or nil when there is none.
-    @MainActor static func writer(llm: LocalLLMService, gemma: GemmaModel) -> Writer? {
-        if let chosen = llm.backend(for: .writer) { return .backend(chosen) }
-        if CaseAppleWriter.availability.isAvailable { return .apple }
-        if gemma.status == .ready { return .gemma(gemma) }
-        return nil
-    }
+    /// The writer to use here: the writer route, or nil when it is blocked.
+    @MainActor static func writer(llm: LocalLLMService) -> LLMBackend? { llm.writer() }
 
-    /// Why there is no writer, in the student's words.
-    @MainActor static func noWriter(gemma: GemmaModel) -> String {
-        var why: String = "On-device writing isn't available here."
-        if case .unavailable(let reason) = CaseAppleWriter.availability { why = reason }
-        return why + " Download the offline model in a question set's New set page, or choose a writer in Settings \u{25B8} AI models."
-    }
+    /// Why there is no writer, in the cloud's own words: part of Pro, sign
+    /// in, or out of reach (LocalLLMService.noWriter).
+    @MainActor static func noWriter(llm: LocalLLMService) -> String { llm.noWriter }
 
     /// The lecture as the writers read it, each page marked with its number
     /// so the teaching can cite it.
@@ -62,20 +45,14 @@ enum CaseMaker {
     }
 
     static func write(count: Int, source: String, lecture: String, subject: String,
-                      brief: CaseWriting.Brief = CaseWriting.Brief(), using writer: Writer,
+                      brief: CaseWriting.Brief = CaseWriting.Brief(), using writer: LLMBackend,
                       onProgress: @escaping (Int, Int) -> Void) async throws -> Made {
         let wanted: Int = min(max(count, 1), CaseWriting.maxCases)
-        if case .backend(let backend) = writer, let cloud = CloudJobs.endpoint(for: backend) {
+        if let cloud = CloudJobs.endpoint(for: writer) {
             return try await cloudWrite(wanted, source: source, lecture: lecture, subject: subject, brief: brief,
-                                        backend: backend, at: cloud, onProgress: onProgress)
+                                        backend: writer, at: cloud, onProgress: onProgress)
         }
-        let chars: Int
-        switch writer {
-        case .apple: chars = CaseAppleWriter.sourceChars
-        case .gemma: chars = CaseWriting.onDeviceSourceChars
-        case .backend(let backend):
-            chars = backend.isOnDevice ? CaseWriting.onDeviceSourceChars : min(backend.promptBudgetChars, 12_000)
-        }
+        let chars: Int = min(writer.promptBudgetChars, 12_000)
         let windows: [String] = TextSlicing.windows(source, maxChars: chars)
         var kept: [CaseFile] = []
         var dropped = 0
@@ -103,10 +80,6 @@ enum CaseMaker {
                 failures = added == 0 ? failures + 1 : 0
             } catch is CancellationError {
                 throw CancellationError()
-            } catch let error as MCQGenerator.GenerationError {
-                if case .unavailable = error { throw error }
-                if case .cancelled = error { throw CancellationError() }
-                failures += 1
             } catch let error as LLMError {
                 // a missing key or a refused request will not fix itself on retry
                 if case .emptyReply = error { failures += 1 } else { throw error }
@@ -121,21 +94,11 @@ enum CaseMaker {
 
     /// One call to the writer.
     private static func one(_ window: String, lecture: String, subject: String, brief: CaseWriting.Brief,
-                            using writer: Writer) async throws -> [CaseFile] {
-        switch writer {
-        case .apple:
-            return try await CaseAppleWriter.one(source: window, subject: subject, brief: brief, lecture: lecture)
-                .map { [$0] } ?? []
-        case .gemma(let gemma):
-            let rules: String = CaseWriting.instructions(source: window, subject: subject, brief: brief, json: true)
-            let reply: String = try await gemma.writeCase(instructions: rules)
-            return CaseWriting.parse(reply, lecture: lecture)
-        case .backend(let backend):
-            let rules: String = CaseWriting.instructions(source: window, subject: subject, brief: brief, json: true)
-            let reply: String = try await backend.complete([.system(rules), .user(CaseWriting.requestJSON)],
-                                                           maxTokens: 3_500, temperature: 0.7)
-            return CaseWriting.parse(reply, lecture: lecture)
-        }
+                            using writer: LLMBackend) async throws -> [CaseFile] {
+        let rules: String = CaseWriting.instructions(source: window, subject: subject, brief: brief, json: true)
+        let reply: String = try await writer.complete([.system(rules), .user(CaseWriting.requestJSON)],
+                                                      maxTokens: 3_500, temperature: 0.7)
+        return CaseWriting.parse(reply, lecture: lecture)
     }
 
     /// Vignette Cloud writes every case in one job, a prompt per case, even

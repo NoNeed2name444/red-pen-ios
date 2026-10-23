@@ -201,13 +201,13 @@ async function refused(r, feature, what) {
 {
   resetBreakers();
   const { env } = freshEnv('tts, ttts');
-  for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
+  for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.8-flash');
   const r = await worker.fetch(new Request('https://w/diagnostics/summary', { headers: { authorization: 'Bearer ' + OWNER } }), env);
   const body = await r.json();
   ok(r.status === 200 && body.health?.switches?.features?.tts === 'off' && body.health.switches.features.write === 'on',
      'GET /diagnostics/summary: which features are on and off');
   ok(body.health.switches.unknown?.join() === 'ttts', 'and a name in STETHOSCORE_OFF that is not a feature');
-  ok(body.health.breakers?.scope === 'isolate' && body.health.breakers.lanes['gemini:gemini-3.5-flash'].state === 'open'
+  ok(body.health.breakers?.scope === 'isolate' && body.health.breakers.lanes['gemini:gemini-3.8-flash'].state === 'open'
      && body.health.breakers.settings.failures === 3, "and this isolate's breakers, with their settings");
   ok(Array.isArray(body.groups) && Array.isArray(body.builds), 'the crash groups are there as before');
   const stranger = await worker.fetch(new Request('https://w/diagnostics/summary'), env);
@@ -335,20 +335,23 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
 {
   resetBreakers();
   const store = storage();
-  const env = jobEnv('');
+  // the job runs on the hosted writer's route, its only provider here
+  const env = { ...jobEnv(''), ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20', PRO_MONTHLY_BUDGET_USD: '5' };
   const db = env.DB;
   let calls = 0;
-  const fake = async () => { calls++; return new Response(JSON.stringify({ choices: [{ message: { content: `Q${calls} | A${calls}` } }] }), { status: 200 }); };
+  const fake = async () => { calls++; return new Response(JSON.stringify({ model: 'claude-opus-5-5', stop_reason: 'end_turn',
+    content: [{ type: 'text', text: `Q${calls} | A${calls}` }], usage: { input_tokens: 10, output_tokens: 10 } }), { status: 200 }); };
   const object = new GenerationJobs({ storage: store }, env, fake);
   const spec = checkSpec({ title: 'Cards', mode: 'loop', extract: 'lines', count: 5, steps: [{ user: 'Write 1.' }] }).spec;
   const made = await (await object.create({ accountId: 'a1', owner: false, spec })).json();
-  // a Pro account (an owner id), so the job's calls go through the allowance
+  // the owner signed in (only the owner is written for, the owner, 23 Oct:
+  // "only me"), so the job's calls go through the owner's daily allowance
   env.OWNER_ACCOUNT_IDS = 'a1';
   db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('a1', 'apple', 's1', 0)`).run();
   await object.alarm();
-  const usedNow = () => db.prepare('SELECT requests FROM ai_usage WHERE account_id = ?').bind('a1').first()?.requests ?? 0;
+  const usedNow = () => db.prepare('SELECT requests FROM ai_usage WHERE account_id = ?').bind('owner').first()?.requests ?? 0;
   ok((await get(object, made.job.id)).job.done === 1 && usedNow() === 1, 'one card written, one request counted');
-  for (let i = 0; i < 3; i++) breakers.failure(env, 'openai:baichuan-inc/Baichuan-M2-32B:featherless-ai');
+  for (let i = 0; i < 3; i++) breakers.failure(env, 'anthropic:claude-opus-5-5');
   for (let i = 0; i < 5; i++) await object.alarm();
   const waiting = await get(object, made.job.id);
   ok(waiting.job.status === 'running' && /busy/.test(waiting.job.held) && calls === 1, 'the only provider resting: the job waits');

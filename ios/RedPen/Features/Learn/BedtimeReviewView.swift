@@ -4,9 +4,10 @@ import SwiftUI
 /// one line to remember. Not a test - nothing to tap, nothing scored.
 ///
 /// A short re-read just before sleep is consolidated overnight better than
-/// the same material read earlier. Dim and large, so it is easy on the eyes
-/// in a dark room, and the whole screen is drawn dark whatever the phone's
-/// setting. Tomorrow morning's check (MorningCheckView) asks the same items.
+/// the same material read earlier. Large and calm, on the page colour of
+/// whichever mode the app is in, in one tone like every other page (the
+/// owner, 22 Oct: it no longer stays dark in light mode). Tomorrow
+/// morning's check (MorningCheckView) asks the same items.
 struct BedtimeReviewView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
@@ -35,12 +36,10 @@ struct BedtimeReviewView: View {
         }
         .background(WardBackground())
         .tint(Color.wardPrimaryInk)
-        .wardHeld(.dark)
         .environment(\.modeTint, Color.wardPrimaryInk)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.wardWash, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func subtitle(_ count: Int) -> String {

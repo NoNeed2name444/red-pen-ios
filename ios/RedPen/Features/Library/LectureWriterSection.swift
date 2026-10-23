@@ -46,8 +46,8 @@ struct LectureWriterSection: View {
     @State private var status: String?
     @State private var trouble: String?
     @State private var task: Task<Void, Never>?
-    @State private var showModels = false
-    /// What the last run on this device or a hosted model could not write,
+    @State private var showPaywall = false
+    /// What the last run could not write,
     /// offered again on its own (audit #88).
     @State private var missing: MissingWrite?
 
@@ -92,7 +92,7 @@ struct LectureWriterSection: View {
             guard pastedNotes.isEmpty, !presetNotes.isEmpty else { return }
             pastedNotes = presetNotes
         }
-        .sheet(isPresented: $showModels) { ModelSettingsView() }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     /// Step 2: a lecture file, or notes pasted in, or both.
@@ -189,8 +189,10 @@ struct LectureWriterSection: View {
             }
             if let trouble {
                 WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)
-                Button("AI models") { showModels = true }
-                    .buttonStyle(.wardCompact)
+                if !llm.isPro {
+                    Button("See Pro") { showPaywall = true }
+                        .buttonStyle(.wardCompact)
+                }
             }
             DisclosureGroup("More options", isExpanded: $showMore) {
                 TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
@@ -238,11 +240,10 @@ struct LectureWriterSection: View {
     }
 
     private var modelLine: String {
-        if let backend = llm.writerOrApple() {
-            let place: String = backend.isOnDevice ? " on this device" : ""
-            return "Written by \(backend.label)\(place). The \(noun)s appear below to check before you save the set."
+        if let backend = llm.writer() {
+            return "Written by \(backend.label). The \(noun)s appear below to check before you save the set."
         }
-        return "No model is ready: turn on Apple Intelligence, or use Doctor-R1 or \(Brand.name) Cloud with Pro."
+        return llm.noWriter
     }
 
     static var readableTypes: [UTType] {
@@ -432,7 +433,7 @@ struct LectureWriterSection: View {
     /// same kind, lecture and writer it was cut for, and a draft to add to.
     private func canWriteMissing(_ missing: MissingWrite) -> Bool {
         missing.kind == kind && missing.source == sourceText
-            && missing.writer == llm.writerOrApple()?.label
+            && missing.writer == llm.writer()?.label
             && !bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
@@ -451,8 +452,8 @@ struct LectureWriterSection: View {
     /// `retry`: what an earlier run left out, written on its own; nil for
     /// the whole set.
     private func write(retry: MissingWrite?) {
-        guard let backend = llm.writerOrApple() else {
-            trouble = "No model is ready to write with."
+        guard let backend = llm.writer() else {
+            trouble = llm.noWriter
             return
         }
         // what is written is checked by the verification layer once it is

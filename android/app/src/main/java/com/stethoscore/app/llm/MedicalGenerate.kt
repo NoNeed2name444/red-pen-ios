@@ -11,7 +11,7 @@ import org.json.JSONObject
 import kotlin.coroutines.coroutineContext
 
 /**
- * MCQ generation through the writer chosen in AI models. Port of the MCQ half
+ * MCQ generation through the writer route. Port of the MCQ half
  * of iOS Shared/LLM/MedicalGenerate.swift: the same prompt, batching and bar
  * for keeping a question. With Stethoscore Cloud the server writes the whole
  * set as one job (CloudJobs); any other backend is asked call by call.

@@ -106,16 +106,18 @@ check("parts are listed as a person would", CloudTranscript.partNames([1, 2, 6])
       && CloudTranscript.partNames([4]) == "part 4")
 
 // which model heard each part
-let flash = CloudTranscript.PartNote(number: 1, model: "gemini-3.5-flash")
+let flash = CloudTranscript.PartNote(number: 1, model: "gemini-3.8-flash")
 let lite = CloudTranscript.PartNote(number: 2, model: "gemini-3.5-flash-lite")
-check("every part from 3.5 Flash needs no note", CloudTranscript.notice(for: [flash, flash], of: 2) == nil)
+check("every part from 3.8 Flash needs no note", CloudTranscript.notice(for: [flash, flash], of: 2) == nil)
 check("a part whose model is not known is not called a downgrade",
       !CloudTranscript.fellBack(.init(number: 1)) && CloudTranscript.fellBack(lite) && !CloudTranscript.fellBack(flash))
 let downgraded = CloudTranscript.notice(for: [flash, lite], of: 2) ?? ""
-check("a part Flash-Lite heard is named, never a silent downgrade",
-      downgraded.contains("Part 2 went to gemini-3.5-flash-lite"), downgraded)
+check("a part a lighter model heard is told, never a silent downgrade, in plain words",
+      downgraded.contains("Part 2 went to a lighter transcriber") && !downgraded.contains("gemini")
+      && !downgraded.contains("Gemini") && !downgraded.contains("Flash"), downgraded)
 let both = CloudTranscript.notice(for: [flash, .init(number: 2, trimmed: true, model: "gemini-3.5-flash-lite")], of: 2) ?? ""
-check("a loop and a downgrade are both told", both.contains("repeating itself") && both.contains("flash-lite"), both)
+check("a loop and a downgrade are both told, naming no model", both.contains("repeating itself") && both.contains("lighter transcriber")
+      && !both.contains("Gemini") && !both.contains("flash"), both)
 let heard = CloudTranscript.lines(from: phrases ?? [], offset: 0, length: 600, model: "gemini-3.5-flash-lite")
 check("each line keeps the model that heard it", !heard.isEmpty && heard.allSatisfy { $0.model == "gemini-3.5-flash-lite" })
 let kept = NarrateScheduler.segments(from: heard, lang: "ar")

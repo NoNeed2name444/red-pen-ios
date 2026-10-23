@@ -83,7 +83,7 @@ class TurnIntoReachTest {
 
     /** The owner's build's service (Stethoscore Cloud chosen, a stand-in key) on the stand-in worker. */
     private fun owner(jobs: FakeJobs? = null): LLMService = LLMService(
-        LLMService.MemoryPrefs().also { it.set(LLMService.CHOICE_KEY, "cloud") }, FakeServer.standInKey(), { null }, FakeServer.BASE,
+        FakeServer.standInKey(), { null }, FakeServer.BASE,
         FakeServer { seen += it; jobs?.answer(it) ?: BackendClient.Reply(404, "{}") }, OwnerSpend(OwnerSpend.MemoryStore()))
 
     private fun store(name: String): StudyStore = StudyStore(folder.newFolder(name))

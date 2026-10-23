@@ -35,7 +35,6 @@ import com.stethoscore.app.data.ReadSource
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.llm.CloudJobs
-import com.stethoscore.app.llm.LLMChoice
 import com.stethoscore.app.ui.editors.CountField
 import com.stethoscore.app.ui.editors.EcgLoader
 import com.stethoscore.app.ui.ward.WardBanner
@@ -68,7 +67,7 @@ import kotlinx.coroutines.withContext
 // teaching points can be checked against it.
 //
 // iOS writes with the writer CaseMaker finds; Android's one writer is
-// Stethoscore Cloud, chosen in Settings > AI models (LLMService), and the
+// Stethoscore Cloud, the one writer route (LLMService), and the
 // server writes every patient as one job. With no writer, Make says why in
 // CaseMaker.noWriter's words: Pro, signing in or the spend cap, as the
 // debrief's "Another patient like this" does. iOS's progress card
@@ -129,7 +128,7 @@ import kotlinx.coroutines.withContext
         trouble = null
         if (!canMake) return
         val writer = CaseMaker.writer(llm.backend()) ?: run {
-            trouble = CaseMaker.noWriter(llm.cloudBlocker.takeIf { llm.choice() != LLMChoice.off })
+            trouble = CaseMaker.noWriter(llm.cloudBlocker)
             return
         }
         val wanted = caseCount

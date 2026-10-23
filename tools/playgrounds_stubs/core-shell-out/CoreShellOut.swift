@@ -36,10 +36,6 @@ struct LinkDeviceView: View {
     var body: some View { NotInThisBuild(feature: "Linking another device") }
 }
 
-struct ModelSettingsView: View {
-    var body: some View { NotInThisBuild(feature: "Model settings") }
-}
-
 extension View {
     /// Guess-first on a textbook (Features/Learn): nothing in the small shell.
     func guessFirst(_ set: StudySet) -> some View { self }

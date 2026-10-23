@@ -66,7 +66,7 @@ The core has its own shell in `core/`:
 The small shell is shared by core, core1 and core2. core3 does not copy
 `CoreApp.swift` or `CoreLibrary.swift`: the app's own `RedPenApp` and
 `LibraryView` are back. It also does not copy `core-shell-out/`, which holds
-the stand-ins for `SyncEngine`, `LinkDeviceView`, `ModelSettingsView`,
+the stand-ins for `SyncEngine`, `LinkDeviceView`,
 `guessFirst` and `Store.picks` — the real files declare those. What differs
 per step is in a folder of its own, copied in beside the shell:
 

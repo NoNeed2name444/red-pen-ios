@@ -28,14 +28,15 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.data.CaseMaker
 import com.stethoscore.app.data.MCQGenerator
 import com.stethoscore.app.data.MCQQuestion
 import com.stethoscore.app.data.ReadSource
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.exam.ExamChoice
+import com.stethoscore.app.llm.HostedProvider
 import com.stethoscore.app.llm.LLMBackend
-import com.stethoscore.app.llm.LLMChoice
 import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.llm.MedicalGenerate
 import kotlinx.coroutines.CancellationException
@@ -52,19 +53,16 @@ import com.stethoscore.app.ui.ward.WardTone
 // holds the lecture (LecturePDFSection) and the notes; step 3 the count, the
 // one big button and the rest behind More options.
 //
-// iOS writes with Apple's on-device model, the downloaded Gemma model or a
-// writer chosen in AI models. On Android only the last exists: Stethoscore
-// Cloud, chosen in Settings > AI models (LLMService). With it chosen and not
-// blocked, Make writes the set through MedicalGenerate and hands it to
+// Every writer is the worker's writer route (LLMService): there is no
+// writer to choose (the owner, 22 Oct). Not blocked, Make writes the set through MedicalGenerate and hands it to
 // onGenerated; with none, the form takes the path iOS takes when no model is
 // ready: what is needed first comes before the button, and Make stays greyed
 // with the reason under it. Nothing is sent anywhere and no key is asked for.
 
 /** The no-writer words, the same path the other batches show (CaseMaker.noWriter, the quiz's twins). */
 internal object NoWriter {
-    const val questions = "On-device writing isn't available here. Choose a writer in Settings \u25B8 AI models to write new questions."
-    const val questionsHint = "No question writer is set up on this phone yet."
-    const val cards = "No model is ready: writing new cards and textbooks comes to Android with its AI models."
+    const val questions = "New questions are written by ${HostedProvider.BRAND} Cloud, which is part of Pro."
+    const val cards = "No model is ready: writing new cards and textbooks comes to Android later."
 }
 
 /**
@@ -153,14 +151,14 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
     val context = LocalContext.current
     val llm = rememberLLMService()
     val backend: LLMBackend? = remember(step) { llm.backend() }
-    val blocker: String? = if (llm.choice() == LLMChoice.cloud) llm.cloudBlocker else null
+    val blocker: String? = llm.cloudBlocker
     val scope = rememberCoroutineScope()
     var generation by remember { mutableStateOf<Job?>(null) }
     var generationStatus by rememberSaveable { mutableStateOf<String?>(null) }
     val isGenerating = generation != null
-    val needsOfflineModel = backend == null
+    val needsWriter = backend == null
     var showMore by rememberSaveable { mutableStateOf(false) }
-    val canStart = !isGenerating && !needsOfflineModel && sourceText.trim().isNotEmpty()
+    val canStart = !isGenerating && !needsWriter && sourceText.trim().isNotEmpty()
 
     fun generate() {
         val text = sourceText.trim()
@@ -204,13 +202,13 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
         if (step == LectureStep.make) {
             val makeHint: String? = when {
                 isGenerating -> null
-                needsOfflineModel -> blocker ?: NoWriter.questionsHint
+                needsWriter -> CaseMaker.noWriter(blocker)
                 sourceText.trim().isEmpty() -> "Nothing to write from yet \u2014 go Back and add a lecture."
                 else -> null
             }
-            if (needsOfflineModel) {
-                // with no model ready, getting one is the first thing to do, so it
-                // comes before the button it would unlock
+            if (needsWriter) {
+                // with no writer, what it takes comes before the button it would
+                // unlock; nothing is written on the phone
                 EditorSection("Needed first: a question writer") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Rounded.Warning, null, tint = WardTone.Warning.color())

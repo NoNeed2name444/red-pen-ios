@@ -229,8 +229,8 @@ object OsceText {
 
 /**
  * Writing stations from a lecture or a mark sheet (iOS OsceGenerator). iOS
- * writes them with a writer chosen in AI models or Apple's on-device model;
- * Android has neither yet, so [writer] finds none and the form says so.
+ * writes them with the writer route; Android does not write stations yet,
+ * so [writer] finds none and the form says so.
  */
 object OsceGenerator {
     const val maxStationsTotal = 1_000
@@ -239,9 +239,6 @@ object OsceGenerator {
     fun interface Writer { suspend fun stations(sourceText: String, count: Int, subject: String): List<OsceChecklist> }
 
     fun writer(): Writer? = null
-
-    /** Why nothing can be written, in the student's words. */
-    fun noWriter(): String = "Stations are written by an AI writer, and none is set up on this phone yet."
 
     const val nothingUsable = "Nothing in that source reads like a station. A skills lecture or a mark sheet works best — a slide deck of facts usually has no procedure in it."
 }

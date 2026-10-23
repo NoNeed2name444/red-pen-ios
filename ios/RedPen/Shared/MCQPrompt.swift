@@ -2,10 +2,9 @@ import Foundation
 
 /// The instructions sent to whichever model is writing the questions.
 ///
-/// Split out of MCQGenerator because it is shared: Apple's on-device model and
-/// the downloaded Gemma fallback are given the same rules, and only the last
-/// paragraph differs - Apple's `@Generable` guarantees the output shape, so it
-/// is not asked for JSON.
+/// Split out of MCQGenerator so the rules sit in one place: the writer route
+/// is given them, with a last paragraph asking for the JSON shape it is read
+/// back in (MedicalGenerate).
 ///
 /// The rules themselves are carried over from the web app's `buildPrompt()`,
 /// including the two item-writing tells students actually report: a distractor
@@ -15,13 +14,6 @@ extension MCQGenerator {
     /// How much of the pasted source text is actually sent per generation
     /// call - matches the web app's MAX_PROMPT_CHARS.
     static var maxPromptChars: Int { 45_000 }
-
-    /// What a phone model can read in one call: Apple's on-device model and
-    /// Gemma have a 4,096-token window, which the rules and the questions
-    /// written back share with the source (audit #85: 45,000 characters were
-    /// sent). A long lecture is read a window at a time instead.
-    static var onDeviceSourceChars: Int { 4_000 }
-    static let onDeviceQuestionsPerCall: Int = 3
 
     /// `target` is the exam the student chose (ExamChoice): when there is
     /// one, the set is written to its format - its option count, stem length,
@@ -86,10 +78,9 @@ extension MCQGenerator {
         let avoidance = MCQCoverage.avoidanceNote(alreadyAsked)
         if !avoidance.isEmpty { lines.append(avoidance) }
 
-        // @Generable makes Apple's on-device path guarantee its own output
-        // shape, but a plain-text model (the Gemma fallback) has to be asked
-        // for it directly - the same JSON instruction the web app's
-        // Claude-backed prompt used before this app existed.
+        // a plain-text writer has to be asked for the shape directly - the
+        // same JSON instruction the web app's prompt used before this app
+        // existed
         if requestJSONShape {
             lines.append("")
             lines.append("Reply with ONLY a single JSON object — no markdown code fences, no commentary before or after it — of exactly this shape:")

@@ -11,7 +11,7 @@ enum VoiceMarking {
     enum Failure: LocalizedError {
         case unreadable
         var errorDescription: String? {
-            "The marker's answer couldn't be read. Try again - or choose a larger model in AI models."
+            "The marker's answer couldn't be read. Try again."
         }
     }
 

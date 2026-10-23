@@ -29,11 +29,8 @@ struct RedPenApp: App {
     @StateObject private var examQuestion = ExamQuestionStore()
     /// Who has finished the first-run pages (FirstRunView, once per account).
     @StateObject private var firstRun = FirstRunStore()
-    // GemmaModel is a true singleton (its download must survive view
-    // teardown), so it's observed here rather than owned by @StateObject.
-    @ObservedObject private var gemma = GemmaModel.shared
-    // The medical models and hosted providers, shared the same way: a
-    // download has to outlive the screen that started it.
+    // The writer route, a true singleton, so it is observed here rather
+    // than owned by @StateObject.
     @ObservedObject private var llm = LocalLLMService.shared
 
     init() {
@@ -281,7 +278,6 @@ struct RedPenApp: App {
             .environmentObject(subscriptions)
             .environmentObject(noteStore)
             .environmentObject(sync)
-            .environmentObject(gemma)
             .environmentObject(llm)
             // the section's accent, soft switch and progress bar everywhere
             .wardControls()
@@ -320,7 +316,6 @@ struct RedPenApp: App {
                 .environmentObject(subscriptions)
                 .environmentObject(noteStore)
                 .environmentObject(sync)
-                .environmentObject(gemma)
                 .environmentObject(llm)
                 .wardControls()
                 .appLanguage()

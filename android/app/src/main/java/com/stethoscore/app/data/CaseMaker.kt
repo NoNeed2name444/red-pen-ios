@@ -15,7 +15,7 @@ import kotlin.coroutines.coroutineContext
  * and the accuracy rules before it is kept (CaseChecks). Port of the
  * Foundation part of iOS Features/Cases/CaseMaker.swift.
  *
- * Android's one writer is the backend chosen in AI models (Stethoscore
+ * Android's one writer is the writer route (Stethoscore
  * Cloud, [BackendWriter]); with Stethoscore Cloud the server writes every case
  * as one job, as iOS's cloudWrite does. Apple's on-device model and the
  * downloaded Gemma are Apple-only or not on Android, so with nothing chosen
@@ -63,16 +63,16 @@ object CaseMaker {
         val dropped: Int,
     )
 
-    /** The writer to use here: the backend chosen in AI models, or null when there is none. */
+    /** The writer to use here: the writer route's backend, or null while it is blocked. */
     fun writer(backend: LLMBackend?): Writer? = backend?.let { BackendWriter(it) }
 
     /**
-     * Why there is no writer, in the student's words: Stethoscore Cloud's
-     * blocker when it is chosen, else iOS's words for a phone with no model
-     * (its offline-model download is not on Android, so only AI models is named).
+     * Why there is no writer, in the student's words, as iOS says it: Stethoscore
+     * Cloud's blocker (part of Pro, or sign in), else that it cannot be reached.
+     * Nothing is written on the phone (the owner, 23 Oct: "Lock it").
      */
     fun noWriter(blocker: String? = null): String =
-        blocker ?: "On-device writing isn't available here. Choose a writer in Settings \u25B8 AI models."
+        blocker ?: "Stethoscore Cloud can't be reached right now."
 
     /** The lecture as the writers read it, each page marked with its number so the teaching can cite it. */
     fun sourceText(pages: List<Pair<Int, String>>): String =

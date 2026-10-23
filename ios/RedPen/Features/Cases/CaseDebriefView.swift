@@ -16,7 +16,6 @@ struct CaseDebriefView: View {
 
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var llm: LocalLLMService
-    @EnvironmentObject private var gemma: GemmaModel
     @ObservedObject private var saver = IdeaSaver.shared
 
     @State private var cardsNote: String?
@@ -373,8 +372,11 @@ struct CaseDebriefView: View {
         anotherNote = nil
         guard let current = set else { return }
         if let busy = GenerationCenter.shared.busy { anotherNote = busy; return }
-        guard let writer = CaseMaker.writer(llm: llm, gemma: gemma) else {
-            anotherNote = CaseMaker.noWriter(gemma: gemma)
+        // the writer route or nothing (WriterGate): no case is written on the phone
+        let writer: LLMBackend? = CaseMaker.writer(llm: llm)
+        let noWriter: String = CaseMaker.noWriter(llm: llm)
+        guard writer != nil else {
+            anotherNote = noWriter
             return
         }
         let pages: [(number: Int, text: String)] = current.sources.flatMap { doc in doc.pages.map { (number: $0.number, text: $0.text) } }
@@ -400,9 +402,11 @@ struct CaseDebriefView: View {
         let subject: String = current.subject
         writingTask = Task {
             do {
-                let made = try await CaseMaker.write(count: 1, source: source, lecture: lecture, subject: subject,
-                                                     brief: brief, using: writer) { done, total in
-                    GenerationCenter.shared.update(job, done: done, total: total)
+                let made = try await WriterGate.write(.cases, with: writer, noWriter: noWriter) { writer in
+                    try await CaseMaker.write(count: 1, source: source, lecture: lecture, subject: subject,
+                                              brief: brief, using: writer) { done, total in
+                        GenerationCenter.shared.update(job, done: done, total: total)
+                    }
                 }
                 try Task.checkCancellation()
                 await MainActor.run {

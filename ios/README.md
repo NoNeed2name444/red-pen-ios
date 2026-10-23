@@ -77,48 +77,17 @@ an in-memory store seeded with sample sets; a normal launch never sees it.
    directly from the app (needs your own API key stored in Keychain, or a
    small backend to hold it).
 
-## Medical models: Doctor-R1, MedVAL and hosted models
+## The writer: one route, nothing to choose
 
-Settings ▸ **AI models** chooses two things:
+There is no AI models page and no writer to choose (the owner, 22 Oct). Every text job (questions, stations, cards, textbook pages, cases, twins, hints, Lens answers, marking) goes to the worker's writer route, `cramdown-writer` (`WriterRoute` in `Shared/LLM/LLMCore.swift`). The worker decides what answers it: its hosted writer, behind `PRO_PAYS` and its spend caps, with no free fallback for anyone but the owner key. The app never holds a model's key; its bearer is the account's session or, in the personal build, the owner key.
 
-| Role | On the device | Hosted |
-|---|---|---|
-| **Writer**: writes MCQs and OSCE stations, plays the patient in Cases | Doctor-R1 8B (GGUF) | Baichuan-M2-32B, or any model below |
-| **Checker**: grades generated text for hallucinations, omissions and certainty, risk level 1–4 | MedVAL-4B (GGUF) | any model below, given MedVAL's prompt |
+Nothing is written on the device (the owner, 23 Oct: "Lock it"): without the writer (not Pro, not signed in, or the cloud out of reach) the question, case and station screens write nothing and show why, the question screen with See Pro (`WriterGate` in `Shared/LLM/LLMCore.swift`). The on-device question writers and the offline model download are gone, and a launch removes the model files earlier builds downloaded (`RetiredModels`). Audio goes to the worker's transcription route; no key is in the app.
 
-A writer chosen here takes priority over Apple's on-device model and Gemma. With neither chosen, the app behaves exactly as before.
-
-**Tiers.** Free: Apple's on-device model and the Gemma fallback. Pro: Doctor-R1 and MedVAL on the device, and CramDown Cloud (Baichuan-M2-32B).
-
-### On the device
-Tap **Download** next to a model. The app picks the largest build this device has memory for:
-
-| Model | Build | Size | Needs |
-|---|---|---|---|
-| Doctor-R1 | Q4_K_M | 5.0 GB | 11 GB+ memory (M-series iPad Pro/Air, recent 12–16 GB devices) |
-| Doctor-R1 | Q3_K_M | 4.1 GB | 8 GB (iPhone 15 Pro and later, M1+ iPads) |
-| MedVAL-4B | Q4_K_M | 2.5 GB | 8 GB |
-| MedVAL-4B | Q3_K_M | 2.1 GB | 6 GB (iPhone 13 Pro, 14, 15) |
-
-Devices with less memory show "Too large for this device". They use a hosted model for that role instead. Only one on-device model is in memory at a time, so a case with both loads them in turn.
-
-Where the files come from (downloaded by the app, nothing to do by hand):
-- Doctor-R1: `huggingface.co/mradermacher/Doctor-R1-GGUF` (conversion of `unicornftk/Doctor-R1`, MIT licence)
-- MedVAL-4B: `huggingface.co/stanfordmimi/MedVAL-4B-GGUF` (MIT licence)
-
-Both run through llama.cpp via LocalLLMClient, the same engine as the Gemma fallback. The same GGUF files run on Android through llama.cpp. VeRL and DSPy are only needed to *train* these models, not to run them.
-
-### Hosted: one interface, several providers
-**Add a hosted model** offers these presets. Every field stays editable:
-- **Baichuan-M2-32B (Hugging Face)**: `https://router.huggingface.co/v1`, model `baichuan-inc/Baichuan-M2-32B`. Needs a Hugging Face token. If no provider on the router serves it, deploy it as a Hugging Face Inference Endpoint and paste that endpoint's `/v1` address instead.
-- **OpenRouter**, **OpenAI**, **Groq/Together** (all OpenAI-compatible), **Claude** (Anthropic Messages API), **Gemini** (Google).
-- **Your own server**: anything that speaks `/v1/chat/completions`, e.g. `llama-server -m Doctor-R1.Q4_K_M.gguf --port 8080` or `vllm serve unicornftk/Doctor-R1`, at `http://<machine>:8080/v1`. Plain `http` is allowed on the local network only.
-
-Keys are stored in the keychain on the device and never built into the app. For an App Store release where students shouldn't need their own keys, put the key behind the existing Cloudflare worker (`server/`) as an OpenAI-compatible `/v1/chat/completions` proxy, and ship that address as a preset.
+Settings shows the cloud's status, **Verify what is generated**, the accuracy engine and **Crash and failure reports** as plain rows.
 
 ### What is checked
 - **Cases**: the case file is checked against the card it was written from. Before it is shown, every patient reply is checked against the case file. Replies graded level 3–4 are regenerated with MedVAL's findings as a correction (up to twice). Anything still failing is listed in the debrief as "treat with caution".
-- **MCQ / OSCE generation**: each question or station is checked against the matching part of the lecture. Level 4 is dropped, and level 3 is kept but counted in the status line. You can turn this off in AI models.
+- **MCQ / OSCE generation**: each question or station is checked against the matching part of the lecture. Level 4 is dropped, and level 3 is kept but counted in the status line. You can turn this off in Settings (Verify what is generated).
 - **Every mode**: **Check accuracy** (shield button) on the current MCQ (once answered), Anki card, Textbook page, Cases card or OSCE station. It checks against the best-matching pages of the set's source, or against standard teaching when the set has no source (the sheet says so).
 
 A study aid, not medical advice.

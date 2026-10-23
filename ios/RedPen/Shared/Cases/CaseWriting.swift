@@ -1,8 +1,7 @@
 import Foundation
 
-// Writing cases from the student's own material: the instructions every
-// writer is given (Apple's on-device model, Gemma, the medical writer and the
-// cloud), and reading a writer's JSON back into case files.
+// Writing cases from the student's own material: the instructions the writer
+// route is given, and reading its JSON back into case files.
 //
 // The instructions are written for this mode alone. They ask for what the
 // case file holds and the checks demand (CaseChecks): the history written
@@ -28,10 +27,6 @@ enum CaseWriting {
         /// Diagnoses already written in this run, not to be repeated.
         var avoid: [String] = []
     }
-
-    /// Characters of lecture in one on-device prompt: the instructions and a
-    /// whole case written back share a 4,096-token window.
-    static let onDeviceSourceChars = 2_400
 
     /// Cases per call: one. A case is long, and a writer asked for several at
     /// once thins every one of them.

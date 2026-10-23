@@ -143,7 +143,7 @@ import kotlinx.coroutines.withContext
                 return
             }
         }
-        // no writer on this phone (iOS llm.writerOrApple() == nil)
+        // no writer on this phone (iOS llm.writer() == nil)
         trouble = "No model is ready to write with."
     }
 

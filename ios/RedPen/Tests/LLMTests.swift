@@ -6,6 +6,9 @@
 // is a wrong answer shown as right.
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 var failures = 0
 func ok(_ condition: Bool, _ what: String) {
@@ -144,6 +147,84 @@ ok(TextSlicing.windows(unbroken, maxChars: 4_000).map(\.count) == [4_000, 4_000,
 ok(TextSlicing.spread(3, upTo: 8) == [0, 1, 2], "every part is checked when there are few enough")
 ok(TextSlicing.spread(20, upTo: 4) == [0, 6, 13, 19], "a sample runs first to last, not the opening only: \(TextSlicing.spread(20, upTo: 4))")
 ok(TextSlicing.spread(9, upTo: 1) == [0] && TextSlicing.spread(0, upTo: 4).isEmpty, "edge counts")
+
+// MARK: the one writer (the owner, 22 Oct): every role, the same route
+
+let worker = URL(string: "https://worker.example")!
+let turns: [ChatTurn] = [.system("Write questions."), .user("The malar rash of lupus spares the nasolabial folds.")]
+for role in LLMRole.allCases {
+    let request = try! WriterRoute.request(turns, role: role, server: worker, bearer: "session-token", maxTokens: 900, temperature: 0.4)
+    let body = (try? JSONSerialization.jsonObject(with: request.httpBody ?? Data())) as? [String: Any] ?? [:]
+    ok(request.url?.absoluteString == "https://worker.example/v1/chat/completions",
+       "\(role.rawValue): the writer is the worker's chat route: \(request.url?.absoluteString ?? "none")")
+    ok(body["model"] as? String == "cramdown-writer" && WriterRoute.model == "cramdown-writer",
+       "\(role.rawValue): the model asked for is the worker's writer, whatever the role")
+    ok(request.value(forHTTPHeaderField: "Authorization") == "Bearer session-token",
+       "\(role.rawValue): the bearer is the session (or the owner key), never a model's key")
+    ok((body["messages"] as? [[String: String]])?.map { $0["role"] ?? "" } == ["system", "user"], "\(role.rawValue): the turns go as they are")
+}
+ok(LLMRole.allCases == [.writer], "one role: no checker or other model to choose")
+ok(WriterRoute.blocker(isPro: false, bearer: "k", brand: "Stethoscore", google: true) == "Stethoscore Cloud is part of Pro.",
+   "not Pro: the writer is blocked, and says why")
+ok(WriterRoute.blocker(isPro: true, bearer: nil, brand: "Stethoscore", google: false) == "Sign in with Apple to use Stethoscore Cloud.",
+   "Pro with no bearer: sign in, naming only the doors this build has")
+ok(WriterRoute.blocker(isPro: true, bearer: "k", brand: "Stethoscore", google: true) == nil, "Pro and signed in: the writer is ready")
+let replyJSON = Data(#"{"choices":[{"message":{"role":"assistant","content":"Q1. Which rash?"}}]}"#.utf8)
+ok((try? WriterRoute.reply(replyJSON)) == "Q1. Which rash?", "the worker's reply is read from its first choice")
+ok((try? WriterRoute.reply(Data(#"{"content":[{"text":"x"}]}"#.utf8))) == nil, "a reply in any other shape is refused, not guessed at")
+
+// MARK: the writer route or nothing (the owner, 23 Oct: "Lock it")
+
+/// A writer that counts what it is asked, so a test can see nothing was.
+final class CountingWriter: LLMBackend, @unchecked Sendable {
+    var asked = 0
+    var label: String { "Counting" }
+    var isOnDevice: Bool { false }
+    var promptBudgetChars: Int { 40_000 }
+    func complete(_ turns: [ChatTurn], maxTokens: Int, temperature: Double) async throws -> String {
+        asked += 1
+        return "written"
+    }
+}
+
+let lockedOut = "Stethoscore Cloud is part of Pro."
+for job in WriterGate.Job.allCases {
+    let probe = CountingWriter()
+    var ran = false
+    var reason: String?
+    do {
+        _ = try await WriterGate.write(job, with: nil, noWriter: lockedOut) { writer -> String in
+            ran = true
+            return try await writer.complete([.user("x")], maxTokens: 10, temperature: 0)
+        }
+    } catch {
+        reason = error.localizedDescription
+    }
+    ok(!ran && probe.asked == 0 && reason == lockedOut,
+       "\(job.rawValue): with no writer nothing is written, and the reason is the cloud's own (\(reason ?? "none"))")
+    let written = try? await WriterGate.write(job, with: probe, noWriter: lockedOut) { writer in
+        try await writer.complete([.user("x")], maxTokens: 10, temperature: 0)
+    }
+    ok(written == "written" && probe.asked == 1, "\(job.rawValue): with the writer route, it alone writes, once")
+}
+ok(Set(WriterGate.Job.allCases.map(\.rawValue)) == ["questions", "cases", "stations"],
+   "questions, cases and stations all go through the gate")
+
+// the files earlier builds downloaded to write on the phone are removed
+do {
+    let docs = FileManager.default.temporaryDirectory.appendingPathComponent("retired-\(UUID().uuidString)", isDirectory: true)
+    let models = RetiredModels.directory(in: docs)
+    try? FileManager.default.createDirectory(at: models.appendingPathComponent("Medical"), withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: models.appendingPathComponent("offline-writer.gguf.part").path, contents: Data("x".utf8))
+    FileManager.default.createFile(atPath: models.appendingPathComponent("Medical/writer.gguf").path, contents: Data("x".utf8))
+    let keep = docs.appendingPathComponent("library.json")
+    FileManager.default.createFile(atPath: keep.path, contents: Data("{}".utf8))
+    ok(RetiredModels.removeAll(in: docs) && !FileManager.default.fileExists(atPath: models.path)
+       && FileManager.default.fileExists(atPath: keep.path),
+       "a launch removes Documents/Models, finished and half-finished downloads, and nothing else")
+    ok(!RetiredModels.removeAll(in: docs), "with nothing left, there is nothing to remove")
+    try? FileManager.default.removeItem(at: docs)
+}
 
 print(failures == 0 ? "ALL LLM TESTS PASS" : "\(failures) LLM TEST(S) FAILED")
 exit(failures == 0 ? 0 : 1)

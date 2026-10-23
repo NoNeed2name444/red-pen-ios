@@ -75,7 +75,7 @@ CORE_DROP = [
     "RedPenApp.swift", "Features/Library/LibraryView.swift", "Features/Library/StudyCategory.swift",
     "Features/Library/LibraryRows.swift", "Features/Library/CategoryShelves.swift", "Features/Library/CategoryPages.swift",
     "Features/Library/LibraryCategory.swift", "Features/Library/LibrarySheets.swift", "Features/Library/WardHome.swift",
-    "Features/Support/SupportCenter.swift", "Features/Support/ModelSettingsView.swift",
+    "Features/Support/SupportCenter.swift",
     "Features/Support/PlatformSettingsSection.swift", "Features/Support/LibraryDataSettingsSection.swift",
     "Features/Support/StudyReminderSettings.swift", "Features/Auth/LinkDeviceView.swift",
     "Shared/PreviewExtras.swift",
@@ -122,7 +122,7 @@ CORE2_DROP = [p for p in CORE1_DROP if p not in STEP2_BACK]
 # Features/Learn. Those come back with the shell: a stand-in bed plan would
 # be a home that cannot plan a round. The core's own entry point and library
 # (CoreApp, CoreLibrary) are not copied in, and neither are the stand-ins
-# for SyncEngine, LinkDeviceView and ModelSettingsView, which the real files
+# for SyncEngine and LinkDeviceView, which the real files
 # replace.
 STEP3_BACK = [
     "Persistence/SyncEngine.swift", "Persistence/SyncPush.swift", "Persistence/SyncState.swift",
@@ -137,7 +137,7 @@ STEP3_BACK = [
     "Features/Library/WardHome.swift",
     "Shared/CustomSession.swift", "Shared/LibrarySearch.swift", "Shared/PreviewExtras.swift",
     "RedPenApp.swift",
-    "Features/Support/SupportCenter.swift", "Features/Support/ModelSettingsView.swift",
+    "Features/Support/SupportCenter.swift",
     "Features/Support/PlatformSettingsSection.swift", "Features/Support/StudyReminderSettings.swift",
     "Features/Auth/LinkDeviceView.swift",
     "Shared/Learn", "Features/Learn",
@@ -217,47 +217,6 @@ def patch(s, old, new, path):
     # a patch whose text moved must stop the build, not ship the file unpatched
     assert s.count(old) == 1, f"{path}: expected one {old.strip()!r} to patch, found {s.count(old)}"
     return s.replace(old, new)
-# Gemma: no LocalLLMClient in Playgrounds, so compile it out behind canImport.
-p = os.path.join(sh, "GemmaModel.swift"); s = open(p).read()
-s = patch(s, "import LocalLLMClientLlama\n", "#if canImport(LocalLLMClientLlama)\nimport LocalLLMClientLlama\n#endif\n", p)
-s = patch(s, "    var client: LlamaClient?\n", "    #if canImport(LocalLLMClientLlama)\n    var client: LlamaClient?\n    #else\n    var client: AnyObject?\n    #endif\n", p)
-open(p, "w").write(s)
-p = os.path.join(sh, "GemmaGenerate.swift"); s = open(p).read()
-assert s.count("extension GemmaModel {") == 1, f"{p}: expected one 'extension GemmaModel {{' to split at"
-head, body = s.split("extension GemmaModel {", 1)
-stub = '''
-#else
-import Foundation
-import UIKit
-
-/// Playgrounds build: the offline model package is not available here, so
-/// every entry point says the model isn't downloaded.
-extension GemmaModel {
-    enum GenerationError: LocalizedError {
-        case notDownloaded, emptyCompletion, cancelled, underlying(String)
-        var errorDescription: String? {
-            switch self {
-            case .notDownloaded: return "The offline model isn't available in this build."
-            case .emptyCompletion: return "Couldn't get anything usable from that \\u{2014} try again or shorten the text."
-            case .cancelled: return ""
-            case .underlying(let message): return "Something went wrong \\u{2014} \\(message)"
-            }
-        }
-    }
-    func generate(
-        sourceText: String, count: Int, subject: String, highYield: Bool,
-        onProgress: @escaping (Int, Int) -> Void = { _, _ in }
-    ) async throws -> [MCQQuestion] { throw GenerationError.notDownloaded }
-    func understandImage(_ image: UIImage, question: String) async throws -> String {
-        throw GenerationError.notDownloaded
-    }
-}
-#endif
-'''
-s = "#if canImport(LocalLLMClientLlama)\n" + head + "extension GemmaModel {" + body + stub
-open(p, "w").write(s)
-# the Playgrounds half (after the last #else) must not name the package's types
-assert not re.search(r"Llama|LocalLLMClient", open(p).read().rsplit("#else", 1)[1]), f"{p}: the Playgrounds stand-in names LocalLLMClient"
 # each package drop has its own build number (UTC date and time), so a report
 # says which drop it came from rather than every drop being "1.0 (1)"
 drop = os.environ.get("DROP_STAMP") or time.strftime("%y%m%d.%H%M", time.gmtime())

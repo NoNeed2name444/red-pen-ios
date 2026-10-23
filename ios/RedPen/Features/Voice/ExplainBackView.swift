@@ -23,7 +23,7 @@ struct ExplainBackView: View {
     @State private var marking = false
     @State private var failure: String?
     @State private var shown: ExplainAttempt?
-    @State private var showModels = false
+    @State private var showPaywall = false
     @State private var showHistory = false
     @FocusState private var focus: ExplainField?
     /// Whether the page is showing: a permission answered after leaving must
@@ -47,7 +47,7 @@ struct ExplainBackView: View {
             .navigationDestination(item: $shown) { attempt in
                 ExplainResultView(attempt: attempt)
             }
-            .sheet(isPresented: $showModels) { ModelSettingsView() }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
             .sheet(isPresented: $showHistory) {
                 ExplainHistorySheet()
                     .environmentObject(store)
@@ -249,7 +249,7 @@ struct ExplainBackView: View {
             let allowed = await VoiceAccess.request()
             hearing = allowed
             // nor behind a sheet opened while the permission was asked
-            let covered: Bool = showHistory || showModels
+            let covered: Bool = showHistory || showPaywall
             guard allowed.canHear, onScreen, !covered else { return }
             listener.start(hints: Array(CardQuality.terms(topic)))
         }
@@ -303,14 +303,22 @@ struct ExplainBackView: View {
 
     @ViewBuilder
     private var markButton: some View {
-        if llm.writerOrApple() == nil {
+        if llm.writer() == nil {
             let weight: BigButtonStyle.Weight = markIsNext ? .primary : .secondary
-            Button("Choose a model") {
-                stopListening()
-                showModels = true
+            if llm.isPro {
+                // Pro, but not signed in: nothing to open, the reason is said
+                Button(action: {}) { ExplainMarkLabel(marking: false) }
+                    .buttonStyle(BigButtonStyle(weight: weight))
+                    .disabled(true)
+                    .accessibilityHint(llm.noWriter)
+            } else {
+                Button("See Pro") {
+                    stopListening()
+                    showPaywall = true
+                }
+                    .buttonStyle(BigButtonStyle(weight: weight))
+                    .accessibilityHint(llm.noWriter)
             }
-                .buttonStyle(BigButtonStyle(weight: weight))
-                .accessibilityHint("A model is needed to mark the explanation")
         } else {
             Button(action: mark) {
                 ExplainMarkLabel(marking: marking)
@@ -343,7 +351,10 @@ struct ExplainBackView: View {
     }
 
     private func mark() {
-        guard let backend = llm.writerOrApple() else { showModels = true; return }
+        guard let backend = llm.writer() else {
+            if !llm.isPro { showPaywall = true }
+            return
+        }
         let spoken = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         let subject = topic.trimmingCharacters(in: .whitespacesAndNewlines)
         let set = chosenSet
@@ -655,7 +666,7 @@ struct ExplainResultView: View {
 
     private func makeCards() {
         making = true
-        let backend = llm.writerOrApple()
+        let backend = llm.writer()
         Task {
             defer { making = false }
             let cards = await VoiceMarking.cards(from: gaps, topic: attempt.topic, using: backend)

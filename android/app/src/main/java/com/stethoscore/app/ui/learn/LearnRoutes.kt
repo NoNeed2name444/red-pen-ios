@@ -110,8 +110,8 @@ internal object LearnRouter {
 @Composable internal fun LearnSheet(store: StudyStore, dark: Boolean, section: WardSection,
                                     onPreset: (com.stethoscore.app.exam.NewSetPreset) -> Unit = {}, onOpenSet: (StudySet) -> Unit) {
     val route = LearnRouter.route ?: return
-    // the bedtime re-read is drawn dark whatever the phone's setting
-    StethoscoreTheme(dark = dark || route == LearnRoute.Bedtime, section = section) {
+    // every learning screen, the bedtime re-read too, follows the app's light or dark (the owner, 22 Oct)
+    StethoscoreTheme(dark = dark, section = section) {
         // the sheet's face fills the window; its screen sits inside the paper frame's ring
         Box(Modifier.fillMaxSize().background(wardColor(WardToken.background))) { Box(Modifier.fillMaxSize().wardFrameClearance()) {
             BackHandler { LearnRouter.close() }

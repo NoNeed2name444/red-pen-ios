@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Settings > AI models > Crash and failure reports: the on/off switch and
+/// Settings > Crash and failure reports: the on/off switch and
 /// exactly what is sent. In the owner's personal build, also the developer
 /// tools: what is waiting and what was sent, "Send now", "Copy report", and
 /// buttons that make a failure, a hang or a real crash to test the pipeline.

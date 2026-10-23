@@ -99,8 +99,9 @@ suite osce OsceTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCar
       $S/Corrections.swift $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
       $S/PlainTextImport.swift $S/OsceStations.swift $S/ExamTrack.swift
 # the model layer's text handling: a reasoning model's working, JSON
-# out of prose, and which part of a lecture a check reads
-suite llm LLMTests.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift
+# out of prose, which part of a lecture a check reads, the writer gate
+# (no writer, nothing written) and the retired model files removed
+suite llm LLMTests.swift $S/LLM/LLMCore.swift $S/LLM/LLMParsing.swift $S/LLM/RetiredModels.swift
 suite reading ReadingTests.swift $S/Highlight.swift $S/BookPages.swift $S/BookFigures.swift
 suite deck DeckTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
       $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift \
@@ -428,6 +429,9 @@ suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift $S/Ward/WardL
 suite wardrelief WardReliefTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
 # window/page joins, clearance clips, iPad corners and the fold pill
 suite wardisland WardIslandTests.swift $S/Ward/WardIsland.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+# draw from memory's paper: its foot above a docked tray, held through
+# Compare, and the original taking the mode (no white block in dark)
+suite recallpaper RecallPaperTests.swift ios/RedPen/Features/Recall/RecallPaper.swift
 # the paper frame clear of the system bars, its corners concentric with
 # the display's (WardCorner)
 suite wardframeclear WardFrameClearTests.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift

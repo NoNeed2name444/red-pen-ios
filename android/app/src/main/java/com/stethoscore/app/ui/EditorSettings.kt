@@ -85,7 +85,7 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
 
 @Composable fun SettingsScreen(dark:Boolean,onDark:(Boolean)->Unit,onImport:()->Unit,onExport:()->Unit,onExamples:()->Unit,onBack:()->Unit,
     review:ReviewSettings=ReviewSettings(),onReview:(ReviewSettings)->Unit={},
-    onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null,onExam:(()->Unit)?=null,onModels:(()->Unit)?=null) {
+    onSources:(()->Unit)?=null,onLicences:(()->Unit)?=null,onExam:(()->Unit)?=null,cloud:com.stethoscore.app.llm.LLMService?=null) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WardSpace.gutter.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ScreenHeader("Settings","Your study space",onBack)
         WardCard(Modifier.fillMaxWidth()) {
@@ -106,12 +106,10 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
             WardButton(if(exam==null) "Choose your exam" else "Change exam",onExam,Modifier.fillMaxWidth().testTag("chooseExam"))
             Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        // iOS: Settings, "AI models" (ModelSettingsView)
-        if(onModels!=null) WardCard(Modifier.fillMaxWidth()) {
-            SectionLabel("AI models")
-            Text("The writer and Stethoscore Cloud",style=WardType.title.textStyle())
-            WardButton("AI models",onModels,Modifier.fillMaxWidth().testTag("aiModels"))
-        }
+        // Stethoscore Cloud as plain rows (the owner, 22 Oct): there is no writer to choose and no
+        // AI models screen; every text job goes to the worker's writer route. The personal build
+        // shows its owner-key spend against this phone's cap.
+        CloudSettingsRows(cloud)
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Review")
             Text("Scheduler",style=WardType.headline.textStyle())
@@ -156,5 +154,28 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
         WardCircleButton(Icons.Rounded.Remove,"Fewer ${label.lowercase()}",{ onChange((value-step).coerceAtLeast(0)) },enabled=value>0)
         Spacer(Modifier.width(8.dp))
         WardCircleButton(Icons.Rounded.Add,"More ${label.lowercase()}",{ onChange((value+step).coerceAtMost(9999)) })
+    }
+}
+
+/** Settings' Stethoscore Cloud rows: its status, and in the personal build the owner key's spend and cap. */
+@Composable internal fun CloudSettingsRows(service:com.stethoscore.app.llm.LLMService?=null) {
+    val llm=service ?: com.stethoscore.app.ui.editors.rememberLLMService()
+    WardCard(Modifier.fillMaxWidth().testTag("cloudRows")) {
+        SectionLabel("${com.stethoscore.app.llm.HostedProvider.BRAND} Cloud")
+        CloudRow("Status",llm.cloudBlocker ?: "Ready")
+        if(llm.isPersonal) {
+            CloudRow("Owner key spend",llm.spend.said)
+            if(!llm.spend.capReached) Text("This build sends the owner key and stops sending it once ${com.stethoscore.app.llm.OwnerSpend.dollars(llm.spend.capMicros)} has been spent, counted on this phone from what each reply reports, or at its most when it reports nothing.",
+                style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text("Questions, stations, cards and textbook pages are written by ${com.stethoscore.app.llm.HostedProvider.BRAND} Cloud, and everything it writes is checked by the verification layer. Your text is sent to the cloud to answer; ${com.stethoscore.app.llm.HostedProvider.BRAND} does not keep it.",
+            style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable private fun CloudRow(label:String,value:String) {
+    Row(Modifier.fillMaxWidth().semantics(mergeDescendants=true) {},horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+        Text(label,Modifier.weight(1f),style=WardTextStyle.callout.textStyle(WardWeight.semibold))
+        Text(value,Modifier.weight(1.4f),style=WardTextStyle.subheadline.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

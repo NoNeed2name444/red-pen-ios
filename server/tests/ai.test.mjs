@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { chat, clean, linkSubscription, isOwnerKey, accountToken } from '../ai.js';
+import { chat, askModel, clean, linkSubscription, isOwnerKey, accountToken, isPro } from '../ai.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -40,6 +40,14 @@ function freshEnv(extra = {}) {
   db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('a1', 'apple', 's1', 0)`).run();
   return { DB: d1(db), db, AI_API_KEY: 'k', APPLE_BUNDLE_ID: 'com.cramdown.app', ...extra };
 }
+// p1: a confirmed Pro subscriber who is not the owner. Text is the owner's
+// alone (the owner, 23 Oct: "only me"), so p1 is refused whatever it pays.
+function withPro(env) {
+  const now = Math.floor(Date.now() / 1000);
+  env.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at, verified_until, checked_at) VALUES ('p1', 'apple', 'sp', 0, ?, ?)`)
+    .run(now + 86400, now);
+  return env;
+}
 
 const upstreamCalls = [];
 const fakeFetch = (appleAnswer) => async (url, init) => {
@@ -48,8 +56,15 @@ const fakeFetch = (appleAnswer) => async (url, init) => {
     return new Response(JSON.stringify(appleAnswer), { status: 200 });
   }
   upstreamCalls.push({ url, body: JSON.parse(init.body) });
+  if (url.includes('anthropic')) {
+    return new Response(JSON.stringify({ model: 'claude-opus-5-5', stop_reason: 'end_turn', content: [{ type: 'text', text: 'hello' }],
+                                         usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200 });
+  }
   return new Response(JSON.stringify({ choices: [{ message: { content: 'hello' } }], usage: { secret: 1 } }), { status: 200 });
 };
+// only the hosted writer answers anyone but the owner key, so a subscriber is answered
+// only where the hosted writer is set up (its key, PRO_PAYS on, a price, a budget)
+const claude = { ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4.00/20.00', PRO_MONTHLY_BUDGET_USD: '5' };
 const request = { model: 'cramdown-writer', messages: [{ role: 'user', content: 'hi' }], max_tokens: 99999 };
 
 // a real ES256 key, as App Store Connect would issue
@@ -70,9 +85,14 @@ const a1Token = await accountToken('a1');
 // owner: allowed, model mapped, tokens capped, only the content comes back
 {
   const env = freshEnv({ OWNER_ACCOUNT_IDS: 'x, a1' });
-  const r = await chat(env, 'a1', request, fakeFetch({}));
+  const calls = upstreamCalls.length;
+  // the owner signed in (an id on OWNER_ACCOUNT_IDS) is answered as the owner key is
+  const signedIn = await chat(env, 'a1', request, fakeFetch({}));
+  ok(signedIn.status === 200 && (await signedIn.json()).choices[0].message.content === 'hello' && upstreamCalls.length === calls + 1,
+     'an owner account without the owner key: answered as the owner key is, not refused');
+  const r = await chat(env, 'owner', request, fakeFetch({}), { owner: true });
   const body = await r.json();
-  ok(r.status === 200 && body.choices[0].message.content === 'hello', 'an owner account gets the answer');
+  ok(r.status === 200 && body.choices[0].message.content === 'hello', 'the owner key gets the answer');
   const sent = upstreamCalls.at(-1).body;
   ok(sent.model === 'baichuan-inc/Baichuan-M2-32B:featherless-ai', 'cramdown-writer maps to Baichuan-M2-32B (on its one live Hugging Face host) by default');
   ok(sent.max_tokens === 2000, 'max_tokens is capped');
@@ -81,14 +101,18 @@ const a1Token = await accountToken('a1');
 
 // Apple confirms a live subscription: linked, then allowed
 {
-  const env = freshEnv(asc);
+  const env = freshEnv({ ...asc, ...claude });
   const future = Date.now() + 30 * 86_400_000;
   const apple = { bundleId: 'com.cramdown.app', data: [{ lastTransactions: [
     { status: 1, signedTransactionInfo: jws({ expiresDate: future, appAccountToken: a1Token }) }] }] };
   const linked = await (await linkSubscription(env, 'a1', { originalTransactionId: '2000000123' }, fakeFetch(apple))).json();
   ok(linked.pro === true, 'a live subscription confirmed by Apple links as Pro');
+  // Pro is what chat() used to read; text is now the owner's alone (the owner,
+  // 23 Oct: "only me"), so Pro is read directly and chat refuses this subscriber
+  const row = () => env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind('a1').first();
+  ok(await isPro(env, row(), fakeFetch(apple)), 'and the account then reads as Pro');
   const r = await chat(env, 'a1', request, fakeFetch(apple));
-  ok(r.status === 200, 'and the cloud model then answers');
+  ok(r.status === 402 && upstreamCalls.every(c => !c.url.includes('anthropic')), 'yet a subscriber who is not the owner gets no text (402, See Pro)');
 }
 
 // Apple says expired: refused
@@ -109,10 +133,11 @@ const a1Token = await accountToken('a1');
   await linkSubscription(env, 'a1', { originalTransactionId: '2000000126' }, fakeFetch(apple));
   let asked = 0;
   const counting = async (url, init) => { if (url.includes('storekit')) asked++; return fakeFetch(apple)(url, init); };
-  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, counting);
+  const row = () => env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind('a1').first();
+  for (let i = 0; i < 3; i++) await isPro(env, row(), counting);
   ok(asked === 0, 'a lapsed subscription checked minutes ago is not sent to Apple again on each request');
   env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
-  await chat(env, 'a1', request, counting);
+  await isPro(env, row(), counting);
   ok(asked > 0, 'but it is asked again once the short recheck has passed, so a renewal is noticed');
 }
 
@@ -127,7 +152,7 @@ const a1Token = await accountToken('a1');
 
 // one subscription, one account; and Apple being down doesn't cancel Pro
 {
-  const env = freshEnv(asc);
+  const env = freshEnv({ ...asc, ...claude });
   env.DB.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('b2', 'google', 's2', 0)`).run();
   const future = Date.now() + 30 * 86_400_000;
   const apple = { bundleId: 'com.cramdown.app', data: [{ lastTransactions: [
@@ -139,7 +164,8 @@ const a1Token = await accountToken('a1');
   // a1 is Pro; time passes past the recheck and Apple answers 503
   env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
   const down = async (url, init) => url.includes('storekit') ? new Response('busy', { status: 503 }) : fakeFetch(apple)(url, init);
-  ok((await chat(env, 'a1', request, down)).status === 200, 'Apple being down does not take Pro away from a subscriber');
+  ok(await isPro(env, env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind('a1').first(), down),
+     'Apple being down does not take Pro away from a subscriber');
 }
 
 // a transaction id someone else bought cannot be claimed first
@@ -171,12 +197,12 @@ const a1Token = await accountToken('a1');
 {
   const { reserve, settle, wallet, canPay, costOf, budget } = await import('../ai.js');
   const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '1', OWNER_MONTHLY_USD: '1',
-                         GEMINI_PRICES: 'gemini-3.5-flash:1/1', GEMINI_AUDIO_PRICES: 'gemini-3.5-flash:3' });
+                         GEMINI_PRICES: 'gemini-3.8-flash:1/1', GEMINI_AUDIO_PRICES: 'gemini-3.8-flash:3' });
   const w = await wallet(env, 'a1');
   ok(await reserve(env, w, 600_000) && !(await reserve(env, w, 600_000)), 'two calls at once cannot both take the last of the budget');
   await settle(env, w, 600_000, 100_000);
   ok(await reserve(env, w, 600_000), 'settling returns what was held back but not used');
-  ok(costOf(env, 'gemini-3.5-flash', { promptTokenCount: 1e6, candidatesTokenCount: 0,
+  ok(costOf(env, 'gemini-3.8-flash', { promptTokenCount: 1e6, candidatesTokenCount: 0,
       promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 3e6, 'audio is priced as audio');
   const owner = await wallet(env, 'owner', true);
   await reserve(env, owner, 1_000_000);
@@ -191,11 +217,14 @@ const a1Token = await accountToken('a1');
   ok((await chat(env, 'owner', request, fakeFetch({}), { owner: true })).status === 429, 'a leaked owner key cannot spend without end');
 }
 
-// the daily allowance
+// the daily allowance: the owner signed in has the owner key's, and shares it
+// with the key (only the owner is written for, the owner, 23 Oct: "only me")
 {
-  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_DAILY_LIMIT: '3' });
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', OWNER_DAILY_LIMIT: '3', ...claude });
   const statuses = [];
-  for (let i = 0; i < 5; i++) statuses.push((await chat(env, 'a1', request, fakeFetch({}))).status);
+  for (let i = 0; i < 2; i++) statuses.push((await chat(env, 'a1', request, fakeFetch({}))).status);
+  statuses.push((await chat(env, 'owner', request, fakeFetch({}), { owner: true })).status);
+  for (let i = 0; i < 2; i++) statuses.push((await chat(env, 'a1', request, fakeFetch({}))).status);
   ok(JSON.stringify(statuses) === JSON.stringify([200, 200, 200, 429, 429]), 'the fourth request of the day is refused (429)');
 }
 
@@ -249,9 +278,11 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   };
   const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
                          FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' });
-  const r = await chat(env, 'a1', request, fetcher);
+  const student = await chat(withPro(env), 'p1', request, fetcher);
+  ok(student.status === 402 && seen.length === 0, 'a Pro account, not the owner: neither Baichuan nor Gemini is asked (402)');
+  const r = await chat(env, 'owner', request, fetcher, { owner: true });
   ok(r.status === 200 && (await r.json()).choices[0].message.content === 'from gemini' && seen[0].includes('baichuan'),
-     'Baichuan busy or out of credit: Gemini answers instead');
+     'Baichuan busy or out of credit: Gemini answers the owner instead');
   const refused = async () => new Response(JSON.stringify({ error: { message: 'bad key' } }), { status: 401 });
   const x = await chat(env, 'a1', request, refused, { owner: true });
   ok(x.status === 502 && (await x.json()).message.startsWith('Provider 401'), 'a real refusal is reported, not hidden behind a fallback');
@@ -267,26 +298,30 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok(!g.generationConfig.thinkingConfig && geminiBody([{ role: 'user', content: 'Q' }], 100, 0, 'gemma-4-31b-it').generationConfig.thinkingConfig.thinkingLevel === 'minimal',
      'Gemma is asked not to think, so its answer is not cut off');
 
-  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-redpen', OWNER_ACCOUNT_IDS: 'a1' };
+  // the free chain is the owner key's alone now; its models as deployed, less 3.1 Pro
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-redpen', OWNER_ACCOUNT_IDS: 'a1',
+                     CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
   const seen = [];
   const gemini = status => async (url, init) => {
     seen.push(url);
     if (status !== 200) return new Response(JSON.stringify({ error: { message: 'quota' } }), { status });
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'thinking', thought: true }, { text: 'answer' }] } }] }), { status: 200 });
   };
-  const r = await chat(freshEnv(firebase), 'a1', request, gemini(200));
+  const student = await chat(withPro(freshEnv({ ...firebase, AI: { run: async () => ({ response: 'cloudflare' }) } })), 'p1', request, gemini(200));
+  ok(student.status === 402 && seen.length === 0, 'a Pro account, not the owner: refused (402), neither Gemini nor Workers AI asked');
+  const r = await chat(freshEnv(firebase), 'owner', request, gemini(200), { owner: true });
   const body = await r.json();
   ok(r.status === 200 && body.choices[0].message.content === 'answer', 'the writer answers from Gemini, thoughts left out');
-  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.5-flash:generateContent'), 'through the Firebase project, Flash first');
+  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.8-flash:generateContent'), 'through the Firebase project, Flash first');
 
   let workersAsked = 0;
   const env = freshEnv({ ...firebase, AI: { run: async (model, input) => { workersAsked++; return { response: `from ${model}` }; } } });
-  const f = await chat(env, 'a1', request, gemini(429));
+  const f = await chat(env, 'owner', request, gemini(429), { owner: true });
   const fb = await f.json();
   ok(f.status === 200 && workersAsked === 1 && fb.choices[0].message.content.startsWith('from @cf/'), 'out of Gemini quota, Workers AI answers');
 
   const locked = freshEnv({ ...firebase, AI: { run: async () => ({ response: 'cloudflare' }) } });
-  const l = await chat(locked, 'a1', request, gemini(401));
+  const l = await chat(locked, 'owner', request, gemini(401), { owner: true });
   ok(l.status === 200 && (await l.json()).choices[0].message.content === 'cloudflare', 'Gemini locked by App Check (401): Workers AI answers');
 
   const none = await chat(freshEnv(firebase), 'a1', request, gemini(429), { owner: true });
@@ -297,7 +332,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const busyFlash = async url => { tried.push(url);
     return url.includes('flash-lite') ? new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'lite' }] } }] }), { status: 200 })
       : new Response(JSON.stringify({ error: { message: 'overloaded' } }), { status: 503 }); };
-  const bl = await chat(freshEnv(firebase), 'a1', request, busyFlash);
+  const bl = await chat(freshEnv(firebase), 'owner', request, busyFlash, { owner: true });
   ok(bl.status === 200 && (await bl.json()).source === 'gemini-3.5-flash-lite' && tried.length === 2, 'Flash overloaded (503): Flash-Lite answers');
 
   // per-minute limit on both: wait as asked, then go round again
@@ -305,7 +340,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const perMinute = async () => { calls++;
     return calls <= 2 ? new Response(JSON.stringify({ error: { message: 'rate', details: [{ retryDelay: '1s' }] } }), { status: 429 })
       : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'later' }] } }] }), { status: 200 }); };
-  const pm = await chat(freshEnv(firebase), 'a1', request, perMinute);
+  const pm = await chat(freshEnv(firebase), 'owner', request, perMinute, { owner: true });
   ok(pm.status === 200 && (await pm.json()).choices[0].message.content === 'later' && calls === 3, 'per-minute limit: waits the retryDelay and tries again');
 
   // both sources fail: the owner sees both reasons, Gemini's first
@@ -318,18 +353,20 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 {
   const { geminiModels, charge, priceOf } = await import('../ai.js');
   const off = freshEnv({});
-  ok((await geminiModels(off, 'p1')).join() === 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it',
-     'billing off: the free allowances, 3.5 Flash first, no 3.6 Flash');
+  ok((await geminiModels(off, 'p1')).join() === 'gemini-3.5-flash-lite,gemma-4-31b-it',
+     'billing off, no CLOUD_MODELS set: the free allowances, Flash-Lite first, no retired 3.5 Flash and no 3.6 Flash');
+  ok((await geminiModels(freshEnv({ CLOUD_MODELS: 'gemini-3.1-pro-preview,gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' }), 'p1')).join()
+     === 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it', 'with the deployed CLOUD_MODELS: 3.8 Flash first, no 3.1 Pro before Pro pays');
   const on = freshEnv({ GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '1',
-                        GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50' });
-  ok(priceOf(on, 'gemini-3.5-flash').output === 2.5 && priceOf(on, 'gemma-4-31b-it').output === 0, 'prices read from GEMINI_PRICES; Gemma is free');
-  ok((await geminiModels(on, 'p1'))[0] === 'gemini-3.5-flash', 'billing on: a Pro account starts on paid Flash');
+                        GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50' });
+  ok(priceOf(on, 'gemini-3.8-flash').output === 2.5 && priceOf(on, 'gemma-4-31b-it').output === 0, 'prices read from GEMINI_PRICES; Gemma is free');
+  ok((await geminiModels(on, 'p1'))[0] === 'gemini-3.8-flash', 'billing on: a Pro account starts on paid Flash');
   // 400k output tokens at $2.50/M = $1.00: the whole budget
-  await charge(on, 'p1', 'gemini-3.5-flash', { promptTokenCount: 0, candidatesTokenCount: 300000, thoughtsTokenCount: 100000 });
+  await charge(on, 'p1', 'gemini-3.8-flash', { promptTokenCount: 0, candidatesTokenCount: 300000, thoughtsTokenCount: 100000 });
   ok((await geminiModels(on, 'p1')).join() === 'gemma-4-31b-it', 'over its monthly budget: free Gemma only, so it never costs more than it pays');
-  ok((await geminiModels(on, 'p2'))[0] === 'gemini-3.5-flash', 'another account still has its own budget');
-  ok((await geminiModels(on, 'p1', true))[0] === 'gemini-3.5-flash', 'the owner is not budgeted');
-  await charge(off, 'p3', 'gemini-3.5-flash', { candidatesTokenCount: 1e6 });
+  ok((await geminiModels(on, 'p2'))[0] === 'gemini-3.8-flash', 'another account still has its own budget');
+  ok((await geminiModels(on, 'p1', true))[0] === 'gemini-3.8-flash', 'the owner is not budgeted');
+  await charge(off, 'p3', 'gemini-3.8-flash', { candidatesTokenCount: 1e6 });
   ok(!(await off.DB.prepare('SELECT * FROM ai_cost WHERE account_id = ?').bind('p3').first()), 'nothing is charged while billing is off');
 }
 
@@ -337,7 +374,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 {
   const { budget, canPay } = await import('../ai.js');
   const env = freshEnv({ PRO_PAYS: 'on', PRO_NET_MONTHLY_USD: '5', COST_SHARE: '0.6', MONTHLY_BILLS: 'github-actions:0.4,apple-developer:0.6',
-                         GEMINI_PRICES: 'gemini-3.5-flash:1/1,baichuan/baichuan-m2-32b:1/1' });
+                         GEMINI_PRICES: 'gemini-3.8-flash:1/1,baichuan/baichuan-m2-32b:1/1' });
   const later = Math.floor(Date.now() / 1000) + 86400;
   env.DB.prepare('UPDATE accounts SET verified_until = ? WHERE id = ?').bind(later, 'a1').run();
   const money = await budget(env);
@@ -352,8 +389,11 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   let novita = 0;
   const writer = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://novita', AI_WRITER_KEY: 'k',
                             AI: { run: async () => ({ response: 'free' }) } });
-  const r = await chat(writer, 'a1', request, async () => { novita++; return new Response('{}', { status: 500 }); });
-  ok(r.status === 200 && novita === 0 && (await r.json()).choices[0].message.content === 'free', 'PRO_PAYS off: Novita is never called, the free model answers');
+  const paid = async () => { novita++; return new Response('{}', { status: 500 }); };
+  const student = await chat(withPro(writer), 'p1', request, paid);
+  ok(student.status === 402 && novita === 0, 'PRO_PAYS off, a Pro account: Novita is never called and nothing free answers either (402)');
+  const r = await chat(writer, 'owner', request, paid, { owner: true });
+  ok(r.status === 200 && novita === 0 && (await r.json()).choices[0].message.content === 'free', 'PRO_PAYS off, the owner key: Novita is never called, the free model answers');
 }
 
 
@@ -374,8 +414,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   };
   const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p',
                          FIREBASE_APP_ID: '1:880702682763:web:abc', APPCHECK_DEBUG_TOKEN: 'dbg' });
-  await chat(env, 'a1', request, fetcher);
-  await chat(env, 'a1', request, fetcher);
+  await chat(env, 'owner', request, fetcher, { owner: true });
+  await chat(env, 'owner', request, fetcher, { owner: true });
   ok(sentHeader === 'ac-token' && exchanges === 1, 'Gemini calls carry the App Check token, exchanged once and reused');
   let t = 0;
   forgetAppCheck();
@@ -416,7 +456,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const pro = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1' });
   const r = await transcribeChunk(pro, 'a1', chunk, google);
   const j = await r.json();
-  ok(r.status === 200 && j.text.includes('malar rash') && j.model === 'gemini-3.5-flash', 'a Pro account gets the transcript, from 3.5 Flash');
+  ok(r.status === 200 && j.text.includes('malar rash') && j.model === 'gemini-3.8-flash', 'a Pro account gets the transcript, from 3.8 Flash');
   const sent = asked[0];
   ok(sent.key === 'fk' && sent.body.contents[0].parts[0].inlineData.data === chunk.audio && sent.body.generationConfig.responseSchema.type === 'ARRAY',
      'the server sends the audio to Gemini with its own key and asks for timed phrases');
@@ -429,7 +469,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok((await transcribeChunk(capped, 'a1', chunk, google)).status === 429, 'a daily number of chunks per account');
 
   const billed = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '0.017',
-                            GEMINI_PRICES: 'gemini-3.5-flash:1/1' });
+                            GEMINI_PRICES: 'gemini-3.8-flash:1/1' });
   ok((await transcribeChunk(billed, 'a1', chunk, google)).status === 200, 'with billing on, a Pro account transcribes within its budget');
   const over = await transcribeChunk(billed, 'a1', chunk, google);
   ok(over.status === 429 && (await over.json()).message.includes('month'), 'over its monthly budget it is told to use the phone (Gemma cannot hear)');
@@ -456,16 +496,16 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 // a background job's reply may be as long as the job asked for; the app's own requests stay at 2,000
 {
   const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1' });
-  await chat(env, 'a1', { ...request, max_tokens: 3800 }, fakeFetch({}), { maxTokensCap: 8000 });
+  await chat(env, 'owner', { ...request, max_tokens: 3800 }, fakeFetch({}), { owner: true, maxTokensCap: 8000 });
   ok(upstreamCalls.at(-1).body.max_tokens === 3800, 'a job step gets the 3,800 tokens it was sized for');
-  await chat(env, 'a1', { ...request, max_tokens: 99999 }, fakeFetch({}), { maxTokensCap: 99999 });
+  await chat(env, 'owner', { ...request, max_tokens: 99999 }, fakeFetch({}), { owner: true, maxTokensCap: 99999 });
   ok(upstreamCalls.at(-1).body.max_tokens === 8000, 'but never more than 8,000');
 }
 
 // Gemini 3 is given room to think on top of the answer, and a short call thinks briefly
 {
   const { geminiBody } = await import('../ai.js');
-  const terms = geminiBody([{ role: 'user', content: 'Q' }], 200, 0, 'gemini-3.5-flash');
+  const terms = geminiBody([{ role: 'user', content: 'Q' }], 200, 0, 'gemini-3.8-flash');
   ok(terms.generationConfig.maxOutputTokens === 400 && terms.generationConfig.thinkingConfig.thinkingLevel === 'low',
      "a 200-token call leaves room for Gemini 3's thinking and asks for little of it");
   const long = geminiBody([{ role: 'user', content: 'Q' }], 2000, 0, 'gemini-3.1-pro-preview');
@@ -490,8 +530,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   await chat(freshEnv(), 'owner', medval, fetcher, { owner: true });
   ok(seen.length === 1, 'ground: false from the owner: one call, no search terms, no evidence');
   seen.length = 0;
-  await chat(freshEnv({ OWNER_ACCOUNT_IDS: 'a1' }), 'a1', medval, fetcher);
-  ok(seen.length > 1, 'a student\'s check is always grounded');
+  const student = await chat(withPro(freshEnv({ ...claude })), 'p1', medval, fetcher);
+  ok(student.status === 402 && seen.length === 0, 'a student\'s check, grounded or not, is never run (402; only the owner is written for)');
 }
 
 // a billed Firebase project is noticed, and paid calls are budgeted from then on
@@ -499,7 +539,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const { geminiModels, billingSeen } = await import('../ai.js');
   const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
   const env = freshEnv(firebase);
-  ok((await geminiModels(env, 'a1')).includes('gemini-3.5-flash'), 'billing off: students use the free allowances');
+  ok((await geminiModels(env, 'a1')).includes('gemini-3.5-flash-lite'), 'billing off: students use the free allowances');
   const answers = async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'from 3.1 Pro' }] } }] }), { status: 200 });
   await chat(env, 'owner', request, answers, { owner: true });
   ok(await billingSeen(env), 'a paid-only model answering shows the project is billed');
@@ -509,30 +549,54 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 
 // before paid calls are budgeted: a share of the scarce free allowances per account, and a ceiling for all
 {
-  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', FREE_MODEL_SHARES: 'gemini-3.5-flash:2', GEMINI_DAILY_CEILING: '100' };
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', FREE_MODEL_SHARES: 'gemini-3.8-flash:2', GEMINI_DAILY_CEILING: '100',
+                     CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
   const env = freshEnv(firebase);
   const models = [];
   const fetcher = async url => { models.push(url.match(/models\/([^:]+):/)[1]);
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'x' }] } }] }), { status: 200 }); };
-  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, fetcher);
-  ok(models.join() === 'gemini-3.5-flash,gemini-3.5-flash,gemini-3.5-flash-lite', "past its share of 3.5 Flash's free requests, an account moves on to Flash-Lite");
-  const capped = freshEnv({ ...firebase, GEMINI_DAILY_CEILING: '1', AI: { run: async () => ({ response: 'free' }) } });
-  await chat(capped, 'a1', request, fetcher);
-  const r = await (await chat(capped, 'a1', request, fetcher)).json();
-  ok(r.source === 'gemma-4-31b-it', 'past the day\'s ceiling on Gemini calls, only the free Gemma is asked');
+  // an account's chat never reaches them (only the owner is written for), and
+  // nor do its checks: checkBatch refuses anyone but the owner before a vote
+  // (the owner, 23 Oct: "only me"). askModel's shares below are the owner's
+  // checks' votes, as checkBatch asks them.
+  ok((await chat(withPro(env), 'p1', request, fetcher)).status === 402 && models.length === 0, 'a Pro account\'s chat is refused and no free model is asked');
+  {
+    const { checkBatch } = await import('../accuracy.js');
+    const items = [{ id: 'q1', kind: 'mcq', text: 'Which drug?', answer: 'A', source: 'lecture' }];
+    const fetched = [];
+    const r = await checkBatch(env, 'p1', { items }, async url => { fetched.push(url); return new Response('{}', { status: 200 }); });
+    const said = await r.json();
+    ok(r.status === 402 && said.message === 'The accuracy check is part of Pro.' && fetched.length === 0 && models.length === 0,
+       'a Pro account (not the owner) asking for an accuracy check: 402, no vote asked (askModel never called), no model text back');
+  }
+  const vote = (e, use) => askModel(e, 'a1', false, use, request.messages, 50, fetcher);
+  const votes = [];
+  for (let i = 0; i < 3; i++) votes.push((await vote(env, 'gemini:gemini-3.8-flash')).ok);
+  const lite = await vote(env, 'gemini:gemini-3.5-flash-lite');
+  ok(votes.join() === 'true,true,false' && lite.ok && models.join() === 'gemini-3.8-flash,gemini-3.8-flash,gemini-3.5-flash-lite',
+     "past its share of 3.8 Flash's free requests, an account's votes are not sent to Flash; Flash-Lite still answers");
+  const capped = freshEnv({ ...firebase, GEMINI_DAILY_CEILING: '1' });
+  models.length = 0;
+  const one = await vote(capped, 'gemini:gemini-3.5-flash-lite');
+  const two = await vote(capped, 'gemini:gemini-3.5-flash-lite');
+  const gemma = await vote(capped, 'gemini:gemma-4-31b-it');
+  ok(one.ok && !two.ok && gemma.ok && models.join() === 'gemini-3.5-flash-lite,gemma-4-31b-it',
+     'past the day\'s ceiling on Gemini calls, only the free Gemma is asked');
 }
 
 // the Workers AI fallback: its neurons come out of the account's share, and long prompts are not sent to it
 {
-  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', WORKERS_AI_NEURONS_PER_ACCOUNT: '300' };
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', WORKERS_AI_NEURONS_PER_ACCOUNT: '300' };
   let asked = 0;
   const env = freshEnv({ ...firebase, AI: { run: async () => { asked++; return { response: 'free' }; } } });
   const busy = async () => new Response(JSON.stringify({ error: { message: 'quota' } }), { status: 429 });
-  ok((await chat(env, 'a1', request, busy)).status === 200 && asked === 1, 'Gemini busy: Workers AI answers, within the account\'s share');
-  ok((await chat(env, 'a1', request, busy)).status === 502 && asked === 1, 'past its share of the free neurons it is not asked again today');
-  const longOne = { ...request, messages: [{ role: 'user', content: 'x'.repeat(30_000) }] };
+  // an account reaches Workers AI only as a check's voter now (askModel)
+  ok((await chat(withPro(env), 'p1', request, busy)).status === 402 && asked === 0, 'a Pro account\'s chat is refused and Workers AI is not asked');
+  const vote = (e, messages) => askModel(e, 'a1', false, 'workers-ai:@cf/nvidia/nemotron-3-120b-a12b', messages, 2000, busy);
+  ok((await vote(env, request.messages)).ok && asked === 1, 'Workers AI answers an account\'s vote, within the account\'s share');
+  ok(!(await vote(env, request.messages)).ok && asked === 1, 'past its share of the free neurons it is not asked again today');
   const fresh = freshEnv({ ...firebase, AI: { run: async () => { asked++; return { response: 'free' }; } } });
-  ok((await chat(fresh, 'a1', longOne, busy)).status === 502 && asked === 1, 'a 30,000-character prompt is not sent to the free fallback');
+  ok(!(await vote(fresh, [{ role: 'user', content: 'x'.repeat(30_000) }])).ok && asked === 1, 'a 30,000-character prompt is not sent to the free fallback');
 }
 
 // what a Workers AI reply says it used is what counts: the rest of what was
@@ -542,9 +606,10 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   let asked = 0;
   const env = freshEnv({ ...firebase, AI: { run: async () => { asked++; return { response: 'free', usage: { prompt_tokens: 20, completion_tokens: 10 } }; } } });
   const busy = async () => new Response(JSON.stringify({ error: { message: 'quota' } }), { status: 429 });
-  const first = (await chat(env, 'a1', request, busy)).status;
-  const second = (await chat(env, 'a1', request, busy)).status;
-  ok(first === 200 && second === 200 && asked === 2, 'a short reply gives back the neurons it did not use, so the next call still fits the share');
+  const vote = () => askModel(env, 'a1', false, 'workers-ai:@cf/nvidia/nemotron-3-120b-a12b', request.messages, 2000, busy);
+  const first = (await vote()).ok;
+  const second = (await vote()).ok;
+  ok(first && second && asked === 2, 'a short reply gives back the neurons it did not use, so the next call still fits the share');
   const { usedNeurons } = await import('../ai.js');
   ok(usedNeurons(undefined, 1, 1) === null && usedNeurons({ prompt_tokens: 1e6, completion_tokens: 0 }, 5, 7) === 5
      && usedNeurons({ input_tokens: 0, output_tokens: 2e6 }, 5, 7) === 14, 'usage read from the reply in either naming, or nothing when there is none');
@@ -576,7 +641,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   let sent = null;
   const gemmaEnv = freshEnv({ ...firebase, FALLBACK_MODEL: '@cf/google/gemma-4-26b-a4b-it',
     AI: { run: async (model, input) => { sent = input; return { choices: [{ message: { content: 'gemma says', reasoning_content: 'hmm' } }] }; } } });
-  const g = await chat(gemmaEnv, 'a1', request, busy);
+  const g = await chat(gemmaEnv, 'owner', request, busy, { owner: true });
   ok(g.status === 200 && (await g.json()).choices[0].message.content === 'gemma says' && sent.chat_template_kwargs.enable_thinking === false,
      'Gemma 4 on Workers AI answers through the fallback');
 
@@ -585,7 +650,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
     AI: { run: async (model, input) => { nemoSent.push(input.chat_template_kwargs);
       return nemoSent.length === 1 ? { choices: [{ message: { content: null, reasoning_content: 'thinking...' }, finish_reason: 'length' }] }
         : { choices: [{ message: { content: 'nemotron says' } }] }; } } });
-  const n = await chat(nemoEnv, 'a1', request, busy);
+  const n = await chat(nemoEnv, 'owner', request, busy, { owner: true });
   ok(n.status === 200 && (await n.json()).choices[0].message.content === 'nemotron says'
      && nemoSent.length === 2 && nemoSent[0].enable_thinking === true && nemoSent[1].enable_thinking === false,
      'Nemotron that thinks through all its tokens is asked once more with thinking off, and that answer is used');
@@ -596,14 +661,14 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
     { retryDelay: '59s' }] } });
   ok(dailyQuota(perDay) && !dailyQuota(JSON.stringify({ error: { details: [{ violations: [{ quotaId: 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier' }] }] } })),
      'a per-day quota is told apart from a per-minute one');
-  const env = freshEnv(firebase);
+  const env = freshEnv({ ...firebase, CLOUD_MODELS: 'gemini-3.1-pro-preview,gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' });
   const asked = [];
   const fetcher = async url => { const m = url.match(/models\/([^:]+):/)[1]; asked.push(m);
     return m === 'gemini-3.1-pro-preview' ? new Response(perDay, { status: 429 })
       : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'flash' }] } }] }), { status: 200 }); };
   const first = await (await chat(env, 'a1', request, fetcher, { owner: true })).json();
   const second = await (await chat(env, 'a1', request, fetcher, { owner: true })).json();
-  ok(first.source === 'gemini-3.5-flash' && second.source === 'gemini-3.5-flash', 'the owner still gets an answer from Flash');
+  ok(first.source === 'gemini-3.8-flash' && second.source === 'gemini-3.8-flash', 'the owner still gets an answer from Flash');
   ok(asked.filter(m => m === 'gemini-3.1-pro-preview').length === 1, 'and 3.1 Pro is not asked again the same day');
 
   // the paid writer (Novita) refusing its key or out of credit: Gemini answers
@@ -623,7 +688,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   // a provider that never answers: the next source is tried instead of hanging
   const hang = freshEnv({ ...firebase, AI: { run: async () => ({ response: 'fallback' }) } });
   const throwing = async () => { throw new Error('The operation was aborted due to timeout'); };
-  const t = await chat(hang, 'a1', request, throwing);
+  const t = await chat(hang, 'owner', request, throwing, { owner: true });
   ok(t.status === 200 && (await t.json()).choices[0].message.content === 'fallback', 'a Gemini timeout falls through to Workers AI');
 }
 
@@ -640,9 +705,9 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 // transcription audio is priced as audio even when nobody set its price
 {
   const { costOf } = await import('../ai.js');
-  const env = { GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,other:0.10/0.40' };
-  ok(costOf(env, 'gemini-3.5-flash', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 1e6,
-     'the default audio price is used, not the lower text one');
+  const env = { GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50,other:0.10/0.40' };
+  ok(costOf(env, 'gemini-3.8-flash', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 1.5e6,
+     "the default audio price is used (3.8 Flash's published $1.50 from 2027), not the lower text one");
   ok(Math.round(costOf(env, 'other', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] })) === 300000,
      'and a model with no audio price at all is taken at three times its text price');
 }

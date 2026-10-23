@@ -97,7 +97,6 @@
 114	Syllabus check	r114_syllabusCheck	r114-coverage-light r114-coverage-dark
 115	By subject	r115_bySubject	r115-stats-light r115-stats-dark
 116	Settings	r116_settings	r116-settings-light r116-settings-dark
-117	AI models	r117_aiModels	r117-ai-models-light r117-ai-models-dark
 120	Your lectures, empty	r120_lecturesEmpty	r120-lectures-empty-light r120-lectures-empty-dark
 120	Your lectures	r120_lectures	r120-lectures-light r120-lectures-dark
 121	One set's credits	r121_setCredits	r121-set-credits-light r121-set-credits-dark

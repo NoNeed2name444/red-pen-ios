@@ -140,6 +140,8 @@ struct SettingsPage: View {
     /// Handed on to the study reminders, which read the library to pick
     /// the question of the day and tonight's misses.
     @EnvironmentObject private var store: Store
+    /// The cloud's status and the Verify switch.
+    @EnvironmentObject private var llm: LocalLLMService
     @AppStorage("cramdown.confirmDelete") private var confirmDelete = true
     @AppStorage("cramdown.openLastSet") private var openLastSet = false
     @AppStorage(DailyGoal.key) private var dailyGoal: Int = 50
@@ -180,7 +182,8 @@ struct SettingsPage: View {
             LibraryDataSettingsSection()
             PlatformSettingsSection()
                 .environmentObject(store)
-            modelsSection
+            cloudSection
+            AccuracyEngineSection()
             versionSection
         }
         .wardForm()
@@ -390,15 +393,25 @@ struct SettingsPage: View {
         .wardRowBackground()
     }
 
-    private var modelsSection: some View {
+    /// The app's writing, as plain rows (the owner, 22 Oct): there is no
+    /// writer to choose, so no AI models page. Verify, the accuracy check and
+    /// the crash reports live here in Settings itself.
+    private var cloudSection: some View {
         Section {
+            LabeledContent("\(Brand.name) Cloud", value: llm.cloudBlocker ?? "Ready")
+                .accessibilityIdentifier("cloudStatus")
+            Toggle("Verify what is generated", isOn: $llm.checkGenerated)
+                .accessibilityIdentifier("verifyToggle")
             NavigationLink {
-                ModelSettingsView(embedded: true)
+                DiagnosticsSettingsView()
             } label: {
-                Label("AI models", systemImage: "cpu")
+                Label("Crash and failure reports", systemImage: "stethoscope")
             }
+            .accessibilityIdentifier("crashReports")
+        } header: {
+            Text("Writing and checking")
         } footer: {
-            Text("Doctor-R1 on this device, or \(Brand.name) Cloud (Gemini).")
+            Text("Questions, stations, cards and pages are written by \(Brand.name) Cloud with Pro. Everything it writes is checked by the verification layer: safety checks on this device at once, then three model families solving each question without its answer, the literature, and a calibrated verdict on every item's badge. Crash and failure reports are technical only: never your notes, questions or recordings. A study aid, not medical advice; generated text can be wrong even when checked.")
         }
         .wardRowBackground()
     }
@@ -416,6 +429,36 @@ struct SettingsPage: View {
             Text("About")
         } footer: {
             Text(Brand.line)
+        }
+        .wardRowBackground()
+    }
+}
+
+/// The app's accuracy engine: every question, card, case, station and page
+/// checked against its lecture and the literature by free models voting,
+/// scored by the trained accuracy model. Only the background pass over the
+/// whole library can be turned off; new content is always checked.
+struct AccuracyEngineSection: View {
+    @ObservedObject private var accuracy = AccuracyStore.shared
+
+    var body: some View {
+        let checked: Int = accuracy.ledger.records.values.filter { !$0.votes.isEmpty }.count
+        Section {
+            Toggle("Check my whole library in the background", isOn: $accuracy.background)
+            LabeledContent {
+                Text("\(checked)").font(WardType.obs).monospacedDigit()
+                    .foregroundStyle(Color.wardInkSecondary)
+            } label: {
+                Text("Items checked")
+            }
+            LabeledContent("Accuracy model", value: accuracy.weights.version)
+            if let reason = accuracy.pausedReason {
+                Text(reason).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+            }
+        } header: {
+            Text("Accuracy engine")
+        } footer: {
+            Text("New and edited content is checked straight away; the rest of your library slowly, newest and most-studied first, within the free daily limits. Each item is checked against its lecture and current literature (PubMed reviews, MedlinePlus, FDA labels) by two or three free models voting, never only by the model that wrote it, plus rule checks for doses, lab values and contradictions. An item is checked again only when it changes. Needs \(Brand.name) Cloud; rule checks work everywhere.")
         }
         .wardRowBackground()
     }

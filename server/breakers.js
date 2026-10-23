@@ -8,10 +8,9 @@
 // the chain goes straight to the next one.
 //
 // One breaker per lane: a provider and the model asked of it
-// ("gemini:gemini-3.5-flash", "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
-// "anthropic:claude-opus-5-5", "openai:baichuan/baichuan-m2-32b"). Google's
-// free models fail one at a time - a preview model overloaded while
-// Flash-Lite and Gemma answer - so each has its own.
+// ("gemini:<model>", "workers-ai:<model>", "anthropic:<model>",
+// "openai:<model>"). Google's free models fail one at a time - a preview
+// model overloaded while the others answer - so each has its own.
 //
 //   closed     calls go through. A failure is counted: no answer in time, the
 //              host unreachable, or a 5xx. FAILURES of them inside WINDOW

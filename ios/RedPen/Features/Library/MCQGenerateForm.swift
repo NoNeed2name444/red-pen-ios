@@ -4,11 +4,11 @@ import SwiftUI
 ///
 /// Where the paywall sits, and it sits in one place on purpose. Reading a file,
 /// typing questions, importing a deck and reviewing everything you already have
-/// stay free, and so does generating with Apple's model or the Gemma fallback.
-/// What Pro buys is the medical writer, Doctor-R1, on the device, and the
-/// larger hosted models; what it writes is checked by the verification layer.
+/// stay free. Writing questions is the app's one writer, its Cloud, which is
+/// Pro; there is no writer to choose and nothing is written on the phone (the
+/// owner, 23 Oct: "Lock it"). What it writes is checked by the verification
+/// layer.
 struct MCQGenerateForm: View {
-    @EnvironmentObject var gemma: GemmaModel
     @EnvironmentObject var llm: LocalLLMService
     @EnvironmentObject var subscriptions: SubscriptionStore
     /// The New set this is in: closing it stops what this started, and only that.
@@ -34,20 +34,13 @@ struct MCQGenerateForm: View {
     @State private var showPaywall = false
     @State private var showMore = false
 
-    private enum Backend: Equatable { case medical, apple, gemma }
-    /// Which backend a tap on Generate would actually use. `nil` means neither
-    /// is ready, and the UI says why rather than offering a button that fails.
-    private var activeBackend: Backend? {
-        // a writer chosen in AI models is an explicit choice, so it goes first
-        if llm.backend(for: .writer) != nil { return .medical }
-        if MCQGenerator.availability.isAvailable { return .apple }
-        if gemma.status == .ready { return .gemma }
-        return nil
-    }
+    /// Whether the writer route can write here. Without it the UI says why
+    /// (and offers Pro) rather than a button that fails.
+    private var writerReady: Bool { llm.writer() != nil }
 
     private var canStart: Bool {
         !isGenerating
-            && !(activeBackend == nil && !llm.needsPro(.writer))
+            && writerReady
             && !sourceText.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
@@ -77,19 +70,10 @@ struct MCQGenerateForm: View {
             }
 
             if step == .make {
-                // with no model ready, getting one is the first thing to do,
-                // so it comes before the button it unlocks
-                if needsOfflineModel {
-                    backendSection
-                    makeSection
-                } else {
-                    makeSection
-                    backendSection
-                }
+                makeSection
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
-        .onAppear { gemma.refreshStatus() }
         .floatingAction(id: "mcq", title: makeTitle, enabled: canStart,
                         inputs: [name, subject, String(highYield), String(sourceText.count)],
                         run: startGenerating)
@@ -97,20 +81,10 @@ struct MCQGenerateForm: View {
 
     private var makeTitle: String { "Make \(questionCount) questions" }
 
-    /// No model can write yet, and none needs Pro: the offline model has to
-    /// be downloaded first.
-    private var needsOfflineModel: Bool {
-        activeBackend == nil && !llm.needsPro(.writer)
-    }
-
-    /// Why Make cannot be tapped yet, under it. Stopping is the progress
-    /// card's Cancel, at the bottom.
+    /// Why Make cannot be tapped yet, under it (no writer: the row under the
+    /// count says why). Stopping is the progress card's Cancel, at the bottom.
     private var makeHint: String? {
-        if isGenerating { return nil }
-        if needsOfflineModel {
-            if case .downloading = gemma.status { return "The offline model is downloading \u{2014} Make works once it is done." }
-            return "Download the offline model first"
-        }
+        if isGenerating || !writerReady { return nil }
         if sourceText.trimmingCharacters(in: .whitespaces).isEmpty {
             return "Nothing to write from yet \u{2014} go Back and add a lecture."
         }
@@ -123,10 +97,13 @@ struct MCQGenerateForm: View {
             CountField(title: "How many questions", value: $questionCount,
                        range: 3...MCQGenerator.maxQuestionsTotal)
                 .disabled(isGenerating)
-            if llm.needsPro(.writer) {
-                Label("The medical models are part of Pro. Apple's model is free \u{2014} switch in AI models.",
-                      systemImage: "lock.fill")
+            if !writerReady {
+                Label(llm.noWriter, systemImage: "lock.fill")
                     .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                if !llm.isPro {
+                    Button("See Pro") { showPaywall = true }
+                        .buttonStyle(.wardCompact)
+                }
             }
             // the same as its floating copy in the dock
             Button { startGenerating() } label: {
@@ -153,17 +130,8 @@ struct MCQGenerateForm: View {
                     .disabled(isGenerating)
                 Toggle("Focus on high-yield facts", isOn: $highYield)
                     .disabled(isGenerating)
-                if activeBackend == .medical, let summary = llm.summary(for: .writer) {
+                if let summary = llm.summary(for: .writer) {
                     Text("Using \(summary).").font(.footnote).foregroundStyle(Color.wardInkSecondary)
-                } else if activeBackend == .gemma {
-                    Text("Using the downloaded Gemma 4 E2B model \u{2014} on-device, nothing sent anywhere.")
-                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
-                }
-                if activeBackend == .gemma, !isGenerating {
-                    Button("Remove downloaded model", role: .destructive) {
-                        gemma.deleteDownloadedModel()
-                    }
-                    .font(.footnote)
                 }
             }
         }
@@ -172,77 +140,28 @@ struct MCQGenerateForm: View {
 
     private var generateLabel: String {
         if isGenerating { return generationStatus ?? "Writing\u{2026}" }
-        if llm.needsPro(.writer) { return "Unlock the medical models" }
         return makeTitle
-    }
-
-    /// Apple's on-device model is tried first; this only appears when that is
-    /// unavailable, offering the Gemma download as a fallback that still never
-    /// touches anyone's account.
-    @ViewBuilder
-    private var backendSection: some View {
-        if activeBackend != .medical, !MCQGenerator.availability.isAvailable {
-            Section {
-                if case .unavailable(let reason) = MCQGenerator.availability {
-                    Label(reason, systemImage: "exclamationmark.triangle.fill")
-                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
-                }
-                switch gemma.status {
-                case .ready:
-                    EmptyView() // covered by the note in the generate section
-                case .notDownloaded:
-                    Button { gemma.download() } label: {
-                        Label("Download the offline model (3.4 GB, once)",
-                              systemImage: "arrow.down.circle")
-                    }
-                    Text("A smaller model (Gemma 4 E2B, plus its vision projector) that runs entirely on this device once downloaded \u{2014} works on hardware that can't run Apple's own on-device model, and can also read images.")
-                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
-                case .downloading(let fraction):
-                    let percent: Int = Int(fraction * 100)
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Downloading offline model").font(.footnote).foregroundStyle(Color.wardInk)
-                            Spacer(minLength: 8)
-                            Text("\(percent)%")
-                                .font(.system(.footnote, design: .monospaced))
-                                .monospacedDigit()
-                                .foregroundStyle(Color.wardInkSecondary)
-                        }
-                        EcgStrip(progress: fraction)
-                    }
-                    .accessibilityElement(children: .combine)
-                    Button("Cancel download", role: .cancel) { gemma.cancelDownload() }
-                case .failed(let message):
-                    WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill",
-                               text: "Download failed: \(message)")
-                    Button("Try again") { gemma.download() }
-                }
-            } header: {
-                Text("Needed first: an offline model")
-            }
-            .wardRowBackground()
-        }
     }
 
     // MARK: generating
 
     private func startGenerating() {
-        // Apple's model and Gemma are free; the medical models are Pro, and
-        // then the paywall opens instead of the work starting - nothing is
-        // generated and then taken away, which is the version people hate.
-        if llm.needsPro(.writer) { showPaywall = true; return }
+        // the writer route or nothing (WriterGate): it is Pro, offered beside
+        // the count rather than started and taken away, and no question is
+        // written on the phone.
         // something else is being written: said here, and left running
         if let busy = GenerationCenter.shared.busy {
             generationStatus = busy
             return
         }
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, let backend = activeBackend else { return }
+        let writer: LLMBackend? = llm.writer()
+        let noWriter: String = llm.noWriter
+        guard !text.isEmpty, writer != nil else { return }
         isGenerating = true
         generationStatus = "Writing 0 of \(questionCount) questions\u{2026}"
         let count = questionCount, subj = subject, hy = highYield, setName = name
         let cite = readSource
-        let writer = llm.backend(for: .writer)
         // the verification layer checks what is made (VerificationScreen now,
         // the independent checkers once the set is saved): no single model's
         // screening to wait on
@@ -273,27 +192,16 @@ struct MCQGenerateForm: View {
                         generationStatus = "Writing \(done) of \(total) questions\u{2026}"
                     }
                 }
-                var questions: [MCQQuestion]
-                switch backend {
-                case .medical:
-                    guard let writer else { throw LLMError.notReady("Choose a writer in AI models.") }
-                    // kept with a cloud job, so the set is still made if the
-                    // app is closed before the server finishes
-                    let recipe = CloudRecipe(kind: .mcq, name: setName, subject: subj, count: count,
-                                             source: cite?.doc(), exam: ExamChoice.current?.id).encoded
-                    questions = try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, delivery: delivery)) {
+                // kept with a cloud job, so the set is still made if the
+                // app is closed before the server finishes
+                let recipe = CloudRecipe(kind: .mcq, name: setName, subject: subj, count: count,
+                                         source: cite?.doc(), exam: ExamChoice.current?.id).encoded
+                var questions: [MCQQuestion] = try await WriterGate.write(.questions, with: writer, noWriter: noWriter) { writer in
+                    try await CloudJobs.$context.withValue(CloudJobs.Context(recipe: recipe, delivery: delivery)) {
                         try await MedicalGenerate.mcq(
                             sourceText: text, count: count, subject: subj,
                             highYield: hy, using: writer, onProgress: progress)
                     }
-                case .apple:
-                    questions = try await MCQGenerator.generate(
-                        sourceText: text, count: count, subject: subj,
-                        highYield: hy, onProgress: progress)
-                case .gemma:
-                    questions = try await gemma.generate(
-                        sourceText: text, count: count, subject: subj,
-                        highYield: hy, onProgress: progress)
                 }
                 // the verification layer's first stage, on the device and
                 // instant: a broken question is removed with its reason, a red
@@ -336,8 +244,8 @@ struct MCQGenerateForm: View {
             } catch is CancellationError {
                 await MainActor.run { GenerationCenter.shared.end(job); isGenerating = false }
             } catch {
-                // a model that reports being stopped as its own error (Gemma)
-                // is still just stopped
+                // a writer that reports being stopped as its own error is
+                // still just stopped
                 guard !Task.isCancelled else {
                     await MainActor.run { GenerationCenter.shared.end(job); isGenerating = false }
                     return
@@ -345,9 +253,7 @@ struct MCQGenerateForm: View {
                 await MainActor.run {
                     GenerationCenter.shared.end(job)
                     isGenerating = false
-                    generationStatus = (error as? MCQGenerator.GenerationError)?.errorDescription
-                        ?? (error as? GemmaModel.GenerationError)?.errorDescription
-                        ?? error.localizedDescription
+                    generationStatus = error.localizedDescription
                 }
             }
         }
