@@ -76,8 +76,9 @@ class TwinScreensTest {
         return BackendClient.Reply(404, "{}")
     }
 
+    /** "cloud": the owner's build, so the writer route answers; "off": no owner key, so there is no writer. */
     private fun service(choice: String): LLMService = LLMService(
-        LLMService.MemoryPrefs().also { it.set(LLMService.CHOICE_KEY, choice) }, FakeServer.standInKey(), { null }, FakeServer.BASE,
+        if (choice == "cloud") FakeServer.standInKey() else "", { null }, FakeServer.BASE,
         FakeServer { seen += it; worker(it) }, OwnerSpend(OwnerSpend.MemoryStore()))
 
     @Before fun noConfidenceAsked() {
