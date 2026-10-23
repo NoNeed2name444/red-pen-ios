@@ -293,12 +293,12 @@ enum CloudTranscript {
         var model: String? = nil
     }
 
-    /// The model transcription is meant to use: the only one measured keeping
-    /// every English term in these lectures.
-    static let preferredModel = "gemini-3.5-flash"
+    /// The model transcription is meant to use, and the server's only one
+    /// for audio (server/ai.js TRANSCRIBE_MODELS).
+    static let preferredModel = "gemini-3.8-flash"
 
     /// True when a part was answered by a model other than the preferred one
-    /// (the server falls back to Flash-Lite once Flash's day is spent).
+    /// (an older server, or one set up with another model, still names it).
     static func fellBack(_ part: PartNote) -> Bool {
         guard let model = part.model else { return false }
         return model != preferredModel
