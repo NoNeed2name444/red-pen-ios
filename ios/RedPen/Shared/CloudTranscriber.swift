@@ -45,8 +45,8 @@ enum CloudTranscriber {
         var phrases: [CloudTranscript.Phrase]
         /// A loop was cut out of it, or it was cut off part way.
         var trimmed = false
-        /// The model that answered, as the server reports it (gemini-3.5-flash,
-        /// or gemini-3.5-flash-lite once Flash's day is spent).
+        /// The model that answered, as the server reports it (its one
+        /// transcription model, or another an older server fell back to).
         var model: String? = nil
     }
 

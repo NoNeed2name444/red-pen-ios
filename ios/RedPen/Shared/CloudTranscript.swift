@@ -311,15 +311,14 @@ enum CloudTranscript {
         let trimmed = parts.filter(\.trimmed).map(\.number).sorted()
         if !trimmed.isEmpty {
             let which = total > 1 ? " in " + partNames(trimmed) : ""
-            said.append("Gemini got stuck repeating itself\(which), so the repeats were cut and a little of "
+            said.append("The transcriber got stuck repeating itself\(which), so the repeats were cut and a little of "
                 + (total > 1 ? (trimmed.count > 1 ? "those parts" : "that part") : "the lecture") + " may be missing.")
         }
         // no silent downgrades: a part the lighter model heard is named
         let lighter = parts.filter(fellBack)
         if !lighter.isEmpty {
-            let models = Set(lighter.compactMap(\.model)).sorted().joined(separator: ", ")
             let which = total > 1 ? partNames(lighter.map(\.number).sorted()).capitalizedFirst + " went" : "It went"
-            said.append("\(which) to \(models), because Gemini 3.5 Flash was busy or out of requests for today; it may spell some English terms less well.")
+            said.append("\(which) to a lighter transcriber, because the usual one was busy or out of requests for today; it may spell some English terms less well.")
         }
         return said.isEmpty ? nil : said.joined(separator: "\n\n")
     }
