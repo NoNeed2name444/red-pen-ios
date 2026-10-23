@@ -7,9 +7,9 @@
 // screen and no Google sign-in (android/docs/parity.md), so it gets none.
 // The launchopening Swift suite proves the lookup (LaunchArt.names) on Linux;
 // the screen is SwiftUI, which only a Mac lays out, so here its source is
-// read. The art reaches an app only through the private repository's
-// tools/inject_brand_art.py run on a downloaded IPA: a CI-built app always
-// shows the stand-in.
+// read. The art is added outside this repository, so a CI-built app always
+// shows the stand-in; the source names only the art's slots, never where the
+// art is kept.
 import { readFileSync, existsSync } from 'node:fs';
 
 const repo = new URL('../../', import.meta.url).pathname;
@@ -29,8 +29,10 @@ check('the masthead draws the launch mark above the name', /SignInLaunchMark\(\)
 check('no mode tiles fanned above the name', !/ModeTile\(/.test(src) && !/mastTile|tileAngle|tileLayer/.test(src));
 check('the mark is looked up by LaunchArt\'s names, the mode\'s first',
   /LaunchArt\.names\(dark: dark\)\.lazy\.compactMap \{ UIImage\(named: \$0\) \}\.first/.test(src));
-check('the mark names the real path the art takes',
-  /tools\/inject_brand_art\.py \(commit 1adb11e\)/.test(src) && /Payload\/<App>\.app\/LaunchLogo\{,@2x,@3x\}\.png/.test(src));
+check('the mark names only the art\'s slots, found through LaunchArt.names',
+  /LaunchLogo\{,-dark\}@\{2,3\}x\.png, *\n *\/\/\/ which UIImage\(named:\) finds through LaunchArt\.names/.test(src));
+check('and nothing of where the private art is kept',
+  !/Claude-Code|inject_brand_art|1adb11e|brand-art|fed0105|Payload\//.test(src));
 check('without the art, a stand-in shape in the ink', /Image\(systemName: "stethoscope"\)[\s\S]{0,200}Color\.wardInkSecondary/.test(src));
 check('the private art is not in the public tree',
   !existsSync(repo + 'ios/RedPen/Assets.xcassets/LaunchLogo.imageset') && !existsSync(repo + 'ios/RedPen/Assets.xcassets/LaunchLogo-dark.imageset'));

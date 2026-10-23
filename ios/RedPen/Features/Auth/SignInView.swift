@@ -243,15 +243,10 @@ struct SignInView: View {
 
 /// The launch mark over "Stethoscore" on sign-in and account-deleted: the
 /// owner's stethoscope, the white one by day and the grey one by night, the
-/// same private art the launch draws (LaunchArt). It is not in this
-/// repository and no build step here adds it: the owner's private
-/// Claude-Code repository's tools/inject_brand_art.py (commit 1adb11e) writes
-/// it into a downloaded IPA, from its design/brand-art/red-pen-ios-fed0105/
-/// ios/RedPen/Assets.xcassets/LaunchLogo.imageset/launch-logo{,-dark}@{1,2,3}x.png,
-/// as Payload/<App>.app/LaunchLogo{,@2x,@3x}.png and LaunchLogo-dark{,@2x,@3x}.png,
-/// which UIImage(named:) finds by LaunchArt.names. So every app CI builds
-/// (the simulator tours, the IPA before that tool runs on it) shows the
-/// stand-in: a stethoscope in the ink, the same size.
+/// same private art the launch draws. It is not in this repository and no
+/// build step here adds it; its slots are LaunchLogo{,-dark}@{2,3}x.png,
+/// which UIImage(named:) finds through LaunchArt.names. So every app CI
+/// builds shows the stand-in: a stethoscope in the ink, the same size.
 private struct SignInLaunchMark: View {
     @Environment(\.colorScheme) private var scheme
 
