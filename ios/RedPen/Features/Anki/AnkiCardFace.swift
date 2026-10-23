@@ -386,6 +386,10 @@ struct AnkiRatingBar: View {
                 Text("How well did you remember it?")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.wardInkSecondary)
+                    // every line it wraps to, whole: the deck is offered
+                    // less height than it asks for at AX sizes, and the
+                    // question was the part cut short ("you rememb...")
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if typeSize.isAccessibilitySize {
                 // one to a row, so the words are never cut off

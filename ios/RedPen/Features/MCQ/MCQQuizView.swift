@@ -178,7 +178,9 @@ struct MCQQuizView: View {
 
     private var quiz: some View {
         VStack(spacing: 0) {
-            header
+            // at the accessibility sizes the header scrolls with the
+            // question (questionScroll)
+            if !decksInline { header }
             questionScroll
         }
         .modeScreen(.mcq)
@@ -784,6 +786,13 @@ struct MCQQuizView: View {
             HStack(spacing: 8) { sureLabel(tagged: true); sureChips }
             HStack(spacing: 8) { sureLabel(tagged: false); sureChips }
             VStack(alignment: .leading, spacing: 8) { sureLabel(tagged: true); HStack(spacing: 8) { sureChips } }
+            // the largest sizes: one chip to a row, each word whole
+            // ("Sur e", "Ma ybe" before), and the tag on its own line
+            VStack(alignment: .leading, spacing: 8) {
+                sureLabel(tagged: false)
+                optionalTag.accessibilityHidden(true)
+                sureChips
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -997,10 +1006,11 @@ struct MCQQuizView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     Color.clear.frame(height: 1).id(Self.chartTop)
+                    if decksInline { header }
                     scrollContent(proxy)
                 }
             }
-            .studyBar(folds: true, shown: pendingResume != nil || (!a.checked && shuffle && asksConfidence)) { footer }
+            .studyBar(folds: true, shown: !decksInline && deckShown) { footer }
             .task {
                 guard PreviewLaunch.screen == "quiz-folded" else { return }
                 // Retry after layout passes so the row clears the folded button.
@@ -1038,6 +1048,10 @@ struct MCQQuizView: View {
                 }
             }
 
+            // the deck's How sure? (or Start again and Resume) in the page
+            // at the accessibility sizes, where it scrolls with the rest
+            if decksInline && deckShown { footer }
+
             if pendingResume == nil {
                 answerButtons(proxy).id(Self.answerRowID).transition(.identity)
             }
@@ -1059,6 +1073,16 @@ struct MCQQuizView: View {
         .padding(.bottom, 24)
         .readableColumn()
     }
+
+    /// Whether the deck has anything to hold: Start again and Resume, or
+    /// How sure? before checking.
+    private var deckShown: Bool { pendingResume != nil || (!a.checked && shuffle && asksConfidence) }
+
+    /// At the accessibility sizes the header and the deck stand in the page
+    /// and scroll with it. Fixed over and under it, they took the whole
+    /// screen at AX5 between them, and the choices had no room left to be
+    /// scrolled into: the first option could not be reached.
+    private var decksInline: Bool { typeSize.isAccessibilitySize }
 
     /// The deck holds Start again and Resume while a saved place waits,
     /// or How sure? before checking. Back and the main action follow the choices.

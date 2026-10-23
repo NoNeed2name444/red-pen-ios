@@ -1111,6 +1111,9 @@ struct LibraryView: View {
                     .submitLabel(.search)
                     .autocorrectionDisabled()
                     .foregroundStyle(Color.wardInk)
+                    // its name said outright: with the placeholder emptied
+                    // for SearchPrompt, UIKit's field had no description
+                    .accessibilityLabel(Text(searchPrompt))
                     .accessibilityIdentifier("librarySearch")
             }
             if !searchText.wrappedValue.isEmpty {

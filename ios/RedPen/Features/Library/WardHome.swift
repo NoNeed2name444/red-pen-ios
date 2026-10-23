@@ -1019,6 +1019,9 @@ private struct HomePill: View {
         HStack(spacing: 4) {
             if let symbol { Image(systemName: symbol).imageScale(.small).foregroundStyle(Color.wardBeam) }
             Text(text)
+                // every line it wraps to, whole, as the date over it: the
+                // list's row was cutting it to one ("Step 1 in 9...")
+                .fixedSize(horizontal: false, vertical: true)
         }
         .font(.footnote.weight(.bold))
         .foregroundStyle(Color.wardWarning)
