@@ -83,7 +83,8 @@ struct MCQQuizView: View {
     /// option order without changing the other session behavior.
     init(set studySet: StudySet, initialAnswers: [MCQAnswer]? = nil, isUnsaved: Bool = false,
          saved: Binding<Bool> = .constant(false), onSave: (() -> Void)? = nil,
-         keepsProgress: Bool = true, minReadSeconds: Int = 0, startsTimed: Bool = false) {
+         keepsProgress: Bool = true, minReadSeconds: Int = 0, startsTimed: Bool = false,
+         twinNote: String? = nil) {
         self.studySet = studySet
         self.minReadSeconds = max(0, minReadSeconds)
         self.startsTimed = startsTimed
@@ -98,6 +99,10 @@ struct MCQQuizView: View {
         }
         _answers = State(initialValue: answers)
         _orders = State(initialValue: Self.makeOrders(for: studySet, shuffle: initialAnswers == nil))
+        // the tour's "twin-written" still: the first question's twin already asked for
+        if let twinNote, let first = studySet.questions.first {
+            _twinNotes = State(initialValue: [first.id: twinNote])
+        }
     }
 
     private static func makeOrders(for set: StudySet, shuffle: Bool) -> [[Int]] {
@@ -925,6 +930,11 @@ struct MCQQuizView: View {
         let question: MCQQuestion = q
         let id: UUID = question.id
         guard !writingTwin.contains(id) else { return }
+        // one twin per miss: not while one is written or waiting for this question
+        guard ExamStore.shared.book.canWrite(for: id) else {
+            twinNotes[id] = TwinBook.alreadyOnTheWay
+            return
+        }
         let picked: Int? = OptionOrder.original(ofSlot: a.selected, in: order(current))
         let confident: Bool = store.confidentMistakeIds.contains(id)
         let guessed: Bool = confidences[id] == .guess
@@ -934,10 +944,9 @@ struct MCQQuizView: View {
         Task {
             let outcome: TwinOutcome = await TwinWriter.write(request, store: store)
             let days: Int = TwinQueue.delayDays(confident: confident, guessed: guessed)
-            let when: String = days == 1 ? "tomorrow" : "in \(days) days"
             let said: String
             switch outcome {
-            case .made: said = "Twin written. It comes back \(when), under Questions \u{2192} Twins."
+            case .made: said = TwinDraft.madeNote(days: days)
             case .unavailable(let why): said = why
             case .later(let why): said = why
             }

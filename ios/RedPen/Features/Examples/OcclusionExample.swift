@@ -297,11 +297,17 @@ struct OcclusionExampleView: View {
     @EnvironmentObject private var store: Store
     @State private var made: StudySet?
     @State private var failed = false
+    /// The tour's "occlusion-revealed" still opens on the first card's answer.
+    private let startRevealed: Bool
+
+    init(startRevealed: Bool = false) {
+        self.startRevealed = startRevealed
+    }
 
     var body: some View {
         Group {
             if let made {
-                AnkiReviewView(set: made)
+                AnkiReviewView(set: made, startRevealed: startRevealed)
             } else if failed {
                 WardEmptyState(symbol: "exclamationmark.triangle.fill",
                                title: "The diagram's labels could not be read on this device.", tone: .warning)

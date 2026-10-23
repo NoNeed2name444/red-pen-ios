@@ -64,6 +64,7 @@ import com.stethoscore.app.ui.ward.WardTypeSpec
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDp
+import com.stethoscore.app.llm.mcqStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -82,7 +83,8 @@ import kotlin.math.abs
 // accuracy badge, Turn into, Report a problem, Save to Ideas, How to reach
 // it (Reasoning), and the keyboard shortcuts. Android has no question writer,
 // so the hint is always the attending's own (AttendingHint.fallback) and
-// Write a twin says that none is set up.
+// Write a twin writes one with the writer New set uses (TwinWriter), or
+// says that none is set up.
 
 /** Settings the question screen reads (iOS @AppStorage), from the app's one preferences file. */
 internal object QuizPrefs {
@@ -128,6 +130,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val track = remember { QuizPrefs.track(context) }
+    val llm = com.stethoscore.app.ui.editors.rememberLLMService()
+    val twinStyle = remember { com.stethoscore.app.exam.ExamChoice.currentTrack(com.stethoscore.app.exam.ExamChoice.defaults(context)).mcqStyle }
     val asksConfidence = remember { QuizPrefs.asksConfidence(context) }
     val readSeconds = maxOf(0, minReadSeconds)
 
@@ -261,6 +265,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             store.recordAnswer(question.id, right, confidence = confidences[question.id]?.rawValue,
                 picked = OptionOrder.original(answers[qi].selected, order(qi)),
                 hinted = hints[question.id] != null, saving = !keepsPosition)
+            // a twin answered here moves along its own queue (iOS ExamStore.twinAnswered); a mock paper's do not
+            store.twinShelf.answered(question.id, right)
         }
         return right
     }
@@ -330,8 +336,24 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
         retested = retested + question.id
         confidences = confidences - question.id
     }
+    // Write a twin (T0133): the writer New set uses, or the no-writer line
     fun writeTwin() {
-        twinNotes = twinNotes + (q.id to "Twins are written by a question writer, and none is set up on this phone yet.")
+        val id = q.id
+        if (id in twinNotes) return
+        // one twin per miss: not while one is written or waiting for this question
+        if (!store.twinShelf.canWrite(id)) { twinNotes = twinNotes + (id to TwinBook.alreadyOnTheWay); return }
+        // sure but wrong as iOS decides it: the question's latest answer, wrong, said sure (confidentMistakeIds)
+        val request = PendingTwin(id, OptionOrder.original(a.selected, order(current)), reasons[id]?.title,
+            confident = id in store.confidentMistakeIds, guessed = confidences[id] == AnswerConfidence.guess)
+        twinNotes = twinNotes + (id to "Writing a twin\u2026")
+        scope.launch {
+            val outcome = TwinWriter.write(request, store, llm.backend(), twinStyle)
+            twinNotes = twinNotes + (id to outcome.note)
+        }
+    }
+    // twins asked for while offline are written now, quietly (iOS MCQQuizView's .task)
+    LaunchedEffect(Unit) {
+        if (store.twinShelf.book.pending.isNotEmpty()) TwinWriter.retryPending(store, llm.backend(), twinStyle)
     }
 
     // the timed paper: wakes once, when its time is up

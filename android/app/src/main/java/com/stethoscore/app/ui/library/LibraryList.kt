@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.GpsFixed
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Visibility
@@ -646,6 +647,7 @@ fun featureIcon(feature: CategoryFeature) = when (feature) {
     CategoryFeature.MISTAKES -> Icons.Rounded.Cancel
     CategoryFeature.FLAGGED -> Icons.Rounded.Flag
     CategoryFeature.TIMED -> Icons.Rounded.Timer
+    CategoryFeature.TWINS -> Icons.Rounded.ContentCopy
     CategoryFeature.WEAKEST -> Icons.Rounded.GpsFixed
     CategoryFeature.CONFIDENT -> Icons.Rounded.Warning
     CategoryFeature.SLOW -> Icons.Rounded.Visibility

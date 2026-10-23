@@ -255,6 +255,9 @@ class TourTest {
 
     @Test fun r024_nothingHereYet() = overHome(24, "nothing-yet") { LibraryAlert("Nothing here yet", CategoryFeature.MISTAKES.emptyText) {} }
 
+    // the Twins tile with no twin due (T0133)
+    @Test fun r024_nothingHereYetTwins() = overHome(24, "nothing-yet-twins") { LibraryAlert("Nothing here yet", CategoryFeature.TWINS.emptyText) {} }
+
     @Test fun r025_wardRound() {
         val stores = Mode.entries.associateWith { tour.store() }
         tour.inEachMode(content = { m -> tour.App(stores.getValue(m), "home", m) }) { m ->

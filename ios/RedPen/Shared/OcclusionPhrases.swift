@@ -167,7 +167,7 @@ enum OcclusionPhrases {
     static func sameLine(_ a: Rect, _ aText: String, _ b: Rect, _ bText: String) -> Bool {
         let tall: Double = max(a.height, b.height)
         let short: Double = min(a.height, b.height)
-        guard short > 0, tall <= short * lineHeightRatio else { return false }
+        guard short > 0, sameSize(a, aText, b, bText, ratio: lineHeightRatio) else { return false }
         guard abs(a.midY - b.midY) <= short * 0.5 else { return false }
         let gapRight: Double = b.minX - a.maxX
         let gapLeft: Double = a.minX - b.maxX
@@ -182,10 +182,18 @@ enum OcclusionPhrases {
     static func wraps(_ upper: Rect, _ upperText: String, _ lower: Rect, _ lowerText: String) -> Bool {
         let tall: Double = max(upper.height, lower.height)
         let short: Double = min(upper.height, lower.height)
-        guard short > 0, tall <= short * wrapHeightRatio else { return false }
+        guard short > 0, sameSize(upper, upperText, lower, lowerText, ratio: wrapHeightRatio) else { return false }
         guard hasLetters(upperText), hasLetters(lowerText) else { return false }
         let gap: Double = lower.minY - upper.maxY
-        guard gap >= -0.25 * short, gap <= wrapGap * tall else { return false }
+        // the gap is measured as type is set only when the boxes hug the
+        // glyphs (their heights differ as the letters do); boxes a line high
+        // whatever the letters are measured as they are, or "vein" over
+        // "artery", two labels, would read as one (T0133)
+        let hugsGlyphs: Bool = tall > short * wrapHeightRatio
+        guard gap >= -0.25 * short,
+              gap <= wrapGap * tall || (hugsGlyphs && glyphGap(upper, upperText, lower, lowerText)) else {
+            return false
+        }
         guard linedUp(upper, lower, slack: alignSlack * tall) else { return false }
         if carriesOn(upperText, lowerText) { return true }
         // a new capital after a looser gap is the next label in a list
@@ -202,6 +210,51 @@ enum OcclusionPhrases {
         let shared: Double = min(a.maxX, b.maxX) - max(a.minX, b.minX)
         let narrower: Double = min(a.width, b.width)
         return narrower > 0 && shared >= narrower * 0.5
+    }
+
+    /// Whether two pieces are set in one size, within `ratio`: their boxes
+    /// as they are, or their boxes measured against the glyphs in them.
+    /// Vision's word boxes hug the glyphs, so "Superior" (a capital and a
+    /// descender) is boxed far taller than "vena" in the same type; read as
+    /// different sizes, the heart example's "Superior vena cava" fell apart
+    /// into pieces the filter dropped, and the label showed (T0133).
+    static func sameSize(_ a: Rect, _ aText: String, _ b: Rect, _ bText: String, ratio: Double) -> Bool {
+        let tall: Double = max(a.height, b.height)
+        let short: Double = min(a.height, b.height)
+        guard short > 0 else { return false }
+        if tall <= short * ratio { return true }
+        let aType: Double = a.height / glyphReach(aText)
+        let bType: Double = b.height / glyphReach(bText)
+        return max(aType, bType) <= min(aType, bType) * ratio
+    }
+
+    /// Whether the gap between two lines is a wrapped label's, measured
+    /// as type is set: from the upper line's baseline to the lower line's
+    /// cap height, in its type size. A glyph-tight box of an x-height word
+    /// ("cava") starts lower than its line does, so its raw gap reads wide.
+    static func glyphGap(_ upper: Rect, _ upperText: String, _ lower: Rect, _ lowerText: String) -> Bool {
+        let upperType: Double = upper.height / glyphReach(upperText)
+        let lowerType: Double = lower.height / glyphReach(lowerText)
+        let type: Double = max(upperType, lowerType)
+        let capTop: Double = lower.maxY - lowerType * descent(lowerText) - lowerType * 0.72
+        let baseline: Double = upper.maxY - upperType * descent(upperText)
+        return capTop - baseline <= wrapGap * type
+    }
+
+    /// How far below the baseline a piece's glyphs reach, in its type size.
+    static func descent(_ text: String) -> Double {
+        text.contains { "gjpqy".contains($0) } ? 0.21 : 0
+    }
+
+    /// How far a piece's glyphs reach, in its type size: from the x-height,
+    /// or the cap and ascender height, down to the baseline, or below it
+    /// when a letter descends.
+    static func glyphReach(_ text: String) -> Double {
+        let letters: [Character] = text.filter { $0.isLetter || $0.isNumber }
+        guard !letters.isEmpty else { return 1 }
+        let ascends: Bool = letters.contains { $0.isUppercase || $0.isNumber || "bdfhklt".contains($0) }
+        let descends: Bool = letters.contains { "gjpqy".contains($0) }
+        return (ascends ? 0.72 : 0.53) + (descends ? 0.21 : 0)
     }
 
     /// Whether the next line reads as the rest of this one: it starts in

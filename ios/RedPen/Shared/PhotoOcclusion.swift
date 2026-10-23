@@ -181,6 +181,47 @@ enum PhotoOcclusion {
         return parts.joined(separator: " ")
     }
 
+    /// One rectangle per label (the owner's rule): covers with the same
+    /// answer that overlap or nearly touch (a gap under half the smaller
+    /// one's height, as two drags over one label's lines) become one box over
+    /// both, unless that box would reach another label's cover. A label
+    /// written in two places on the picture keeps a cover at each.
+    static func oneEach(_ covers: [Cover]) -> [Cover] {
+        var out: [Cover] = covers
+        var joined: Bool = true
+        while joined {
+            joined = false
+            search: for i in out.indices {
+                for j in out.indices where j > i {
+                    let key: String = tidied(out[i].answer).lowercased()
+                    guard !key.isEmpty, key == tidied(out[j].answer).lowercased(),
+                          near(out[i].box, out[j].box) else { continue }
+                    let box: OcclusionBox = OcclusionPhrases.union([out[i].box, out[j].box])
+                    let reaches: Bool = out.indices.contains { k in
+                        k != i && k != j && overlaps(box, out[k].box)
+                    }
+                    if reaches { continue }
+                    out[i].box = box
+                    out.remove(at: j)
+                    joined = true
+                    break search
+                }
+            }
+        }
+        return out
+    }
+
+    private static func overlaps(_ a: OcclusionBox, _ b: OcclusionBox) -> Bool {
+        a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+    }
+
+    private static func near(_ a: OcclusionBox, _ b: OcclusionBox) -> Bool {
+        let reach: Double = min(a.h, b.h) / 2
+        let gapX: Double = max(0, max(a.x, b.x) - min(a.x + a.w, b.x + b.w))
+        let gapY: Double = max(0, max(a.y, b.y) - min(a.y + a.h, b.y + b.h))
+        return gapX <= reach && gapY <= reach
+    }
+
     /// The covers that will make cards: those with an answer typed or read.
     /// A cover with no answer still hides its place on every other card
     /// (it is a sibling) but asks nothing itself.
@@ -195,7 +236,7 @@ enum PhotoOcclusion {
     static func cards(from covers: [Cover], imageIndex: Int,
                       question: String = "What is labelled here?",
                       source: String? = nil) -> [AnkiCard] {
-        let asked: [Cover] = answered(covers)
+        let asked: [Cover] = answered(oneEach(covers))
         guard !asked.isEmpty else { return [] }
         let unasked: [OcclusionBox] = covers.filter { tidied($0.answer).isEmpty }.map(\.box)
         let phrased: [OcclusionPhrases.Cover] = asked.map { (cover: Cover) -> OcclusionPhrases.Cover in

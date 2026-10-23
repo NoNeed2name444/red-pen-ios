@@ -92,6 +92,170 @@ struct TwinQueue: Codable, Hashable {
     }
 }
 
+/// A twin asked for while it could not be written - no network, the model
+/// busy - kept so it can be written the next time a quiz opens.
+struct PendingTwin: Codable, Hashable {
+    var parentId: UUID
+    var picked: Int?
+    var reason: String?
+    var confident: Bool
+    var guessed: Bool
+}
+
+/// What this device keeps about twins (ExamStore saves it): the queue and
+/// the twins still to be written. Plain values, so the whole flow - written,
+/// waiting, due, answered, reloaded after a relaunch - is tested on Linux.
+struct TwinBook: Codable, Hashable {
+    var queue = TwinQueue()
+    var pending: [PendingTwin] = []
+
+    /// The most twins kept waiting to be written.
+    static let pendingLimit = 30
+
+    /// What the Twins tile says while no twin is due.
+    static let nothingYet: String = "When you miss a question, tap \u{201C}Write a twin\u{201D} under it. The twin - the same point in a different patient - waits here for a day or two."
+
+    /// A written twin joins the queue; its request is no longer pending.
+    mutating func added(_ id: UUID, parent: UUID, confident: Bool, guessed: Bool,
+                        now: Date = Date(), calendar: Calendar = .current) {
+        queue.add(twin: id, parent: parent, now: now, confident: confident, guessed: guessed, calendar: calendar)
+        pending.removeAll { $0.parentId == parent }
+    }
+
+    /// A twin that could not be written now waits, once per question.
+    mutating func later(_ request: PendingTwin) {
+        guard !pending.contains(where: { $0.parentId == request.parentId }) else { return }
+        pending.append(request)
+        if pending.count > Self.pendingLimit { pending.removeFirst(pending.count - Self.pendingLimit) }
+    }
+
+    mutating func dropPending(_ parent: UUID) {
+        pending.removeAll { $0.parentId == parent }
+    }
+
+    func isOnTheWay(for parent: UUID) -> Bool {
+        queue.hasTwin(for: parent) || pending.contains { $0.parentId == parent }
+    }
+
+    /// A twin of this question is already written or waiting to be: one twin per miss.
+    static let alreadyOnTheWay: String = "A twin of this question is already on the way, under Questions \u{2192} Twins."
+
+    /// A twin was ever written for this question, answered or not.
+    func hasWritten(for parent: UUID) -> Bool {
+        queue.entries.contains { $0.parentId == parent }
+    }
+
+    /// Whether Write a twin should write another: not while one is written or waiting.
+    func canWrite(for parent: UUID) -> Bool {
+        !hasWritten(for: parent) && !isOnTheWay(for: parent)
+    }
+}
+
+/// The words of the library's Nothing here yet alert, whichever tile opened it.
+enum NothingYetAlert {
+    static let title: String = "Nothing here yet"
+    static let done: String = "Done"
+}
+
+/// What came of asking for a twin.
+enum TwinOutcome: Equatable {
+    case made
+    /// Nothing can write one on this device; said once, plainly.
+    case unavailable(String)
+    /// Couldn't write it now; it waits and is tried again later.
+    case later(String)
+}
+
+/// What Write a twin works with, given by the app (TwinWriter) or by a test:
+/// the twin book and where it is kept, the library, and the writer.
+struct TwinDesk {
+    var book: () -> TwinBook
+    var keep: (TwinBook) -> Void
+    /// The missed question and its subject, or nil once it has left the library.
+    var question: (UUID) -> (question: MCQQuestion, subject: String)?
+    /// The writer, asked with (system, input); nil when none is set up.
+    var complete: ((String, String) async throws -> String)?
+    /// The cloud writer's job path (source, subject), when the direct call gave nothing.
+    var viaJob: ((String, String) async throws -> [MCQQuestion])?
+    var parse: (String) -> [MCQQuestion]
+    /// Puts a written twin into its subject's Twins set.
+    var shelve: (MCQQuestion, String) -> Void
+    var style: String
+    var noWriter: String
+    var now: () -> Date = { Date() }
+    var calendar: Calendar = .current
+}
+
+/// Write a twin without the app around it (iOS TwinWriter, Android TwinWriter).
+@MainActor
+enum TwinWriting {
+    static let later: String = "Couldn\u{2019}t write the twin just now. It will be tried again next time you practise."
+    static let gone: String = "This question is no longer in the library."
+
+    static func write(_ request: PendingTwin, desk: TwinDesk) async -> TwinOutcome {
+        guard let found = desk.question(request.parentId) else {
+            var book = desk.book()
+            book.dropPending(request.parentId)
+            desk.keep(book)
+            return .unavailable(gone)
+        }
+        // one twin per miss: never a second for a question that has one
+        if desk.book().hasWritten(for: request.parentId) { return .unavailable(TwinBook.alreadyOnTheWay) }
+        guard let complete = desk.complete else { return .unavailable(desk.noWriter) }
+        let q: MCQQuestion = found.question
+        let input: String = TwinPrompt.input(stem: q.stem, options: q.options, correctIndex: q.correctIndex,
+                                             explanation: q.explanation, picked: request.picked,
+                                             reason: request.reason)
+        let system: String = TwinPrompt.instructions(style: desk.style)
+        var questions: [MCQQuestion] = []
+        if let reply = try? await complete(system, input) { questions = desk.parse(reply) }
+        if questions.isEmpty, let viaJob = desk.viaJob {
+            questions = (try? await viaJob(system + "\n\n" + input, found.subject)) ?? []
+        }
+        guard let twin = TwinDraft.pick(questions, missed: q) else {
+            var book = desk.book()
+            book.later(request)
+            desk.keep(book)
+            return .later(later)
+        }
+        // read again after the wait: the book may have changed meanwhile
+        var book = desk.book()
+        if book.hasWritten(for: q.id) { return .unavailable(TwinBook.alreadyOnTheWay) }
+        desk.shelve(twin, found.subject)
+        book.added(twin.id, parent: q.id, confident: request.confident, guessed: request.guessed,
+                   now: desk.now(), calendar: desk.calendar)
+        desk.keep(book)
+        return .made
+    }
+
+    /// Writes the twins asked for while offline, quietly, one at a time.
+    static func retryPending(desk: TwinDesk) async {
+        for request in desk.book().pending.prefix(3) {
+            if Task.isCancelled { return }
+            if case .made = await write(request, desk: desk) { continue }
+            return
+        }
+    }
+}
+
+/// The twin a writer's questions give, or nil when none will do: the first
+/// that is not the missed question again, with an id of its own and where
+/// it came from.
+enum TwinDraft {
+    static func pick(_ found: [MCQQuestion], missed: MCQQuestion, id: UUID = UUID()) -> MCQQuestion? {
+        guard var twin = found.first(where: { !TwinPrompt.isTooClose($0.stem, to: missed.stem) }) else { return nil }
+        twin.id = id
+        twin.source = missed.source.map { "Twin of a question from " + $0 } ?? "Twin of a missed question"
+        return twin
+    }
+
+    /// What the quiz says under the question once the twin is written.
+    static func madeNote(days: Int) -> String {
+        let when: String = days == 1 ? "tomorrow" : "in \(days) days"
+        return "Twin written. It comes back \(when), under Questions \u{2192} Twins."
+    }
+}
+
 /// Where the immediate re-test goes: a few questions on, or at the end when
 /// the quiz is nearly over. `current` and `count` are positions in the quiz.
 enum TwinRetest {

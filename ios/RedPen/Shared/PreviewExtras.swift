@@ -256,6 +256,8 @@ extension PreviewExtras {
         // settings, support, platform
         "diagnostics", "lectures", "set-credits", "licences", "help", "faq",
         "examples", "generation-hud",
+        // step by step (T0133): Write a twin, and a picture card revealed
+        "twin-written", "occlusion-revealed",
     ]
 
     /// One tour screen. A plain switch over AnyView rather than a view
@@ -372,6 +374,15 @@ extension PreviewExtras {
         // MARK: questions, mock, plan
         case "quiz-timed":
             return AnyView(NavigationStack { MCQQuizView(set: quiz, keepsProgress: false, startsTimed: true) })
+        case "twin-written":
+            // a miss, Write a twin tapped, and what the quiz says once the twin is written
+            return AnyView(NavigationStack {
+                MCQQuizView(set: quiz, initialAnswers: [MCQAnswer(selected: 2, checked: true)], keepsProgress: false,
+                            twinNote: TwinDraft.madeNote(days: 2))
+            })
+        case "occlusion-revealed":
+            // the heart example's first card after Reveal: its own label shows, every other stays grey
+            return AnyView(NavigationStack { OcclusionExampleView(startRevealed: true) })
         case "lab-values":
             return AnyView(TourChecked().sheet(isPresented: .constant(true)) { LabRangesSheet() })
         case "calculator":

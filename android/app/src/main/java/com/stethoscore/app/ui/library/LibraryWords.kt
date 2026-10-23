@@ -58,7 +58,7 @@ enum class StudyCategory(val title: String) {
         }
         FeatureGroup.PRACTISE -> when (this) {
             QUESTIONS -> listOf(CategoryFeature.MIXED, CategoryFeature.MISTAKES, CategoryFeature.FLAGGED, CategoryFeature.TIMED,
-                CategoryFeature.WEAKEST, CategoryFeature.CONFIDENT, CategoryFeature.SLOW, CategoryFeature.ONE)
+                CategoryFeature.TWINS, CategoryFeature.WEAKEST, CategoryFeature.CONFIDENT, CategoryFeature.SLOW, CategoryFeature.ONE)
             CARDS -> emptyList()
             else -> emptyList()
         }
@@ -100,6 +100,7 @@ enum class CategoryFeature(val rawValue: String, val title: String, val detail: 
     MISTAKES("mistakes", "My mistakes", "Last got wrong"),
     FLAGGED("flagged", "Flagged", "The ones you flagged"),
     TIMED("timed", "Timed exam", "10 against the clock"),
+    TWINS("twins", "Twins", "Missed points, asked again"),
     WEAKEST("weakest", "Weakest topic", "Your lowest subject"),
     CONFIDENT("confident", "Sure but wrong", "Fix the misconceptions"),
     SLOW("slow", "Slow reading", "Key words marked, 15 s each"),
@@ -136,6 +137,7 @@ enum class CategoryFeature(val rawValue: String, val title: String, val detail: 
     val emptyText: String get() = when (this) {
         DUE -> "No cards are due right now. Come back later."
         FLAGGED -> "Flag a question while you answer it and it will wait here."
+        TWINS -> com.stethoscore.app.quiz.TwinBook.nothingYet
         MISTAKES, CONFIDENT -> "Answer a few questions first. Anything you get wrong comes back here."
         SLOW -> "When you get one wrong, tap “Misread the question” under it and it comes back here, to read slowly."
         else -> "Make a question set first."
@@ -167,6 +169,7 @@ enum class CategoryFeature(val rawValue: String, val title: String, val detail: 
         FLAGGED -> LibraryQuiz(LibraryStats.temporaryQuiz("Flagged questions", "Flagged",
             LibraryStats.mcqPicks(store) { it.question.id in store.flagged }.shuffled()))
         TIMED -> LibraryQuiz(LibraryStats.timedDrill(store), timed = true)
+        TWINS -> LibraryQuiz(com.stethoscore.app.quiz.TwinSets.quiz(store))
         WEAKEST -> {
             val stats = LibraryStats.subjectStats(store)
             (stats.firstOrNull { it.answered > 0 } ?: stats.firstOrNull())?.let { LibraryQuiz(LibraryStats.drill(store, it.subject)) }
@@ -177,7 +180,7 @@ enum class CategoryFeature(val rawValue: String, val title: String, val detail: 
         else -> null
     }
 
-    val isQuiz: Boolean get() = this in setOf(MIXED, MISTAKES, FLAGGED, TIMED, WEAKEST, CONFIDENT, SLOW, ONE)
+    val isQuiz: Boolean get() = this in setOf(MIXED, MISTAKES, FLAGGED, TIMED, TWINS, WEAKEST, CONFIDENT, SLOW, ONE)
 }
 
 /** A quiz put together on the spot, and how it is sat (iOS InsightQuiz). */

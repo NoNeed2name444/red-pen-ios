@@ -16,6 +16,7 @@
 22	Name sheet (new folder)	r022_nameSheet	r022-name-sheet-light r022-name-sheet-dark
 23	Delete sets	r023_deleteSets	r023-library-delete-light r023-library-delete-dark
 24	Nothing here yet	r024_nothingHereYet	r024-nothing-yet-light r024-nothing-yet-dark
+24	Nothing here yet: Twins	r024_nothingHereYetTwins	r024-nothing-yet-twins-light r024-nothing-yet-twins-dark
 25	Ward round chip and panel	r025_wardRound	r025-ward-round-light r025-ward-round-dark r025-ward-round-panel-light r025-ward-round-panel-dark
 27	Shelf	r027_shelf	r027-shelf-light r027-shelf-dark
 28	Shelf empty	r028_shelfEmpty	r028-shelf-empty-light r028-shelf-empty-dark

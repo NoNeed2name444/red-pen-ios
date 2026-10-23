@@ -50,6 +50,7 @@ turn-into	40	Turn into picker
 turn-into-list	41	Turn into list
 quiz	42	Quiz
 quiz-checked	43	Quiz, answer checked
+twin-written	43	Quiz: a miss, its twin written
 quiz-timed	44	Practice tile: timed
 summary	46	Quiz results
 lab-values	47	Lab values
@@ -130,4 +131,5 @@ help	123	How it works
 faq	123	FAQ
 examples	124	Try every feature
 occlusion-example	125	Occlusion example
+occlusion-revealed	125	Occlusion example, a card revealed
 generation-hud	128	AI writing progress

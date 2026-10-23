@@ -171,6 +171,49 @@ object PhotoOcclusion {
     /** A cover's answer as it will be kept: trimmed, one line. */
     fun tidied(answer: String): String = OcclusionPhrases.tidy(answer)
 
+    /**
+     * One rectangle per label (the owner's rule): covers with the same answer
+     * that overlap or nearly touch (a gap under half the smaller one's height,
+     * as two drags over one label's lines) become one box over both, unless
+     * that box would reach another label's cover. A label written in two
+     * places on the picture keeps a cover at each.
+     */
+    fun oneEach(covers: List<Cover>): List<Cover> {
+        val out = covers.toMutableList()
+        var joined = true
+        while (joined) {
+            joined = false
+            search@ for (i in out.indices) for (j in out.indices) {
+                if (j <= i) continue
+                val a = out[i]; val b = out[j]
+                val key = tidied(a.answer)
+                if (key.isEmpty() || key.lowercase() != tidied(b.answer).lowercase() || !near(a.box, b.box)) continue
+                val box = union(a.box, b.box)
+                if (out.indices.any { k -> k != i && k != j && overlaps(box, out[k].box) }) continue
+                out[i] = a.copy(box = box)
+                out.removeAt(j)
+                joined = true
+                break@search
+            }
+        }
+        return out
+    }
+
+    private fun union(a: OcclusionBox, b: OcclusionBox): OcclusionBox {
+        val x = minOf(a.x, b.x); val y = minOf(a.y, b.y)
+        return OcclusionBox(x, y, maxOf(a.x + a.w, b.x + b.w) - x, maxOf(a.y + a.h, b.y + b.h) - y)
+    }
+
+    private fun overlaps(a: OcclusionBox, b: OcclusionBox): Boolean =
+        a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+
+    private fun near(a: OcclusionBox, b: OcclusionBox): Boolean {
+        val reach = minOf(a.h, b.h) / 2
+        val gapX = maxOf(0.0, maxOf(a.x, b.x) - minOf(a.x + a.w, b.x + b.w))
+        val gapY = maxOf(0.0, maxOf(a.y, b.y) - minOf(a.y + a.h, b.y + b.h))
+        return gapX <= reach && gapY <= reach
+    }
+
     /** The covers that will make cards: those with an answer typed or read. */
     fun answered(covers: List<Cover>): List<Cover> = covers.filter { tidied(it.answer).isNotEmpty() }
 
@@ -180,7 +223,7 @@ object PhotoOcclusion {
      * term labelled twice is asked once. One label is enough for a photo.
      */
     fun cards(covers: List<Cover>, imageIndex: Int, question: String = "What is labelled here?", source: String? = null): List<AnkiCard> {
-        val asked = answered(covers)
+        val asked = answered(oneEach(covers))
         if (asked.isEmpty()) return emptyList()
         val unasked = covers.filter { tidied(it.answer).isEmpty() }.map { it.box }
         val phrased = asked.map { OcclusionPhrases.Cover(box = it.box, answer = tidied(it.answer), lines = emptyList()) }
