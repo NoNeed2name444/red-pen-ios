@@ -17,8 +17,12 @@ jobs:
   build:
     runs-on: macos-latest
     # The full run on personal (compile, the UI suite, then accessibility)
-    # took 61 minutes on 8 Oct and was cut off at 60.
-    timeout-minutes: 90
+    # took 61 minutes on 8 Oct and was cut off at 60. On 23 Oct (run
+    # 39932576764) the UI suite alone ran 81 minutes before the job's 90
+    # cut it, 45 of them the three million-map proof tests each waiting out
+    # its 15 minutes: the job allows the suite's steps their own limits
+    # (below) plus the build, the summaries and the upload.
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
       - name: Tools
@@ -43,8 +47,22 @@ jobs:
       # The simulator tap-through takes most of the run; a design branch gets the
       # compile check only. design/integration is the one version the owner gets,
       # so it runs the full suite on every push: a failure there is never hidden.
+      #
+      # What a stuck test may cost, so a failure shows by name instead of
+      # eating the job:
+      # - grep --line-buffered: each Test Case line reaches the log as it
+      #   happens (a plain grep in a pipe holds its output in a block, and on
+      #   23 Oct the cancel threw that block away: no Test Case line at all);
+      # - XCTest's own limit per test, 16 minutes (the longest passing test,
+      #   testDepthMeasure, took 12.6; the million proof tests wait up to 15
+      #   for their map and then fail by name), so a test that hangs is
+      #   stopped and named and the suite goes on;
+      # - this step's limit is under the job's, so the summary and the
+      #   upload after it still run when it is reached.
       - name: Tap through sign-in and the terms on a simulator
+        id: ui
         if: ${{ (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') }}
+        timeout-minutes: 110
         working-directory: ios
         run: |
           set -o pipefail
@@ -56,17 +74,37 @@ jobs:
             -skipMacroValidation -skipPackagePluginValidation \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 960 \
+            -maximum-test-execution-time-allowance 960 \
             -skip-testing:RedPenUITests/AccessibilityUITests \
-            test 2>&1 | tee ../uitest.log | grep -E "error:|Test Case|TEST |\*\* " || true
-          { echo '### Sign-in and terms tap test'; echo '```'; grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" ../uitest.log | tail -20 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            test 2>&1 | tee ../uitest.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* " || true
           grep -q "TEST SUCCEEDED" ../uitest.log
+      # its own step, so it is written also when the step above ran out of time
+      - name: Summary of the tap-through
+        if: ${{ always() && steps.ui.outcome != 'skipped' }}
+        run: |
+          {
+            echo '### Sign-in and terms tap test'
+            echo '```'
+            if [ -f uitest.log ]; then
+              # every failure, then the last tests run (the one running at a timeout among them)
+              grep -E "error:" uitest.log | sed -E 's#^.*/ios/##' | head -40 || true
+              grep -E "Test Case|TEST (SUCCEEDED|FAILED)" uitest.log | tail -20 || true
+            else
+              echo 'no uitest.log'
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       # The accessibility walk and audit at the largest text size: an audit
       # finding shows up here, in the summary, and as a red run. It must pass before the App
       # Store accessibility labels are claimed (docs/launch/accessibility.md).
       # Like the tap-through, it runs on personal and design/integration. A failure
       # here turns the run red: a green run must mean every check passed.
       - name: Accessibility at the largest text size
+        id: a11y
         if: ${{ !cancelled() && steps.build.outcome == 'success' && (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') }}
+        timeout-minutes: 20
         working-directory: ios
         run: |
           set -o pipefail
@@ -77,10 +115,27 @@ jobs:
             -skipMacroValidation -skipPackagePluginValidation \
             SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGNING_ALLOWED=NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 480 \
+            -maximum-test-execution-time-allowance 480 \
             -only-testing:RedPenUITests/AccessibilityUITests \
-            test 2>&1 | tee ../a11y.log | grep -E "error:|Test Case|TEST |\*\* " || true
-          { echo '### Accessibility (AX5 text, audit)'; echo '```'; grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" ../a11y.log | tail -30 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            test 2>&1 | tee ../a11y.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* " || true
           grep -q "TEST SUCCEEDED" ../a11y.log
+      - name: Summary of the accessibility run
+        if: ${{ always() && steps.a11y.outcome != 'skipped' }}
+        run: |
+          {
+            echo '### Accessibility (AX5 text, audit)'
+            echo '```'
+            if [ -f a11y.log ]; then
+              grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" a11y.log | tail -30 || true
+            else
+              echo 'no a11y.log'
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # the logs go with the result bundles: a bundle cut off by a time limit
+      # has no summary of its own, and the log says which test was running
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -88,4 +143,6 @@ jobs:
           path: |
             ui.xcresult
             a11y.xcresult
+            uitest.log
+            a11y.log
           if-no-files-found: ignore
