@@ -156,7 +156,7 @@ struct DueTodayView: View {
 
     private var emptyLine: String {
         if reviewedCount == 0 {
-            return "Come back when a card is ready, or open a deck and study ahead."
+            return "Open a deck to study ahead."
         }
         let plural: String = reviewedCount == 1 ? "" : "s"
         return "\(reviewedCount) card\(plural) reviewed across your decks."

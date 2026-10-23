@@ -52,12 +52,13 @@ class CardReviewTest {
         assertEquals(CardReview.Header("All done", "3 done", 1.0), CardReview.deckHeader(0, 3, false))
         assertEquals(CardReview.Header("All done", "2 done", 1.0), CardReview.dueHeader(0, 2))
         assertEquals(CardReview.Header("1 card due", "1 done", 0.5), CardReview.dueHeader(1, 1))
+        assertEquals("No cards due", CardReview.dueHeader(0, 0).status)
         assertEquals("Next card back in 10 min.", CardReview.nextLine(now + 10 * 60_000, now))
         assertEquals("Everything here has been seen.", CardReview.nextLine(null, now))
         assertEquals("Everything here has been seen.", CardReview.nextLine(now - 1, now))
         assertEquals("You went through 1 card. Everything here has been seen.", CardReview.doneLine(1, "Everything here has been seen."))
         assertEquals("You went through 12 cards. Next card back in 10 min.", CardReview.doneLine(12, "Next card back in 10 min."))
-        assertEquals("Come back when a card is ready, or open a deck and study ahead.", CardReview.dueEmptyLine(0))
+        assertEquals("Open a deck to study ahead.", CardReview.dueEmptyLine(0))
         assertEquals("2 cards reviewed across your decks.", CardReview.dueEmptyLine(2))
     }
 

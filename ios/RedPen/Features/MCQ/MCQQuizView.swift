@@ -745,8 +745,10 @@ struct MCQQuizView: View {
 
     private var explanationBox: some View {
         let correct = isRight(current)
+        let key: Int = correctSlot(current)
+        let said: String = correct ? "Correct" : (key >= 0 ? "Incorrect: \(letter(key)) is the answer" : "Incorrect")
         return VStack(alignment: .leading, spacing: 8) {
-            Label(correct ? "Right!" : "Not quite", systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
+            Label(said, systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
                 .font(.headline)
                 .foregroundStyle(correct ? Color.wardSuccess : Color.wardDanger)
                 .accessibilityAddTraits(.isHeader)

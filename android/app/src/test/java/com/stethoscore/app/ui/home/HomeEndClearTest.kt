@@ -34,7 +34,7 @@ class HomeEndClearTest {
     @get:Rule val learnClosed = LearnRouterClosed()
 
     private val newSet = "New set. Make questions or cards from a lecture"
-    private val last = "Study aid · Not for clinical decisions"
+    private val last = "Study aid. Not for clinical decisions."
 
     @Test fun theLastRowScrollsClearOfNewSetAndTheDock() {
         val store = StudyStore(folder.newFolder("home")).also { it.loadExamples() }

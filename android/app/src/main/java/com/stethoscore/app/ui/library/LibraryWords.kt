@@ -155,7 +155,7 @@ enum class CategoryFeature(val rawValue: String, val title: String, val detail: 
     fun tileDetail(library: List<StudySet>): String {
         if (shelfKind == null) return detail
         val count = shelfSets(library).size
-        if (count == 0) return "None yet — tap to make one"
+        if (count == 0) return "No sets yet"
         return if (count == 1) "1 set" else "$count sets"
     }
 
@@ -236,8 +236,8 @@ object NewSetWords {
 
     fun blurb(kind: StudySetKind): String = when (kind) {
         StudySetKind.MCQ -> "Multiple-choice questions, like the exam"
-        StudySetKind.ANKI -> "Cards that come back just before you forget"
-        StudySetKind.BOOK -> "Your lecture as easy pages to read"
+        StudySetKind.ANKI -> "Spaced-repetition flashcards"
+        StudySetKind.BOOK -> "Your lecture as short pages"
         StudySetKind.OSCE -> "Step-by-step checklists for practical exams"
         StudySetKind.NARRATE -> "Your lecture written out to read along"
         StudySetKind.CASES -> "Patients to work up against the clock"

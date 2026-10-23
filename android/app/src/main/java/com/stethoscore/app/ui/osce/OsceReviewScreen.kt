@@ -317,12 +317,11 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
                                     textAlign = TextAlign.Center)
                             }
                         } else {
-                            Text("What comes next? Say it out loud, then tap Reveal.", Modifier.fillMaxWidth().padding(16.dp),
+                            Text("Say the next step, then tap Reveal.", Modifier.fillMaxWidth().padding(16.dp),
                                 style = WardTextStyle.title3.textStyle(), color = wardColor(WardToken.inkSecondary), textAlign = TextAlign.Center)
                         }
-                        if (!revealed && run.stepIndex == 0) {
-                            Text(if (run.restarts == 0) "Work through the station out loud, in order, revealing each step to check yourself."
-                                 else "From the top. The steps go in order, so a missed one means starting again.",
+                        if (!revealed && run.stepIndex == 0 && run.restarts > 0) {
+                            Text("From the top. The steps go in order, so a missed one means starting again.",
                                 style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary), textAlign = TextAlign.Center)
                         }
                     }

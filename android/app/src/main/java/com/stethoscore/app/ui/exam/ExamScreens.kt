@@ -187,7 +187,7 @@ fun ExamPickerScreen(store: StudyStore, onClose: () -> Unit, isOnboarding: Boole
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = WardSpace.s.wardDp),
             verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
             if (isOnboarding) {
-                Text("Questions, study plan, coverage map and mock papers will follow its format and blueprint. You can change it any time.",
+                Text("Questions and mock papers follow this exam’s format. Change it in Settings.",
                     Modifier.padding(horizontal = 20.dp), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
             ExamCatalog.exam(primary)?.let { exam ->

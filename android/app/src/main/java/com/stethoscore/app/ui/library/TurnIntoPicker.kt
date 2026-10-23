@@ -67,7 +67,7 @@ import com.stethoscore.app.ui.ward.wardRaised
 // iOS Features/Library/TurnIntoPicker.swift: "Turn into…", choosing which
 // mode a set should become. Every mode is a tile with what will happen
 // written on it before it is tapped - "Instant" when the set can simply be
-// rearranged (data/ModeConversion.kt), "Written by AI" when it has to go
+// rearranged (data/ModeConversion.kt), "Written from…" when it has to go
 // through the writer. Tapping one does it: an instant set is made and opened
 // straight away; a written one lands in New set with the mode chosen and the
 // material already in, one tap from Make. The set it came from is never
@@ -130,7 +130,7 @@ internal fun turnNote(source: StudySet, kind: StudySetKind, ready: Map<StudySetK
         val plural = if (n == 1) "" else "s"
         return "Instant · $n ${made.itemNoun}$plural" to Icons.Rounded.Bolt
     }
-    return (if (hasLecture) "Written by AI from your lecture" else "Written by AI from this set") to Icons.Rounded.AutoAwesome
+    return (if (hasLecture) "Written from your lecture. Check before relying on it." else "Written from this set. Check before relying on it.") to Icons.Rounded.AutoAwesome
 }
 
 /** "Turn into…" on [source]: a sheet of mode tiles, with Cancel. [onClose] takes it away. */

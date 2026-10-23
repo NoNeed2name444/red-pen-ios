@@ -252,7 +252,7 @@ struct IdeasView: View {
         if inFolder {
             return "Nothing in this folder yet. Ideas dumped while it is open land here."
         }
-        return "Type anything below and press return. Sort it later."
+        return "Type an idea and press return."
     }
 
     private func upRow(_ current: NoteFolder) -> some View {

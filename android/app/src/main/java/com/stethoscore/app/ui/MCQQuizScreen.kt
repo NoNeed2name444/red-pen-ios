@@ -556,7 +556,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.danger)
                         Icon(if (correct) Icons.Rounded.Verified else Icons.Rounded.Info, null, tint = tint, modifier = Modifier.size(20.dp))
-                        Text(if (correct) "Right!" else "Not quite", style = WardType.headline.textStyle(), color = tint)
+                        val key = correctSlot(current)
+                        Text(if (correct) "Correct" else if (key >= 0) "Incorrect: ${letter(key)} is the answer" else "Incorrect", style = WardType.headline.textStyle(), color = tint)
                     }
                     if (struckTheAnswer) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Rounded.HorizontalRule, null, tint = wardColor(WardToken.warning), modifier = Modifier.size(18.dp))

@@ -209,7 +209,7 @@ object VitalsNumbers {
     /** The day's target in words, for the rings' footnote. */
     fun ringsNote(fromExam: Boolean): String {
         val pace = if (fromExam) "the pace that gets through your library by the exam." else "30 until you set an exam date."
-        return "Tap a ring for what is behind it. Syllabus is the share of your exam’s topics your library covers. Today’s target is $pace"
+        return "Tap a ring to see its details. Syllabus is the share of your exam’s topics your library covers. Today’s target is $pace"
     }
 
     /** The share of the exam's topics covered, once the check has run. */

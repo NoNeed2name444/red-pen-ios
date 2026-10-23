@@ -114,7 +114,7 @@ struct MockPaperView: View {
             Text(exam)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
-            Text("Sit it like the real thing: the paper\u{2019}s length and clock, and nothing about right or wrong until the end.")
+            Text("Timed like the real paper. Answers are marked at the end.")
                 .font(.body)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -84,7 +84,7 @@ struct CaseMakeSection: View {
     private var makeSection: some View {
         Section {
             if sourceName.isEmpty {
-                Text("Nothing to write from yet \u{2014} go Back and add a lecture.")
+                Text("Go back and add a lecture first.")
                     .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             } else {
                 CountField(title: "How many patients", value: $caseCount, range: 1...CaseWriting.maxCases)

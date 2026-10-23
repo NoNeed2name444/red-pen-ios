@@ -306,7 +306,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
         if (beds.isEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.CheckCircleOutline, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(16.dp))
-                Text("All done for now — nothing is waiting.", style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
+                Text("Nothing due.", style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
         } else {
             Column {

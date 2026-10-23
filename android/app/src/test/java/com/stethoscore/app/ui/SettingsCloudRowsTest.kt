@@ -36,7 +36,7 @@ class SettingsCloudRowsTest {
         val server = FakeServer()
         settings(service(BuildConfig.OWNER_KEY, server = server))
         compose.onNodeWithTag("cloudRows").performScrollTo()
-        compose.onNodeWithText("Stethoscore Cloud is part of Pro.", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Included with Pro", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Owner key spend", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithText("AI models", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag("aiModels").assertDoesNotExist()

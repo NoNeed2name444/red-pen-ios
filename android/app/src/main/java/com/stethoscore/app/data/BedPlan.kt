@@ -331,7 +331,7 @@ object BedPlan {
             return "A subject shows here once it has $consultAnswers answers and is under $line%."
         }
         if (phase == ExamWeekPlanner.Phase.ExamDay) return "Exam day: today’s revision is your kit alone, so these can wait."
-        return "${first.name}, the weakest, is in today’s revision automatically."
+        return "Added to today’s revision: ${first.name} (your lowest score)."
     }
 
     /** Today's beds, numbered from 1. */

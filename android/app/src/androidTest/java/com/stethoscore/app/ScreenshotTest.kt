@@ -85,7 +85,7 @@ class ScreenshotTest {
         shot("03-questions")
         compose.onNodeWithText(set.questions.first().options[set.questions.first().correctIndex]).performScrollTo().performClick()
         compose.onNodeWithText("Check answer").performScrollTo().performClick()
-        compose.onNodeWithText("Right!").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Correct").performScrollTo().assertIsDisplayed()
         check(store.answerHistory[set.questions.first().id]?.last()==true)
         shot("04-answer-explanation")
     }

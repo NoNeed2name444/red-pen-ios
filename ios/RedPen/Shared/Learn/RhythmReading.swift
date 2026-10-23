@@ -66,7 +66,7 @@ enum RhythmReading {
             case .resting:
                 return "Nothing in the last \(RhythmReading.restingDays) days. Pick it up whenever you\u{2019}re ready."
             case .noTrace:
-                return "Study on a few days and your rhythm shows here."
+                return "Your study days show here once you start."
             }
         }
 

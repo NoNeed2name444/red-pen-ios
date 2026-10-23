@@ -21,10 +21,10 @@ class QuizSummaryTest {
         assertEquals("only a checked right pick scores", 1, QuizSummary.correctCount(questions, answers))
         assertEquals("missing answers are wrong", 1, QuizSummary.correctCount(questions + q("5", "Five"), answers))
         assertEquals(0.0, QuizSummary.fraction(0, 0), 0.0)
-        assertEquals("Excellent — exam ready.", QuizSummary.verdict(0.9))
-        assertEquals("Solid. A few to revisit.", QuizSummary.verdict(0.7))
-        assertEquals("Getting there — review the misses.", QuizSummary.verdict(0.5))
-        assertEquals("Worth another pass before moving on.", QuizSummary.verdict(0.49))
+        assertEquals("Ready for the exam on this set.", QuizSummary.verdict(0.9))
+        assertEquals("Review what you missed.", QuizSummary.verdict(0.7))
+        assertEquals("Review what you missed.", QuizSummary.verdict(0.5))
+        assertEquals("Review what you missed, then try again.", QuizSummary.verdict(0.49))
         assertEquals("a question re-tested is listed once", listOf("2", "3", "4"),
             QuizSummary.mistakes(questions + q("2", "Two"), answers).map { it.id })
     }

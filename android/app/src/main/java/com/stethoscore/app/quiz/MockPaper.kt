@@ -80,7 +80,7 @@ object MockFormat {
             listOf(MockPaperSpec("usmle$count", "USMLE-style, $count ${partWord.lowercase()}" + (if (count == 1) "" else "s"), blocks, note))
         }
         ExamTrack.general -> listOf(MockPaperSpec("general", "Practice paper", listOf(MockSectionSpec("Paper", 100, 125)),
-            "100 questions in 2 hours 5 minutes. Pick your exam in Settings for its real paper."))
+            "Choose your exam in Settings to use its paper."))
     }
 }
 

@@ -162,7 +162,7 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
     val llm=service ?: com.stethoscore.app.ui.editors.rememberLLMService()
     WardCard(Modifier.fillMaxWidth().testTag("cloudRows")) {
         SectionLabel("${com.stethoscore.app.llm.HostedProvider.BRAND} Cloud")
-        CloudRow("Status",llm.cloudBlocker ?: "Ready")
+        CloudRow("Status",if(!llm.isPro) "Included with Pro" else llm.cloudBlocker ?: "Ready")
         if(llm.isPersonal) {
             CloudRow("Owner key spend",llm.spend.said)
             if(!llm.spend.capReached) Text("This build sends the owner key and stops sending it once ${com.stethoscore.app.llm.OwnerSpend.dollars(llm.spend.capMicros)} has been spent, counted on this phone from what each reply reports, or at its most when it reports nothing.",

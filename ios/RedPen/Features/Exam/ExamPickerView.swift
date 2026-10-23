@@ -19,7 +19,7 @@ struct ExamPickerView: View {
         List {
             if isOnboarding {
                 Section {
-                    Text("Questions, study plan, coverage map and mock papers will follow its format and blueprint. You can change it any time.")
+                    Text("Questions and mock papers follow this exam\u{2019}s format. Change it in Settings.")
                         .font(.subheadline)
                         .foregroundStyle(Color.wardInkSecondary)
                         .listRowBackground(Color.clear)

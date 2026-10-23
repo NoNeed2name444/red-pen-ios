@@ -24,10 +24,9 @@ object QuizSummary {
     fun fraction(correct: Int, total: Int): Double = if (total == 0) 0.0 else correct.toDouble() / total
 
     fun verdict(fraction: Double): String = when {
-        fraction >= 0.9 -> "Excellent — exam ready."
-        fraction >= 0.7 -> "Solid. A few to revisit."
-        fraction >= 0.5 -> "Getting there — review the misses."
-        else -> "Worth another pass before moving on."
+        fraction >= 0.9 -> "Ready for the exam on this set."
+        fraction >= 0.5 -> "Review what you missed."
+        else -> "Review what you missed, then try again."
     }
 
     /** The questions answered wrongly, for a set of their own; one re-tested in the same sitting is listed once. */

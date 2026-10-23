@@ -116,6 +116,6 @@ class AnkiReviewScreenTest {
         val store = StudyStore(folder.newFolder("empty"))
         compose.setContent { StethoscoreTheme { DueTodayScreen(store, onBack = {}) } }
         compose.onNodeWithText("Nothing due today").assertExists()
-        compose.onNodeWithText("Come back when a card is ready, or open a deck and study ahead.").assertExists()
+        compose.onNodeWithText("Open a deck to study ahead.").assertExists()
     }
 }

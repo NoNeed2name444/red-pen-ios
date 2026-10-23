@@ -137,10 +137,9 @@ struct MCQSummaryView: View {
 
     private var verdict: String {
         switch fraction {
-        case 0.9...: return "Excellent — exam ready."
-        case 0.7..<0.9: return "Solid. A few to revisit."
-        case 0.5..<0.7: return "Getting there — review the misses."
-        default: return "Worth another pass before moving on."
+        case 0.9...: return "Ready for the exam on this set."
+        case 0.5..<0.9: return "Review what you missed."
+        default: return "Review what you missed, then try again."
         }
     }
 

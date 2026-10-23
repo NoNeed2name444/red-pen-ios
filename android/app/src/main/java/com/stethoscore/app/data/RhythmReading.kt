@@ -47,7 +47,7 @@ object RhythmReading {
                 "Studied $activeDays of the last $days."
             }
             Rhythm.resting -> "Nothing in the last $restingDays days. Pick it up whenever you’re ready."
-            Rhythm.noTrace -> "Study on a few days and your rhythm shows here."
+            Rhythm.noTrace -> "Your study days show here once you start."
         }
 
         /** What TalkBack reads for the strip. */

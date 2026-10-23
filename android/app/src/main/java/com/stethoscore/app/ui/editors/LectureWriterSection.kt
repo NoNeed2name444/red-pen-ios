@@ -192,7 +192,7 @@ import kotlinx.coroutines.withContext
                 }
                 status?.let { EditorNote(it) }
                 if (!hasSource && !(kind == StudySetKind.ANKI && style == CardStyle.image)) {
-                    EditorNote("Nothing to write from yet — go Back and add a lecture.")
+                    EditorNote("Go back and add a lecture first.")
                 }
                 trouble?.let { WardBanner(it, Icons.Rounded.Warning, WardTone.Danger) }
                 MoreOptions("More options", showMore, { showMore = it }) {

@@ -164,7 +164,7 @@ object CardReview {
 
     /** Due today's empty line. */
     fun dueEmptyLine(reviewed: Int): String =
-        if (reviewed == 0) "Come back when a card is ready, or open a deck and study ahead."
+        if (reviewed == 0) "Open a deck to study ahead."
         else "$reviewed card${plural(reviewed)} reviewed across your decks."
 
     // ---- the sitting ----

@@ -187,7 +187,7 @@ import kotlinx.coroutines.withContext
             EditorSection(null,
                 footer = "Each patient is checked for its structure and its numbers before it is kept, and by the accuracy checkers once the set is saved.") {
                 if (sourceName.isEmpty()) {
-                    EditorNote("Nothing to write from yet — go Back and add a lecture.")
+                    EditorNote("Go back and add a lecture first.")
                 } else {
                     CountField("How many patients", caseCount, 1..CaseWriting.maxCases, { caseCount = it }, enabled = !working)
                     // the same as its floating copy in New set's dock (iOS floatingAction "cases")

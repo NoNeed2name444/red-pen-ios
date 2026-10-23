@@ -179,7 +179,7 @@ class TurnIntoReachTest {
         compose.onNodeWithText("“Nephrology” stays as it is. The new set is added beside it, with the same subject and folder.").assertExists()
         // the quiz's own mode lies low and cannot be chosen
         compose.onNode(hasTestTag("turnInto-mcq") and hasContentDescription("MCQ. This set")).assertIsNotEnabled()
-        compose.onNode(hasTestTag("turnInto-osce") and hasContentDescription("OSCE. Written by AI from this set")).assertExists()
+        compose.onNode(hasTestTag("turnInto-osce") and hasContentDescription("OSCE. Written from this set. Check before relying on it.")).assertExists()
         compose.onNodeWithTag("turnInto-anki").performScrollTo().performClick()
         until { store.library.any { it.kind == StudySetKind.ANKI } }
         until { compose.onAllNodesWithText(quiz.questions.first().stem, substring = true).fetchSemanticsNodes().isNotEmpty() }
@@ -232,7 +232,7 @@ class TurnIntoReachTest {
             bookMarkdown = "# Thyroid\n\nHashimoto's thyroiditis is the commonest cause of hypothyroidism where iodine is sufficient.")
         store.addSet(set)
         show(owner(FakeJobs(listOf(questions())))) { Routed(store) { BookReaderScreen(set, store, onBack = {}) } }
-        turn(StudySetKind.MCQ, "Written by AI from this set")
+        turn(StudySetKind.MCQ, "Written from this set. Check before relying on it.")
         // New set on Make, with the book as the material: nothing is added until it is made
         assertNull(ModeSwitch.opening)
         assertEquals(1, store.library.size)

@@ -229,10 +229,8 @@ struct OsceReviewView: View {
                         .frame(maxWidth: .infinity)
                         .transition(.identity)
                 }
-                if !revealed && run.stepIndex == 0 {
-                    Text(run.restarts == 0
-                         ? "Work through the station out loud, in order, revealing each step to check yourself."
-                         : "From the top. The steps go in order, so a missed one means starting again.")
+                if !revealed && run.stepIndex == 0 && run.restarts > 0 {
+                    Text("From the top. The steps go in order, so a missed one means starting again.")
                         .font(.subheadline).foregroundStyle(Color.wardInkSecondary).multilineTextAlignment(.center)
                         .transition(.identity)
                 }
@@ -249,7 +247,7 @@ struct OsceReviewView: View {
     }
 
     private var promptLine: String {
-        return "What comes next? Say it out loud, then tap Reveal."
+        return "Say the next step, then tap Reveal."
     }
 
     /// Reveal; then "Start over" beside the big "I got it", in the same place -

@@ -86,7 +86,7 @@ struct MCQGenerateForm: View {
     private var makeHint: String? {
         if isGenerating || !writerReady { return nil }
         if sourceText.trimmingCharacters(in: .whitespaces).isEmpty {
-            return "Nothing to write from yet \u{2014} go Back and add a lecture."
+            return "Go back and add a lecture first."
         }
         return nil
     }

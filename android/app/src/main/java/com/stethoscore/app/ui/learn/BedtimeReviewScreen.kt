@@ -55,11 +55,18 @@ import com.stethoscore.app.ui.wardColor
                 Text(subtitle(picks.size), style = WardTextStyle.title3.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
             for (pick in picks) BedtimeItem(pick)
-            Text("That’s all. Good night — tomorrow morning, two minutes on these.",
+            Text(closing(picks.size),
                 style = WardTextStyle.title3.textStyle(), color = wardColor(WardToken.inkSecondary))
             WardTextButton("Good night", { LearnRouter.close() }, kind = WardButtonKind.secondary)
         }
     }
+}
+
+/** The last line: how many come back in the morning check. */
+private fun closing(count: Int): String = when (count) {
+    0 -> "Review done."
+    1 -> "Review done. This one comes back tomorrow morning."
+    else -> "Review done. These $count come back tomorrow morning."
 }
 
 private fun subtitle(count: Int): String {

@@ -233,7 +233,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
             sectionHeader(heading)
             if (here.isEmpty()) item {
                 Text(if (current != null) "Nothing in this folder yet. Ideas dumped while it is open land here."
-                    else "Type anything below and press return. Sort it later.",
+                    else "Type an idea and press return.",
                     Modifier.fillMaxWidth().wardRowTile(), style = WardType.caption.textStyle().copy(fontSize = WardTextStyle.footnote.textStyle().fontSize),
                     color = wardColor(WardToken.inkSecondary))
             } else items(here, key = { it.id }) { note -> NoteRow(book, note, open, move) }
@@ -324,7 +324,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
 
 /**
  * Ideas' one bottom container (IdeasBottomBar): the switcher with its fold, then the capture
- * row - the folded switcher when folded, the "Dump an idea…" field, and Send while there is
+ * row - the folded switcher when folded, the "New idea" field, and Send while there is
  * text or else Add. While typing, the switcher folds into the capture row by itself.
  */
 @Composable private fun IdeasBottomBar(
@@ -345,18 +345,18 @@ private fun LazyListScope.sectionHeader(text: String) = item {
             if (!showCollapsed) switcher()
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (showCollapsed) switcher()
-                // "Dump an idea…": a soft capsule pressed into the base
+                // "New idea": a soft capsule pressed into the base
                 Row(Modifier.weight(1f).heightIn(min = 48.dp).wardInset(CircleShape, control = true).padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Outlined.Lightbulb, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(20.dp))
                     BasicTextField(draft, onDraft, Modifier.weight(1f).focusRequester(focus).onFocusChanged { onFocus(it.isFocused) }
-                        .semantics { testTag = "idea-capture"; contentDescription = "Dump an idea…" },
+                        .semantics { testTag = "idea-capture"; contentDescription = "New idea" },
                         singleLine = true, textStyle = WardType.body.textStyle().copy(color = wardColor(WardToken.ink)),
                         cursorBrush = SolidColor(wardColor(WardToken.primaryInk)),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { capture() }),
                         decorationBox = { inner ->
                             Box(contentAlignment = Alignment.CenterStart) {
-                                if (draft.isEmpty()) Text("Dump an idea…", style = WardType.body.textStyle(), color = wardDisabledInk())
+                                if (draft.isEmpty()) Text("New idea", style = WardType.body.textStyle(), color = wardDisabledInk())
                                 inner()
                             }
                         })

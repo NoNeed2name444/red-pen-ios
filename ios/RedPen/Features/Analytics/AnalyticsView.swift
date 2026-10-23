@@ -428,7 +428,7 @@ struct AnalyticsView: View {
         let subjectsAnchor: String = s.stats.first?.id ?? AnalyticsAnchor.subjectsEmpty
         let pace: String = goal.fromExam ? "the pace that gets through your library by the exam."
                                          : "30 until you set an exam date."
-        let note: String = "Tap a ring for what is behind it. Syllabus is the share of your exam\u{2019}s topics your library covers. Today\u{2019}s target is \(pace)"
+        let note: String = "Tap a ring to see its details. Syllabus is the share of your exam\u{2019}s topics your library covers. Today\u{2019}s target is \(pace)"
         let rings = VitalsRings(readiness: s.readiness, accuracy: monthAccuracy(s),
                                 answered: s.lastMonth.answered,
                                 syllabus: syllabusShare, syllabusSpoken: syllabusSpoken,

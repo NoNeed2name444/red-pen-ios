@@ -3,7 +3,7 @@ import SwiftUI
 /// "Turn into…": choosing which mode a set should become.
 ///
 /// Every mode is a tile, with what will happen written on it before it is
-/// tapped - "Instant" when the set can simply be rearranged, "Written by AI"
+/// tapped - "Instant" when the set can simply be rearranged, "Written from…"
 /// when it has to go through the writer. Tapping one does it: an instant set
 /// is made and opened straight away, with no screen in between; a written one
 /// lands in New set with the mode chosen and the material already in, one tap
@@ -79,7 +79,7 @@ struct TurnIntoPicker: View {
             let text: String = "Instant \u{00B7} \(n) \(made.itemNoun)\(plural)"
             return (text, "bolt.fill")
         }
-        return (hasLecture ? "Written by AI from your lecture" : "Written by AI from this set", "sparkles")
+        return (hasLecture ? "Written from your lecture. Check before relying on it." : "Written from this set. Check before relying on it.", "sparkles")
     }
 
     /// One mode, as a soft tile raised off the base and pressed in under the

@@ -184,7 +184,7 @@ struct LectureWriterSection: View {
                     .disabled(reading)
             }
             if !hasSource && !(kind == .anki && style == .image) {
-                Text("Nothing to write from yet \u{2014} go Back and add a lecture.")
+                Text("Go back and add a lecture first.")
                     .font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }
             if let trouble {

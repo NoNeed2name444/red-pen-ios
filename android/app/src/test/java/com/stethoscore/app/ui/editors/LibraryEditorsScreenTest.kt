@@ -155,7 +155,7 @@ class LibraryEditorsScreenTest {
         compose.onNodeWithText("How many cards").assertExists()
         compose.onNodeWithText("Make 12 cards").performClick()
         compose.onNodeWithText("No model is ready to write with.").assertExists()
-        compose.onNodeWithText("Nothing to write from yet — go Back and add a lecture.").assertDoesNotExist()
+        compose.onNodeWithText("Go back and add a lecture first.").assertDoesNotExist()
         compose.onNodeWithText("Mixed (all types)").performClick()
         compose.onNodeWithText("Image occlusion").performClick()
         compose.onNodeWithText("Add 0 image cards").assertIsNotEnabled()

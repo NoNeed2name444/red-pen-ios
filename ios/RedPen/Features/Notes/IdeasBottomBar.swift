@@ -5,7 +5,7 @@ import SwiftUI
 /// 1. the floating List / Board / Space switcher, with a chevron to fold it
 ///    away;
 /// 2. the capture row: the folded switcher (when it is folded), the
-///    "Dump an idea…" field, and one trailing control - Send when there is
+///    "New idea" field, and one trailing control - Send when there is
 ///    something to save, otherwise a plus for a new page or folder.
 ///
 /// While the field is being typed in, the switcher folds into the capture
@@ -113,7 +113,7 @@ struct IdeasBottomBar: View {
     }
 }
 
-/// "Dump an idea…": a soft capsule pressed into the base, as every field is.
+/// "New idea": a soft capsule pressed into the base, as every field is.
 private struct IdeaCaptureField: View {
     @Binding var draft: String
     let capturing: FocusState<Bool>.Binding
@@ -124,7 +124,7 @@ private struct IdeaCaptureField: View {
             Image(systemName: "lightbulb")
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
-            TextField("Dump an idea\u{2026}", text: $draft)
+            TextField("New idea", text: $draft)
                 .focused(capturing)
                 .submitLabel(.done)
                 .onSubmit(capture)

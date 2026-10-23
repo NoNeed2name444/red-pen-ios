@@ -165,14 +165,14 @@ class BedPlanTest {
             val input = full.copy(phase = phase, mission = if (phase == Phase.ExamDay) Mission.ExamKit else Mission.LockIn(3))
             val spotsNow = BedPlan.weakSpots(input.topics)
             val note = BedPlan.consultNote(spotsNow, phase, anyJudged = true)
-            val named = note.startsWith(spotsNow[0].name + ", the weakest, is in today")
+            val named = note == "Added to today’s revision: " + spotsNow[0].name + " (your lowest score)."
             val onRound = BedPlan.beds(input).any { (it.kind as? BedPlan.Kind.Weakest)?.topic?.name == spotsNow[0].name }
             check("the consult line names the weakest only when the round holds it ($phase)", named == onRound, "$note / on round: $onRound")
         }
         check("the consult line on exam day says why they wait",
             BedPlan.consultNote(spots, Phase.ExamDay, anyJudged = true).startsWith("Exam day"))
         check("the consult line names the weakest",
-            BedPlan.consultNote(spots, Phase.Building(20), anyJudged = true) == "Renal, the weakest, is in today’s revision automatically.")
+            BedPlan.consultNote(spots, Phase.Building(20), anyJudged = true) == "Added to today’s revision: Renal (your lowest score).")
         check("no weak spot, but subjects judged",
             BedPlan.consultNote(emptyList(), Phase.NoDate, anyJudged = true)
                 == "No weak topics: every topic with 5 or more answers is at 75% or better.")

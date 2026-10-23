@@ -296,7 +296,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
                 ContentCard(spacing = 6.dp) {
                     Text(target?.name ?: (if (track == ExamTrack.general) "General revision" else track.title),
                         style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
-                    Text("Sit it like the real thing: the paper’s length and clock, and nothing about right or wrong until the end.",
+                    Text("Timed like the real paper. Answers are marked at the end.",
                         style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 }
                 PaperChoice(papers, paper, { paperId = it }, track, target, usmleBlocks, { usmleBlocks = it; paperId = "" })

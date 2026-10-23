@@ -92,7 +92,7 @@ enum MockFormat {
         case .general:
             let s = MockSectionSpec(title: "Paper", questions: 100, minutes: 125)
             return [MockPaperSpec(id: "general", title: "Practice paper", sections: [s],
-                                  note: "100 questions in 2 hours 5 minutes. Pick your exam in Settings for its real paper.")]
+                                  note: "Choose your exam in Settings to use its paper.")]
         }
     }
 }
