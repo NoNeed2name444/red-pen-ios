@@ -8,6 +8,11 @@
   own size in the middle of the safe area, light or dark with the phone.
   From its first frame LaunchSplash draws the same ground live, laid the same
   way, and home stands on it, so the ground never changes.
+  On its side a phone is wider than the 480-point picture, so a second copy
+  stands at x = 480 (16 bold cells of 30 points: its lines continue the
+  first's exactly), and two reach past the widest phone on its side (956);
+  in portrait the second is off the screen (tools/make_launch_ground.py
+  checks both numbers).
 -->
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Lch-vc-001">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
@@ -29,6 +34,12 @@
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="topLeft" horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="1" verticalCompressionResistancePriority="1" image="LaunchPaper" translatesAutoresizingMaskIntoConstraints="NO" id="Lch-pp-001">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                             </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="topLeft" horizontalHuggingPriority="1" verticalHuggingPriority="1" horizontalCompressionResistancePriority="1" verticalCompressionResistancePriority="1" image="LaunchPaper" translatesAutoresizingMaskIntoConstraints="NO" id="Lch-pp-002" userLabel="LaunchPaper, on its side">
+                                <rect key="frame" x="480" y="0.0" width="480" height="852"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="480" id="Lch-ct-010"/>
+                                </constraints>
+                            </imageView>
                             <imageView userInteractionEnabled="NO" contentMode="center" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchLogo" translatesAutoresizingMaskIntoConstraints="NO" id="Lch-lg-001">
                                 <rect key="frame" x="96.5" y="335" width="200" height="200"/>
                             </imageView>
@@ -40,6 +51,9 @@
                             <constraint firstItem="Lch-pp-001" firstAttribute="left" secondItem="Lch-vw-001" secondAttribute="left" id="Lch-ct-002"/>
                             <constraint firstAttribute="bottom" secondItem="Lch-pp-001" secondAttribute="bottom" id="Lch-ct-003"/>
                             <constraint firstAttribute="right" secondItem="Lch-pp-001" secondAttribute="right" id="Lch-ct-004"/>
+                            <constraint firstItem="Lch-pp-002" firstAttribute="top" secondItem="Lch-vw-001" secondAttribute="top" id="Lch-ct-007"/>
+                            <constraint firstItem="Lch-pp-002" firstAttribute="left" secondItem="Lch-vw-001" secondAttribute="left" constant="480" id="Lch-ct-008"/>
+                            <constraint firstAttribute="bottom" secondItem="Lch-pp-002" secondAttribute="bottom" id="Lch-ct-009"/>
                             <constraint firstItem="Lch-lg-001" firstAttribute="centerX" secondItem="Lch-sa-001" secondAttribute="centerX" id="Lch-ct-005"/>
                             <constraint firstItem="Lch-lg-001" firstAttribute="centerY" secondItem="Lch-sa-001" secondAttribute="centerY" id="Lch-ct-006"/>
                         </constraints>

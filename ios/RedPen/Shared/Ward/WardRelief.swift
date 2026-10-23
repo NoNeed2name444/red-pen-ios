@@ -458,7 +458,9 @@ enum WardPaper {
     /// The display's shorter side from which its corner is the large
     /// screen's 18 points: past every phone's (440 at most), short of the
     /// smallest tablet's (744). The foldable iPhone's inner display is not
-    /// in any SDK yet (T0138), so where it falls is unknown.
+    /// in any SDK yet (T0138), so where it falls is unknown. Both the 600
+    /// and the foldable's display radius (deviceRadius's share for it) are
+    /// assumptions to check against real hardware.
     static let padDisplaySide = 600.0
 
     /// Whether `pad` (the large screen's corner) holds for this display, in

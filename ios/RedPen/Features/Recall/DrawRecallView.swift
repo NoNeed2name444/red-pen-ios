@@ -26,6 +26,7 @@ struct DrawRecallView: View {
     @Environment(\.colorScheme) private var scheme
     /// The window, for the display's corner the paper is concentric with.
     @Environment(\.wardEdgeStore) private var edgeStore
+    @Environment(\.windowDisplay) private var display
 
     @State private var drawing = PKDrawing()
     /// Changes whenever the drawing is replaced from here rather than drawn,
@@ -234,7 +235,8 @@ struct DrawRecallView: View {
     private var paperRadius: CGFloat {
         let window: CGRect = edgeStore?.window ?? .zero
         guard window.width > 0, paperRoom.width > 0 else { return WardRadius.card }
-        let pad: Bool = UIDevice.current.userInterfaceIdiom == .pad
+        // the large screen's corner from this window's display, not the device
+        let pad: Bool = display.roundsLikePad
         let device: Double = WardPaper.deviceRadius(width: Double(window.width), height: Double(window.height), pad: pad)
         let inset: Double = Double(max(0, paperRoom.minX - window.minX))
         return CGFloat(WardCorner.concentric(device: device, inset: inset, floor: Double(WardRadius.card)))

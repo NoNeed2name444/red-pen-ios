@@ -106,12 +106,14 @@ final class RotationStateUITests: XCTestCase {
             XCTAssertTrue(any.waitForExistence(timeout: 30), "no sets on the library")
             app.swipeUp()
             usleep(800_000)
-            let shown = names.filter { name in
+            // the top row on screen after the scroll: the one a turn must keep
+            let shown: [(name: String, top: CGFloat)] = names.compactMap { name in
                 let row = app.staticTexts.matching(NSPredicate(format: "label == %@", name)).firstMatch
-                return row.exists && row.isHittable
+                guard row.exists, row.isHittable else { return nil }
+                return (name, row.frame.minY)
             }
             XCTAssertFalse(shown.isEmpty, "no set row on screen after scrolling")
-            guard let row = shown.last else { continue }
+            guard let row = shown.min(by: { $0.top < $1.top })?.name else { continue }
             everyTurn("library (\(posture ?? "phone"))", app) {
                 let same = app.staticTexts.matching(NSPredicate(format: "label == %@", row)).firstMatch
                 XCTAssertTrue(same.exists && same.isHittable, "the library lost its row: \(row)")
@@ -187,6 +189,10 @@ final class RotationStateUITests: XCTestCase {
             let part = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Part '")).firstMatch
             XCTAssertTrue(part.waitForExistence(timeout: 30), "the mock paper shows no Part")
             let partLabel = part.label
+            let question = app.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH 'Question ' AND label CONTAINS ' of '")).firstMatch
+            XCTAssertTrue(question.waitForExistence(timeout: 5), "the mock paper shows no question number")
+            let questionLabel = question.label
             let choice = answers(app).element(boundBy: 1)
             reach(choice, in: app)
             choice.tap()
@@ -194,6 +200,8 @@ final class RotationStateUITests: XCTestCase {
             everyTurn("mock sitting (\(posture ?? "phone"))", app) {
                 XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@", partLabel)).firstMatch.exists,
                               "left \(partLabel)")
+                XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label == %@", questionLabel)).firstMatch.exists,
+                              "left \(questionLabel)")
                 let same = answers(app).matching(NSPredicate(format: "label == %@", chosen)).firstMatch
                 XCTAssertTrue(same.exists && same.isSelected, "the paper lost its answer: \(chosen)")
             }

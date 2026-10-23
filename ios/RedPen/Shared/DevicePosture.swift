@@ -190,34 +190,111 @@ extension EnvironmentValues {
     }
 }
 
-#if canImport(UIKit)
-/// The display the window is on, for the frame's corner: the large-screen
-/// corner on a display whose shorter side is a tablet's, whatever the device.
-enum WindowDisplay {
-    @MainActor static var roundsLikePad: Bool {
-        let screen: UIScreen? = UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.screen }
-            .first
-        guard let size = screen?.bounds.size else { return false }
-        return WardPaper.roundsLikePad(displayWidth: Double(size.width), displayHeight: Double(size.height))
-    }
+/// The display a window is on, read by that window's own probe
+/// (DisplayProbe at the posture root, one per scene).
+struct WindowDisplayReading: Equatable {
+    /// The large screen's corner (WardPaper.roundsLikePad of this window's
+    /// screen), whatever the device.
+    var roundsLikePad = false
+    var orientation: DevicePosture.Orientation = .portrait
+}
 
-    @MainActor static var orientation: DevicePosture.Orientation {
-        let scene: UIWindowScene? = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first
-        switch scene?.interfaceOrientation {
-        case .landscapeLeft?: return .landscapeLeft
-        case .landscapeRight?: return .landscapeRight
-        default: return .portrait
-        }
+private struct WindowDisplayKey: EnvironmentKey {
+    static let defaultValue = WindowDisplayReading()
+}
+
+extension EnvironmentValues {
+    /// This window's display, for the frame's corner and the posture.
+    var windowDisplay: WindowDisplayReading {
+        get { self[WindowDisplayKey.self] }
+        set { self[WindowDisplayKey.self] = newValue }
     }
 }
 
+#if canImport(UIKit)
+/// The last reading of a window's display, for what is not a view (the
+/// opening's LaunchStage, which runs in the window that launched). Views read
+/// `\.windowDisplay`, their own window's.
+///
+/// Assumptions to check against real hardware: the 600-point threshold
+/// (WardPaper.padDisplaySide) and the foldable's display radius, which no SDK
+/// publishes yet (T0138).
+enum WindowDisplay {
+    @MainActor static var last = WindowDisplayReading()
+    @MainActor static var roundsLikePad: Bool { last.roundsLikePad }
+}
+
+/// Reads the screen of the window it is in - its own window scene's, not the
+/// first scene's - when it joins a window, at each layout (a turn, a scene
+/// moved to another display) and when a screen's mode changes.
+final class DisplayProbeView: UIView {
+    var report: ((WindowDisplayReading) -> Void)?
+    private var reading: WindowDisplayReading?
+    private var watcher: NSObjectProtocol?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        watcher = NotificationCenter.default.addObserver(forName: UIScreen.modeDidChangeNotification,
+                                                         object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.read() }
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("not from a storyboard") }
+
+    deinit {
+        if let watcher { NotificationCenter.default.removeObserver(watcher) }
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        read()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        read()
+    }
+
+    func read() {
+        guard let scene = window?.windowScene else { return }
+        let size = scene.screen.bounds.size
+        let orientation: DevicePosture.Orientation
+        switch scene.interfaceOrientation {
+        case .landscapeLeft: orientation = .landscapeLeft
+        case .landscapeRight: orientation = .landscapeRight
+        default: orientation = .portrait
+        }
+        let now = WindowDisplayReading(
+            roundsLikePad: WardPaper.roundsLikePad(displayWidth: Double(size.width), displayHeight: Double(size.height)),
+            orientation: orientation)
+        guard now != reading else { return }
+        reading = now
+        WindowDisplay.last = now
+        let report = report
+        // not during the layout pass that asked
+        DispatchQueue.main.async { report?(now) }
+    }
+}
+
+private struct DisplayProbe: UIViewRepresentable {
+    let report: (WindowDisplayReading) -> Void
+
+    func makeUIView(context: Context) -> DisplayProbeView {
+        let view = DisplayProbeView(frame: .zero)
+        view.report = report
+        return view
+    }
+
+    func updateUIView(_ view: DisplayProbeView, context: Context) {
+        view.report = report
+    }
+}
 #endif
 
 /// Measures the window once, at the outermost screen, and hands the posture
-/// down; any inner one passes straight through.
+/// and the display down; any inner one passes straight through.
 struct DevicePostureRoot: ViewModifier {
     @Environment(\.postureRooted) private var rooted
 
@@ -238,30 +315,31 @@ struct DevicePostureRoot: ViewModifier {
 #if canImport(UIKit)
 private struct DevicePostureMeasure: ViewModifier {
     @State private var window: CGSize = .zero
-    @State private var orientation: DevicePosture.Orientation = .portrait
+    @State private var display = WindowDisplayReading()
 
     func body(content: Content) -> some View {
         content
             .environment(\.postureRooted, true)
+            .environment(\.windowDisplay, display)
             .environment(\.devicePosture,
-                         DevicePosture.current(window: window, orientation: orientation,
+                         DevicePosture.current(window: window, orientation: display.orientation,
                                                preview: PreviewLaunch.posture))
             .background {
-                Color.clear
-                    .ignoresSafeArea()
-                    .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
-                        if size != window { window = size }
-                        Task { @MainActor in
-                            let now = WindowDisplay.orientation
-                            if now != orientation { orientation = now }
+                ZStack {
+                    DisplayProbe { now in if now != display { display = now } }
+                    Color.clear
+                        .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+                            if size != window { window = size }
                         }
-                    }
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
             .task {
                 // after the first layout, so there is a scene to turn; the
                 // screens PreviewRoot does not draw are turned here too
                 await PreviewLaunch.applyOrientation()
-                orientation = WindowDisplay.orientation
             }
     }
 }
@@ -297,7 +375,10 @@ private struct ClearOfBandPane: ViewModifier {
                                 bottom: pane.map { frame.maxY - $0.maxY } ?? 0,
                                 trailing: direction == .rightToLeft ? left : right)
         return content
-            .onPreferenceChange(PostureClaimKey.self) { claimed = $0 }
+            .onPreferenceChange(PostureClaimKey.self) { value in
+                // the action may run off the main actor; state is set on it
+                Task { @MainActor in if claimed != value { claimed = value } }
+            }
             .padding(insets)
             .background {
                 Color.clear

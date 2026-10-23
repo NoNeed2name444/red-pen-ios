@@ -259,63 +259,6 @@ jobs:
           for f in previews/*.png; do sips --resampleWidth 780 "$f" --out "$f" >/dev/null || true; done
           ls -la previews
 
-      # The same iPhone on its side, both ways (T0138): nothing under the
-      # island, the dock and home bar placed for landscape. Kept out of
-      # previews/, so the published branch is unchanged.
-      - name: Orientation pass
-        if: ${{ !cancelled() && inputs.orientation }}
-        env:
-          UDID: ${{ steps.sim.outputs.udid }}
-          DEVICE: ${{ steps.sim.outputs.name }}
-        run: |
-          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
-          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
-          mkdir -p orientation
-          echo "device: $DEVICE" > orientation/device.txt
-          xcrun simctl ui "$UDID" appearance light
-          for orient in portrait landscapeLeft landscapeRight; do
-            for screen in home-cards library quiz-checked mock-sitting anki-revealed draw-recall settings; do
-              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
-                     -uiPreviewOrientation "$orient" >> orientation/shots.log 2>&1; then
-                echo "launch failed: $screen ($orient)" >> orientation/shots.log
-                continue
-              fi
-              sleep 8
-              xcrun simctl io "$UDID" screenshot --type=png "orientation/$orient-$screen.png" \
-                >> orientation/shots.log 2>&1 || echo "shot failed: $screen ($orient)" >> orientation/shots.log
-            done
-          done
-          python3 -I - <<'PY' | tee -a orientation/shots.log
-          import glob, struct
-          bad = 0
-          for f in sorted(glob.glob("orientation/landscape*.png")):
-              w, h = struct.unpack(">II", open(f, "rb").read(24)[16:24])
-              if w <= h:
-                  bad += 1
-                  print(f"NOT ACTUALLY LANDSCAPE: {f} is {w}x{h}")
-          print(f"landscape check: {bad} not wider than tall")
-          PY
-          ! grep -q "NOT ACTUALLY LANDSCAPE" orientation/shots.log
-
-      - name: RotationStateUITests on the same iPhone
-        if: ${{ !cancelled() && inputs.orientation }}
-        working-directory: ios
-        run: |
-          set -o pipefail
-          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug -derivedDataPath build \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
-            -skipMacroValidation -skipPackagePluginValidation \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO CODE_SIGNING_ALLOWED=NO \
-            -only-testing:RedPenUITests/RotationStateUITests -resultBundlePath ../orientation/RotationState.xcresult \
-            test 2>&1 | tail -40
-
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() && inputs.orientation }}
-        with:
-          name: ios-preview-orientation
-          path: orientation
-
       - name: Record the outcome
         if: ${{ !cancelled() }}
         env:
@@ -351,6 +294,123 @@ jobs:
         with:
           name: ios-preview
           path: previews
+
+  # The same iPhone on its side, both ways (T0138): nothing under the
+  # island, the dock and home bar placed for landscape, and
+  # RotationStateUITests. Its own job, beside the preview, so the 116-minute
+  # one is not lengthened; dispatch with orientation: true. Publishes nothing.
+  orientation:
+    if: ${{ inputs.orientation }}
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install xcodegen
+
+      - name: Generate the Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          devices = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          candidates = []
+          for runtime, devs in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+              for d in devs:
+                  name = d["name"]
+                  if not name.startswith("iPhone") or "SE" in name:
+                      continue
+                  # newest runtime first, then a plain "Pro" over Max / base models
+                  candidates.append(((version, name.endswith("Pro"), "Pro" in name, name), d["udid"], name, runtime))
+          candidates.sort()
+          _, udid, name, runtime = candidates[-1]
+          print(f"udid={udid}")
+          print(f"name={name}")
+          print(f"runtime={runtime.rsplit('.', 1)[-1]}")
+          print("picked", name, runtime, file=sys.stderr)
+          PY
+
+      - name: Build the app and its UI tests
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q "BUILD SUCCEEDED" ../build.log
+
+      - name: Orientation pass
+        if: ${{ !cancelled() }}
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+          DEVICE: ${{ steps.sim.outputs.name }}
+        run: |
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          mkdir -p orientation
+          echo "device: $DEVICE" > orientation/device.txt
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 --batteryState charged \
+            --cellularMode active --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl ui "$UDID" appearance light
+          for orient in portrait landscapeLeft landscapeRight; do
+            for screen in home-cards library quiz-checked mock-sitting anki-revealed draw-recall settings; do
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                     -uiPreviewOrientation "$orient" >> orientation/shots.log 2>&1; then
+                echo "launch failed: $screen ($orient)" >> orientation/shots.log
+                continue
+              fi
+              sleep 8
+              xcrun simctl io "$UDID" screenshot --type=png "orientation/$orient-$screen.png" \
+                >> orientation/shots.log 2>&1 || echo "shot failed: $screen ($orient)" >> orientation/shots.log
+            done
+          done
+          python3 -I - <<'PY' | tee -a orientation/shots.log
+          import glob, struct
+          bad = 0
+          for f in sorted(glob.glob("orientation/landscape*.png")):
+              w, h = struct.unpack(">II", open(f, "rb").read(24)[16:24])
+              if w <= h:
+                  bad += 1
+                  print(f"NOT ACTUALLY LANDSCAPE: {f} is {w}x{h}")
+          print(f"landscape check: {bad} not wider than tall")
+          PY
+          ! grep -q "NOT ACTUALLY LANDSCAPE" orientation/shots.log
+
+      - name: RotationStateUITests on the same iPhone
+        if: ${{ !cancelled() }}
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -derivedDataPath build \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:RedPenUITests/RotationStateUITests -resultBundlePath ../orientation/RotationState.xcresult \
+            test-without-building 2>&1 | tail -40
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ios-preview-orientation
+          path: |
+            orientation
+            build.log
 
   # Separate from the build so the write token never shares a job with the
   # app's code. Never for aahp/ branches.

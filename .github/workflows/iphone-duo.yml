@@ -22,9 +22,12 @@ on:
   workflow_dispatch:
     inputs:
       image:
-        description: 'Runner image for the duo job (macos-latest, or xcode-27 for the Xcode 27 preview image)'
-        required: false
-        default: 'macos-latest'
+        description: 'Runner image for the duo job (xcode-27: the Xcode 27 preview image)'
+        type: choice
+        options:
+          - macos-latest
+          - xcode-27
+        default: macos-latest
 
 permissions:
   contents: read
@@ -34,6 +37,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A label no runner serves (the xcode-27 preview image may be withdrawn,
+  # or not offered to this repository) would leave a job queued for a day.
+  # This one watches the run's jobs and, if one is still waiting for a
+  # runner after 15 minutes, says which label and cancels the run.
+  runner-watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: write
+    steps:
+      - name: Every job finds a runner within 15 minutes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN: ${{ github.run_id }}
+        run: |
+          for i in $(seq 1 30); do
+            waiting=$(gh api "repos/$REPO/actions/runs/$RUN/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name != "runner-watch" and .status == "queued") | "\(.name) [\(.labels | join(","))]"] | join("; ")')
+            if [ -z "$waiting" ]; then echo "every job has a runner"; exit 0; fi
+            sleep 30
+          done
+          echo "::error::timed out after 15 minutes waiting for a runner: $waiting (is the xcode-27 label available to this repository?)"
+          gh run cancel "$RUN" --repo "$REPO" || true
+          exit 1
+
   discover:
     strategy:
       fail-fast: false

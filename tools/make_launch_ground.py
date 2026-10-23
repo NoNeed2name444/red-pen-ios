@@ -47,6 +47,24 @@ RELIEF = Path("ios/RedPen/Shared/Ward/WardRelief.swift")
 # portrait, so it always reaches past the far edges.
 SIZES = {"iphone": ((480, 1040), (2, 3)), "ipad": ((1400, 1400), (2,))}
 
+# On its side the phone turns too (T0138): the launch screen lays a second
+# iPhone picture at x = its width (LaunchScreen.storyboard, Lch-pp-002), so
+# the width must be whole bold cells (the second's lines continue the
+# first's) and twice it must pass the widest phone on its side, the Pro
+# Max's 956 points.
+WIDEST_LANDSCAPE_PHONE = 956
+
+
+def check_landscape(src: dict) -> None:
+    width = SIZES["iphone"][0][0]
+    period = src["cell"] * src["every"]
+    if width % period:
+        raise SystemExit(f"the iPhone picture's {width} points are not whole {period:g}-point bold cells, "
+                         "so its copy on its side would not line up")
+    if 2 * width < WIDEST_LANDSCAPE_PHONE:
+        raise SystemExit(f"two iPhone pictures ({2 * width} points) do not reach across a phone on its side "
+                         f"({WIDEST_LANDSCAPE_PHONE})")
+
 
 def _hexes(text: str) -> tuple[int, int]:
     a, b = re.findall(r"0x([0-9A-Fa-f]{6})", text)[:2]
@@ -135,6 +153,7 @@ def main() -> None:
     ap.add_argument("--table", action="store_true", help="print every section's ground as JSON and stop")
     args = ap.parse_args()
     src = sources()
+    check_landscape(src)
     if args.table:
         print(json.dumps({
             "opening": src["opening"],
