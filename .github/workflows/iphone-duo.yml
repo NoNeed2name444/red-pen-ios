@@ -1,0 +1,403 @@
+# The iPhone and the foldable iPhone ("iPhone Duo") in every posture and
+# orientation (T0138). Dispatch only; never on push.
+#
+#   discover  what the images really have: Xcode versions, a foldable
+#             device type, the SDK headers' hinge / posture API, any iPhone
+#             split mode. Read this before trusting the other two.
+#   duo       Xcode 27.1 and a foldable simulator, or it fails saying which
+#             is missing: postures folded/open/half x portrait/landscapeLeft/
+#             landscapeRight x 7 screens (63 shots), then RotationStateUITests
+#             through each posture.
+#   iphones   the ordinary phones on the default Xcode: the smallest (SE when
+#             the image has one), a standard 6.1", the Pro and the Pro Max x
+#             3 orientations x 7 screens, and the Pro dark in portrait (91);
+#             RotationStateUITests on the smallest and the Pro Max, and the
+#             390-point layout test on an iPad.
+#
+# The posture is the app's stand-in (-uiPreviewPosture, DevicePosture) where
+# the simulator cannot fold; every landscape PNG must be wider than tall.
+name: iPhone and foldable
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Runner image for the duo job (xcode-27: the Xcode 27 preview image)'
+        type: choice
+        options:
+          - macos-latest
+          - xcode-27
+        default: macos-latest
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iphone-duo
+  cancel-in-progress: true
+
+jobs:
+  # A label no runner serves (the xcode-27 preview image may be withdrawn,
+  # or not offered to this repository) would leave a job queued for a day.
+  # This one watches the run's jobs and, if one is still waiting for a
+  # runner after 15 minutes, says which label and cancels the run.
+  runner-watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: write
+    steps:
+      - name: Every job finds a runner within 15 minutes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN: ${{ github.run_id }}
+        run: |
+          for i in $(seq 1 30); do
+            waiting=$(gh api "repos/$REPO/actions/runs/$RUN/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name != "runner-watch" and .status == "queued") | "\(.name) [\(.labels | join(","))]"] | join("; ")')
+            if [ -z "$waiting" ]; then echo "every job has a runner"; exit 0; fi
+            sleep 30
+          done
+          echo "::error::timed out after 15 minutes waiting for a runner: $waiting (is the xcode-27 label available to this repository?)"
+          gh run cancel "$RUN" --repo "$REPO" || true
+          exit 1
+
+  discover:
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [macos-latest, xcode-27]
+    runs-on: ${{ matrix.image }}
+    timeout-minutes: 10
+    steps:
+      - name: What this image has
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          mkdir -p discovery
+          {
+            echo "== image $IMAGE ($ImageOS $ImageVersion)"
+            echo "== xcodebuild -version"; xcodebuild -version
+            echo "== ls /Applications | grep Xcode"; ls /Applications | grep Xcode || echo "none"
+            echo "== simctl devicetypes matching duo|fold"
+            xcrun simctl list devicetypes | grep -i -E 'duo|fold' || echo "none"
+            echo "== simctl runtimes"; xcrun simctl list runtimes
+          } 2>&1 | tee "discovery/discovery-$IMAGE.txt"
+          # the iOS simulator SDK of every Xcode on the image: UIKit's headers
+          # and SwiftUI's interface, for the hinge / posture names and any
+          # split or side-by-side mode on iPhone (T0138 items 0 and 9)
+          python3 -I - <<'PY' 2>&1 | tee -a "discovery/discovery-$IMAGE.txt"
+          import glob, os, re
+          posture = re.compile(r"\b\w*(?:reservedRegion|[Hh]inge|[Pp]osture|[Ff]old(?:ed|able|ing)?\b)\w*")
+          split = re.compile(r"\b\w*(?:[Ss]ideBySide|SplitView|[Mm]ultipleWindows|SupportsMultipleScenes|SizeRestrictions)\w*")
+          for xcode in sorted(glob.glob("/Applications/Xcode*.app")):
+              sdk = os.path.join(xcode, "Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk")
+              if not os.path.isdir(sdk):
+                  continue
+              roots = [os.path.join(sdk, "System/Library/Frameworks/UIKit.framework/Headers"),
+                       os.path.join(sdk, "System/Library/Frameworks/SwiftUI.framework/Modules")]
+              found = {"posture": {}, "split": {}}
+              for root in roots:
+                  for d, _, files in os.walk(root):
+                      for f in files:
+                          if not f.endswith((".h", ".swiftinterface")):
+                              continue
+                          text = open(os.path.join(d, f), errors="replace").read()
+                          for kind, rx in (("posture", posture), ("split", split)):
+                              for m in rx.findall(text):
+                                  found[kind].setdefault(m, set()).add(f)
+              for kind in ("posture", "split"):
+                  print(f"== {xcode}: {kind} symbols in the iOS simulator SDK")
+                  if not found[kind]:
+                      print("none")
+                  for name in sorted(found[kind]):
+                      print(f"{name}  ({', '.join(sorted(found[kind][name])[:3])})")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: iphone-duo-discovery-${{ matrix.image }}
+          path: discovery
+
+  duo:
+    runs-on: ${{ inputs.image }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Xcode 27.1
+        run: |
+          X=""
+          for c in /Applications/Xcode_27.1.app /Applications/Xcode_27.1*.app; do
+            if [ -d "$c" ]; then X="$c"; break; fi
+          done
+          if [ -z "$X" ]; then
+            ls /Applications | grep Xcode || true
+            echo "::error::no Xcode 27.1 on this image"
+            exit 1
+          fi
+          sudo xcode-select -s "$X"
+          xcodebuild -version
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install xcodegen
+
+      - name: The foldable simulator
+        id: sim
+        run: |
+          python3 -I - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, subprocess, sys
+          types = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devicetypes", "-j"]))["devicetypes"]
+          duos = [t for t in types if "duo" in t["name"].lower() or "fold" in t["name"].lower()]
+          if not duos:
+              print("::error::no iPhone Duo (foldable) device type on this image", file=sys.stderr)
+              raise SystemExit(1)
+          runtimes = [r for r in json.loads(subprocess.check_output(["xcrun", "simctl", "list", "runtimes", "-j"]))["runtimes"]
+                      if r.get("isAvailable") and r.get("platform", "iOS") == "iOS"]
+          runtimes.sort(key=lambda r: tuple(int(x) for x in r["version"].split(".")))
+          if not runtimes:
+              print("::error::no iOS runtime on this image", file=sys.stderr)
+              raise SystemExit(1)
+          runtime = runtimes[-1]
+          # one Duo size here; any other size the image offers is listed and
+          # goes in a job of its own
+          duo = duos[0]
+          print("foldable sizes on this image:", ", ".join(t["name"] for t in duos), file=sys.stderr)
+          udid = subprocess.check_output(["xcrun", "simctl", "create", "Duo under test", duo["identifier"],
+                                          runtime["identifier"]], text=True).strip()
+          print(f"udid={udid}")
+          print(f"name={duo['name']}")
+          print(f"runtime={runtime['version']}")
+          print(f"others={','.join(t['name'] for t in duos[1:])}")
+          PY
+
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodegen generate
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q -E "BUILD SUCCEEDED|TEST BUILD SUCCEEDED" ../build.log
+
+      - name: Shots, every posture and orientation
+        if: ${{ !cancelled() }}
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+          NAME: ${{ steps.sim.outputs.name }}
+        run: |
+          start=$(date +%s)
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          SCREENS="home-cards library quiz-checked mock-sitting anki-revealed draw-recall settings"
+          mkdir -p duo
+          echo "device: $NAME (others on this image: ${{ steps.sim.outputs.others }})" | tee duo/devices.txt
+          expected=$(( 3 * 3 * $(echo $SCREENS | wc -w) ))
+          echo "expected PNGs: $expected" | tee duo/expected.txt
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 --batteryState charged --wifiBars 3
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl ui "$UDID" appearance light
+          for posture in folded open half; do
+            for orient in portrait landscapeLeft landscapeRight; do
+              for screen in $SCREENS; do
+                xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+                if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                       -uiPreviewPosture "$posture" -uiPreviewOrientation "$orient" >> duo/shots.log 2>&1; then
+                  echo "launch failed: $screen $posture $orient" >> duo/shots.log
+                  continue
+                fi
+                sleep 8
+                xcrun simctl io "$UDID" screenshot --type=png "duo/$posture-$orient-light-$screen.png" \
+                  >> duo/shots.log 2>&1 || echo "shot failed: $screen $posture $orient" >> duo/shots.log
+              done
+            done
+          done
+          python3 -I - <<'PY' | tee -a duo/shots.log
+          import glob, struct
+          bad = 0
+          for f in sorted(glob.glob("duo/*.png")):
+              w, h = struct.unpack(">II", open(f, "rb").read(24)[16:24])
+              if "-landscape" in f and w <= h:
+                  bad += 1
+                  print(f"NOT ACTUALLY LANDSCAPE: {f} is {w}x{h}")
+          print(f"landscape check: {bad} not wider than tall")
+          PY
+          actual=$(ls duo/*.png 2>/dev/null | wc -l | tr -d ' ')
+          echo "PNGs: $actual of $expected; shots took $(( ($(date +%s) - start) / 60 )) min" | tee -a duo/expected.txt
+          [ "$actual" -eq "$expected" ] && ! grep -q "NOT ACTUALLY LANDSCAPE" duo/shots.log
+
+      - name: RotationStateUITests through each posture
+        if: ${{ !cancelled() }}
+        working-directory: ios
+        env:
+          TEST_RUNNER_ROTATION_POSTURES: folded,open,half
+        run: |
+          set -o pipefail
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -derivedDataPath build \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:RedPenUITests/RotationStateUITests -resultBundlePath ../duo/RotationState.xcresult \
+            test-without-building 2>&1 | tail -40
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: iphone-duo-duo
+          path: |
+            duo
+            build.log
+
+  iphones:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install xcodegen
+
+      - name: Pick the phones
+        id: sim
+        run: |
+          mkdir -p phones
+          python3 -I - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re, subprocess, sys
+          devices = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
+          def version(runtime):
+              return tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+          ios = sorted((r for r in devices if "iOS" in r), key=version)
+          if not ios:
+              print("::error::no iOS runtime", file=sys.stderr)
+              raise SystemExit(1)
+          newest = devices[ios[-1]]
+          def pick(rx):
+              found = [d for d in newest if re.fullmatch(rx, d["name"])]
+              found.sort(key=lambda d: [int(n) for n in re.findall(r"\d+", d["name"])] or [0])
+              return found[-1] if found else None
+          # the smallest: an SE when the image has one (the other pickers skip
+          # it; only this job takes it), else the "e" model, else the plain one
+          small = pick(r"iPhone SE.*") or pick(r"iPhone \d+e") or pick(r"iPhone \d+")
+          chosen = [("smallest", small), ("standard", pick(r"iPhone \d+")),
+                    ("pro", pick(r"iPhone \d+ Pro")), ("promax", pick(r"iPhone \d+ Pro Max"))]
+          ipad = pick(r"iPad Air.*") or pick(r"iPad Pro.*") or pick(r"iPad.*")
+          lines = []
+          for role, d in chosen:
+              if d is None:
+                  print(f"::error::no {role} iPhone on this image", file=sys.stderr)
+                  raise SystemExit(1)
+              print(f"{role}={d['udid']}")
+              lines.append(f"{role}: {d['name']} ({ios[-1].rsplit('.', 1)[-1]})")
+          if ipad:
+              print(f"ipad={ipad['udid']}")
+              lines.append(f"ipad (390-point layout test): {ipad['name']}")
+          open("phones/devices.txt", "w").write("\n".join(lines) + "\n")
+          print("\n".join(lines), file=sys.stderr)
+          PY
+
+      - name: Build
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodegen generate
+          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.pro }}" -derivedDataPath build \
+            -skipMacroValidation -skipPackagePluginValidation \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
+            CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee ../build.log | grep -E "error:|BUILD |\*\* " || true
+          grep -q -E "BUILD SUCCEEDED|TEST BUILD SUCCEEDED" ../build.log
+
+      - name: Shots, every phone and orientation
+        if: ${{ !cancelled() }}
+        env:
+          SMALLEST: ${{ steps.sim.outputs.smallest }}
+          STANDARD: ${{ steps.sim.outputs.standard }}
+          PRO: ${{ steps.sim.outputs.pro }}
+          PROMAX: ${{ steps.sim.outputs.promax }}
+        run: |
+          start=$(date +%s)
+          APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
+          BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
+          SCREENS="home-cards library quiz-checked mock-sitting anki-revealed draw-recall settings"
+          n=$(echo $SCREENS | wc -w)
+          expected=$(( 4 * 3 * n + n ))
+          echo "expected PNGs: $expected" | tee phones/expected.txt
+          shoot() { # udid role orientation mode screen
+            xcrun simctl terminate "$1" "$BID" 2>/dev/null || true
+            if ! xcrun simctl launch "$1" "$BID" -uiPreviewScreen "$5" -uiPreviewOrientation "$3" >> phones/shots.log 2>&1; then
+              echo "launch failed: $2 $5 $3 $4" >> phones/shots.log
+              return
+            fi
+            sleep 8
+            xcrun simctl io "$1" screenshot --type=png "phones/$2-$3-$4-$5.png" >> phones/shots.log 2>&1 \
+              || echo "shot failed: $2 $5 $3 $4" >> phones/shots.log
+          }
+          for pair in "smallest:$SMALLEST" "standard:$STANDARD" "pro:$PRO" "promax:$PROMAX"; do
+            role=${pair%%:*}; udid=${pair#*:}
+            xcrun simctl boot "$udid" || true
+            xcrun simctl bootstatus "$udid" -b
+            xcrun simctl status_bar "$udid" override --time "9:41" --batteryLevel 100 --batteryState charged --wifiBars 3
+            xcrun simctl install "$udid" "$APP"
+            xcrun simctl ui "$udid" appearance light
+            for orient in portrait landscapeLeft landscapeRight; do
+              for screen in $SCREENS; do shoot "$udid" "$role" "$orient" light "$screen"; done
+            done
+            if [ "$role" = pro ]; then
+              xcrun simctl ui "$udid" appearance dark
+              for screen in $SCREENS; do shoot "$udid" "$role" portrait dark "$screen"; done
+              xcrun simctl ui "$udid" appearance light
+            fi
+            xcrun simctl shutdown "$udid" || true
+          done
+          python3 -I - <<'PY' | tee -a phones/shots.log
+          import glob, struct
+          bad = 0
+          for f in sorted(glob.glob("phones/*.png")):
+              w, h = struct.unpack(">II", open(f, "rb").read(24)[16:24])
+              if "-landscape" in f and w <= h:
+                  bad += 1
+                  print(f"NOT ACTUALLY LANDSCAPE: {f} is {w}x{h}")
+          print(f"landscape check: {bad} not wider than tall")
+          PY
+          actual=$(ls phones/*.png 2>/dev/null | wc -l | tr -d ' ')
+          echo "PNGs: $actual of $expected; shots took $(( ($(date +%s) - start) / 60 )) min" | tee -a phones/expected.txt
+          [ "$actual" -eq "$expected" ] && ! grep -q "NOT ACTUALLY LANDSCAPE" phones/shots.log
+
+      - name: RotationStateUITests on the smallest and the Pro Max; 390 points on an iPad
+        if: ${{ !cancelled() }}
+        working-directory: ios
+        run: |
+          set -o pipefail
+          status=0
+          for pair in "smallest:${{ steps.sim.outputs.smallest }}" "promax:${{ steps.sim.outputs.promax }}"; do
+            role=${pair%%:*}; udid=${pair#*:}
+            xcodebuild -project RedPen.xcodeproj -scheme RedPen -derivedDataPath build -destination "id=$udid" \
+              -only-testing:RedPenUITests/RotationStateUITests -resultBundlePath "../phones/RotationState-$role.xcresult" \
+              test-without-building 2>&1 | tail -30 || status=1
+          done
+          if [ -n "${{ steps.sim.outputs.ipad }}" ]; then
+            xcodebuild -project RedPen.xcodeproj -scheme RedPen -derivedDataPath build \
+              -destination "id=${{ steps.sim.outputs.ipad }}" \
+              -only-testing:RedPenUITests/RotationStateUITests/testPhoneWidthIsTheSameLayoutOnAnyDevice \
+              -resultBundlePath ../phones/PhoneWidth-ipad.xcresult test-without-building 2>&1 | tail -30 || status=1
+          else
+            echo "::error::no iPad simulator for the 390-point layout test"; status=1
+          fi
+          exit $status
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: iphone-duo-iphones
+          path: |
+            phones
+            build.log

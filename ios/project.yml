@@ -105,11 +105,14 @@ targets:
         # LaunchSplash draws the same pictures for its first frame, so the
         # hand-over is invisible and the app runs straight on from it.
         UILaunchStoryboardName: LaunchScreen
-        # The phone stays upright - a card deck held one-handed has no reason
-        # to rotate - but an iPad is used on a desk, in a stand, on a keyboard
-        # case, and refusing to turn there is simply broken.
+        # The phone turns too (T0138): on its side in a stand, and the
+        # foldable iPhone opened as a book, where refusing to turn is broken.
+        # Never upside down on a phone (the island would sit under the
+        # thumb); the iPad turns every way. DevicePostureTests reads this list.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

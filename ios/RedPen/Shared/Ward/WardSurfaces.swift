@@ -572,15 +572,6 @@ extension EnvironmentValues {
 }
 
 private enum WardPanelPath {
-    @MainActor
-    static var pad: Bool {
-        #if canImport(UIKit)
-        UIDevice.current.userInterfaceIdiom == .pad
-        #else
-        false
-        #endif
-    }
-
     static func hole(_ panel: WardPaperPanel) -> Path {
         let rect = CGRect(x: panel.x, y: panel.y, width: panel.width, height: panel.height)
         if panel.bottomRadius == panel.radius {
@@ -717,6 +708,8 @@ private struct WardClearanceInk: View, Animatable {
 /// them; home keeps its ringless opening, while every other page draws the
 /// frame's ring joined by its islands.
 struct WardPaperFrame: View {
+    /// The large screen's corner, from this window's display (DevicePosture).
+    @Environment(\.windowDisplay) private var display
     let edges: WardEdgeStore
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -746,7 +739,7 @@ struct WardPaperFrame: View {
                 if !onHome,
                    let moved = WardPaper.panel(width: size.width, height: size.height,
                                                top: Double(top ?? 0) - window.minY, safe: safe, device: nil,
-                                               pad: WardPanelPath.pad) {
+                                               pad: display.roundsLikePad) {
                     ZStack {
                         Canvas { context, _ in
                             context.fill(WardPanelPath.ring(moved), with: .color(color))
@@ -763,12 +756,14 @@ struct WardPaperFrame: View {
             }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
                 window = frame
-                edges.setWindow(frame, pad: WardPanelPath.pad, top: top, safe: safe)
+                edges.setWindow(frame, pad: display.roundsLikePad, top: top, safe: safe)
             }
-            .onChange(of: top) { _, now in edges.setWindow(window, pad: WardPanelPath.pad, top: now, safe: safe) }
+            .onChange(of: top) { _, now in edges.setWindow(window, pad: display.roundsLikePad, top: now, safe: safe) }
+            // the window moved to another display (DisplayProbe re-reads it)
+            .onChange(of: display.roundsLikePad) { _, now in edges.setWindow(window, pad: now, top: top, safe: safe) }
             .onChange(of: safe, initial: true) { _, now in
                 paperTop.safe = now
-                edges.setWindow(window, pad: WardPanelPath.pad, top: top, safe: now)
+                edges.setWindow(window, pad: display.roundsLikePad, top: top, safe: now)
             }
         }
         .ignoresSafeArea()
@@ -809,6 +804,7 @@ struct WardPaperCut: Equatable {
 
 /// Reads the opening's frame from LaunchStage, for the sheet.
 private struct WardPaperCutStage: View {
+    @Environment(\.windowDisplay) private var display
     @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.wardHeld) private var held
@@ -835,7 +831,7 @@ private struct WardPaperCutStage: View {
         #if canImport(UIKit)
         WardPaperCutSheet(cut: WardPaperCut(scale: pose?.scale, drop: pose?.drop ?? 0,
                                             top: top, dark: dark, highContrast: strong,
-                                            ink: ink, base: base, pad: WardPanelPath.pad, safe: safe,
+                                            ink: ink, base: base, pad: display.roundsLikePad, safe: safe,
                                             displayScale: displayScale))
         #endif
     }
@@ -1483,6 +1479,8 @@ extension View {
     /// override the tint on plain buttons).
     func wardControls() -> some View {
         self
+            // the hinge, measured once at the outermost (DevicePosture)
+            .devicePostureRoot()
             .tint(Color.wardPrimaryInk)
             .toggleStyle(WardToggleStyle())
             .progressViewStyle(WardProgressViewStyle())
@@ -1500,6 +1498,8 @@ extension View {
     /// and its controls.
     func wardScreen() -> some View {
         self
+            // one side of a fold's hinge, the base across it
+            .clearOfBand()
             .wardMasthead()
             .background(WardBackground())
             .lineSpacing(WardSpace.leading)
@@ -1511,6 +1511,7 @@ extension View {
     /// rows tall enough for their tiles, and the controls.
     func wardForm() -> some View {
         self
+            .clearOfBand()
             .scrollContentBackground(.hidden)
             .wardMasthead()
             .environment(\.defaultMinListRowHeight, 56)

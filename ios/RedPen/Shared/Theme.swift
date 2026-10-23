@@ -85,6 +85,8 @@ extension View {
     /// area, and controls in the section's accent.
     func modeScreen(_ kind: StudySetKind) -> some View {
         self
+            // one side of a fold's hinge, the mode's paper across it
+            .clearOfBand()
             .wardMasthead()
             .background(ModeBackdrop(kind: kind))
             .wardControls()
@@ -572,11 +574,59 @@ private struct StudyBarHost<Bar: View>: ViewModifier {
     let shown: Bool
     let bar: Bar
 
+    @Environment(\.devicePosture) private var posture
+    @State private var frame: CGRect = .zero
+
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                StudyActionBar(folds: folds, shown: shown) { bar }
+        if posture.band == nil {
+            content
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    StudyActionBar(folds: folds, shown: shown) { bar }
+                }
+        } else {
+            split(content)
+                // this screen spans the fold itself: the screen round it
+                // (modeScreen, wardScreen) leaves it the whole window
+                .preference(key: PostureClaimKey.self, value: true)
+                .background {
+                    Color.clear
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { now in
+                            if now != frame { frame = now }
+                        }
+                }
+        }
+    }
+
+    /// Open or half-open (DevicePosture): what scrolls on the reading side
+    /// of the hinge, the deck on the other, under the thumb at its foot;
+    /// nothing in the band, where the page shows through.
+    @ViewBuilder
+    private func split(_ content: Content) -> some View {
+        if let panes = posture.panes(in: frame), let controls = panes.controls, let band = posture.band {
+            if panes.sideBySide {
+                HStack(spacing: 0) {
+                    content.frame(width: panes.reading.width)
+                    Color.clear.frame(width: band.width)
+                    StudyActionBar(folds: false, shown: shown) { bar }
+                        .frame(width: controls.width)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
+            } else {
+                VStack(spacing: 0) {
+                    content.frame(height: panes.reading.height)
+                    Color.clear.frame(height: band.height)
+                    StudyActionBar(folds: false, shown: shown) { bar }
+                        .frame(height: controls.height, alignment: .bottom)
+                }
             }
+        } else {
+            content
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    StudyActionBar(folds: folds, shown: shown) { bar }
+                }
+                .clearOfBand()
+        }
     }
 }
 
@@ -636,6 +686,8 @@ struct StudyProgressHeader<Accessory: View>: View {
         .padding(.horizontal, WardSpace.m)
         .padding(.top, WardSpace.s)
         .frame(maxWidth: .infinity)
+        // above a split screen, kept to one side of an upright hinge
+        .clearOfBand()
     }
 }
 

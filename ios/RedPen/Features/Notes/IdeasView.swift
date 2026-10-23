@@ -85,6 +85,8 @@ struct IdeasView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // the bar floats over the list, board or map: no glow round it
             .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar.wardUnlit() }
+            // the map frames itself in one side of a fold's hinge, never on it
+            .clearOfBand()
             .modifier(IdeasChrome(embedded: embedded, query: $ownQuery, night: overMap))
             .sheet(item: $opening) { ref in
                 NoteEditorView(noteID: ref.id)

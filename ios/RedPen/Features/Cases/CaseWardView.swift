@@ -17,7 +17,9 @@ struct CaseWardView: View {
     let setID: UUID
 
     @ObservedObject private var runs = CaseRunStore.shared
-    @Environment(\.horizontalSizeClass) private var widthClass
+    /// The window's width, not a size class: a sidebar where it fits
+    /// (WindowSpan), whatever the device or the way it is held.
+    @Environment(\.windowSpan) private var span
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var run: CaseRun
@@ -35,7 +37,7 @@ struct CaseWardView: View {
         _arriving = State(initialValue: saved == nil || (saved?.taken.isEmpty ?? true))
     }
 
-    private var wide: Bool { widthClass == .regular }
+    private var wide: Bool { span.splits }
 
     var body: some View {
         Group {
