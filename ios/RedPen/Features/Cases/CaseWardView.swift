@@ -115,7 +115,8 @@ struct CaseWardView: View {
             HStack(alignment: .center, spacing: 12) {
                 CaseAvatar(initials: file.patient.initials)
                 VStack(alignment: .leading, spacing: WardSpace.s) {
-                    HStack(spacing: WardSpace.s) {
+                    // whole chips wrap onto a new line (Android: FlowRow)
+                    ChipFlow(spacing: WardSpace.s) {
                         if file.patient.age > 0 { WardChip(text: "\(file.patient.age) y", tone: .grey) }
                         if !file.patient.sexLetter.isEmpty {
                             WardChip(text: file.patient.isFemale ? "Female" : "Male", tone: .grey)

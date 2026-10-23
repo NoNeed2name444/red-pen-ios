@@ -546,7 +546,11 @@ struct WardChip: View {
     var body: some View {
         HStack(spacing: 4) {
             if let symbol { Image(systemName: symbol).imageScale(.small).foregroundStyle(tone.color) }
+            // one line, never broken mid-word: a row that runs out of room
+            // wraps whole chips (ChipFlow), as Android's FlowRow does
             Text(text)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(tone.ink)
