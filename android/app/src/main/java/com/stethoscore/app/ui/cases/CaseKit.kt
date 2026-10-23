@@ -17,11 +17,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.CaseChart
 import com.stethoscore.app.data.CaseFile
 import com.stethoscore.app.data.CaseRun
@@ -40,6 +38,10 @@ import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.WardRadius
+import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardTextStyle
+import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.textStyle
 
 // What the Cases screens add to the Ward kit: port of iOS Features/Cases/CaseKit.swift.
 // The card is WardCardFace, the avatar and the clock are pressed in (wardInset),
@@ -80,7 +82,7 @@ internal fun CaseAvatar(initials: String, size: Dp = 44.dp) {
     Box(
         Modifier.size(size).wardInset(CircleShape).clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
-    ) { Text(initials, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = CaseInk.theatre) }
+    ) { Text(initials, style = WardType.headline.textStyle(), color = wardColor(WardToken.primaryInk)) }
 }
 
 /**
@@ -104,7 +106,7 @@ internal fun CaseClockPill(used: Int, budget: Int) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp),
     ) {
         Icon(if (over) Icons.Filled.Error else Icons.Filled.Schedule, null, tint = tint, modifier = Modifier.size(16.dp))
-        Text(if (used == 0) "$budget min" else "$used / $budget min", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = tint)
+        Text(if (used == 0) "$budget min" else "$used / $budget min", style = WardType.timer.textStyle(), color = tint)
     }
 }
 
@@ -163,10 +165,10 @@ internal fun CaseVitalsGrid(obs: List<CaseFile.Obs>) {
                 Modifier.widthIn(min = 86.dp).background(CaseInk.well, RoundedCornerShape(10.dp)).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp)
                     .clearAndSetSemantics { contentDescription = "${o.sign.spoken} ${o.shown}${unit}" + (flag?.let { ", ${it.spoken}" } ?: "") },
             ) {
-                Text(o.sign.label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = CaseInk.biro)
+                Text(o.sign.label, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
-                    Text(o.shown + unit, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, color = tint)
-                    if (flag != null) Text(flag.rawValue, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CaseInk.resus)
+                    Text(o.shown + unit, style = WardType.obs.textStyle().copy(fontWeight = FontWeight.SemiBold), color = tint)
+                    if (flag != null) Text(flag.rawValue, style = WardTextStyle.caption.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.danger))
                 }
             }
         }
@@ -180,11 +182,11 @@ internal fun CaseResultsTable(results: List<CaseStep.LabResult>) {
         for (r in results) {
             val flag = CaseChart.flag(r)
             Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { }, verticalAlignment = Alignment.CenterVertically) {
-                Text(r.name, Modifier.weight(1f), fontSize = 14.sp)
-                Text(CaseFile.Obs.number(r.value), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                Text(r.name, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle())
+                Text(CaseFile.Obs.number(r.value), style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true),
                     color = if (flag != null) CaseInk.resus else CaseInk.ink)
-                Text(flag?.rawValue ?: "", Modifier.width(18.dp).padding(start = WardSpace.xs.wardDp), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CaseInk.resus)
-                Text(r.unit, Modifier.widthIn(min = 64.dp).padding(start = WardSpace.s.wardDp), fontSize = 12.sp, color = CaseInk.biro)
+                Text(flag?.rawValue ?: "", Modifier.width(18.dp).padding(start = WardSpace.xs.wardDp), style = WardTextStyle.caption.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.danger))
+                Text(r.unit, Modifier.widthIn(min = 64.dp).padding(start = WardSpace.s.wardDp), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
         }
     }

@@ -557,7 +557,7 @@ private struct WardScoreTotal: View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         HStack(alignment: .center, spacing: WardSpace.l) {
             Text(number)
-                .font(.system(size: 34, weight: .bold, design: .monospaced).monospacedDigit())
+                .font(WardType.display.monospaced().monospacedDigit())
                 .foregroundStyle(Color.wardInk)
                 .contentTransition(.numericText())
                 .frame(minWidth: 48)
