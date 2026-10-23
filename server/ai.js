@@ -72,10 +72,10 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 
   const route = routeFor(env, body.model, { owner: owner && !bench });
   if (!route) return fail(400, 'Unknown model.');
-  // Only Claude writes for anyone but the owner (the owner, 23 Oct: "Lock
-  // it"): no free chain behind it, so without Claude on this route (PRO_PAYS
+  // Only the hosted writer answers anyone but the owner (the owner, 23 Oct: "Lock
+  // it"): no free chain behind it, so without the hosted writer on this route (PRO_PAYS
   // off, no key or no price) the answer is the same refusal the app shows as
-  // See Pro, and when Claude fails nothing else is asked.
+  // See Pro, and when it fails nothing else is asked.
   if (!owner) {
     route.sources = route.sources.filter(s => s.kind === 'anthropic');
     if (!route.sources.length) return fail(402, 'Stethoscore Cloud is part of Pro.');

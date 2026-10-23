@@ -60,7 +60,7 @@ function upstream() {
   return log;
 }
 
-// as deployed (wrangler.toml prices Claude and lists the Gemini models), with the key set and room in every wallet
+// as deployed (wrangler.toml prices the hosted writer and lists the free models), with the key set and room in every wallet
 const base = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', ANTHROPIC_API_KEY: 'ak',
                CLOUD_MODELS: 'gemini-3.1-pro-preview,gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it',
                GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50,claude-opus-5-5:4.00/20.00',
@@ -103,7 +103,7 @@ const before = {
 };
 // the change: the owner's writing, chat and jobs, with PRO_PAYS off
 const meant = new Set(['owner writer off', 'owner job writer off']);
-// and later (the owner, 23 Oct: "Lock it"): only Claude writes for an account,
+// and later (the owner, 23 Oct: "Lock it"): only the hosted writer answers an account,
 // so with PRO_PAYS off a Pro account no longer falls to the free chain
 const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' };
 
@@ -229,7 +229,7 @@ const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' }
 
 // A4: "Lock it" - an account is never answered by the free chain
 {
-  // Claude failing for a Pro account: nothing else is asked
+  // The hosted writer failing for a Pro account: nothing else is asked
   const env = freshEnv({ ...base, PRO_PAYS: 'on' });
   const asked = [];
   const r = await chat(env, 'p1', writer, async url => {
@@ -239,7 +239,7 @@ const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' }
     return new Response(JSON.stringify(geminiReply), { status: 200 });
   });
   ok(r.status !== 200 && asked.join('>') === 'claude', 'A4 a Pro account, Claude down: no answer, and the Gemini chain is never asked');
-  // no Claude on the route (no key, or no price): the See Pro answer, nothing asked
+  // no hosted writer on the route (no key, or no price): the See Pro answer, nothing asked
   for (const [what, extra] of [['no ANTHROPIC_API_KEY', { ANTHROPIC_API_KEY: undefined }],
                                ['no price for Claude', { GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50' }]]) {
     for (const [job, body] of [['writer', writer], ['checker', checker]]) {

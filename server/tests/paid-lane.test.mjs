@@ -123,7 +123,7 @@ for (const [how, make] of Object.entries(opened)) {
       ok(r.status === 200 && !log.asked.includes('claude') && said.choices[0].message.content === 'gemini',
          `PRO_PAYS off, ${how}: ${who} never reaches Anthropic, the Gemini chain answers`);
     } else {
-      // only Claude writes for an account, and it is not on this route: no free chain either
+      // only the hosted writer answers an account, and it is not on this route: no free chain either
       ok(r.status === 402 && log.asked.length === 0 && said.message === 'Stethoscore Cloud is part of Pro.',
          `PRO_PAYS off, ${how}: ${who} never reaches Anthropic nor the Gemini chain (402, See Pro)`);
     }

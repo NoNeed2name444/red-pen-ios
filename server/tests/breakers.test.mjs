@@ -309,9 +309,9 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-li
   ok(asked === 0 && used(env, 'transcribe:a1') === before, 'nothing sent to Google, no chunk of the allowance used');
 }
 
-// Paid lanes (Claude, while Pro pays) have breakers of their own; behind
+// Paid lanes (the hosted writer, while Pro pays) have breakers of their own; behind
 // them the free chain carries on for the owner key only, and an account,
-// which only Claude writes for, is told busy
+// which only the hosted writer answers, is told busy
 {
   resetBreakers(clock);
   const paid = { ...chain, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5', ANTHROPIC_API_KEY: 'ak',

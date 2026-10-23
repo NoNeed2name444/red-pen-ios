@@ -335,7 +335,7 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
 {
   resetBreakers();
   const store = storage();
-  // only Claude writes for an account, so its job runs on the Claude route
+  // only the hosted writer answers an account, so its job runs on that route
   const env = { ...jobEnv(''), ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20', PRO_MONTHLY_BUDGET_USD: '5' };
   const db = env.DB;
   let calls = 0;

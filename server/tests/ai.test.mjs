@@ -54,8 +54,8 @@ const fakeFetch = (appleAnswer) => async (url, init) => {
   }
   return new Response(JSON.stringify({ choices: [{ message: { content: 'hello' } }], usage: { secret: 1 } }), { status: 200 });
 };
-// only Claude writes for anyone but the owner key, so a subscriber is answered
-// only where the Claude route is set up (its key, PRO_PAYS on, a price, a budget)
+// only the hosted writer answers anyone but the owner key, so a subscriber is answered
+// only where the hosted writer is set up (its key, PRO_PAYS on, a price, a budget)
 const claude = { ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4.00/20.00', PRO_MONTHLY_BUDGET_USD: '5' };
 const request = { model: 'cramdown-writer', messages: [{ role: 'user', content: 'hi' }], max_tokens: 99999 };
 
@@ -537,7 +537,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const models = [];
   const fetcher = async url => { models.push(url.match(/models\/([^:]+):/)[1]);
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'x' }] } }] }), { status: 200 }); };
-  // an account's chat never reaches them (only Claude writes for it); its
+  // an account's chat never reaches them (only the hosted writer answers it); its
   // checks' votes still do (askModel), within the same shares
   ok((await chat(env, 'a1', request, fetcher)).status === 402 && models.length === 0, 'an account\'s chat is refused and no free model is asked');
   const vote = (e, use) => askModel(e, 'a1', false, use, request.messages, 50, fetcher);
