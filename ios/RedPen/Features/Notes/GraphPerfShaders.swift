@@ -108,12 +108,12 @@ nonisolated enum GraphPerfShaders {
         float2 uv;
     };
 
-    static float2 corner(uint vid) {
+    static float2 perf_corner(uint vid) {
         return float2((vid & 1u) != 0u ? 1.0 : -1.0, (vid & 2u) != 0u ? 1.0 : -1.0);
     }
 
     // a quad of `radius` points round a clip-space centre
-    static float4 spread(float4 clip, float2 c, float radius, constant Frame& f) {
+    static float4 perf_spread(float4 clip, float2 c, float radius, constant Frame& f) {
         float4 moved = clip;
         moved.xy += c * (radius * 2.0 / f.screen.xy) * clip.w;
         return moved;
@@ -139,9 +139,9 @@ nonisolated enum GraphPerfShaders {
             drawn = max(drawn * 1.4, 7.0);
             fade = 1.0;
         }
-        float2 c = corner(vid);
+        float2 c = perf_corner(vid);
         BodyOut o;
-        o.position = spread(clip, c, drawn, f);
+        o.position = perf_spread(clip, c, drawn, f);
         o.colour = float4(unpack_unorm4x8_to_float(colour[i]).rgb, fade);
         o.uv = c;
         o.pixels = drawn * f.screen.w;
@@ -170,14 +170,14 @@ nonisolated enum GraphPerfShaders {
         return float4(rgb, coverage);
     }
 
-    static float3 lineEnd(uint body, const device float4* xyzr, const device uint* clusterOf,
+    static float3 perf_lineEnd(uint body, const device float4* xyzr, const device uint* clusterOf,
                           const device float4* balls, const device uint* collapsed) {
         uint s = clusterOf[body];
         return collapsed[s] != 0u ? balls[s].xyz : xyzr[body].xyz;
     }
 
     // how long a line is on screen, in points (long when an end is behind the eye)
-    static float screenLength(float4 a, float4 b, constant Frame& f) {
+    static float perf_screenLength(float4 a, float4 b, constant Frame& f) {
         if (a.w <= 0.0001 || b.w <= 0.0001) {
             return 10000.0;
         }
@@ -186,7 +186,7 @@ nonisolated enum GraphPerfShaders {
         return length(pa - pb);
     }
 
-    static float fogged(float alpha, float depth, constant Frame& f) {
+    static float perf_fogged(float alpha, float depth, constant Frame& f) {
         return alpha * (1.0 - 0.6 * smoothstep(f.fog.x, f.fog.y, depth));
     }
 
@@ -204,9 +204,9 @@ nonisolated enum GraphPerfShaders {
         bool second = (vid & 1u) != 0u;
         uint me = second ? e.y : e.x;
         uint other = second ? e.x : e.y;
-        float4 cp = f.viewProj * float4(lineEnd(me, xyzr, clusterOf, balls, collapsed), 1.0);
-        float4 cq = f.viewProj * float4(lineEnd(other, xyzr, clusterOf, balls, collapsed), 1.0);
-        float alpha = f.link.x * smoothstep(f.link.y, f.link.z, screenLength(cp, cq, f));
+        float4 cp = f.viewProj * float4(perf_lineEnd(me, xyzr, clusterOf, balls, collapsed), 1.0);
+        float4 cq = f.viewProj * float4(perf_lineEnd(other, xyzr, clusterOf, balls, collapsed), 1.0);
+        float alpha = f.link.x * smoothstep(f.link.y, f.link.z, perf_screenLength(cp, cq, f));
         bool tree = float(line) >= f.fog.w;
         if (tree) {
             alpha *= 1.2;
@@ -217,7 +217,7 @@ nonisolated enum GraphPerfShaders {
             bool touches = float(e.x) == f.focus.y || float(e.y) == f.focus.y;
             alpha *= touches ? 3.0 : 0.15;
         }
-        alpha = min(fogged(alpha, cp.w, f), 1.0);
+        alpha = min(perf_fogged(alpha, cp.w, f), 1.0);
         LineOut o;
         o.position = cp;
         o.colour = float4(unpack_unorm4x8_to_float(colour[me]).rgb * alpha, alpha);
@@ -243,7 +243,7 @@ nonisolated enum GraphPerfShaders {
         if (f.focus.y >= 0.0) {
             alpha *= 0.15;
         }
-        alpha = min(fogged(alpha, cp.w, f), 1.0);
+        alpha = min(perf_fogged(alpha, cp.w, f), 1.0);
         LineOut o;
         o.position = cp;
         o.colour = float4(unpack_unorm4x8_to_float(clusterColour[s]).rgb * alpha, alpha);
@@ -261,9 +261,9 @@ nonisolated enum GraphPerfShaders {
         float depth = max(clip.w, 0.0001);
         float rho = b.w * f.screen.z / depth;
         float drawn = max(rho, f.focus.w) * 1.6;
-        float2 c = corner(vid);
+        float2 c = perf_corner(vid);
         GlowOut o;
-        o.position = spread(clip, c, drawn, f);
+        o.position = perf_spread(clip, c, drawn, f);
         o.colour = float4(unpack_unorm4x8_to_float(clusterColour[s]).rgb, 1.0);
         o.uv = c;
         return o;

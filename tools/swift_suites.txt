@@ -270,6 +270,16 @@ suite graphchunks GraphPerfChunkTests.swift $F/Notes/GraphPerfOctree.swift $F/No
 suite graphbudget GraphPerfBudgetTests.swift $F/Notes/GraphPerfBudget.swift $F/Notes/GraphPerfChunkLOD.swift \
       $F/Notes/GraphPerfOctree.swift $F/Notes/GraphPerfCamera.swift $F/Notes/GraphPerfLOD.swift \
       $S/Space/GraphicsQuality.swift $F/Notes/GraphLinkCurve.swift $F/Notes/GraphPerfDepth.swift
+# the map's Metal programs, compiled at run time from Swift strings: every
+# top-level name read, none declared twice, every helper prefixed so it
+# cannot collide with metal_stdlib (the million map's `quad` did), and the
+# renderers' entry points declared
+suite graphshaders GraphPerfShaderSourceTests.swift $F/Notes/GraphPerfShaders.swift \
+      $F/Notes/GraphPerfMillionShaders.swift $F/Notes/GraphPerfCamera.swift $F/Notes/GraphPerfLOD.swift \
+      $F/Notes/GraphPerfFocus.swift $F/Notes/GraphPerfDepth.swift $F/Notes/GraphPerfChunkLOD.swift \
+      $F/Notes/GraphPerfScene.swift $F/Notes/GraphPerfGraph.swift $F/Notes/GraphPerfClusters.swift \
+      $F/Notes/GraphPerfLayout.swift $F/Notes/GraphPerfOctree.swift $F/Notes/GraphPerfMillionMap.swift \
+      $F/Notes/GraphPerfBudget.swift $F/Notes/GraphPerfSynthetic.swift
 # the million map's proof tour (plan 4f, D5): its phases in order and on
 # time, a path with no jump but the cut to the whole map, the hub kept on
 # screen, and the frame rate, swap and summary worked out from known frames

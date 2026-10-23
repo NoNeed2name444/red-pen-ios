@@ -2125,6 +2125,15 @@ with the marks on the screens last.
         the proof's failure message quotes it (GraphPerfDrawFailure,
         GraphPerfDrawWatch, GraphPerfMillionMap.Outcome; P16, C20). Next
         Mac run: read the reason, then fix that step.
+      - 23 Oct, T0158 (App build run 39959867345): the reason read "the
+        shaders did not compile: program_source:165:16: redefinition of
+        'quad' as different kind of symbol". Line 165 of
+        GraphPerfMillionShaders.source is its own helper `quad`, declared
+        once; the other `quad` is metal_stdlib's, in scope through `using
+        namespace metal;`. Every top-level helper in both map programs now
+        carries its program's prefix (mil_, perf_), and the graphshaders
+        suite fails on a bare helper, a doubled top-level name or a
+        top-level line it cannot read. Next Mac run: the million draws.
     - Merged (T0108, 22 Oct): design/perf-proof, with design/perf-million
       under it, and then design/perf-fade-band (D2's wider bands, 15 Oct)
       went into design/merge-graph, so the integration build has the

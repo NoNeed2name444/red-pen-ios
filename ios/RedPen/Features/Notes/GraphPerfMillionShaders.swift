@@ -230,21 +230,21 @@ nonisolated enum GraphPerfMillionShaders {
         float2 uv;
     };
 
-    static float2 corner(uint vid) {
+    static float2 mil_corner(uint vid) {
         return float2((vid & 1u) != 0u ? 1.0 : -1.0, (vid & 2u) != 0u ? 1.0 : -1.0);
     }
 
-    static float3 unpack_position(ushort4 q, LeafBox b) {
+    static float3 mil_unpack_position(ushort4 q, LeafBox b) {
         return b.lo.xyz + float3(q.xyz) * (1.0 / 65535.0) * b.extent.xyz;
     }
 
     // how far a leaf is open (its stand-in's w carries 2 more when drawn)
-    static float leaf_open(float w) {
+    static float mil_leaf_open(float w) {
         return w >= 2.0 ? w - 2.0 : w;
     }
 
     // the drawn leaf holding instance `i`: the last whose first instance is <= i
-    static uint find_leaf(const device uint2* draw, uint count, uint i) {
+    static uint mil_find_leaf(const device uint2* draw, uint count, uint i) {
         uint lo = 0u;
         uint hi = count;
         while (hi - lo > 1u) {
@@ -256,22 +256,22 @@ nonisolated enum GraphPerfMillionShaders {
 
     // the depth fade at view depth `depth`: SceneKit's fog curve,
     // clamp((z - start) / (end - start), 0, 1)^k, times its most
-    static float fade_at(float depth, constant Frame& f) {
+    static float mil_fade_at(float depth, constant Frame& f) {
         if (f.fade.w <= 0.0) { return 0.0; }
         float t = clamp((depth - f.fade.x) / max(f.fade.y - f.fade.x, 1e-6), 0.0, 1.0);
         if (t <= 0.0) { return 0.0; }
         return pow(t, max(f.fade.z, 0.05)) * f.fade.w;
     }
 
-    static bool off_screen(float4 c) {
+    static bool mil_off_screen(float4 c) {
         return c.w <= 1e-3 || abs(c.x) > c.w || abs(c.y) > c.w;
     }
 
     // a bundle with an end off the screen: full strength up to bundles.w
     // points long, then dimmer in proportion (a fixed strength for its
     // length, never a fade over time); behind the eye, the dimmest
-    static float long_dim(float4 a, float4 b, constant Frame& f) {
-        if (!off_screen(a) && !off_screen(b)) { return 1.0; }
+    static float mil_long_dim(float4 a, float4 b, constant Frame& f) {
+        if (!mil_off_screen(a) && !mil_off_screen(b)) { return 1.0; }
         if (a.w <= 1e-3 || b.w <= 1e-3) { return 0.12; }
         float2 half_screen = f.screen.xy * 0.5;
         float2 sa = a.xy / a.w * half_screen;
@@ -305,15 +305,15 @@ nonisolated enum GraphPerfMillionShaders {
         uint s = job.x + at;
         LeafBox b = boxes[job.z];
         ushort4 q = packed[s];
-        float3 p = unpack_position(q, b);
-        float3 home = unpack_position(seed[s], b);
+        float3 p = mil_unpack_position(q, b);
+        float3 home = mil_unpack_position(seed[s], b);
         uint a0 = adjacencyStart[s];
         uint a1 = min(adjacencyStart[s + 1u], a0 + 32u);
         float3 sum = float3(0.0);
         float n = 0.0;
         for (uint k = a0; k < a1; k++) {
             ushort4 other = packed[adjacency[k]];
-            sum += unpack_position(other, boxes[other.w]);
+            sum += mil_unpack_position(other, boxes[other.w]);
             n += 1.0;
         }
         float3 next = p;
@@ -331,7 +331,7 @@ nonisolated enum GraphPerfMillionShaders {
 
     // MARK: bodies
 
-    static NodeOut hidden_node() {
+    static NodeOut mil_hidden_node() {
         NodeOut o;
         o.position = float4(0.0, 0.0, -2.0, 1.0);
         o.colour = float4(0.0);
@@ -344,9 +344,9 @@ nonisolated enum GraphPerfMillionShaders {
         return o;
     }
 
-    static NodeOut quad(float4 clip, float pixels, uint vid, float3 colour, constant Frame& f) {
-        NodeOut o = hidden_node();
-        float2 c = corner(vid);
+    static NodeOut mil_quad(float4 clip, float pixels, uint vid, float3 colour, constant Frame& f) {
+        NodeOut o = mil_hidden_node();
+        float2 c = mil_corner(vid);
         float4 moved = clip;
         moved.xy += c * (pixels * 2.0 / f.screen.xy) * clip.w;
         o.position = moved;
@@ -365,26 +365,26 @@ nonisolated enum GraphPerfMillionShaders {
                                    const device uint2* draw [[buffer(5)]],
                                    constant uint& drawCount [[buffer(6)]],
                                    const device float* leafDetail [[buffer(15)]]) {
-        uint k = find_leaf(draw, drawCount, iid);
+        uint k = mil_find_leaf(draw, drawCount, iid);
         uint leaf = draw[k].x;
         uint first = as_type<uint>(boxes[leaf].lo.w);
         uint slot = first + (iid - draw[k].y);
         ushort4 q = packed[slot];
         float4 stand = standIn[leaf];
-        float open = leaf_open(stand.w);
+        float open = mil_leaf_open(stand.w);
         float detail = clamp(leafDetail[leaf], 0.0, 1.0);
-        float3 p = mix(stand.xyz, unpack_position(q, boxes[leaf]), open);
+        float3 p = mix(stand.xyz, mil_unpack_position(q, boxes[leaf]), open);
         float4 look = unpack_unorm4x8_to_float(looks[slot]);
         float4 clip = f.viewProj * float4(p, 1.0);
         float depth = max(clip.w, 1e-3);
-        float fade = fade_at(depth, f);
+        float fade = mil_fade_at(depth, f);
         // past the band's end: gone, so not drawn at all
-        if (fade >= 0.999) { return hidden_node(); }
+        if (fade >= 0.999) { return mil_hidden_node(); }
         // smaller as its detail drops (D1), all times the leaf's morph
         float shrink = 0.7 + 0.3 * detail;
         float pixels = look.w * 2.55 * open * shrink * f.screen.z / depth;
         pixels = clamp(pixels, f.look.x * open, f.pick.y);
-        NodeOut o = quad(clip, pixels, vid, look.rgb, f);
+        NodeOut o = mil_quad(clip, pixels, vid, look.rgb, f);
         o.detail = detail;
         o.fade = fade;
         o.dim = f.focus.z;
@@ -400,13 +400,13 @@ nonisolated enum GraphPerfMillionShaders {
                                      const device LeafBox* boxes [[buffer(3)]]) {
         uint slot = uint(max(f.pick.x, 0.0));
         ushort4 q = packed[slot];
-        float3 p = unpack_position(q, boxes[uint(q.w)]);
+        float3 p = mil_unpack_position(q, boxes[uint(q.w)]);
         float4 look = unpack_unorm4x8_to_float(looks[slot]);
         float4 clip = f.viewProj * float4(p, 1.0);
-        if (clip.w <= 1e-3) { return hidden_node(); }
+        if (clip.w <= 1e-3) { return mil_hidden_node(); }
         float pixels = clamp(look.w * 2.55 * f.screen.z / clip.w * 1.3, 3.5, f.pick.y);
         pixels = max(pixels * 1.35, 7.0);
-        NodeOut o = quad(clip, pixels, vid, look.rgb, f);
+        NodeOut o = mil_quad(clip, pixels, vid, look.rgb, f);
         o.ring = 1.0;
         o.detail = 1.0;
         return o;
@@ -434,13 +434,13 @@ nonisolated enum GraphPerfMillionShaders {
     // MARK: the chosen note's neighbourhood
 
     // a neighbour's slot, and its link's growth (0...1) as it reaches it
-    static uint neighbour(uint iid, constant Frame& f, const device uint* adjacencyStart,
+    static uint mil_neighbour(uint iid, constant Frame& f, const device uint* adjacencyStart,
                           const device uint* adjacency) {
         uint chosen = uint(max(f.pick.x, 0.0));
         return adjacency[adjacencyStart[chosen] + iid];
     }
 
-    static float link_tip(float3 a, float3 b, constant Frame& f) {
+    static float mil_link_tip(float3 a, float3 b, constant Frame& f) {
         float len = length(b - a);
         if (len <= 1e-6) { return f.focus.x > 0.0 ? 1.0 : 0.0; }
         return clamp(f.focus.x * f.focus.y / len, 0.0, 1.0);
@@ -459,12 +459,12 @@ nonisolated enum GraphPerfMillionShaders {
         o.across = 0.0;
         o.half_width = 1.0;
         uint chosen = uint(max(f.pick.x, 0.0));
-        uint other = neighbour(iid, f, adjacencyStart, adjacency);
+        uint other = mil_neighbour(iid, f, adjacencyStart, adjacency);
         ushort4 qa = packed[chosen];
         ushort4 qb = packed[other];
-        float3 a = unpack_position(qa, boxes[uint(qa.w)]);
-        float3 b = unpack_position(qb, boxes[uint(qb.w)]);
-        float tip = link_tip(a, b, f);
+        float3 a = mil_unpack_position(qa, boxes[uint(qa.w)]);
+        float3 b = mil_unpack_position(qb, boxes[uint(qb.w)]);
+        float tip = mil_link_tip(a, b, f);
         if (tip <= 0.0) { return o; }
         float3 e = mix(a, b, tip);
         float4 ca = f.viewProj * float4(a, 1.0);
@@ -509,19 +509,19 @@ nonisolated enum GraphPerfMillionShaders {
                                          const device uint* adjacencyStart [[buffer(7)]],
                                          const device uint* adjacency [[buffer(8)]]) {
         uint chosen = uint(max(f.pick.x, 0.0));
-        uint other = neighbour(iid, f, adjacencyStart, adjacency);
+        uint other = mil_neighbour(iid, f, adjacencyStart, adjacency);
         ushort4 qa = packed[chosen];
         ushort4 qb = packed[other];
-        float3 a = unpack_position(qa, boxes[uint(qa.w)]);
-        float3 b = unpack_position(qb, boxes[uint(qb.w)]);
+        float3 a = mil_unpack_position(qa, boxes[uint(qa.w)]);
+        float3 b = mil_unpack_position(qb, boxes[uint(qb.w)]);
         // it grows in as its link arrives (the link's last 15%)
-        float arrived = smoothstep(0.85, 1.0, link_tip(a, b, f));
-        if (arrived <= 0.0) { return hidden_node(); }
+        float arrived = smoothstep(0.85, 1.0, mil_link_tip(a, b, f));
+        if (arrived <= 0.0) { return mil_hidden_node(); }
         float4 look = unpack_unorm4x8_to_float(looks[other]);
         float4 clip = f.viewProj * float4(b, 1.0);
-        if (clip.w <= 1e-3) { return hidden_node(); }
+        if (clip.w <= 1e-3) { return mil_hidden_node(); }
         float pixels = clamp(look.w * 2.55 * f.screen.z / clip.w * 1.3, 3.5, f.pick.y) * arrived;
-        NodeOut o = quad(clip, pixels, vid, look.rgb, f);
+        NodeOut o = mil_quad(clip, pixels, vid, look.rgb, f);
         o.detail = 1.0;
         return o;
     }
@@ -569,8 +569,8 @@ nonisolated enum GraphPerfMillionShaders {
         // many), dimmer when it runs off the screen, fading to nothing with
         // depth, and stepping back while a note is chosen
         float share = min(overlap[e.x], overlap[e.y]);
-        float deep = 1.0 - fade_at(max(c.w, 1e-3), f);
-        float strength = f.look.z * share * long_dim(ca, cb, f) * deep * (1.0 - f.focus.z);
+        float deep = 1.0 - mil_fade_at(max(c.w, 1e-3), f);
+        float strength = f.look.z * share * mil_long_dim(ca, cb, f) * deep * (1.0 - f.focus.z);
         o.colour = float4((atB ? kb : ka) * strength, 0.0);
         return o;
     }
@@ -594,13 +594,13 @@ nonisolated enum GraphPerfMillionShaders {
         float4 clip = f.viewProj * float4(a.xyz, 1.0);
         float depth = max(clip.w, 1e-3);
         // additive light fades to nothing with depth: times 1 - f
-        float deep = 1.0 - fade_at(depth, f);
+        float deep = 1.0 - mil_fade_at(depth, f);
         if (deep <= 0.001) { return o; }
         float pixels = max(a.w * f.screen.z / depth, f.look.y) * scale;
         // never wider than a fifth of the screen: a cluster close by opens
         // into notes, and a huge soft disc is only fill
         pixels = min(pixels, 0.2 * min(f.screen.x, f.screen.y));
-        float2 c = corner(vid);
+        float2 c = mil_corner(vid);
         float4 moved = clip;
         moved.xy += c * (pixels * 2.0 / f.screen.xy) * clip.w;
         float3 colour = unpack_unorm4x8_to_float(as_type<uint>(b.x)).rgb;
