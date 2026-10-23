@@ -1,0 +1,28 @@
+{
+  "commit": "e68554b0b23f9063eef181d3ca4bf50b84096741",
+  "run_url": "https://github.com/NoNeed2name444/red-pen-ios/actions/runs/39931526624",
+  "when": "2026-10-23T09:28:43+00:00",
+  "xcode": "Xcode 26.6 Build version 17F113",
+  "device": "iPhone 17 Pro",
+  "runtime": "iOS-26-5",
+  "build_ok": true,
+  "build_finished": true,
+  "screens": [
+    "ideas-board-dark.png",
+    "ideas-board-light.png",
+    "ideas-dark.png",
+    "ideas-legend-neurons-dark.png",
+    "ideas-legend-neurons-light.png",
+    "ideas-legend-performance-dark.png",
+    "ideas-legend-performance-light.png",
+    "ideas-light.png",
+    "ideas-map-dark.png",
+    "ideas-map-light.png",
+    "ideas-map-neurons-dark.png",
+    "ideas-map-neurons-light.png",
+    "ideas-map-performance-dark.png",
+    "ideas-map-performance-light.png",
+    "ideas-million-dark.png",
+    "ideas-million-light.png"
+  ]
+}
