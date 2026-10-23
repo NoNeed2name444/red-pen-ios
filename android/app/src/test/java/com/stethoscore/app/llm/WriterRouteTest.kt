@@ -8,8 +8,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 // There is no writer to choose (the owner, 22 Oct): every text job goes to the
-// worker's writer route, "cramdown-writer", which the worker sends to its Claude
-// route for the owner key (server/tests/owner-claude.test.mjs). The gates stay:
+// worker's writer route, "cramdown-writer", which the worker answers from its
+// hosted writer (server/tests/owner-claude.test.mjs). The gates stay:
 // the owner key only in the personal build, Pro's cloud otherwise shut, and this
 // phone's $20.00 cap.
 class WriterRouteTest {

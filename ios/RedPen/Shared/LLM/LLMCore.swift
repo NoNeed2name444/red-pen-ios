@@ -72,9 +72,9 @@ enum LLMRole: String, CaseIterable, Identifiable {
 
 /// The app's one writer (the owner, 22 Oct): every role goes to the worker's
 /// writer route, with the account's session or the owner key as the bearer.
-/// The worker decides what answers it - for the owner key its Claude route,
-/// behind PRO_PAYS and its spend cap - so the app has nothing to choose and
-/// never holds a model's key.
+/// The worker decides what answers it - its hosted writer, behind PRO_PAYS
+/// and its spend caps - so the app has nothing to choose and never holds a
+/// model's key.
 enum WriterRoute {
     /// The model name the worker maps to its writer.
     static let model = "cramdown-writer"

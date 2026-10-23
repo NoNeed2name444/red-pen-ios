@@ -3,9 +3,9 @@ import Foundation
 /// Decides which backend answers. Everything that wants a model asks here,
 /// and the answer is always the same one: the worker's writer route
 /// (WriterRoute), for every role. There is no writer to choose and no model
-/// to download or add (the owner, 22 Oct); the worker answers the owner key on
-/// its own Claude route, behind PRO_PAYS and its spend cap, and a signed-in
-/// Pro account on the route the worker gives it. No key is ever in the app.
+/// to download or add (the owner, 22 Oct); the worker answers from its hosted
+/// writer, behind PRO_PAYS and its spend caps, and without it nothing is
+/// written (the owner, 23 Oct: "Lock it"). No key is ever in the app.
 @MainActor
 final class LocalLLMService: ObservableObject {
     static let shared = LocalLLMService()

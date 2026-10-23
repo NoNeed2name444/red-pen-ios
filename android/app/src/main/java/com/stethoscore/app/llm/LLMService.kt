@@ -13,9 +13,10 @@ import com.stethoscore.app.network.SecureTokenStore
  *
  * There is no writer to choose (the owner, 22 Oct): every text job goes to
  * the worker's writer route ([HostedProvider.cloud], model "cramdown-writer"),
- * which the worker sends to its Claude route for the owner key
- * (server/ai.js routeFor), inside the owner's monthly cap, and to the free
- * chain otherwise; PRO_PAYS and this phone's own $20.00 guard still hold.
+ * which the worker answers from its hosted writer (server/ai.js chat): for
+ * the owner key inside the owner's monthly cap, for a Pro account only while
+ * PRO_PAYS is on, and with no free fallback for anyone but the owner; this
+ * phone's own $20.00 guard still holds.
  *
  * The owner key exists only in the owner's personal build
  * ([BuildConfig.OWNER_KEY], from the Gradle property `stethoscoreOwnerKey`;
