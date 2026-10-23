@@ -76,6 +76,32 @@ nonisolated struct GraphPerfMillionMap: Sendable {
                                    looks: parts.looks, adjacency: parts.adjacency, boxes: parts.boxes)
     }
 
+    /// What building a demo map came to: the map, a newer one wanted
+    /// (nothing to say), or which step gave nothing (for the readout).
+    enum Outcome: Sendable {
+        case built(GraphPerfMillionMap)
+        case cancelled
+        case failed(GraphPerfDrawFailure)
+    }
+
+    /// The synthetic map of `notes` notes, as the Performance theme's demo builds it.
+    static func demo(notes: Int, isCancelled: () -> Bool = { false }) -> Outcome {
+        let wanted: GraphPerfInput = GraphPerfSynthetic.make(GraphPerfSynthetic.Spec(notes: notes))
+        return outcome(wanted, isCancelled: isCancelled)
+    }
+
+    /// The scene, then the map, for `input`; a step that gives nothing is
+    /// a failure unless `isCancelled` says a newer map is wanted.
+    static func outcome(_ input: GraphPerfInput, isCancelled: () -> Bool = { false }) -> Outcome {
+        guard let scene = GraphPerfScene.build(input, isCancelled: isCancelled) else {
+            return isCancelled() ? .cancelled : .failed(.sceneNotBuilt)
+        }
+        guard let map = build(scene, isCancelled: isCancelled) else {
+            return isCancelled() ? .cancelled : .failed(.mapNotBuilt)
+        }
+        return .built(map)
+    }
+
     /// The parts made at once: each written by one thread, read after all are done.
     private final class Parts: @unchecked Sendable {
         var bundles: GraphPerfBundles?

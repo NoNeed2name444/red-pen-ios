@@ -109,6 +109,8 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     private let pill = UILabel()
     private let pillBack = UIView()
     private let unavailable = UILabel()
+    /// What stopped the map, while it is stopped.
+    private var failure: GraphPerfDrawFailure?
     /// The names under the nearest points, and which bodies carry them.
     private var names: [UILabel] = []
     private var labelChooser = GraphPerfLabelChooser(budget: GraphPerfTier.high.labelBudget)
@@ -181,6 +183,11 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
 
     /// The readout's numbers, with the proof tour's phase and summary.
     private func forward(_ stats: GraphPerfStats) {
+        // numbers without a failure: the map draws again
+        if stats.failure == nil, failure != nil, renderer != nil {
+            failure = nil
+            unavailable.isHidden = true
+        }
         lastStats = stats
         var out = stats
         if tour != nil || !tourPhase.isEmpty {
@@ -234,9 +241,13 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         if million == nil {
             million = GraphPerfMillionRenderer(view: metal)
             hook(million)
+            million?.onFailure = { [weak self] why in self?.fail(why) }
             applyRate()
         }
-        guard let million else { return }
+        guard let million else {
+            fail(GraphPerfMillionRenderer.lastFailure ?? .noDevice)
+            return
+        }
         let camera: GraphPerfCamera? = showsMillion ? nil : renderer?.camera
         million.tier = renderer?.tier ?? million.tier
         million.bold = renderer?.bold ?? million.bold
@@ -245,9 +256,28 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         million.reduceMotion = reduceMotion
         switchTo(million: true)
         if let camera { million.camera = camera }
-        million.load(map)
+        if let why = million.load(map) {
+            fail(why)
+            return
+        }
         reframe(bodies: map.bodyCount)
         startTour(map, on: million)
+    }
+
+    /// Why the map cannot be drawn: said on the map and in the readout
+    /// (with the numbers so far), until numbers without a failure come.
+    func fail(_ next: GraphPerfDrawFailure) {
+        let why = GraphPerfDrawFailure.shown(current: failure, next: next)
+        NSLog("GraphPerfMap: %@", why.text)
+        failure = why
+        unavailable.text = why.text
+        unavailable.textColor = .secondaryLabel
+        unavailable.textAlignment = .center
+        unavailable.numberOfLines = 0
+        if unavailable.superview == nil { addSubview(unavailable) }
+        unavailable.isHidden = false
+        setNeedsLayout()
+        forward((lastStats ?? GraphPerfStats()).failing(why))
     }
 
     // MARK: - The proof tour

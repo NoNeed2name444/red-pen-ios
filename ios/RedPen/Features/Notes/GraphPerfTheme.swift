@@ -90,6 +90,10 @@ struct GraphPerfSpace: View {
             .pickerStyle(.inline)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
+                if !stats.failed.isEmpty {
+                    Text(stats.failed)
+                        .font(.caption.weight(.semibold))
+                }
                 Text(stats.line)
                     .font(.caption.monospacedDigit().weight(.semibold))
                 Text(stats.pace)
@@ -122,8 +126,7 @@ struct GraphPerfSpace: View {
         }
         .foregroundStyle(Color.wardInk)
         .accessibilityLabel("Speed")
-        .accessibilityValue([stats.line, stats.pace, stats.drawn, stats.stages, stats.depth, stats.tour]
-            .filter { !$0.isEmpty }.joined(separator: ", "))
+        .accessibilityValue(stats.spoken)
         .accessibilityHint("How fast the map draws. Opens the demo maps of 100,000, 300,000 and 1,000,000 notes.")
         .accessibilityIdentifier("perfReadout")
     }
@@ -241,14 +244,16 @@ final class GraphPerfCoordinator {
         building?.cancel()
         if size >= GraphPerfDemo.million {
             building = Task { [weak self] in
-                let made: GraphPerfMillionMap? = await Task.detached(priority: .userInitiated) {
-                    () -> GraphPerfMillionMap? in
-                    let wanted: GraphPerfInput = GraphPerfSynthetic.make(GraphPerfSynthetic.Spec(notes: size))
-                    guard let scene = GraphPerfScene.build(wanted) else { return nil }
-                    return GraphPerfMillionMap.build(scene)
+                let made: GraphPerfMillionMap.Outcome = await Task.detached(priority: .userInitiated) {
+                    GraphPerfMillionMap.demo(notes: size)
                 }.value
-                guard !Task.isCancelled, let self, let made else { return }
-                self.show(million: made)
+                // a newer map wanted, or the map gone: nothing to say
+                guard !Task.isCancelled, let self else { return }
+                switch made {
+                case .built(let map): self.show(million: map)
+                case .failed(let why): self.view?.fail(why)
+                case .cancelled: return
+                }
             }
             return
         }

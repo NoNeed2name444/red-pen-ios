@@ -136,6 +136,103 @@ nonisolated enum GraphPerfLabelSpots {
     }
 }
 
+/// Each place the fast map's path to the screen can stop: the build, the
+/// renderer's shaders and pipelines, its buffers, and frames that end
+/// before they are drawn. Each was a silent return (an NSLog at most, and
+/// the UI tests' console is off), so the map stayed empty with no reason;
+/// now each reaches the readout and the map as "cannot draw: <reason>".
+nonisolated enum GraphPerfDrawFailure: Sendable, Equatable {
+    /// GraphPerfScene.build or GraphPerfMillionMap.build gave nothing.
+    case sceneNotBuilt
+    case mapNotBuilt
+    /// No Metal device or command queue.
+    case noDevice
+    /// makeLibrary(source:) failed: the compiler's first line.
+    case shaders(String)
+    /// A function missing from the library.
+    case function(String)
+    /// A render or compute pipeline, by its vertex (or kernel) function, and the error.
+    case pipeline(String, String)
+    case depthState
+    /// The map's buffers (once per map), or a frame slot's.
+    case mapBuffers
+    case frameBuffers
+    /// Frames in a row that stopped before drawing.
+    case noMap(Int)
+    case noCommandBuffer(Int)
+    case noDrawable(Int)
+
+    var reason: String {
+        switch self {
+        case .sceneNotBuilt: return "the scene was not built"
+        case .mapNotBuilt: return "the million map was not built"
+        case .noDevice: return "no Metal device"
+        case .shaders(let error): return "the shaders did not compile: " + Self.firstLine(error)
+        case .function(let name): return "no shader function " + name
+        case .pipeline(let name, let error): return "pipeline " + name + ": " + Self.firstLine(error)
+        case .depthState: return "no depth state"
+        case .mapBuffers: return "the map's GPU buffers were not made"
+        case .frameBuffers: return "a frame's GPU buffers were not made"
+        case .noMap(let frames): return "no map loaded for \(frames) frames"
+        case .noCommandBuffer(let frames): return "no command buffer for \(frames) frames"
+        case .noDrawable(let frames): return "no drawable or light target for \(frames) frames"
+        }
+    }
+
+    var text: String { "cannot draw: " + reason }
+
+    /// A run of stopped frames: often only what an earlier failure left
+    /// (no map loaded after its buffers failed), so it never replaces one.
+    var isFrameRun: Bool {
+        switch self {
+        case .noMap, .noCommandBuffer, .noDrawable: return true
+        default: return false
+        }
+    }
+
+    /// The failure to show after `current` when `next` happens.
+    static func shown(current: GraphPerfDrawFailure?, next: GraphPerfDrawFailure) -> GraphPerfDrawFailure {
+        guard let current, next.isFrameRun else { return next }
+        return current
+    }
+
+    /// An error's first non-empty line, at most 160 characters.
+    static func firstLine(_ error: String) -> String {
+        let line = error.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        return trimmed.count > 160 ? String(trimmed.prefix(160)) + "\u{2026}" : trimmed
+    }
+}
+
+/// Counts frames that stop before drawing, and says once when as many in
+/// a row as `limit` have (a passing gap, such as the simulator's drawable
+/// wait, is not a failure); a drawn frame starts the count again.
+nonisolated struct GraphPerfDrawWatch: Sendable, Equatable {
+    /// Two seconds at 60 a second.
+    static let limit = 120
+    private(set) var stopped = 0
+    private(set) var reported = false
+
+    /// One frame: what stopped it (nil: drawn). Returns the failure to
+    /// report, once, when the run of stopped frames reaches `limit`.
+    mutating func frame(_ stop: GraphPerfDrawFailure?) -> GraphPerfDrawFailure? {
+        guard let stop else {
+            stopped = 0
+            reported = false
+            return nil
+        }
+        stopped += 1
+        guard stopped >= Self.limit, !reported else { return nil }
+        reported = true
+        switch stop {
+        case .noMap: return .noMap(stopped)
+        case .noCommandBuffer: return .noCommandBuffer(stopped)
+        case .noDrawable: return .noDrawable(stopped)
+        default: return stop
+        }
+    }
+}
+
 /// What the speed readout shows: the map's size, what this frame drew,
 /// and how fast frames come.
 nonisolated struct GraphPerfStats: Sendable, Equatable {
@@ -182,6 +279,25 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
     /// The proof tour's phase and its numbers so far (empty without a tour).
     var tourPhase: String = ""
     var tourSummary: String = ""
+    /// Why the map cannot be drawn (nil while nothing has failed).
+    var failure: GraphPerfDrawFailure?
+
+    /// "cannot draw: the shaders did not compile: ..." (empty while nothing failed).
+    var failed: String { failure?.text ?? "" }
+
+    /// The readout's accessibility value: a failure first, so a cut-off
+    /// reading (the proof's message) still names it.
+    var spoken: String {
+        [failed, line, pace, drawn, stages, depth, tour].filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
+    /// These numbers with `failure` added (the numbers kept, so the readout
+    /// still says how far it got).
+    func failing(_ failure: GraphPerfDrawFailure) -> GraphPerfStats {
+        var out = self
+        out.failure = failure
+        return out
+    }
 
     /// "tour: measure", then the tour's numbers (empty without a tour).
     var tour: String {

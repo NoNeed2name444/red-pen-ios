@@ -1019,5 +1019,57 @@ check("P15 behind the eye, outside the window, or past the limit: no label",
                                               count: GraphPerfLabelSpots.limit + 1),
                                         width: phoneW, height: phoneH).isEmpty)
 
+// MARK: - P16 the million map's failures in the readout (T0150): every
+// silent stop on its path names itself as "cannot draw: <reason>", first in
+// the readout's words, kept over the frames it leaves stopped
+
+var stuck = GraphPerfStats()
+stuck.tourPhase = "warm"
+check("P16 nothing failed: no failure text, and the readout's words as before",
+      stuck.failed.isEmpty && stuck.spoken == [stuck.line, stuck.pace, stuck.drawn, stuck.stages, stuck.depth, stuck.tour]
+          .filter { !$0.isEmpty }.joined(separator: ", "), stuck.spoken)
+let shaderError = "Error Domain=MTLLibraryErrorDomain Code=3 \"program_source:412:9: error: use of undeclared identifier 'x'\nmore\""
+let allFailures: [GraphPerfDrawFailure] = [
+    .sceneNotBuilt, .mapNotBuilt, .noDevice, .shaders(shaderError), .function("mil_layout"),
+    .pipeline("mil_focus_link_vertex", "bad blend\nsecond line"), .depthState, .mapBuffers, .frameBuffers,
+    .noMap(120), .noCommandBuffer(120), .noDrawable(120)
+]
+let texts = allFailures.map { $0.text }
+check("P16 each failure says \"cannot draw: \" and a reason of its own",
+      texts.allSatisfy { $0.hasPrefix("cannot draw: ") && $0.count > 15 } && Set(texts).count == texts.count,
+      texts.joined(separator: " | "))
+check("P16 a compiler error keeps its first line only",
+      GraphPerfDrawFailure.shaders(shaderError).reason
+          == "the shaders did not compile: Error Domain=MTLLibraryErrorDomain Code=3 \"program_source:412:9: error: use of undeclared identifier 'x'",
+      GraphPerfDrawFailure.shaders(shaderError).reason)
+check("P16 a pipeline names its function and the error's first line",
+      GraphPerfDrawFailure.pipeline("mil_focus_link_vertex", "bad blend\nsecond line").text
+          == "cannot draw: pipeline mil_focus_link_vertex: bad blend")
+check("P16 a long error is cut at 160 characters",
+      GraphPerfDrawFailure.firstLine(String(repeating: "e", count: 500)).count == 161)
+let failedStats = stuck.failing(.shaders(shaderError))
+check("P16 a failure comes first in the readout's words, the numbers after it",
+      failedStats.spoken.hasPrefix("cannot draw: the shaders did not compile")
+          && failedStats.spoken.contains("0 notes") && failedStats.spoken.contains("tour: warm"), failedStats.spoken)
+check("P16 the proof's 300-character tail of a long reading still holds a short failure's reason",
+      String(GraphPerfStats().failing(.mapBuffers).spoken.suffix(300)).contains("cannot draw: the map's GPU buffers"))
+check("P16 a run of stopped frames never replaces the failure that caused it",
+      GraphPerfDrawFailure.shown(current: .mapBuffers, next: .noMap(120)) == .mapBuffers
+          && GraphPerfDrawFailure.shown(current: nil, next: .noMap(120)) == .noMap(120)
+          && GraphPerfDrawFailure.shown(current: .noDrawable(120), next: .shaders("x")) == .shaders("x"))
+
+var drawWatch = GraphPerfDrawWatch()
+var told: [GraphPerfDrawFailure] = []
+for _ in 0..<(GraphPerfDrawWatch.limit - 1) { if let t = drawWatch.frame(.noDrawable(0)) { told.append(t) } }
+check("P16 a short gap without a drawable is not a failure", told.isEmpty)
+if let t = drawWatch.frame(.noDrawable(0)) { told.append(t) }
+for _ in 0..<50 { if let t = drawWatch.frame(.noDrawable(0)) { told.append(t) } }
+check("P16 \(GraphPerfDrawWatch.limit) stopped frames in a row are told once, with their count",
+      told == [.noDrawable(GraphPerfDrawWatch.limit)], "\(told)")
+check("P16 a drawn frame starts the count again", drawWatch.frame(nil) == nil && drawWatch.stopped == 0)
+told = []
+for _ in 0..<GraphPerfDrawWatch.limit { if let t = drawWatch.frame(.noMap(0)) { told.append(t) } }
+check("P16 and a later run is told again", told == [.noMap(GraphPerfDrawWatch.limit)], "\(told)")
+
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

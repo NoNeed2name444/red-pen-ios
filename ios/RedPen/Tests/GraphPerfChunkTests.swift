@@ -959,5 +959,39 @@ if optimized {
     print("     C13 skipped in a debug build (CI runs it with -O)")
 }
 
+// MARK: - C20 the demo's build says what it came to (T0150): the map, a
+// newer one wanted, or which step gave nothing, never a silent nil
+
+func outcomeName(_ o: GraphPerfMillionMap.Outcome) -> String {
+    switch o {
+    case .built(let made): return "built \(made.bodyCount)"
+    case .cancelled: return "cancelled"
+    case .failed(let why): return why.text
+    }
+}
+let small = GraphPerfMillionMap.demo(notes: 2_000)
+if case .built(let made) = small {
+    check("C20 a demo builds into a map with every note", made.scene.graph.noteCount == 2_000, outcomeName(small))
+} else {
+    check("C20 a demo builds into a map", false, outcomeName(small))
+}
+check("C20 a newer map wanted from the start: cancelled, not a failure",
+      outcomeName(GraphPerfMillionMap.demo(notes: 2_000, isCancelled: { true })) == "cancelled")
+// the scene's first look at isCancelled says stop; every later one says go on:
+// the scene gave nothing with no newer map wanted, which is a failure
+var asked = 0
+let sceneLost = GraphPerfMillionMap.demo(notes: 2_000, isCancelled: { asked += 1; return asked == 1 })
+check("C20 a scene that gives nothing for no reason: \"cannot draw: the scene was not built\"",
+      outcomeName(sceneLost) == "cannot draw: the scene was not built", outcomeName(sceneLost))
+var mapAsks = 0, sceneAsks = 0
+_ = GraphPerfMillionMap.demo(notes: 2_000, isCancelled: { sceneAsks += 1; return false })
+let mapLost = GraphPerfMillionMap.demo(notes: 2_000, isCancelled: {
+    mapAsks += 1
+    // the map's first look (the one after the scene's own) says stop
+    return mapAsks == sceneAsks - 1
+})
+check("C20 a map that gives nothing for no reason: \"cannot draw: the million map was not built\"",
+      outcomeName(mapLost) == "cannot draw: the million map was not built", outcomeName(mapLost) + " at \(sceneAsks)")
+
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

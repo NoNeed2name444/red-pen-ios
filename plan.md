@@ -2110,6 +2110,21 @@ with the marks on the screens last.
         console stall. fly() now calls app.keepTraceOffConsole() (taken
         unchanged from design/ui-suite-fix, 0dbb1f74) before launch.
         Rerun as preview/perf-proof-2.
+      - 23 Oct, T0150 (run 39932576764, design/integration): the same
+        "0 notes · 0 links, 0 fps" for 15 minutes x3, with the main thread
+        answering and the map empty with no label. It began with 47c13782:
+        testPerformanceMillion passed on 7f5bc74d (run 38686619509: 73 s
+        iPhone, 114 s iPad) and timed out on 47c13782 (run 38721234572,
+        no tour). On Linux the same build is fine (the million in 28 s at
+        -Onone, every step non-nil) and the renderer's planning settles in
+        about 20 frames, so the stop is Metal-side: the million renderer
+        not made (its shaders or a pipeline), its buffers not made, or
+        frames stopping before they draw. Each of those returned silently
+        (NSLog only, hidden by keepTraceOffConsole). Now each says
+        "cannot draw: <reason>" on the map and first in the readout, and
+        the proof's failure message quotes it (GraphPerfDrawFailure,
+        GraphPerfDrawWatch, GraphPerfMillionMap.Outcome; P16, C20). Next
+        Mac run: read the reason, then fix that step.
     - Merged (T0108, 22 Oct): design/perf-proof, with design/perf-million
       under it, and then design/perf-fade-band (D2's wider bands, 15 Oct)
       went into design/merge-graph, so the integration build has the
