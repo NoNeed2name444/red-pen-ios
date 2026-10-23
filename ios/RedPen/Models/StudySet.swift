@@ -15,16 +15,6 @@ enum StudySetKind: String, Codable, CaseIterable, Identifiable {
         case .cases: return "Cases"
         }
     }
-    var emoji: String {
-        switch self {
-        case .mcq: return "📝"
-        case .anki: return "🗂️"
-        case .book: return "📖"
-        case .osce: return "✅"
-        case .narrate: return "🎙️"
-        case .cases: return "🩺"
-        }
-    }
 
     /// Kinds this app removed, as sets save them: "qa", the old Cases (the
     /// new Cases are "cases", a different kind with a different shape). A set
