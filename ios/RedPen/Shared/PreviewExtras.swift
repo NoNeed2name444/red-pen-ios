@@ -539,7 +539,10 @@ extension PreviewExtras {
                 TourNotes { _ in LibraryView(inIdeas: true) }
             })
         case "ideas-map":
-            return AnyView(TourSetup({ TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue]) }) {
+            return AnyView(TourSetup({
+                TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue])
+                TourData.mapCardsSeen()
+            }) {
                 TourNotes { _ in LibraryView(inIdeas: true) }
             })
         case "ideas-map-neurons":
@@ -626,6 +629,7 @@ extension PreviewExtras {
     fileprivate static func themedMap(_ theme: GraphTheme, legend: Bool) -> AnyView {
         AnyView(TourSetup({
             TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue, GraphTheme.key: theme.rawValue])
+            TourData.mapCardsSeen()
         }) {
             TourNotes { _ in
                 if legend {
@@ -729,6 +733,15 @@ private enum TourData {
     /// Settings for this launch only: registered, so nothing is written.
     static func register(_ values: [String: Any]) {
         UserDefaults.standard.register(defaults: values)
+    }
+
+    /// Every map theme's first-run card (GraphUniverseHint) put away, as
+    /// "Got it" leaves it, so the map shots show the map, alike in every
+    /// theme and in light and dark (Graph3DView's cardSeen and the touch
+    /// lines' GraphMapTouch). The card itself stays in the app.
+    static func mapCardsSeen() {
+        let all: String = GraphTheme.allCases.map(\.rawValue).joined(separator: ",")
+        register(["vignette.space.universeHintSeen": true, GraphTheme.hintsKey: all, GraphMapTouch.seenKey: all])
     }
 
     /// PLAB, six weeks away.

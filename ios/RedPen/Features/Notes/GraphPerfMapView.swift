@@ -109,6 +109,11 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
     private let pill = UILabel()
     private let pillBack = UIView()
     private let unavailable = UILabel()
+    /// The names under the nearest points, and which bodies carry them.
+    private var names: [UILabel] = []
+    private var labelChooser = GraphPerfLabelChooser(budget: GraphPerfTier.high.labelBudget)
+    /// The filter's mask (nil: every body shows): a hidden body has no name.
+    private var shownMask: [Bool]?
     private var spin = SIMD2<Float>(0, 0)
     private var glide: (from: GraphPerfCamera, to: GraphPerfCamera, start: CFTimeInterval, duration: Double)?
     private var touching: Int = 0
@@ -381,6 +386,7 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
 
     func setMask(_ mask: [Bool]?) {
         engine?.setMask(mask)
+        shownMask = mask
         wake()
     }
 
@@ -420,8 +426,17 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         var from: GraphPerfCamera = engine.camera
         from.yaw = Self.defaultYaw
         from.pitch = Self.defaultPitch
-        let goal: GraphPerfCamera = from.framing(centre: whole.centre, radius: whole.radius, width: Float(bounds.width),
-                                                 height: Float(bounds.height), insets: insets, fill: 0.9)
+        let width = Float(bounds.width), height = Float(bounds.height)
+        // a map small enough to look at each body is framed on the bodies
+        // themselves (a small map is seldom round); a large one on its ball
+        var points: [SIMD3<Float>] = []
+        if whole.bodies <= GraphPerfLabelSpots.limit {
+            points = (0..<whole.bodies).compactMap { engine.position($0) }
+        }
+        let goal: GraphPerfCamera = from.framing(points: points, margin: whole.spacing * 0.6, width: width,
+                                                 height: height, insets: insets, fill: 0.9)
+            ?? from.framing(centre: whole.centre, radius: whole.radius, width: width, height: height,
+                            insets: insets, fill: 0.9)
         framedBodies = max(whole.bodies, 1)
         move(to: goal, animated: animated)
     }
@@ -462,6 +477,7 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
             if abs(spin.x) < 0.02 && abs(spin.y) < 0.02 { spin = .zero }
         }
         updatePill()
+        updateLabels()
         let busy: Bool = touching > 0 || glide != nil || spin != .zero || engine.isSettling || tour != nil
         if busy {
             lastBusy = now
@@ -512,6 +528,73 @@ final class GraphPerfMapView: UIView, UIGestureRecognizerDelegate {
         let x: CGFloat = min(max(at.x, width / 2 + 12), bounds.width - width / 2 - 12)
         pillBack.center = CGPoint(x: x, y: max(at.y - above, height / 2 + 4))
         pillBack.isHidden = false
+    }
+
+    // MARK: - The names under the points
+
+    /// The nearest few bodies on screen carry their names (GraphPerfLabelChooser,
+    /// the tier's budget), as the other themes' bodies do; the chosen one
+    /// has the pill instead. Only on a map small enough to scan each frame
+    /// (GraphPerfLabelSpots.limit): never on the demos.
+    private func updateLabels() {
+        guard let engine, !showsMillion, let whole = engine.mapBounds, whole.bodies <= GraphPerfLabelSpots.limit,
+              bounds.width > 1, bounds.height > 1 else {
+            hideLabels(from: 0)
+            return
+        }
+        let width = Float(bounds.width), height = Float(bounds.height)
+        let camera = engine.camera
+        var projected: [(x: Float, y: Float, depth: Float)] = []
+        projected.reserveCapacity(whole.bodies)
+        for i in 0..<whole.bodies {
+            let hidden: Bool = shownMask.map { i < $0.count && !$0[i] } ?? false
+            guard !hidden, let p = engine.position(i) else {
+                projected.append((0, 0, -1))
+                continue
+            }
+            projected.append(camera.project(p, width: width, height: height))
+        }
+        let spots = GraphPerfLabelSpots.candidates(projected, width: width, height: height, insets: insets)
+            .filter { $0.index != engine.selected }
+        labelChooser.budget = engine.tier.labelBudget
+        let shown: [Int] = labelChooser.choose(spots)
+        for (k, body) in shown.enumerated() {
+            let label: UILabel = nameLabel(k)
+            let title: String = engine.title(body)
+            if label.text != title {
+                label.text = title
+                label.sizeToFit()
+            }
+            let at = projected[body]
+            let w: CGFloat = min(label.bounds.width, bounds.width - 24)
+            label.bounds = CGRect(x: 0, y: 0, width: w, height: label.bounds.height)
+            let x: CGFloat = min(max(CGFloat(at.x), w / 2 + 12), bounds.width - w / 2 - 12)
+            label.center = CGPoint(x: x, y: CGFloat(at.y) + 16)
+            label.isHidden = false
+        }
+        hideLabels(from: shown.count)
+    }
+
+    private func nameLabel(_ k: Int) -> UILabel {
+        while names.count <= k {
+            let made = UILabel()
+            made.font = UIFont.preferredFont(forTextStyle: .caption1)
+            made.adjustsFontForContentSizeCategory = true
+            made.textColor = UIColor(white: 1, alpha: 0.92)
+            made.textAlignment = .center
+            made.lineBreakMode = .byTruncatingTail
+            made.isUserInteractionEnabled = false
+            // the map itself is one VoiceOver element: its names are not more
+            made.isAccessibilityElement = false
+            insertSubview(made, belowSubview: pillBack)
+            names.append(made)
+        }
+        return names[k]
+    }
+
+    private func hideLabels(from k: Int) {
+        guard k < names.count else { return }
+        for label in names[k...] { label.isHidden = true }
     }
 
     // MARK: - Hands

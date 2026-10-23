@@ -148,6 +148,33 @@ nonisolated enum GraphTheme: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
+    /// What draws the theme's bodies: the Universe's own builder (black
+    /// holes, stars, gas giants, rocky planets), the shared theme scene with
+    /// the theme's look (the Neurons' cells, parts, vesicles, granules and
+    /// axons), or the Metal engine (hubs, points, lines and glows).
+    /// Graph3DView picks the builder by this.
+    enum Bodies: String, Sendable { case universe, themeScene, points }
+
+    /// The ground behind them: the Universe's starfield, the Neurons' fluid
+    /// (NeuronTissue), or the fast map's flat near-black (GraphPerfScene.background).
+    enum Ground: String, Sendable { case stars, tissue, flat }
+
+    var bodies: Bodies {
+        switch self {
+        case .space: return .universe
+        case .neurons: return .themeScene
+        case .performance: return .points
+        }
+    }
+
+    var ground: Ground {
+        switch self {
+        case .space: return .stars
+        case .neurons: return .tissue
+        case .performance: return .flat
+        }
+    }
+
     /// Where the other themes' "first-run card seen" marks are kept (a
     /// comma list of raw values); the Universe keeps its own old key,
     /// "vignette.space.universeHintSeen", so nobody sees its card twice.

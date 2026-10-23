@@ -355,7 +355,9 @@ extension GraphLegendContent {
     static let performance: GraphLegendContent = GraphLegendContent(
         rungs: performanceRungs, ladderCaption: "Nearer things show more detail.",
         ladderLabel: "Size ladder: far folder, folder, page, idea, far note",
-        rows: performanceRows, footer: performanceFooter)
+        // the Speed row names the readout, which only the personal build shows
+        rows: performanceRows.filter { $0.name != "Speed" || GraphPerfReadout.shown(developer: PersonalBuild.isOn, demo: 0) },
+        footer: performanceFooter)
 }
 
 /// A theme's one-time card (the Universe's first): the three most useful

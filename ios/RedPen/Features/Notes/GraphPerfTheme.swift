@@ -42,9 +42,14 @@ struct GraphPerfSpace: View {
                 map(insets: geo.safeAreaInsets)
             }
             .ignoresSafeArea()
-            readout
-                .padding(.leading, WardSpace.gutter)
-                .padding(.top, 8)
+            // a developer's meter: the personal build's, or a demo's (its
+            // menu is the way back to the owner's notes); never over a
+            // user's own notes (GraphPerfReadout)
+            if GraphPerfReadout.shown(developer: PersonalBuild.isOn, demo: demoInForce) {
+                readout
+                    .padding(.leading, WardSpace.gutter)
+                    .padding(.top, 8)
+            }
         }
     }
 

@@ -104,6 +104,38 @@ nonisolated struct GraphPerfLabelChooser: Sendable {
     }
 }
 
+/// Whether the speed readout is on screen. It is a developer's meter, not
+/// part of the map: shown in the personal build (the developer tools'
+/// gate, PersonalBuild; Android shows it only in a debug build), and on a
+/// demo map, whose readout menu is the only way back to the owner's notes.
+/// Never on an ordinary user's own notes.
+nonisolated enum GraphPerfReadout {
+    static func shown(developer: Bool, demo: Int) -> Bool {
+        developer || demo > 0
+    }
+}
+
+/// Which bodies may carry a label this frame: those in front of the eye and
+/// inside the view (less its glass), with their depth for the chooser
+/// (GraphPerfLabelChooser). Above `limit` bodies the map labels nothing
+/// (the demos; a scan a frame would cost too much there).
+nonisolated enum GraphPerfLabelSpots {
+    static let limit: Int = 2_000
+
+    static func candidates(_ points: [(x: Float, y: Float, depth: Float)], width: Float, height: Float,
+                           insets: (top: Float, left: Float, bottom: Float, right: Float) = (0, 0, 0, 0))
+        -> [(index: Int, depth: Float)] {
+        guard points.count <= limit else { return [] }
+        var out: [(index: Int, depth: Float)] = []
+        for (i, p) in points.enumerated() where p.depth > 0 && p.x.isFinite && p.y.isFinite {
+            guard p.x >= insets.left, p.x <= width - insets.right,
+                  p.y >= insets.top, p.y <= height - insets.bottom else { continue }
+            out.append((i, p.depth))
+        }
+        return out
+    }
+}
+
 /// What the speed readout shows: the map's size, what this frame drew,
 /// and how fast frames come.
 nonisolated struct GraphPerfStats: Sendable, Equatable {
