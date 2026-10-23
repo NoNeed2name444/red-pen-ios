@@ -36,6 +36,29 @@ enum MockFormat {
     /// The mock's word for one of those timed parts: "Part 1", "Part 2 of 3".
     /// The owner's choice (22 Oct): "Block" is the focus timer's word only.
     static let partWord: String = "Part"
+    /// "part 2 of 3", inside a sentence.
+    static func partOf(_ n: Int, _ count: Int) -> String { "\(partWord.lowercased()) \(n) of \(count)" }
+    /// "between parts", inside a sentence.
+    static let betweenParts: String = "between \(partWord.lowercased())s"
+    /// The break's heading: "Part 2 closed".
+    static func partClosed(_ n: Int) -> String { "\(partWord) \(n) closed" }
+    /// The break's line about what comes next.
+    static func nextPartLine(questions: Int, time: String) -> String {
+        "Next \(partWord.lowercased()): \(questions) questions in \(time). Its clock starts when you do."
+    }
+    /// The clock's spoken label.
+    static func minutesLeft(_ minutes: Int) -> String { "\(minutes) minutes left in this \(partWord.lowercased())" }
+    /// The review grid's hint.
+    static let reviewHint: String = "All the questions in this \(partWord.lowercased()), with the flagged and unanswered ones marked"
+    /// Said before a part is closed.
+    static let closedForGood: String = "A closed \(partWord.lowercased()) can\u{2019}t be reopened."
+    /// How a sitting runs, as the paper screen lists it.
+    static let rules: [String] = [
+        "The clock is strict: when a \(partWord.lowercased())\u{2019}s time is up it closes, answered or not.",
+        "Flag and jump between questions within a \(partWord.lowercased()); a closed \(partWord.lowercased()) can\u{2019}t be reopened.",
+        "Cross out options, highlight the stem, and open lab values or the calculator from More.",
+        "Your score, by subject, comes at the end with every answer explained."
+    ]
 
     /// The papers a track offers. USMLE's is built from a count of blocks.
     static func papers(for track: ExamTrack, usmleBlocks: Int = 2) -> [MockPaperSpec] {

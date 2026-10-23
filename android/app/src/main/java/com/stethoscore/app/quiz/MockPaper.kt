@@ -37,6 +37,26 @@ object MockFormat {
     const val usmleMaxBlocks = 7
     /** The mock's word for one of those timed parts: "Part 1", "Part 2 of 3". The owner's choice (22 Oct): "Block" is the focus timer's word only. */
     const val partWord = "Part"
+    /** "part 2 of 3", inside a sentence. */
+    fun partOf(n: Int, count: Int): String = "${partWord.lowercase()} $n of $count"
+    /** "between parts", inside a sentence. */
+    val betweenParts: String = "between ${partWord.lowercase()}s"
+    /** The break's heading: "Part 2 closed". */
+    fun partClosed(n: Int): String = "$partWord $n closed"
+    /** The break's line about what comes next. */
+    fun nextPartLine(questions: Int, time: String): String =
+        "Next ${partWord.lowercase()}: $questions questions in $time. Its clock starts when you do."
+    /** The clock's spoken label. */
+    fun minutesLeft(minutes: Int): String = "$minutes minutes left in this ${partWord.lowercase()}"
+    /** Said before a part is closed. */
+    val closedForGood: String = "A closed ${partWord.lowercase()} can\u2019t be reopened."
+    /** How a sitting runs, as the paper screen lists it. */
+    val rules: List<String> = listOf(
+        "The clock is strict: when a ${partWord.lowercase()}\u2019s time is up it closes, answered or not.",
+        "Flag and jump between questions within a ${partWord.lowercase()}; a closed ${partWord.lowercase()} can\u2019t be reopened.",
+        "Cross out options, highlight the stem, and open lab values or the calculator from More.",
+        "Your score, by subject, comes at the end with every answer explained.",
+    )
 
     /** The papers a track offers. USMLE's is built from a count of blocks. */
     fun papers(track: ExamTrack, usmleBlocks: Int = 2): List<MockPaperSpec> = when (track) {

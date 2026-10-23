@@ -226,7 +226,7 @@ struct MockSittingView: View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let left: Int = max(0, Int(ends.timeIntervalSince(context.date).rounded(.up)))
             WardTimerPill(seconds: left, warnBelow: 301)
-                .accessibilityLabel("\(left / 60) minutes left in this section")
+                .accessibilityLabel(MockFormat.minutesLeft(left / 60))
         }
     }
 
@@ -377,7 +377,7 @@ struct MockSittingView: View {
                 Label("Review", systemImage: "square.grid.3x3")
             }
             .buttonStyle(.bigCompanion)
-            .accessibilityHint("All the questions in this section, with the flagged and unanswered ones marked")
+            .accessibilityHint(MockFormat.reviewHint)
 
             if span == .broad { Spacer(minLength: 16) }
 
@@ -399,7 +399,7 @@ struct MockSittingView: View {
     private var endMessage: String {
         let open: Int = picks.filter { selected[$0.question.id] == nil }.count
         let marked: Int = picks.filter { flagged.contains($0.question.id) }.count
-        let closing: String = isLastSection ? "" : " A closed section can\u{2019}t be reopened."
+        let closing: String = isLastSection ? "" : " " + MockFormat.closedForGood
         return "\(open) unanswered, \(marked) flagged." + closing
     }
 
@@ -480,9 +480,9 @@ struct MockSittingView: View {
 
     private var breakScreen: some View {
         let next: MockSectionSpec = spec
-        let line: String = "\(next.questions) questions in \(MockPaperView.hours(next.minutes)). Its clock starts when you do."
+        let line: String = MockFormat.nextPartLine(questions: next.questions, time: MockPaperView.hours(next.minutes))
         return ScrollView {
-            FinishHero(symbol: "cup.and.saucer", title: "Section closed", message: line)
+            FinishHero(symbol: "cup.and.saucer", title: MockFormat.partClosed(section), message: line)
                 .contentCard()
                 .padding(WardSpace.gutter)
                 .readableColumn()

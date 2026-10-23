@@ -24,6 +24,21 @@ class ExamToolsTest {
         assertEquals("MRCS A has its two papers", listOf(180, 120), MockFormat.papers(ExamTrack.mrcs).map { it.minutes })
     }
 
+    @Test fun partLabels() {
+        // the owner, 22 Oct: the mock says "Part n", never "section"
+        val usmle = MockFormat.papers(ExamTrack.usmle, usmleBlocks = 3)[0]
+        assertEquals(listOf("Part 1", "Part 2", "Part 3"), usmle.sections.map { it.title })
+        assertEquals("part 2 of 3", MockFormat.partOf(2, 3))
+        assertEquals("between parts", MockFormat.betweenParts)
+        assertEquals("Part 2 closed", MockFormat.partClosed(2))
+        assertEquals("Next part: 40 questions in 1 hr. Its clock starts when you do.", MockFormat.nextPartLine(40, "1 hr"))
+        assertEquals("12 minutes left in this part", MockFormat.minutesLeft(12))
+        assertEquals("A closed part can\u2019t be reopened.", MockFormat.closedForGood)
+        val words = MockFormat.rules + listOf(MockFormat.partOf(1, 2), MockFormat.betweenParts, MockFormat.partClosed(1),
+            MockFormat.nextPartLine(1, "1 min"), MockFormat.minutesLeft(1), MockFormat.closedForGood)
+        assertTrue(words.toString(), words.none { it.lowercase().contains("section") })
+    }
+
     private fun pool(counts: Map<String, Int>): List<MockCandidate> =
         counts.toSortedMap().flatMap { (subject, n) -> List(n) { MockCandidate(id(), subject) } }
 

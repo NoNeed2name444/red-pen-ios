@@ -64,8 +64,8 @@ struct MockPaperView: View {
     /// The sitting left part way: where it was, and the way back to it.
     private func resumeCard(_ save: MockSittingSave) -> some View {
         let part: String = save.onBreak
-            ? "between sections"
-            : "section \(min(save.section + 1, save.specs.count)) of \(save.specs.count)"
+            ? MockFormat.betweenParts
+            : MockFormat.partOf(min(save.section + 1, save.specs.count), save.specs.count)
         return VStack(alignment: .leading, spacing: 10) {
             Text("\(save.title), unfinished")
                 .font(.headline)
@@ -187,12 +187,7 @@ struct MockPaperView: View {
     }
 
     private var rules: some View {
-        let lines: [String] = [
-            "The clock is strict: when a section\u{2019}s time is up it closes, answered or not.",
-            "Flag and jump between questions within a section; a closed section can\u{2019}t be reopened.",
-            "Cross out options, highlight the stem, and open lab values or the calculator from More.",
-            "Your score, by subject, comes at the end with every answer explained."
-        ]
+        let lines: [String] = MockFormat.rules
         return VStack(alignment: .leading, spacing: 8) {
             WardSectionLabel("How it runs")
             ForEach(lines, id: \.self) { line in

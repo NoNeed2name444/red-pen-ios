@@ -24,6 +24,21 @@ check("USMLE blocks are 40 in 60 minutes", usmle.sections.count == 3
 check("no more than seven USMLE blocks", MockFormat.papers(for: .usmle, usmleBlocks: 12)[0].sections.count == 7)
 check("MRCS A has its two papers", MockFormat.papers(for: .mrcs).map(\.minutes) == [180, 120])
 
+// MARK: part labels (owner, 22 Oct: the mock says "Part n", never "section")
+
+check("a part reads Part n", usmle.sections.map(\.title) == ["Part 1", "Part 2", "Part 3"])
+check("the resume line reads part n of m", MockFormat.partOf(2, 3) == "part 2 of 3")
+check("between parts", MockFormat.betweenParts == "between parts")
+check("the break reads Part n closed", MockFormat.partClosed(2) == "Part 2 closed")
+check("the break names the next part",
+      MockFormat.nextPartLine(questions: 40, time: "1 hr") == "Next part: 40 questions in 1 hr. Its clock starts when you do.")
+check("the clock speaks of the part", MockFormat.minutesLeft(12) == "12 minutes left in this part")
+check("a closed part stays closed", MockFormat.closedForGood == "A closed part can\u{2019}t be reopened.")
+let partWords: [String] = MockFormat.rules + [MockFormat.partOf(1, 2), MockFormat.betweenParts, MockFormat.partClosed(1),
+                                              MockFormat.nextPartLine(questions: 1, time: "1 min"), MockFormat.minutesLeft(1),
+                                              MockFormat.reviewHint, MockFormat.closedForGood]
+check("no mock label says section", partWords.allSatisfy { !$0.lowercased().contains("section") }, "\(partWords)")
+
 // MARK: assembly
 
 func pool(_ counts: [String: Int]) -> [MockCandidate] {

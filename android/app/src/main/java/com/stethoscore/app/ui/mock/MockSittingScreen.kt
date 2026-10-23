@@ -86,6 +86,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.ChartQuiz
+import com.stethoscore.app.quiz.MockFormat
 import com.stethoscore.app.quiz.MockMark
 import com.stethoscore.app.quiz.MockPacing
 import com.stethoscore.app.quiz.MockRecord
@@ -322,7 +323,7 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
                 val next = spec
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
                     ContentCard(Modifier.readableColumn().padding(16.dp)) {
-                        FinishHero("Section closed", "${next.questions} questions in ${mockHours(next.minutes)}. Its clock starts when you do.") {
+                        FinishHero(MockFormat.partClosed(section), MockFormat.nextPartLine(next.questions, mockHours(next.minutes))) {
                             FinishSymbol(Icons.Rounded.Coffee)
                         }
                     }
@@ -353,7 +354,7 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
                     if (ends != null) {
                         // Resus Red for the last five minutes
                         val left = maxOf(0, Math.ceil((ends - now) / 1000.0).toInt())
-                        WardTimerPill(left, Modifier.clearAndSetSemantics { contentDescription = "${left / 60} minutes left in this section" },
+                        WardTimerPill(left, Modifier.clearAndSetSemantics { contentDescription = MockFormat.minutesLeft(left / 60) },
                             warnBelow = 301)
                     }
                 }
@@ -423,7 +424,7 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
     if (confirmEnd) {
         val open = picks.count { selected[it.question.id] == null }
         val marked = picks.count { it.question.id in flagged }
-        val closing = if (isLastSection) "" else " A closed section can’t be reopened."
+        val closing = if (isLastSection) "" else " " + MockFormat.closedForGood
         ConfirmSheet(if (isLastSection) "Finish the paper?" else "Close ${spec.title}?", "$open unanswered, $marked flagged.$closing",
             listOf(ConfirmChoice(if (isLastSection) "Finish paper" else "Close ${spec.title}", true) { closeSection() }),
             "Keep going") { confirmEnd = false }

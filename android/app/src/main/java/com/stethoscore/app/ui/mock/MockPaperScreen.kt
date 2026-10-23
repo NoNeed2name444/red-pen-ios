@@ -303,12 +303,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
                 LibraryNote(available, paper, target)
                 ContentCard(spacing = 8.dp) {
                     WardSectionLabel("How it runs")
-                    listOf(
-                        "The clock is strict: when a section’s time is up it closes, answered or not.",
-                        "Flag and jump between questions within a section; a closed section can’t be reopened.",
-                        "Cross out options, highlight the stem, and open lab values or the calculator from More.",
-                        "Your score, by subject, comes at the end with every answer explained.",
-                    ).forEach { line ->
+                    MockFormat.rules.forEach { line ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Rounded.Check, null, Modifier.size(18.dp), tint = wardColor(WardToken.primaryInk))
                             Text(line, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
@@ -330,7 +325,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
 
 /** The sitting left part way: where it was, and the way back to it. */
 @Composable private fun ResumeCard(save: MockSittingSave, onResume: () -> Unit, onDiscard: () -> Unit) {
-    val part = if (save.onBreak) "between sections" else "section ${minOf(save.section + 1, save.specs.size)} of ${save.specs.size}"
+    val part = if (save.onBreak) MockFormat.betweenParts else MockFormat.partOf(minOf(save.section + 1, save.specs.size), save.specs.size)
     WardCardFace(Modifier.fillMaxWidth(), spacing = 10.dp) {
         Text("${save.title}, unfinished", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
         Text("${save.answered} of ${save.total} answered, $part. The clock waits until you go back.",
