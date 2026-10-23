@@ -105,6 +105,19 @@ The owner's exam words (`docs/design/identity/wording.md`), built on both phones
 | Today's revision's "Open plan" button (`Features/Library/WardHome.swift`'s planButton) | `ui/home/WardHome.kt`'s plan button | same words; Android's click label still reads "Opens the exam plan and forecast" (no deck row names it) |
 | The iPad keyboard menu in sentence case (`Shared/AppIntentsRouting.swift`'s StethoscoreCommands) | none | iOS only: Android has no keyboard menu |
 
+## The mode glyphs (T0154c)
+
+Each mode's glyph: iOS's SF Symbol (`Shared/Theme.swift`'s StudySetKind.symbol) and the nearest Rounded Material icon in `ui/StethoscoreApp.kt`'s modeIcon. One row per mode.
+
+| Mode | iOS SF Symbol | Kotlin (Icons.Rounded) | Verdict |
+|---|---|---|---|
+| MCQ | `checklist.checked` | Checklist | same shape: ticks beside lines |
+| Cards (ANKI) | `rectangle.on.rectangle.angled` | Style | same shape: cards stacked at an angle |
+| Textbook (BOOK) | `book.pages` | AutoStories | same shape: an open book with its pages |
+| OSCE | `list.clipboard` | Assignment | same shape: a clipboard with lines |
+| Narrate | `waveform` | GraphicEq | same shape: a sound wave in bars |
+| Cases | `stethoscope` | MedicalServices | differs: Material Icons (1.7.8) has no stethoscope; the medical bag stands in until the owner picks one |
+
 ## Where iOS can't be copied
 
 - SwiftUI shadows and blurs: Compose has no inner shadow. Draw the inset lights with `drawBehind` and a blur-masked `Paint` (or `RenderEffect` on API 31+), from WardRelief's numbers.
