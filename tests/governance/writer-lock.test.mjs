@@ -56,5 +56,14 @@ check('the app no longer links the on-device model package', !/LocalLLMClient/.t
 check('nor does the Playgrounds build patch for it', !/Gemma/.test(read('tools/make_swiftpm.py')) && !/Gemma/.test(read('tools/playgrounds_stubs/core/CoreApp.swift')));
 check('earlier builds\' model files are removed on launch', /RetiredModels\.removeAll\(\)/.test(service));
 
+// Android's station screen: the cloud's own reason, as its question and case screens give
+const androidStations = read('android/app/src/main/java/com/stethoscore/app/ui/osce/OsceGenerateSection.kt');
+check('Android stations: with no writer, CaseMaker.noWriter(llm.cloudBlocker), as questions and cases',
+  /OsceGenerator\.writer\(\) \?: run \{ trouble = CaseMaker\.noWriter\(llm\.cloudBlocker\); return \}/.test(androidStations));
+check('Android stations: no "on this phone" writer text left',
+  !/on this phone/.test(read('android/app/src/main/java/com/stethoscore/app/data/OsceStations.kt')));
+// the server's switches no longer promise a writer on the phone
+check('server switches: no on-device promise', !/[Oo]n-device/.test(read('server/switches.js')));
+
 console.log(failed ? `writer lock: ${failed} check(s) failed` : 'writer lock: all checks pass');
 process.exit(failed ? 1 : 0);

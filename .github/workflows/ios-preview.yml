@@ -84,16 +84,9 @@ jobs:
         working-directory: ios
         run: |
           set -o pipefail
-          # LocalLLMClient ships a macro plugin; Xcode normally asks an
-          # interactive "do you trust this macro" question the first time,
-          # which a headless CI run can never answer. These flags are
-          # xcodebuild's own bypass - the same as clicking Trust once.
-          #
-          # LocalLLMClientLlamaC's headers are really C++, and Xcode's
-          # explicit-modules pre-scan reads that C target through a plain-C
-          # Clang context that never gets libc++'s search paths, so it cannot
-          # find <memory>. Disabling explicit modules falls back to the older,
-          # working implicit scanning.
+          # A headless run cannot answer Xcode's "trust this macro or plugin"
+          # question, so validation is skipped, and modules are scanned the
+          # older, implicit way.
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
             -destination "id=${{ steps.sim.outputs.udid }}" -derivedDataPath build \
             -skipMacroValidation -skipPackagePluginValidation \

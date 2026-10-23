@@ -240,9 +240,6 @@ object OsceGenerator {
 
     fun writer(): Writer? = null
 
-    /** Why nothing can be written, in the student's words. */
-    fun noWriter(): String = "Stations are written by an AI writer, and none is set up on this phone yet."
-
     const val nothingUsable = "Nothing in that source reads like a station. A skills lecture or a mark sheet works best — a slide deck of facts usually has no procedure in it."
 }
 

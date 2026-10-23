@@ -39,8 +39,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.data.CaseMaker
 import com.stethoscore.app.data.OsceGenerator
 import com.stethoscore.app.data.OsceStations
+import com.stethoscore.app.ui.editors.rememberLLMService
 import com.stethoscore.app.ui.mock.CountField
 import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
@@ -174,6 +176,7 @@ internal object OsceSourceReader {
 fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject: String, onSubject: (String) -> Unit,
                         presetText: String = "", presetName: String = "") {
     val context = LocalContext.current
+    val llm = rememberLLMService()
     val scope = rememberCoroutineScope()
     var working by remember { mutableStateOf(false) }
     var status by rememberSaveable { mutableStateOf<String?>(null) }
@@ -213,8 +216,9 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
 
     fun start() {
         trouble = null
-        // stations need a writer: none is set up on this phone yet
-        val writer = OsceGenerator.writer() ?: run { trouble = OsceGenerator.noWriter(); return }
+        // stations need the cloud's writer; without it, the cloud's own reason
+        // (part of Pro, sign in, or out of reach), as the question and case screens say
+        val writer = OsceGenerator.writer() ?: run { trouble = CaseMaker.noWriter(llm.cloudBlocker); return }
         working = true
         val wanted = stationCount
         val subj = subject
