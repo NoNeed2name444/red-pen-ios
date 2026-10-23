@@ -254,7 +254,7 @@ private fun cardAsk(card: AnkiCard): AccuracyAsk =
         Box {
             // with nothing to do, More is a disabled circle: Biro Grey, solid, never faded
             WardCircleButton(Icons.Rounded.MoreHoriz, "More", { open = true }, enabled = menu.isNotEmpty())
-            DropdownMenu(open, { open = false }) {
+            DropdownMenu(open, { open = false }, containerColor = wardColor(WardToken.background)) {
                 menu.forEach { entry -> DropdownMenuItem(text = { Text(entry.title) }, leadingIcon = { Icon(entry.icon, null) }, onClick = { open = false; entry.action() },
                     modifier = entry.tag?.let { Modifier.testTag(it) } ?: Modifier) }
             }

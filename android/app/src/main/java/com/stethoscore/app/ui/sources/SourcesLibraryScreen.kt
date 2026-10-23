@@ -26,6 +26,7 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.reading.sourceKind
 import com.stethoscore.app.ui.modeIcon
+import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.*
 
 // A port of ios/RedPen/Features/Sources/SourcesLibraryView.swift (fed0105):
@@ -111,7 +112,7 @@ private data class SourceOpen(val source: SourceDoc, val set: StudySet?)
             .wardRowTile()) {
             WardRowItem(kindIcon(entry.source.sourceKind), entry.source.name, SourcesLibrary.detail(entry), chevron = false)
         }
-        DropdownMenu(menu, { menu = false }) {
+        DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
             DropdownMenuItem(text = { Text("Read") }, leadingIcon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, null) },
                 onClick = { menu = false; open(entry.sets.firstOrNull()) })
             HorizontalDivider()

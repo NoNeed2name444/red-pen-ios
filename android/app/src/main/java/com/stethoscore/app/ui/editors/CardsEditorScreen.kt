@@ -158,7 +158,7 @@ import com.stethoscore.app.ui.wardColor
                     modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onDelete).padding(10.dp))
                 Box(Modifier.weight(1f)) { content() }
             }
-            DropdownMenu(menu, { menu = false }) {
+            DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
                 DropdownMenuItem({ Text("Delete", color = wardColor(WardToken.danger)) }, { menu = false; onDelete() },
                     leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = wardColor(WardToken.danger)) })
             }
@@ -293,7 +293,7 @@ private fun String.trimSpaces() = trim { it == ' ' || it == '\t' }
                 tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.inkSecondary),
                 modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onMark, onLongClick = { menu = true })
                     .semantics { contentDescription = "Mark correct"; selected = correct }.padding(10.dp))
-            DropdownMenu(menu, { menu = false }) {
+            DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
                 DropdownMenuItem({ Text("Mark correct") }, { menu = false; onMark() }, leadingIcon = { Icon(Icons.Rounded.CheckCircle, null) })
                 DropdownMenuItem({ Text("Delete", color = wardColor(WardToken.danger)) }, { menu = false; onRemove() },
                     leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = wardColor(WardToken.danger)) })

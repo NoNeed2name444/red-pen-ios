@@ -294,7 +294,7 @@ private fun describePicked(context: Context, uri: Uri): Pair<String, Long> {
                 }
             }, kind = WardButtonKind.quiet, fills = false) },
             dismissButton = { WardTextButton("Cancel", { backup = null }, kind = WardButtonKind.quiet, fills = false) },
-            containerColor = wardColor(WardToken.raised), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
+            containerColor = wardColor(WardToken.background), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
     }
     message?.let { shown -> LibraryAlert(shown.title, shown.body) { message = null } }
     lecture?.let { file -> LectureInboxSheet(file, { lecture = null }) { preset -> lecture = null; onLecture(preset) } }

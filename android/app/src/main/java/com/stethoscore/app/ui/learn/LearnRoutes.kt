@@ -175,6 +175,6 @@ internal object LearnRouter {
 /** A row whose screen is not on Android yet says so, in the app's own alert. */
 @Composable internal fun NotYetNotice(message: String?, onDismiss: () -> Unit) {
     if (message == null) return
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Library") }, text = { Text(message) },
+    AlertDialog(onDismissRequest = onDismiss, containerColor = wardColor(WardToken.background), title = { Text("Library") }, text = { Text(message) },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } })
 }

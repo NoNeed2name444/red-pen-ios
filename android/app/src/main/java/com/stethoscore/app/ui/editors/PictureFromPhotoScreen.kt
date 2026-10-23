@@ -323,7 +323,7 @@ private data class Saved(val set: StudySet, val cards: Int, val lecture: Boolean
                 Icon(Icons.Rounded.MoreHoriz, null, Modifier.size(18.dp))
                 Text("More")
             }
-            DropdownMenu(menu, { menu = false }) {
+            DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
                 DropdownMenuItem({ Text("Labels anywhere on the picture") }, { menu = false; onPlace(PhotoPages.Placement.wholePicture) })
                 DropdownMenuItem({ Text("Labels on the diagram only") }, { menu = false; onPlace(PhotoPages.Placement.diagramOnly) })
                 HorizontalDivider()
@@ -377,7 +377,7 @@ private data class Saved(val set: StudySet, val cards: Int, val lecture: Boolean
                 Text(decks.firstOrNull { it.id == destination }?.name ?: "A new deck", style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
                 Icon(Icons.Rounded.KeyboardArrowDown, null, tint = wardColor(WardToken.primaryInk))
             }
-            DropdownMenu(menu, { menu = false }) {
+            DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
                 DropdownMenuItem({ Text("A new deck") }, { menu = false; onDestination(null) })
                 decks.forEach { deck -> DropdownMenuItem({ Text(deck.name) }, { menu = false; onDestination(deck.id) }) }
             }

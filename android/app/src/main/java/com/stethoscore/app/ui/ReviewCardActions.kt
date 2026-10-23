@@ -107,6 +107,7 @@ private fun android.view.View.say(text: String) = announceForAccessibility(text)
     }
     if (asking) AlertDialog(
         onDismissRequest = { asking = false },
+        containerColor = wardColor(WardToken.background),
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick = { asking = false; bury() }, Modifier.fillMaxWidth()) {
