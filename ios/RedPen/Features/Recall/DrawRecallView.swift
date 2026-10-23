@@ -483,10 +483,10 @@ struct DrawRecallView: View {
         attemptID = attempt.id
         got = Set(attempt.got)
         if showOriginal {
-            let drawnOn = CGRect(x: 0, y: 0, width: attempt.width, height: attempt.height)
+            let drawnFrame = CGRect(x: 0, y: 0, width: attempt.width, height: attempt.height)
             let here = CGRect(origin: .zero, size: paperSize)
             let dark: Bool = scheme == .dark
-            let own: UIImage? = Self.render(kept, in: drawnOn, scale: 2, dark: dark)
+            let own: UIImage? = Self.render(kept, in: drawnFrame, scale: 2, dark: dark)
             drawnPicture = own ?? Self.render(fitted, in: here, scale: 2, dark: dark)
             drawnOn = paperSize
             fade = 0.5
