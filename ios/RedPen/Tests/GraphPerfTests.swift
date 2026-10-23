@@ -949,5 +949,127 @@ let farBins = GraphPerfScreenBins(farDrawn.points, width: width, height: height)
 let glowHit = farBins.pick(x: farDrawn.points.x[glowIndex], y: farDrawn.points.y[glowIndex]).map { farDrawn.ids[$0] }
 check("P14 far away a tap lands on a cluster's glow", glowHit.map { $0 < 0 } == true, "\(String(describing: glowHit))")
 
+// MARK: - P15 a user's own small map (T0149): no readout, framed on its
+// bodies, and its points named
+
+check("P15 the readout is a developer's: not over a user's own notes",
+      !GraphPerfReadout.shown(developer: false, demo: 0))
+check("P15 the personal build shows it, and a demo map does (its menu is the way back)",
+      GraphPerfReadout.shown(developer: true, demo: 0) && GraphPerfReadout.shown(developer: false, demo: 100_000))
+
+// the example notes' shape: a hub page, Inguinal (eight notes) and Femoral
+// (three) inside Examples, sixteen links
+let exTitles = ["Groin hernia", "Inguinal canal", "Canal boundaries", "LA/PM mnemonic", "Spermatic cord coverings",
+                "Indirect inguinal hernia", "Direct inguinal hernia", "Inferior epigastric vessels",
+                "Internal ring test", "Femoral hernia", "Femoral canal", "Saphena varix", "Hernia repair"]
+let exFolderOf: [Int] = [0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 0]
+let exIDs: [UUID] = exTitles.map { _ in UUID() }
+let exFolders: [UUID] = [UUID(), UUID(), UUID()]
+let exPairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 9), (0, 1), (0, 12), (1, 2), (1, 4), (2, 3), (8, 6), (4, 5),
+                             (9, 1), (5, 7), (9, 10), (9, 11), (6, 8), (3, 1)]
+let exInput = GraphPerfInput.make(noteIDs: exIDs, isPage: exTitles.indices.map { [0, 1, 5, 6, 9].contains($0) },
+                                  noteFolders: exFolderOf.map { exFolders[$0] }, folderIDs: exFolders,
+                                  folderParents: [nil, exFolders[0], exFolders[0]],
+                                  links: exPairs.map { (exIDs[$0.0], exIDs[$0.1]) }, noteTitles: exTitles,
+                                  folderNames: ["Examples", "Inguinal", "Femoral"])
+let exScene = GraphPerfScene.build(exInput)!
+var exForce = GraphPerfForce(graph: exScene.graph, layout: exScene.layout)
+while !exForce.isSettled { _ = exForce.step(budget: 1_000) }
+let exPoints: [SIMD3<Float>] = (0..<exScene.bodyCount).map { exForce.position($0) }
+// an iPhone 17 Pro in portrait, under the search bar and above the Ideas bar and dock
+let phoneW: Float = 402, phoneH: Float = 874
+let phoneInsets: (top: Float, left: Float, bottom: Float, right: Float) = (130, 16, 250, 72)
+var exStart = GraphPerfCamera()
+exStart.yaw = 0.55
+exStart.pitch = 0.32
+func exSpread(_ c: GraphPerfCamera) -> (w: Float, h: Float, inside: Bool) {
+    let at = exPoints.map { c.project($0, width: phoneW, height: phoneH) }
+    let xs = at.map(\.x), ys = at.map(\.y)
+    let inside = at.allSatisfy { $0.depth > 0 && $0.x >= phoneInsets.left && $0.x <= phoneW - phoneInsets.right
+        && $0.y >= phoneInsets.top && $0.y <= phoneH - phoneInsets.bottom }
+    return (xs.max()! - xs.min()!, ys.max()! - ys.min()!, inside)
+}
+let byBall = exSpread(exStart.framing(centre: exScene.centre, radius: exScene.radius, width: phoneW, height: phoneH,
+                                      insets: phoneInsets, fill: 0.9))
+let byPoints = exStart.framing(points: exPoints, margin: exScene.layout.spacing * 0.6, width: phoneW, height: phoneH,
+                               insets: phoneInsets, fill: 0.9)!
+let fitted = exSpread(byPoints)
+let windowW = phoneW - phoneInsets.left - phoneInsets.right, windowH = phoneH - phoneInsets.top - phoneInsets.bottom
+check("P15 the examples framed on their bodies: all inside the window",
+      fitted.inside, "\(fitted)")
+check("P15 and filling it on the side they reach first (\(Int(fitted.w)) x \(Int(fitted.h)) of \(Int(windowW)) x \(Int(windowH)))",
+      fitted.w > 0.6 * windowW || fitted.h > 0.6 * windowH)
+check("P15 at least half again as large as the ball's framing (\(Int(byBall.w)) x \(Int(byBall.h)))",
+      fitted.w * fitted.h > 2.25 * byBall.w * byBall.h)
+let notePx = GraphPerfLOD.pixelRadius(GraphPerfLayout.noteRadius, depth: byPoints.distance,
+                                      focal: byPoints.focal(viewHeight: phoneH))
+check("P15 an idea's point is several points across at the start (\(notePx))", notePx >= 6)
+check("P15 no points: no framing", exStart.framing(points: [], margin: 1, width: phoneW, height: phoneH) == nil)
+
+let exProjected = exPoints.map { byPoints.project($0, width: phoneW, height: phoneH) }
+let exSpots = GraphPerfLabelSpots.candidates(exProjected, width: phoneW, height: phoneH, insets: phoneInsets)
+var exLabels = GraphPerfLabelChooser(budget: GraphPerfTier.high.labelBudget)
+let exNamed = exLabels.choose(exSpots)
+check("P15 every example body is a label candidate at the start", exSpots.count == exScene.bodyCount)
+check("P15 the nearest twelve carry names (High)", exNamed.count == 12 && Set(exNamed).count == 12)
+check("P15 behind the eye, outside the window, or past the limit: no label",
+      GraphPerfLabelSpots.candidates([(x: 200, y: 400, depth: -1), (x: 5, y: 400, depth: 3), (x: 200, y: 860, depth: 3)],
+                                     width: phoneW, height: phoneH, insets: phoneInsets).isEmpty
+      && GraphPerfLabelSpots.candidates(Array(repeating: (x: Float(200), y: Float(400), depth: Float(3)),
+                                              count: GraphPerfLabelSpots.limit + 1),
+                                        width: phoneW, height: phoneH).isEmpty)
+
+// MARK: - P16 the million map's failures in the readout (T0150): every
+// silent stop on its path names itself as "cannot draw: <reason>", first in
+// the readout's words, kept over the frames it leaves stopped
+
+var stuck = GraphPerfStats()
+stuck.tourPhase = "warm"
+check("P16 nothing failed: no failure text, and the readout's words as before",
+      stuck.failed.isEmpty && stuck.spoken == [stuck.line, stuck.pace, stuck.drawn, stuck.stages, stuck.depth, stuck.tour]
+          .filter { !$0.isEmpty }.joined(separator: ", "), stuck.spoken)
+let shaderError = "Error Domain=MTLLibraryErrorDomain Code=3 \"program_source:412:9: error: use of undeclared identifier 'x'\nmore\""
+let allFailures: [GraphPerfDrawFailure] = [
+    .sceneNotBuilt, .mapNotBuilt, .noDevice, .shaders(shaderError), .function("mil_layout"),
+    .pipeline("mil_focus_link_vertex", "bad blend\nsecond line"), .depthState, .mapBuffers, .frameBuffers,
+    .noMap(120), .noCommandBuffer(120), .noDrawable(120)
+]
+let texts = allFailures.map { $0.text }
+check("P16 each failure says \"cannot draw: \" and a reason of its own",
+      texts.allSatisfy { $0.hasPrefix("cannot draw: ") && $0.count > 15 } && Set(texts).count == texts.count,
+      texts.joined(separator: " | "))
+check("P16 a compiler error keeps its first line only",
+      GraphPerfDrawFailure.shaders(shaderError).reason
+          == "the shaders did not compile: Error Domain=MTLLibraryErrorDomain Code=3 \"program_source:412:9: error: use of undeclared identifier 'x'",
+      GraphPerfDrawFailure.shaders(shaderError).reason)
+check("P16 a pipeline names its function and the error's first line",
+      GraphPerfDrawFailure.pipeline("mil_focus_link_vertex", "bad blend\nsecond line").text
+          == "cannot draw: pipeline mil_focus_link_vertex: bad blend")
+check("P16 a long error is cut at 160 characters",
+      GraphPerfDrawFailure.firstLine(String(repeating: "e", count: 500)).count == 161)
+let failedStats = stuck.failing(.shaders(shaderError))
+check("P16 a failure comes first in the readout's words, the numbers after it",
+      failedStats.spoken.hasPrefix("cannot draw: the shaders did not compile")
+          && failedStats.spoken.contains("0 notes") && failedStats.spoken.contains("tour: warm"), failedStats.spoken)
+check("P16 the proof's 300-character tail of a long reading still holds a short failure's reason",
+      String(GraphPerfStats().failing(.mapBuffers).spoken.suffix(300)).contains("cannot draw: the map's GPU buffers"))
+check("P16 a run of stopped frames never replaces the failure that caused it",
+      GraphPerfDrawFailure.shown(current: .mapBuffers, next: .noMap(120)) == .mapBuffers
+          && GraphPerfDrawFailure.shown(current: nil, next: .noMap(120)) == .noMap(120)
+          && GraphPerfDrawFailure.shown(current: .noDrawable(120), next: .shaders("x")) == .shaders("x"))
+
+var drawWatch = GraphPerfDrawWatch()
+var told: [GraphPerfDrawFailure] = []
+for _ in 0..<(GraphPerfDrawWatch.limit - 1) { if let t = drawWatch.frame(.noDrawable(0)) { told.append(t) } }
+check("P16 a short gap without a drawable is not a failure", told.isEmpty)
+if let t = drawWatch.frame(.noDrawable(0)) { told.append(t) }
+for _ in 0..<50 { if let t = drawWatch.frame(.noDrawable(0)) { told.append(t) } }
+check("P16 \(GraphPerfDrawWatch.limit) stopped frames in a row are told once, with their count",
+      told == [.noDrawable(GraphPerfDrawWatch.limit)], "\(told)")
+check("P16 a drawn frame starts the count again", drawWatch.frame(nil) == nil && drawWatch.stopped == 0)
+told = []
+for _ in 0..<GraphPerfDrawWatch.limit { if let t = drawWatch.frame(.noMap(0)) { told.append(t) } }
+check("P16 and a later run is told again", told == [.noMap(GraphPerfDrawWatch.limit)], "\(told)")
+
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

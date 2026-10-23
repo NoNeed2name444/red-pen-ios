@@ -2110,6 +2110,21 @@ with the marks on the screens last.
         console stall. fly() now calls app.keepTraceOffConsole() (taken
         unchanged from design/ui-suite-fix, 0dbb1f74) before launch.
         Rerun as preview/perf-proof-2.
+      - 23 Oct, T0150 (run 39932576764, design/integration): the same
+        "0 notes · 0 links, 0 fps" for 15 minutes x3, with the main thread
+        answering and the map empty with no label. It began with 47c13782:
+        testPerformanceMillion passed on 7f5bc74d (run 38686619509: 73 s
+        iPhone, 114 s iPad) and timed out on 47c13782 (run 38721234572,
+        no tour). On Linux the same build is fine (the million in 28 s at
+        -Onone, every step non-nil) and the renderer's planning settles in
+        about 20 frames, so the stop is Metal-side: the million renderer
+        not made (its shaders or a pipeline), its buffers not made, or
+        frames stopping before they draw. Each of those returned silently
+        (NSLog only, hidden by keepTraceOffConsole). Now each says
+        "cannot draw: <reason>" on the map and first in the readout, and
+        the proof's failure message quotes it (GraphPerfDrawFailure,
+        GraphPerfDrawWatch, GraphPerfMillionMap.Outcome; P16, C20). Next
+        Mac run: read the reason, then fix that step.
     - Merged (T0108, 22 Oct): design/perf-proof, with design/perf-million
       under it, and then design/perf-fade-band (D2's wider bands, 15 Oct)
       went into design/merge-graph, so the integration build has the
@@ -3211,6 +3226,7 @@ with the marks on the screens last.
   - The AX5 walk (AccessibilityUITests, e433ca15): after "I understand and agree" the app never idles again ("failed to quiesce within 60s", then "main thread busy for 30.0s"), with "Update NavigationRequestObserver tried to update multiple times per frame" and "onChange(of: Optional<Double>)" / "onChange(of: Optional<CGFloat>) action tried to update multiple times per frame" logged at that moment, in both tests: a SwiftUI update loop at the largest text size. Not yet traced to its view; not run on integration (the step never started).
   - "The library didn't open" (Arabic, DesignTour, StraightLines, Onboarding on e433ca15): the dock folded to its list button at 402 pt, fixed by dad43e3f (in 2c144162, not in e433ca15); Arabic and DesignTour pass on 2c144162.
   - Done (app-build.yml): grep --line-buffered so Test Case lines reach the log live; XCTest's per-test limit (16 minutes in the suite, 8 in the AX5 walk) so a stuck test fails by name; the UI step 110 minutes and the AX5 step 20 inside a job of 150, with the summaries in their own always() steps, so they and the upload still run; uitest.log and a11y.log uploaded with the bundles. Only the next Mac run proves the flags and the timings.
+- [x] T0149-theme-shots-ios: the iOS theme stills (ios-preview 39931526624 at e68554b0) fixed at their causes. The first-run card covered Space dark and Neurons and missed Space light: the tour now marks every theme's card and touch lines seen (TourData.mapCardsSeen), the card stays in the app. The Performance readout showed to every user: it is a developer's meter now (GraphPerfReadout: the personal build, or a demo map whose menu is the way back), and the legend's Speed row goes with it. Performance framed the map's bounding ball, so the tall example cluster filled a fifth of the width with its points pressed onto their hubs: a map of up to 2,000 bodies is framed on its bodies (GraphPerfCamera.framing(points:)), and its nearest points carry names (GraphPerfLabelChooser, wired at last; GraphPerfLabelSpots). Neurons was its own scene on its own tissue, hidden by the card; GraphTheme.bodies and .ground name each theme's builder and ground, and Graph3DView picks by them. Tests: graphperf P15, neurons T8. Open: ideas-map-light is the loader (built == nil) at the 7 s shot in two runs; it is the first SceneKit map launch of the light pass, and the fix is in the shoot step (ios-preview.yml, outside T0149): retake while the map's loader shows, or a warm-up launch. Re-shoot ideas-map, ideas-map-neurons, ideas-map-performance, ideas-legend-performance (light and dark).
 - [ ] Mac run for T0112: screenshots of home on the 17 Pro, the Pro Max and a
   375 pt phone at the default size and at xxxLarge (the row, the names whole
   or barely smaller, the chosen ring clear of them), and the four UI suites;

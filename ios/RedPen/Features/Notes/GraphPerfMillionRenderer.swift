@@ -242,6 +242,9 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     var onStats: ((GraphPerfStats) -> Void)?
     /// Every drawn frame's numbers (the proof tour's).
     var onFrame: ((GraphPerfFrameReport) -> Void)?
+    /// Frames that keep stopping before they draw (GraphPerfDrawWatch).
+    var onFailure: ((GraphPerfDrawFailure) -> Void)?
+    private var watch = GraphPerfDrawWatch()
 
     // the selection's motion, and the depth band and bundles as eased
     private var focusMotion = GraphPerfFocusMotion()
@@ -273,14 +276,26 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     private var memoryPeak: Int = 0
     private var statsTime: CFTimeInterval = 0
 
+    /// Why the last `init(view:)` gave nil (nil once one was made).
+    private(set) static var lastFailure: GraphPerfDrawFailure?
+
     init?(view: MTKView) {
+        GraphPerfMillionRenderer.lastFailure = nil
+        func failed(_ why: GraphPerfDrawFailure) {
+            NSLog("GraphPerfMillion: %@", why.text)
+            // the first stop is the cause; the guards after it only follow from it
+            if GraphPerfMillionRenderer.lastFailure == nil { GraphPerfMillionRenderer.lastFailure = why }
+        }
         guard let device = view.device ?? MTLCreateSystemDefaultDevice(),
-              let queue = device.makeCommandQueue() else { return nil }
+              let queue = device.makeCommandQueue() else {
+            failed(.noDevice)
+            return nil
+        }
         let library: MTLLibrary
         do {
             library = try device.makeLibrary(source: GraphPerfMillionShaders.source, options: nil)
         } catch {
-            NSLog("GraphPerfMillion: the shaders did not compile: %@", String(describing: error))
+            failed(.shaders(String(describing: error)))
             return nil
         }
         let screenFormat: MTLPixelFormat = view.colorPixelFormat
@@ -289,8 +304,12 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         func pipeline(_ vertex: String, _ fragment: String, format: MTLPixelFormat, blend: Blend,
                       onScreen: Bool) -> MTLRenderPipelineState? {
             let d = MTLRenderPipelineDescriptor()
-            guard let v = library.makeFunction(name: vertex), let f = library.makeFunction(name: fragment) else {
-                NSLog("GraphPerfMillion: no function %@ or %@", vertex, fragment)
+            guard let v = library.makeFunction(name: vertex) else {
+                failed(.function(vertex))
+                return nil
+            }
+            guard let f = library.makeFunction(name: fragment) else {
+                failed(.function(fragment))
                 return nil
             }
             d.vertexFunction = v
@@ -299,7 +318,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             // notes, drawn opaque over the light, hide what is behind them
             d.depthAttachmentPixelFormat = onScreen ? depthFormat : .invalid
             d.rasterSampleCount = onScreen ? view.sampleCount : 1
-            guard let colour = d.colorAttachments[0] else { return nil }
+            guard let colour = d.colorAttachments[0] else {
+                failed(.pipeline(vertex, "no colour attachment"))
+                return nil
+            }
             colour.pixelFormat = format
             switch blend {
             case .none:
@@ -325,19 +347,31 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
             do {
                 return try device.makeRenderPipelineState(descriptor: d)
             } catch {
-                NSLog("GraphPerfMillion: pipeline %@: %@", vertex, String(describing: error))
+                failed(.pipeline(vertex, String(describing: error)))
                 return nil
             }
         }
         func compute(_ name: String) -> MTLComputePipelineState? {
-            guard let kernel = library.makeFunction(name: name) else { return nil }
-            return try? device.makeComputePipelineState(function: kernel)
+            guard let kernel = library.makeFunction(name: name) else {
+                failed(.function(name))
+                return nil
+            }
+            do {
+                return try device.makeComputePipelineState(function: kernel)
+            } catch {
+                failed(.pipeline(name, String(describing: error)))
+                return nil
+            }
         }
         func depth(_ compare: MTLCompareFunction, write: Bool) -> MTLDepthStencilState? {
             let d = MTLDepthStencilDescriptor()
             d.depthCompareFunction = compare
             d.isDepthWriteEnabled = write
-            return device.makeDepthStencilState(descriptor: d)
+            guard let made = device.makeDepthStencilState(descriptor: d) else {
+                failed(.depthState)
+                return nil
+            }
+            return made
         }
         let lightFormat = Self.lightFormat
         guard let node = pipeline("mil_node_vertex", "mil_node_fragment", format: screenFormat, blend: .none,
@@ -358,6 +392,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
               let measure = compute("mil_measure"),
               let solid = depth(.less, write: true),
               let over = depth(.always, write: false) else {
+            if GraphPerfMillionRenderer.lastFailure == nil { failed(.pipeline("?", "a pipeline was not made")) }
             return nil
         }
         self.device = device
@@ -380,11 +415,13 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
     // MARK: - The map
 
     /// Shows a newly built million map: its buffers once, for the session.
-    func load(_ next: GraphPerfMillionMap) {
-        guard let made = GraphPerfMillionStatics(device: device, map: next) else { return }
+    /// Returns why it could not (the map before it, if any, stays).
+    @discardableResult
+    func load(_ next: GraphPerfMillionMap) -> GraphPerfDrawFailure? {
+        guard let made = GraphPerfMillionStatics(device: device, map: next) else { return .mapBuffers }
         var fresh: [GraphPerfMillionSlot] = []
         for _ in 0..<Self.slotCount {
-            guard let slot = GraphPerfMillionSlot(device: device, map: next) else { return }
+            guard let slot = GraphPerfMillionSlot(device: device, map: next) else { return .frameBuffers }
             fresh.append(slot)
         }
         // the plan being made and the frames still on the GPU finish with the old map first
@@ -403,7 +440,9 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         focusReachSlot = nil
         pull = 1
         bundlesShown = -1
+        watch = GraphPerfDrawWatch()
         for _ in 0..<Self.slotCount { inFlight.signal() }
+        return nil
     }
 
     // MARK: - GraphPerfEngine
@@ -514,7 +553,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
         }
         lastTime = now
         beforeFrame?(step)
-        guard let map, let statics, let state, slots.count == Self.slotCount else { return }
+        guard let map, let statics, let state, slots.count == Self.slotCount else {
+            stopped(.noMap(0))
+            return
+        }
         let started: CFTimeInterval = CACurrentMediaTime()
         let size: CGSize = view.bounds.size
         let width = Float(max(size.width, 1)), height = Float(max(size.height, 1))
@@ -599,6 +641,7 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
 
         guard let commands = queue.makeCommandBuffer() else {
             inFlight.signal()
+            stopped(.noCommandBuffer(0))
             return
         }
         var calls = 0
@@ -644,8 +687,10 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
               let screenCommands = queue.makeCommandBuffer() else {
             commands.addCompletedHandler { _ in done.signal() }
             commands.commit()
+            stopped(.noDrawable(0))
             return
         }
+        stopped(nil)
         let timing = stageClock.time(near: commands, far: farCommands, screen: screenCommands)
 
         // the bundles drawn: the budget's count, eased, the last few narrowing away
@@ -798,6 +843,15 @@ final class GraphPerfMillionRenderer: NSObject, @preconcurrency MTKViewDelegate,
                                       gpu: (gpu.near ?? 0) + (gpu.far ?? 0), drawCalls: calls, instances: instances,
                                       gpuMemory: memory, ramping: frame.ramping, shells: frame.shellCounts))
         report(now: now, map: map, frame: frame)
+    }
+
+    /// A frame that stopped before drawing (nil: one that draws); a run of
+    /// them long enough is told to the map view.
+    private func stopped(_ stop: GraphPerfDrawFailure?) {
+        if let failure = watch.frame(stop) {
+            NSLog("GraphPerfMillion: %@", failure.text)
+            onFailure?(failure)
+        }
     }
 
     /// Twice a second: the readout's numbers.

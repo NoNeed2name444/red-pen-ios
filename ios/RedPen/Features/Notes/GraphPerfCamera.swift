@@ -183,6 +183,48 @@ nonisolated struct GraphPerfCamera: Sendable, Equatable {
 
     // MARK: - Framing
 
+    /// The camera that shows every one of `points` (each with `margin` of
+    /// room round it), from this camera's direction, filling `fill` of the
+    /// window inside the insets on whichever side the points reach first.
+    /// A small map is seldom round: framed as its bounding ball, a tall
+    /// cluster of thirteen notes used to fill a fifth of a phone's width,
+    /// its points pressed onto their hubs. Nil for no points.
+    func framing(points: [SIMD3<Float>], margin: Float, width: Float, height: Float,
+                 insets: (top: Float, left: Float, bottom: Float, right: Float) = (0, 0, 0, 0),
+                 fill: Float = 0.9) -> GraphPerfCamera? {
+        guard !points.isEmpty else { return nil }
+        var out = self
+        let r = right, u = up, b = back
+        var lo = SIMD3<Float>(repeating: .infinity), hi = SIMD3<Float>(repeating: -.infinity)
+        for p in points {
+            let q = SIMD3<Float>((p * r).sum(), (p * u).sum(), (p * b).sum())
+            lo = pointwiseMin(lo, q)
+            hi = pointwiseMax(hi, q)
+        }
+        let mid = (lo + hi) / 2
+        let w = max(width - insets.left - insets.right, 1)
+        let h = max(height - insets.top - insets.bottom, 1)
+        let f = focal(viewHeight: height)
+        let halfW = max(w / 2 * fill, 1)
+        let halfH = max(h / 2 * fill, 1)
+        let m = max(margin, 0)
+        // a point at x across and z towards the eye fits while
+        // |x| + m <= (D - z) halfW / f: the nearest distance that fits them all
+        var distance: Float = m + 1e-3
+        for p in points {
+            let x = (p * r).sum() - mid.x
+            let y = (p * u).sum() - mid.y
+            let z = (p * b).sum() - mid.z
+            distance = max(distance, z + m + (abs(x) + m) * f / halfW, z + m + (abs(y) + m) * f / halfH)
+        }
+        out.distance = distance
+        let centre = r * mid.x + u * mid.y + b * mid.z
+        let ox = (insets.left + w / 2) - width / 2
+        let oy = height / 2 - (insets.top + h / 2)
+        out.target = centre - (r * ox + u * oy) * (distance / f)
+        return out
+    }
+
     /// The camera that shows a ball of `radius` round `centre`, from this
     /// camera's direction, filling `fill` of the smaller side of a window:
     /// the part of a `width` x `height` screen inside the insets (points),

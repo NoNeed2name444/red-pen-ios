@@ -1103,6 +1103,18 @@ check("T8 the menu offers only ready themes", GraphTheme.offered.allSatisfy { $0
 check("T8 the themes' words are their own",
       Set(GraphTheme.allCases.map(\.legendTitle)).count == GraphTheme.allCases.count
       && GraphTheme.neurons.title == "Neurons" && GraphTheme.stored("space") == .space)
+// T0149: each theme its own bodies and its own ground, read from the key the
+// Look menu (and the tours) store it under
+check("T8 Space draws the Universe's bodies on the starfield",
+      GraphTheme.stored("space").bodies == .universe && GraphTheme.stored("space").ground == .stars)
+check("T8 Neurons draws the theme scene's cells on the tissue",
+      GraphTheme.stored("neurons").bodies == .themeScene && GraphTheme.stored("neurons").ground == .tissue)
+check("T8 Performance draws the engine's points on the flat ground",
+      GraphTheme.stored("performance").bodies == .points && GraphTheme.stored("performance").ground == .flat)
+check("T8 no two themes share bodies or ground",
+      Set(GraphTheme.allCases.map(\.bodies)).count == GraphTheme.allCases.count
+      && Set(GraphTheme.allCases.map(\.ground)).count == GraphTheme.allCases.count)
+check("T8 the theme's key is the one the Look menu writes", GraphTheme.key == "vignette.space.theme")
 
 // MARK: T9 drifting
 

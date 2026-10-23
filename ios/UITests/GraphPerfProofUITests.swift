@@ -66,7 +66,9 @@ final class GraphPerfProofUITests: XCTestCase {
         // the Debug build makes the million on the simulator's few cores, which
         // has taken from about a minute to several on CI: 15 minutes at most
         guard watch(readout, until: { $0.contains("1,000,000 notes") }, within: 900, every: 1) != nil else {
-            XCTFail("the million was not built within 15 minutes: " + String(Self.words(readout).suffix(300)))
+            let words = Self.words(readout)
+            XCTFail("the million was not built within 15 minutes" + Self.failure(in: words) + ": "
+                + String(words.suffix(300)))
             return
         }
         // the tour starts as the million is shown; its clock is the screen's,
@@ -119,6 +121,13 @@ final class GraphPerfProofUITests: XCTestCase {
     /// The readout's words now ("" when it cannot be read).
     private static func words(_ readout: XCUIElement) -> String {
         ((try? readout.snapshot())?.value as? String) ?? ""
+    }
+
+    /// What the readout says stopped the map (" (cannot draw: <reason>)"),
+    /// or nothing: GraphPerfStats puts it first in the readout's words.
+    private static func failure(in words: String) -> String {
+        guard let at = words.range(of: "cannot draw: ") else { return "" }
+        return " (" + String(words[at.lowerBound...].prefix(300)) + ")"
     }
 
     /// The tour's phase in the readout's words: what follows "tour: " to the line's end.
