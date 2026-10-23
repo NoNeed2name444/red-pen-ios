@@ -189,7 +189,6 @@ struct MockPaperView: View {
     private var rules: some View {
         let lines: [String] = MockFormat.rules
         return VStack(alignment: .leading, spacing: 8) {
-            WardSectionLabel("How it runs")
             ForEach(lines, id: \.self) { line in
                 Label(line, systemImage: "checkmark")
                     .font(.subheadline)

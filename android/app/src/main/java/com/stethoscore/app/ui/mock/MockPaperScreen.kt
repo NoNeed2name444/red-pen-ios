@@ -302,7 +302,6 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
                 PaperChoice(papers, paper, { paperId = it }, track, target, usmleBlocks, { usmleBlocks = it; paperId = "" })
                 LibraryNote(available, paper, target)
                 ContentCard(spacing = 8.dp) {
-                    WardSectionLabel("How it runs")
                     MockFormat.rules.forEach { line ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Rounded.Check, null, Modifier.size(18.dp), tint = wardColor(WardToken.primaryInk))
