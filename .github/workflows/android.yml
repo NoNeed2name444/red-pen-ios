@@ -13,12 +13,40 @@ on:
         description: 'Shoot the app tour (TourTest) instead of the screenshot test'
         type: boolean
         default: false
+      devices:
+        description: >-
+          The window matrix (T0139) instead of the push run: "all", or a comma list of
+          small, medium, large, tablet7, tablet10, fold, flip. Empty keeps the push run (pixel_6, ScreenshotTest).
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
-  group: android-${{ github.ref }}${{ inputs.tour && '-tour' || '' }}
+  group: android-${{ github.ref }}${{ inputs.tour && '-tour' || '' }}${{ inputs.devices && format('-{0}', inputs.devices) || '' }}
   cancel-in-progress: true
 jobs:
+  # Which emulators to start: one (pixel_6) on a push, as before; the window matrix's kinds on a
+  # dispatch with `devices`. Each kind is its own job, so each stays under 40 minutes.
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      kinds: ${{ steps.kinds.outputs.kinds }}
+    steps:
+      - id: kinds
+        env:
+          DEVICES: ${{ inputs.devices }}
+          TOUR: ${{ inputs.tour }}
+        run: |
+          all="small medium large tablet7 tablet10 fold flip"
+          wanted=$(echo "${DEVICES:-}" | tr ',' ' ' | xargs)
+          if [ "$TOUR" = true ] || [ -z "$wanted" ]; then kinds='["push"]'
+          else
+            [ "$wanted" = all ] && wanted=$all
+            for k in $wanted; do case " $all " in *" $k "*) ;; *) echo "unknown kind: $k (one of: $all)"; exit 1 ;; esac; done
+            kinds=$(printf '%s\n' $wanted | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+          fi
+          echo "kinds=$kinds" | tee -a "$GITHUB_OUTPUT"
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -57,9 +85,14 @@ jobs:
             android/app/build/test-results/
           retention-days: 30
   screenshots:
-    needs: build
+    needs: [plan, build]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: ${{ fromJSON(needs.plan.outputs.kinds) }}
+    name: screenshots (${{ matrix.kind }})
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -88,25 +121,57 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      # The runner's device list, verbatim, and the profile each kind runs on: the first of its
+      # candidates the list has. The flip has no stock profile; scripts/devices/flip.xml is added.
+      - name: Choose the device profile
+        id: profile
+        working-directory: android
+        env:
+          KIND: ${{ matrix.kind }}
+        run: |
+          mkdir -p test-results "$HOME/.android"
+          if [ "$KIND" = flip ]; then cp scripts/devices/flip.xml "$HOME/.android/devices.xml"; fi
+          avdmanager list device | tee test-results/devices.txt
+          avdmanager list device -c > test-results/device-ids.txt
+          case "$KIND" in
+            push|medium) candidates='pixel_6' ;;
+            small) candidates='small_phone' ;;
+            large) candidates='pixel_9_pro_xl pixel_7_pro' ;;
+            tablet7) candidates='Nexus_7_2013 nexus_7_2013' ;;
+            tablet10) candidates='pixel_tablet medium_tablet' ;;
+            fold) candidates='pixel_9_pro_fold pixel_fold pixel_10_pro_fold' ;;
+            flip) candidates='stethoscore_flip' ;;
+          esac
+          profile=''
+          for c in $candidates; do
+            id=$(grep -xiF "$(echo "$c" | tr '_' ' ')" test-results/device-ids.txt || grep -xiF "$c" test-results/device-ids.txt || true)
+            if [ -n "$id" ]; then profile=$(echo "$id" | head -1); break; fi
+          done
+          [ -n "$profile" ] || { echo "no profile for $KIND among: $candidates"; exit 1; }
+          echo "$KIND -> $profile" | tee test-results/profile.txt
+          echo "profile=$profile" >> "$GITHUB_OUTPUT"
       - name: Capture real Android screenshots and exercise study flows
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: '37.0'
           target: google_apis
           arch: x86_64
-          profile: pixel_6
+          profile: ${{ steps.profile.outputs.profile }}
           disable-animations: true
           ram-size: 4096M
           disk-size: 8G
           cores: 2
           emulator-options: -no-window -gpu software -noaudio -no-boot-anim -camera-back none -no-snapshot
           working-directory: android
+          # the AVD as created, so a fold's hinge keys (or their absence) are on record
+          pre-emulator-launch-script: |
+            grep -hiE 'hw\.(lcd|sensor\.hinge|hinge|fold)|hw\.device\.name' "$ANDROID_AVD_HOME/test.avd/config.ini" | tee "$GITHUB_WORKSPACE/android/test-results/avd-config.txt" || true
           script: |
-            bash scripts/capture-screenshots.sh${{ inputs.tour && ' tour' || '' }}
+            bash scripts/capture-screenshots.sh${{ inputs.tour && ' tour' || '' }}${{ matrix.kind != 'push' && format(' matrix {0}', matrix.kind) || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: stethoscore-android-screenshots
+          name: stethoscore-android-screenshots${{ matrix.kind != 'push' && format('-{0}', matrix.kind) || '' }}
           path: |
             android/screenshots/
             android/test-results/

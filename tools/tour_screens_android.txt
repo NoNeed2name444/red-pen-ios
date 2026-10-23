@@ -3,6 +3,9 @@
 # inventory row, plain name, TourTest method (or "-"), the PNG names TourTest writes (or "skip: <reason>").
 # Run it: dispatch android.yml with tour: true; the PNGs land in the artifact under screenshots/tour/.
 # capture-screenshots.sh tour counts the expected PNGs from the r<row>-<name>-<mode> names below.
+# Orientation (T0139): the tour is shot in the natural orientation on pixel_6 only. Landscape (left,
+# right), tablets, foldables and split sizes are the window matrix's: dispatch android.yml with
+# devices; its stills are w-<profile>-<posture>-<orient|WxH>-<screen>-<mode>.png.
 8	Exam onboarding	r008_examOnboarding	r008-exam-onboarding-light r008-exam-onboarding-dark
 13	Home (Questions)	r013_home	r013-library-light r013-library-dark
 14	Home: the dock places	r014_dockPlaces	r014-home-cards-light r014-home-cards-dark r014-home-cases-light r014-home-cases-dark r014-home-osce-light r014-home-osce-dark r014-home-audio-light r014-home-audio-dark

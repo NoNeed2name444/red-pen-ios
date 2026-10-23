@@ -67,7 +67,6 @@ import androidx.compose.ui.layout.MultiContentMeasurePolicy
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -258,8 +257,8 @@ fun Modifier.homePart(book: HomePartBook?, key: String, name: String, reach: Dou
 
 /** Whether this window is short (HomeFit.isShort): a phone under 770 points tall. */
 @Composable fun homeShortWindow(): Boolean {
-    val config = LocalConfiguration.current
-    return HomeFit.isShort(config.screenHeightDp.toDouble(), broad = config.smallestScreenWidthDp >= 600)
+    val shape = com.stethoscore.app.ui.ward.currentWindowShape()
+    return HomeFit.isShort(shape.height, broad = shape.isPadSized)
 }
 
 // MARK: - Today's ward round

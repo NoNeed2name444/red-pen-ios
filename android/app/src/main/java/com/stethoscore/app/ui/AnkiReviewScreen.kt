@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -46,15 +47,16 @@ import com.stethoscore.app.ui.ward.*
 /** One deck's review. */
 @Composable fun AnkiReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, startRevealed: Boolean = false) {
     var queue by remember(set.id) { mutableStateOf<List<AnkiQueueItem>?>(null) }
-    var revealed by remember(set.id) { mutableStateOf(false) }
-    var reviewedCount by remember(set.id) { mutableIntStateOf(0) }
+    // the card's answer shown, and how many were rated, kept through a rotation or a fold (T0139)
+    var revealed by rememberSaveable(set.id) { mutableStateOf(startRevealed) }
+    var reviewedCount by rememberSaveable(set.id) { mutableIntStateOf(0) }
     var studyingAhead by remember(set.id) { mutableStateOf(false) }
     var undoUntil by remember(set.id) { mutableStateOf<Long?>(null) }
     var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
     // the set whose "Turn into…" picker is up (iOS StudyMoreMenu's turning)
     var turning by remember(set.id) { mutableStateOf<StudySet?>(null) }
     // a return to this screen is not a new sitting
-    if (queue == null) { queue = store.queue(set); revealed = startRevealed }
+    if (queue == null) queue = store.queue(set)
     val items = queue.orEmpty()
     val current = items.firstOrNull()
 
@@ -129,13 +131,13 @@ import com.stethoscore.app.ui.ward.*
 /** Everything due right now, from every deck at once. */
 @Composable fun DueTodayScreen(store: StudyStore, onBack: () -> Unit) {
     var queue by remember { mutableStateOf<List<ReviewPlan.Due>?>(null) }
-    var revealed by remember { mutableStateOf(false) }
-    var reviewedCount by remember { mutableIntStateOf(0) }
+    var revealed by rememberSaveable { mutableStateOf(false) }
+    var reviewedCount by rememberSaveable { mutableIntStateOf(0) }
     var undoUntil by remember { mutableStateOf<Long?>(null) }
     // where the undone card came from, so it can go back in front
     var lastRated by remember { mutableStateOf<ReviewPlan.Due?>(null) }
     var verifying by remember { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
-    if (queue == null) { queue = store.dueAcross(); revealed = false }
+    if (queue == null) queue = store.dueAcross()
     val items = queue.orEmpty()
     val due = items.firstOrNull()
     fun deckOf(d: ReviewPlan.Due) = store.library.firstOrNull { it.id == d.setId }

@@ -102,7 +102,7 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val wide = maxWidth >= 840.dp
+        val wide = com.stethoscore.app.ui.ward.WindowShape.isExpanded(maxWidth.value.toDouble())
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.weight(1f)) {
                 Column(

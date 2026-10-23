@@ -28,6 +28,9 @@ import com.stethoscore.app.ui.ward.wardRaised
 import com.stethoscore.app.ui.ward.WardPaperFrame
 import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.ward.WindowShapeHost
+import com.stethoscore.app.ui.ward.currentWindowShape
+import com.stethoscore.app.ui.ward.wardClearOfHinge
 import com.stethoscore.app.ui.library.libraryItems
 
 import android.content.Context
@@ -55,6 +58,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -84,7 +88,7 @@ import kotlinx.coroutines.withContext
     // a quiz put together on the spot (a bed's drill), not in the library
     var quick by remember { mutableStateOf<StudySet?>(null) }
     // the library's own state: picking sets, its menus and sheets, and what it opened
-    val lib=remember { com.stethoscore.app.ui.library.LibraryState() }
+    val lib=rememberSaveable(saver=com.stethoscore.app.ui.library.LibraryState.Saver) { com.stethoscore.app.ui.library.LibraryState() }
     var libQuiz by remember { mutableStateOf<com.stethoscore.app.ui.library.LibraryQuiz?>(null) }
     var libReview by remember { mutableStateOf<StudySet?>(null) }
     var shelf by rememberSaveable { mutableStateOf(com.stethoscore.app.ui.library.CategoryFeature.MULTIPLE_CHOICE.rawValue) }
@@ -189,7 +193,7 @@ import kotlinx.coroutines.withContext
         "home" -> homeSection(category)
         else -> WardSection.outside
     }
-    StethoscoreTheme(dark, section) {
+    StethoscoreTheme(dark, section) { WindowShapeHost {
         // Home stands on its ground (the section's wash and the paper's grid,
         // counted from the window's top left), the same ground the window's
         // background shows from the first frame (MainActivity), so nothing
@@ -204,7 +208,9 @@ import kotlinx.coroutines.withContext
             // a page in the paper's opening sits inside its ring (wardFrameClearance); home has
             // no frame, and the map (ui/map) keeps its own full-bleed layout
             val inFrame=!onGround && screen!="ideas"
-            Box(if(inFrame) Modifier.fillMaxSize().wardFrameClearance() else Modifier.fillMaxSize().safeDrawingPadding()) {
+            // a fold that splits the window: the page keeps to one side of it, nothing in the hinge (WindowShape)
+            val shape=currentWindowShape()
+            Box((if(inFrame) Modifier.fillMaxSize().wardFrameClearance() else Modifier.fillMaxSize().safeDrawingPadding()).wardClearOfHinge(shape)) {
                 when(screen) {
                     "study" -> {
                         val set=store.library.firstOrNull { it.id==selectedId }
@@ -281,7 +287,9 @@ import kotlinx.coroutines.withContext
                         // list lets the last one scroll clear of them (HomeFit.endSpace). No
                         // soft edge under the bar either: nothing at the bottom fades.
                         var barHeight by remember { mutableStateOf(0.0) }
-                            LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(WardSpace.gutter.wardDp,WardSpace.m.wardDp,WardSpace.gutter.wardDp,WardSpace.xl.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
+                        // a broad window stands the dock up at the leading edge (iOS railed), not at the accessibility text sizes
+                        val railed=shape.dockIsRail && !lib.selecting && androidx.compose.ui.platform.LocalDensity.current.fontScale<1.5f
+                            LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(WardSpace.gutter.wardDp+(if(railed) WardDock.railRoom.dp else 0.dp),WardSpace.m.wardDp,WardSpace.gutter.wardDp,WardSpace.xl.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                                     SectionLabel("YOUR STUDY WARD")
                                     // a Ward circle, as iOS's toolbar button beside the search (.wardCircle)
@@ -337,15 +345,17 @@ import kotlinx.coroutines.withContext
                         if(typing) SideEffect { barHeight=0.0 }
                         if(!typing) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
                         // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)
-                        if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=6.dp),horizontalArrangement=Arrangement.End) {
+                        // bottom-trailing beside the rail, under the right hand (iOS newSetRow: 24 in, 16 up)
+                        if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=if(railed) 24.dp else 16.dp,vertical=6.dp).padding(bottom=if(railed) 10.dp else 0.dp),horizontalArrangement=Arrangement.End) {
                             com.stethoscore.app.ui.ward.WardButtonBox({ newKind=com.stethoscore.app.ui.library.StudyCategory.named(category).mainKind;screen="newset" },
                                 Modifier.semantics { contentDescription="New set. Make questions or cards from a lecture" },fills=false) {
                                 Icon(Icons.Rounded.Add,null,Modifier.size(18.dp));Text("New set")
                             }
                         }
                         if(lib.selecting) com.stethoscore.app.ui.library.LibrarySelectionBar(store,lib,libActions)
-                        else CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} })
+                        else if(!railed) CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} })
                         } }
+                        if(railed && !typing) CategoryRail(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} },Modifier.align(Alignment.CenterStart))
                     }
                 }
                 if(screen=="home") {
@@ -365,7 +375,7 @@ import kotlinx.coroutines.withContext
             // a ward round's chip, over every screen while one runs
             com.stethoscore.app.ui.learn.WardRoundFloat()
         } }
-    }
+    } }
 }
 
 /** Whether the soft keyboard is showing. */
@@ -429,7 +439,7 @@ fun homeSection(category:String):WardSection = when(category) {
     // the panel and the Ideas pill sit at the screen's bottom corners: concentric with the display's (WardCorner.radii)
     val (panelAt,panelCorners)=rememberWardCorners(WardDock.panelRadius)
     val (ideasAt,ideasCorners)=rememberWardCorners(WardDock.panelRadius)
-    Box(Modifier.fillMaxWidth().padding(horizontal=WardDock.barSide.toFloat().dp).padding(bottom=10.dp),contentAlignment=Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(horizontal=WardDock.barSide.toFloat().dp).padding(bottom=10.dp).testTag("dockBar"),contentAlignment=Alignment.Center) {
         Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp).fillMaxWidth().height(IntrinsicSize.Min),
             horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)) {
             // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
@@ -466,6 +476,45 @@ fun homeSection(category:String):WardSection = when(category) {
                 horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
                 DockItemFace(if(ideas) Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"Ideas",ideas)
             }
+        }
+    }
+}
+
+/**
+ * Home's dock on end, in a broad window (iOS CategoryDock's rail,
+ * StudyCategory.swift:702): the same panel stood up at the leading edge, the
+ * five categories one under another, a groove, then Ideas as an item like
+ * the others. The chosen tab's hollow and ring are concentric with the panel
+ * (WardDock.railTabRadius); a held one sinks; no ripple. The rail is never
+ * narrower than WardDock.railMinWidth, so the ring holds every name.
+ */
+@Composable fun CategoryRail(chosen:String,choose:(String)->Unit,modifier:Modifier=Modifier) {
+    val tab=RoundedCornerShape(WardDock.railTabRadius.toFloat().dp)
+    val categories=listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq)
+    @Composable fun item(name:String,icon:ImageVector,tag:String) {
+        val selected=chosen==name
+        val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        val held by source.collectIsPressedAsState()
+        Column(Modifier.fillMaxWidth()
+            .then(if(selected) Modifier.wardChosenEdge(tab,true).wardInset(tab,WardLift.low) else if(held) Modifier.wardInset(tab,WardLift.low) else Modifier)
+            .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
+            .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
+            .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp)
+            .testTag(tag),
+            horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
+            DockItemFace(icon,name,selected)
+        }
+    }
+    // concentric with the display's corner where a short window brings the rail near one (WardCorner.radii), else its own radius
+    val (railAt,railCorners)=rememberWardCorners(WardDock.panelRadius)
+    Box(modifier.fillMaxHeight().padding(start=WardDock.railLead.toFloat().dp),contentAlignment=Alignment.CenterStart) {
+        Column(Modifier.width(IntrinsicSize.Max).widthIn(min=WardDock.railMinWidth.toFloat().dp).testTag("dockRail").then(railAt)
+            .wardRaised(railCorners,WardLift.high,control=true)
+            .padding(WardDock.railInset.toFloat().dp).selectableGroup(),
+            verticalArrangement=Arrangement.spacedBy(WardDock.railSpacing.toFloat().dp)) {
+            categories.forEach { (name,icon) -> item(name,icon,"dockRail-$name") }
+            com.stethoscore.app.ui.library.LibraryEtch(Modifier.padding(horizontal=12.dp,vertical=4.dp))
+            item("Ideas",if(chosen=="Ideas") Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"dockRail-Ideas")
         }
     }
 }

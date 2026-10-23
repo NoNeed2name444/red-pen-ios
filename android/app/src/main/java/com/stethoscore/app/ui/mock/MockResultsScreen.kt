@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
@@ -71,7 +70,7 @@ fun MockResultsScreen(result: MockResult, sitting: MockSitting, selected: Map<St
                       onDone: () -> Unit) {
     var practising by remember { mutableStateOf<StudySet?>(null) }
     var showAll by remember { mutableStateOf(false) }
-    val broad = LocalConfiguration.current.screenWidthDp >= 600
+    val broad = com.stethoscore.app.ui.ward.currentWindowShape().widthClass != com.stethoscore.app.ui.ward.WardWidthClass.compact
 
     val shownSet = practising
     if (shownSet != null) {

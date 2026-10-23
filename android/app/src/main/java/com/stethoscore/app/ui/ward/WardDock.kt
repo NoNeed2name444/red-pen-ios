@@ -50,6 +50,16 @@ object WardDock {
     const val barMaxWidth = 560.0
     /** A tab is never narrower than a finger: the least target (48 on Android, iOS 44). */
     const val leastTab = WardControlSize.target
+    // On end, in a broad window (WindowShape.dockIsRail): the panel stood up
+    // at the leading edge (iOS CategoryDock's rail, StudyCategory.swift:702).
+
+    /** The rail: never narrower than this, the gap between its items, and its room from the window's leading edge. */
+    const val railMinWidth = 76.0
+    const val railSpacing = 2.0
+    const val railLead = 12.0
+    /** The page's room for the rail: the rail at its least, its lead, and a gutter after it. */
+    const val railRoom = railMinWidth + railLead + 12.0
+
     /** How small a name may get (all five by the same amount) so the row still fits: never its side room, so it stays clear of the ring. */
     const val leastNameScale = 0.5
 

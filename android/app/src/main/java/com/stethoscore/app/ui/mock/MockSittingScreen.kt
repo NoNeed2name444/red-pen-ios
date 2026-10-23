@@ -64,7 +64,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -99,6 +98,8 @@ import com.stethoscore.app.quiz.PassMark
 import com.stethoscore.app.ui.ExamToolMenuItems
 import com.stethoscore.app.ui.ExamToolSheet
 import com.stethoscore.app.ui.ExamToolSheets
+import com.stethoscore.app.ui.StudySavers
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.stethoscore.app.ui.HighlightableStem
 import com.stethoscore.app.ui.WardOptionRow
 import com.stethoscore.app.ui.wardColor
@@ -139,7 +140,7 @@ fun MockSittingScreen(sitting: MockSitting, store: StudyStore, resumed: MockSitt
 private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSittingSave?, onDone: () -> Unit) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val broad = LocalConfiguration.current.screenWidthDp >= 600
+    val broad = com.stethoscore.app.ui.ward.currentWindowShape().widthClass != com.stethoscore.app.ui.ward.WardWidthClass.compact
     val file = remember { MockLibrary.sittingFile(context.filesDir) }
 
     // A new sitting, or one put back as it was left: the same questions,
@@ -151,15 +152,19 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
         }
         made.toMap()
     }
-    var section by remember { mutableIntStateOf(resumed?.let { minOf(maxOf(0, it.section), maxOf(0, sitting.specs.size - 1)) } ?: 0) }
-    var current by remember { mutableIntStateOf(maxOf(0, resumed?.current ?: 0)) }
+    // The part, the question and every choice live through a rotation, a fold
+    // and a window resize (T0139), as does the sheet that was open. The clock
+    // is not kept here: it is put back from the save, as for any leaving, so
+    // it stands still while the app is away.
+    var section by rememberSaveable { mutableIntStateOf(resumed?.let { minOf(maxOf(0, it.section), maxOf(0, sitting.specs.size - 1)) } ?: 0) }
+    var current by rememberSaveable { mutableIntStateOf(maxOf(0, resumed?.current ?: 0)) }
     /** The option chosen for each question, as its own index (not the slot). */
-    var selected by remember { mutableStateOf(resumed?.selected ?: emptyMap()) }
-    var flagged by remember { mutableStateOf(resumed?.flagged ?: emptySet()) }
-    var struck by remember { mutableStateOf(resumed?.struck ?: emptyMap()) }
-    var highlights by remember { mutableStateOf(resumed?.highlights ?: emptyMap()) }
-    var highlighting by remember { mutableStateOf(false) }
-    var toolSheet by remember { mutableStateOf<ExamToolSheet?>(null) }
+    var selected by rememberSaveable(stateSaver = StudySavers.idInts) { mutableStateOf(resumed?.selected ?: emptyMap()) }
+    var flagged by rememberSaveable(stateSaver = StudySavers.stringSet) { mutableStateOf(resumed?.flagged ?: emptySet()) }
+    var struck by rememberSaveable(stateSaver = StudySavers.idMarks) { mutableStateOf(resumed?.struck ?: emptyMap()) }
+    var highlights by rememberSaveable(stateSaver = StudySavers.idMarks) { mutableStateOf(resumed?.highlights ?: emptyMap()) }
+    var highlighting by rememberSaveable { mutableStateOf(false) }
+    var toolSheet by rememberSaveable { mutableStateOf<ExamToolSheet?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
     var sectionEndsAt by remember {
         mutableStateOf(resumed?.secondsLeft?.let { System.currentTimeMillis() + (maxOf(1.0, it) * 1000).toLong() })
@@ -169,10 +174,10 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
     var shownAt by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val startedAt = remember { resumed?.startedAt ?: System.currentTimeMillis() }
     /** Between two sections: the next one's clock waits for the student. */
-    var onBreak by remember { mutableStateOf(resumed?.onBreak ?: false) }
-    var showGrid by remember { mutableStateOf(false) }
-    var confirmEnd by remember { mutableStateOf(false) }
-    var confirmQuit by remember { mutableStateOf(false) }
+    var onBreak by rememberSaveable { mutableStateOf(resumed?.onBreak ?: false) }
+    var showGrid by rememberSaveable { mutableStateOf(false) }
+    var confirmEnd by rememberSaveable { mutableStateOf(false) }
+    var confirmQuit by rememberSaveable { mutableStateOf(false) }
     var result by remember { mutableStateOf<MockResult?>(null) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
 

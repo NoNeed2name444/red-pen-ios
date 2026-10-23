@@ -22,6 +22,8 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -135,27 +137,35 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
     val asksConfidence = remember { QuizPrefs.asksConfidence(context) }
     val readSeconds = maxOf(0, minReadSeconds)
 
-    var current by remember { mutableIntStateOf(0) }
-    var answers by remember { mutableStateOf(List(set.questions.size) { MCQAnswer() }) }
+    // Where the student is and what they chose live through a rotation, a fold
+    // and a window resize, each of which recreates the activity (T0139): the
+    // place, every answer, the option orders they were given, the marks, the
+    // timed paper's end and the sheet that was open.
+    var current by rememberSaveable { mutableIntStateOf(0) }
+    var answers by rememberSaveable(stateSaver = StudySavers.answers) { mutableStateOf(List(set.questions.size) { MCQAnswer() }) }
     // per-question option order: displayed slot i shows the original option orders[q][i]
-    var orders by remember { mutableStateOf(set.questions.map { OptionOrder.make(it.options.size, shuffle = true) }) }
-    var showSummary by remember { mutableStateOf(false) }
-    var pendingResume by remember { mutableStateOf<QuizProgress?>(null) }
-    var examMode by remember { mutableStateOf(false) }
-    var examEndsAt by remember { mutableStateOf<Long?>(null) }
-    var confidences by remember { mutableStateOf(mapOf<String, AnswerConfidence>()) }
-    var reasons by remember { mutableStateOf(mapOf<String, MistakeReason>()) }
+    var orders by rememberSaveable(stateSaver = StudySavers.orders) { mutableStateOf(set.questions.map { OptionOrder.make(it.options.size, shuffle = true) }) }
+    var showSummary by rememberSaveable { mutableStateOf(false) }
+    // the resume offer, asked once per quiz opened; on a rotation the offer itself is read again from the store
+    var resumeAsked by rememberSaveable { mutableStateOf(false) }
+    var pendingResume by rememberSaveable(stateSaver = Saver<QuizProgress?, Boolean>({ it != null }, { if (it) store.quizProgress[set.id] else null })) { mutableStateOf<QuizProgress?>(null) }
+    var examMode by rememberSaveable { mutableStateOf(false) }
+    var examEndsAt by rememberSaveable { mutableStateOf<Long?>(null) }
+    var confidences by rememberSaveable(stateSaver = StudySavers.enumMap(AnswerConfidence::valueOf)) { mutableStateOf(mapOf<String, AnswerConfidence>()) }
+    var reasons by rememberSaveable(stateSaver = StudySavers.enumMap(MistakeReason::valueOf)) { mutableStateOf(mapOf<String, MistakeReason>()) }
     var holding by remember { mutableStateOf(false) }
-    var reordered by remember { mutableStateOf<List<MCQQuestion>?>(null) }
-    var retested by remember { mutableStateOf(setOf<String>()) }
-    var struck by remember { mutableStateOf(mapOf<Int, Set<Int>>()) }
-    var highlights by remember { mutableStateOf(mapOf<Int, Set<Int>>()) }
-    var highlighting by remember { mutableStateOf(false) }
-    var toolSheet by remember { mutableStateOf<ExamToolSheet?>(null) }
+    // a re-test slotted in, kept as the questions' ids in order
+    var reordered by rememberSaveable(stateSaver = Saver<List<MCQQuestion>?, ArrayList<String>>({ it?.mapTo(ArrayList()) { q -> q.id } },
+        { ids -> val byId = set.questions.associateBy { it.id }; ids.map { byId[it] }.takeIf { all -> all.none { it == null } }?.filterNotNull() })) { mutableStateOf<List<MCQQuestion>?>(null) }
+    var retested by rememberSaveable(stateSaver = StudySavers.stringSet) { mutableStateOf(setOf<String>()) }
+    var struck by rememberSaveable(stateSaver = StudySavers.marks) { mutableStateOf(mapOf<Int, Set<Int>>()) }
+    var highlights by rememberSaveable(stateSaver = StudySavers.marks) { mutableStateOf(mapOf<Int, Set<Int>>()) }
+    var highlighting by rememberSaveable { mutableStateOf(false) }
+    var toolSheet by rememberSaveable { mutableStateOf<ExamToolSheet?>(null) }
     // the Ward pocket (batch 16), from More while no timed exam runs
-    var pocketOpen by remember { mutableStateOf(false) }
-    var hints by remember { mutableStateOf(mapOf<String, String>()) }
-    var twinNotes by remember { mutableStateOf(mapOf<String, String>()) }
+    var pocketOpen by rememberSaveable { mutableStateOf(false) }
+    var hints by rememberSaveable(stateSaver = StudySavers.stringMap) { mutableStateOf(mapOf<String, String>()) }
+    var twinNotes by rememberSaveable(stateSaver = StudySavers.stringMap) { mutableStateOf(mapOf<String, String>()) }
     var flagged by remember { mutableStateOf(store.flagged) }
     var saved by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -224,6 +234,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 
     // MARK: resume / retake
     LaunchedEffect(Unit) {
+        if (resumeAsked) return@LaunchedEffect
+        resumeAsked = true
         val p = store.quizProgress[set.id]
         if (keepsProgress && p != null && p.questionIds == set.questions.map { it.id }
             && p.optionOrders.size == set.questions.size && p.answers.size == set.questions.size
@@ -724,3 +736,37 @@ private fun reasonIcon(reason: MistakeReason) = when (reason) {
     WardTimerPill(left, Modifier.clearAndSetSemantics { contentDescription = ChartQuiz.spokenClock(left) }, warnBelow = 61)
 }
 
+
+/**
+ * How a study screen's state is kept across the activity being recreated (a
+ * rotation, a fold, a window resize): each as plain arrays and strings a
+ * Bundle holds, read back as it was.
+ */
+internal object StudySavers {
+    /** Each answer as its slot (-1 for none) and whether it was checked. */
+    val answers: Saver<List<MCQAnswer>, IntArray> = Saver(
+        { list -> IntArray(list.size * 2).also { a -> list.forEachIndexed { i, x -> a[2 * i] = x.selected ?: -1; a[2 * i + 1] = if (x.checked) 1 else 0 } } },
+        { a -> (0 until a.size / 2).map { i -> MCQAnswer(a[2 * i].takeIf { it >= 0 }, a[2 * i + 1] == 1) } })
+    /** Each order as its length then its indices. */
+    val orders: Saver<List<List<Int>>, IntArray> = Saver(
+        { list -> list.flatMap { listOf(it.size) + it }.toIntArray() },
+        { a -> val out = ArrayList<List<Int>>(); var i = 0; while (i < a.size) { val n = a[i]; out.add(a.slice(i + 1..i + n)); i += n + 1 }; out })
+    /** Marks by question index: the index, how many, then the marks. */
+    val marks: Saver<Map<Int, Set<Int>>, IntArray> = Saver(
+        { m -> m.entries.flatMap { (k, v) -> listOf(k, v.size) + v }.toIntArray() },
+        { a -> val out = LinkedHashMap<Int, Set<Int>>(); var i = 0; while (i + 1 < a.size) { val n = a[i + 1]; out[a[i]] = a.slice(i + 2 until i + 2 + n).toSet(); i += n + 2 }; out })
+    /** Marks by question id: the id, then the marks joined by commas. */
+    val idMarks: Saver<Map<String, Set<Int>>, ArrayList<String>> = Saver(
+        { m -> m.entries.flatMapTo(ArrayList()) { (k, v) -> listOf(k, v.joinToString(",")) } },
+        { a -> a.chunked(2).filter { it.size == 2 }.associate { (k, v) -> k to (if (v.isEmpty()) emptySet() else v.split(",").map(String::toInt).toSet()) } })
+    val idInts: Saver<Map<String, Int>, ArrayList<String>> = Saver(
+        { m -> m.entries.flatMapTo(ArrayList()) { (k, v) -> listOf(k, v.toString()) } },
+        { a -> a.chunked(2).filter { it.size == 2 }.associate { (k, v) -> k to v.toInt() } })
+    val stringMap: Saver<Map<String, String>, ArrayList<String>> = Saver(
+        { m -> m.entries.flatMapTo(ArrayList()) { (k, v) -> listOf(k, v) } },
+        { a -> a.chunked(2).filter { it.size == 2 }.associate { (k, v) -> k to v } })
+    val stringSet: Saver<Set<String>, ArrayList<String>> = Saver({ ArrayList(it) }, { it.toSet() })
+    fun <E : Enum<E>> enumMap(parse: (String) -> E): Saver<Map<String, E>, ArrayList<String>> = Saver(
+        { m -> m.entries.flatMapTo(ArrayList()) { (k, v) -> listOf(k, v.name) } },
+        { a -> a.chunked(2).filter { it.size == 2 }.mapNotNull { (k, v) -> runCatching { k to parse(v) }.getOrNull() }.toMap() })
+}

@@ -130,6 +130,40 @@ import kotlinx.coroutines.withContext
 
     fun stopSelecting() { selecting = false; selected = emptySet() }
     fun toggle(id: String) { selected = if (id in selected) selected - id else selected + id }
+
+    companion object {
+        /**
+         * What lives through a rotation, a fold or a window resize (T0139): the
+         * picking of sets, the name sheet that is up, the search's scope and a
+         * custom session's words. Menus close, as they do on iOS.
+         */
+        val Saver: androidx.compose.runtime.saveable.Saver<LibraryState, ArrayList<String>> = androidx.compose.runtime.saveable.Saver(
+            { st ->
+                val naming = when (val n = st.naming) {
+                    is Naming.RenameSet -> listOf("set", n.id, n.name)
+                    is Naming.RenameFolder -> listOf("folder", n.id, n.name)
+                    Naming.NewFolder -> listOf("new", "", "")
+                    Naming.Combine -> listOf("combine", "", "")
+                    null -> listOf("", "", "")
+                }
+                arrayListOf(st.selecting.toString(), st.scope.name, st.session ?: "\u0000") .apply { addAll(naming); addAll(st.selected) }
+            },
+            { a ->
+                LibraryState().apply {
+                    selecting = a.getOrNull(0) == "true"
+                    scope = runCatching { LibrarySearch.Scope.valueOf(a[1]) }.getOrDefault(LibrarySearch.Scope.ALL)
+                    session = a.getOrNull(2)?.takeIf { it != "\u0000" }
+                    naming = when (a.getOrNull(3)) {
+                        "set" -> Naming.RenameSet(a[4], a[5])
+                        "folder" -> Naming.RenameFolder(a[4], a[5])
+                        "new" -> Naming.NewFolder
+                        "combine" -> Naming.Combine
+                        else -> null
+                    }
+                    selected = a.drop(6).toSet()
+                }
+            })
+    }
 }
 
 /** Which name sheet is up (iOS NamingSheet, renaming and renamingFolder). */
