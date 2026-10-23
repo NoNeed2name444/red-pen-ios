@@ -559,12 +559,20 @@ struct WardSmallCaps: ViewModifier {
         self.colour = colour
     }
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
+        let styled = content
             .font(font)
             .textCase(.uppercase)
-            .tracking(typeSize.isAccessibilitySize ? 0 : 0.8)
             .foregroundStyle(colour)
+        // no tracking at all at the accessibility sizes, not a tracking of
+        // 0: the audit read home's date, tracked 0, as only partly
+        // following Dynamic Type
+        if typeSize.isAccessibilitySize {
+            styled
+        } else {
+            styled.tracking(0.8)
+        }
     }
 }
 

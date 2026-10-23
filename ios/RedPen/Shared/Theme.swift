@@ -653,26 +653,24 @@ struct StudyProgressHeader<Accessory: View>: View {
         self.accessory = accessory()
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.bar, style: .continuous)
         VStack(alignment: .leading, spacing: WardSpace.s) {
-            HStack(alignment: .center, spacing: WardSpace.m) {
-                VStack(alignment: .leading, spacing: WardSpace.xs) {
-                    Text(status)
-                        .font(.headline)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                    if let detail {
-                        Text(detail)
-                            .font(.subheadline)
-                            .foregroundStyle(Color.wardInkSecondary)
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                    }
-                }
-                .accessibilityElement(children: .combine)
-                Spacer(minLength: 8)
+            if typeSize.isAccessibilitySize {
+                // at the accessibility sizes the words take the whole width
+                // and the accessory stands under them: side by side, each
+                // squeezed the other to a word a line, cut short
+                // ("Ques- tion...", "Tap the answ...", "Ti m e d")
+                words
                 accessory
+            } else {
+                HStack(alignment: .center, spacing: WardSpace.m) {
+                    words
+                    Spacer(minLength: 8)
+                    accessory
+                }
             }
             if let fraction {
                 ThinProgress(fraction: fraction)
@@ -688,6 +686,30 @@ struct StudyProgressHeader<Accessory: View>: View {
         .frame(maxWidth: .infinity)
         // above a split screen, kept to one side of an upright hinge
         .clearOfBand()
+    }
+}
+
+extension StudyProgressHeader {
+    /// Where you are and the quieter second fact, every line they wrap to
+    /// shown whole.
+    private var words: some View {
+        VStack(alignment: .leading, spacing: WardSpace.xs) {
+            Text(status)
+                .font(.headline)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .fixedSize(horizontal: false, vertical: true)
+            if let detail {
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.wardInkSecondary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
