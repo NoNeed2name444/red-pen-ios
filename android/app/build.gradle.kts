@@ -35,6 +35,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    // the window's fold (WindowShape): 1.5.1, released 19 Nov 2025, the newest stable; it asks only core 1.8 and coroutines 1.8
+    implementation("androidx.window:window:1.5.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
@@ -47,6 +49,8 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    // a fake FoldingFeature for each posture (FoldLayoutTest), the emulator's fold not needed
+    androidTestImplementation("androidx.window:window-testing:1.5.1")
 }
 
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }

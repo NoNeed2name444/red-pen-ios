@@ -8,6 +8,8 @@ import android.os.SystemClock
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.dp
+import com.stethoscore.app.quiz.ChartQuiz
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -33,13 +35,15 @@ class ScreenshotTest {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         return StudyStore(File(context.cacheDir,"preview-${System.nanoTime()}")).also {it.loadExamples()}
     }
-    private fun shot(name:String) {
+    private fun shot(name:String) = still(compose,"/sdcard/Download/stethoscore-screenshots",name)
+    companion object {
+        /** One still of the screen, as [name].png in [directory] (WindowShots takes its stills the same way). */
+        internal fun still(compose:androidx.compose.ui.test.junit4.ComposeTestRule,directory:String,name:String) {
         compose.waitForIdle()
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         require(name.matches(Regex("[a-z0-9-]+")))
         val device=UiDevice.getInstance(instrumentation)
         device.waitForIdle()
-        val directory="/sdcard/Download/stethoscore-screenshots"
         device.executeShellCommand("mkdir -p $directory")
         // A slow emulator can raise a system "isn't responding" dialog over the app at any
         // moment. Dismiss it, shoot, and shoot again if one appeared meanwhile; a screen that
@@ -71,6 +75,7 @@ class ScreenshotTest {
             device.wait(Until.gone(By.text(dialogText)),3_000)
             device.waitForIdle()
         }
+    }
     }
     @Test fun homeLight() { val store=store();compose.setContent {StethoscoreApp(store)};compose.onNodeWithText("Stethoscore").assertIsDisplayed();shot("01-home-light") }
     @Test fun homeDark() { val store=store();compose.setContent {StethoscoreApp(store,forceDark=true)};shot("02-home-dark") }
@@ -200,4 +205,121 @@ class ScreenshotTest {
         compose.onNodeWithContentDescription("Contents").assertIsDisplayed()
         shot("10-textbook")
     }
+}
+
+/**
+ * The window matrix's stills (T0139), named for the run's profile, posture and orientation,
+ * which capture-screenshots.sh sets before it starts this class (the device turned, folded or
+ * not), so a turn never recreates the composition under a still. Six key screens (home, the
+ * library's Cards page, a checked quiz answer, a mock sitting with its "Part n", a revealed card,
+ * settings; the tour has no draw-recall row on Android yet), each through the whole app, so the
+ * frame, the dock or the rail and the hinge's clearance are the app's own.
+ *
+ * Arguments: profile, posture, orient (the names in each still), modes ("light" or "light,dark"),
+ * and sizes ("WxH,..." in dp: each screen again at that window size by ForcedSize, for split
+ * screen and free-form windows; none for the plain pass).
+ */
+@RunWith(AndroidJUnit4::class)
+class WindowShots {
+    @get:Rule val compose = createComposeRule()
+    @get:Rule val learnClosed = LearnRouterClosed()
+    private val args get() = InstrumentationRegistry.getArguments()
+    private fun arg(name:String,default:String)=args.getString(name)?.takeIf { it.isNotBlank() } ?: default
+    private val directory="/sdcard/Download/stethoscore-screenshots/window"
+    private val dark=androidx.compose.runtime.mutableStateOf(false)
+    private val size=androidx.compose.runtime.mutableStateOf<androidx.compose.ui.unit.DpSize?>(null)
+
+    private fun store():StudyStore {
+        val context=InstrumentationRegistry.getInstrumentation().targetContext
+        return StudyStore(File(context.cacheDir,"window-${System.nanoTime()}")).also { s ->
+            s.loadExamples()
+            // a mock needs ten questions at least
+            s.addSet(StudySet(name="Renal drill",subject="Nephrology",kind=StudySetKind.MCQ,
+                questions=List(12) { i -> MCQQuestion(stem="Drill question ${i+1}?",options=listOf("One","Two","Three","Four"),correctIndex=i%4) }))
+        }
+    }
+
+    private fun waitFor(what:String,matcher:SemanticsMatcher) {
+        try { compose.waitUntil(20_000) { compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() } }
+        catch (e:ComposeTimeoutException) { throw AssertionError("no $what",e) }
+    }
+    private fun tap(what:String,matcher:SemanticsMatcher) {
+        waitFor(what,matcher)
+        val node=compose.onAllNodes(matcher).onFirst()
+        try { node.performScrollTo() } catch (_:AssertionError) {}
+        node.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        compose.waitForIdle()
+    }
+    private fun tab(name:String)=hasText(name) and SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role,androidx.compose.ui.semantics.Role.Tab)
+
+    /** Sizes from "412x302,302x412" (dp). */
+    private fun sizes():List<androidx.compose.ui.unit.DpSize?> {
+        val listed=arg("sizes","").split(',').map { it.trim() }.filter { it.isNotEmpty() }.map { s ->
+            val (w,h)=s.split('x').map { it.toFloat() }
+            androidx.compose.ui.unit.DpSize(w.dp,h.dp)
+        }
+        return listed.ifEmpty { listOf(null) }
+    }
+
+    /**
+     * [screen] in each mode and each size, the app composed afresh for each, [steps] bringing it
+     * to the state shot. A turned still must be wider than tall where the screen's natural way is tall,
+     * and taller than wide where it is wide (naturalTall, the script's measure for this pass).
+     */
+    private fun shoot(screen:String,initial:String="home",steps:(StudyStore) -> Unit={}) {
+        val modes=arg("modes","light").split(',').map { it.trim() }
+        val profile=arg("profile","device"); val posture=arg("posture","open"); val orient=arg("orient","natural")
+        val stores=HashMap<Pair<Boolean,androidx.compose.ui.unit.DpSize?>,StudyStore>()
+        compose.setContent {
+            val d=dark.value; val z=size.value
+            androidx.compose.runtime.key(d,z) {
+                val s=stores.getOrPut(d to z) { store() }
+                if(z==null) StethoscoreApp(s,initialScreen=initial,forceDark=d)
+                else androidx.compose.ui.test.DeviceConfigurationOverride(androidx.compose.ui.test.DeviceConfigurationOverride.ForcedSize(z)) {
+                    StethoscoreApp(s,initialScreen=initial,forceDark=d)
+                }
+            }
+        }
+        val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        for (z in sizes()) for (m in modes) {
+            compose.runOnIdle { dark.value=m=="dark"; size.value=z }
+            compose.waitForIdle()
+            InstrumentationRegistry.getInstrumentation().runOnMainSync { com.stethoscore.app.ui.learn.LearnRouter.close() }
+            steps(stores.getValue((m=="dark") to z))
+            val where=z?.let { "${it.width.value.toInt()}x${it.height.value.toInt()}" } ?: orient
+            ScreenshotTest.still(compose,directory,"w-$profile-$posture-$where-$screen-$m")
+            // the script measures the screen in use for each pass (a fold's cover screen stands tall, its open screen wide)
+            if (z==null && orient!="natural") {
+                val tall=arg("naturalTall","true")=="true"
+                check((device.displayWidth>device.displayHeight)==tall) {
+                    "$screen $orient: the still is ${device.displayWidth}x${device.displayHeight}, not ${if(tall) "wider than tall" else "taller than wide"}" }
+            }
+        }
+    }
+
+    @Test fun home() = shoot("home") { waitFor("home's Settings button",hasContentDescription("Settings")) }
+    @Test fun library() = shoot("library") { tap("the Cards tab",tab("Cards")) }
+    @Test fun quizChecked() = shoot("quiz-checked") { s ->
+        val set=s.library.first { it.kind==StudySetKind.MCQ }
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
+        tap("the set's row",hasText(set.name) and hasClickAction())
+        val q=set.questions.first()
+        tap("the right answer",hasClickAction() and hasContentDescription(": "+q.options[q.correctIndex],substring=true))
+        tap("Check answer",hasText(ChartQuiz.primaryTitle(false,true,false,false,false)) and hasClickAction())
+        waitFor("Next question",hasText(ChartQuiz.primaryTitle(true,true,false,false,false)))
+    }
+    @Test fun mockSitting() = shoot("mock-sitting","mock") {
+        tap("Start mock",hasText("Start mock") and hasClickAction())
+        waitFor("the sitting's first question",hasText("Question 1 of",substring=true))
+        check(compose.onAllNodes(hasText("Block",substring=true)).fetchSemanticsNodes().isEmpty()) { "the mock says Part, never Block" }
+    }
+    @Test fun ankiRevealed() = shoot("anki-revealed") { s ->
+        tap("the Cards tab",tab("Cards"))
+        val set=s.library.first { it.kind==StudySetKind.ANKI }
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
+        tap("the deck's row",hasText(set.name) and hasClickAction())
+        tap("Reveal",hasText("Reveal") and hasClickAction())
+        waitFor("the ratings",hasContentDescription("Good"))
+    }
+    @Test fun settings() = shoot("settings","settings")
 }

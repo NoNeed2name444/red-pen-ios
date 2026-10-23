@@ -34,6 +34,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -155,6 +157,11 @@ internal object MockLibrary {
 
     fun sittingFile(dir: File): File = MockSittingStore.defaultFile(dir)
     fun recordsFile(dir: File): File = MockRecords.defaultFile(dir)
+    /**
+     * The sitting just marked, kept while its results are up (T0139): a rotation, a
+     * fold or a window resize puts the results back from it. Gone once they are left.
+     */
+    fun markedFile(dir: File): File = File(dir, "mock-marked.json")
 }
 
 /** "3 h", "1 h 40 min", "45 min". */
@@ -186,8 +193,30 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
     val secondary: TargetExam? = remember { ExamChoice.currentSecondary(context) }
     var usmleBlocks by rememberSaveable { mutableIntStateOf(2) }
     var paperId by rememberSaveable { mutableStateOf("") }
-    var sitting by remember { mutableStateOf<MockSitting?>(null) }
-    var resuming by remember { mutableStateOf<MockSittingSave?>(null) }
+    /** The sitting a save was made from: its questions found in the library again, or null when none are left. */
+    fun sittingFrom(save: MockSittingSave, id: String = java.util.UUID.randomUUID().toString()): MockSitting? {
+        val byId = MockLibrary.mcqPicks(store.library).associateBy { it.question.id }
+        val sections = save.questionIds.map { ids -> ids.mapNotNull { byId[it] } }
+        if (sections.none { it.isNotEmpty() }) return null
+        return MockSitting(save.title, save.specs, sections, save.wanted, ExamTrack.from(save.track), save.passMark,
+            MockMarking.penalty(target?.negativeMarking), id)
+    }
+    // The sitting open, by id: a rotation, a fold or a window resize recreates the
+    // activity, and the paper is put back from its save (kept on every change and
+    // as the app leaves) under the same id, so the sitting keeps its own state too
+    // (T0139). Its clock comes back from the save as it does after any leaving.
+    var openId by rememberSaveable { mutableStateOf<String?>(null) }
+    val reopened = remember {
+        openId?.let { id ->
+            // the paper part way, else the one just marked whose results were up
+            (MockSittingStore.load(MockLibrary.sittingFile(dir)) ?: MockSittingStore.load(MockLibrary.markedFile(dir)))
+                ?.let { save -> sittingFrom(save, id)?.let { save to it } }
+        }
+    }
+    // a save gone (marked, or its questions deleted): nothing to put back
+    LaunchedEffect(Unit) { if (reopened == null) openId = null }
+    var sitting by remember { mutableStateOf(reopened?.second) }
+    var resuming by remember { mutableStateOf(reopened?.first) }
     var revision by remember { mutableIntStateOf(0) }
     /** A sitting left part way, offered to resume. */
     var saved by remember { mutableStateOf(MockSittingStore.load(MockLibrary.sittingFile(dir))) }
@@ -195,7 +224,10 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
 
     val open = sitting
     if (open != null) {
+        SideEffect { openId = open.id }
         MockSittingScreen(open, store, resuming, onDone = {
+            MockLibrary.markedFile(dir).delete()
+            openId = null
             sitting = null
             resuming = null
             saved = MockSittingStore.load(MockLibrary.sittingFile(dir))
@@ -212,16 +244,14 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
     val available = MockAssembler.dedupe(pool).size
 
     fun resume(save: MockSittingSave) {
-        val byId = MockLibrary.mcqPicks(store.library).associateBy { it.question.id }
-        val sections = save.questionIds.map { ids -> ids.mapNotNull { byId[it] } }
-        if (sections.none { it.isNotEmpty() }) {
+        val made = sittingFrom(save)
+        if (made == null) {
             MockSittingStore.clear(MockLibrary.sittingFile(dir))
             saved = null
             return
         }
         resuming = save
-        sitting = MockSitting(save.title, save.specs, sections, save.wanted, ExamTrack.from(save.track), save.passMark,
-            MockMarking.penalty(target?.negativeMarking))
+        sitting = made
     }
 
     /**

@@ -36,35 +36,58 @@ class WardFrameClearTest {
     }
 
     @Test fun frameClearsTheBars() = checks {
-        val half = WardPaper.edgeWidth / 2
-        for (p in phones) {
-            val panel = WardPaper.panel(p.width, p.height, p.safe, p.device)
-            check("${p.label}: a panel", panel != null)
-            panel ?: continue
-            // the ring's outer edge, so its inner edge too, stays clear of every bar
-            check("${p.label}: clear of the status bar", panel.y - half >= p.safe.top - 1e-9, "ring top ${panel.y - half}, bar ${p.safe.top}")
-            check("${p.label}: inner edge below the status bar", panel.y + half > p.safe.top)
-            check("${p.label}: clear of the navigation bar", panel.y + panel.height + half <= p.height - p.safe.bottom + 1e-9,
-                "ring bottom ${panel.y + panel.height + half}, bar from ${p.height - p.safe.bottom}")
-            check("${p.label}: clear of the side bars", panel.x - half >= p.safe.left - 1e-9 &&
-                panel.x + panel.width + half <= p.width - p.safe.right + 1e-9)
-            check("${p.label}: never nearer the edge than the frame", panel.x >= WardPaper.frame && panel.y >= WardPaper.frame)
-            // each corner concentric with the display, floored
-            val device = p.device ?: WardPaper.deviceRadius(p.width, p.height)
-            val side = maxOf(panel.x, p.width - panel.x - panel.width)
-            val cap = minOf(panel.width, panel.height) / (2 * 1.52866483)
-            check("${p.label}: top corners concentric", panel.radius ==
-                minOf(WardCorner.concentric(device, maxOf(side, panel.y), WardEdge.minRadius), cap))
-            check("${p.label}: bottom corners concentric", panel.bottomRadius ==
-                minOf(WardCorner.concentric(device, maxOf(side, p.height - panel.y - panel.height), WardEdge.minRadius), cap))
-            // the moved opening keeps the bars clear too
-            val moved = WardPaper.panel(p.width, p.height, top = 4.0, safe = p.safe, device = p.device)!!
-            check("${p.label}: a top above the bar is held below it", moved.y == panel.y)
-            // the outline's bottom takes the bottom corners' radius
-            val outline = WardEdge.outline(panel)
-            check("${p.label}: outline inside the panel", outline.all { it.y >= panel.y - 1e-9 && it.y <= panel.y + panel.height + 1e-9 })
-        }
+        for (p in phones) frameClear(p)
         check("no bars, no device: the frame as before", WardPaper.panel(402.0, 874.0, WardSystemInsets.none, null) == WardPaper.panel(402.0, 874.0))
+    }
+
+    /** The ring clear of every bar and its corners concentric with the display's, for one window. */
+    private fun WardChecks.frameClear(p: Phone) {
+        val half = WardPaper.edgeWidth / 2
+        val panel = WardPaper.panel(p.width, p.height, p.safe, p.device)
+        check("${p.label}: a panel", panel != null)
+        panel ?: return
+        // the ring's outer edge, so its inner edge too, stays clear of every bar
+        check("${p.label}: clear of the status bar", panel.y - half >= p.safe.top - 1e-9, "ring top ${panel.y - half}, bar ${p.safe.top}")
+        check("${p.label}: inner edge below the status bar", panel.y + half > p.safe.top)
+        check("${p.label}: clear of the navigation bar", panel.y + panel.height + half <= p.height - p.safe.bottom + 1e-9,
+            "ring bottom ${panel.y + panel.height + half}, bar from ${p.height - p.safe.bottom}")
+        check("${p.label}: clear of the side bars", panel.x - half >= p.safe.left - 1e-9 &&
+            panel.x + panel.width + half <= p.width - p.safe.right + 1e-9)
+        check("${p.label}: never nearer the edge than the frame", panel.x >= WardPaper.frame && panel.y >= WardPaper.frame)
+        // each corner concentric with the display, floored
+        val device = p.device ?: WardPaper.deviceRadius(p.width, p.height)
+        val side = maxOf(panel.x, p.width - panel.x - panel.width)
+        val cap = minOf(panel.width, panel.height) / (2 * 1.52866483)
+        check("${p.label}: top corners concentric", panel.radius ==
+            minOf(WardCorner.concentric(device, maxOf(side, panel.y), WardEdge.minRadius), cap))
+        check("${p.label}: bottom corners concentric", panel.bottomRadius ==
+            minOf(WardCorner.concentric(device, maxOf(side, p.height - panel.y - panel.height), WardEdge.minRadius), cap))
+        // the moved opening keeps the bars clear too
+        val moved = WardPaper.panel(p.width, p.height, top = 4.0, safe = p.safe, device = p.device)!!
+        check("${p.label}: a top above the bar is held below it", moved.y == panel.y)
+        // the outline's bottom takes the bottom corners' radius
+        val outline = WardEdge.outline(panel)
+        check("${p.label}: outline inside the panel", outline.all { it.y >= panel.y - 1e-9 && it.y <= panel.y + panel.height + 1e-9 })
+    }
+
+    /**
+     * The same phones turned left and right (T0139): the window's width and height swap, the bars and
+     * the cut-out move to the sides they now lie on, and the reported corner goes with the display (the
+     * largest of the four, wardDisplayCorner, so a turn never changes it). Each turn keeps the ring clear
+     * of every bar and the cut-out, its corners concentric, as upright.
+     */
+    @Test fun frameClearsTheBarsInEachRotation() = checks {
+        for (p in phones.filter { it.height > it.width }) {
+            // turned left (the top edge to the left): the cut-out on the left, the status bar still along the top, the gesture bar along the new bottom
+            val left = Phone("${p.label}, left", p.height, p.width, WardSystemInsets(top = minOf(p.safe.top, 24.0), bottom = p.safe.bottom, left = p.safe.top, right = 0.0), p.device)
+            // turned right: the cut-out on the right
+            val right = Phone("${p.label}, right", p.height, p.width, WardSystemInsets(top = minOf(p.safe.top, 24.0), bottom = p.safe.bottom, left = 0.0, right = p.safe.top), p.device)
+            for (turned in listOf(p, left, right)) frameClear(turned)
+            for (turned in listOf(left, right)) {
+                val panel = WardPaper.panel(turned.width, turned.height, turned.safe, turned.device)
+                check("${turned.label}: the opening is wider than tall", panel != null && panel.width > panel.height)
+            }
+        }
     }
 
     @Test fun topBarControlInsideTheRing() = checks {

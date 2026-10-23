@@ -64,7 +64,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -99,6 +98,8 @@ import com.stethoscore.app.quiz.PassMark
 import com.stethoscore.app.ui.ExamToolMenuItems
 import com.stethoscore.app.ui.ExamToolSheet
 import com.stethoscore.app.ui.ExamToolSheets
+import com.stethoscore.app.ui.StudySavers
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.stethoscore.app.ui.HighlightableStem
 import com.stethoscore.app.ui.WardOptionRow
 import com.stethoscore.app.ui.wardColor
@@ -139,7 +140,7 @@ fun MockSittingScreen(sitting: MockSitting, store: StudyStore, resumed: MockSitt
 private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSittingSave?, onDone: () -> Unit) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val broad = LocalConfiguration.current.screenWidthDp >= 600
+    val broad = com.stethoscore.app.ui.ward.currentWindowShape().widthClass != com.stethoscore.app.ui.ward.WardWidthClass.compact
     val file = remember { MockLibrary.sittingFile(context.filesDir) }
 
     // A new sitting, or one put back as it was left: the same questions,
@@ -151,15 +152,19 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
         }
         made.toMap()
     }
-    var section by remember { mutableIntStateOf(resumed?.let { minOf(maxOf(0, it.section), maxOf(0, sitting.specs.size - 1)) } ?: 0) }
-    var current by remember { mutableIntStateOf(maxOf(0, resumed?.current ?: 0)) }
+    // The part, the question and every choice live through a rotation, a fold
+    // and a window resize (T0139), as does the sheet that was open. The clock
+    // is not kept here: it is put back from the save, as for any leaving, so
+    // it stands still while the app is away.
+    var section by rememberSaveable { mutableIntStateOf(resumed?.let { minOf(maxOf(0, it.section), maxOf(0, sitting.specs.size - 1)) } ?: 0) }
+    var current by rememberSaveable { mutableIntStateOf(maxOf(0, resumed?.current ?: 0)) }
     /** The option chosen for each question, as its own index (not the slot). */
-    var selected by remember { mutableStateOf(resumed?.selected ?: emptyMap()) }
-    var flagged by remember { mutableStateOf(resumed?.flagged ?: emptySet()) }
-    var struck by remember { mutableStateOf(resumed?.struck ?: emptyMap()) }
-    var highlights by remember { mutableStateOf(resumed?.highlights ?: emptyMap()) }
-    var highlighting by remember { mutableStateOf(false) }
-    var toolSheet by remember { mutableStateOf<ExamToolSheet?>(null) }
+    var selected by rememberSaveable(stateSaver = StudySavers.idInts) { mutableStateOf(resumed?.selected ?: emptyMap()) }
+    var flagged by rememberSaveable(stateSaver = StudySavers.stringSet) { mutableStateOf(resumed?.flagged ?: emptySet()) }
+    var struck by rememberSaveable(stateSaver = StudySavers.idMarks) { mutableStateOf(resumed?.struck ?: emptyMap()) }
+    var highlights by rememberSaveable(stateSaver = StudySavers.idMarks) { mutableStateOf(resumed?.highlights ?: emptyMap()) }
+    var highlighting by rememberSaveable { mutableStateOf(false) }
+    var toolSheet by rememberSaveable { mutableStateOf<ExamToolSheet?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
     var sectionEndsAt by remember {
         mutableStateOf(resumed?.secondsLeft?.let { System.currentTimeMillis() + (maxOf(1.0, it) * 1000).toLong() })
@@ -169,10 +174,15 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
     var shownAt by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val startedAt = remember { resumed?.startedAt ?: System.currentTimeMillis() }
     /** Between two sections: the next one's clock waits for the student. */
-    var onBreak by remember { mutableStateOf(resumed?.onBreak ?: false) }
-    var showGrid by remember { mutableStateOf(false) }
-    var confirmEnd by remember { mutableStateOf(false) }
-    var confirmQuit by remember { mutableStateOf(false) }
+    var onBreak by rememberSaveable { mutableStateOf(resumed?.onBreak ?: false) }
+    var showGrid by rememberSaveable { mutableStateOf(false) }
+    var confirmEnd by rememberSaveable { mutableStateOf(false) }
+    var confirmQuit by rememberSaveable { mutableStateOf(false) }
+    // Marked, and the minutes it took: kept through a rotation, a fold or a window
+    // resize (T0139), the results made again from the answers kept with them (the
+    // sitting put back from MockLibrary.markedFile), never marked or recorded twice.
+    var marked by rememberSaveable { mutableStateOf(false) }
+    var usedMinutes by rememberSaveable { mutableIntStateOf(0) }
     var result by remember { mutableStateOf<MockResult?>(null) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
@@ -214,29 +224,37 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
 
     fun minutesUsed(): Int = Math.round((System.currentTimeMillis() - startedAt) / 60_000.0).toInt()
 
+    /** Every question marked, from the answers, flags and times as they stand. */
+    fun marking(): MockResult {
+        val marks = sitting.picks.flatten().map { p ->
+            val q = p.question
+            val chosen = selected[q.id]
+            MockMark(q.id, MockLibrary.subjectName(p.set), chosen, chosen == q.correctIndex, q.id in flagged, spent[q.id] ?: 0.0)
+        }
+        return MockResult(marks, sitting.passMark ?: PassMark.typical(sitting.track), sitting.penalty)
+    }
+    // put back marked (a rotation on the results): the same results, made again
+    if (marked && result == null) result = marking()
+
     /** Marks every question, records the answers given in the library's history, and keeps the sitting. */
     fun finish() {
         if (sectionEndsAt != null) noteTime()
         sectionEndsAt = null
-        val marks = ArrayList<MockMark>()
-        for (p in sitting.picks.flatten()) {
-            val q = p.question
-            val chosen = selected[q.id]
-            val right = chosen == q.correctIndex
-            marks.add(MockMark(q.id, MockLibrary.subjectName(p.set), chosen, right, q.id in flagged, spent[q.id] ?: 0.0))
-            // an answer left blank says nothing about what the student knows
-            if (chosen != null) store.recordAnswer(q.id, right, picked = chosen, saving = false)
-        }
+        val made = marking()
+        // an answer left blank says nothing about what the student knows
+        for (m in made.marks) if (m.picked != null) store.recordAnswer(m.questionId, m.correct, picked = m.picked, saving = false)
         store.save()
-        val passMark = sitting.passMark ?: PassMark.typical(sitting.track)
-        val made = MockResult(marks, passMark, sitting.penalty)
+        usedMinutes = minutesUsed()
         MockRecords.record(MockRecord(title = sitting.title, track = sitting.track.rawValue, correct = made.correct, total = made.total,
-            wanted = sitting.wanted, passMark = passMark, minutesUsed = minutesUsed(),
+            wanted = sitting.wanted, passMark = made.passMark, minutesUsed = usedMinutes,
             score = if (made.penalty > 0) made.fraction else null), MockLibrary.recordsFile(context.filesDir))
-        // marked and kept in the history: nothing left to resume
+        // marked and kept in the history: nothing left to resume, but the results
+        // stay put back-able while they are up
+        onBreak = false
+        MockSittingStore.save(snapshot(), MockLibrary.markedFile(context.filesDir))
         MockSittingStore.clear(file)
         haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-        onBreak = false
+        marked = true
         result = made
     }
 
@@ -280,7 +298,7 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
 
     val shownResult = result
     if (shownResult != null) {
-        MockResultsScreen(shownResult, sitting, selected, remember { minutesUsed() }, store, onDone)
+        MockResultsScreen(shownResult, sitting, selected, usedMinutes, store, onDone)
         return
     }
 
@@ -411,7 +429,7 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
     }
     if (confirmQuit) ConfirmSheet("End the paper now?", "Unanswered questions count as wrong.", listOf(
         ConfirmChoice("End and see results", true) { finish() },
-        ConfirmChoice("Leave without results", true) { MockSittingStore.clear(file); result = null; onDone() },
+        ConfirmChoice("Leave without results", true) { MockSittingStore.clear(file); result = null; marked = false; onDone() },
     ), "Cancel") { confirmQuit = false }
     ExamToolSheets(toolSheet, sitting.track) { toolSheet = null }
 }

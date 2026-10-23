@@ -42,7 +42,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
@@ -211,7 +210,7 @@ val LocalWardCornerFrame = compositionLocalOf<WardCornerFrame?> { null }
     var size by remember { mutableStateOf(IntSize.Zero) }
     val safe = wardSystemInsets()
     val device = wardDisplayCorner()
-    val pad = LocalConfiguration.current.smallestScreenWidthDp >= 600
+    val pad = currentWindowShape().isPadSized
     val density = LocalDensity.current.density.toDouble()
     val frame = remember(size, safe, device, pad, framed, density) {
         if (size.width <= 0 || size.height <= 0) null else {
@@ -412,7 +411,7 @@ fun Modifier.wardFrameClearance(): Modifier =
     val ink = WardPaper.ink(glide, dark, highContrast = false)
     val color = wardRgb(ink.hex)
     val base = wardRgb(glide.hex(WardToken.background, dark))
-    val pad = LocalConfiguration.current.smallestScreenWidthDp >= 600
+    val pad = currentWindowShape().isPadSized
     // clear of the status and navigation bars, its corners concentric with the display's
     val safe = wardSystemInsets()
     val device = wardDisplayCorner()

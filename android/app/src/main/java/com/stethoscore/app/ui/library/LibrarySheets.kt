@@ -121,7 +121,8 @@ import kotlin.random.Random
 
 /** A name to give: a set, a folder, a combined set (iOS NameSheet). */
 @Composable fun NameSheet(title: String, prompt: String, initial: String, confirm: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var name by remember { mutableStateOf(initial) }
+    // the typed name lives through a rotation or a fold (T0139)
+    var name by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(initial) }
     val focus = remember { FocusRequester() }
     fun submit() { val trimmed = name.trim(); if (trimmed.isNotEmpty()) { onConfirm(trimmed); onDismiss() } }
     LibrarySheet(title, onDismiss, trailing = {

@@ -42,7 +42,7 @@ import com.stethoscore.app.ui.ward.*
 // bottom deck are the Ward kit's (ui/ward/WardStates.kt, WardDeck.kt).
 
 /** iOS WindowSpan.broad: 700 points and wider, where two columns stop being a squeeze. */
-internal fun isBroad(width: Dp): Boolean = width >= 700.dp
+internal fun isBroad(width: Dp): Boolean = com.stethoscore.app.ui.ward.WindowShape.isBroad(width.value.toDouble())
 
 /** A lecture kind's symbol (SourceDoc.Kind.symbol). */
 internal fun kindIcon(kind: SourceKind): ImageVector = when (kind) {

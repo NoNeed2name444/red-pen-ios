@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
@@ -108,7 +107,7 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
     val context = LocalContext.current
     val view = LocalView.current
     val haptic = LocalHapticFeedback.current
-    val broad = LocalConfiguration.current.screenWidthDp >= 600
+    val broad = com.stethoscore.app.ui.ward.currentWindowShape().widthClass != com.stethoscore.app.ui.ward.WardWidthClass.compact
     val checklists = set.osceChecklists
     // A station starts with the time the student's exam gives one - eight
     // minutes for PLAB 2, ten for a PACES encounter.
