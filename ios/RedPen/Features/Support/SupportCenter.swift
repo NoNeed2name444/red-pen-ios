@@ -159,7 +159,6 @@ struct SettingsPage: View {
     /// "Lines": Curved (false) or Straight (true) links in the Ideas map and
     /// on the board (GraphLineStyle).
     @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
-    @Environment(\.graphics) private var graphics
     @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
     /// Seconds since 1970; 0 for no date. The library counts down to it.
     @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
@@ -169,24 +168,36 @@ struct SettingsPage: View {
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     /// The camera was refused when face tracking was turned on.
     @State private var denied = false
+    /// The exam picker and the crash reports, pushed from their rows: buttons
+    /// rather than links, since a link inside a group's card would take the
+    /// whole card's tap.
+    @State private var pickingExam = false
+    @State private var showingDiagnostics = false
 
     var body: some View {
+        // Android's groups first, in its order (the owner, 23 Oct): Look and
+        // feel, Your exam, Stethoscore Cloud, Review, each one card under its
+        // small-caps heading. The groups only iOS has follow.
         Form {
             lookSection
             examSection
+            cloudSection
+            ReviewSettingsSection()
+                .environmentObject(reviews)
             StudyReminderSettings()
                 .environmentObject(store)
             studySection
-            ReviewSettingsSection()
-                .environmentObject(reviews)
             LibraryDataSettingsSection()
             PlatformSettingsSection()
                 .environmentObject(store)
-            cloudSection
             AccuracyEngineSection()
             versionSection
         }
         .wardForm()
+        .navigationDestination(isPresented: $pickingExam) {
+            ExamPickerView(onDone: { exam = ExamTrack.current.rawValue })
+        }
+        .navigationDestination(isPresented: $showingDiagnostics) { DiagnosticsSettingsView() }
         .navigationTitle(L10n.string("Settings"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: popOut) { _, _ in PopOutMotion.shared.refresh() }
@@ -211,62 +222,83 @@ struct SettingsPage: View {
 
     private var lookSection: some View {
         Section {
-            Toggle("Pop-out effect", isOn: $popOut)
-                .accessibilityIdentifier("popOutToggle")
-            Toggle("Pop-out with face tracking", isOn: $face)
-                .disabled(faceLocked)
-                .accessibilityIdentifier("popOutFaceToggle")
-            Toggle("Always night sky", isOn: $alwaysNight)
-                .accessibilityIdentifier("alwaysNightToggle")
-            Toggle("Sounds", isOn: $sounds)
-                .accessibilityIdentifier("soundsToggle")
-            Toggle("Heartbeat when the app opens", isOn: $launchHeartbeat)
-                .accessibilityIdentifier("launchHeartbeatToggle")
-            Picker("Graphics", selection: $graphicsRaw) {
-                ForEach(GraphicsChoice.allCases, id: \.rawValue) { choice in
-                    Text(choice.title).tag(choice.rawValue)
-                }
-            }
-            .accessibilityIdentifier("graphicsPicker")
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Link length")
-                    Spacer()
-                    Text(GraphLinkLength.word(linkLength))
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                Text(l10n: "Look and feel")
+                    .wardSmallCaps()
+                    .accessibilityAddTraits(.isHeader)
+                // the dark look, named as Android names it, its note under it
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
+                    Toggle("Night shift", isOn: $alwaysNight)
+                        .accessibilityIdentifier("alwaysNightToggle")
+                    Text("\(Brand.name)'s dark palette")
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
-                Slider(value: linkLengthBinding, in: GraphLinkLength.shortest...GraphLinkLength.longest,
-                       step: GraphLinkLength.step) {
-                    Text("Link length")
-                } minimumValueLabel: {
-                    Text("Shorter").font(.caption)
-                } maximumValueLabel: {
-                    Text("Longer").font(.caption)
+                Toggle("Pop-out effect", isOn: $popOut)
+                    .accessibilityIdentifier("popOutToggle")
+                // its privacy note stays under it, always (independent review, T0160)
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
+                    Toggle("Pop-out with face tracking", isOn: $face)
+                        .disabled(faceLocked)
+                        .accessibilityIdentifier("popOutFaceToggle")
+                    Text("Face tracking only follows where your head is, on this device. Nothing is recorded or sent.")
+                        .font(WardType.caption)
+                        .foregroundStyle(Color.wardInkSecondary)
                 }
-                .accessibilityValue(GraphLinkLength.spoken(linkLength))
-                .accessibilityIdentifier("linkLengthSlider")
-            }
-            HStack {
-                Text("Lines")
-                Spacer()
-                WardSegmented(selection: $straightLines, options: [false, true]) { straight in
-                    Text(GraphLineStyle.stored(straight).title)
+                Toggle("Sounds", isOn: $sounds)
+                    .accessibilityIdentifier("soundsToggle")
+                Toggle("Heartbeat when the app opens", isOn: $launchHeartbeat)
+                    .accessibilityIdentifier("launchHeartbeatToggle")
+                Picker("Graphics", selection: $graphicsRaw) {
+                    ForEach(GraphicsChoice.allCases, id: \.rawValue) { choice in
+                        Text(choice.title).tag(choice.rawValue)
+                    }
                 }
-                .fixedSize()
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Lines")
-                .accessibilityIdentifier("lineStylePicker")
+                .accessibilityIdentifier("graphicsPicker")
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Link length")
+                        Spacer()
+                        Text(GraphLinkLength.word(linkLength))
+                            .foregroundStyle(Color.wardInkSecondary)
+                    }
+                    Slider(value: linkLengthBinding, in: GraphLinkLength.shortest...GraphLinkLength.longest,
+                           step: GraphLinkLength.step) {
+                        Text("Link length")
+                    } minimumValueLabel: {
+                        Text("Shorter").font(.caption)
+                    } maximumValueLabel: {
+                        Text("Longer").font(.caption)
+                    }
+                    .accessibilityValue(GraphLinkLength.spoken(linkLength))
+                    .accessibilityIdentifier("linkLengthSlider")
+                }
+                HStack {
+                    Text("Lines")
+                    Spacer()
+                    WardSegmented(selection: $straightLines, options: [false, true]) { straight in
+                        Text(GraphLineStyle.stored(straight).title)
+                    }
+                    .fixedSize()
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Lines")
+                    .accessibilityIdentifier("lineStylePicker")
+                }
+                if let note = lookNote {
+                    Text(note)
+                        .font(WardType.caption)
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
             }
-        } header: {
-            Text(l10n: "Look and feel")
-        } footer: {
-            Text(lookFooter)
+            .wardCard(lift: .low)
+            .wardCardRow()
         }
-        .wardRowBackground()
     }
 
-    /// What the two toggles will actually do on this device, right now.
-    private var lookFooter: String {
+    /// Only what this device is doing differently right now, and why a
+    /// switch above does nothing: the long note under the group is cut to
+    /// what Android says (the owner, 23 Oct).
+    private var lookNote: String? {
         var parts: [String] = []
         if !faceAvailable {
             parts.append("Face tracking needs an iPhone or iPad with Face ID.")
@@ -278,22 +310,7 @@ struct SettingsPage: View {
         } else if quality != .full {
             parts.append("Reduce Transparency, Increase Contrast or a warm device has turned the tilt off; the sky still drifts slowly.")
         }
-        parts.append("Face tracking only follows where your head is, on this device. Nothing is recorded or sent.")
-        parts.append("Always night sky keeps the dark star field, and the app's dark look, even in light mode.")
-        parts.append(graphicsFooter)
-        parts.append(GraphLinkLength.footer(linkLength))
-        parts.append(lineFooter)
-        parts.append("Sounds are short, quiet tones for right and wrong answers and a finished session. They follow the Ring/Silent switch and stay quiet while anything is being read aloud.")
-        let footer: String = parts.joined(separator: " ")
-        return footer
-    }
-
-    /// What the Lines choice does.
-    private var lineFooter: String {
-        if straightLines {
-            return "Lines: Straight draws every link as a direct line, in the 3D map and on the board."
-        }
-        return "Lines: Curved keeps each map theme's own arches, axons and traces, and bows the board's lines gently."
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     /// The stored link length, read clamped and written snapped.
@@ -302,21 +319,6 @@ struct SettingsPage: View {
             get: { GraphLinkLength.stored(linkLength) },
             set: { linkLength = GraphLinkLength.clamped($0) }
         )
-    }
-
-    /// What the Graphics choice is doing on this device, right now.
-    private var graphicsFooter: String {
-        let choice: GraphicsChoice = GraphicsChoice.stored(graphicsRaw)
-        let smooth: Bool = graphics.tier == .smooth
-        switch choice {
-        case .high:
-            return "Graphics: High quality draws every star, link and glow in full, at up to 120 frames a second."
-        case .smooth:
-            return "Graphics: Smooth uses lighter stars, links and glows in every look, for older phones that stutter; it still runs at the screen's own frame rate."
-        case .automatic:
-            let now: String = smooth ? "Smooth" : "High quality"
-            return "Graphics: Automatic picks Smooth on older phones, when the phone is warm or in Low Power Mode, and High quality otherwise - \(now) right now."
-        }
     }
 
     /// Turning face tracking on asks for the camera; a refusal turns the
@@ -338,25 +340,41 @@ struct SettingsPage: View {
 
     private var examSection: some View {
         Section {
-            NavigationLink {
-                ExamPickerView(onDone: { exam = ExamTrack.current.rawValue })
-            } label: {
-                LabeledContent("Exam", value: ExamChoice.current?.shortName ?? "Choose")
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                Text(l10n: "Your exam")
+                    .wardSmallCaps()
+                    .accessibilityAddTraits(.isHeader)
+                // one exam row, the way to the picker (the owner, 23 Oct)
+                Button { pickingExam = true } label: {
+                    HStack {
+                        Text("Exam").font(WardType.headline)
+                        Spacer()
+                        Text(ExamChoice.current?.shortName ?? "Choose")
+                            .foregroundStyle(Color.wardInkSecondary)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.wardPrimaryInk)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("chooseExam")
+                Picker("Exam style", selection: $exam) {
+                    ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
+                }
+                Toggle("I have an exam date", isOn: hasExamDate)
+                if examDate > 0 {
+                    DatePicker("Exam date", selection: examDay, in: Date()..., displayedComponents: .date)
+                }
+                Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.")
+                    .font(WardType.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
-            .accessibilityIdentifier("chooseExam")
-            Picker("Exam style", selection: $exam) {
-                ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
-            }
-            Toggle("I have an exam date", isOn: hasExamDate)
-            if examDate > 0 {
-                DatePicker("Exam date", selection: examDay, in: Date()..., displayedComponents: .date)
-            }
-        } header: {
-            Text(l10n: "Your exam")
-        } footer: {
-            Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.")
+            .wardCard(lift: .low)
+            .wardCardRow()
         }
-        .wardRowBackground()
     }
 
     private var hasExamDate: Binding<Bool> {
@@ -393,27 +411,46 @@ struct SettingsPage: View {
         .wardRowBackground()
     }
 
-    /// The app's writing, as plain rows (the owner, 22 Oct): there is no
-    /// writer to choose, so no AI models page. Verify, the accuracy check and
-    /// the crash reports live here in Settings itself.
+    /// The app's writing, as Android's Stethoscore Cloud group (the owner,
+    /// 22 and 23 Oct): there is no writer to choose, so no AI models page. Its
+    /// status, then the two rows only iOS has: Verify and the crash reports.
     private var cloudSection: some View {
         Section {
-            LabeledContent("\(Brand.name) Cloud", value: llm.cloudBlocker ?? "Ready")
-                .accessibilityIdentifier("cloudStatus")
-            Toggle("Verify what is generated", isOn: $llm.checkGenerated)
-                .accessibilityIdentifier("verifyToggle")
-            NavigationLink {
-                DiagnosticsSettingsView()
-            } label: {
-                Label("Crash and failure reports", systemImage: "stethoscope")
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                Text("\(Brand.name) Cloud")
+                    .wardSmallCaps()
+                    .accessibilityAddTraits(.isHeader)
+                LabeledContent("Status", value: llm.cloudBlocker ?? "Ready")
+                    .accessibilityIdentifier("cloudStatus")
+                Toggle("Verify what is generated", isOn: $llm.checkGenerated)
+                    .accessibilityIdentifier("verifyToggle")
+                Button { showingDiagnostics = true } label: {
+                    HStack {
+                        Label("Crash and failure reports", systemImage: "stethoscope")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.wardPrimaryInk)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("crashReports")
+                Text("Crash and failure reports are technical only: never your notes, questions or recordings.")
+                    .font(WardType.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
+                Text("Questions, stations, cards and textbook pages are written by \(Brand.name) Cloud, and everything it writes is checked by the verification layer. Your text is sent to the cloud to answer; \(Brand.name) does not keep it.")
+                    .font(WardType.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
+                Text("A study aid, not medical advice; generated text can be wrong even when checked.")
+                    .font(WardType.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
-            .accessibilityIdentifier("crashReports")
-        } header: {
-            Text("Writing and checking")
-        } footer: {
-            Text("Questions, stations, cards and pages are written by \(Brand.name) Cloud with Pro. Everything it writes is checked by the verification layer: safety checks on this device at once, then three model families solving each question without its answer, the literature, and a calibrated verdict on every item's badge. Crash and failure reports are technical only: never your notes, questions or recordings. A study aid, not medical advice; generated text can be wrong even when checked.")
+            .wardCard(lift: .low)
+            .wardCardRow()
         }
-        .wardRowBackground()
     }
 
     private var versionSection: some View {

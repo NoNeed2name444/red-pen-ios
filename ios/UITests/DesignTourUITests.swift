@@ -389,8 +389,8 @@ final class DesignTourUITests: XCTestCase {
         goHome()
     }
 
-    /// 34-35: Settings' Look and feel, with Always night sky and Sounds;
-    /// then with Always night sky on, turned back off afterwards.
+    /// 34-35: Settings' Look and feel, with Night shift and Sounds;
+    /// then with Night shift on, turned back off afterwards.
     private func lookAndFeel() {
         goHome()
         guard openMenu() else { return }
