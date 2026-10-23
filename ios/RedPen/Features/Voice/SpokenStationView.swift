@@ -146,7 +146,7 @@ private struct SpokenStationScreen: View {
             if let message = session.hearing?.message {
                 VoicePermissionNote(message: message)
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, WardSpace.s)
             }
 
             SpokenTranscript(session: session)
@@ -194,7 +194,7 @@ private struct StationFailedBar: View {
 
     var body: some View {
         if session.hasStudentLines {
-            HStack(spacing: 12) {
+            HStack(spacing: WardSpace.m) {
                 Button("Start again") { session.restart() }
                     .buttonStyle(.bigCompanion)
                 Button("Mark again") { Task { await session.finish() } }
@@ -225,7 +225,7 @@ private struct SpokenTranscript: View {
                         SpokenLineBubble(line: line).id(line.id)
                     }
                     if session.busy {
-                        HStack(spacing: 8) {
+                        HStack(spacing: WardSpace.s) {
                             EcgLoader()
                             Text("The patient is answering\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)
                         }
@@ -329,11 +329,11 @@ private struct SpokenStationComposer: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
             if listener.listening {
                 heardLine
             }
-            HStack(alignment: .bottom, spacing: 8) {
+            HStack(alignment: .bottom, spacing: WardSpace.s) {
                 field
                 speakerButton
                 if hasDraft && !listener.listening {
@@ -359,8 +359,8 @@ private struct SpokenStationComposer: View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return TextField("Or type what you say", text: $draft, axis: .vertical)
             .lineLimit(1...4)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
+            .padding(.horizontal, WardSpace.m)
+            .padding(.vertical, WardSpace.m)
             .frame(minHeight: 48)
             .wardInset(in: shape, control: true)
     }

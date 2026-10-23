@@ -89,7 +89,7 @@ struct ProgressRing<Centre: View>: View {
         let markerAngle: Double = min(1, max(0, marker ?? 0)) * 360
         let markerHeight: CGFloat = lineWidth + 6
         let markerOffset: CGFloat = -(size - lineWidth) / 2
-        VStack(spacing: 6) {
+        VStack(spacing: WardSpace.s) {
             ZStack {
                 Circle()
                     .stroke(Color.wardHairline, lineWidth: lineWidth)
@@ -152,7 +152,7 @@ private struct RingDisc: ViewModifier {
     func body(content: Content) -> some View {
         if raised {
             content
-                .padding(3)
+                .padding(WardSpace.xs)
                 .wardRelief(in: Circle(), lift: .mid, pressed: pressed)
         } else {
             content
@@ -209,7 +209,7 @@ struct RingCentre: View {
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, WardSpace.s)
     }
 }
 
@@ -262,7 +262,7 @@ struct ReasonDonut: View {
 
     var body: some View {
         let total: Int = shares.reduce(0) { (sum: Int, share: ReasonShare) -> Int in sum + share.count }
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             ZStack {
                 Chart {
                     ForEach(Array(shares.enumerated()), id: \.element.id) { index, share in
@@ -280,11 +280,11 @@ struct ReasonDonut: View {
             .frame(height: 150)
 
             ForEach(Array(shares.enumerated()), id: \.element.id) { index, share in
-                HStack(spacing: 8) {
+                HStack(spacing: WardSpace.s) {
                     RoundedRectangle(cornerRadius: 3).fill(shade(index)).frame(width: 12, height: 12)
                     Label(share.reason.title, systemImage: share.reason.symbol)
                         .font(.caption)
-                    Spacer(minLength: 8)
+                    Spacer(minLength: WardSpace.s)
                     Text("\(Int((share.share * 100).rounded()))%")
                         .font(.system(.caption, design: .monospaced).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
                 }
@@ -460,10 +460,10 @@ struct StudyHeatmap: View {
         let cells = grid.flatMap { $0 }.filter { !$0.isFuture }
         let busiest = cells.map(\.count).max() ?? 0
         let studied = cells.filter { $0.count > 0 }.count
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 3) {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
+            HStack(alignment: .top, spacing: WardSpace.xs) {
                 ForEach(Array(grid.enumerated()), id: \.offset) { _, column in
-                    VStack(spacing: 3) {
+                    VStack(spacing: WardSpace.xs) {
                         ForEach(column) { cell in
                             let level: HeatLevel = HeatLevel.of(count: cell.count, busiest: busiest)
                             square(level, future: cell.isFuture, today: cell.isToday,
@@ -477,7 +477,7 @@ struct StudyHeatmap: View {
             .frame(maxWidth: 320)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(summary(studied: studied, busiest: busiest) + restWords(cells))
-            HStack(spacing: 4) {
+            HStack(spacing: WardSpace.xs) {
                 Text("Less").font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 ForEach(HeatLevel.allCases, id: \.self) { level in
                     square(level, future: false, today: false)

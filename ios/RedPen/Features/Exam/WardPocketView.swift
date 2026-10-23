@@ -181,7 +181,7 @@ private struct WardDisclaimer: ViewModifier {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.wardWarning)
                 .padding(.horizontal, WardSpace.l)
-                .padding(.vertical, 8)
+                .padding(.vertical, WardSpace.s)
                 .wardRaised(in: Capsule())
                 .padding(.top, WardSpace.s)
                 .padding(.bottom, WardSpace.s)
@@ -351,9 +351,9 @@ struct WardCalcView: View {
         let unitName: String = unit.name(us: conventional)
         let prompt: String = field.optional ? "optional" : ""
         let spoken: String = unitName.isEmpty ? field.label : field.label + ", " + unitName
-        return HStack(spacing: 8) {
+        return HStack(spacing: WardSpace.s) {
             Text(field.label)
-            Spacer(minLength: 8)
+            Spacer(minLength: WardSpace.s)
             TextField(prompt, text: textBinding(field.id))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
@@ -496,7 +496,7 @@ struct WardScoreView: View {
             ForEach(Array(item.choices.enumerated()), id: \.offset) { index, choice in
                 HStack {
                     Text(choice.label)
-                    Spacer(minLength: 8)
+                    Spacer(minLength: WardSpace.s)
                     Text(WardScores.points(choice.points))
                         .font(.system(.subheadline, design: .monospaced))
                         .foregroundStyle(Color.wardInkSecondary)
@@ -514,7 +514,7 @@ struct WardScoreView: View {
         return Toggle(isOn: on) {
             HStack(alignment: .firstTextBaseline) {
                 Text(item.label).fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 8)
+                Spacer(minLength: WardSpace.s)
                 Text(points)
                     .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(Color.wardInkSecondary)
@@ -526,7 +526,7 @@ struct WardScoreView: View {
         let low: String = WardScores.points(band.low)
         let high: String = WardScores.points(band.high)
         let range: String = band.low == band.high ? low : low + "\u{2013}" + high
-        return HStack(alignment: .firstTextBaseline, spacing: 12) {
+        return HStack(alignment: .firstTextBaseline, spacing: WardSpace.m) {
             Text(range)
                 .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                 .frame(minWidth: 44, alignment: .leading)

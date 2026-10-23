@@ -63,7 +63,7 @@ struct WardRoundTile: View {
     @AppStorage(WardRoundClock.breakKey) private var rest: Int = 5
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             if let round = clock.round {
                 running(round)
             } else {
@@ -104,9 +104,9 @@ struct WardRoundTile: View {
     }
 
     private func running(_ round: WardRound) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: WardSpace.m) {
             WardRoundTicker(round: round) { now in
-                HStack(spacing: 12) {
+                HStack(spacing: WardSpace.m) {
                     WardRoundMiniRing(round: round, now: now, width: 4, size: 40)
                     Text(round.caption(at: now))
                         .font(.system(.subheadline, design: .monospaced).weight(.semibold))
@@ -115,7 +115,7 @@ struct WardRoundTile: View {
                         .lineLimit(2)
                 }
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: WardSpace.s)
             Button("Open") { WardRoundOverlay.shared.open() }
                 .buttonStyle(.wardCompact)
                 .accessibilityIdentifier("wardRoundOpen")
@@ -140,7 +140,7 @@ struct WardRoundChip: View {
 
     var body: some View {
         WardRoundTicker(round: round) { now in
-            HStack(spacing: 8) {
+            HStack(spacing: WardSpace.s) {
                 WardRoundMiniRing(round: round, now: now)
                 Text(notice ?? words(at: now))
                     .font(.system(.subheadline, design: .monospaced).weight(.semibold))
@@ -149,7 +149,7 @@ struct WardRoundChip: View {
                     .minimumScaleFactor(0.8)
                     .foregroundStyle(Color.wardInk)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, WardSpace.m)
             .frame(minHeight: 44)
             .frame(maxWidth: 300)
             .accessibilityElement(children: .ignore)
@@ -189,7 +189,7 @@ struct WardRoundPanel: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        VStack(spacing: 16) {
+        VStack(spacing: WardSpace.l) {
             header
             WardRoundTicker(round: round) { now in face(now) }
             if let notice {
@@ -210,7 +210,7 @@ struct WardRoundPanel: View {
             Label("Focus session", systemImage: "stethoscope")
                 .font(.headline)
                 .foregroundStyle(Color.wardInk)
-            Spacer(minLength: 8)
+            Spacer(minLength: WardSpace.s)
             Button(action: close) {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 14, weight: .bold))
@@ -226,8 +226,8 @@ struct WardRoundPanel: View {
 
     private func face(_ now: Date) -> some View {
         let time: String = WardRound.clock(round.remaining(at: now))
-        return VStack(spacing: 10) {
-            VStack(spacing: 8) {
+        return VStack(spacing: WardSpace.m) {
+            VStack(spacing: WardSpace.s) {
                 WardRing(value: round.leftFraction(at: now), tone: WardRoundStyle.tone(round), label: phaseWord,
                          lineWidth: 6, centre: round.isTimed ? time : "\u{2013}")
                     .frame(width: 180, height: 180)
@@ -262,7 +262,7 @@ struct WardRoundPanel: View {
     private var controls: some View {
         switch round.phase {
         case .focus:
-            HStack(spacing: 12) {
+            HStack(spacing: WardSpace.m) {
                 if round.isPaused {
                     wide("Resume", symbol: "play.fill", id: "wardRoundResume") { clock.resume() }
                 } else {
@@ -335,7 +335,7 @@ struct DailyGoalRing: View {
     var body: some View {
         let progress = GoalProgress(done: done, goal: GoalProgress.goal(stored: stored))
         let tint: Color = progress.met ? Color.wardSuccess : Color.wardBeam
-        HStack(spacing: 6) {
+        HStack(spacing: WardSpace.s) {
             ZStack {
                 Circle().stroke(Color.wardHairline, lineWidth: 3)
                 Circle()
@@ -363,20 +363,20 @@ struct TodayGoalRow: View {
         let streak: Int = log.streak
         let days: String = streak == 1 ? "1-day streak" : "\(streak)-day streak"
         let rest: String = log.restDayReady ? "Rest day ready" : "Rest day used this week"
-        HStack(spacing: 12) {
+        HStack(spacing: WardSpace.m) {
             Image(systemName: "flame.fill")
                 .foregroundStyle(streak > 0 ? Color.wardBeam : Color.wardInkSecondary)
                 .frame(width: 24)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(days).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Color.wardInk)
                 Label(rest, systemImage: "moon.fill")
                     .font(.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: WardSpace.s)
             DailyGoalRing(done: log.today)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, WardSpace.xs)
     }
 }

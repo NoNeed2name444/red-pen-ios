@@ -37,6 +37,7 @@ import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.wardDepth
 import com.stethoscore.app.ui.ward.wardPressFace
+import com.stethoscore.app.ui.ward.WardSpace
 
 // A port of ios/RedPen/Features/MCQ/ChartQuizViews.swift: the
 // question screen's pieces - the option row, and the chart's chips, vitals
@@ -98,8 +99,8 @@ internal enum class QuizButtonKind { primary, companion, secondary }
         depth = wardDepth(mark == ChartQuiz.Mark.chosen || mark == ChartQuiz.Mark.right),
         fill = wardColor(if (wrong) WardToken.faded else WardToken.surface),
         flat = wrong, edge = if (wrong) faded else null)
-    Row(modifier.fillMaxWidth().heightIn(min = 56.dp).then(face).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(modifier.fillMaxWidth().heightIn(min = 56.dp).then(face).padding(WardSpace.l.wardDp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
         Text(letter, Modifier.clearAndSetSemantics {}, color = letterInk, style = WardTextStyle.callout.textStyle(WardWeight.semibold, mono = true))
         Text(text, Modifier.weight(1f), color = textInk, style = WardTextStyle.callout.textStyle(),
             textDecoration = if (struck || mark == ChartQuiz.Mark.wrong) TextDecoration.LineThrough else null)
@@ -114,7 +115,7 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 /** Who the patient is - "34 y", "Male", "3 wk" - in a row that wraps when large text leaves no room. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ChartChipsRow(chips: List<String>) {
-    FlowRow(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    FlowRow(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
         chips.forEach { WardChip(it, tone = WardTone.Grey) }
     }
 }
@@ -122,8 +123,8 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 /** The vital signs as observations on a Ward White panel: monospaced values, one high or low in Resus Red with its arrow. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ChartVitalsGrid(vitals: List<PatientChart.Vital>) {
-    FlowRow(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    FlowRow(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
+        horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
         vitals.forEach { v ->
             val danger = ChartQuiz.tone(v.flag) == ChartQuiz.Tone.danger
             val arrow = when (v.flag) { PatientChart.Flag.high -> " ↑"; PatientChart.Flag.low -> " ↓"; null -> "" }
@@ -138,11 +139,11 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 
 /** The results as a monospaced table - name, value, unit, H or L - with a flagged value and its letter in Resus Red. Each row is read whole. */
 @Composable fun ChartLabsTable(labs: List<PatientChart.Lab>) {
-    Column(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
+        verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         labs.forEach { lab ->
             val value = if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)
-            Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = ChartQuiz.spoken(lab) }, horizontalArrangement = Arrangement.spacedBy(12.dp),
+            Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = ChartQuiz.spoken(lab) }, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp),
                 verticalAlignment = Alignment.Bottom) {
                 Text(lab.name, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle(mono = true), color = wardColor(WardToken.ink))
                 Text(lab.value, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true), color = value)

@@ -151,7 +151,7 @@ object BookReaderWords {
             // the page, scrolling under the bar; keyed by the page, so a new page starts at its top
             key(index) {
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    .padding(start = WardSpace.l.wardDp, end = WardSpace.l.wardDp, top = WardSpace.s.wardDp, bottom = WardSpace.xl.wardDp), horizontalAlignment = Alignment.CenterHorizontally) {
                     SelectionContainer {
                         Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().contentCard(),
                             verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
@@ -183,7 +183,7 @@ object BookReaderWords {
                                    onNext: () -> Unit, onDone: () -> Unit) {
     if (count <= 1) { DoneButton(onDone); return }
     val large = wardAccessibilitySize()
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) {
         WardButtonBox(onPrevious, Modifier.semantics { contentDescription = "Previous page" }, kind = WardButtonKind.secondary,
             enabled = index > 0, fills = false) {
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, null, Modifier.size(22.dp))
@@ -217,10 +217,10 @@ object BookReaderWords {
 @Composable private fun ContentsSheet(pages: List<BookPage>, index: Int, onPick: (Int) -> Unit, onClose: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(), containerColor = wardColor(WardToken.background)) {
         ReaderNavBar("Contents", trailing = { WardTextButton("Close", onClose, kind = WardButtonKind.quiet, fills = false) })
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.s.wardDp).padding(bottom = 24.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.s.wardDp).padding(bottom = WardSpace.xl.wardDp)) {
             pages.forEach { p ->
                 Row(Modifier.fillMaxWidth().clickable(role = Role.Button) { onPick(p.id) }.wardRowTile().heightIn(min = 44.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                     Text("${p.id + 1}.", style = WardTextStyle.body.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))
                     Text(p.title, Modifier.weight(1f), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                     if (p.id == index) Icon(Icons.Rounded.Check, "You are here", tint = wardColor(WardToken.primaryInk))
@@ -263,7 +263,7 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
     when (block) {
         is BookPages.Block.Heading -> Text(inlineMarkdown(block.text), Modifier.padding(top = WardSpace.s.wardDp),
             style = headingStyle(block.level), color = ink)
-        is BookPages.Block.Bullet -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        is BookPages.Block.Bullet -> Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             Text(block.marker ?: "•", style = WardTextStyle.body.textStyle(mono = block.marker != null), color = wardColor(WardToken.inkSecondary))
             Text(inlineMarkdown(block.text), style = WardType.body.textStyle(), color = ink)
         }
@@ -271,8 +271,8 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
             Modifier.fillMaxWidth()
                 // the header row pressed into the page, the others flat on it
                 .then(if (block.header) Modifier.wardInset(RoundedCornerShape(8.dp)) else Modifier)
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                .padding(WardSpace.s.wardDp),
+            horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
             block.cells.forEachIndexed { i, cell ->
                 Text(inlineMarkdown(cell), Modifier.weight(1f), style = cellStyle(block.header, i == 0), color = ink)
             }
@@ -288,7 +288,7 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
                     val inset = WardSpace.s.wardDp.toPx()
                     drawRect(tint, Offset(0f, inset), Size(3.dp.toPx(), size.height - 2 * inset))
                 }
-                .padding(12.dp), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
+                .padding(WardSpace.m.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                 Icon(calloutIcon(block.kind), null, tint = tint, modifier = Modifier.size(20.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                     Text(block.kind, style = WardTextStyle.subheadline.textStyle(WardWeight.bold), color = tint)
@@ -300,7 +300,7 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
         is BookPages.Block.Image -> {
             val stored = set.images.getOrNull(block.index)
             val picture = remember(stored) { stored?.let(::decodePicture) }
-            if (picture != null) Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+            if (picture != null) Column(Modifier.padding(vertical = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 Image(picture, block.caption.ifEmpty { "Figure" },
                     Modifier.fillMaxWidth().wardRaised(10.0, WardLift.low).clip(RoundedCornerShape(10.dp)),
                     contentScale = ContentScale.FillWidth)
@@ -317,7 +317,7 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
  */
 @Composable internal fun FlowchartView(steps: List<String>) {
     Column(Modifier.fillMaxWidth().padding(vertical = WardSpace.s.wardDp).semantics(mergeDescendants = true) {},
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
         steps.forEachIndexed { i, step ->
             if (i > 0) Icon(Icons.Rounded.ArrowDownward, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(14.dp))
             FlowBox(step)

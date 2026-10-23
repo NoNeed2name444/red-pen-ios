@@ -78,7 +78,7 @@ extension LibraryView {
     /// raised as low as the rows' tiles, their edges where theirs are, so
     /// the cell never cuts their lights.
     private func tileGrid(_ features: [CategoryFeature]) -> some View {
-        LazyVGrid(columns: tileColumns, spacing: 12) {
+        LazyVGrid(columns: tileColumns, spacing: WardSpace.m) {
             ForEach(features) { feature in
                 tileButton(feature)
             }
@@ -168,7 +168,7 @@ extension LibraryView {
     /// Said in place of the sets when the category has none yet, with the
     /// one button that makes one.
     var emptyCategoryRow: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: WardSpace.m) {
             Image(systemName: category.symbol)
                 .font(.title3)
                 .foregroundStyle(Color.wardPrimaryInk)
@@ -177,7 +177,7 @@ extension LibraryView {
             Text(category.emptySets)
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)
-            Spacer(minLength: 8)
+            Spacer(minLength: WardSpace.s)
             Button("Make one") { newSetKind = category.mainKind }
                 .buttonStyle(.wardCompact)
         }
@@ -255,7 +255,7 @@ private struct HomeCategoryRowLabel: View {
                 .frame(width: 40, height: 40)
                 .wardRaised(in: square, lift: .low)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
                 Text(detail).font(.footnote).foregroundStyle(Color.wardInkSecondary)
             }

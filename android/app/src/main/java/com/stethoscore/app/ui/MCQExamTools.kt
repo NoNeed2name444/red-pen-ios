@@ -61,6 +61,8 @@ import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.wardDp
 
 // A port of ios/RedPen/Features/MCQ/MCQExamTools.swift: the exam
 // screen's tools, as the real test interfaces have them, for the question
@@ -84,7 +86,7 @@ enum class ExamToolSheet { labs, calculator }
 
 /** A menu section's title, the one piece of text a menu reliably shows. */
 @Composable internal fun MenuSection(title: String) {
-    Text(title, Modifier.padding(horizontal = 16.dp, vertical = 8.dp).widthIn(max = 280.dp).semantics { heading() },
+    Text(title, Modifier.padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.s.wardDp).widthIn(max = 280.dp).semantics { heading() },
         style = WardType.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
 }
 
@@ -101,7 +103,7 @@ enum class ExamToolSheet { labs, calculator }
 }
 
 @Composable private fun SheetTitle(title: String, onDone: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = WardSpace.l.wardDp), verticalAlignment = Alignment.CenterVertically) {
         Spacer(Modifier.width(64.dp))
         Text(title, Modifier.weight(1f).semantics { heading() }, textAlign = TextAlign.Center, style = WardType.headline.textStyle())
         // iOS's .wardCompact Done
@@ -122,8 +124,8 @@ enum class ExamToolSheet { labs, calculator }
     val ink = wardColor(WardToken.beam).copy(alpha = 0.3f)
     if (highlighting) {
         val haptic = LocalHapticFeedback.current
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (prompt) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
+            if (prompt) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 Icon(Icons.Rounded.BorderColor, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(14.dp))
                 Text("Tap a phrase to highlight it", style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
             }
@@ -136,7 +138,7 @@ enum class ExamToolSheet { labs, calculator }
                         onMarked(if (on) marked - index else marked + index)
                     }
                     .semantics { selected = on }
-                    .padding(horizontal = 6.dp, vertical = 4.dp), style = style)
+                    .padding(horizontal = WardSpace.s.wardDp, vertical = WardSpace.xs.wardDp), style = style)
             }
         }
     } else if (marked.isEmpty()) {
@@ -155,12 +157,12 @@ enum class ExamToolSheet { labs, calculator }
 /** The hint, once asked for: the next step in the reasoning, never the answer. */
 @Composable fun AttendingHintCard(text: String?) {
     WardCardFace(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             Icon(Icons.Rounded.MedicalServices, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
             Text("Attending’s hint", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
         }
         if (text != null) Text(text, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
-        else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             EcgLoader()
             Text("Thinking it through…", color = wardColor(WardToken.inkSecondary))
         }
@@ -183,7 +185,7 @@ enum class ExamToolSheet { labs, calculator }
     val found = remember(query) { LabRanges.search(query) }
     Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f)) {
         SheetTitle("Lab values", onDone)
-        LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             item {
                 // the units switch sits on the base itself, not on a tile
                 WardUnitsPicker(conventional) { conventional = it }
@@ -196,10 +198,10 @@ enum class ExamToolSheet { labs, calculator }
             LabRanges.groups.forEach { group ->
                 val rows = found.filter { it.group == group }
                 if (rows.isNotEmpty()) {
-                    item(key = group) { WardSmallCapsText(group, Modifier.padding(top = 12.dp).semantics { heading() }) }
+                    item(key = group) { WardSmallCapsText(group, Modifier.padding(top = WardSpace.m.wardDp).semantics { heading() }) }
                     items(rows, key = { it.id }) { row ->
-                        Row(Modifier.fillMaxWidth().wardRaised(12.0).padding(12.dp).semantics(mergeDescendants = true) {},
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(Modifier.fillMaxWidth().wardRaised(12.0).padding(WardSpace.m.wardDp).semantics(mergeDescendants = true) {},
+                            horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                             Text(row.name, Modifier.weight(1f), color = wardColor(WardToken.ink))
                             // the body face with even figures, as iOS's monospacedDigit
                             Text(row.value(conventional), Modifier.weight(1f), textAlign = TextAlign.End,
@@ -240,17 +242,17 @@ private enum class KeyRole { digit, function, op, equals, blank }
     @Composable fun RowScope.opKey(op: ExamCalculator.Op) = key(op.rawValue, KeyRole.op, chosen = shown.second == op) { op(op) }
     Column(Modifier.fillMaxWidth()) {
         SheetTitle("Calculator", onDone)
-        Column(Modifier.widthIn(max = 420.dp).align(Alignment.CenterHorizontally).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(shown.first, Modifier.fillMaxWidth().wardInset(RoundedCornerShape(20.dp), WardLift.mid).padding(horizontal = 16.dp, vertical = 12.dp)
+        Column(Modifier.widthIn(max = 420.dp).align(Alignment.CenterHorizontally).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
+            Text(shown.first, Modifier.fillMaxWidth().wardInset(RoundedCornerShape(20.dp), WardLift.mid).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp)
                 .semantics { contentDescription = "Display, ${shown.first}" }, textAlign = TextAlign.End, fontFamily = FontFamily.Monospace,
                 fontSize = 40.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Clip, color = wardColor(WardToken.ink))
-            val gap = Arrangement.spacedBy(10.dp)
+            val gap = Arrangement.spacedBy(WardSpace.m.wardDp)
             Row(horizontalArrangement = gap) { key("C", KeyRole.function) { clear() }; key("±", KeyRole.function) { negate() }; key("%", KeyRole.function) { percent() }; opKey(ExamCalculator.Op.divide) }
             for ((digits, op) in listOf(listOf(7, 8, 9) to ExamCalculator.Op.multiply, listOf(4, 5, 6) to ExamCalculator.Op.subtract, listOf(1, 2, 3) to ExamCalculator.Op.add)) {
                 Row(horizontalArrangement = gap) { digits.forEach { d -> key(d.toString(), KeyRole.digit) { digit(d) } }; opKey(op) }
             }
             Row(horizontalArrangement = gap) { key("0", KeyRole.digit) { digit(0) }; key(".", KeyRole.digit) { dot() }; key("", KeyRole.blank) {}; key("=", KeyRole.equals) { equals() } }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(WardSpace.l.wardDp))
         }
     }
 }

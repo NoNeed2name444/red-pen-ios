@@ -228,8 +228,8 @@ extension View {
     func popEditor(cornerRadius: CGFloat = WardRadius.field) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return scrollContentBackground(.hidden)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
+            .padding(.horizontal, WardSpace.s)
+            .padding(.vertical, WardSpace.xs)
             .frame(minHeight: 44)
             .wardInset(in: shape, control: true)
     }

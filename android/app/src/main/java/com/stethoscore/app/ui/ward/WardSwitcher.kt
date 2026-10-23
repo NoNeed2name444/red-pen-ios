@@ -62,7 +62,7 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
 @Composable private fun <T> SwitcherStrip(items: List<SwitcherItem<T>>, selection: T, onSelect: (T) -> Unit, toggleTag: String, collapse: () -> Unit) {
     val tint = wardColor(WardToken.primaryInk)
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Row(Modifier.wardRaised(26.0, WardLift.high, fill = WardToken.raised).padding(5.dp), horizontalArrangement = Arrangement.spacedBy(2.dp),
+        Row(Modifier.wardRaised(26.0, WardLift.high, fill = WardToken.raised).padding(WardSpace.xs.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp),
             verticalAlignment = Alignment.CenterVertically) {
             items.forEach { item ->
                 val chosen = item.value == selection
@@ -71,8 +71,8 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
                     .semantics { testTag = item.identifier }
                     // the well the chosen segment is pressed into, with its 2-point edge in its ink
                     .then(if (chosen) Modifier.wardInset(shape).wardChosenEdge(shape, true, tint) else Modifier)
-                    .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp).padding(horizontal = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)) {
+                    .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp).padding(horizontal = WardSpace.s.wardDp),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp, Alignment.CenterVertically)) {
                     val ink = if (chosen) tint else wardColor(WardToken.ink)
                     Icon(item.icon, null, tint = ink, modifier = Modifier.size(20.dp))
                     Text(item.title, style = WardTextStyle.caption2.textStyle(WardWeight.bold), color = ink, maxLines = 1)
@@ -96,7 +96,7 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
             .wardRaised(24.0, WardLift.high, fill = WardToken.raised), contentAlignment = Alignment.Center) {
             Icon(chosen.icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(22.dp))
             // the small chevron at the top trailing corner, tucked 2 points in
-            Box(Modifier.align(Alignment.TopEnd).offset(x = (-2).dp, y = 2.dp).wardRaised(8.0, WardLift.low).padding(3.dp)) {
+            Box(Modifier.align(Alignment.TopEnd).offset(x = (-2).dp, y = 2.dp).wardRaised(8.0, WardLift.low).padding(WardSpace.xs.wardDp)) {
                 Icon(Icons.Rounded.KeyboardArrowUp, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(9.dp))
             }
         }
@@ -116,12 +116,12 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
         items.forEach { item ->
             val chosen = item.value == selection
             Row(Modifier.fillMaxWidth().selectable(chosen, role = Role.Button) { choose(item.value) }.wardRowTile().heightIn(min = 56.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                 Icon(item.icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(26.dp))
                 Text(item.title, Modifier.weight(1f), style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
                 if (chosen) Icon(Icons.Rounded.Check, null, tint = wardColor(WardToken.primaryInk))
             }
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(WardSpace.xl.wardDp))
     }
 }

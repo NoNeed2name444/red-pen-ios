@@ -35,7 +35,7 @@ struct IdeasBottomBar: View {
 
     var body: some View {
         let change: Animation? = reduceMotion ? nil : .snappy(duration: 0.25)
-        VStack(spacing: 10) {
+        VStack(spacing: WardSpace.m) {
             if !showCollapsed {
                 switcher
                     .transition(.identity)
@@ -43,7 +43,7 @@ struct IdeasBottomBar: View {
             captureRow
         }
         .padding(.horizontal, WardSpace.gutter)
-        .padding(.bottom, 8)
+        .padding(.bottom, WardSpace.s)
         .frame(maxWidth: 560)
         .animation(change, value: showCollapsed)
         .animation(change, value: hasText)
@@ -90,7 +90,7 @@ struct IdeasBottomBar: View {
     // MARK: the capture row
 
     private var captureRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: WardSpace.m) {
             if showCollapsed {
                 switcher
                     .transition(.growIn(0.6))
@@ -120,7 +120,7 @@ private struct IdeaCaptureField: View {
     let capture: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: WardSpace.m) {
             Image(systemName: "lightbulb")
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
@@ -130,7 +130,7 @@ private struct IdeaCaptureField: View {
                 .onSubmit(capture)
                 .accessibilityIdentifier("idea-capture")
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, WardSpace.m)
         .frame(minHeight: 48)
         .wardInset(in: Capsule(), control: true)
     }

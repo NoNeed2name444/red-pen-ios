@@ -37,7 +37,7 @@ struct CountField: View {
         LabeledContent(title) {
             // minus, number and plus on ONE field, so the keys ride with
             // the number instead of apart from it
-            HStack(spacing: 6) {
+            HStack(spacing: WardSpace.s) {
                 if steppers {
                     CountStepButton(symbol: "minus", label: "One fewer", enabled: value > low) { nudge(-1) }
                 }

@@ -37,6 +37,8 @@ import com.stethoscore.app.ui.ward.wardWellFill
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.wardInset
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.wardDp
 
 // What the Cases screens add to the Ward kit: port of iOS Features/Cases/CaseKit.swift.
 // The card is WardCardFace, the avatar and the clock are pressed in (wardInset),
@@ -61,7 +63,7 @@ internal val CaseCardShape = RoundedCornerShape(16.dp)
 
 /** A card, full width (iOS caseCard over wardCard): raised off the base. */
 @Composable
-internal fun CaseCard(modifier: Modifier = Modifier, padding: Dp = 16.dp, spacing: Dp = 10.dp, content: @Composable ColumnScope.() -> Unit) {
+internal fun CaseCard(modifier: Modifier = Modifier, padding: Dp = WardSpace.gutter.wardDp, spacing: Dp = WardSpace.m.wardDp, content: @Composable ColumnScope.() -> Unit) {
     WardCardFace(modifier.fillMaxWidth(), padding = padding, spacing = spacing, content = content)
 }
 
@@ -96,9 +98,9 @@ internal fun CaseClockPill(used: Int, budget: Int) {
     val tint = if (over) CaseInk.resus else CaseInk.ink
     Row(
         // pressed in, like the kit's timer pill: read, not touched
-        Modifier.wardInset(CircleShape).padding(horizontal = 10.dp, vertical = 5.dp)
+        Modifier.wardInset(CircleShape).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.xs.wardDp)
             .clearAndSetSemantics { contentDescription = spoken },
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp),
     ) {
         Icon(if (over) Icons.Filled.Error else Icons.Filled.Schedule, null, tint = tint, modifier = Modifier.size(16.dp))
         Text(if (used == 0) "$budget min" else "$used / $budget min", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = tint)
@@ -151,17 +153,17 @@ internal fun <T> CaseSegmented(selection: T, options: List<T>, label: (T) -> Str
 /** The arrival observations in the chart's vitals grid, flagged H or L. */
 @Composable
 internal fun CaseVitalsGrid(obs: List<CaseFile.Obs>) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         for (o in obs) {
             val unit = when (o.sign) { CaseFile.Obs.Sign.temp -> " °C"; CaseFile.Obs.Sign.spo2 -> "%"; else -> "" }
             val flag = CaseChart.flag(o)
             val tint = if (flag != null) CaseInk.resus else CaseInk.ink
             Column(
-                Modifier.widthIn(min = 86.dp).background(CaseInk.well, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 6.dp)
+                Modifier.widthIn(min = 86.dp).background(CaseInk.well, RoundedCornerShape(10.dp)).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp)
                     .clearAndSetSemantics { contentDescription = "${o.sign.spoken} ${o.shown}${unit}" + (flag?.let { ", ${it.spoken}" } ?: "") },
             ) {
                 Text(o.sign.label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = CaseInk.biro)
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                     Text(o.shown + unit, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, color = tint)
                     if (flag != null) Text(flag.rawValue, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CaseInk.resus)
                 }
@@ -173,15 +175,15 @@ internal fun CaseVitalsGrid(obs: List<CaseFile.Obs>) {
 /** Test values in the chart's results table, flagged H or L. */
 @Composable
 internal fun CaseResultsTable(results: List<CaseStep.LabResult>) {
-    Column(Modifier.fillMaxWidth().background(CaseInk.well, RoundedCornerShape(10.dp)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.fillMaxWidth().background(CaseInk.well, RoundedCornerShape(10.dp)).padding(WardSpace.m.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
         for (r in results) {
             val flag = CaseChart.flag(r)
             Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { }, verticalAlignment = Alignment.CenterVertically) {
                 Text(r.name, Modifier.weight(1f), fontSize = 14.sp)
                 Text(CaseFile.Obs.number(r.value), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
                     color = if (flag != null) CaseInk.resus else CaseInk.ink)
-                Text(flag?.rawValue ?: "", Modifier.width(18.dp).padding(start = 4.dp), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CaseInk.resus)
-                Text(r.unit, Modifier.widthIn(min = 64.dp).padding(start = 6.dp), fontSize = 12.sp, color = CaseInk.biro)
+                Text(flag?.rawValue ?: "", Modifier.width(18.dp).padding(start = WardSpace.xs.wardDp), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CaseInk.resus)
+                Text(r.unit, Modifier.widthIn(min = 64.dp).padding(start = WardSpace.s.wardDp), fontSize = 12.sp, color = CaseInk.biro)
             }
         }
     }

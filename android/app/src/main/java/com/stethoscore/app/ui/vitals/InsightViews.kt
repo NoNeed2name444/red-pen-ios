@@ -101,13 +101,13 @@ data class InsightQuiz(
 /** The readiness card: the estimated score as a range, against a typical pass mark, and the subjects that would move it most. */
 @Composable fun ReadinessCard(estimate: ReadinessEstimate?, answered: Int, includesExamples: Boolean, track: ExamTrack,
                               onDrill: (String) -> Unit = {}) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Speed, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
                 Text("Readiness estimate", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(WardSpace.s.wardDp))
             if (includesExamples) WardChip("Example data", tone = WardTone.Grey)
         }
         if (estimate != null) Filled(estimate, track, onDrill) else Empty(answered)
@@ -117,7 +117,7 @@ data class InsightQuiz(
 @Composable private fun Empty(answered: Int) {
     val needed = Readiness.minimumAnswers
     val done = minOf(answered, needed)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         Text("Answer at least $needed questions and an estimated score will show here.",
             style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
         EcgStrip(done.toDouble() / needed)
@@ -159,10 +159,10 @@ fun passLine(e: ReadinessEstimate, track: ExamTrack): String {
 }
 
 @Composable private fun Filled(e: ReadinessEstimate, track: ExamTrack, onDrill: (String) -> Unit) {
-    Row(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
         Text(percentText(e.center), style = WardTypeSpec(WardTextStyle.largeTitle, WardWeight.bold, mono = true).textStyle().copy(fontSize = 40.sp),
             color = wardColor(WardToken.ink))
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text("likely ${percentText(e.low)}–${percentText(e.high)}", style = WardTextStyle.subheadline.textStyle(WardWeight.medium, mono = true),
                 color = wardColor(WardToken.ink))
             Text(readinessVerdict(e), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
@@ -178,9 +178,9 @@ fun passLine(e: ReadinessEstimate, track: ExamTrack): String {
             Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp)
                 .clickable(role = Role.Button, onClickLabel = "Opens a drill of ${lever.subject}") { onDrill(lever.subject) }
                 .semantics(mergeDescendants = true) {},
-                horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.GpsFixed, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                     Text(lever.subject, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
                     Text(leverLine(lever), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
@@ -251,9 +251,9 @@ fun insightQuiz(name: String, picks: List<QuestionPick>): StudySet {
     Column(Modifier.fillMaxSize()) {
         StudyTitleBar(title, onBack)
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-            Column(Modifier.readableColumn().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.readableColumn().padding(vertical = WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
                 if (tip != null) ReaderFormSection {
-                    Row(Modifier.fillMaxWidth().wardRowTile(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth().wardRowTile(), horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                         Icon(Icons.Rounded.Lightbulb, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
                         Text(tip, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
                     }
@@ -275,19 +275,19 @@ fun insightQuiz(name: String, picks: List<QuestionPick>): StudySet {
 @Composable private fun InsightQuestionRow(pick: QuestionPick) {
     val q = pick.question
     var open by rememberSaveable(q.id) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().wardRowTile(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().wardRowTile(), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = if (open) "Hide the answer" else "Show the answer") { open = !open },
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                 Text(q.stem, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink), maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(MockLibrary.subjectName(pick.set), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk),
                 modifier = Modifier.size(16.dp).rotate(if (open) 90f else 0f))
         }
-        if (open) Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (open) Column(Modifier.padding(vertical = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             q.options.getOrNull(q.correctIndex)?.let { answer ->
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.CheckCircleOutline, null, tint = wardColor(WardToken.success), modifier = Modifier.size(16.dp))
                     Text(answer, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.success))
                 }

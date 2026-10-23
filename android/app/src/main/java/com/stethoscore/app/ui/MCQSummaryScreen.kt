@@ -39,6 +39,8 @@ import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import kotlin.math.roundToInt
+import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.wardDp
 
 // A port of ios/RedPen/Features/MCQ/MCQSummaryView.swift: the
 // results. "N of M right" over a score ring, the verdict, Try again, every
@@ -77,12 +79,12 @@ fun QuizSummaryScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        Text("Results", Modifier.fillMaxWidth().padding(vertical = 12.dp).semantics { heading() }, textAlign = TextAlign.Center,
+        Text("Results", Modifier.fillMaxWidth().padding(vertical = WardSpace.m.wardDp).semantics { heading() }, textAlign = TextAlign.Center,
             style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.l.wardDp).padding(top = WardSpace.s.wardDp, bottom = WardSpace.xl.wardDp),
+            verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
             WardCardFace(Modifier.fillMaxWidth()) {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
                     ScoreRing(fraction)
                     Text("$correctCount of $total right", Modifier.semantics { heading() }, style = WardTextStyle.title.textStyle(WardWeight.bold),
                         textAlign = TextAlign.Center, color = wardColor(WardToken.ink))
@@ -100,11 +102,11 @@ fun QuizSummaryScreen(
                 questions.indices.forEach { i ->
                     val q = questions[i]
                     val correct = QuizSummary.isRight(questions, answers, i)
-                    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp).semantics(mergeDescendants = true) {},
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = WardSpace.m.wardDp).semantics(mergeDescendants = true) {},
+                        horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                         Icon(if (correct) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel, if (correct) "Right" else "Wrong",
                             tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.danger), modifier = Modifier.size(24.dp))
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                             Text(q.stem, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                             val key = q.options.getOrNull(q.correctIndex)
                             if (!correct && key != null) Text("Answer: $key", style = WardTextStyle.subheadline.textStyle(WardWeight.medium),
@@ -117,8 +119,8 @@ fun QuizSummaryScreen(
         }
 
         // the bar: the one main button, and Done beside it whenever that is not Done already
-        Row(Modifier.fillMaxWidth().background(wardColor(WardToken.raised)).padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().background(wardColor(WardToken.raised)).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp),
+            horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
             if (next != QuizSummary.Next.done) QuizBigButton("Done", null, QuizButtonKind.companion, onClick = onDone)
             when (next) {
                 QuizSummary.Next.save -> QuizBigButton("Save to library", Icons.Rounded.Download, QuizButtonKind.primary, onClick = onSave,
@@ -132,7 +134,7 @@ fun QuizSummaryScreen(
 }
 
 @Composable private fun Done(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         Icon(Icons.Rounded.Check, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(16.dp))
         Text(text, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
     }
@@ -149,7 +151,7 @@ fun QuizSummaryScreen(
     val track = wardColor(WardToken.hairline)
     val fill = wardColor(WardToken.primaryInk)
     Box(Modifier.size(140.dp).clearAndSetSemantics { contentDescription = "$target% correct" }, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize().padding(8.dp)) {
+        Canvas(Modifier.fillMaxSize().padding(WardSpace.s.wardDp)) {
             val stroke = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
             drawArc(track, 0f, 360f, false, style = stroke)
             drawArc(fill, -90f, 360f * shown / 100f, false, style = stroke)

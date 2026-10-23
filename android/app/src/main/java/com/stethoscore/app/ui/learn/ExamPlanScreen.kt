@@ -106,13 +106,13 @@ import java.time.ZoneId
         verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ReaderFormSection { Box(Modifier.wardRowTile()) { PhaseHero(read.phase) } }
         // Your exam: the chosen exam's blueprint, readiness and what to study next
-        Box(Modifier.padding(horizontal = 16.dp)) { com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset) }
+        Box(Modifier.padding(horizontal = WardSpace.l.wardDp)) { com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset) }
         // the streak, the goal ring and a ward round
         ReaderFormSection("Today", "One missed day a week is a free rest day and keeps your streak. Minutes in a focus session count for the streak too. Set the daily goal in Settings → Study.") {
             Box(Modifier.wardRowTile()) { TodayGoalRow(read.today) }
         }
         // the tile is its own card, so no row behind it
-        Box(Modifier.padding(horizontal = 8.dp)) { WardRoundTile() }
+        Box(Modifier.padding(horizontal = WardSpace.s.wardDp)) { WardRoundTile() }
         ReaderFormSection("Remembering on the day",
             "An estimate from your cards’ review intervals on a standard forgetting curve, not a measurement. No interval is allowed to run past your exam date: cards come back a day or two before it.") {
             Box(Modifier.wardRowTile()) { ForecastCard(read.forecast, read.phase) }
@@ -179,10 +179,10 @@ private class PlanReading(
 /** The phase, large: "T-9 · Mock week". */
 @Composable private fun PhaseHero(phase: ExamWeekPlanner.Phase) {
     val big = phase.days?.let { if (it == 0) "Today" else "T-$it" } ?: "—"
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).semantics(mergeDescendants = true) {},
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().padding(vertical = WardSpace.xs.wardDp).semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
         Text(big, color = wardColor(WardToken.ink), fontSize = 40.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text(phase.headline, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             if (phase == ExamWeekPlanner.Phase.NoDate) Text("Set it in Settings → Your exam.",
                 style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
@@ -192,7 +192,7 @@ private class PlanReading(
 
 /** "If your exam were today you'd remember ~71%; do 140 reviews over the next 10 days to reach 90%." */
 @Composable private fun ForecastCard(forecast: RetentionForecast.Forecast, phase: ExamWeekPlanner.Phase) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         if (forecast.studied == 0) {
             Text("Review some cards and a forecast of what you would remember on the day will show here.",
                 style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
@@ -200,9 +200,9 @@ private class PlanReading(
         }
         val today = RetentionForecast.percent(forecast.today)
         Row(Modifier.semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             Text("~$today", color = wardColor(WardToken.ink), fontSize = 36.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-            Text("if your exam were today", Modifier.padding(bottom = 6.dp), style = WardTextStyle.subheadline.textStyle(),
+            Text("if your exam were today", Modifier.padding(bottom = WardSpace.s.wardDp), style = WardTextStyle.subheadline.textStyle(),
                 color = wardColor(WardToken.inkSecondary))
         }
         WardProgressBar(forecast.today, "Remembered if your exam were today")
@@ -237,14 +237,14 @@ private fun spokenCount(n: Int, noun: String): String = if (n == 1) "1 $noun" el
         if (examDay == null || examDay >= counts.size) whole
         else whole + ". " + (if (examDay == 0) "The exam is today." else "The exam is in ${spokenCount(examDay, "day")}.")
     }
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         Row(Modifier.fillMaxWidth().height(72.dp).clearAndSetSemantics { contentDescription = spoken },
-            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
+            horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp), verticalAlignment = Alignment.Bottom) {
             counts.forEachIndexed { day, count ->
                 val isExam = examDay == day
                 val fill = if (isExam) wardColor(WardToken.ecg) else wardColor(WardToken.primaryInk)
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom)) {
+                    verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp, Alignment.Bottom)) {
                     if (isExam) Icon(Icons.Rounded.Flag, null, Modifier.size(11.dp), tint = fill)
                     val height = maxOf(3f, 56f * count / top)
                     Box(Modifier.fillMaxWidth().height(height.dp).background(fill.copy(alpha = if (count == 0) 0.25f else 1f), CircleShape))
@@ -275,11 +275,11 @@ private fun spokenCount(n: Int, noun: String): String = if (n == 1) "1 $noun" el
             color = wardColor(WardToken.ink))
     }
     Box(Modifier.wardRowTile()) {
-        BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(vertical = WardSpace.s.wardDp)) {
             // as many 92-wide columns as fit, 12 apart (an adaptive grid)
             val columns = maxOf(1, ((maxWidth.value + 12) / (92 + 12)).toInt())
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                for (line in rings.chunked(columns)) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
+                for (line in rings.chunked(columns)) Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                     for (ring in line) Box(Modifier.weight(1f), contentAlignment = Alignment.TopCenter) { SubjectRing(ring) }
                     repeat(columns - line.size) { Spacer(Modifier.weight(1f)) }
                 }
@@ -297,7 +297,7 @@ private fun spokenCount(n: Int, noun: String): String = if (n == 1) "1 $noun" el
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Column(Modifier.clearAndSetSemantics {
         contentDescription = "${ring.subject}: ${ring.secured} of ${ring.total} locked in, ${ring.building} on their way"
-    }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         Box(Modifier.size(60.dp), contentAlignment = Alignment.Center) {
             // both arcs clockwise from the top, anticlockwise right to left
             Canvas(Modifier.fillMaxSize().scale(if (rtl) -1f else 1f, 1f)) {

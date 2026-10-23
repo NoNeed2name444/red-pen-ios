@@ -192,10 +192,10 @@ private fun describePicked(context: Context, uri: Uri): Pair<String, Long> {
     ExamSheet(onDismiss) {
         Column(Modifier.fillMaxSize().testTag("importInboxSheet")) {
             ReaderNavBar("Received", leading = { WardTextButton("Not now", onDismiss, kind = WardButtonKind.quiet, fills = false) })
-            Column(Modifier.fillMaxWidth().padding(WardSpace.gutter.wardDp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.fillMaxWidth().padding(WardSpace.gutter.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically) {
                     WardIconSquare(Icons.Rounded.Description, size = 48.0)
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                         Text(file.name, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), maxLines = 2)
                         Text(IncomingWords.lectureLine(file.byteCount), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
                     }
@@ -261,9 +261,9 @@ private fun describePicked(context: Context, uri: Uri): Pair<String, Long> {
     }
 
     reading?.let { name ->
-        Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
-            Row(Modifier.wardRelief(RoundedCornerShape(50), WardLift.high).padding(horizontal = 14.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.fillMaxWidth().padding(top = WardSpace.s.wardDp), contentAlignment = Alignment.TopCenter) {
+            Row(Modifier.wardRelief(RoundedCornerShape(50), WardLift.high).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp),
+                horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Download, null, tint = wardColor(WardToken.ink), modifier = Modifier.size(16.dp))
                 Text("Reading $name…", style = WardTextStyle.footnote.textStyle(WardWeight.medium), color = wardColor(WardToken.ink))
             }

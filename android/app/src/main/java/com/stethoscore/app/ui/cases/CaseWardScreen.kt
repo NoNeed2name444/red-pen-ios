@@ -48,6 +48,7 @@ import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDisabledInk
 import com.stethoscore.app.ui.ward.wardDp
+import com.stethoscore.app.ui.ward.WardSpace
 
 /**
  * One patient, from arrival to the decision, and then the debrief. Port of
@@ -106,8 +107,8 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.weight(1f)) {
                 Column(
-                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(horizontal = WardSpace.l.wardDp).padding(bottom = WardSpace.l.wardDp),
+                    verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp),
                 ) {
                     ScreenHeader(title, "", onBack)
                     Triage(file, run, arriving)
@@ -135,7 +136,7 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
             }
             // the bar at the bottom, under the thumb
             HorizontalDivider(color = CaseInk.hairline)
-            Row(Modifier.fillMaxWidth().background(CaseInk.ward).padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth().background(CaseInk.ward).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                 if (arriving) {
                     CaseButton("See the patient", { arriving = false }, Modifier.weight(1f), primary = true, icon = Icons.Rounded.MedicalServices)
                 } else {
@@ -156,7 +157,7 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
 @Composable
 private fun LadderSheet(file: CaseFile, run: CaseRun, onDone: () -> Unit, edit: ((CaseRun) -> Unit) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDone, sheetState = rememberModalBottomSheetState(), containerColor = CaseInk.ward) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = WardSpace.l.wardDp), verticalAlignment = Alignment.CenterVertically) {
             Text("Differential", Modifier.weight(1f), style = WardType.headline.textStyle())
             TextButton(onDone) { Text("Done", fontWeight = FontWeight.SemiBold) }
         }
@@ -169,12 +170,12 @@ private fun LadderSheet(file: CaseFile, run: CaseRun, onDone: () -> Unit, edit: 
 @Composable
 private fun Triage(file: CaseFile, run: CaseRun, arriving: Boolean) {
     CaseCard(spacing = 12.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
             CaseAvatar(file.patient.initials)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 FlowRow(
                     Modifier.clearAndSetSemantics { contentDescription = "${file.patient.spoken}, seen in ${file.setting.label}" },
-                    horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp),
                 ) {
                     if (file.patient.age > 0) CaseChip("${file.patient.age} y", CaseTone.grey)
                     if (file.patient.sexLetter.isNotEmpty()) CaseChip(if (file.patient.isFemale) "Female" else "Male", CaseTone.grey)
@@ -195,9 +196,9 @@ private fun Triage(file: CaseFile, run: CaseRun, arriving: Boolean) {
 
 @Composable
 private fun ClerkingParts(file: CaseFile) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         for (part in file.clerking.parts) {
-            Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                 Text(part.label, style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = CaseInk.biro)
                 Text(part.text, style = WardTextStyle.subheadline.textStyle())
             }
@@ -227,7 +228,7 @@ private fun ClerkingFolded(file: CaseFile) {
             CaseLabel("Clerking note", Modifier.weight(1f))
             Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, null, tint = CaseInk.theatre)
         }
-        if (open) Box(Modifier.padding(top = 8.dp)) { ClerkingParts(file) }
+        if (open) Box(Modifier.padding(top = WardSpace.s.wardDp)) { ClerkingParts(file) }
     }
 }
 
@@ -241,7 +242,7 @@ private fun Actions(file: CaseFile, run: CaseRun, group: CaseStep.Group, onGroup
         BoxWithConstraints {
             val columns = maxOf(1, (maxWidth / 158.dp).toInt())
             val width = (maxWidth - 8.dp * (columns - 1)) / columns
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 for (step in file.steps(group)) ActionChip(step, run.hasTaken(step.id), Modifier.width(width)) { take(step) }
             }
         }
@@ -258,16 +259,16 @@ private fun ActionChip(step: CaseStep, done: Boolean, modifier: Modifier, take: 
             .background(if (done) CaseInk.well else CaseInk.surface, shape)
             .border(1.dp, CaseInk.hairline, shape)
             .clickable(enabled = !done, role = Role.Button, onClick = take)
-            .padding(10.dp)
+            .padding(WardSpace.m.wardDp)
             .clearAndSetSemantics {
                 contentDescription = minutes
                 role = Role.Button
                 if (done) { stateDescription = "Done"; disabled() } else onClick(label = "Spends the minutes and adds the finding to the note") { take(); true }
             },
-        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.Top,
     ) {
         Icon(if (done) Icons.Rounded.CheckCircle else Icons.Rounded.AddCircleOutline, null, tint = if (done) CaseInk.discharge else CaseInk.theatre, modifier = Modifier.size(20.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text(step.label, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = if (done) CaseInk.biro else CaseInk.ink)
             Text("${step.minutes} min", style = WardTextStyle.caption.textStyle(mono = true), color = CaseInk.biro)
         }
@@ -282,10 +283,10 @@ private fun ClinicalNote(file: CaseFile, run: CaseRun) {
         if (run.taken.isEmpty()) Text("Findings appear here as you ask, examine and test.", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
         for (taken in run.taken.reversed()) {
             val step = file.step(taken.stepID) ?: continue
-            Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.semantics(mergeDescendants = true) { }, verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(step.group.label + " · " + step.label, Modifier.weight(1f), style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = CaseInk.biro)
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(WardSpace.s.wardDp))
                     Text("${taken.at} min", style = WardTextStyle.caption.textStyle(mono = true), color = CaseInk.biro)
                 }
                 Text(step.finding, style = WardType.body.textStyle())
@@ -313,13 +314,13 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
     }
     // the case's list, less what is on the ladder already
     val pickable = file.candidates.filter { name -> run.ladder.none { CaseNames.same(it, name) } }
-    Column(modifier.background(CaseInk.ward).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier.background(CaseInk.ward).verticalScroll(rememberScrollState()).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
         CaseLabel("Your ladder")
         if (run.ladder.isEmpty()) Text("Up to three working diagnoses, the most likely first. Change them whenever you like.", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
         run.ladder.forEachIndexed { index, name ->
             val leading = index == 0
             CaseCard(padding = 8.dp) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
                     Box(Modifier.size(32.dp).background(CaseInk.well, CircleShape).clearAndSetSemantics { }, contentAlignment = Alignment.Center) {
                         Text("${index + 1}", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, color = if (leading) CaseInk.theatre else CaseInk.biro)
                     }
@@ -333,18 +334,18 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
             }
         }
         CaseLabel("Add a diagnosis")
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             OutlinedTextField(typed, { typed = it }, Modifier.weight(1f), placeholder = { Text("Type a diagnosis") }, singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { addTyped() }))
             TextButton(::addTyped, enabled = typed.isNotBlank(), colors = ButtonDefaults.textButtonColors(disabledContentColor = wardDisabledInk())) { Text("Add", fontWeight = FontWeight.SemiBold) }
         }
         if (run.ladder.size >= CaseRun.RUNGS) Text("The ladder is full: a new diagnosis takes the bottom rung.", style = WardType.caption.textStyle(), color = CaseInk.biro)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             for (name in pickable) {
                 val shape = RoundedCornerShape(12.dp)
                 Box(
                     Modifier.minimumInteractiveComponentSize().widthIn(min = 140.dp).heightIn(min = 44.dp).background(CaseInk.surface, shape).border(1.dp, CaseInk.hairline, shape)
-                        .clickable(role = Role.Button, onClickLabel = "Adds it to your ladder") { add(name) }.padding(horizontal = 12.dp),
+                        .clickable(role = Role.Button, onClickLabel = "Adds it to your ladder") { add(name) }.padding(horizontal = WardSpace.m.wardDp),
                     contentAlignment = Alignment.CenterStart,
                 ) { Text(name, style = WardTextStyle.subheadline.textStyle()) }
             }

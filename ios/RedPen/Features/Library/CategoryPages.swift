@@ -98,7 +98,7 @@ struct CategoryRowLabel: View {
                 .frame(width: 40, height: 40)
                 .wardRaised(in: square, lift: .low)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
                 Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }

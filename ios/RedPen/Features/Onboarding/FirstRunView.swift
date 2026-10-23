@@ -120,7 +120,7 @@ private struct FirstRunGoalPage: View {
                           detail: "Cards and questions a day. Today\u{2019}s revision shows how far through today you are.",
                           nextTitle: "Set \(goal) a day",
                           next: save, skip: next) {
-            VStack(spacing: 16) {
+            VStack(spacing: WardSpace.l) {
                 Text("\(goal)")
                     .font(.system(size: 56, weight: .bold, design: .monospaced).monospacedDigit())
                     .foregroundStyle(Color.wardInk)
@@ -129,7 +129,7 @@ private struct FirstRunGoalPage: View {
                 Stepper("\(goal) a day", value: $goal.animation(Motion.gentle(.snappy(duration: 0.25))), in: DailyGoal.range, step: 10)
                     .contentTransition(.identity)
                     .accessibilityIdentifier("firstRunGoalStepper")
-                HStack(spacing: 8) {
+                HStack(spacing: WardSpace.s) {
                     ForEach(FirstRunGoalPage.presets, id: \.self) { value in
                         presetButton(value)
                     }
@@ -186,7 +186,7 @@ private struct FirstRunExamplesPage: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: WardSpace.l) {
                 FirstRunHeading(symbol: "sparkles.rectangle.stack",
                                 title: "Start with an example?",
                                 detail: "Try every mode on a finished set before making your own.")
@@ -202,7 +202,7 @@ private struct FirstRunExamplesPage: View {
                     finish()
                 }
             }
-            .padding(24)
+            .padding(WardSpace.xl)
             .frame(maxWidth: 560, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
@@ -222,13 +222,13 @@ private struct FirstRunExamplesPage: View {
     private func choice(_ title: String, symbol: String, detail: String, id: String,
                         action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 14) {
+            HStack(alignment: .top, spacing: WardSpace.m) {
                 Image(systemName: symbol)
                     .font(.title2)
                     .foregroundStyle(.tint)
                     .frame(width: 32)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(title)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(Color.wardInk)
@@ -264,14 +264,14 @@ private struct FirstRunPageFrame<Content: View>: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: WardSpace.l) {
                 FirstRunHeading(symbol: symbol, title: title, detail: detail)
                 content()
                     .padding(WardSpace.gutter)
                     .frame(maxWidth: .infinity)
                     .wardRaised(in: shape)
             }
-            .padding(24)
+            .padding(WardSpace.xl)
             .frame(maxWidth: 560, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
@@ -285,7 +285,7 @@ private struct FirstRunHeading: View {
     let detail: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: WardSpace.m) {
             Image(systemName: symbol)
                 .font(.system(size: 40, weight: .semibold))
                 .foregroundStyle(.tint)

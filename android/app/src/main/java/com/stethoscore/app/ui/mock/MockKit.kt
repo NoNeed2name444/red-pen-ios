@@ -211,7 +211,7 @@ internal enum class BigKind { primary, secondary, companion }
         Row(Modifier.wardChosenEdge(CircleShape, on, chosenInk)
             .wardPressFace(CircleShape, WardLift.low, wardDepth(look.stand.isPressedIn))
             .padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), content = content)
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), content = content)
     }
 }
 
@@ -224,8 +224,8 @@ internal enum class BigKind { primary, secondary, companion }
 
 /** The end of a session (FinishHero): the result on a soft disc raised off the base, the title, and what it means. */
 @Composable internal fun FinishHero(title: String, message: String, graphic: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = WardSpace.xl.wardDp, horizontal = WardSpace.l.wardDp), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
         Box(Modifier.wardRelief(CircleShape, WardLift.mid), contentAlignment = Alignment.Center) { graphic() }
         Text(title, Modifier.semantics { heading() }, style = WardTextStyle.title.textStyle(WardWeight.bold), color = wardColor(WardToken.ink),
             textAlign = TextAlign.Center)
@@ -250,13 +250,13 @@ internal enum class BigKind { primary, secondary, companion }
     val shown by animateFloatAsState(target, if (reduce) snap() else spring(dampingRatio = 0.72f, stiffness = 30f), label = "score")
     val arc = wardColor(WardToken.primaryInk)
     Box(Modifier.size(168.dp).clearAndSetSemantics { contentDescription = "$label $sublabel" }, contentAlignment = Alignment.Center) {
-        Box(Modifier.fillMaxSize().padding(10.dp).wardRelief(WardAnnulus(12.dp), WardLift.low, wardColor(WardToken.surface), inset = true))
-        Box(Modifier.fillMaxSize().padding(16.dp).drawBehind {
+        Box(Modifier.fillMaxSize().padding(WardSpace.m.wardDp).wardRelief(WardAnnulus(12.dp), WardLift.low, wardColor(WardToken.surface), inset = true))
+        Box(Modifier.fillMaxSize().padding(WardSpace.l.wardDp).drawBehind {
             val w = 6.dp.toPx()
             drawArc(arc, -90f, 360f * shown, false, topLeft = Offset(w / 2, w / 2), size = Size(size.width - w, size.height - w),
                 style = Stroke(w, cap = StrokeCap.Round))
         })
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text(label, color = wardColor(WardToken.ink), fontSize = 38.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
             Text(sublabel, style = WardTextStyle.footnote.textStyle(WardWeight.medium), color = wardColor(WardToken.inkSecondary))
         }
@@ -284,7 +284,7 @@ internal val chosenEdgeWidth: Dp get() = WardControlStates.chosenEdgeWidth.wardD
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(title, Modifier.weight(1f), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
-        Row(Modifier.wardInset(CircleShape), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.wardInset(CircleShape), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             WardCircleButton(Icons.Rounded.Remove, "One fewer", { onValue((value - 1).coerceAtLeast(range.first)) },
                 enabled = enabled && value > range.first)
             BasicTextField(text, { text = it.filter { c -> c.isDigit() }.take(6) },
@@ -312,7 +312,7 @@ internal data class ConfirmChoice(val title: String, val destructive: Boolean, v
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable internal fun ConfirmSheet(title: String, message: String, choices: List<ConfirmChoice>, cancelTitle: String, onDismiss: () -> Unit) {
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = wardColor(WardToken.raised)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
+        Column(Modifier.fillMaxWidth().padding(horizontal = WardSpace.l.wardDp).padding(bottom = WardSpace.xl.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp),
             horizontalAlignment = Alignment.CenterHorizontally) {
             Text(title, Modifier.semantics { heading() }, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
             if (message.isNotEmpty()) Text(message, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary), textAlign = TextAlign.Center)
