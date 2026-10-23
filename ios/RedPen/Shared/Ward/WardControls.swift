@@ -567,6 +567,9 @@ struct WardPill: View {
         HStack(spacing: 4) {
             if let symbol { Image(systemName: symbol).imageScale(.small).foregroundStyle(Color.wardBeam) }
             Text(text)
+                // every line it wraps to, whole, as HomePill: a narrow row
+                // at the largest sizes would otherwise cut it to one
+                .fixedSize(horizontal: false, vertical: true)
         }
         .font(.subheadline.weight(.bold))
         .foregroundStyle(Color.wardWarning)

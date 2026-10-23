@@ -116,6 +116,7 @@ import com.stethoscore.app.ui.ward.WardTimerPill
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.currentWindowShape
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.ward.wardRelief
@@ -140,7 +141,7 @@ fun MockSittingScreen(sitting: MockSitting, store: StudyStore, resumed: MockSitt
 private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSittingSave?, onDone: () -> Unit) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val broad = com.stethoscore.app.ui.ward.currentWindowShape().widthClass != com.stethoscore.app.ui.ward.WardWidthClass.compact
+    val broad = currentWindowShape().isBroad
     val file = remember { MockLibrary.sittingFile(context.filesDir) }
 
     // A new sitting, or one put back as it was left: the same questions,

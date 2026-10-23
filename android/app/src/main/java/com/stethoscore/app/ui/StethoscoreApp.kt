@@ -69,6 +69,10 @@ import com.stethoscore.app.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.semantics.Role
+import com.stethoscore.app.ui.library.LibraryEtch
 
 @Composable fun StethoscoreApp(store:StudyStore, initialScreen:String="home", forceDark:Boolean?=null) {
     val context=LocalContext.current
@@ -289,7 +293,7 @@ import kotlinx.coroutines.withContext
                         // soft edge under the bar either: nothing at the bottom fades.
                         var barHeight by remember { mutableStateOf(0.0) }
                         // a broad window stands the dock up at the leading edge (iOS railed), not at the accessibility text sizes
-                        val railed=shape.dockIsRail && !lib.selecting && androidx.compose.ui.platform.LocalDensity.current.fontScale<1.5f
+                        val railed=shape.dockIsRail && !lib.selecting && LocalDensity.current.fontScale<1.5f
                             LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(WardSpace.gutter.wardDp+(if(railed) WardDock.railRoom.dp else 0.dp),WardSpace.m.wardDp,WardSpace.gutter.wardDp,WardSpace.xl.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
                                 item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
                                     SectionLabel("YOUR STUDY WARD")
@@ -300,7 +304,7 @@ import kotlinx.coroutines.withContext
                                 item { com.stethoscore.app.ui.ward.WardTextField(query,{query=it},Modifier.fillMaxWidth().semantics { contentDescription="Search" },
                                     placeholder="Search questions, cards, notes",leadingIcon=Icons.Rounded.Search) }
                                 item {
-                                    val below=with(androidx.compose.ui.platform.LocalDensity.current) { HomeFit.belowHeader.dp.toPx() }
+                                    val below=with(LocalDensity.current) { HomeFit.belowHeader.dp.toPx() }
                                     DisposableEffect(Unit) { onDispose { bandBottom=null } }
                                     HomeHeader(remember(revision) { ExamCountdown.text(store.examDate,examName=ExamCountdown.examName(com.stethoscore.app.exam.ExamChoice.defaults(context))) },
                                         Modifier.onGloballyPositioned { bandBottom=it.positionInWindow().y+it.size.height+below })
@@ -339,7 +343,7 @@ import kotlinx.coroutines.withContext
                         // but the page: no strip, no line, no cut of the rows above them, so the
                         // page reads unbroken to the bottom (the owner, 9 and 22 Oct). Without a
                         // glow round them, only their edges (iOS wardUnlit).
-                        val barDensity=androidx.compose.ui.platform.LocalDensity.current.density
+                        val barDensity=LocalDensity.current.density
                         // while the keyboard is up the bar stays behind it, as iOS's does, so it never
                         // rides up over the search's results ("No results for…")
                         val typing=keyboardShown()
@@ -452,12 +456,12 @@ fun homeSection(category:String):WardSection = when(category) {
                 Box(Modifier.wardChosenEdge(tab,true).wardInset(tab,WardLift.low))
                 categories.forEach { (name,rest) ->
                     val selected=chosen==name
-                    val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    val source=remember { MutableInteractionSource() }
                     val held by source.collectIsPressedAsState()
                     // the chosen tab stands in the hollow; a held one sinks into a hollow of its own (iOS WardItemButtonStyle); no ripple
                     Column(Modifier
                         .then(if(held && !selected) Modifier.wardInset(tab,WardLift.low) else Modifier)
-                        .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
+                        .selectable(selected=selected,interactionSource=source,indication=null,role=Role.Tab,onClick={ choose(name) })
                         .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
                         .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp),
                         horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
@@ -466,14 +470,14 @@ fun homeSection(category:String):WardSection = when(category) {
                 }
             }
             // Ideas, on a panel of its own beside the categories: pressed in with the accent edge when chosen, sinking when held
-            val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            val source=remember { MutableInteractionSource() }
             val held by source.collectIsPressedAsState()
             val ideas=chosen=="Ideas"
             val ideasShape=ideasCorners.shape()
             Column(Modifier.width(WardDock.ideasWidth.toFloat().dp).fillMaxHeight().heightIn(min=56.dp).then(ideasAt)
                 .wardChosenEdge(ideasShape,ideas)
                 .wardPressFace(ideasShape,WardLift.high,com.stethoscore.app.ui.ward.wardDepth(ideas || held))
-                .selectable(selected=ideas,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose("Ideas") }),
+                .selectable(selected=ideas,interactionSource=source,indication=null,role=Role.Tab,onClick={ choose("Ideas") }),
                 horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
                 DockItemFace(if(ideas) Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"Ideas",ideas)
             }
@@ -494,11 +498,11 @@ fun homeSection(category:String):WardSection = when(category) {
     val categories=listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq)
     @Composable fun item(name:String,icon:ImageVector,tag:String) {
         val selected=chosen==name
-        val source=remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        val source=remember { MutableInteractionSource() }
         val held by source.collectIsPressedAsState()
         Column(Modifier.fillMaxWidth()
             .then(if(selected) Modifier.wardChosenEdge(tab,true).wardInset(tab,WardLift.low) else if(held) Modifier.wardInset(tab,WardLift.low) else Modifier)
-            .selectable(selected=selected,interactionSource=source,indication=null,role=androidx.compose.ui.semantics.Role.Tab,onClick={ choose(name) })
+            .selectable(selected=selected,interactionSource=source,indication=null,role=Role.Tab,onClick={ choose(name) })
             .heightIn(min=WardDock.tabMinHeight.toFloat().dp)
             .padding(horizontal=WardDock.labelSide.toFloat().dp,vertical=WardDock.labelVertical.toFloat().dp)
             .testTag(tag),
@@ -514,7 +518,7 @@ fun homeSection(category:String):WardSection = when(category) {
             .padding(WardDock.railInset.toFloat().dp).selectableGroup(),
             verticalArrangement=Arrangement.spacedBy(WardDock.railSpacing.toFloat().dp)) {
             categories.forEach { (name,icon) -> item(name,icon,"dockRail-$name") }
-            com.stethoscore.app.ui.library.LibraryEtch(Modifier.padding(horizontal=12.dp,vertical=4.dp))
+            LibraryEtch(Modifier.padding(horizontal=WardDock.railGrooveSide.toFloat().dp,vertical=WardDock.railGrooveVertical.toFloat().dp))
             item("Ideas",if(chosen=="Ideas") Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"dockRail-Ideas")
         }
     }

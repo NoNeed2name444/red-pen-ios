@@ -788,7 +788,7 @@ struct MCQQuizView: View {
             VStack(alignment: .leading, spacing: 8) { sureLabel(tagged: true); HStack(spacing: 8) { sureChips } }
             // the largest sizes: one chip to a row, each word whole
             // ("Sur e", "Ma ybe" before), and the tag on its own line
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: WardSpace.s) {
                 sureLabel(tagged: false)
                 optionalTag.accessibilityHidden(true)
                 sureChips

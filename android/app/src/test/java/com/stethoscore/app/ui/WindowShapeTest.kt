@@ -84,7 +84,8 @@ class WindowShapeTest {
         val (top, bottom) = table.panes()!!.let { it.first to it.second }
         assertEquals(WardRect(0.0, 0.0, w, 350.0), top)
         assertEquals(WardRect(0.0, 350.0, w, 351.0), bottom)
-        assertEquals(WindowShape.Clearance(bottom = 351.0), table.hingeClearance(WardRect(0.0, 0.0, w, h)))
+        // the page keeps to the larger half, as iOS's clearPane: here the lower by a point, drawn down from the hinge
+        assertEquals(WindowShape.Clearance(top = 350.0), table.hingeClearance(WardRect(0.0, 0.0, w, h)))
         // a hinge between two screens hides what is under it, half open or flat
         val hinge = WindowShape(1114.0, 705.0, fold(WardFold.State.flat, WardFold.Orientation.vertical, WardRect(540.0, 0.0, 34.0, 705.0),
             separating = true, occlusion = WardFold.Occlusion.full))
@@ -114,9 +115,9 @@ class WindowShapeTest {
         assertEquals("not broad in the book's half", WardWidthClass.compact, pane.widthClass)
         assertFalse(pane.isPadSized)
         assertNull("no fold inside the pane", pane.separatingFold)
-        // tabletop: the reading half above the fold, its height the fold's top
+        // tabletop: the larger half, as hingeClearance keeps the page to: here the lower, 351 of 701 dp
         val table = WindowShape(w, h, fold(WardFold.State.halfOpened, WardFold.Orientation.horizontal, WardRect(0.0, 350.0, w, 0.0), separating = true))
-        assertEquals(WindowShape(w, 350.0), table.pagePane)
+        assertEquals(WindowShape(w, 351.0), table.pagePane)
         // a hinge with thickness: the side it leaves
         val hinge = WindowShape(1114.0, 705.0, fold(WardFold.State.flat, WardFold.Orientation.vertical, WardRect(540.0, 0.0, 34.0, 705.0),
             separating = true, occlusion = WardFold.Occlusion.full))
@@ -127,6 +128,36 @@ class WindowShapeTest {
         // and the first frame, before the page has measured itself, is already clear of the hinge
         assertEquals(book.hingeClearance(WardRect(0.0, 0.0, w, h)), book.clearanceFor(null))
         assertEquals(WindowShape.Clearance(left = 420.0), book.clearanceFor(null))
+    }
+
+    /** Broad is iOS's WindowSpan.broad (700), not the medium class (600): a 650 dp window keeps one column. */
+    @Test fun broadIsSevenHundredNotMedium() {
+        assertEquals(WardWidthClass.medium, WindowShape(650.0, 900.0).widthClass)
+        assertFalse("650 dp is not broad", WindowShape(650.0, 900.0).isBroad)
+        assertTrue("700 dp is broad", WindowShape(700.0, 900.0).isBroad)
+        assertFalse(WindowShape.isBroad(650.0)); assertTrue(WindowShape.isBroad(700.0))
+    }
+
+    /** As iOS's DevicePosture.clearPane: the larger side of the fold either way it runs, the reading side (top, left) on a tie. */
+    @Test fun foldKeepsTheLargerSideAndTheReadingSideOnATie() {
+        val w = 800.0; val h = 600.0
+        fun across(y: Double, t: Double = 0.0) = WindowShape(w, h, fold(WardFold.State.halfOpened, WardFold.Orientation.horizontal, WardRect(0.0, y, w, t), separating = true))
+        fun upright(x: Double, t: Double = 0.0) = WindowShape(w, h, fold(WardFold.State.halfOpened, WardFold.Orientation.vertical, WardRect(x, 0.0, t, h), separating = true))
+        val whole = WardRect(0.0, 0.0, w, h)
+        // horizontal: the top larger, the bottom larger, and a tie (with a hinge's thickness)
+        assertEquals(WindowShape.Clearance(bottom = 200.0), across(400.0).hingeClearance(whole))
+        assertEquals(WindowShape(w, 400.0), across(400.0).pagePane)
+        assertEquals(WindowShape.Clearance(top = 200.0), across(200.0).hingeClearance(whole))
+        assertEquals(WindowShape(w, 400.0), across(200.0).pagePane)
+        assertEquals(WindowShape.Clearance(bottom = 310.0), across(290.0, 20.0).hingeClearance(whole))
+        assertEquals(290.0, across(290.0, 20.0).pagePane.height, 0.0)
+        // vertical: the left larger, the right larger, and a tie
+        assertEquals(WindowShape.Clearance(right = 300.0), upright(500.0).hingeClearance(whole))
+        assertEquals(500.0, upright(500.0).pagePane.width, 0.0)
+        assertEquals(WindowShape.Clearance(left = 300.0), upright(300.0).hingeClearance(whole))
+        assertEquals(500.0, upright(300.0).pagePane.width, 0.0)
+        assertEquals(WindowShape.Clearance(right = 410.0), upright(390.0, 20.0).hingeClearance(whole))
+        assertEquals(390.0, upright(390.0, 20.0).pagePane.width, 0.0)
     }
 
     /** Inside WardHingePane the page reads the pane's shape: the provider the app lays every page in. */

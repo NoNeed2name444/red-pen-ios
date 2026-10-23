@@ -66,6 +66,7 @@ import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardTimerPill
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardWeight
+import com.stethoscore.app.ui.ward.currentWindowShape
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.AccuracyAsk
@@ -107,7 +108,7 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
     val context = LocalContext.current
     val view = LocalView.current
     val haptic = LocalHapticFeedback.current
-    val broad = com.stethoscore.app.ui.ward.currentWindowShape().widthClass != com.stethoscore.app.ui.ward.WardWidthClass.compact
+    val broad = currentWindowShape().isBroad
     val checklists = set.osceChecklists
     // A station starts with the time the student's exam gives one - eight
     // minutes for PLAB 2, ten for a PACES encounter.

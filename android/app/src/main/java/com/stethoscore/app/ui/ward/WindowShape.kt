@@ -106,14 +106,20 @@ data class WindowShape(val width: Double, val height: Double, val fold: WardFold
 
     /**
      * How far a page laid out over [box] (dp, window coordinates) is drawn in
-     * so nothing of it lies in a separating fold: above a horizontal fold (the
-     * reading half, tabletop), and on the larger side of a vertical one (the
-     * leading side when they match). Nothing where the fold does not split.
+     * so nothing of it lies in a separating fold: on the larger side of the
+     * fold, either way it runs, and on the reading side (above a horizontal
+     * fold, left of a vertical one) when they match, as iOS's
+     * DevicePosture.clearPane. Nothing where the fold does not split.
      */
     fun hingeClearance(box: WardRect): Clearance {
         val f = separatingFold ?: return Clearance()
         val b = f.bounds
-        if (f.orientation == WardFold.Orientation.horizontal) return Clearance(bottom = maxOf(0.0, box.maxY - b.minY))
+        if (f.orientation == WardFold.Orientation.horizontal) {
+            val topPane = b.minY
+            val bottomPane = height - b.maxY
+            return if (topPane >= bottomPane) Clearance(bottom = maxOf(0.0, box.maxY - b.minY))
+            else Clearance(top = maxOf(0.0, b.maxY - box.minY))
+        }
         val leftPane = b.minX
         val rightPane = width - b.maxX
         return if (leftPane >= rightPane) Clearance(right = maxOf(0.0, box.maxX - b.minX))
@@ -129,15 +135,19 @@ data class WindowShape(val width: Double, val height: Double, val fold: WardFold
 
     /**
      * The area a page cleared of the hinge (hingeClearance) is laid out in, as a
-     * window of its own and with no fold in it: above a horizontal fold, the larger
-     * side of a vertical one. What decides from the size (the dock's rail, broad
+     * window of its own and with no fold in it: the larger side of the fold (the
+     * reading side on a tie), as hingeClearance. What decides from the size (the dock's rail, broad
      * layouts, home's short window) reads this inside that page, not the whole
      * window. The window itself where no fold splits it.
      */
     val pagePane: WindowShape get() {
         val f = separatingFold ?: return this
         val b = f.bounds
-        if (f.orientation == WardFold.Orientation.horizontal) return WindowShape(width, maxOf(0.0, b.minY), null)
+        if (f.orientation == WardFold.Orientation.horizontal) {
+            val top = b.minY
+            val bottom = height - b.maxY
+            return WindowShape(width, maxOf(0.0, if (top >= bottom) top else bottom), null)
+        }
         val left = b.minX
         val right = width - b.maxX
         return WindowShape(maxOf(0.0, if (left >= right) left else right), height, null)

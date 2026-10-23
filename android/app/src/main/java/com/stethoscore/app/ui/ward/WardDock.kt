@@ -59,6 +59,9 @@ object WardDock {
     const val railLead = 12.0
     /** The page's room for the rail: the rail at its least, its lead, and a gutter after it. */
     const val railRoom = railMinWidth + railLead + 12.0
+    /** The groove between the rail's sections and Ideas: in from the rail's sides, and room above and below (iOS StudyCategory.swift:708). */
+    const val railGrooveSide = 12.0
+    const val railGrooveVertical = 4.0
 
     /** How small a name may get (all five by the same amount) so the row still fits: never its side room, so it stays clear of the ring. */
     const val leastNameScale = 0.5

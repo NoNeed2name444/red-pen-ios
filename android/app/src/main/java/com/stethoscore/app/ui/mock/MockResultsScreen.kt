@@ -46,6 +46,7 @@ import com.stethoscore.app.quiz.MockResult
 import com.stethoscore.app.quiz.MockSubjectScore
 import com.stethoscore.app.ui.QuizScreen
 import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.currentWindowShape
 import com.stethoscore.app.ui.ward.wardDp
 import com.stethoscore.app.ui.wardColor
 import com.stethoscore.app.ui.ward.StudyActionBar
@@ -70,7 +71,7 @@ fun MockResultsScreen(result: MockResult, sitting: MockSitting, selected: Map<St
                       onDone: () -> Unit) {
     var practising by remember { mutableStateOf<StudySet?>(null) }
     var showAll by remember { mutableStateOf(false) }
-    val broad = com.stethoscore.app.ui.ward.currentWindowShape().widthClass != com.stethoscore.app.ui.ward.WardWidthClass.compact
+    val broad = currentWindowShape().isBroad
 
     val shownSet = practising
     if (shownSet != null) {

@@ -409,6 +409,67 @@ final class HomeBandTrack {
     }
 }
 
+/// Where home's set rows stand while the list scrolls, and the row a turn
+/// keeps (HomeRowKeep). Shaped as HomeBandTrack, but every field is a
+/// working one: the rows write their frames as they move, and nothing
+/// redraws for it.
+@MainActor
+@Observable
+final class HomeRowTrack {
+    /// The list's visible size and its top and bottom insets (the top row,
+    /// the bar).
+    struct Band: Equatable {
+        var size: CGSize = .zero
+        var top: CGFloat = 0
+        var bottom: CGFloat = 0
+    }
+
+    @ObservationIgnored var band = Band()
+    /// The list's frame in the window.
+    @ObservationIgnored var list: CGRect = .zero
+    /// Each set row on screen, by its set's id, in window points.
+    @ObservationIgnored private var rows: [UUID: CGRect] = [:]
+    /// The row to keep through the next turn; nil at the list's top.
+    @ObservationIgnored private(set) var kept: HomeRowKeep.Place<UUID>?
+    /// Turns being kept now: the rows move under the turn, and where they
+    /// pass is not a place the student chose.
+    @ObservationIgnored var turning = 0
+
+    func report(_ id: UUID, _ frame: CGRect) { rows[id] = frame }
+    func gone(_ id: UUID) { rows[id] = nil }
+
+    func clear() {
+        rows = [:]
+        kept = nil
+    }
+
+    /// Notes the first set row in view, where the list came to rest.
+    func capture(atTop: Bool) {
+        guard turning == 0 else { return }
+        guard !atTop else {
+            kept = nil
+            return
+        }
+        let top = Double(list.minY + band.top)
+        let bottom = Double(list.minY + band.size.height - band.bottom)
+        let all: [HomeRowKeep.Row<UUID>] = rows.map { HomeRowKeep.Row(id: $0.key, minY: Double($0.value.minY),
+                                                                       maxY: Double($0.value.maxY)) }
+        kept = HomeRowKeep.place(all, top: top, bottom: bottom)
+    }
+}
+
+/// A set row reports where it stands to HomeRowTrack, and that it left.
+struct HomeRowReport: ViewModifier {
+    let id: UUID
+    let track: HomeRowTrack
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { track.report(id, $0) }
+            .onDisappear { track.gone(id) }
+    }
+}
+
 /// The band behind the page, from the window's top to just under the
 /// header, out to the paper frame on both sides.
 struct HomeBand: View {
