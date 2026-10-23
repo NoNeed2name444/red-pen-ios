@@ -102,6 +102,9 @@ const before = {
 };
 // the change: the owner's writing, chat and jobs, with PRO_PAYS off
 const meant = new Set(['owner writer off', 'owner job writer off']);
+// and later (the owner, 23 Oct: "Lock it"): only Claude writes for an account,
+// so with PRO_PAYS off a Pro account no longer falls to the free chain
+const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' };
 
 // A1: the owner key with PRO_PAYS off writes with Claude first, chat and jobs
 {
@@ -132,7 +135,9 @@ const meant = new Set(['owner writer off', 'owner job writer off']);
     }
   }
   for (const [name, was] of Object.entries(before)) {
-    if (meant.has(name)) {
+    if (name in locked) {
+      ok(now[name] === locked[name], `A2 ${name}: locked, the free chain is not asked (${now[name]}, was ${was})`);
+    } else if (meant.has(name)) {
       console.log(`     ${name}: before ${was} | now ${now[name]}`);
       ok(now[name] !== was, `A2 ${name}: changed, as meant`);
     } else {
@@ -219,6 +224,29 @@ const meant = new Set(['owner writer off', 'owner job writer off']);
   ok(r2.status === 200 && asked.join('>') === 'claude>gemini'
      && (down.db.prepare("SELECT micro_usd AS m FROM ai_cost WHERE account_id = 'owner'").get()?.m ?? 0) === 0,
      "A3 Claude down: Gemini answers, its free call is not charged to the owner's wallet, the hold is given back");
+}
+
+// A4: "Lock it" - an account is never answered by the free chain
+{
+  // Claude failing for a Pro account: nothing else is asked
+  const env = freshEnv({ ...base, PRO_PAYS: 'on' });
+  const asked = [];
+  const r = await chat(env, 'p1', writer, async url => {
+    if (url.includes('storekit')) return new Response('{}', { status: 404 });
+    if (url.includes('anthropic')) { asked.push('claude'); return new Response('{}', { status: 529 }); }
+    asked.push('gemini');
+    return new Response(JSON.stringify(geminiReply), { status: 200 });
+  });
+  ok(r.status !== 200 && asked.join('>') === 'claude', 'A4 a Pro account, Claude down: no answer, and the Gemini chain is never asked');
+  // no Claude on the route (no key, or no price): the See Pro answer, nothing asked
+  for (const [what, extra] of [['no ANTHROPIC_API_KEY', { ANTHROPIC_API_KEY: undefined }],
+                               ['no price for Claude', { GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50' }]]) {
+    for (const [job, body] of [['writer', writer], ['checker', checker]]) {
+      const o = await observe('pro', 'on', body, extra);
+      ok(row(o) === '402 - - -', `A4 a Pro account, PRO_PAYS on, ${what}, ${job}: 402 (See Pro), nothing asked`);
+    }
+  }
+  // the owner key keeps its chain and its caps (A1-A3 above)
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

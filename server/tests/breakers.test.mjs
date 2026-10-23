@@ -117,21 +117,33 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 }
 
 // MARK: in the chain (ai.js), with a fake upstream
+//
+// The free chain answers the owner key alone (the owner, 23 Oct: "Lock it"),
+// so its breakers are shown through the owner key, with the deployed models
+// less 3.1 Pro; an account is refused before any lane is asked.
+const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
+{
+  resetBreakers(clock);
+  const asked = [];
+  const r = await chat(freshEnv(chain), 'a1', request, async url => { asked.push(modelOf(url)); return answer('x'); });
+  ok(r.status === 402 && asked.length === 0 && Object.keys(breakers.snapshot({}).lanes).length === 0,
+     'an account: refused (402), no lane asked, no breaker touched');
+}
 
 // Flash keeps failing: after three failures it is not asked at all, and
 // Flash-Lite answers straight away
 {
   resetBreakers(clock);
-  const env = freshEnv(firebase);
+  const env = freshEnv(chain);
   const asked = [];
   const fetcher = async url => {
     asked.push(modelOf(url));
     return modelOf(url) === 'gemini-3.5-flash' ? down(503) : answer('lite');
   };
-  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, fetcher);
+  for (let i = 0; i < 3; i++) await chat(env, 'owner', request, fetcher, { owner: true });
   ok(asked.filter(m => m === 'gemini-3.5-flash').length === 3, 'Flash overloaded three times in a row');
   asked.length = 0;
-  const r = await chat(env, 'a1', request, fetcher);
+  const r = await chat(env, 'owner', request, fetcher, { owner: true });
   ok(r.status === 200 && (await r.json()).source === 'gemini-3.5-flash-lite', 'the fourth request is answered');
   ok(asked.join() === 'gemini-3.5-flash-lite', 'without asking Flash: its breaker is open');
   ok(breakers.snapshot(env).lanes['gemini:gemini-3.5-flash'].state === 'open', 'and the snapshot says so');
@@ -140,7 +152,7 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
   later(60);
   asked.length = 0;
   const back = async url => { asked.push(modelOf(url)); return answer('flash'); };
-  const b = await chat(env, 'a1', request, back);
+  const b = await chat(env, 'owner', request, back, { owner: true });
   ok(b.status === 200 && (await b.json()).source === 'gemini-3.5-flash' && asked.join() === 'gemini-3.5-flash', 'after 60 s Flash is tried once, and answers');
   ok(breakers.snapshot(env).lanes['gemini:gemini-3.5-flash'].state === 'closed', 'its breaker is closed again');
 }
@@ -153,7 +165,7 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
   let calls = 0;
   const timeout = async () => { calls++; throw Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' }); };
   for (let i = 0; i < 3; i++) {
-    const r = await chat(env, 'a1', request, timeout);
+    const r = await chat(env, 'owner', request, timeout, { owner: true });
     ok(r.status === 502, `timed out (${i + 1}): reported as unavailable`);
   }
   const lane = Object.keys(breakers.snapshot(env).lanes).find(l => l.startsWith('openai:'));
@@ -161,7 +173,7 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 
   resetBreakers(clock);
   const quota = async () => { calls++; return new Response(JSON.stringify({ error: { message: 'slow down' } }), { status: 429 }); };
-  for (let i = 0; i < 5; i++) await chat(env, 'a1', request, quota);
+  for (let i = 0; i < 5; i++) await chat(env, 'owner', request, quota, { owner: true });
   ok(!Object.values(breakers.snapshot(env).lanes).some(l => l.state !== 'closed'), 'five 429s in a row: the breaker stays closed (a quota, not an outage)');
 }
 
@@ -170,31 +182,31 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 {
   resetBreakers(clock);
   let workersAsked = 0;
-  const env = freshEnv({ ...firebase, AI: { run: async () => { workersAsked++; throw new Error('3040: Capacity temporarily exceeded'); } } });
+  const env = freshEnv({ ...chain, AI: { run: async () => { workersAsked++; throw new Error('3040: Capacity temporarily exceeded'); } } });
   const asked = [];
   const allDown = async url => { asked.push(modelOf(url)); return down(500); };
-  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, allDown);
-  const spentBefore = used(env, 'a1');
+  for (let i = 0; i < 3; i++) await chat(env, 'owner', request, allDown, { owner: true });
+  const spentBefore = used(env, 'owner');
   ok(spentBefore === 3 && workersAsked === 3, 'three requests, every Gemini model and Workers AI failing each time');
   asked.length = 0;
   workersAsked = 0;
   const started = Date.now();
-  const r = await chat(env, 'a1', request, allDown);
+  const r = await chat(env, 'owner', request, allDown, { owner: true });
   const body = await r.json();
   ok(r.status === 503 && body.busy === true && /busy right now/.test(body.message), 'the fourth: 503 "busy, try again", a message the app shows');
   ok(r.headers.get('retry-after') === '60' && body.retryAfter === 60, 'with how long to wait (Retry-After)');
   ok(asked.length === 0 && workersAsked === 0, 'no provider is asked');
   ok(Date.now() - started < 1000, 'at once, not after a wait');
-  ok(used(env, 'a1') === spentBefore, "today's allowance is not spent on it");
+  ok(used(env, 'owner') === spentBefore, "today's allowance is not spent on it");
 
   // a background job's call gets the same answer (jobs.js waits it out)
-  const job = await chat(env, 'a1', request, allDown, { rounds: 1, maxTokensCap: 8000 });
+  const job = await chat(env, 'owner', request, allDown, { owner: true, rounds: 1, maxTokensCap: 8000 });
   ok(job.status === 503 && (await job.json()).busy === true, "a background job's call: the same busy answer");
 
   // half an hour of "busy" is still only the cooldown: after it, one trial each
   later(60);
   const healthy = async url => { asked.push(modelOf(url)); return answer('back'); };
-  const h = await chat(env, 'a1', request, healthy);
+  const h = await chat(env, 'owner', request, healthy, { owner: true });
   ok(h.status === 200 && (await h.json()).choices[0].message.content === 'back', 'after the cooldown the chain answers again');
 }
 
@@ -202,34 +214,34 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 // not the generic failure
 {
   resetBreakers(clock);
-  const env = freshEnv({ ...firebase, CLOUD_MODELS: 'gemma-4-31b-it' });
-  for (let i = 0; i < 2; i++) await chat(env, 'a1', request, async () => down(503));
+  const env = freshEnv({ ...chain, CLOUD_MODELS: 'gemma-4-31b-it' });
+  for (let i = 0; i < 2; i++) await chat(env, 'owner', request, async () => down(503), { owner: true });
   // the third failure opens Gemma's breaker mid-request; nothing else is set up
-  const third = await chat(env, 'a1', request, async () => down(503));
+  const third = await chat(env, 'owner', request, async () => down(503), { owner: true });
   ok(third.status === 502, 'the request that opens the breaker reports the failure it saw');
-  const r = await chat(env, 'a1', request, async () => { throw new Error('must not be called'); });
+  const r = await chat(env, 'owner', request, async () => { throw new Error('must not be called'); }, { owner: true });
   ok(r.status === 503 && (await r.json()).busy === true, 'the next one is busy at once');
 }
 
 // Two requests in the half-open moment: only one reaches the provider
 {
   resetBreakers(clock);
-  const env = freshEnv({ ...firebase, CLOUD_MODELS: 'gemma-4-31b-it' });
-  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, async () => down(503));
+  const env = freshEnv({ ...chain, CLOUD_MODELS: 'gemma-4-31b-it' });
+  for (let i = 0; i < 3; i++) await chat(env, 'owner', request, async () => down(503), { owner: true });
   later(60);
   let release;
   const gate = new Promise(resolve => { release = resolve; });
   let reached = 0;
   const slow = async () => { reached++; await gate; return answer('trial'); };
-  const first = chat(env, 'a1', request, slow);
+  const first = chat(env, 'owner', request, slow, { owner: true });
   // let the first request get as far as its call
   for (let i = 0; i < 50 && !reached; i++) await new Promise(r => setTimeout(r, 1));
-  const second = await chat(env, 'a1', request, slow);
+  const second = await chat(env, 'owner', request, slow, { owner: true });
   ok(reached === 1 && second.status === 503 && (await second.json()).busy === true, 'the second is told busy while the trial is out');
   release();
   const r = await first;
   ok(r.status === 200 && (await r.json()).choices[0].message.content === 'trial', 'the trial answers and closes the breaker');
-  const third = await chat(env, 'a1', request, async () => answer('closed'));
+  const third = await chat(env, 'owner', request, async () => answer('closed'), { owner: true });
   ok(third.status === 200, 'after which everyone is let through');
 }
 
@@ -237,7 +249,7 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 // without accuracy.js knowing
 {
   resetBreakers(clock);
-  const env = freshEnv(firebase);
+  const env = freshEnv(chain);
   for (let i = 0; i < 3; i++) await askModel(env, 'owner', true, 'gemini:gemma-4-31b-it', [{ role: 'user', content: 'vote' }], 100, async () => down(500));
   let asked = 0;
   const r = await askModel(env, 'owner', true, 'gemini:gemma-4-31b-it', [{ role: 'user', content: 'vote' }], 100, async () => { asked++; return answer('x'); });
@@ -251,42 +263,42 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 {
   resetBreakers(clock);
   let workersAsked = 0;
-  const env = freshEnv({ ...firebase, CLOUD_MODELS: 'gemma-4-31b-it,gemini-3.5-flash', WORKERS_AI_MAX_CHARS: '1',
+  const env = freshEnv({ ...chain, CLOUD_MODELS: 'gemma-4-31b-it,gemini-3.5-flash', WORKERS_AI_MAX_CHARS: '1',
                          AI: { run: async () => { workersAsked++; return { response: 'x' }; } } });
   env.db.prepare('INSERT INTO ai_usage (account_id, day, requests) VALUES (?, ?, 1)')
     .run('gemini-dayout:gemma-4-31b-it', new Date().toISOString().slice(0, 10));
   for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
   let asked = 0;
   const never = async () => { asked++; return answer('x'); };
-  const before = used(env, 'a1');
+  const before = used(env, 'owner');
   const answers = [];
   for (let i = 0; i < 5; i++) {
-    const r = await chat(env, 'a1', request, never, { rounds: 1, maxTokensCap: 8000 });
+    const r = await chat(env, 'owner', request, never, { owner: true, rounds: 1, maxTokensCap: 8000 });
     answers.push(r.status === 503 && (await r.json()).busy === true);
   }
   ok(answers.every(Boolean), 'a model out for the day, the other resting, Workers AI too small: busy each time');
   ok(asked === 0 && workersAsked === 0, 'no provider is asked');
-  ok(used(env, 'a1') === before, "five busy answers: none of today's allowance is used");
+  ok(used(env, 'owner') === before, "five busy answers: none of today's allowance is used");
 
   // the resting model back: an answer, and that one is counted
   later(60);
-  const r = await chat(env, 'a1', request, async url => { asked++; return answer('back'); });
-  ok(r.status === 200 && asked === 1 && used(env, 'a1') === before + 1, 'once a model is asked, the request counts as before');
+  const r = await chat(env, 'owner', request, async url => { asked++; return answer('back'); }, { owner: true });
+  ok(r.status === 200 && asked === 1 && used(env, 'owner') === before + 1, 'once a model is asked, the request counts as before');
 
   // a model really asked and failing is not given back, even when the rest
   // of the chain is resting by the end of the request
   resetBreakers(clock);
   for (let i = 0; i < 2; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
-  const spent = used(env, 'a1');
-  const f = await chat(env, 'a1', request, async () => down(503), { rounds: 1 });
-  ok(f.status === 502 && used(env, 'a1') === spent + 1, 'a request that reached a provider stays spent');
+  const spent = used(env, 'owner');
+  const f = await chat(env, 'owner', request, async () => down(503), { owner: true, rounds: 1 });
+  ok(f.status === 502 && used(env, 'owner') === spent + 1, 'a request that reached a provider stays spent');
 }
 
 // Cloud transcription: every Gemini model resting is "busy" before a chunk of
 // today's allowance is used
 {
   resetBreakers(clock);
-  const env = freshEnv({ ...firebase, TRANSCRIBE_MODELS: 'gemini-3.5-flash' });
+  const env = freshEnv({ ...chain, TRANSCRIBE_MODELS: 'gemini-3.5-flash' });
   const body = { audio: 'AAAA'.repeat(100), prompt: 'Transcribe.' };
   for (let i = 0; i < 3; i++) await transcribeChunk(env, 'a1', body, async () => down(503));
   const before = used(env, 'transcribe:a1');
@@ -297,27 +309,43 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
   ok(asked === 0 && used(env, 'transcribe:a1') === before, 'nothing sent to Google, no chunk of the allowance used');
 }
 
-// Paid lanes (Claude, while Pro pays) have breakers of their own, and the free
-// chain carries on behind them
+// Paid lanes (Claude, while Pro pays) have breakers of their own; behind
+// them the free chain carries on for the owner key only, and an account,
+// which only Claude writes for, is told busy
 {
   resetBreakers(clock);
-  const env = freshEnv({ ...firebase, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', ANTHROPIC_API_KEY: 'ak',
-                         GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,claude-opus-5-5:4/20' });
+  const paid = { ...chain, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5', ANTHROPIC_API_KEY: 'ak',
+                 GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,claude-opus-5-5:4/20' };
+  const env = freshEnv(paid);
   const asked = [];
   const fetcher = async url => {
     if (url.includes('anthropic')) { asked.push('claude'); return down(529); }
     asked.push(modelOf(url));
     return answer('gemini');
   };
-  const first = await chat(env, 'a1', request, fetcher);
+  const first = await chat(env, 'owner', request, fetcher, { owner: true });
   ok(first.status === 200 && (await first.json()).choices[0].message.content === 'gemini' && asked.join() === 'claude,gemini-3.5-flash',
-     'Claude overloaded (529): the free chain answers that same request');
-  for (let i = 0; i < 2; i++) await chat(env, 'a1', request, fetcher);
+     'Claude overloaded (529): the free chain answers the owner key that same request');
+  for (let i = 0; i < 2; i++) await chat(env, 'owner', request, fetcher, { owner: true });
   ok(asked.filter(a => a === 'claude').length === 3, 'Claude overloaded three times');
   asked.length = 0;
-  const r = await chat(env, 'a1', request, fetcher);
+  const r = await chat(env, 'owner', request, fetcher, { owner: true });
   ok(r.status === 200 && !asked.includes('claude') && (await r.json()).choices[0].message.content === 'gemini',
-     'then skipped while it rests: Gemini answers without waiting on Claude');
+     'then skipped while it rests: Gemini answers the owner key without waiting on Claude');
+
+  resetBreakers(clock);
+  const student = freshEnv({ ...paid, OWNER_ACCOUNT_IDS: '' });
+  student.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at, verified_until, checked_at) VALUES ('p1', 'apple', 's2', 0, ?, ?)`)
+    .run(Math.floor(Date.now() / 1000) + 86400, Math.floor(Date.now() / 1000));
+  asked.length = 0;
+  const failed = [];
+  for (let i = 0; i < 3; i++) failed.push((await chat(student, 'p1', request, fetcher)).status);
+  ok(failed.every(s => s !== 200) && asked.join() === 'claude,claude,claude',
+     'a Pro account, Claude overloaded: no answer, and no free model is asked behind it');
+  asked.length = 0;
+  const rest = await chat(student, 'p1', request, fetcher);
+  ok(rest.status === 503 && (await rest.json()).busy === true && asked.length === 0,
+     'with Claude resting, the account is told busy at once, and nothing else is asked');
 }
 
 resetBreakers();

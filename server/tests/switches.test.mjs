@@ -335,10 +335,12 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
 {
   resetBreakers();
   const store = storage();
-  const env = jobEnv('');
+  // only Claude writes for an account, so its job runs on the Claude route
+  const env = { ...jobEnv(''), ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20', PRO_MONTHLY_BUDGET_USD: '5' };
   const db = env.DB;
   let calls = 0;
-  const fake = async () => { calls++; return new Response(JSON.stringify({ choices: [{ message: { content: `Q${calls} | A${calls}` } }] }), { status: 200 }); };
+  const fake = async () => { calls++; return new Response(JSON.stringify({ model: 'claude-opus-5-5', stop_reason: 'end_turn',
+    content: [{ type: 'text', text: `Q${calls} | A${calls}` }], usage: { input_tokens: 10, output_tokens: 10 } }), { status: 200 }); };
   const object = new GenerationJobs({ storage: store }, env, fake);
   const spec = checkSpec({ title: 'Cards', mode: 'loop', extract: 'lines', count: 5, steps: [{ user: 'Write 1.' }] }).spec;
   const made = await (await object.create({ accountId: 'a1', owner: false, spec })).json();
@@ -348,7 +350,7 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
   await object.alarm();
   const usedNow = () => db.prepare('SELECT requests FROM ai_usage WHERE account_id = ?').bind('a1').first()?.requests ?? 0;
   ok((await get(object, made.job.id)).job.done === 1 && usedNow() === 1, 'one card written, one request counted');
-  for (let i = 0; i < 3; i++) breakers.failure(env, 'openai:baichuan-inc/Baichuan-M2-32B:featherless-ai');
+  for (let i = 0; i < 3; i++) breakers.failure(env, 'anthropic:claude-opus-5-5');
   for (let i = 0; i < 5; i++) await object.alarm();
   const waiting = await get(object, made.job.id);
   ok(waiting.job.status === 'running' && /busy/.test(waiting.job.held) && calls === 1, 'the only provider resting: the job waits');

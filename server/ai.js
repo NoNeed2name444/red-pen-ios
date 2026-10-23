@@ -72,6 +72,14 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
 
   const route = routeFor(env, body.model, { owner: owner && !bench });
   if (!route) return fail(400, 'Unknown model.');
+  // Only Claude writes for anyone but the owner (the owner, 23 Oct: "Lock
+  // it"): no free chain behind it, so without Claude on this route (PRO_PAYS
+  // off, no key or no price) the answer is the same refusal the app shows as
+  // See Pro, and when Claude fails nothing else is asked.
+  if (!owner) {
+    route.sources = route.sources.filter(s => s.kind === 'anthropic');
+    if (!route.sources.length) return fail(402, 'Stethoscore Cloud is part of Pro.');
+  }
   if (!route.base) return fail(503, `${route.name} in the cloud isn't set up yet.`);
 
   const messages = clean(body.messages);
@@ -127,7 +135,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     : owner ? Number(env.OWNER_DAILY_LIMIT) || 3000 : Number(env.AI_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT;
   const spender = bench ? 'owner-bench' : owner ? 'owner' : accountId;
   if (!await spend(env, spender, limit)) {
-    const message = `That's today's ${limit} cloud requests used. On-device models still work, and the allowance resets at midnight UTC.`;
+    const message = `That's today's ${limit} cloud requests used. The allowance resets at midnight UTC.`;
     // `limit: "day"` says which kind of limit, so a client need not read the words
     return json({ error: { message }, message, limit: 'day' }, 429);
   }
