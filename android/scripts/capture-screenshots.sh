@@ -2,14 +2,17 @@
 # Usage: capture-screenshots.sh            the screenshot test (ScreenshotTest), as every push runs it
 #        capture-screenshots.sh tour       the app tour (TourTest)
 #        capture-screenshots.sh matrix K   the window matrix (T0139) for profile kind K: small, medium,
-#                                          large, tablet7, tablet10, fold or flip (WindowShots, the turns,
-#                                          the folds, split and free-form sizes, RotationStateTest, and
-#                                          FoldLayoutTest on the foldables); ScreenshotTest is the plain run's
+#                                          large, tablet7, tablet10, fold-shots, fold-tests or flip (WindowShots,
+#                                          the turns, the folds, split and free-form sizes, RotationStateTest, and
+#                                          FoldLayoutTest on the fold); ScreenshotTest is the plain run's. The fold
+#                                          is two jobs: fold-shots, its nine WindowShots passes (flat, book and
+#                                          tabletop, folded, three turns each), and fold-tests, FoldLayoutTest in
+#                                          three turns and RotationStateTest through its states
 set -euo pipefail
 mkdir -p screenshots test-results
 trap 'adb logcat -d > test-results/logcat.txt 2>&1 || true' EXIT
 sdkmanager --version | tee test-results/sdkmanager-version.txt
-grep -h "^target=" "$ANDROID_AVD_HOME/test.ini" | tee test-results/avd-target.txt
+grep -h "^target=" "${ANDROID_AVD_HOME:-$HOME/.android/avd}/test.ini" | tee test-results/avd-target.txt
 grep -qx "target=android-37.0" test-results/avd-target.txt
 adb wait-for-device
 for attempt in $(seq 1 60); do
@@ -69,6 +72,9 @@ fi
 
 # MARK: the window matrix (T0139)
 kind="${2:?matrix needs a profile kind}"
+# the fold's two jobs share its profile (the stills are named for it) and split its work
+part=all
+case "$kind" in fold-shots) kind=fold; part=shots ;; fold-tests) kind=fold; part=tests ;; esac
 start=$(date +%s)
 mkdir -p screenshots/window
 test_source=app/src/androidTest/java/com/stethoscore/app/ScreenshotTest.kt
@@ -76,9 +82,16 @@ window_tests=$(awk '/^class WindowShots/{w=1} w && /@Test/{c++} END{print c+0}' 
 [ "$window_tests" -gt 0 ]
 adb shell wm size | tee test-results/wm-size.txt
 adb shell wm density | tee test-results/wm-density.txt
-# whether the device's natural way up is tall (a phone, a flip) or wide (a tablet, an open book fold)
-size=$(adb shell wm size | tr -d '\r' | awk -F': ' '/Physical size/{print $2}')
-natural_tall=$([ "${size#*x}" -gt "${size%x*}" ] && echo true || echo false)
+# Whether the screen in use stands tall in its natural way up (a phone, a flip, a fold's cover
+# screen) or wide (a tablet, an open book fold): measured again for every pass, as a fold or
+# unfold changes the screen, and kept per posture for the check of the turned stills at the end.
+natural_tall() {
+  local size
+  size=$(adb shell wm size | tr -d '\r' | awk -F': ' '/Physical size/{print $2}')
+  [ -n "$size" ] || { echo "no physical size from wm size" >&2; return 1; }
+  [ "${size#*x}" -gt "${size%x*}" ] && echo true || echo false
+}
+: > test-results/natural-tall.txt
 # the device states this image has, verbatim (the foldables' postures come from here)
 adb shell cmd device_state print-states > test-results/device-states.txt 2>&1 || true
 cat test-results/device-states.txt
@@ -96,14 +109,16 @@ rotate() {
 shots_pass() { # posture orient rotation modes sizes
   local posture=$1 orient=$2 rotation=$3 modes=$4 sizes=${5:-}
   rotate "$rotation"
-  local n_modes n_sizes
+  local n_modes n_sizes tall
+  tall=$(natural_tall)
+  echo "$posture $tall" >> test-results/natural-tall.txt
   n_modes=$(echo "$modes" | tr ',' '\n' | grep -c .)
   n_sizes=$( [ -n "$sizes" ] && echo "$sizes" | tr ',' '\n' | grep -c . || echo 1)
   expected=$((expected + window_tests * n_modes * n_sizes))
   passes=$((passes + 1))
   local log="test-results/window-$posture-$orient${sizes:+-sized}.txt"
   adb shell am instrument -w -r -e class com.stethoscore.app.WindowShots -e profile "$kind" -e posture "$posture" \
-    -e orient "$orient" -e modes "$modes" ${sizes:+-e sizes "$sizes"} -e naturalTall "$natural_tall" $runner | tee "$log"
+    -e orient "$orient" -e modes "$modes" ${sizes:+-e sizes "$sizes"} -e naturalTall "$tall" $runner | tee "$log"
   grep -qF "OK ($window_tests tests)" "$log"
 }
 orient_passes() { # posture
@@ -177,23 +192,27 @@ case "$kind" in
     half=$(state_id 'HALF')
     closed=$(state_id 'CLOSE|FOLD' 'HALF|UNFOLD')
     echo "device states: open=${open:-none} half=${half:-none} closed=${closed:-none}" | tee test-results/postures.txt
-    # each posture the image has, by device_state, else the emulator console's fold and unfold
-    if [ -n "$open" ]; then adb shell cmd device_state state "$open"; else adb emu unfold || true; fi
-    orient_passes flat
-    if [ "$kind" = fold ]; then
-      if [ -n "$half" ]; then
-        adb shell cmd device_state state "$half"
-        # half open, upright: the book; turned, the fold lies across: the tabletop
-        shots_pass book natural 0 light
-        shots_pass tabletop left 1 light
-        shots_pass tabletop right 3 light
-      else echo "no half-open state on this image: book and tabletop proved by FoldLayoutTest only" | tee -a test-results/postures.txt; fi
+    if [ "$part" != tests ]; then
+      # each posture the image has, by device_state, else the emulator console's fold and unfold
+      if [ -n "$open" ]; then adb shell cmd device_state state "$open"; else adb emu unfold || true; fi
+      orient_passes flat
+      if [ "$kind" = fold ]; then
+        if [ -n "$half" ]; then
+          adb shell cmd device_state state "$half"
+          # half open, upright: the book; turned, the fold lies across: the tabletop
+          shots_pass book natural 0 light
+          shots_pass tabletop left 1 light
+          shots_pass tabletop right 3 light
+        else echo "no half-open state on this image: book and tabletop proved by FoldLayoutTest only" | tee -a test-results/postures.txt; fi
+      fi
+      if [ -n "$closed" ]; then adb shell cmd device_state state "$closed"; else adb emu fold || true; fi
+      orient_passes folded
+      adb shell cmd device_state state reset || adb emu unfold || true
     fi
-    if [ -n "$closed" ]; then adb shell cmd device_state state "$closed"; else adb emu fold || true; fi
-    orient_passes folded
-    adb shell cmd device_state state reset || adb emu unfold || true
-    [ "$kind" = fold ] && fold_layout_passes
-    rotation_state "$(echo "${closed:-},${open:-}" | sed 's/^,//; s/,$//')" ;;
+    if [ "$part" != shots ]; then
+      [ "$kind" = fold ] && fold_layout_passes
+      rotation_state "$(echo "${closed:-},${open:-}" | sed 's/^,//; s/,$//')"
+    fi ;;
   *) echo "unknown profile kind: $kind"; exit 2 ;;
 esac
 rotate 0
@@ -202,15 +221,23 @@ echo "expecting $expected window stills from $passes passes of $window_tests scr
 got=$(find screenshots/window -name 'w-*.png' | wc -l)
 echo "got $got window stills in $(( ($(date +%s) - start) / 60 )) minutes" | tee -a test-results/expected.txt
 test "$got" -eq "$expected"
-# every turned still is wider than tall where the device stands tall (and the other way round)
-python3 - "$natural_tall" screenshots/window <<'PY'
+[ "$part" = tests ] && exit 0
+# every turned still is wider than tall where the screen it was taken on stands tall (and the
+# other way round), by that pass's own measure (w-<profile>-<posture>-...: natural-tall.txt)
+python3 - test-results/natural-tall.txt screenshots/window <<'PY'
 import struct, sys, pathlib
-tall = sys.argv[1] == "true"
+measured = {}
 bad = []
+for line in pathlib.Path(sys.argv[1]).read_text().split("\n"):
+    if not line.strip(): continue
+    posture, tall = line.split()
+    if measured.setdefault(posture, tall) != tall: bad.append(f"{posture}: measured both ways up")
 for p in sorted(pathlib.Path(sys.argv[2]).glob("w-*.png")):
     w, h = struct.unpack(">II", p.read_bytes()[16:24])
     turned = "-left-" in p.name or "-right-" in p.name
-    if turned and (w <= h) == tall: bad.append(f"{p.name}: {w}x{h}")
+    posture = p.name.split("-")[2]
+    if posture not in measured: bad.append(f"{p.name}: no measure for {posture}"); continue
+    if turned and (w <= h) == (measured[posture] == "true"): bad.append(f"{p.name}: {w}x{h}")
 print("turned stills the wrong way round:", bad or "none")
 sys.exit(1 if bad else 0)
 PY

@@ -97,11 +97,13 @@ class FoldLayoutTest {
         val s = store()
         compose.setContent { key(screen.value) { StethoscoreApp(s, initialScreen = if (screen.value == "quiz") "home" else screen.value) } }
         compose.waitForIdle()
-        val shape = fold(state, orientation)
         var checked = 0
         for (name in screens) {
             screen.value = name
             compose.waitForIdle()
+            // each screen is a new host (key), and the publisher hands its fold only to the
+            // listeners there when it publishes: so the fold is published again for each one
+            val shape = fold(state, orientation)
             if (name == "quiz") {
                 val set = s.library.first { it.kind == StudySetKind.MCQ }
                 compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))

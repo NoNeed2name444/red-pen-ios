@@ -101,6 +101,50 @@ class WindowShapeTest {
         assertNull(WindowShape(700.0, 900.0).panes())
     }
 
+    /** A page cleared of the hinge is laid out by its pane, never the whole window (rail, broad, home's short window). */
+    @Test fun clearedPageIsLaidOutByItsPane() {
+        val w = 841.0; val h = 701.0
+        val book = WindowShape(w, h, fold(WardFold.State.halfOpened, WardFold.Orientation.vertical, WardRect(420.0, 0.0, 0.0, h), separating = true))
+        assertTrue("the whole window is broad", book.dockIsRail && book.widthClass != WardWidthClass.compact)
+        val pane = book.pagePane
+        // the larger side, as hingeClearance keeps the page to: 421 of 841 dp, under 600
+        assertEquals(421.0, pane.width, 0.0); assertEquals(h, pane.height, 0.0)
+        assertTrue(pane.width < WindowShape.compactMax)
+        assertFalse("no rail in the book's half", pane.dockIsRail)
+        assertEquals("not broad in the book's half", WardWidthClass.compact, pane.widthClass)
+        assertFalse(pane.isPadSized)
+        assertNull("no fold inside the pane", pane.separatingFold)
+        // tabletop: the reading half above the fold, its height the fold's top
+        val table = WindowShape(w, h, fold(WardFold.State.halfOpened, WardFold.Orientation.horizontal, WardRect(0.0, 350.0, w, 0.0), separating = true))
+        assertEquals(WindowShape(w, 350.0), table.pagePane)
+        // a hinge with thickness: the side it leaves
+        val hinge = WindowShape(1114.0, 705.0, fold(WardFold.State.flat, WardFold.Orientation.vertical, WardRect(540.0, 0.0, 34.0, 705.0),
+            separating = true, occlusion = WardFold.Occlusion.full))
+        assertEquals(540.0, hinge.pagePane.width, 0.0)
+        // no splitting fold: the window itself
+        val flat = WindowShape(w, h, fold(WardFold.State.flat, WardFold.Orientation.vertical, WardRect(420.0, 0.0, 0.0, h), separating = false))
+        assertEquals(flat, flat.pagePane)
+        // and the first frame, before the page has measured itself, is already clear of the hinge
+        assertEquals(book.hingeClearance(WardRect(0.0, 0.0, w, h)), book.clearanceFor(null))
+        assertEquals(WindowShape.Clearance(left = 420.0), book.clearanceFor(null))
+    }
+
+    /** Inside WardHingePane the page reads the pane's shape: the provider the app lays every page in. */
+    @Test fun hingePaneProvidesThePane() {
+        val book = WindowShape(841.0, 701.0, fold(WardFold.State.halfOpened, WardFold.Orientation.vertical, WardRect(420.0, 0.0, 0.0, 701.0), separating = true))
+        var seen: WindowShape? = null
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWindowShape provides book) {
+                com.stethoscore.app.ui.ward.WardHingePane(com.stethoscore.app.ui.ward.currentWindowShape()) {
+                    seen = com.stethoscore.app.ui.ward.currentWindowShape()
+                }
+            }
+        }
+        compose.waitForIdle()
+        assertEquals(book.pagePane, seen)
+        assertFalse("the page inside sees no rail", seen!!.dockIsRail)
+    }
+
     @Test fun foldFromAndroidxWindow() {
         val feature = object : FoldingFeature {
             override val bounds = Rect(1100, 0, 1100, 1840)

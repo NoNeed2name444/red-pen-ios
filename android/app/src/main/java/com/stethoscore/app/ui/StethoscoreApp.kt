@@ -30,7 +30,7 @@ import com.stethoscore.app.ui.ward.WardSection
 import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WindowShapeHost
 import com.stethoscore.app.ui.ward.currentWindowShape
-import com.stethoscore.app.ui.ward.wardClearOfHinge
+import com.stethoscore.app.ui.ward.WardHingePane
 import com.stethoscore.app.ui.library.libraryItems
 
 import android.content.Context
@@ -208,9 +208,10 @@ import kotlinx.coroutines.withContext
             // a page in the paper's opening sits inside its ring (wardFrameClearance); home has
             // no frame, and the map (ui/map) keeps its own full-bleed layout
             val inFrame=!onGround && screen!="ideas"
-            // a fold that splits the window: the page keeps to one side of it, nothing in the hinge (WindowShape)
+            // a fold that splits the window: the page keeps to one side of it, nothing in the hinge,
+            // and is laid out by that side's size (WindowShape.pagePane), not the whole window's
+            WardHingePane(currentWindowShape(),if(inFrame) Modifier.fillMaxSize().wardFrameClearance() else Modifier.fillMaxSize().safeDrawingPadding()) {
             val shape=currentWindowShape()
-            Box((if(inFrame) Modifier.fillMaxSize().wardFrameClearance() else Modifier.fillMaxSize().safeDrawingPadding()).wardClearOfHinge(shape)) {
                 when(screen) {
                     "study" -> {
                         val set=store.library.firstOrNull { it.id==selectedId }

@@ -153,14 +153,22 @@ class RotationStateTest {
     }
 
     @Test fun homeKeepsItsScrollAndTypedSearch() {
+        // enough sets that home's list runs well past any window's height, the app opened on them
+        scenario.close()
+        store.addSets(List(40) { i -> StudySet(name = "Scroll filler ${i + 1}", subject = "Nephrology", kind = StudySetKind.MCQ,
+            questions = listOf(MCQQuestion(stem = "Filler ${i + 1}?", options = listOf("One", "Two"), correctIndex = 0))) })
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+        instrumentation.runOnMainSync { LearnRouter.close() }
+        compose.waitForIdle()
         val list = hasScrollToNodeAction()
+        waitFor("home's list", hasText("YOUR STUDY WARD"))
         compose.onNode(list).performScrollToNode(hasText("Study aid", substring = true))
         compose.waitForIdle()
-        val scrolled = !exists(hasText("YOUR STUDY WARD"))
+        assertTrue("home's list scrolled past its header", !exists(hasText("YOUR STUDY WARD")))
         turnAndCheck { step ->
             waitFor("home after $step", hasText("Study aid", substring = true))
-            // a list that had to scroll is not back at its top
-            if (scrolled) assertTrue("home's list kept its place after $step", !exists(hasText("YOUR STUDY WARD")))
+            // the list is not back at its top
+            assertTrue("home's list kept its place after $step", !exists(hasText("YOUR STUDY WARD")))
         }
         compose.onNode(list).performScrollToNode(hasContentDescription("Search"))
         compose.onAllNodes(hasSetTextAction() and hasContentDescription("Search")).onFirst().performTextInput("nephr")

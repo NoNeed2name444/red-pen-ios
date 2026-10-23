@@ -128,6 +128,76 @@ class RotationRestoreTest {
         assertTrue("question 1's choice kept", exists(hasContentDescription("Answer A:", substring = true) and isSelected()))
     }
 
+    /** MockSittingScreen.kt: the results were plain remember, and the sitting's save was gone once marked. */
+    @Test fun mockResultsSurviveATurn() {
+        val s = store()
+        s.addSet(com.stethoscore.app.data.StudySet(name = "Renal drill", subject = "Nephrology", kind = StudySetKind.MCQ,
+            questions = List(12) { i -> com.stethoscore.app.data.MCQQuestion(stem = "Drill question ${i + 1}?", options = listOf("One", "Two", "Three", "Four"), correctIndex = i % 4) }))
+        val dir = compose.activity.filesDir
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent(page(WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)) { MockPaperScreen(s) {} })
+        compose.waitForIdle()
+        tap(hasText("Start mock") and hasClickAction())
+        tap(hasClickAction() and hasContentDescription("Answer A:", substring = true))
+        tap(hasText("End") and hasClickAction())
+        tap(hasText("End and see results") and hasClickAction())
+        val score = hasText(" right", substring = true)
+        assertTrue("the results are up", exists(score))
+        val shown = compose.onAllNodes(score).fetchSemanticsNodes().first().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString()
+        assertEquals("one record kept", 1, com.stethoscore.app.quiz.MockRecords.load(com.stethoscore.app.ui.mock.MockLibrary.recordsFile(dir)).size)
+
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+
+        assertTrue("the results still up after the turn", exists(hasText(shown)))
+        assertFalse("not back at the paper's start", exists(hasText("Start mock")))
+        assertFalse("not back in the sitting", exists(hasText("Question 1 of", substring = true)))
+        assertEquals("marked and recorded once, not again", 1, com.stethoscore.app.quiz.MockRecords.load(com.stethoscore.app.ui.mock.MockLibrary.recordsFile(dir)).size)
+    }
+
+    /** AnkiReviewScreen.kt: after a turn, a revealed answer stays only over the card it was revealed on. */
+    @Test fun revealedAnswerIsDroppedWhenTheFirstCardChanged() {
+        val s = store()
+        val set = s.library.first { it.kind == StudySetKind.ANKI }
+        val due = s.queue(set)
+        assertTrue("two cards due", due.size >= 2)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent(page(WardSection.cards) { AnkiReviewScreen(set, s, {}) })
+        compose.waitForIdle()
+        tap(hasText("Reveal") and hasClickAction())
+        assertTrue(exists(hasContentDescription("Good")))
+        // the card on screen is rated elsewhere while the app is away: the queue made again starts on another
+        s.rateCard(due.first().card, com.stethoscore.app.data.AnkiRating.EASY)
+        assertTrue("another card leads the queue", s.queue(set).firstOrNull()?.id != due.first().id)
+
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+
+        assertTrue("the new card's answer is hidden: Reveal is back", exists(hasText("Reveal") and hasClickAction()))
+        assertFalse("no ratings over a card not revealed", exists(hasContentDescription("Good")))
+    }
+
+    /** AnkiReviewScreen.kt: studying ahead was plain remember, so a turn put the deck back on "Nothing to review". */
+    @Test fun studyingAheadSurvivesATurnWithItsRevealedCard() {
+        val s = store()
+        val set = s.library.first { it.kind == StudySetKind.ANKI }
+        // nothing left due: every card rated well ahead
+        for (item in s.everything(set)) s.rateCard(item.card, com.stethoscore.app.data.AnkiRating.EASY)
+        assertTrue("nothing due", s.queue(set).isEmpty())
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent(page(WardSection.cards) { AnkiReviewScreen(set, s, {}) })
+        compose.waitForIdle()
+        tap(hasText("Study it anyway") and hasClickAction())
+        tap(hasText("Reveal") and hasClickAction())
+        assertTrue(exists(hasContentDescription("Good")))
+
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+
+        assertFalse("still studying ahead", exists(hasText("Nothing to review")))
+        assertTrue("the same card, still revealed", exists(hasContentDescription("Good")))
+    }
+
     @Test fun revealedCardStaysRevealed() {
         val s = store()
         val set = s.library.first { it.kind == StudySetKind.ANKI }

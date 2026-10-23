@@ -157,6 +157,11 @@ internal object MockLibrary {
 
     fun sittingFile(dir: File): File = MockSittingStore.defaultFile(dir)
     fun recordsFile(dir: File): File = MockRecords.defaultFile(dir)
+    /**
+     * The sitting just marked, kept while its results are up (T0139): a rotation, a
+     * fold or a window resize puts the results back from it. Gone once they are left.
+     */
+    fun markedFile(dir: File): File = File(dir, "mock-marked.json")
 }
 
 /** "3 h", "1 h 40 min", "45 min". */
@@ -202,7 +207,11 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
     // (T0139). Its clock comes back from the save as it does after any leaving.
     var openId by rememberSaveable { mutableStateOf<String?>(null) }
     val reopened = remember {
-        openId?.let { id -> MockSittingStore.load(MockLibrary.sittingFile(dir))?.let { save -> sittingFrom(save, id)?.let { save to it } } }
+        openId?.let { id ->
+            // the paper part way, else the one just marked whose results were up
+            (MockSittingStore.load(MockLibrary.sittingFile(dir)) ?: MockSittingStore.load(MockLibrary.markedFile(dir)))
+                ?.let { save -> sittingFrom(save, id)?.let { save to it } }
+        }
     }
     // a save gone (marked, or its questions deleted): nothing to put back
     LaunchedEffect(Unit) { if (reopened == null) openId = null }
@@ -217,6 +226,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
     if (open != null) {
         SideEffect { openId = open.id }
         MockSittingScreen(open, store, resuming, onDone = {
+            MockLibrary.markedFile(dir).delete()
             openId = null
             sitting = null
             resuming = null

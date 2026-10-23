@@ -3,6 +3,8 @@ package com.stethoscore.app.ui.ward
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -118,6 +120,29 @@ data class WindowShape(val width: Double, val height: Double, val fold: WardFold
         else Clearance(left = maxOf(0.0, b.maxX - box.minX))
     }
 
+    /**
+     * [hingeClearance] for a page whose place is not measured yet: laid over the
+     * whole window, so the first frame is already clear of the hinge and does not
+     * jump once the page has measured itself.
+     */
+    fun clearanceFor(box: WardRect?): Clearance = hingeClearance(box ?: WardRect(0.0, 0.0, width, height))
+
+    /**
+     * The area a page cleared of the hinge (hingeClearance) is laid out in, as a
+     * window of its own and with no fold in it: above a horizontal fold, the larger
+     * side of a vertical one. What decides from the size (the dock's rail, broad
+     * layouts, home's short window) reads this inside that page, not the whole
+     * window. The window itself where no fold splits it.
+     */
+    val pagePane: WindowShape get() {
+        val f = separatingFold ?: return this
+        val b = f.bounds
+        if (f.orientation == WardFold.Orientation.horizontal) return WindowShape(width, maxOf(0.0, b.minY), null)
+        val left = b.minX
+        val right = width - b.maxX
+        return WindowShape(maxOf(0.0, if (left >= right) left else right), height, null)
+    }
+
     companion object {
         /** Compact below 600, medium below 840, expanded from 840 dp. */
         const val compactMax = 600.0
@@ -200,9 +225,21 @@ private tailrec fun Context.activity(): Activity? = when (this) {
     if (shape.separatingFold == null) return this
     val density = LocalDensity.current.density.toDouble()
     var box by remember { mutableStateOf<WardRect?>(null) }
-    val clear = box?.let(shape::hingeClearance) ?: WindowShape.Clearance()
+    val clear = shape.clearanceFor(box)
     return onGloballyPositioned { c ->
         val p = c.positionInWindow()
         box = WardRect(p.x / density, p.y / density, c.size.width / density, c.size.height / density)
     }.absolutePadding(clear.left.dp, clear.top.dp, clear.right.dp, clear.bottom.dp)
+}
+
+/**
+ * A page kept clear of the hinge (wardClearOfHinge) and told its own size: inside
+ * it, LocalWindowShape is the pane the page lies in (WindowShape.pagePane), so a
+ * book-held fold's half is laid out as the phone-wide window it is.
+ */
+@Composable fun WardHingePane(shape: WindowShape, modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    Box(modifier.wardClearOfHinge(shape)) {
+        val scope = this
+        CompositionLocalProvider(LocalWindowShape provides shape.pagePane) { scope.content() }
+    }
 }

@@ -50,15 +50,23 @@ import com.stethoscore.app.ui.ward.*
     // the card's answer shown, and how many were rated, kept through a rotation or a fold (T0139)
     var revealed by rememberSaveable(set.id) { mutableStateOf(startRevealed) }
     var reviewedCount by rememberSaveable(set.id) { mutableIntStateOf(0) }
-    var studyingAhead by remember(set.id) { mutableStateOf(false) }
+    // studying ahead and the card on screen are kept too: the queue is made again
+    // after a turn, and a revealed answer is shown only over the card it was revealed on
+    var studyingAhead by rememberSaveable(set.id) { mutableStateOf(false) }
+    var shownCardId by rememberSaveable(set.id) { mutableStateOf<String?>(null) }
     var undoUntil by remember(set.id) { mutableStateOf<Long?>(null) }
     var verifying by remember(set.id) { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
     // the set whose "Turn into…" picker is up (iOS StudyMoreMenu's turning)
     var turning by remember(set.id) { mutableStateOf<StudySet?>(null) }
     // a return to this screen is not a new sitting
-    if (queue == null) queue = store.queue(set)
+    if (queue == null) {
+        val made = if (studyingAhead) store.everything(set).sortedBy { it.due } else store.queue(set)
+        if (revealed && shownCardId != null && made.firstOrNull()?.id != shownCardId) revealed = false
+        queue = made
+    }
     val items = queue.orEmpty()
     val current = items.firstOrNull()
+    if (shownCardId != current?.id) shownCardId = current?.id
 
     fun showNext(next: List<AnkiQueueItem>) { queue = next.sortedBy { it.due }; revealed = false }
     fun rate(rating: AnkiRating) {
@@ -137,9 +145,16 @@ import com.stethoscore.app.ui.ward.*
     // where the undone card came from, so it can go back in front
     var lastRated by remember { mutableStateOf<ReviewPlan.Due?>(null) }
     var verifying by remember { mutableStateOf<com.stethoscore.app.accuracy.AccuracyItem?>(null) }
-    if (queue == null) queue = store.dueAcross()
+    // as one deck's review: a revealed answer only over the card it was revealed on
+    var shownCardId by rememberSaveable { mutableStateOf<String?>(null) }
+    if (queue == null) {
+        val made = store.dueAcross()
+        if (revealed && shownCardId != null && made.firstOrNull()?.id != shownCardId) revealed = false
+        queue = made
+    }
     val items = queue.orEmpty()
     val due = items.firstOrNull()
+    if (shownCardId != due?.id) shownCardId = due?.id
     fun deckOf(d: ReviewPlan.Due) = store.library.firstOrNull { it.id == d.setId }
 
     fun rate(rating: AnkiRating) {

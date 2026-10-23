@@ -43,7 +43,9 @@ jobs:
           if [ "$TOUR" = true ] || [ -z "$wanted" ]; then kinds='["push"]'
           else
             [ "$wanted" = all ] && wanted=$all
-            for k in $wanted; do case " $all " in *" $k "*) ;; *) echo "unknown kind: $k (one of: $all)"; exit 1 ;; esac; done
+            for k in $wanted; do case " $all fold-shots fold-tests " in *" $k "*) ;; *) echo "unknown kind: $k (one of: $all)"; exit 1 ;; esac; done
+            # the fold is two jobs, its stills and its tests, so each stays well inside its time
+            wanted=$(printf '%s\n' $wanted | sed 's/^fold$/fold-shots\nfold-tests/' | awk '!seen[$0]++' | xargs)
             kinds=$(printf '%s\n' $wanted | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
           fi
           echo "kinds=$kinds" | tee -a "$GITHUB_OUTPUT"
@@ -92,7 +94,8 @@ jobs:
       fail-fast: false
       matrix:
         kind: ${{ fromJSON(needs.plan.outputs.kinds) }}
-    name: screenshots (${{ matrix.kind }})
+    # the push run's check keeps its name, screenshots; the matrix's are screenshots (<kind>)
+    name: ${{ matrix.kind == 'push' && 'screenshots' || format('screenshots ({0})', matrix.kind) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -139,7 +142,7 @@ jobs:
             large) candidates='pixel_9_pro_xl pixel_7_pro' ;;
             tablet7) candidates='Nexus_7_2013 nexus_7_2013' ;;
             tablet10) candidates='pixel_tablet medium_tablet' ;;
-            fold) candidates='pixel_9_pro_fold pixel_fold pixel_10_pro_fold' ;;
+            fold-shots|fold-tests) candidates='pixel_9_pro_fold pixel_fold pixel_10_pro_fold' ;;
             flip) candidates='stethoscore_flip' ;;
           esac
           profile=''
@@ -165,7 +168,7 @@ jobs:
           working-directory: android
           # the AVD as created, so a fold's hinge keys (or their absence) are on record
           pre-emulator-launch-script: |
-            grep -hiE 'hw\.(lcd|sensor\.hinge|hinge|fold)|hw\.device\.name' "$ANDROID_AVD_HOME/test.avd/config.ini" | tee "$GITHUB_WORKSPACE/android/test-results/avd-config.txt" || true
+            grep -hiE 'hw\.(lcd|sensor\.hinge|hinge|fold)|hw\.device\.name' "${ANDROID_AVD_HOME:-$HOME/.android/avd}/test.avd/config.ini" | tee "$GITHUB_WORKSPACE/android/test-results/avd-config.txt" || true
           script: |
             bash scripts/capture-screenshots.sh${{ inputs.tour && ' tour' || '' }}${{ matrix.kind != 'push' && format(' matrix {0}', matrix.kind) || '' }}
       - uses: actions/upload-artifact@v4

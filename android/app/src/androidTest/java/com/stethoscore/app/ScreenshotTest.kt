@@ -263,7 +263,8 @@ class WindowShots {
 
     /**
      * [screen] in each mode and each size, the app composed afresh for each, [steps] bringing it
-     * to the state shot. A turned still must be wider than tall on a device whose natural way is tall.
+     * to the state shot. A turned still must be wider than tall where the screen's natural way is tall,
+     * and taller than wide where it is wide (naturalTall, the script's measure for this pass).
      */
     private fun shoot(screen:String,initial:String="home",steps:(StudyStore) -> Unit={}) {
         val modes=arg("modes","light").split(',').map { it.trim() }
@@ -287,8 +288,12 @@ class WindowShots {
             steps(stores.getValue((m=="dark") to z))
             val where=z?.let { "${it.width.value.toInt()}x${it.height.value.toInt()}" } ?: orient
             ScreenshotTest.still(compose,directory,"w-$profile-$posture-$where-$screen-$m")
-            if (z==null && orient!="natural" && arg("naturalTall","true")=="true")
-                check(device.displayWidth>device.displayHeight) { "$screen $orient: the still is ${device.displayWidth}x${device.displayHeight}, not wider than tall" }
+            // the script measures the screen in use for each pass (a fold's cover screen stands tall, its open screen wide)
+            if (z==null && orient!="natural") {
+                val tall=arg("naturalTall","true")=="true"
+                check((device.displayWidth>device.displayHeight)==tall) {
+                    "$screen $orient: the still is ${device.displayWidth}x${device.displayHeight}, not ${if(tall) "wider than tall" else "taller than wide"}" }
+            }
         }
     }
 
