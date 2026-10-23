@@ -219,6 +219,56 @@ jobs:
             fi
             python3 -I "$RUNNER_TEMP/launch_screen.py" "$probe" "$(basename "$1")" >> previews/shots.log 2>&1
           }
+          # The 3D map shows its loader (EcgLoader) until its first build is
+          # done, and the first SceneKit map of a run builds slowly on cold
+          # caches: ideas-map-light was the loader at seven seconds in two
+          # runs (T0149). A built map is always night, so in light mode a
+          # map photo that is still light all over is the loader (about
+          # 191,187,193 on average; a built map is near 20,21,29). In dark
+          # mode the two cannot be told apart this way, so dark is never
+          # judged. Exit 0: the loader; 1: built; 2: can't tell.
+          cat > "$RUNNER_TEMP/map_loader.py" <<'PY'
+          import importlib.util, sys
+
+          spec = importlib.util.spec_from_file_location("launch_screen", sys.argv[2])
+          shared = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(shared)
+          rgb = shared.mean_rgb(sys.argv[1])
+          if rgb is None:
+              sys.exit(2)
+          r, g, b = rgb
+          sys.exit(0 if min(r, g, b) > 100 else 1)
+          PY
+          map_loading() {
+            sips -z 32 16 "$1" --out "$probe" >/dev/null 2>&1 || return 2
+            python3 -I "$RUNNER_TEMP/map_loader.py" "$probe" "$RUNNER_TEMP/launch_screen.py"
+          }
+          # A warm-up of the first map, with no photo kept, when any map is
+          # to be shot: launched in light mode and watched every 4 s until
+          # it has built (28 s at most), then closed, so the shots below
+          # launch onto warm caches.
+          case " ${SCREENS:-} " in
+            *" ideas-map"*)
+              xcrun simctl ui "$UDID" appearance light
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              if xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen ideas-map >> previews/shots.log 2>&1; then
+                warm="$RUNNER_TEMP/warm.png"
+                waited=0
+                while [ "$waited" -lt 28 ]; do
+                  sleep 4
+                  waited=$((waited + 4))
+                  xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$warm" >/dev/null 2>&1 || continue
+                  map_loading "$warm"
+                  [ $? -eq 1 ] && break
+                done
+                echo "map warm-up: ${waited}s" >> previews/shots.log
+                rm -f "$warm"
+              else
+                echo "map warm-up failed to launch" >> previews/shots.log
+              fi
+              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+              ;;
+          esac
           # The last five are the newer screens (see PreviewExtras): the live
           # Quiz me button, the quiz the app builds out of a deck's own
           # answers, fixing a misheard word in an Arabic transcript, the quiz
@@ -248,6 +298,19 @@ jobs:
                 xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$shot" \
                   >> previews/shots.log 2>&1 || break
               done
+              # a map still on its loader (light mode only: see map_loader.py)
+              # is taken once more after a further wait
+              case "$screen" in
+                ideas-map*)
+                  if [ "$mode" = light ] && [ -f "$shot" ] && map_loading "$shot"; then
+                    echo "map loader, retake: $screen ($mode)" >> previews/shots.log
+                    sleep 10
+                    xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$shot" \
+                      >> previews/shots.log 2>&1 || echo "shot failed: $screen ($mode)" >> previews/shots.log
+                    map_loading "$shot" && echo "still the map loader: $screen ($mode)" >> previews/shots.log
+                  fi
+                  ;;
+              esac
             done
           done
           # A crash on launch is the one failure the log above cannot explain,
