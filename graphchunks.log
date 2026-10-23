@@ -1,0 +1,128 @@
+
+compile rc=0
+     build: optimised (-O)
+ok   C1 each axis takes every third bit, x lowest
+ok   C1 21 bits an axis fill 63 bits
+     100000 notes: 1194 cells, 943 leaves, 461942 adjacency entries, 9201 bundles over 384 cut cells, built in 45.15 ms
+ok   C2 every body has exactly one slot, and slotOf inverts order
+ok   C2 every slot is in exactly one leaf, none over the leaf size
+ok   C2 every cell's box holds its bodies
+ok   C2 children split their parent's run in order, at least two of them
+ok   C2 a subtree and its leaves are contiguous (depth first)
+ok   C2 leaves fit in 16 bits
+ok   C2 a summary's centroid is its bodies' mean
+ok   C2 the root holds everything
+ok   C3 every body unpacks within half a 16-bit step of its leaf's box, its leaf alongside
+ok   C3 the ends and the middle
+ok   C3 outside the box is clamped to it
+ok   C3 eight bytes a body
+ok   C4 every line is in both its ends' adjacency
+ok   C4 the adjacency runs both ways
+ok   C4 importance grows with the log of the links: none 0, 63 and more full
+ok   C4 a leaf note is drawn at 0.8 of its size and 0.78 of its brightness, a hub at 1.5 and in full
+ok   C4 each note's size follows its importance, and the pick reads it as the GPU draws it
+ok   C4 each leaf's name candidates are its two most linked notes (6 links or more)
+ok   C5 the cut covers every leaf exactly once, in at most 384 cells
+ok   C5 the bundles carry every link between two cut cells, each pair once
+ok   C5 far fewer bundles than links
+ok   C5 the root spans the whole cut
+ok   C5 the GPU gets the bundles heaviest first (a frame short of time draws a prefix), every one of them
+ok   C6 far away: no body drawn one by one, a few summary points stand for the map
+ok   C6 close in: bodies drawn, and only from leaves the view touches
+ok   C6 close in, most of the map is culled
+ok   C6 turned round, the leaf now behind the eye is not drawn
+ok   C6 each drawn leaf starts where the one before ended
+ok   C7 a leaf opens as the camera comes in: shut far away, open near, never closing on the way
+ok   C7 zooming in by half a percent a frame, no leaf jumps (morphing, not popping)
+ok   C7 split sooner: a coarser budget draws fewer bodies at the same place
+ok   C7 summaries carry a scale that shrinks as they open (no opacity anywhere in the frame)
+ok   C7 brightness follows how many a summary stands for
+ok   C8 still: the same margin on every side
+ok   C8 moving right: the right side reaches further, the left does not
+ok   C8 the margin is capped
+ok   C8 a chunk past the right edge: off screen, but prepared when moving right, not left
+ok   C8 sliding the view right reads as motion to the right
+ok   C8 a turn reads as motion across the screen
+ok   C8 moving fast, more leaves are prepared ahead
+ok   C9 the band follows the focus: High fades from 1 to 1.4 times the camera's distance to it
+ok   C9 one curve: nothing before the start, rising steadily, full at the end and past it
+ok   C9 a lower Graphics level pulls the end in (less drawn); the start stays at the focus
+ok   C9 Increase Contrast: the fade starts later and stops short of the ground, so nothing is culled for it
+ok   C9 the frame budget pulls the end in, never past 0.7 of the band
+ok   C9 what lies past the band's end is culled (the view's far plane); with Increase Contrast, nothing
+ok   C9 with the fade off, nothing fades and nothing is culled for it
+ok   C9 a body fades into the ground, its light to nothing; with Increase Contrast it stays apart from the ground
+ok   C10 the wanted leaves come soonest first, and the soonest is prepared first
+ok   C10 a frame lays out no more bodies than its budget (beyond its first leaf)
+ok   C10 the next frame carries on with others, not the same again
+ok   C10 a budget smaller than any leaf still prepares one a frame
+ok   C11 nothing prepared: no body drawn, summaries stand in, nothing empty
+ok   C11 a tenth of a second after it is ready, a leaf is part open
+ok   C11 after a quarter second it is as open as its size says
+ok   C11 a leaf let go closes
+ok   C12 far away every bundle is at full width
+ok   C12 close in, the bundle cell round the camera narrows as its leaves open
+ok   C14 a cut cell where four bundles meet gives each half its light (1/sqrt 4)
+ok   C14 a lone bundle end keeps full strength, and so does a cell with none
+ok   C14 the million map has one share per cut cell, none above 1
+ok   C15 a plan made on the planning thread is the plan made inline, view after view
+ok   C15 a plan made for a map since replaced is not used, and nothing waits once it is taken
+ok   C16 a choice brings its own leaf and its neighbours' to full detail: its own first, each once, at most 64
+ok   C16 nothing chosen: nothing moves
+ok   C16 a note chosen with none before: its links start at once
+ok   C16 its links have grown and the rest has stepped back within half a second
+ok   C16 another chosen: the old links draw back first (in under a sixth of a second), then the new grow
+ok   C16 cleared: the links draw back and the map comes forward again within a third of a second
+ok   C16 Reduce Motion: all at once
+ok   C16 every link grows at one speed, so the short arrive first; a neighbour grows in as its link reaches it
+ok   C16 a far neighbour is still a target; none outgrows a hub's cap
+ok   C17 front stays front until mostly faded, then middle, then back
+ok   C17 back stays back until well clear, then middle, then front
+ok   C17 as a cell's fade moves, its detail changes only where it is mostly faded (about 0.6 or more)
+ok   C17 a cell jittering on a border switches once, not every frame (hysteresis)
+ok   C17 a back cell opens later than a front one, a middle one between
+     shells: 525 front, 6 middle, 39 back cells; 9518 bodies drawn
+ok   C17 the depth band gives front and back cells, and still they settle
+ok   C17 nothing wholly past the band's end is drawn
+ok   C17 settled, each leaf is at its shell's detail (front 1, middle 0.5, back 0), and its shell is its fade's
+ok   C17 fewer bodies drawn with the band than without (the back opens later, past the end is culled)
+ok   C17 detail moves by ramps (a fifth of a second end to end), never at once
+     the edge, high: 180 degrees in 60 frames, 14 back leaves (14 still reached), settled 7 frames after, largest brightness step 0.122017324
+ok   C18 after a half turn in a second, the back comes to full detail and the front drops back
+ok   C18 within a quarter second of settling (15 frames at 60)
+ok   C18 no body's brightness moves more than a sixth of its range in a frame
+     the edge, smooth: 180 degrees in 60 frames, 12 back leaves (12 still reached), settled 9 frames after, largest brightness step 0.13246083
+ok   C18 smooth from the edge: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+     the edge, saver: 180 degrees in 60 frames, 11 back leaves (11 still reached), settled 9 frames after, largest brightness step 0.13743061
+ok   C18 saver from the edge: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+     the whole map, high: 180 degrees in 60 frames, 1 back leaves (1 still reached), settled 6 frames after, largest brightness step 0.03676927
+ok   C18 high from the whole map: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+     the whole map, smooth: 180 degrees in 60 frames, 1 back leaves (1 still reached), settled 8 frames after, largest brightness step 0.04296857
+ok   C18 smooth from the whole map: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+     the whole map, saver: 180 degrees in 60 frames, 2 back leaves (2 still reached), settled 8 frames after, largest brightness step 0.04971865
+ok   C18 saver from the whole map: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+     inside, high: 180 degrees in 60 frames, 57 back leaves (57 still reached), settled 12 frames after, largest brightness step 0.14825317
+ok   C18 high from inside: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+     inside, smooth: 180 degrees in 60 frames, 57 back leaves (57 still reached), settled 12 frames after, largest brightness step 0.14825317
+ok   C18 smooth from inside: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+     inside, saver: 180 degrees in 60 frames, 57 back leaves (57 still reached), settled 12 frames after, largest brightness step 0.14825317
+ok   C18 saver from inside: a half turn in a second steps no brightness over a sixth, swapping within a quarter second
+ok   C18 inside the map every level fades over the same, wider band; from outside each over its own
+     the edge, twice as fast, high: 180 degrees in 30 frames, 14 back leaves (14 still reached), settled 10 frames after, largest brightness step 0.22411609
+     the edge, twice as fast, saver: 180 degrees in 30 frames, 11 back leaves (11 still reached), settled 11 frames after, largest brightness step 0.26428053
+ok   C19 a body half faded into the depth is picked like any other
+ok   C19 choosing it brings its neighbourhood's leaves to full detail within a quarter second
+ok   C19 not laid out yet, the neighbourhood is prepared first
+ok   C19 past the band's end, nothing is picked
+     1,000,000 notes: scene 1806.88 ms, chunks 509.83 ms; 10632 leaves, 4769532 adjacency entries, 29763 bundles
+ok   C13 a million bodies chunked in under 4 s (Linux, -O)
+ok   C13 under 44 bytes a body on the GPU (positions and their seed, looks, the links' adjacency)
+     whole map: 162 bodies, 339 summaries; plan 0.22 ms typical, 0.26 ms slowest
+ok   C13 a frame's plan of the million takes under 1.5 ms (an eighth of a 120 Hz frame is 1 ms on a phone)
+ok   C20 a demo builds into a map with every note
+ok   C20 a newer map wanted from the start: cancelled, not a failure
+ok   C20 a scene that gives nothing for no reason: "cannot draw: the scene was not built"
+ok   C20 a map that gives nothing for no reason: "cannot draw: the million map was not built"
+ALL PASSED
+
+run rc=0

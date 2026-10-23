@@ -1,0 +1,61 @@
+
+compile rc=0
+PASS G1a 35.0°: D = h·cos θ / t
+PASS G1b 35.0°: cy = -t·h·sin θ
+PASS G1c 35.0°: the focus is D
+PASS G1d 35.0°: the far edge at (1 + t·tan θ)·F
+PASS G1e 35.0°: the reach is t·tan θ
+PASS G1f 35.0°: D is the least (1% nearer, a point is outside)
+PASS G1a 45.0°: D = h·cos θ / t
+PASS G1b 45.0°: cy = -t·h·sin θ
+PASS G1c 45.0°: the focus is D
+PASS G1d 45.0°: the far edge at (1 + t·tan θ)·F
+PASS G1e 45.0°: the reach is t·tan θ
+PASS G1f 45.0°: D is the least (1% nearer, a point is outside)
+PASS G1g at 0 it is the face-on D = h/t
+PASS G1h 0.0°: every padded point inside the window
+PASS G1i 0.0°: and 1% nearer, not
+PASS G1j 0.0°: the camera on the near side, above (south and up)
+PASS G1h 35.0°: every padded point inside the window
+PASS G1i 35.0°: and 1% nearer, not
+PASS G1j 35.0°: the camera on the near side, above (south and up)
+PASS G1h 45.0°: every padded point inside the window
+PASS G1i 45.0°: and 1% nearer, not
+PASS G1j 45.0°: the camera on the near side, above (south and up)
+PASS G1h 75.0°: every padded point inside the window
+PASS G1i 75.0°: and 1% nearer, not
+PASS G1j 75.0°: the camera on the near side, above (south and up)
+PASS G1k the themes' pitches: Neurons 35°, Space 45°, Performance 0
+PASS G1l a drag may pitch it within 10° to 75°
+PASS G1m the window: what is not under glass
+PASS G2a golden values
+PASS G2b u is in [-1, 1)
+A neurons 3x3 grid: 1.75 (H 5.0)
+PASS G2c neurons: shuffled, the same z per id
+PASS G2d neurons: |z| ≤ A
+PASS G2e neurons: A is one of the candidates times H
+A space 3x3 grid: 1.75 (H 5.0)
+PASS G2c space: shuffled, the same z per id
+PASS G2d space: |z| ≤ A
+PASS G2e space: A is one of the candidates times H
+PASS G2f all candidates fail: 0
+PASS G2g 0.35 fails, 0.25 passes: 0.25 is chosen
+PASS G2i none passes: 0
+PASS G2h Performance has no tilt, so no depth
+PASS G3a apart: none
+PASS G3b one inside the other: the smaller whole
+PASS G3c unit discs a radius apart: 2π/3 - √3/2
+PASS G3d unit discs √2 apart: π/2 - 1
+PASS G3e symmetric
+PASS G4a neurons high: the crisp share is the band's a
+PASS G4a neurons smooth: the crisp share is the band's a
+PASS G4a space high: the crisp share is the band's a
+PASS G4a space smooth: the crisp share is the band's a
+PASS G4b the shader text carries the marker, no pow, no matrix
+PASS G5a θ = 0 gives worldUp (0,1,0) and limits 0 and 0
+PASS G5b neurons at θ gives worldUp (0,0,1) and limits 15 and 80
+PASS G5b space at θ gives worldUp (0,0,1) and limits 15 and 80
+PASS G5c the limits keep every tilt between 10° and 75°
+ALL PASS
+
+run rc=0

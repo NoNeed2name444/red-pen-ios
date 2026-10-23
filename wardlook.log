@@ -1,0 +1,847 @@
+
+compile rc=0
+ok   at rest (light): settled
+ok   at rest (light): every token is the palette's
+ok   at rest: the ink is the section's
+ok   at rest (dark): settled
+ok   at rest (dark): every token is the palette's
+ok   at rest: the ink is the section's
+ok   a shift starts at the light palette
+ok   and ends at the dark one
+ok   a finished shift is settled
+ok   the shift lasts about a third of a second
+ok   the easing never runs backwards
+ok   the easing is symmetric, half way at half time
+ok   the easing starts gently
+ok   progress past the ends is held to them
+ok   frame 1/10: every token sits at the same point of the shift
+ok   frame 2/10: every token sits at the same point of the shift
+ok   frame 3/10: every token sits at the same point of the shift
+ok   frame 4/10: every token sits at the same point of the shift
+ok   frame 5/10: every token sits at the same point of the shift
+ok   frame 6/10: every token sits at the same point of the shift
+ok   frame 7/10: every token sits at the same point of the shift
+ok   frame 8/10: every token sits at the same point of the shift
+ok   frame 9/10: every token sits at the same point of the shift
+ok   the base darkens steadily, without a flash
+ok   a part held in the other mode stays put during a shift
+ok   the always-dark monitor stays dark while the app turns light
+ok   a part marked held stays put, even in the mode the app is heading to
+ok   the app's own page moves while it turns light
+ok   a move between sections keeps the palette where it is
+ok   turning back mid-way runs the same path in reverse from where it is
+ok   and lands on the same colour, a quarter in
+ok   the same destination again changes nothing
+ok   from rest a shift starts at the beginning
+ok   somewhere new starts from where it was headed
+ok   seven sections
+ok   outside any section the look is Cards
+ok   the default paper ink is the outside look's
+ok   Questions: Vital Coral's hue 23 and its fill, the owner's #FF6B6B in both modes
+ok   light: primary and primaryInk equal Cards' fill and accent
+ok   dark: primary and primaryInk equal Cards' fill and accent
+ok   light: every section's ink is told apart from the others' (0.06)
+ok   light questions: light and dark inks share a hue
+ok   light cards: light and dark inks share a hue
+ok   light textbook: light and dark inks share a hue
+ok   light cases: light and dark inks share a hue
+ok   light osce: light and dark inks share a hue
+ok   light audio: light and dark inks share a hue
+ok   light ideas: light and dark inks share a hue
+ok   light questions: a control's edge reads 3:1 on the background
+ok   light questions: a control's edge reads 3:1 on the surface
+ok   light cards: a control's edge reads 3:1 on the background
+ok   light cards: a control's edge reads 3:1 on the surface
+ok   light textbook: a control's edge reads 3:1 on the background
+ok   light textbook: a control's edge reads 3:1 on the surface
+ok   light cases: a control's edge reads 3:1 on the background
+ok   light cases: a control's edge reads 3:1 on the surface
+ok   light osce: a control's edge reads 3:1 on the background
+ok   light osce: a control's edge reads 3:1 on the surface
+ok   light audio: a control's edge reads 3:1 on the background
+ok   light audio: a control's edge reads 3:1 on the surface
+ok   light ideas: a control's edge reads 3:1 on the background
+ok   light ideas: a control's edge reads 3:1 on the surface
+ok   dark: every section's ink is told apart from the others' (0.06)
+ok   dark questions: light and dark inks share a hue
+ok   dark cards: light and dark inks share a hue
+ok   dark textbook: light and dark inks share a hue
+ok   dark cases: light and dark inks share a hue
+ok   dark osce: light and dark inks share a hue
+ok   dark audio: light and dark inks share a hue
+ok   dark ideas: light and dark inks share a hue
+ok   dark questions: a control's edge reads 3:1 on the background
+ok   dark questions: a control's edge reads 3:1 on the surface
+ok   dark cards: a control's edge reads 3:1 on the background
+ok   dark cards: a control's edge reads 3:1 on the surface
+ok   dark textbook: a control's edge reads 3:1 on the background
+ok   dark textbook: a control's edge reads 3:1 on the surface
+ok   dark cases: a control's edge reads 3:1 on the background
+ok   dark cases: a control's edge reads 3:1 on the surface
+ok   dark osce: a control's edge reads 3:1 on the background
+ok   dark osce: a control's edge reads 3:1 on the surface
+ok   dark audio: a control's edge reads 3:1 on the background
+ok   dark audio: a control's edge reads 3:1 on the surface
+ok   dark ideas: a control's edge reads 3:1 on the background
+ok   dark ideas: a control's edge reads 3:1 on the surface
+ok   set kinds find their section
+ok   a move to Questions starts in Care Blue and ends in coral
+ok   half way it is the linear-light mix, not either
+ok   a move between sections leaves the palette alone, but for the accents
+ok   half way between sections the accents are the linear-light mix
+ok   mode and section move together, at the same point
+ok   light to dark arrives in one step, every colour at once
+ok   a mode change mid-way through a section's shift lands at once too
+ok   a move between sections shifts, from the start
+ok   text never loses contrast in any shift the app makes
+ok   (the mix it avoids: text half way between the palettes is grey on grey)
+ok   low: the relief's ends are light and dark
+ok   low: half way, the rim's lights sit between
+ok   low: the rim never reaches further half way
+ok   low: the press's ends are light and dark
+ok   mid: the relief's ends are light and dark
+ok   mid: half way, the rim's lights sit between
+ok   mid: the rim never reaches further half way
+ok   mid: the press's ends are light and dark
+ok   high: the relief's ends are light and dark
+ok   high: half way, the rim's lights sit between
+ok   high: the rim never reaches further half way
+ok   high: the press's ends are light and dark
+ok   peak: the relief's ends are light and dark
+ok   peak: half way, the rim's lights sit between
+ok   peak: the rim never reaches further half way
+ok   peak: the press's ends are light and dark
+ok   paper (contrast false): its strengths run from light to dark, in the section's ink
+ok   paper (contrast true): its strengths run from light to dark, in the section's ink
+ok   light questions: accent words read 4.5:1 on the well
+ok   light questions: accent glyphs read 3:1 on the well
+ok   light questions: accent words read 4.5:1 on the background
+ok   light questions: accent glyphs read 3:1 on the background
+ok   light questions: accent words read 4.5:1 on the surface
+ok   light questions: accent glyphs read 3:1 on the surface
+ok   light questions: accent words read 4.5:1 on the raised
+ok   light questions: accent glyphs read 3:1 on the raised
+ok   light questions: the on-fill words read 4.5:1 on the fill
+ok   light questions: at rest the accent tokens are the section's
+ok   light questions: the palette's own primaryInk stays the palette's
+ok   light questions: its ink is its hue
+ok   light questions: its accent is its hue
+ok   light questions: its fill is its hue
+ok   light cards: accent words read 4.5:1 on the well
+ok   light cards: accent glyphs read 3:1 on the well
+ok   light cards: accent words read 4.5:1 on the background
+ok   light cards: accent glyphs read 3:1 on the background
+ok   light cards: accent words read 4.5:1 on the surface
+ok   light cards: accent glyphs read 3:1 on the surface
+ok   light cards: accent words read 4.5:1 on the raised
+ok   light cards: accent glyphs read 3:1 on the raised
+ok   light cards: the on-fill words read 4.5:1 on the fill
+ok   light cards: at rest the accent tokens are the section's
+ok   light cards: the palette's own primaryInk stays the palette's
+ok   light cards: its ink is its hue
+ok   light cards: its accent is its hue
+ok   light cards: its fill is its hue
+ok   light textbook: accent words read 4.5:1 on the well
+ok   light textbook: accent glyphs read 3:1 on the well
+ok   light textbook: accent words read 4.5:1 on the background
+ok   light textbook: accent glyphs read 3:1 on the background
+ok   light textbook: accent words read 4.5:1 on the surface
+ok   light textbook: accent glyphs read 3:1 on the surface
+ok   light textbook: accent words read 4.5:1 on the raised
+ok   light textbook: accent glyphs read 3:1 on the raised
+ok   light textbook: the on-fill words read 4.5:1 on the fill
+ok   light textbook: at rest the accent tokens are the section's
+ok   light textbook: the palette's own primaryInk stays the palette's
+ok   light textbook: its ink is its hue
+ok   light textbook: its accent is its hue
+ok   light textbook: its fill is its hue
+ok   light cases: accent words read 4.5:1 on the well
+ok   light cases: accent glyphs read 3:1 on the well
+ok   light cases: accent words read 4.5:1 on the background
+ok   light cases: accent glyphs read 3:1 on the background
+ok   light cases: accent words read 4.5:1 on the surface
+ok   light cases: accent glyphs read 3:1 on the surface
+ok   light cases: accent words read 4.5:1 on the raised
+ok   light cases: accent glyphs read 3:1 on the raised
+ok   light cases: the on-fill words read 4.5:1 on the fill
+ok   light cases: at rest the accent tokens are the section's
+ok   light cases: the palette's own primaryInk stays the palette's
+ok   light cases: its ink is its hue
+ok   light cases: its accent is its hue
+ok   light cases: its fill is its hue
+ok   light osce: accent words read 4.5:1 on the well
+ok   light osce: accent glyphs read 3:1 on the well
+ok   light osce: accent words read 4.5:1 on the background
+ok   light osce: accent glyphs read 3:1 on the background
+ok   light osce: accent words read 4.5:1 on the surface
+ok   light osce: accent glyphs read 3:1 on the surface
+ok   light osce: accent words read 4.5:1 on the raised
+ok   light osce: accent glyphs read 3:1 on the raised
+ok   light osce: the on-fill words read 4.5:1 on the fill
+ok   light osce: at rest the accent tokens are the section's
+ok   light osce: the palette's own primaryInk stays the palette's
+ok   light osce: its ink is its hue
+ok   light osce: its accent is its hue
+ok   light osce: its fill is its hue
+ok   light audio: accent words read 4.5:1 on the well
+ok   light audio: accent glyphs read 3:1 on the well
+ok   light audio: accent words read 4.5:1 on the background
+ok   light audio: accent glyphs read 3:1 on the background
+ok   light audio: accent words read 4.5:1 on the surface
+ok   light audio: accent glyphs read 3:1 on the surface
+ok   light audio: accent words read 4.5:1 on the raised
+ok   light audio: accent glyphs read 3:1 on the raised
+ok   light audio: the on-fill words read 4.5:1 on the fill
+ok   light audio: at rest the accent tokens are the section's
+ok   light audio: the palette's own primaryInk stays the palette's
+ok   light audio: its ink is its hue
+ok   light audio: its accent is its hue
+ok   light audio: its fill is its hue
+ok   light ideas: accent words read 4.5:1 on the well
+ok   light ideas: accent glyphs read 3:1 on the well
+ok   light ideas: accent words read 4.5:1 on the background
+ok   light ideas: accent glyphs read 3:1 on the background
+ok   light ideas: accent words read 4.5:1 on the surface
+ok   light ideas: accent glyphs read 3:1 on the surface
+ok   light ideas: accent words read 4.5:1 on the raised
+ok   light ideas: accent glyphs read 3:1 on the raised
+ok   light ideas: the on-fill words read 4.5:1 on the fill
+ok   light ideas: at rest the accent tokens are the section's
+ok   light ideas: the palette's own primaryInk stays the palette's
+ok   light ideas: its ink is its hue
+ok   light ideas: its accent is its hue
+ok   light ideas: its fill is its hue
+ok   light: every section's accent is told apart from the others'
+ok   light questions: the accent is not mistaken for a colour that means something
+ok   light questions: the faded ink is 0.095 or more from the accent
+ok   light cards: the accent is not mistaken for a colour that means something
+ok   light cards: the faded ink is 0.095 or more from the accent
+ok   light textbook: the accent is not mistaken for a colour that means something
+ok   light textbook: the faded ink is 0.095 or more from the accent
+ok   light cases: the accent is not mistaken for a colour that means something
+ok   light cases: the faded ink is 0.095 or more from the accent
+ok   light osce: the accent is not mistaken for a colour that means something
+ok   light osce: the faded ink is 0.095 or more from the accent
+ok   light audio: the accent is not mistaken for a colour that means something
+ok   light audio: the faded ink is 0.095 or more from the accent
+ok   light ideas: the accent is not mistaken for a colour that means something
+ok   light ideas: the faded ink is 0.095 or more from the accent
+ok   dark questions: accent words read 4.5:1 on the well
+ok   dark questions: accent glyphs read 3:1 on the well
+ok   dark questions: accent words read 4.5:1 on the background
+ok   dark questions: accent glyphs read 3:1 on the background
+ok   dark questions: accent words read 4.5:1 on the surface
+ok   dark questions: accent glyphs read 3:1 on the surface
+ok   dark questions: accent words read 4.5:1 on the raised
+ok   dark questions: accent glyphs read 3:1 on the raised
+ok   dark questions: the on-fill words read 4.5:1 on the fill
+ok   questions: the accent reads 4.5:1 on the monitor
+ok   dark questions: at rest the accent tokens are the section's
+ok   dark questions: the palette's own primaryInk stays the palette's
+ok   dark questions: its ink is its hue
+ok   dark questions: its accent is its hue
+ok   dark questions: its fill is its hue
+ok   dark cards: accent words read 4.5:1 on the well
+ok   dark cards: accent glyphs read 3:1 on the well
+ok   dark cards: accent words read 4.5:1 on the background
+ok   dark cards: accent glyphs read 3:1 on the background
+ok   dark cards: accent words read 4.5:1 on the surface
+ok   dark cards: accent glyphs read 3:1 on the surface
+ok   dark cards: accent words read 4.5:1 on the raised
+ok   dark cards: accent glyphs read 3:1 on the raised
+ok   dark cards: the on-fill words read 4.5:1 on the fill
+ok   cards: the accent reads 4.5:1 on the monitor
+ok   dark cards: at rest the accent tokens are the section's
+ok   dark cards: the palette's own primaryInk stays the palette's
+ok   dark cards: its ink is its hue
+ok   dark cards: its accent is its hue
+ok   dark cards: its fill is its hue
+ok   dark textbook: accent words read 4.5:1 on the well
+ok   dark textbook: accent glyphs read 3:1 on the well
+ok   dark textbook: accent words read 4.5:1 on the background
+ok   dark textbook: accent glyphs read 3:1 on the background
+ok   dark textbook: accent words read 4.5:1 on the surface
+ok   dark textbook: accent glyphs read 3:1 on the surface
+ok   dark textbook: accent words read 4.5:1 on the raised
+ok   dark textbook: accent glyphs read 3:1 on the raised
+ok   dark textbook: the on-fill words read 4.5:1 on the fill
+ok   textbook: the accent reads 4.5:1 on the monitor
+ok   dark textbook: at rest the accent tokens are the section's
+ok   dark textbook: the palette's own primaryInk stays the palette's
+ok   dark textbook: its ink is its hue
+ok   dark textbook: its accent is its hue
+ok   dark textbook: its fill is its hue
+ok   dark cases: accent words read 4.5:1 on the well
+ok   dark cases: accent glyphs read 3:1 on the well
+ok   dark cases: accent words read 4.5:1 on the background
+ok   dark cases: accent glyphs read 3:1 on the background
+ok   dark cases: accent words read 4.5:1 on the surface
+ok   dark cases: accent glyphs read 3:1 on the surface
+ok   dark cases: accent words read 4.5:1 on the raised
+ok   dark cases: accent glyphs read 3:1 on the raised
+ok   dark cases: the on-fill words read 4.5:1 on the fill
+ok   cases: the accent reads 4.5:1 on the monitor
+ok   dark cases: at rest the accent tokens are the section's
+ok   dark cases: the palette's own primaryInk stays the palette's
+ok   dark cases: its ink is its hue
+ok   dark cases: its accent is its hue
+ok   dark cases: its fill is its hue
+ok   dark osce: accent words read 4.5:1 on the well
+ok   dark osce: accent glyphs read 3:1 on the well
+ok   dark osce: accent words read 4.5:1 on the background
+ok   dark osce: accent glyphs read 3:1 on the background
+ok   dark osce: accent words read 4.5:1 on the surface
+ok   dark osce: accent glyphs read 3:1 on the surface
+ok   dark osce: accent words read 4.5:1 on the raised
+ok   dark osce: accent glyphs read 3:1 on the raised
+ok   dark osce: the on-fill words read 4.5:1 on the fill
+ok   osce: the accent reads 4.5:1 on the monitor
+ok   dark osce: at rest the accent tokens are the section's
+ok   dark osce: the palette's own primaryInk stays the palette's
+ok   dark osce: its ink is its hue
+ok   dark osce: its accent is its hue
+ok   dark osce: its fill is its hue
+ok   dark audio: accent words read 4.5:1 on the well
+ok   dark audio: accent glyphs read 3:1 on the well
+ok   dark audio: accent words read 4.5:1 on the background
+ok   dark audio: accent glyphs read 3:1 on the background
+ok   dark audio: accent words read 4.5:1 on the surface
+ok   dark audio: accent glyphs read 3:1 on the surface
+ok   dark audio: accent words read 4.5:1 on the raised
+ok   dark audio: accent glyphs read 3:1 on the raised
+ok   dark audio: the on-fill words read 4.5:1 on the fill
+ok   audio: the accent reads 4.5:1 on the monitor
+ok   dark audio: at rest the accent tokens are the section's
+ok   dark audio: the palette's own primaryInk stays the palette's
+ok   dark audio: its ink is its hue
+ok   dark audio: its accent is its hue
+ok   dark audio: its fill is its hue
+ok   dark ideas: accent words read 4.5:1 on the well
+ok   dark ideas: accent glyphs read 3:1 on the well
+ok   dark ideas: accent words read 4.5:1 on the background
+ok   dark ideas: accent glyphs read 3:1 on the background
+ok   dark ideas: accent words read 4.5:1 on the surface
+ok   dark ideas: accent glyphs read 3:1 on the surface
+ok   dark ideas: accent words read 4.5:1 on the raised
+ok   dark ideas: accent glyphs read 3:1 on the raised
+ok   dark ideas: the on-fill words read 4.5:1 on the fill
+ok   ideas: the accent reads 4.5:1 on the monitor
+ok   dark ideas: at rest the accent tokens are the section's
+ok   dark ideas: the palette's own primaryInk stays the palette's
+ok   dark ideas: its ink is its hue
+ok   dark ideas: its accent is its hue
+ok   dark ideas: its fill is its hue
+ok   dark: every section's accent is told apart from the others'
+ok   dark questions: the accent is not mistaken for a colour that means something
+ok   dark questions: the faded ink is 0.095 or more from the accent
+ok   dark cards: the accent is not mistaken for a colour that means something
+ok   dark cards: the faded ink is 0.095 or more from the accent
+ok   dark textbook: the accent is not mistaken for a colour that means something
+ok   dark textbook: the faded ink is 0.095 or more from the accent
+ok   dark cases: the accent is not mistaken for a colour that means something
+ok   dark cases: the faded ink is 0.095 or more from the accent
+ok   dark osce: the accent is not mistaken for a colour that means something
+ok   dark osce: the faded ink is 0.095 or more from the accent
+ok   dark audio: the accent is not mistaken for a colour that means something
+ok   dark audio: the faded ink is 0.095 or more from the accent
+ok   dark ideas: the accent is not mistaken for a colour that means something
+ok   dark ideas: the faded ink is 0.095 or more from the accent
+ok   a section's shift never drops the accent's contrast below either end
+ok   a section's shift keeps the accent at 4.5:1 on every frame
+ok   light to dark swaps the accents in one step
+ok   light questions: words on the spoken word's wash read 4.5:1
+ok   light cards: words on the spoken word's wash read 4.5:1
+ok   light textbook: words on the spoken word's wash read 4.5:1
+ok   light cases: words on the spoken word's wash read 4.5:1
+ok   light osce: words on the spoken word's wash read 4.5:1
+ok   light audio: words on the spoken word's wash read 4.5:1
+ok   light ideas: words on the spoken word's wash read 4.5:1
+ok   dark questions: words on the spoken word's wash read 4.5:1
+ok   dark cards: words on the spoken word's wash read 4.5:1
+ok   dark textbook: words on the spoken word's wash read 4.5:1
+ok   dark cases: words on the spoken word's wash read 4.5:1
+ok   dark osce: words on the spoken word's wash read 4.5:1
+ok   dark audio: words on the spoken word's wash read 4.5:1
+ok   dark ideas: words on the spoken word's wash read 4.5:1
+ok   the look starts outside any section
+ok   a right answer made outside any section shows Questions' accent by day
+ok   and at night
+ok   and its edges Questions' ink
+ok   drawn now: questions light background
+ok   drawn now: questions light surface
+ok   drawn now: questions light raised
+ok   drawn now: questions light well
+ok   drawn now: questions light primary
+ok   drawn now: questions light primaryInk
+ok   drawn now: questions light onPrimary
+ok   drawn now: questions light ecg
+ok   drawn now: questions light beam
+ok   drawn now: questions light success
+ok   drawn now: questions light warning
+ok   drawn now: questions light danger
+ok   drawn now: questions light ink
+ok   drawn now: questions light inkSecondary
+ok   drawn now: questions light hairline
+ok   drawn now: questions light monitor
+ok   drawn now: questions light faded
+ok   drawn now: questions light fadedInk
+ok   drawn now: questions light ink
+ok   drawn now: questions dark background
+ok   drawn now: questions dark surface
+ok   drawn now: questions dark raised
+ok   drawn now: questions dark well
+ok   drawn now: questions dark primary
+ok   drawn now: questions dark primaryInk
+ok   drawn now: questions dark onPrimary
+ok   drawn now: questions dark ecg
+ok   drawn now: questions dark beam
+ok   drawn now: questions dark success
+ok   drawn now: questions dark warning
+ok   drawn now: questions dark danger
+ok   drawn now: questions dark ink
+ok   drawn now: questions dark inkSecondary
+ok   drawn now: questions dark hairline
+ok   drawn now: questions dark monitor
+ok   drawn now: questions dark faded
+ok   drawn now: questions dark fadedInk
+ok   drawn now: questions dark ink
+ok   drawn now: cards light background
+ok   drawn now: cards light surface
+ok   drawn now: cards light raised
+ok   drawn now: cards light well
+ok   drawn now: cards light primary
+ok   drawn now: cards light primaryInk
+ok   drawn now: cards light onPrimary
+ok   drawn now: cards light ecg
+ok   drawn now: cards light beam
+ok   drawn now: cards light success
+ok   drawn now: cards light warning
+ok   drawn now: cards light danger
+ok   drawn now: cards light ink
+ok   drawn now: cards light inkSecondary
+ok   drawn now: cards light hairline
+ok   drawn now: cards light monitor
+ok   drawn now: cards light faded
+ok   drawn now: cards light fadedInk
+ok   drawn now: cards light ink
+ok   drawn now: cards dark background
+ok   drawn now: cards dark surface
+ok   drawn now: cards dark raised
+ok   drawn now: cards dark well
+ok   drawn now: cards dark primary
+ok   drawn now: cards dark primaryInk
+ok   drawn now: cards dark onPrimary
+ok   drawn now: cards dark ecg
+ok   drawn now: cards dark beam
+ok   drawn now: cards dark success
+ok   drawn now: cards dark warning
+ok   drawn now: cards dark danger
+ok   drawn now: cards dark ink
+ok   drawn now: cards dark inkSecondary
+ok   drawn now: cards dark hairline
+ok   drawn now: cards dark monitor
+ok   drawn now: cards dark faded
+ok   drawn now: cards dark fadedInk
+ok   drawn now: cards dark ink
+ok   drawn now: textbook light background
+ok   drawn now: textbook light surface
+ok   drawn now: textbook light raised
+ok   drawn now: textbook light well
+ok   drawn now: textbook light primary
+ok   drawn now: textbook light primaryInk
+ok   drawn now: textbook light onPrimary
+ok   drawn now: textbook light ecg
+ok   drawn now: textbook light beam
+ok   drawn now: textbook light success
+ok   drawn now: textbook light warning
+ok   drawn now: textbook light danger
+ok   drawn now: textbook light ink
+ok   drawn now: textbook light inkSecondary
+ok   drawn now: textbook light hairline
+ok   drawn now: textbook light monitor
+ok   drawn now: textbook light faded
+ok   drawn now: textbook light fadedInk
+ok   drawn now: textbook light ink
+ok   drawn now: textbook dark background
+ok   drawn now: textbook dark surface
+ok   drawn now: textbook dark raised
+ok   drawn now: textbook dark well
+ok   drawn now: textbook dark primary
+ok   drawn now: textbook dark primaryInk
+ok   drawn now: textbook dark onPrimary
+ok   drawn now: textbook dark ecg
+ok   drawn now: textbook dark beam
+ok   drawn now: textbook dark success
+ok   drawn now: textbook dark warning
+ok   drawn now: textbook dark danger
+ok   drawn now: textbook dark ink
+ok   drawn now: textbook dark inkSecondary
+ok   drawn now: textbook dark hairline
+ok   drawn now: textbook dark monitor
+ok   drawn now: textbook dark faded
+ok   drawn now: textbook dark fadedInk
+ok   drawn now: textbook dark ink
+ok   drawn now: cases light background
+ok   drawn now: cases light surface
+ok   drawn now: cases light raised
+ok   drawn now: cases light well
+ok   drawn now: cases light primary
+ok   drawn now: cases light primaryInk
+ok   drawn now: cases light onPrimary
+ok   drawn now: cases light ecg
+ok   drawn now: cases light beam
+ok   drawn now: cases light success
+ok   drawn now: cases light warning
+ok   drawn now: cases light danger
+ok   drawn now: cases light ink
+ok   drawn now: cases light inkSecondary
+ok   drawn now: cases light hairline
+ok   drawn now: cases light monitor
+ok   drawn now: cases light faded
+ok   drawn now: cases light fadedInk
+ok   drawn now: cases light ink
+ok   drawn now: cases dark background
+ok   drawn now: cases dark surface
+ok   drawn now: cases dark raised
+ok   drawn now: cases dark well
+ok   drawn now: cases dark primary
+ok   drawn now: cases dark primaryInk
+ok   drawn now: cases dark onPrimary
+ok   drawn now: cases dark ecg
+ok   drawn now: cases dark beam
+ok   drawn now: cases dark success
+ok   drawn now: cases dark warning
+ok   drawn now: cases dark danger
+ok   drawn now: cases dark ink
+ok   drawn now: cases dark inkSecondary
+ok   drawn now: cases dark hairline
+ok   drawn now: cases dark monitor
+ok   drawn now: cases dark faded
+ok   drawn now: cases dark fadedInk
+ok   drawn now: cases dark ink
+ok   drawn now: osce light background
+ok   drawn now: osce light surface
+ok   drawn now: osce light raised
+ok   drawn now: osce light well
+ok   drawn now: osce light primary
+ok   drawn now: osce light primaryInk
+ok   drawn now: osce light onPrimary
+ok   drawn now: osce light ecg
+ok   drawn now: osce light beam
+ok   drawn now: osce light success
+ok   drawn now: osce light warning
+ok   drawn now: osce light danger
+ok   drawn now: osce light ink
+ok   drawn now: osce light inkSecondary
+ok   drawn now: osce light hairline
+ok   drawn now: osce light monitor
+ok   drawn now: osce light faded
+ok   drawn now: osce light fadedInk
+ok   drawn now: osce light ink
+ok   drawn now: osce dark background
+ok   drawn now: osce dark surface
+ok   drawn now: osce dark raised
+ok   drawn now: osce dark well
+ok   drawn now: osce dark primary
+ok   drawn now: osce dark primaryInk
+ok   drawn now: osce dark onPrimary
+ok   drawn now: osce dark ecg
+ok   drawn now: osce dark beam
+ok   drawn now: osce dark success
+ok   drawn now: osce dark warning
+ok   drawn now: osce dark danger
+ok   drawn now: osce dark ink
+ok   drawn now: osce dark inkSecondary
+ok   drawn now: osce dark hairline
+ok   drawn now: osce dark monitor
+ok   drawn now: osce dark faded
+ok   drawn now: osce dark fadedInk
+ok   drawn now: osce dark ink
+ok   drawn now: audio light background
+ok   drawn now: audio light surface
+ok   drawn now: audio light raised
+ok   drawn now: audio light well
+ok   drawn now: audio light primary
+ok   drawn now: audio light primaryInk
+ok   drawn now: audio light onPrimary
+ok   drawn now: audio light ecg
+ok   drawn now: audio light beam
+ok   drawn now: audio light success
+ok   drawn now: audio light warning
+ok   drawn now: audio light danger
+ok   drawn now: audio light ink
+ok   drawn now: audio light inkSecondary
+ok   drawn now: audio light hairline
+ok   drawn now: audio light monitor
+ok   drawn now: audio light faded
+ok   drawn now: audio light fadedInk
+ok   drawn now: audio light ink
+ok   drawn now: audio dark background
+ok   drawn now: audio dark surface
+ok   drawn now: audio dark raised
+ok   drawn now: audio dark well
+ok   drawn now: audio dark primary
+ok   drawn now: audio dark primaryInk
+ok   drawn now: audio dark onPrimary
+ok   drawn now: audio dark ecg
+ok   drawn now: audio dark beam
+ok   drawn now: audio dark success
+ok   drawn now: audio dark warning
+ok   drawn now: audio dark danger
+ok   drawn now: audio dark ink
+ok   drawn now: audio dark inkSecondary
+ok   drawn now: audio dark hairline
+ok   drawn now: audio dark monitor
+ok   drawn now: audio dark faded
+ok   drawn now: audio dark fadedInk
+ok   drawn now: audio dark ink
+ok   drawn now: ideas light background
+ok   drawn now: ideas light surface
+ok   drawn now: ideas light raised
+ok   drawn now: ideas light well
+ok   drawn now: ideas light primary
+ok   drawn now: ideas light primaryInk
+ok   drawn now: ideas light onPrimary
+ok   drawn now: ideas light ecg
+ok   drawn now: ideas light beam
+ok   drawn now: ideas light success
+ok   drawn now: ideas light warning
+ok   drawn now: ideas light danger
+ok   drawn now: ideas light ink
+ok   drawn now: ideas light inkSecondary
+ok   drawn now: ideas light hairline
+ok   drawn now: ideas light monitor
+ok   drawn now: ideas light faded
+ok   drawn now: ideas light fadedInk
+ok   drawn now: ideas light ink
+ok   drawn now: ideas dark background
+ok   drawn now: ideas dark surface
+ok   drawn now: ideas dark raised
+ok   drawn now: ideas dark well
+ok   drawn now: ideas dark primary
+ok   drawn now: ideas dark primaryInk
+ok   drawn now: ideas dark onPrimary
+ok   drawn now: ideas dark ecg
+ok   drawn now: ideas dark beam
+ok   drawn now: ideas dark success
+ok   drawn now: ideas dark warning
+ok   drawn now: ideas dark danger
+ok   drawn now: ideas dark ink
+ok   drawn now: ideas dark inkSecondary
+ok   drawn now: ideas dark hairline
+ok   drawn now: ideas dark monitor
+ok   drawn now: ideas dark faded
+ok   drawn now: ideas dark fadedInk
+ok   drawn now: ideas dark ink
+ok   mid-shift, a colour is this frame's
+ok   a part held in one mode keeps it mid-shift
+ok   a face or the paper draws the look at rest it was handed
+ok   and the shift's frame where it was handed none
+ok   questions: at night 0, ink is the section's light ink
+ok   questions: at night 1, ink is the section's dark ink
+ok   questions: frame 1/10 is the light/dark mix without hue shift
+ok   questions: frame 2/10 is the light/dark mix without hue shift
+ok   questions: frame 3/10 is the light/dark mix without hue shift
+ok   questions: frame 4/10 is the light/dark mix without hue shift
+ok   questions: frame 5/10 is the light/dark mix without hue shift
+ok   questions: frame 6/10 is the light/dark mix without hue shift
+ok   questions: frame 7/10 is the light/dark mix without hue shift
+ok   questions: frame 8/10 is the light/dark mix without hue shift
+ok   questions: frame 9/10 is the light/dark mix without hue shift
+ok   questions: at rest in another section (light), ink is section's light ink
+ok   questions: at rest in another section (dark), ink is section's dark ink
+ok   cards: at night 0, ink is the section's light ink
+ok   cards: at night 1, ink is the section's dark ink
+ok   cards: frame 1/10 is the light/dark mix without hue shift
+ok   cards: frame 2/10 is the light/dark mix without hue shift
+ok   cards: frame 3/10 is the light/dark mix without hue shift
+ok   cards: frame 4/10 is the light/dark mix without hue shift
+ok   cards: frame 5/10 is the light/dark mix without hue shift
+ok   cards: frame 6/10 is the light/dark mix without hue shift
+ok   cards: frame 7/10 is the light/dark mix without hue shift
+ok   cards: frame 8/10 is the light/dark mix without hue shift
+ok   cards: frame 9/10 is the light/dark mix without hue shift
+ok   cards: at rest in another section (light), ink is section's light ink
+ok   cards: at rest in another section (dark), ink is section's dark ink
+ok   WardLookNow: Questions ink in Textbook section is Questions' light ink
+ok   WardLookNow: Cards ink in Textbook section is Cards' light ink
+ok   every section's wash is pinned
+ok   the plain ground is the palette's base
+ok   light questions: its wash is the plain base
+ok   dark questions: its wash is the plain base
+ok   light cards: its wash is the plain base
+ok   dark cards: its wash is the plain base
+ok   light textbook: its wash is the plain base
+ok   dark textbook: its wash is the plain base
+ok   light cases: its wash is the plain base
+ok   dark cases: its wash is the plain base
+ok   light osce: its wash is the plain base
+ok   dark osce: its wash is the plain base
+ok   light audio: its wash is the plain base
+ok   dark audio: its wash is the plain base
+ok   light ideas: its wash is the plain base
+ok   dark ideas: its wash is the plain base
+ok   the look outside any section stands on the plain base too
+ok   light questions: Chart Ink keeps 4.5:1 on its wash
+ok   light questions: Biro Grey keeps 4.5:1 on its wash
+ok   light questions: its accent keeps 4.5:1 on its wash
+ok   light cards: Chart Ink keeps 4.5:1 on its wash
+ok   light cards: Biro Grey keeps 4.5:1 on its wash
+ok   light cards: its accent keeps 4.5:1 on its wash
+ok   light textbook: Chart Ink keeps 4.5:1 on its wash
+ok   light textbook: Biro Grey keeps 4.5:1 on its wash
+ok   light textbook: its accent keeps 4.5:1 on its wash
+ok   light cases: Chart Ink keeps 4.5:1 on its wash
+ok   light cases: Biro Grey keeps 4.5:1 on its wash
+ok   light cases: its accent keeps 4.5:1 on its wash
+ok   light osce: Chart Ink keeps 4.5:1 on its wash
+ok   light osce: Biro Grey keeps 4.5:1 on its wash
+ok   light osce: its accent keeps 4.5:1 on its wash
+ok   light audio: Chart Ink keeps 4.5:1 on its wash
+ok   light audio: Biro Grey keeps 4.5:1 on its wash
+ok   light audio: its accent keeps 4.5:1 on its wash
+ok   light ideas: Chart Ink keeps 4.5:1 on its wash
+ok   light ideas: Biro Grey keeps 4.5:1 on its wash
+ok   light ideas: its accent keeps 4.5:1 on its wash
+ok   light questions: wash is unique among sections
+ok   light cards: wash is unique among sections
+ok   light textbook: wash is unique among sections
+ok   light cases: wash is unique among sections
+ok   light osce: wash is unique among sections
+ok   light audio: wash is unique among sections
+ok   light ideas: wash is unique among sections
+ok   dark questions: Chart Ink keeps 4.5:1 on its wash
+ok   dark questions: Biro Grey keeps 4.5:1 on its wash
+ok   dark questions: its accent keeps 4.5:1 on its wash
+ok   dark cards: Chart Ink keeps 4.5:1 on its wash
+ok   dark cards: Biro Grey keeps 4.5:1 on its wash
+ok   dark cards: its accent keeps 4.5:1 on its wash
+ok   dark textbook: Chart Ink keeps 4.5:1 on its wash
+ok   dark textbook: Biro Grey keeps 4.5:1 on its wash
+ok   dark textbook: its accent keeps 4.5:1 on its wash
+ok   dark cases: Chart Ink keeps 4.5:1 on its wash
+ok   dark cases: Biro Grey keeps 4.5:1 on its wash
+ok   dark cases: its accent keeps 4.5:1 on its wash
+ok   dark osce: Chart Ink keeps 4.5:1 on its wash
+ok   dark osce: Biro Grey keeps 4.5:1 on its wash
+ok   dark osce: its accent keeps 4.5:1 on its wash
+ok   dark audio: Chart Ink keeps 4.5:1 on its wash
+ok   dark audio: Biro Grey keeps 4.5:1 on its wash
+ok   dark audio: its accent keeps 4.5:1 on its wash
+ok   dark ideas: Chart Ink keeps 4.5:1 on its wash
+ok   dark ideas: Biro Grey keeps 4.5:1 on its wash
+ok   dark ideas: its accent keeps 4.5:1 on its wash
+ok   dark questions: wash is unique among sections
+ok   dark cards: wash is unique among sections
+ok   dark textbook: wash is unique among sections
+ok   dark cases: wash is unique among sections
+ok   dark osce: wash is unique among sections
+ok   dark audio: wash is unique among sections
+ok   dark ideas: wash is unique among sections
+ok   drawn now: questions light wash
+ok   drawn now: questions dark wash
+ok   drawn now: cards light wash
+ok   drawn now: cards dark wash
+ok   drawn now: textbook light wash
+ok   drawn now: textbook dark wash
+ok   drawn now: cases light wash
+ok   drawn now: cases dark wash
+ok   drawn now: osce light wash
+ok   drawn now: osce dark wash
+ok   drawn now: audio light wash
+ok   drawn now: audio dark wash
+ok   drawn now: ideas light wash
+ok   drawn now: ideas dark wash
+ok   mid-shift, wash is linear-light mix
+ok   home opens on WardSection.opening: Questions, the dock's first category
+ok   questions light: the ground's base is home's wash (WardBackground)
+ok   questions light: the ground's grid is home's paper ink
+ok   questions light: under Increase Contrast the ground has no grid, as home's paper
+ok   questions dark: the ground's base is home's wash (WardBackground)
+ok   questions dark: the ground's grid is home's paper ink
+ok   questions dark: under Increase Contrast the ground has no grid, as home's paper
+ok   cards light: the ground's base is home's wash (WardBackground)
+ok   cards light: the ground's grid is home's paper ink
+ok   cards light: under Increase Contrast the ground has no grid, as home's paper
+ok   cards dark: the ground's base is home's wash (WardBackground)
+ok   cards dark: the ground's grid is home's paper ink
+ok   cards dark: under Increase Contrast the ground has no grid, as home's paper
+ok   textbook light: the ground's base is home's wash (WardBackground)
+ok   textbook light: the ground's grid is home's paper ink
+ok   textbook light: under Increase Contrast the ground has no grid, as home's paper
+ok   textbook dark: the ground's base is home's wash (WardBackground)
+ok   textbook dark: the ground's grid is home's paper ink
+ok   textbook dark: under Increase Contrast the ground has no grid, as home's paper
+ok   cases light: the ground's base is home's wash (WardBackground)
+ok   cases light: the ground's grid is home's paper ink
+ok   cases light: under Increase Contrast the ground has no grid, as home's paper
+ok   cases dark: the ground's base is home's wash (WardBackground)
+ok   cases dark: the ground's grid is home's paper ink
+ok   cases dark: under Increase Contrast the ground has no grid, as home's paper
+ok   osce light: the ground's base is home's wash (WardBackground)
+ok   osce light: the ground's grid is home's paper ink
+ok   osce light: under Increase Contrast the ground has no grid, as home's paper
+ok   osce dark: the ground's base is home's wash (WardBackground)
+ok   osce dark: the ground's grid is home's paper ink
+ok   osce dark: under Increase Contrast the ground has no grid, as home's paper
+ok   audio light: the ground's base is home's wash (WardBackground)
+ok   audio light: the ground's grid is home's paper ink
+ok   audio light: under Increase Contrast the ground has no grid, as home's paper
+ok   audio dark: the ground's base is home's wash (WardBackground)
+ok   audio dark: the ground's grid is home's paper ink
+ok   audio dark: under Increase Contrast the ground has no grid, as home's paper
+ok   ideas light: the ground's base is home's wash (WardBackground)
+ok   ideas light: the ground's grid is home's paper ink
+ok   ideas light: under Increase Contrast the ground has no grid, as home's paper
+ok   ideas dark: the ground's base is home's wash (WardBackground)
+ok   ideas dark: the ground's grid is home's paper ink
+ok   ideas dark: under Increase Contrast the ground has no grid, as home's paper
+ok   tools/make_launch_ground.py --table runs and prints its grounds
+ok   the script draws the section home opens on
+ok   the script knows every section
+ok   script, questions light: its base is home's ground (base with wash)
+ok   script, questions light: its grid ink is home's
+ok   script, questions dark: its base is home's ground (base with wash)
+ok   script, questions dark: its grid ink is home's
+ok   script, cards light: its base is home's ground (base with wash)
+ok   script, cards light: its grid ink is home's
+ok   script, cards dark: its base is home's ground (base with wash)
+ok   script, cards dark: its grid ink is home's
+ok   script, textbook light: its base is home's ground (base with wash)
+ok   script, textbook light: its grid ink is home's
+ok   script, textbook dark: its base is home's ground (base with wash)
+ok   script, textbook dark: its grid ink is home's
+ok   script, cases light: its base is home's ground (base with wash)
+ok   script, cases light: its grid ink is home's
+ok   script, cases dark: its base is home's ground (base with wash)
+ok   script, cases dark: its grid ink is home's
+ok   script, osce light: its base is home's ground (base with wash)
+ok   script, osce light: its grid ink is home's
+ok   script, osce dark: its base is home's ground (base with wash)
+ok   script, osce dark: its grid ink is home's
+ok   script, audio light: its base is home's ground (base with wash)
+ok   script, audio light: its grid ink is home's
+ok   script, audio dark: its base is home's ground (base with wash)
+ok   script, audio dark: its grid ink is home's
+ok   script, ideas light: its base is home's ground (base with wash)
+ok   script, ideas light: its grid ink is home's
+ok   script, ideas dark: its base is home's ground (base with wash)
+ok   script, ideas dark: its grid ink is home's
+ok   paper-iphone@2x.png: drawn at 2x of 480 by 1040 points
+ok   paper-iphone@2x.png: drawn with home's ground
+ok   paper-iphone@3x.png: drawn at 3x of 480 by 1040 points
+ok   paper-iphone@3x.png: drawn with home's ground
+ok   paper-iphone-dark@2x.png: drawn at 2x of 480 by 1040 points
+ok   paper-iphone-dark@2x.png: drawn with home's ground
+ok   paper-iphone-dark@3x.png: drawn at 3x of 480 by 1040 points
+ok   paper-iphone-dark@3x.png: drawn with home's ground
+ok   paper-ipad@2x.png: drawn at 2x of 1400 by 1400 points
+ok   paper-ipad@2x.png: drawn with home's ground
+ok   paper-ipad-dark@2x.png: drawn at 2x of 1400 by 1400 points
+ok   paper-ipad-dark@2x.png: drawn with home's ground
+ok   the owner's list is read (ios/RedPen/Tests/OwnerAccepted.json, WardLookTests.swift)
+ok   every case on the owner's list is one a check here measured short
+
+all passed
+
+run rc=0

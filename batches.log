@@ -1,0 +1,68 @@
+
+compile rc=0
+ok   round 1 is told the 0 written so far
+ok   round 2 is told the 4 written so far
+ok   round 3 is told the 8 written so far
+ok   every batch working: all 10 written
+ok   in three batches of at most four
+ok   progress reported before each batch: [0, 4, 8]
+ok   no batch counted as failed
+ok   and nothing is missing
+ok   a failed batch no longer throws the run away
+ok   the run carries on and writes all 10
+ok   keeping the first batch's cards
+ok   one more batch makes up for the failed one
+ok   the failed batch is counted
+ok   with one pause after it: [1]
+ok   everything written in the end: nothing to say is missing
+ok   the model gone after two batches: the 8 written are kept
+ok   three failures in a row stop the run (patience 3)
+ok   pausing after each failure but the last: [1, 2]
+ok   2 are missing
+ok   from 3 failed batches
+ok   the student is told how many were written: Wrote 8 of 10 cards. 2 could not be written: 3 batches failed — The hosted model refused the request (HTTP 500). Everything written is kept.
+ok   how many were lost, and why
+ok   with the model's own reason
+ok   punctuated once
+ok   and that nothing written was lost
+ok   the button writes just the missing ones
+ok   a model that needs Pro is asked once, not three times
+ok   nothing written
+ok   and its error is kept, for the screen to show as it is
+ok   offline: three tries, then the run stops
+ok   with the real error kept, not "nothing usable"
+ok   a model that runs out of new cards stops after three empty batches
+ok   and says so, not that a batch failed: Wrote 4 of 10 cases. The model found nothing new to write for the other 6. Everything written is kept.
+ok   in the set's own word
+ok   never more than asked for
+ok   Cancel ends the run as a stop, not as a failed batch
+ok   and no batch is asked for after it
+ok   every page is asked for, after a failed one too
+ok   the pages that worked are kept
+ok   the one that failed is listed
+ok   and named: Wrote 3 of 4 pages. 1 could not be written (Part 2): 1 batch failed — The hosted model refused the request (HTTP 504). Everything written is kept.
+ok   one missing page, one button
+ok   three pages failing in a row stop the asking
+ok   the pages not reached are listed with the failed ones
+ok   all four named
+ok   and offered again
+ok   a refused session: asked once, every page listed
+ok   a page written again goes in its gap's place, the other gap left
+ok   a page that failed again leaves the draft as it was
+ok   a gap edited away: the page is added at the end, never lost
+ok   and a failed page adds no gap back
+ok   an empty draft takes the page as it is
+ok   a gap is a page of its own, numbered from one
+ok   and no gap is the start of another
+ok   401, 402 and 403 would refuse every batch
+ok   no answer, 404, 429 and 500 are worth the next batch
+ok   the pause after failures in a row: 1, 2, 4, then 8 seconds
+ok   one part
+ok   two parts
+ok   three parts
+ok   all written: no shortfall
+ok   one short: one missing
+
+ALL BATCH WRITING TESTS PASS
+
+run rc=0

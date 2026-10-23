@@ -1,0 +1,58 @@
+
+compile rc=0
+ok   B1 ProMotion: 120 a second, 8.3 ms a refresh
+ok   B1 the map's share of a 120 Hz refresh is 6.25 ms
+ok   B1 a 60 Hz screen: 60
+ok   B1 a 144 Hz screen is not held to 120
+ok   B1 never under 30 (an unknown screen reads 0)
+ok   B1 the tier sets only where detail starts, saver coarsest
+ok   B2 a slow device opens cells later (summaries sooner)
+ok   B2 and then fits its frames in the share of a 120 Hz refresh
+ok   B2 the rate it asks for is still the screen's
+ok   B2 a fast device keeps more detail than a slow one
+ok   B2 however slow, the split stops at its coarsest
+ok   B3 once the device is quick again, detail returns
+ok   B3 at a steady load it settles: few changes over 1,500 frames
+ok   B3 one slow frame alone changes nothing
+ok   B3 two in a row coarsen once, then it waits out the frames in flight
+ok   B4 frames within their share that missed a refresh anyway (the system's, the simulator's) cut nothing
+ok   B4 frames over their share coarsen, missed refresh or not
+ok   B4 cheap frames that missed a refresh anyway are someone else's: nothing is cut
+ok   B4 a long gap (the map was still, then woken) is not a miss
+ok   B5 more room, more bodies laid out a frame
+ok   B5 never nothing (ten leaves' worth at the least)
+ok   B5 the chunk settings carry the split
+ok   B6 notes over budget: the split coarsens to half again its start, then the band is pulled in
+ok   B6 the band comes in to 0.7 of its width and no further, then the split coarsens again; the rate stays
+ok   B6 with room again, the band comes back whole before the split opens anything
+ok   B7 Smooth on ProMotion asks for 120
+ok   B7 High on ProMotion asks for 120
+ok   B7 both ask for 60 on a 60 Hz screen
+ok   B8 frames of a third of a second (the build, a wake) leave the detail alone
+ok   B8 the first frames after a map is shown are not counted
+ok   B8 (it starts at the coarsest)
+ok   B8 from the coarsest, a quick device is back to fine detail within three seconds at 120
+ok   B9 the heaviest stage
+ok   B9 bundles over budget: fewer bundles, the split untouched
+ok   B9 however costly the bundles, the notes are not hidden for them
+ok   B9 notes and links over budget: a coarser split, every bundle kept
+ok   B9 planning over budget: a coarser split (planning grows with what is open)
+ok   B9 CPU over budget but not in planning (encoding, a debug build): the split is not what costs, it stays
+ok   B9 bundles drawn: all at first, at least one, none of none
+ok   B9 costly bundles (30 ms all drawn): it settles under the share with the notes still opening at the tier's split
+ok   B9 with room again, the split returns to the tier's before any bundle comes back, then every bundle
+ok   B10 the lit samples' 97th percentile lands near 0.6 of white (dark samples don't count)
+ok   B10 only the top of the lit light reaches 250 (under 3% of what is lit)
+ok   B10 the saturated share is the screen's share at 250 or more
+ok   B10 a ten-times jump is followed smoothly: about 63% of the way (in the log) after 0.3 s
+ok   B10 the exposure never overshoots and settles within 1.5 s
+ok   B10 an empty frame keeps the exposure and reads 0% saturated
+ok   B10 the strength stays in its range
+ok   B11 cheap frames that miss refreshes (a GPU that reports 0) neither open nor close detail
+ok   B11 the same frames on time open detail
+ok   B12 near: from its commit to done, and the screen pass after the far one; far: between them
+ok   B12 a frame queued behind the one before counts from when that one was done
+ok   B12 the GPU's own times are used while believable, the wall's when they read about 0
+ALL PASSED
+
+run rc=0

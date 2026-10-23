@@ -1,0 +1,64 @@
+
+compile rc=0
+ok   T1 a step keeps the user's level, has the fade on, chooses nothing and is not measured unless asked
+ok   T1 a step carries a pose, a phase, a level, the fade, a choice and whether it counts
+ok   T1 a frame report carries interval, CPU, GPU, draws, instances, GPU memory, ramping and shells
+ok   T1 the map's fields are the map view's to fill
+ok   T1 a new tour has nothing to say yet, and its first step is the whole view
+ok   T2 the phases, in order: warm, measure, front, turn, back, near, chosen, far, then each level with the fade off and on
+ok   T2 warm 3 s, measure 11 s (10 measured, 1 s to rest), stills 8 s, turn 1.2 s, near 13 s, each comparison 4 s
+ok   T2 the schedule says the same: 84.2 s in all
+ok   T2 nil once it is done, and not a moment before
+ok   T2 a time before the start is the start
+ok   T3 measured: none of warm, the measure's 10 s, the stills and the turn whole, near after its 3 s flight, each comparison after its 1 s to settle
+ok   T3 until the comparison the user's level holds, with the fade on
+ok   T3 the comparison: high, smooth, saver, each with the fade off and then on
+ok   T3 the hub is chosen in chosen only; nothing is chosen elsewhere
+ok   T3 the measure counts from its first frame to 10 s in, not the easing to rest after
+ok   T3 with no hub nothing is chosen, and the flight goes to the map's centre
+ok   T4 a phone: one jump, the cut from chosen to the whole map at far
+ok   T4 a phone: eased, no speed changes at once (under 30 rad/s², 30 /s² in the log of the distance, 10 radii/s²)
+ok   T4 a phone: the fastest is the half turn, about 225° a second at its peak
+ok   T4 a tablet on its side: one jump, the cut from chosen to the whole map at far
+ok   T4 a tablet on its side: eased, no speed changes at once (under 30 rad/s², 30 /s² in the log of the distance, 10 radii/s²)
+ok   T4 a tablet on its side: the fastest is the half turn, about 225° a second at its peak
+ok   T4 the measure turns one whole turn in all: front is the view the tour began with
+ok   T4 the measure's turn is steady all its 10 s
+ok   T4 the measure zooms in twice, to about the map's edge (its radius from the target), and out to the whole view
+ok   T4 the turn: half a turn in 1.2 s, then the back still holds it
+ok   T4 a still does not move
+ok   T4 near ends looking at the hub from the front, close (a ball of 0.75% of the map's radius framed)
+ok   T4 the hub stays on screen all the way in
+ok   T4 far is the whole map's framing exactly
+ok   T4 a level's off and on runs turn over the same 45° arc, one each way
+ok   T4 the same time gives the same step: twice, on another tour, and whatever was recorded
+ok   T5 90 frames at 60 and 10 at 20: median 60, p5 20, 1% low 20
+ok   T5 1,000 frames, 900 at 120, 80 at 60, 20 at 30, in any order: median 120, p5 60, 1% low 30
+ok   T5 nearest rank on 20 frames: the 95th percentile interval is the 19th shortest (p5 50), the 99th the longest (1% low 20), median 100
+ok   T5 an even count's median is the mean of the middle two intervals (0.025 s: 40 fps)
+ok   T5 intervals that are not positive and finite are left out
+ok   T5 no frames: zeros
+ok   T5 the CPU's median and 95th percentile (0.1 to 10 ms: 5.05 and 9.5 ms)
+ok   T5 the GPU's, of the frames that report it (21 to 100 ms: 60.5 and 96 ms)
+ok   T5 the medians of draws, instances and shells
+ok   T5 a GPU that reports nothing says so
+ok   T6 while cells still ramp after the turn the swap is pending
+ok   T6 four frames of 1/60 s after the turn's last, the first with nothing ramping: a 67 ms swap
+ok   T6 timed from the turn's last frame: nothing ramping at the first frame after it is one frame (8 ms)
+ok   T6 a back still that ends with cells ramping says how long it was and how many were left
+ok   T7 one line per phase, in order, then done
+ok   T7 warm: its frames, not measured
+ok   T7 measure: rate, its 5th percentile and 1% low, CPU and GPU, draws, instances, cells, GPU memory, frames
+ok   T7 a still counts all its frames
+ok   T7 the turn's line has the swap (4 frames of 1/60 s: 67 ms)
+ok   T7 near and chosen name the hub, near counting only after its flight (about 600 of 780 frames)
+ok   T7 a phase's own GPU memory peak
+ok   T7 each comparison has its own numbers: the fade off at 40, on at 60
+ok   T7 done: the time, the frames and the whole tour's GPU memory peak
+ok   T7 while a phase runs, its line counts frames so far, and there is no done line
+ok   T7 a frame of no phase of the tour is left out
+ok   T7 a late frame changes its own phase's line (and the totals), no other
+ok   T7 numbers in words, the same in every locale
+ALL PASSED
+
+run rc=0

@@ -1,0 +1,216 @@
+
+compile rc=0
+ok   every token has a value
+ok   white on black is 21
+ok   Theatre Blue on Clean Sheet is about 6.3
+ok   light: ink on surface at least 4.5
+ok   light: ink on background at least 4.5
+ok   light: ink on raised at least 4.5
+ok   light: ink on well at least 4.5
+ok   light: inkSecondary on raised at least 4.5
+ok   light: inkSecondary on well at least 4.5
+ok   light: primaryInk on raised at least 4.5
+ok   light: primaryInk on well at least 4.5
+ok   light: inkSecondary on surface at least 4.5
+ok   light: inkSecondary on background at least 4.5
+ok   light: primaryInk on surface at least 4.5
+ok   light: primaryInk on background at least 4.5
+ok   light: onPrimary on primary at least 4.5
+ok   light: ecg on surface at least 4.5
+ok   light: success on surface at least 4.5
+ok   light: warning on surface at least 4.5
+ok   light: danger on surface at least 4.5
+ok   light: beam on surface at least 3.0
+ok   light: ecg on well at least 4.5
+ok   light: success on well at least 4.5
+ok   light: warning on well at least 4.5
+ok   light: danger on well at least 4.5
+ok   light: beam on well at least 3.0
+ok   light: ecg on background at least 4.5
+ok   light: success on background at least 4.5
+ok   light: warning on background at least 4.5
+ok   light: danger on background at least 4.5
+ok   light: beam on background at least 3.0
+ok   light: fadedInk on faded at least 4.5
+ok   dark: ink on surface at least 4.5
+ok   dark: ink on background at least 4.5
+ok   dark: ink on raised at least 4.5
+ok   dark: ink on well at least 4.5
+ok   dark: inkSecondary on raised at least 4.5
+ok   dark: inkSecondary on well at least 4.5
+ok   dark: primaryInk on raised at least 4.5
+ok   dark: primaryInk on well at least 4.5
+ok   dark: inkSecondary on surface at least 4.5
+ok   dark: inkSecondary on background at least 4.5
+ok   dark: primaryInk on surface at least 4.5
+ok   dark: primaryInk on background at least 4.5
+ok   dark: onPrimary on primary at least 4.5
+ok   dark: ecg on surface at least 4.5
+ok   dark: success on surface at least 4.5
+ok   dark: warning on surface at least 4.5
+ok   dark: danger on surface at least 4.5
+ok   dark: beam on surface at least 3.0
+ok   dark: ecg on well at least 4.5
+ok   dark: success on well at least 4.5
+ok   dark: warning on well at least 4.5
+ok   dark: danger on well at least 4.5
+ok   dark: beam on well at least 3.0
+ok   dark: ecg on background at least 4.5
+ok   dark: success on background at least 4.5
+ok   dark: warning on background at least 4.5
+ok   dark: danger on background at least 4.5
+ok   dark: beam on background at least 3.0
+ok   dark: fadedInk on faded at least 4.5
+ok   the shade is there at a chip's edge and gone where its words start
+ok   light: primaryInk reads 4.5:1 on a chip's well
+ok   light: ecg reads 4.5:1 on a chip's well
+ok   light: success reads 4.5:1 on a chip's well
+ok   light: warning reads 4.5:1 on a chip's well
+ok   light: danger reads 4.5:1 on a chip's well
+ok   light: inkSecondary reads 4.5:1 on a chip's well
+ok   light: ink reads 4.5:1 on a chip's well
+ok   light: questions's accent reads 4.5:1 on a chip's well
+ok   light: cards's accent reads 4.5:1 on a chip's well
+ok   light: textbook's accent reads 4.5:1 on a chip's well
+ok   light: cases's accent reads 4.5:1 on a chip's well
+ok   light: osce's accent reads 4.5:1 on a chip's well
+ok   light: audio's accent reads 4.5:1 on a chip's well
+ok   light: ideas's accent reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: primaryInk reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: ecg reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: success reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: warning reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: danger reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: inkSecondary reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: ink reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: questions's accent reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: cards's accent reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: textbook's accent reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: cases's accent reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: osce's accent reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: audio's accent reads 4.5:1 on a chip's well
+ok   light with Increase Contrast: ideas's accent reads 4.5:1 on a chip's well
+ok   dark: primaryInk reads 4.5:1 on a chip's well
+ok   dark: ecg reads 4.5:1 on a chip's well
+ok   dark: success reads 4.5:1 on a chip's well
+ok   dark: warning reads 4.5:1 on a chip's well
+ok   dark: danger reads 4.5:1 on a chip's well
+ok   dark: inkSecondary reads 4.5:1 on a chip's well
+ok   dark: ink reads 4.5:1 on a chip's well
+ok   dark: questions's accent reads 4.5:1 on a chip's well
+ok   dark: cards's accent reads 4.5:1 on a chip's well
+ok   dark: textbook's accent reads 4.5:1 on a chip's well
+ok   dark: cases's accent reads 4.5:1 on a chip's well
+ok   dark: osce's accent reads 4.5:1 on a chip's well
+ok   dark: audio's accent reads 4.5:1 on a chip's well
+ok   dark: ideas's accent reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: primaryInk reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: ecg reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: success reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: warning reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: danger reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: inkSecondary reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: ink reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: questions's accent reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: cards's accent reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: textbook's accent reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: cases's accent reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: osce's accent reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: audio's accent reads 4.5:1 on a chip's well
+ok   dark with Increase Contrast: ideas's accent reads 4.5:1 on a chip's well
+ok   the monitor card is dark in both modes
+ok   light: a card is the page colour (surface == background)
+ok   light: a sheet is the page colour (raised == background)
+ok   light: a card and a sheet are one tone (surface == raised)
+ok   light: the tiers are well, then the base, a card and a sheet in one colour
+ok   light: a well is the page colour (well == background)
+ok   light: a groove shows but stays soft
+ok   dark: a card is the page colour (surface == background)
+ok   dark: a sheet is the page colour (raised == background)
+ok   dark: a card and a sheet are one tone (surface == raised)
+ok   dark: the tiers are well, then the base, a card and a sheet in one colour
+ok   dark: a well is the page colour (well == background)
+ok   dark: a groove shows but stays soft
+ok   the bases the launch screen is drawn on are kept
+ok   light: primary and primaryInk are Cards' fill and accent
+ok   dark: primary and primaryInk are Cards' fill and accent
+ok   primaryInk has a value of its own in each mode
+ok   ecg has a value of its own in each mode
+ok   success has a value of its own in each mode
+ok   warning has a value of its own in each mode
+ok   danger has a value of its own in each mode
+ok   ink has a value of its own in each mode
+ok   inkSecondary has a value of its own in each mode
+ok   beam has a value of its own in each mode
+ok   night's secondary text has more contrast than day's
+ok   contrast is symmetric
+ok   a colour on itself is 1
+ok   mid grey #777 on white is about 4.48 (just under AA)
+ok   #767676 on white is about 4.54 (just AA)
+ok   luminance of white is 1 and black 0
+ok   the glide takes 0.3 to 0.4 s
+ok   glide background: starts at day and ends at night
+ok   glide surface: starts at day and ends at night
+ok   glide raised: starts at day and ends at night
+ok   glide well: starts at day and ends at night
+ok   glide primary: starts at day and ends at night
+ok   glide primaryInk: starts at day and ends at night
+ok   glide onPrimary: starts at day and ends at night
+ok   glide ecg: starts at day and ends at night
+ok   glide beam: starts at day and ends at night
+ok   glide success: starts at day and ends at night
+ok   glide warning: starts at day and ends at night
+ok   glide danger: starts at day and ends at night
+ok   glide ink: starts at day and ends at night
+ok   glide inkSecondary: starts at day and ends at night
+ok   glide hairline: starts at day and ends at night
+ok   glide monitor: starts at day and ends at night
+ok   glide faded: starts at day and ends at night
+ok   glide fadedInk: starts at day and ends at night
+ok   mix clamps
+ok   halfway between black and white in linear light is #BCBCBC
+ok   the base darkens steadily through the glide, never flashing
+ok   the scale is 4, 8, 12, 16, 24, 32
+ok   on the scale
+ok   light: the base is a light grey
+ok   dark: the base is a dark grey, not black
+ok   light: the faded ink reads 4.5:1 on the faded row
+ok   light: the faded ink reads 4.5:1 on its inset row
+ok   light with Increase Contrast: the faded ink reads 4.5:1 on its inset row
+ok   dark: the faded ink reads 4.5:1 on the faded row
+ok   dark: the faded ink reads 4.5:1 on its inset row
+ok   dark with Increase Contrast: the faded ink reads 4.5:1 on its inset row
+ok   night: the faded face is plainly lighter than the cards
+ok   night: the faded face is grey, greyer than the cards
+ok   day: the faded face is as it was
+ok   light: a wrong pick's ring reads 3:1 on the faded
+ok   light: a wrong pick's ring reads 3:1 on the surface
+ok   light: a wrong pick's ring reads 3:1 on the background
+ok   light with Increase Contrast: a wrong pick's ring reads 3:1 on the faded
+ok   light with Increase Contrast: a wrong pick's ring reads 3:1 on the surface
+ok   light with Increase Contrast: a wrong pick's ring reads 3:1 on the background
+ok   dark: a wrong pick's ring reads 3:1 on the faded
+ok   dark: a wrong pick's ring reads 3:1 on the surface
+ok   dark: a wrong pick's ring reads 3:1 on the background
+ok   dark with Increase Contrast: a wrong pick's ring reads 3:1 on the faded
+ok   dark with Increase Contrast: a wrong pick's ring reads 3:1 on the surface
+ok   dark with Increase Contrast: a wrong pick's ring reads 3:1 on the background
+ok   monitor: ink at least 4.5
+ok   monitor: inkSecondary at least 4.5
+ok   monitor: primaryInk at least 4.5
+ok   monitor: ecg at least 4.5
+ok   monitor: success at least 4.5
+ok   monitor: warning at least 4.5
+ok   monitor: danger at least 4.5
+ok   monitor: beam at least 3.0
+ok   the AccentColor asset is found
+ok   AccentColor (light) is the primary, Cards' Care Blue
+ok   AccentColor (dark) is the night primary ink, Cards' Care Blue
+ok   LaunchBackground (light) is the base
+ok   LaunchBackground (dark) is the base
+ok   the owner's list is read (ios/RedPen/Tests/OwnerAccepted.json, WardPaletteTests.swift)
+ok   every case on the owner's list is one a check here measured short
+
+ALL WARD PALETTE TESTS PASS
+
+run rc=0

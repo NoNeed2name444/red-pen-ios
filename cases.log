@@ -1,0 +1,128 @@
+
+compile rc=0
+ok   sample “Sharp chest pain after a long flight” is playable
+ok   sample “Sharp chest pain after a long flight” has no rule hit at all
+ok   sample “Sharp chest pain after a long flight” has three teaching points
+ok   sample “Sharp chest pain after a long flight” has a full clerking note
+ok   sample “A new headache at 72” is playable
+ok   sample “A new headache at 72” has no rule hit at all
+ok   sample “A new headache at 72” has three teaching points
+ok   sample “A new headache at 72” has a full clerking note
+ok   two groups only: examine and test
+ok   a history step reads as no group
+ok   loose names still read
+ok   too few steps
+ok   too many steps
+ok   a missing group
+ok   no clerking note
+ok   fewer than two key steps
+ok   the diagnosis must be a differential
+ok   a differential with no support
+ok   a differential naming a missing step
+ok   the turning step must be key
+ok   the budget covers key steps plus 30%
+ok   next step needs four or five options
+ok   next step key in range
+ok   a key that stands out by length is refused
+ok   an impossible result is refused
+ok   a dose outside any usual range is refused
+ok   blank complaint
+ok   tidy numbers a blank id and a repeated one
+ok   tidy points a lost turning step at the first key step
+ok   tidy raises a short budget to cover the key steps
+ok   screen keeps the playable, marked passed
+ok   screen drops the rest with reasons
+ok   a held case is kept off the list
+ok   tachycardia flagged high
+ok   normal heart rate not flagged
+ok   saturation 93 flagged low
+ok   systolic 86 flagged low
+ok   142/84 flagged high, as the question chart flags it
+ok   fever flagged high
+ok   PaO2 8.9 kPa low by the accuracy engine's range
+ok   pH 7.47 high
+ok   potassium in mmol/L by the table
+ok   the table wins over a stated range
+ok   a stated range for a test the table lacks
+ok   no range, no flag
+ok   names match across case and punctuation
+ok   an accepted name is the diagnosis
+ok   a runner-up is not
+ok   typed names resolve to the case's own
+ok   an unknown name does not resolve
+ok   candidates: every differential and distractor once
+ok   candidates in the same order every time
+ok   the diagnosis is not always first
+ok   the runner-up is the first non-diagnosis
+ok   a fresh run is new
+ok   a step is taken
+ok   not twice
+ok   not a step the case lacks
+ok   ladder names are the case's own
+ok   a rung once
+ok   three rungs at most; a newcomer takes the bottom
+ok   a rung moves up
+ok   the top cannot move higher
+ok   a rung is removed
+ok   a run with steps is seen
+ok   the ladder is copied once per step
+ok   all key and red flags, right answers, in time: 100
+ok   a finished run is discharged with its score
+ok   a finished run takes no more steps
+ok   wrong diagnosis and next step lose 30 and 20
+ok   red flags in proportion (1 of 2 = 8 of 15)
+ok   key findings in proportion (2 of 3 = 17 of 25)
+ok   a missed must-not-miss caps the total at 60
+ok   three low-yield steps cost 4 of the time
+ok   one low-yield step is free
+ok   past the budget: allowed, counted
+ok   over budget with three low-yield steps: 10 - 4 - 5
+ok   shares round to the nearest, all when nothing to find
+ok   turning point: the ladder led only after a later step
+ok   turning point: in time
+ok   turning point: never led
+ok   turning point: the step was never taken
+ok   turning point: only at the decision
+ok   every turning point is said
+ok   missed red flags, the must-not-miss first
+ok   key findings counted
+ok   separating findings: the diagnosis's against the runner-up's
+ok   separating findings in the clinic case
+ok   low-yield steps listed with why
+ok   one card per missed key finding or red flag
+ok   cards are basic and tagged
+ok   nothing missed, no cards
+ok   the Ideas note names the diagnosis
+ok   a Cases set round-trips
+ok   the kind is saved as "cases"
+ok   its noun
+ok   "qa" is still retired, "cases" is not
+ok   a case missing most fields still reads
+ok   a copy's cases get new ids
+ok   the set's item ids include its cases
+ok   each case is one accuracy item of kind case
+ok   what it asserts: the clerking and the key, not the wrong options
+ok   a fenced reply is read
+ok   patient read, numbers as strings too
+ok   the complaint loses the writer's quotation marks
+ok   the clerking note is read, short keys too
+ok   vitals in the chart's order
+ok   a step that questions the patient is dropped
+ok   loose values read
+ok   results read, ranges kept only when given
+ok   the answer letter read as an index
+ok   the source names the lecture and pages
+ok   a reply with no JSON gives nothing
+ok   one case on its own is read too
+ok   a thinking block is skipped
+ok   a case whose only steps question the patient is no case
+ok   a cloud job's replies are collected up to the count
+ok   the instructions carry the lecture last
+ok   and the brief
+ok   they ask for a clerking note and no questions to the patient
+ok   and the JSON shape when asked
+ok   settings turn over case by case
+
+ALL CASES TESTS PASS
+
+run rc=0

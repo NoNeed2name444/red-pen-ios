@@ -1,0 +1,96 @@
+
+compile rc=0
+ok   647 points tall is short
+ok   728 points tall is short
+ok   763 points tall is short
+ok   778 points tall is not short
+ok   840 points tall is not short
+ok   a wide iPad keeps New set at the bottom
+ok   nothing measured yet is not short
+ok   a short window shows two of four beds
+ok   a short window shows a lone bed
+ok   a tall window shows every bed
+ok   no beds stay none
+ok   a trim takes a bed off a tall window
+ok   a trim goes on from a short window's two
+ok   a trim leaves one bed
+ok   a trim leaves none as none
+ok   a line through the middle slices
+ok   a button wholly above the line is not sliced
+ok   a button wholly past the line is not sliced
+ok   a button ending on the line is not sliced
+ok   a home that fits has no faults
+ok   the button and the card past the bar's line are both caught
+ok   New set on the card's top is caught
+ok   at XXL a home that runs on and scrolls fits
+ok   the same page at the standard sizes does not
+ok   a Start button sliced by the bar's line is caught
+ok   a Start button wholly above the bar's line is fine
+ok   the card fitting, the tiles under it: no fault
+ok   the card well clear: no fault
+ok   a text narrower than its widest word is caught, and only that one
+ok   the bar's line is barRoom (12) above the bar
+ok   the end row is the bar's height and 24
+ok   no bar measured: the end row is 24
+ok   an unmeasurable bar is not counted
+ok   the last tile can sit wholly above the bar, endRoom clear of it
+ok   a bar from 700, 132 tall: the last tile ends at 676
+ok   found home's source
+ok   no page cut in HomeFit
+ok   no page cut in the library
+ok   the bar floats over the page
+ok   nothing is drawn behind New set and the dock: no fill, strip, line or glow
+ok   the list ends with the end row
+ok   no soft edge fades the rows under the bar (no fading, the owner, 9 Oct)
+ok   Start ward round keeps clear of the bar's line
+ok   ending 4 points above the bar is too close
+ok   nothing laid out is a fault
+ok   a card with no button is a fault
+ok   682.78 at 3x books at the pixel line above, 682.667
+ok   a booked top is never below the real one
+ok   a top already on the grid keeps its place
+ok   a top on a 2x pixel line keeps its place
+ok   every booked top is at or above the real one, within a pixel
+ok   an unknown scale floors to a whole point
+ok   the ledger lists the floored top
+ok   a cut at 683 settles on the chip's pixel line
+ok   reach lifts a row's top
+ok   a dropped part leaves the book
+ok   dropping a part that is not there changes nothing
+ok   an empty frame is not kept
+ok   a new page empties the ledger
+ok   two parts at one top book it once
+ok   the top stays while another part holds it
+ok   initial rest sighting books the tile and publishes once
+ok   push disappear drops both entry and sighting
+ok   onAppear re-books the identical rect and publishes once
+ok   chip booked at rest before transition
+ok   mid-push drop clears entry without publishing mid-transition
+ok   mid-pop sighting is kept in sightings without booking or publishing
+ok   rebook on rest restores the popped part and publishes once
+ok   scrolling updates sightings without changing entries or told
+ok   rebook at scroll settlement updates entries to final sighting and fires once
+ok   a second rebook with no change does not fire again
+ok   row recycled mid-scroll does not publish until settlement
+ok   settlement after mid-scroll recycle publishes remaining row once
+ok   the chip at 682 moves the cut from 686 to 682
+ok   dropping a part at or below the settled cut keeps its entry so settledCut stays at 682
+ok   a part hidden by the cut stays booked through the next rest
+ok   dropping a part above the cut removes it from entries and tops
+ok   told deduplicates identical sorted tops across set, drop and rebook
+ok   T0060 nit 1: every 3x holder survives roundoff at the cut
+ok   T0060 nit 2: rebook prunes ghosts above or without a cut, keeping live and reappeared rows
+ok   T0060 nit 3: keep a self-topped holder through moving drop/rest, but recycle above-cut rows
+ok   T0060 nit 4: clear empties the book while preserving an unchanged cut
+ok   drop reports kept below cut
+ok   drop reports removed
+ok   drop reports no such part
+ok   push: kept drops show home covered when every face is below the cut
+ok   push: no drop at all is no push
+ok   push: a part above the cut must leave the book
+ok   push: a part leaving the book shows home covered
+ok   push: an uncut page needs a part to leave
+ok   push: a face on the cut is below it
+all HomeFit checks passed
+
+run rc=0

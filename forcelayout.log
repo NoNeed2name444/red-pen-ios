@@ -1,0 +1,25 @@
+
+compile rc=0
+PASS F1a no notes, no places
+PASS F1b one note sits at the centre
+PASS F1c a note named three times is placed once
+PASS F2a every note is placed, and only those
+PASS F2b the same notes settle the same way
+PASS F2c the order the notes come in does not matter
+PASS F2d nor which way round a link is given
+PASS F2e a link given twice pulls once
+PASS F2f another seed is another shape
+PASS F3a centred on the origin
+PASS F3b no two notes on top of each other
+PASS F3c joined notes sit closer than the rest
+PASS F3d a folder's notes gather
+PASS F4a the full layout moves the notes from where they start
+PASS F4b a cancelled layout takes not one more step
+PASS F4c a layout nobody cancels runs to the end, as before
+PASS F4d the off-main job's answer comes back
+PASS F4e cancelling the rebuild cancels its off-main job
+PASS F4f a rebuild cancelled before its job starts cancels it too
+PASS F4g a long layout cancelled a moment in stops at once
+ALL PASSED
+
+run rc=0

@@ -1,0 +1,78 @@
+
+compile rc=0
+PASS radius is the device's less the inset
+PASS floored at the element's own minimum
+PASS corner 0: floor 12.0 at 0.0
+PASS corner 0: floor 12.0 at 12.0
+PASS corner 0: floor 12.0 at 16.0
+PASS corner 0: floor 12.0 at 62.0
+PASS corner 0: floor 16.0 at 0.0
+PASS corner 0: floor 16.0 at 12.0
+PASS corner 0: floor 16.0 at 16.0
+PASS corner 0: floor 16.0 at 62.0
+PASS corner 0: floor 24.0 at 0.0
+PASS corner 0: floor 24.0 at 12.0
+PASS corner 0: floor 24.0 at 16.0
+PASS corner 0: floor 24.0 at 62.0
+PASS iPhone 16 Pro: clear of the status bar
+PASS iPhone 16 Pro: clear of the home indicator
+PASS iPhone 16 Pro: clear of the side insets
+PASS iPhone 16 Pro: never nearer the edge than the frame
+PASS iPhone 16 Pro: top corners concentric
+PASS iPhone 16 Pro: bottom corners concentric
+PASS iPhone 16 Pro: a top above the bar is held below it
+PASS iPhone 16 Pro: outline inside the panel
+PASS iPhone 16 Pro: content inside the ring
+PASS iPhone SE: clear of the status bar
+PASS iPhone SE: clear of the home indicator
+PASS iPhone SE: clear of the side insets
+PASS iPhone SE: never nearer the edge than the frame
+PASS iPhone SE: top corners concentric
+PASS iPhone SE: bottom corners concentric
+PASS iPhone SE: a top above the bar is held below it
+PASS iPhone SE: outline inside the panel
+PASS iPhone SE: content inside the ring
+PASS Pro Max landscape: clear of the status bar
+PASS Pro Max landscape: clear of the home indicator
+PASS Pro Max landscape: clear of the side insets
+PASS Pro Max landscape: never nearer the edge than the frame
+PASS Pro Max landscape: top corners concentric
+PASS Pro Max landscape: bottom corners concentric
+PASS Pro Max landscape: a top above the bar is held below it
+PASS Pro Max landscape: outline inside the panel
+PASS Pro Max landscape: content inside the ring
+PASS iPad: clear of the status bar
+PASS iPad: clear of the home indicator
+PASS iPad: clear of the side insets
+PASS iPad: never nearer the edge than the frame
+PASS iPad: top corners concentric
+PASS iPad: bottom corners concentric
+PASS iPad: a top above the bar is held below it
+PASS iPad: outline inside the panel
+PASS iPad: content inside the ring
+PASS no bars: clear of the status bar
+PASS no bars: clear of the home indicator
+PASS no bars: clear of the side insets
+PASS no bars: never nearer the edge than the frame
+PASS no bars: top corners concentric
+PASS no bars: bottom corners concentric
+PASS no bars: a top above the bar is held below it
+PASS no bars: outline inside the panel
+PASS no bars: content inside the ring
+PASS no bars, no device: the frame as before
+PASS no bars, iPad: its 18-point corner as before
+PASS a reported 0: the frame's corners at their floor
+PASS Done keeps its capsule
+PASS a bar's bottom corners follow the ring
+PASS a bar's top corners stay square
+PASS the dock keeps its radius here
+PASS a mid-page card keeps its radius
+PASS near a round corner the dock is concentric
+PASS never rounder than half its height
+PASS corner 0: 24.0 keeps its own minimum
+PASS corner 0: 16.0 keeps its own minimum
+PASS corner 0: 0.0 keeps its own minimum
+PASS corner 0: 18.0 keeps its own minimum
+0 WARD FRAME CLEAR FAILURES
+
+run rc=0

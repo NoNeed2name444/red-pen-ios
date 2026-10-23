@@ -1,0 +1,2 @@
+catalog: ar: no translation for 'Done'
+68 keys, languages ['ar', 'en'], 1 problem(s)

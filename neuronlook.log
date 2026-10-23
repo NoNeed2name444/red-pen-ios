@@ -1,0 +1,47 @@
+
+compile rc=0
+PASS N1 every dye and accent on screen's scale
+PASS N1 green, cyan, pink and amber dyes
+PASS N1 the fluid deep blue: dark, blue the strongest
+PASS N1 the interior deep violet, the heart a brighter violet
+PASS N1 an idea leans to its cell's accent
+PASS N1 slots wrap round, 5 and 6 a receptor's and a drifter's
+PASS N1 a cell's glow leans to the violet, a receptor's and a drifter's keep their own
+PASS N1 two cells' dyes and accents give all four colours
+PASS N2 six states, six codes 0...5
+PASS N2 each mirrors one space style and back
+PASS N2 the menu in the space styles' order
+PASS N2 each its own title, process and symbol
+PASS N2 natural: a receptor migrates, a drifter engulfs, the rest rest
+PASS N2 a pacemaker beats with the pulsar's period
+PASS N3 a closed cell shows nothing inside
+PASS N3 natural: each note its role's state
+PASS N3 one state for every note
+PASS N3 containers always rest
+PASS N3 a cell's state wins for the notes inside
+PASS N3 out of range: resting
+PASS N3 stored strings read back
+PASS N3 the stored form is stable
+PASS N3 anything unreadable skipped
+PASS N3 natural is not custom
+PASS N4 the same every time
+PASS N4 on the unit sphere
+PASS N4 the palette's colours, on screen's scale
+PASS N4 gold and blue, nothing else
+PASS N4 most small, the big ones fainter
+PASS N4 spread all round
+PASS N5 the soma and halo read the state
+PASS N5 the halo draws every state's process
+PASS N5 the soma's interior is the palette's
+PASS N5 an opened nucleus is drawn as big as the layout keeps it for the parts
+PASS N5 the pacemaker's beat is the pulsar's period in both
+PASS N6 the same every time
+PASS N6 on the unit sphere
+PASS N6 on screen's scale, never full strength
+PASS N6 blue, the strongest channel
+PASS N6 the big ones fainter
+PASS N6 spread over the sky
+PASS N6 each turned its own way
+all passed
+
+run rc=0

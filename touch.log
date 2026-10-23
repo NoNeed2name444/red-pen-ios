@@ -1,0 +1,61 @@
+
+compile rc=0
+PASS T1 a quick touch on a body is a tap
+PASS T1 on empty space too (it lets the chosen one go)
+PASS T1 two quick taps on a body: a double tap
+PASS T1 two on empty space: not ours (the camera's own)
+PASS T1 a quick drag on a body turns the camera, never moves it
+PASS T1 a quick drag on empty space turns the camera
+PASS T1 held a quarter second, then moved: picked up
+PASS T1 exactly at the hold: picked up
+PASS T1 held still on a body: its options
+PASS T1 still deciding while held briefly
+PASS T1 a slow tap is still a tap
+PASS T1 held on empty space then moved: the camera
+PASS T1 a wobble within the slop is still a tap
+PASS T1 thresholds: 0.25 s to pick up, options after, 10 points of slop
+PASS T1 a double tap is close in time and place
+PASS T2 nothing chosen: no card
+PASS T2 tap a body: selected, card up, eases towards it
+PASS T2 the double tap's second tap does not open twice
+PASS T2 the double tap opens
+PASS T2 closing returns to the map with it still selected
+PASS T2 tap it again: open
+PASS T2 an open asked for twice at once opens once
+PASS T2 Show links dims round it
+PASS T2 a chip selects that body, the camera glides, the neighbourhood follows
+PASS T2 Show links again: everything back
+PASS T2 tap empty space: deselect, card hides
+PASS T2 again: nothing more
+PASS T2 a double tap on an unchosen body selects and opens
+PASS T2 hold: its options, selecting it first
+PASS T2 a deleted body lets go, and the map comes back
+PASS T2 another body going changes nothing
+PASS T2 Open with nothing chosen does nothing
+PASS T3 Space: Gas giant · Page
+PASS T3 Space: Rocky planet · Idea
+PASS T3 Neurons: Granule · Idea
+PASS T3 Neurons: Vesicle · Page
+PASS T3 Neurons: Receptor · Idea
+PASS T3 a single look names its style
+PASS T3 no theme word: the plain type
+PASS T3 the first three lines, without markup
+PASS T3 links as chips, by title
+PASS T3 Open, Show links, More
+PASS T3 six chips and the rest counted
+PASS T3 an empty note says so
+PASS T3 a folder: Star · Folder
+PASS T3 a folder: counts and its latest notes
+PASS T3 a folder: Open folder and Fly in
+PASS T3 Neurons folder: Cell
+PASS T3 Neurons subfolder: Cell part
+PASS T3 every card is read out whole
+PASS T3 an untitled note
+PASS T4 the first-run card's three lines
+PASS T4 VoiceOver's actions
+PASS T4 a note's options
+PASS T4 a folder's options add a note there
+PASS T4 the home star cannot be renamed or deleted
+all passed
+
+run rc=0

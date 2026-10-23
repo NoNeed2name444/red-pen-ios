@@ -1,0 +1,13 @@
+    0  Wired but broken: no such catalog key
+   19  String concatenation into Text
+    3  String(format:) with English words
+  131  Hard-coded English plurals
+    4  Dates in a fixed pattern or locale
+   22  Directional SF Symbols (use .forward / .backward)
+    0  .left / .right instead of .leading / .trailing
+   11  Horizontal offsets (never mirrored; right for a picture, wrong for a layout)
+   11  Left / right arrow keys
+    8  Rings and arcs not filling from the leading side
+   57  Comments that place things left or right
+ 1123  On-screen literals not in the catalog yet
+report: out/l10n-report.md
