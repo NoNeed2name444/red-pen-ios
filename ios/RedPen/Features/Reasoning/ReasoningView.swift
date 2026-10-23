@@ -254,7 +254,7 @@ struct ReasoningWriteBar: View {
             Button {
                 reasoning.write(tool, for: set, count: count)
             } label: {
-                Label(writeTitle, systemImage: "sparkles")
+                Label(writeTitle, systemImage: "square.and.pencil")
             }
             .buttonStyle(.wardPrimary)
             .keyboardShortcut(.defaultAction)

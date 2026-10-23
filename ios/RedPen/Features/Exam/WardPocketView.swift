@@ -222,7 +222,7 @@ private struct PractiseButton: View {
     var body: some View {
         Section {
             Button(action: action) {
-                Label("Practise this", systemImage: "sparkles")
+                Label("Practise this", systemImage: "square.and.pencil")
                     .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 44)
             }

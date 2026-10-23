@@ -20,9 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.Air
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Biotech
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.FamilyRestroom
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -314,7 +314,7 @@ internal object WardDisclaimer {
         Row(Modifier.fillMaxWidth().tappableRowTile(action).heightIn(min = 28.dp).testTag("wardPractise")
             .semantics { contentDescription = "Practise this. Writes exam questions on this with your usual question settings" },
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
+            Icon(Icons.Rounded.EditNote, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
             Text("Practise this", style = WardType.body.textStyle().copy(fontWeight = FontWeight.SemiBold), color = wardColor(WardToken.primaryInk))
         }
     }

@@ -19,10 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ListAlt
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.RemoveCircle
 import androidx.compose.material.icons.rounded.Share
@@ -155,7 +155,7 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
                 Text(rule.text, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
                 if (rule.detail.isNotEmpty()) Text(rule.detail, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
                 if (rule.byAI || rule.isExample == true) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (rule.byAI) WardChip("Written with AI", tone = WardTone.Blue, icon = Icons.Rounded.AutoAwesome)
+                    if (rule.byAI) WardChip("Written with AI", tone = WardTone.Blue, icon = Icons.Rounded.Memory)
                     if (rule.isExample == true) WardChip("Example data", tone = WardTone.Grey)
                 }
             }

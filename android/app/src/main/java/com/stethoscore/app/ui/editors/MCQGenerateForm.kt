@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -219,7 +219,7 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
             EditorSection(null) {
                 CountField("How many questions", questionCount, 3..MCQGenerator.maxQuestionsTotal, onQuestionCount, enabled = !isGenerating)
                 // the same as its floating copy in the dock
-                FloatingActionRegistration("mcq", "Make $questionCount questions", canStart, isGenerating, Icons.Rounded.AutoAwesome, ::generate)
+                FloatingActionRegistration("mcq", "Make $questionCount questions", canStart, isGenerating, Icons.Rounded.EditNote, ::generate)
                 WardButtonBox(::generate, Modifier.fillMaxWidth().floatingActionAnchor("mcq"), kind = WardButtonKind.primary, enabled = canStart) {
                     Text(if (isGenerating) generationStatus ?: "Writing\u2026" else "Make $questionCount questions")
                 }

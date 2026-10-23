@@ -109,7 +109,7 @@ struct OsceGenerateSection: View {
                 Button { start() } label: {
                     HStack {
                         if working { EcgLoader() }
-                        Label(makeTitle, systemImage: "sparkles")
+                        Label(makeTitle, systemImage: "square.and.pencil")
                     }
                 }
                 .buttonStyle(.wardPrimary)

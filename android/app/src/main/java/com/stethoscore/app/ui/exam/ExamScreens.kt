@@ -20,9 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddCircleOutline
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Tune
@@ -403,7 +403,7 @@ fun ExamDashboardCard(store: StudyStore, revision: Int, onPreset: (NewSetPreset)
                     onPreset(NewSetPreset.blueprintArea(s.area.title, exam))
                 },
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-                Icon(Icons.Rounded.AutoAwesome, null, tint = wardColor(WardToken.primaryInk))
+                Icon(Icons.Rounded.EditNote, null, tint = wardColor(WardToken.primaryInk))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Text(s.area.title, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                     Text(ExamWords.why(s), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))

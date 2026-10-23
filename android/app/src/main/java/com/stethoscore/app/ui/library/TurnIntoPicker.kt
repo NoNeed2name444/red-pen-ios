@@ -17,10 +17,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -130,7 +130,7 @@ internal fun turnNote(source: StudySet, kind: StudySetKind, ready: Map<StudySetK
         val plural = if (n == 1) "" else "s"
         return "Instant · $n ${made.itemNoun}$plural" to Icons.Rounded.Bolt
     }
-    return (if (hasLecture) "Written from your lecture. Check before relying on it." else "Written from this set. Check before relying on it.") to Icons.Rounded.AutoAwesome
+    return (if (hasLecture) "Written from your lecture. Check before relying on it." else "Written from this set. Check before relying on it.") to Icons.Rounded.Description
 }
 
 /** "Turn into…" on [source]: a sheet of mode tiles, with Cancel. [onClose] takes it away. */

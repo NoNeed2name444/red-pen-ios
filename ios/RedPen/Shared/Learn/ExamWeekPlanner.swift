@@ -159,7 +159,7 @@ enum ExamWeekPlanner {
             case .lockIn: return "lock.fill"
             case .flagged: return "flag.fill"
             case .weakest: return "scope"
-            case .newQuestions: return "sparkles"
+            case .newQuestions: return "square.and.pencil"
             case .nothing: return "checkmark.circle.fill"
             }
         }

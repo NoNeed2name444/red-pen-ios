@@ -79,7 +79,7 @@ struct TurnIntoPicker: View {
             let text: String = "Instant \u{00B7} \(n) \(made.itemNoun)\(plural)"
             return (text, "bolt.fill")
         }
-        return (hasLecture ? "Written from your lecture. Check before relying on it." : "Written from this set. Check before relying on it.", "sparkles")
+        return (hasLecture ? "Written from your lecture. Check before relying on it." : "Written from this set. Check before relying on it.", "doc.text")
     }
 
     /// One mode, as a soft tile raised off the base and pressed in under the

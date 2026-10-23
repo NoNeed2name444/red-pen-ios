@@ -184,7 +184,7 @@ struct CoverageView: View {
             Button {
                 checker.run(track: track, exam: checkScope, areas: areas, library: store.library)
             } label: {
-                Label(title, systemImage: "sparkles")
+                Label(title, systemImage: "checklist")
             }
             .buttonStyle(.wardPrimary)
             .keyboardShortcut(.defaultAction)
@@ -274,7 +274,7 @@ struct CoverageView: View {
     private func checkSummary(_ check: CoverageCheck) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if check.isExample {
-                Label("Example check", systemImage: "wand.and.stars")
+                Label("Example check", systemImage: "checklist")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.wardInk)
                 Text("Made up from your keyword result to show what a real check looks like, for the first \(CoverageExamples.areaCount) areas.")
@@ -411,7 +411,7 @@ struct CoverageView: View {
                 Button {
                     generate(sub, area: area)
                 } label: {
-                    Label("Generate questions", systemImage: "wand.and.stars")
+                    Label("Generate questions", systemImage: "square.and.pencil")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color.wardPrimaryInk)
                 }
@@ -421,7 +421,7 @@ struct CoverageView: View {
         .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
         .contextMenu {
-            Button("Generate questions", systemImage: "wand.and.stars") {
+            Button("Generate questions", systemImage: "square.and.pencil") {
                 generate(sub, area: area)
             }
         }

@@ -102,7 +102,7 @@ struct LensAnswerSheet: View {
             LensAccuracyRow(question: question, answer: a)
             if !a.answeredBy.isEmpty {
                 Label("Answered by " + a.answeredBy + ". Check anything that matters against your notes.",
-                      systemImage: "sparkles")
+                      systemImage: "cpu")
                     .font(.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }

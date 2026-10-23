@@ -156,7 +156,7 @@ struct RuleSheetView: View {
             }
             if rule.byAI || rule.isExample == true {
                 HStack(spacing: 8) {
-                    if rule.byAI { WardChip(text: "Written with AI", tone: .blue, symbol: "sparkles") }
+                    if rule.byAI { WardChip(text: "Written with AI", tone: .blue, symbol: "cpu") }
                     if rule.isExample == true { WardChip(text: "Example data", tone: .grey) }
                 }
             }
@@ -217,7 +217,7 @@ private struct RuleSheetButtons: View {
         layout {
             if plain > 0 {
                 Button(action: onWrite) {
-                    Label(writeTitle, systemImage: "sparkles")
+                    Label(writeTitle, systemImage: "square.and.pencil")
                 }
                 .buttonStyle(.wardSecondary)
                 .accessibilityHint("Rewrites each plain rule as one exam-style line, ten at a time")

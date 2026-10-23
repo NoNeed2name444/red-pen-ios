@@ -21,10 +21,10 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoFixHigh
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Contrast
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.DropdownMenu
@@ -271,13 +271,13 @@ object CoverageWords {
             }
             Text(CoverageWords.detail(sub), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
             if (isGap) ChipBox(false, onGenerate) {
-                Icon(Icons.Rounded.AutoFixHigh, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(14.dp))
+                Icon(Icons.Rounded.EditNote, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(14.dp))
                 Text("Generate questions", style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
             }
         }
         DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.raised)) {
             DropdownMenuItem({ Text("Generate questions", color = wardColor(WardToken.ink)) }, { menu = false; onGenerate() },
-                leadingIcon = { Icon(Icons.Rounded.AutoFixHigh, null, tint = wardColor(WardToken.ink)) })
+                leadingIcon = { Icon(Icons.Rounded.EditNote, null, tint = wardColor(WardToken.ink)) })
         }
     }
 }

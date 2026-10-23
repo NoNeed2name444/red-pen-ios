@@ -132,7 +132,7 @@ struct ExamDashboardCard: View {
                     preset = NewSetPreset(blueprintArea: s.area.title, exam: exam)
                 } label: {
                     HStack(spacing: WardSpace.m) {
-                        Image(systemName: "sparkles").foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
+                        Image(systemName: "square.and.pencil").foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(s.area.title).foregroundStyle(Color.wardInk)
                             Text(ExamDashboardCard.why(s)).font(.caption).monospacedDigit()

@@ -208,7 +208,7 @@ struct IdeasThemeTip: Tip {
     var message: Text? {
         Text("In the map, the round Look button switches it between Space, Neurons and Performance.")
     }
-    var image: Image? { Image(systemName: "sparkles") }
+    var image: Image? { Image(systemName: "paintpalette") }
     var options: [Option] { MaxDisplayCount(1) }
 }
 #endif
