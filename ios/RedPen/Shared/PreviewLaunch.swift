@@ -33,11 +33,23 @@ enum PreviewLaunch {
     /// silently produces more portrait screenshots - pictures that look like
     /// evidence and are not. The app turns itself instead, through the window
     /// scene, which is the only part of the system that can.
-    static var landscape: Bool {
-        let args = ProcessInfo.processInfo.arguments
-        guard let i = args.firstIndex(of: "-uiPreviewOrientation"), i + 1 < args.count else { return false }
-        return args[i + 1].lowercased().hasPrefix("land")
+    static var landscape: Bool { orientation?.isLandscape ?? false }
+
+    /// Which way up (`-uiPreviewOrientation portrait|landscapeLeft|
+    /// landscapeRight`; the iPad job's "landscape" is landscapeRight).
+    static var orientation: DevicePosture.Orientation? {
+        DevicePosture.preview(arguments: ProcessInfo.processInfo.arguments).orientation
     }
+
+    /// A fold to photograph (`-uiPreviewPosture folded|open|half`): the
+    /// app draws its stand-in hinge (DevicePosture.previewBand), since no
+    /// simulator on the CI images can fold.
+    static var posture: DevicePosture.Posture? {
+        DevicePosture.preview(arguments: ProcessInfo.processInfo.arguments).posture
+    }
+
+    /// Turned once per launch: PreviewRoot and the posture root both ask.
+    @MainActor private static var turned = false
 
     /// A pretend window width, for photographing the multitasking sizes.
     ///
@@ -80,7 +92,10 @@ enum PreviewLaunch {
     /// produces screenshots that look like evidence and are not.
     @MainActor
     static func applyOrientation() async {
-        guard landscape else { return }
+        guard let target = orientation, target.isLandscape, !turned else { return }
+        turned = true
+        let mask: UIInterfaceOrientationMask = target == .landscapeLeft ? .landscapeLeft : .landscapeRight
+        let wanted: UIInterfaceOrientation = target == .landscapeLeft ? .landscapeLeft : .landscapeRight
         var notes: [String] = []
         for attempt in 1...12 {
             guard let scene = UIApplication.shared.connectedScenes
@@ -89,15 +104,15 @@ enum PreviewLaunch {
                 try? await Task.sleep(for: .milliseconds(400))
                 continue
             }
-            if scene.interfaceOrientation.isLandscape {
-                notes.append("attempt \(attempt): already landscape")
+            if scene.interfaceOrientation == wanted {
+                notes.append("attempt \(attempt): already \(target.rawValue)")
                 break
             }
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
                 notes.append("attempt \(attempt): refused - \(error.localizedDescription)")
             }
             try? await Task.sleep(for: .milliseconds(400))
-            if scene.interfaceOrientation.isLandscape {
+            if scene.interfaceOrientation == wanted {
                 notes.append("attempt \(attempt): turned")
                 break
             }

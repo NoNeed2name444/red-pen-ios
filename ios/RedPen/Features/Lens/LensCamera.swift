@@ -138,6 +138,9 @@ final class LensCaptureCamera: NSObject, AVCaptureVideoDataOutputSampleBufferDel
         // "1." or "B)" from the front, where QuestionDetector looks for it.
         if !fast { request.recognitionLanguages = RedPenOCR.languages }
         request.minimumTextHeight = 0.012
+        // .up holds in landscape too: setCaptureAngle turns each frame to
+        // the horizon (RotationCoordinator) before it gets here, so a phone
+        // on either side hands over upright frames, never sideways ones.
         let handler = VNImageRequestHandler(cvPixelBuffer: pixels, orientation: .up, options: [:])
         do { try handler.perform([request]) } catch { return [] }
         let found: [VNRecognizedTextObservation] = request.results ?? []

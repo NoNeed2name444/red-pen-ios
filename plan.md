@@ -134,8 +134,27 @@ Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8)
     personal's 3827785 too (run 37757846270), perhaps in Space as well.
   - The accessibility tests fail on personal as well ("no example mcq set
     in the library"); that step is continue-on-error and not the map's.
-- Shot 13 ("landscape") is portrait on the iPhone because the iPhone app
-  is portrait-only (project.yml); only the iPad turns.
+- Shot 13 ("landscape") was portrait on the iPhone while the iPhone app
+  was portrait-only. Since T0138 the iPhone turns too (Portrait,
+  LandscapeLeft, LandscapeRight; never upside down; project.yml, held by
+  DevicePostureTests), so the shot turns from the next run.
+- T0138 (iPhone and the foldable iPhone): [x] iPhone landscape both ways;
+  [x] DevicePosture (posture x orientation, hinge band, panes; stand-in
+  band from `-uiPreviewPosture folded|open|half` with
+  `-uiPreviewOrientation portrait|landscapeLeft|landscapeRight`); [x]
+  modeScreen/wardScreen/wardForm, home and Ideas keep to one side of the
+  band, the study deck splits across it (StudyBarHost); [x] the frame's
+  corner from the display, not the idiom; [x] iphone-duo.yml (discovery,
+  duo, iphones) and ios-preview.yml's `orientation` pass;
+  [x] RotationStateUITests. Waiting on CI: GitHub's images (23 Oct) have
+  no foldable iPhone simulator and no hinge API in any SDK (macos-latest:
+  Xcode 26.x; xcode-27 preview: 27.0, 27.1 RC, 27.2 beta, iOS 27.0
+  runtime only), no iPhone SE; the Duo's corner radii are unknown, so the
+  duo job fails loudly until an image has one. Left: quiz options on the
+  controls side of a half-open fold (the deck is there; the options still
+  scroll with the stem), the dock on its own side of the fold at home,
+  and the inline navigation title, which the system centres on an
+  upright band.
 - app-build.yml runs on every push to personal and design/**. Keep work in
   progress on wip/3d-neurons-m3 until the app compiles. To compile-check it
   there, dispatch the build:

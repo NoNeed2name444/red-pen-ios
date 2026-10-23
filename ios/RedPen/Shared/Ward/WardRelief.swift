@@ -455,6 +455,20 @@ enum WardPaper {
         pad ? padRadius + frame : (min(width, height) - 2 * frame) * cornerShare + frame
     }
 
+    /// The display's shorter side from which its corner is the large
+    /// screen's 18 points: past every phone's (440 at most), short of the
+    /// smallest tablet's (744). The foldable iPhone's inner display is not
+    /// in any SDK yet (T0138), so where it falls is unknown.
+    static let padDisplaySide = 600.0
+
+    /// Whether `pad` (the large screen's corner) holds for this display, in
+    /// points: read from the display the window is on, never the kind of
+    /// device, so an iPad window 390 wide keeps the iPad's corner and a
+    /// phone never takes it.
+    static func roundsLikePad(displayWidth: Double, displayHeight: Double) -> Bool {
+        min(displayWidth, displayHeight) >= padDisplaySide
+    }
+
     /// The opening's edge on a side whose system bar reaches `inset` in:
     /// the frame's own 12 points, or just past the bar, so the ring's whole
     /// width lies clear of it (the owner, 22 Oct: the frame never crosses a

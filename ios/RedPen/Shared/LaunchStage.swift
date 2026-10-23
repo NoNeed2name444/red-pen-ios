@@ -196,7 +196,7 @@ final class LaunchStage {
     var opening: CGRect? {
         guard window.width > 0, let p = WardPaper.panel(width: Double(window.width), height: Double(window.height),
                                                         top: WardPaperTop.shared.y.map { Double($0) } ?? 0,
-                                                        pad: UIDevice.current.userInterfaceIdiom == .pad) else { return nil }
+                                                        pad: WindowDisplay.roundsLikePad) else { return nil }
         return CGRect(x: p.x, y: p.y, width: p.width, height: p.height)
     }
     /// The window home fills (window points): set by the splash as it starts.

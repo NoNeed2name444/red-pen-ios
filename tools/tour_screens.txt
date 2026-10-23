@@ -2,6 +2,10 @@
 # the -uiPreviewScreen name, the inventory row (T0126a), a plain name.
 # Pass the names, space-separated, as ios-preview's `screens` input:
 #   grep -v '^#' tools/tour_screens.txt | cut -f1 | paste -sd' '
+# Any screen also takes -uiPreviewOrientation portrait|landscapeLeft|
+# landscapeRight (the iPhone turns since T0138) and, for the foldable,
+# -uiPreviewPosture folded|open|half; iphone-duo.yml and ios-preview's
+# orientation pass shoot seven of them that way.
 library-loading	2	Library loading
 signin	3	Sign in
 account-deleted	4	Signed out after deleting the account

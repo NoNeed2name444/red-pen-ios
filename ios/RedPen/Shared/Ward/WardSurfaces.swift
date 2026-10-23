@@ -572,10 +572,12 @@ extension EnvironmentValues {
 }
 
 private enum WardPanelPath {
+    /// The large screen's corner, from the display the window is on (not
+    /// the kind of device).
     @MainActor
     static var pad: Bool {
         #if canImport(UIKit)
-        UIDevice.current.userInterfaceIdiom == .pad
+        WindowDisplay.roundsLikePad
         #else
         false
         #endif
@@ -1483,6 +1485,8 @@ extension View {
     /// override the tint on plain buttons).
     func wardControls() -> some View {
         self
+            // the hinge, measured once at the outermost (DevicePosture)
+            .devicePostureRoot()
             .tint(Color.wardPrimaryInk)
             .toggleStyle(WardToggleStyle())
             .progressViewStyle(WardProgressViewStyle())
@@ -1500,6 +1504,8 @@ extension View {
     /// and its controls.
     func wardScreen() -> some View {
         self
+            // one side of a fold's hinge, the base across it
+            .clearOfBand()
             .wardMasthead()
             .background(WardBackground())
             .lineSpacing(WardSpace.leading)
@@ -1511,6 +1517,7 @@ extension View {
     /// rows tall enough for their tiles, and the controls.
     func wardForm() -> some View {
         self
+            .clearOfBand()
             .scrollContentBackground(.hidden)
             .wardMasthead()
             .environment(\.defaultMinListRowHeight, 56)

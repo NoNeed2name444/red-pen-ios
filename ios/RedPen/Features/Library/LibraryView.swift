@@ -236,6 +236,10 @@ struct LibraryView: View {
                         span = now
                     }
             }
+            // home, its rail or dock and the open set on one side of a
+            // fold's hinge, the base across it; measured inside, so the
+            // span is the side's, not the window's
+            .clearOfBand()
     }
 
     /// With `-uiPreviewPushBack` on the "library" preview, once home is up
