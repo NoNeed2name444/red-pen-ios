@@ -308,8 +308,12 @@ class StudyStore(private val directory: File) {
         mistakeReasons = b.mistakeReasons + mistakeReasons
         ruleSheet = b.ruleSheet + ruleSheet
     }
+    /** An example set's title: "Example: " before it, unless the name already says so ("Example patients", not "Example: Example patients"). */
+    fun exampleName(name: String): String = if (name.startsWith("Example")) name else "Example: $name"
     @Synchronized fun loadExamples() {
-        val added = DemoData.sets.filter { example -> library.none { it.name == "Example: ${example.name}" } }.map { it.duplicate().copy(name = "Example: ${it.name}") }
+        // a library from before the prefix was dropped from "Example patients" keeps its one copy
+        val added = DemoData.sets.filter { example -> library.none { it.name == exampleName(example.name) || it.name == "Example: ${example.name}" } }
+            .map { it.duplicate().copy(name = exampleName(it.name)) }
         if (added.isNotEmpty()) { library = library + added; save() }
     }
     @Synchronized fun saveQuizProgress(setId: String, progress: QuizProgress) { quizProgress = quizProgress + (setId to progress); saveQuietly() }

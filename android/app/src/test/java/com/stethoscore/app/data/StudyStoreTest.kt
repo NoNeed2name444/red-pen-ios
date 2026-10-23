@@ -16,6 +16,9 @@ class StudyStoreTest {
         assertEquals(6, store.library.size); assertTrue(store.answerLog.isEmpty()); assertTrue(store.reviews.isEmpty())
         store.loadExamples(); assertEquals(6, store.library.size)
         assertEquals(2, store.library.first { it.kind == StudySetKind.CASES }.caseFiles.size)
+        // the cases set says Example once, not "Example: Example patients"; the others keep the prefix
+        assertEquals("Example patients", store.library.first { it.kind == StudySetKind.CASES }.name)
+        assertTrue(store.library.all { it.name.startsWith("Example") && !it.name.startsWith("Example: Example") })
     }
     @Test fun importedDuplicatesReceiveIndependentItemIdentities() {
         val store = StudyStore(folder.root)
