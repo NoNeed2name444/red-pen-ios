@@ -126,6 +126,8 @@ class LibraryEditorsScreenTest {
         compose.onNodeWithText(NoWriter.questions).assertExists()
         // the reason Make is greyed is the cloud's own: the default build has no Pro
         compose.onNodeWithText("Stethoscore Cloud is part of Pro.").assertExists()
+        // nothing is written on the phone, and nothing says it might be
+        compose.onNodeWithText("On-device", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Make 10 questions").assertIsNotEnabled()
         compose.onNodeWithText("More options").performClick()
         compose.onNodeWithText("Focus on high-yield facts").assertExists()

@@ -187,9 +187,11 @@ class HostedGenerationTest {
     @Test fun withNoWriterTheDebriefSaysSo() {
         assertNull(CaseMaker.writer(null))
         assertEquals("Stethoscore Cloud is part of Pro.", CaseMaker.noWriter("Stethoscore Cloud is part of Pro."))
-        // there is no writer to choose, so no settings screen is named: the cloud cannot be reached
-        assertTrue(CaseMaker.noWriter().contains("Stethoscore Cloud can't be reached"))
+        assertEquals("Sign in to use Stethoscore Cloud.", CaseMaker.noWriter("Sign in to use Stethoscore Cloud."))
+        // there is no writer to choose and nothing on the phone: iOS's words, the cloud cannot be reached
+        assertEquals("Stethoscore Cloud can't be reached right now.", CaseMaker.noWriter())
         assertFalse(CaseMaker.noWriter().contains("AI models"))
+        assertFalse(CaseMaker.noWriter().contains("On-device"))
     }
 
     // the accuracy checker

@@ -67,11 +67,12 @@ object CaseMaker {
     fun writer(backend: LLMBackend?): Writer? = backend?.let { BackendWriter(it) }
 
     /**
-     * Why there is no writer, in the student's words: Stethoscore Cloud's
-     * blocker, else that it cannot be reached (there is no writer to choose).
+     * Why there is no writer, in the student's words, as iOS says it: Stethoscore
+     * Cloud's blocker (part of Pro, or sign in), else that it cannot be reached.
+     * Nothing is written on the phone (the owner, 23 Oct: "Lock it").
      */
     fun noWriter(blocker: String? = null): String =
-        blocker ?: "On-device writing isn't available here, and Stethoscore Cloud can't be reached right now."
+        blocker ?: "Stethoscore Cloud can't be reached right now."
 
     /** The lecture as the writers read it, each page marked with its number so the teaching can cite it. */
     fun sourceText(pages: List<Pair<Int, String>>): String =

@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.data.CaseMaker
 import com.stethoscore.app.data.MCQGenerator
 import com.stethoscore.app.data.MCQQuestion
 import com.stethoscore.app.data.ReadSource
@@ -60,8 +61,7 @@ import com.stethoscore.app.ui.ward.WardTone
 
 /** The no-writer words, the same path the other batches show (CaseMaker.noWriter, the quiz's twins). */
 internal object NoWriter {
-    const val questions = "On-device writing isn't available here. New questions are written by ${HostedProvider.BRAND} Cloud once it can be reached."
-    const val questionsHint = "No question writer is set up on this phone yet."
+    const val questions = "New questions are written by ${HostedProvider.BRAND} Cloud, which is part of Pro."
     const val cards = "No model is ready: writing new cards and textbooks comes to Android later."
 }
 
@@ -156,9 +156,9 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
     var generation by remember { mutableStateOf<Job?>(null) }
     var generationStatus by rememberSaveable { mutableStateOf<String?>(null) }
     val isGenerating = generation != null
-    val needsOfflineModel = backend == null
+    val needsWriter = backend == null
     var showMore by rememberSaveable { mutableStateOf(false) }
-    val canStart = !isGenerating && !needsOfflineModel && sourceText.trim().isNotEmpty()
+    val canStart = !isGenerating && !needsWriter && sourceText.trim().isNotEmpty()
 
     fun generate() {
         val text = sourceText.trim()
@@ -202,13 +202,13 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
         if (step == LectureStep.make) {
             val makeHint: String? = when {
                 isGenerating -> null
-                needsOfflineModel -> blocker ?: NoWriter.questionsHint
+                needsWriter -> CaseMaker.noWriter(blocker)
                 sourceText.trim().isEmpty() -> "Nothing to write from yet \u2014 go Back and add a lecture."
                 else -> null
             }
-            if (needsOfflineModel) {
-                // with no model ready, getting one is the first thing to do, so it
-                // comes before the button it would unlock
+            if (needsWriter) {
+                // with no writer, what it takes comes before the button it would
+                // unlock; nothing is written on the phone
                 EditorSection("Needed first: a question writer") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Rounded.Warning, null, tint = WardTone.Warning.color())
