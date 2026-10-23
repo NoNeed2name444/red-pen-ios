@@ -46,7 +46,11 @@ class CardReviewTest {
     @Test fun headersAndFinishesUseTheSameWords() {
         assertEquals(CardReview.Header("3 cards left", "2 done", 0.4), CardReview.deckHeader(3, 2, false))
         assertEquals(CardReview.Header("1 card left", "0 done · studying ahead", 0.0), CardReview.deckHeader(1, 0, true))
-        assertEquals("All done", CardReview.deckHeader(0, 0, false).status)
+        // nothing was due: "No cards due" and no "0 done" beside it; after a sitting, "All done" with its count
+        assertEquals(CardReview.Header("No cards due", "", 0.0), CardReview.deckHeader(0, 0, false))
+        assertEquals(CardReview.Header("No cards due", "", 0.0), CardReview.dueHeader(0, 0))
+        assertEquals(CardReview.Header("All done", "3 done", 1.0), CardReview.deckHeader(0, 3, false))
+        assertEquals(CardReview.Header("All done", "2 done", 1.0), CardReview.dueHeader(0, 2))
         assertEquals(CardReview.Header("1 card due", "1 done", 0.5), CardReview.dueHeader(1, 1))
         assertEquals("Next card back in 10 min.", CardReview.nextLine(now + 10 * 60_000, now))
         assertEquals("Everything here has been seen.", CardReview.nextLine(null, now))

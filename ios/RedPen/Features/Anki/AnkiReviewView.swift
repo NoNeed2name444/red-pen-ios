@@ -217,6 +217,8 @@ struct AnkiReviewView: View {
     private var header: some View {
         let left = queue.count
         let done = reviewedCount
+        // nothing was due: say so once, with no "0 done" beside it
+        if left == 0 && done == 0 { return StudyProgressHeader("No cards due", detail: nil, fraction: 0) }
         let status: String = left == 0 ? "All done" : "\(left) card\(left == 1 ? "" : "s") left"
         let detail: String = "\(done) done" + (studyingAhead ? " \u{00B7} studying ahead" : "")
         let fraction: Double = Double(done) / Double(max(1, done + left))

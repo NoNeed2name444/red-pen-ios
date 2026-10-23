@@ -134,19 +134,24 @@ object CardReview {
 
     data class Header(val status: String, val detail: String, val fraction: Double)
 
-    /** One deck's header: "3 cards left", "2 done · studying ahead". */
-    fun deckHeader(left: Int, done: Int, studyingAhead: Boolean): Header = Header(
-        if (left == 0) "All done" else "$left card${plural(left)} left",
-        "$done done" + if (studyingAhead) " · studying ahead" else "",
-        done.toDouble() / max(1, done + left),
-    )
+    /** Nothing was due and nothing done: said once, with no "0 done" beside it. */
+    const val noneDue = "No cards due"
 
-    /** Due today's header: "3 cards due". */
-    fun dueHeader(left: Int, done: Int): Header = Header(
-        if (left == 0) "All done" else "$left card${plural(left)} due",
-        "$done done",
-        done.toDouble() / max(1, done + left),
-    )
+    /** One deck's header: "3 cards left", "2 done · studying ahead"; "No cards due" with no count when there was nothing. */
+    fun deckHeader(left: Int, done: Int, studyingAhead: Boolean): Header =
+        if (left == 0 && done == 0) Header(noneDue, "", 0.0) else Header(
+            if (left == 0) "All done" else "$left card${plural(left)} left",
+            "$done done" + if (studyingAhead) " · studying ahead" else "",
+            done.toDouble() / max(1, done + left),
+        )
+
+    /** Due today's header: "3 cards due"; "No cards due" with no count when there was nothing. */
+    fun dueHeader(left: Int, done: Int): Header =
+        if (left == 0 && done == 0) Header(noneDue, "", 0.0) else Header(
+            if (left == 0) "All done" else "$left card${plural(left)} due",
+            "$done done",
+            done.toDouble() / max(1, done + left),
+        )
 
     /** "Next card back in 10 min." or, with nothing to come, that everything has been seen. */
     fun nextLine(nextDue: Long?, now: Long): String {
