@@ -167,7 +167,7 @@ for (const [who, body, options] of calls) {
      'a wallet that could not cover Claude at its 4,800 tokens is not spent on it: the free model answers');
 
   // every other model is held as before, at twice the reply
-  const mixed = freshEnv({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:1/1,gemini-3.5-flash:100/100' });
+  const mixed = freshEnv({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:1/1,gemini-3.8-flash:100/100' });
   let heldMixed = null;
   await chat(mixed, 'a1', prompt, upstream(() => { heldMixed = heldBy(mixed); }).fetcher, { owner: true });
   ok(heldMixed === 1000 * 100 + 1600 * 100, `a costlier Google model still sets the hold at twice the reply, 1,600 tokens (${heldMixed})`);
@@ -253,7 +253,7 @@ function fakeVoiceR2() {
      'PRO_PAYS on: the paid writer joins the route');
   ok(!writerIn({ ...novita, PRO_PAYS: 'on', GEMINI_PRICES: undefined }),
      'missing GEMINI_PRICES: the paid writer is left out of the route');
-  ok(!writerIn({ ...novita, PRO_PAYS: 'on', GEMINI_PRICES: 'gemini-3.5-flash:0.3/2.5' }),
+  ok(!writerIn({ ...novita, PRO_PAYS: 'on', GEMINI_PRICES: 'gemini-3.8-flash:0.3/2.5' }),
      'an unpriced default writer model is left out of the route');
   ok(writerIn({ ...novita, PRO_PAYS: 'on', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' }),
      'a priced default writer model joins the route');
@@ -319,7 +319,7 @@ for (const [how, make] of Object.entries(opened)) {
      'unpriced paid writer (missing GEMINI_PRICES) is never asked in chat: falls through to Gemini');
   const unpricedEnv = freshEnv({ ...lane, PRO_PAYS: 'on', ANTHROPIC_API_KEY: undefined,
                                  AI_WRITER_URL: 'https://api.novita.ai/openai', AI_WRITER_KEY: 'nk',
-                                 GEMINI_PRICES: 'gemini-3.5-flash:0.3/2.5' });
+                                 GEMINI_PRICES: 'gemini-3.8-flash:0.3/2.5' });
   const unpricedLog = upstreamWithWriter();
   const unpricedRes = await chat(unpricedEnv, 'a1', writer, unpricedLog.fetcher, { owner: true });
   const unpricedSaid = await unpricedRes.json();

@@ -24,7 +24,7 @@ console.log('all passed');
 {
   const { pinnedSource } = await import('../ai.js');
   const env = { FIREBASE_API_KEY: 'k', FIREBASE_PROJECT_ID: 'p', AI: {}, AI_API_KEY: 'h' };
-  if (pinnedSource(env, 'gemini:gemini-3.5-flash')?.models?.[0] !== 'gemini-3.5-flash'
+  if (pinnedSource(env, 'gemini:gemini-3.8-flash')?.models?.[0] !== 'gemini-3.8-flash'
       || pinnedSource(env, 'workers-ai:@cf/openai/gpt-oss-120b')?.model !== '@cf/openai/gpt-oss-120b'
       || pinnedSource(env, 'hf:org/model')?.kind !== 'openai'
       || pinnedSource(env, 'nope') !== null || pinnedSource({}, 'gemini:x') !== null) {

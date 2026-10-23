@@ -121,7 +121,7 @@ const modelOf = url => url.match(/models\/([^:]+):/)?.[1];
 // The free chain answers the owner key alone (the owner, 23 Oct: "Lock it"),
 // so its breakers are shown through the owner key, with the deployed models
 // less 3.1 Pro; an account is refused before any lane is asked.
-const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
+const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
 {
   resetBreakers(clock);
   const asked = [];
@@ -138,23 +138,23 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-li
   const asked = [];
   const fetcher = async url => {
     asked.push(modelOf(url));
-    return modelOf(url) === 'gemini-3.5-flash' ? down(503) : answer('lite');
+    return modelOf(url) === 'gemini-3.8-flash' ? down(503) : answer('lite');
   };
   for (let i = 0; i < 3; i++) await chat(env, 'owner', request, fetcher, { owner: true });
-  ok(asked.filter(m => m === 'gemini-3.5-flash').length === 3, 'Flash overloaded three times in a row');
+  ok(asked.filter(m => m === 'gemini-3.8-flash').length === 3, 'Flash overloaded three times in a row');
   asked.length = 0;
   const r = await chat(env, 'owner', request, fetcher, { owner: true });
   ok(r.status === 200 && (await r.json()).source === 'gemini-3.5-flash-lite', 'the fourth request is answered');
   ok(asked.join() === 'gemini-3.5-flash-lite', 'without asking Flash: its breaker is open');
-  ok(breakers.snapshot(env).lanes['gemini:gemini-3.5-flash'].state === 'open', 'and the snapshot says so');
+  ok(breakers.snapshot(env).lanes['gemini:gemini-3.8-flash'].state === 'open', 'and the snapshot says so');
 
   // after the cooldown, one trial: Flash is back
   later(60);
   asked.length = 0;
   const back = async url => { asked.push(modelOf(url)); return answer('flash'); };
   const b = await chat(env, 'owner', request, back, { owner: true });
-  ok(b.status === 200 && (await b.json()).source === 'gemini-3.5-flash' && asked.join() === 'gemini-3.5-flash', 'after 60 s Flash is tried once, and answers');
-  ok(breakers.snapshot(env).lanes['gemini:gemini-3.5-flash'].state === 'closed', 'its breaker is closed again');
+  ok(b.status === 200 && (await b.json()).source === 'gemini-3.8-flash' && asked.join() === 'gemini-3.8-flash', 'after 60 s Flash is tried once, and answers');
+  ok(breakers.snapshot(env).lanes['gemini:gemini-3.8-flash'].state === 'closed', 'its breaker is closed again');
 }
 
 // A host that never answers in time (the fetch is aborted) counts as failing
@@ -263,11 +263,11 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-li
 {
   resetBreakers(clock);
   let workersAsked = 0;
-  const env = freshEnv({ ...chain, CLOUD_MODELS: 'gemma-4-31b-it,gemini-3.5-flash', WORKERS_AI_MAX_CHARS: '1',
+  const env = freshEnv({ ...chain, CLOUD_MODELS: 'gemma-4-31b-it,gemini-3.8-flash', WORKERS_AI_MAX_CHARS: '1',
                          AI: { run: async () => { workersAsked++; return { response: 'x' }; } } });
   env.db.prepare('INSERT INTO ai_usage (account_id, day, requests) VALUES (?, ?, 1)')
     .run('gemini-dayout:gemma-4-31b-it', new Date().toISOString().slice(0, 10));
-  for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
+  for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.8-flash');
   let asked = 0;
   const never = async () => { asked++; return answer('x'); };
   const before = used(env, 'owner');
@@ -288,7 +288,7 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-li
   // a model really asked and failing is not given back, even when the rest
   // of the chain is resting by the end of the request
   resetBreakers(clock);
-  for (let i = 0; i < 2; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
+  for (let i = 0; i < 2; i++) breakers.failure(env, 'gemini:gemini-3.8-flash');
   const spent = used(env, 'owner');
   const f = await chat(env, 'owner', request, async () => down(503), { owner: true, rounds: 1 });
   ok(f.status === 502 && used(env, 'owner') === spent + 1, 'a request that reached a provider stays spent');
@@ -298,7 +298,7 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-li
 // today's allowance is used
 {
   resetBreakers(clock);
-  const env = freshEnv({ ...chain, TRANSCRIBE_MODELS: 'gemini-3.5-flash' });
+  const env = freshEnv({ ...chain, TRANSCRIBE_MODELS: 'gemini-3.8-flash' });
   const body = { audio: 'AAAA'.repeat(100), prompt: 'Transcribe.' };
   for (let i = 0; i < 3; i++) await transcribeChunk(env, 'a1', body, async () => down(503));
   const before = used(env, 'transcribe:a1');
@@ -315,7 +315,7 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-li
 {
   resetBreakers(clock);
   const paid = { ...chain, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5', ANTHROPIC_API_KEY: 'ak',
-                 GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,claude-opus-5-5:4/20' };
+                 GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50,claude-opus-5-5:4/20' };
   const env = freshEnv(paid);
   const asked = [];
   const fetcher = async url => {
@@ -324,7 +324,7 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-li
     return answer('gemini');
   };
   const first = await chat(env, 'owner', request, fetcher, { owner: true });
-  ok(first.status === 200 && (await first.json()).choices[0].message.content === 'gemini' && asked.join() === 'claude,gemini-3.5-flash',
+  ok(first.status === 200 && (await first.json()).choices[0].message.content === 'gemini' && asked.join() === 'claude,gemini-3.8-flash',
      'Claude overloaded (529): the free chain answers the owner key that same request');
   for (let i = 0; i < 2; i++) await chat(env, 'owner', request, fetcher, { owner: true });
   ok(asked.filter(a => a === 'claude').length === 3, 'Claude overloaded three times');

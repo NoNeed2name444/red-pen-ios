@@ -8,7 +8,7 @@
 // the chain goes straight to the next one.
 //
 // One breaker per lane: a provider and the model asked of it
-// ("gemini:gemini-3.5-flash", "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
+// ("gemini:gemini-3.8-flash", "workers-ai:@cf/nvidia/nemotron-3-120b-a12b",
 // "anthropic:claude-opus-5-5", "openai:baichuan/baichuan-m2-32b"). Google's
 // free models fail one at a time - a preview model overloaded while
 // Flash-Lite and Gemma answer - so each has its own.

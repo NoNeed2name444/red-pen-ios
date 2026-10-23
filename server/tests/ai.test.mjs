@@ -182,12 +182,12 @@ const a1Token = await accountToken('a1');
 {
   const { reserve, settle, wallet, canPay, costOf, budget } = await import('../ai.js');
   const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '1', OWNER_MONTHLY_USD: '1',
-                         GEMINI_PRICES: 'gemini-3.5-flash:1/1', GEMINI_AUDIO_PRICES: 'gemini-3.5-flash:3' });
+                         GEMINI_PRICES: 'gemini-3.8-flash:1/1', GEMINI_AUDIO_PRICES: 'gemini-3.8-flash:3' });
   const w = await wallet(env, 'a1');
   ok(await reserve(env, w, 600_000) && !(await reserve(env, w, 600_000)), 'two calls at once cannot both take the last of the budget');
   await settle(env, w, 600_000, 100_000);
   ok(await reserve(env, w, 600_000), 'settling returns what was held back but not used');
-  ok(costOf(env, 'gemini-3.5-flash', { promptTokenCount: 1e6, candidatesTokenCount: 0,
+  ok(costOf(env, 'gemini-3.8-flash', { promptTokenCount: 1e6, candidatesTokenCount: 0,
       promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 3e6, 'audio is priced as audio');
   const owner = await wallet(env, 'owner', true);
   await reserve(env, owner, 1_000_000);
@@ -282,7 +282,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 
   // the free chain is the owner key's alone now; its models as deployed, less 3.1 Pro
   const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'cramdown-redpen', OWNER_ACCOUNT_IDS: 'a1',
-                     CLOUD_MODELS: 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
+                     CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
   const seen = [];
   const gemini = status => async (url, init) => {
     seen.push(url);
@@ -294,7 +294,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const r = await chat(freshEnv(firebase), 'owner', request, gemini(200), { owner: true });
   const body = await r.json();
   ok(r.status === 200 && body.choices[0].message.content === 'answer', 'the writer answers from Gemini, thoughts left out');
-  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.5-flash:generateContent'), 'through the Firebase project, Flash first');
+  ok(seen[0].includes('projects/cramdown-redpen/models/gemini-3.8-flash:generateContent'), 'through the Firebase project, Flash first');
 
   let workersAsked = 0;
   const env = freshEnv({ ...firebase, AI: { run: async (model, input) => { workersAsked++; return { response: `from ${model}` }; } } });
@@ -335,18 +335,20 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 {
   const { geminiModels, charge, priceOf } = await import('../ai.js');
   const off = freshEnv({});
-  ok((await geminiModels(off, 'p1')).join() === 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it',
-     'billing off: the free allowances, 3.5 Flash first, no 3.6 Flash');
+  ok((await geminiModels(off, 'p1')).join() === 'gemini-3.5-flash-lite,gemma-4-31b-it',
+     'billing off, no CLOUD_MODELS set: the free allowances, Flash-Lite first, no retired 3.5 Flash and no 3.6 Flash');
+  ok((await geminiModels(freshEnv({ CLOUD_MODELS: 'gemini-3.1-pro-preview,gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' }), 'p1')).join()
+     === 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it', 'with the deployed CLOUD_MODELS: 3.8 Flash first, no 3.1 Pro before Pro pays');
   const on = freshEnv({ GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '1',
-                        GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50' });
-  ok(priceOf(on, 'gemini-3.5-flash').output === 2.5 && priceOf(on, 'gemma-4-31b-it').output === 0, 'prices read from GEMINI_PRICES; Gemma is free');
-  ok((await geminiModels(on, 'p1'))[0] === 'gemini-3.5-flash', 'billing on: a Pro account starts on paid Flash');
+                        GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50' });
+  ok(priceOf(on, 'gemini-3.8-flash').output === 2.5 && priceOf(on, 'gemma-4-31b-it').output === 0, 'prices read from GEMINI_PRICES; Gemma is free');
+  ok((await geminiModels(on, 'p1'))[0] === 'gemini-3.8-flash', 'billing on: a Pro account starts on paid Flash');
   // 400k output tokens at $2.50/M = $1.00: the whole budget
-  await charge(on, 'p1', 'gemini-3.5-flash', { promptTokenCount: 0, candidatesTokenCount: 300000, thoughtsTokenCount: 100000 });
+  await charge(on, 'p1', 'gemini-3.8-flash', { promptTokenCount: 0, candidatesTokenCount: 300000, thoughtsTokenCount: 100000 });
   ok((await geminiModels(on, 'p1')).join() === 'gemma-4-31b-it', 'over its monthly budget: free Gemma only, so it never costs more than it pays');
-  ok((await geminiModels(on, 'p2'))[0] === 'gemini-3.5-flash', 'another account still has its own budget');
-  ok((await geminiModels(on, 'p1', true))[0] === 'gemini-3.5-flash', 'the owner is not budgeted');
-  await charge(off, 'p3', 'gemini-3.5-flash', { candidatesTokenCount: 1e6 });
+  ok((await geminiModels(on, 'p2'))[0] === 'gemini-3.8-flash', 'another account still has its own budget');
+  ok((await geminiModels(on, 'p1', true))[0] === 'gemini-3.8-flash', 'the owner is not budgeted');
+  await charge(off, 'p3', 'gemini-3.8-flash', { candidatesTokenCount: 1e6 });
   ok(!(await off.DB.prepare('SELECT * FROM ai_cost WHERE account_id = ?').bind('p3').first()), 'nothing is charged while billing is off');
 }
 
@@ -354,7 +356,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 {
   const { budget, canPay } = await import('../ai.js');
   const env = freshEnv({ PRO_PAYS: 'on', PRO_NET_MONTHLY_USD: '5', COST_SHARE: '0.6', MONTHLY_BILLS: 'github-actions:0.4,apple-developer:0.6',
-                         GEMINI_PRICES: 'gemini-3.5-flash:1/1,baichuan/baichuan-m2-32b:1/1' });
+                         GEMINI_PRICES: 'gemini-3.8-flash:1/1,baichuan/baichuan-m2-32b:1/1' });
   const later = Math.floor(Date.now() / 1000) + 86400;
   env.DB.prepare('UPDATE accounts SET verified_until = ? WHERE id = ?').bind(later, 'a1').run();
   const money = await budget(env);
@@ -436,7 +438,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const pro = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1' });
   const r = await transcribeChunk(pro, 'a1', chunk, google);
   const j = await r.json();
-  ok(r.status === 200 && j.text.includes('malar rash') && j.model === 'gemini-3.5-flash', 'a Pro account gets the transcript, from 3.5 Flash');
+  ok(r.status === 200 && j.text.includes('malar rash') && j.model === 'gemini-3.8-flash', 'a Pro account gets the transcript, from 3.8 Flash');
   const sent = asked[0];
   ok(sent.key === 'fk' && sent.body.contents[0].parts[0].inlineData.data === chunk.audio && sent.body.generationConfig.responseSchema.type === 'ARRAY',
      'the server sends the audio to Gemini with its own key and asks for timed phrases');
@@ -449,7 +451,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok((await transcribeChunk(capped, 'a1', chunk, google)).status === 429, 'a daily number of chunks per account');
 
   const billed = freshEnv({ ...firebase, OWNER_ACCOUNT_IDS: 'a1', GEMINI_BILLING: 'on', PRO_MONTHLY_BUDGET_USD: '0.017',
-                            GEMINI_PRICES: 'gemini-3.5-flash:1/1' });
+                            GEMINI_PRICES: 'gemini-3.8-flash:1/1' });
   ok((await transcribeChunk(billed, 'a1', chunk, google)).status === 200, 'with billing on, a Pro account transcribes within its budget');
   const over = await transcribeChunk(billed, 'a1', chunk, google);
   ok(over.status === 429 && (await over.json()).message.includes('month'), 'over its monthly budget it is told to use the phone (Gemma cannot hear)');
@@ -485,7 +487,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 // Gemini 3 is given room to think on top of the answer, and a short call thinks briefly
 {
   const { geminiBody } = await import('../ai.js');
-  const terms = geminiBody([{ role: 'user', content: 'Q' }], 200, 0, 'gemini-3.5-flash');
+  const terms = geminiBody([{ role: 'user', content: 'Q' }], 200, 0, 'gemini-3.8-flash');
   ok(terms.generationConfig.maxOutputTokens === 400 && terms.generationConfig.thinkingConfig.thinkingLevel === 'low',
      "a 200-token call leaves room for Gemini 3's thinking and asks for little of it");
   const long = geminiBody([{ role: 'user', content: 'Q' }], 2000, 0, 'gemini-3.1-pro-preview');
@@ -519,7 +521,7 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const { geminiModels, billingSeen } = await import('../ai.js');
   const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
   const env = freshEnv(firebase);
-  ok((await geminiModels(env, 'a1')).includes('gemini-3.5-flash'), 'billing off: students use the free allowances');
+  ok((await geminiModels(env, 'a1')).includes('gemini-3.5-flash-lite'), 'billing off: students use the free allowances');
   const answers = async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'from 3.1 Pro' }] } }] }), { status: 200 });
   await chat(env, 'owner', request, answers, { owner: true });
   ok(await billingSeen(env), 'a paid-only model answering shows the project is billed');
@@ -529,7 +531,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 
 // before paid calls are budgeted: a share of the scarce free allowances per account, and a ceiling for all
 {
-  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', FREE_MODEL_SHARES: 'gemini-3.5-flash:2', GEMINI_DAILY_CEILING: '100' };
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', FREE_MODEL_SHARES: 'gemini-3.8-flash:2', GEMINI_DAILY_CEILING: '100',
+                     CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
   const env = freshEnv(firebase);
   const models = [];
   const fetcher = async url => { models.push(url.match(/models\/([^:]+):/)[1]);
@@ -539,10 +542,10 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   ok((await chat(env, 'a1', request, fetcher)).status === 402 && models.length === 0, 'an account\'s chat is refused and no free model is asked');
   const vote = (e, use) => askModel(e, 'a1', false, use, request.messages, 50, fetcher);
   const votes = [];
-  for (let i = 0; i < 3; i++) votes.push((await vote(env, 'gemini:gemini-3.5-flash')).ok);
+  for (let i = 0; i < 3; i++) votes.push((await vote(env, 'gemini:gemini-3.8-flash')).ok);
   const lite = await vote(env, 'gemini:gemini-3.5-flash-lite');
-  ok(votes.join() === 'true,true,false' && lite.ok && models.join() === 'gemini-3.5-flash,gemini-3.5-flash,gemini-3.5-flash-lite',
-     "past its share of 3.5 Flash's free requests, an account's votes are not sent to Flash; Flash-Lite still answers");
+  ok(votes.join() === 'true,true,false' && lite.ok && models.join() === 'gemini-3.8-flash,gemini-3.8-flash,gemini-3.5-flash-lite',
+     "past its share of 3.8 Flash's free requests, an account's votes are not sent to Flash; Flash-Lite still answers");
   const capped = freshEnv({ ...firebase, GEMINI_DAILY_CEILING: '1' });
   models.length = 0;
   const one = await vote(capped, 'gemini:gemini-3.5-flash-lite');
@@ -629,14 +632,14 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
     { retryDelay: '59s' }] } });
   ok(dailyQuota(perDay) && !dailyQuota(JSON.stringify({ error: { details: [{ violations: [{ quotaId: 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier' }] }] } })),
      'a per-day quota is told apart from a per-minute one');
-  const env = freshEnv(firebase);
+  const env = freshEnv({ ...firebase, CLOUD_MODELS: 'gemini-3.1-pro-preview,gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' });
   const asked = [];
   const fetcher = async url => { const m = url.match(/models\/([^:]+):/)[1]; asked.push(m);
     return m === 'gemini-3.1-pro-preview' ? new Response(perDay, { status: 429 })
       : new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'flash' }] } }] }), { status: 200 }); };
   const first = await (await chat(env, 'a1', request, fetcher, { owner: true })).json();
   const second = await (await chat(env, 'a1', request, fetcher, { owner: true })).json();
-  ok(first.source === 'gemini-3.5-flash' && second.source === 'gemini-3.5-flash', 'the owner still gets an answer from Flash');
+  ok(first.source === 'gemini-3.8-flash' && second.source === 'gemini-3.8-flash', 'the owner still gets an answer from Flash');
   ok(asked.filter(m => m === 'gemini-3.1-pro-preview').length === 1, 'and 3.1 Pro is not asked again the same day');
 
   // the paid writer (Novita) refusing its key or out of credit: Gemini answers
@@ -673,9 +676,9 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 // transcription audio is priced as audio even when nobody set its price
 {
   const { costOf } = await import('../ai.js');
-  const env = { GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,other:0.10/0.40' };
-  ok(costOf(env, 'gemini-3.5-flash', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 1e6,
-     'the default audio price is used, not the lower text one');
+  const env = { GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50,other:0.10/0.40' };
+  ok(costOf(env, 'gemini-3.8-flash', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] }) === 1.5e6,
+     "the default audio price is used (3.8 Flash's published $1.50 from 2027), not the lower text one");
   ok(Math.round(costOf(env, 'other', { promptTokenCount: 1e6, promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 1e6 }] })) === 300000,
      'and a model with no audio price at all is taken at three times its text price');
 }

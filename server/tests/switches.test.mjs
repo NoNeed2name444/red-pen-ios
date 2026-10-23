@@ -201,13 +201,13 @@ async function refused(r, feature, what) {
 {
   resetBreakers();
   const { env } = freshEnv('tts, ttts');
-  for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.5-flash');
+  for (let i = 0; i < 3; i++) breakers.failure(env, 'gemini:gemini-3.8-flash');
   const r = await worker.fetch(new Request('https://w/diagnostics/summary', { headers: { authorization: 'Bearer ' + OWNER } }), env);
   const body = await r.json();
   ok(r.status === 200 && body.health?.switches?.features?.tts === 'off' && body.health.switches.features.write === 'on',
      'GET /diagnostics/summary: which features are on and off');
   ok(body.health.switches.unknown?.join() === 'ttts', 'and a name in STETHOSCORE_OFF that is not a feature');
-  ok(body.health.breakers?.scope === 'isolate' && body.health.breakers.lanes['gemini:gemini-3.5-flash'].state === 'open'
+  ok(body.health.breakers?.scope === 'isolate' && body.health.breakers.lanes['gemini:gemini-3.8-flash'].state === 'open'
      && body.health.breakers.settings.failures === 3, "and this isolate's breakers, with their settings");
   ok(Array.isArray(body.groups) && Array.isArray(body.builds), 'the crash groups are there as before');
   const stranger = await worker.fetch(new Request('https://w/diagnostics/summary'), env);

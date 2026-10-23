@@ -96,7 +96,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const gemini = route.sources?.find(s => s.kind === 'gemini');
   if (gemini) gemini.models = await geminiModels(env, accountId, owner, 'modes', route.canPay);
   // The checker is a different model from the writer: a model grading its
-  // own work tends to agree with itself. 3.5 Flash checks first (fast, and
+  // own work tends to agree with itself. 3.8 Flash checks first (fast, and
   // not the 3.1 Pro that writes); `avoid` names the models that wrote what
   // is being checked, and they are skipped while any other is left.
   if (gemini && body.model === 'cramdown-checker') gemini.models = checkerOrder(env, gemini.models, body.avoid);
@@ -110,7 +110,7 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
     gemini.models = [body.prefer, ...gemini.models.filter(m => m !== body.prefer)];
   }
   // The owner's benchmarks: one named model and nothing else, so models can
-  // be compared ("gemini:gemini-3.5-flash", "workers-ai:@cf/...", "hf:org/model").
+  // be compared ("gemini:gemini-3.8-flash", "workers-ai:@cf/...", "hf:org/model").
   // Never Claude: a pinned `claude:` source is not marked `paid`, so pinning it
   // here would call Anthropic with neither the monthly checker cap nor the Pro
   // wallet holding anything back.
@@ -811,23 +811,23 @@ export function retryDelay(raw) {
 
 // MARK: who pays for Gemini
 
-const FREE_MODELS = 'gemini-3.1-pro-preview,gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
+const FREE_MODELS = 'gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it';
 /// Models that cost money from the first request (no free allowance): before
 /// Pro pays (PRO_PAYS off) only the owner's own key may use them.
 ///
 /// That alone does not make turning billing on safe: once the Firebase project
-/// is on the Blaze plan, Google bills 3.5 Flash and Flash-Lite from the first
+/// is on the Blaze plan, Google bills 3.8 Flash and Flash-Lite from the first
 /// token too - a billed project has no free tier. So the moment a paid-only
 /// model answers, the server knows the project is billed and behaves as
 /// GEMINI_BILLING = "on" (see billingSeen): every paid call is then counted
 /// against a budget, and with no budget set, students get the free Gemma only.
 const PAID_ONLY = 'gemini-3.1-pro-preview';
 const paidOnly = env => new Set(list(env.PAID_ONLY_MODELS || PAID_ONLY));
-/// The accuracy checker's preference: 3.5 Flash, then 3.1 Pro (when the
+/// The accuracy checker's preference: 3.8 Flash, then 3.1 Pro (when the
 /// writer was Flash), then the smaller ones.
-const CHECKER_MODELS = 'gemini-3.5-flash,gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it';
-const PAID_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
-const TRANSCRIBE_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite';
+const CHECKER_MODELS = 'gemini-3.8-flash,gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it';
+const PAID_MODELS = 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
+const TRANSCRIBE_MODELS = 'gemini-3.8-flash,gemini-3.5-flash-lite';
 const list = text => String(text).split(',').map(m => m.trim()).filter(Boolean);
 const month = () => new Date().toISOString().slice(0, 7);
 
@@ -883,13 +883,13 @@ export async function paysNow(env) {
 }
 
 /// Before paid calls are budgeted, Google's free allowances are shared by
-/// everyone, and some are tiny (3.5 Flash about 20 requests a day for the
-/// whole project). So each account may take only a share of the scarce ones
+/// everyone, and some are tiny (Flash's, shared by the whole project).
+/// So each account may take only a share of the scarce ones
 /// (FREE_MODEL_SHARES, "model:requests a day"), and all accounts together at
 /// most GEMINI_DAILY_CEILING non-Gemma calls a day - a ceiling that also caps
 /// what a billing change nobody told the server about could ever cost.
 /// Returns the check for generate(), or null when nothing is limited.
-const FREE_MODEL_SHARES = 'gemini-3.5-flash:4,gemini-3.5-flash-lite:100';
+const FREE_MODEL_SHARES = 'gemini-3.8-flash:4,gemini-3.5-flash-lite:100';
 async function freeShare(env, account, owner) {
   if (await paysNow(env)) return null;
   const shares = Object.fromEntries(list(env.FREE_MODEL_SHARES ?? FREE_MODEL_SHARES)
@@ -1074,10 +1074,13 @@ export function costOf(env, model, usage) {
 }
 
 /// Google prices audio input well above text (2.5 Flash: $1.00 against
-/// $0.30 a million). Used when GEMINI_AUDIO_PRICES does not name the model;
+/// $0.30 a million). 3.8 Flash has one input price for all input, $0.75 a
+/// million until 31 Dec 2026 and $1.50 from 1 Jan 2027 (ai.google.dev pricing
+/// page); the later one is used so the count never falls short when it
+/// changes. Used when GEMINI_AUDIO_PRICES does not name the model;
 /// a model named nowhere is taken at three times its text price, never at
 /// the text price itself, so transcription is never under-counted.
-const DEFAULT_AUDIO_PRICES = 'gemini-3.5-flash:1.00,gemini-3.5-flash-lite:0.30';
+const DEFAULT_AUDIO_PRICES = 'gemini-3.8-flash:1.50,gemini-3.5-flash-lite:0.30';
 function audioPriceOf(env, model, text) {
   const triple = Math.round(text * 3e6) / 1e6; // three times the text price, without float dust
   for (const source of [env.GEMINI_AUDIO_PRICES || '', DEFAULT_AUDIO_PRICES]) {

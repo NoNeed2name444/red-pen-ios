@@ -87,7 +87,7 @@ export const DEFAULTS = {
     benchPublishPerHour: 30,
   },
   freeShare: {
-    "gemini-3.5-flash": 4,
+    "gemini-3.8-flash": 4,
     "gemini-3.5-flash-lite": 60,
     "gemma-4-31b-it": 150,
     "workers-ai": 80,

@@ -60,9 +60,10 @@ function upstream() {
   return log;
 }
 
-// as deployed (wrangler.toml prices Claude), with the key set and room in every wallet
+// as deployed (wrangler.toml prices Claude and lists the Gemini models), with the key set and room in every wallet
 const base = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', ANTHROPIC_API_KEY: 'ak',
-               GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50,claude-opus-5-5:4.00/20.00',
+               CLOUD_MODELS: 'gemini-3.1-pro-preview,gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it',
+               GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50,claude-opus-5-5:4.00/20.00',
                OWNER_MONTHLY_USD: '5', PRO_MONTHLY_BUDGET_USD: '5' };
 const writer = { model: 'cramdown-writer', messages: [{ role: 'user', content: 'hi' }], max_tokens: 800 };
 const checker = { ...writer, model: 'cramdown-checker' };
@@ -93,12 +94,12 @@ const before = {
   'anonymous checker off': '401 - - -', 'anonymous checker on': '401 - - -',
   'free writer off': '402 - - -', 'free writer on': '402 - - -',
   'free checker off': '402 - - -', 'free checker on': '402 - - -',
-  'pro writer off': '200 gemini gemini gemini-3.5-flash', 'pro writer on': '200 claude claude claude-opus-5-5',
-  'pro checker off': '200 gemini gemini gemini-3.5-flash', 'pro checker on': '200 claude claude claude-opus-5-5',
+  'pro writer off': '200 gemini gemini gemini-3.8-flash', 'pro writer on': '200 claude claude claude-opus-5-5',
+  'pro checker off': '200 gemini gemini gemini-3.8-flash', 'pro checker on': '200 claude claude claude-opus-5-5',
   'owner writer off': '200 gemini gemini gemini-3.1-pro-preview', 'owner writer on': '200 claude claude claude-opus-5-5',
-  'owner checker off': '200 gemini gemini gemini-3.5-flash', 'owner checker on': '200 claude claude claude-opus-5-5',
+  'owner checker off': '200 gemini gemini gemini-3.8-flash', 'owner checker on': '200 claude claude claude-opus-5-5',
   'owner job writer off': '200 gemini gemini gemini-3.1-pro-preview', 'owner job writer on': '200 claude claude claude-opus-5-5',
-  'owner job checker off': '200 gemini gemini gemini-3.5-flash', 'owner job checker on': '200 claude claude claude-opus-5-5',
+  'owner job checker off': '200 gemini gemini gemini-3.8-flash', 'owner job checker on': '200 claude claude claude-opus-5-5',
 };
 // the change: the owner's writing, chat and jobs, with PRO_PAYS off
 const meant = new Set(['owner writer off', 'owner job writer off']);
@@ -200,7 +201,7 @@ const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' }
 
   // no key, or no price: Gemini, the same as today, and no wallet is touched
   for (const [what, extra] of [['no ANTHROPIC_API_KEY', { ANTHROPIC_API_KEY: undefined }],
-                               ['no price for Claude', { GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50' }]]) {
+                               ['no price for Claude', { GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50' }]]) {
     const o = await observe('owner', 'off', writer, extra);
     ok(row(o) === '200 gemini gemini gemini-3.1-pro-preview' && !o.env.db.prepare('SELECT 1 AS x FROM ai_cost').get(),
        `A3 ${what}: the owner falls back to the Gemini chain, nothing counted`);
@@ -240,7 +241,7 @@ const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' }
   ok(r.status !== 200 && asked.join('>') === 'claude', 'A4 a Pro account, Claude down: no answer, and the Gemini chain is never asked');
   // no Claude on the route (no key, or no price): the See Pro answer, nothing asked
   for (const [what, extra] of [['no ANTHROPIC_API_KEY', { ANTHROPIC_API_KEY: undefined }],
-                               ['no price for Claude', { GEMINI_PRICES: 'gemini-3.5-flash:0.30/2.50' }]]) {
+                               ['no price for Claude', { GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50' }]]) {
     for (const [job, body] of [['writer', writer], ['checker', checker]]) {
       const o = await observe('pro', 'on', body, extra);
       ok(row(o) === '402 - - -', `A4 a Pro account, PRO_PAYS on, ${what}, ${job}: 402 (See Pro), nothing asked`);
