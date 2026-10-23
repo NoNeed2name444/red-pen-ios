@@ -729,6 +729,14 @@ class TourTest {
 
     @Test fun r103_brainMap() { space(); ideas(103, "ideas-map") { mapShown("the Space map of 4 notes", spaceMap) } }
 
+    /** Performance on the four ideas, as the Look menu stores it; the speed readout kept out, as for the million demo. */
+    private fun performance() = ideasPrefs { putString("vignette.ideas.mode", "space"); putString("vignette.space.theme", "performance")
+        putBoolean(IdeasSettings.READOUT_KEY, false) }
+
+    private val performanceMap = hasContentDescription("${GraphTheme.PERFORMANCE.mapLabel}: 4 notes", substring = true)
+
+    @Test fun r103_brainMapPerformance() { performance(); ideas(103, "ideas-map-performance") { mapShown("the Performance map of 4 notes", performanceMap) } }
+
     @Test fun r104_millionDemo() {
         // the speed readout is a debug tool, kept out of the tour's pictures
         ideasPrefs { putString("vignette.ideas.mode", "space"); putString("vignette.space.theme", "performance"); putInt("vignette.space.perfDemo", 1_000_000)
@@ -746,6 +754,15 @@ class TourTest {
             mapShown("the Space map of 4 notes", spaceMap)
             tour.tap("the map's Look tool", hasContentDescription("Look") and hasClickAction())
             tour.tap("the Look menu's legend", hasText(GraphTheme.SPACE.legendTitle) and hasClickAction())
+        }
+    }
+
+    @Test fun r105_legendPerformance() {
+        performance()
+        ideas(105, "ideas-legend-performance", { ideasStore(folder = true) }) {
+            mapShown("the Performance map of 4 notes", performanceMap)
+            tour.tap("the map's Look tool", hasContentDescription("Look") and hasClickAction())
+            tour.tap("the Look menu's legend", hasText(GraphTheme.PERFORMANCE.legendTitle) and hasClickAction())
         }
     }
 

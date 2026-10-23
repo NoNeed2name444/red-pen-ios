@@ -118,6 +118,10 @@ home-ideas	101	Ideas empty
 ideas-board	102	Board
 ideas-map	103	Brain map
 ideas-million	104	Million-note demo
+ideas-map-neurons	103	Brain map: Neurons
+ideas-map-performance	103	Brain map: Performance
+ideas-legend-neurons	105	Legend: Neurons
+ideas-legend-performance	105	Legend: Performance
 note-editor	106	Note editor
 link-picker	107	Link picker
 idea-name	108	Name a new idea
