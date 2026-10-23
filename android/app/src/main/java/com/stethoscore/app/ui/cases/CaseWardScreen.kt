@@ -12,14 +12,14 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.AddCircleOutline
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.rounded.AddCircleOutline
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.MedicalServices
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -137,14 +137,14 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
             HorizontalDivider(color = CaseInk.hairline)
             Row(Modifier.fillMaxWidth().background(CaseInk.ward).padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (arriving) {
-                    CaseButton("See the patient", { arriving = false }, Modifier.weight(1f), primary = true, icon = Icons.Filled.MedicalServices)
+                    CaseButton("See the patient", { arriving = false }, Modifier.weight(1f), primary = true, icon = Icons.Rounded.MedicalServices)
                 } else {
                     if (!wide) {
                         CaseButton(if (run.ladder.isEmpty()) "Differential" else "Differential (${run.ladder.size})", { showingLadder = true },
-                            Modifier.weight(1f).semantics { stateDescription = "Your ranked working diagnoses" }, icon = Icons.AutoMirrored.Filled.FormatListBulleted)
+                            Modifier.weight(1f).semantics { stateDescription = "Your ranked working diagnoses" }, icon = Icons.AutoMirrored.Rounded.FormatListBulleted)
                     }
                     CaseButton("Decide", { deciding = true }, Modifier.weight(1f).semantics { stateDescription = "Confirm the diagnosis and choose the next step" },
-                        primary = true, icon = Icons.Filled.Verified)
+                        primary = true, icon = Icons.Rounded.Verified)
                 }
             }
         }
@@ -225,7 +225,7 @@ private fun ClerkingFolded(file: CaseFile) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CaseLabel("Clerking note", Modifier.weight(1f))
-            Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, tint = CaseInk.theatre)
+            Icon(if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown, null, tint = CaseInk.theatre)
         }
         if (open) Box(Modifier.padding(top = 8.dp)) { ClerkingParts(file) }
     }
@@ -266,7 +266,7 @@ private fun ActionChip(step: CaseStep, done: Boolean, modifier: Modifier, take: 
             },
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top,
     ) {
-        Icon(if (done) Icons.Filled.CheckCircle else Icons.Filled.AddCircleOutline, null, tint = if (done) CaseInk.discharge else CaseInk.theatre, modifier = Modifier.size(20.dp))
+        Icon(if (done) Icons.Rounded.CheckCircle else Icons.Rounded.AddCircleOutline, null, tint = if (done) CaseInk.discharge else CaseInk.theatre, modifier = Modifier.size(20.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(step.label, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = if (done) CaseInk.biro else CaseInk.ink)
             Text("${step.minutes} min", style = WardTextStyle.caption.textStyle(mono = true), color = CaseInk.biro)
@@ -326,9 +326,9 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
                     Text(name, Modifier.weight(1f).clearAndSetSemantics {
                         contentDescription = "Rung ${index + 1} of ${run.ladder.size}: $name" + if (leading) ", leading" else ""
                     }, style = WardTextStyle.body.textStyle(if (leading) WardWeight.semibold else WardWeight.regular))
-                    RungButton(Icons.Filled.KeyboardArrowUp, "Move up", index > 0) { edit { it.move(name, up = true) } }
-                    RungButton(Icons.Filled.KeyboardArrowDown, "Move down", index < run.ladder.size - 1) { edit { it.move(name, up = false) } }
-                    RungButton(Icons.Filled.Close, "Remove", true) { edit { it.remove(name) } }
+                    RungButton(Icons.Rounded.KeyboardArrowUp, "Move up", index > 0) { edit { it.move(name, up = true) } }
+                    RungButton(Icons.Rounded.KeyboardArrowDown, "Move down", index < run.ladder.size - 1) { edit { it.move(name, up = false) } }
+                    RungButton(Icons.Rounded.Close, "Remove", true) { edit { it.remove(name) } }
                 }
             }
         }

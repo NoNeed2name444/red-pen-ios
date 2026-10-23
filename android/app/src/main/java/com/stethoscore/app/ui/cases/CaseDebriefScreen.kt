@@ -8,15 +8,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.LibraryAdd
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Replay
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.LibraryAdd
+import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.Replay
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -170,7 +170,7 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
             }
             if (score.capped) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Warning, null, tint = CaseInk.resus, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Rounded.Warning, null, tint = CaseInk.resus, modifier = Modifier.size(16.dp))
                     Text("Capped at 60: a must-not-miss red flag was missed.", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = CaseInk.resus)
                 }
             }
@@ -197,7 +197,7 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                 },
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(if (debrief.diagnosisRight) Icons.Filled.CheckCircle else Icons.Filled.Cancel, null, tint = if (debrief.diagnosisRight) CaseInk.discharge else CaseInk.resus)
+                Icon(if (debrief.diagnosisRight) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel, null, tint = if (debrief.diagnosisRight) CaseInk.discharge else CaseInk.resus)
                 Text(file.diagnosis.name, style = WardType.title.textStyle())
             }
             if (!debrief.diagnosisRight) Text("You said: ${debrief.chosenDiagnosis}", style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
@@ -285,24 +285,24 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                 Modifier.fillMaxWidth().semantics {
                     stateDescription = if (debrief.missed.isEmpty()) "Nothing was missed" else "One card for each missed key finding or red flag, into your review"
                 },
-                enabled = debrief.missed.isNotEmpty(), icon = Icons.Filled.LibraryAdd)
+                enabled = debrief.missed.isNotEmpty(), icon = Icons.Rounded.LibraryAdd)
             cardsNote?.let { NoteLine(it) }
-            CaseButton("Add to the Ideas map", ::addIdea, Modifier.fillMaxWidth(), icon = Icons.Filled.Lightbulb)
+            CaseButton("Add to the Ideas map", ::addIdea, Modifier.fillMaxWidth(), icon = Icons.Rounded.Lightbulb)
             ideaNote?.let { NoteLine(it) }
 
             CaseLabel("Another patient like this")
             CaseButton("Same diagnosis, a new presentation", { another(true) },
                 Modifier.fillMaxWidth().semantics { stateDescription = "Writes another patient with ${file.diagnosis.name}, presented differently, into this set" },
-                enabled = writing == null, icon = Icons.Filled.PersonAdd)
+                enabled = writing == null, icon = Icons.Rounded.PersonAdd)
             file.runnerUp?.let { other ->
                 CaseButton("The runner-up: ${other.name}", { another(false) },
                     Modifier.fillMaxWidth().semantics { stateDescription = "Writes a patient whose diagnosis is ${other.name} into this set" },
-                    enabled = writing == null, icon = Icons.Filled.Group)
+                    enabled = writing == null, icon = Icons.Rounded.Group)
             }
             anotherNote?.let { NoteLine(it) }
 
             TextButton(again, Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
-                Icon(Icons.Filled.Replay, null, Modifier.size(18.dp))
+                Icon(Icons.Rounded.Replay, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("See this patient again", Modifier.weight(1f))
             }
@@ -316,7 +316,7 @@ private fun FindingRow(item: CaseDebrief.Item) {
         Modifier.clearAndSetSemantics { contentDescription = "${item.step.label}: ${item.step.finding}. " + if (item.found) "Found." else "Not found." },
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(if (item.found) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked, null,
+        Icon(if (item.found) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, null,
             tint = if (item.found) CaseInk.discharge else CaseInk.biro, modifier = Modifier.size(18.dp).padding(top = 2.dp))
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(item.step.label, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))

@@ -13,9 +13,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.rounded.CreateNewFolder
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Delete
@@ -240,7 +240,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
         }
         if (book.notes.isEmpty() && book.folders.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(bottom = bottom), contentAlignment = Alignment.Center) {
-                WardEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
+                WardEmptyState(Icons.Rounded.Lightbulb, "Dump your first idea",
                     "Anything worth remembering: a mnemonic, a question to look up, a link between two topics. Join them up later on the board or in the space.") {
                     // gone once typing, when Send is the one main button
                     if (!typing) WardTextButton("Start typing", startTyping, kind = WardButtonKind.primary)
@@ -258,14 +258,14 @@ private fun LazyListScope.sectionHeader(text: String) = item {
         Box {
             Row(Modifier.fillMaxWidth().combinedClickable(role = Role.Button, onLongClick = { menu = true }, onClick = open).wardRowTile(),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(Icons.Outlined.Folder, null, tint = toneColor(folder.id, book), modifier = Modifier.width(24.dp))
+                Icon(Icons.Rounded.Folder, null, tint = toneColor(folder.id, book), modifier = Modifier.width(24.dp))
                 Text(folder.name, Modifier.weight(1f).padding(vertical = 4.dp), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 Text("${book.count(folder.id)}", style = WardTextStyle.caption.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))
                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(16.dp))
             }
             DropdownMenu(menu, { menu = false }) {
                 DropdownMenuItem({ Text("Rename") }, { menu = false; name(FolderPrompt.Rename(folder)) }, leadingIcon = { Icon(Icons.Rounded.Edit, null) })
-                DropdownMenuItem({ Text("New folder inside") }, { menu = false; name(FolderPrompt.New(folder.id)) }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) })
+                DropdownMenuItem({ Text("New folder inside") }, { menu = false; name(FolderPrompt.New(folder.id)) }, leadingIcon = { Icon(Icons.Rounded.CreateNewFolder, null) })
                 DropdownMenuItem({ Text("Delete folder", color = wardColor(WardToken.danger)) }, { menu = false; book.deleteFolder(folder.id) },
                     leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = wardColor(WardToken.danger)) })
             }
@@ -294,7 +294,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
                 }
             }
             DropdownMenu(menu, { menu = false }) {
-                DropdownMenuItem({ Text("Move to") }, { menu = false; move(note) }, leadingIcon = { Icon(Icons.Outlined.Folder, null) })
+                DropdownMenuItem({ Text("Move to") }, { menu = false; move(note) }, leadingIcon = { Icon(Icons.Rounded.Folder, null) })
                 DropdownMenuItem({ Text("Delete", color = wardColor(WardToken.danger)) }, { menu = false; book.delete(note.id) },
                     leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = wardColor(WardToken.danger)) })
             }
@@ -348,7 +348,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
                 // "New idea": a soft capsule pressed into the base
                 Row(Modifier.weight(1f).heightIn(min = 48.dp).wardInset(CircleShape, control = true).padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Outlined.Lightbulb, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.Lightbulb, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(20.dp))
                     BasicTextField(draft, onDraft, Modifier.weight(1f).focusRequester(focus).onFocusChanged { onFocus(it.isFocused) }
                         .semantics { testTag = "idea-capture"; contentDescription = "New idea" },
                         singleLine = true, textStyle = WardType.body.textStyle().copy(color = wardColor(WardToken.ink)),
@@ -380,9 +380,9 @@ private fun LazyListScope.sectionHeader(text: String) = item {
             Icon(Icons.Rounded.Add, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(22.dp))
         }
         DropdownMenu(open, { open = false }) {
-            DropdownMenuItem({ Text("New idea") }, { open = false; newIdea() }, leadingIcon = { Icon(Icons.Outlined.Lightbulb, null) })
+            DropdownMenuItem({ Text("New idea") }, { open = false; newIdea() }, leadingIcon = { Icon(Icons.Rounded.Lightbulb, null) })
             DropdownMenuItem({ Text("New page") }, { open = false; newPage() }, leadingIcon = { Icon(newPageIcon, null) })
-            DropdownMenuItem({ Text("New folder") }, { open = false; newFolder() }, leadingIcon = { Icon(Icons.Outlined.CreateNewFolder, null) })
+            DropdownMenuItem({ Text("New folder") }, { open = false; newFolder() }, leadingIcon = { Icon(Icons.Rounded.CreateNewFolder, null) })
         }
     }
 }

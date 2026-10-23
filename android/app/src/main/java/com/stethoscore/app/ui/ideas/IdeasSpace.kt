@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Palette
@@ -79,7 +79,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
         when {
             demo != null -> DemoMap(demo, recenter, settings.readout)
             book.notes.isEmpty() -> Box(Modifier.fillMaxSize().background(wardColor(WardToken.background)).padding(bottom = hidden), contentAlignment = Alignment.Center) {
-                WardEmptyState(Icons.Outlined.Lightbulb, "Dump your first idea",
+                WardEmptyState(Icons.Rounded.Lightbulb, "Dump your first idea",
                     "Every note appears here as a point in space, joined to the notes it links to. Type one in the bar below.")
             }
             else -> NotesMap(book, settings, theme, recenter, open)
@@ -171,10 +171,10 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
                 SpaceStyle.menuOrder.forEach { s ->
                     Choice(s.label, s.icon, settings.nodeStyle == s.rawValue) { settings.setNodeStyle(s.rawValue); showing = false }
                 }
-                if (book.subfolders(null).isNotEmpty()) Choice("Folder looks", Icons.Outlined.Folder, false) { showing = false; showFolderLooks() }
+                if (book.subfolders(null).isNotEmpty()) Choice("Folder looks", Icons.Rounded.Folder, false) { showing = false; showFolderLooks() }
             } else if (theme == GraphTheme.PERFORMANCE) {
                 MenuHeader("Map")
-                Choice("Your notes", Icons.Outlined.Lightbulb, settings.perfDemo !in IdeasSettings.perfDemoSizes) { settings.setPerfDemo(0); showing = false }
+                Choice("Your notes", Icons.Rounded.Lightbulb, settings.perfDemo !in IdeasSettings.perfDemoSizes) { settings.setPerfDemo(0); showing = false }
                 IdeasSettings.perfDemoSizes.forEach { n ->
                     Choice(perfDemoTitle(n), Icons.Rounded.Public, settings.perfDemo == n) { settings.setPerfDemo(n); showing = false }
                 }
@@ -183,7 +183,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
             MenuHeader("Lines")
             IdeaLinesPicker(settings, Modifier.width(220.dp).padding(horizontal = 12.dp, vertical = 4.dp))
             HorizontalDivider()
-            Choice(theme.legendTitle, Icons.Outlined.Info, false) { showing = false; showLegend() }
+            Choice(theme.legendTitle, Icons.Rounded.Info, false) { showing = false; showLegend() }
         }
     }
 }
@@ -232,7 +232,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
                 val chosen = looks[folder.id]
                 Box {
                     DropdownMenuItem({ Text(folder.name, color = wardColor(WardToken.ink)) }, { menu = true },
-                        leadingIcon = { Icon(Icons.Outlined.Folder, null, tint = toneColor(folder.id, book)) },
+                        leadingIcon = { Icon(Icons.Rounded.Folder, null, tint = toneColor(folder.id, book)) },
                         trailingIcon = { Text(chosen?.label ?: "Same as all", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.primaryInk)) })
                     DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
                         Choice("Same as all", Icons.Rounded.Public, chosen == null) { set(folder.id, null); menu = false }
