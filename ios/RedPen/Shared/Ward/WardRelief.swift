@@ -863,3 +863,46 @@ enum WardEdge {
         return max(base, diff)
     }
 }
+
+/// Where a touch in the paper's leading gutter goes (WardEdgeReach): to the
+/// page's navigation stack, so the stack's own edge pan (the system's swipe
+/// back) takes a swipe from the screen's edge.
+///
+/// The reach once hit-tested the window again at a point just inside the
+/// page and handed back whatever that found. Mid hit test, SwiftUI then
+/// hit-tested what came back, and when that was a hosting view holding the
+/// reach itself it came back round to the same answer: _UIHostingView's
+/// hit test called itself some 32,000 deep until the main thread's stack ran
+/// out, on the swipe's first touch (EXC_BAD_ACCESS in the stack guard; App
+/// build 39946874030, testIslandPushAndBack; T0148 and T0151). Now the
+/// touch goes to the stack's own view, found by walking the views, never by
+/// hit-testing again, and never to a view that holds the reach.
+enum WardEdgeReachRule {
+    /// The x just inside the page for a touch at `x` in the leading gutter
+    /// of a view running from `minX` to `maxX`; nil anywhere else, where the
+    /// reach takes nothing.
+    static func inside(x: Double, minX: Double, maxX: Double, rtl: Bool,
+                       inset: Double = WardPaper.sideInset) -> Double? {
+        guard maxX - minX > 2 * inset + 2, x >= minX, x <= maxX else { return nil }
+        if rtl { return x >= maxX - inset ? maxX - inset - 1 : nil }
+        return x <= minX + inset ? minX + inset + 1 : nil
+    }
+
+    /// The navigation stack to hand the touch to: walking the views as
+    /// they are drawn (a later sibling over an earlier one, a child over its
+    /// parent), the last stack whose bounds hold the point, that is shown and
+    /// takes touches, and that does not hold the reach. Views that do not
+    /// hold the point are not walked into.
+    static func stack<Node>(from root: Node, children: (Node) -> [Node], holdsPoint: (Node) -> Bool,
+                            takesTouches: (Node) -> Bool, isStack: (Node) -> Bool,
+                            holdsReach: (Node) -> Bool) -> Node? {
+        var found: Node?
+        func visit(_ node: Node) {
+            guard takesTouches(node), holdsPoint(node) else { return }
+            if isStack(node) && !holdsReach(node) { found = node }
+            for child in children(node) { visit(child) }
+        }
+        visit(root)
+        return found
+    }
+}

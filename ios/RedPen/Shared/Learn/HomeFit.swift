@@ -164,3 +164,55 @@ enum HomeFit {
         return out
     }
 }
+
+// MARK: - The row a turn keeps
+
+/// Turning the phone, or the window's width changing, keeps the student's
+/// place on home: the set row that stood first in view before stands in view
+/// after (T0151). The window's width changes every row's height (a name wraps
+/// less on its side), so the scroll's offset alone lands somewhere else; the
+/// list is scrolled back to that row instead, by its id.
+enum HomeRowKeep {
+    /// A row as it stood in the list's own frame: its top and bottom in
+    /// points from the scroll view's top edge.
+    struct Row<ID: Hashable>: Equatable {
+        var id: ID
+        var minY: Double
+        var maxY: Double
+    }
+
+    /// The row a turn keeps, and how far down the list's visible part its top
+    /// stood (0 at the top, 1 at the bottom).
+    struct Place<ID: Hashable>: Equatable {
+        var id: ID
+        var fraction: Double
+    }
+
+    /// Where the list may put the kept row, as a fraction of its height: off
+    /// the top row and the masthead above, and off New set and the dock below,
+    /// on a phone either way up (UnitPoint's y for ScrollViewProxy.scrollTo).
+    static let anchorRange: ClosedRange<Double> = 0.2...0.7
+
+    /// The first row whose middle stands in the visible band from `top` to
+    /// `bottom` (the list's insets: the top row above, the dock below), the
+    /// row a finger would land on first; else the first row that shows at
+    /// all (one taller than the band). Nil when no row shows, or the band is
+    /// empty: there is no place to keep.
+    static func place<ID: Hashable>(_ rows: [Row<ID>], top: Double, bottom: Double) -> Place<ID>? {
+        guard bottom > top else { return nil }
+        let height: Double = bottom - top
+        let showing: [Row<ID>] = rows.filter { $0.maxY > top + 0.5 && $0.minY < bottom - 0.5 && $0.maxY > $0.minY }
+        let held: [Row<ID>] = showing.filter { row in
+            let middle: Double = (row.minY + row.maxY) / 2
+            return middle >= top && middle <= bottom
+        }
+        guard let row = (held.isEmpty ? showing : held).min(by: { $0.minY < $1.minY }) else { return nil }
+        return Place(id: row.id, fraction: (row.minY - top) / height)
+    }
+
+    /// Where the kept row goes after the turn: about where it stood, but
+    /// never under the top row or the bar.
+    static func anchor(_ fraction: Double) -> Double {
+        min(anchorRange.upperBound, max(anchorRange.lowerBound, fraction.isFinite ? fraction : anchorRange.lowerBound))
+    }
+}

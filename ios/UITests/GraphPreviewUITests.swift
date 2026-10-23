@@ -555,8 +555,12 @@ final class GraphPreviewUITests: XCTestCase {
             press(byLabel)
         }
 
-        let patientHeader = NSPredicate(format: "label MATCHES %@", "Patient [0-9]+ of [0-9]+.*")
-        let quizHeader = app.descendants(matching: .any).matching(patientHeader).firstMatch
+        // The quiz's header counts questions: "Question 1 of 5" since 048e4919
+        // ("Name the question screen's parts as questions, not patients");
+        // this looked for the old "Patient 1 of 5" and missed a quiz that
+        // was there (App build 39946874030's recording, T0151).
+        let questionHeader = NSPredicate(format: "label MATCHES %@", "Question [0-9]+ of [0-9]+.*")
+        let quizHeader = app.descendants(matching: .any).matching(questionHeader).firstMatch
         XCTAssertTrue(quizHeader.waitForExistence(timeout: 10), "pushed quiz view didn't appear")
         usleep(1_500_000)
 

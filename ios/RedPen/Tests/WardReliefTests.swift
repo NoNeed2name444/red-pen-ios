@@ -689,6 +689,89 @@ let ownerStale = ownerList.keys.filter { !ownerSeen.contains($0) }.sorted()
 check("every case on the owner's list is one a check here measured short", ownerStale.isEmpty,
       ownerStale.joined(separator: "; "))
 
+// MARK: - A swipe from the screen's edge (WardEdgeReachRule, T0151)
+
+// The paper's leading gutter hands a touch to the navigation stack just
+// inside the page. It once hit-tested the window again and handed back what
+// that found; a hosting view holding the reach came back round to itself,
+// and the hit test ran the main thread's stack out on the swipe's first
+// touch (App build 39946874030, testIslandPushAndBack).
+do {
+    let side: Double = WardPaper.sideInset
+    check("edge: a touch at the screen's edge goes just inside the page",
+          WardEdgeReachRule.inside(x: 4, minX: 0, maxX: 402, rtl: false) == side + 1)
+    check("edge: the gutter's last point too", WardEdgeReachRule.inside(x: side, minX: 0, maxX: 402, rtl: false) == side + 1)
+    check("edge: past the gutter the reach takes nothing",
+          WardEdgeReachRule.inside(x: side + 0.5, minX: 0, maxX: 402, rtl: false) == nil)
+    check("edge: the trailing gutter is not the edge a swipe back starts from",
+          WardEdgeReachRule.inside(x: 398, minX: 0, maxX: 402, rtl: false) == nil)
+    check("edge: right to left, the leading gutter is on the right",
+          WardEdgeReachRule.inside(x: 398, minX: 0, maxX: 402, rtl: true) == 402 - side - 1
+            && WardEdgeReachRule.inside(x: 4, minX: 0, maxX: 402, rtl: true) == nil)
+    check("edge: a view too narrow for a page takes nothing",
+          WardEdgeReachRule.inside(x: 4, minX: 0, maxX: 30, rtl: false) == nil)
+
+    // views as UIKit draws them: a later child over an earlier one
+    final class View {
+        let name: String
+        var children: [View]
+        var stack = false
+        var shown = true
+        var holds = true
+        var reach = false
+        init(_ name: String, stack: Bool = false, holds: Bool = true, _ children: [View] = []) {
+            self.name = name; self.stack = stack; self.holds = holds; self.children = children
+        }
+    }
+    func holdsReach(_ view: View) -> Bool { view.reach || view.children.contains(where: holdsReach) }
+    func pick(_ root: View) -> String? {
+        WardEdgeReachRule.stack(from: root, children: { $0.children }, holdsPoint: { $0.holds },
+                                takesTouches: { $0.shown }, isStack: { $0.stack }, holdsReach: holdsReach)?.name
+    }
+    // the island: the window's hosting view holds the page's stack, its
+    // pushed quiz, and over them the reach
+    let reach = View("reach")
+    reach.reach = true
+    let quiz = View("quiz")
+    let nav = View("nav", stack: true, [View("deck"), quiz])
+    let host = View("host", [nav, reach])
+    let window = View("window", [host])
+    check("edge: the touch goes to the page's stack", pick(window) == "nav", "\(pick(window) ?? "nil")")
+    check("edge: never to the hosting view that holds the reach", pick(window) != "host")
+    // a stack whose page holds the reach (the reach inside a pushed page) is
+    // one the hit test is already in
+    let inner = View("reach")
+    inner.reach = true
+    let around = View("around", stack: true, [View("page", [inner])])
+    check("edge: never to a stack that holds the reach", pick(View("window", [around])) == nil)
+    // a sheet's stack drawn over the page's
+    let sheet = View("sheet", stack: true, [View("form")])
+    check("edge: a stack drawn over another takes it",
+          pick(View("window", [View("host", [View("nav", stack: true), reach]), sheet])) == "sheet")
+    // a stack inside a pushed page, over its own stack
+    let nested = View("outer", stack: true, [View("page", [View("inner", stack: true)])])
+    check("edge: the innermost stack under the point", pick(View("window", [nested])) == "inner")
+    // a stack away from the point, or hidden, is not one
+    let away = View("away", stack: true, holds: false)
+    check("edge: a stack away from the point is not walked", pick(View("window", [away])) == nil)
+    let hidden = View("hidden", stack: true)
+    hidden.shown = false
+    check("edge: a hidden stack takes nothing",
+          pick(View("window", [View("nav", stack: true), hidden])) == "nav")
+    // and the reach itself finds its stack by walking, never by hit-testing again
+    let surfaces: String = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardSurfaces.swift",
+                                        encoding: .utf8)) ?? ""
+    let reachView: String = {
+        guard let a = surfaces.range(of: "final class WardEdgeReachView"),
+              let b = surfaces.range(of: "#endif", range: a.upperBound..<surfaces.endIndex) else { return "" }
+        return String(surfaces[a.lowerBound..<b.lowerBound])
+    }()
+    check("edge: WardEdgeReachView found", !reachView.isEmpty)
+    check("edge: the reach hit-tests nothing again",
+          reachView.components(separatedBy: ".hitTest(").count == 1, reachView)
+    check("edge: the reach hands the touch to WardEdgeReachRule.stack", reachView.contains("WardEdgeReachRule.stack("))
+}
+
 print(failures.isEmpty ? "\nALL WARD RELIEF TESTS PASS"
                        : "\n\(failures.count) WARD RELIEF TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

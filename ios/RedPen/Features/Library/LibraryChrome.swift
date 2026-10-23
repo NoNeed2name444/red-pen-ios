@@ -68,6 +68,9 @@ struct NameSheet: View {
             .onSubmit(submit)
             .frame(minHeight: 44)
             .wardField()
+            // the sheet's own field: the page under the sheet keeps its
+            // search field in the tree, so a test names this one
+            .accessibilityIdentifier("nameSheetField")
     }
 
     private func submit() {
