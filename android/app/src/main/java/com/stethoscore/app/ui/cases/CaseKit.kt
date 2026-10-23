@@ -166,7 +166,7 @@ internal fun CaseVitalsGrid(obs: List<CaseFile.Obs>) {
             val flag = CaseChart.flag(o)
             val tint = if (flag != null) wardColor(WardToken.danger) else wardColor(WardToken.ink)
             Column(
-                Modifier.widthIn(min = 86.dp).background(wardWellFill(), RoundedCornerShape(10.dp)).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp)
+                Modifier.widthIn(min = 86.dp).background(wardWellFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp)
                     .clearAndSetSemantics { contentDescription = "${o.sign.spoken} ${o.shown}${unit}" + (flag?.let { ", ${it.spoken}" } ?: "") },
             ) {
                 Text(o.sign.label, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = wardColor(WardToken.inkSecondary))
@@ -182,7 +182,7 @@ internal fun CaseVitalsGrid(obs: List<CaseFile.Obs>) {
 /** Test values in the chart's results table, flagged H or L. */
 @Composable
 internal fun CaseResultsTable(results: List<CaseStep.LabResult>) {
-    Column(Modifier.fillMaxWidth().background(wardWellFill(), RoundedCornerShape(10.dp)).padding(WardSpace.m.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
+    Column(Modifier.fillMaxWidth().background(wardWellFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
         for (r in results) {
             val flag = CaseChart.flag(r)
             Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { }, verticalAlignment = Alignment.CenterVertically) {

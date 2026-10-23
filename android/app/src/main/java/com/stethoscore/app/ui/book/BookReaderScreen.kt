@@ -281,7 +281,7 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
             style = WardType.body.textStyle().copy(lineHeight = (WardTextStyle.body.line + 3).sp), color = ink)
         is BookPages.Block.Callout -> {
             val tint = calloutColor(block.kind)
-            Row(Modifier.fillMaxWidth().wardInset(RoundedCornerShape(12.dp))
+            Row(Modifier.fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.field.wardDp))
                 .drawWithContent {
                     drawContent()
                     // the kind's mark down the leading edge
@@ -333,7 +333,7 @@ internal fun flowPieces(step: String): List<String> {
 
 @Composable private fun FlowBox(step: String) {
     val pieces = flowPieces(step)
-    Column(Modifier.widthIn(max = 420.dp).fillMaxWidth().wardInset(RoundedCornerShape(12.dp))
+    Column(Modifier.widthIn(max = 420.dp).fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.field.wardDp))
         .padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
         if (pieces.size > 1) {
