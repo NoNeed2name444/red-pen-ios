@@ -105,7 +105,10 @@ const before = {
 const meant = new Set(['owner writer off', 'owner job writer off']);
 // and later (the owner, 23 Oct: "Lock it"): only the hosted writer answers an account,
 // so with PRO_PAYS off a Pro account no longer falls to the free chain
-const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' };
+// and then (the owner, 23 Oct: "only me"): no account but the owner's is
+// answered at all, Pro or not, PRO_PAYS on or off
+const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -',
+                 'pro writer on': '402 - - -', 'pro checker on': '402 - - -' };
 
 // A1: the owner key with PRO_PAYS off writes with Claude first, chat and jobs
 {
@@ -229,16 +232,21 @@ const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' }
 
 // A4: "Lock it" - an account is never answered by the free chain
 {
-  // The hosted writer failing for a Pro account: nothing else is asked
-  const env = freshEnv({ ...base, PRO_PAYS: 'on' });
-  const asked = [];
-  const r = await chat(env, 'p1', writer, async url => {
-    if (url.includes('storekit')) return new Response('{}', { status: 404 });
-    if (url.includes('anthropic')) { asked.push('claude'); return new Response('{}', { status: 529 }); }
-    asked.push('gemini');
-    return new Response(JSON.stringify(geminiReply), { status: 200 });
-  });
-  ok(r.status !== 200 && asked.join('>') === 'claude', 'A4 a Pro account, Claude down: no answer, and the Gemini chain is never asked');
+  // R6 "only me": a Pro account that is not the owner's, PRO_PAYS on and the
+  // hosted writer set up, is refused before any model is asked
+  for (const [job, body] of [['writer', writer], ['checker', checker]]) {
+    const env = freshEnv({ ...base, PRO_PAYS: 'on' });
+    const asked = [];
+    const r = await chat(env, 'p1', body, async url => {
+      if (url.includes('storekit')) return new Response('{}', { status: 404 });
+      asked.push(url.includes('anthropic') ? 'claude' : 'gemini');
+      return new Response(JSON.stringify(url.includes('anthropic') ? claudeReply : geminiReply), { status: 200 });
+    });
+    const said = await r.json();
+    ok(r.status === 402 && said.message === 'Stethoscore Cloud is part of Pro.' && asked.length === 0
+       && !env.db.prepare('SELECT 1 AS x FROM ai_usage WHERE account_id = ?').get('p1'),
+       `A4 a Pro account (not the owner), PRO_PAYS on, ${job}: 402 (See Pro), no model asked, nothing counted`);
+  }
   // no hosted writer on the route (no key, or no price): the See Pro answer, nothing asked
   for (const [what, extra] of [['no ANTHROPIC_API_KEY', { ANTHROPIC_API_KEY: undefined }],
                                ['no price for Claude', { GEMINI_PRICES: 'gemini-3.8-flash:0.30/2.50' }]]) {
@@ -248,6 +256,57 @@ const locked = { 'pro writer off': '402 - - -', 'pro checker off': '402 - - -' }
     }
   }
   // the owner key keeps its chain and its caps (A1-A3 above)
+}
+
+// A5: the owner signed in. The app sends the session before the owner key,
+// so an owner account (accounts.owner = 1, or listed in OWNER_ACCOUNT_IDS)
+// is the owner here too: the key's route, gates and one wallet. o1 is marked
+// in the table and has no subscription; o2 is only listed.
+{
+  // as the owner key answers (A1, and the checker as at 36167f28)
+  const answers = { writer: '200 claude claude claude-opus-5-5', checker: before['owner checker off'] };
+  for (const [who, extra] of [['o1 (marked owner)', {}], ['o2 (in OWNER_ACCOUNT_IDS)', { OWNER_ACCOUNT_IDS: 'x9, o2' }]]) {
+    const id = who.slice(0, 2);
+    for (const [job, body] of [['writer', writer], ['checker', checker]]) {
+      const env = freshEnv({ ...base, PRO_PAYS: 'off', ...extra });
+      env.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at, owner) VALUES (?, 'apple', ?, 0, ?)`)
+        .run(id, `s-${id}`, id === 'o1' ? 1 : 0);
+      const log = upstream();
+      const r = await chat(env, id, body, log.fetcher);
+      const said = await r.json();
+      const o = { status: r.status, asked: log.asked.join('>'), answer: said.choices?.[0]?.message?.content ?? null, source: said.source ?? null };
+      console.log(`     owner account ${who} ${job} off: ${row(o)}`);
+      ok(row(o) === answers[job],
+         `A5 owner account ${who}, PRO_PAYS off, ${job}: answered as the owner key is (not 402)`);
+      if (job === 'writer') {
+        const held = env.db.prepare("SELECT micro_usd AS m FROM ai_cost WHERE account_id = 'owner'").get()?.m;
+        ok(held === 100 * 4 + 50 * 20 && !env.db.prepare('SELECT 1 AS x FROM ai_cost WHERE account_id = ?').get(id),
+           `A5 owner account ${who}: the cost is the owner wallet's (OWNER_MONTHLY_USD), not the account's`);
+      }
+    }
+  }
+  // the owner's wallet is one: spent by the key, it is spent for the signed-in owner too
+  {
+    const env = freshEnv({ ...base, PRO_PAYS: 'off', OWNER_ACCOUNT_IDS: 'o2' });
+    env.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('o2', 'apple', 's-o2', 0)`).run();
+    env.db.prepare(`INSERT INTO ai_cost (account_id, month, micro_usd) VALUES ('owner', ?, ?)`)
+      .run(new Date().toISOString().slice(0, 7), 5_000_000);
+    const log = upstream();
+    const r = await chat(env, 'o2', writer, log.fetcher);
+    ok(r.status === 200 && !log.asked.includes('claude'),
+       "A5 the owner's month used by the key: the signed-in owner is held to the same cap (the hosted writer is not asked)");
+  }
+  // anyone else signed in, PRO_PAYS off: still 402, nothing asked (free a1, Pro p1)
+  for (const who of ['free', 'pro']) for (const [job, body] of [['writer', writer], ['checker', checker]]) {
+    const o = await observe(who, 'off', body, { OWNER_ACCOUNT_IDS: 'o2' });
+    ok(row(o) === '402 - - -', `A5 ${who} account (not the owner), PRO_PAYS off, ${job}: 402, nothing asked`);
+  }
+  // and the owner key exactly as before
+  for (const who of ['owner', 'owner job']) for (const [job, body] of [['writer', writer], ['checker', checker]]) {
+    const o = await observe(who, 'off', body, { OWNER_ACCOUNT_IDS: 'o2' });
+    const want = job === 'writer' ? '200 claude claude claude-opus-5-5' : before[`${who} ${job} off`];
+    ok(row(o) === want, `A5 ${who} key, PRO_PAYS off, ${job}: unchanged (${want})`);
+  }
 }
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }

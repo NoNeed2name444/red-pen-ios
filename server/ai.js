@@ -18,6 +18,7 @@
 import { decodeClaims } from './tokens.js';
 import { medvalParts, termsPrompt, parseTerms, gather, groundedMessages, answerWithEvidence } from './evidence.js';
 import { breakers, failed } from './breakers.js';
+import { rowIsOwner } from './lib/owner.js';
 
 const DEFAULT_BASE = 'https://router.huggingface.co/v1';
 // Hugging Face's router has one live host for Baichuan-M2 (Featherless);
@@ -63,23 +64,22 @@ const today = () => new Date().toISOString().slice(0, 10);
 /// per-minute limit inside the call (a job tries again on its next alarm);
 /// `bench` counts the owner's benchmarks apart from the owner's own app.
 export async function chat(env, accountId, body, fetcher = fetch, { owner = false, maxTokensCap, rounds, bench = false } = {}) {
-  // The owner key (the app owner's own builds) skips the account and the
-  // subscription check, but not a daily allowance of its own.
+  // Text is written for the owner only (the owner, 23 Oct: "only me"): the
+  // owner key (the app owner's own builds), or the owner signed in (an account
+  // rowIsOwner accepts; the app sends the session before the key). Both have
+  // the key's gates, its route, its daily allowance and its one wallet
+  // (OWNER_MONTHLY_USD, $20), counted as 'owner'. Every other account, Pro or
+  // not and whatever PRO_PAYS says, is given the refusal the app shows as See
+  // Pro, before any model is asked.
   if (!owner) {
-    const refused = await proGate(env, accountId, fetcher, 'Stethoscore Cloud is part of Pro.');
-    if (refused) return refused;
+    const account = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(accountId).first();
+    if (!account) return fail(401, 'Please sign in again.');
+    if (!rowIsOwner(env, account)) return fail(402, 'Stethoscore Cloud is part of Pro.');
+    owner = true;
   }
 
   const route = routeFor(env, body.model, { owner: owner && !bench });
   if (!route) return fail(400, 'Unknown model.');
-  // Only the hosted writer answers anyone but the owner (the owner, 23 Oct: "Lock
-  // it"): no free chain behind it, so without the hosted writer on this route (PRO_PAYS
-  // off, no key or no price) the answer is the same refusal the app shows as
-  // See Pro, and when it fails nothing else is asked.
-  if (!owner) {
-    route.sources = route.sources.filter(s => s.kind === 'anthropic');
-    if (!route.sources.length) return fail(402, 'Stethoscore Cloud is part of Pro.');
-  }
   if (!route.base) return fail(503, `${route.name} in the cloud isn't set up yet.`);
 
   const messages = clean(body.messages);
@@ -96,8 +96,8 @@ export async function chat(env, accountId, body, fetcher = fetch, { owner = fals
   const gemini = route.sources?.find(s => s.kind === 'gemini');
   if (gemini) gemini.models = await geminiModels(env, accountId, owner, 'modes', route.canPay);
   // The checker is a different model from the writer: a model grading its
-  // own work tends to agree with itself. 3.8 Flash checks first (fast, and
-  // not the 3.1 Pro that writes); `avoid` names the models that wrote what
+  // own work tends to agree with itself. The first of CHECKER_MODELS checks
+  // first (fast, and not the model that writes); `avoid` names the models that wrote what
   // is being checked, and they are skipped while any other is left.
   if (gemini && body.model === 'cramdown-checker') gemini.models = checkerOrder(env, gemini.models, body.avoid);
   // the same rule for Claude: what it wrote, another model checks
@@ -827,7 +827,7 @@ const paidOnly = env => new Set(list(env.PAID_ONLY_MODELS || PAID_ONLY));
 /// writer was Flash), then the smaller ones.
 const CHECKER_MODELS = 'gemini-3.8-flash,gemini-3.1-pro-preview,gemini-3.5-flash-lite,gemma-4-31b-it';
 const PAID_MODELS = 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it';
-const TRANSCRIBE_MODELS = 'gemini-3.8-flash,gemini-3.5-flash-lite';
+const TRANSCRIBE_MODELS = 'gemini-3.8-flash';
 const list = text => String(text).split(',').map(m => m.trim()).filter(Boolean);
 const month = () => new Date().toISOString().slice(0, 7);
 
@@ -883,7 +883,7 @@ export async function paysNow(env) {
 }
 
 /// Before paid calls are budgeted, Google's free allowances are shared by
-/// everyone, and some are tiny (Flash's, shared by the whole project).
+/// everyone, and some are tiny (shared by the whole project).
 /// So each account may take only a share of the scarce ones
 /// (FREE_MODEL_SHARES, "model:requests a day"), and all accounts together at
 /// most GEMINI_DAILY_CEILING non-Gemma calls a day - a ceiling that also caps
@@ -1073,14 +1073,14 @@ export function costOf(env, model, usage) {
   return Math.ceil((input - audio + cached) * price.input + audio * audioPriceOf(env, model, price.input) + out * price.output);
 }
 
-/// Google prices audio input well above text (2.5 Flash: $1.00 against
-/// $0.30 a million). 3.8 Flash has one input price for all input, $0.75 a
-/// million until 31 Dec 2026 and $1.50 from 1 Jan 2027 (ai.google.dev pricing
-/// page); the later one is used so the count never falls short when it
-/// changes. Used when GEMINI_AUDIO_PRICES does not name the model;
+/// Google can price audio input above text. The transcription model has one
+/// input price for all input, $0.75 a million until 31 Dec 2026 and $1.50
+/// from 1 Jan 2027 (ai.google.dev pricing page); the later one is used so the
+/// count never falls short when it changes. Used when GEMINI_AUDIO_PRICES
+/// does not name the model;
 /// a model named nowhere is taken at three times its text price, never at
 /// the text price itself, so transcription is never under-counted.
-const DEFAULT_AUDIO_PRICES = 'gemini-3.8-flash:1.50,gemini-3.5-flash-lite:0.30';
+const DEFAULT_AUDIO_PRICES = 'gemini-3.8-flash:1.50';
 function audioPriceOf(env, model, text) {
   const triple = Math.round(text * 3e6) / 1e6; // three times the text price, without float dust
   for (const source of [env.GEMINI_AUDIO_PRICES || '', DEFAULT_AUDIO_PRICES]) {

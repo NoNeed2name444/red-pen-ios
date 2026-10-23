@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { chat, askModel, clean, linkSubscription, isOwnerKey, accountToken } from '../ai.js';
+import { chat, askModel, clean, linkSubscription, isOwnerKey, accountToken, isPro } from '../ai.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let failures = 0;
@@ -39,6 +39,14 @@ function freshEnv(extra = {}) {
   for (const statement of sql.split(';')) if (statement.trim()) db.exec(statement);
   db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('a1', 'apple', 's1', 0)`).run();
   return { DB: d1(db), db, AI_API_KEY: 'k', APPLE_BUNDLE_ID: 'com.cramdown.app', ...extra };
+}
+// p1: a confirmed Pro subscriber who is not the owner. Text is the owner's
+// alone (the owner, 23 Oct: "only me"), so p1 is refused whatever it pays.
+function withPro(env) {
+  const now = Math.floor(Date.now() / 1000);
+  env.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at, verified_until, checked_at) VALUES ('p1', 'apple', 'sp', 0, ?, ?)`)
+    .run(now + 86400, now);
+  return env;
 }
 
 const upstreamCalls = [];
@@ -78,9 +86,10 @@ const a1Token = await accountToken('a1');
 {
   const env = freshEnv({ OWNER_ACCOUNT_IDS: 'x, a1' });
   const calls = upstreamCalls.length;
-  const locked = await chat(env, 'a1', request, fakeFetch({}));
-  ok(locked.status === 402 && (await locked.json()).message === 'Stethoscore Cloud is part of Pro.' && upstreamCalls.length === calls,
-     'an owner account without the owner key: no Claude on the route, so 402 and the free chain is never asked');
+  // the owner signed in (an id on OWNER_ACCOUNT_IDS) is answered as the owner key is
+  const signedIn = await chat(env, 'a1', request, fakeFetch({}));
+  ok(signedIn.status === 200 && (await signedIn.json()).choices[0].message.content === 'hello' && upstreamCalls.length === calls + 1,
+     'an owner account without the owner key: answered as the owner key is, not refused');
   const r = await chat(env, 'owner', request, fakeFetch({}), { owner: true });
   const body = await r.json();
   ok(r.status === 200 && body.choices[0].message.content === 'hello', 'the owner key gets the answer');
@@ -98,8 +107,12 @@ const a1Token = await accountToken('a1');
     { status: 1, signedTransactionInfo: jws({ expiresDate: future, appAccountToken: a1Token }) }] }] };
   const linked = await (await linkSubscription(env, 'a1', { originalTransactionId: '2000000123' }, fakeFetch(apple))).json();
   ok(linked.pro === true, 'a live subscription confirmed by Apple links as Pro');
+  // Pro is what chat() used to read; text is now the owner's alone (the owner,
+  // 23 Oct: "only me"), so Pro is read directly and chat refuses this subscriber
+  const row = () => env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind('a1').first();
+  ok(await isPro(env, row(), fakeFetch(apple)), 'and the account then reads as Pro');
   const r = await chat(env, 'a1', request, fakeFetch(apple));
-  ok(r.status === 200, 'and the cloud model then answers');
+  ok(r.status === 402 && upstreamCalls.every(c => !c.url.includes('anthropic')), 'yet a subscriber who is not the owner gets no text (402, See Pro)');
 }
 
 // Apple says expired: refused
@@ -120,10 +133,11 @@ const a1Token = await accountToken('a1');
   await linkSubscription(env, 'a1', { originalTransactionId: '2000000126' }, fakeFetch(apple));
   let asked = 0;
   const counting = async (url, init) => { if (url.includes('storekit')) asked++; return fakeFetch(apple)(url, init); };
-  for (let i = 0; i < 3; i++) await chat(env, 'a1', request, counting);
+  const row = () => env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind('a1').first();
+  for (let i = 0; i < 3; i++) await isPro(env, row(), counting);
   ok(asked === 0, 'a lapsed subscription checked minutes ago is not sent to Apple again on each request');
   env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
-  await chat(env, 'a1', request, counting);
+  await isPro(env, row(), counting);
   ok(asked > 0, 'but it is asked again once the short recheck has passed, so a renewal is noticed');
 }
 
@@ -150,7 +164,8 @@ const a1Token = await accountToken('a1');
   // a1 is Pro; time passes past the recheck and Apple answers 503
   env.DB.prepare('UPDATE accounts SET checked_at = 0 WHERE id = ?').bind('a1').run();
   const down = async (url, init) => url.includes('storekit') ? new Response('busy', { status: 503 }) : fakeFetch(apple)(url, init);
-  ok((await chat(env, 'a1', request, down)).status === 200, 'Apple being down does not take Pro away from a subscriber');
+  ok(await isPro(env, env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind('a1').first(), down),
+     'Apple being down does not take Pro away from a subscriber');
 }
 
 // a transaction id someone else bought cannot be claimed first
@@ -202,11 +217,14 @@ const a1Token = await accountToken('a1');
   ok((await chat(env, 'owner', request, fakeFetch({}), { owner: true })).status === 429, 'a leaked owner key cannot spend without end');
 }
 
-// the daily allowance
+// the daily allowance: the owner signed in has the owner key's, and shares it
+// with the key (only the owner is written for, the owner, 23 Oct: "only me")
 {
-  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_DAILY_LIMIT: '3', ...claude });
+  const env = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', OWNER_DAILY_LIMIT: '3', ...claude });
   const statuses = [];
-  for (let i = 0; i < 5; i++) statuses.push((await chat(env, 'a1', request, fakeFetch({}))).status);
+  for (let i = 0; i < 2; i++) statuses.push((await chat(env, 'a1', request, fakeFetch({}))).status);
+  statuses.push((await chat(env, 'owner', request, fakeFetch({}), { owner: true })).status);
+  for (let i = 0; i < 2; i++) statuses.push((await chat(env, 'a1', request, fakeFetch({}))).status);
   ok(JSON.stringify(statuses) === JSON.stringify([200, 200, 200, 429, 429]), 'the fourth request of the day is refused (429)');
 }
 
@@ -260,8 +278,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   };
   const env = freshEnv({ PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://api.baichuan-ai.com/v1', AI_WRITER_KEY: 'bk',
                          FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', GEMINI_PRICES: 'baichuan/baichuan-m2-32b:0.07/0.07' });
-  const student = await chat(env, 'a1', request, fetcher);
-  ok(student.status === 402 && seen.length === 0, 'an account, not the owner key: neither Baichuan nor Gemini is asked, only Claude writes for it');
+  const student = await chat(withPro(env), 'p1', request, fetcher);
+  ok(student.status === 402 && seen.length === 0, 'a Pro account, not the owner: neither Baichuan nor Gemini is asked (402)');
   const r = await chat(env, 'owner', request, fetcher, { owner: true });
   ok(r.status === 200 && (await r.json()).choices[0].message.content === 'from gemini' && seen[0].includes('baichuan'),
      'Baichuan busy or out of credit: Gemini answers the owner instead');
@@ -289,8 +307,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
     if (status !== 200) return new Response(JSON.stringify({ error: { message: 'quota' } }), { status });
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'thinking', thought: true }, { text: 'answer' }] } }] }), { status: 200 });
   };
-  const student = await chat(freshEnv({ ...firebase, AI: { run: async () => ({ response: 'cloudflare' }) } }), 'a1', request, gemini(200));
-  ok(student.status === 402 && seen.length === 0, 'an account, not the owner key: refused (402), neither Gemini nor Workers AI asked');
+  const student = await chat(withPro(freshEnv({ ...firebase, AI: { run: async () => ({ response: 'cloudflare' }) } })), 'p1', request, gemini(200));
+  ok(student.status === 402 && seen.length === 0, 'a Pro account, not the owner: refused (402), neither Gemini nor Workers AI asked');
   const r = await chat(freshEnv(firebase), 'owner', request, gemini(200), { owner: true });
   const body = await r.json();
   ok(r.status === 200 && body.choices[0].message.content === 'answer', 'the writer answers from Gemini, thoughts left out');
@@ -372,8 +390,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   const writer = freshEnv({ OWNER_ACCOUNT_IDS: 'a1', AI_WRITER_URL: 'https://novita', AI_WRITER_KEY: 'k',
                             AI: { run: async () => ({ response: 'free' }) } });
   const paid = async () => { novita++; return new Response('{}', { status: 500 }); };
-  const student = await chat(writer, 'a1', request, paid);
-  ok(student.status === 402 && novita === 0, 'PRO_PAYS off, an account: Novita is never called and nothing free answers either (402)');
+  const student = await chat(withPro(writer), 'p1', request, paid);
+  ok(student.status === 402 && novita === 0, 'PRO_PAYS off, a Pro account: Novita is never called and nothing free answers either (402)');
   const r = await chat(writer, 'owner', request, paid, { owner: true });
   ok(r.status === 200 && novita === 0 && (await r.json()).choices[0].message.content === 'free', 'PRO_PAYS off, the owner key: Novita is never called, the free model answers');
 }
@@ -512,8 +530,8 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
   await chat(freshEnv(), 'owner', medval, fetcher, { owner: true });
   ok(seen.length === 1, 'ground: false from the owner: one call, no search terms, no evidence');
   seen.length = 0;
-  await chat(freshEnv({ OWNER_ACCOUNT_IDS: 'a1', ...claude }), 'a1', medval, fetcher);
-  ok(seen.length > 1, 'a student\'s check is always grounded');
+  const student = await chat(withPro(freshEnv({ ...claude })), 'p1', medval, fetcher);
+  ok(student.status === 402 && seen.length === 0, 'a student\'s check, grounded or not, is never run (402; only the owner is written for)');
 }
 
 // a billed Firebase project is noticed, and paid calls are budgeted from then on
@@ -531,15 +549,15 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 
 // before paid calls are budgeted: a share of the scarce free allowances per account, and a ceiling for all
 {
-  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', FREE_MODEL_SHARES: 'gemini-3.8-flash:2', GEMINI_DAILY_CEILING: '100',
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', FREE_MODEL_SHARES: 'gemini-3.8-flash:2', GEMINI_DAILY_CEILING: '100',
                      CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-lite,gemma-4-31b-it' };
   const env = freshEnv(firebase);
   const models = [];
   const fetcher = async url => { models.push(url.match(/models\/([^:]+):/)[1]);
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'x' }] } }] }), { status: 200 }); };
-  // an account's chat never reaches them (only the hosted writer answers it); its
+  // an account's chat never reaches them (only the owner is written for); its
   // checks' votes still do (askModel), within the same shares
-  ok((await chat(env, 'a1', request, fetcher)).status === 402 && models.length === 0, 'an account\'s chat is refused and no free model is asked');
+  ok((await chat(withPro(env), 'p1', request, fetcher)).status === 402 && models.length === 0, 'a Pro account\'s chat is refused and no free model is asked');
   const vote = (e, use) => askModel(e, 'a1', false, use, request.messages, 50, fetcher);
   const votes = [];
   for (let i = 0; i < 3; i++) votes.push((await vote(env, 'gemini:gemini-3.8-flash')).ok);
@@ -557,12 +575,12 @@ ok(clean([{ role: 'user', content: 'x', extra: 1 }])[0].extra === undefined, 'ex
 
 // the Workers AI fallback: its neurons come out of the account's share, and long prompts are not sent to it
 {
-  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', OWNER_ACCOUNT_IDS: 'a1', WORKERS_AI_NEURONS_PER_ACCOUNT: '300' };
+  const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p', WORKERS_AI_NEURONS_PER_ACCOUNT: '300' };
   let asked = 0;
   const env = freshEnv({ ...firebase, AI: { run: async () => { asked++; return { response: 'free' }; } } });
   const busy = async () => new Response(JSON.stringify({ error: { message: 'quota' } }), { status: 429 });
   // an account reaches Workers AI only as a check's voter now (askModel)
-  ok((await chat(env, 'a1', request, busy)).status === 402 && asked === 0, 'an account\'s chat is refused and Workers AI is not asked');
+  ok((await chat(withPro(env), 'p1', request, busy)).status === 402 && asked === 0, 'a Pro account\'s chat is refused and Workers AI is not asked');
   const vote = (e, messages) => askModel(e, 'a1', false, 'workers-ai:@cf/nvidia/nemotron-3-120b-a12b', messages, 2000, busy);
   ok((await vote(env, request.messages)).ok && asked === 1, 'Workers AI answers an account\'s vote, within the account\'s share');
   ok(!(await vote(env, request.messages)).ok && asked === 1, 'past its share of the free neurons it is not asked again today');

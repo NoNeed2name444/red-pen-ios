@@ -46,6 +46,10 @@ function freshEnv(extra = {}) {
     .split('\n').map(line => line.replace(/--.*$/, '')).join('\n');
   for (const statement of sql.split(';')) if (statement.trim()) db.exec(statement);
   db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('a1', 'apple', 's1', 0)`).run();
+  // p1: a confirmed Pro subscriber who is not the owner
+  const now = Math.floor(Date.now() / 1000);
+  db.prepare(`INSERT INTO accounts (id, provider, subject, created_at, verified_until, checked_at) VALUES ('p1', 'apple', 's2', 0, ?, ?)`)
+    .run(now + 86400, now);
   return { DB: d1(db), db, AI_API_KEY: 'k', APPLE_BUNDLE_ID: 'com.cramdown.app', ...extra };
 }
 
@@ -71,8 +75,8 @@ function upstream(onClaude = () => {}) {
 
 const firebase = { FIREBASE_API_KEY: 'fk', FIREBASE_PROJECT_ID: 'p' };
 // Pro paying is off, Claude's key is set, and there is room in a five-dollar
-// wallet: for the owner's own key, and for a Pro account (a1 is on
-// OWNER_ACCOUNT_IDS) with a budget of its own
+// wallet: for the owner's own key, and for a Pro account (p1, a subscriber;
+// a1 on OWNER_ACCOUNT_IDS is the owner signed in) with a budget of its own
 const lane = { ...firebase, OWNER_ACCOUNT_IDS: 'a1', ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'off',
                OWNER_MONTHLY_USD: '5', PRO_MONTHLY_BUDGET_USD: '5' };
 
@@ -113,11 +117,11 @@ const opened = {
 };
 for (const [how, make] of Object.entries(opened)) {
   const env = make();
-  ok(await paysNow(env) && await canPay(env, 'a1', true) && await canPay(env, 'a1', false),
+  ok(await paysNow(env) && await canPay(env, 'a1', true) && await canPay(env, 'p1', false),
      `${how}: the paid lane is open, and the owner's wallet and a Pro account's both have room`);
   for (const [who, body, options] of calls) {
     const log = upstream();
-    const r = await chat(make(), 'a1', body, log.fetcher, options);
+    const r = await chat(make(), options.owner ? 'a1' : 'p1', body, log.fetcher, options);
     const said = await r.json();
     if (options.owner) {
       ok(r.status === 200 && !log.asked.includes('claude') && said.choices[0].message.content === 'gemini',
@@ -130,13 +134,19 @@ for (const [how, make] of Object.entries(opened)) {
   }
 }
 
-// PRO_PAYS on with room in the wallet: Claude is asked first, as before
+// PRO_PAYS on with room in the wallet: Claude is asked first for the owner, as before
 for (const [who, body, options] of calls) {
   const log = upstream();
-  const r = await chat(freshEnv({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20' }), 'a1', body, log.fetcher, options);
+  const r = await chat(freshEnv({ ...lane, PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20' }), options.owner ? 'a1' : 'p1', body, log.fetcher, options);
   const said = await r.json();
-  ok(r.status === 200 && log.asked[0] === 'claude' && said.choices[0].message.content === 'claude' && said.source === 'claude-opus-5-5',
-     `PRO_PAYS on: Claude is asked first for ${who}, and answers`);
+  if (options.owner) {
+    ok(r.status === 200 && log.asked[0] === 'claude' && said.choices[0].message.content === 'claude' && said.source === 'claude-opus-5-5',
+       `PRO_PAYS on: Claude is asked first for ${who}, and answers`);
+  } else {
+    // the owner, 23 Oct: "only me" - a subscriber who is not the owner is refused even while Pro pays
+    ok(r.status === 402 && log.asked.length === 0 && said.message === 'Stethoscore Cloud is part of Pro.',
+       `PRO_PAYS on: ${who} (not the owner) is refused (402, See Pro), nothing asked`);
+  }
 }
 
 // the hold: what is taken from the wallet while Claude's request is out

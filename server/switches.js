@@ -29,7 +29,7 @@
 export const FEATURES = {
   write: {
     status: 503,
-    message: 'Writing with the cloud models is switched off for now. On-device models still work; try the cloud again later.',
+    message: 'Writing with Stethoscore Cloud is switched off for now. Try again later.',
   },
   check: {
     status: 503,
@@ -37,7 +37,7 @@ export const FEATURES = {
   },
   jobs: {
     status: 503,
-    message: 'Background writing in the cloud is switched off for now. Nothing was queued; on-device models still work.',
+    message: 'Background writing with Stethoscore Cloud is switched off for now. Nothing was queued; try again later.',
   },
   accuracy: {
     status: 503,

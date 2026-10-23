@@ -1,6 +1,7 @@
 // Google retired gemini-3.5-flash and sends its requests to 3.6 Flash, which
 // is never to be used: no model list, price, share or comment in server/
-// may name either. 3.5 Flash-Lite is still current and stays.
+// may name either. 3.5 Flash-Lite is still current and stays for checking,
+// but not for audio.
 //
 // Run: node server/tests/retired-models.test.mjs
 
@@ -44,7 +45,12 @@ for (const key of ['CLOUD_MODELS', 'FREE_MODEL_SHARES', 'TRANSCRIBE_MODELS', 'PA
   ok(value !== undefined && !retired.test(value), `wrangler.toml ${key} has no retired Flash`);
   retired.lastIndex = 0;
 }
-ok(/^TRANSCRIBE_MODELS = "gemini-3\.8-flash,gemini-3\.5-flash-lite"$/m.test(toml), 'transcription: 3.8 Flash first, Flash-Lite behind it');
+// audio is 3.8 Flash alone (the owner, 23 Oct): no fallback behind it, deployed or by default
+ok(/^TRANSCRIBE_MODELS = "gemini-3\.8-flash"$/m.test(toml), 'transcription (wrangler.toml): 3.8 Flash only, nothing behind it');
+ok(/^GEMINI_AUDIO_PRICES = "gemini-3\.8-flash:1\.50"$/m.test(toml), 'audio prices (wrangler.toml): 3.8 Flash only');
+const ai = readFileSync(join(server, 'ai.js'), 'utf8');
+ok(/^const TRANSCRIBE_MODELS = 'gemini-3\.8-flash';$/m.test(ai), 'transcription (ai.js default): 3.8 Flash only');
+ok(/^const DEFAULT_AUDIO_PRICES = 'gemini-3\.8-flash:1\.50';$/m.test(ai), 'audio prices (ai.js default): 3.8 Flash only, no Flash-Lite');
 
 if (failures) { console.error(`${failures} failed`); process.exit(1); }
 console.log('all passed');

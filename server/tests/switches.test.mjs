@@ -335,7 +335,7 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
 {
   resetBreakers();
   const store = storage();
-  // only the hosted writer answers an account, so its job runs on that route
+  // the job runs on the hosted writer's route, its only provider here
   const env = { ...jobEnv(''), ANTHROPIC_API_KEY: 'ak', PRO_PAYS: 'on', GEMINI_PRICES: 'claude-opus-5-5:4/20', PRO_MONTHLY_BUDGET_USD: '5' };
   const db = env.DB;
   let calls = 0;
@@ -344,11 +344,12 @@ const get = async (object, id) => (await (await object.fetch(new Request(`https:
   const object = new GenerationJobs({ storage: store }, env, fake);
   const spec = checkSpec({ title: 'Cards', mode: 'loop', extract: 'lines', count: 5, steps: [{ user: 'Write 1.' }] }).spec;
   const made = await (await object.create({ accountId: 'a1', owner: false, spec })).json();
-  // a Pro account (an owner id), so the job's calls go through the allowance
+  // the owner signed in (only the owner is written for, the owner, 23 Oct:
+  // "only me"), so the job's calls go through the owner's daily allowance
   env.OWNER_ACCOUNT_IDS = 'a1';
   db.prepare(`INSERT INTO accounts (id, provider, subject, created_at) VALUES ('a1', 'apple', 's1', 0)`).run();
   await object.alarm();
-  const usedNow = () => db.prepare('SELECT requests FROM ai_usage WHERE account_id = ?').bind('a1').first()?.requests ?? 0;
+  const usedNow = () => db.prepare('SELECT requests FROM ai_usage WHERE account_id = ?').bind('owner').first()?.requests ?? 0;
   ok((await get(object, made.job.id)).job.done === 1 && usedNow() === 1, 'one card written, one request counted');
   for (let i = 0; i < 3; i++) breakers.failure(env, 'anthropic:claude-opus-5-5');
   for (let i = 0; i < 5; i++) await object.alarm();

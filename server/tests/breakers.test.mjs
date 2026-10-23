@@ -125,9 +125,13 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-li
 {
   resetBreakers(clock);
   const asked = [];
-  const r = await chat(freshEnv(chain), 'a1', request, async url => { asked.push(modelOf(url)); return answer('x'); });
+  // p1: a confirmed subscriber who is not the owner (the owner signed in is the owner key's)
+  const env = freshEnv({ ...chain, OWNER_ACCOUNT_IDS: '' });
+  env.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at, verified_until, checked_at) VALUES ('p1', 'apple', 's2', 0, ?, ?)`)
+    .run(Math.floor(Date.now() / 1000) + 86400, Math.floor(Date.now() / 1000));
+  const r = await chat(env, 'p1', request, async url => { asked.push(modelOf(url)); return answer('x'); });
   ok(r.status === 402 && asked.length === 0 && Object.keys(breakers.snapshot({}).lanes).length === 0,
-     'an account: refused (402), no lane asked, no breaker touched');
+     'a Pro account: refused (402), no lane asked, no breaker touched');
 }
 
 // Flash keeps failing: after three failures it is not asked at all, and
@@ -310,8 +314,8 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-li
 }
 
 // Paid lanes (the hosted writer, while Pro pays) have breakers of their own; behind
-// them the free chain carries on for the owner key only, and an account,
-// which only the hosted writer answers, is told busy
+// them the free chain carries on for the owner key only, and an account that
+// is not the owner's never reaches a lane
 {
   resetBreakers(clock);
   const paid = { ...chain, PRO_PAYS: 'on', PRO_MONTHLY_BUDGET_USD: '5', OWNER_MONTHLY_USD: '5', ANTHROPIC_API_KEY: 'ak',
@@ -337,15 +341,13 @@ const chain = { ...firebase, CLOUD_MODELS: 'gemini-3.8-flash,gemini-3.5-flash-li
   const student = freshEnv({ ...paid, OWNER_ACCOUNT_IDS: '' });
   student.db.prepare(`INSERT INTO accounts (id, provider, subject, created_at, verified_until, checked_at) VALUES ('p1', 'apple', 's2', 0, ?, ?)`)
     .run(Math.floor(Date.now() / 1000) + 86400, Math.floor(Date.now() / 1000));
+  // and an account that is not the owner's (the owner, 23 Oct: "only me") is
+  // refused before any lane, so no breaker is ever touched for it
   asked.length = 0;
-  const failed = [];
-  for (let i = 0; i < 3; i++) failed.push((await chat(student, 'p1', request, fetcher)).status);
-  ok(failed.every(s => s !== 200) && asked.join() === 'claude,claude,claude',
-     'a Pro account, Claude overloaded: no answer, and no free model is asked behind it');
-  asked.length = 0;
-  const rest = await chat(student, 'p1', request, fetcher);
-  ok(rest.status === 503 && (await rest.json()).busy === true && asked.length === 0,
-     'with Claude resting, the account is told busy at once, and nothing else is asked');
+  const refused = [];
+  for (let i = 0; i < 3; i++) refused.push((await chat(student, 'p1', request, fetcher)).status);
+  ok(refused.every(s => s === 402) && asked.length === 0 && Object.keys(breakers.snapshot({}).lanes).length === 0,
+     'a Pro account (not the owner): 402 every time, no lane asked, no breaker touched');
 }
 
 resetBreakers();
