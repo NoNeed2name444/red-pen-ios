@@ -1,0 +1,1 @@
+Speed: 1,000,000 notes · 2,383,875 links, 60 of 60 fps (low 45, 1% 24) · 10.5 ms a frame of 16.7, 5,630 drawn · 274 glows · 177 lines · opens at 23 pt · 15 draws, cpu 1.9 · plan 5.3 · near 4.5 · far 1.6 ms · 0.0% at 250+, depth 3,849/44/111 · fade on · GPU 0 MB

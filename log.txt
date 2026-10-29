@@ -1,0 +1,213 @@
+== logs/iphone-graph-testBodyCloseUps.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testBodyCloseUps]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testBodyCloseUps]' passed (227.049 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthBeforeAfter.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthBeforeAfter]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthBeforeAfter]' passed (272.536 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthGlide.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthGlide]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPreviewUITests.swift:783: error: -[RedPenUITests.GraphPreviewUITests testDepthGlide] : XCTAssertNil failed: "(409.4032897949219, 107.239501953125, 44.0, 44.0)" - Atrial fibrillation must start past the band's end (not drawn), but it is drawn at Optional((409.4032897949219, 107.239501953125, 44.0, 44.0))
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthGlide]' failed (54.142 seconds).
+** TEST EXECUTE FAILED **
+== logs/iphone-graph-testDepthLively.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthLively]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthLively]' passed (39.043 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthMeasure.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthMeasure]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthMeasure]' passed (1046.140 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthProbeOpacity.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthProbeOpacity]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthProbeOpacity]' passed (13.988 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthSpin.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthSpin]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthSpin]' passed (104.329 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthTurnNeurons.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' passed (64.679 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testDepthTurnSpace.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' passed (37.376 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testEachStyle.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' passed (99.747 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testGraphAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' passed (49.928 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testGraphWhileDragging.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' passed (30.482 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testHoldDrag.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' passed (58.908 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testHoldForOptions.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' passed (24.393 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testIslandDeckFold.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandDeckFold]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandDeckFold]' passed (33.193 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testIslandPushAndBack.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandPushAndBack]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPreviewUITests.swift:597: error: -[RedPenUITests.GraphPreviewUITests testIslandPushAndBack] : XCTAssertTrue failed - pushed quiz view should remain after cancelled back
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandPushAndBack]' failed (47.872 seconds).
+** TEST EXECUTE FAILED **
+== logs/iphone-graph-testLabelsOverBrightBodies.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' passed (33.120 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testLinkLength.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' passed (55.447 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testLookMenu.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' passed (28.079 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsAtRest.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (28.379 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsFlyIn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' passed (24.623 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsLegend.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' passed (19.898 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsLookMenu.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' passed (32.513 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsOpenInTurn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' passed (40.263 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testNeuronsWhileDragging.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' passed (24.968 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testPerformanceMillion.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testPerformanceMillion]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testPerformanceMillion]' passed (83.355 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testRemovalInEachTheme.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' passed (49.991 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testRemovingATopFolder.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' passed (47.095 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testStraightLines.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' passed (86.702 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testTapFolder.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' passed (33.260 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testTapNoteThenOpen.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' passed (58.678 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testUniverseFlyIn.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' passed (20.562 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-graph-testUniverseLegend.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' passed (17.109 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-tour.log
+Test Case '-[RedPenUITests.DesignTourUITests testDesignTour]' started.
+Test Case '-[RedPenUITests.DesignTourUITests testDesignTour]' passed (416.297 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/iphone-arabic.log
+Test Case '-[RedPenUITests.ArabicUITests testArabicRightToLeft]' started.
+Test Case '-[RedPenUITests.ArabicUITests testArabicRightToLeft]' passed (51.071 seconds).
+** TEST EXECUTE SUCCEEDED **
+== logs/ipad.log
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthProbeOpacity]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPreviewUITests.swift:823: error: -[RedPenUITests.GraphPreviewUITests testDepthProbeOpacity] : Failed to terminate com.cramdown.app:90434: Failed to terminate com.cramdown.app:0
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthProbeOpacity]' failed (62.091 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthSpin]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPreviewUITests.swift:823: error: -[RedPenUITests.GraphPreviewUITests testDepthSpin] : Failed to launch <XCUIApplicationImpl: 0x10956f640 com.cramdown.app at /Users/runner/work/red-pen-ios/red-pen-ios/ios/build-sim/Build/Products/Debug-iphonesimulator/RedPen.app> via Xcode: Timed out while launching application via Xcode.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthSpin]' failed (63.450 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnNeurons]' passed (660.208 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testDepthTurnSpace]' passed (53.536 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testEachStyle]' passed (93.433 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphAtRest]' passed (22.801 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testGraphWhileDragging]' passed (17.698 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldDrag]' passed (32.415 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testHoldForOptions]' passed (26.326 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandDeckFold]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandDeckFold]' passed (26.591 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandPushAndBack]' started.
+/Users/runner/work/red-pen-ios/red-pen-ios/ios/UITests/GraphPreviewUITests.swift:597: error: -[RedPenUITests.GraphPreviewUITests testIslandPushAndBack] : XCTAssertTrue failed - pushed quiz view should remain after cancelled back
+Test Case '-[RedPenUITests.GraphPreviewUITests testIslandPushAndBack]' failed (42.238 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLabelsOverBrightBodies]' passed (36.814 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLinkLength]' passed (47.380 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testLookMenu]' passed (20.354 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsAtRest]' passed (34.674 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsFlyIn]' passed (36.309 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLegend]' passed (25.230 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsLookMenu]' passed (16.626 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsOpenInTurn]' passed (35.823 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testNeuronsWhileDragging]' passed (19.412 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testPerformanceMillion]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testPerformanceMillion]' passed (89.621 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovalInEachTheme]' passed (46.879 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testRemovingATopFolder]' passed (32.993 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testStraightLines]' passed (87.838 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapFolder]' passed (29.958 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testTapNoteThenOpen]' passed (43.375 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseFlyIn]' passed (13.139 seconds).
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' started.
+Test Case '-[RedPenUITests.GraphPreviewUITests testUniverseLegend]' passed (13.764 seconds).
+** TEST EXECUTE FAILED **
+== logs/videos.txt
+graph-testBodyCloseUps.mp4 left out: 236614970 bytes
+graph-testDepthMeasure.mp4 left out: 1232204782 bytes
+graph-testDepthTurnNeurons.mp4 left out: 109190313 bytes
+UITests/GraphPreviewUITests.swift:597: error: -[RedPenUITests.GraphPreviewUITests testIslandPushAndBack] : XCTAssertTrue failed - pushed quiz view should remain after cancelled back
+UITests/GraphPreviewUITests.swift:783: error: -[RedPenUITests.GraphPreviewUITests testDepthGlide] : XCTAssertNil failed: "(409.4032897949219, 107.239501953125, 44.0, 44.0)" - Atrial fibrillation must start past the band's end (not drawn), but it is drawn at Optional((409.4032897949219, 107.239501953125, 44.0, 44.0))
+UITests/GraphPreviewUITests.swift:783: error: -[RedPenUITests.GraphPreviewUITests testDepthGlide] : XCTAssertNil failed: "(976.1270751953125, -1.1256103515625, 44.0, 44.0)" - Atrial fibrillation must start past the band's end (not drawn), but it is drawn at Optional((976.1270751953125, -1.1256103515625, 44.0, 44.0))
+UITests/GraphPreviewUITests.swift:823: error: -[RedPenUITests.GraphPreviewUITests testDepthProbeOpacity] : Failed to terminate com.cramdown.app:90434: Failed to terminate com.cramdown.app:0
+UITests/GraphPreviewUITests.swift:863: error: -[RedPenUITests.GraphPreviewUITests testDepthMeasure] : Failed to get matching snapshots: Timed out while evaluating UI query.
+build-sim/Build/Products/Debug-iphonesimulator/RedPen.app> via Xcode: Timed out while launching application via Xcode.
