@@ -261,14 +261,17 @@ struct CardiacCycleTool: View {
         let events: [Valve] = [CardiacCycle.Event.mitralCloses, .aorticOpens, .aorticCloses, .mitralOpens]
             .compactMap { e in beat.eventTimes[e].map { Valve(name: e.name, ms: $0 * 1000) } }
         ScienceToolPage(tool: .cardiacCycle) {
-            Section("Values") {
+            Section {
                 Picker("Heart", selection: $preset) {
                     ForEach(CardiacCycle.Preset.allCases) { p in
                         Text(p.name).tag(p)
                     }
                 }
                 .pickerStyle(.menu)
-                ScienceVerdict(text: preset.change)
+            } header: {
+                Text("Values")
+            } footer: {
+                Text(preset.change)
             }
             .wardRowBackground()
 
@@ -283,7 +286,7 @@ struct CardiacCycleTool: View {
                                 LineMark(x: .value("Volume", s.lvVolume), y: .value("Pressure", s.lvPressure),
                                          series: .value("Heart", "Normal"))
                                     .foregroundStyle(Color.wardInkSecondary)
-                                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                             }
                         }
                         ForEach(Array(loop.enumerated()), id: \.offset) { _, s in
@@ -579,11 +582,11 @@ struct OxygenCurveTool: View {
                         ForEach(points) { p in
                             LineMark(x: .value("PO2", p.po2), y: .value("Saturation", p.sat), series: .value("Curve", p.curve))
                                 .foregroundStyle(p.curve == "Now" ? Color.wardPrimaryInk : Color.wardInkSecondary)
-                                .lineStyle(p.curve == "Now" ? StrokeStyle(lineWidth: 2) : StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                                .lineStyle(p.curve == "Now" ? StrokeStyle(lineWidth: 2) : StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                         }
                         RuleMark(x: .value("P50", p50))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                            .foregroundStyle(Color.wardInkSecondary)
+                            .lineStyle(StrokeStyle(lineWidth: 1))
+                            .foregroundStyle(Color.wardBeam)
                         PointMark(x: .value("PO2", po2), y: .value("Saturation", sat * 100))
                             .foregroundStyle(Color.wardBeam)
                             .symbolSize(80)

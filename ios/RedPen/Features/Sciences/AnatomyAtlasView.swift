@@ -170,7 +170,7 @@ private struct AtlasSearchResults: View {
         let found = AnatomyAtlas.search(query, in: manifest)
         List {
             if found.isEmpty {
-                WardEmptyState(symbol: "magnifyingglass", title: "No structure by that name",
+                WardEmptyState(symbol: "magnifyingglass", title: "No results",
                                message: "Try a part of a name, such as \u{201C}femur\u{201D}, \u{201C}coronary\u{201D} or \u{201C}left kidney\u{201D}.")
                     .listRowBackground(Color.clear)
             }

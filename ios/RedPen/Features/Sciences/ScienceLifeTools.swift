@@ -50,7 +50,7 @@ struct EnzymeKineticsTool: View {
                     Chart(curves) { p in
                         LineMark(x: .value("[S]", p.x), y: .value("Rate", p.y), series: .value("Line", p.line))
                             .foregroundStyle(by: .value("Line", p.line))
-                            .lineStyle(comparison && p.line == "No inhibitor" ? StrokeStyle(lineWidth: 1, dash: [4, 3]) : StrokeStyle(lineWidth: 2))
+                            .lineStyle(comparison && p.line == "No inhibitor" ? StrokeStyle(lineWidth: 1.5, dash: [4, 3]) : StrokeStyle(lineWidth: 2))
                     }
                     .chartForegroundStyleScale(colours)
                     .chartXAxisLabel("[S], mmol/L")
@@ -67,6 +67,7 @@ struct EnzymeKineticsTool: View {
                         ForEach(lines) { p in
                             LineMark(x: .value("1/[S]", p.x), y: .value("1/rate", p.y), series: .value("Line", p.line))
                                 .foregroundStyle(by: .value("Line", p.line))
+                                .lineStyle(comparison && p.line == "No inhibitor" ? StrokeStyle(lineWidth: 1.5, dash: [4, 3]) : StrokeStyle(lineWidth: 2))
                         }
                         RuleMark(x: .value("Zero", 0.0)).foregroundStyle(Color.wardInkSecondary)
                         RuleMark(y: .value("Zero", 0.0)).foregroundStyle(Color.wardInkSecondary)
@@ -201,6 +202,7 @@ struct PathwayView: View {
                 Section {
                     Link(destination: url) {
                         Label("The diagram in Reactome (\(pathway.reactome))", systemImage: "link")
+                            .font(.footnote)
                     }
                 }
                 .wardRowBackground()
@@ -292,7 +294,7 @@ struct MicrobesTool: View {
                                                               ("Does not Gram stain", .none)]
         ScienceToolPage(tool: .microbes) {
             if shown.isEmpty {
-                WardEmptyState(symbol: "magnifyingglass", title: "No organism matches",
+                WardEmptyState(symbol: "magnifyingglass", title: "No results",
                                message: "Try a disease, a shape or a test, such as \u{201C}meningitis\u{201D} or \u{201C}catalase\u{201D}.")
                     .listRowBackground(Color.clear)
             }
@@ -352,6 +354,7 @@ struct MicrobeView: View {
                 Section {
                     Link(destination: url) {
                         Label("NCBI Taxonomy \(microbe.taxonomy)", systemImage: "link")
+                            .font(.footnote)
                     }
                 }
                 .wardRowBackground()
