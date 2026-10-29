@@ -159,7 +159,6 @@ struct SettingsPage: View {
     /// "Lines": Curved (false) or Straight (true) links in the Ideas map and
     /// on the board (GraphLineStyle).
     @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
-    @AppStorage(ExamTrack.storageKey) private var exam = ExamTrack.general.rawValue
     /// Seconds since 1970; 0 for no date. The library counts down to it.
     @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
 
@@ -195,7 +194,7 @@ struct SettingsPage: View {
         }
         .wardForm()
         .navigationDestination(isPresented: $pickingExam) {
-            ExamPickerView(onDone: { exam = ExamTrack.current.rawValue })
+            ExamPickerView()
         }
         .navigationDestination(isPresented: $showingDiagnostics) { DiagnosticsSettingsView() }
         .navigationTitle(L10n.string("Settings"))
@@ -361,9 +360,6 @@ struct SettingsPage: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("chooseExam")
-                Picker("Exam style", selection: $exam) {
-                    ForEach(ExamTrack.allCases) { Text($0.title).tag($0.rawValue) }
-                }
                 Toggle("I have an exam date", isOn: hasExamDate)
                 if examDate > 0 {
                     DatePicker("Exam date", selection: examDay, in: Date()..., displayedComponents: .date)

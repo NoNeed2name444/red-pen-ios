@@ -131,7 +131,9 @@ class WardDockTest {
                 !dock.contains("\"Audio\" to Icons.Outlined.GraphicEq,\"Ideas\""))
         check("the slots are WardDock's, and the names shrink alike to WardDock's least",
             dock.contains("WardDock.tabWidths(ideals,room)") && dock.contains("maxOf(WardDock.leastTab,") &&
-                dock.contains("minFontSize=(11*WardDock.leastNameScale).sp"))
+                // the name is caption2, 11 as before, read from the type role (T0154f)
+                dock.contains("minFontSize=(WardTextStyle.caption2.size*WardDock.leastNameScale).sp") &&
+                dock.contains("maxFontSize=WardTextStyle.caption2.size.sp") && WardTextStyle.caption2.size == 11.0)
         check("outline glyphs at rest", dock.contains("Icons.Outlined.FactCheck") && !dock.contains("\"Questions\" to Icons.Rounded"))
         check("the inset is WardDock's", dock.contains(".padding(WardDock.barInset.toFloat().dp)"))
         check("every tab keeps its name's room and least height",

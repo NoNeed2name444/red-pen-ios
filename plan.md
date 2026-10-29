@@ -3582,6 +3582,36 @@ mode's colour as an underline under it, on both apps.
 - [x] A7 T0157 nits: test comment, iOS `filled` renamed `bold`, Android RatingButton reads one label.
 - [x] Repair 1: iOS gap underline colour moved into its `Text.LineStyle` (Text ignores `underlineColor`), with a source guard on each platform; Android guards for ChipBox's, CountChip's and the timer's near-black chosen words; rating rings kept at a control edge's strength, the reason in colour-roles.md.
 - [ ] The next Mac run's screenshots are the proof for iOS (no SwiftUI here).
+### The design audit's follow-through (T0154f, 29 Oct)
+
+- [x] Type and radius literals left on the busy screens (T0154e) now name a
+  Ward role on both: hero numbers take display (largeTitle, 34; mono where
+  they were mono). Moves over 2 points: iOS FirstRunView's goal 56 and its
+  page glyph 40 to 34, the rest-day moon 7 to a small caption glyph, the
+  focus chevron 14 to 17; Android's exam plan figures 40 and 36, readiness
+  40, calculator 40 and mock ring 38 to 34. The quiz score goes 30 to 28. The
+  book's wells and the mock's picture take WardRadius.field, the restore
+  dialog WardRadius.tile.
+- [x] Android's CaseInk is gone: the debrief, decision and list screens name
+  the Ward tokens. iOS keeps its CaseInk (Features/Cases/CaseKit.swift).
+- [x] One empty library on Android home (LibraryEmpty, as iOS), with Your
+  lectures opening the lectures; How it works waits for Android's help page.
+- [x] Settings: "Night shift" on both, a "Stethoscore Cloud" group with a
+  Status row, one Exam row on both. iOS's "Exam style" picker is gone from
+  Settings (ExamChoice sets the track when the exam is chosen). iOS's grouped
+  cards and all-caps group headings are not this task's: a11db2c5 did them.
+- [x] The dock's name takes caption2 (WardTextStyle.caption2, bold) and the
+  rest-day moon stops growing past large Dynamic Type so it stays inside its
+  heatmap square.
+- Audit follow-through counts (A-evidence). Eyebrow count, T0154d A3
+  (`git grep -E 'textCase\(\.uppercase\)|\.uppercased\(\)|\.uppercase\(\)|\.tracking\(|wardSmallCaps' <rev> -- ios android/app/src/main | wc -l`):
+  76 on 10772f07, 80 on base 63014514, 80 on this task's HEAD; this task's
+  diff adds or removes none (the 4 are the base's). Of those, the shared
+  wardSmallCaps/WardSmallCaps alone: 42 on 10772f07, 46 now.
+- F1 is vacuous for AnkiCardFace: the grade row is T0157's, not this task's.
+- F15 (a rounded island at WardRadius.bar for the deck with no paper frame)
+  moves to a new task after T0140, as it changes iOS's WardSurfaces
+  (android/docs/parity.md).
 
 ### Waiting on the owner
 

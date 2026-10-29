@@ -122,7 +122,7 @@ private struct FirstRunGoalPage: View {
                           next: save, skip: next) {
             VStack(spacing: WardSpace.l) {
                 Text("\(goal)")
-                    .font(WardType.display.monospaced().monospacedDigit())
+                    .font(WardType.display.monospacedDigit())
                     .foregroundStyle(Color.wardInk)
                     .contentTransition(.numericText())
                     .accessibilityHidden(true)

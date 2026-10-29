@@ -508,6 +508,7 @@ private struct RestDayMoon: View {
         Image(systemName: "moon.fill")
             .font(WardType.caption.weight(.bold))
             .imageScale(.small)
+            .dynamicTypeSize(...DynamicTypeSize.large)
             .foregroundStyle(Color.wardPrimaryInk)
             .accessibilityHidden(true)
     }

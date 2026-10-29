@@ -15,6 +15,7 @@ import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardSpace
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardType
+import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardChosenEdge
 import com.stethoscore.app.ui.ward.wardDp
@@ -596,6 +597,6 @@ private class DockSlotsPolicy(private val hollowAt:() -> Float?):androidx.compos
     Icon(icon,null,Modifier.size(23.dp),tint=tint)
     Spacer(Modifier.height(3.dp))
     androidx.compose.foundation.text.BasicText(name,maxLines=1,softWrap=false,
-        style=androidx.compose.ui.text.TextStyle(color=tint,fontSize=11.sp,fontWeight=FontWeight.Bold),
-        autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=(11*WardDock.leastNameScale).sp,maxFontSize=11.sp,stepSize=0.25.sp))
+        style=WardTextStyle.caption2.textStyle(WardWeight.bold).copy(color=tint),
+        autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=(WardTextStyle.caption2.size*WardDock.leastNameScale).sp,maxFontSize=WardTextStyle.caption2.size.sp))
 }
