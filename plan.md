@@ -2775,8 +2775,11 @@ for screenshots.
   - Genetics.swift, Pharmacokinetics.swift, Biostatistics.swift,
     Microbiology.swift (39 organisms and an identification key that reaches
     each once), Immunology.swift.
-- [ ] S2. The licence ledger (docs/sciences/sources.md) and the sources in
-  ContentSources, so the Sources screen credits them.
+- [x] S2. The licence ledger, docs/sciences/sources.md: what is in the app,
+  what passed for later (bones, muscles, nerves, images, data), what was
+  refused and why, what is unverified. ContentSources credits the HRA atlas
+  (its line kept word for word with Resources/Anatomy/SOURCES.md by the
+  credits suite), UBERON, Cell Ontology, Reactome and NCBI Taxonomy.
 - [x] S3. Anatomy: tools/anatomy_atlas.py turns the Human Reference Atlas's
   male reference organ set v1.10 (united-male: one Visible Human body, CC BY
   4.0, pinned by SHA-256) and its crosswalk into Resources/Anatomy: 32 parts

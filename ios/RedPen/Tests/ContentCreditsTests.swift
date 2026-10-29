@@ -127,6 +127,24 @@ check("the Earth imagery's credit is its SOURCES.md's, word for word",
       ContentSources.nasaEarthCredit)
 check("the Earth imagery is in Settings' list", ContentSources.all.contains(ContentSources.nasaEarth))
 
+// the anatomy atlas likewise, and its manifest names the same releases
+let anatomySources: String = (try? String(contentsOf: earthRoot.appendingPathComponent("ios/RedPen/Resources/Anatomy/SOURCES.md"),
+                                           encoding: .utf8)) ?? ""
+let anatomyFlat: String = anatomySources.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+check("the anatomy atlas's credit is its SOURCES.md's, word for word",
+      anatomyFlat.contains("\"" + ContentSources.hraCredit + "\"")
+        && ContentSources.hraAnatomy.attribution.hasPrefix(ContentSources.hraCredit),
+      ContentSources.hraCredit)
+let anatomyManifest: String = (try? String(contentsOf: earthRoot.appendingPathComponent("ios/RedPen/Resources/Anatomy/anatomy.json"),
+                                            encoding: .utf8)) ?? ""
+check("the credit names both releases the atlas's manifest pins",
+      ["https://doi.org/10.48539/HBM833.WZWN.425", "https://doi.org/10.48539/HBM626.BRWN.943"].allSatisfy {
+          anatomyManifest.contains($0) && ContentSources.hraCredit.contains($0)
+      })
+check("the Sciences' sources are in Settings' list",
+      [ContentSources.hraAnatomy, ContentSources.uberon, ContentSources.cellOntology,
+       ContentSources.reactome, ContentSources.ncbiTaxonomy].allSatisfy(ContentSources.all.contains))
+
 print(failures.isEmpty ? "\nALL CREDITS TESTS PASS"
                        : "\n\(failures.count) CREDITS TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

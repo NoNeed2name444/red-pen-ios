@@ -17,6 +17,17 @@ both against the SHA-256 below, and the same inputs give the same bytes.
 | `anatomy.json` | The manifest: 32 parts and their 863 structures, each with a label, UBERON id (where the crosswalk's is right), tissue, group and whether it sits inside another |
 | `<part>.atlas` | One part's meshes, simplified and quantised (format: the tool's docstring) |
 
+The credit the app shows (Settings, Sources; `ContentSources.hraCredit`,
+kept the same as this by a test):
+
+"3D anatomy: 3D Reference Organ Set for Male, v1.10, by Kristen Browne and
+Heidi Schlehlein, HuBMAP Human Reference Atlas
+(https://doi.org/10.48539/HBM833.WZWN.425), CC BY 4.0, made from the Visible
+Human Male, courtesy of the U.S. National Library of Medicine; labels from
+the ASCT+B Tables to 3D Reference Object Library Mapping, v1.10, by Ellen M.
+Quardokus, Heidi Schlehlein, Bruce W. Herr II and Katy Börner
+(https://doi.org/10.48539/HBM626.BRWN.943), CC BY 4.0."
+
 ## Sources
 
 ### The meshes: 3D Reference Organ Set for Male, v1.10

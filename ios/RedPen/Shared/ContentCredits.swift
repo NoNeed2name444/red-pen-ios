@@ -44,6 +44,8 @@ enum ContentSources {
                                       url: "https://creativecommons.org/licenses/by/4.0/legalcode.en")
     static let apache2 = ContentLicence(name: "Apache License 2.0",
                                         url: "https://www.apache.org/licenses/LICENSE-2.0")
+    static let ccBy3 = ContentLicence(name: "CC BY 3.0",
+                                      url: "https://creativecommons.org/licenses/by/3.0/legalcode.en")
 
     // MARK: style examples bundled with the app (ExamExemplarData)
 
@@ -112,8 +114,56 @@ enum ContentSources {
         changes: "Resized to 4096 by 2048 and 2048 by 1024 pixels and recompressed; the clouds, lights and water kept as grey maps.",
         home: "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/")
 
+    // MARK: the Sciences (Resources/Anatomy, Shared/Sciences)
+
+    /// The credit line the anatomy atlas's SOURCES.md gives, word for word;
+    /// a test keeps the two the same.
+    static let hraCredit = "3D anatomy: 3D Reference Organ Set for Male, v1.10, by Kristen Browne and Heidi Schlehlein, HuBMAP Human Reference Atlas (https://doi.org/10.48539/HBM833.WZWN.425), CC BY 4.0, made from the Visible Human Male, courtesy of the U.S. National Library of Medicine; labels from the ASCT+B Tables to 3D Reference Object Library Mapping, v1.10, by Ellen M. Quardokus, Heidi Schlehlein, Bruce W. Herr II and Katy Börner (https://doi.org/10.48539/HBM626.BRWN.943), CC BY 4.0."
+
+    static let hraAnatomy = ContentSource(
+        id: "hra-anatomy", name: "Human Reference Atlas 3D organs",
+        use: "The 3D anatomy atlas in Sciences: its organs, bones, vessels and muscles, and their names",
+        licences: [ccBy4],
+        attribution: hraCredit + " No endorsement by HuBMAP or the NLM is implied.",
+        changes: "Each structure simplified to fewer triangles and its positions rounded; patches lying on other structures left out; the brain mirrored left to right, so each side lies where its name says; labels corrected where they were wrong for the shape, among them three pairs with their sides swapped.",
+        home: "https://humanatlas.io/3d-reference-library")
+
+    static let uberon = ContentSource(
+        id: "uberon", name: "UBERON",
+        use: "The anatomy ontology each structure in the 3D atlas links to",
+        licences: [ccBy3],
+        attribution: "Uberon multi-species anatomy ontology (Mungall et al. 2012), http://purl.obolibrary.org/obo/uberon.owl, CC BY 3.0.",
+        changes: "Only the identifiers are kept, as links from each structure; none where the label they came with was wrong.",
+        home: "https://obophenotype.github.io/uberon/")
+
+    static let cellOntology = ContentSource(
+        id: "cell-ontology", name: "Cell Ontology",
+        use: "The cell types in Immunology link to their entries",
+        licences: [ccBy4],
+        attribution: "Cell Ontology (Diehl et al. 2016), http://purl.obolibrary.org/obo/cl.owl, CC BY 4.0.",
+        changes: "Only the identifiers are kept, as links; the names and notes are written for the app.",
+        home: "https://obophenotype.github.io/cell-ontology/")
+
+    static let reactome = ContentSource(
+        id: "reactome", name: "Reactome",
+        use: "The pathways in Biochemistry link to their curated diagrams",
+        licences: [ContentLicence(name: "CC0 1.0 (Reactome's data)", url: "https://reactome.org/license")],
+        attribution: "Pathway identifiers from Reactome (reactome.org).",
+        changes: nil,
+        home: "https://reactome.org/")
+
+    static let ncbiTaxonomy = ContentSource(
+        id: "ncbi-taxonomy", name: "NCBI Taxonomy",
+        use: "The organisms in Microbiology link to their entries",
+        licences: [ContentLicence(name: "NCBI data: no restrictions on use",
+                                  url: "https://www.ncbi.nlm.nih.gov/home/about/policies/")],
+        attribution: "Taxonomy identifiers from NCBI Taxonomy, U.S. National Center for Biotechnology Information. No endorsement by NCBI is implied.",
+        changes: nil,
+        home: "https://www.ncbi.nlm.nih.gov/taxonomy")
+
     /// Every source of content the app brings, for Settings.
-    static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth]
+    static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth,
+                                      hraAnatomy, uberon, cellOntology, reactome, ncbiTaxonomy]
 
     /// The bank behind an exam's style examples (ExemplarSource's raw value).
     static func styleBank(_ raw: String) -> ContentSource? {

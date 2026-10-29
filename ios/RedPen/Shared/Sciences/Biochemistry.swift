@@ -78,8 +78,9 @@ enum EnzymeKinetics {
 /// and the disease that names it.
 ///
 /// Written for this app from the standard biochemistry (facts, not anyone's
-/// text). Each pathway carries its Reactome stable identifier (Reactome,
-/// CC BY 4.0) so a student can open the curated, referenced diagram there.
+/// text). Each pathway carries its Reactome stable identifier (Reactome's
+/// data is CC0, its diagrams CC BY 4.0) so a student can open the curated,
+/// referenced diagram there.
 struct MetabolicStep: Hashable, Identifiable {
     var id: String { "\(number)" }
     let number: Int
