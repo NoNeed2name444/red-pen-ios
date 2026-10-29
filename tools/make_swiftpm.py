@@ -28,6 +28,7 @@ samples = args[4:]  # lectures for this build only (never in the repository)
 CORE_DROP = [
     # whole features
     "Features/Notes", "Persistence/NoteStore.swift",             # Ideas and the 3D map
+    "Features/Sciences",                                          # the Sciences screens and the 3D atlas (the engines stay)
     "Features/Lens", "Shared/Lens",                              # Study Lens
     "Features/Analytics",                                         # Progress analytics
     "Features/Voice", "Shared/Voice",                             # spoken OSCE, commute mode, explain-it-back
@@ -287,7 +288,7 @@ if os.path.isdir(earth):
 # with the Sciences screens that read it, left out where they are
 anatomy = os.path.join(root, "Resources", "Anatomy")
 if os.path.isdir(anatomy):
-    if os.path.exists(os.path.join(root, "Shared", "Sciences", "AnatomyAtlas.swift")):
+    if os.path.exists(os.path.join(root, "Features", "Sciences", "AnatomyAtlasView.swift")):
         listed.append('.copy("Resources/Anatomy")')
     else:
         shutil.rmtree(anatomy)

@@ -123,7 +123,7 @@ enum ScienceTool: String, CaseIterable, Identifiable {
         case .cardiacCycle: return "The pressure-volume loop and pressures through a beat, for ten hearts"
         case .haemodynamics: return "Mean pressure, output and resistance, and why radius rules flow"
         case .starling: return "The pressures across a capillary, and the four ways to make oedema"
-        case .oxygenCurve: return "Shift the curve with acid, carbon dioxide, heat and 2,3-BPG"
+        case .oxygenCurve: return "Shift the curve with acid, carbon dioxide and heat, and compare fetal blood"
         case .alveolarGas: return "The alveolar oxygen and the A-a gradient from a blood gas"
         case .renalClearance: return "Clearance, GFR, filtration fraction and FENa from urine and plasma"
         case .acidBase: return "A blood gas read step by step: primary disorder, compensation, gaps"

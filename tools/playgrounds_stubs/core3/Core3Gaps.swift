@@ -6,7 +6,8 @@ import SwiftUI
 // learning pieces are the app's own. What this file stands in for is
 // everything that shell still opens which a later zip brings back: Ideas,
 // the sky and pop-out, diagnostics, the platform, reasoning, insight,
-// coverage, mock papers' neighbours, onboarding and the examples hub.
+// coverage, mock papers' neighbours, onboarding, the examples hub and the
+// Sciences.
 // The full app never compiles this file.
 
 // MARK: - Ideas (Features/Notes): the map stays out
@@ -257,6 +258,10 @@ struct OcclusionExampleView: View {
 
 struct ReasoningView: View {
     var body: some View { NotInThisBuild(feature: "Reasoning") }
+}
+
+struct SciencesView: View {
+    var body: some View { NotInThisBuild(feature: "Sciences") }
 }
 
 struct ReasoningSetView: View {

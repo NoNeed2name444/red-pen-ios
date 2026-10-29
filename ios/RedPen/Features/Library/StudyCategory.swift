@@ -126,9 +126,9 @@ enum StudyCategory: String, CaseIterable, Identifiable, Hashable {
     /// about how the studying is going.
     private var toolTiles: [CategoryFeature] {
         switch self {
-        case .questions: return [.lens, .examPlan, .examKit, .rules, .coverage, .subjects, .add, .turn]
-        case .cards: return [.lens, .reasoning, .add, .turn]
-        case .cases: return [.turn]
+        case .questions: return [.lens, .sciences, .examPlan, .examKit, .rules, .coverage, .subjects, .add, .turn]
+        case .cards: return [.lens, .sciences, .reasoning, .add, .turn]
+        case .cases: return [.sciences, .turn]
         case .osce: return [.lens, .add, .turn]
         case .audio: return [.record, .add, .turn]
         }
@@ -174,6 +174,8 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
     case add, turn
     // Questions, Cards, OSCE: the camera that answers questions
     case lens
+    // Questions, Cards, Cases: the core sciences (SupportPage.sciences)
+    case sciences
 
     var id: String { rawValue }
 
@@ -212,6 +214,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .due: return .due
         case .record: return .audioLecture
         case .subjects: return .support(.progress)
+        case .sciences: return .support(.sciences)
         case .add: return .addMaterial
         case .symptomBlocks: return .learn(.symptomBlocks)
         case .examPlan: return .learn(.examPlan)
@@ -266,6 +269,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .add: return "Paste or import"
         case .turn: return "Turn into\u{2026}"
         case .lens: return "Study Lens"
+        case .sciences: return "Sciences"
         }
     }
 
@@ -307,6 +311,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .add: return "Type, paste, or open Anki, Quizlet or CSV"
         case .turn: return "Make a set another mode"
         case .lens: return "Point the camera at questions to answer and keep them"
+        case .sciences: return "Anatomy in 3D, physiology to try, and the rest"
         }
     }
 
@@ -348,6 +353,7 @@ enum CategoryFeature: String, CaseIterable, Identifiable, Hashable {
         case .add: return "square.and.arrow.down"
         case .turn: return "arrow.triangle.2.circlepath"
         case .lens: return "camera.viewfinder"
+        case .sciences: return "atom"
         }
     }
 

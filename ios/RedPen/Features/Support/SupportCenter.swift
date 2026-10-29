@@ -7,10 +7,10 @@ import SwiftUI
 /// The studying itself is in the library's dock - Questions, Cards, OSCE,
 /// Audio, and Ideas beside them. What is left is visited now and then
 /// rather than worked in: how it is going, the lectures, the tour of
-/// examples, and the account, settings and help. They push onto the
-/// library's stack. One definition, one way in.
+/// examples, the core sciences, and the account, settings and help. They
+/// push onto the library's stack. One definition, one way in.
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
-    case notes, analytics, progress, sources, examples, account, settings, help, faq
+    case notes, analytics, progress, sources, examples, sciences, account, settings, help, faq
 
     /// What the menu lists, in the order it lists them. Every page is kept,
     /// but three are no longer listed, because each already has a home:
@@ -31,7 +31,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     var isListed: Bool {
         switch self {
         case .notes, .progress, .faq: return false
-        case .examples: return true
+        case .examples, .sciences: return true
         case .analytics, .sources, .account, .settings, .help: return true
         }
     }
@@ -43,7 +43,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// a flat list is a wall to read through every time.
     var section: SupportSection {
         switch self {
-        case .notes, .analytics, .progress, .sources, .examples: return .study
+        case .notes, .analytics, .progress, .sources, .examples, .sciences: return .study
         case .account, .settings, .help, .faq: return .account
         }
     }
@@ -55,6 +55,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         case .progress: return "By subject"
         case .sources: return "Your lectures"
         case .examples: return "Try every feature"
+        case .sciences: return "Sciences"
         case .account: return "Account"
         case .settings: return "Settings"
         case .help: return "How it works"
@@ -69,6 +70,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         case .progress: return "chart.bar.xaxis"
         case .sources: return "doc.richtext"
         case .examples: return "sparkles.rectangle.stack"
+        case .sciences: return "atom"
         case .account: return "person.crop.circle"
         case .settings: return "gearshape"
         case .help: return "questionmark.app"
@@ -84,6 +86,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
         case .progress: StatsView()
         case .sources: SourcesLibraryView()
         case .examples: ExamplesHubView()
+        case .sciences: SciencesView()
         case .account: AccountView(embedded: true)
         case .settings: SettingsPage()
         case .help: HelpPage()

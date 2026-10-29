@@ -2806,9 +2806,29 @@ for screenshots.
   (suite sciencecatalog). Pathology.swift adds the pathology tools: shock
   read from output, resistance and wedge; the infarct by age; necrosis;
   nephrotic or nephritic; tumour names (suite sciencepath).
-- [ ] S5. The screens (ui-consistency phases first): a Sciences hub, the
-  simulators on Swift Charts, the 3D atlas on SceneKit; App build and
-  screenshots on Macs, sent to the owner.
+- [ ] S5. The screens, in ios/RedPen/Features/Sciences, written after the
+  ui-consistency phases (checklist and plan outside the repo; reference:
+  the examples hub and the ward pocket's calculators):
+  - The way in: Support's Sciences page (section Study, symbol atom) and a
+    Sciences tile in Questions, Cards and Cases (StudyCategory.sciences).
+  - SciencesView: the atlas, the nine subjects, the ten body systems; a list
+    on a phone, tiles on a wide iPad; search over tools and topics.
+  - SciencePages: a subject (its tools, its topics), a body system (topics
+    by subject, "See it in 3D"), a topic (note, points, tools, atlas).
+  - 28 tools on Swift Charts in three files (physiology; biochemistry,
+    microbiology, immunology and genetics; pathology, pharmacology and
+    statistics), built from ScienceToolParts; each ends with the
+    learning-only line.
+  - AnatomyAtlasView: SceneKit, meshes built off the main thread, a chip per
+    body system and one for the structures inside, tap or search to choose,
+    the UBERON link, the HRA credit under the chips.
+  - Playgrounds: Features/Sciences is dropped from every core variant (the
+    engines stay); core3 stands SciencesView in as "not in this build".
+  - [ ] S5a. App build green on design/sciences.
+  - [ ] S5b. Screenshots on preview/sciences, sent to the owner.
+  - [ ] S5c. Proposals to put to the owner: lift the examples hub's tile
+    and the Sciences tile into one Shared/Ward tile; the plots stand 220
+    points tall where Vitals' stand 150.
 
 ### Waiting on the owner
 
