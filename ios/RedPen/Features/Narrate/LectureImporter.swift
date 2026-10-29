@@ -68,6 +68,32 @@ final class LectureImporter: ObservableObject {
         }
     }
 
+    /// A lecture recorded in the app (RecordLectureView), saved: copied in
+    /// under the set as a picked file is, and the recorder's own copy
+    /// removed. Saving only saves: nothing is sent anywhere, and
+    /// `transcribeRecorded` is the student's own next step (T0146 repair).
+    /// Returns the kept file, or nil when the copy failed (said in `trouble`).
+    func storeRecorded(_ recording: URL, for setID: UUID) -> URL? {
+        trouble = nil
+        do {
+            let stored = try LectureAudio.store(imported: recording, for: setID)
+            if stored.standardizedFileURL != recording.standardizedFileURL {
+                try? FileManager.default.removeItem(at: recording)
+            }
+            return stored
+        } catch {
+            trouble = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// Transcribe on a saved recording: Gemini first on the owner route,
+    /// then the phone, as a picked file is.
+    func transcribeRecorded(_ stored: URL, of set: StudySet, learned: PronunciationLibrary) async {
+        language = .mixed
+        await transcribe(stored, learned: learned, engine: .cloud, vocabulary: Self.vocabulary(for: set))
+    }
+
     /// The lecture's own slide terms, so Gemini spells them as the slides do.
     static func vocabulary(for set: StudySet) -> [String] {
         CloudTranscript.lectureTerms(slides: set.sources.flatMap { $0.pages.map(\.text) })

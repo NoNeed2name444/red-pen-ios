@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Download
@@ -191,6 +192,11 @@ import kotlinx.coroutines.withContext
     val canCreate = name.isNotBlank() && itemCount > 0
     val saveTitle = NewSetWords.saveTitle(kind)
 
+    var recordingLecture by remember { mutableStateOf(false) }
+    var recordedLecture by remember { mutableStateOf(false) }
+    if (recordingLecture) com.stethoscore.app.ui.narrate.RecordLectureScreen(store,
+        onClose = { recordingLecture = false; if (recordedLecture) onSaved() }, onSaved = { recordedLecture = true })
+
     /** Adds [set] to the library, then [then]; a failed save is said, never a crash. */
     fun keep(set: StudySet, then: () -> Unit) {
         runCatching { store.addSet(set) }.onSuccess { then() }.onFailure { saveError = it.message ?: "Unable to save this set" }
@@ -284,6 +290,10 @@ import kotlinx.coroutines.withContext
                 NewSetStep.MATERIAL -> {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         NewSetWords.paths(kind).forEach { option -> PathTile(option, path == option) { path = option } }
+                        // record the lecture here, in the app (T0146)
+                        if (kind == StudySetKind.NARRATE) WardButtonBox({ recordingLecture = true }, Modifier.fillMaxWidth(), kind = WardButtonKind.secondary) {
+                            Icon(Icons.Rounded.Mic, null, Modifier.size(20.dp)); Text(androidx.compose.ui.res.stringResource(com.stethoscore.app.R.string.recorder_title))
+                        }
                     }
                     if (path == NewSetPath.TYPE) DraftSection("Type or paste", kind, bodyText, { bodyText = it }, showFormat) { showFormat = !showFormat }
                     if (path == NewSetPath.IMPORT_FILE) LibraryFormSection {

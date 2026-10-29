@@ -34,6 +34,7 @@ import com.stethoscore.app.exam.NewSetPreset
 import com.stethoscore.app.exam.WardCalc
 import com.stethoscore.app.llm.FakeJobs
 import com.stethoscore.app.llm.FakeServer
+import com.stethoscore.app.llm.CloudJobs
 import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.llm.OwnerSpend
 import com.stethoscore.app.quiz.ConfidenceSetting
@@ -137,6 +138,16 @@ class StudyReachTest {
     // 1. Check accuracy
 
     @org.junit.Before fun forget() { AccuracySeen.records.clear() }
+
+    // The rule's effects never dispatch, so a writer's job coming back from
+    // withContext(Dispatchers.IO) went on on the IO thread: its state writes
+    // and the Snapshot apply that wakes the recomposer raced the test
+    // thread's frames, and under load the wake was lost and the questions
+    // never showed. As in NewSetReachTest, the job's blocking work runs in
+    // place (CloudJobs.io), on the test thread inside the clock's advance.
+    private lateinit var ioBefore: kotlinx.coroutines.CoroutineDispatcher
+    @org.junit.Before fun blockingWorkInPlace() { ioBefore = CloudJobs.io; CloudJobs.io = kotlinx.coroutines.Dispatchers.Unconfined }
+    @org.junit.After fun blockingWorkBack() { CloudJobs.io = ioBefore }
 
     @Test fun theQuizChecksTheAnsweredQuestion() {
         ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("appearance", Context.MODE_PRIVATE)

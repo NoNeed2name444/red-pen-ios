@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -23,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
@@ -119,7 +121,7 @@ object NarrateWords {
     val player = remember { LecturePlayer() }
     val voice = remember { NarrateVoice(context) }
     val sleep = remember { SleepTimer() }
-    val importer = remember { LectureImporter() }
+    val importer = remember { LectureImporter.forApp() }
     val title = NarrateWords.title(set.subject)
 
     var index by remember { mutableIntStateOf(0) }
@@ -137,6 +139,8 @@ object NarrateWords {
     var engine by remember { mutableStateOf(LectureImporter.Engine.cloud) }
     var language by remember { mutableStateOf(LectureLanguage.mixed) }
     var moreOpen by remember { mutableStateOf(false) }
+    // Record a lecture in the app (T0146), from More
+    var recordingLecture by remember { mutableStateOf(false) }
 
     fun current(): StudySet = store.library.firstOrNull { it.id == set.id } ?: set
 
@@ -331,6 +335,8 @@ object NarrateWords {
                 DropdownMenu(moreOpen, { moreOpen = false }, containerColor = wardColor(WardToken.raised)) {
                     DropdownMenuItem(text = { Text(NarrateWords.recordingItem(hasAudio)) }, leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) },
                         onClick = { moreOpen = false; choosingEngine = true })
+                    DropdownMenuItem(text = { Text(stringResource(com.stethoscore.app.R.string.recorder_title)) }, leadingIcon = { Icon(Icons.Rounded.Mic, null) },
+                        onClick = { moreOpen = false; recordingLecture = true })
                 }
             }
         })
@@ -379,6 +385,16 @@ object NarrateWords {
                 picker.launch(arrayOf("audio/*"))
             }
         }, cancelTitle = "Cancel", onDismiss = { choosingEngine = false })
+    // saved into this set: its recording plays here at once; Transcribe on it is done by this screen's importer
+    if (recordingLecture) RecordLectureScreen(store, onClose = { recordingLecture = false }, preferred = set,
+        onSaved = { saved -> if (saved.id == set.id) loadRecording() }, handOff = { kept, chosen ->
+        if (chosen.id != set.id) return@RecordLectureScreen false
+        importer.keep = { made, spoken ->
+            store.library.firstOrNull { it.id == set.id }?.let { store.updateSet(it.copy(narrateSegments = made, lectureLanguage = spoken.rawValue)) }
+        }
+        scope.launch { importer.transcribe(kept, LectureImporter.Engine.cloud, LectureLanguage.mixed) { learned.applyLearned(it) } }
+        true
+    })
     importer.trouble?.let { NarrateAlert(NarrateWords.troubleTitle, it) { importer.trouble = null } }
     if (importer.trouble == null) importer.notice?.let { NarrateAlert(NarrateWords.noticeTitle, it) { importer.notice = null } }
 }

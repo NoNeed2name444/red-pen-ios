@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The lecture recorder (T0146); Arabic in values-ar. The rest of the app keeps its words in Kotlin. -->
+<resources>
+    <string name="recorder_title">Record a lecture</string>
+    <string name="recorder_sheet_title">Record your lecture</string>
+    <string name="recorder_sheet_body">Stethoscore uses the microphone to record the lecture. The recording stays on this phone until you choose to transcribe it.</string>
+    <string name="recorder_continue">Continue</string>
+    <string name="recorder_mic_off">Microphone is off for Stethoscore</string>
+    <string name="recorder_open_settings">Open Settings</string>
+    <string name="recorder_call_paused">Paused for a call</string>
+    <string name="recorder_low_disk">Stopped because this phone is almost full.</string>
+    <string name="recorder_recording">Recording</string>
+    <string name="recorder_paused">Paused</string>
+    <string name="recorder_start">Start recording</string>
+    <string name="recorder_pause">Pause</string>
+    <string name="recorder_resume">Resume</string>
+    <string name="recorder_stop">Stop</string>
+    <string name="recorder_save_to">Save the recording to</string>
+    <string name="recorder_saving">Saving the recording…</string>
+    <string name="recorder_new_set">New set: %1$s</string>
+    <string name="recorder_saved_to">Saved to %1$s</string>
+    <string name="recorder_failed">Couldn\'t keep recording. %1$s</string>
+    <string name="recorder_failed_title">Couldn\'t use that recording</string>
+    <string name="recorder_done">Done</string>
+    <string name="recorder_cancel">Cancel</string>
+    <string name="recorder_channel">Lecture recording</string>
+    <string name="recorder_mic_taken">Paused while another app uses the microphone</string>
+    <string name="recorder_focus_lost">Paused for another app</string>
+    <string name="recorder_mic_lost">The microphone stopped working.</string>
+    <string name="recorder_nothing_recorded">Nothing was recorded.</string>
+    <string name="recorder_save_body">It stays on this phone until you choose to transcribe it.</string>
+    <string name="recorder_save_again">Save the recording</string>
+    <string name="recorder_transcribe">Transcribe</string>
+    <string name="recorder_recover_title">Keep the unfinished recording?</string>
+    <string name="recorder_recover_body">Stethoscore closed while recording. You can keep what it recorded up to then.</string>
+    <string name="recorder_keep">Keep</string>
+    <string name="recorder_discard">Delete</string>
+</resources>

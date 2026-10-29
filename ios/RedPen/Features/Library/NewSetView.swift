@@ -61,6 +61,9 @@ struct NewSetView: View {
     @State private var kind: StudySetKind = .mcq
     @State private var bodyText: String = ""
     @State private var showImporter = false
+    /// Record a lecture in the app (T0146), and whether one was saved.
+    @State private var recordingLecture = false
+    @State private var recordedLecture = false
     @State private var importError: String?
     /// Said once a shared set is in, when some of its pictures never came
     /// with it; New set closes when it is read.
@@ -469,6 +472,20 @@ struct NewSetView: View {
         VStack(spacing: 12) {
             ForEach(Self.paths(for: kind)) { option in
                 pathTile(option)
+            }
+            // record the lecture here, in the app (T0146)
+            if kind == .narrate {
+                Button { recordingLecture = true } label: {
+                    Label("Record a lecture", systemImage: "mic")
+                }
+                .buttonStyle(.bigCompanion)
+                .accessibilityIdentifier("newSetRecordLecture")
+                .sheet(isPresented: $recordingLecture) {
+                    RecordLectureView(onSaved: { _ in recordedLecture = true })
+                }
+                .onChange(of: recordingLecture) { _, open in
+                    if !open && recordedLecture { dismiss() }
+                }
             }
         }
         .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))

@@ -41,6 +41,14 @@ struct NarrateReviewView: View {
     var body: some View { NotInThisBuild(feature: "Audio lectures") }
 }
 
+struct RecordLectureView: View {
+    var preferred: StudySet?
+    var onSaved: (StudySet) -> Void = { _ in }
+    var handOff: ((URL, StudySet) -> Bool)? = nil
+
+    var body: some View { NotInThisBuild(feature: "Audio lectures") }
+}
+
 struct DrawFromMemoryButton: View {
     let set: StudySet
     let imageIndex: Int

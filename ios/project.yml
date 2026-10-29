@@ -287,6 +287,10 @@ targets:
       - path: RedPen/Shared/Platform/ExamDayAttributes.swift
       - path: RedPen/Shared/Platform/WardRoundAttributes.swift
       - path: RedPen/Shared/Platform/ReviewDueIntent.swift
+      # the lecture recorder's state and its shared file (T0146), for the
+      # recording surfaces of the widget packets
+      - path: RedPen/Shared/Recording/RecorderState.swift
+      - path: RedPen/Shared/Recording/RecorderShelf.swift
     entitlements:
       path: StethoscoreWidgets/StethoscoreWidgets.entitlements
       properties:

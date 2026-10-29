@@ -936,6 +936,366 @@
           }
         }
       }
+    },
+    "Record a lecture" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سجّل محاضرة"
+          }
+        }
+      }
+    },
+    "Record your lecture" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سجّل محاضرتك"
+          }
+        }
+      }
+    },
+    "Stethoscore uses the microphone to record the lecture. The recording stays on this phone until you choose to transcribe it." : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم Stethoscore الميكروفون لتسجيل المحاضرة. يبقى التسجيل على هذا الهاتف إلى أن تختار تفريغه نصًّا."
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متابعة"
+          }
+        }
+      }
+    },
+    "Microphone is off for Stethoscore" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الميكروفون مغلق لـ Stethoscore"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افتح الإعدادات"
+          }
+        }
+      }
+    },
+    "Recording" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ التسجيل"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متوقف مؤقتًا"
+          }
+        }
+      }
+    },
+    "Start recording" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابدأ التسجيل"
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إيقاف مؤقت"
+          }
+        }
+      }
+    },
+    "Resume" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استئناف"
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إيقاف"
+          }
+        }
+      }
+    },
+    "Save the recording to" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "احفظ التسجيل في"
+          }
+        }
+      }
+    },
+    "Saving the recording…" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ حفظ التسجيل…"
+          }
+        }
+      }
+    },
+    "New set: %@" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مجموعة جديدة: %@"
+          }
+        }
+      }
+    },
+    "Saved to %@" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حُفظ في %@"
+          }
+        }
+      }
+    },
+    "Couldn't keep recording. %@" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر مواصلة التسجيل. %@"
+          }
+        }
+      }
+    },
+    "Couldn't use that recording" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر استخدام هذا التسجيل"
+          }
+        }
+      }
+    },
+    "Paused for a call" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متوقف مؤقتًا بسبب مكالمة"
+          }
+        }
+      }
+    },
+    "Stopped because this phone is almost full." : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "توقف التسجيل لأن هذا الهاتف ممتلئ تقريبًا."
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إلغاء"
+          }
+        }
+      }
+    },
+    "It stays on this phone until you choose to transcribe it." : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يبقى على هذا الهاتف إلى أن تختار تفريغه نصًّا."
+          }
+        }
+      }
+    },
+    "Save the recording" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "احفظ التسجيل"
+          }
+        }
+      }
+    },
+    "Transcribe" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فرّغه نصًّا"
+          }
+        }
+      }
+    },
+    "Keep the unfinished recording?" : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هل تحتفظ بالتسجيل غير المكتمل؟"
+          }
+        }
+      }
+    },
+    "Stethoscore closed while recording. You can keep what it recorded up to then." : {
+      "comment" : "Lecture recorder (T0146).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أُغلق Stethoscore أثناء التسجيل. يمكنك الاحتفاظ بما سجّله حتى تلك اللحظة."
+          }
+        }
+      }
+    },
+    "recorder.keep" : {
+      "comment" : "Lecture recorder (T0146): Keep on the unfinished-recording question. Its own key, so the shared Keep is left as it is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "احتفظ به"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep"
+          }
+        }
+      }
+    },
+    "recorder.delete" : {
+      "comment" : "Lecture recorder (T0146): Delete on the unfinished-recording question. Its own key, so the shared Delete is left as it is.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حذف"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "The microphone stopped working." : {
+      "comment" : "Lecture recorder (T0146): why a recording failed when the microphone was lost.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "توقف الميكروفون عن العمل."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

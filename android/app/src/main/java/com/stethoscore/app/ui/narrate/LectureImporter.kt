@@ -31,6 +31,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.audio.AudioRate
+import com.stethoscore.app.audio.CloudTranscriber
+import com.stethoscore.app.audio.CloudTranscript
 import com.stethoscore.app.audio.LectureAudio
 import com.stethoscore.app.audio.LectureLanguage
 import com.stethoscore.app.audio.LectureTranscriber
@@ -45,6 +47,7 @@ import com.stethoscore.app.ui.wardColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileInputStream
 import java.io.InputStream
 
 /**
@@ -53,9 +56,10 @@ import java.io.InputStream
  * is copied in under the set's id, then Gemini is tried, and the phone after
  * it; both failing is one message, not two alerts.
  *
- * On Android neither transcriber is set up: there is no paid AI and no
- * recogniser that hears a file, so the copy is kept and the student is told
- * so, in iOS's own words for both ways failing. The two transcribers are
+ * On Android the cloud transcriber is the worker's Gemini route with the
+ * owner key ([forApp], T0146); a public build has none, and there is no
+ * recogniser on the phone that hears a file, so there the copy is kept and
+ * the student is told so, in iOS's own words for both ways failing. The two transcribers are
  * passed in, so the flow is the same one iOS runs and a test can follow it.
  */
 class LectureImporter(
@@ -80,6 +84,34 @@ class LectureImporter(
     enum class Engine { cloud, device }
 
     class TranscriberUnavailable(message: String) : Exception(message)
+
+    companion object {
+        /**
+         * The app's importer: Gemini through the worker with the owner key
+         * (audio/CloudTranscriber, T0146) when this build has one; a public
+         * build, with an empty key, keeps today's "not set up" path.
+         */
+        fun forApp(cloud: CloudTranscriber = CloudTranscriber.forApp()): LectureImporter =
+            if (cloud.isSetUp) LectureImporter(cloud = { file, language -> cloud.transcribe(file, language) }) else LectureImporter()
+    }
+
+    /**
+     * A lecture recorded in the app (RecordLectureScreen), saved: copied in
+     * under the set and the recorder's copy removed. Saving only saves:
+     * nothing is sent anywhere; [transcribe] is the student's own next step.
+     * Returns the kept file, or null when the copy failed (said in [trouble]).
+     */
+    suspend fun storeRecorded(recording: File, setId: String, dir: File): File? {
+        trouble = null
+        val kept = try {
+            withContext(Dispatchers.IO) { LectureAudio.store({ FileInputStream(recording) }, recording.extension.ifEmpty { "m4a" }, setId, dir) }
+        } catch (e: Exception) {
+            trouble = e.localizedMessage ?: "The recording could not be copied."
+            return null
+        }
+        if (kept.canonicalPath != recording.canonicalPath) recording.delete()
+        return kept
+    }
 
     /** Copies the picked recording in, then transcribes it. Returns the kept file, or null when the copy failed. */
     suspend fun attach(open: () -> InputStream, extension: String, setId: String, dir: File,
@@ -127,6 +159,8 @@ class LectureImporter(
             }
             val lang = if (language.locale.startsWith("ar")) "ar" else "en"
             val made = NarrateScheduler.segments(lines, lang).toMutableList()
+            // Gemini writes Arabic and English each in its own script, so the pace follows the line itself (iOS byLine)
+            if (byLine) for (i in made.indices) made[i] = made[i].copy(lang = CloudTranscript.language(made[i].text))
             // everything already learned is applied before the student ever sees the transcript
             val texts = made.map { it.text }.toMutableList()
             learned(texts)

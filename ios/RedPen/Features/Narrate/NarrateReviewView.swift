@@ -72,6 +72,8 @@ struct NarrateReviewView: View {
     @State private var snapshot: [String] = []
     @State private var importing = false
     @State private var choosingEngine = false
+    /// Record a lecture in the app (T0146), from the More menu.
+    @State private var recordingLecture = false
     /// Made by the audio tile for this visit (NarratePlan.dropsEmptyLecture).
     @State private var madeHere = false
     @State private var engine: LectureImporter.Engine = .cloud
@@ -158,6 +160,10 @@ struct NarrateReviewView: View {
                     Label(player.hasAudio ? "Replace recording" : "Add recording",
                           systemImage: "waveform")
                 }
+                Button { recordingLecture = true } label: {
+                    Label("Record a lecture", systemImage: "mic")
+                }
+                .accessibilityIdentifier("narrateRecordLecture")
             }
             // the multiple-selection form on purpose: it hands back [URL],
             // which is the shape LectureImporter.attach takes
@@ -171,6 +177,26 @@ struct NarrateReviewView: View {
                     store.update(current)
                 }
                 Task { await importer.attach(picked, to: studySet, learned: learned, engine: engine, language: language) }
+            }
+            .sheet(isPresented: $recordingLecture) {
+                // saved into this set: its recording plays here at once; Transcribe
+                // on it is done by this screen's importer, so its banner shows here
+                RecordLectureView(preferred: studySet, onSaved: { set in
+                    guard set.id == studySet.id, let recording = LectureAudio.existing(for: studySet.id) else { return }
+                    player.load(recording, title: title)
+                }, handOff: { kept, set in
+                    guard set.id == studySet.id else { return false }
+                    language = .mixed
+                    importer.keep = { [store, id = studySet.id] made, spoken in
+                        // the screen has gone: the transcript still lands on the set
+                        guard var current = store.library.first(where: { $0.id == id }) else { return }
+                        current.narrateSegments = made
+                        current.language = spoken
+                        store.update(current)
+                    }
+                    Task { await importer.transcribeRecorded(kept, of: studySet, learned: learned) }
+                    return true
+                })
             }
             .confirmationDialog("Transcribe the recording with", isPresented: $choosingEngine,
                                 titleVisibility: .visible) {

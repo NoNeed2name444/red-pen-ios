@@ -537,3 +537,6 @@ suite fonts FontBundleTests.swift \
       $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
       $S/SourceText.swift $S/MCQCoverage.swift $S/Provenance.swift \
       $S/Exam/ExamExemplarData.swift $S/ContentCredits.swift
+# the lecture recorder's core (T0146): its moves, clock, names, shared
+# file and the microphone asked only from a Record tap
+suite recorder RecorderTests.swift $S/Recording/RecorderState.swift $S/Recording/RecorderShelf.swift

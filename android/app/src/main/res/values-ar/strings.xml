@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The lecture recorder in Arabic (T0146). -->
+<resources>
+    <string name="recorder_title">سجّل محاضرة</string>
+    <string name="recorder_sheet_title">سجّل محاضرتك</string>
+    <string name="recorder_sheet_body">يستخدم Stethoscore الميكروفون لتسجيل المحاضرة. يبقى التسجيل على هذا الهاتف إلى أن تختار تفريغه نصًّا.</string>
+    <string name="recorder_continue">متابعة</string>
+    <string name="recorder_mic_off">الميكروفون مغلق لـ Stethoscore</string>
+    <string name="recorder_open_settings">افتح الإعدادات</string>
+    <string name="recorder_call_paused">متوقف مؤقتًا بسبب مكالمة</string>
+    <string name="recorder_low_disk">توقف التسجيل لأن هذا الهاتف ممتلئ تقريبًا.</string>
+    <string name="recorder_recording">جارٍ التسجيل</string>
+    <string name="recorder_paused">متوقف مؤقتًا</string>
+    <string name="recorder_start">ابدأ التسجيل</string>
+    <string name="recorder_pause">إيقاف مؤقت</string>
+    <string name="recorder_resume">استئناف</string>
+    <string name="recorder_stop">إيقاف</string>
+    <string name="recorder_save_to">احفظ التسجيل في</string>
+    <string name="recorder_saving">جارٍ حفظ التسجيل…</string>
+    <string name="recorder_new_set">مجموعة جديدة: %1$s</string>
+    <string name="recorder_saved_to">حُفظ في %1$s</string>
+    <string name="recorder_failed">تعذّر مواصلة التسجيل. %1$s</string>
+    <string name="recorder_failed_title">تعذّر استخدام هذا التسجيل</string>
+    <string name="recorder_done">تم</string>
+    <string name="recorder_cancel">إلغاء</string>
+    <string name="recorder_channel">تسجيل المحاضرات</string>
+    <string name="recorder_mic_taken">متوقف مؤقتًا لأن تطبيقًا آخر يستخدم الميكروفون</string>
+    <string name="recorder_focus_lost">متوقف مؤقتًا لتطبيق آخر</string>
+    <string name="recorder_mic_lost">توقف الميكروفون عن العمل.</string>
+    <string name="recorder_nothing_recorded">لم يُسجَّل شيء.</string>
+    <string name="recorder_save_body">يبقى على هذا الهاتف إلى أن تختار تفريغه نصًّا.</string>
+    <string name="recorder_save_again">احفظ التسجيل</string>
+    <string name="recorder_transcribe">فرّغه نصًّا</string>
+    <string name="recorder_recover_title">هل تحتفظ بالتسجيل غير المكتمل؟</string>
+    <string name="recorder_recover_body">أُغلق Stethoscore أثناء التسجيل. يمكنك الاحتفاظ بما سجّله حتى تلك اللحظة.</string>
+    <string name="recorder_keep">احتفظ به</string>
+    <string name="recorder_discard">حذف</string>
+</resources>
