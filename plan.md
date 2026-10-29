@@ -2892,6 +2892,14 @@ for screenshots.
     parts=iphone-tour,ipad. The first run showed the hub's, a subject's and
     a system's large titles missing (each page pushed on a stack of its
     own); they are inline now, as the examples hub's title is.
+  - Male or Female in the tools too, the atlas's remembered choice: the
+    oxygen curve starts each body at its own haemoglobin and reads it
+    against the WHO's anaemia line (13 g/dL for a man, 12 for a woman); the
+    renal tool reads the plasma creatinine as an eGFR for that body and age
+    (CKD-EPI 2021, the ward pocket's WardFormula). The other tools' sums do
+    not differ by sex.
+  - Choosing a structure from search or a topic frames it with its
+    surroundings, lifted clear of the card below (it sat under the card).
   - [x] S5a. App build green on design/sciences (d35dfc3, run 40950114091).
   - [ ] S5b. Screenshots on preview/sciences, sent to the owner.
   - [ ] S5c. Proposals to put to the owner: lift the examples hub's tile

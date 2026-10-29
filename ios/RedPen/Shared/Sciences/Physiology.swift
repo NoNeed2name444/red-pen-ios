@@ -222,6 +222,15 @@ enum OxygenCurve {
     /// Fetal haemoglobin's P50, mmHg.
     static let fetalP50: Double = 19
 
+    /// The WHO's line for anaemia in a non-pregnant adult, g/dL: 13 for a man,
+    /// 12 for a woman (WHO, Haemoglobin concentrations for the diagnosis of
+    /// anaemia, 2011). Men make more red cells: testosterone drives
+    /// erythropoietin, and menstruation costs iron.
+    static func anaemiaLine(_ sex: AnatomySex) -> Double { sex == .male ? 13 : 12 }
+
+    /// A typical adult haemoglobin, g/dL, where the tool starts for each sex.
+    static func typicalHaemoglobin(_ sex: AnatomySex) -> Double { sex == .male ? 15 : 13.5 }
+
     struct Conditions: Hashable {
         var pH: Double = 7.4
         var celsius: Double = 37

@@ -31,7 +31,7 @@ struct AnatomyAtlasView: View {
     var choosing: String?
     @StateObject private var model = AtlasModel()
     @State private var query = ""
-    @AppStorage("sciences.atlas.body") private var lastBody = AnatomySex.male.rawValue
+    @AppStorage(AnatomySex.rememberedKey) private var lastBody = AnatomySex.male.rawValue
 
     private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -84,7 +84,7 @@ struct AnatomyAtlasView: View {
             }
         }
         .task {
-            let preferred: AnatomySex = AnatomySex(rawValue: lastBody) ?? .male
+            let preferred: AnatomySex = AnatomySex(remembered: lastBody)
             let sex: AnatomySex = AtlasLibrary.manifest?.body(for: Set(focus), preferred: preferred) ?? preferred
             await model.load(focus: Set(focus), sex: sex)
             if let choosing { model.reveal(key: choosing) }
@@ -138,7 +138,7 @@ struct AnatomyAtlasView: View {
                 }
                 .padding(.horizontal, WardSpace.gutter)
             }
-            Text("Human Reference Atlas 3D organs, CC BY 4.0, from the Visible Human Male and Female (U.S. National Library of Medicine).")
+            Text("Human Reference Atlas organs (from the Visible Human Male and Female, U.S. National Library of Medicine), the NIH 3D skull and two TotalSegmentator CT scans, all CC BY 4.0.")
                 .font(.caption2)
                 .foregroundStyle(Color.wardInkSecondary)
                 .padding(.horizontal, WardSpace.gutter)
@@ -164,6 +164,11 @@ private struct AtlasChosenCard: View {
                     Text(chosen.part.name + " \u{00B7} " + chosen.part.system.name)
                         .font(.caption)
                         .foregroundStyle(Color.wardInkSecondary)
+                    if let origin = chosen.structure.origin {
+                        Text(origin)
+                            .font(.caption)
+                            .foregroundStyle(Color.wardInkSecondary)
+                    }
                 }
                 Spacer(minLength: WardSpace.s)
                 Button(action: onClose) {
@@ -485,14 +490,21 @@ final class AtlasModel: NSObject, ObservableObject {
         if !focusHere.isEmpty && onlyFocus && !focusHere.contains(part.id) { onlyFocus = false }
         if structure.inner && !showInner { showInner = true }
         choose(nodeKey(entry))
-        frameChosen()
+        frameChosen(context: true)
     }
 
     // MARK: the camera
 
-    func frameChosen() {
+    /// The chosen structure: close up ("Look closer"), or with its
+    /// surroundings in view and lifted clear of the card below it, as a
+    /// search or a topic opens it.
+    func frameChosen(context: Bool = false) {
         guard let chosen, let node = nodes[nodeKey(chosen)] else { return }
-        frame([node])
+        if context {
+            frame([node], margin: 2.6, nearest: 0.3, lift: 0.18)
+        } else {
+            frame([node])
+        }
     }
 
     /// Everything shown, or the whole scene when nothing is.
@@ -501,7 +513,9 @@ final class AtlasModel: NSObject, ObservableObject {
         frame(shown.isEmpty ? Array(nodes.values) : shown)
     }
 
-    private func frame(_ targets: [SCNNode]) {
+    /// margin: room around the box; nearest: the closest the camera comes;
+    /// lift: how far up the view the box sits, as a share of the view's height.
+    private func frame(_ targets: [SCNNode], margin: Float = 1.2, nearest: Float = 0.15, lift: Float = 0) {
         guard !targets.isEmpty else { return }
         var lo = SIMD3<Float>(repeating: .greatestFiniteMagnitude), hi = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
         for node in targets {
@@ -517,12 +531,15 @@ final class AtlasModel: NSObject, ObservableObject {
         let aspect: Float = bounds.height > 0 ? Float(bounds.width / bounds.height) : 1
         let tall: Float = (hi.y - lo.y) / 2 / half
         let wide: Float = max(hi.x - lo.x, hi.z - lo.z) / 2 / (half * max(0.3, aspect))
-        let distance: Float = max(0.15, max(tall, wide) * 1.2 + (hi.z - lo.z) / 2)
+        let distance: Float = max(nearest, max(tall, wide) * margin + (hi.z - lo.z) / 2)
+        // looking at a point below the box raises the box in the view
+        let aim: SIMD3<Float> = centre - SIMD3(0, lift * 2 * distance * half, 0)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.5
-        camera.simdPosition = centre + SIMD3(0, 0, distance)
-        camera.simdLook(at: centre)
+        camera.simdPosition = aim + SIMD3(0, 0, distance)
+        camera.simdLook(at: aim)
         SCNTransaction.commit()
+        // turning still turns about the structure, which keeps its place in the view
         view.defaultCameraController.target = SCNVector3(centre.x, centre.y, centre.z)
     }
 }

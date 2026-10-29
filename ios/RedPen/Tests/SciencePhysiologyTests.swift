@@ -76,6 +76,11 @@ check("rate functions are finite at their 0/0 points",
 // MARK: oxygen
 
 check("P50 is 26.9 mmHg at pH 7.4 and 37 °C", near(OxygenCurve.p50(), 26.86, 0.01))
+check("the WHO's anaemia line: 13 g/dL for a man, 12 for a woman",
+      OxygenCurve.anaemiaLine(.male) == 13 && OxygenCurve.anaemiaLine(.female) == 12)
+check("each sex starts above its own line, the man higher",
+      AnatomySex.allCases.allSatisfy { OxygenCurve.typicalHaemoglobin($0) > OxygenCurve.anaemiaLine($0) }
+        && OxygenCurve.typicalHaemoglobin(.male) > OxygenCurve.typicalHaemoglobin(.female))
 check("saturation is 50% at P50", near(OxygenCurve.saturation(po2: 26.86), 0.5, 0.005))
 check("arterial blood (PO2 100) is about 97.5% saturated", near(OxygenCurve.saturation(po2: 100), 0.975, 0.005))
 check("mixed venous blood (PO2 40) is about 75% saturated", near(OxygenCurve.saturation(po2: 40), 0.75, 0.01))

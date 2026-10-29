@@ -547,7 +547,13 @@ struct OxygenCurveTool: View {
     @State private var celsius = 37.0
     @State private var fetal = false
     @State private var po2 = 40.0
-    @State private var hb = 15.0
+    /// Haemoglobin as moved; until then (and again when the body changes)
+    /// the body's typical value.
+    @State private var hbMoved: Double?
+    @AppStorage(AnatomySex.rememberedKey) private var rememberedBody = AnatomySex.male.rawValue
+
+    private var sex: AnatomySex { AnatomySex(remembered: rememberedBody) }
+    private var hb: Double { hbMoved ?? OxygenCurve.typicalHaemoglobin(sex) }
 
     private struct Point: Identifiable {
         let id: String
@@ -608,7 +614,8 @@ struct OxygenCurveTool: View {
                 Toggle("Fetal haemoglobin", isOn: $fetal)
                 ScienceSlider(name: "PO2 to read", value: $po2, range: 5...120, step: 1,
                               shown: scienceNumber(po2) + " mmHg")
-                ScienceSlider(name: "Haemoglobin", value: $hb, range: 4...20, step: 0.5,
+                ScienceBodyPicker(sex: Binding(get: { sex }, set: { rememberedBody = $0.rawValue; hbMoved = nil }))
+                ScienceSlider(name: "Haemoglobin", value: Binding(get: { hb }, set: { hbMoved = $0 }), range: 4...20, step: 0.5,
                               shown: scienceNumber(hb, 1) + " g/dL")
             }
             .wardRowBackground()
@@ -618,9 +625,13 @@ struct OxygenCurveTool: View {
                 ScienceReading(label: "P50", value: scienceNumber(p50, 1) + " mmHg")
                 ScienceReading(label: "Saturation", value: sciencePercent(sat, 1))
                 ScienceReading(label: "Oxygen content", value: scienceNumber(content, 1) + " mL/dL")
-                ScienceVerdict(text: p50 > OxygenCurve.standardP50 + 1 ? "Shifted right: acid, carbon dioxide or heat, as in working muscle. Oxygen is unloaded more easily."
-                                     : p50 < OxygenCurve.standardP50 - 1 ? "Shifted left: oxygen is held more tightly, as by fetal haemoglobin, in alkalosis or cold."
-                                     : "Close to the standard curve.")
+                if !fetal {
+                    ScienceReading(label: "Anaemia line", value: "under " + scienceNumber(OxygenCurve.anaemiaLine(sex)) + " g/dL")
+                }
+                ScienceVerdict(text: (p50 > OxygenCurve.standardP50 + 1 ? "Shifted right: acid, carbon dioxide or heat, as in working muscle. Oxygen is unloaded more easily."
+                                      : p50 < OxygenCurve.standardP50 - 1 ? "Shifted left: oxygen is held more tightly, as by fetal haemoglobin, in alkalosis or cold."
+                                      : "Close to the standard curve.")
+                               + (!fetal && hb < OxygenCurve.anaemiaLine(sex) ? " Haemoglobin is below the line: anaemic, so the blood carries less oxygen at any saturation." : ""))
             }
             .wardRowBackground()
             .accessibilityElement(children: .combine)
@@ -628,7 +639,7 @@ struct OxygenCurveTool: View {
             ScienceTextSection(title: "How it is worked out",
                                text: "Severinghaus's equation for the curve, S = 1 / (23,400 / (P\u{00B3} + 150P) + 1), with Kelman's shifts of P50 for pH, temperature and base excess. The pH here comes from the PaCO2 and a bicarbonate of 24 + base excess. Oxygen content = 1.34 \u{00D7} Hb \u{00D7} saturation + 0.003 \u{00D7} PO2.")
             ScienceTextSection(title: "Keep in mind",
-                               text: "2,3-BPG shifts the curve right too (anaemia, altitude); it is not modelled here. Carbon monoxide shifts it left and takes haemoglobin out of play.")
+                               text: "2,3-BPG shifts the curve right too (anaemia, altitude); it is not modelled here. Carbon monoxide shifts it left and takes haemoglobin out of play. The anaemia lines are the WHO's for adults who are not pregnant. Men's run higher: testosterone drives erythropoietin, and menstruation costs iron.")
         }
     }
 }
@@ -696,6 +707,28 @@ struct AlveolarGasTool: View {
     }
 }
 
+// MARK: - The body a tool is for
+
+/// Male or Female, for a tool whose numbers differ by sex: the atlas's
+/// remembered choice (AnatomySex.rememberedKey), so the body chosen there
+/// is the one the tools start with.
+struct ScienceBodyPicker: View {
+    @Binding var sex: AnatomySex
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
+            Text("Body")
+            WardSegmented(selection: $sex, options: AnatomySex.allCases) { sex in
+                Text(sex.name)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Body")
+            .accessibilityIdentifier("scienceBody")
+        }
+        .padding(.vertical, WardSpace.xs)
+    }
+}
+
 // MARK: - Renal clearance
 
 struct RenalClearanceTool: View {
@@ -706,8 +739,14 @@ struct RenalClearanceTool: View {
     @State private var urineNa = 20.0
     @State private var plasmaOsm = 290.0
     @State private var urineOsm = 600.0
+    @State private var age = 40.0
+    @AppStorage(AnatomySex.rememberedKey) private var rememberedBody = AnatomySex.male.rawValue
+
+    private var sex: AnatomySex { AnatomySex(remembered: rememberedBody) }
 
     var body: some View {
+        let egfr: Double = WardFormula.ckdEpi2021(age: age, creatinineMgdl: plasmaCreatinine * WardUnit.creatinine.usPerSI,
+                                                  female: sex == .female)
         let urineCrMicro: Double = urineCreatinine * 1000
         let clearance: Double = RenalPhysiology.clearance(urine: urineCrMicro, flow: flow, plasma: plasmaCreatinine) ?? .nan
         let fena: Double = RenalPhysiology.fractionalExcretionNa(urineNa: urineNa, plasmaNa: plasmaNa,
@@ -730,6 +769,9 @@ struct RenalClearanceTool: View {
                               shown: scienceNumber(plasmaOsm) + " mOsm/kg")
                 ScienceSlider(name: "Urine osmolality", value: $urineOsm, range: 50...1200, step: 10,
                               shown: scienceNumber(urineOsm) + " mOsm/kg")
+                ScienceBodyPicker(sex: Binding(get: { sex }, set: { rememberedBody = $0.rawValue }))
+                ScienceSlider(name: "Age", value: $age, range: 18...95, step: 1,
+                              shown: scienceNumber(age) + " years")
             }
             .wardRowBackground()
 
@@ -737,6 +779,7 @@ struct RenalClearanceTool: View {
                 ScienceReading(label: "Creatinine clearance", value: scienceNumber(clearance) + " mL/min")
                 ScienceReading(label: "FENa", value: scienceNumber(fena, 2) + "%")
                 ScienceReading(label: "Free water clearance", value: scienceNumber(freeWater, 1) + " mL/min")
+                ScienceReading(label: "eGFR", value: scienceNumber(egfr) + " mL/min/1.73 m\u{00B2}")
                 ScienceVerdict(text: RenalPhysiology.fenaReading(fena) + " "
                                + (freeWater < 0 ? "Negative free water clearance: the kidney is concentrating, keeping water (ADH at work)."
                                                 : "Positive free water clearance: the kidney is making dilute urine, losing water."))
@@ -758,9 +801,9 @@ struct RenalClearanceTool: View {
             .wardRowBackground()
 
             ScienceTextSection(title: "How it is worked out",
-                               text: "Clearance = urine concentration \u{00D7} urine flow / plasma concentration. Creatinine is filtered and barely secreted, so its clearance estimates the GFR (a little high, by the part secreted). FENa = (urine Na \u{00D7} plasma creatinine) / (plasma Na \u{00D7} urine creatinine) \u{00D7} 100. Free water clearance = flow \u{2212} (urine osmolality \u{00D7} flow / plasma osmolality).")
+                               text: "Clearance = urine concentration \u{00D7} urine flow / plasma concentration. Creatinine is filtered and barely secreted, so its clearance estimates the GFR (a little high, by the part secreted). FENa = (urine Na \u{00D7} plasma creatinine) / (plasma Na \u{00D7} urine creatinine) \u{00D7} 100. Free water clearance = flow \u{2212} (urine osmolality \u{00D7} flow / plasma osmolality). The eGFR is the CKD-EPI 2021 equation, from the plasma creatinine, age and sex.")
             ScienceTextSection(title: "Keep in mind",
-                               text: "Diuretics make FENa unreliable (urea's fractional excretion, under 35% in a prerenal kidney, is used instead). Inulin clearance is the true GFR; PAH clearance measures renal plasma flow.")
+                               text: "Diuretics make FENa unreliable (urea's fractional excretion, under 35% in a prerenal kidney, is used instead). Inulin clearance is the true GFR; PAH clearance measures renal plasma flow. The same creatinine means a lower GFR in a woman, who has less muscle to make it, and in someone older.")
         }
     }
 }
