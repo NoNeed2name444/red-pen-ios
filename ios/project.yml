@@ -53,6 +53,12 @@ targets:
       - path: RedPen/Resources/Earth
         type: folder
         buildPhase: resources
+      # The 3D anatomy atlas (HRA meshes, CC BY 4.0; sources, licences and
+      # credits: the folder's SOURCES.md), as a folder, so it sits in
+      # Anatomy/ in the app (Shared/Sciences/AnatomyAtlas.swift)
+      - path: RedPen/Resources/Anatomy
+        type: folder
+        buildPhase: resources
       # Arabic for what iOS itself shows about the app: the permission
       # prompts. Outside RedPen/, since Playgrounds has no Info.plist to
       # localise.

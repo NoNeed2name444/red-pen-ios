@@ -2777,11 +2777,25 @@ for screenshots.
     each once), Immunology.swift.
 - [ ] S2. The licence ledger (docs/sciences/sources.md) and the sources in
   ContentSources, so the Sources screen credits them.
-- [ ] S3. Anatomy: tools/anatomy fetches the Human Reference Atlas 3D
-  organs (CC BY 4.0, one body frame from the Visible Human), pinned by
-  SHA-256, simplified and packed; an atlas manifest with labels and UBERON
-  ids; a Swift reader tested on Linux. Bones, muscles and peripheral nerves
-  need a CC0 or CC BY source (being looked for).
+- [x] S3. Anatomy: tools/anatomy_atlas.py turns the Human Reference Atlas's
+  male reference organ set v1.10 (united-male: one Visible Human body, CC BY
+  4.0, pinned by SHA-256) and its crosswalk into Resources/Anatomy: 32 parts
+  across all eleven body systems, 863 structures, about 334,000 triangles,
+  3.2 MB, the same bytes every run. Labels and UBERON ids from the crosswalk,
+  checked against each mesh: wrong ones corrected (CORRECTED), the brain
+  mirrored (its left half sat on the body's right), three pairs' sides
+  swapped back. Reader Shared/Sciences/AnatomyAtlas.swift, suite
+  anatomyatlas (sides, bounds, winding, labels, search). In the Xcode
+  project and the Playgrounds package as a folder, like the Earth maps.
+  Gaps, with the CC BY candidates found (SOURCES.md there):
+  - [ ] S3a. Skull, arm and hand bones, ribs: NIH 3D 3DPX-020591 (the
+    Visible Human skull, CC BY 4.0) and TotalSegmentator's CT masks (Zenodo,
+    CC BY 4.0, Wasserthal et al. 2023); the masks need registering into the
+    Visible Human frame (on the vertebrae and pelvis).
+  - [ ] S3b. Named muscles beyond the eye, larynx and thigh: TotalSegmentator's
+    ten; the rest drawn for the app.
+  - [ ] S3c. Peripheral nerves: no clean source (every rich set derives from
+    BodyParts3D or Z-Anatomy, CC BY-SA); to be drawn for the app.
 - [ ] S4. The catalog: subjects by body system, with short notes written
   for the app.
 - [ ] S5. The screens (ui-consistency phases first): a Sciences hub, the
@@ -2795,6 +2809,11 @@ for screenshots.
 - Each Worker deploy (the last: 15 Oct, about 8:12 am Cairo, run
   38685298818 from personal at bc611221). Given on 16 Oct for each retrieval
   phase that passes its gates and the independent review.
+- OpenSkeleton (a full CT skeleton) is under NMDID's terms, research and
+  education only: left out unless the owner gets written leave for an app.
+- Whether CC BY-SA meshes (BodyParts3D, Z-Anatomy: every muscle and nerve)
+  may ship. Brief §23f says no; they would make the atlas whole, but the
+  share-alike would reach the files made from them.
 - After all current tasks: the free openFDA key, as the Worker secret
   OPENFDA_API_KEY (120,000 label lookups a day instead of 1,000 per
   address).

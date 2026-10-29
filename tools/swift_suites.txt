@@ -469,3 +469,7 @@ suite sciencephys SciencePhysiologyTests.swift $S/Sciences/Physiology.swift $S/S
 suite sciencelife ScienceLifeTests.swift $S/Sciences/Biochemistry.swift $S/Sciences/Genetics.swift \
       $S/Sciences/Biostatistics.swift $S/Sciences/Pharmacokinetics.swift $S/Sciences/Microbiology.swift \
       $S/Sciences/Immunology.swift
+# the 3D anatomy atlas as bundled: every part reads whole and matches the
+# manifest, sits inside the body on the side its label says, and is labelled
+# and credited cleanly
+suite anatomyatlas AnatomyAtlasTests.swift $S/Sciences/AnatomyAtlas.swift
