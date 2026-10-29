@@ -52,6 +52,9 @@ struct MCQQuizView: View {
     /// The attending's hints shown this sitting; an empty string while one is
     /// being written.
     @State private var hints: [UUID: String] = [:]
+    /// Where the answer row stands in the scroll, followed
+    /// without redrawing the quiz (QuizReach).
+    @State private var reach = QuizReach()
     /// What came of asking for a twin, by the missed question's id.
     @State private var twinNotes: [UUID: String] = [:]
     @State private var writingTwin: Set<UUID> = []
@@ -1032,6 +1035,21 @@ struct MCQQuizView: View {
                 }
             }
             .onChange(of: current) { _, _ in proxy.scrollTo(Self.chartTop, anchor: .top) }
+            // At the accessibility sizes Check answer stands in the page
+            // below the other choices and How sure?: a choice brings it all
+            // into view, and leaves the page still when it already is
+            // (QuizReach). At AX5 the option just chosen can leave the screen.
+            // (on the same question only: a new one starts at its chart)
+            .onScrollGeometryChange(for: CGFloat.self) { $0.containerSize.height } action: { _, height in
+                reach.height = height
+            }
+            .onChange(of: [current, a.selected ?? -1]) { was, now in
+                guard decksInline, was[0] == now[0], now[1] >= 0, !a.checked else { return }
+                guard reach.rowNeedsLift else { return }
+                withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
+                    proxy.scrollTo(Self.answerRowID, anchor: .bottom)
+                }
+            }
         }
     }
 
@@ -1055,7 +1073,9 @@ struct MCQQuizView: View {
             if decksInline && deckShown { footer }
 
             if pendingResume == nil {
-                answerButtons(proxy).id(Self.answerRowID).transition(.identity)
+                answerButtons(proxy)
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .scrollView) } action: { reach.row = $0 }
+                    .id(Self.answerRowID).transition(.identity)
             }
 
             // in exam mode the explanation waits for the results,
@@ -1107,10 +1127,17 @@ struct MCQQuizView: View {
         // says what to do, rather than sitting there grey with no reason
         let title: String = ChartQuiz.primaryTitle(checked: a.checked, picked: a.selected != nil, holding: holding,
                                                    examMode: examMode, last: current == questions.count - 1)
-        return HStack(spacing: 12) {
+        // At the accessibility sizes the buttons stand one above another,
+        // Check answer the column's width and Back its own: side by side,
+        // Check answer was squeezed to 176 points wide and 521 tall at AX5,
+        // a word to a line.
+        let layout: AnyLayout = decksInline
+            ? AnyLayout(VStackLayout(spacing: WardSpace.m))
+            : AnyLayout(HStackLayout(spacing: WardSpace.m))
+        return layout {
             backButton(short: explains)
 
-            if span == .broad { Spacer(minLength: 16) }
+            if span == .broad && !decksInline { Spacer(minLength: 16) }
 
             if explains {
                 Button("Explain") {
@@ -1268,5 +1295,23 @@ private struct PopPressFace<S: InsettableShape>: View {
             }
             .animation(reduceMotion ? nil : .wardShade(down: inset), value: inset)
             .capPop(held)
+    }
+}
+
+/// Where the answer row stands in the quiz's scroll, in its own points
+/// (0 at the top of what shows), so a choice at the accessibility sizes
+/// brings Check answer into view only when it is not all there already.
+/// A plain object, not observed: the row writes its frame as it moves,
+/// and nothing redraws for it.
+@MainActor
+final class QuizReach {
+    var height: CGFloat = 0
+    var row: CGRect = .zero
+
+    /// Whether a choice should scroll the answer row up: always while the
+    /// row is unmeasured, else only while part of it is out of view.
+    var rowNeedsLift: Bool {
+        guard height > 0, row.height > 0 else { return true }
+        return !(row.minY >= 0 && row.maxY <= height)
     }
 }

@@ -128,5 +128,41 @@ check("a result with its unit and flag", full.labs.first.map(ChartQuiz.spoken) =
       String(describing: full.labs.first.map(ChartQuiz.spoken)))
 check("a normal reading has no flag word", full.vitals.first.map(ChartQuiz.spoken) == "Blood pressure 128 over 82")
 
+// Check answer at AX5 (T0161, AccessibilityUITests.testMainScreensAtTheLargestTextSize):
+// it stands in the page under the choices and How sure?, so choosing an
+// option scrolls it up into reach, and the row's buttons stack rather than
+// squeeze Check answer to a word a line (176 by 521 points on the 17 Pro).
+let quizView = (try? String(contentsOfFile: "ios/RedPen/Features/MCQ/MCQQuizView.swift", encoding: .utf8)) ?? ""
+func quizPart(_ from: String, _ to: String) -> String {
+    guard let a = quizView.range(of: from),
+          let b = quizView.range(of: to, range: a.upperBound..<quizView.endIndex) else { return "" }
+    return String(quizView[a.lowerBound..<b.lowerBound])
+}
+let answerRow = quizPart("private func answerButtons(", "private func backButton(")
+check("ax5: the answer row found", !answerRow.isEmpty)
+check("ax5: the answer row stacks at the accessibility sizes",
+      answerRow.contains("decksInline\n            ? AnyLayout(VStackLayout(") && answerRow.contains("return layout {"),
+      answerRow)
+check("ax5: no spacer pushes the stacked buttons apart",
+      answerRow.contains("if span == .broad && !decksInline { Spacer"))
+let scroller = quizPart("private var questionScroll: some View {", "private func scrollContent(")
+check("ax5: choosing an option brings the answer row up",
+      scroller.contains(".onChange(of: [current, a.selected ?? -1])")
+        && scroller.contains("guard decksInline, was[0] == now[0], now[1] >= 0, !a.checked")
+        && scroller.contains("proxy.scrollTo(Self.answerRowID, anchor: .bottom)"), scroller)
+let reachPart = quizPart("final class QuizReach {", "\n}\n")
+check("ax5: the row only moves while it is not all in view",
+      reachPart.contains("return !(row.minY >= 0 && row.maxY <= height)"), reachPart)
+check("ax5: an unmeasured row is brought up anyway",
+      reachPart.contains("guard height > 0, row.height > 0 else { return true }"), reachPart)
+check("ax5: the choice asks QuizReach before it scrolls, and only the row moves",
+      scroller.contains("guard reach.rowNeedsLift else { return }")
+        && !scroller.contains("\"\\(current)-\\(now[1])\""), scroller)
+check("ax5: the stacked row's comment says what it does",
+      answerRow.contains("Check answer the column's width and Back its own"))
+check("ax5: the answer row is in the page, under the choices, at those sizes",
+      quizView.contains("answerButtons(proxy)\n                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .scrollView) } action: { reach.row = $0 }\n                    .id(Self.answerRowID)")
+        && quizView.contains("private var decksInline: Bool { typeSize.isAccessibilitySize }"))
+
 print(failures.isEmpty ? "\nALL CHART QUIZ TESTS PASS" : "\n\(failures.count) CHART QUIZ TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)
