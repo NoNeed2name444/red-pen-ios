@@ -28,6 +28,10 @@ import SwiftUI
 ///   A comma-separated path (`Examples,Inguinal`) flies in to each in
 ///   turn: in Neurons a folder inside a cell is only on the map once the
 ///   cell has opened, so each waits for the one before.
+/// - `-graphPreviewFlyFill <0.88...4.5>`, with it, frames the fly-in
+///   tighter: its system fills that much of the screen (0.88, the app's,
+///   without it), so a body far off starts past the depth band's end
+///   (testDepthGlide flies in to Inguinal at 4.3; SpaceDepthTests D15).
 /// - `-graphPreviewLegend` opens "What the bodies mean" a second after the
 ///   space appears.
 /// - `-graphPreviewStyle <name>` (blackHole, sun, rocky, gasGiant, pulsar,
@@ -125,6 +129,13 @@ enum GraphPreview {
     /// `-graphPreviewPerfDemo <notes>`: the Performance theme shows a demo
     /// vault of that many made-up notes (100000 or 300000) instead.
     static let perfDemo: Int? = argument("-graphPreviewPerfDemo").flatMap { Int($0) }
+    /// `-graphPreviewFlyFill <0.88...4.5>`: how much of the screen a
+    /// fly-in's system fills, clamped to that range; the app's 0.88
+    /// without it (or outside the preview).
+    static let flyFill: Float = {
+        guard let asked = argument("-graphPreviewFlyFill").flatMap({ Float($0) }), asked.isFinite else { return 0.88 }
+        return min(max(asked, 0.88), 4.5)
+    }()
 
     /// The value after a launch argument, in the design preview.
     private static func argument(_ flag: String) -> String? {

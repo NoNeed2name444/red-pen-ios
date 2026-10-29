@@ -121,6 +121,14 @@ Each mode's glyph: iOS's SF Symbol (`Shared/Theme.swift`'s StudySetKind.symbol) 
 | Narrate | `waveform` | GraphicEq | same shape: a sound wave in bars |
 | Cases | `stethoscope` | MedicalServices | differs: Material Icons (1.7.8) has no stethoscope; the medical bag stands in until the owner picks one |
 
+## The Space map's depth band (T0159)
+
+The owner's rule (23 Oct): past the depth band's end a body fades out and is then culled - not drawn, no hit area, no VoiceOver element - and a link chip's glide brings it into the crisp zone, where it is drawn and read again.
+
+| iOS | Kotlin | Verdict |
+|---|---|---|
+| A body not drawn by the Space depth stage (past the band's end, or outside the view) has no hit area and no VoiceOver element (`Features/Notes/GraphSpaceDepth.swift`'s SpaceDepth.reachable, `GraphSpaceDepthStage.swift`, GraphSim.isPickable, Graph3DView's GraphBodyElement; SpaceDepthTests D14) | `ui/ideas/IdeasSpace.kt` | n/a: IdeasSpace is the Space look menu (theme, styles, folder looks) and has no depth band. Android's band lives in `ui/map/GlMapRenderer.kt`, owned by T0118: it already leaves bodies past the end out of the screen nodes that carry labels and taps (`band.gone`), and it has no peek card, so no link chip and no glide (see Features, Ideas). Nothing changed on Android |
+
 ## Where iOS can't be copied
 
 - SwiftUI shadows and blurs: Compose has no inner shadow. Draw the inset lights with `drawBehind` and a blur-masked `Paint` (or `RenderEffect` on API 31+), from WardRelief's numbers.

@@ -17,9 +17,10 @@ import simd
 ///   their positions still move on, so they are right when they return;
 /// - a body nearly faded dissolves the last of the way (SpaceDepthBand.
 ///   dissolve), so it never ends as a dark disc on a bright patch of sky;
-/// - names show only in the crisp zone, and nothing past the band can be
-///   picked. The chosen body is always kept: it is drawn whole and keeps
-///   its name wherever it is.
+/// - names show only in the crisp zone, and nothing past the band's end
+///   can be picked or is read by VoiceOver (SpaceDepth.reachable); a body
+///   only outside the view keeps both. The chosen body is always kept: it is drawn
+///   whole and keeps its name wherever it is.
 ///
 /// Neurons and the plain looks have none (GraphSimLooks.depth is nil).
 nonisolated final class GraphSpaceDepthStage: @unchecked Sendable {
@@ -42,6 +43,10 @@ nonisolated final class GraphSpaceDepthStage: @unchecked Sendable {
     private(set) var crisp: [Bool]
     /// Whose look GraphSim may animate this frame (level .body).
     private(set) var drawn: [Bool]
+    /// Whose body can be picked and is read by VoiceOver this frame: all
+    /// but those past the band's end; the chosen body always
+    /// (SpaceDepth.reachable).
+    private(set) var reachable: [Bool]
     /// How far each body has faded this frame (the band's f), for the
     /// depth meter (GraphDepthKeeper).
     private(set) var fade: [Float]
@@ -92,6 +97,7 @@ nonisolated final class GraphSpaceDepthStage: @unchecked Sendable {
         pastBand = [Bool](repeating: false, count: n)
         crisp = [Bool](repeating: true, count: n)
         drawn = [Bool](repeating: true, count: n)
+        reachable = [Bool](repeating: true, count: n)
         fade = [Float](repeating: 0, count: n)
         shownOpacity = [Float](repeating: 1, count: n)
         shownLevel = [SpaceBodyLevel?](repeating: nil, count: n)
@@ -157,6 +163,7 @@ nonisolated final class GraphSpaceDepthStage: @unchecked Sendable {
             pastBand[i] = gone
             crisp[i] = band.crisp(depth)
             drawn[i] = now == .body
+            reachable[i] = SpaceDepth.reachable(pastBand: gone, chosen: kept)
             guard visible[i] else { continue }
             show(i, now)
             // the last of the dissolve, on the whole body; a ghost (a

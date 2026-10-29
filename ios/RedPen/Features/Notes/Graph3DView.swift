@@ -2255,9 +2255,11 @@ struct GraphSCNView: UIViewRepresentable {
             sim.setFocus(centre)
             let theta: Float = GraphTilt.angle(theme, wide: wide)
             applyCameraSettings(tilt: theta)
+            // 0.88, or the design preview's -graphPreviewFlyFill
+            let fill: Float = GraphPreview.flyFill
             if theta > 0 {
                 let pads = [Float](repeating: 0.25, count: turned.count)
-                let tiltFit: GraphTiltFit = GraphTilt.fit(points: turned, pads: pads, window: window, fill: 0.88, tilt: theta)
+                let tiltFit: GraphTiltFit = GraphTilt.fit(points: turned, pads: pads, window: window, fill: fill, tilt: theta)
                 let offset: SIMD3<Float> = GraphTilt.offset(tiltFit, tilt: theta)
                 reach(tiltFit.deepest, around: turned)
                 GraphDepth.framed(.fly(tiltFit.reach), on: view, window: window)
@@ -2273,7 +2275,7 @@ struct GraphSCNView: UIViewRepresentable {
                 camera.simdOrientation = simd_quatf(angle: theta, axis: SIMD3<Float>(1, 0, 0))
                 SCNTransaction.commit()
             } else {
-                let distance: Float = GraphFraming.distance(points: turned, pad: 0.25, window: window, fill: 0.88)
+                let distance: Float = GraphFraming.distance(points: turned, pad: 0.25, window: window, fill: fill)
                 let offset: SIMD3<Float> = GraphFraming.cameraHome(distance: distance, window: window)
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = animated && !still ? 0.8 : 0
@@ -2658,10 +2660,18 @@ struct GraphSCNView: UIViewRepresentable {
         }
 
         /// A body's frame for VoiceOver: 44 points round where it is drawn;
-        /// none past the depth fade's end, where it is not drawn (plan 4f).
+        /// none past the Space depth fade's end, where it is not drawn
+        /// (plan 4f, SpaceDepth.reachable).
         func voiceFrame(_ i: Int) -> CGRect {
-            guard let sim, sim.isPickable(i), let at = screenPoint(i) else { return .zero }
+            guard voiceShown(i), let at = screenPoint(i) else { return .zero }
             return CGRect(x: at.x - 22, y: at.y - 22, width: 44, height: 44)
+        }
+
+        /// Whether VoiceOver reads body `i` now: only while it can be
+        /// picked, so a body faded out past the band's end has no element
+        /// until a glide brings it back.
+        func voiceShown(_ i: Int) -> Bool {
+            sim?.isPickable(i) ?? false
         }
 
         /// VoiceOver activated a body: choose it (its card comes up).
@@ -2728,7 +2738,7 @@ struct GraphSCNView: UIViewRepresentable {
             UIAccessibilityCustomRotor(name: name) { [weak self] predicate in
                 guard let self, let sim = self.sim else { return nil }
                 let all: [GraphBodyElement] = self.voiceElements.compactMap { $0 as? GraphBodyElement }
-                let list: [GraphBodyElement] = all.filter { $0.folder == wanted && sim.isVisible($0.slot) }
+                let list: [GraphBodyElement] = all.filter { $0.folder == wanted && sim.isPickable($0.slot) }
                 guard !list.isEmpty else { return nil }
                 let current: GraphBodyElement? = predicate.currentItem.targetElement as? GraphBodyElement
                 var at: Int = -1
@@ -2962,8 +2972,8 @@ final class FramingSCNView: SCNView {
     }
 }
 
-/// One body for VoiceOver: its frame follows it on screen; activating it
-/// chooses it.
+/// One body for VoiceOver: its frame follows it on screen, and it is an
+/// element except past the depth band's end; activating it chooses it.
 final class GraphBodyElement: UIAccessibilityElement {
     weak var coordinator: GraphSCNView.Coordinator?
     var slot: Int = 0
@@ -2971,6 +2981,13 @@ final class GraphBodyElement: UIAccessibilityElement {
 
     override var accessibilityFrameInContainerSpace: CGRect {
         get { coordinator?.voiceFrame(slot) ?? .zero }
+        set { _ = newValue }
+    }
+
+    /// Not an element past the depth band's end, where it is not drawn:
+    /// VoiceOver neither reads nor lands on it.
+    override var isAccessibilityElement: Bool {
+        get { coordinator?.voiceShown(slot) ?? false }
         set { _ = newValue }
     }
 

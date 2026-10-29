@@ -760,12 +760,16 @@ final class GraphPreviewUITests: XCTestCase {
     }
 
     /// A link chip's glide to a body past the band's end: flown in to
-    /// Inguinal's system, Groin hernia chosen, and its chip for Atrial
+    /// Inguinal's system zoomed in (`-graphPreviewFlyFill 4.3`, so Atrial
+    /// fibrillation starts at 2.88 times the focus's depth or more, past
+    /// the band's end on High and on Smooth with 10% to spare;
+    /// SpaceDepthTests D15), Groin hernia chosen, and its chip for Atrial
     /// fibrillation - a planet far off in Cardiology, not drawn - tapped.
     /// The camera glides it to the middle above the card, into the crisp
     /// zone, where VoiceOver finds it too.
     func testDepthGlide() {
-        let app = depthApp("space", fly: "Inguinal", off: false, more: ["-graphPreviewSelect", "Groin hernia"])
+        let app = depthApp("space", fly: "Inguinal", off: false,
+                           more: ["-graphPreviewSelect", "Groin hernia", "-graphPreviewFlyFill", "4.3"])
         let card = app.otherElements["graphPeekCard"]
         XCTAssertTrue(card.waitForExistence(timeout: 20), "no peek card")
         sleep(2)

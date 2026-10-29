@@ -932,7 +932,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         defer { lock.unlock() }
         var found: [(Int, SIMD3<Float>)] = []
         found.reserveCapacity(position.count)
-        for i in position.indices where visible[i] && !beyondBand(i) {
+        for i in position.indices where visible[i] && !culled(i) {
             found.append((i, position[i]))
         }
         return found
@@ -947,7 +947,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
         defer { lock.unlock() }
         var found: [(Int, SIMD3<Float>, Float, Bool)] = []
         found.reserveCapacity(position.count)
-        for i in position.indices where visible[i] && !ghost[i] && !beyondBand(i) {
+        for i in position.indices where visible[i] && !ghost[i] && !culled(i) {
             let size: Float = pickRadius[i] * max(popScale[i], 0.05)
             found.append((i, position[i], size, bodyKind[i] != .note))
         }
@@ -955,12 +955,13 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     /// Whether body `i` can be picked now, as in `pickables`: shown, not a
-    /// ghost, and not past the Space depth fade's far end.
+    /// ghost, and not past the Space depth fade's far end. A body only
+    /// outside the view can still be picked (SpaceDepth.reachable).
     func isPickable(_ i: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         guard i >= 0, i < visible.count else { return false }
-        return visible[i] && !ghost[i] && !beyondBand(i)
+        return visible[i] && !ghost[i] && !culled(i)
     }
 
     /// The Space depth stage this frame, for the depth meter
@@ -975,8 +976,18 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
     }
 
     /// Past the Space depth fade's far end (fully faded, not drawn), so it
-    /// cannot be picked; never the chosen body. Called with the lock held.
-    private func beyondBand(_ i: Int) -> Bool {
+    /// cannot be picked and VoiceOver does not read it; only outside the
+    /// view it is kept (SpaceDepth.reachable). Never the chosen body.
+    /// Called with the lock held.
+    private func culled(_ i: Int) -> Bool {
+        guard let depth, i != selected, i < depth.reachable.count else { return false }
+        return !depth.reachable[i]
+    }
+
+    /// Past the Space depth fade's far end (fully faded), never the chosen
+    /// body: a link with both ends there is not drawn. One whose ends are
+    /// only outside the view may still cross it. Called with the lock held.
+    private func pastEnd(_ i: Int) -> Bool {
         guard let depth, i != selected, i < depth.pastBand.count else { return false }
         return depth.pastBand[i]
     }
@@ -1804,7 +1815,7 @@ nonisolated final class GraphSim: NSObject, SCNSceneRendererDelegate, @unchecked
             let grow: Float = lively ? linkGrow[e] : (shown ? 1 : 0)
             guard grow > 0.001 else { continue }
             // fully faded at both ends: all of it is past the band
-            if beyondBand(pair.0) && beyondBand(pair.1) { continue }
+            if pastEnd(pair.0) && pastEnd(pair.1) { continue }
             addRibbon(pair.0, pair.1, seed: e, grow: grow, edge: e)
         }
         for (g, pair) in ghostEdges.enumerated() {

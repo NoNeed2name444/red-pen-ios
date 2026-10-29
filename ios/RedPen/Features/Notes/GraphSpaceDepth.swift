@@ -184,6 +184,17 @@ nonisolated enum SpaceDepth {
         viewHeight / 2 / tan(max(fovY, 0.001) / 2)
     }
 
+    // MARK: what can be reached
+
+    /// Whether a body can be picked and is shown to VoiceOver (plan 4f,
+    /// owner 23 Oct): past the band's end it has faded out and is culled,
+    /// with no hit area and no element. A body only outside the view keeps
+    /// both, so the rotors can still reach it. The chosen body is always
+    /// kept.
+    static func reachable(pastBand: Bool, chosen: Bool) -> Bool {
+        chosen || !pastBand
+    }
+
     // MARK: the view
 
     /// The view volume of the Space map's camera (GraphPerfFrustum, the

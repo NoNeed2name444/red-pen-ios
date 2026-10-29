@@ -7,12 +7,15 @@
 // up close (D6), the point level with its gap so nothing flickers (D7, D8),
 // the view volume, the Performance theme's (D9), the shaders' fade and
 // detail pieces (D10), the fade colour against the sky (D11), the
-// morphing noise octaves (D12), and a stale focus behind the eye fading
-// nothing (D13).
+// morphing noise octaves (D12), a stale focus behind the eye fading
+// nothing (D13), past the band's end nothing drawn, picked or read,
+// until a chip's glide brings it into the crisp zone (D14), and
+// testDepthGlide's zoomed-in fly-in starting its body past the end (D15).
 //
 // Compiled with GraphSpaceDepth.swift, GraphPerfLOD.swift,
-// GraphPerfCamera.swift, GraphicsQuality.swift, GraphShaderKit.swift and
-// GraphSpaceShaders.swift (Foundation only).
+// GraphPerfCamera.swift, GraphicsQuality.swift, GraphShaderKit.swift,
+// GraphSpaceShaders.swift and, for the glide, GraphDepthFade.swift with
+// GraphTilt.swift and GraphTheme.swift (Foundation only).
 import Foundation
 
 var failures: [String] = []
@@ -302,6 +305,159 @@ check("D13 then every body ahead stays crisp and drawn, names and all: the map n
 let justAhead: SpaceDepthBand = SpaceDepth.band(focusDepth: SpaceDepth.nearestFocus * 1.01, tier: .high)
 check("D13 a focus just ahead of the nearest still sets its band",
       justAhead.culls && justAhead.crisp(SpaceDepth.nearestFocus) && justAhead.gone(1))
+
+// MARK: D14 past the band's end: faded out, then not drawn, picked or read
+
+// the owner's rule (23 Oct): a body past the band's end fades to nothing
+// over the band's last stretch and is then culled - not drawn, no hit
+// area, no VoiceOver element - and a link chip's glide brings it into the
+// crisp zone, where it is drawn and read again. Nothing inside the band
+// changes.
+let cullBand: SpaceDepthBand = SpaceDepth.band(focusDepth: 10, tier: .high)
+var rampDown = true
+var lastOpacity: Float = 2
+for k in 0...400 {
+    let z: Float = Float(k) * 0.1
+    let opacity: Float = cullBand.dissolve(z)
+    if opacity > lastOpacity + 1e-6 { rampDown = false }
+    lastOpacity = opacity
+}
+check("D14 the dissolve only ever falls with depth, whole in the crisp zone, nothing at the end",
+      rampDown && cullBand.dissolve(cullBand.start) == 1 && cullBand.dissolve(cullBand.end) == 0)
+/// The level and whether it can be reached, for a body at view depth `z`.
+func reach(_ z: Float, inView: Bool, chosen: Bool = false, from previous: SpaceBodyLevel = .body)
+    -> (SpaceBodyLevel, Bool) {
+    let gone: Bool = !chosen && cullBand.gone(z)
+    var now: SpaceBodyLevel = SpaceDepth.level(previous, pixelRadius: 20, fade: cullBand.fade(z), gone: gone,
+                                               inView: chosen || inView)
+    if chosen { now = .body }
+    return (now, SpaceDepth.reachable(pastBand: gone, chosen: chosen))
+}
+let pastEnd = reach(cullBand.end + 1, inView: true)
+check("D14 past the end: not drawn, no hit area, no element", pastEnd.0 == .gone && !pastEnd.1)
+var insideKept = true
+for z in stride(from: Float(1), to: cullBand.end, by: 0.5) {
+    let inside = reach(z, inView: true)
+    if inside.0 == .gone || !inside.1 { insideKept = false }
+}
+check("D14 anywhere inside the band and in view: drawn and reachable, as before", insideKept)
+let chosenFar = reach(cullBand.end * 3, inView: false, chosen: true)
+check("D14 the chosen body is kept wherever it is", chosenFar.0 == .body && chosenFar.1)
+
+// the glide: a body far past the end and off to the side, its chip tapped
+let glideEye = SIMD3<Float>(0, 0, 10)
+let glideTarget = SIMD3<Float>(0, 0, 0)
+let farBody = SIMD3<Float>(40, 12, -60)
+let farDepth: Float = SpaceDepth.depth(of: farBody, eye: glideEye, forward: ahead)
+let farStart = reach(farDepth, inView: false)
+check("D14 the chip's body starts past the end, unreachable", cullBand.gone(farDepth) && !farStart.1, "\(farDepth)")
+// a point on the line of sight through the goal, a little above the middle
+let goalSight: SIMD3<Float> = glideEye + SIMD3<Float>(0, 0.18, -1)
+if let move = GraphDepthGlide.move(body: farBody, eye: glideEye, sight: goalSight, forward: ahead,
+                                   target: glideTarget) {
+    let eyeAfter: SIMD3<Float> = glideEye + move
+    let focusAfter: Float = SpaceDepth.depth(of: glideTarget + move, eye: eyeAfter, forward: ahead)
+    let bandAfter: SpaceDepthBand = SpaceDepth.band(focusDepth: focusAfter, tier: .high)
+    let bodyAfter: Float = SpaceDepth.depth(of: farBody, eye: eyeAfter, forward: ahead)
+    let viewAfter: GraphPerfFrustum = SpaceDepth.frustum(eye: eyeAfter, forward: ahead, right: SIMD3<Float>(1, 0, 0),
+                                                         up: SIMD3<Float>(0, 1, 0), fovY: 55 * Float.pi / 180,
+                                                         width: 402, height: 874, near: 0.001,
+                                                         far: bandAfter.end * 1.5)
+    let seen: Bool = SpaceDepth.inView(viewAfter, centre: farBody, radius: 0.2, reach: 3)
+    let gone: Bool = bandAfter.gone(bodyAfter)
+    let levelAfter: SpaceBodyLevel = SpaceDepth.level(.gone, pixelRadius: 20, fade: bandAfter.fade(bodyAfter),
+                                                      gone: gone, inView: seen)
+    check("D14 after the glide it is in the crisp zone, in view, drawn and reachable",
+          bandAfter.crisp(bodyAfter) && seen && levelAfter == .body
+          && SpaceDepth.reachable(pastBand: gone, chosen: false),
+          "depth \(bodyAfter), focus \(focusAfter), seen \(seen)")
+} else {
+    check("D14 the glide has a move for a body past the end", false)
+}
+
+// MARK: D15 testDepthGlide's fly-in: Atrial fibrillation past the end
+
+// testDepthGlide flies in to Inguinal with -graphPreviewFlyFill 4.3
+// (GraphPreview.flyFill) on a 402 x 874 phone, tilted 45 degrees, as
+// Graph3DView's fly(to:) frames it. The positions are GraphUniverse's plan
+// of the preview's store (CosmicHierarchyTests' previewInput): Inguinal's
+// home, its system (relative to it, as UniversePlan.systems holds it) and
+// Atrial fibrillation at 0 s and at 15 s, past the latest the test reads
+// it before the tap (the fly at 1.5 s, the choice at 4 s, the card, 2 s
+// more). Its depth over the focus's falls with time; at fill 4.2 it is
+// 2.857 at 15 s, so 4.3 is the smallest tenth that keeps 10% past the
+// end on High (2.6 x 1.1) and on Smooth (2.0 x 1.1).
+let zoomFill: Float = 4.3
+let zoomTilt: Float = GraphTilt.angle(.space)
+let zoomWindow: GraphWindow = GraphTilt.window(width: 402, height: 874, insets: GraphInsets(top: 118, bottom: 158))
+let inguinalHome = SIMD3<Float>(-1.56031, 0.08201, -1.31922)
+let inguinalSystem: [SIMD3<Float>] = [
+    SIMD3<Float>(-0.54450, -1.29331, 1.03230), SIMD3<Float>(0.64677, -1.54228, 0.48768),
+    SIMD3<Float>(1.45918, -0.88780, -0.34262), SIMD3<Float>(1.41681, 0.28674, -0.97221),
+    SIMD3<Float>(0.54450, 1.29331, -1.03230), SIMD3<Float>(-0.64677, 1.54228, -0.48768),
+    SIMD3<Float>(-1.45918, 0.88780, 0.34262), SIMD3<Float>(-1.41681, -0.28674, 0.97221),
+    SIMD3<Float>(-1.98235, 1.83244, 0.11677), SIMD3<Float>(-0.93982, 1.61455, -0.35985),
+    SIMD3<Float>(-0.22885, 2.18731, -1.08648), SIMD3<Float>(-0.26593, 3.21520, -1.63747),
+    SIMD3<Float>(-1.02933, 4.09610, -1.69005), SIMD3<Float>(-2.07186, 4.31398, -1.21343),
+    SIMD3<Float>(-2.78283, 3.74122, -0.48680), SIMD3<Float>(-2.74575, 2.71333, 0.06419)
+]
+let fibrillationAt: [SIMD3<Float>] = [SIMD3<Float>(2.37526, 7.66791, -0.95004), SIMD3<Float>(1.39970, 8.06035, -0.39776)]
+/// The camera's turn about x by the tilt, as fly(to:) sets it.
+func zoomTurn(_ v: SIMD3<Float>) -> SIMD3<Float> {
+    SIMD3<Float>(v.x, v.y * cos(zoomTilt) - v.z * sin(zoomTilt), v.y * sin(zoomTilt) + v.z * cos(zoomTilt))
+}
+let zoomForward: SIMD3<Float> = zoomTurn(SIMD3<Float>(0, 0, -1))
+let zoomUp: SIMD3<Float> = zoomTurn(SIMD3<Float>(0, 1, 0))
+/// The eye flown in to Inguinal at `fill`, and its focus's view depth.
+func zoomEye(_ fill: Float) -> (eye: SIMD3<Float>, focus: Float) {
+    let fit: GraphTiltFit = GraphTilt.fit(points: inguinalSystem, pads: inguinalSystem.map { _ in 0.25 },
+                                          window: zoomWindow, fill: fill, tilt: zoomTilt)
+    let eye: SIMD3<Float> = inguinalHome + GraphTilt.offset(fit, tilt: zoomTilt)
+    return (eye, SpaceDepth.depth(of: inguinalHome, eye: eye, forward: zoomForward))
+}
+/// Atrial fibrillation's least view depth over the focus's, at `fill`.
+func fibrillationRatio(_ fill: Float) -> Float {
+    let flown = zoomEye(fill)
+    return fibrillationAt.map { SpaceDepth.depth(of: $0, eye: flown.eye, forward: zoomForward) / flown.focus }.min() ?? 0
+}
+let zoomed = zoomEye(zoomFill)
+let zoomRatio: Float = fibrillationRatio(zoomFill)
+let nearestOfSystem: Float = inguinalSystem.map {
+    SpaceDepth.depth(of: inguinalHome + $0, eye: zoomed.eye, forward: zoomForward)
+}.min() ?? 0
+check("D15 zoomed in, the camera stays short of Inguinal's system",
+      zoomed.focus > SpaceDepth.nearestFocus && nearestOfSystem > 0.5, "focus \(zoomed.focus), nearest \(nearestOfSystem)")
+for tier in [GraphicsTier.high, .smooth] {
+    let band: SpaceDepthBand = SpaceDepth.band(focusDepth: zoomed.focus, tier: tier)
+    let margin: Float = band.end * 1.1
+    check("D15 at fill 4.3 Atrial fibrillation starts 10% past the band's end (\(tier))",
+          zoomRatio * zoomed.focus >= margin && band.gone(zoomRatio * zoomed.focus),
+          "ratio \(zoomRatio), end \(band.end / zoomed.focus)")
+}
+check("D15 at the app's fill 0.88 it lies inside the band (why the test zooms in)",
+      fibrillationRatio(0.88) < SpaceDepth.reach(.smooth).end, "\(fibrillationRatio(0.88))")
+// the chip's glide from there: to the goal above the card (half across,
+// 34% down), as GraphSCNView.Coordinator.ease does
+let zoomSight: SIMD3<Float> = zoomed.eye + zoomForward + zoomUp * ((0.5 - 0.34) * 2 * tan(55 * Float.pi / 360))
+let zoomTarget: SIMD3<Float> = inguinalHome
+var glideCrisp = true
+var glideNote = ""
+for body in fibrillationAt {
+    guard let move = GraphDepthGlide.move(body: body, eye: zoomed.eye, sight: zoomSight, forward: zoomForward,
+                                          target: zoomTarget) else {
+        glideCrisp = false
+        continue
+    }
+    let eyeAfter: SIMD3<Float> = zoomed.eye + move
+    let focusAfter: Float = SpaceDepth.depth(of: zoomTarget + move, eye: eyeAfter, forward: zoomForward)
+    let bodyAfter: Float = SpaceDepth.depth(of: body, eye: eyeAfter, forward: zoomForward)
+    glideNote += " \(bodyAfter / focusAfter)"
+    if bodyAfter > focusAfter * 1.15 { glideCrisp = false }
+    for tier in [GraphicsTier.high, .smooth] where !SpaceDepth.band(focusDepth: focusAfter, tier: tier).crisp(bodyAfter) {
+        glideCrisp = false
+    }
+}
+check("D15 the glide ends with it in the crisp zone (1.15 times the focus's depth or less)", glideCrisp, glideNote)
 
 print(failures.isEmpty ? "ALL PASSED" : "\(failures.count) FAILED")
 exit(failures.isEmpty ? 0 : 1)

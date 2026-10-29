@@ -252,7 +252,8 @@ suite graphperf GraphPerfTests.swift $F/Notes/GraphPerfGraph.swift $F/Notes/Grap
 # (the Performance theme's), and the shaders' fade and detail pieces
 suite spacedepth SpaceDepthTests.swift $F/Notes/GraphSpaceDepth.swift $F/Notes/GraphPerfLOD.swift \
       $F/Notes/GraphPerfCamera.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphShaderKit.swift \
-      $F/Notes/GraphSpaceShaders.swift
+      $F/Notes/GraphSpaceShaders.swift $F/Notes/GraphDepthFade.swift $F/Notes/GraphTilt.swift \
+      $F/Notes/GraphTheme.swift
 # the million map's chunks (plans 4e, 4f): the octree, 16-bit positions,
 # the links' adjacency and the notes' hierarchy, far bundles, frustum
 # culling, level of detail by size with morphing and no pops, the guard
