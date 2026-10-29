@@ -2799,6 +2799,28 @@ for screenshots.
     ten; the rest drawn for the app.
   - [ ] S3c. Peripheral nerves: no clean source (every rich set derives from
     BodyParts3D or Z-Anatomy, CC BY-SA); to be drawn for the app.
+  - [x] S3d. Two bodies (owner, 29 Oct: "every single thing should be 2
+    versions male and female"): the female reference organ set v1.10 (the
+    Visible Human Female, CC BY 4.0, checked in its release metadata) added
+    beside the male; manifest format 2 with `bodies`, files
+    male-<part>.atlas and female-<part>.atlas, 33 and 35 parts, 865 and 900
+    structures, 7.5 MB in all. The woman adds the breasts (fat a new tissue,
+    half see-through), ovaries, uterine tubes, uterus, vagina, their
+    ligaments and the sternum; the omentum is in both. The female crosswalk
+    checked side by side against the meshes: sides swapped back (inferior
+    pulmonary veins, round ligaments), liver segments, LAD, dural sheaths,
+    hip bones, breast fat renamed; her sixth lumbar vertebra named as the
+    normal variant; the placenta (outside the body) left out.
+  - [x] S3e. Mesh repairs, found by rendering single-sided as the app draws:
+    the femur's lower end had holes where the organ sets keep its condyles
+    apart (folded back in: with its cartilage a closed solid, 0 open
+    edges); cracks between the lung's segments and other pieces that meet
+    (simplified with open edges kept: 2 and 10 open edges left of about
+    1,700 and 2,600); stray debris left out and each piece simplified on
+    its own above a floor, so cartilage rings and breast lobules hold
+    their shape; the spleen's diaphragmatic surface and the female liver's
+    bare area kept (each closes a hole); solid tissues drawn double-sided,
+    so a vessel's cut end shows its inside. The suite checks each.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 66 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has
@@ -2821,7 +2843,13 @@ for screenshots.
     learning-only line.
   - AnatomyAtlasView: SceneKit, meshes built off the main thread, a chip per
     body system and one for the structures inside, tap or search to choose,
-    the UBERON link, the HRA credit under the chips.
+    the UBERON link, the HRA credit under the chips. Male or Female above
+    the chips (WardSegmented, remembered); a topic opens the body that has
+    its parts (the female pelvic organs and the breast the woman's), and
+    says so when the other body is chosen.
+  - Catalog topics added with the female body: the female pelvic organs,
+    the breast, the sternum and thoracic cage; the omentum joins the
+    digestive tract.
   - Playgrounds: Features/Sciences is dropped from every core variant (the
     engines stay); core3 stands SciencesView in as "not in this build".
   - Checked by a separate agent against the checklist (calibrated first on
@@ -2833,7 +2861,7 @@ for screenshots.
     for a segmented control on a phone), Haemodynamics' second figure last,
     two calculators on the tests page, the atlas model in place of a
     coordinator, wardEcg as an accent.
-  - Screenshots: SciencesUITests opens fifteen pages straight from launch
+  - Screenshots: SciencesUITests opens sixteen pages straight from launch
     (-uiPreviewScreen science-<name>, SciencePreviewScreen); run it with
     design-preview.yml on preview/sciences, only=testSciencesTour,
     parts=iphone-tour,ipad.

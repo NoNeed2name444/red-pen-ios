@@ -118,14 +118,14 @@ enum ContentSources {
 
     /// The credit line the anatomy atlas's SOURCES.md gives, word for word;
     /// a test keeps the two the same.
-    static let hraCredit = "3D anatomy: 3D Reference Organ Set for Male, v1.10, by Kristen Browne and Heidi Schlehlein, HuBMAP Human Reference Atlas (https://doi.org/10.48539/HBM833.WZWN.425), CC BY 4.0, made from the Visible Human Male, courtesy of the U.S. National Library of Medicine; labels from the ASCT+B Tables to 3D Reference Object Library Mapping, v1.10, by Ellen M. Quardokus, Heidi Schlehlein, Bruce W. Herr II and Katy Börner (https://doi.org/10.48539/HBM626.BRWN.943), CC BY 4.0."
+    static let hraCredit = "3D anatomy: 3D Reference Organ Sets for Male and for Female, v1.10, by Kristen Browne and Heidi Schlehlein, HuBMAP Human Reference Atlas (https://doi.org/10.48539/HBM833.WZWN.425 and https://doi.org/10.48539/HBM637.DWBM.744), CC BY 4.0, made from the Visible Human Male and Female, courtesy of the U.S. National Library of Medicine; labels from the ASCT+B Tables to 3D Reference Object Library Mapping, v1.10, by Ellen M. Quardokus, Heidi Schlehlein, Bruce W. Herr II and Katy Börner (https://doi.org/10.48539/HBM626.BRWN.943), CC BY 4.0."
 
     static let hraAnatomy = ContentSource(
         id: "hra-anatomy", name: "Human Reference Atlas 3D organs",
         use: "The 3D anatomy atlas in Sciences: its organs, bones, vessels and muscles, and their names",
         licences: [ccBy4],
         attribution: hraCredit + " No endorsement by HuBMAP or the NLM is implied.",
-        changes: "Each structure simplified to fewer triangles and its positions rounded; patches lying on other structures left out; the brain mirrored left to right, so each side lies where its name says; labels corrected where they were wrong for the shape, among them three pairs with their sides swapped.",
+        changes: "Each structure simplified to fewer triangles, piece by piece with its edges kept so pieces that meet stay sealed, and its positions rounded; stray debris and patches lying on other structures left out, and the patches that close a hole put back; the brain mirrored left to right, so each side lies where its name says; labels corrected where they were wrong for the shape, among them pairs with their sides swapped.",
         home: "https://humanatlas.io/3d-reference-library")
 
     static let uberon = ContentSource(

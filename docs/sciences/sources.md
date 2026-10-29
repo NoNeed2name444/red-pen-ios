@@ -26,9 +26,10 @@ where CC BY asks. The licences below were read on 29 Oct 2026.
 
 | Source | What the app has from it | Licence | Where |
 |---|---|---|---|
-| HRA 3D Reference Organ Set for Male, v1.10 | The 3D atlas's meshes: 32 parts, 863 structures | CC BY 4.0 (release metadata) | Resources/Anatomy, its SOURCES.md |
+| HRA 3D Reference Organ Set for Male, v1.10 | The 3D atlas's male body: 33 parts, 865 structures | CC BY 4.0 (release metadata) | Resources/Anatomy, its SOURCES.md |
+| HRA 3D Reference Organ Set for Female, v1.10 | The 3D atlas's female body: 35 parts, 900 structures | CC BY 4.0 (release metadata, checked 2026-10-29) | Resources/Anatomy, its SOURCES.md |
 | HRA ASCT+B 3D crosswalk, v1.10 | The atlas's labels and UBERON ids | CC BY 4.0 | Resources/Anatomy |
-| Visible Human Project (NLM) | The body the organ set was made from | U.S. government; credit "Courtesy of the U.S. National Library of Medicine" | credited with the HRA |
+| Visible Human Project (NLM) | The bodies the organ sets were made from | U.S. government; credit "Courtesy of the U.S. National Library of Medicine" | credited with the HRA |
 | UBERON | Identifiers on atlas structures | CC BY 3.0 (uberon.owl header) | anatomy.json |
 | Cell Ontology | Identifiers on immune cells | CC BY 4.0 (cl.owl header) | Immunology.swift |
 | Reactome | Pathway identifiers | Data CC0; illustrations CC BY 4.0 | Biochemistry.swift |

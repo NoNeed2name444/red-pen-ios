@@ -9,18 +9,20 @@ enum AtlasLibrary {
         return try? AnatomyAtlas.manifest(from: data)
     }()
 
-    /// The parts' names, for a link's line: "Heart, Blood vasculature".
+    /// The parts' names, for a link's line: "Heart, Blood vessels".
     static func names(of parts: [String]) -> String {
         let names: [String] = parts.compactMap { manifest?.part($0)?.name }
         return names.isEmpty ? ScienceTool.atlas.blurb : names.joined(separator: ", ")
     }
 }
 
-/// The 3D atlas (Resources/Anatomy, the Human Reference Atlas's male organ
-/// set, CC BY 4.0): turn the body with a finger, pinch to come closer, tap a
-/// structure for its name. The chips show or hide each body system and the
-/// structures that lie inside others; the search finds any of the 863 by
-/// name. Opened from a topic or a body system, it shows that topic's parts.
+/// The 3D atlas (Resources/Anatomy, the Human Reference Atlas's male and
+/// female organ sets, CC BY 4.0): turn the body with a finger, pinch to come
+/// closer, tap a structure for its name. Male or Female switches the body;
+/// the chips show or hide each body system and the structures that lie
+/// inside others; the search finds any structure of the body by name.
+/// Opened from a topic or a body system, it shows that topic's parts, in the
+/// body that has them (the last body chosen when both do).
 struct AnatomyAtlasView: View {
     var focus: [String] = []
     var title: String?
@@ -29,6 +31,7 @@ struct AnatomyAtlasView: View {
     var choosing: String?
     @StateObject private var model = AtlasModel()
     @State private var query = ""
+    @AppStorage("sciences.atlas.body") private var lastBody = AnatomySex.male.rawValue
 
     private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -54,14 +57,15 @@ struct AnatomyAtlasView: View {
                             .padding(WardSpace.gutter)
                     }
                 }
-                if searching, let manifest = model.manifest {
-                    AtlasSearchResults(query: query, manifest: manifest) { part, structure in
+                if searching, let shown = model.shownBody {
+                    AtlasSearchResults(query: query, atlasBody: shown) { part, structure in
                         model.reveal(part: part, structure: structure)
                         query = ""
                     }
                 }
             }
-            if model.state == .ready {
+            // kept while the other body loads, so the switch stays put
+            if model.state != .loading || !model.systems.isEmpty {
                 layers
             }
         }
@@ -80,19 +84,42 @@ struct AnatomyAtlasView: View {
             }
         }
         .task {
-            await model.load(focus: Set(focus))
+            let preferred: AnatomySex = AnatomySex(rawValue: lastBody) ?? .male
+            let sex: AnatomySex = AtlasLibrary.manifest?.body(for: Set(focus), preferred: preferred) ?? preferred
+            await model.load(focus: Set(focus), sex: sex)
             if let choosing { model.reveal(key: choosing) }
         }
+        // a container, so the card and the chips keep their own identifiers
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("anatomyAtlas")
     }
 
-    /// The layers: one chip per body system, the structures inside, and the
-    /// topic's own parts alone when opened from one; the credit under them.
+    /// Which body, then the layers: one chip per body system, the structures
+    /// inside, and the topic's own parts alone when opened from one; the
+    /// credit under them.
     private var layers: some View {
-        VStack(alignment: .leading, spacing: WardSpace.xs) {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
+            HStack(spacing: WardSpace.m) {
+                WardSegmented(selection: Binding(get: { model.sex }, set: { sex in
+                    lastBody = sex.rawValue
+                    Task { await model.show(sex) }
+                }), options: AnatomySex.allCases) { sex in
+                    Text(sex.name)
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Body")
+                .accessibilityIdentifier("atlasBody")
+                if !model.focus.isEmpty && model.focusHere.isEmpty {
+                    Text("This topic's parts are in the other body.")
+                        .font(.caption)
+                        .foregroundStyle(Color.wardInkSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, WardSpace.gutter)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: WardSpace.s) {
-                    if !model.focus.isEmpty {
+                    if !model.focusHere.isEmpty {
                         WardFilterChip(text: "Only these", symbol: "scope", selected: model.onlyFocus) {
                             model.onlyFocus.toggle()
                         }
@@ -111,7 +138,7 @@ struct AnatomyAtlasView: View {
                 }
                 .padding(.horizontal, WardSpace.gutter)
             }
-            Text("Human Reference Atlas 3D organs, CC BY 4.0, from the Visible Human Project (U.S. National Library of Medicine).")
+            Text("Human Reference Atlas 3D organs, CC BY 4.0, from the Visible Human Male and Female (U.S. National Library of Medicine).")
                 .font(.caption2)
                 .foregroundStyle(Color.wardInkSecondary)
                 .padding(.horizontal, WardSpace.gutter)
@@ -159,19 +186,20 @@ private struct AtlasChosenCard: View {
         }
         .frame(maxWidth: 520)
         .wardCard()
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("atlasChosen")
     }
 }
 
-/// Structures whose name holds every word typed, to choose one.
+/// Structures of the body shown whose name holds every word typed, to choose one.
 private struct AtlasSearchResults: View {
     let query: String
-    let manifest: AnatomyManifest
+    let atlasBody: AnatomyBody
     let onChoose: (AtlasPart, AnatomyStructure) -> Void
     @Environment(\.dismissSearch) private var dismissSearch
 
     var body: some View {
-        let found = AnatomyAtlas.search(query, in: manifest)
+        let found = AnatomyAtlas.search(query, in: atlasBody)
         List {
             if found.isEmpty {
                 WardEmptyState(symbol: "magnifyingglass", title: "No results",
@@ -227,8 +255,12 @@ final class AtlasModel: NSObject, ObservableObject {
     @Published var visible: Set<AnatomySystem> = [] { didSet { applyVisibility() } }
     @Published var showInner = false { didSet { applyVisibility() } }
     @Published var onlyFocus = true { didSet { applyVisibility(); frameShown() } }
-    private(set) var manifest: AnatomyManifest?
+    @Published private(set) var sex: AnatomySex = .male
+    /// The body on screen, once read.
+    private(set) var shownBody: AnatomyBody?
     private(set) var focus: Set<String> = []
+    /// The topic's parts that the body shown has.
+    private(set) var focusHere: Set<String> = []
     private(set) var systems: [AnatomySystem] = []
 
     let view = SCNView(frame: .zero)
@@ -276,18 +308,39 @@ final class AtlasModel: NSObject, ObservableObject {
 
     // MARK: loading
 
-    func load(focus: Set<String>) async {
-        guard nodes.isEmpty else { return }
-        guard let manifest = AtlasLibrary.manifest else {
+    func load(focus: Set<String>, sex: AnatomySex) async {
+        guard shownBody == nil, state == .loading else { return }
+        self.focus = focus
+        await assemble(sex)
+    }
+
+    /// The other body: the scene emptied and built again, the layers as the
+    /// topic wants them in it.
+    func show(_ sex: AnatomySex) async {
+        guard sex != self.sex || shownBody == nil, state != .loading else { return }
+        choose(nil)
+        for node in nodes.values { node.removeFromParentNode() }
+        nodes = [:]
+        entries = [:]
+        hollow = []
+        shownBody = nil
+        state = .loading
+        await assemble(sex)
+    }
+
+    /// One body read and put in the scene.
+    private func assemble(_ sex: AnatomySex) async {
+        self.sex = sex
+        guard let manifest = AtlasLibrary.manifest, let body = manifest.body(sex) else {
             state = .failed("Its files are missing from this build.")
             return
         }
-        self.manifest = manifest
-        self.focus = focus
-        let parts: [AtlasPart] = manifest.parts
+        let parts: [AtlasPart] = body.parts
         let built: [(part: AtlasPart, nodes: [SCNNode])] = await Task.detached(priority: .userInitiated) {
             AtlasModel.build(parts)
         }.value
+        // another body chosen while this one was being read: that one wins
+        guard self.sex == sex else { return }
         guard !built.isEmpty else {
             state = .failed("Its meshes could not be read.")
             return
@@ -301,9 +354,11 @@ final class AtlasModel: NSObject, ObservableObject {
                 if structure.inner { hollow.insert(part.id) }
             }
         }
+        shownBody = body
+        focusHere = focus.filter { body.part($0) != nil }
         let present: Set<AnatomySystem> = Set(built.map(\.part.system))
         systems = AnatomySystem.allCases.filter { present.contains($0) }
-        let focused: Set<AnatomySystem> = Set(built.filter { focus.contains($0.part.id) }.map(\.part.system))
+        let focused: Set<AnatomySystem> = Set(built.filter { focusHere.contains($0.part.id) }.map(\.part.system))
         visible = focused.isEmpty ? present : focused
         state = .ready
         frameShown()
@@ -320,6 +375,9 @@ final class AtlasModel: NSObject, ObservableObject {
             m.specular.contents = UIColor(white: 0.25, alpha: 1)
             m.shininess = 0.3
             m.lightingModel = .blinn
+            // both faces of what is solid, so an open end (a vessel cut where
+            // the organ set stops) shows its inside rather than a hole
+            m.isDoubleSided = tissue.opacity == 1
             if tissue.opacity < 1 {
                 m.transparency = tissue.opacity
                 m.writesToDepthBuffer = false
@@ -368,7 +426,7 @@ final class AtlasModel: NSObject, ObservableObject {
 
     private func shows(_ entry: Chosen) -> Bool {
         visible.contains(entry.part.system)
-            && (focus.isEmpty || !onlyFocus || focus.contains(entry.part.id))
+            && (focusHere.isEmpty || !onlyFocus || focusHere.contains(entry.part.id))
             && (showInner || !entry.structure.inner)
     }
 
@@ -424,7 +482,7 @@ final class AtlasModel: NSObject, ObservableObject {
     func reveal(part: AtlasPart, structure: AnatomyStructure) {
         let entry = Chosen(part: part, structure: structure)
         if !visible.contains(part.system) { visible.insert(part.system) }
-        if !focus.isEmpty && onlyFocus && !focus.contains(part.id) { onlyFocus = false }
+        if !focusHere.isEmpty && onlyFocus && !focusHere.contains(part.id) { onlyFocus = false }
         if structure.inner && !showInner { showInner = true }
         choose(nodeKey(entry))
         frameChosen()
@@ -452,9 +510,14 @@ final class AtlasModel: NSObject, ObservableObject {
             hi = pointwiseMax(hi, SIMD3(box.max.x, box.max.y, box.max.z))
         }
         let centre: SIMD3<Float> = (lo + hi) / 2
-        let size: Float = max(hi.x - lo.x, hi.y - lo.y, hi.z - lo.z)
-        // far enough back that the whole box fits the 35° view, with a margin
-        let distance: Float = max(0.15, size * 1.9)
+        // far enough back that the box fits both ways: the 35° is the view's
+        // height, so a narrow portrait screen needs more room for the width
+        let half: Float = tan(35 * .pi / 360)
+        let bounds: CGSize = view.bounds.size
+        let aspect: Float = bounds.height > 0 ? Float(bounds.width / bounds.height) : 1
+        let tall: Float = (hi.y - lo.y) / 2 / half
+        let wide: Float = max(hi.x - lo.x, hi.z - lo.z) / 2 / (half * max(0.3, aspect))
+        let distance: Float = max(0.15, max(tall, wide) * 1.2 + (hi.z - lo.z) / 2)
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.5
         camera.simdPosition = centre + SIMD3(0, 0, distance)

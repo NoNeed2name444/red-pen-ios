@@ -1,26 +1,37 @@
 #!/usr/bin/env python3
 """Make the 3D anatomy atlas (ios/RedPen/Resources/Anatomy) from the Human
-Reference Atlas's male reference organ set, the same way every time.
+Reference Atlas's male and female reference organ sets, the same way every
+time.
 
     python3 -I tools/anatomy_atlas.py \\
-        --glb 3d-vh-m-united.glb \\
+        --male 3d-vh-m-united.glb --female 3d-vh-f-united.glb \\
         --crosswalk asct-b-3d-models-crosswalk.csv \\
         [--out ios/RedPen/Resources/Anatomy]
 
-Both inputs are CC BY 4.0 (HuBMAP Human Reference Atlas); where each comes
+Every input is CC BY 4.0 (HuBMAP Human Reference Atlas); where each comes
 from, its SHA-256 and the credit it asks for are in Resources/Anatomy/
-SOURCES.md, and the inputs themselves are not kept in the repository. The
-organ set is one body (the Visible Human Male), in metres with y up and the
-origin near the hips, so every part lands where it belongs.
+SOURCES.md, and the inputs themselves are not kept in the repository. Each
+organ set is one body (the Visible Human Male, the Visible Human Female),
+in metres with y up and the origin near the hips, so every part lands where
+it belongs in its body.
+
+Repairs on the way (checked by rendering the result single-sided, as the
+app draws it): stray debris left out; each structure simplified piece by
+piece, never below a floor, so thin rings and lobules keep their shape;
+open edges kept where they are, so pieces that meet (the lung's segments,
+the femur and its cartilage) stay sealed; and the patches that close the
+femur's lower end, which the organ sets keep apart, put back.
 
 Writes, per part (an organ or a group of structures, e.g. the vertebral
 column):
 
-    <part>.atlas   the structures' meshes, simplified to the part's triangle
+    <body>-<part>.atlas
+                   the structures' meshes, simplified to the part's triangle
                    budget, positions quantised to 16 bits over the file's
                    bounds (format below; read by Shared/Sciences/AnatomyAtlas.swift)
-    anatomy.json   the manifest: parts, their structures with label, UBERON
-                   id, tissue and layer, and the source and its licence
+    anatomy.json   the manifest: the sources and their licences, and per body
+                   its parts, their structures with label, UBERON id, tissue
+                   and layer
 
 .atlas, little-endian:
 
@@ -35,7 +46,7 @@ column):
 
 Normals are not stored: the app makes smooth ones from the triangles.
 
-Needs numpy and fast-simplification (MIT; PyPI). The inputs are downloaded
+Needs numpy and fast-simplification 0.2 (MIT; PyPI). The inputs are downloaded
 files: run this with python3 -I from outside the folder they are in.
 """
 import argparse
@@ -49,19 +60,43 @@ import struct
 import numpy as np
 import fast_simplification
 
-GLB_SHA256 = "fae3ac193835e9e24cd13a0d0f11e6788183b290b0691b9b83ec81d907d94581"
 CROSSWALK_SHA256 = "54622d7ba5c8df15d8655c2af5ad6ebece45b74f61d894167e6fd9db9e66be06"
 
-SOURCE = {
-    "id": "hra-united-male-v1.10",
-    "title": "3D Reference Organ Set for Male, v1.10",
-    "creators": "Kristen Browne and Heidi Schlehlein (HuBMAP Human Reference Atlas)",
-    "doi": "https://doi.org/10.48539/HBM833.WZWN.425",
-    "url": "https://cdn.humanatlas.io/digital-objects/ref-organ/united-male/v1.10/assets/3d-vh-m-united.glb",
-    "sha256": GLB_SHA256,
-    "licence": "CC BY 4.0",
-    "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
-    "basis": "The Visible Human Male, U.S. National Library of Medicine",
+# The two bodies, each one organ set: the Visible Human Male and Female,
+# each in its own frame (metres, x to the body's left, y up, z forward).
+BODIES = {
+    "male": {
+        "name": "Male",
+        "prefix": "VH_M_",
+        "sha256": "fae3ac193835e9e24cd13a0d0f11e6788183b290b0691b9b83ec81d907d94581",
+        "frame": "The Visible Human Male: metres, x to the body's left, y up, z forward, origin near the hips",
+        "source": {
+            "id": "hra-united-male-v1.10",
+            "title": "3D Reference Organ Set for Male, v1.10",
+            "creators": "Kristen Browne and Heidi Schlehlein (HuBMAP Human Reference Atlas)",
+            "doi": "https://doi.org/10.48539/HBM833.WZWN.425",
+            "url": "https://cdn.humanatlas.io/digital-objects/ref-organ/united-male/v1.10/assets/3d-vh-m-united.glb",
+            "licence": "CC BY 4.0",
+            "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
+            "basis": "The Visible Human Male, U.S. National Library of Medicine",
+        },
+    },
+    "female": {
+        "name": "Female",
+        "prefix": "VH_F_",
+        "sha256": "95f0c3d2f918582608692ca1139e8bdb18c147a16470e9ee9af8b276bd77c422",
+        "frame": "The Visible Human Female: metres, x to the body's left, y up, z forward, origin near the hips",
+        "source": {
+            "id": "hra-united-female-v1.10",
+            "title": "3D Reference Organ Set for Female, v1.10",
+            "creators": "Kristen Browne and Heidi Schlehlein (HuBMAP Human Reference Atlas)",
+            "doi": "https://doi.org/10.48539/HBM637.DWBM.744",
+            "url": "https://cdn.humanatlas.io/digital-objects/ref-organ/united-female/v1.10/assets/3d-vh-f-united.glb",
+            "licence": "CC BY 4.0",
+            "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
+            "basis": "The Visible Human Female, U.S. National Library of Medicine",
+        },
+    },
 }
 CROSSWALK = {
     "id": "hra-crosswalk-v1.10",
@@ -74,76 +109,103 @@ CROSSWALK = {
 }
 
 # The parts, in the order the app lists them: (id, name, system, the organ
-# set's group node, triangle budget). A budget is spread over the part's
-# structures by their size, never below a floor that keeps a small one
-# recognisable.
+# set's group nodes in each body, triangle budget). A group written "*_x"
+# is "VH_M_x" in the male body and "VH_F_x" in the female; a body without
+# the part leaves it out. A budget is spread over the part's structures by
+# their size, never below a floor that keeps a small one recognisable.
+BOTH = ("male", "female")
 PARTS = [
-    ("skin", "Skin", "integumentary", "VH_M_skin", 24000),
-    ("brain", "Brain", "nervous", "Allen_brain", 42000),
-    ("spinal-cord", "Spinal cord", "nervous", "VH_M_spinal_cord", 4000),
-    ("optic-nerves", "Optic nerves", "nervous", "VH_M_nerves_of_eye", 1200),
-    ("eyes", "Eyes", "special senses", "VH_M_eyes", 9000),
-    ("heart", "Heart", "cardiovascular", "VH_M_heart", 16000),
-    ("vessels", "Blood vessels", "cardiovascular", "VH_M_blood_vasculature", 46000),
-    ("larynx", "Larynx", "respiratory", "VH_M_larynx", 3000),
-    ("airways", "Trachea and bronchi", "respiratory", "VH_M_tracheobronchial_tree", 12000),
-    ("lungs", "Lungs", "respiratory", "VH_M_lungs", 20000),
-    ("mouth", "Mouth", "digestive", "VH_M_mouth", 14000),
-    ("liver", "Liver", "digestive", "VH_M_liver", 12000),
-    ("gallbladder", "Gallbladder", "digestive", "VH_M_gallbladder_", 1000),
-    ("biliary-tree", "Bile and pancreatic ducts", "digestive", "VH_M_biliary_tree", 2000),
-    ("pancreas", "Pancreas", "digestive", "VH_M_pancreas", 3000),
-    ("small-intestine", "Small intestine", "digestive", "VH_M_small_intestine", 6000),
-    ("colon", "Large intestine", "digestive", "VH_M_colon", 8000),
-    ("tonsils", "Palatine tonsils", "lymphatic", "VH_M_palatine_tonsil", 800),
-    ("spleen", "Spleen", "lymphatic", "VH_M_spleen", 3000),
-    ("thymus", "Thymus", "lymphatic", "VH_M_thymus", 1200),
-    ("kidneys", "Kidneys and ureters", "urinary", "VH_M_upper_urinary_tract", 14000),
-    ("bladder", "Urinary bladder", "urinary", "VH_M_urinary_bladder", 2000),
-    ("urethra", "Urethra", "urinary", "VH_M_urethra", 600),
-    ("genital-ducts", "Vas deferens and seminal vesicles", "reproductive", "VH_M_male_genital_duct", 2000),
-    ("prostate", "Prostate", "reproductive", "VH_M_prostate_gland", 4000),
-    ("vertebral-column", "Vertebral column", "skeletal", "VH_M_vertebral_column", 32000),
-    ("pelvis", "Pelvis", "skeletal", "VH_M_pelvis", 10000),
-    ("legs", "Thigh, knee and leg", "skeletal", "VH_M_lower_limb", 16000),
-    ("hyoid", "Hyoid", "skeletal", "VH_M_hyoid", 500),
-    ("eye-muscles", "Muscles of the eye", "muscular", "VH_M_muscles_of_eye", 3000),
-    ("larynx-muscles", "Muscles of the larynx", "muscular", "VH_M_muscles_of_larynx", 2500),
-    ("knee-muscles", "Quadriceps at the knee", "muscular", "VH_M_muscles_of_knee", 3000),
+    ("skin", "Skin", "integumentary", BOTH, ["*_skin"], 24000),
+    ("breasts", "Breasts", "reproductive", ("female",), ["*_mammary_gland"], 12000),
+    ("brain", "Brain", "nervous", BOTH, ["Allen_brain"], 42000),
+    ("spinal-cord", "Spinal cord", "nervous", BOTH, ["*_spinal_cord"], 4000),
+    ("optic-nerves", "Optic nerves", "nervous", BOTH, ["*_nerves_of_eye"], 1200),
+    ("eyes", "Eyes", "special senses", BOTH, ["*_eyes"], 9000),
+    ("heart", "Heart", "cardiovascular", BOTH, ["*_heart"], 16000),
+    ("vessels", "Blood vessels", "cardiovascular", BOTH, ["*_blood_vasculature"], 46000),
+    ("larynx", "Larynx", "respiratory", BOTH, ["*_larynx"], 3000),
+    ("airways", "Trachea and bronchi", "respiratory", BOTH, ["*_tracheobronchial_tree"], 12000),
+    ("lungs", "Lungs", "respiratory", BOTH, ["*_lungs"], 20000),
+    ("mouth", "Mouth", "digestive", BOTH, ["*_mouth"], 14000),
+    ("liver", "Liver", "digestive", BOTH, ["*_liver"], 12000),
+    ("gallbladder", "Gallbladder", "digestive", BOTH, ["*_gallbladder_"], 1000),
+    ("biliary-tree", "Bile and pancreatic ducts", "digestive", BOTH, ["*_biliary_tree"], 2000),
+    ("pancreas", "Pancreas", "digestive", BOTH, ["*_pancreas"], 3000),
+    ("small-intestine", "Small intestine", "digestive", BOTH, ["*_small_intestine"], 6000),
+    ("colon", "Large intestine", "digestive", BOTH, ["*_colon"], 8000),
+    ("omentum", "Greater omentum", "digestive", BOTH, ["*_visceral_adipose"], 5000),
+    ("tonsils", "Palatine tonsils", "lymphatic", BOTH, ["*_palatine_tonsil"], 800),
+    ("spleen", "Spleen", "lymphatic", BOTH, ["*_spleen"], 3000),
+    ("thymus", "Thymus", "lymphatic", BOTH, ["*_thymus"], 1200),
+    ("kidneys", "Kidneys and ureters", "urinary", BOTH, ["*_upper_urinary_tract"], 14000),
+    ("bladder", "Urinary bladder", "urinary", BOTH, ["*_urinary_bladder"], 2000),
+    ("urethra", "Urethra", "urinary", ("male",), ["*_urethra"], 600),
+    ("genital-ducts", "Vas deferens and seminal vesicles", "reproductive", ("male",), ["*_male_genital_duct"], 2000),
+    ("prostate", "Prostate", "reproductive", ("male",), ["*_prostate_gland"], 4000),
+    ("ovaries", "Ovaries", "reproductive", ("female",), ["*_ovary"], 600),
+    ("uterine-tubes", "Uterine tubes", "reproductive", ("female",), ["*_fallopian_tube"], 2000),
+    ("uterus", "Uterus", "reproductive", ("female",), ["*_uterus"], 4000),
+    ("vagina", "Vagina", "reproductive", ("female",), ["*_vagina"], 1000),
+    ("uterine-ligaments", "Ligaments of the uterus and ovaries", "reproductive", ("female",),
+     ["*_ligaments_of_uterus_and_ovaries"], 4000),
+    ("sternum", "Sternum", "skeletal", ("female",), ["*_manubrium", "*_sternum"], 1500),
+    ("vertebral-column", "Vertebral column", "skeletal", BOTH, ["*_vertebral_column"], 32000),
+    ("pelvis", "Pelvis", "skeletal", BOTH, ["*_pelvis"], 10000),
+    ("legs", "Thigh, knee and leg", "skeletal", BOTH, ["*_lower_limb"], 16000),
+    ("hyoid", "Hyoid", "skeletal", ("male",), ["*_hyoid"], 500),
+    ("eye-muscles", "Muscles of the eye", "muscular", BOTH, ["*_muscles_of_eye"], 3000),
+    ("larynx-muscles", "Muscles of the larynx", "muscular", ("male",), ["*_muscles_of_larynx"], 2500),
+    ("knee-muscles", "Quadriceps at the knee", "muscular", BOTH, ["*_muscles_of_knee"], 3000),
 ]
 
 # Structures left out: patches that lie on another structure's surface
 # (landmarks, impressions) and bone inside bone, which the eye never sees.
+# One of these that closes a hole in a structure drawn instead (its edge is
+# that structure's edge) is not left out: it is drawn too, folded into the
+# structure FOLDED names, or as itself (the female liver's bare area, the
+# spleen's diaphragmatic surface).
 SKIP = re.compile(
     r"_spongy_bone_|enthesis|perichondular|distal_most_point|condyle_of|epicondylar|intercondylar_fossa"
-    r"|patellar_surface|impression_of_liver|bare_area_of_liver|diaphragmatic_surface$|porta_hepatis")
+    r"|patellar_surface|trochlear_groove|impression_of_liver|bare_area_of_liver|diaphragmatic_surface|porta_hepatis")
+
+# Patches folded into the bone they belong to, by part: (patch pattern, the
+# bone's node without its side). The femur's lower end is drawn as the shaft,
+# the articular cartilage and these, which fill the holes between them.
+FOLDED = {
+    "legs": (r"condyle|patellar_surface|trochlear_groove|intercondylar_fossa|epicondylar|perichondular|cruciate_enthesis",
+             "femur"),
+}
 
 # Structures drawn only when their part is opened, by part: they sit inside
 # another that is drawn by default (the liver's segments inside its capsule,
 # the eye's inner layers, the kidney inside its capsule, the heart's valves
 # inside its chambers).
 INNER = {
-    "liver": r"segment$|caudate_lobe|quadrate_lobe|ligament_of_liver|falciform|ligamentum_venosum|hepataduodenal",
+    "liver": r"segment1?$|caudate_lobe|quadrate_lobe|ligament_of_liver|falciform|ligamentum_venosum|hepataduodenal",
     "eyes": r"humor|lens_|retina|fovea|macula|optic_disc|ciliary|trabecular|schlemms|ora_serrata|choroid|corneo_scleral",
     "kidneys": r"calyx|renal_pelvis|renal_column|cortex_of_kidney|renal_papilla|renal_pyramid",
     "heart": r"papillary_muscle|_valve$|interventricular_septum",
     "vertebral-column": r"nucleus_pulposus",
     "prostate": r"zone_of_prostate|zone__of_prostate|fibromuscular_stroma|prostatic_utricle|seminal_colliculus|prostate_duct",
     "small-intestine": r"papilla_of_santorini|sphincter_of|duodenal_ampulla",
+    "breasts": r"mammary_lobes|lactiferous|suspensory_ligaments",
 }
 
 # Tissue, by name first and then by system; the app colours by tissue.
 TISSUE_BY_NAME = [
     ("tooth", r"teeth|tooth"),
+    ("fat", r"_fat_|adipose|omentum|epiploic"),
+    ("skin", r"nipple|areola"),
     ("vein", r"vein|vena_cava|venous|sinus"),
     ("artery", r"arter|aorta|aortic_arch|truncus|trunk"),
     ("nerve", r"nerve|spinal_cord|dura_mater"),
-    ("ligament", r"ligament|tendon"),
+    ("ligament", r"ligament|tendon|mesosalpinx|mesovarium"),
     ("cartilage", r"cartilage|meniscus|disk|nucleus_pulposus|epiglott|carina"),
     ("muscle", r"muscle|rectus|oblique|vocalis|arytenoid$|cricothyroid|cricoarytenoid|thyroarytenoid|thyroepiglottideus"),
     ("fluid", r"humor"),
-    ("duct", r"duct|ampulla|papilla_of|sphincter|calyx|renal_pelvis|ureter|urethra|vas_deferens"),
-    ("gland", r"gland|thymus|tonsil"),
+    ("duct", r"duct|lactiferous|ampulla|papilla_of|sphincter|calyx|renal_pelvis|ureter|urethra|vas_deferens"),
+    ("gland", r"gland|thymus|tonsil|ovary|mammary_lobes"),
+    ("organ", r"uterus|uterine|uterovesical|cervix|cervical_os|vagina|fallopian|cornua|ostium"),
 ]
 TISSUE_BY_SYSTEM = {
     "integumentary": "skin", "nervous": "brain", "special senses": "eye", "cardiovascular": "heart",
@@ -223,20 +285,67 @@ def mesh_of(gltf, binary, node, world):
     return p, f
 
 
-def simplify(p, f, target):
+# A piece under this share of its structure's surface is debris; a piece
+# kept is never simplified below PIECE_FLOOR triangles.
+DEBRIS = 1e-3
+PIECE_FLOOR = 24
+
+
+def pieces(count, f):
+    """Each triangle's connected piece (triangles sharing a vertex), numbered
+    from 0: labels spread to the lowest vertex number until nothing changes."""
+    label = np.arange(count)
+    while True:
+        low = label[f].min(axis=1)
+        new = label.copy()
+        for k in range(3):
+            np.minimum.at(new, f[:, k], low)
+        new = new[new]
+        if np.array_equal(new, label):
+            break
+        label = new
+    _, piece = np.unique(label[f[:, 0]], return_inverse=True)
+    return piece.reshape(-1)
+
+
+def area(p, f):
+    return np.linalg.norm(np.cross(p[f[:, 1]] - p[f[:, 0]], p[f[:, 2]] - p[f[:, 0]]), axis=1) / 2
+
+
+def simplify_piece(p, f, target):
     # Many small pieces (the lens's zonule fibres) stop one pass short of
     # its target, so a few passes, each from where the last one stopped.
     for _ in range(4):
         if len(f) <= target * 1.15:
             break
         q, g = fast_simplification.simplify(p.astype(np.float32), f.astype(np.int32),
-                                            target_reduction=1 - target / len(f), agg=9)
+                                            target_reduction=1 - target / len(f), agg=9,
+                                            preserve_border=True)
         if len(g) == 0 or len(g) >= len(f):
             break
         used = np.unique(g)
         remap = np.full(len(q), -1, dtype=np.int64); remap[used] = np.arange(len(used))
         p, f = q[used].astype(np.float64), remap[g]
     return p, f
+
+
+def simplify(p, f, target):
+    """A structure brought down to about `target` triangles piece by piece,
+    each piece's share by its surface, and never under PIECE_FLOOR, so a
+    ring of cartilage or a lobule of the breast keeps its shape rather than
+    shattering; debris left out first."""
+    piece = pieces(len(p), f)
+    a = np.bincount(piece, weights=area(p, f))
+    keep = a >= DEBRIS * a.sum()
+    shares = np.where(keep, target * a / a[keep].sum(), 0)
+    out_p, out_f, base = [], [], 0
+    for k in np.flatnonzero(keep):
+        g = f[piece == k]
+        used = np.unique(g)
+        remap = np.full(len(p), -1, dtype=np.int64); remap[used] = np.arange(len(used))
+        q, g = simplify_piece(p[used], remap[g], max(PIECE_FLOOR, int(shares[k])))
+        out_p.append(q); out_f.append(g + base); base += len(q)
+    return np.concatenate(out_p), np.concatenate(out_f)
 
 
 def crosswalk(path):
@@ -270,6 +379,26 @@ CORRECTED = {
     "VH_M_left_renal_artery": "right renal artery", "VH_M_right_renal_artery": "left renal artery",
     "VH_M_vas_deferens_L": "right vas deferens", "VH_M_vas_deferens_R": "left vas deferens",
     "VH_M_thymus_lobe_L": "right lobe of thymus", "VH_M_thymus_lobe_R": "left lobe of thymus",
+    # the female set: sides swapped on these, the same way
+    "VH_F_pulmonary_vein_R_inf": "right inferior pulmonary vein",
+    "VH_F_pulmonary_vein_L_inf": "left inferior pulmonary vein",
+    "VH_F_right_round_ligament_of_uterus": "left round ligament of uterus",
+    "VH_F_left_round_ligament_of_uterus": "right round ligament of uterus",
+    # the female liver: the segment named superomedial lies where segment II
+    # does (the male's posterolateral), and its unnamed twin where IVa does
+    "VH_F_left_superomedial_segment": "left posterolateral segment",
+    "VH_F_left_superomedial_segment1": "left superomedial segment",
+    "VH_F_superior_rectal_vein": "superior rectal vein",
+    "VH_F_left_anterior_descending_artery": "anterior interventricular branch of left coronary artery (LAD)",
+    "VH_F_dura_mater_left": "dural sheath of left optic nerve",
+    "VH_F_dura_mater_right": "dural sheath of right optic nerve",
+    "VH_F_right_cardinal_ligament_of_uterus": "right cardinal ligament",
+    "VH_F_left_cardinal_ligament_of_uterus": "left cardinal ligament",
+    # one mesh each for the whole hip bone (ilium, ischium and pubis)
+    "VH_F_ilium_compact_bone_R": "right hip bone", "VH_F_ilium_compact_bone_L": "left hip bone",
+    "VH_F_fat_L": "fatty tissue of left breast", "VH_F_fat_R": "fatty tissue of right breast",
+    # the Visible Human Female has six lumbar vertebrae
+    "VH_F_lumbar_vertebra_6": "sixth lumbar vertebra (a normal variant)",
 }
 # Parts mirrored left to right about their own middle. The Allen brain
 # came into the organ set with its x axis unflipped: every structure named
@@ -286,6 +415,8 @@ RENAMED = {
     "left articular disk of knee joint": "left menisci", "right articular disk of knee joint": "right menisci",
     "left deferent duct": "left vas deferens", "right deferent duct": "right vas deferens",
     "marginal colic artery": "marginal artery of Drummond",
+    "left female areola": "left areola", "right female areola": "right areola",
+    "cornua": "cornua of uterus",
 }
 # Words that keep their capital: people's names and abbreviations.
 PROPER = {"Drummond", "Schlemm", "Santorini", "Heschl", "Heschls", "Ammon", "Broca", "Wernicke", "LAD", "HTH"}
@@ -294,7 +425,7 @@ PROPER = {"Drummond", "Schlemm", "Santorini", "Heschl", "Heschls", "Ammon", "Bro
 def label(node, crossed):
     if node in CORRECTED:
         return CORRECTED[node]
-    text = crossed[0] if crossed and crossed[0] not in ("", "-") else node.replace("VH_M_", "").replace("_", " ")
+    text = crossed[0] if crossed and crossed[0] not in ("", "-") else re.sub(r"^VH_[MF]_", "", node).replace("_", " ")
     # the Allen brain's names: "Allen thalamus L"
     text = re.sub(r"^Allen ", "", text)
     text = re.sub(r" (L|R)$", "", text)
@@ -334,18 +465,45 @@ def write_part(path, meshes):
     return lo, hi
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--glb", required=True)
-    ap.add_argument("--crosswalk", required=True)
-    ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ios", "RedPen", "Resources", "Anatomy"))
-    a = ap.parse_args()
-    got = sha256(a.glb)
-    assert got == GLB_SHA256, f"{a.glb}: SHA-256 {got}, expected {GLB_SHA256} (a new release? re-pin it in SOURCES.md and here)"
-    got = sha256(a.crosswalk)
-    assert got == CROSSWALK_SHA256, f"{a.crosswalk}: SHA-256 {got}, expected {CROSSWALK_SHA256}"
-    crossed = crosswalk(a.crosswalk)
-    gltf, binary = load_glb(a.glb)
+def edge_points(p, f):
+    """The positions on a mesh's open edges (edges only one triangle has),
+    rounded to a hundredth of a millimetre."""
+    e = np.sort(np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]]), axis=1)
+    u, c = np.unique(e, axis=0, return_counts=True)
+    return set(map(tuple, np.round(p[np.unique(u[c == 1])] / 1e-5).astype(np.int64)))
+
+
+def close_holes(pid, prefix, found, raw, skipped, skipped_raw):
+    """The structures to draw, with the left-out patches that close a hole
+    in them put back. A patch closes a hole when its edge runs along the
+    drawn structures' edges: a FOLDED one touching them at all (the knee's
+    patches also meet each other) is folded into its bone, any other with
+    half its edge on them is drawn as itself; one lying on a surface shares
+    no edge, or a few points by chance, and stays out."""
+    drawn = set().union(*[edge_points(p, f) for p, f in raw])
+    found, raw = list(found), list(raw)
+    fold = FOLDED.get(pid)
+    for (i, node, parent_label), (p, f) in zip(skipped, skipped_raw):
+        mine = edge_points(p, f)
+        share = len(mine & drawn) / max(1, len(mine))
+        if fold and re.search(fold[0], node) and share > 0:
+            side = "L" if re.search(r"_L$|left", node) else "R"
+            host = next(k for k, (_, n, _) in enumerate(found) if n == f"{prefix}{fold[1]}_{side}")
+            hp, hf = raw[host]
+            raw[host] = (np.concatenate([hp, p]), np.concatenate([hf, f + len(hp)]))
+        elif share >= 0.5:
+            found.append((i, node, parent_label))
+            raw.append((p, f))
+    return found, raw
+
+
+def build_body(sex, glb, crossed, out):
+    """One body's parts: writes <sex>-<part>.atlas into out, returns the
+    manifest's entry for the body."""
+    body = BODIES[sex]
+    got = sha256(glb)
+    assert got == body["sha256"], f"{glb}: SHA-256 {got}, expected {body['sha256']} (a new release? re-pin it in SOURCES.md and here)"
+    gltf, binary = load_glb(glb)
     nodes = gltf["nodes"]
     by_name = {n.get("name"): i for i, n in enumerate(nodes)}
 
@@ -358,20 +516,26 @@ def main():
     for r in gltf["scenes"][gltf.get("scene", 0)]["nodes"]:
         walk(r, np.eye(4))
 
-    os.makedirs(a.out, exist_ok=True)
-    manifest_parts, total = [], 0
-    for pid, name, system, group, budget in PARTS:
-        found = []
+    parts, total = [], 0
+    for pid, name, system, bodies, groups, budget in PARTS:
+        if sex not in bodies:
+            continue
+        found, skipped = [], []
         def collect(i, parent_label):
             n = nodes[i]
             here = n.get("name", "")
-            if "mesh" in n and not SKIP.search(here):
-                found.append((i, here, parent_label))
+            if "mesh" in n:
+                (skipped if SKIP.search(here) else found).append((i, here, parent_label))
             for c in n.get("children", []):
                 collect(c, label(here, crossed.get(here)) if "mesh" not in n else parent_label)
-        collect(by_name[group], name)
-        assert found, f"{pid}: no structures under {group}"
+        for group in groups:
+            group = group.replace("*_", body["prefix"])
+            assert group in by_name, f"{sex} {pid}: no group {group}"
+            collect(by_name[group], name)
+        assert found, f"{sex} {pid}: no structures under {groups}"
         raw = [mesh_of(gltf, binary, nodes[i], world[i]) for i, _, _ in found]
+        found, raw = close_holes(pid, body["prefix"], found, raw, skipped,
+                                 [mesh_of(gltf, binary, nodes[i], world[i]) for i, _, _ in skipped])
         if pid in MIRRORED:
             xs = np.concatenate([p[:, 0] for p, _ in raw])
             middle = (xs.min() + xs.max()) / 2
@@ -393,29 +557,52 @@ def main():
                 "inner": bool(re.search(INNER[pid], node)) if pid in INNER else False,
                 "triangles": int(len(f)),
             })
-        path = os.path.join(a.out, pid + ".atlas")
+        file = f"{sex}-{pid}.atlas"
+        path = os.path.join(out, file)
         lo, hi = write_part(path, meshes)
         triangles = sum(s["triangles"] for s in structures)
         total += triangles
-        manifest_parts.append({
-            "id": pid, "name": name, "system": system, "file": pid + ".atlas",
+        parts.append({
+            "id": pid, "name": name, "system": system, "file": file,
             "bytes": os.path.getsize(path), "sha256": sha256(path), "triangles": triangles,
             "bounds": [round(float(v), 5) for v in (*lo, *hi)],
             "structures": structures,
         })
-        print(f"{pid:18} {len(structures):4} structures {triangles:7} triangles {os.path.getsize(path):9} bytes")
+        print(f"{sex:6} {pid:18} {len(structures):4} structures {triangles:7} triangles {os.path.getsize(path):9} bytes")
+    print(f"{sex}: {total} triangles in {len(parts)} parts")
+    return {"id": sex, "name": body["name"], "frame": body["frame"], "source": body["source"]["id"], "parts": parts}
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--male", required=True, help="3d-vh-m-united.glb")
+    ap.add_argument("--female", required=True, help="3d-vh-f-united.glb")
+    ap.add_argument("--crosswalk", required=True)
+    ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ios", "RedPen", "Resources", "Anatomy"))
+    a = ap.parse_args()
+    got = sha256(a.crosswalk)
+    assert got == CROSSWALK_SHA256, f"{a.crosswalk}: SHA-256 {got}, expected {CROSSWALK_SHA256}"
+    crossed = crosswalk(a.crosswalk)
+    os.makedirs(a.out, exist_ok=True)
+    # the files of the one-body atlas (format 1), which these replace
+    for old in os.listdir(a.out):
+        if old.endswith(".atlas") and not old.startswith(("male-", "female-")):
+            os.remove(os.path.join(a.out, old))
+    bodies = [build_body("male", a.male, crossed, a.out), build_body("female", a.female, crossed, a.out)]
     manifest = {
-        "format": 1,
-        "frame": "The Visible Human Male: metres, x to the body's left, y up, z forward, origin near the hips",
-        "sources": [SOURCE, dict(CROSSWALK, sha256=CROSSWALK_SHA256)],
-        "changes": "Structures simplified to a triangle budget per part, positions quantised to 16 bits; "
-                   "surface patches and inner spongy bone left out; the brain mirrored left to right so each "
+        "format": 2,
+        "sources": [dict(BODIES[s]["source"], sha256=BODIES[s]["sha256"]) for s in BOTH]
+                   + [dict(CROSSWALK, sha256=CROSSWALK_SHA256)],
+        "changes": "Structures simplified to a triangle budget per part, piece by piece with their open "
+                   "edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy "
+                   "bone left out, but the patches that close a hole put back (the femur's lower end, the "
+                   "spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each "
                    "side lies where its name says; labels and UBERON ids from the crosswalk, corrected where "
-                   "wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes).",
-        "parts": manifest_parts,
+                   "wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); "
+                   "the female set's placenta, which sits outside the body, left out.",
+        "bodies": bodies,
     }
     json.dump(manifest, open(os.path.join(a.out, "anatomy.json"), "w"), indent=1, ensure_ascii=False)
-    print(f"total {total} triangles in {len(manifest_parts)} parts")
 
 
 if __name__ == "__main__":

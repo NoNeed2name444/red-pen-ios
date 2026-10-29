@@ -46,12 +46,22 @@ check("anatomy topics open the atlas", ScienceCatalog.topics(.anatomy).allSatisf
 let folder = URL(fileURLWithPath: "ios/RedPen/Resources/Anatomy")
 if let data = try? Data(contentsOf: folder.appendingPathComponent("anatomy.json")),
    let manifest = try? AnatomyAtlas.manifest(from: data) {
-    let ids = Set(manifest.parts.map(\.id))
+    let ids = Set(manifest.bodies.flatMap { $0.parts.map(\.id) })
     let unknown = topics.flatMap(\.atlas).filter { !ids.contains($0) }
     check("every atlas part a topic names is bundled", unknown.isEmpty, unknown.joined(separator: ", "))
     let shown = Set(topics.flatMap(\.atlas))
-    let unshown = manifest.parts.map(\.id).filter { !shown.contains($0) }
+    let unshown = ids.filter { !shown.contains($0) }.sorted()
     check("every bundled part is reached from a topic", unshown.isEmpty, unshown.joined(separator: ", "))
+    // the body a topic opens holds every part it names, so nothing is missing
+    let split = topics.filter { t in
+        let body = manifest.body(manifest.body(for: Set(t.atlas)))
+        return !t.atlas.allSatisfy { body?.part($0) != nil }
+    }
+    check("each topic's parts are all in one body", split.isEmpty, split.map(\.id).joined(separator: ", "))
+    check("the female organs open the female body, the male the male",
+          manifest.body(for: Set(ScienceCatalog.topic("anatomy-female-pelvis")?.atlas ?? [])) == .female
+          && manifest.body(for: Set(ScienceCatalog.topic("anatomy-breast")?.atlas ?? [])) == .female
+          && manifest.body(for: Set(ScienceCatalog.topic("anatomy-male-pelvis")?.atlas ?? []), preferred: .female) == .male)
 } else {
     check("the atlas manifest reads", false)
 }

@@ -137,8 +137,9 @@ check("the anatomy atlas's credit is its SOURCES.md's, word for word",
       ContentSources.hraCredit)
 let anatomyManifest: String = (try? String(contentsOf: earthRoot.appendingPathComponent("ios/RedPen/Resources/Anatomy/anatomy.json"),
                                             encoding: .utf8)) ?? ""
-check("the credit names both releases the atlas's manifest pins",
-      ["https://doi.org/10.48539/HBM833.WZWN.425", "https://doi.org/10.48539/HBM626.BRWN.943"].allSatisfy {
+check("the credit names every release the atlas's manifest pins",
+      ["https://doi.org/10.48539/HBM833.WZWN.425", "https://doi.org/10.48539/HBM637.DWBM.744",
+       "https://doi.org/10.48539/HBM626.BRWN.943"].allSatisfy {
           anatomyManifest.contains($0) && ContentSources.hraCredit.contains($0)
       })
 check("the Sciences' sources are in Settings' list",

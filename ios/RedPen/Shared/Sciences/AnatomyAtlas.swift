@@ -1,23 +1,25 @@
 import Foundation
 
 /// The 3D anatomy atlas: the manifest (Resources/Anatomy/anatomy.json) and
-/// the meshes of each part (<part>.atlas), made by tools/anatomy_atlas.py
-/// from the Human Reference Atlas's male reference organ set (CC BY 4.0;
-/// sources and credits in Resources/Anatomy/SOURCES.md).
+/// the meshes of each part (<body>-<part>.atlas), made by
+/// tools/anatomy_atlas.py from the Human Reference Atlas's male and female
+/// reference organ sets (CC BY 4.0; sources and credits in
+/// Resources/Anatomy/SOURCES.md).
 ///
-/// Everything sits in one body, the Visible Human Male: metres, x to the
-/// body's left, y up, z forward, origin near the hips. A part is an organ
-/// or a group (the vertebral column); a structure is one mesh in it (the
-/// third lumbar vertebra), with its label, UBERON id and tissue. Inner
+/// Two bodies, the Visible Human Male and Female, each in its own frame:
+/// metres, x to the body's left, y up, z forward, origin near the hips. A
+/// part is an organ or a group (the vertebral column); a structure is one
+/// mesh in it (the third lumbar vertebra), with its label, UBERON id and
+/// tissue. Most parts are in both bodies; the reproductive organs (and a
+/// few the organ sets model in one body only) are in their own. Inner
 /// structures (the liver's segments inside its capsule) are drawn only when
 /// their part is opened. Foundation only: the SceneKit view builds its
 /// geometry from `AnatomyMesh`.
 struct AnatomyManifest: Decodable, Hashable {
     let format: Int
-    let frame: String
     let sources: [Source]
     let changes: String
-    let parts: [AtlasPart]
+    let bodies: [AnatomyBody]
 
     struct Source: Decodable, Hashable, Identifiable {
         let id: String
@@ -29,6 +31,46 @@ struct AnatomyManifest: Decodable, Hashable {
         let licence: String
         let licenceURL: String
     }
+
+    func body(_ sex: AnatomySex) -> AnatomyBody? { bodies.first { $0.id == sex } }
+
+    /// The part in the first body that has it, male first: for a name.
+    func part(_ id: String) -> AtlasPart? {
+        for body in bodies { if let part = body.part(id) { return part } }
+        return nil
+    }
+
+    /// The body to open for these parts: the first that has them all, else
+    /// the one with the most, else `preferred`.
+    func body(for parts: Set<String>, preferred: AnatomySex = .male) -> AnatomySex {
+        let ordered: [AnatomyBody] = bodies.filter { $0.id == preferred } + bodies.filter { $0.id != preferred }
+        var best: (sex: AnatomySex, held: Int) = (preferred, 0)
+        for body in ordered {
+            let held: Int = parts.filter { body.part($0) != nil }.count
+            if held == parts.count { return body.id }
+            // the first with the most, so a tie keeps the preferred body
+            if held > best.held { best = (body.id, held) }
+        }
+        return best.sex
+    }
+}
+
+/// Which body: the atlas has a male and a female one.
+enum AnatomySex: String, Decodable, CaseIterable, Identifiable {
+    case male, female
+    var id: String { rawValue }
+    var name: String { self == .male ? "Male" : "Female" }
+}
+
+/// One body: its parts, each with its own file.
+struct AnatomyBody: Decodable, Hashable, Identifiable {
+    let id: AnatomySex
+    let name: String
+    /// Its coordinates, in words.
+    let frame: String
+    /// The id of the source (in the manifest's `sources`) its meshes come from.
+    let source: String
+    let parts: [AtlasPart]
 
     func part(_ id: String) -> AtlasPart? { parts.first { $0.id == id } }
 }
@@ -47,8 +89,8 @@ struct AtlasPart: Decodable, Hashable, Identifiable {
 }
 
 struct AnatomyStructure: Decodable, Hashable {
-    /// The node's name in the organ set, "VH_M_femur_L": unique, and the
-    /// key the view uses for picking.
+    /// The node's name in the organ set, "VH_M_femur_L" or "VH_F_femur_L":
+    /// unique in its body, and the key the view uses for picking.
     let node: String
     let label: String
     let uberon: String?
@@ -81,7 +123,7 @@ enum AnatomySystem: String, Decodable, CaseIterable, Identifiable {
 
 /// What a structure is made of; the atlas is coloured by it.
 enum AnatomyTissue: String, Decodable, CaseIterable, Identifiable {
-    case skin, bone, cartilage, ligament, muscle, artery, vein, heart, nerve, brain
+    case skin, fat, bone, cartilage, ligament, muscle, artery, vein, heart, nerve, brain
     case organ, gland, duct, airway, lung, gut, lymph, eye, fluid, tooth
     var id: String { rawValue }
 
@@ -93,6 +135,7 @@ enum AnatomyTissue: String, Decodable, CaseIterable, Identifiable {
         let hex: Int
         switch self {
         case .skin: hex = 0xE8B89A
+        case .fat: hex = 0xF2D27A
         case .bone: hex = 0xE9E2CF
         case .cartilage: hex = 0xB8D4E3
         case .ligament: hex = 0xD9CFA8
@@ -116,8 +159,15 @@ enum AnatomyTissue: String, Decodable, CaseIterable, Identifiable {
         return (Double((hex >> 16) & 0xFF) / 255, Double((hex >> 8) & 0xFF) / 255, Double(hex & 0xFF) / 255)
     }
 
-    /// Skin is drawn as a faint shell around the rest, so the organs show.
-    var opacity: Double { self == .skin ? 0.18 : 1 }
+    /// Skin is drawn as a faint shell around the rest, so the organs show;
+    /// fat (the breast's, the omentum) half see-through over what it wraps.
+    var opacity: Double {
+        switch self {
+        case .skin: return 0.18
+        case .fat: return 0.45
+        default: return 1
+        }
+    }
 }
 
 /// One structure's triangles, positions in metres in the body frame.
@@ -241,13 +291,13 @@ enum AnatomyAtlas {
         return meshes
     }
 
-    /// Structures whose label holds every word of `query`, parts in the
-    /// manifest's order: "left femur", "coronary".
-    static func search(_ query: String, in manifest: AnatomyManifest) -> [(part: AtlasPart, structure: AnatomyStructure)] {
+    /// Structures in one body whose label holds every word of `query`,
+    /// parts in the manifest's order: "left femur", "coronary".
+    static func search(_ query: String, in body: AnatomyBody) -> [(part: AtlasPart, structure: AnatomyStructure)] {
         let words = query.lowercased().split(whereSeparator: { $0 == " " || $0 == "," }).map(String.init)
         guard !words.isEmpty else { return [] }
         var out: [(part: AtlasPart, structure: AnatomyStructure)] = []
-        for part in manifest.parts {
+        for part in body.parts {
             for s in part.structures {
                 let label = s.label.lowercased()
                 if words.allSatisfy({ label.contains($0) }) { out.append((part, s)) }

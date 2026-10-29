@@ -1,7 +1,7 @@
 import XCTest
 
 /// The Sciences, photographed for the owner: the hub, a subject, a body
-/// system, a topic, nine tools and the 3D atlas, each opened straight from
+/// system, a topic, nine tools and the 3D atlas (male and female), each opened straight from
 /// launch (`-uiPreviewScreen science-<name>`, SciencePreviewScreen), the
 /// tools also scrolled once to their results. Run by design-preview.yml
 /// (preview/<name>, its "only" input matching testSciencesTour).
@@ -24,6 +24,7 @@ final class SciencesUITests: XCTestCase {
         // the layers' chips show once the meshes are in
         ("science-atlas", "atlasLayer-skeletal", false),
         ("science-atlas-heart", "atlasChosen", false),
+        ("science-atlas-female", "atlasChosen", false),
     ]
 
     func testSciencesTour() {

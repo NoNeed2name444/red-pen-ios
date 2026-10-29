@@ -10,7 +10,7 @@ struct SciencePreviewScreen: View {
         "science-hub", "science-subject", "science-system", "science-topic",
         "science-cardiac", "science-action", "science-oxygen", "science-acidbase",
         "science-enzyme", "science-punnett", "science-microbes", "science-shock",
-        "science-tests", "science-atlas", "science-atlas-heart",
+        "science-tests", "science-atlas", "science-atlas-heart", "science-atlas-female",
     ]
 
     var body: some View {
@@ -38,6 +38,9 @@ struct SciencePreviewScreen: View {
         case "science-atlas": AnatomyAtlasView()
         case "science-atlas-heart":
             AnatomyAtlasView(focus: ["heart", "vessels"], title: "The heart", choosing: "heart/VH_M_heart_left_ventricle")
+        case "science-atlas-female":
+            AnatomyAtlasView(focus: ["uterus", "ovaries", "uterine-tubes", "vagina", "uterine-ligaments"],
+                             title: "The female pelvic organs", choosing: "uterus/VH_F_body_of_uterus")
         default: SciencesView()
         }
     }
