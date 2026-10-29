@@ -181,7 +181,7 @@ private class PlanReading(
     val big = phase.days?.let { if (it == 0) "Today" else "T-$it" } ?: "—"
     Row(Modifier.fillMaxWidth().padding(vertical = WardSpace.xs.wardDp).semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-        Text(big, color = wardColor(WardToken.ink), fontSize = 40.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+        Text(big, style = WardTextStyle.largeTitle.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.ink))
         Column(verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text(phase.headline, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             if (phase == ExamWeekPlanner.Phase.NoDate) Text("Set it in Settings → Your exam.",
@@ -201,7 +201,7 @@ private class PlanReading(
         val today = RetentionForecast.percent(forecast.today)
         Row(Modifier.semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-            Text("~$today", color = wardColor(WardToken.ink), fontSize = 36.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Text("~$today", style = WardTextStyle.largeTitle.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.ink))
             Text("if your exam were today", Modifier.padding(bottom = WardSpace.s.wardDp), style = WardTextStyle.subheadline.textStyle(),
                 color = wardColor(WardToken.inkSecondary))
         }

@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -47,24 +46,6 @@ import com.stethoscore.app.ui.ward.textStyle
 // The card is WardCardFace, the avatar and the clock are pressed in (wardInset),
 // a chip is WardChip, the choices WardSegmented and the buttons WardButtonBox,
 // under the Cases screens' own names so the screens keep what they say.
-
-/**
- * The Ward tokens under the Cases screens' old names. CaseKit and the ward
- * screen draw from the Ward tokens directly; the debrief, decision and list
- * screens still read these until they move over too.
- */
-internal object CaseInk {
-    val theatre: Color @Composable get() = wardColor(WardToken.primaryInk)
-    val resus: Color @Composable get() = wardColor(WardToken.danger)
-    val discharge: Color @Composable get() = wardColor(WardToken.success)
-    val caution: Color @Composable get() = wardColor(WardToken.warning)
-    val biro: Color @Composable get() = wardColor(WardToken.inkSecondary)
-    val surface: Color @Composable get() = wardColor(WardToken.surface)
-    val ward: Color @Composable get() = wardColor(WardToken.background)
-    val hairline: Color @Composable get() = wardColor(WardToken.hairline)
-    val ink: Color @Composable get() = wardColor(WardToken.ink)
-    val well: Color @Composable get() = wardWellFill()
-}
 
 internal val CaseCardShape = RoundedCornerShape(WardRadius.card.wardDp)
 

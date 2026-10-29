@@ -160,7 +160,7 @@ fun passLine(e: ReadinessEstimate, track: ExamTrack): String {
 
 @Composable private fun Filled(e: ReadinessEstimate, track: ExamTrack, onDrill: (String) -> Unit) {
     Row(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
-        Text(percentText(e.center), style = WardTypeSpec(WardTextStyle.largeTitle, WardWeight.bold, mono = true).textStyle().copy(fontSize = 40.sp),
+        Text(percentText(e.center), style = WardTypeSpec(WardTextStyle.largeTitle, WardWeight.bold, mono = true).textStyle(),
             color = wardColor(WardToken.ink))
         Column(verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
             Text("likely ${percentText(e.low)}–${percentText(e.high)}", style = WardTextStyle.subheadline.textStyle(WardWeight.medium, mono = true),

@@ -157,7 +157,7 @@ fun QuizSummaryScreen(
             drawArc(fill, -90f, 360f * shown / 100f, false, style = stroke)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$shown%", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = wardColor(WardToken.ink))
+            Text("$shown%", style = WardTextStyle.title.textStyle(WardWeight.bold), color = wardColor(WardToken.ink))
             Text("correct", style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
         }
     }

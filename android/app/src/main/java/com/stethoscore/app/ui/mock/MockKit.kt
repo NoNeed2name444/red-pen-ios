@@ -261,7 +261,7 @@ internal enum class BigKind { primary, secondary, companion }
                 style = Stroke(w, cap = StrokeCap.Round))
         })
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
-            Text(label, color = wardColor(WardToken.ink), fontSize = 38.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
+            Text(label, style = WardTextStyle.largeTitle.textStyle(WardWeight.semibold, mono = true), color = wardColor(WardToken.ink))
             Text(sublabel, style = WardTextStyle.footnote.textStyle(WardWeight.medium), color = wardColor(WardToken.inkSecondary))
         }
     }

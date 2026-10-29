@@ -506,7 +506,8 @@ struct StudyHeatmap: View {
 private struct RestDayMoon: View {
     var body: some View {
         Image(systemName: "moon.fill")
-            .font(.system(size: 7, weight: .bold))
+            .font(WardType.caption.weight(.bold))
+            .imageScale(.small)
             .foregroundStyle(Color.wardPrimaryInk)
             .accessibilityHidden(true)
     }

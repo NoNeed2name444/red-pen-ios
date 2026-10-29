@@ -48,6 +48,7 @@ import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardSpace
+import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardTone
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.wardDp
@@ -295,7 +296,7 @@ private fun describePicked(context: Context, uri: Uri): Pair<String, Long> {
                 }
             }, kind = WardButtonKind.quiet, fills = false) },
             dismissButton = { WardTextButton("Cancel", { backup = null }, kind = WardButtonKind.quiet, fills = false) },
-            containerColor = wardColor(WardToken.background), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
+            containerColor = wardColor(WardToken.background), shape = androidx.compose.foundation.shape.RoundedCornerShape(WardRadius.tile.wardDp))
     }
     message?.let { shown -> LibraryAlert(shown.title, shown.body) { message = null } }
     lecture?.let { file -> LectureInboxSheet(file, { lecture = null }) { preset -> lecture = null; onLecture(preset) } }

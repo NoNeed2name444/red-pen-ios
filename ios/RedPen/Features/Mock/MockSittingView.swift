@@ -291,7 +291,7 @@ struct MockSittingView: View {
                 .lineSpacing(3)
             if let image = questionImage {
                 Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
             }
         }
         .contentCard()

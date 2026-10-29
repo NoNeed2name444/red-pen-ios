@@ -31,6 +31,8 @@ import com.stethoscore.app.ui.ScreenHeader
 import com.stethoscore.app.ui.ward.WardTextStyle
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.textStyle
+import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.wardColor
 
 /**
  * A Cases set: one card per patient - initials, age and sex, where they are
@@ -70,7 +72,7 @@ fun CaseListScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) {
             CaseCard {
                 Text(
                     if (heldCount > 0) "Every patient here is waiting on the accuracy checkers." else "No patients in this set yet.",
-                    style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro,
+                    style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary),
                 )
             }
         }
@@ -80,8 +82,8 @@ fun CaseListScreen(set: StudySet, store: StudyStore, onBack: () -> Unit) {
         if (heldCount > 0) {
             val plural = if (heldCount == 1) " is" else "s are"
             Row(Modifier.padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.PanTool, null, tint = CaseInk.biro, modifier = Modifier.size(14.dp))
-                Text("$heldCount patient$plural held while the checkers look at a possible error.", style = WardTextStyle.footnote.textStyle(), color = CaseInk.biro)
+                Icon(Icons.Filled.PanTool, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(14.dp))
+                Text("$heldCount patient$plural held while the checkers look at a possible error.", style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
         }
     }
@@ -112,12 +114,12 @@ internal fun CasePatientCard(file: CaseFile, state: CaseRun.State, open: () -> U
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(file.patient.ageSex, style = WardType.headline.textStyle())
-                    Text("· " + file.setting.label, style = WardTextStyle.subheadline.textStyle(), color = CaseInk.biro)
+                    Text("· " + file.setting.label, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
-                Text(shortComplaint, style = WardTextStyle.subheadline.textStyle(), color = CaseInk.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(shortComplaint, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 CaseStateChip(state)
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = CaseInk.biro)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = wardColor(WardToken.inkSecondary))
         }
     }
 }

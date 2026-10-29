@@ -36,6 +36,8 @@ import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.ward.wardDisabledInk
 import com.stethoscore.app.ui.ward.wardDp
+import com.stethoscore.app.ui.ward.WardToken
+import com.stethoscore.app.ui.wardColor
 
 /**
  * The decision: the leading diagnosis confirmed (the top of the ladder, or
@@ -98,7 +100,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(name, Modifier.weight(1f), style = WardType.body.textStyle())
-                            if (picked) Icon(Icons.Filled.Check, null, tint = CaseInk.theatre)
+                            if (picked) Icon(Icons.Filled.Check, null, tint = wardColor(WardToken.primaryInk))
                         }
                     }
                 }
@@ -119,8 +121,8 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
                 OutlinedTextField(reason, { reason = it }, Modifier.fillMaxWidth().heightIn(min = 44.dp), placeholder = { Text("One line: why this patient, why now") }, singleLine = true)
             }
         }
-        HorizontalDivider(color = CaseInk.hairline)
-        Box(Modifier.fillMaxWidth().background(CaseInk.ward).padding(horizontal = 16.dp, vertical = 10.dp)) {
+        HorizontalDivider(color = wardColor(WardToken.hairline))
+        Box(Modifier.fillMaxWidth().background(wardColor(WardToken.background)).padding(horizontal = 16.dp, vertical = 10.dp)) {
             CaseButton("Discharge and debrief", ::discharge,
                 Modifier.fillMaxWidth().semantics {
                     stateDescription = if (ready) "Closes the case and shows what mattered" else "Confirm a diagnosis and choose a next step first"

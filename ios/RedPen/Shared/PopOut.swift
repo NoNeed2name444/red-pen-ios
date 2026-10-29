@@ -582,7 +582,7 @@ private struct PopOutDebugLabel: View {
         Text(line)
             .font(.caption2.monospaced())
             .padding(6)
-            .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
+            .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: WardRadius.icon))
             .foregroundStyle(.white)
             .padding(.top, 50)
             .padding(.leading, 8)

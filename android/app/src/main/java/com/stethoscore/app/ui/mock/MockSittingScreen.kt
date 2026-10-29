@@ -455,7 +455,7 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
             val body = if (raw.startsWith("data:") && raw.contains(',')) raw.substringAfter(',') else raw
             runCatching { Base64.decode(body, Base64.DEFAULT).let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }.getOrNull()
         }
-        if (image != null) Image(image, null, Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)),
+        if (image != null) Image(image, null, Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(WardRadius.field.wardDp)),
             contentScale = ContentScale.Fit)
     }
 }

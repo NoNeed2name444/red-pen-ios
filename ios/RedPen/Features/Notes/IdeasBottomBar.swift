@@ -145,7 +145,7 @@ private struct IdeaSendButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "arrow.up")
-                .font(.system(size: 18, weight: .bold))
+                .font(WardType.headline.weight(.bold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 48, height: 48)
                 .contentShape(Circle())
@@ -172,7 +172,7 @@ private struct IdeaAddMenu: View {
             Button("New folder", systemImage: "folder.badge.plus", action: newFolder)
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 18, weight: .semibold))
+                .font(WardType.headline)
                 .frame(width: 48, height: 48)
                 .contentShape(Circle())
         }

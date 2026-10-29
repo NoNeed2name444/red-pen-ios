@@ -245,8 +245,8 @@ private enum class KeyRole { digit, function, op, equals, blank }
         SheetTitle("Calculator", onDone)
         Column(Modifier.widthIn(max = 420.dp).align(Alignment.CenterHorizontally).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
             Text(shown.first, Modifier.fillMaxWidth().wardInset(RoundedCornerShape(WardRadius.card.wardDp), WardLift.mid).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp)
-                .semantics { contentDescription = "Display, ${shown.first}" }, textAlign = TextAlign.End, fontFamily = FontFamily.Monospace,
-                fontSize = 40.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Clip, color = wardColor(WardToken.ink))
+                .semantics { contentDescription = "Display, ${shown.first}" }, textAlign = TextAlign.End,
+                style = WardTextStyle.largeTitle.textStyle(WardWeight.semibold, mono = true), maxLines = 1, overflow = TextOverflow.Clip, color = wardColor(WardToken.ink))
             val gap = Arrangement.spacedBy(WardSpace.m.wardDp)
             Row(horizontalArrangement = gap) { key("C", KeyRole.function) { clear() }; key("±", KeyRole.function) { negate() }; key("%", KeyRole.function) { percent() }; opKey(ExamCalculator.Op.divide) }
             for ((digits, op) in listOf(listOf(7, 8, 9) to ExamCalculator.Op.multiply, listOf(4, 5, 6) to ExamCalculator.Op.subtract, listOf(1, 2, 3) to ExamCalculator.Op.add)) {

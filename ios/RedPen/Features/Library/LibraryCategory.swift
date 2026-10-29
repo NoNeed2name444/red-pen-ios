@@ -250,7 +250,7 @@ private struct HomeCategoryRowLabel: View {
         let square = RoundedRectangle(cornerRadius: WardRadius.icon, style: .continuous)
         HStack(spacing: WardSpace.m) {
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .semibold))
+                .font(WardType.headline)
                 .foregroundStyle(tint)
                 .frame(width: 40, height: 40)
                 .wardRaised(in: square, lift: .low)

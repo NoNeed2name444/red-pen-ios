@@ -213,7 +213,7 @@ struct WardRoundPanel: View {
             Spacer(minLength: WardSpace.s)
             Button(action: close) {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(WardType.headline.weight(.bold))
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
             }

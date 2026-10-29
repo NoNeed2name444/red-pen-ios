@@ -122,7 +122,7 @@ private struct FirstRunGoalPage: View {
                           next: save, skip: next) {
             VStack(spacing: WardSpace.l) {
                 Text("\(goal)")
-                    .font(.system(size: 56, weight: .bold, design: .monospaced).monospacedDigit())
+                    .font(WardType.display.monospaced().monospacedDigit())
                     .foregroundStyle(Color.wardInk)
                     .contentTransition(.numericText())
                     .accessibilityHidden(true)
@@ -288,7 +288,7 @@ private struct FirstRunHeading: View {
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.m) {
             Image(systemName: symbol)
-                .font(.system(size: 40, weight: .semibold))
+                .font(WardType.display)
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
             Text(title)

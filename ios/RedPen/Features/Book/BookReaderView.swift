@@ -166,7 +166,7 @@ struct BookReaderView: View {
                 Spacer(minLength: 0)
             }
             .padding(12)
-            .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
             .overlay(alignment: .leading) {
                 Rectangle().fill(Self.calloutColor(kind)).frame(width: 3).padding(.vertical, WardSpace.s)
             }
@@ -334,6 +334,6 @@ struct FlowchartView: View {
         .multilineTextAlignment(.center)
         .padding(.horizontal, WardSpace.l).padding(.vertical, WardSpace.m)
         .frame(maxWidth: 420)
-        .wardInset(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
     }
 }
