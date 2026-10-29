@@ -269,7 +269,8 @@ private fun cardAsk(card: AnkiCard): AccuracyAsk =
             .background(wardColor(WardToken.surface), RoundedCornerShape(WardRadius.bar.wardDp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(header.status, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
-                Text(header.detail, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
+                // no detail line, and so no gap for one, when there is no count to show (iOS: detail nil)
+                if (header.detail.isNotEmpty()) Text(header.detail, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
             }
             // the same thing as a length, in a groove pressed into the slab (iOS ThinProgress:
             // a WardGroove 6 high, its bar 1.5 in from the groove's wall)

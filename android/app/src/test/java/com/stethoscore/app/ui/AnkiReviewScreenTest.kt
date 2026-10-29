@@ -2,6 +2,7 @@ package com.stethoscore.app.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -117,5 +118,9 @@ class AnkiReviewScreenTest {
         compose.setContent { StethoscoreTheme { DueTodayScreen(store, onBack = {}) } }
         compose.onNodeWithText("Nothing due today").assertExists()
         compose.onNodeWithText("Open a deck to study ahead.").assertExists()
+        // the header says it once, with no "0 done" and no empty detail line beside it
+        val said = compose.onNodeWithText("No cards due").fetchSemanticsNode().config[SemanticsProperties.Text].map { it.text }
+        assertEquals(listOf("No cards due"), said)
+        compose.onNodeWithText("0 done").assertDoesNotExist()
     }
 }

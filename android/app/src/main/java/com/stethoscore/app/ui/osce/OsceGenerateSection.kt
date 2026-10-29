@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.NoteAdd
 import androidx.compose.material.icons.rounded.Warning
@@ -282,7 +282,7 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
             } else {
                 CountField("How many stations", stationCount, { stationCount = it }, 1..OsceGenerator.maxStationsTotal, enabled = !working)
                 WardButtonBox(::start, Modifier.fillMaxWidth(), kind = WardButtonKind.primary, enabled = canGenerate) {
-                    Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(20.dp))
+                    Icon(Icons.Rounded.EditNote, null, Modifier.size(20.dp))
                     Text(makeTitle)
                 }
                 Messages()
