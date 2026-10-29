@@ -179,7 +179,7 @@ private struct WardDisclaimer: ViewModifier {
             // as low as it was when it floated: no glow
             Label(WardPocket.disclaimer, systemImage: "graduationcap")
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.wardWarning)
+                .labelStyle(WardGlyphLabelStyle(glyph: Color.wardWarning)).foregroundStyle(Color.wardInk)
                 .padding(.horizontal, WardSpace.l)
                 .padding(.vertical, WardSpace.s)
                 .wardRaised(in: Capsule())
@@ -538,10 +538,12 @@ struct WardScoreView: View {
             if on {
                 Spacer(minLength: 0)
                 Image(systemName: "checkmark").font(.subheadline.weight(.bold)).accessibilityHidden(true)
+                    .foregroundStyle(Color.wardPrimaryInk)
                     .transition(.identity)
             }
         }
-        .foregroundStyle(on ? Color.wardPrimaryInk : Color.wardInk)
+        // words in ink, the tick in the accent (the owner, 23 Oct, D1)
+        .foregroundStyle(Color.wardInk)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(on ? .isSelected : [])
     }

@@ -22,10 +22,11 @@ package com.stethoscore.app.ui.ward
 // - disabled, its words and glyphs go Biro Grey (disabledInk), solid, and it
 //   lies at the lowest lift; a switch's words go Biro Grey, its on-track goes
 //   Biro Grey and its knob lies flat;
-// - chosen, it is pressed in, its words take the section's accent (a tile's
+// - chosen, it is pressed in, its glyph takes the section's accent (a tile's
 //   stay its caller's) and a solid edge in that accent goes round it (a
-//   switch: the tint fills its track); chosen and disabled, it stays pressed
-//   in and keeps the edge.
+//   switch: the tint fills its track); a chosen chip or segment is filled
+//   with the accent and says its words in near-black (onAccent; the owner,
+//   30 Oct, D8); chosen and disabled, it stays pressed in and keeps the edge.
 //
 // Android adds one state iOS draws with the system's hover highlight: focused
 // (a keyboard, a D-pad or a switch device on it). It is drawn as a ring in the
@@ -202,8 +203,12 @@ enum class WardControl {
         compact, quiet, chip, circle, toggle, segment -> WardLift.low
     }
 
-    /** An enabled button's words: the kind shows in the label's colour. */
-    private val buttonWords: WardToken get() = when (this) {
+    /**
+     * An enabled button's glyph: the kind shows in its glyph's colour and its
+     * ring; its words are Chart Ink (the owner, 23 Oct, D1: words on the page
+     * are ink).
+     */
+    private val buttonGlyph: WardToken get() = when (this) {
         primary, compact -> WardToken.primaryInk
         destructive -> WardToken.danger
         else -> WardToken.ink
@@ -223,16 +228,22 @@ enum class WardControl {
         return when (this) {
             // the main button's face is a sheet's, a tier up, while enabled
             primary, secondary, destructive, compact, quiet -> WardControlLook(
-                words = if (enabled) buttonWords else disabledInk,
+                words = if (enabled) WardToken.ink else disabledInk, glyph = if (enabled) buttonGlyph else disabledInk,
                 face = if (this == primary && enabled) WardToken.raised else WardToken.surface, stand = stand)
-            chip -> WardControlLook(words = if (enabled) chosenInk else disabledInk, face = WardToken.surface,
+            // words in ink, the glyph in the accent when chosen (D1); chosen and
+            // enabled, the accent fills it and its words and glyph are near-black (D8)
+            chip -> if (state.isChosen && enabled) WardControlLook(words = WardToken.onAccent, face = WardToken.primary,
                 stand = stand, mark = chosenEdge)
+            else WardControlLook(words = if (enabled) WardToken.ink else disabledInk, glyph = if (enabled) chosenInk else disabledInk,
+                face = WardToken.surface, stand = stand, mark = chosenEdge)
             circle -> WardControlLook(glyph = if (enabled) chosenInk else disabledInk, face = WardToken.surface,
                 stand = stand, mark = chosenEdge)
             // a segment sits on the control's raised capsule; held or chosen,
             // it is a well pressed into it (the well's fill, WardControlStates.wellFill)
-            segment -> WardControlLook(words = if (enabled) chosenInk else disabledInk,
-                face = if (down) WardControlStates.wellFill else WardToken.surface,
+            // chosen and enabled, the accent fills it and its words are
+            // near-black (the owner, 30 Oct, D8); otherwise its words are ink (D1)
+            segment -> WardControlLook(words = if (!enabled) disabledInk else if (state.isChosen) WardToken.onAccent else WardToken.ink,
+                face = if (state.isChosen && enabled) WardToken.primary else if (down) WardControlStates.wellFill else WardToken.surface,
                 stand = if (down) WardStand.PressedIn(WardLift.low) else WardStand.Raised(WardLift.low), mark = chosenEdge)
             // the track is a well (the well's fill); on, the tint fills it,
             // Biro Grey when disabled; the knob sinks while held and lies

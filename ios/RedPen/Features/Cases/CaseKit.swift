@@ -46,7 +46,7 @@ struct CaseAvatar: View {
     var body: some View {
         Text(initials)
             .font(.headline.weight(.semibold))
-            .foregroundStyle(Color.wardPrimaryInk)
+            .foregroundStyle(Color.wardInk)
             .frame(width: size, height: size)
             .wardInset(in: Circle())
             .accessibilityHidden(true)
@@ -67,7 +67,7 @@ struct CaseClockPill: View {
             .font(.system(.subheadline, design: .monospaced).weight(.semibold))
             .monospacedDigit()
             .contentTransition(.identity)
-            .foregroundStyle(over ? Color.wardDanger : Color.wardInk)
+            .labelStyle(WardGlyphLabelStyle(glyph: over ? Color.wardDanger : Color.wardInk)).foregroundStyle(Color.wardInk)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             // pressed in, like the kit's timer pill: read, not touched

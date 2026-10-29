@@ -335,7 +335,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
                 Text("Resume")
             }
             WardButtonBox(onDiscard, kind = WardButtonKind.compact) {
-                Text("Discard", color = wardColor(WardToken.danger))
+                Text("Discard", color = wardColor(WardToken.ink))
             }
         }
     }
@@ -348,7 +348,7 @@ fun MockPaperScreen(store: StudyStore, onBack: () -> Unit) {
             var menu by remember { mutableStateOf(false) }
             Box {
                 ChipBox(false, { menu = true }) {
-                    Text(paper.title, style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+                    Text(paper.title, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                     Icon(Icons.Rounded.ExpandMore, null, Modifier.size(18.dp), tint = wardColor(WardToken.primaryInk))
                 }
                 DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.raised)) {

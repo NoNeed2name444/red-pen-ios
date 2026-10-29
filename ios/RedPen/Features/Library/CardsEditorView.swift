@@ -131,7 +131,7 @@ struct CardsEditorView: View {
                 .foregroundStyle(Color.wardInk)
             HStack(spacing: 6) {
                 Text(card.type.rawValue).font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.wardPrimaryInk)
+                    .foregroundStyle(Color.wardInk)
                 if let source = card.source, !source.isEmpty {
                     Text(source).font(.caption2).foregroundStyle(Color.wardInkSecondary)
                 }
@@ -147,8 +147,8 @@ struct CardsEditorView: View {
                 .foregroundStyle(Color.wardInk)
             HStack(spacing: 6) {
                 if question.options.indices.contains(question.correctIndex) {
-                    Label(question.options[question.correctIndex], systemImage: "checkmark")
-                        .font(.caption2).foregroundStyle(Color.wardSuccess).lineLimit(1)
+                    WardInkLabel(question.options[question.correctIndex], systemImage: "checkmark", glyph: Color.wardPrimaryInk)
+                        .font(.caption2).lineLimit(1)
                         .accessibilityLabel("Answer: \(question.options[question.correctIndex])")
                 }
                 if let source = question.source, !source.isEmpty {

@@ -185,8 +185,14 @@ for dark in modes {
                 }
                 // what sits on a fill reads on it: white words on the
                 // section's fill, a switch's knob on its tint or its grey
+                // a chosen chip's or segment's words are near-black (the
+                // owner, 30 Oct, D8)
                 if look.face == .primary {
-                    check("\(name): on the fill its words are white", look.words == .onPrimary && look.glyph == nil)
+                    if (control == .chip || control == .segment) && state.isChosen {
+                        check("\(name): on the accent fill its words are near-black", look.words == .onAccent && look.glyph == nil)
+                    } else {
+                        check("\(name): on the fill its words are white", look.words == .onPrimary && look.glyph == nil)
+                    }
                 }
                 if let knob = c.knob, look.face != .well {
                     let r = WardPalette.contrast(knob, c.face)
@@ -500,6 +506,23 @@ check("ChipFlow caps a chip wider than the row at the row's width, to wrap insid
 print("ok   words and glyphs: the lowest is \(f(worstText.0)):1 (\(worstText.1))")
 print("ok   disabled from enabled: the nearest is \(f(worstDisabledApart.0)) (\(worstDisabledApart.1))")
 print("ok   chosen from unchosen: the nearest is \(f(worstChosenApart.0)) (\(worstChosenApart.1))")
+
+// D8 (the owner, 30 Oct): a chosen chip with a tone keeps its tone's fill
+// (WardChipButtonFace's chosenInk: WardTone.ink), with near-black words. The
+// fills a chosen chip can wear: every section's accent (blue, accent) and
+// the meaning tones, each read 4.5:1 under onAccent in both schemes.
+for dark in modes {
+    let words = WardPalette.hex(.onAccent, dark: dark)
+    var fills: [(String, UInt32)] = [("red (ecg)", WardPalette.hex(.ecg, dark: dark)),
+                                     ("green (success)", WardPalette.hex(.success, dark: dark)),
+                                     ("amber and warning (warning)", WardPalette.hex(.warning, dark: dark)),
+                                     ("danger", WardPalette.hex(.danger, dark: dark))]
+    for s in sections { fills.append(("\(s)'s accent (blue, accent)", s.accent(dark: dark))) }
+    for (name, fill) in fills {
+        let r = WardPalette.contrast(words, fill)
+        check("\(modeName(dark)): a chosen chip toned \(name): near-black words read 4.5:1 on its fill", r >= 4.5, f(r))
+    }
+}
 
 // The owner's list holds only cases a check above measured short.
 check("the owner's list is read (\(ownerFile), WardStatesTests.swift)", !ownerList.isEmpty)

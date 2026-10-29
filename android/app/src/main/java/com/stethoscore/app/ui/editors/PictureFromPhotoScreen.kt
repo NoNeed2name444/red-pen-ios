@@ -374,7 +374,7 @@ private data class Saved(val set: StudySet, val cards: Int, val lecture: Boolean
             Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp).clickable(role = Role.Button) { menu = true }
                 .semantics { contentDescription = "Deck" }, verticalAlignment = Alignment.CenterVertically) {
                 Text("Deck", style = WardType.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
-                Text(decks.firstOrNull { it.id == destination }?.name ?: "A new deck", style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+                Text(decks.firstOrNull { it.id == destination }?.name ?: "A new deck", style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 Icon(Icons.Rounded.KeyboardArrowDown, null, tint = wardColor(WardToken.primaryInk))
             }
             DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {

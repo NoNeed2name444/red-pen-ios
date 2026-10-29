@@ -39,6 +39,52 @@ enum WardTone: Equatable {
     }
 }
 
+/// A label's words in the colour around it, its glyph in `glyph` (the owner,
+/// 23 Oct, D1: words on the page are ink; colour goes on icons, edges and
+/// fills). The default title-and-icon layout, so nothing moves; a label
+/// that names its own style keeps it.
+struct WardGlyphLabelStyle: LabelStyle {
+    var glyph: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        Label {
+            configuration.title
+        } icon: {
+            configuration.icon.foregroundStyle(glyph)
+        }
+        .labelStyle(.titleAndIcon)
+    }
+}
+
+/// Words in ink beside a glyph in a colour: a right or wrong mark, a due or
+/// a warning line (D1, as WardGlyphLabelStyle).
+struct WardInkLabel: View {
+    private let title: Text
+    let systemImage: String
+    var glyph: Color
+
+    init(_ key: LocalizedStringKey, systemImage: String, glyph: Color) {
+        self.title = Text(key)
+        self.systemImage = systemImage
+        self.glyph = glyph
+    }
+
+    @_disfavoredOverload
+    init<S: StringProtocol>(_ text: S, systemImage: String, glyph: Color) {
+        self.title = Text(text)
+        self.systemImage = systemImage
+        self.glyph = glyph
+    }
+
+    var body: some View {
+        Label {
+            title.foregroundStyle(Color.wardInk)
+        } icon: {
+            Image(systemName: systemImage).foregroundStyle(glyph)
+        }
+    }
+}
+
 extension Color {
     /// A disabled control's words, glyphs and switch track: Biro Grey,
     /// solid (WardControlStates.disabledInk, the one place it is named).
@@ -245,7 +291,14 @@ private struct WardButtonFace: View {
     /// Held, or drawn held by the states gallery.
     private var down: Bool { pressed || showsPressed }
 
+    /// The words: ink in every kind (the owner, 23 Oct, D1: words on the
+    /// page are ink); the kind's colour is on the glyph and the ring.
     private var ink: Color {
+        enabled ? .wardInk : .wardDisabledInk
+    }
+    /// A label's glyph: the section's accent on the main and compact
+    /// buttons, the wrong colour on a destructive one.
+    private var glyph: Color {
         if !enabled { return .wardDisabledInk }
         switch kind {
         case .primary, .compact: return .wardPrimaryInk
@@ -297,6 +350,7 @@ private struct WardButtonFace: View {
 
     private var framedLabel: some View {
         label
+            .labelStyle(WardGlyphLabelStyle(glyph: glyph))
             .font(font)
             .multilineTextAlignment(.center)
             .foregroundStyle(ink)
@@ -339,11 +393,12 @@ extension ButtonStyle where Self == WardButtonStyle {
 
 /// A chip that is a button (Sure / Maybe / Guess, why, Flag, Hint, Timed, a
 /// choice on the map): WardChip's capsule, raised just off the base, with a
-/// 44-point target. Chosen, or held, it is pressed in; chosen, its words
-/// take `tone` (the section's accent when it has none) and a solid edge in
-/// the same colour goes round it. Disabled, its words go Biro Grey and it
-/// lies low; chosen and disabled, it stays pressed in with its edge, so it
-/// still reads as chosen. Never a fill.
+/// 44-point target. Chosen, or held, it is pressed in; chosen, `tone` (the
+/// section's accent when it has none) fills it, its words and glyph go
+/// near-black (`onAccent`; the owner, 30 Oct, D8) and a solid edge in the
+/// same colour goes round it; otherwise its words are ink (D1). Disabled,
+/// its words go Biro Grey and it lies low; chosen and disabled, it stays
+/// pressed in with its edge, unfilled, so it still reads as chosen.
 struct WardChipButtonStyle: ButtonStyle {
     var on = false
     var tone: WardTone?
@@ -365,9 +420,19 @@ private struct WardChipButtonFace: View {
     /// The chosen colour: the tone's, or the section's accent.
     private var chosenInk: Color { tone?.ink ?? .wardPrimaryInk }
 
+    /// Chosen and enabled: the chosen colour fills it (the owner, 30 Oct, D8).
+    private var filled: Bool { on && enabled }
+
+    /// Words are ink (the owner, 23 Oct, D1); on the chosen fill, words and
+    /// glyph are near-black (D8).
     private var ink: Color {
         if !enabled { return .wardDisabledInk }
-        return on ? chosenInk : .wardInk
+        return filled ? .wardOnAccent : .wardInk
+    }
+
+    private var glyph: Color {
+        if !enabled { return .wardDisabledInk }
+        return filled ? .wardOnAccent : .wardInk
     }
 
     var body: some View {
@@ -375,12 +440,13 @@ private struct WardChipButtonFace: View {
         // chosen stays pressed in, disabled too
         let down: Bool = on || held
         label
+            .labelStyle(WardGlyphLabelStyle(glyph: glyph))
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(ink)
             .padding(.horizontal, WardSpace.m)
             .padding(.vertical, WardSpace.s)
             .background {
-                WardPressFace(shape: Capsule(), lift: .low, pressed: down)
+                WardPressFace(shape: Capsule(), lift: .low, pressed: down, fill: filled ? chosenInk : .wardSurface)
                     .wardChosenEdge(Capsule(), on, color: chosenInk)
             }
             .frame(minWidth: 44, minHeight: 44)
@@ -557,7 +623,8 @@ struct WardChip: View {
                 .modifier(OneLineLabel())
         }
         .font(.caption.weight(.semibold))
-        .foregroundStyle(tone.ink)
+        // words are ink (the owner, 23 Oct, D1); the tone is on the glyph
+        .foregroundStyle(Color.wardInk)
         .padding(.horizontal, WardSpace.s)
         .padding(.vertical, WardSpace.xs)
         .wardInset(in: Capsule())
@@ -583,7 +650,8 @@ struct WardPill: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.subheadline.weight(.bold))
-        .foregroundStyle(Color.wardWarning)
+        // words are ink (the owner, 23 Oct, D1); the amber is on the clock
+        .foregroundStyle(Color.wardInk)
         .padding(.horizontal, WardSpace.m)
         .padding(.vertical, WardSpace.s)
         .wardInset(in: Capsule())
@@ -605,10 +673,12 @@ struct WardTimerPill: View {
         let clock: String = h > 0 ? String(format: "%d:%02d:%02d", h, seconds % 3600 / 60, seconds % 60)
             : String(format: "%d:%02d", seconds / 60, seconds % 60)
         let text: String = seconds <= 0 ? "Time" : clock
+        // words are ink (the owner, 23 Oct, D1); low, the timer glyph is red
         let label = Label(text, systemImage: "timer")
+            .labelStyle(WardGlyphLabelStyle(glyph: low ? Color.wardDanger : Color.wardInk))
             .font(.system(.subheadline, design: .monospaced).weight(.semibold))
             .monospacedDigit()
-            .foregroundStyle(low ? Color.wardDanger : Color.wardInk)
+            .foregroundStyle(Color.wardInk)
         if well {
             label
                 .padding(.horizontal, WardSpace.m)
@@ -799,9 +869,14 @@ private struct WardSegmentFace: View {
     @Environment(\.isEnabled) private var enabled
     @Environment(\.wardShowsPressed) private var showsPressed
 
+    /// Chosen and enabled: the accent fills it (the owner, 30 Oct, D8).
+    private var filled: Bool { chosen && enabled }
+
+    /// Words are ink (the owner, 23 Oct, D1); on the chosen fill they are
+    /// near-black (D8).
     private var ink: Color {
         if !enabled { return .wardDisabledInk }
-        return chosen ? .wardPrimaryInk : .wardInk
+        return filled ? .wardOnAccent : .wardInk
     }
 
     var body: some View {
@@ -819,7 +894,7 @@ private struct WardSegmentFace: View {
             .background {
                 // a well pressed into the capsule, there at once
                 if down {
-                    WardReliefFace(shape: Capsule(), lift: .low, inset: true, fill: Color.wardWell)
+                    WardReliefFace(shape: Capsule(), lift: .low, inset: true, fill: filled ? Color.wardPrimary : Color.wardWell)
                         .wardChosenEdge(Capsule(), chosen)
                         .transition(.identity)
                 }
@@ -843,7 +918,9 @@ struct WardSectionLabel<Trailing: View>: View {
         HStack {
             Text(text).wardSmallCaps().accessibilityAddTraits(.isHeader)
             Spacer()
-            trailing.font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardPrimaryInk)
+            // a link's words in ink (the owner, 23 Oct, D1), its glyph in the accent
+            trailing.labelStyle(WardGlyphLabelStyle(glyph: .wardPrimaryInk))
+                .font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
         }
     }
 }

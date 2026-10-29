@@ -123,7 +123,7 @@ struct CommuteModeView: View {
                 } label: {
                     Label("Explain it back", systemImage: "person.wave.2")
                         .font(.subheadline)
-                        .foregroundStyle(Color.wardPrimaryInk)
+                        .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 }
             }
             .wardRowBackground()
@@ -504,13 +504,13 @@ private struct CommuteLineRow: View {
             Text(line.text).font(.callout).foregroundStyle(Color.wardInk)
         case .you:
             Label(line.text, systemImage: "mic.fill")
-                .font(.callout.italic()).foregroundStyle(Color.wardPrimaryInk)
+                .font(.callout.italic()).labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
         case .right:
             Label(line.text, systemImage: "checkmark.circle.fill")
-                .font(.callout).foregroundStyle(Color.wardSuccess)
+                .font(.callout).labelStyle(WardGlyphLabelStyle(glyph: Color.wardSuccess)).foregroundStyle(Color.wardInk)
         case .wrong:
             Label(line.text, systemImage: "xmark.circle.fill")
-                .font(.callout).foregroundStyle(Color.wardDanger)
+                .font(.callout).labelStyle(WardGlyphLabelStyle(glyph: Color.wardDanger)).foregroundStyle(Color.wardInk)
         case .note:
             Text(line.text).font(.caption).foregroundStyle(Color.wardInkSecondary)
         }

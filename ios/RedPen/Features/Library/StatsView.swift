@@ -179,7 +179,7 @@ struct StatsView: View {
                             Spacer(minLength: 8)
                             Text("\(Self.percent(row.accuracy)) right")
                                 .font(.body.weight(.semibold).monospacedDigit())
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(Color.wardInk)
                         }
                         AccuracyBar(fraction: row.accuracy, color: Color.wardPrimaryInk)
                         Text(Self.counted(row.answered, "answer"))
@@ -251,7 +251,7 @@ struct StatsView: View {
                 Spacer(minLength: 8)
                 Text(Self.percent(share.share))
                     .font(.body.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(Color.wardInk)
             }
             AccuracyBar(fraction: share.share, color: Color.wardPrimaryInk)
             reasonAction(share.reason, count: share.count)
@@ -287,7 +287,7 @@ struct StatsView: View {
                     tip: "Change an answer only when you find a clue in the stem you missed the first time, not because a second option starts to look good. Your first answer was right here.",
                     picks: store.picks(for: .changedAnswer))
             } label: {
-                Text("A tip, and the \(questions)").font(.subheadline).foregroundStyle(.tint)
+                Text("A tip, and the \(questions)").font(.subheadline).foregroundStyle(Color.wardInk)
             }
         case .outOfTime:
             Button {
@@ -305,7 +305,7 @@ struct StatsView: View {
                     tip: "For each, name the one feature that tells the right answer from the option you chose.",
                     picks: store.picks(for: .lookalikes))
             } label: {
-                Text("See the \(questions)").font(.subheadline).foregroundStyle(.tint)
+                Text("See the \(questions)").font(.subheadline).foregroundStyle(Color.wardInk)
             }
         }
     }
@@ -320,7 +320,7 @@ struct StatsView: View {
         return HStack(spacing: 0) {
             figure("\(log.streak)", streakWord, symbol: "flame.fill", color: Color.wardBeam)
             figure("\(log.today)", "today", symbol: "checkmark.circle.fill", color: Color.wardPrimaryInk)
-            figure(right, "of \(answered) right", symbol: "target", color: Color.wardSuccess)
+            figure(right, "of \(answered) right", symbol: "target", color: Color.wardPrimaryInk)
         }
         .padding(.vertical, 4)
     }

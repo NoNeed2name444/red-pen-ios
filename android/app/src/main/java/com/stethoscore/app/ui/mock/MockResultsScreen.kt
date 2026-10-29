@@ -174,7 +174,7 @@ fun MockResultsScreen(result: MockResult, sitting: MockSitting, selected: Map<St
             .semantics(mergeDescendants = true) { stateDescription = if (open) "Expanded" else "Collapsed" },
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(if (right) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel, if (right) "Right" else "Wrong", Modifier.size(18.dp),
-                tint = if (right) wardColor(WardToken.success) else wardColor(WardToken.danger))
+                tint = if (right) wardColor(WardToken.primaryInk) else wardColor(WardToken.danger))
             Text(q.stem, Modifier.weight(1f), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink),
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
             Icon(Icons.Rounded.ChevronRight, null, Modifier.rotate(if (open) 90f else 0f), tint = wardColor(WardToken.primaryInk))
@@ -182,12 +182,13 @@ fun MockResultsScreen(result: MockResult, sitting: MockSitting, selected: Map<St
         if (open) Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(q.stem, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Rounded.CheckCircle, null, Modifier.size(18.dp), tint = wardColor(WardToken.success))
-                Text("Answer: $answer", style = WardType.body.textStyle(), color = wardColor(WardToken.success))
+                // words in ink, the marks in the right and wrong colours (D1, D7)
+                Icon(Icons.Rounded.CheckCircle, null, Modifier.size(18.dp), tint = wardColor(WardToken.primaryInk))
+                Text("Answer: $answer", style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
             }
             if (!right) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Rounded.Cancel, null, Modifier.size(18.dp), tint = wardColor(WardToken.danger))
-                Text("You: $yours", style = WardType.body.textStyle(), color = wardColor(WardToken.danger))
+                Text("You: $yours", style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
             }
             Text(q.explanation, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
         }

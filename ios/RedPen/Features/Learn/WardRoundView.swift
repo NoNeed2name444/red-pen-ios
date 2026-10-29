@@ -295,7 +295,7 @@ struct WardRoundPanel: View {
         } label: {
             Text("Stop the focus session")
                 .font(.subheadline)
-                .foregroundStyle(Color.wardDanger)
+                .foregroundStyle(Color.wardInk)
                 .frame(minHeight: 44)
         }
         .buttonStyle(.borderless)

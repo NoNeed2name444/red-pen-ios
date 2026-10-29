@@ -86,7 +86,7 @@ internal fun CaseAvatar(initials: String, size: Dp = 44.dp) {
     Box(
         Modifier.size(size).wardInset(CircleShape).clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
-    ) { Text(initials, style = WardType.headline.textStyle(), color = wardColor(WardToken.primaryInk)) }
+    ) { Text(initials, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink)) }
 }
 
 /**
@@ -110,7 +110,7 @@ internal fun CaseClockPill(used: Int, budget: Int) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp),
     ) {
         Icon(if (over) Icons.Filled.Error else Icons.Filled.Schedule, null, tint = tint, modifier = Modifier.size(16.dp))
-        Text(if (used == 0) "$budget min" else "$used / $budget min", style = WardType.timer.textStyle(), color = tint)
+        Text(if (used == 0) "$budget min" else "$used / $budget min", style = WardType.timer.textStyle(), color = wardColor(WardToken.ink))
     }
 }
 

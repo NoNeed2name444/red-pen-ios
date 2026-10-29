@@ -287,9 +287,8 @@ private struct InsightQuestionRow: View {
         DisclosureGroup {
             VStack(alignment: .leading, spacing: 6) {
                 if hasAnswer {
-                    Label(q.options[q.correctIndex], systemImage: "checkmark.circle")
+                    WardInkLabel(q.options[q.correctIndex], systemImage: "checkmark.circle", glyph: Color.wardPrimaryInk)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.wardSuccess)
                 }
                 if !q.explanation.isEmpty {
                     Text(q.explanation)

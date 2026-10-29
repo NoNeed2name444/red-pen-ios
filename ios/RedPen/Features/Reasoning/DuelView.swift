@@ -181,7 +181,7 @@ struct DuelView: View {
                 if let leaning = leaning {
                     Text(name(leaning))
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.wardPrimaryInk)
+                        .foregroundStyle(Color.wardInk)
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .wardInset(in: Capsule())
                         .padding(8)
@@ -248,7 +248,7 @@ struct DuelView: View {
     private func feedback(_ feature: LookalikeFeature) -> some View {
         let ok: Bool = answers[feature.id] == feature.side
         let symbol: String = ok ? "checkmark.circle.fill" : "xmark.circle.fill"
-        let colour: Color = ok ? Color.wardSuccess : Color.wardDanger
+        let colour: Color = ok ? Color.wardPrimaryInk : Color.wardDanger
         let line: String = "\(feature.text) \u{2192} \(name(feature.side))"
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: symbol)
@@ -374,7 +374,7 @@ private struct DuelFeatureResult: View {
 
     var body: some View {
         let symbol: String = ok ? "checkmark.circle.fill" : "xmark.circle.fill"
-        let colour: Color = ok ? Color.wardSuccess : Color.wardDanger
+        let colour: Color = ok ? Color.wardPrimaryInk : Color.wardDanger
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: symbol)
                 .foregroundStyle(colour)
@@ -383,7 +383,7 @@ private struct DuelFeatureResult: View {
                 Text(feature.text).font(.subheadline.weight(.medium)).foregroundStyle(Color.wardInk)
                 Text(answerLine)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.wardPrimaryInk)
+                    .foregroundStyle(Color.wardInk)
                 if !feature.why.isEmpty {
                     Text(feature.why).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }

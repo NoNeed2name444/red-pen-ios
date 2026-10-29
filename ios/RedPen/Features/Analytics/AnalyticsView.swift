@@ -753,12 +753,12 @@ struct AnalyticsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(q.stem).font(.subheadline).lineLimit(3)
                     if !chosen.isEmpty {
-                        Label(chosen, systemImage: "xmark.circle")
-                            .font(.caption).foregroundStyle(Color.wardDanger)
+                        WardInkLabel(chosen, systemImage: "xmark.circle", glyph: Color.wardDanger)
+                            .font(.caption)
                     }
                     if !right.isEmpty {
-                        Label(right, systemImage: "checkmark.circle")
-                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardSuccess)
+                        WardInkLabel(right, systemImage: "checkmark.circle", glyph: Color.wardPrimaryInk)
+                            .font(.caption.weight(.semibold))
                     }
                     Text(line).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
@@ -813,7 +813,7 @@ struct AnalyticsView: View {
                 Button { route = .bySubject } label: {
                     Label("By subject", systemImage: "chart.bar.doc.horizontal")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.wardPrimaryInk)
+                        .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                         .textCase(nil)
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())

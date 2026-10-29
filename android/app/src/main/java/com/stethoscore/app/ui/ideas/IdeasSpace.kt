@@ -233,7 +233,7 @@ fun perfDemoTitle(size: Int): String = "Demo: ${grouped(size)} notes"
                 Box {
                     DropdownMenuItem({ Text(folder.name, color = wardColor(WardToken.ink)) }, { menu = true },
                         leadingIcon = { Icon(Icons.Rounded.Folder, null, tint = toneColor(folder.id, book)) },
-                        trailingIcon = { Text(chosen?.label ?: "Same as all", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.primaryInk)) })
+                        trailingIcon = { Text(chosen?.label ?: "Same as all", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink)) })
                     DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
                         Choice("Same as all", Icons.Rounded.Public, chosen == null) { set(folder.id, null); menu = false }
                         SpaceStyle.menuOrder.forEach { s -> Choice(s.label, s.icon, chosen == s) { set(folder.id, s); menu = false } }

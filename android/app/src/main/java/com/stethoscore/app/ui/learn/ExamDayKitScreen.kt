@@ -126,7 +126,7 @@ private const val ticksDayKey = "learn.kit.day"
             if (worries.isNotEmpty()) Row(Modifier.clickable(role = Role.Button) { worries = "" }.wardRowTile().heightIn(min = 44.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.Delete, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
-                Text("Clear it", style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+                Text("Clear it", style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
             }
         }
     }

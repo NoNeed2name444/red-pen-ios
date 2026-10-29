@@ -327,7 +327,7 @@ private fun phaseWord(round: WardRound): String = when (round.phase) {
         close()
         WardRoundClock.stop()
     }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-        Text("Stop the focus session", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.danger))
+        Text("Stop the focus session", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink))
     }
 }
 

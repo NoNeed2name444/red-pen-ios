@@ -55,7 +55,7 @@ struct TagChipsField: View {
                             Button { take(tag) } label: {
                                 Label(CardTags.label(tag), systemImage: "plus")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Color.wardPrimaryInk)
+                                    .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                             }
                             .buttonStyle(WardChipButtonStyle())
                             .accessibilityLabel("Add tag \(tag)")

@@ -264,7 +264,7 @@ fun WardPocketScreen(track: ExamTrack, onDone: () -> Unit, onSaveSet: (StudySet)
                 .padding(horizontal = WardSpace.l.wardDp, vertical = 8.dp).semantics(mergeDescendants = true) {}.testTag("wardDisclaimer"),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Rounded.School, null, Modifier.size(16.dp), tint = wardColor(WardToken.warning))
-                Text(WardPocket.disclaimer, style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.warning))
+                Text(WardPocket.disclaimer, style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
             }
         }
     }
@@ -315,7 +315,7 @@ internal object WardDisclaimer {
             .semantics { contentDescription = "Practise this. Writes exam questions on this with your usual question settings" },
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.EditNote, null, Modifier.size(20.dp), tint = wardColor(WardToken.primaryInk))
-            Text("Practise this", style = WardType.body.textStyle().copy(fontWeight = FontWeight.SemiBold), color = wardColor(WardToken.primaryInk))
+            Text("Practise this", style = WardType.body.textStyle().copy(fontWeight = FontWeight.SemiBold), color = wardColor(WardToken.ink))
         }
     }
 }
@@ -406,7 +406,7 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
                 Row(Modifier.fillMaxWidth().tappableRowTile({ menu = true }).heightIn(min = 28.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(field.label, Modifier.weight(1f), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
-                    Text(kind.options.getOrElse(choice) { "" }, style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+                    Text(kind.options.getOrElse(choice) { "" }, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                     Icon(Icons.Rounded.ExpandMore, null, Modifier.size(18.dp), tint = wardColor(WardToken.primaryInk))
                 }
                 DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.raised)) {
@@ -501,7 +501,8 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
     val low = WardScores.points(band.low)
     val high = WardScores.points(band.high)
     val range = if (band.low == band.high) low else low + "–" + high
-    val ink = if (on) wardColor(WardToken.primaryInk) else wardColor(WardToken.ink)
+    // words in ink, the tick in the accent (the owner, 23 Oct, D1)
+    val ink = wardColor(WardToken.ink)
     // the band the score falls in, pressed into the base
     Row(Modifier.fillMaxWidth().plainRowTile(inset = on).semantics(mergeDescendants = true) { selected = on },
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -510,7 +511,7 @@ private fun number(text: String?): Double? = text?.trim()?.replace(",", ".")?.to
             Text(band.title, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = ink)
             Text(band.detail, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
         }
-        if (on) Icon(Icons.Rounded.Check, null, Modifier.size(18.dp), tint = ink)
+        if (on) Icon(Icons.Rounded.Check, null, Modifier.size(18.dp), tint = wardColor(WardToken.primaryInk))
     }
 }
 

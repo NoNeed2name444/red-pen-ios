@@ -148,7 +148,7 @@ import com.stethoscore.app.ui.wardColor
     val isRight = i == q.correctIndex
     val isPicked = picked == i
     val wrongTint = if (isPicked) wardColor(WardToken.danger) else wardColor(WardToken.inkSecondary)
-    val tint = if (!answered) wardColor(WardToken.inkSecondary) else if (isRight) wardColor(WardToken.success) else wrongTint
+    val tint = if (!answered) wardColor(WardToken.inkSecondary) else if (isRight) wardColor(WardToken.primaryInk) else wrongTint
     // once answered, the right one and the pick are pressed into the base, their marks in green and red
     val marked = answered && (isRight || isPicked)
     // a wrong answer is faded grey

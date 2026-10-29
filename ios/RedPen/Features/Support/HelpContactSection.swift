@@ -33,7 +33,7 @@ struct HelpContactSection: View {
                 Task { await send() }
             } label: {
                 Label(sending ? "Sending\u{2026}" : "Send", systemImage: "paperplane")
-                    .foregroundStyle(canSend ? Color.wardPrimaryInk : Color.wardInkSecondary)
+                    .labelStyle(WardGlyphLabelStyle(glyph: canSend ? Color.wardPrimaryInk : Color.wardInkSecondary)).foregroundStyle(canSend ? Color.wardInk : Color.wardInkSecondary)
             }
             .disabled(!canSend)
             .accessibilityIdentifier("contactSend")

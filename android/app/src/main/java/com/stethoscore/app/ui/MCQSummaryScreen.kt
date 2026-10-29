@@ -105,12 +105,12 @@ fun QuizSummaryScreen(
                     Row(Modifier.fillMaxWidth().padding(vertical = WardSpace.m.wardDp).semantics(mergeDescendants = true) {},
                         horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                         Icon(if (correct) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel, if (correct) "Right" else "Wrong",
-                            tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.danger), modifier = Modifier.size(24.dp))
+                            tint = if (correct) wardColor(WardToken.primaryInk) else wardColor(WardToken.danger), modifier = Modifier.size(24.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
                             Text(q.stem, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                             val key = q.options.getOrNull(q.correctIndex)
                             if (!correct && key != null) Text("Answer: $key", style = WardTextStyle.subheadline.textStyle(WardWeight.medium),
-                                color = wardColor(WardToken.success))
+                                color = wardColor(WardToken.ink))
                         }
                     }
                     if (i < questions.lastIndex) HorizontalDivider(color = wardColor(WardToken.hairline))

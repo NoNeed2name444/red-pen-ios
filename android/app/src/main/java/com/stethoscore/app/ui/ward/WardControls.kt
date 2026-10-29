@@ -147,7 +147,8 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
  * quiet 44, in a touch area the least target tall), at most 360 wide on a
  * broad screen. The kind shows in the
  * label's colour (the accent, Chart Ink, Resus Red), never a fill, and the
- * primary stands a step higher; held, a button is pressed into the base;
+ * primary stands a step higher; the words are Chart Ink and the kind's
+ * colour is on the glyph (the owner, 23 Oct, D1); held, a button is pressed into the base;
  * disabled, it sinks to the lowest step and says its word in Biro Grey.
  */
 @Composable fun WardButtonBox(
@@ -191,8 +192,10 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
         horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides wardColor(look.words!!),
-            androidx.compose.material3.LocalTextStyle provides style) { content() }
+        // the glyph in the kind's colour, the words in ink (the owner, 23 Oct,
+        // D1): an Icon takes the content colour, a Text its style's colour
+        CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides wardColor(look.glyph!!),
+            androidx.compose.material3.LocalTextStyle provides style.copy(color = wardColor(look.words!!))) { content() }
     }
 }
 
@@ -213,10 +216,11 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
 /**
  * A chip that is a button (Sure, Hint, Flag): a capsule raised just off the
  * base, in a touch area the least target across. Chosen, or held, it is
- * pressed in; chosen, its words take [tone] (the accent when it has none)
- * and a solid edge in the same colour goes round it. Disabled, Biro Grey
- * and low; chosen and disabled, it stays pressed in with its edge. Never a
- * fill. Its label is any of iOS's: words, a glyph ([icon]) before the
+ * pressed in; chosen, [tone] (the accent when it has none) fills it, its
+ * words and glyph go near-black (onAccent; the owner, 30 Oct, D8) and a solid
+ * edge in the same colour goes round it; otherwise its words are ink (D1).
+ * Disabled, Biro Grey and low; chosen and disabled, it stays pressed in with
+ * its edge, unfilled. Its label is any of iOS's: words, a glyph ([icon]) before the
  * words, or the glyph alone. [role] is how TalkBack names it: a toggle by
  * default, a button for a chip that acts (Timed, Re-test me soon), as iOS's
  * are plain buttons.
@@ -235,7 +239,11 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
     val touch = wardTouch(source, enabled)
     val look = WardControl.chip.look(WardControlState(isChosen = on, isHeld = touch.held, isEnabled = enabled))
     val chosenInk = tone?.ink() ?: wardColor(WardToken.primaryInk)
-    val ink = if (!enabled) wardDisabledInk() else if (on) chosenInk else wardColor(look.words!!)
+    // words in ink (the owner, 23 Oct, D1); chosen, the chosen colour fills it
+    // and its words and glyph are near-black (the owner, 30 Oct, D8)
+    val filled = on && enabled
+    val ink = if (!enabled) wardDisabledInk() else wardColor(look.words!!)
+    val glyph = if (!enabled) wardDisabledInk() else if (filled) ink else wardColor(look.words!!)
     val shape = CircleShape
     Box(
         modifier
@@ -248,11 +256,11 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
             Modifier
                 .wardFocusRing(shape, touch.focused, chosenInk)
                 .wardChosenEdge(shape, on, chosenInk)
-                .wardPressFace(shape, WardLift.low, wardDepth(look.stand.isPressedIn))
+                .wardPressFace(shape, WardLift.low, wardDepth(look.stand.isPressedIn), fill = if (filled) chosenInk else wardColor(WardToken.surface))
                 .padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp),
             horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (icon != null) Icon(icon, null, tint = ink, modifier = Modifier.size(18.dp))
+            if (icon != null) Icon(icon, null, tint = glyph, modifier = Modifier.size(18.dp))
             if (text != null) Text(text, style = WardType.chip.textStyle(), color = ink, maxLines = 1)
         }
     }
@@ -343,7 +351,8 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
         horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) Icon(icon, null, tint = tone.color(), modifier = Modifier.size(12.dp))
-        Text(text, style = WardType.statusChip.textStyle(), color = tone.ink())
+        // words in ink (the owner, 23 Oct, D1); the tone is on the glyph
+        Text(text, style = WardType.statusChip.textStyle(), color = wardColor(WardToken.ink))
     }
 }
 
@@ -357,7 +366,8 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
         horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) Icon(icon, null, tint = wardColor(WardToken.beam), modifier = Modifier.size(14.dp))
-        Text(text, style = WardType.pill.textStyle(), color = wardColor(WardToken.warning))
+        // words in ink (the owner, 23 Oct, D1); the amber is on the clock
+        Text(text, style = WardType.pill.textStyle(), color = wardColor(WardToken.ink))
     }
 }
 
@@ -374,8 +384,9 @@ fun wardTimerText(seconds: Int): String {
     val ink = if (seconds < warnBelow) wardColor(WardToken.danger) else wardColor(WardToken.ink)
     val m = if (well) modifier.wardInset(CircleShape).padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp) else modifier
     Row(m.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        // words in ink (the owner, 23 Oct, D1); low, the timer glyph is red
         Icon(Icons.Rounded.Timer, null, tint = ink, modifier = Modifier.size(14.dp))
-        Text(wardTimerText(seconds), style = WardType.timer.textStyle(), color = ink)
+        Text(wardTimerText(seconds), style = WardType.timer.textStyle(), color = wardColor(WardToken.ink))
     }
 }
 
@@ -607,8 +618,9 @@ fun wardTimerText(seconds: Int): String {
         WardSmallCapsText(text, Modifier.semantics { heading() })
         Spacer(Modifier.weight(1f))
         if (trailing != null) CompositionLocalProvider(
+            // a link's glyph in the accent, its words in ink (the owner, 23 Oct, D1)
             androidx.compose.material3.LocalContentColor provides wardColor(WardToken.primaryInk),
-            androidx.compose.material3.LocalTextStyle provides WardTextStyle.subheadline.textStyle(WardWeight.semibold),
+            androidx.compose.material3.LocalTextStyle provides WardTextStyle.subheadline.textStyle(WardWeight.semibold).copy(color = wardColor(WardToken.ink)),
         ) { trailing() }
     }
 }

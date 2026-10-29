@@ -295,8 +295,8 @@ fun LazyListScope.libraryItems(
         // each mode's glyph in its own section's colour, as iOS ModeTile
         Row(horizontalArrangement = Arrangement.spacedBy((-10).dp), modifier = Modifier.semantics { contentDescription = "" }) {
             listOf(StudySetKind.MCQ to -10f, StudySetKind.ANKI to 0f, StudySetKind.OSCE to 10f).forEach { (kind, angle) ->
-                WardIconSquare(modeIcon(kind), Modifier.rotate(angle),
-                    tone = WardTone.Accent(com.stethoscore.app.ui.ward.WardSection.fromKindRaw(kind.rawValue)), size = 52.0)
+                // each mode in its own colour, as iOS's ModeTile (colour roles: a mode's own glyph)
+                WardIconSquare(modeIcon(kind), Modifier.rotate(angle), tone = WardTone.Accent(com.stethoscore.app.ui.ward.WardSection.fromKindRaw(kind.rawValue)), size = 52.0)
             }
         }
         Text("Make your first set", style = WardTextStyle.title3.textStyle(WardWeight.bold), color = wardColor(WardToken.ink))

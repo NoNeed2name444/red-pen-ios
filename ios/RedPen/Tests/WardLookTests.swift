@@ -57,9 +57,10 @@ func owner(_ key: String, _ measured: Double) -> Bool {
     return true
 }
 
-let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary,
+let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary, .onAccent,
                            .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor,
                            .faded, .fadedInk]
+check("the glide's token list is every token", Set(tokens) == Set(WardToken.allCases) && tokens.count == WardToken.allCases.count)
 // the look outside any section, whose accents are the palette's own (Cards'
 // since direction 3; Questions' were, when they were Theatre Blue)
 let day = WardLook(dark: false, section: WardSection.outside)

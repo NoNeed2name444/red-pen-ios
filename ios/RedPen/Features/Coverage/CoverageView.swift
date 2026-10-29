@@ -322,7 +322,7 @@ struct CoverageView: View {
                 if !next.isEmpty {
                     Label("Study next: \(next)", systemImage: "arrow.forward.circle")
                         .font(.subheadline)
-                        .foregroundStyle(Color.wardPrimaryInk)
+                        .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 }
             } header: {
                 Text("\(target.name) blueprint")
@@ -413,7 +413,7 @@ struct CoverageView: View {
                 } label: {
                     Label("Generate questions", systemImage: "square.and.pencil")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.wardPrimaryInk)
+                        .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 }
                 .buttonStyle(WardChipButtonStyle())
             }
@@ -462,8 +462,8 @@ struct CoverageView: View {
 /// One of the three counts at the top, the label of a chip button that
 /// filters the rows to its status. WardChipButtonStyle draws the chip:
 /// raised off the base; the chosen one pressed in, with an edge in its tone.
-/// The count is in its status's colour; the words under it are secondary
-/// until chosen, when they take its tone, as the style's words do.
+/// The count and words in ink, secondary until chosen; the status's colour
+/// on its glyph.
 private struct CoverageCountChip: View {
     let count: Int
     let status: CoverageStatus
@@ -471,14 +471,16 @@ private struct CoverageCountChip: View {
 
     var body: some View {
         let colour: Color = CoverageView.color(status)
-        let words: Color = chosen ? CoverageView.tone(status).ink : Color.wardInkSecondary
+        // words and the count are ink (the owner, 23 Oct, D1); the status's
+        // colour is on its glyph
+        let words: Color = chosen ? Color.wardInk : Color.wardInkSecondary
         VStack(spacing: 2) {
             Text("\(count)")
                 .font(WardType.obsLarge)
                 .monospacedDigit()
-                .foregroundStyle(colour)
+                .foregroundStyle(Color.wardInk)
             Label(status.label, systemImage: CoverageView.symbol(status))
-                .labelStyle(.titleAndIcon)
+                .labelStyle(WardGlyphLabelStyle(glyph: colour))
                 .font(.caption)
                 .foregroundStyle(words)
                 .lineLimit(1)

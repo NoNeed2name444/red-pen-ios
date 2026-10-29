@@ -176,7 +176,7 @@ struct AccuracyWhySheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Label(Self.ruleTitle(hit.rule), systemImage: "exclamationmark.triangle.fill")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(hit.isSevere ? Color.wardDanger : Color.wardWarning)
+                        .labelStyle(WardGlyphLabelStyle(glyph: hit.isSevere ? Color.wardDanger : Color.wardWarning)).foregroundStyle(Color.wardInk)
                     Text(hit.detail).font(.footnote)
                 }
             }

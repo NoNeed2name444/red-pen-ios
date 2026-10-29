@@ -49,6 +49,10 @@ enum WardToken: String, CaseIterable {
     case primaryInk
     /// White on a primary or section fill
     case onPrimary
+    /// Near-black on the accent fill of a chosen chip or segment (the
+    /// owner, 30 Oct, D8: the palette doc's "Text on a fill", 4.5:1 on
+    /// every mode's fill)
+    case onAccent
     /// ECG Red: the secondary accent, Vital Coral
     case ecg
     /// Pager Amber: the progress beam, the countdown pill, Optimistic Amber
@@ -87,6 +91,7 @@ enum WardPalette {
         .primary:      (0x3B82F6, 0x3B82F6),
         .primaryInk:   (0x3B82F6, 0x3B82F6),
         .onPrimary:    (0xFFFFFF, 0xFFFFFF),
+        .onAccent:     (0x090E15, 0x090E15),
         .ecg:          (0xFF6B6B, 0xFF6B6B),
         .beam:         (0xFBBF24, 0xFBBF24),
         .success:      (0x6EE7B7, 0x6EE7B7),
@@ -152,6 +157,7 @@ enum WardPalette {
         (.inkSecondary, .surface, 4.5), (.inkSecondary, .background, 4.5),
         (.primaryInk, .surface, 4.5), (.primaryInk, .background, 4.5),
         (.onPrimary, .primary, 4.5),
+        (.onAccent, .primary, 4.5),
         (.ecg, .surface, 4.5), (.success, .surface, 4.5),
         (.warning, .surface, 4.5), (.danger, .surface, 4.5),
         (.beam, .surface, 3),

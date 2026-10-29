@@ -160,7 +160,7 @@ enum class ExamToolSheet { labs, calculator }
     WardCardFace(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             Icon(Icons.Rounded.MedicalServices, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
-            Text("Attending’s hint", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
+            Text("Attending’s hint", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
         }
         if (text != null) Text(text, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
         else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {

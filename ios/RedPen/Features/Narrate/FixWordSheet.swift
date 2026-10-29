@@ -32,7 +32,7 @@ struct FixWordSheet: View {
                 field("Heard as") {
                     Text(target.heard)
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(Color.wardDanger)
+                        .foregroundStyle(Color.wardInk)
                         .underline(true, color: Color.wardDanger.opacity(0.5))
                         .textSelection(.enabled)
                 }

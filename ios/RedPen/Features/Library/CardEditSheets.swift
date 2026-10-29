@@ -209,7 +209,7 @@ struct QuestionEditSheet: View {
     private func optionRow(_ index: Int) -> some View {
         let correct: Bool = working.correctIndex == index
         let mark: String = correct ? "checkmark.circle.fill" : "circle"
-        let ink: Color = correct ? Color.wardSuccess : Color.wardInkSecondary
+        let ink: Color = correct ? Color.wardPrimaryInk : Color.wardInkSecondary
         let traits: AccessibilityTraits = correct ? .isSelected : []
         return HStack(spacing: 6) {
             // plain buttons, so in a Form row each takes only its own tap

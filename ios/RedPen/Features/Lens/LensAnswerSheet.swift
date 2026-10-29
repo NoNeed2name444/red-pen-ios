@@ -205,11 +205,12 @@ struct LensAnswerBody: View {
 
     private var truth: some View {
         let isTrue: Bool = answer.verdict ?? false
-        let colour: Color = isTrue ? Color.wardSuccess : Color.wardDanger
+        // a true verdict is a right answer: the mode colour (the owner, 30 Oct, D7)
+        let colour: Color = isTrue ? Color.wardPrimaryInk : Color.wardDanger
         return VStack(alignment: .leading, spacing: 12) {
-            Label(isTrue ? "True" : "False", systemImage: isTrue ? "checkmark.circle.fill" : "xmark.circle.fill")
+            WardInkLabel(isTrue ? "True" : "False", systemImage: isTrue ? "checkmark.circle.fill" : "xmark.circle.fill",
+                         glyph: colour)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(colour)
                 .padding(.horizontal, WardSpace.gutter).padding(.vertical, 10)
                 .wardInset(in: Capsule())
             if !answer.correction.isEmpty {
@@ -339,7 +340,7 @@ struct LensAnswerBody: View {
                     Text("\(pair.offset + 1)")
                         .font(.system(.callout, design: .monospaced).weight(.bold))
                         .monospacedDigit()
-                        .foregroundStyle(Color.wardPrimaryInk)
+                        .foregroundStyle(Color.wardInk)
                         .frame(minWidth: 22, alignment: .trailing)
                     Text(pair.element)
                 }

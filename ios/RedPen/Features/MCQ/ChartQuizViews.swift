@@ -34,11 +34,11 @@ struct WardOptionRow: View {
         }
     }
 
+    /// Words are ink (the owner, 23 Oct, D1); a wrong pick's are the faded ink.
     private var textInk: Color {
         switch mark {
-        case .chosen: return .wardPrimaryInk
         case .wrong: return .wardFadedInk
-        case .right, .idle, .past: return .wardInk
+        case .chosen, .right, .idle, .past: return .wardInk
         }
     }
 
@@ -65,7 +65,7 @@ struct WardOptionRow: View {
             if let symbol {
                 if noColour {
                     Text(mark == .right ? "Right" : "Your pick")
-                        .font(.caption.weight(.semibold)).foregroundStyle(letterInk).accessibilityHidden(true)
+                        .font(.caption.weight(.semibold)).foregroundStyle(textInk).accessibilityHidden(true)
                         .transition(.identity)
                 }
                 Image(systemName: symbol)

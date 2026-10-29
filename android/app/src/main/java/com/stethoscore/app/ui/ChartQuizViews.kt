@@ -84,8 +84,8 @@ internal enum class QuizButtonKind { primary, companion, secondary }
         ChartQuiz.Mark.wrong -> faded
         ChartQuiz.Mark.idle, ChartQuiz.Mark.past -> null
     }
+    // words are ink (the owner, 23 Oct, D1); a wrong pick's the faded ink
     val textInk = when (mark) {
-        ChartQuiz.Mark.chosen -> accent
         ChartQuiz.Mark.wrong -> faded
         else -> wardColor(WardToken.ink)
     }

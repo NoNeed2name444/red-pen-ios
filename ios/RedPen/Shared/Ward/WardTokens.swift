@@ -39,6 +39,8 @@ extension Color {
     static var wardPrimary: Color { ward(.primary) }
     static var wardPrimaryInk: Color { ward(.primaryInk) }
     static var wardOnPrimary: Color { ward(.onPrimary) }
+    /// Words on a chosen chip's or segment's accent fill: near-black (D8).
+    static var wardOnAccent: Color { ward(.onAccent) }
     static var wardEcg: Color { ward(.ecg) }
     static var wardBeam: Color { ward(.beam) }
     static var wardSuccess: Color { ward(.success) }
@@ -105,7 +107,7 @@ extension WardToken {
 /// the app is at as it is drawn (WardLookNow), so one handed out before the
 /// section was set shows the section on show all the same.
 enum WardRestColors {
-    static let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary,
+    static let tokens: [WardToken] = [.background, .surface, .raised, .well, .primary, .primaryInk, .onPrimary, .onAccent,
                                       .ecg, .beam, .success, .warning, .danger, .ink, .inkSecondary, .hairline, .monitor,
                                       .faded, .fadedInk]
     static let palette: [Color] = tokens.map { token in
@@ -223,9 +225,16 @@ final class WardLookStore: Observable, @unchecked Sendable {
 
     // sections
 
-    @MainActor func push(_ section: WardSection, id: UUID) {
+    /// `top`: a screen on show again moves its mark to the top, so the
+    /// section is the one on show, not the last one asked for.
+    @MainActor func push(_ section: WardSection, id: UUID, top: Bool = false) {
         if let i = sections.firstIndex(where: { $0.id == id }) {
-            sections[i].section = section
+            if top {
+                sections.remove(at: i)
+                sections.append((id, section))
+            } else {
+                sections[i].section = section
+            }
         } else {
             sections.append((id, section))
         }
@@ -562,18 +571,42 @@ extension UINavigationController {
 /// A screen's section: its hue tints the paper's grid and the controls'
 /// edges while it is on show, and the hue shifts to the next screen's
 /// with the same glide as light and dark.
+///
+/// The mark is held for as long as its screen is alive, not only while it
+/// is on show: a screen pushed over it (a case's ward, its debrief) keeps
+/// the section it was opened from, as Android passes its section down,
+/// rather than falling back to the look outside any section (T0153 F4: the
+/// case screens turned Care Blue). Coming back, the screen's mark is put
+/// on top again; once the screen is gone, its mark goes with it.
 private struct WardSectionMark: ViewModifier {
     let section: WardSection
-    @State private var id = UUID()
+    /// Made on first show, so a view rebuilt without being shown holds nothing.
+    @State private var held: WardSectionHold?
 
     func body(content: Content) -> some View {
         content
             // system controls (toggles, sliders, links, plain buttons) in
             // the section's accent, moving with its hue
             .tint(Color.wardPrimaryInk)
-            .onAppear { WardLookStore.shared.push(section, id: id) }
-            .onDisappear { WardLookStore.shared.pop(id: id) }
-            .onChange(of: section) { _, now in WardLookStore.shared.push(now, id: id) }
+            .onAppear {
+                let hold = held ?? WardSectionHold()
+                held = hold
+                WardLookStore.shared.push(section, id: hold.id, top: true)
+            }
+            .onChange(of: section) { _, now in
+                if let hold = held { WardLookStore.shared.push(now, id: hold.id) }
+            }
+    }
+}
+
+/// A screen's hold on its section, let go when the screen itself is gone
+/// (its state released), not when another screen covers it.
+private final class WardSectionHold {
+    let id = UUID()
+
+    deinit {
+        let id = id
+        Task { @MainActor in WardLookStore.shared.pop(id: id) }
     }
 }
 

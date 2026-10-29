@@ -212,7 +212,7 @@ import kotlinx.coroutines.withContext
             .clickable(enabled = enabled, role = Role.DropdownList, onClickLabel = "Choose the card type") { open = true },
             verticalAlignment = Alignment.CenterVertically) {
             Text("Card type", style = WardType.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
-            Text(style.title, style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+            Text(style.title, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
             Icon(Icons.Rounded.UnfoldMore, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
         }
         DropdownMenu(open, { open = false }) {

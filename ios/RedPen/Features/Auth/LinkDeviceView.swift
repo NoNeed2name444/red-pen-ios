@@ -107,7 +107,7 @@ struct LinkDeviceView: View {
         if joined {
             Section {
                 Label("Linked. Your library is syncing.", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(Color.wardSuccess)
+                    .labelStyle(WardGlyphLabelStyle(glyph: Color.wardSuccess)).foregroundStyle(Color.wardInk)
             }
             .wardRowBackground()
         }

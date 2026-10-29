@@ -206,7 +206,8 @@ struct WardTile: View {
 }
 
 /// A chip that filters: a soft capsule raised off the base; on, it is
-/// pressed in and its words take the section's accent.
+/// pressed in, the section's accent fills it and its words and glyph are
+/// near-black (the owner, 30 Oct, D8); off, its words are ink (D1).
 struct WardFilterChip: View {
     let text: String
     var symbol: String?
@@ -220,10 +221,13 @@ struct WardFilterChip: View {
                 Text(text)
             }
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(selected ? Color.wardPrimaryInk : Color.wardInk)
+            .foregroundStyle(selected ? Color.wardOnAccent : Color.wardInk)
             .padding(.horizontal, 12)
             .frame(minHeight: 36)
-            .wardRelief(in: Capsule(), pressed: selected)
+            .background {
+                WardPressFace(shape: Capsule(), lift: .low, pressed: selected,
+                              fill: selected ? Color.wardPrimary : Color.wardSurface)
+            }
             // the chip draws 36 points tall; the tap target is the full 44
             .frame(minHeight: 44)
             .contentShape(Rectangle())

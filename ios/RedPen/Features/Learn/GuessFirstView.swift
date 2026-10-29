@@ -93,7 +93,7 @@ struct GuessFirstView: View {
         let symbol: String = !answered ? StudyRhythm.letter(i).lowercased() + ".circle"
             : (isRight ? "checkmark.circle.fill" : (isPicked ? "xmark.circle.fill" : "circle"))
         let wrongTint: Color = isPicked ? Color.wardDanger : Color.wardInkSecondary
-        let answeredTint: Color = isRight ? Color.wardSuccess : wrongTint
+        let answeredTint: Color = isRight ? Color.wardPrimaryInk : wrongTint
         let tint: Color = answered ? answeredTint : Color.wardInkSecondary
         let marked: Bool = answered && (isRight || isPicked)
         let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)

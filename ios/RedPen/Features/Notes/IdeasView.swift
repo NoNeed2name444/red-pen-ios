@@ -263,7 +263,7 @@ struct IdeasView: View {
             folderId = current.parentId
         } label: {
             Label(parentName, systemImage: "chevron.backward")
-                .foregroundStyle(Color.wardPrimaryInk)
+                .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 .contentShape(Rectangle())
         }
         .hoverEffect(.highlight)

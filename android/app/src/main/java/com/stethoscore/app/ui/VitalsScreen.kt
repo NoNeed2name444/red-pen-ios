@@ -412,11 +412,11 @@ internal fun wrongLine(answer: WrongAnswer, zone: ZoneId = ZoneId.systemDefault(
             Text(q.stem, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink), maxLines = 3, overflow = TextOverflow.Ellipsis)
             if (chosen.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.HighlightOff, null, tint = wardColor(WardToken.danger), modifier = Modifier.size(14.dp))
-                Text(chosen, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.danger))
+                Text(chosen, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.ink))
             }
             if (right.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.CheckCircleOutline, null, tint = wardColor(WardToken.success), modifier = Modifier.size(14.dp))
-                Text(right, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.success))
+                Icon(Icons.Rounded.CheckCircleOutline, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(14.dp))
+                Text(right, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
             }
             Text(wrongLine(answer), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
         }

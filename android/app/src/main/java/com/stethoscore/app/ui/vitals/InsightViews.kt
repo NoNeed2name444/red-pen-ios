@@ -288,8 +288,8 @@ fun insightQuiz(name: String, picks: List<QuestionPick>): StudySet {
         if (open) Column(Modifier.padding(vertical = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
             q.options.getOrNull(q.correctIndex)?.let { answer ->
                 Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.CheckCircleOutline, null, tint = wardColor(WardToken.success), modifier = Modifier.size(16.dp))
-                    Text(answer, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.success))
+                    Icon(Icons.Rounded.CheckCircleOutline, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))
+                    Text(answer, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
                 }
             }
             if (q.explanation.isNotEmpty()) Text(q.explanation, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))

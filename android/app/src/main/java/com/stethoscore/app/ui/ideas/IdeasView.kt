@@ -222,7 +222,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
                     Row(Modifier.fillMaxWidth().combinedClickable(role = Role.Button) { setFolder(current.parentId) }.wardRowTile(),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, null, tint = wardColor(WardToken.primaryInk))
-                        Text(parentName, Modifier.padding(vertical = 4.dp), style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+                        Text(parentName, Modifier.padding(vertical = 4.dp), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                     }
                 }
             }
@@ -317,7 +317,7 @@ private fun LazyListScope.sectionHeader(text: String) = item {
         Row(Modifier.fillMaxSize().padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = if (toDelete) Arrangement.End else Arrangement.Start) {
             if (toDelete) Text("Delete", style = WardType.buttonSmall.textStyle(), color = wardColor(WardToken.danger))
-            else if (onMove != null) Text("Move…", style = WardType.buttonSmall.textStyle(), color = wardColor(WardToken.primaryInk))
+            else if (onMove != null) Text("Move…", style = WardType.buttonSmall.textStyle(), color = wardColor(WardToken.ink))
         }
     }) { content() }
 }

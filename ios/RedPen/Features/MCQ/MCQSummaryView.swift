@@ -298,7 +298,7 @@ struct MCQSummaryView: View {
         return HStack(alignment: .top, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundStyle(correct ? Color.wardSuccess : Color.wardDanger)
+                    .foregroundStyle(correct ? Color.wardPrimaryInk : Color.wardDanger)
                     .font(.title3)
                     .accessibilityLabel(correct ? "Right" : "Wrong")
                 VStack(alignment: .leading, spacing: 4) {
@@ -306,7 +306,7 @@ struct MCQSummaryView: View {
                     if !correct, q.options.indices.contains(q.correctIndex) {
                         Text("Answer: \(q.options[q.correctIndex])")
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(Color.wardSuccess)
+                            .foregroundStyle(Color.wardInk)
                     }
                 }
             }

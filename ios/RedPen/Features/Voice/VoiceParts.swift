@@ -12,7 +12,7 @@ struct VoicePermissionNote: View {
                 .foregroundStyle(Color.wardInkSecondary)
             Button("Open Settings") { VoiceAccess.openSettings() }
                 .font(.footnote.weight(.semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
+                .foregroundStyle(Color.wardInk)
                 .buttonStyle(.borderless)
                 // a whole finger's worth of target, not just the words
                 .frame(minHeight: 44, alignment: .leading)

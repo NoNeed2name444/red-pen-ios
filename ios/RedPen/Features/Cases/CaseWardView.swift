@@ -426,7 +426,7 @@ struct CaseLadderPanel: View {
         return HStack(spacing: 8) {
             Text("\(index + 1)")
                 .font(.system(.headline, design: .monospaced))
-                .foregroundStyle(leading ? Color.wardPrimaryInk : Color.wardInkSecondary)
+                .foregroundStyle(leading ? Color.wardInk : Color.wardInkSecondary)
                 .frame(width: 32, height: 32)
                 .wardInset(in: Circle())
                 .accessibilityHidden(true)

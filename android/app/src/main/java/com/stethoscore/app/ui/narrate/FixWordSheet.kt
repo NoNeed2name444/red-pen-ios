@@ -51,7 +51,7 @@ data class FixTarget(val segment: Int, val word: Int, val heard: String)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 WardSmallCapsText("Heard as")
                 SelectionContainer {
-                    Text(target.heard, style = WardTextStyle.title3.textStyle(WardWeight.semibold), color = wardColor(WardToken.danger),
+                    Text(target.heard, style = WardTextStyle.title3.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink),
                         textDecoration = TextDecoration.Underline)
                 }
             }

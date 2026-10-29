@@ -312,6 +312,6 @@ private fun cardAsk(card: AnkiCard): AccuracyAsk =
 @Composable internal fun CardsCompanionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier.heightIn(min = 56.dp).wardRelief(RoundedCornerShape(50)).background(wardColor(WardToken.surface), RoundedCornerShape(50))
         .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Text(text, style = WardType.headline.textStyle(), color = wardColor(WardToken.primaryInk), textAlign = TextAlign.Center)
+        Text(text, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
     }
 }

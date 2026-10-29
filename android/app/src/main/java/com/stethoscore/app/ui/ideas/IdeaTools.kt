@@ -130,7 +130,7 @@ import com.stethoscore.app.ui.wardColor
         LazyColumn(Modifier.fillMaxWidth().heightIn(max = 480.dp)) {
             items(choices) { (id, name) ->
                 Box(Modifier.fillMaxWidth().clickable(role = Role.Button) { onMove(id); onDismiss() }.wardRowTile()) {
-                    Text(name, Modifier.padding(vertical = 6.dp), style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk),
+                    Text(name, Modifier.padding(vertical = 6.dp), style = WardType.body.textStyle(), color = wardColor(WardToken.ink),
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }

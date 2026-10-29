@@ -43,6 +43,11 @@ enum class WardToken {
     primaryInk,
     /** White on a primary fill */
     onPrimary,
+    /**
+     * Near-black on the accent fill of a chosen chip or segment (the owner,
+     * 30 Oct, D8: the palette doc's "Text on a fill", 4.5:1 on every mode's fill)
+     */
+    onAccent,
     /** ECG Red: the secondary accent */
     ecg,
     /** Pager Amber: the progress beam, the countdown pill */
@@ -90,6 +95,7 @@ object WardPalette {
         WardToken.primary to WardPair(0x3B82F6, 0x3B82F6),
         WardToken.primaryInk to WardPair(0x3B82F6, 0x3B82F6),
         WardToken.onPrimary to WardPair(0xFFFFFF, 0xFFFFFF),
+        WardToken.onAccent to WardPair(0x090E15, 0x090E15),
         WardToken.ecg to WardPair(0xFF6B6B, 0xFF6B6B),
         WardToken.beam to WardPair(0xFBBF24, 0xFBBF24),
         WardToken.success to WardPair(0x6EE7B7, 0x6EE7B7),
@@ -158,6 +164,7 @@ object WardPalette {
         WardPromise(WardToken.inkSecondary, WardToken.surface, 4.5), WardPromise(WardToken.inkSecondary, WardToken.background, 4.5),
         WardPromise(WardToken.primaryInk, WardToken.surface, 4.5), WardPromise(WardToken.primaryInk, WardToken.background, 4.5),
         WardPromise(WardToken.onPrimary, WardToken.primary, 4.5),
+        WardPromise(WardToken.onAccent, WardToken.primary, 4.5),
         WardPromise(WardToken.ecg, WardToken.surface, 4.5), WardPromise(WardToken.success, WardToken.surface, 4.5),
         WardPromise(WardToken.warning, WardToken.surface, 4.5), WardPromise(WardToken.danger, WardToken.surface, 4.5),
         WardPromise(WardToken.beam, WardToken.surface, 3.0),

@@ -65,7 +65,7 @@ import com.stethoscore.app.ui.ward.*
     // with animations off the answer is simply there (iOS: reduceMotion ? nil : .snappy(duration: 0.28))
     val reduce = com.stethoscore.app.ui.ward.wardReduceMotion()
     Column(modifier.then(if (reduce) Modifier else Modifier.animateContentSize()).clipToBounds(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(CardReview.badge(card.type).uppercase(), style = wardSmallCapsStyle(), color = wardColor(WardToken.primaryInk))
+        Text(CardReview.badge(card.type).uppercase(), style = wardSmallCapsStyle(), color = wardColor(WardToken.ink))
         if (card.pictureOnFront) CardPicture(card, images, revealed, deck)
         if (card.type == AnkiCardType.CLOZE) {
             // as Anki shows it: the sentence stays where it is, the answer appears in its gap
@@ -217,7 +217,7 @@ private const val hintsKey = "anki.ratingHintsShown"
     AnkiRating.EASY -> WardToken.primaryInk
 })
 
-/** A soft tile raised off the base, its words in ink and its ring in the rating's tone; Good, the one to press most, in bold. */
+/** A soft tile raised off the base, its words in ink and its ring in the rating's tone (the owner, 23 Oct, D1); Good, the one to press most, in bold. */
 @Composable private fun RatingButton(rating: AnkiRating, whenBack: String, onClick: () -> Unit, modifier: Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()

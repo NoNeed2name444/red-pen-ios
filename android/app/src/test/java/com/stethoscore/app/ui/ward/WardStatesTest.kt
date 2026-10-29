@@ -127,9 +127,13 @@ class WardStatesTest {
                                 OwnerCase(statesTest, "its words and glyphs read 4.5:1 on its face", "the $control $state: its $what",
                                     "$s", mode, "its face"), r)
                         }
-                        // what sits on a fill reads on it
+                        // what sits on a fill reads on it: white words, except a chosen chip's or
+                        // segment's near-black (the owner, 30 Oct, D8)
                         if (look.face == WardToken.primary) {
-                            check("$name: on the fill its words are white", look.words == WardToken.onPrimary && look.glyph == null)
+                            if ((control == WardControl.chip || control == WardControl.segment) && state.isChosen)
+                                check("$name: on the accent fill its words are near-black", look.words == WardToken.onAccent && look.glyph == null)
+                            else
+                                check("$name: on the fill its words are white", look.words == WardToken.onPrimary && look.glyph == null)
                         }
                         // the knob on a filled track; an empty track is a well, in the well's fill
                         val knob = c.knob

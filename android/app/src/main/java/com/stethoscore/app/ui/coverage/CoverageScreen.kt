@@ -172,7 +172,7 @@ object CoverageWords {
                 }
                 DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.raised)) {
                     for (exam in ExamTrack.entries) DropdownMenuItem(
-                        { Text(exam.title, color = wardColor(if (exam == track) WardToken.primaryInk else WardToken.ink)) },
+                        { Text(exam.title, color = wardColor(WardToken.ink)) },
                         { menu = false; track = exam },
                         leadingIcon = if (exam == track) ({ Icon(Icons.Rounded.CheckCircle, null, tint = wardColor(WardToken.primaryInk)) }) else null)
                     DropdownMenuItem({ Text("Choose a specific exam…", color = wardColor(WardToken.ink)) }, { menu = false; picking = true })
@@ -232,10 +232,10 @@ object CoverageWords {
     }
 }
 
-/** One of the three counts at the top, as a chip that filters the rows to its status; the chosen one is pressed in and its words take its tone. */
+/** One of the three counts at the top, as a chip that filters the rows to its status; the chosen one is pressed in. The count and words are ink, secondary until chosen; the status's tone is on its glyph (the owner, 23 Oct, D1). */
 @Composable private fun CountChip(count: Int, status: CoverageStatus, chosen: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val tone = CoverageWords.tone(status)
-    val words = if (chosen) tone.ink() else wardColor(WardToken.inkSecondary)
+    val words = if (chosen) wardColor(WardToken.ink) else wardColor(WardToken.inkSecondary)
     val source = remember { MutableInteractionSource() }
     Column(modifier.defaultMinSize(minHeight = 56.dp)
         .selectable(chosen, interactionSource = source, indication = null, role = Role.Button, onClick = onClick)
@@ -243,9 +243,9 @@ object CoverageWords {
         .wardRelief(CircleShape, WardLift.low, inset = chosen)
         .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("$count", style = WardType.obsLarge.textStyle(), color = tone.color())
+        Text("$count", style = WardType.obsLarge.textStyle(), color = wardColor(WardToken.ink))
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(CoverageWords.icon(status), null, tint = words, modifier = Modifier.size(12.dp))
+            Icon(CoverageWords.icon(status), null, tint = tone.color(), modifier = Modifier.size(12.dp))
             Text(status.label, style = WardTextStyle.caption.textStyle(), color = words, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -272,7 +272,7 @@ object CoverageWords {
             Text(CoverageWords.detail(sub), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
             if (isGap) ChipBox(false, onGenerate) {
                 Icon(Icons.Rounded.EditNote, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(14.dp))
-                Text("Generate questions", style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
+                Text("Generate questions", style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
             }
         }
         DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.raised)) {

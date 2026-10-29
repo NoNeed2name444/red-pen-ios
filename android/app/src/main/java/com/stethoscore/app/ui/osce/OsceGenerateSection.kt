@@ -290,7 +290,7 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
             Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = WardControlSize.target.wardDp).clickable(role = Role.Button) { showMore = !showMore }
                 .semantics { stateDescription = if (showMore) "Expanded" else "Collapsed" }.padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Text("More options", Modifier.weight(1f), style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+                Text("More options", Modifier.weight(1f), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 Icon(Icons.Rounded.ExpandMore, null, Modifier.rotate(if (showMore) 0f else -90f), tint = wardColor(WardToken.primaryInk))
             }
             if (showMore) WardTextField(subject, onSubject, Modifier.fillMaxWidth(), placeholder = "Subject, e.g. Cardiology", enabled = !working)

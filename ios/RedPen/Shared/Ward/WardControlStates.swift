@@ -19,10 +19,12 @@ import Foundation
 /// - disabled, its words and glyphs go Biro Grey (`disabledInk`), solid, and
 ///   it lies at the lowest lift; a switch's words go Biro Grey, its on-track
 ///   goes Biro Grey and its knob lies flat;
-/// - chosen, it is pressed in, its words take the section's accent (a
+/// - chosen, it is pressed in, its glyph takes the section's accent (a
 ///   tile's stay its caller's) and a solid edge in that accent goes round
-///   it (a switch: the tint fills its track); chosen and disabled, it stays
-///   pressed in and keeps the edge.
+///   it (a switch: the tint fills its track); a chosen chip or segment is
+///   filled with the accent and says its words in near-black (`onAccent`;
+///   the owner, 30 Oct, D8); chosen and disabled, it stays pressed in and
+///   keeps the edge.
 enum WardControlStates {
     /// A disabled control's words and glyphs, and a disabled switch's
     /// on-track: Biro Grey, solid, 4.5:1 on every tier, and told apart from
@@ -365,8 +367,10 @@ enum WardControl: String, CaseIterable, Sendable {
         }
     }
 
-    /// An enabled button's words: the kind shows in the label's colour.
-    private var buttonWords: WardToken {
+    /// An enabled button's glyph: the kind shows in its glyph's colour and
+    /// its ring; its words are Chart Ink (the owner, 23 Oct, D1: words on
+    /// the page are ink).
+    private var buttonGlyph: WardToken {
         switch self {
         case .primary, .compact: return .primaryInk
         case .destructive: return .danger
@@ -389,18 +393,28 @@ enum WardControl: String, CaseIterable, Sendable {
         switch self {
         case .primary, .secondary, .destructive, .compact, .quiet:
             // the main button's face is a sheet's, a tier up, while enabled
-            return WardControlLook(words: enabled ? buttonWords : disabledInk,
+            return WardControlLook(words: enabled ? .ink : disabledInk, glyph: enabled ? buttonGlyph : disabledInk,
                                    face: self == .primary && enabled ? .raised : .surface, stand: stand)
         case .chip:
-            return WardControlLook(words: enabled ? chosenInk : disabledInk, face: .surface, stand: stand,
-                                   mark: chosenEdge)
+            // words in ink, the glyph in the accent when chosen (D1); chosen
+            // and enabled, the accent fills it and its words and glyph are
+            // near-black (D8)
+            if state.isChosen && enabled {
+                return WardControlLook(words: .onAccent, face: .primary, stand: stand, mark: chosenEdge)
+            }
+            return WardControlLook(words: enabled ? .ink : disabledInk, glyph: enabled ? chosenInk : disabledInk,
+                                   face: .surface, stand: stand, mark: chosenEdge)
         case .circle:
             return WardControlLook(glyph: enabled ? chosenInk : disabledInk, face: .surface, stand: stand,
                                    mark: chosenEdge)
         case .segment:
             // a segment sits on the control's raised capsule; held or
             // chosen, it is a well pressed into it
-            return WardControlLook(words: enabled ? chosenInk : disabledInk, face: down ? .well : .surface,
+            // chosen and enabled, the accent fills it and its words are
+            // near-black (the owner, 30 Oct, D8); otherwise its words are ink (D1)
+            let filled: Bool = state.isChosen && enabled
+            return WardControlLook(words: !enabled ? disabledInk : filled ? .onAccent : .ink,
+                                   face: filled ? .primary : down ? .well : .surface,
                                    stand: down ? .pressedIn(.low) : .raised(.low), mark: chosenEdge)
         case .toggle:
             // the track is a well; on, the tint fills it, Biro Grey when

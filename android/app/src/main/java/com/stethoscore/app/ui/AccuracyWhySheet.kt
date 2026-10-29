@@ -394,7 +394,7 @@ internal object AccuracySeen {
                             val tone = if (hit.isSevere) WardTone.Danger else WardTone.Warning
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Icon(Icons.Rounded.Warning, null, Modifier.size(14.dp), tint = tone.color())
-                                Text(AccuracyGrading.ruleTitle(hit.rule), style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = tone.ink())
+                                Text(AccuracyGrading.ruleTitle(hit.rule), style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
                             }
                             Text(hit.detail, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.ink))
                         }
@@ -424,7 +424,7 @@ internal object AccuracySeen {
                     evidence.forEach { e ->
                         Column(Modifier.fillMaxWidth().plainRowTile().clickable(role = Role.Button) { runCatching { uri.openUri(e.url) } },
                             verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("[" + e.id + "] " + e.source, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
+                            Text("[" + e.id + "] " + e.source, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
                             Text(e.title, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.ink), maxLines = 3)
                         }
                     }

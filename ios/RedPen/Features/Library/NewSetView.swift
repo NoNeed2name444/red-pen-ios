@@ -499,7 +499,8 @@ struct NewSetView: View {
     private func pathTile(_ option: Path) -> some View {
         let chosen: Bool = path == option
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
-        let title: Color = chosen ? Color.wardPrimaryInk : Color.wardInk
+        // words in ink (the owner, 23 Oct, D1); chosen shows in the tick and the well
+        let title: Color = Color.wardInk
         let mark: String = chosen ? "checkmark.circle.fill" : "circle"
         let markInk: Color = chosen ? Color.wardPrimaryInk : Color.wardInkSecondary
         let traits: AccessibilityTraits = chosen ? .isSelected : []

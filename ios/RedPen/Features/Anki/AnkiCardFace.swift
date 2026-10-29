@@ -107,7 +107,7 @@ struct AnkiCardFace: View {
                         .frame(minHeight: 44, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(Color.wardPrimaryInk)
+                .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 .accessibilityHint("Opens the lecture at \(found.source.kind.pageNoun.lowercased()) \(found.page)")
             } else {
                 Text(label)
@@ -479,8 +479,8 @@ struct AnkiRatingBar: View {
 }
 
 /// A rating button: a soft tile raised off the base, its words in ink and
-/// its ring in the rating's tone, never a fill. The one to press most
-/// (`filled`) says its word in bold. Held, it is pressed into the base.
+/// its ring in the rating's tone, never a fill. The one to press most (`filled`) says its
+/// word in bold. Held, it is pressed into the base.
 private struct AnkiRatingButtonStyle: ButtonStyle {
     let tone: WardTone
     var filled = false
@@ -505,6 +505,7 @@ private struct AnkiRatingFace: View {
         label
             .font(font)
             .multilineTextAlignment(.center)
+            // words are ink (the owner, 23 Oct, D1); the rating's tone is its ring
             .foregroundStyle(Color.wardInk)
             .padding(.horizontal, WardSpace.xs)
             .padding(.vertical, WardSpace.s)

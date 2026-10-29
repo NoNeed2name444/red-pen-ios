@@ -113,7 +113,7 @@ struct MockPaperView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Text(exam)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
+                .foregroundStyle(Color.wardInk)
             Text("Timed like the real paper. Answers are marked at the end.")
                 .font(.body)
         }

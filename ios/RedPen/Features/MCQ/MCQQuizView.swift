@@ -751,15 +751,15 @@ struct MCQQuizView: View {
         let key: Int = correctSlot(current)
         let said: String = correct ? "Correct" : (key >= 0 ? "Incorrect: \(letter(key)) is the answer" : "Incorrect")
         return VStack(alignment: .leading, spacing: 8) {
-            Label(said, systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill")
+            // words in ink, the mark in the right answer's colour or the wrong one's (D1, D7)
+            WardInkLabel(said, systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill",
+                         glyph: correct ? Color.wardPrimaryInk : Color.wardDanger)
                 .font(.headline)
-                .foregroundStyle(correct ? Color.wardSuccess : Color.wardDanger)
                 .accessibilityAddTraits(.isHeader)
             if struckTheAnswer {
-                Label("You crossed out the right answer. What made you rule it out?",
-                      systemImage: "line.diagonal")
+                WardInkLabel("You crossed out the right answer. What made you rule it out?",
+                             systemImage: "line.diagonal", glyph: Color.wardWarning)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.wardWarning)
             }
             // a passage selected here is saved on its own (Save to Ideas)
             let idea: IdeaClip = ideaClip

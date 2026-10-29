@@ -55,7 +55,7 @@ struct SourcePageReader: View {
                     Label("Read by text recognition — worth checking against the original",
                           systemImage: "text.viewfinder")
                         .font(.caption)
-                        .foregroundStyle(Color.wardWarning)
+                        .labelStyle(WardGlyphLabelStyle(glyph: Color.wardWarning)).foregroundStyle(Color.wardInk)
                 }
                 LecturePassageText(text: current.text, page: page)
                     .frame(maxWidth: .infinity, alignment: .leading)

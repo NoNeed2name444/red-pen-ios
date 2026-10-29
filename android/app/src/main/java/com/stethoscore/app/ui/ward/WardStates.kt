@@ -121,17 +121,20 @@ fun wardScoreTone(value: Double): WardTone = when {
 
 /**
  * A chip that filters (WardFilterChip): a soft capsule raised off the base,
- * 36 tall in a full target; on, it is pressed in and its words take the
- * section's accent.
+ * 36 tall in a full target; on, it is pressed in, the section's accent
+ * fills it and its words and glyph are near-black (the owner, 30 Oct, D8);
+ * off, its words are ink (the owner, 23 Oct, D1).
  */
 @Composable fun WardFilterChip(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
-    val ink = if (selected) wardColor(WardToken.primaryInk) else wardColor(WardToken.ink)
+    val ink = wardColor(if (selected) WardToken.onAccent else WardToken.ink)
+    val glyph = ink
     Box(modifier.defaultMinSize(minHeight = WardControlSize.target.wardDp).selectable(selected, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center) {
-        Row(Modifier.heightIn(min = WardControlSize.segment.wardDp).wardPressFace(CircleShape, WardLift.low, wardDepth(selected))
+        Row(Modifier.heightIn(min = WardControlSize.segment.wardDp).wardPressFace(CircleShape, WardLift.low, wardDepth(selected),
+            fill = wardColor(if (selected) WardToken.primary else WardToken.surface))
             .padding(horizontal = WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (icon != null) Icon(icon, null, tint = ink, modifier = Modifier.size(14.dp))
+            if (icon != null) Icon(icon, null, tint = glyph, modifier = Modifier.size(14.dp))
             Text(text, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = ink, maxLines = 1)
         }
     }

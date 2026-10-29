@@ -482,7 +482,7 @@ private struct SpokenLineBubble: View {
                 Spacer(minLength: 40)
                 Text(line.text)
                     .padding(WardSpace.m)
-                    .foregroundStyle(Color.wardPrimaryInk)
+                    .foregroundStyle(Color.wardInk)
                     .wardRaised(in: bubble, lift: .low)
             }
         case .patient:

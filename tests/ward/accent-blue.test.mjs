@@ -129,9 +129,12 @@ for (const m of read('Shared/Ward/WardPalette.swift').matchAll(/\.(\w+):\s*\(0x(
   palette[m[1]] = [parseInt(m[2], 16), parseInt(m[3], 16)];
 const tiers = /static let tiers: \[WardToken\] = \[([^\]]*)\]/.exec(read('Shared/Ward/WardPalette.swift'))[1]
   .split(',').map(t => t.trim().replace(/^\./, ''));
-// 18 tokens since direction 3 added the wrong answer's faded and fadedInk
-check('the palette is read (18 tokens, 4 tiers)', Object.keys(palette).length === 18 && tiers.length === 4,
+// 18 tokens since direction 3 added the wrong answer's faded and fadedInk;
+// 19 since D8 (30 Oct) added onAccent, the near-black words on a chosen chip's fill
+check('the palette is read (19 tokens, 4 tiers)', Object.keys(palette).length === 19 && tiers.length === 4,
       `${Object.keys(palette).length} ${tiers}`);
+check('onAccent is near-black #090E15, by day and at night',
+      palette.onAccent && palette.onAccent[0] === 0x090E15 && palette.onAccent[1] === 0x090E15, String(palette.onAccent));
 const relief = read('Shared/Ward/WardRelief.swift');
 const num = name => parseFloat(new RegExp(`static let ${name} = ([0-9.]+)`).exec(relief)[1]);
 const edgeAlpha = [num('lightEdge'), num('darkEdge')], edgeContrast = num('edgeContrast');

@@ -813,7 +813,7 @@ struct DrawFromMemoryButton: View {
         } label: {
             Label("Draw it from memory", systemImage: "pencil.and.scribble")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
+                .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 // a whole finger's worth of target, not just the words
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())

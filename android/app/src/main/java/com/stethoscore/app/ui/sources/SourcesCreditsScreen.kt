@@ -172,7 +172,7 @@ object CreditsWords {
     Row(Modifier.fillMaxWidth().then(if (safe) Modifier.clickable(role = Role.Button) { runCatching { opener.openUri(url) } } else Modifier)
         .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))
-        Text(title, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.primaryInk))
+        Text(title, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.ink))
     }
 }
 

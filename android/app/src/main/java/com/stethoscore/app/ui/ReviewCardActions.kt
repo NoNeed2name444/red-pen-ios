@@ -72,7 +72,7 @@ private fun android.view.View.say(text: String) = announceForAccessibility(text)
         .semantics(mergeDescendants = true) { contentDescription = "Undo last rating" }
         .padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(Icons.AutoMirrored.Rounded.Undo, null, Modifier.size(16.dp), tint = wardColor(WardToken.primaryInk))
-        Text("Undo", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
+        Text("Undo", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
     }
 }
 
@@ -114,7 +114,7 @@ private fun android.view.View.say(text: String) = announceForAccessibility(text)
                     Icon(Icons.Rounded.Bedtime, null); Spacer(Modifier.width(8.dp)); Text("Bury until tomorrow", Modifier.weight(1f))
                 }
                 TextButton(onClick = { asking = false; suspend() }, Modifier.fillMaxWidth()) {
-                    Icon(Icons.Rounded.PauseCircle, null, tint = wardColor(WardToken.danger)); Spacer(Modifier.width(8.dp)); Text("Suspend card", Modifier.weight(1f), color = wardColor(WardToken.danger))
+                    Icon(Icons.Rounded.PauseCircle, null, tint = wardColor(WardToken.danger)); Spacer(Modifier.width(8.dp)); Text("Suspend card", Modifier.weight(1f), color = wardColor(WardToken.ink))
                 }
             }
         },

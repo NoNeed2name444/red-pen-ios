@@ -1,0 +1,140 @@
+package com.stethoscore.app.ui.ward
+
+import org.junit.Test
+import java.io.File
+
+// The colour roles (docs/design/colour-roles.md in the iOS repo, task T0134):
+// which of the owner's ten hexes each role takes, the same as on the iPhone
+// (tests/ward/colour-roles.test.mjs there). The owner, 23 Oct 2026: "little
+// to no colour consistency across the app"; D1, words on the page are ink and
+// colour goes on icons, edges and fills; D7 (30 Oct), a right answer takes
+// the mode's colour in every mode, Questions' coral too; D8 (30 Oct), a chosen
+// chip or segment is filled with the accent under near-black words. This
+// reads the app's Kotlin sources and fails when a screen names a mode's
+// colour other than its own, draws an accent literal, marks a right answer in
+// Fresh Mint by hand, or sets one line of words in an accent.
+class ColourRolesTest {
+
+    private val main = File("src/main/java/com/stethoscore/app")
+    private val sources: List<Pair<String, String>> by lazy {
+        main.walkTopDown().filter { it.isFile && it.extension == "kt" }
+            .map { it.relativeTo(main).path.replace('\\', '/') to it.readText() }
+            // the Ward token layer defines the roles; the 3D map is art (T0118)
+            .filter { (rel, _) -> !rel.startsWith("ui/ward/") && !rel.startsWith("ui/map/") }
+            .toList()
+    }
+
+    @Test fun aRightAnswerTakesTheRightRole() = checks {
+        // D7: the mode colour token (primaryInk, the section's accent) in every mode, Questions too
+        for (dark in listOf(false, true)) {
+            val mode = if (dark) "dark" else "light"
+            for (s in WardSection.entries) {
+                check("$s $mode: a right answer takes the mode's colour",
+                    WardGlide.rest(WardLook(dark, s)).hex(WardToken.primaryInk, dark) == s.accent(dark))
+            }
+        }
+        val quiz = File(main, "ui/ChartQuizViews.kt").readText()
+        check("the option row draws a right answer in the mode's colour", quiz.contains("ChartQuiz.Mark.chosen, ChartQuiz.Mark.right -> accent") &&
+            quiz.contains("val accent = wardColor(WardToken.primaryInk)"))
+        val mint = Regex("""if \((correct|right|isRight|isTrue|verdict|ok)\) wardColor\(WardToken\.success\)""")
+        val byHand = sources.flatMap { (rel, text) -> text.lines().mapIndexedNotNull { i, l -> if (mint.containsMatchIn(l)) "$rel:${i + 1}" else null } }
+        check("no screen marks a right answer in Fresh Mint (D7: the mode's colour)", byHand.isEmpty(), byHand.joinToString("; "))
+        val split = Regex("""\bwardRight\b|\brightIsOwn\b""")
+        val stray = (sources + listOf("ui/ward/" to File(main, "ui/ward").walkTopDown().filter { it.isFile }.joinToString("\n") { it.readText() }))
+            .filter { (_, text) -> split.containsMatchIn(text) }.map { it.first }
+        check("no second right-answer colour (D7: one mode colour token)", stray.isEmpty(), stray.joinToString("; "))
+    }
+
+    @Test fun everyScreenNamesOnlyItsOwnModesColour() = checks {
+        // a folder that belongs to one mode, and that mode's section
+        val modeOf = mapOf("ui/cases/" to "cases", "ui/osce/" to "osce", "ui/narrate/" to "audio", "ui/ideas/" to "ideas",
+            "ui/book/" to "textbook", "ui/mock/" to "questions")
+        // the router (the section each route wears) is where sections are given out
+        val router = setOf("ui/StethoscoreApp.kt")
+        val named = Regex("""WardSection\.(questions|cards|textbook|cases|osce|audio|ideas)\b""")
+        val stray = mutableListOf<String>()
+        for ((rel, text) in sources) {
+            if (rel in router) continue
+            val own = modeOf.entries.firstOrNull { rel.startsWith(it.key) }?.value
+            text.lines().forEachIndexed { i, l ->
+                val code = l.substringBefore("//")
+                named.findAll(code).forEach { if (it.groupValues[1] != own) stray.add("$rel:${i + 1} ${it.value}") }
+            }
+        }
+        check("every screen names only its own mode's colour", stray.isEmpty(), stray.joinToString("; "))
+        // a mode's own glyph shown elsewhere takes that mode's colour, as iOS's ModeTile
+        val newSet = File(main, "ui/library/LibraryNewSetScreen.kt").readText()
+        check("New set shows each mode in its own colour",
+            newSet.contains("WardIconSquare(modeIcon(option), tone = WardTone.Accent(com.stethoscore.app.ui.ward.WardSection.fromKindRaw(option.rawValue))"))
+        val list = File(main, "ui/library/LibraryList.kt").readText()
+        check("the empty library shows each mode in its own colour",
+            list.contains("tone = WardTone.Accent(com.stethoscore.app.ui.ward.WardSection.fromKindRaw(kind.rawValue)), size = 52.0"))
+    }
+
+    @Test fun noScreenDrawsAnAccentLiteral() = checks {
+        val literal = Regex("""\bColor\(0x[0-9A-Fa-f]{6,8}\)|\bColor\.(Red|Blue|Green|Yellow|Magenta|Cyan)\b""")
+        // wardRgb is the one door from the palette's table to Compose
+        val doors = setOf("ui/Theme.kt")
+        val found = sources.filter { it.first !in doors }.flatMap { (rel, text) ->
+            text.lines().mapIndexedNotNull { i, l -> if (literal.containsMatchIn(l.substringBefore("//"))) "$rel:${i + 1}" else null }
+        }
+        check("no screen draws an accent literal", found.isEmpty(), found.joinToString("; "))
+    }
+
+    @Test fun wordsOnThePageAreInk() = checks {
+        // the clinical flags (an abnormal value in red, the owner's targets doc) wait on the owner with D1; the
+        // destructive menu items match iOS's system red; a swipe action's words match iOS's swipe button; the
+        // home header's links match iOS LibraryView, which another task (T0140) owns at this commit
+        val later = setOf("ui/home/WardHome.kt", "ui/library/LibraryList.kt", "ui/book/BookReaderScreen.kt", "ui/StethoscoreApp.kt")
+        val accentWords = Regex("""\bText\((?!.*DropdownMenuItem).*color = (wardColor\(WardToken\.(primaryInk|success|warning|beam|ecg)\)|wardRight\(\))""")
+        val found = sources.filter { it.first !in later }.flatMap { (rel, text) ->
+            text.lines().mapIndexedNotNull { i, l -> if (accentWords.containsMatchIn(l) && !l.contains("DropdownMenuItem")) "$rel:${i + 1}" else null }
+        }
+        check("no line of words is set in an accent", found.isEmpty(), found.joinToString("; "))
+
+        // the states model: buttons and chips say their words in ink, the kind's colour on the glyph
+        for (control in WardControl.entries.filter { it.isButton || it == WardControl.chip || it == WardControl.segment }) {
+            val look = control.look(WardControlState.rest)
+            check("$control at rest: its words are Chart Ink", look.words == WardToken.ink, "${look.words}")
+        }
+        check("the main button's glyph is the section's accent", WardControl.primary.look(WardControlState.rest).glyph == WardToken.primaryInk)
+        check("a destructive button's glyph is the wrong colour", WardControl.destructive.look(WardControlState.rest).glyph == WardToken.danger)
+        // D8: chosen, a chip or segment is filled with the accent and says its words in near-black
+        for (control in listOf(WardControl.chip, WardControl.segment)) {
+            for (state in listOf(WardControlState.selected, WardControlState.selectedPressed)) {
+                check("a $control $state: the accent fill, near-black words, an accent edge",
+                    control.look(state).let { it.face == WardToken.primary && it.words == WardToken.onAccent && it.glyph == null && it.mark == WardToken.primaryInk })
+            }
+        }
+        check("a chosen and disabled chip keeps its accent edge, its glyph Biro Grey",
+            WardControl.chip.look(WardControlState.selectedDisabled).let { it.mark == WardToken.primaryInk && it.glyph == WardControlStates.disabledInk })
+        check("onAccent is near-black #090E15 in both schemes",
+            WardPalette.hex(WardToken.onAccent, false) == 0x090E15 && WardPalette.hex(WardToken.onAccent, true) == 0x090E15)
+        for (dark in listOf(false, true)) for (s in WardSection.entries) {
+            val r = WardPalette.contrast(WardPalette.hex(WardToken.onAccent, dark), s.fill(dark))
+            check("${if (dark) "dark" else "light"} $s: near-black words read 4.5:1 on the accent fill", r >= 4.5, "%.2f".format(r))
+        }
+        // D8: a chosen chip with a tone keeps its tone's fill (WardChipButton's chosenInk, WardTone.ink()),
+        // under near-black words: every fill a chosen chip can wear, in both schemes
+        for (dark in listOf(false, true)) {
+            val fills = mutableListOf("red (ecg)" to WardPalette.hex(WardToken.ecg, dark),
+                "green (success)" to WardPalette.hex(WardToken.success, dark),
+                "amber and warning (warning)" to WardPalette.hex(WardToken.warning, dark),
+                "danger" to WardPalette.hex(WardToken.danger, dark))
+            for (s in WardSection.entries) fills.add("$s's accent (blue, accent)" to s.accent(dark))
+            for ((name, fill) in fills) {
+                val r = WardPalette.contrast(WardPalette.hex(WardToken.onAccent, dark), fill)
+                check("${if (dark) "dark" else "light"}: a chosen chip toned $name: near-black words read 4.5:1 on its fill", r >= 4.5, "%.2f".format(r))
+            }
+        }
+        // Biro Grey would not carry near-black words (3.06:1 by day), so no chosen chip is toned grey
+        val greyChip = sources.flatMap { (rel, text) ->
+            Regex("""WardChipButton\(""").findAll(text).mapNotNull { m ->
+                // the call's first lines, up to a blank line
+                val call = text.substring(m.range.first, minOf(text.length, m.range.first + 300)).substringBefore("\n\n")
+                if (call.contains("tone = WardTone.Grey")) rel else null
+            }.toList()
+        }
+        check("no chosen chip is toned grey", greyChip.isEmpty(), greyChip.joinToString("; "))
+    }
+}

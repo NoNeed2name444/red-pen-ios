@@ -57,7 +57,7 @@ import com.stethoscore.app.ui.wardColor
             }
             WardButtonBox({ listing = true }, Modifier.semantics { contentDescription = "Sections, $place" }, kind = WardButtonKind.compact, fills = false) {
                 Icon(Icons.AutoMirrored.Rounded.List, null, Modifier.size(18.dp))
-                Text(place, maxLines = 1, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = current != null))
+                Text(place, maxLines = 1, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = current != null), color = wardColor(WardToken.ink))
             }
             WardButtonBox(onNext, Modifier.semantics { contentDescription = "Next section" }, kind = WardButtonKind.compact,
                 enabled = current?.let { it + 1 < sections.size } ?: true, fills = false) {
@@ -80,7 +80,7 @@ import com.stethoscore.app.ui.wardColor
         WardButtonBox({ open = true }, Modifier.semantics { contentDescription = if (running) "Sleep timer, $shown left" else "Sleep timer" },
             kind = WardButtonKind.compact, fills = false) {
             Icon(if (running) Icons.Rounded.Bedtime else Icons.Outlined.Bedtime, null, Modifier.size(18.dp))
-            Text(shown, maxLines = 1, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = running))
+            Text(shown, maxLines = 1, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = running), color = wardColor(WardToken.ink))
         }
         DropdownMenu(open, { open = false }, containerColor = wardColor(WardToken.raised)) {
             // items rather than a picker, so choosing the same time again starts it over

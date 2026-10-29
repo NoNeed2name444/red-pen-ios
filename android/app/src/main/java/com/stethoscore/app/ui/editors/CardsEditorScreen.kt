@@ -171,7 +171,7 @@ import com.stethoscore.app.ui.wardColor
         Text(if (card.type == AnkiCardType.CLOZE) card.clozeText else card.displayFront, style = WardTextStyle.subheadline.textStyle(),
             color = wardColor(WardToken.ink), maxLines = 2, overflow = TextOverflow.Ellipsis)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(card.type.rawValue, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
+            Text(card.type.rawValue, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
             card.source?.takeIf { it.isNotEmpty() }?.let { Text(it, style = WardTextStyle.caption2.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 1) }
             TagLine(card.tags)
         }
@@ -185,8 +185,8 @@ import com.stethoscore.app.ui.wardColor
             question.options.getOrNull(question.correctIndex)?.let { answer ->
                 Row(Modifier.semantics(mergeDescendants = true) { contentDescription = "Answer: $answer" }, verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Icon(Icons.Rounded.Check, null, tint = wardColor(WardToken.success), modifier = Modifier.size(12.dp))
-                    Text(answer, style = WardTextStyle.caption2.textStyle(), color = wardColor(WardToken.success), maxLines = 1)
+                    Icon(Icons.Rounded.Check, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(12.dp))
+                    Text(answer, style = WardTextStyle.caption2.textStyle(), color = wardColor(WardToken.ink), maxLines = 1)
                 }
             }
             question.source?.takeIf { it.isNotEmpty() }?.let { Text(it, style = WardTextStyle.caption2.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 1) }
@@ -290,7 +290,7 @@ private fun String.trimSpaces() = trim { it == ' ' || it == '\t' }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box {
             Icon(if (correct) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, null,
-                tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.inkSecondary),
+                tint = if (correct) wardColor(WardToken.primaryInk) else wardColor(WardToken.inkSecondary),
                 modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onMark, onLongClick = { menu = true })
                     .semantics { contentDescription = "Mark correct"; selected = correct }.padding(10.dp))
             DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {

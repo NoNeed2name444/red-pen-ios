@@ -321,7 +321,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
             }
             WardButtonBox({ onOpen(beds.first()) }, Modifier.homePart(book, "start", "Start ward round"), kind = WardButtonKind.primary) {
                 Icon(Icons.Rounded.Bolt, null, Modifier.size(18.dp))
-                Text("Start revision", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold))
+                Text("Start revision", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
             }
         }
     }

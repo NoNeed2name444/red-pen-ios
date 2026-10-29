@@ -554,10 +554,11 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 WardCardFace(Modifier.fillMaxWidth().bringIntoViewRequester(explain)) {
                     Row(Modifier.semantics(mergeDescendants = true) { heading() }, verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val tint = if (correct) wardColor(WardToken.success) else wardColor(WardToken.danger)
+                        // words in ink, the mark in the right answer's colour or the wrong one's (D1, D7)
+                        val tint = if (correct) wardColor(WardToken.primaryInk) else wardColor(WardToken.danger)
                         Icon(if (correct) Icons.Rounded.Verified else Icons.Rounded.Info, null, tint = tint, modifier = Modifier.size(20.dp))
                         val key = correctSlot(current)
-                        Text(if (correct) "Correct" else if (key >= 0) "Incorrect: ${letter(key)} is the answer" else "Incorrect", style = WardType.headline.textStyle(), color = tint)
+                        Text(if (correct) "Correct" else if (key >= 0) "Incorrect: ${letter(key)} is the answer" else "Incorrect", style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
                     }
                     if (struckTheAnswer) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Rounded.HorizontalRule, null, tint = wardColor(WardToken.warning), modifier = Modifier.size(18.dp))

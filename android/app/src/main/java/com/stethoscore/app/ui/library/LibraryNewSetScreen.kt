@@ -432,14 +432,15 @@ import kotlinx.coroutines.withContext
     }
 }
 
-/** One kind of set as a soft tile; the chosen one pressed in, its name in the accent. Tapping it moves on. */
+/** One kind of set as a soft tile in its own colour; the chosen one pressed in, its name in ink (D1). Tapping it moves on. */
 @Composable private fun ModeTile(option: StudySetKind, chosen: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 72.dp).wardRelief(chosen, WardRadius.card, WardLift.mid)
         .clickable(role = Role.Button, onClick = onClick).semantics { selected = chosen }.padding(16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        WardIconSquare(modeIcon(option), tone = WardTone.Blue, size = 44.0, selected = chosen)
+        // each mode in its own colour, as iOS's ModeTile (colour roles: a mode's own glyph)
+        WardIconSquare(modeIcon(option), tone = WardTone.Accent(com.stethoscore.app.ui.ward.WardSection.fromKindRaw(option.rawValue)), size = 44.0, selected = chosen)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(NewSetWords.plainName(option), style = WardType.headline.textStyle(), color = wardColor(if (chosen) WardToken.primaryInk else WardToken.ink))
+            Text(NewSetWords.plainName(option), style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             Text(NewSetWords.blurb(option), style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 2,
                 overflow = TextOverflow.Ellipsis)
         }
@@ -447,7 +448,7 @@ import kotlinx.coroutines.withContext
     }
 }
 
-/** One way to add material; the chosen one pressed in, its name and tick in the accent. */
+/** One way to add material; the chosen one pressed in, its tick in the accent and its name in ink (D1). */
 @Composable private fun PathTile(option: NewSetPath, chosen: Boolean, onClick: () -> Unit) {
     val icon = when (option) {
         NewSetPath.LECTURE -> Icons.Rounded.Description
@@ -459,7 +460,7 @@ import kotlinx.coroutines.withContext
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         WardIconSquare(icon, tone = WardTone.Blue, size = 40.0, selected = chosen)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(option.title, style = WardType.headline.textStyle(), color = wardColor(if (chosen) WardToken.primaryInk else WardToken.ink))
+            Text(option.title, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
             Text(option.blurb, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
         }
         Icon(if (chosen) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, null,

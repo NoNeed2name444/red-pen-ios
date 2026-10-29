@@ -144,11 +144,10 @@ struct MockResultsView: View {
         return DisclosureGroup {
             VStack(alignment: .leading, spacing: 6) {
                 Text(q.stem).font(.subheadline).foregroundStyle(Color.wardInk)
-                Label("Answer: " + answer, systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(Color.wardSuccess)
+                // words in ink, the marks in the right and wrong colours (D1, D7)
+                WardInkLabel("Answer: " + answer, systemImage: "checkmark.circle.fill", glyph: Color.wardPrimaryInk)
                 if !right {
-                    Label("You: " + yours, systemImage: "xmark.circle.fill")
-                        .foregroundStyle(Color.wardDanger)
+                    WardInkLabel("You: " + yours, systemImage: "xmark.circle.fill", glyph: Color.wardDanger)
                 }
                 Text(q.explanation).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
             }
@@ -156,7 +155,7 @@ struct MockResultsView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: right ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundStyle(right ? Color.wardSuccess : Color.wardDanger)
+                    .foregroundStyle(right ? Color.wardPrimaryInk : Color.wardDanger)
                     .accessibilityHidden(true)
                 Text(q.stem).lineLimit(2).font(.subheadline).foregroundStyle(Color.wardInk)
             }

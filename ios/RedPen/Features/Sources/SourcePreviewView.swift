@@ -223,7 +223,7 @@ struct SourcePageList: View {
             Text("\(page.number)")
                 .font(.system(.caption, design: .monospaced))
                 .monospacedDigit()
-                .foregroundStyle(page.number == selected ? Color.wardPrimaryInk : Color.wardInkSecondary)
+                .foregroundStyle(page.number == selected ? Color.wardInk : Color.wardInkSecondary)
                 .frame(minWidth: 22, alignment: .trailing)
             VStack(alignment: .leading, spacing: 2) {
                 Text(firstLine(page))
@@ -290,7 +290,7 @@ struct SourceResultsList: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("\(source.kind.pageNoun) \(hit.page)")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
+                .foregroundStyle(Color.wardInk)
             marked(hit)
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInk)
@@ -310,6 +310,6 @@ struct SourceResultsList: View {
         let before = String(characters[..<hit.range.lowerBound])
         let match = String(characters[hit.range])
         let after = String(characters[hit.range.upperBound...])
-        return Text("\(before)\(Text(match).bold().foregroundColor(Color.wardPrimaryInk))\(after)")
+        return Text("\(before)\(Text(match).bold().foregroundColor(Color.wardInk))\(after)")
     }
 }

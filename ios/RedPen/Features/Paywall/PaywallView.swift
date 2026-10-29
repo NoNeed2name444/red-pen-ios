@@ -123,7 +123,7 @@ struct PaywallView: View {
                     Text(plan.label).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
                     if plan == .yearly, let saving = subscriptions.yearlySaving, saving > 0 {
                         Text("Save \(saving)% against monthly")
-                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardSuccess)
+                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardInk)
                     }
                 }
                 Spacer()

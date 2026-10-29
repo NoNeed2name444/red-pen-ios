@@ -197,7 +197,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Figure("$streak", streakWord, Icons.Rounded.LocalFireDepartment, wardColor(WardToken.beam), Modifier.weight(1f))
         Figure("$today", "today", Icons.Rounded.CheckCircle, wardColor(WardToken.primaryInk), Modifier.weight(1f))
-        Figure(right, "of $answered right", Icons.Rounded.GpsFixed, wardColor(WardToken.success), Modifier.weight(1f))
+        Figure(right, "of $answered right", Icons.Rounded.GpsFixed, wardColor(WardToken.primaryInk), Modifier.weight(1f))
     }
 }
 
@@ -238,7 +238,7 @@ private data class QuestionList(val title: String, val tip: String?, val picks: 
     Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (icon != null) Icon(icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(18.dp))
-        Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.primaryInk), modifier = Modifier.weight(1f))
+        Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
     }
 }
 
@@ -329,8 +329,8 @@ private fun makeQuiz(name: String, picks: List<QuestionPick>): StudySet {
         }
         if (open) Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (q.correctIndex in q.options.indices) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Rounded.CheckCircle, null, tint = wardColor(WardToken.success), modifier = Modifier.size(16.dp))
-                Text(q.options[q.correctIndex], style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.success))
+                Icon(Icons.Rounded.CheckCircle, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))
+                Text(q.options[q.correctIndex], style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
             }
             if (q.explanation.isNotEmpty()) Text(q.explanation, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
         }

@@ -264,7 +264,7 @@ struct IdeaBoardView: View {
             if source != nil {
                 Button("Cancel") { source = nil }
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.wardPrimaryInk)
+                    .foregroundStyle(Color.wardInk)
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
             }

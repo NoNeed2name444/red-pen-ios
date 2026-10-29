@@ -130,7 +130,7 @@ struct AttendingHintCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Attending\u{2019}s hint", systemImage: "stethoscope")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
+                .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
             if let text {
                 Text(text)
                     .font(.body)

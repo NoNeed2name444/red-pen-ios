@@ -118,7 +118,7 @@ import kotlinx.coroutines.delay
                         .semantics { contentDescription = "Back to $backTitle" },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(20.dp))
-                        Text(backTitle, style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(backTitle, style = WardType.body.textStyle(), color = wardColor(WardToken.ink), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             },
@@ -188,7 +188,7 @@ import kotlinx.coroutines.delay
                 Row(Modifier.fillMaxWidth().clickable(role = Role.Button) { picking = true }.wardRowTile(),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Rounded.Link, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.width(24.dp))
-                    Text("Link to…", style = WardType.body.textStyle(), color = wardColor(WardToken.primaryInk))
+                    Text("Link to…", style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 }
             }
 
@@ -287,7 +287,7 @@ import kotlinx.coroutines.delay
         .semantics { contentDescription = "$label: $text" },
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(icon, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))
-        Text(text, style = WardType.chip.textStyle(), color = wardColor(WardToken.primaryInk), maxLines = 1)
+        Text(text, style = WardType.chip.textStyle(), color = wardColor(WardToken.ink), maxLines = 1)
     }
 }
 

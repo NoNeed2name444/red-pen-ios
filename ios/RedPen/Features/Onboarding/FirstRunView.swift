@@ -140,7 +140,8 @@ private struct FirstRunGoalPage: View {
 
     private func presetButton(_ value: Int) -> some View {
         let picked: Bool = value == goal
-        let ink: Color = picked ? Color.wardPrimaryInk : Color.wardInk
+        // the number in ink (the owner, 23 Oct, D1); picked shows in the pressed tile
+        let ink: Color = Color.wardInk
         return Button {
             withAnimation(Motion.gentle(.snappy(duration: 0.25))) { goal = value }
         } label: {
