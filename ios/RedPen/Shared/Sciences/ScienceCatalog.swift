@@ -159,7 +159,7 @@ struct ScienceTopic: Hashable, Identifiable {
     let note: String
     let points: [String]
     let tools: [ScienceTool]
-    /// Parts of the 3D atlas (AnatomyPart ids) that show it.
+    /// Parts of the 3D atlas (AtlasPart ids) that show it.
     let atlas: [String]
 }
 

@@ -17,7 +17,7 @@ struct AnatomyManifest: Decodable, Hashable {
     let frame: String
     let sources: [Source]
     let changes: String
-    let parts: [AnatomyPart]
+    let parts: [AtlasPart]
 
     struct Source: Decodable, Hashable, Identifiable {
         let id: String
@@ -30,10 +30,10 @@ struct AnatomyManifest: Decodable, Hashable {
         let licenceURL: String
     }
 
-    func part(_ id: String) -> AnatomyPart? { parts.first { $0.id == id } }
+    func part(_ id: String) -> AtlasPart? { parts.first { $0.id == id } }
 }
 
-struct AnatomyPart: Decodable, Hashable, Identifiable {
+struct AtlasPart: Decodable, Hashable, Identifiable {
     let id: String
     let name: String
     let system: AnatomySystem
@@ -233,7 +233,7 @@ enum AnatomyAtlas {
     }
 
     /// A part's meshes, checked against what the manifest says it holds.
-    static func meshes(of part: AnatomyPart, from data: Data) throws -> [AnatomyMesh] {
+    static func meshes(of part: AtlasPart, from data: Data) throws -> [AnatomyMesh] {
         let meshes = try meshes(from: data)
         guard meshes.count == part.structures.count else {
             throw ReadError.structureCount(file: meshes.count, manifest: part.structures.count)
@@ -243,10 +243,10 @@ enum AnatomyAtlas {
 
     /// Structures whose label holds every word of `query`, parts in the
     /// manifest's order: "left femur", "coronary".
-    static func search(_ query: String, in manifest: AnatomyManifest) -> [(part: AnatomyPart, structure: AnatomyStructure)] {
+    static func search(_ query: String, in manifest: AnatomyManifest) -> [(part: AtlasPart, structure: AnatomyStructure)] {
         let words = query.lowercased().split(whereSeparator: { $0 == " " || $0 == "," }).map(String.init)
         guard !words.isEmpty else { return [] }
-        var out: [(part: AnatomyPart, structure: AnatomyStructure)] = []
+        var out: [(part: AtlasPart, structure: AnatomyStructure)] = []
         for part in manifest.parts {
             for s in part.structures {
                 let label = s.label.lowercased()

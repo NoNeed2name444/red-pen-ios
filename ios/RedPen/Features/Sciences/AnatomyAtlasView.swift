@@ -160,7 +160,7 @@ private struct AtlasChosenCard: View {
 private struct AtlasSearchResults: View {
     let query: String
     let manifest: AnatomyManifest
-    let onChoose: (AnatomyPart, AnatomyStructure) -> Void
+    let onChoose: (AtlasPart, AnatomyStructure) -> Void
     @Environment(\.dismissSearch) private var dismissSearch
 
     var body: some View {
@@ -209,7 +209,7 @@ final class AtlasModel: NSObject, ObservableObject {
     enum State: Equatable { case loading, ready, failed(String) }
 
     struct Chosen: Equatable {
-        let part: AnatomyPart
+        let part: AtlasPart
         let structure: AnatomyStructure
     }
 
@@ -274,8 +274,8 @@ final class AtlasModel: NSObject, ObservableObject {
         }
         self.manifest = manifest
         self.focus = focus
-        let parts: [AnatomyPart] = manifest.parts
-        let built: [(part: AnatomyPart, nodes: [SCNNode])] = await Task.detached(priority: .userInitiated) {
+        let parts: [AtlasPart] = manifest.parts
+        let built: [(part: AtlasPart, nodes: [SCNNode])] = await Task.detached(priority: .userInitiated) {
             AtlasModel.build(parts)
         }.value
         guard !built.isEmpty else {
@@ -300,7 +300,7 @@ final class AtlasModel: NSObject, ObservableObject {
     }
 
     /// Every part's nodes, built off the main thread.
-    nonisolated private static func build(_ parts: [AnatomyPart]) -> [(part: AnatomyPart, nodes: [SCNNode])] {
+    nonisolated private static func build(_ parts: [AtlasPart]) -> [(part: AtlasPart, nodes: [SCNNode])] {
         var materials: [AnatomyTissue: SCNMaterial] = [:]
         func material(_ tissue: AnatomyTissue) -> SCNMaterial {
             if let made = materials[tissue] { return made }
@@ -405,7 +405,7 @@ final class AtlasModel: NSObject, ObservableObject {
     }
 
     /// A structure from the search: its layer shown, then chosen and framed.
-    func reveal(part: AnatomyPart, structure: AnatomyStructure) {
+    func reveal(part: AtlasPart, structure: AnatomyStructure) {
         let entry = Chosen(part: part, structure: structure)
         if !visible.contains(part.system) { visible.insert(part.system) }
         if !focus.isEmpty && onlyFocus && !focus.contains(part.id) { onlyFocus = false }
