@@ -2824,11 +2824,25 @@ for screenshots.
     the UBERON link, the HRA credit under the chips.
   - Playgrounds: Features/Sciences is dropped from every core variant (the
     engines stay); core3 stands SciencesView in as "not in this build".
+  - Checked by a separate agent against the checklist (calibrated first on
+    a copy with one planted difference, which it found), two rounds of
+    fixes: comparison lines grey, dashed, 1.5 points; results read as one
+    element; figures before verdicts; one topic link; identifiers in the
+    app's style; "No results" for every empty search. Kept on purpose, with
+    reasons the checker accepted: the four inhibitions on a menu (too long
+    for a segmented control on a phone), Haemodynamics' second figure last,
+    two calculators on the tests page, the atlas model in place of a
+    coordinator, wardEcg as an accent.
+  - Screenshots: SciencesUITests opens fifteen pages straight from launch
+    (-uiPreviewScreen science-<name>, SciencePreviewScreen); run it with
+    design-preview.yml on preview/sciences, only=testSciencesTour,
+    parts=iphone-tour,ipad.
   - [ ] S5a. App build green on design/sciences.
   - [ ] S5b. Screenshots on preview/sciences, sent to the owner.
   - [ ] S5c. Proposals to put to the owner: lift the examples hub's tile
-    and the Sciences tile into one Shared/Ward tile; the plots stand 220
-    points tall where Vitals' stand 150.
+    and the Sciences tile into one Shared/Ward tile, and the ward pocket's
+    text section beside it (ScienceTextSection is a copy); the plots stand
+    220 points tall where Vitals' stand 150.
 
 ### Waiting on the owner
 
