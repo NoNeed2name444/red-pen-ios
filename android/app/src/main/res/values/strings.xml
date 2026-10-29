@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The lecture recorder (T0146); Arabic in values-ar. The rest of the app keeps its words in Kotlin. -->
 <resources>
+    <!-- The lecture recorder (T0146); Arabic in values-ar -->
     <string name="recorder_title">Record a lecture</string>
     <string name="recorder_sheet_title">Record your lecture</string>
     <string name="recorder_sheet_body">Stethoscore uses the microphone to record the lecture. The recording stays on this phone until you choose to transcribe it.</string>
@@ -35,4 +35,7 @@
     <string name="recorder_recover_body">Stethoscore closed while recording. You can keep what it recorded up to then.</string>
     <string name="recorder_keep">Keep</string>
     <string name="recorder_discard">Delete</string>
+
+    <!-- Settings, Review: the FSRS-5 note, word for word as iOS's ReviewSettingsSection (T0160) -->
+    <string name="scheduler_fsrs_note" formatted="false">FSRS-5 is the scheduler modern Anki uses: it learns how well you remember each card and aims for 90% recall. Your existing schedule carries over.</string>
 </resources>

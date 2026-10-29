@@ -41,7 +41,7 @@ class HomeTilesMeasureTest {
         val set = store.library.first { it.kind == StudySetKind.BOOK }
         compose.setContent { StethoscoreApp(store, forceDark = false) }
         compose.waitForIdle()
-        compose.onNodeWithText("YOUR STUDY WARD").assertExists()
+        compose.onNodeWithContentDescription("Account and settings").assertExists()
         // the tiles' row, side by side (not the accessibility sizes' column)
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasContentDescription("Opens Progress", substring = true))
         compose.onNode(hasContentDescription("Opens Progress", substring = true)).assertExists()

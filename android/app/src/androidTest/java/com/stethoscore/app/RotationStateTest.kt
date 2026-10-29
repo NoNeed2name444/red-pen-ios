@@ -161,14 +161,14 @@ class RotationStateTest {
         instrumentation.runOnMainSync { LearnRouter.close() }
         compose.waitForIdle()
         val list = hasScrollToNodeAction()
-        waitFor("home's list", hasText("YOUR STUDY WARD"))
+        waitFor("home's list", hasContentDescription("Account and settings"))
         compose.onNode(list).performScrollToNode(hasText("Study aid", substring = true))
         compose.waitForIdle()
-        assertTrue("home's list scrolled past its header", !exists(hasText("YOUR STUDY WARD")))
+        assertTrue("home's list scrolled past its header", !exists(hasContentDescription("Account and settings")))
         turnAndCheck { step ->
             waitFor("home after $step", hasText("Study aid", substring = true))
             // the list is not back at its top
-            assertTrue("home's list kept its place after $step", !exists(hasText("YOUR STUDY WARD")))
+            assertTrue("home's list kept its place after $step", !exists(hasContentDescription("Account and settings")))
         }
         compose.onNode(list).performScrollToNode(hasContentDescription("Search"))
         compose.onAllNodes(hasSetTextAction() and hasContentDescription("Search")).onFirst().performTextInput("nephr")

@@ -297,7 +297,7 @@ class WindowShots {
         }
     }
 
-    @Test fun home() = shoot("home") { waitFor("home's Settings button",hasContentDescription("Settings")) }
+    @Test fun home() = shoot("home") { waitFor("home's account menu",hasContentDescription("Account and settings")) }
     @Test fun library() = shoot("library") { tap("the Cards tab",tab("Cards")) }
     @Test fun quizChecked() = shoot("quiz-checked") { s ->
         val set=s.library.first { it.kind==StudySetKind.MCQ }

@@ -1,10 +1,12 @@
 package com.stethoscore.app.ui
 
 import android.content.Context
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.*
@@ -14,6 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -99,11 +104,13 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
             val context=LocalContext.current
             val exam=remember { com.stethoscore.app.exam.ExamChoice.current(context) }
             SectionLabel("Your exam")
-            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+            // one exam row, the whole row the way to the picker (iOS's NavigationLink "Exam"): no second
+            // "Choose your exam" button under it (the owner, 23 Oct); its words in the ink, the chevron in the accent
+            Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(role=Role.Button,onClick=onExam).testTag("chooseExam"),verticalAlignment=Alignment.CenterVertically) {
                 Text("Exam",Modifier.weight(1f),style=WardType.headline.textStyle())
-                Text(exam?.shortName ?: "Choose",style=WardTextStyle.callout.textStyle(),color=MaterialTheme.colorScheme.primary)
+                Text(exam?.shortName ?: "Choose",style=WardTextStyle.callout.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight,null,tint=MaterialTheme.colorScheme.primary)
             }
-            WardButton(if(exam==null) "Choose your exam" else "Change exam",onExam,Modifier.fillMaxWidth().testTag("chooseExam"))
             Text("Questions and stations are written in your exam's style: USMLE uses US units and guidelines; PLAB, MRCP and MRCS use SI units, NICE and the BNF, and their own station formats.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         // Stethoscore Cloud as plain rows (the owner, 22 Oct): there is no writer to choose and no
@@ -112,12 +119,13 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
         CloudSettingsRows(cloud)
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Review")
-            Text("Scheduler",style=WardType.headline.textStyle())
+            // the control below says "Scheduler" to TalkBack; once is enough (as iOS, T0160)
+            Text("Scheduler",Modifier.clearAndSetSemantics {},style=WardType.headline.textStyle())
             // as iOS ReviewSettingsSection: the scheduler on the segmented control
             WardSegmented(review.scheduler,ReviewScheduler.entries,{ onReview(review.copy(scheduler=it)) },Modifier.semantics { contentDescription="Scheduler" }) { s,style,ink ->
                 Text(s.title,style=style,color=ink)
             }
-            Text(if(review.scheduler==ReviewScheduler.FSRS) "FSRS-5 with its published weights: each card's stability and difficulty set its next interval." else "Classic: the web app's intervals, the default.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if(review.scheduler==ReviewScheduler.FSRS) stringResource(com.stethoscore.app.R.string.scheduler_fsrs_note) else "Classic: the web app's intervals, the default.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
             LimitStepper("New cards a day",review.limits.newPerDay,5) { onReview(review.copy(limits=review.limits.copy(newPerDay=it))) }
             LimitStepper("Reviews a day",review.limits.reviewsPerDay,10) { onReview(review.copy(limits=review.limits.copy(reviewsPerDay=it))) }
             Text("Learning cards always come back when due. A study day turns over at 4 am.",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -169,6 +177,9 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
                 style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text("Questions, stations, cards and textbook pages are written by ${com.stethoscore.app.llm.HostedProvider.BRAND} Cloud, and everything it writes is checked by the verification layer. Your text is sent to the cloud to answer; ${com.stethoscore.app.llm.HostedProvider.BRAND} does not keep it.",
+            style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
+        // iOS's cloud card has the same safety note (T0160)
+        Text("A study aid, not medical advice; generated text can be wrong even when checked.",
             style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

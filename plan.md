@@ -3517,6 +3517,32 @@ should match each device corner radius".
   are on the rule and stay capsules: no concentric radius exceeds half
   their height.
 
+### The owner's per-screen picks, built (23 Oct, T0160)
+
+From the side-by-sides (scratchpad sbs/out 1-3): home's header and empty
+home follow iOS, Settings follows Android.
+
+- [x] Android home: the search with the account circle beside it (a native
+  menu: Your lectures, Settings), then the date, the name and the greeting;
+  no "YOUR STUDY WARD" eyebrow and no gear row.
+- [x] Android empty home: one card, the library's LibraryEmpty (three mode
+  tiles in their section colours, New set, Your lectures); the book icon,
+  Explore example sets and the import link are gone (import stays in
+  Settings, where iOS has it).
+- [ ] How it works on the empty home: Android has no help page yet.
+- [x] iOS Settings: Look and feel, Your exam, Stethoscore Cloud, Review
+  first, each one card under its small-caps heading; Night shift with
+  "Stethoscore's dark palette"; the long look note cut to the device's
+  state; the cloud and review notes in Android's words, keeping iOS's
+  privacy and safety notes (face tracking, crash reports, study aid) and
+  the old FSRS-5 line (independent review); the study-aid note on
+  Android's cloud card too.
+- [x] One exam row on both: Android's "Choose your exam" button is gone,
+  the row is the tap.
+- [ ] Ask the owner: iOS's other groups (reminders, Study, library data,
+  platform, accuracy engine, About) as cards too, or as they are.
+- [ ] The next Mac run's screenshots are the proof for iOS (no SwiftUI here).
+
 ### Waiting on the owner
 
 - Deploying the Worker with T0132 attempts 3 and 4 (only the owner is written for; 3.8 Flash, audio on it alone): built and tested here, not deployed.

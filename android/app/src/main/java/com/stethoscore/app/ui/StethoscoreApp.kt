@@ -84,6 +84,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
     var screen by rememberSaveable { mutableStateOf(initialScreen) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var licencesFrom by rememberSaveable { mutableStateOf("settings") }
+    // Your lectures opens from Settings and from home's account menu; back goes where it came from
+    var sourcesFrom by rememberSaveable { mutableStateOf("settings") }
     var revision by remember { mutableIntStateOf(0) }
     var category by rememberSaveable { mutableStateOf("Questions") }
     var query by rememberSaveable { mutableStateOf("") }
@@ -166,6 +168,7 @@ import com.stethoscore.app.ui.library.LibraryEtch
         stats={ screen="stats" },
         due={ if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true },
         ideas={ screen="ideas" },
+        sources={ sourcesFrom="home";screen="sources" },
         exportPdf={ set -> printing=set.id;printed.launch(com.stethoscore.app.export.DeckPdf.fileName(set)) },
         shareJson={ set -> sharing=set.id;shared.launch(set.name.replace(Regex("[^A-Za-z0-9 _-]"),"").trim().ifEmpty { "set" }+".json") },
         change=::change,
@@ -178,7 +181,7 @@ import com.stethoscore.app.ui.library.LibraryEtch
     LaunchedEffect(modeSwitch.opening) { modeSwitch.opening?.let { set -> modeSwitch.opening=null;refresh();open(set) } }
     LaunchedEffect(modeSwitch.writing) { modeSwitch.writing?.let { p -> modeSwitch.writing=null;newPreset=p;screen="new" } }
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
-    BackHandler(screen!="home") { when(screen) { "sources", "exam" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
+    BackHandler(screen!="home") { when(screen) { "sources" -> if(sourcesFrom=="home") goHome() else screen="settings"; "exam" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
     // takes its kind's, the brain map Ideas', everywhere else the outside look.
     val section = com.stethoscore.app.ui.learn.LearnRouter.section(store) ?: when(screen) {
@@ -244,11 +247,11 @@ import com.stethoscore.app.ui.library.LibraryEtch
                     "edit" -> store.library.firstOrNull { it.id==selectedId }?.let { set -> com.stethoscore.app.ui.editors.CardsEditorScreen(set,store) { refresh();goHome() } } ?: LaunchedEffect(Unit) { goHome() }
                     "photo" -> com.stethoscore.app.ui.editors.PictureFromPhotoScreen(store,{ refresh();goHome() },onOpen={ refresh();open(it) })
                     "settings" -> SettingsScreen(dark,{ dark=it;prefs.edit().putBoolean("dark",it).apply();(context as? android.app.Activity)?.let { a -> com.stethoscore.app.MainActivity.showGround(a,it) } },{ imported.launch(arrayOf("application/json","text/plain")) },{ exported.launch("stethoscore-library.json") },{ change(store::loadExamples);goHome() },::goHome,reviewSettings,{ next -> runCatching { store.setReviewSettings(next) }.onSuccess { reviewSettings=store.reviewSettings } },
-                        onSources={ screen="sources" },onLicences={ licencesFrom="settings";screen="licences" },onExam={ screen="exam" })
+                        onSources={ sourcesFrom="settings";screen="sources" },onLicences={ licencesFrom="settings";screen="licences" },onExam={ screen="exam" })
                     // batch 16: Settings, Your exam
                     "exam" -> com.stethoscore.app.ui.exam.ExamPickerScreen(store,{ screen="settings";refresh() })
                     // batch 9: the lectures in the library, the app's own sources, and one set's credits
-                    "sources" -> com.stethoscore.app.ui.sources.SourcesLibraryScreen(store,{ screen="settings" },{ screen="new" })
+                    "sources" -> com.stethoscore.app.ui.sources.SourcesLibraryScreen(store,{ if(sourcesFrom=="home") goHome() else screen="settings" },{ screen="new" })
                     "licences" -> com.stethoscore.app.ui.sources.ContentLicencesScreen { screen=licencesFrom }
                     "credits" -> {
                         val set=store.library.firstOrNull { it.id==selectedId }
@@ -295,14 +298,9 @@ import com.stethoscore.app.ui.library.LibraryEtch
                         // a broad window stands the dock up at the leading edge (iOS railed), not at the accessibility text sizes
                         val railed=shape.dockIsRail && !lib.selecting && LocalDensity.current.fontScale<1.5f
                             LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(WardSpace.gutter.wardDp+(if(railed) WardDock.railRoom.dp else 0.dp),WardSpace.m.wardDp,WardSpace.gutter.wardDp,WardSpace.xl.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
-                                item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) {
-                                    SectionLabel("YOUR STUDY WARD")
-                                    // a Ward circle, as iOS's toolbar button beside the search (.wardCircle)
-                                    com.stethoscore.app.ui.ward.WardCircleButton(Icons.Rounded.Settings,"Settings",{ screen="settings" })
-                                } }
-                                // the search in a Ward well with its magnifier, as iOS's searchField (.wardField)
-                                item { com.stethoscore.app.ui.ward.WardTextField(query,{query=it},Modifier.fillMaxWidth().semantics { contentDescription="Search" },
-                                    placeholder="Search questions, cards, notes",leadingIcon=Icons.Rounded.Search) }
+                                // the search in a Ward well with its magnifier, and the account menu beside it, as iOS's
+                                // searchField and accountMenu (.wardField, .wardCircle): no eyebrow over them (the owner, 23 Oct)
+                                item { HomeSearchRow(query,{query=it},onSources={ sourcesFrom="home";screen="sources" },onSettings={ screen="settings" }) }
                                 item {
                                     val below=with(LocalDensity.current) { HomeFit.belowHeader.dp.toPx() }
                                     DisposableEffect(Unit) { onDispose { bandBottom=null } }
@@ -315,15 +313,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
                                     Text(message,color=MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text("Nothing is saved until it opens, so the file is never overwritten. Restart the app to try again.",color=MaterialTheme.colorScheme.onSurfaceVariant)
                                 } } }
-                                if(store.library.isEmpty() && store.loadError==null) {
-                                    item { WardCard(Modifier.fillMaxWidth()) {
-                                        Icon(Icons.Rounded.AutoStories,null,tint=MaterialTheme.colorScheme.primary,modifier=Modifier.size(36.dp))
-                                        Text("Make your first set",style=WardType.title.textStyle())
-                                        Text("Add a lecture and Stethoscore turns it into questions or flashcards to study.",color=MaterialTheme.colorScheme.onSurfaceVariant)
-                                        WardButton("Explore example sets",{ change(store::loadExamples) },Modifier.fillMaxWidth(),enabled=store.loadError==null)
-                                        TextButton(onClick={imported.launch(arrayOf("application/json","text/plain"))}) { Text("Import a Stethoscore library") }
-                                    } }
-                                } else if(home!=null && query.isBlank() && (category=="Questions" || (category=="Cards" && home.first>0))) {
+                                // an empty library: the library's own empty card (LibraryEmpty, iOS emptyState), from libraryItems below
+                                if(home!=null && query.isBlank() && (category=="Questions" || (category=="Cards" && home.first>0))) {
                                     // the round on Questions, and on Cards while cards are due; the tiles on Questions
                                     homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" },
                                         onPlan={ com.stethoscore.app.ui.learn.LearnRouter.open(com.stethoscore.app.ui.learn.LearnRoute.ExamPlan) })
@@ -334,7 +325,7 @@ import com.stethoscore.app.ui.library.LibraryEtch
                                 if(query.isBlank() && category=="Cards" && store.loadError==null) item { com.stethoscore.app.ui.editors.PhotoCardsTile({ screen="photo" },Modifier.fillMaxWidth()) }
                                 // the library: its sets, folders, search and practice tiles (iOS LibraryView and LibraryRows), each row a part of home's book
                                 libraryItems(store,revision,com.stethoscore.app.ui.library.StudyCategory.named(category),query,libSearch,lib,libActions,
-                                    rowModifier={ set -> Modifier.homePart(book,"set-${set.id}","a set row") },showsEmpty=false)
+                                    rowModifier={ set -> Modifier.homePart(book,"set-${set.id}","a set row") })
                                 item { Text("Study aid. Not for clinical decisions.",style=WardTextStyle.caption2.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=6.dp)) }
                                 // the page is not cut above the bar, so this row is what lets the last tile scroll wholly clear of it (HomeFit.endSpace)
                                 item { Spacer(Modifier.fillMaxWidth().height(HomeFit.endSpace(barHeight).dp)) }
@@ -381,6 +372,32 @@ import com.stethoscore.app.ui.library.LibraryEtch
             com.stethoscore.app.ui.learn.WardRoundFloat()
         } }
     } }
+}
+
+/** Home's first row (iOS LibraryView's searchField and accountMenu): the search well, then the account circle. */
+@Composable private fun HomeSearchRow(query:String,onQuery:(String)->Unit,onSources:()->Unit,onSettings:()->Unit) {
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(WardSpace.m.wardDp),verticalAlignment=Alignment.CenterVertically) {
+        com.stethoscore.app.ui.ward.WardTextField(query,onQuery,Modifier.weight(1f).semantics { contentDescription="Search" },
+            placeholder="Search questions, cards, notes",leadingIcon=Icons.Rounded.Search)
+        HomeAccountMenu(onSources,onSettings)
+    }
+}
+
+/**
+ * Home's account menu beside the search (iOS LibraryView.accountMenu): a Ward
+ * circle that opens the pages about the app rather than one category - Your
+ * lectures, then Settings - in iOS's order. A native menu, its container in
+ * the page colour.
+ */
+@Composable private fun HomeAccountMenu(onSources:()->Unit,onSettings:()->Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        com.stethoscore.app.ui.ward.WardCircleButton(Icons.Rounded.AccountCircle,"Account and settings",{ open=true },Modifier.testTag("libraryMenu"))
+        DropdownMenu(open,{ open=false },containerColor=wardColor(WardToken.background)) {
+            DropdownMenuItem({ Text("Your lectures") },{ open=false;onSources() },leadingIcon={ Icon(Icons.Rounded.Description,null) })
+            DropdownMenuItem({ Text("Settings") },{ open=false;onSettings() },leadingIcon={ Icon(Icons.Rounded.Settings,null) })
+        }
+    }
 }
 
 /** Whether the soft keyboard is showing. */

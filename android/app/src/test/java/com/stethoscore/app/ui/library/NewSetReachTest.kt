@@ -18,6 +18,7 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -181,7 +182,7 @@ class NewSetReachTest {
         assertEquals(before + 1, store.library.size)
         val made = store.library.single { set -> set.questions.any { it.stem == stem } }
         assertEquals(StudySetKind.MCQ, made.kind)
-        compose.onNodeWithText("YOUR STUDY WARD").assertExists()
+        compose.onNodeWithContentDescription("Account and settings").assertExists()
         allAskedOnTheMainThread()
     }
 
@@ -247,8 +248,8 @@ class NewSetReachTest {
         // The store is not Compose state: the set is in the library before the
         // frame that closes New set. Wait for home, then look.
         compose.waitForIdle()
-        until { compose.onAllNodesWithText("YOUR STUDY WARD").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("YOUR STUDY WARD").assertExists()
+        until { compose.onAllNodesWithContentDescription("Account and settings").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Account and settings").assertExists()
         allAskedOnTheMainThread()
     }
 

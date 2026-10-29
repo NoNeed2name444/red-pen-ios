@@ -2,7 +2,7 @@ package com.stethoscore.app.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.learn.LearnRouterClosed
 import org.junit.Rule
@@ -26,10 +26,10 @@ class SwipeBackTest {
     private fun backFrom(screen: String) {
         val store = StudyStore(folder.newFolder(screen))
         compose.setContent { StethoscoreApp(store, initialScreen = screen, forceDark = false) }
-        compose.onNodeWithText("YOUR STUDY WARD").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Account and settings").assertDoesNotExist()
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.waitForIdle()
-        compose.onNodeWithText("YOUR STUDY WARD").assertExists()
+        compose.onNodeWithContentDescription("Account and settings").assertExists()
     }
 
     @Test fun backFromVitals() = backFrom("vitals")

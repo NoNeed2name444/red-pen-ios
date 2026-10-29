@@ -183,7 +183,7 @@ class TourTest {
 
     // MARK: home and library
 
-    @Test fun r013_home() = appRoute(13, "library", "home") { tour.waitFor("home's Settings button", hasContentDescription("Settings")) }
+    @Test fun r013_home() = appRoute(13, "library", "home") { tour.waitFor("home's account menu",hasContentDescription("Account and settings")) }
 
     @Test fun r014_dockPlaces() {
         val stores = Mode.entries.associateWith { tour.store() }

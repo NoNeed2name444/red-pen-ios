@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
@@ -78,6 +79,8 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.modeIcon
 import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.wardColor
+import com.stethoscore.app.ui.WardCard
+import androidx.compose.ui.platform.testTag
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardChipButton
 import com.stethoscore.app.ui.ward.WardEmptyState
@@ -198,6 +201,8 @@ class LibraryActions(
      * addMaterial, NewSetView(kind:startingAt:)).
      */
     val addMaterial: (() -> Unit)? = null,
+    /** Your lectures (iOS SupportPage.sources): the empty library's first link. */
+    val sources: (() -> Unit)? = null,
 )
 
 /** The search's answer for the words typed, worked out off the main thread (iOS LibrarySearchModel). */
@@ -277,13 +282,21 @@ fun LazyListScope.libraryItems(
 
 // MARK: - Empty
 
-/** An empty library (iOS LibraryRows.emptyState): one sentence, New set, and two quiet links. */
+/**
+ * An empty library (iOS LibraryRows.emptyState): the three modes fanned, one
+ * sentence, New set, and the quiet link to Your lectures, on a card at the top
+ * of home (iOS frostedListRow). iOS's second link, How it works, waits for a
+ * help page on Android.
+ */
 @Composable private fun LibraryEmpty(category: StudyCategory, actions: LibraryActions) {
+    WardCard(Modifier.fillMaxWidth().testTag("libraryEmpty")) {
     Column(Modifier.fillMaxWidth().padding(vertical = WardSpace.xl.wardDp), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
+        // each mode's glyph in its own section's colour, as iOS ModeTile
         Row(horizontalArrangement = Arrangement.spacedBy((-10).dp), modifier = Modifier.semantics { contentDescription = "" }) {
             listOf(StudySetKind.MCQ to -10f, StudySetKind.ANKI to 0f, StudySetKind.OSCE to 10f).forEach { (kind, angle) ->
-                WardIconSquare(modeIcon(kind), Modifier.rotate(angle), tone = WardTone.Blue, size = 52.0)
+                WardIconSquare(modeIcon(kind), Modifier.rotate(angle),
+                    tone = WardTone.Accent(com.stethoscore.app.ui.ward.WardSection.fromKindRaw(kind.rawValue)), size = 52.0)
             }
         }
         Text("Make your first set", style = WardTextStyle.title3.textStyle(WardWeight.bold), color = wardColor(WardToken.ink))
@@ -292,9 +305,12 @@ fun LazyListScope.libraryItems(
         WardButtonBox({ actions.newSet(category.mainKind) }, Modifier.widthIn(max = 280.dp).fillMaxWidth(), fills = false) {
             Icon(Icons.Rounded.Add, null, Modifier.size(18.dp)); Text("New set")
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            WardTextButton("Your lectures", { actions.ideas() }, kind = WardButtonKind.quiet, fills = false)
+        actions.sources?.let { sources ->
+            WardButtonBox(sources, Modifier.testTag("emptyLibraryLinks"), kind = WardButtonKind.quiet, fills = false) {
+                Icon(Icons.Rounded.Description, null, Modifier.size(18.dp)); Text("Your lectures")
+            }
         }
+    }
     }
 }
 
