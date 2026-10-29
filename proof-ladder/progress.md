@@ -1,10 +1,10 @@
 # The proof ladder
 
-Updated 2026-10-28T10:31:38.161Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
+Updated 2026-10-29T10:32:15.918Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
 
 | checked | Verified | errors among Verified | proven accuracy of Verified (95%, one-sided) |
 |---|---|---|---|
-| 2760 | 0 | 0 | n/a |
+| 2820 | 0 | 0 | n/a |
 
 | rung | Verified needed with no error | status |
 |---|---|---|
@@ -12,7 +12,7 @@ Updated 2026-10-28T10:31:38.161Z. Live Worker, every item checked once, half wit
 | 99.99% | 29,956 | waiting |
 | 99.999% | 299,572 | waiting |
 
-Verified per check so far: 0.00%. Flagged 530, Check this 2230, not checked 0.
+Verified per check so far: 0.00%. Flagged 556, Check this 2264, not checked 0.
 
 | day | checked | Verified | errors |
 |---|---|---|---|
@@ -25,38 +25,39 @@ Verified per check so far: 0.00%. Flagged 530, Check this 2230, not checked 0.
 | 2026-10-26 | 60 | 0 | 0 |
 | 2026-10-27 | 60 | 0 | 0 |
 | 2026-10-28 | 60 | 0 | 0 |
+| 2026-10-29 | 60 | 0 | 0 |
 
-The cloud checker this month (2026-10): $19.87 of the $40 cap at the end of the last run, $0.37 of it during that run.
+The cloud checker this month (2026-10): $20.21 of the $40 cap at the end of the last run, $0.34 of it during that run.
 
 Runner voters, every blind answer for the items sent (a runner holds a seat only at 80% or more by the lower bound, on 200 or more):
 
 | runner | answered | right | right, 95% lower bound | seated |
 |---|---|---|---|---|
-| granite-4.0-h-tiny | 2713 | 1562 | 55.9900% | no |
-| phi-4-mini-instruct | 1689 | 969 | 55.3539% | no |
+| granite-4.0-h-tiny | 2773 | 1596 | 55.9877% | no |
+| phi-4-mini-instruct | 1742 | 1001 | 55.4773% | no |
 
 Why items were not Verified (each reason counted once per item):
 
 | reason | items |
 |---|---|
-| Not yet passed by three model families. | 1592 |
-| No official source states it word for word yet. | 1298 |
-| Checkers from 2 different model families, solving it without the key, chose another answer. | 830 |
+| Not yet passed by three model families. | 1595 |
+| No official source states it word for word yet. | 1331 |
+| Checkers from 2 different model families, solving it without the key, chose another answer. | 836 |
 | Fewer than three independent blind solves reached the key. | 815 |
-| The checkers judged it likely wrong. | 625 |
+| The checkers judged it likely wrong. | 654 |
 | The checkers were not confident enough. | 618 |
-| A dose, diagnosis or treatment no official source states word for word yet. | 559 |
-| It cannot be read into statements a source could prove word for word. | 222 |
+| A dose, diagnosis or treatment no official source states word for word yet. | 575 |
+| Checkers from 3 different model families, solving it without the key, chose another answer. | 232 |
 
 Each family's blind answers against the gold key (one witness per family per question; "runner": run on GitHub's CPU with no key):
 
 | family | answered | right | right, 95% lower bound |
 |---|---|---|---|
-| anthropic | 2760 | 2497 | 89.5015% |
-| google | 2621 | 2251 | 84.7158% |
+| anthropic | 2820 | 2552 | 89.5389% |
+| google | 2677 | 2301 | 84.8020% |
 | ibm (runner) | 584 | 327 | 52.5119% |
-| openai | 248 | 215 | 82.6138% |
-| nvidia | 236 | 197 | 78.9748% |
+| openai | 295 | 254 | 82.3475% |
+| nvidia | 252 | 208 | 78.1260% |
 | microsoft (runner) | 12 | 5 | 18.1025% |
 
 Today: 60 sent; stopped at the ladder's half of the Workers AI pool (15 batches).
