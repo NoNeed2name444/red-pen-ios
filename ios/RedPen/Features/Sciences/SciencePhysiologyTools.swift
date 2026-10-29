@@ -65,6 +65,7 @@ struct MembranePotentialTool: View {
                 ScienceVerdict(text: verdict(vm))
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("Try") {
                 SciencePresetButton(title: "At rest", detail: "The usual concentrations") {
@@ -201,6 +202,7 @@ struct ActionPotentialTool: View {
                 ScienceVerdict(text: verdict(spikes: spikes.count, peak: peak))
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "The Hodgkin-Huxley model of the squid giant axon (1952): the membrane's capacitance charged by sodium, potassium and leak currents, each through gates that open and close at voltage-dependent rates, integrated in 0.01 ms steps. Blocking a channel scales its conductance down; potassium outside moves its equilibrium potential as the Nernst equation says.")
@@ -259,7 +261,7 @@ struct CardiacCycleTool: View {
         let events: [Valve] = [CardiacCycle.Event.mitralCloses, .aorticOpens, .aorticCloses, .mitralOpens]
             .compactMap { e in beat.eventTimes[e].map { Valve(name: e.name, ms: $0 * 1000) } }
         ScienceToolPage(tool: .cardiacCycle) {
-            Section {
+            Section("Values") {
                 Picker("Heart", selection: $preset) {
                     ForEach(CardiacCycle.Preset.allCases) { p in
                         Text(p.name).tag(p)
@@ -273,14 +275,15 @@ struct CardiacCycleTool: View {
             Section {
                 ScienceFigure(title: "Pressure-volume loop",
                               caption: preset == .normal ? "Counter-clockwise: filling along the bottom, the valves at the corners, ejection across the top."
-                                                         : "The grey loop is the normal heart, for comparison.",
+                                                         : "The dashed loop is the normal heart, for comparison.",
                               spoken: "From \(scienceNumber(beat.edv)) to \(scienceNumber(beat.esv)) millilitres, peaking at \(scienceNumber(beat.lvSystolic)) millimetres of mercury.") {
                     Chart {
                         if preset != .normal {
                             ForEach(Array(reference.enumerated()), id: \.offset) { _, s in
                                 LineMark(x: .value("Volume", s.lvVolume), y: .value("Pressure", s.lvPressure),
                                          series: .value("Heart", "Normal"))
-                                    .foregroundStyle(Color.wardInkSecondary.opacity(0.5))
+                                    .foregroundStyle(Color.wardInkSecondary)
+                                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             }
                         }
                         ForEach(Array(loop.enumerated()), id: \.offset) { _, s in
@@ -338,6 +341,7 @@ struct CardiacCycleTool: View {
                 }
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "Each chamber is an elastance that stiffens as it contracts and relaxes back; the arteries are a three-element Windkessel (impedance, compliance, resistance) and the veins a reservoir. Valves let blood through by Bernoulli's law (gradient = 4v\u{00B2}) and a leak lets it back. The model runs until each beat matches the last, then shows that beat.")
@@ -396,6 +400,7 @@ struct HaemodynamicsTool: View {
                 ScienceVerdict(text: verdict(map: map, resistance: resistance))
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section {
                 ScienceFigure(title: "Why radius rules flow",
@@ -511,6 +516,7 @@ struct StarlingTool: View {
                                               : "Filtration and return nearly balance; the lymph carries the small remainder.")
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "Net pressure = (Pc \u{2212} Pi) \u{2212} \u{03C3}(\u{03C0}c \u{2212} \u{03C0}i): the capillary's pressure pushing out against the tissue's, less the proteins' pull back in, scaled by how well the wall holds protein (\u{03C3}, 1 for a tight wall). The tissue's own pressure is taken as 1 mmHg.")
@@ -566,13 +572,14 @@ struct OxygenCurveTool: View {
         ScienceToolPage(tool: .oxygenCurve) {
             Section {
                 ScienceFigure(title: "Haemoglobin's saturation against PO2",
-                              caption: changed ? "The grey curve is the standard one (pH 7.4, 37 \u{00B0}C). Right means oxygen is given up more easily; left, held more tightly."
+                              caption: changed ? "The dashed curve is the standard one (pH 7.4, 37 \u{00B0}C). Right means oxygen is given up more easily; left, held more tightly."
                                                : "The standard curve: pH 7.4, 37 \u{00B0}C, half-saturated at about 27 mmHg.",
                               spoken: "P50 \(scienceNumber(p50, 1)) millimetres of mercury; at \(scienceNumber(po2)) the saturation is \(sciencePercent(sat)).") {
                     Chart {
                         ForEach(points) { p in
                             LineMark(x: .value("PO2", p.po2), y: .value("Saturation", p.sat), series: .value("Curve", p.curve))
-                                .foregroundStyle(p.curve == "Now" ? Color.wardPrimaryInk : Color.wardInkSecondary.opacity(0.5))
+                                .foregroundStyle(p.curve == "Now" ? Color.wardPrimaryInk : Color.wardInkSecondary)
+                                .lineStyle(p.curve == "Now" ? StrokeStyle(lineWidth: 2) : StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         }
                         RuleMark(x: .value("P50", p50))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
@@ -613,6 +620,7 @@ struct OxygenCurveTool: View {
                                      : "Close to the standard curve.")
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "Severinghaus's equation for the curve, S = 1 / (23,400 / (P\u{00B3} + 150P) + 1), with Kelman's shifts of P50 for pH, temperature and base excess. The pH here comes from the PaCO2 and a bicarbonate of 24 + base excess. Oxygen content = 1.34 \u{00D7} Hb \u{00D7} saturation + 0.003 \u{00D7} PO2.")
@@ -648,12 +656,15 @@ struct AlveolarGasTool: View {
                               shown: scienceNumber(pao2) + " mmHg")
                 ScienceSlider(name: "Age", value: $age, range: 18...95, step: 1,
                               shown: scienceNumber(age) + " years")
-                Picker("Altitude", selection: $altitude) {
-                    ForEach(Self.pressures.indices, id: \.self) { i in
-                        Text(Self.pressures[i].name).tag(i)
+                VStack(alignment: .leading, spacing: WardSpace.s) {
+                    Text("Altitude")
+                    WardSegmented(selection: $altitude, options: Array(Self.pressures.indices)) { i in
+                        Text(Self.pressures[i].name)
                     }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Altitude")
                 }
-                .pickerStyle(.menu)
+                .padding(.vertical, WardSpace.xs)
             }
             .wardRowBackground()
 
@@ -664,6 +675,7 @@ struct AlveolarGasTool: View {
                 ScienceVerdict(text: verdict(gradient: gradient, expected: expected))
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "PAO2 = FiO2 \u{00D7} (barometric pressure \u{2212} 47) \u{2212} PaCO2 / 0.8: the oxygen breathed in, less water vapour, less what carbon dioxide displaces (the respiratory quotient is taken as 0.8). The A-a gradient is PAO2 \u{2212} PaO2; breathing air, its upper limit is about age / 4 + 4.")
@@ -722,11 +734,12 @@ struct RenalClearanceTool: View {
                 ScienceReading(label: "Creatinine clearance", value: scienceNumber(clearance) + " mL/min")
                 ScienceReading(label: "FENa", value: scienceNumber(fena, 2) + "%")
                 ScienceReading(label: "Free water clearance", value: scienceNumber(freeWater, 1) + " mL/min")
-                ScienceVerdict(text: RenalPhysiology.fenaReading(fena))
-                ScienceVerdict(text: freeWater < 0 ? "Negative free water clearance: the kidney is concentrating, keeping water (ADH at work)."
-                                                   : "Positive free water clearance: the kidney is making dilute urine, losing water.")
+                ScienceVerdict(text: RenalPhysiology.fenaReading(fena) + " "
+                               + (freeWater < 0 ? "Negative free water clearance: the kidney is concentrating, keeping water (ADH at work)."
+                                                : "Positive free water clearance: the kidney is making dilute urine, losing water."))
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("Try") {
                 SciencePresetButton(title: "Healthy", detail: "Clearance about 100 mL/min") {
@@ -790,6 +803,15 @@ struct AcidBaseTool: View {
             .wardRowBackground()
 
             Section("Result") {
+                if let gap = reading.anionGap {
+                    ScienceReading(label: "Anion gap", value: scienceNumber(gap))
+                }
+                if let corrected = reading.correctedGap {
+                    ScienceReading(label: "Corrected for albumin", value: scienceNumber(corrected, 1))
+                }
+                if let delta = reading.deltaRatio {
+                    ScienceReading(label: "Delta ratio", value: scienceNumber(delta, 1))
+                }
                 if reading.isNormal {
                     ScienceVerdict(text: "No acid-base disorder.")
                 }
@@ -801,17 +823,9 @@ struct AcidBaseTool: View {
                 if let timing = reading.timing {
                     ScienceVerdict(text: timing)
                 }
-                if let gap = reading.anionGap {
-                    ScienceReading(label: "Anion gap", value: scienceNumber(gap))
-                }
-                if let corrected = reading.correctedGap {
-                    ScienceReading(label: "Corrected for albumin", value: scienceNumber(corrected, 1))
-                }
-                if let delta = reading.deltaRatio {
-                    ScienceReading(label: "Delta ratio", value: scienceNumber(delta, 1))
-                }
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("Step by step") {
                 ForEach(Array(reading.steps.enumerated()), id: \.offset) { i, step in

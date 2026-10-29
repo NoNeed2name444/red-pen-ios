@@ -39,8 +39,9 @@ struct AnatomyAtlasView: View {
                     .accessibilityIdentifier("atlasScene")
                 switch model.state {
                 case .loading:
-                    ProgressView("Loading the atlas")
+                    ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityLabel("Loading the atlas")
                 case .failed(let why):
                     WardEmptyState(symbol: "exclamationmark.triangle", title: "The atlas could not be read", message: why)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -62,7 +63,7 @@ struct AnatomyAtlasView: View {
             }
         }
         .wardScreen()
-        .navigationTitle(title ?? "3D atlas")
+        .navigationTitle(title ?? ScienceTool.atlas.name)
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: "Find a structure")
         .toolbar {
@@ -91,6 +92,7 @@ struct AnatomyAtlasView: View {
                         WardFilterChip(text: "Only these", symbol: "scope", selected: model.onlyFocus) {
                             model.onlyFocus.toggle()
                         }
+                        .accessibilityIdentifier("atlasOnlyThese")
                     }
                     ForEach(model.systems) { system in
                         WardFilterChip(text: system.name, selected: model.visible.contains(system)) {
@@ -101,6 +103,7 @@ struct AnatomyAtlasView: View {
                     WardFilterChip(text: "Inside", symbol: "circle.dashed.inset.filled", selected: model.showInner) {
                         model.showInner.toggle()
                     }
+                    .accessibilityIdentifier("atlasInside")
                 }
                 .padding(.horizontal, WardSpace.gutter)
             }
@@ -128,7 +131,7 @@ private struct AtlasChosenCard: View {
                         .font(.headline)
                         .foregroundStyle(Color.wardInk)
                     Text(chosen.part.name + " \u{00B7} " + chosen.part.system.name)
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: WardSpace.s)
@@ -181,6 +184,8 @@ private struct AtlasSearchResults: View {
                                 detail: hit.part.name + " \u{00B7} " + hit.part.system.name, chevron: false)
                     }
                     .buttonStyle(.plain)
+                    .hoverEffect(.highlight)
+                    .accessibilityIdentifier("atlasResult-\(hit.structure.node)")
                 }
             } footer: {
                 if found.count > 60 { Text("The first 60 of \(found.count); type more to narrow it.") }
@@ -257,7 +262,8 @@ final class AtlasModel: NSObject, ObservableObject {
         view.backgroundColor = .clear
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = false
-        view.antialiasingMode = .multisampling4X
+        // the Graphics budget's multisampling, as the Neurons map takes it
+        view.antialiasingMode = GraphQuality.current.msaa >= 4 ? .multisampling4X : .multisampling2X
         view.defaultCameraController.interactionMode = .orbitTurntable
         view.defaultCameraController.inertiaEnabled = true
         let tap = UITapGestureRecognizer(target: self, action: #selector(tapped(_:)))

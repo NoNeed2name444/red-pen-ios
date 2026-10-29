@@ -9,7 +9,7 @@ struct ScienceSubjectView: View {
             Section {
                 ForEach(ScienceCatalog.tools(subject)) { tool in
                     ScienceLink(title: tool.name, symbol: tool.symbol, detail: tool.blurb,
-                                id: "science-tool-\(tool.rawValue)") {
+                                id: "scienceTool-\(tool.rawValue)") {
                         tool.page
                     }
                 }
@@ -22,17 +22,14 @@ struct ScienceSubjectView: View {
 
             Section {
                 ForEach(ScienceCatalog.topics(subject)) { topic in
-                    ScienceLink(title: topic.title, symbol: topic.symbol, detail: topic.byline,
-                                id: "science-topic-\(topic.id)") {
-                        ScienceTopicView(topic: topic)
-                    }
+                    ScienceTopicLink(topic: topic)
                 }
             } header: { Text("Topics") }
             .wardRowBackground()
         }
         .wardForm()
         .navigationTitle(subject.name)
-        .accessibilityIdentifier("science-subject-page")
+        .accessibilityIdentifier("scienceSubjectPage")
     }
 }
 
@@ -54,7 +51,7 @@ struct BodySystemView: View {
             if !parts.isEmpty {
                 Section {
                     ScienceLink(title: "See it in 3D", symbol: ScienceTool.atlas.symbol,
-                                detail: AtlasLibrary.names(of: parts), id: "science-system-atlas") {
+                                detail: AtlasLibrary.names(of: parts), id: "scienceSystemAtlas") {
                         AnatomyAtlasView(focus: parts, title: system.name)
                     }
                 }
@@ -65,11 +62,7 @@ struct BodySystemView: View {
                 if !mine.isEmpty {
                     Section {
                         ForEach(mine) { topic in
-                            ScienceLink(title: topic.title, symbol: subject.symbol,
-                                        detail: topic.points.first ?? subject.name,
-                                        id: "science-topic-\(topic.id)") {
-                                ScienceTopicView(topic: topic)
-                            }
+                            ScienceTopicLink(topic: topic)
                         }
                     } header: { Text(subject.name) }
                     .wardRowBackground()
@@ -78,7 +71,7 @@ struct BodySystemView: View {
         }
         .wardForm()
         .navigationTitle(system.name)
-        .accessibilityIdentifier("science-system-page")
+        .accessibilityIdentifier("scienceSystemPage")
     }
 }
 
@@ -120,18 +113,18 @@ struct ScienceTopicView: View {
                 Section {
                     ForEach(topic.tools) { tool in
                         ScienceLink(title: tool.name, symbol: tool.symbol, detail: tool.blurb,
-                                    id: "science-tool-\(tool.rawValue)") {
+                                    id: "scienceTool-\(tool.rawValue)") {
                             tool.page
                         }
                     }
-                } header: { Text("Try it") }
+                } header: { Text("Tools") }
                 .wardRowBackground()
             }
 
             if !topic.atlas.isEmpty {
                 Section {
                     ScienceLink(title: "See it in 3D", symbol: ScienceTool.atlas.symbol,
-                                detail: AtlasLibrary.names(of: topic.atlas), id: "science-topic-atlas") {
+                                detail: AtlasLibrary.names(of: topic.atlas), id: "scienceTopicAtlas") {
                         AnatomyAtlasView(focus: topic.atlas, title: topic.title)
                     }
                 }
@@ -141,7 +134,21 @@ struct ScienceTopicView: View {
         .wardForm()
         .navigationTitle(topic.title)
         .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("science-topic-page")
+        .accessibilityIdentifier("scienceTopicPage")
+    }
+}
+
+/// A topic's link, the same wherever it is listed: its title, the first
+/// system's symbol, and where it belongs.
+struct ScienceTopicLink: View {
+    let topic: ScienceTopic
+    var tile = false
+
+    var body: some View {
+        ScienceLink(title: topic.title, symbol: topic.symbol, detail: topic.byline,
+                    id: "scienceTopic-\(topic.id)", tile: tile) {
+            ScienceTopicView(topic: topic)
+        }
     }
 }
 

@@ -20,7 +20,7 @@ struct ScienceToolPage<Content: View>: View {
         .navigationTitle(tool.name)
         .navigationBarTitleDisplayMode(.inline)
         .wardDisclaimer()
-        .accessibilityIdentifier("science-tool-page-\(tool.rawValue)")
+        .accessibilityIdentifier("scienceToolPage-\(tool.rawValue)")
     }
 }
 
@@ -166,13 +166,14 @@ struct SciencePresetButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(title).foregroundStyle(Color.wardPrimaryInk)
                 if let detail {
                     Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }
+        .accessibilityIdentifier("sciencePreset-\(title)")
     }
 }
 

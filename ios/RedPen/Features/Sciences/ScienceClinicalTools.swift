@@ -32,7 +32,7 @@ struct ShockTool: View {
             }
             .wardRowBackground()
 
-            Section("Fits") {
+            Section("Result") {
                 if fits.isEmpty {
                     ScienceVerdict(text: "No kind of shock gives this picture. Check the numbers, or think of a mixed shock (septic shock with a failing heart).")
                 }
@@ -44,6 +44,7 @@ struct ShockTool: View {
                 }
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section {
                 Grid(alignment: .leading, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
@@ -116,8 +117,7 @@ struct InfarctTool: View {
 
             Section("Every stage") {
                 ForEach(Pathology.infarct) { s in
-                    ScienceFact(title: s.span, lines: [(label: "Microscope", text: s.micro)])
-                        .opacity(s == stage ? 1 : 0.7)
+                    ScienceFact(title: s == stage ? s.span + " (now)" : s.span, lines: [(label: "Microscope", text: s.micro)])
                 }
             }
             .wardRowBackground()
@@ -178,6 +178,7 @@ struct GlomerularTool: View {
                                                          : "Over 3.5 g a day is the nephrotic line; red cell casts mean glomerular bleeding, the nephritic sign.")
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("Nephrotic") {
                 ForEach(Pathology.nephroticFeatures, id: \.self) { f in Text(f).font(.subheadline) }
@@ -230,6 +231,7 @@ struct TumourNamesTool: View {
                 }
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("Names that break the rule") {
                 ForEach(Pathology.misleadingNames, id: \.name) { m in
@@ -329,6 +331,7 @@ struct PharmacokineticsTool: View {
                 ScienceReading(label: "Loading dose", value: scienceNumber(loading) + " mg")
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "One compartment, first-order elimination: k = clearance / volume and half-life = 0.693 / k. By mouth, absorption is first order too, scaled by bioavailability. Average steady state = F \u{00D7} dose / (clearance \u{00D7} interval); a loading dose = target \u{00D7} volume / F reaches it at once.")
@@ -365,6 +368,29 @@ struct DiagnosticTestsTool: View {
         let trial = Biostatistics.Trial(treatedEvents: treatedRate * 1000, treatedTotal: 1000,
                                         controlEvents: controlRate * 1000, controlTotal: 1000)
         ScienceToolPage(tool: .diagnosticTests) {
+            Section {
+                ScienceFigure(title: "Predictive values against prevalence",
+                              caption: "The same test: in a rare disease most positives are false; in a common one, most negatives need a second look.",
+                              spoken: "At \(sciencePercent(prevalence)) prevalence a positive is right \(sciencePercent(table.positivePredictive ?? 0)) of the time.") {
+                    Chart {
+                        ForEach(curve) { p in
+                            LineMark(x: .value("Prevalence", p.prevalence), y: .value("%", p.value), series: .value("Value", p.name))
+                                .foregroundStyle(by: .value("Value", p.name))
+                                .lineStyle(p.name == "Positive predictive value" ? StrokeStyle(lineWidth: 2) : StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                        }
+                        RuleMark(x: .value("Now", prevalence * 100))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundStyle(Color.wardInkSecondary)
+                    }
+                    .chartForegroundStyleScale(["Positive predictive value": Color.wardPrimaryInk,
+                                                "Negative predictive value": Color.wardInkSecondary])
+                    .chartYScale(domain: 0.0...100.0)
+                    .chartXAxisLabel("prevalence, %")
+                    .chartYAxisLabel("%")
+                }
+            }
+            .wardRowBackground()
+
             Section("A test") {
                 ScienceSlider(name: "Sensitivity", value: $sensitivity, range: 0.5...1, step: 0.01, shown: sciencePercent(sensitivity))
                 ScienceSlider(name: "Specificity", value: $specificity, range: 0.5...1, step: 0.01, shown: sciencePercent(specificity))
@@ -405,34 +431,17 @@ struct DiagnosticTestsTool: View {
                 ScienceReading(label: "Likelihood ratio \u{2212}", value: scienceNumber(table.negativeLikelihood ?? .nan, 2))
             }
             .wardRowBackground()
-
-            Section {
-                ScienceFigure(title: "Predictive values against prevalence",
-                              caption: "The same test: in a rare disease most positives are false; in a common one, most negatives need a second look.",
-                              spoken: "At \(sciencePercent(prevalence)) prevalence a positive is right \(sciencePercent(table.positivePredictive ?? 0)) of the time.") {
-                    Chart {
-                        ForEach(curve) { p in
-                            LineMark(x: .value("Prevalence", p.prevalence), y: .value("%", p.value), series: .value("Value", p.name))
-                                .foregroundStyle(by: .value("Value", p.name))
-                        }
-                        RuleMark(x: .value("Now", prevalence * 100))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                            .foregroundStyle(Color.wardInkSecondary)
-                    }
-                    .chartForegroundStyleScale(["Positive predictive value": Color.wardPrimaryInk,
-                                                "Negative predictive value": Color.wardBeam])
-                    .chartYScale(domain: 0.0...100.0)
-                    .chartXAxisLabel("prevalence, %")
-                    .chartYAxisLabel("%")
-                }
-            }
-            .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("A trial") {
                 ScienceSlider(name: "Events without treatment", value: $controlRate, range: 0.01...0.6, step: 0.01,
                               shown: sciencePercent(controlRate))
                 ScienceSlider(name: "Events with treatment", value: $treatedRate, range: 0.01...0.6, step: 0.01,
                               shown: sciencePercent(treatedRate))
+            }
+            .wardRowBackground()
+
+            Section("The trial's result") {
                 ScienceReading(label: "Relative risk", value: scienceNumber(trial.relativeRisk ?? .nan, 2))
                 ScienceReading(label: "Absolute risk reduction", value: sciencePercent(trial.absoluteRiskReduction ?? .nan, 1))
                 ScienceReading(label: "Relative risk reduction", value: sciencePercent(trial.relativeRiskReduction ?? .nan))
@@ -440,6 +449,7 @@ struct DiagnosticTestsTool: View {
                 ScienceReading(label: "Odds ratio", value: scienceNumber(trial.oddsRatio ?? .nan, 2))
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "Sensitivity = TP / (TP + FN); specificity = TN / (TN + FP). PPV = TP / (TP + FP); NPV = TN / (TN + FN). LR+ = sensitivity / (1 \u{2212} specificity); LR\u{2212} = (1 \u{2212} sensitivity) / specificity. ARR = control rate \u{2212} treated rate; NNT = 1 / ARR, rounded up; RR = treated rate / control rate.")
@@ -449,7 +459,7 @@ struct DiagnosticTestsTool: View {
     private func cell(_ n: Double, good: Bool) -> some View {
         Text(scienceNumber(n))
             .font(WardType.obs)
-            .foregroundStyle(good ? Color.wardInk : Color.wardEcg)
+            .foregroundStyle(good ? Color.wardInk : Color.wardDanger)
     }
 
     private func nnt(_ value: Double?) -> String {

@@ -27,7 +27,7 @@ struct SciencesView: View {
             }
         }
         .navigationTitle("Sciences")
-        .searchable(text: $query, prompt: "Topics and tools")
+        .searchable(text: $query, prompt: "Find a topic or tool")
         .accessibilityIdentifier("sciencesHub")
     }
 
@@ -37,7 +37,7 @@ struct SciencesView: View {
         List {
             Section {
                 atlasLink
-            }
+            } header: { Text("Anatomy in 3D") }
             .wardRowBackground()
 
             Section {
@@ -59,11 +59,11 @@ struct SciencesView: View {
         let columns: [GridItem] = GridItem.tiles(minimum: 220, accessibilitySize: typeSize.isAccessibilitySize)
         return ScrollView {
             VStack(alignment: .leading, spacing: WardSpace.section) {
-                LazyVGrid(columns: columns, alignment: .leading, spacing: WardSpace.m) { atlasLink }
+                gridSection("Anatomy in 3D", columns: columns) { atlasLink }
                 gridSection("Subjects", columns: columns) { subjectLinks }
                 gridSection("Body systems", columns: columns) { systemLinks }
             }
-            .padding(WardSpace.xl)
+            .padding(WardSpace.gutter)
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)
         }
@@ -85,7 +85,7 @@ struct SciencesView: View {
 
     private var atlasLink: some View {
         ScienceLink(title: ScienceTool.atlas.name, symbol: ScienceTool.atlas.symbol,
-                    detail: ScienceTool.atlas.blurb, id: "science-atlas", tile: tiles) {
+                    detail: ScienceTool.atlas.blurb, id: "scienceAtlas", tile: tiles) {
             AnatomyAtlasView()
         }
     }
@@ -94,7 +94,7 @@ struct SciencesView: View {
     private var subjectLinks: some View {
         ForEach(ScienceSubject.allCases) { subject in
             ScienceLink(title: subject.name, symbol: subject.symbol, detail: subject.blurb,
-                        id: "science-subject-\(subject.rawValue)", tile: tiles) {
+                        id: "scienceSubject-\(subject.rawValue)", tile: tiles) {
                 ScienceSubjectView(subject: subject)
             }
         }
@@ -104,7 +104,7 @@ struct SciencesView: View {
     private var systemLinks: some View {
         ForEach(BodySystem.allCases) { system in
             ScienceLink(title: system.name, symbol: system.symbol, detail: system.blurb,
-                        id: "science-system-\(system.rawValue)", tile: tiles) {
+                        id: "scienceSystem-\(system.rawValue)", tile: tiles) {
                 BodySystemView(system: system)
             }
         }
@@ -125,7 +125,7 @@ struct SciencesView: View {
         let tools: [ScienceTool] = matchingTools
         return List {
             if topics.isEmpty && tools.isEmpty {
-                WardEmptyState(symbol: "magnifyingglass", title: "Nothing found",
+                WardEmptyState(symbol: "magnifyingglass", title: "No results",
                                message: "Try a structure, a disease or a word from a topic, such as \u{201C}shock\u{201D} or \u{201C}glycolysis\u{201D}.")
                     .listRowBackground(Color.clear)
             }
@@ -133,7 +133,7 @@ struct SciencesView: View {
                 Section {
                     ForEach(tools) { tool in
                         ScienceLink(title: tool.name, symbol: tool.symbol, detail: tool.blurb,
-                                    id: "science-tool-\(tool.rawValue)", tile: false) {
+                                    id: "scienceTool-\(tool.rawValue)", tile: false) {
                             tool.page
                         }
                     }
@@ -143,10 +143,7 @@ struct SciencesView: View {
             if !topics.isEmpty {
                 Section {
                     ForEach(topics) { topic in
-                        ScienceLink(title: topic.title, symbol: topic.subject.symbol, detail: topic.subject.name,
-                                    id: "science-topic-\(topic.id)", tile: false) {
-                            ScienceTopicView(topic: topic)
-                        }
+                        ScienceTopicLink(topic: topic)
                     }
                 } header: { Text("Topics") }
                 .wardRowBackground()
@@ -210,7 +207,7 @@ private struct ScienceTile: View {
             Spacer(minLength: 0)
         }
         .multilineTextAlignment(.leading)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
         .padding(WardSpace.gutter)
     }
 }
@@ -223,7 +220,7 @@ extension ScienceSubject {
         case .anatomy: return "figure.stand"
         case .physiology: return "waveform.path.ecg"
         case .biochemistry: return "flask"
-        case .pathology: return "allergens"
+        case .pathology: return "bandage"
         case .microbiology: return "microbe"
         case .immunology: return "shield.lefthalf.filled"
         case .genetics: return "square.grid.2x2"
@@ -284,7 +281,7 @@ extension ScienceTool {
         case .hypersensitivity: return "allergens"
         case .complement: return "puzzlepiece"
         case .punnett: return "square.grid.2x2"
-        case .hardyWeinberg: return "person.2"
+        case .hardyWeinberg: return "person.3"
         case .geneticCode: return "character.textbox"
         case .pharmacokinetics: return "pills"
         case .diagnosticTests: return "percent"

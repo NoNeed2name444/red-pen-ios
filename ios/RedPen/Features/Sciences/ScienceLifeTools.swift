@@ -38,7 +38,10 @@ struct EnzymeKineticsTool: View {
             let lb = EnzymeKinetics.lineweaverBurk(inhibited)
             return Point(id: "d\(x)", x: x, y: lb.yIntercept + lb.slope * x, line: "With inhibitor")
         })
-        let colours: KeyValuePairs<String, Color> = ["No inhibitor": Color.wardInkSecondary, "With inhibitor": Color.wardPrimaryInk]
+        let colours: KeyValuePairs<String, Color> = inhibition == .none
+            ? ["No inhibitor": Color.wardPrimaryInk, "With inhibitor": Color.wardPrimaryInk]
+            : ["No inhibitor": Color.wardInkSecondary, "With inhibitor": Color.wardPrimaryInk]
+        let comparison: Bool = inhibition != .none
         ScienceToolPage(tool: .enzymeKinetics) {
             Section {
                 ScienceFigure(title: "Rate against substrate (Michaelis-Menten)",
@@ -47,6 +50,7 @@ struct EnzymeKineticsTool: View {
                     Chart(curves) { p in
                         LineMark(x: .value("[S]", p.x), y: .value("Rate", p.y), series: .value("Line", p.line))
                             .foregroundStyle(by: .value("Line", p.line))
+                            .lineStyle(comparison && p.line == "No inhibitor" ? StrokeStyle(lineWidth: 1, dash: [4, 3]) : StrokeStyle(lineWidth: 2))
                     }
                     .chartForegroundStyleScale(colours)
                     .chartXAxisLabel("[S], mmol/L")
@@ -97,6 +101,7 @@ struct EnzymeKineticsTool: View {
                 ScienceVerdict(text: inhibition.effect)
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "v = Vmax[S] / (Km + [S]). An inhibitor at [I] with constant Ki multiplies by \u{03B1} = 1 + [I]/Ki: Km for a competitive one, 1/Vmax for a non-competitive one, and both (dividing Km and Vmax) for an uncompetitive one.")
@@ -120,7 +125,7 @@ struct PathwaysTool: View {
                                 detail: pathway.location, chevron: false)
                     }
                     .hoverEffect(.highlight)
-                    .accessibilityIdentifier("science-pathway-\(pathway.id)")
+                    .accessibilityIdentifier("sciencePathway-\(pathway.id)")
                 }
             } footer: {
                 Text("Each pathway links to its curated diagram in Reactome (data CC0, diagrams CC BY 4.0).")
@@ -195,7 +200,7 @@ struct PathwayView: View {
             if let url = URL(string: pathway.reactomeURL) {
                 Section {
                     Link(destination: url) {
-                        Label("The diagram in Reactome (\(pathway.reactome))", systemImage: "arrow.up.right.square")
+                        Label("The diagram in Reactome (\(pathway.reactome))", systemImage: "link")
                     }
                 }
                 .wardRowBackground()
@@ -204,6 +209,8 @@ struct PathwayView: View {
         .wardForm()
         .navigationTitle(pathway.name)
         .navigationBarTitleDisplayMode(.inline)
+        .wardDisclaimer()
+        .accessibilityIdentifier("sciencePathwayPage-\(pathway.id)")
     }
 }
 
@@ -237,6 +244,8 @@ struct MicrobeKeyTool: View {
                         } label: {
                             WardRow(symbol: "microbe", title: microbe.name, detail: microbe.diseases.first, chevron: false)
                         }
+                        .hoverEffect(.highlight)
+                        .accessibilityIdentifier("microbeKeyFound-\(microbe.id)")
                     }
                 }
                 .wardRowBackground()
@@ -248,6 +257,7 @@ struct MicrobeKeyTool: View {
                         } label: {
                             Text(answer.label).foregroundStyle(Color.wardPrimaryInk)
                         }
+                        .accessibilityIdentifier("microbeKeyAnswer-\(answer.label)")
                     }
                 }
                 .wardRowBackground()
@@ -279,7 +289,7 @@ struct MicrobesTool: View {
 
     var body: some View {
         let groups: [(title: String, gram: Microbe.Gram)] = [("Gram positive", .positive), ("Gram negative", .negative),
-                                                              ("No Gram stain", .none)]
+                                                              ("Does not Gram stain", .none)]
         ScienceToolPage(tool: .microbes) {
             if shown.isEmpty {
                 WardEmptyState(symbol: "magnifyingglass", title: "No organism matches",
@@ -297,13 +307,14 @@ struct MicrobesTool: View {
                                 WardRow(symbol: "microbe", title: microbe.name, detail: microbe.shape, chevron: false)
                             }
                             .hoverEffect(.highlight)
+                            .accessibilityIdentifier("microbe-\(microbe.id)")
                         }
                     }
                     .wardRowBackground()
                 }
             }
         }
-        .searchable(text: $query, prompt: "Organisms, diseases, tests")
+        .searchable(text: $query, prompt: "Find an organism, disease or test")
     }
 }
 
@@ -315,7 +326,7 @@ struct MicrobeView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("Gram stain", value: microbe.gram == .none ? "Does not stain" : microbe.gram.rawValue.capitalized)
+                LabeledContent("Gram stain", value: microbe.gram == .none ? "Does not Gram stain" : microbe.gram.rawValue.capitalized)
                 LabeledContent("Shape", value: microbe.shape)
                 LabeledContent("Oxygen", value: microbe.oxygen)
             }
@@ -340,7 +351,7 @@ struct MicrobeView: View {
             if let url = URL(string: microbe.taxonomyURL) {
                 Section {
                     Link(destination: url) {
-                        Label("NCBI Taxonomy \(microbe.taxonomy)", systemImage: "arrow.up.right.square")
+                        Label("NCBI Taxonomy \(microbe.taxonomy)", systemImage: "link")
                     }
                 }
                 .wardRowBackground()
@@ -349,6 +360,8 @@ struct MicrobeView: View {
         .wardForm()
         .navigationTitle(microbe.name)
         .navigationBarTitleDisplayMode(.inline)
+        .wardDisclaimer()
+        .accessibilityIdentifier("microbePage-\(microbe.id)")
     }
 }
 
@@ -412,6 +425,7 @@ struct GrowthCurveTool: View {
                 ScienceReading(label: "Doublings per hour", value: scienceNumber(60 / culture.generationMinutes, 1))
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             ScienceTextSection(title: "How it is worked out",
                                text: "Growth is logistic towards the medium's capacity: N = K / (1 + (K/N0 \u{2212} 1)e^(\u{2212}rt)), with r = ln 2 / doubling time. Once within 1% of capacity the culture holds, then loses a fixed number of log units an hour. Illustrative rates; the shape is what is examined.")
@@ -442,7 +456,7 @@ struct ImmuneCellsTool: View {
                 }
             }
             .wardRowBackground()
-            ScienceTextSection(title: "Sources",
+            ScienceTextSection(title: "Source",
                                text: "Cell names follow the Cell Ontology (CC BY 4.0); each cell's CL identifier is under its name.")
         }
     }
@@ -481,13 +495,14 @@ struct AntibodyResponseTool: View {
                         ForEach(points) { p in
                             LineMark(x: .value("Day", p.day), y: .value("Level", p.level), series: .value("Class", p.kind))
                                 .foregroundStyle(by: .value("Class", p.kind))
+                                .lineStyle(p.kind == "IgM" ? StrokeStyle(lineWidth: 1.5, dash: [4, 3]) : StrokeStyle(lineWidth: 2))
                         }
                         RuleMark(x: .value("First exposure", 0.0)).foregroundStyle(Color.wardInkSecondary)
                         RuleMark(x: .value("Second exposure", secondDay))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                             .foregroundStyle(Color.wardInkSecondary)
                     }
-                    .chartForegroundStyleScale(["IgM": Color.wardBeam, "IgG": Color.wardPrimaryInk])
+                    .chartForegroundStyleScale(["IgM": Color.wardInkSecondary, "IgG": Color.wardPrimaryInk])
                     .chartYScale(domain: 0.1...2000.0, type: .log)
                     .chartXAxisLabel("days")
                     .chartYAxisLabel("relative level")
@@ -575,12 +590,13 @@ struct PunnettTool: View {
 
                 Section("Result") {
                     ScienceReading(label: "Genotypes", value: Genetics.ratio(cross.genotypes))
-                    ForEach(cross.genotypes.sorted { $0.value > $1.value }, id: \.key) { g in
-                        LabeledContent(g.key, value: "\(g.value) in \(cross.total)")
-                    }
                     ScienceReading(label: "Phenotypes", value: Genetics.ratio(cross.phenotypes))
+                    ScienceVerdict(text: cross.genotypes.sorted { $0.value > $1.value }
+                        .map { "\($0.key) \($0.value) in \(cross.total)" }
+                        .joined(separator: " \u{00B7} "))
                 }
                 .wardRowBackground()
+                .accessibilityElement(children: .combine)
             } else {
                 WardEmptyState(symbol: "square.grid.2x2", title: "Not a cross yet",
                                message: "Write both parents with the same genes, as letter pairs, such as Aa \u{00D7} aa or AaBb \u{00D7} AaBb.")
@@ -618,6 +634,10 @@ struct PunnettTool: View {
                 .multilineTextAlignment(.trailing)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .padding(.horizontal, WardSpace.m)
+                .padding(.vertical, WardSpace.s)
+                .frame(maxWidth: 140)
+                .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), control: true)
                 .accessibilityLabel(label)
                 .accessibilityIdentifier(id)
         }
@@ -669,6 +689,7 @@ struct HardyWeinbergTool: View {
                 ScienceVerdict(text: "An unaffected sibling of an affected child is a carrier 2 times in 3; with a partner from the general population, their child is affected 1 time in \(scienceNumber(1 / siblings)).")
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("Try") {
                 SciencePresetButton(title: "Cystic fibrosis", detail: "About 1 in 2,500 births of northern European descent") { rarity = log10(2500) }
@@ -716,6 +737,7 @@ struct GeneticCodeTool: View {
                 }
             }
             .wardRowBackground()
+            .accessibilityElement(children: .combine)
 
             Section("Try") {
                 SciencePresetButton(title: "Sickle cell", detail: "\u{03B2}-globin GAG \u{2192} GTG: glutamate to valine") {
@@ -742,6 +764,9 @@ struct GeneticCodeTool: View {
                 .font(WardType.obs)
                 .textInputAutocapitalization(.characters)
                 .autocorrectionDisabled()
+                .padding(.horizontal, WardSpace.m)
+                .padding(.vertical, WardSpace.s)
+                .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), control: true)
                 .accessibilityIdentifier(id)
         }
     }
