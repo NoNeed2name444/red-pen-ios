@@ -473,3 +473,10 @@ suite sciencelife ScienceLifeTests.swift $S/Sciences/Biochemistry.swift $S/Scien
 # manifest, sits inside the body on the side its label says, and is labelled
 # and credited cleanly
 suite anatomyatlas AnatomyAtlasTests.swift $S/Sciences/AnatomyAtlas.swift
+# the core sciences, pathology: shock read from its haemodynamics, the
+# infarct dated by age, necrosis, the glomerulus and tumour names
+suite sciencepath SciencePathologyTests.swift $S/Sciences/Pathology.swift
+# the Sciences catalog: subjects and body systems covered, every tool and
+# atlas part reached, notes kept short and in British spelling
+suite sciencecatalog ScienceCatalogTests.swift $S/Sciences/ScienceCatalog.swift $S/Sciences/Pathology.swift \
+      $S/Sciences/AnatomyAtlas.swift

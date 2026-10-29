@@ -2799,8 +2799,13 @@ for screenshots.
     ten; the rest drawn for the app.
   - [ ] S3c. Peripheral nerves: no clean source (every rich set derives from
     BodyParts3D or Z-Anatomy, CC BY-SA); to be drawn for the app.
-- [ ] S4. The catalog: subjects by body system, with short notes written
-  for the app.
+- [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
+  ten body systems, 29 tools and 66 topics, each a short note written for
+  the app with points, its tools and its atlas parts; every system has
+  anatomy, physiology and pathology, every tool and atlas part is reached
+  (suite sciencecatalog). Pathology.swift adds the pathology tools: shock
+  read from output, resistance and wedge; the infarct by age; necrosis;
+  nephrotic or nephritic; tumour names (suite sciencepath).
 - [ ] S5. The screens (ui-consistency phases first): a Sciences hub, the
   simulators on Swift Charts, the 3D atlas on SceneKit; App build and
   screenshots on Macs, sent to the owner.
