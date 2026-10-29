@@ -325,7 +325,17 @@ struct LibraryView: View {
         // rebuilt while a search is showing
         .onReceive(store.$library) { search.libraryChanged($0) }
         .onReceive(noteStore.$notes) { search.notesChanged($0) }
-        .onChange(of: query) { _, text in search.update(query: text) }
+        .onChange(of: query) { _, text in
+            search.update(query: text)
+            // a search is the student's own move: a turn's hold ends
+            rowTrack.touched()
+        }
+        // so does a set added or removed, a folder made, picking sets, and
+        // leaving home for a pushed page or coming back to it
+        .onChange(of: store.library.count) { rowTrack.touched() }
+        .onChange(of: store.folders.count) { rowTrack.touched() }
+        .onChange(of: selecting) { rowTrack.touched() }
+        .onChange(of: homeShowing) { rowTrack.touched() }
         .sheet(isPresented: $buildingSession) {
             CustomSessionSheet(text: sessionText) { set, mode in startSession(set, mode) }
         }
@@ -803,9 +813,19 @@ struct LibraryView: View {
             }
             .onScrollPhaseChange { _, phase in
                 bandTrack.settle(idle: phase == .idle)
-                // where the student came to rest is the place a turn keeps;
-                // at the list's top there is nothing to keep
-                if phase == .idle { rowTrack.capture(atTop: bandTrack.scroll < 1) }
+                // a finger on the list ends a turn's hold: the place is the
+                // student's again. Not .animating: the phase cannot tell a
+                // scroll to the top (the status bar) from the hold's own
+                // scroll back, so that one ends at rest (.idle) or when the
+                // hold's window runs out (HomeRowKeep.Hold)
+                if phase == .interacting { rowTrack.touched() }
+                // at rest the turn's layout is done; where the student came
+                // to rest is the place the next turn keeps, and at the
+                // list's top there is nothing to keep
+                if phase == .idle {
+                    rowTrack.settled()
+                    rowTrack.capture(atTop: bandTrack.scroll < 1)
+                }
             }
             // The list's own frame and insets, so the rows' frames can be read
             // against what shows; a new size (the phone turned, the window
@@ -816,7 +836,22 @@ struct LibraryView: View {
                                   bottom: geometry.contentInsets.bottom)
             } action: { old, now in
                 rowTrack.band = now
-                if old.size != now.size, old.size.width > 0 { keepRow(proxy) }
+                // a turn or a resize changes the width; the keyboard, a
+                // search or a set added or opened change only the height
+                // or the rows, and are the student's own doing
+                if old.size.width != now.size.width, old.size.width > 0, !searching { keepRow(proxy) }
+            }
+            // and again each time the list lays out while the row is held:
+            // its new size, then the rows' new heights, arrive as the app
+            // gets to them, which on a busy phone is seconds after the turn
+            // (the hold ends at rest, after a second of a free app with no
+            // new layout, or 8 seconds after the turn)
+            .onScrollGeometryChange(for: [CGFloat].self) { geometry in
+                [geometry.containerSize.width, geometry.containerSize.height,
+                 geometry.contentSize.width, geometry.contentSize.height]
+            } action: { _, _ in
+                guard let place = rowTrack.relaid() else { return }
+                proxy.scrollTo(place.id, anchor: UnitPoint(x: 0.5, y: HomeRowKeep.anchor(place.fraction)))
             }
             // Back from a set that Turn into just made: the new set in view,
             // not somewhere below the fold.
@@ -840,21 +875,26 @@ struct LibraryView: View {
         }
     }
 
-    /// Scrolls the row the student was on back into view after a turn: once
-    /// at once, and again as the turn's animation and the rows' new heights
-    /// settle. Nothing kept, nothing moves.
+    /// Scrolls the row the student was on back into view after a turn: at
+    /// once, on the next pass of the run loop, and again each time the list
+    /// lays out while the turn settles (HomeRowKeep.Hold): until the list
+    /// rests, the student moves it, a second of a free app passes with no
+    /// new layout, or 8 seconds after the turn. Nothing kept, nothing moves.
     private func keepRow(_ proxy: ScrollViewProxy) {
-        guard let place = rowTrack.kept else { return }
-        rowTrack.turning += 1
-        let anchor = UnitPoint(x: 0.5, y: HomeRowKeep.anchor(place.fraction))
+        guard let held = rowTrack.turned() else { return }
+        let anchor = UnitPoint(x: 0.5, y: HomeRowKeep.anchor(held.place.fraction))
+        proxy.scrollTo(held.place.id, anchor: anchor)
         Task { @MainActor in
-            for wait in [0, 150, 300] {
-                if wait > 0 {
-                    do { try await Task.sleep(for: .milliseconds(wait)) } catch { break }
-                }
-                proxy.scrollTo(place.id, anchor: anchor)
+            guard let place = rowTrack.relaid() else { return }
+            proxy.scrollTo(place.id, anchor: UnitPoint(x: 0.5, y: HomeRowKeep.anchor(place.fraction)))
+        }
+        // a tick at a time: a stalled main thread runs none, so only the
+        // time the app was free counts toward the hold's window
+        Task { @MainActor in
+            for _ in 0..<HomeRowKeep.Hold<UUID>.ticks {
+                try? await Task.sleep(for: .seconds(HomeRowKeep.Hold<UUID>.tick))
+                rowTrack.expired(turn: held.turn)
             }
-            rowTrack.turning -= 1
         }
     }
 

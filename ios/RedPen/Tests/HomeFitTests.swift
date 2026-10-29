@@ -535,6 +535,124 @@ do {
           ((try? String(contentsOfFile: "ios/RedPen/Features/Library/LibraryRows.swift", encoding: .utf8)) ?? "")
             .contains("HomeRowReport(id: set.id"))
     check("turn: a new size scrolls the kept row back", library.contains("keepRow(proxy)"))
+
+    // The hold (T0161, App build 40671914663): the turn's row is scrolled
+    // back each time the list lays out while the turn settles, not at fixed
+    // times that a busy phone spends before the list has turned; and it
+    // ends at rest, at its time limit, or on the student's own move.
+    typealias P = HomeRowKeep.Place<String>
+    let kept = P(id: "nephrology", fraction: 0.29)
+    let other = P(id: "session", fraction: 0.6)
+    var hold = HomeRowKeep.Hold<String>()
+    check("hold: nothing held before a turn", !hold.isHolding && hold.relaid() == nil)
+    check("hold: a turn with nothing kept holds nothing", hold.turn(kept: nil) == nil && !hold.isHolding)
+    let first = hold.turn(kept: kept)
+    check("hold: a turn holds the row noted at rest", first?.place == kept && hold.isHolding)
+    check("hold: each layout scrolls back to it", hold.relaid() == kept && hold.relaid() == kept)
+    // a second size change mid-turn (the turn's animation, then the rows'
+    // heights) keeps the row noted at rest and the same turn
+    let second = hold.turn(kept: other)
+    check("hold: a second size keeps the first row and turn",
+          second?.place == kept && second?.turn == first?.turn)
+    // released at the first rest after the sizes
+    hold.settled()
+    check("hold: the list at rest ends it", !hold.isHolding && hold.relaid() == nil)
+    // released by an edit (a search, a set added, a scroll to the top, the page left)
+    _ = hold.turn(kept: kept)
+    check("hold: held again on the next turn", hold.isHolding)
+    hold.touched()
+    check("hold: an edit or a finger ends it", !hold.isHolding && hold.relaid() == nil)
+    // released by its time limit: a second of a free app with no new
+    // layout, counted a tick at a time from the last layout or size change
+    typealias H = HomeRowKeep.Hold<String>
+    check("hold: the limit is about a second", H.limit <= 1.0)
+    check("hold: the cap is 8 seconds from the turn", H.cap == 8.0)
+    check("hold: the ticks pass the cap", Double(H.ticks) * H.tick > H.cap)
+    var timedHold = H()
+    _ = timedHold.turn(kept: kept, at: 100)
+    let timed = timedHold.turn(kept: other, at: 100)
+    check("hold: the next size keeps the row noted at rest", timed?.place == kept)
+    timedHold.expired(turn: (timed?.turn ?? 0) - 1, at: 105)
+    check("hold: an earlier turn's tick ends nothing", timedHold.isHolding)
+    // free ticks after the last layout: the fourth spends the second
+    for t in [100.25, 100.5, 100.75] { timedHold.expired(turn: timed?.turn ?? -1, at: t) }
+    check("hold: under a second of free ticks keeps it", timedHold.isHolding)
+    timedHold.expired(turn: timed?.turn ?? -1, at: 101.0)
+    check("hold: a second of free ticks with no layout ends it",
+          !timedHold.isHolding && timedHold.relaid(at: 101.0) == nil)
+    // a layout opens the window afresh: a second from it, not the turn
+    var sliding = H()
+    let slide = sliding.turn(kept: kept, at: 0)
+    for t in [0.25, 0.5, 0.75] { sliding.expired(turn: slide?.turn ?? -1, at: t) }
+    check("hold: a layout late in the window scrolls back", sliding.relaid(at: 0.8) == kept)
+    for t in [1.0, 1.25, 1.5] { sliding.expired(turn: slide?.turn ?? -1, at: t) }
+    check("hold: the window counts from the last layout", sliding.isHolding)
+    // a new size mid-hold opens it afresh too
+    _ = sliding.turn(kept: other, at: 1.7)
+    for t in [1.95, 2.2, 2.45] { sliding.expired(turn: slide?.turn ?? -1, at: t) }
+    check("hold: a new size mid-hold opens the window", sliding.isHolding)
+    sliding.expired(turn: slide?.turn ?? -1, at: 2.7)
+    check("hold: and a second after it the hold ends", !sliding.isHolding)
+    // the stalled main thread of App build 40671914663: nothing runs from
+    // the turn until 3 s after it; then the late tick, then the rows'
+    // heights, which still scroll the row back
+    var stalled = H()
+    let stall = stalled.turn(kept: kept, at: 25.8)
+    stalled.expired(turn: stall?.turn ?? -1, at: 28.8)
+    check("hold: a late tick after a stall counts as one", stalled.isHolding)
+    check("hold: a relayout 3 s after the turn still keeps the row", stalled.relaid(at: 28.8) == kept)
+    // the same with the layout first
+    var stalledFirst = H()
+    _ = stalledFirst.turn(kept: kept, at: 25.8)
+    check("hold: a relayout 3 s after the turn, before any tick, keeps the row",
+          stalledFirst.relaid(at: 28.8) == kept)
+    // the cap ends it however the layouts keep coming
+    var capped = H()
+    let cap = capped.turn(kept: kept, at: 0)
+    for step in 1...39 {
+        let t = Double(step) * 0.2
+        _ = capped.relaid(at: t)
+        capped.expired(turn: cap?.turn ?? -1, at: t)
+    }
+    check("hold: layouts every 0.2 s hold it up to the cap", capped.isHolding)
+    check("hold: a relayout at the cap ends it", capped.relaid(at: 8.0) == nil && !capped.isHolding)
+    var cappedTick = H()
+    let capTick = cappedTick.turn(kept: kept, at: 0)
+    _ = cappedTick.relaid(at: 7.9)
+    cappedTick.expired(turn: capTick?.turn ?? -1, at: 8.0)
+    check("hold: a tick at the cap ends it", !cappedTick.isHolding)
+    var cappedSize = H()
+    let before = cappedSize.turn(kept: kept, at: 0)
+    let after = cappedSize.turn(kept: other, at: 8.5)
+    check("hold: a size after the cap is a new turn, with the row noted since",
+          after?.place == other && after?.turn != before?.turn)
+    let rowTrack: String = {
+        let ward = (try? String(contentsOfFile: "ios/RedPen/Features/Library/WardHome.swift", encoding: .utf8)) ?? ""
+        guard let a = ward.range(of: "final class HomeRowTrack {"),
+              let b = ward.range(of: "struct HomeRowReport", range: a.upperBound..<ward.endIndex) else { return "" }
+        return String(ward[a.lowerBound..<b.lowerBound])
+    }()
+    check("hold: HomeRowTrack found", !rowTrack.isEmpty)
+    check("hold: nothing is noted at rest while a row is held",
+          rowTrack.contains("guard !hold.isHolding else { return }"), rowTrack)
+    check("hold: no fixed-time retries", !library.contains("for wait in [0, 150, 300]"))
+    check("hold: every layout while held scrolls the row back",
+          library.contains("guard let place = rowTrack.relaid() else { return }")
+            && library.contains("geometry.contentSize.width, geometry.contentSize.height"))
+    check("hold: a finger ends it in the app; not .animating, its own scroll back",
+          library.contains("if phase == .interacting { rowTrack.touched() }")
+            && !library.contains("phase == .animating { rowTrack.touched() }"))
+    check("hold: the list at rest ends it in the app, then the place is noted",
+          library.contains("rowTrack.settled()\n                    rowTrack.capture(atTop:"))
+    check("hold: the app ends it at its limit",
+          library.contains("for _ in 0..<HomeRowKeep.Hold<UUID>.ticks {\n                try? await Task.sleep(for: .seconds(HomeRowKeep.Hold<UUID>.tick))\n                rowTrack.expired(turn: held.turn)")
+            && !library.contains("Task.sleep(for: .seconds(HomeRowKeep.Hold<UUID>.limit))"))
+    check("hold: a search, an edit or leaving home ends it in the app",
+          library.contains("search.update(query: text)\n            // a search is the student's own move: a turn's hold ends\n            rowTrack.touched()")
+            && library.contains(".onChange(of: store.library.count) { rowTrack.touched() }")
+            && library.contains(".onChange(of: homeShowing) { rowTrack.touched() }"))
+    check("hold: only a new width (a turn, a resize) starts one",
+          library.contains("if old.size.width != now.size.width, old.size.width > 0, !searching { keepRow(proxy) }"))
 }
 
 if failures.isEmpty {

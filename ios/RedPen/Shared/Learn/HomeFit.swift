@@ -215,4 +215,98 @@ enum HomeRowKeep {
     static func anchor(_ fraction: Double) -> Double {
         min(anchorRange.upperBound, max(anchorRange.lowerBound, fraction.isFinite ? fraction : anchorRange.lowerBound))
     }
+
+    /// The row a turn holds while the turn's layout settles.
+    ///
+    /// Scrolling it back at fixed times after the turn (0, 150 and 300 ms)
+    /// was not enough: on a busy Mac the app did not settle for seconds
+    /// after the turn (App build 40671914663: "Wait for app to idle" ran
+    /// from 25.8 s to 29.6 s), all three scrolls were spent before the list
+    /// laid out on its side, and it kept the upright offset, with the row
+    /// at the window's bottom edge. So while held, each new size or content
+    /// height scrolls it back again.
+    ///
+    /// A hold left running would pull the list back after things the
+    /// student did (a search, a set added, a scroll to the top), and keep
+    /// the place from being noted afresh. So it ends at the first rest
+    /// after the turn, on any edit or scroll that is not the turn's, on
+    /// leaving the page, and on its time limit: `limit` seconds of a free
+    /// app with no new layout. The caller ticks it (`expired`) every
+    /// `tick` seconds; a stalled main thread runs no tick, and a late one
+    /// counts as one `tick`, so a stall like that run's (about 4 s) does not
+    /// spend the window, and the heights that arrive after it still scroll
+    /// the row back. Each new size or layout opens the window afresh, and
+    /// `cap` seconds after the turn the hold ends whatever comes.
+    ///
+    /// Times are seconds on one clock (the system's uptime unless given).
+    struct Hold<ID: Hashable>: Equatable {
+        /// Seconds of a free app, with no new layout, that end a hold.
+        static var limit: Double { 1.0 }
+        /// The longest a hold may last after its turn, in seconds.
+        static var cap: Double { 8.0 }
+        /// How often the caller ticks the hold, in seconds.
+        static var tick: Double { 0.25 }
+        /// Ticks enough to pass the cap.
+        static var ticks: Int { Int((cap / tick).rounded(.up)) + 1 }
+
+        static func now() -> Double { ProcessInfo.processInfo.systemUptime }
+
+        private(set) var place: Place<ID>?
+        /// Which turn holds now, so a tick from an earlier one ends nothing.
+        private(set) var turnNumber = 0
+        private var started: Double = 0
+        private var lastTick: Double = 0
+        /// Free time since the last layout, counted a tick at a time.
+        private var free: Double = 0
+
+        init() {}
+
+        var isHolding: Bool { place != nil }
+
+        /// The list took a new size. A hold already running keeps its
+        /// row, the one noted at rest, and its window opens afresh; else
+        /// the row noted at rest, if any, for a new turn. What to scroll
+        /// back to now, and the turn it belongs to (for `expired`).
+        mutating func turn(kept: Place<ID>?, at now: Double = Hold.now()) -> (place: Place<ID>, turn: Int)? {
+            if place != nil, now - started >= Self.cap { place = nil }
+            if place == nil {
+                guard let kept else { return nil }
+                place = kept
+                turnNumber += 1
+                started = now
+            }
+            free = 0
+            lastTick = now
+            return place.map { ($0, turnNumber) }
+        }
+
+        /// The list laid out again (its size or its content): where to
+        /// scroll back to, while held. The window opens afresh.
+        mutating func relaid(at now: Double = Hold.now()) -> Place<ID>? {
+            guard place != nil else { return nil }
+            if now - started >= Self.cap || free >= Self.limit {
+                place = nil
+                return nil
+            }
+            free = 0
+            lastTick = now
+            return place
+        }
+
+        /// The list came to rest: the turn's layout is done.
+        mutating func settled() { place = nil }
+
+        /// A tick of turn `number`'s timer: a later turn holds on. It ends
+        /// the hold after `limit` free seconds with no layout, or at `cap`.
+        mutating func expired(turn number: Int, at now: Double = Hold.now()) {
+            guard number == turnNumber, place != nil else { return }
+            free += min(max(now - lastTick, 0), Self.tick)
+            lastTick = now
+            if now - started >= Self.cap || free >= Self.limit - 1e-9 { place = nil }
+        }
+
+        /// A finger on the list, a scroll to the top, a search, an edit,
+        /// or the page left: the place is the student's again.
+        mutating func touched() { place = nil }
+    }
 }

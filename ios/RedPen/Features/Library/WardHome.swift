@@ -431,9 +431,10 @@ final class HomeRowTrack {
     @ObservationIgnored private var rows: [UUID: CGRect] = [:]
     /// The row to keep through the next turn; nil at the list's top.
     @ObservationIgnored private(set) var kept: HomeRowKeep.Place<UUID>?
-    /// Turns being kept now: the rows move under the turn, and where they
-    /// pass is not a place the student chose.
-    @ObservationIgnored var turning = 0
+    /// The row held while a turn's layout settles (HomeRowKeep.Hold): the
+    /// rows move under the turn, and where they pass is not a place the
+    /// student chose.
+    @ObservationIgnored private var hold = HomeRowKeep.Hold<UUID>()
 
     func report(_ id: UUID, _ frame: CGRect) { rows[id] = frame }
     func gone(_ id: UUID) { rows[id] = nil }
@@ -441,11 +442,29 @@ final class HomeRowTrack {
     func clear() {
         rows = [:]
         kept = nil
+        hold.touched()
     }
+
+    /// The list took a new size: the row to scroll back to, if any, and
+    /// the turn holding it.
+    func turned() -> (place: HomeRowKeep.Place<UUID>, turn: Int)? { hold.turn(kept: kept) }
+
+    /// The list laid out again: the row to scroll back to, while held.
+    func relaid() -> HomeRowKeep.Place<UUID>? { hold.relaid() }
+
+    /// The list came to rest: the hold ends, and the place is noted afresh.
+    func settled() { hold.settled() }
+
+    /// Turn `number`'s time ran out.
+    func expired(turn number: Int) { hold.expired(turn: number) }
+
+    /// A finger on the list, a scroll to the top, a search, an edit, or the
+    /// page left: the hold ends.
+    func touched() { hold.touched() }
 
     /// Notes the first set row in view, where the list came to rest.
     func capture(atTop: Bool) {
-        guard turning == 0 else { return }
+        guard !hold.isHolding else { return }
         guard !atTop else {
             kept = nil
             return
