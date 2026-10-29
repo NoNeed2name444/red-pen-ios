@@ -283,6 +283,8 @@ struct RedPenApp: App {
             .wardControls()
             // right to left in Arabic, in both builds (L10n.swift)
             .appLanguage()
+            // the app's face for every Text not given one (WardType)
+            .font(WardType.body)
             // the one motion source for the pop-out: started while the app
             // is active, stopped in the background (see PopOut.swift)
             .popOutLifecycle()
@@ -319,6 +321,7 @@ struct RedPenApp: App {
                 .environmentObject(llm)
                 .wardControls()
                 .appLanguage()
+                .font(WardType.body)
         }
         // never the window a link or opened file lands in (it has no
         // routes): only its own openWindow requests open it

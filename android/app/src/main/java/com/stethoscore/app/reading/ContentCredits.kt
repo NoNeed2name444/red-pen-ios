@@ -113,8 +113,20 @@ object ContentSources {
         changes = "Resized to 4096 by 2048 and 2048 by 1024 pixels and recompressed; the clouds, lights and water kept as grey maps.",
         home = "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/")
 
+    // the app's type (res/font, iOS Resources/Fonts)
+
+    val ofl = ContentLicence("SIL Open Font License 1.1", "https://openfontlicense.org/open-font-license-official-text/")
+
+    val fonts = ContentSource(
+        id = "fonts", name = "Nunito and Baloo Bhaijaan 2",
+        use = "The app's font: Nunito, and Baloo Bhaijaan 2 for Arabic",
+        licences = listOf(ofl),
+        attribution = "Nunito, copyright 2014 The Nunito Project Authors (github.com/googlefonts/nunito). Baloo Bhaijaan 2, copyright 2019 The Baloo 2 Project Authors (github.com/EkType/Baloo2). Both under the SIL Open Font License 1.1, whose full text comes with the app.",
+        changes = "The font files are renamed and otherwise unchanged.",
+        home = "https://github.com/googlefonts/nunito")
+
     /** Every source of content the app brings, for Settings. */
-    val all: List<ContentSource> = listOf(medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth)
+    val all: List<ContentSource> = listOf(medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth, fonts)
 
     /** The bank behind an exam's style examples (ExemplarSource's raw value). */
     fun styleBank(raw: String): ContentSource? = when {

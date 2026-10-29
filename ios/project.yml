@@ -42,6 +42,13 @@ targets:
       - path: RedPen/Resources/Earth
         type: folder
         buildPhase: resources
+      # The app's type: Nunito, and Baloo Bhaijaan 2 for Arabic (owner D5),
+      # variable fonts under the SIL OFL 1.1, with each licence beside its
+      # font. A folder, so they sit in Fonts/ in the app, where UIAppFonts
+      # below names them (WardType; FontBundleTests).
+      - path: RedPen/Resources/Fonts
+        type: folder
+        buildPhase: resources
       # Arabic for what iOS itself shows about the app: the permission
       # prompts. Outside RedPen/, since Playgrounds has no Info.plist to
       # localise.
@@ -105,6 +112,11 @@ targets:
         # LaunchSplash draws the same pictures for its first frame, so the
         # hand-over is invisible and the app runs straight on from it.
         UILaunchStoryboardName: LaunchScreen
+        # The bundled fonts (RedPen/Resources/Fonts), registered at launch
+        # so Font.custom finds them by family (WardType).
+        UIAppFonts:
+          - Fonts/Nunito-Variable.ttf
+          - Fonts/BalooBhaijaan2-Variable.ttf
         # The phone turns too (T0138): on its side in a stand, and the
         # foldable iPhone opened as a book, where refusing to turn is broken.
         # Never upside down on a phone (the island would sit under the

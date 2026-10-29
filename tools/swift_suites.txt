@@ -525,3 +525,14 @@ suite brandlogo BrandLogoTests.swift $S/BrandLogo.swift
 # the master ECG: one lead II beat, its landmarks and heart sounds, and
 # paper scale, which the opening's trace and home's squiggle both draw
 suite ecgtrace EcgTraceTests.swift $S/Brand/EcgTrace.swift
+# the app's type (owner D5): UIAppFonts names the bundled Nunito and Baloo
+# Bhaijaan 2, WardType asks for the names the files carry, every face
+# scales with Dynamic Type, observations stay mono, the OFL ships beside
+suite fonts FontBundleTests.swift \
+      $M/MCQQuestion.swift $M/Differential.swift $M/AnkiCard.swift \
+      $M/OsceChecklist.swift $M/NarrateSegment.swift $M/SourceDoc.swift $M/StudySet.swift $S/Cases/CaseFile.swift \
+      $S/SoundKey.swift $S/PronunciationStore.swift $S/OnDeviceLearning.swift $S/Corrections.swift \
+      $S/WordTiming.swift $S/LectureTranscriber.swift $S/Brand.swift \
+      $S/BookPages.swift $S/BookFigures.swift $S/Highlight.swift \
+      $S/SourceText.swift $S/MCQCoverage.swift $S/Provenance.swift \
+      $S/Exam/ExamExemplarData.swift $S/ContentCredits.swift

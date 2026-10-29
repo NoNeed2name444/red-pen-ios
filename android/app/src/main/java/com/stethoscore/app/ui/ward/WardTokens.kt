@@ -65,9 +65,9 @@ data class WardTypeSpec(val style: WardTextStyle, val weight: WardWeight, val mo
 }
 
 /**
- * The type: system fonts only (Roboto on Android, Roboto Mono or the system
- * monospace for observations), every one a text style so the font size
- * setting scales it.
+ * The type: Nunito, and Baloo Bhaijaan 2 in Arabic (WardFont, as iOS's
+ * WardType), the system monospace for observations, every one a text
+ * style so the font size setting scales it.
  */
 object WardType {
     val display = WardTypeSpec(WardTextStyle.largeTitle, WardWeight.bold)

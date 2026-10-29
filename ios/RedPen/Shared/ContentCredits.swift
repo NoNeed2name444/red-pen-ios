@@ -112,8 +112,21 @@ enum ContentSources {
         changes: "Resized to 4096 by 2048 and 2048 by 1024 pixels and recompressed; the clouds, lights and water kept as grey maps.",
         home: "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/")
 
+    // MARK: the app's type (Resources/Fonts, Android res/font)
+
+    static let ofl = ContentLicence(name: "SIL Open Font License 1.1",
+                                    url: "https://openfontlicense.org/open-font-license-official-text/")
+
+    static let fonts = ContentSource(
+        id: "fonts", name: "Nunito and Baloo Bhaijaan 2",
+        use: "The app's font: Nunito, and Baloo Bhaijaan 2 for Arabic",
+        licences: [ofl],
+        attribution: "Nunito, copyright 2014 The Nunito Project Authors (github.com/googlefonts/nunito). Baloo Bhaijaan 2, copyright 2019 The Baloo 2 Project Authors (github.com/EkType/Baloo2). Both under the SIL Open Font License 1.1, whose full text comes with the app.",
+        changes: "The font files are renamed and otherwise unchanged.",
+        home: "https://github.com/googlefonts/nunito")
+
     /// Every source of content the app brings, for Settings.
-    static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth]
+    static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth, fonts]
 
     /// The bank behind an exam's style examples (ExemplarSource's raw value).
     static func styleBank(_ raw: String) -> ContentSource? {

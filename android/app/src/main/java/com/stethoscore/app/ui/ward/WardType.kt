@@ -5,6 +5,7 @@ import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import com.stethoscore.app.R
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -23,17 +24,23 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 import kotlin.math.roundToInt
 
 // The Compose side of WardTokens.swift: WardType's faces as TextStyles in sp
 // (so Android's font size setting scales them, as Dynamic Type does on iOS),
+// in the app's own font (WardFont),
 // Material's Typography from them, the scale's steps as dp, the small caps,
 // the animated glide (WardLookDriver's frame loop) every Ward colour is
 // drawn from while the section's hue shifts, and the motion: WardMotion's
@@ -43,12 +50,47 @@ import kotlin.math.roundToInt
 /** A step of the scale as dp. */
 val Double.wardDp: Dp get() = this.toFloat().dp
 
+/**
+ * The app's type (iOS WardType): Nunito, bundled in res/font (SIL OFL 1.1,
+ * owner D5; the licences in assets/licenses), and Baloo Bhaijaan 2 when
+ * the app speaks Arabic. Both are variable fonts, so each weight is the
+ * same file at its own wght; a weight between them is drawn from the
+ * nearest. Observations stay in the system mono.
+ *
+ * Arabic is a locale switch, as on iOS, not a glyph cascade: with the
+ * app's language Arabic every face is Baloo Bhaijaan 2, which carries
+ * Latin too, so a mixed line keeps one face. In English, Arabic letters
+ * in a student's own text fall back to the system's Arabic face, since
+ * Nunito has none.
+ */
+object WardFont {
+    /** The weights each family is given, on Android's 100 to 900 scale. */
+    val latinWeights = listOf(300, 400, 500, 600, 700, 800, 900)
+    /** Baloo Bhaijaan 2's axis runs from 400 to 800 only. */
+    val arabicWeights = listOf(400, 500, 600, 700, 800)
+
+    val latin: FontFamily = family(R.font.nunito, latinWeights)
+    val arabic: FontFamily = family(R.font.baloo_bhaijaan_2, arabicWeights)
+
+    // a variable font's weight axis per Font is still marked experimental
+    @OptIn(ExperimentalTextApi::class)
+    private fun family(res: Int, weights: List<Int>): FontFamily = FontFamily(weights.map { w ->
+        Font(res, FontWeight(w), FontStyle.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(w)))
+    })
+
+    /** The family for a language ("en", "ar"): Baloo Bhaijaan 2 for Arabic, Nunito for every other. */
+    fun forLanguage(language: String): FontFamily = if (language.startsWith("ar")) arabic else latin
+
+    /** The family for the app's language now (Android recreates the screen when it changes). */
+    val current: FontFamily get() = forLanguage(Locale.getDefault().language)
+}
+
 /** This face as a TextStyle: its size and line in sp, its weight, mono for observations. */
 fun WardTypeSpec.textStyle(): TextStyle = TextStyle(
     fontSize = size.sp,
     lineHeight = line.sp,
     fontWeight = FontWeight(weight.value),
-    fontFamily = if (mono) FontFamily.Monospace else FontFamily.Default,
+    fontFamily = if (mono) FontFamily.Monospace else WardFont.current,
     lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
 )
 

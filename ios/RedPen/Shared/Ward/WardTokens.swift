@@ -385,14 +385,55 @@ extension View {
     }
 }
 
-/// The type: system fonts only (SF Pro, SF Mono for observations), every one
-/// a text style so Dynamic Type scales it.
+/// The type: Nunito, bundled (Resources/Fonts, UIAppFonts in project.yml;
+/// SIL OFL 1.1, owner D5), on both apps; the system mono for observations.
+/// Every face is a custom font relative to a text style, at that style's
+/// default (Large) size, so Dynamic Type scales it as it scales the system
+/// font. Every face names its weight: the variable font's default instance
+/// is ExtraLight, so a face without one would draw thin.
+///
+/// Arabic is a locale switch, not a glyph cascade: when the app speaks
+/// Arabic (L10n.language) every face is Baloo Bhaijaan 2, which carries
+/// Latin too, so a mixed line keeps one face. In English, Arabic letters in
+/// a student's own text fall back to the system's Arabic face, since Nunito
+/// has none. FontBundleTests checks the names against the bundled files.
 enum WardType {
-    static let display = Font.largeTitle.bold()
-    static let title = Font.title3.weight(.semibold)
-    static let headline = Font.headline
-    static let body = Font.body
-    static let caption = Font.caption
+    /// The bundled families, by the family name each font file carries.
+    static let latinFamily = "Nunito"
+    static let arabicFamily = "Baloo Bhaijaan 2"
+    /// This launch's family: L10n's choice of language is made once per
+    /// launch, and iOS relaunches the app when its language is changed.
+    static let family = L10n.language.hasPrefix("ar") ? arabicFamily : latinFamily
+
+    /// The family at `style`'s default (Large) size, scaled with it.
+    static func face(_ style: Font.TextStyle, weight: Font.Weight) -> Font {
+        Font.custom(family, size: largeSize(style), relativeTo: style).weight(weight)
+    }
+
+    /// Each text style's size at the default (Large) Dynamic Type size,
+    /// as Android's WardTextStyle has them.
+    static func largeSize(_ style: Font.TextStyle) -> CGFloat {
+        switch style {
+        case .largeTitle: return 34
+        case .title: return 28
+        case .title2: return 22
+        case .title3: return 20
+        case .headline, .body: return 17
+        case .callout: return 16
+        case .subheadline: return 15
+        case .footnote: return 13
+        case .caption: return 12
+        case .caption2: return 11
+        @unknown default: return 17
+        }
+    }
+
+    static let display = face(.largeTitle, weight: .bold)
+    static let title = face(.title3, weight: .semibold)
+    /// headline is semibold, as the system's is.
+    static let headline = face(.headline, weight: .semibold)
+    static let body = face(.body, weight: .regular)
+    static let caption = face(.caption, weight: .regular)
     /// Observations: BP 128/82
     static let obs = Font.system(.body, design: .monospaced)
     static let obsLarge = Font.system(.title2, design: .monospaced).weight(.semibold)
