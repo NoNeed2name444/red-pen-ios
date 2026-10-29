@@ -22,12 +22,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.automirrored.rounded.Undo
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.GpsFixed
@@ -369,7 +369,7 @@ fun missionIcon(mission: ExamWeekPlanner.Mission): ImageVector = when (mission) 
     is ExamWeekPlanner.Mission.LockIn -> Icons.Rounded.Lock
     is ExamWeekPlanner.Mission.Flagged -> Icons.Rounded.Flag
     is ExamWeekPlanner.Mission.Weakest -> Icons.Rounded.GpsFixed
-    ExamWeekPlanner.Mission.NewQuestions -> Icons.Rounded.AutoAwesome
+    ExamWeekPlanner.Mission.NewQuestions -> Icons.Rounded.EditNote
     ExamWeekPlanner.Mission.Nothing -> Icons.Rounded.CheckCircle
 }
 
