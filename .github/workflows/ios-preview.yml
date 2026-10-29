@@ -114,9 +114,11 @@ jobs:
           UDID: ${{ steps.sim.outputs.udid }}
           SCREENS: ${{ inputs.screens }}
         run: |
-          # NOT set -e. A screen that fails to launch used to abort the whole
-          # step, so one bad screen cost all thirty-six and left nothing to say
-          # which one it was. Each screen now records its own failure and the
+          # GitHub runs this step with bash -e, so a bare command that fails
+          # ends it. The setup below (boot, install) is meant to: with no app
+          # there is nothing to shoot. Past it, one bad screen must not cost
+          # all thirty-six and leave nothing to say which one it was, so every
+          # call in the shot loops catches its own failure, logs it, and the
           # run carries on.
           APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
           BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
@@ -249,7 +251,8 @@ jobs:
           # launch onto warm caches.
           case " ${SCREENS:-} " in
             *" ideas-map"*)
-              xcrun simctl ui "$UDID" appearance light
+              xcrun simctl ui "$UDID" appearance light \
+                || echo "appearance failed: light (warm-up)" >> previews/shots.log
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               if xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen ideas-map >> previews/shots.log 2>&1; then
                 warm="$RUNNER_TEMP/warm.png"
@@ -258,8 +261,10 @@ jobs:
                   sleep 4
                   waited=$((waited + 4))
                   xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "$warm" >/dev/null 2>&1 || continue
-                  map_loading "$warm"
-                  [ $? -eq 1 ] && break
+                  # The step's shell runs with -e, so a bare call that
+                  # returns 1 ("built") would end the step right here.
+                  rc=0; map_loading "$warm" || rc=$?
+                  [ "$rc" -eq 1 ] && break
                 done
                 echo "map warm-up: ${waited}s" >> previews/shots.log
                 rm -f "$warm"
@@ -275,7 +280,8 @@ jobs:
           # with its study bar folded, and the library scrolled to its end,
           # where the last row has to clear the dock.
           for mode in light dark; do
-            xcrun simctl ui "$UDID" appearance "$mode"
+            xcrun simctl ui "$UDID" appearance "$mode" \
+              || echo "appearance failed: $mode" >> previews/shots.log
             for screen in ${SCREENS:-library new quiz quiz-checked summary anki anki-revealed book osce osce-revealed osce-complete narrate narrate-finished anki-quizable quiz-from-cards narrate-fixing quiz-folded library-end}; do
               xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
               if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" >> previews/shots.log 2>&1; then
