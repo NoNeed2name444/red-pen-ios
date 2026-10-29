@@ -15,7 +15,7 @@ docs/architecture/handoff/context.md (wins on app state) and plan.md (its §3d
 is the 3D map's hierarchy). Both repos are public, so never put the owner's
 files, images or anything private in either.
 
-Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8).
+Last updated: 2026-10-29 (session branch claude/stethoscore-medical-sciences-isw7di).
 
 ## 1. Working with the owner
 
@@ -2738,6 +2738,55 @@ independent review, a merge into personal, then the Worker deploy.
   (design/lecture-passages). They never back anything.
 - T5 (a model reranker) and T6 (a dense leg) only when their triggers fire
   (A26).
+
+### The core sciences (asked 29 Oct)
+
+The owner asked for tools for the core medical sciences: anatomy as a 3D
+reference (muscle, bone, organs, vessels, nerves), physiology with rendered
+explanations, biochemistry, pathology, microbiology, immunology, genetics,
+every body system and the other sciences, "ALL FROM FREE FOR COMMERCIAL USE
+SOURCES ... WITHOUT USING ANYTHING WITH A LICENSE".
+
+Read as Chat-me brief §23f §3: ship only public domain, CC0 or CC BY,
+checked per source and credited on the Sources screen; CC BY-SA, ND, NC and
+unclear licences are refused. Anything else may only inform, never be copied.
+Facts are written fresh for the app; identifiers point to open databases
+(Reactome and Cell Ontology, CC BY 4.0; NCBI Taxonomy, public domain).
+
+Branch: the session branch claude/stethoscore-medical-sciences-isw7di (from
+personal e433ca1); design/sciences for the App build and preview/sciences
+for screenshots.
+
+- [x] S1. The engines, Foundation only, in ios/RedPen/Shared/Sciences, with
+  suites sciencephys (110 checks) and sciencelife (123 checks):
+  - Physiology.swift: Nernst and Goldman, Hodgkin-Huxley (RK4; TTX, K block
+    and hyperkalaemia), the oxygen curve (Severinghaus, Kelman shifts,
+    fetal), Starling forces and four kinds of oedema, the alveolar gas
+    equation, renal clearance and FENa, haemodynamics.
+  - CardiacCycle.swift: time-varying elastance with a three-element
+    Windkessel and quadratic (Bernoulli) valves; ten presets (normal, the
+    four valve lesions, systolic and diastolic failure, hypertension,
+    haemorrhage, exercise), each landing in textbook ranges.
+  - AcidBase.swift: the stepwise blood gas (Winter's formula, compensation,
+    albumin-corrected gap, delta ratio).
+  - Biochemistry.swift: Michaelis-Menten with three inhibitions, Hill, and
+    eight pathways step by step (glycolysis, PDH, TCA, beta-oxidation, urea,
+    gluconeogenesis, pentose phosphate, haem).
+  - Genetics.swift, Pharmacokinetics.swift, Biostatistics.swift,
+    Microbiology.swift (39 organisms and an identification key that reaches
+    each once), Immunology.swift.
+- [ ] S2. The licence ledger (docs/sciences/sources.md) and the sources in
+  ContentSources, so the Sources screen credits them.
+- [ ] S3. Anatomy: tools/anatomy fetches the Human Reference Atlas 3D
+  organs (CC BY 4.0, one body frame from the Visible Human), pinned by
+  SHA-256, simplified and packed; an atlas manifest with labels and UBERON
+  ids; a Swift reader tested on Linux. Bones, muscles and peripheral nerves
+  need a CC0 or CC BY source (being looked for).
+- [ ] S4. The catalog: subjects by body system, with short notes written
+  for the app.
+- [ ] S5. The screens (ui-consistency phases first): a Sciences hub, the
+  simulators on Swift Charts, the 3D atlas on SceneKit; App build and
+  screenshots on Macs, sent to the owner.
 
 ### Waiting on the owner
 

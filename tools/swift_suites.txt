@@ -459,3 +459,13 @@ suite launchopening LaunchOpeningTests.swift $S/LaunchOpening.swift $S/LaunchDia
 # home's name as the owner's bundle logo: day and night lookup across no file,
 # the day file only, and both
 suite brandlogo BrandLogoTests.swift $S/BrandLogo.swift
+# the core sciences, physiology: membrane potentials, Hodgkin-Huxley, the
+# oxygen curve, Starling forces, lung and kidney sums, the cardiac cycle with
+# its valve lesions, and the stepwise blood-gas reading
+suite sciencephys SciencePhysiologyTests.swift $S/Sciences/Physiology.swift $S/Sciences/CardiacCycle.swift \
+      $S/Sciences/AcidBase.swift
+# the core sciences, life: enzyme kinetics and pathways, Punnett squares and
+# the genetic code, drug levels, 2x2 tables, the bacteria key and immunology
+suite sciencelife ScienceLifeTests.swift $S/Sciences/Biochemistry.swift $S/Sciences/Genetics.swift \
+      $S/Sciences/Biostatistics.swift $S/Sciences/Pharmacokinetics.swift $S/Sciences/Microbiology.swift \
+      $S/Sciences/Immunology.swift
