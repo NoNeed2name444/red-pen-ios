@@ -292,7 +292,8 @@ struct AnkiCardFace: View {
 /// scrolls under the glass.
 struct AnkiFooter<Companion: View>: View {
     let revealed: Bool
-    /// When each rating would bring the card back ("1m", "4d").
+    /// When each rating would bring the card back ("in 1 min", "in 4 d");
+    /// the buttons show it without its "in" ("1 min", "4 d").
     let labels: [AnkiRating: String]
     let onReveal: () -> Void
     let onRate: (AnkiRating) -> Void
@@ -354,23 +355,24 @@ extension AnkiFooter where Companion == EmptyView {
 /// words: Again, Hard, Good, Easy.
 ///
 /// Shared by the one-deck screen and Due today, so the two cannot drift
-/// apart. Each speaks in its tone - Again Resus Red, Hard Caution Amber,
-/// Good Discharge Green, Easy the section's accent - with when it comes back
-/// in SF Mono. Good is the filled one, because it is the answer most cards get
-/// and the one a thumb should find without looking; the other three are the
-/// quiet version of the same button.
+/// apart. Each word is ink (owner, 23 Oct: colour on edges and fills, never
+/// on words); the rating's tone - Again Resus Red, Hard Caution Amber, Good
+/// Discharge Green, Easy the primary ink - is the button's ring. Good says its word
+/// in bold, because it is the answer most cards get.
 ///
 /// One row of four on every window, Again to Easy from left to right like
-/// the 1 to 4 keys that press them, each one word and no caption line (the
-/// owner, 22 Oct: side by side, not two by two), 44 points tall. Only at the
-/// accessibility text sizes do they stand one to a row, so a word is never
-/// cut off.
+/// the 1 to 4 keys that press them (the owner, 23 Oct: side by side), each
+/// its word and, under it, when the card comes back ("1 min", "4 d") in
+/// even-width digits, at least 44 points tall. Only at the accessibility
+/// text sizes do they stand one to a row, so a word is never cut off.
 ///
-/// What each one means ("I forgot it") and when it brings the card back are
-/// VoiceOver's (hint and value), not lines on the button. For the first few
-/// cards anybody rates, a line above asks the question the buttons answer.
+/// What each one means ("I forgot it") is VoiceOver's, in the one label
+/// "Again, back in 1 minute. I forgot it.", not a line on the button. For
+/// the first few cards anybody rates, a line above asks the question the
+/// buttons answer.
 struct AnkiRatingBar: View {
-    /// When each rating would bring the card back ("1m", "4d").
+    /// When each rating would bring the card back ("in 1 min", "in 4 d");
+    /// the buttons show it without its "in" ("1 min", "4 d").
     let labels: [AnkiRating: String]
     let onRate: (AnkiRating) -> Void
 
@@ -419,18 +421,29 @@ struct AnkiRatingBar: View {
             onRate(rating)
             Announce.say("Rated " + spoken + ".")
         }
-        // the word alone: what it means and when the card comes back are
-        // VoiceOver's (hint and value), not caption lines
-        let label = Text(Self.title(rating))
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+        // the word, then when the card comes back; what it means is
+        // VoiceOver's, in the same one label
+        let label = VStack(spacing: 2) {
+            Text(Self.title(rating))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(SpokenText.bareInterval(when))
+                .font(WardType.caption.monospacedDigit())
+                .foregroundStyle(Color.wardInkSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
         Button(action: action) { label }
             .buttonStyle(AnkiRatingButtonStyle(tone: Self.tone(rating), filled: rating == .good))
             // 1 to 4, Again to Easy - Anki's own keys
             .numberKey(key)
-            .accessibilityLabel(Self.title(rating))
-            .accessibilityValue(SpokenText.interval(when))
-            .accessibilityHint(Self.meaning(rating))
+            .accessibilityLabel(Self.spoken(rating, interval: when))
+    }
+
+    /// The button's whole VoiceOver label: "Again, back in 1 minute. I
+    /// forgot it."
+    static func spoken(_ rating: AnkiRating, interval when: String) -> String {
+        SpokenText.rating(title(rating), interval: when) + ". " + meaning(rating) + "."
     }
 
     /// Each button's height: the 44-point target.
@@ -465,9 +478,9 @@ struct AnkiRatingBar: View {
     }
 }
 
-/// A rating button: a soft tile raised off the base, its words in the
-/// rating's tone, never a fill. The one to press most (`filled`) says its
-/// word in bold. Held, it is pressed into the base.
+/// A rating button: a soft tile raised off the base, its words in ink and
+/// its ring in the rating's tone, never a fill. The one to press most
+/// (`filled`) says its word in bold. Held, it is pressed into the base.
 private struct AnkiRatingButtonStyle: ButtonStyle {
     let tone: WardTone
     var filled = false
@@ -488,15 +501,15 @@ private struct AnkiRatingFace: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.button, style: .continuous)
         let lift: WardLift = .mid
-        let font: Font = bold ? .headline.weight(.bold) : .headline
+        let font: Font = bold ? WardType.face(.headline, weight: .bold) : WardType.headline
         label
             .font(font)
             .multilineTextAlignment(.center)
-            .foregroundStyle(tone.ink)
+            .foregroundStyle(Color.wardInk)
             .padding(.horizontal, WardSpace.xs)
             .padding(.vertical, WardSpace.s)
             .frame(maxWidth: .infinity, minHeight: AnkiRatingBar.height)
-            .background { WardPressFace(shape: shape, lift: lift, pressed: pressed) }
+            .background { WardPressFace(shape: shape, lift: lift, pressed: pressed, edge: tone.color) }
             .contentShape(shape)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .contentShape(.hoverEffect, shape)

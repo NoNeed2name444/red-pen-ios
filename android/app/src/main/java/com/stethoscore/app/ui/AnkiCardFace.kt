@@ -1,13 +1,18 @@
 package com.stethoscore.app.ui
 
-import com.stethoscore.app.ui.ward.wardRaised
+import android.app.UiModeManager
 import android.content.Context
+import android.database.ContentObserver
 import android.graphics.BitmapFactory
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import android.util.Base64
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -32,7 +37,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -176,11 +180,12 @@ private fun rgb(t: Triple<Double, Double, Double>) = Color(t.first.toFloat(), t.
 private const val hintsKey = "anki.ratingHintsShown"
 
 /**
- * The four ratings after a card is turned over: Again, Hard, Good, Easy, each one word in its
- * tone with no caption line, side by side in one row on every window (the owner, 22 Oct: not
- * two by two), each 48 dp tall; one to a row only at the largest text sizes. What each means and
- * when it comes back are TalkBack's (hint and state), not lines on the button. For the first
- * few cards a line above asks the question the buttons answer.
+ * The four ratings after a card is turned over: Again, Hard, Good, Easy, side by side in one row
+ * on every window (the owner, 23 Oct), each its word in ink and, under it, when the card comes
+ * back ("1 min", "4 d") in even-width digits, at least 48 dp tall; one to a row only at the
+ * largest text sizes. What each means is TalkBack's, in the one label "Again, back in 1 minute.
+ * I forgot it.", not a line on the button. For the first few cards a line above asks the
+ * question the buttons answer.
  */
 @Composable fun AnkiRatingBar(labels: Map<AnkiRating, String>, onRate: (AnkiRating) -> Unit) {
     val context = LocalContext.current
@@ -212,25 +217,84 @@ private const val hintsKey = "anki.ratingHintsShown"
     AnkiRating.EASY -> WardToken.primaryInk
 })
 
-/** A soft tile raised off the base, its words in the rating's tone; Good, the one to press most, in bold. */
+/** A soft tile raised off the base, its words in ink and its ring in the rating's tone; Good, the one to press most, in bold. */
 @Composable private fun RatingButton(rating: AnkiRating, whenBack: String, onClick: () -> Unit, modifier: Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val ink = tone(rating)
     val shape = RoundedCornerShape(WardRadius.button.wardDp)
-    // held, it is a well pressed into the base: the well's fill, told by its inset shadows only
-    val face = if (pressed) Modifier.wardInset(shape) else Modifier.wardRaised(WardRadius.button).background(wardColor(WardToken.surface), shape)
-    // the word alone: what it means and when the card comes back are TalkBack's
+    // the tone is the ring, at a control edge's strength, full under more contrast: iOS's
+    // WardPressFace(edge:) draws its edge at the press spec's alpha, Increase Contrast's included
+    val lift = WardLift.mid
+    val alpha = WardPress.spec(lift, 0.0, wardNight(), highContrast = ratingHighContrast()).edgeAlpha
+    // raised off the base, pressed into it while held (the shared press face, as iOS's)
+    val face = Modifier.wardPressFace(shape, lift, wardDepth(pressed), edge = tone(rating).copy(alpha = alpha.toFloat()))
+    // one label for the whole button: the word, when it comes back, and what it means
     Box(modifier.heightIn(min = CardReview.ratingHeight.dp).then(face)
-        .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = CardReview.meaning(rating), onClick = onClick)
-        .semantics { contentDescription = CardReview.title(rating); stateDescription = CardReview.spokenInterval(whenBack) }
+        .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
+        .semantics { contentDescription = CardReview.ratingLabel(rating, whenBack) }
         .padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
-        // one line, never clipped: it shrinks to CardReview.leastWordScale of its size before it
-        // would cross the button's edge, as iOS's minimumScaleFactor does
-        val style = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold)
-            .copy(color = ink, textAlign = TextAlign.Center)
-        androidx.compose.foundation.text.BasicText(CardReview.title(rating), style = style, maxLines = 1, softWrap = false,
-            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
-                minFontSize = style.fontSize * CardReview.leastWordScale, maxFontSize = style.fontSize, stepSize = 0.25.sp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            // one line each, never clipped: they shrink to CardReview.leastWordScale of their size
+            // before they would cross the button's edge, as iOS's minimumScaleFactor does
+            val word = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold)
+                .copy(color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
+            ShrinkingLine(CardReview.title(rating), word)
+            val time = WardTextStyle.caption.textStyle()
+                .copy(color = wardColor(WardToken.inkSecondary), textAlign = TextAlign.Center, fontFeatureSettings = "tnum")
+            ShrinkingLine(CardReview.bareInterval(whenBack), time)
+        }
     }
+}
+
+@Composable private fun ShrinkingLine(text: String, style: TextStyle) {
+    androidx.compose.foundation.text.BasicText(text, style = style, maxLines = 1, softWrap = false,
+        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+            minFontSize = style.fontSize * CardReview.leastWordScale, maxFontSize = style.fontSize, stepSize = 0.25.sp))
+}
+
+/** Whether the rating rings are drawn at full strength; null reads the system's settings (tests set it). */
+internal val LocalRatingHighContrast = staticCompositionLocalOf<Boolean?> { null }
+
+private const val highTextContrast = "high_text_contrast_enabled"
+
+/**
+ * Whether the system asks for more contrast, as iOS's Increase Contrast does: Color contrast
+ * above Standard (API 34+), or High contrast text.
+ */
+internal fun ratingHighContrast(context: Context): Boolean {
+    val contrast = if (Build.VERSION.SDK_INT >= 34) systemContrast(context) else 0f
+    val text = runCatching { Settings.Secure.getInt(context.contentResolver, highTextContrast, 0) == 1 }.getOrDefault(false)
+    return contrast > 0f || text
+}
+
+@RequiresApi(34) private fun systemContrast(context: Context): Float =
+    runCatching { context.getSystemService(UiModeManager::class.java)?.contrast ?: 0f }.getOrDefault(0f)
+
+/** Stops watching the contrast level; nothing to stop where it could not be watched. */
+@RequiresApi(34) private fun watchContrast(context: Context, onChange: () -> Unit): () -> Unit {
+    val manager = context.getSystemService(UiModeManager::class.java) ?: return {}
+    val listener = UiModeManager.ContrastChangeListener { onChange() }
+    val added = runCatching { manager.addContrastChangeListener(context.mainExecutor, listener) }.isSuccess
+    return if (added) ({ runCatching { manager.removeContrastChangeListener(listener) } }) else ({})
+}
+
+/** [ratingHighContrast], read now and again whenever either setting changes. */
+@Composable private fun ratingHighContrast(): Boolean {
+    val given = LocalRatingHighContrast.current
+    val context = LocalContext.current
+    var high by remember(context) { mutableStateOf(ratingHighContrast(context)) }
+    DisposableEffect(context) {
+        val reread = { high = ratingHighContrast(context) }
+        val watcher = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) { reread() }
+        }
+        val resolver = context.contentResolver
+        runCatching { resolver.registerContentObserver(Settings.Secure.getUriFor(highTextContrast), false, watcher) }
+        val stopContrast = if (Build.VERSION.SDK_INT >= 34) watchContrast(context, reread) else ({})
+        onDispose {
+            runCatching { resolver.unregisterContentObserver(watcher) }
+            stopContrast()
+        }
+    }
+    return given ?: high
 }

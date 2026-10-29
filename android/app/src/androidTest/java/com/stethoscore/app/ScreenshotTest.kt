@@ -97,7 +97,7 @@ class ScreenshotTest {
         // card's scroll: they are tapped where they stand, and must be on screen to be tapped
         compose.onNodeWithText("Reveal").assertIsDisplayed().performClick()
         shot("06-card-revealed")
-        compose.onNodeWithContentDescription("Good").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Good, back in", substring = true).assertIsDisplayed().performClick()
         check(store.reviews.isNotEmpty())
     }
     @Test fun osce() { val store=store();val set=store.library.first {it.kind==StudySetKind.OSCE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("07-osce") }
@@ -319,7 +319,7 @@ class WindowShots {
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
         tap("the deck's row",hasText(set.name) and hasClickAction())
         tap("Reveal",hasText("Reveal") and hasClickAction())
-        waitFor("the ratings",hasContentDescription("Good"))
+        waitFor("the ratings",hasContentDescription("Good, back in", substring = true))
     }
     @Test fun settings() = shoot("settings","settings")
 }

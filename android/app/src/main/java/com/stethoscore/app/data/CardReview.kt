@@ -128,6 +128,9 @@ object CardReview {
         return if (words.isEmpty()) title(rating) else title(rating) + ", back in " + words
     }
 
+    /** A rating button's whole TalkBack label: "Again, back in 1 minute. I forgot it." (iOS AnkiRatingBar.spoken). */
+    fun ratingLabel(rating: AnkiRating, label: String): String = spokenRating(rating, label) + ". " + meaning(rating) + "."
+
     // ---- the headers and finishes ----
 
     private fun plural(n: Int) = if (n == 1) "" else "s"

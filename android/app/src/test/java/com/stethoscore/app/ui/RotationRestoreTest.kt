@@ -165,7 +165,7 @@ class RotationRestoreTest {
         restoration.setContent(page(WardSection.cards) { AnkiReviewScreen(set, s, {}) })
         compose.waitForIdle()
         tap(hasText("Reveal") and hasClickAction())
-        assertTrue(exists(hasContentDescription("Good")))
+        assertTrue(exists(hasContentDescription("Good, back in", substring = true)))
         // the card on screen is rated elsewhere while the app is away: the queue made again starts on another
         s.rateCard(due.first().card, com.stethoscore.app.data.AnkiRating.EASY)
         assertTrue("another card leads the queue", s.queue(set).firstOrNull()?.id != due.first().id)
@@ -174,7 +174,7 @@ class RotationRestoreTest {
         compose.waitForIdle()
 
         assertTrue("the new card's answer is hidden: Reveal is back", exists(hasText("Reveal") and hasClickAction()))
-        assertFalse("no ratings over a card not revealed", exists(hasContentDescription("Good")))
+        assertFalse("no ratings over a card not revealed", exists(hasContentDescription("Good, back in", substring = true)))
     }
 
     /** AnkiReviewScreen.kt: studying ahead was plain remember, so a turn put the deck back on "Nothing to review". */
@@ -189,13 +189,13 @@ class RotationRestoreTest {
         compose.waitForIdle()
         tap(hasText("Study it anyway") and hasClickAction())
         tap(hasText("Reveal") and hasClickAction())
-        assertTrue(exists(hasContentDescription("Good")))
+        assertTrue(exists(hasContentDescription("Good, back in", substring = true)))
 
         restoration.emulateSavedInstanceStateRestore()
         compose.waitForIdle()
 
         assertFalse("still studying ahead", exists(hasText("Nothing to review")))
-        assertTrue("the same card, still revealed", exists(hasContentDescription("Good")))
+        assertTrue("the same card, still revealed", exists(hasContentDescription("Good, back in", substring = true)))
     }
 
     @Test fun revealedCardStaysRevealed() {
@@ -205,10 +205,10 @@ class RotationRestoreTest {
         restoration.setContent(page(WardSection.cards) { AnkiReviewScreen(set, s, {}) })
         compose.waitForIdle()
         tap(hasText("Reveal") and hasClickAction())
-        assertTrue(exists(hasContentDescription("Good")))
+        assertTrue(exists(hasContentDescription("Good, back in", substring = true)))
         restoration.emulateSavedInstanceStateRestore()
         compose.waitForIdle()
-        assertTrue("the ratings still up", exists(hasContentDescription("Good")))
+        assertTrue("the ratings still up", exists(hasContentDescription("Good, back in", substring = true)))
         assertFalse("Reveal not back", exists(hasText("Reveal") and hasClickAction()))
     }
 

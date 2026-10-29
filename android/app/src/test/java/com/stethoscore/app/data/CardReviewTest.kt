@@ -40,6 +40,8 @@ class CardReviewTest {
         assertEquals("4 days", CardReview.spokenInterval("in 4 d"))
         assertEquals("1 minute", CardReview.spokenInterval("1 min"))
         assertEquals("Good, back in 2 hours", CardReview.spokenRating(AnkiRating.GOOD, "in 2 hr"))
+        assertEquals("Again, back in 1 minute. I forgot it.", CardReview.ratingLabel(AnkiRating.AGAIN, "in 1 min"))
+        assertEquals("Easy, back in 4 days. Too easy.", CardReview.ratingLabel(AnkiRating.EASY, "in 4 d"))
         assertEquals("Again", CardReview.spokenRating(AnkiRating.AGAIN, ""))
     }
 

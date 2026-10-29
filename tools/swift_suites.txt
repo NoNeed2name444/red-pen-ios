@@ -79,7 +79,8 @@ suite imports ImportTests.swift $M/MCQQuestion.swift $M/Differential.swift $M/An
       $S/AnkiFields.swift $S/MiniZip.swift $S/Zip.swift
 suite coverage CoverageTests.swift $S/MCQCoverage.swift
 suite schedule ScheduleTests.swift $M/AnkiCard.swift \
-      $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift $S/AnkiExportSchedule.swift
+      $F/Anki/AnkiScheduler.swift $S/ReviewPlan.swift $S/AnkiExportSchedule.swift \
+      $S/AccessibilityText.swift
 suite slides SlideTests.swift $M/AnkiCard.swift $M/MCQQuestion.swift $M/Differential.swift \
       $S/DocxText.swift $S/PptxText.swift $S/SourceText.swift \
       $S/MCQCoverage.swift $S/Provenance.swift $S/MCQEdit.swift

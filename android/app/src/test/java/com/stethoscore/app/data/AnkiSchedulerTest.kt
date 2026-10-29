@@ -44,4 +44,21 @@ class AnkiSchedulerTest {
         assertEquals(2, two.reviews); assertEquals(1, two.lapses)
         assertEquals(100L, two.introducedAt); assertEquals(60200L, two.due)
     }
+
+    // the time under each rating's word, for the same card states as iOS's ScheduleTests
+    // ("the rating faces"): the same inputs give the same strings on both platforms
+    @Test fun ratingFacesMatchIos() {
+        val expected = linkedMapOf(
+            0.0 to listOf("1 min", "5 min", "10 min", "4 d"),
+            10.0 to listOf("1 min", "12 min", "1 d", "4 d"),
+            60.0 to listOf("1 min", "1 hr", "1 d", "4 d"),
+            1440.0 to listOf("1 min", "1 d", "3 d", "4 d"),
+            5760.0 to listOf("1 min", "5 d", "10 d", "16 d"),
+        )
+        for ((current, faces) in expected) {
+            val labels = AnkiScheduler.previewLabels(current, 1_700_000_000_000L, exam = null)
+            assertEquals("labels at $current", faces.map { "in $it" }, AnkiRating.entries.map { labels[it] })
+            assertEquals("faces at $current", faces, AnkiRating.entries.map { CardReview.bareInterval(labels[it] ?: "") })
+        }
+    }
 }

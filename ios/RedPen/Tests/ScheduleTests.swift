@@ -150,6 +150,25 @@ check("nor for an interval already stored out of range",
 check("the buttons for a runaway card do not crash",
       AnkiScheduler.previewLabels(currentIntervalMin: 1e300, exam: nil)[.easy] == "in 36500 d")
 
+// MARK: the rating faces
+// the time under each rating's word; Android's AnkiSchedulerTest.ratingFacesMatchIos holds the
+// same inputs to the same strings
+let faces: [(Double, [String])] = [
+    (0, ["1 min", "5 min", "10 min", "4 d"]),
+    (10, ["1 min", "12 min", "1 d", "4 d"]),
+    (60, ["1 min", "1 hr", "1 d", "4 d"]),
+    (1440, ["1 min", "1 d", "3 d", "4 d"]),
+    (5760, ["1 min", "5 d", "10 d", "16 d"]),
+]
+for (current, want) in faces {
+    let labels = AnkiScheduler.previewLabels(currentIntervalMin: current, exam: nil)
+    let got: [String] = AnkiRating.allCases.map { labels[$0] ?? "-" }
+    check("the rating faces at \(current) minutes", got == want.map { "in " + $0 }, "\(got)")
+    // what each button shows under its word: the label without its "in"
+    let shown: [String] = got.map { SpokenText.bareInterval($0) }
+    check("the buttons show the times at \(current) minutes", shown == want, "\(shown)")
+}
+
 // MARK: the whole library at once
 
 let anatomy = Deck(deckName: "Anatomy", deckCards: [card("femoral triangle")])
