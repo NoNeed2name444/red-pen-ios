@@ -264,6 +264,12 @@ struct SciencesView: View {
     var body: some View { NotInThisBuild(feature: "Sciences") }
 }
 
+struct SciencePreviewScreen: View {
+    let name: String
+
+    var body: some View { NotInThisBuild(feature: "Sciences") }
+}
+
 struct ReasoningSetView: View {
     let set: StudySet
 

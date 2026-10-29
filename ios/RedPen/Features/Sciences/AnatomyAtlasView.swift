@@ -24,6 +24,9 @@ enum AtlasLibrary {
 struct AnatomyAtlasView: View {
     var focus: [String] = []
     var title: String?
+    /// A structure to choose once the atlas is in ("heart/VH_M_heart_left_ventricle"),
+    /// for the screenshots (SciencePreviewScreen).
+    var choosing: String?
     @StateObject private var model = AtlasModel()
     @State private var query = ""
 
@@ -78,6 +81,7 @@ struct AnatomyAtlasView: View {
         }
         .task {
             await model.load(focus: Set(focus))
+            if let choosing { model.reveal(key: choosing) }
         }
         .accessibilityIdentifier("anatomyAtlas")
     }
@@ -408,6 +412,12 @@ final class AtlasModel: NSObject, ObservableObject {
         }
         lit = (node, originals)
         chosen = entry
+    }
+
+    /// A structure by its node's name ("part/structure"), as the search reveals one.
+    func reveal(key: String) {
+        guard let entry = entries[key] else { return }
+        reveal(part: entry.part, structure: entry.structure)
     }
 
     /// A structure from the search: its layer shown, then chosen and framed.

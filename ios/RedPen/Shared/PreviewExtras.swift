@@ -74,6 +74,10 @@ enum PreviewExtras {
             // home stepping along its dock every 2 s, each place's hue
             // shifting to the next, for a recording
             PreviewSectionSwitch()
+        case let science where science.hasPrefix("science-"):
+            // the Sciences: the hub, its pages, a few tools and the atlas
+            // (SciencePreviewScreen; SciencesUITests photographs them)
+            SciencePreviewScreen(name: science)
         case "home-ideas":
             // home on Ideas, in its hue
             LibraryView()
@@ -86,7 +90,7 @@ enum PreviewExtras {
         }
     }
 
-    static func handles(_ screen: String) -> Bool { screens.contains(screen) }
+    static func handles(_ screen: String) -> Bool { screens.contains(screen) || screen.hasPrefix("science-") }
 }
 
 /// The sign-in screen on an account store of its own, signed out, with the

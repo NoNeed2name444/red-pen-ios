@@ -8,7 +8,9 @@
 #   Progress;
 # - the first Arabic screens, right to left (ArabicUITests): sign-in, the
 #   recording terms, the dock and Settings, named ar-*, after the tour on
-#   the same iPhone.
+#   the same iPhone;
+# - the Sciences (SciencesUITests), only when the "only" input names
+#   testSciencesTour: the hub, its pages, nine tools and the 3D atlas.
 # A push to a preview/<name> branch runs it; the pictures land on the
 # shots/<name> branch (preview/graph's on design-preview), in shots/iphone/
 # and shots/ipad/, with a README that shows them all on one page.
@@ -201,6 +203,10 @@ jobs:
           if echo testDesignTour | grep -qE "${ONLY:-.}"; then TOUR="-only-testing:RedPenUITests/DesignTourUITests"; fi
           ARABIC=""
           if echo testArabicRightToLeft | grep -qE "${ONLY:-.}"; then ARABIC="-only-testing:RedPenUITests/ArabicUITests"; fi
+          # the Sciences' screens (SciencesUITests): only when asked for by
+          # name, so a design push does not wait on them
+          SCIENCES=""
+          if [ -n "${ONLY:-}" ] && echo testSciencesTour | grep -qE "$ONLY"; then SCIENCES="-only-testing:RedPenUITests/SciencesUITests"; fi
 
           echo "$PART on $NAME ($UDID)"
           xcrun simctl boot "$UDID" || true
@@ -242,11 +248,13 @@ jobs:
             iphone-tour)
               if [ -n "$TOUR" ]; then run_tests iphone-tour.xcresult iphone-tour.log "$TOUR"; fi
               # then the same phone in Arabic (launch arguments only)
-              if [ -n "$ARABIC" ]; then run_tests iphone-arabic.xcresult iphone-arabic.log "$ARABIC"; fi ;;
+              if [ -n "$ARABIC" ]; then run_tests iphone-arabic.xcresult iphone-arabic.log "$ARABIC"; fi
+              if [ -n "$SCIENCES" ]; then run_tests iphone-sciences.xcresult iphone-sciences.log "$SCIENCES"; fi ;;
             ipad)
               args=()
               for t in $GRAPH_TESTS; do args+=("-only-testing:RedPenUITests/GraphPreviewUITests/$t"); done
               if [ -n "$TOUR" ]; then args+=("$TOUR"); fi
+              if [ -n "$SCIENCES" ]; then args+=("$SCIENCES"); fi
               if [ ${#args[@]} -gt 0 ]; then run_tests ipad.xcresult ipad.log "${args[@]}"; fi ;;
           esac
       # after the pictures, also when they timed out: the watch above stops
