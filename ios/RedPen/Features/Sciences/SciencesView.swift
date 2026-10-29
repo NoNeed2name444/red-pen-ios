@@ -27,6 +27,9 @@ struct SciencesView: View {
             }
         }
         .navigationTitle("Sciences")
+        // inline, as the examples hub's title shows pushed from the library;
+        // a large one went unseen on a stack of its own (the screenshots)
+        .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: "Find a topic or tool")
         .accessibilityIdentifier("sciencesHub")
     }

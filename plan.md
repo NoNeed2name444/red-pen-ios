@@ -2864,8 +2864,10 @@ for screenshots.
   - Screenshots: SciencesUITests opens sixteen pages straight from launch
     (-uiPreviewScreen science-<name>, SciencePreviewScreen); run it with
     design-preview.yml on preview/sciences, only=testSciencesTour,
-    parts=iphone-tour,ipad.
-  - [ ] S5a. App build green on design/sciences.
+    parts=iphone-tour,ipad. The first run showed the hub's, a subject's and
+    a system's large titles missing (each page pushed on a stack of its
+    own); they are inline now, as the examples hub's title is.
+  - [x] S5a. App build green on design/sciences (d35dfc3, run 40950114091).
   - [ ] S5b. Screenshots on preview/sciences, sent to the owner.
   - [ ] S5c. Proposals to put to the owner: lift the examples hub's tile
     and the Sciences tile into one Shared/Ward tile, and the ward pocket's

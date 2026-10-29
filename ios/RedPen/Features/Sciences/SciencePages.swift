@@ -29,6 +29,7 @@ struct ScienceSubjectView: View {
         }
         .wardForm()
         .navigationTitle(subject.name)
+        .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("scienceSubjectPage")
     }
 }
@@ -71,6 +72,7 @@ struct BodySystemView: View {
         }
         .wardForm()
         .navigationTitle(system.name)
+        .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("scienceSystemPage")
     }
 }
