@@ -3,7 +3,10 @@ import Foundation
 /// The 3D anatomy atlas: the manifest (Resources/Anatomy/anatomy.json) and
 /// the meshes of each part (<body>-<part>.atlas), made by
 /// tools/anatomy_atlas.py from the Human Reference Atlas's male and female
-/// reference organ sets (CC BY 4.0; sources and credits in
+/// reference organ sets, with the skull from NIH 3D and the ribs, shoulder
+/// girdle, humeri, hip and back muscles, thyroid, adrenals, oesophagus and
+/// stomach from two TotalSegmentator CT scans, which tools/anatomy_gaps.py
+/// carries into each body (all CC BY 4.0; sources and credits in
 /// Resources/Anatomy/SOURCES.md).
 ///
 /// Two bodies, the Visible Human Male and Female, each in its own frame:
@@ -25,7 +28,8 @@ struct AnatomyManifest: Decodable, Hashable {
         let id: String
         let title: String
         let creators: String
-        let doi: String
+        /// None for a source with no DOI (an NIH 3D entry).
+        let doi: String?
         let url: String
         let sha256: String
         let licence: String
@@ -60,6 +64,14 @@ enum AnatomySex: String, Decodable, CaseIterable, Identifiable {
     case male, female
     var id: String { rawValue }
     var name: String { self == .male ? "Male" : "Female" }
+
+    /// Where the body last chosen is kept (UserDefaults): the atlas and the
+    /// tools whose numbers differ by sex share it.
+    static let rememberedKey = "sciences.atlas.body"
+
+    /// The remembered choice, read from its raw value; the male body when
+    /// nothing (or nothing readable) is kept.
+    init(remembered raw: String) { self = AnatomySex(rawValue: raw) ?? .male }
 }
 
 /// One body: its parts, each with its own file.
@@ -106,11 +118,19 @@ struct AnatomyStructure: Decodable, Hashable {
     var uberonURL: String? {
         uberon.map { "http://purl.obolibrary.org/obo/" + $0.replacingOccurrences(of: ":", with: "_") }
     }
+
+    /// Where the mesh comes from when it is not the body's own organ set's:
+    /// another person's scan, fitted to this body, which the card says.
+    var origin: String? {
+        if node.hasPrefix("TS_") { return "From a CT scan (TotalSegmentator), fitted to this body" }
+        if node.hasPrefix("NLM_") { return "The Visible Human Male's skull (NIH 3D), fitted to this body" }
+        return nil
+    }
 }
 
 enum AnatomySystem: String, Decodable, CaseIterable, Identifiable {
     case skeletal, muscular, nervous, specialSenses = "special senses", cardiovascular, respiratory
-    case digestive, lymphatic, urinary, reproductive, integumentary
+    case digestive, lymphatic, endocrine, urinary, reproductive, integumentary
     var id: String { rawValue }
 
     var name: String {

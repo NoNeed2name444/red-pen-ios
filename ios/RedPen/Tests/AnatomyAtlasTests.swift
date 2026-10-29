@@ -19,17 +19,18 @@ guard let manifestData = try? Data(contentsOf: folder.appendingPathComponent("an
     exit(1)
 }
 check("the manifest reads, format 2, two bodies", manifest.format == 2 && manifest.bodies.map(\.id) == [.male, .female])
-check("every source is CC BY 4.0 and pinned",
-      manifest.sources.count == 3 && manifest.sources.allSatisfy {
-          $0.licence == "CC BY 4.0" && $0.sha256.count == 64 && $0.doi.hasPrefix("https://doi.org/")
-      })
+check("every source is CC BY 4.0 and pinned, with a DOI or (the NIH 3D skull) its entry's page",
+      manifest.sources.count == 5 && manifest.sources.allSatisfy {
+          $0.licence == "CC BY 4.0" && $0.sha256.count == 64 && $0.url.hasPrefix("https://")
+            && ($0.doi?.hasPrefix("https://doi.org/") ?? ($0.id == "nih3d-3dpx-020591"))
+      }, manifest.sources.map(\.id).joined(separator: ", "))
 check("each body names its own source", Set(manifest.bodies.map(\.source)).count == 2
       && manifest.bodies.allSatisfy { b in manifest.sources.contains { $0.id == b.source } })
-check("33 male parts and 35 female, ids unique in each",
-      male.parts.count == 33 && female.parts.count == 35
+check("44 male parts and 45 female, ids unique in each",
+      male.parts.count == 44 && female.parts.count == 45
       && manifest.bodies.allSatisfy { Set($0.parts.map(\.id)).count == $0.parts.count },
       "\(male.parts.count), \(female.parts.count)")
-let femaleOnly: Set<String> = ["breasts", "ovaries", "uterine-tubes", "uterus", "vagina", "uterine-ligaments", "sternum"]
+let femaleOnly: Set<String> = ["breasts", "ovaries", "uterine-tubes", "uterus", "vagina", "uterine-ligaments"]
 let maleOnly: Set<String> = ["urethra", "genital-ducts", "prostate", "hyoid", "larynx-muscles"]
 let maleIds = Set(male.parts.map(\.id)), femaleIds = Set(female.parts.map(\.id))
 check("every other part is in both bodies",
@@ -39,18 +40,24 @@ for body in manifest.bodies {
     let structures = body.parts.flatMap(\.structures)
     check("\(body.name): node names unique, each with its body's prefix",
           Set(structures.map(\.node)).count == structures.count
-          && structures.allSatisfy { $0.node.hasPrefix(body.id == .male ? "VH_M_" : "VH_F_") || $0.node.hasPrefix("Allen_") })
+          && structures.allSatisfy {
+              $0.node.hasPrefix(body.id == .male ? "VH_M_" : "VH_F_") || $0.node.hasPrefix("Allen_")
+                || $0.node.hasPrefix("NLM_") || $0.node.hasPrefix("TS_")
+          })
     check("\(body.name): every body system has a part",
           Set(body.parts.map(\.system)) == Set(AnatomySystem.allCases),
           "\(Set(AnatomySystem.allCases).subtracting(body.parts.map(\.system)))")
 }
-check("865 male structures and 900 female",
-      male.parts.flatMap(\.structures).count == 865 && female.parts.flatMap(\.structures).count == 900,
+check("932 male structures and 966 female",
+      male.parts.flatMap(\.structures).count == 932 && female.parts.flatMap(\.structures).count == 966,
       "\(male.parts.flatMap(\.structures).count), \(female.parts.flatMap(\.structures).count)")
 check("the body for a topic's parts: the one that has them all",
       manifest.body(for: ["heart"]) == .male && manifest.body(for: ["heart"], preferred: .female) == .female
       && manifest.body(for: ["uterus", "ovaries"]) == .female && manifest.body(for: ["prostate"], preferred: .female) == .male
       && manifest.body(for: ["kidneys", "bladder", "urethra"]) == .male && manifest.body(for: []) == .male)
+check("the remembered body reads back, and an unreadable one is the man's",
+      AnatomySex(remembered: "female") == .female && AnatomySex(remembered: "") == .male
+        && AnatomySex(remembered: "nonsense") == .male && AnatomySex.rememberedKey == "sciences.atlas.body")
 check("a part's name is found in whichever body has it",
       manifest.part("uterus")?.name == "Uterus" && manifest.part("prostate")?.name == "Prostate" && manifest.part("nope") == nil)
 
@@ -77,7 +84,7 @@ for body in manifest.bodies {
     }
     check("\(body.name): every structure has the triangles the manifest says", mismatched.isEmpty, mismatched.prefix(5).joined(separator: ", "))
     let total: Int = parts.map(\.triangles).reduce(0, +)
-    check("\(body.name): about 350,000 to 400,000 triangles", (340_000...410_000).contains(total), "\(total)")
+    check("\(body.name): about 450,000 to 470,000 triangles", (440_000...480_000).contains(total), "\(total)")
     let empty = parts.flatMap { p in zip(p.structures, meshes[p.file] ?? []).filter { $0.1.triangleCount == 0 }.map { $0.0.node } }
     check("\(body.name): no structure is empty", empty.isEmpty, empty.joined(separator: ", "))
     let outside: [String] = parts.compactMap { part in
@@ -252,6 +259,63 @@ check("a part read against another's manifest entry is refused", {
     do { _ = try AnatomyAtlas.meshes(of: male.part("brain")!, from: first); return false } catch { return true }
 }())
 
+// MARK: the parts the organ sets lack (tools/anatomy_gaps.py)
+
+let added: Set<String> = ["skull", "sternum", "ribs", "shoulders", "arms", "hip-muscles", "back-muscles",
+                          "thyroid", "adrenals", "oesophagus", "stomach"]
+let ordinals = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
+                "eleventh", "twelfth"]
+for body in manifest.bodies {
+    let ids = Set(body.parts.map(\.id))
+    check("\(body.name): the skull, ribs, sternum, shoulders, arms, hip and back muscles, thyroid, adrenals, oesophagus and stomach",
+          added.isSubset(of: ids), "\(added.subtracting(ids).sorted())")
+    let ribs = body.part("ribs")?.structures.filter { $0.node.hasPrefix("TS_rib_") } ?? []
+    let wanted = Set(["left", "right"].flatMap { side in ordinals.map { "\(side) \($0) rib" } })
+    check("\(body.name): twelve ribs a side, each named for its place", ribs.count == 24 && Set(ribs.map(\.label)) == wanted,
+          "\(ribs.count)")
+    check("\(body.name): the ribs run down in order, each side",
+          ["L", "R"].allSatisfy { s in
+              let ys = (1...12).compactMap { centre("TS_rib_\($0)_\(s)", in: body)?.y }
+              return ys.count == 12 && zip(ys, ys.dropFirst()).allSatisfy { $0 > $1 }
+          })
+    let skull = body.part("skull")?.structures ?? []
+    check("\(body.name): the skull's thirteen bones, the paired ones left and right (20 pieces, all bone)",
+          skull.count == 20 && skull.allSatisfy { $0.tissue == .bone && $0.node.hasPrefix("NLM_") })
+    // the brain inside the skull, to within half a centimetre
+    let brain = body.part("brain")!.bounds, vault = body.part("skull")!.bounds
+    check("\(body.name): the brain lies within the skull",
+          (0..<3).allSatisfy { brain[$0] > vault[$0] - 0.005 && brain[$0 + 3] < vault[$0 + 3] + 0.005 },
+          "\(brain) in \(vault)")
+    // each humerus's head at its own shoulder: its top within 6 cm of the clavicle's outer end
+    for s in ["L", "R"] {
+        guard let humerus = mesh("TS_humerus_\(s)", in: body), let clavicle = mesh("TS_clavicle_\(s)", in: body) else {
+            check("\(body.name): the \(s) humerus and clavicle are there", false); continue
+        }
+        let top = (0..<humerus.vertexCount).map(humerus.position).max { $0.y < $1.y }!
+        let outer = (0..<clavicle.vertexCount).map(clavicle.position).max { abs($0.x) < abs($1.x) }!
+        let gap = ((top - outer) * (top - outer)).sum().squareRoot()
+        check("\(body.name): the \(s == "L" ? "left" : "right") humerus's head is at its shoulder (\(Int(gap * 100)) cm from the clavicle's end)",
+              gap < 0.06 && (s == "L" ? top.x > 0 : top.x < 0))
+    }
+    // the thyroid in the neck, below the larynx's top and in front of the spine; the adrenals above the kidneys
+    let thyroid = centre("TS_thyroid_gland", in: body) ?? SIMD3(9, 9, 9)
+    let c7 = centre((body.id == .male ? "VH_M_" : "VH_F_") + "cervical_vertebra_7", in: body) ?? SIMD3(0, 0, 0)
+    check("\(body.name): the thyroid sits in front of the neck's vertebrae", thyroid.z > c7.z && abs(thyroid.x) < 0.02)
+    let stomach = centre("TS_stomach", in: body) ?? SIMD3(-9, -9, -9)
+    check("\(body.name): the stomach lies on the left, below the heart",
+          stomach.x > 0 && stomach.y < (body.part("heart").map { ($0.bounds[1] + $0.bounds[4]) / 2 } ?? 0))
+    for (s, side) in [("L", "left"), ("R", "right")] {
+        let gland = centre("TS_adrenal_gland_\(s)", in: body)
+        let kidney = body.part("kidneys")!.structures.firstIndex { $0.label == "\(side) kidney" || $0.label.hasPrefix("\(side) kidney") }
+        if let gland, let k = kidney, let m = meshes[body.part("kidneys")!.file]?[k] {
+            check("\(body.name): the \(side) adrenal sits on the \(side) kidney's upper pole",
+                  gland.y > m.centre.y && (s == "L" ? gland.x > 0 : gland.x < 0))
+        } else {
+            check("\(body.name): the \(side) adrenal and kidney are there", false)
+        }
+    }
+}
+
 // MARK: labels
 
 let structures: [AnatomyStructure] = manifest.bodies.flatMap { $0.parts.flatMap(\.structures) }
@@ -273,6 +337,9 @@ check("the crosswalk's mislabels are corrected",
 check("corrected labels drop the wrong UBERON id", named("VH_M_superior_mesenteric_vein")?.uberon == nil)
 check("the female set's sixth lumbar vertebra is named as the variant it is",
       named("VH_F_lumbar_vertebra_6")?.label.contains("normal variant") == true)
+check("a structure from a scan says so; the organ sets' own say nothing",
+      named("TS_stomach")?.origin?.contains("CT scan") == true && named("NLM_mandible")?.origin?.contains("NIH 3D") == true
+        && named("VH_M_femur_L")?.origin == nil && named("Allen_thalamus_L")?.origin == nil)
 check("titles start with a capital", named("VH_M_femur_L")?.title == "Left femur" && named("VH_F_femur_L")?.title == "Left femur")
 check("tissues: veins are veins, arteries arteries, bones bone, the breast's fat fat",
       named("VH_M_superior_vena_cava")?.tissue == .vein && named("VH_F_superior_vena_cava")?.tissue == .vein

@@ -128,6 +128,28 @@ enum ContentSources {
         changes: "Each structure simplified to fewer triangles, piece by piece with its edges kept so pieces that meet stay sealed, and its positions rounded; stray debris and patches lying on other structures left out, and the patches that close a hole put back; the brain mirrored left to right, so each side lies where its name says; labels corrected where they were wrong for the shape, among them pairs with their sides swapped.",
         home: "https://humanatlas.io/3d-reference-library")
 
+    /// The skull's credit line, as the atlas's SOURCES.md gives it.
+    static let nihSkullCredit = "3D skull: Skull and Eyes - Visible Human Male (NIH 3D, 3DPX-020591, https://3d.nih.gov/entries/3DPX-020591), by kbrowne, NLM 3D: Anatomy, CC BY 4.0, from the Visible Human Male, courtesy of the U.S. National Library of Medicine."
+
+    static let nihSkull = ContentSource(
+        id: "nih3d-skull", name: "NIH 3D skull of the Visible Human Male",
+        use: "The skull in the 3D anatomy atlas, for both bodies",
+        licences: [ccBy4],
+        attribution: nihSkullCredit + " No endorsement by the NIH or the NLM is implied.",
+        changes: "Split into its bones, paired ones at the midline, and simplified; fitted onto the male body by its eyes and upper teeth and carried onto the female's head by a smooth warp; moved in by a few millimetres where it would come through the skin; the eyes and teeth left out, as the bodies have their own.",
+        home: "https://3d.nih.gov/entries/3DPX-020591")
+
+    /// The scans' credit line, as the atlas's SOURCES.md gives it.
+    static let totalSegmentatorCredit = "3D ribs, sternum, shoulder girdle, humeri, hip and back muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans s1803 and s1764 of the TotalSegmentator dataset v3.0.0, by Jakob Wasserthal et al. (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY 4.0."
+
+    static let totalSegmentator = ContentSource(
+        id: "totalsegmentator", name: "TotalSegmentator CT dataset",
+        use: "The parts of the 3D anatomy atlas the organ sets lack: ribs, shoulders, arm bones, hip and back muscles, thyroid, adrenals, oesophagus and stomach",
+        licences: [ccBy4],
+        attribution: totalSegmentatorCredit,
+        changes: "Two scans' masks (a man's for the male body, a woman's for the female) turned into meshes, simplified, and carried into each body by a smooth warp fitted on the bones and organs both have; the rib cage widened to hold the organs, the shoulders turned down under the skin, each humerus laid along the arm, and every part pushed clear of what it cut into.",
+        home: "https://zenodo.org/records/22688904")
+
     static let uberon = ContentSource(
         id: "uberon", name: "UBERON",
         use: "The anatomy ontology each structure in the 3D atlas links to",
@@ -163,7 +185,8 @@ enum ContentSources {
 
     /// Every source of content the app brings, for Settings.
     static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth,
-                                      hraAnatomy, uberon, cellOntology, reactome, ncbiTaxonomy]
+                                      hraAnatomy, nihSkull, totalSegmentator, uberon, cellOntology, reactome,
+                                      ncbiTaxonomy]
 
     /// The bank behind an exam's style examples (ExemplarSource's raw value).
     static func styleBank(_ raw: String) -> ContentSource? {

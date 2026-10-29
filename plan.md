@@ -2791,12 +2791,34 @@ for screenshots.
   anatomyatlas (sides, bounds, winding, labels, search). In the Xcode
   project and the Playgrounds package as a folder, like the Earth maps.
   Gaps, with the CC BY candidates found (SOURCES.md there):
-  - [ ] S3a. Skull, arm and hand bones, ribs: NIH 3D 3DPX-020591 (the
-    Visible Human skull, CC BY 4.0) and TotalSegmentator's CT masks (Zenodo,
-    CC BY 4.0, Wasserthal et al. 2023); the masks need registering into the
-    Visible Human frame (on the vertebrae and pelvis).
-  - [ ] S3b. Named muscles beyond the eye, larynx and thigh: TotalSegmentator's
-    ten; the rest drawn for the app.
+  - [x] S3a. Skull, ribs, shoulder girdle, humeri, in both bodies
+    (tools/anatomy_gaps.py, called by anatomy_atlas.py with --skull and
+    --ct): the skull from NIH 3D 3DPX-020591 (the Visible Human Male's own,
+    CC BY 4.0; 13 bones, paired ones split), fitted on the man by his eyes
+    and upper teeth and carried onto the woman by a warp of her head; the
+    rest meshed from two TotalSegmentator v3.0.0 CT scans (Zenodo
+    22688904, CC BY 4.0), s1803 (a man of 40) and s1764 (a woman of 32),
+    each carried into its body by a thin-plate warp fitted on 41 shared
+    bones and organs. Repairs, each checked by rendering: the skull kept
+    under the skin (at most 5 mm in), the shared Allen brain scaled
+    (0.92 for the man, 0.91 for the woman) to fit inside the skull, the rib cage widened round the
+    chest's axis until the lungs, heart, liver, spleen, kidneys and colon
+    sit inside it (16.9% of rib points were inside organs, then 0) but
+    never past the skin, each shoulder turned down about its
+    sternoclavicular joint under the skin, each humerus laid along the
+    skin's arm. Still to come: the forearm and hand bones (S3f).
+  - [x] S3b. Named muscles from TotalSegmentator: gluteus maximus, medius
+    and minimus, iliopsoas and the deep back muscles, both sides, both
+    bodies (a closer warp of the pelvis, then pushed off the bone); with
+    them the thyroid and adrenals (a new system, endocrine), the
+    oesophagus and stomach. The atlas is now 44 parts and 932 structures
+    for the man, 45 and 966 for the woman, about 460,000 triangles each,
+    9.0 MB; the same bytes every run (the scans' masks pinned by digest).
+    The card says when a structure comes from a scan, fitted to the body.
+    Catalog topics added: the skull, the shoulder girdle and arm, the hip
+    and back muscles, the oesophagus and stomach; the endocrine topic now
+    opens the thyroid and adrenals. The rest of the muscles
+    are still to be drawn for the app.
   - [ ] S3c. Peripheral nerves: no clean source (every rich set derives from
     BodyParts3D or Z-Anatomy, CC BY-SA); to be drawn for the app.
   - [x] S3d. Two bodies (owner, 29 Oct: "every single thing should be 2
@@ -2821,8 +2843,11 @@ for screenshots.
     their shape; the spleen's diaphragmatic surface and the female liver's
     bare area kept (each closes a hole); solid tissues drawn double-sided,
     so a vessel's cut end shows its inside. The suite checks each.
+  - [ ] S3f. The forearm and hand bones (the CT volumes show them;
+    TotalSegmentator does not segment them) and the foot (the Zenodo
+    5192130 CAD foot, CC BY 4.0).
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
-  ten body systems, 29 tools and 66 topics, each a short note written for
+  ten body systems, 29 tools and 73 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has
   anatomy, physiology and pathology, every tool and atlas part is reached
   (suite sciencecatalog). Pathology.swift adds the pathology tools: shock

@@ -142,8 +142,20 @@ check("the credit names every release the atlas's manifest pins",
        "https://doi.org/10.48539/HBM626.BRWN.943"].allSatisfy {
           anatomyManifest.contains($0) && ContentSources.hraCredit.contains($0)
       })
+check("the skull's and the scans' credits are SOURCES.md's, word for word",
+      [ContentSources.nihSkullCredit, ContentSources.totalSegmentatorCredit].allSatisfy {
+          anatomyFlat.contains("\"" + $0 + "\"")
+      }
+        && ContentSources.nihSkull.attribution.hasPrefix(ContentSources.nihSkullCredit)
+        && ContentSources.totalSegmentator.attribution.hasPrefix(ContentSources.totalSegmentatorCredit))
+check("the manifest pins the skull's entry and the scans' release, and the credits name them",
+      anatomyManifest.contains("https://3d.nih.gov/entries/3DPX-020591")
+        && ContentSources.nihSkullCredit.contains("https://3d.nih.gov/entries/3DPX-020591")
+        && anatomyManifest.contains("https://doi.org/10.5281/zenodo.22688904")
+        && ContentSources.totalSegmentatorCredit.contains("https://doi.org/10.5281/zenodo.22688904"))
 check("the Sciences' sources are in Settings' list",
-      [ContentSources.hraAnatomy, ContentSources.uberon, ContentSources.cellOntology,
+      [ContentSources.hraAnatomy, ContentSources.nihSkull, ContentSources.totalSegmentator,
+       ContentSources.uberon, ContentSources.cellOntology,
        ContentSources.reactome, ContentSources.ncbiTaxonomy].allSatisfy(ContentSources.all.contains))
 
 print(failures.isEmpty ? "\nALL CREDITS TESTS PASS"

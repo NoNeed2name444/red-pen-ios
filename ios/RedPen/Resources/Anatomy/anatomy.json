@@ -32,9 +32,30 @@
    "licence": "CC BY 4.0",
    "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
    "sha256": "54622d7ba5c8df15d8655c2af5ad6ebece45b74f61d894167e6fd9db9e66be06"
+  },
+  {
+   "id": "nih3d-3dpx-020591",
+   "title": "Skull and Eyes - Visible Human Male (NIH 3D, 3DPX-020591)",
+   "creators": "kbrowne (NLM 3D: Anatomy)",
+   "doi": null,
+   "url": "https://3d.nih.gov/entries/3DPX-020591",
+   "licence": "CC BY 4.0",
+   "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
+   "basis": "The Visible Human Male, U.S. National Library of Medicine",
+   "sha256": "031179f6942df5ca89e675e6eb75859a2e9751c6046bcadde083708974345a43"
+  },
+  {
+   "id": "totalsegmentator-v3",
+   "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 (TotalSegmentator; scans s1803 and s1764)",
+   "creators": "Jakob Wasserthal et al. (Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024)",
+   "doi": "https://doi.org/10.5281/zenodo.22688904",
+   "url": "https://zenodo.org/records/22688904",
+   "licence": "CC BY 4.0",
+   "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
+   "sha256": "4787b4026363bfdec85e794a7d04c205141eec2626cba866448a367356096c28"
   }
  ],
- "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out.",
+ "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into.",
  "bodies": [
   {
    "id": "male",
@@ -76,15 +97,15 @@
      "system": "nervous",
      "file": "male-brain.atlas",
      "bytes": 417532,
-     "sha256": "a465a64dab7bbf56914097b18a913eb518e280114886dc96332c9bf34b9ef1ae",
+     "sha256": "5b6858c1000aa99e9f8d8128b4434dd45beb93eb36fe6481e4634c6a27825e1a",
      "triangles": 45976,
      "bounds": [
-      -0.06913,
-      0.75652,
-      -0.08439,
-      0.06865,
-      0.90238,
-      0.08227
+      -0.0636,
+      0.75884,
+      -0.07684,
+      0.06316,
+      0.89303,
+      0.07649
      ],
      "structures": [
       {
@@ -5445,6 +5466,62 @@
      ]
     },
     {
+     "id": "oesophagus",
+     "name": "Oesophagus",
+     "system": "digestive",
+     "file": "male-oesophagus.atlas",
+     "bytes": 18036,
+     "sha256": "9900782311c766cb808b359d646e4d905020c63d55369b590919dd41c6255082",
+     "triangles": 1998,
+     "bounds": [
+      -0.00992,
+      0.41874,
+      -0.03824,
+      0.0214,
+      0.65653,
+      0.02156
+     ],
+     "structures": [
+      {
+       "node": "TS_oesophagus",
+       "label": "oesophagus",
+       "uberon": "UBERON:0001043",
+       "tissue": "gut",
+       "group": "Oesophagus",
+       "inner": false,
+       "triangles": 1998
+      }
+     ]
+    },
+    {
+     "id": "stomach",
+     "name": "Stomach",
+     "system": "digestive",
+     "file": "male-stomach.atlas",
+     "bytes": 36036,
+     "sha256": "894cf1e386b05557fe02feb98ff5c24a04360a61dd9229ab0c930b0296f7cb4e",
+     "triangles": 3998,
+     "bounds": [
+      -0.06512,
+      0.32898,
+      -0.08314,
+      0.13196,
+      0.44322,
+      0.10275
+     ],
+     "structures": [
+      {
+       "node": "TS_stomach",
+       "label": "stomach",
+       "uberon": "UBERON:0000945",
+       "tissue": "gut",
+       "group": "Stomach",
+       "inner": false,
+       "triangles": 3998
+      }
+     ]
+    },
+    {
      "id": "liver",
      "name": "Liver",
      "system": "digestive",
@@ -6189,6 +6266,71 @@
        "group": "thymus",
        "inner": false,
        "triangles": 530
+      }
+     ]
+    },
+    {
+     "id": "thyroid",
+     "name": "Thyroid gland",
+     "system": "endocrine",
+     "file": "male-thyroid.atlas",
+     "bytes": 13528,
+     "sha256": "56142fcbddafa349017385db68d41ea3a0dcb4551432e362a6a1c67d0d7630bd",
+     "triangles": 1496,
+     "bounds": [
+      -0.03594,
+      0.61288,
+      6e-05,
+      0.02747,
+      0.67482,
+      0.03844
+     ],
+     "structures": [
+      {
+       "node": "TS_thyroid_gland",
+       "label": "thyroid gland",
+       "uberon": "UBERON:0002046",
+       "tissue": "gland",
+       "group": "Thyroid gland",
+       "inner": false,
+       "triangles": 1496
+      }
+     ]
+    },
+    {
+     "id": "adrenals",
+     "name": "Adrenal glands",
+     "system": "endocrine",
+     "file": "male-adrenals.atlas",
+     "bytes": 14456,
+     "sha256": "64eb89c7e71c89a11299aa9bfe6cd1eb04cec892a5be1f0c68c59bdccd663e9b",
+     "triangles": 1598,
+     "bounds": [
+      -0.04073,
+      0.33798,
+      -0.05539,
+      0.03811,
+      0.37276,
+      -0.01609
+     ],
+     "structures": [
+      {
+       "node": "TS_adrenal_gland_L",
+       "label": "left adrenal gland",
+       "uberon": "UBERON:0002369",
+       "tissue": "gland",
+       "group": "Adrenal glands",
+       "inner": false,
+       "triangles": 798
+      },
+      {
+       "node": "TS_adrenal_gland_R",
+       "label": "right adrenal gland",
+       "uberon": "UBERON:0002369",
+       "tissue": "gland",
+       "group": "Adrenal glands",
+       "inner": false,
+       "triangles": 800
       }
      ]
     },
@@ -7175,6 +7317,569 @@
        "group": "anterior fibromuscular stroma",
        "inner": true,
        "triangles": 74
+      }
+     ]
+    },
+    {
+     "id": "skull",
+     "name": "Skull",
+     "system": "skeletal",
+     "file": "male-skull.atlas",
+     "bytes": 246784,
+     "sha256": "ca668ab0c3c5c580606021d2e6cfc65bdded710261fa3e1d9d5edbe036df875f",
+     "triangles": 27284,
+     "bounds": [
+      -0.07282,
+      0.673,
+      -0.0949,
+      0.07481,
+      0.90824,
+      0.11923
+     ],
+     "structures": [
+      {
+       "node": "NLM_frontal_bone",
+       "label": "frontal bone",
+       "uberon": "UBERON:0000209",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 828
+      },
+      {
+       "node": "NLM_parietal_bone_L",
+       "label": "left parietal bone",
+       "uberon": "UBERON:0000210",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 841
+      },
+      {
+       "node": "NLM_parietal_bone_R",
+       "label": "right parietal bone",
+       "uberon": "UBERON:0000210",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 997
+      },
+      {
+       "node": "NLM_occipital_bone",
+       "label": "occipital bone",
+       "uberon": "UBERON:0001676",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1984
+      },
+      {
+       "node": "NLM_temporal_bone_L",
+       "label": "left temporal bone",
+       "uberon": "UBERON:0001678",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1108
+      },
+      {
+       "node": "NLM_temporal_bone_R",
+       "label": "right temporal bone",
+       "uberon": "UBERON:0001678",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1134
+      },
+      {
+       "node": "NLM_sphenoid_bone",
+       "label": "sphenoid bone",
+       "uberon": "UBERON:0001677",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 6637
+      },
+      {
+       "node": "NLM_ethmoid_bone",
+       "label": "ethmoid bone",
+       "uberon": "UBERON:0001679",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1647
+      },
+      {
+       "node": "NLM_nasal_bone_L",
+       "label": "left nasal bone",
+       "uberon": "UBERON:0001681",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 127
+      },
+      {
+       "node": "NLM_nasal_bone_R",
+       "label": "right nasal bone",
+       "uberon": "UBERON:0001681",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 77
+      },
+      {
+       "node": "NLM_lacrimal_bone_L",
+       "label": "left lacrimal bone",
+       "uberon": "UBERON:0001680",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 174
+      },
+      {
+       "node": "NLM_lacrimal_bone_R",
+       "label": "right lacrimal bone",
+       "uberon": "UBERON:0001680",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 154
+      },
+      {
+       "node": "NLM_zygomatic_bone_L",
+       "label": "left zygomatic bone",
+       "uberon": "UBERON:0001683",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 404
+      },
+      {
+       "node": "NLM_zygomatic_bone_R",
+       "label": "right zygomatic bone",
+       "uberon": "UBERON:0001683",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 476
+      },
+      {
+       "node": "NLM_maxilla_L",
+       "label": "left maxilla",
+       "uberon": "UBERON:0002397",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 2458
+      },
+      {
+       "node": "NLM_maxilla_R",
+       "label": "right maxilla",
+       "uberon": "UBERON:0002397",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 2128
+      },
+      {
+       "node": "NLM_palatine_bone_L",
+       "label": "left palatine bone",
+       "uberon": "UBERON:0001682",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1806
+      },
+      {
+       "node": "NLM_palatine_bone_R",
+       "label": "right palatine bone",
+       "uberon": "UBERON:0001682",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1526
+      },
+      {
+       "node": "NLM_vomer",
+       "label": "vomer",
+       "uberon": "UBERON:0002396",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 866
+      },
+      {
+       "node": "NLM_mandible",
+       "label": "mandible",
+       "uberon": "UBERON:0001684",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1912
+      }
+     ]
+    },
+    {
+     "id": "sternum",
+     "name": "Sternum",
+     "system": "skeletal",
+     "file": "male-sternum.atlas",
+     "bytes": 13536,
+     "sha256": "400b5af1eea43c670391549a79bad1b03be409be2bd86759e47f0c97eb47ba18",
+     "triangles": 1498,
+     "bounds": [
+      -0.04124,
+      0.40039,
+      0.0424,
+      0.02429,
+      0.58361,
+      0.11119
+     ],
+     "structures": [
+      {
+       "node": "TS_sternum",
+       "label": "sternum",
+       "uberon": "UBERON:0000975",
+       "tissue": "bone",
+       "group": "Sternum",
+       "inner": false,
+       "triangles": 1498
+      }
+     ]
+    },
+    {
+     "id": "ribs",
+     "name": "Ribs and costal cartilages",
+     "system": "skeletal",
+     "file": "male-ribs.atlas",
+     "bytes": 144276,
+     "sha256": "c6d7e1d45712ca45edd8d35e569b515b6a5f3d9c1c45d96aca237fb7e866f73d",
+     "triangles": 15962,
+     "bounds": [
+      -0.14693,
+      0.24092,
+      -0.11327,
+      0.17443,
+      0.63425,
+      0.13051
+     ],
+     "structures": [
+      {
+       "node": "TS_rib_1_L",
+       "label": "left first rib",
+       "uberon": "UBERON:0004601",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_1_R",
+       "label": "right first rib",
+       "uberon": "UBERON:0004601",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_2_L",
+       "label": "left second rib",
+       "uberon": "UBERON:0004602",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_2_R",
+       "label": "right second rib",
+       "uberon": "UBERON:0004602",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_3_L",
+       "label": "left third rib",
+       "uberon": "UBERON:0004603",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_3_R",
+       "label": "right third rib",
+       "uberon": "UBERON:0004603",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_4_L",
+       "label": "left fourth rib",
+       "uberon": "UBERON:0004604",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_4_R",
+       "label": "right fourth rib",
+       "uberon": "UBERON:0004604",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_5_L",
+       "label": "left fifth rib",
+       "uberon": "UBERON:0004605",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_5_R",
+       "label": "right fifth rib",
+       "uberon": "UBERON:0004605",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_6_L",
+       "label": "left sixth rib",
+       "uberon": "UBERON:0004606",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_6_R",
+       "label": "right sixth rib",
+       "uberon": "UBERON:0004606",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_7_L",
+       "label": "left seventh rib",
+       "uberon": "UBERON:0004607",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_7_R",
+       "label": "right seventh rib",
+       "uberon": "UBERON:0004607",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_8_L",
+       "label": "left eighth rib",
+       "uberon": "UBERON:0010757",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_8_R",
+       "label": "right eighth rib",
+       "uberon": "UBERON:0010757",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_9_L",
+       "label": "left ninth rib",
+       "uberon": "UBERON:0004608",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_9_R",
+       "label": "right ninth rib",
+       "uberon": "UBERON:0004608",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_10_L",
+       "label": "left tenth rib",
+       "uberon": "UBERON:0004609",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_10_R",
+       "label": "right tenth rib",
+       "uberon": "UBERON:0004609",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_11_L",
+       "label": "left eleventh rib",
+       "uberon": "UBERON:0004610",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_11_R",
+       "label": "right eleventh rib",
+       "uberon": "UBERON:0004610",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_12_L",
+       "label": "left twelfth rib",
+       "uberon": "UBERON:0004611",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_12_R",
+       "label": "right twelfth rib",
+       "uberon": "UBERON:0004611",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_costal_cartilages",
+       "label": "costal cartilages",
+       "uberon": "UBERON:0002236",
+       "tissue": "cartilage",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 3986
+      }
+     ]
+    },
+    {
+     "id": "shoulders",
+     "name": "Shoulder girdle",
+     "system": "skeletal",
+     "file": "male-shoulders.atlas",
+     "bytes": 45064,
+     "sha256": "5dd62f0deea7127fc4e276bb9d13ba14dc2aa2981c845d9d2b4b745e2735491f",
+     "triangles": 4994,
+     "bounds": [
+      -0.16258,
+      0.44831,
+      -0.13657,
+      0.19546,
+      0.63617,
+      0.06017
+     ],
+     "structures": [
+      {
+       "node": "TS_clavicle_L",
+       "label": "left clavicle",
+       "uberon": "UBERON:0001105",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 698
+      },
+      {
+       "node": "TS_clavicle_R",
+       "label": "right clavicle",
+       "uberon": "UBERON:0001105",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 700
+      },
+      {
+       "node": "TS_scapula_L",
+       "label": "left scapula",
+       "uberon": "UBERON:0006849",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 1798
+      },
+      {
+       "node": "TS_scapula_R",
+       "label": "right scapula",
+       "uberon": "UBERON:0006849",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 1798
+      }
+     ]
+    },
+    {
+     "id": "arms",
+     "name": "Arm bones",
+     "system": "skeletal",
+     "file": "male-arms.atlas",
+     "bytes": 28856,
+     "sha256": "8dd36c03c02774c7b33b1487476dcaf6e9d16ce93257e816e0013a23e99fd4db",
+     "triangles": 3198,
+     "bounds": [
+      -0.27618,
+      0.29397,
+      -0.04672,
+      0.29909,
+      0.62397,
+      0.02507
+     ],
+     "structures": [
+      {
+       "node": "TS_humerus_L",
+       "label": "left humerus",
+       "uberon": "UBERON:0000976",
+       "tissue": "bone",
+       "group": "Arm bones",
+       "inner": false,
+       "triangles": 1600
+      },
+      {
+       "node": "TS_humerus_R",
+       "label": "right humerus",
+       "uberon": "UBERON:0000976",
+       "tissue": "bone",
+       "group": "Arm bones",
+       "inner": false,
+       "triangles": 1598
       }
      ]
     },
@@ -8453,6 +9158,134 @@
        "triangles": 441
       }
      ]
+    },
+    {
+     "id": "hip-muscles",
+     "name": "Hip muscles",
+     "system": "muscular",
+     "file": "male-hip-muscles.atlas",
+     "bytes": 135096,
+     "sha256": "636158c9de5200d1984b4c87e0bc35aee6a88545a3f55a08b4ea2466bd302078",
+     "triangles": 14988,
+     "bounds": [
+      -0.13882,
+      -0.03521,
+      -0.12108,
+      0.16665,
+      0.29205,
+      0.0434
+     ],
+     "structures": [
+      {
+       "node": "TS_gluteus_maximus_L",
+       "label": "left gluteus maximus",
+       "uberon": "UBERON:0001370",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 2498
+      },
+      {
+       "node": "TS_gluteus_maximus_R",
+       "label": "right gluteus maximus",
+       "uberon": "UBERON:0001370",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 2498
+      },
+      {
+       "node": "TS_gluteus_medius_L",
+       "label": "left gluteus medius",
+       "uberon": "UBERON:0001371",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1800
+      },
+      {
+       "node": "TS_gluteus_medius_R",
+       "label": "right gluteus medius",
+       "uberon": "UBERON:0001371",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1800
+      },
+      {
+       "node": "TS_gluteus_minimus_L",
+       "label": "left gluteus minimus",
+       "uberon": "UBERON:0008521",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1198
+      },
+      {
+       "node": "TS_gluteus_minimus_R",
+       "label": "right gluteus minimus",
+       "uberon": "UBERON:0008521",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1198
+      },
+      {
+       "node": "TS_iliopsoas_L",
+       "label": "left iliopsoas",
+       "uberon": "UBERON:0001999",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1998
+      },
+      {
+       "node": "TS_iliopsoas_R",
+       "label": "right iliopsoas",
+       "uberon": "UBERON:0001999",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1998
+      }
+     ]
+    },
+    {
+     "id": "back-muscles",
+     "name": "Deep back muscles",
+     "system": "muscular",
+     "file": "male-back-muscles.atlas",
+     "bytes": 63040,
+     "sha256": "e72d858663378ebf9e569a448c7ad1936e6d30b71d715d5609a1f0c416879e47",
+     "triangles": 6996,
+     "bounds": [
+      -0.0815,
+      0.1139,
+      -0.12491,
+      0.08702,
+      0.66565,
+      -0.0286
+     ],
+     "structures": [
+      {
+       "node": "TS_deep_back_muscles_L",
+       "label": "left deep back muscles (erector spinae and transversospinales)",
+       "uberon": "UBERON:0002462",
+       "tissue": "muscle",
+       "group": "Deep back muscles",
+       "inner": false,
+       "triangles": 3498
+      },
+      {
+       "node": "TS_deep_back_muscles_R",
+       "label": "right deep back muscles (erector spinae and transversospinales)",
+       "uberon": "UBERON:0002462",
+       "tissue": "muscle",
+       "group": "Deep back muscles",
+       "inner": false,
+       "triangles": 3498
+      }
+     ]
     }
    ]
   },
@@ -8659,15 +9492,15 @@
      "system": "nervous",
      "file": "female-brain.atlas",
      "bytes": 417892,
-     "sha256": "ffbc3e15778c1addfc52f416ceefd4f1d6604628733547078a1245ed8bd2c9c4",
+     "sha256": "b7867e4b67ab1e517ed88a81bbc6b6b29b9f818257924873928304e2ceeb0533",
      "triangles": 46012,
      "bounds": [
-      -0.07553,
-      0.71102,
-      -0.14781,
-      0.06225,
-      0.85688,
-      0.01885
+      -0.06931,
+      0.71364,
+      -0.13932,
+      0.05607,
+      0.84637,
+      0.01235
      ],
      "structures": [
       {
@@ -14037,6 +14870,62 @@
      ]
     },
     {
+     "id": "oesophagus",
+     "name": "Oesophagus",
+     "system": "digestive",
+     "file": "female-oesophagus.atlas",
+     "bytes": 18052,
+     "sha256": "142455c8699539d2111ec0d8f61ea047a68f5f04e5f9e20da5ba058f01e57561",
+     "triangles": 2000,
+     "bounds": [
+      -0.01161,
+      0.38264,
+      -0.11745,
+      0.03905,
+      0.6117,
+      -0.04517
+     ],
+     "structures": [
+      {
+       "node": "TS_oesophagus",
+       "label": "oesophagus",
+       "uberon": "UBERON:0001043",
+       "tissue": "gut",
+       "group": "Oesophagus",
+       "inner": false,
+       "triangles": 2000
+      }
+     ]
+    },
+    {
+     "id": "stomach",
+     "name": "Stomach",
+     "system": "digestive",
+     "file": "female-stomach.atlas",
+     "bytes": 36036,
+     "sha256": "3e3a9abcd6b922b092ee5dc4bb057e1dd4f928ca76701c571fb161ad0062c2db",
+     "triangles": 3998,
+     "bounds": [
+      -0.06737,
+      0.24001,
+      -0.12202,
+      0.09634,
+      0.39291,
+      -0.02277
+     ],
+     "structures": [
+      {
+       "node": "TS_stomach",
+       "label": "stomach",
+       "uberon": "UBERON:0000945",
+       "tissue": "gut",
+       "group": "Stomach",
+       "inner": false,
+       "triangles": 3998
+      }
+     ]
+    },
+    {
      "id": "liver",
      "name": "Liver",
      "system": "digestive",
@@ -14781,6 +15670,71 @@
        "group": "thymus",
        "inner": false,
        "triangles": 550
+      }
+     ]
+    },
+    {
+     "id": "thyroid",
+     "name": "Thyroid gland",
+     "system": "endocrine",
+     "file": "female-thyroid.atlas",
+     "bytes": 13548,
+     "sha256": "2ca4c6395c33ae1df9ae1d0efadb8f189d496144a0b1c375068e04aeccb9503d",
+     "triangles": 1498,
+     "bounds": [
+      -0.03359,
+      0.59089,
+      -0.06053,
+      0.01383,
+      0.62682,
+      -0.03851
+     ],
+     "structures": [
+      {
+       "node": "TS_thyroid_gland",
+       "label": "thyroid gland",
+       "uberon": "UBERON:0002046",
+       "tissue": "gland",
+       "group": "Thyroid gland",
+       "inner": false,
+       "triangles": 1498
+      }
+     ]
+    },
+    {
+     "id": "adrenals",
+     "name": "Adrenal glands",
+     "system": "endocrine",
+     "file": "female-adrenals.atlas",
+     "bytes": 14472,
+     "sha256": "247ca2923ad078dadf88fad64d27eb1c0306bd1b450b5f641b4df6abc808e13f",
+     "triangles": 1600,
+     "bounds": [
+      -0.05633,
+      0.28705,
+      -0.12797,
+      0.04822,
+      0.32999,
+      -0.08665
+     ],
+     "structures": [
+      {
+       "node": "TS_adrenal_gland_L",
+       "label": "left adrenal gland",
+       "uberon": "UBERON:0002369",
+       "tissue": "gland",
+       "group": "Adrenal glands",
+       "inner": false,
+       "triangles": 800
+      },
+      {
+       "node": "TS_adrenal_gland_R",
+       "label": "right adrenal gland",
+       "uberon": "UBERON:0002369",
+       "tissue": "gland",
+       "group": "Adrenal glands",
+       "inner": false,
+       "triangles": 800
       }
      ]
     },
@@ -16043,6 +16997,205 @@
      ]
     },
     {
+     "id": "skull",
+     "name": "Skull",
+     "system": "skeletal",
+     "file": "female-skull.atlas",
+     "bytes": 246448,
+     "sha256": "cb36d36e289edcdf8dd69a9074c6448906b683b79ff1af9c56d793a98e64fcc0",
+     "triangles": 27284,
+     "bounds": [
+      -0.08293,
+      0.65304,
+      -0.14945,
+      0.06673,
+      0.8616,
+      0.04495
+     ],
+     "structures": [
+      {
+       "node": "NLM_frontal_bone",
+       "label": "frontal bone",
+       "uberon": "UBERON:0000209",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 828
+      },
+      {
+       "node": "NLM_parietal_bone_L",
+       "label": "left parietal bone",
+       "uberon": "UBERON:0000210",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 624
+      },
+      {
+       "node": "NLM_parietal_bone_R",
+       "label": "right parietal bone",
+       "uberon": "UBERON:0000210",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1214
+      },
+      {
+       "node": "NLM_occipital_bone",
+       "label": "occipital bone",
+       "uberon": "UBERON:0001676",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1984
+      },
+      {
+       "node": "NLM_temporal_bone_L",
+       "label": "left temporal bone",
+       "uberon": "UBERON:0001678",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1108
+      },
+      {
+       "node": "NLM_temporal_bone_R",
+       "label": "right temporal bone",
+       "uberon": "UBERON:0001678",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1134
+      },
+      {
+       "node": "NLM_sphenoid_bone",
+       "label": "sphenoid bone",
+       "uberon": "UBERON:0001677",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 6637
+      },
+      {
+       "node": "NLM_ethmoid_bone",
+       "label": "ethmoid bone",
+       "uberon": "UBERON:0001679",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1647
+      },
+      {
+       "node": "NLM_nasal_bone_L",
+       "label": "left nasal bone",
+       "uberon": "UBERON:0001681",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 132
+      },
+      {
+       "node": "NLM_nasal_bone_R",
+       "label": "right nasal bone",
+       "uberon": "UBERON:0001681",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 72
+      },
+      {
+       "node": "NLM_lacrimal_bone_L",
+       "label": "left lacrimal bone",
+       "uberon": "UBERON:0001680",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 174
+      },
+      {
+       "node": "NLM_lacrimal_bone_R",
+       "label": "right lacrimal bone",
+       "uberon": "UBERON:0001680",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 154
+      },
+      {
+       "node": "NLM_zygomatic_bone_L",
+       "label": "left zygomatic bone",
+       "uberon": "UBERON:0001683",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 404
+      },
+      {
+       "node": "NLM_zygomatic_bone_R",
+       "label": "right zygomatic bone",
+       "uberon": "UBERON:0001683",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 476
+      },
+      {
+       "node": "NLM_maxilla_L",
+       "label": "left maxilla",
+       "uberon": "UBERON:0002397",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 2406
+      },
+      {
+       "node": "NLM_maxilla_R",
+       "label": "right maxilla",
+       "uberon": "UBERON:0002397",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 2180
+      },
+      {
+       "node": "NLM_palatine_bone_L",
+       "label": "left palatine bone",
+       "uberon": "UBERON:0001682",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1683
+      },
+      {
+       "node": "NLM_palatine_bone_R",
+       "label": "right palatine bone",
+       "uberon": "UBERON:0001682",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1649
+      },
+      {
+       "node": "NLM_vomer",
+       "label": "vomer",
+       "uberon": "UBERON:0002396",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 866
+      },
+      {
+       "node": "NLM_mandible",
+       "label": "mandible",
+       "uberon": "UBERON:0001684",
+       "tissue": "bone",
+       "group": "Skull",
+       "inner": false,
+       "triangles": 1912
+      }
+     ]
+    },
+    {
      "id": "sternum",
      "name": "Sternum",
      "system": "skeletal",
@@ -16076,6 +17229,342 @@
        "group": "Sternum",
        "inner": false,
        "triangles": 894
+      }
+     ]
+    },
+    {
+     "id": "ribs",
+     "name": "Ribs and costal cartilages",
+     "system": "skeletal",
+     "file": "female-ribs.atlas",
+     "bytes": 144376,
+     "sha256": "a74d9b9658b9555160f7e1c2c206ad12ea7f5715cd186c3b24b0b2db432e32bf",
+     "triangles": 15976,
+     "bounds": [
+      -0.15019,
+      0.24635,
+      -0.17766,
+      0.15417,
+      0.5997,
+      0.02291
+     ],
+     "structures": [
+      {
+       "node": "TS_rib_1_L",
+       "label": "left first rib",
+       "uberon": "UBERON:0004601",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_1_R",
+       "label": "right first rib",
+       "uberon": "UBERON:0004601",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_2_L",
+       "label": "left second rib",
+       "uberon": "UBERON:0004602",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_2_R",
+       "label": "right second rib",
+       "uberon": "UBERON:0004602",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_3_L",
+       "label": "left third rib",
+       "uberon": "UBERON:0004603",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_3_R",
+       "label": "right third rib",
+       "uberon": "UBERON:0004603",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_4_L",
+       "label": "left fourth rib",
+       "uberon": "UBERON:0004604",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_4_R",
+       "label": "right fourth rib",
+       "uberon": "UBERON:0004604",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_5_L",
+       "label": "left fifth rib",
+       "uberon": "UBERON:0004605",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_5_R",
+       "label": "right fifth rib",
+       "uberon": "UBERON:0004605",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_6_L",
+       "label": "left sixth rib",
+       "uberon": "UBERON:0004606",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_6_R",
+       "label": "right sixth rib",
+       "uberon": "UBERON:0004606",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 520
+      },
+      {
+       "node": "TS_rib_7_L",
+       "label": "left seventh rib",
+       "uberon": "UBERON:0004607",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_7_R",
+       "label": "right seventh rib",
+       "uberon": "UBERON:0004607",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_8_L",
+       "label": "left eighth rib",
+       "uberon": "UBERON:0010757",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_8_R",
+       "label": "right eighth rib",
+       "uberon": "UBERON:0010757",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_9_L",
+       "label": "left ninth rib",
+       "uberon": "UBERON:0004608",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_9_R",
+       "label": "right ninth rib",
+       "uberon": "UBERON:0004608",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_10_L",
+       "label": "left tenth rib",
+       "uberon": "UBERON:0004609",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_10_R",
+       "label": "right tenth rib",
+       "uberon": "UBERON:0004609",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_11_L",
+       "label": "left eleventh rib",
+       "uberon": "UBERON:0004610",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_11_R",
+       "label": "right eleventh rib",
+       "uberon": "UBERON:0004610",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_rib_12_L",
+       "label": "left twelfth rib",
+       "uberon": "UBERON:0004611",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 500
+      },
+      {
+       "node": "TS_rib_12_R",
+       "label": "right twelfth rib",
+       "uberon": "UBERON:0004611",
+       "tissue": "bone",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 498
+      },
+      {
+       "node": "TS_costal_cartilages",
+       "label": "costal cartilages",
+       "uberon": "UBERON:0002236",
+       "tissue": "cartilage",
+       "group": "Ribs and costal cartilages",
+       "inner": false,
+       "triangles": 3986
+      }
+     ]
+    },
+    {
+     "id": "shoulders",
+     "name": "Shoulder girdle",
+     "system": "skeletal",
+     "file": "female-shoulders.atlas",
+     "bytes": 45072,
+     "sha256": "b2600b1821c8f71072661aa7d2eb23721f4882dcc03b78df803aa010671ad53e",
+     "triangles": 4998,
+     "bounds": [
+      -0.19687,
+      0.42089,
+      -0.17648,
+      0.16695,
+      0.59646,
+      -0.01915
+     ],
+     "structures": [
+      {
+       "node": "TS_clavicle_L",
+       "label": "left clavicle",
+       "uberon": "UBERON:0001105",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 700
+      },
+      {
+       "node": "TS_clavicle_R",
+       "label": "right clavicle",
+       "uberon": "UBERON:0001105",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 698
+      },
+      {
+       "node": "TS_scapula_L",
+       "label": "left scapula",
+       "uberon": "UBERON:0006849",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 1800
+      },
+      {
+       "node": "TS_scapula_R",
+       "label": "right scapula",
+       "uberon": "UBERON:0006849",
+       "tissue": "bone",
+       "group": "Shoulder girdle",
+       "inner": false,
+       "triangles": 1800
+      }
+     ]
+    },
+    {
+     "id": "arms",
+     "name": "Arm bones",
+     "system": "skeletal",
+     "file": "female-arms.atlas",
+     "bytes": 28856,
+     "sha256": "96b9d45b6d0d2585369ea9d2ac7d72c027f714114099bcc0ccef89685bc22270",
+     "triangles": 3198,
+     "bounds": [
+      -0.26773,
+      0.30548,
+      -0.12363,
+      0.25051,
+      0.57987,
+      -0.03755
+     ],
+     "structures": [
+      {
+       "node": "TS_humerus_L",
+       "label": "left humerus",
+       "uberon": "UBERON:0000976",
+       "tissue": "bone",
+       "group": "Arm bones",
+       "inner": false,
+       "triangles": 1598
+      },
+      {
+       "node": "TS_humerus_R",
+       "label": "right humerus",
+       "uberon": "UBERON:0000976",
+       "tissue": "bone",
+       "group": "Arm bones",
+       "inner": false,
+       "triangles": 1600
       }
      ]
     },
@@ -17224,6 +18713,134 @@
        "group": "right muscles of knee",
        "inner": false,
        "triangles": 266
+      }
+     ]
+    },
+    {
+     "id": "hip-muscles",
+     "name": "Hip muscles",
+     "system": "muscular",
+     "file": "female-hip-muscles.atlas",
+     "bytes": 135132,
+     "sha256": "5ee3ff8779e0e1ab07e870e937f803b6892dc44eda309d7ef6e3bf48d6c8df4f",
+     "triangles": 14994,
+     "bounds": [
+      -0.19132,
+      -0.01653,
+      -0.18247,
+      0.16135,
+      0.29547,
+      -0.02385
+     ],
+     "structures": [
+      {
+       "node": "TS_gluteus_maximus_L",
+       "label": "left gluteus maximus",
+       "uberon": "UBERON:0001370",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 2500
+      },
+      {
+       "node": "TS_gluteus_maximus_R",
+       "label": "right gluteus maximus",
+       "uberon": "UBERON:0001370",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 2500
+      },
+      {
+       "node": "TS_gluteus_medius_L",
+       "label": "left gluteus medius",
+       "uberon": "UBERON:0001371",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1798
+      },
+      {
+       "node": "TS_gluteus_medius_R",
+       "label": "right gluteus medius",
+       "uberon": "UBERON:0001371",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1800
+      },
+      {
+       "node": "TS_gluteus_minimus_L",
+       "label": "left gluteus minimus",
+       "uberon": "UBERON:0008521",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1198
+      },
+      {
+       "node": "TS_gluteus_minimus_R",
+       "label": "right gluteus minimus",
+       "uberon": "UBERON:0008521",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1200
+      },
+      {
+       "node": "TS_iliopsoas_L",
+       "label": "left iliopsoas",
+       "uberon": "UBERON:0001999",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 1998
+      },
+      {
+       "node": "TS_iliopsoas_R",
+       "label": "right iliopsoas",
+       "uberon": "UBERON:0001999",
+       "tissue": "muscle",
+       "group": "Hip muscles",
+       "inner": false,
+       "triangles": 2000
+      }
+     ]
+    },
+    {
+     "id": "back-muscles",
+     "name": "Deep back muscles",
+     "system": "muscular",
+     "file": "female-back-muscles.atlas",
+     "bytes": 63056,
+     "sha256": "f58c929791cec4a3c2fded1dc5aa43cc50a8b7e4f6b81f483721000a20de6ce0",
+     "triangles": 6998,
+     "bounds": [
+      -0.11404,
+      0.11003,
+      -0.18308,
+      0.07391,
+      0.62222,
+      -0.09326
+     ],
+     "structures": [
+      {
+       "node": "TS_deep_back_muscles_L",
+       "label": "left deep back muscles (erector spinae and transversospinales)",
+       "uberon": "UBERON:0002462",
+       "tissue": "muscle",
+       "group": "Deep back muscles",
+       "inner": false,
+       "triangles": 3500
+      },
+      {
+       "node": "TS_deep_back_muscles_R",
+       "label": "right deep back muscles (erector spinae and transversospinales)",
+       "uberon": "UBERON:0002462",
+       "tissue": "muscle",
+       "group": "Deep back muscles",
+       "inner": false,
+       "triangles": 3498
       }
      ]
     }

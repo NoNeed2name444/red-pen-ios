@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 """Make the 3D anatomy atlas (ios/RedPen/Resources/Anatomy) from the Human
-Reference Atlas's male and female reference organ sets, the same way every
+Reference Atlas's male and female reference organ sets, the NIH 3D skull of
+the Visible Human Male and two TotalSegmentator CT scans, the same way every
 time.
 
     python3 -I tools/anatomy_atlas.py \\
         --male 3d-vh-m-united.glb --female 3d-vh-f-united.glb \\
         --crosswalk asct-b-3d-models-crosswalk.csv \\
+        --skull 3DPX-020591.glb --ct <folder holding s1803/ and s1764/> \\
         [--out ios/RedPen/Resources/Anatomy]
 
-Every input is CC BY 4.0 (HuBMAP Human Reference Atlas); where each comes
-from, its SHA-256 and the credit it asks for are in Resources/Anatomy/
-SOURCES.md, and the inputs themselves are not kept in the repository. Each
-organ set is one body (the Visible Human Male, the Visible Human Female),
-in metres with y up and the origin near the hips, so every part lands where
-it belongs in its body.
+Every input is CC BY 4.0 (HuBMAP Human Reference Atlas; NIH 3D 3DPX-020591;
+TotalSegmentator v3.0.0); where each comes from, its SHA-256 and the credit
+it asks for are in Resources/Anatomy/SOURCES.md, and the inputs themselves
+are not kept in the repository. Each organ set is one body (the Visible
+Human Male, the Visible Human Female), in metres with y up and the origin
+near the hips, so every part lands where it belongs in its body. What the
+organ sets lack (the skull, ribs, sternum, shoulder girdle, humeri, hip and
+deep back muscles, thyroid, adrenals, oesophagus, stomach) is added by
+tools/anatomy_gaps.py, fitted into each body and kept clear of what is
+already there; see its header.
 
 Repairs on the way (checked by rendering the result single-sided, as the
 app draws it): stray debris left out; each structure simplified piece by
@@ -46,8 +52,10 @@ column):
 
 Normals are not stored: the app makes smooth ones from the triangles.
 
-Needs numpy and fast-simplification 0.2 (MIT; PyPI). The inputs are downloaded
-files: run this with python3 -I from outside the folder they are in.
+Needs numpy and fast-simplification 0.2 (MIT; PyPI), and for the added
+parts scipy, scikit-image and nibabel (BSD and MIT; PyPI). The inputs are
+downloaded files: run this with python3 -I from outside the folder they are
+in.
 """
 import argparse
 import csv
@@ -56,6 +64,7 @@ import json
 import os
 import re
 import struct
+import sys
 
 import numpy as np
 import fast_simplification
@@ -497,9 +506,9 @@ def close_holes(pid, prefix, found, raw, skipped, skipped_raw):
     return found, raw
 
 
-def build_body(sex, glb, crossed, out):
-    """One body's parts: writes <sex>-<part>.atlas into out, returns the
-    manifest's entry for the body."""
+def build_body(sex, glb, crossed):
+    """One body's parts from its organ set, each with its structures and
+    their simplified meshes, not yet written."""
     body = BODIES[sex]
     got = sha256(glb)
     assert got == body["sha256"], f"{glb}: SHA-256 {got}, expected {body['sha256']} (a new release? re-pin it in SOURCES.md and here)"
@@ -516,7 +525,7 @@ def build_body(sex, glb, crossed, out):
     for r in gltf["scenes"][gltf.get("scene", 0)]["nodes"]:
         walk(r, np.eye(4))
 
-    parts, total = [], 0
+    parts = []
     for pid, name, system, bodies, groups, budget in PARTS:
         if sex not in bodies:
             continue
@@ -555,22 +564,30 @@ def build_body(sex, glb, crossed, out):
                 "tissue": tissue(pid, system, node),
                 "group": parent_label,
                 "inner": bool(re.search(INNER[pid], node)) if pid in INNER else False,
-                "triangles": int(len(f)),
             })
-        file = f"{sex}-{pid}.atlas"
+        parts.append({"id": pid, "name": name, "system": system, "structures": structures, "meshes": meshes})
+    return parts
+
+
+def write_body(sex, parts, out):
+    """Writes each part's <sex>-<part>.atlas into out; returns the manifest's entry for the body."""
+    body, entries, total = BODIES[sex], [], 0
+    for part in parts:
+        file = f"{sex}-{part['id']}.atlas"
         path = os.path.join(out, file)
-        lo, hi = write_part(path, meshes)
+        lo, hi = write_part(path, part["meshes"])
+        structures = [dict(s, triangles=int(len(f))) for s, (_, f) in zip(part["structures"], part["meshes"])]
         triangles = sum(s["triangles"] for s in structures)
         total += triangles
-        parts.append({
-            "id": pid, "name": name, "system": system, "file": file,
+        entries.append({
+            "id": part["id"], "name": part["name"], "system": part["system"], "file": file,
             "bytes": os.path.getsize(path), "sha256": sha256(path), "triangles": triangles,
             "bounds": [round(float(v), 5) for v in (*lo, *hi)],
             "structures": structures,
         })
-        print(f"{sex:6} {pid:18} {len(structures):4} structures {triangles:7} triangles {os.path.getsize(path):9} bytes")
-    print(f"{sex}: {total} triangles in {len(parts)} parts")
-    return {"id": sex, "name": body["name"], "frame": body["frame"], "source": body["source"]["id"], "parts": parts}
+        print(f"{sex:6} {part['id']:18} {len(structures):4} structures {triangles:7} triangles {os.path.getsize(path):9} bytes")
+    print(f"{sex}: {total} triangles in {len(entries)} parts")
+    return {"id": sex, "name": body["name"], "frame": body["frame"], "source": body["source"]["id"], "parts": entries}
 
 
 def main():
@@ -578,29 +595,44 @@ def main():
     ap.add_argument("--male", required=True, help="3d-vh-m-united.glb")
     ap.add_argument("--female", required=True, help="3d-vh-f-united.glb")
     ap.add_argument("--crosswalk", required=True)
+    ap.add_argument("--skull", required=True, help="the NIH 3D 3DPX-020591 GLB (see anatomy_gaps.py)")
+    ap.add_argument("--ct", required=True, help="a folder holding the TotalSegmentator scans s1803 and s1764, one folder each")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ios", "RedPen", "Resources", "Anatomy"))
     a = ap.parse_args()
     got = sha256(a.crosswalk)
     assert got == CROSSWALK_SHA256, f"{a.crosswalk}: SHA-256 {got}, expected {CROSSWALK_SHA256}"
     crossed = crosswalk(a.crosswalk)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import anatomy_gaps
+    bodies = {sex: build_body(sex, getattr(a, sex), crossed) for sex in BOTH}
+    anatomy_gaps.extend(bodies, a.skull, a.ct, sys.modules[__name__])
     os.makedirs(a.out, exist_ok=True)
-    # the files of the one-body atlas (format 1), which these replace
+    # the files of the one-body atlas (format 1), and parts no longer made
     for old in os.listdir(a.out):
-        if old.endswith(".atlas") and not old.startswith(("male-", "female-")):
+        if old.endswith(".atlas"):
             os.remove(os.path.join(a.out, old))
-    bodies = [build_body("male", a.male, crossed, a.out), build_body("female", a.female, crossed, a.out)]
+    ct = dict(anatomy_gaps.CT_SOURCE, sha256=hashlib.sha256("".join(
+        f"{s} {anatomy_gaps.CT_SHA256[s]}\n" for s in sorted(anatomy_gaps.CT_SHA256)).encode()).hexdigest())
+    scales = ", ".join(f"{sex} {anatomy_gaps.RESULTS[sex + ' brain scale']}" for sex in BOTH)
     manifest = {
         "format": 2,
         "sources": [dict(BODIES[s]["source"], sha256=BODIES[s]["sha256"]) for s in BOTH]
-                   + [dict(CROSSWALK, sha256=CROSSWALK_SHA256)],
+                   + [dict(CROSSWALK, sha256=CROSSWALK_SHA256), anatomy_gaps.SKULL_SOURCE, ct],
         "changes": "Structures simplified to a triangle budget per part, piece by piece with their open "
                    "edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy "
                    "bone left out, but the patches that close a hole put back (the femur's lower end, the "
                    "spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each "
-                   "side lies where its name says; labels and UBERON ids from the crosswalk, corrected where "
+                   f"side lies where its name says, and scaled ({scales}) about a point between the medulla's foot and the "
+                   "optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where "
                    "wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); "
-                   "the female set's placenta, which sits outside the body, left out.",
-        "bodies": bodies,
+                   "the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, "
+                   "placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp "
+                   "fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, "
+                   "clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach "
+                   "meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures "
+                   "both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the "
+                   "skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into.",
+        "bodies": [write_body(sex, bodies[sex], a.out) for sex in BOTH],
     }
     json.dump(manifest, open(os.path.join(a.out, "anatomy.json"), "w"), indent=1, ensure_ascii=False)
 
