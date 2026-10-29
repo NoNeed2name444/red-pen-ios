@@ -220,6 +220,7 @@ struct NewSetView: View {
                     if imported { dismiss() }
                 }) { preview in
                     ImportPreviewSheet(preview: preview) { commitImport(preview) }
+                        .wardSheet()
                 }
                 .alert("Set imported", isPresented: importNoticeShown) {
                     Button("Done") { dismiss() }
@@ -254,6 +255,7 @@ struct NewSetView: View {
                                 Button("Cancel", role: .cancel) {}
                             }
                     }
+                    .wardSheet()
                 }
         }
     }

@@ -107,5 +107,80 @@ do {
     }
 }
 
+// The iPad (T0140): full screen, Split View, Slide Over and Stage Manager
+// windows, in all four orientations. Full screen the corners follow the
+// display's; in a window that does not fill the display they follow the
+// window's own (WardPaper.frameCorner). The ring stays clear of every bar
+// the window reports, the status bar, the home indicator and, in a Stage
+// Manager window, whatever top inset the system gives for its window
+// controls (the numbers here are stand-ins: the test is that the ring
+// clears what is reported, never a hard-coded inset).
+do {
+    struct Window {
+        let label: String
+        let width: Double, height: Double
+        let safe: WardSystemInsets
+    }
+    let display = (w: 834.0, h: 1194.0) // the 11-inch iPad Pro's points
+    // the bars by orientation, full screen: the status bar on top, the home
+    // indicator at the bottom; upside down the same shape
+    let fullScreen: [Window] = [
+        Window(label: "portrait", width: display.w, height: display.h, safe: WardSystemInsets(top: 24, bottom: 20)),
+        Window(label: "portraitUpsideDown", width: display.w, height: display.h, safe: WardSystemInsets(top: 24, bottom: 20)),
+        Window(label: "landscapeLeft", width: display.h, height: display.w, safe: WardSystemInsets(top: 24, bottom: 20)),
+        Window(label: "landscapeRight", width: display.h, height: display.w, safe: WardSystemInsets(top: 24, bottom: 20)),
+    ]
+    let windows: [Window] = [
+        Window(label: "Split View 1/3 portrait", width: 320, height: display.h, safe: WardSystemInsets(top: 24, bottom: 20)),
+        Window(label: "Split View 1/2 landscape", width: 592, height: display.w, safe: WardSystemInsets(top: 24, bottom: 20)),
+        Window(label: "Split View 2/3 landscape", width: 800, height: display.w, safe: WardSystemInsets(top: 24, bottom: 20)),
+        Window(label: "Slide Over", width: 320, height: display.h - 48, safe: WardSystemInsets(top: 0, bottom: 20)),
+        // a Stage Manager window: its controls' inset on top, no home indicator
+        Window(label: "Stage Manager minimum", width: 500, height: 417, safe: WardSystemInsets(top: 32, bottom: 0)),
+        Window(label: "Stage Manager resized portrait", width: 500, height: 1130, safe: WardSystemInsets(top: 32, bottom: 0)),
+        Window(label: "Stage Manager tall controls inset", width: 726, height: 754, safe: WardSystemInsets(top: 50, bottom: 0, left: 0, right: 0)),
+    ]
+    func ring(_ w: Window, windowed: Bool) {
+        let fills = WardPaper.fillsDisplay(windowWidth: w.width, windowHeight: w.height,
+                                           displayWidth: display.w, displayHeight: display.h)
+        check("\(w.label): fills the display \(!windowed)", fills == !windowed)
+        let corner = WardPaper.frameCorner(width: w.width, height: w.height, pad: true, windowed: !fills)
+        let expected = windowed ? WardPaper.windowRadius + WardPaper.frame
+            : WardPaper.deviceRadius(width: w.width, height: w.height, pad: true)
+        check("\(w.label): concentric with the \(windowed ? "window" : "display")", corner == expected)
+        guard let panel = WardPaper.panel(width: w.width, height: w.height, safe: w.safe, device: corner, pad: true) else {
+            check("\(w.label): a panel", false)
+            return
+        }
+        check("\(w.label): ring clear of the top bar or the window controls", panel.y - half >= w.safe.top - 1e-9)
+        check("\(w.label): ring clear of the home indicator", panel.y + panel.height + half <= w.height - w.safe.bottom + 1e-9)
+        // small top: no lower than the bar asks
+        check("\(w.label): the top no lower than the bar asks", panel.y <= max(WardPaper.frame, w.safe.top + half) + 1e-9)
+        let side = max(panel.x, w.width - panel.x - panel.width)
+        let cap = min(panel.width, panel.height) / (2 * 1.52866483)
+        check("\(w.label): top corners concentric", panel.radius ==
+              min(cap, WardCorner.concentric(device: corner, inset: max(side, panel.y), floor: WardEdge.minRadius)))
+        check("\(w.label): bottom corners concentric", panel.bottomRadius ==
+              min(cap, WardCorner.concentric(device: corner, inset: max(side, w.height - panel.y - panel.height),
+                                             floor: WardEdge.minRadius)))
+        // home's opening (no bars) agrees with the paper's cut for the same corner
+        let home = WardPaper.panel(width: w.width, height: w.height, top: 0, safe: .none, device: corner, pad: true)
+        check("\(w.label): home's opening has the same corner", home.map {
+            $0.radius == min(min($0.width, $0.height) / (2 * 1.52866483),
+                             WardCorner.concentric(device: corner, inset: WardPaper.frame, floor: WardEdge.minRadius)) } == true)
+    }
+    for w in fullScreen { ring(w, windowed: false) }
+    for w in windows { ring(w, windowed: true) }
+    check("a window turned the other way still fills its display",
+          WardPaper.fillsDisplay(windowWidth: 1194, windowHeight: 834, displayWidth: 834, displayHeight: 1194))
+    check("a point's rounding still fills it",
+          WardPaper.fillsDisplay(windowWidth: 833.5, windowHeight: 1194, displayWidth: 834, displayHeight: 1194))
+    check("an unmeasured window counts as full screen",
+          WardPaper.fillsDisplay(windowWidth: 0, windowHeight: 0, displayWidth: 834, displayHeight: 1194))
+    check("a phone's corner full screen is the display's, not the pad's",
+          WardPaper.frameCorner(width: 402, height: 874, pad: false, windowed: false) ==
+          WardPaper.deviceRadius(width: 402, height: 874))
+}
+
 print("\(failures) WARD FRAME CLEAR FAILURES")
 exit(failures == 0 ? 0 : 1)

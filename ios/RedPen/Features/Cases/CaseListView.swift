@@ -38,6 +38,8 @@ struct CaseListView: View {
                         CasePatientCard(file: file, state: runs.state(of: file))
                     }
                     .buttonStyle(.plain)
+                    .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+                    .hoverEffect(.highlight)
                 }
                 if heldCount > 0 {
                     Label(heldNote, systemImage: "hand.raised")

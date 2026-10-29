@@ -1,11 +1,21 @@
-# The app on real iPads, full screen, at their real widths.
+# The app on real iPads, by size, in every orientation and every window
+# iPadOS can give it (T0140 items 8-9).
 #
-# The widths workflow asks the app to lay itself out at a given width and
-# photographs it on a grey surround, because a simulator cannot be dragged
-# into Split View from a script. Useful, but it looks like a floating window
-# and it is not what anybody's iPad shows. This takes the other route: every
-# iPad simulator the runner has, each one full screen at its own size, so the
-# pictures are of the app filling a window rather than of a mock-up.
+# Full screen: each iPad simulator at its own size, all four ways up. Windows:
+# Split View at 1/3, 1/2 and 2/3, Slide Over, and a Stage Manager window at
+# its smallest and once resized, each in portrait and landscape (upside down
+# and landscapeRight share their geometry with portrait and landscapeLeft).
+#
+# A simulator cannot be put into Split View, Slide Over or Stage Manager from
+# a script (simctl has no command for it, and XCUITest cannot drag the
+# multitasking control), so each window is the app laid out at that window's
+# size with -uiPreviewWidth / -uiPreviewHeight on the grey surround, on the
+# iPad that would give it, turned the way that window is. The table of sizes
+# is below (WINDOWS). The pictures are of the app's own layout at those
+# sizes, not of iPadOS's window chrome.
+#
+# Two jobs, so each stays under its 40 minutes: A is the mini and the base
+# iPad, B the 11-inch and the 13-inch (and the 11-inch's dark pass).
 name: iPad devices
 on:
   workflow_dispatch:
@@ -19,7 +29,15 @@ concurrency:
 jobs:
   devices:
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - job: A
+            sizes: mini base
+          - job: B
+            sizes: "11 13"
     steps:
       - uses: actions/checkout@v4
         # no token left in .git/config for the build: the packages it
@@ -31,32 +49,57 @@ jobs:
       - name: Generate the project
         working-directory: ios
         run: xcodegen generate
-      - name: Pick the iPads
+      - name: Let this build turn
+        run: |
+          set -euo pipefail
+          # As ipad-preview.yml: iOS ignores an orientation request from an
+          # app that supports multitasking, so the GENERATED plist of this
+          # rig asks for full screen. The shipping app keeps multitasking.
+          /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" ios/RedPen/Info.plist \
+            || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" ios/RedPen/Info.plist
+      - name: Pick the iPads by size
         id: sim
+        env:
+          SIZES: ${{ matrix.sizes }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, subprocess, sys
+          import json, os, re, subprocess, sys
           devices = json.loads(subprocess.check_output(
               ["xcrun", "simctl", "list", "devices", "available", "-j"]))["devices"]
-          # One of each size the range actually has: the small one, the
-          # middle one, the big one. More than that is the same picture again.
-          want = [("iPad mini", 0), ("iPad Air", 0), ("iPad Pro", 0)]
-          picked, seen = [], set()
-          for runtime, devs in devices.items():
-              if "iOS" not in runtime:
+          # By size, not family: the smallest, the base iPad, an 11-inch
+          # (Air or Pro) and a 13-inch (Air or Pro); the newest runtime,
+          # then a Pro over an Air.
+          kinds = {
+              "mini": lambda n: n.startswith("iPad mini"),
+              "base": lambda n: re.match(r"^iPad( \(|$)", n) is not None,
+              "11": lambda n: "11-inch" in n,
+              "13": lambda n: "13-inch" in n,
+          }
+          picked = []
+          for size in os.environ["SIZES"].split():
+              best = None
+              for runtime, devs in devices.items():
+                  if "iOS" not in runtime:
+                      continue
+                  version = tuple(int(x) for x in runtime.rsplit("iOS-", 1)[1].split("-") if x.isdigit())
+                  for d in devs:
+                      name = d["name"]
+                      if not kinds[size](name):
+                          continue
+                      key = (version, 1 if name.startswith("iPad Pro") else 0, name)
+                      if best is None or key > best[0]:
+                          best = (key, d["udid"], name)
+              if best is None:
+                  print(f"no {size} iPad simulator on this runner", file=sys.stderr)
                   continue
-              for d in devs:
-                  name = d["name"]
-                  for prefix, _ in want:
-                      if name.startswith(prefix) and prefix not in seen:
-                          seen.add(prefix)
-                          picked.append((d["udid"], name))
+              picked.append((best[1], best[2], size))
           if not picked:
               print("no iPad simulator on this runner", file=sys.stderr)
               raise SystemExit(1)
           print("list=" + json.dumps(picked))
           print("first=" + picked[0][0])
-          print("picked:", picked, file=sys.stderr)
+          for udid, name, size in picked:
+              print(f"picked {size}: {name} ({udid})", file=sys.stderr)
           PY
       - name: Build
         working-directory: ios
@@ -70,49 +113,163 @@ jobs:
           grep -q "BUILD SUCCEEDED" ../build.log
       - name: Screenshots
         if: ${{ !cancelled() }}
+        env:
+          LIST: ${{ steps.sim.outputs.list }}
+          JOB: ${{ matrix.job }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           APP="ios/build/Build/Products/Debug-iphonesimulator/RedPen.app"
           BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist")
           mkdir -p devices
+          SCREENS="home-cards library quiz-checked mock-sitting anki-revealed draw-recall settings"
+          # The pretend window (-uiPreviewWidth) is drawn by PreviewRoot only:
+          # the screens PreviewExtras opens (home-cards, mock-sitting,
+          # draw-recall, settings) are routed round it by RedPenApp.swift and
+          # would come out full screen under a window's name, so they are
+          # left out of the windows until that is wired (T0140 notes).
+          WINDOW_SCREENS="library quiz-checked anki-revealed"
+          ORIENTS="portrait portraitUpsideDown landscapeLeft landscapeRight"
+          # The window sizes, in points, per device x geometry x mode:
+          # <size> <geometry> <mode> <width> <height>. COMPUTED, not measured
+          # and not Apple's published table: Split View is the screen less a
+          # 10-point divider, split 1/3 (never under 320), 1/2 and 2/3; Slide
+          # Over is 320 wide; Stage Manager's smallest is 1/3 of the width
+          # (400 or 500 at least) by half the height, and the resized one 60%
+          # of the width by the height less 80. Full-height windows are 56
+          # points short of the screen, the room the pretend window's grey
+          # surround keeps above and below (PreviewRoot). Screens: mini
+          # 744x1133, base 820x1180, 11-inch 834x1210 (Pro; Air 820x1180),
+          # 13-inch 1032x1376 (Pro; Air 1024x1366). Measure on a simulator by
+          # hand and replace these when that has been done.
+          cat > /tmp/windows.txt <<'TABLE'
+          mini portrait sv13 320 1077
+          mini portrait sv12 367 1077
+          mini portrait sv23 414 1077
+          mini portrait slideover 320 1077
+          mini portrait smmin 400 566
+          mini portrait smresized 446 1053
+          mini landscape sv13 374 688
+          mini landscape sv12 561 688
+          mini landscape sv23 749 688
+          mini landscape slideover 320 688
+          mini landscape smmin 500 372
+          mini landscape smresized 680 664
+          base portrait sv13 320 1124
+          base portrait sv12 405 1124
+          base portrait sv23 490 1124
+          base portrait slideover 320 1124
+          base portrait smmin 400 590
+          base portrait smresized 492 1100
+          base landscape sv13 390 764
+          base landscape sv12 585 764
+          base landscape sv23 780 764
+          base landscape slideover 320 764
+          base landscape smmin 500 410
+          base landscape smresized 708 740
+          11 portrait sv13 320 1154
+          11 portrait sv12 412 1154
+          11 portrait sv23 504 1154
+          11 portrait slideover 320 1154
+          11 portrait smmin 400 605
+          11 portrait smresized 500 1130
+          11 landscape sv13 400 778
+          11 landscape sv12 600 778
+          11 landscape sv23 800 778
+          11 landscape slideover 320 778
+          11 landscape smmin 500 417
+          11 landscape smresized 726 754
+          13 portrait sv13 341 1320
+          13 portrait sv12 511 1320
+          13 portrait sv23 681 1320
+          13 portrait slideover 320 1320
+          13 portrait smmin 500 688
+          13 portrait smresized 619 1296
+          13 landscape sv13 455 976
+          13 landscape sv12 683 976
+          13 landscape sv23 911 976
+          13 landscape slideover 320 976
+          13 landscape smmin 500 516
+          13 landscape smresized 826 952
+          TABLE
+          sed -i '' 's/^ *//' /tmp/windows.txt
           python3 - <<'PY' > /tmp/list.txt
           import json, os
-          for udid, name in json.loads(os.environ["LIST"]):
-              print(udid, name.replace(" ", "-").replace("(", "").replace(")", ""))
+          for udid, name, size in json.loads(os.environ["LIST"]):
+              print(udid, size, name.replace(" ", "-").replace("(", "").replace(")", ""))
           PY
-          while read -r UDID NAME; do
+          set -- $SCREENS; n=$#
+          set -- $WINDOW_SCREENS; nw=$#
+          devs=$(wc -l < /tmp/list.txt | tr -d ' ')
+          # per device: full screen 4 x n, windows 2 geometries x 6 x nw;
+          # the 11-inch adds n dark ones
+          expected=$(( devs * (4 * n + 12 * nw) ))
+          grep -q " 11 " /tmp/list.txt && expected=$(( expected + n ))
+          echo "job $JOB: expected $expected shots on $devs iPads" | tee devices/expected.txt
+          cat /tmp/list.txt | tee devices/picked.txt
+          shot() { # <file> <args...>
+            local file="$1"; shift
+            local start=$(date +%s)
+            xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+            xcrun simctl launch "$UDID" "$BID" "$@" < /dev/null >> devices/shots.log 2>&1 \
+              || { echo "launch failed $file" >> devices/shots.log; return; }
+            sleep 6
+            xcrun simctl io "$UDID" screenshot --type=png --mask=alpha "devices/$file.png" \
+              >> devices/shots.log 2>&1 || echo "shot failed $file" >> devices/shots.log
+            echo "$file $(( $(date +%s) - start ))s" >> devices/timing.log
+          }
+          while read -r UDID SIZE NAME; do
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b
             xcrun simctl status_bar "$UDID" override --time "9:41" --batteryLevel 100 \
               --batteryState charged --wifiBars 3
+            xcrun simctl ui "$UDID" appearance light
             xcrun simctl install "$UDID" "$APP"
             # A freshly booted simulator shows only white for its first
             # launch while it finishes settling, so launch once and throw
             # that away before photographing anything.
             xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen library >/dev/null 2>&1 || true
-            sleep 25
-            for screen in library quiz; do
-              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-              xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
-                >> devices/shots.log 2>&1 || { echo "launch failed $NAME $screen" >> devices/shots.log; continue; }
-              sleep 10
-              # an all-white frame compresses to almost nothing; retake it
-              for try in 1 2 3 4; do
-                xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
-                  "devices/$NAME-$screen.png" >> devices/shots.log 2>&1 \
-                  || echo "shot failed $NAME $screen" >> devices/shots.log
-                size=$(stat -f%z "devices/$NAME-$screen.png" 2>/dev/null || echo 0)
-                echo "$NAME $screen try $try: $size bytes" >> devices/shots.log
-                [ "$size" -gt 250000 ] && break
-                sleep 8
+            sleep 20
+            for orient in $ORIENTS; do
+              for screen in $SCREENS; do
+                shot "$NAME-full-$orient-$screen" -uiPreviewScreen "$screen" -uiPreviewOrientation "$orient"
               done
             done
+            grep "^$SIZE " /tmp/windows.txt | while read -r _ geometry mode w h; do
+              orient=portrait
+              [ "$geometry" = landscape ] && orient=landscapeLeft
+              for screen in $WINDOW_SCREENS; do
+                shot "$NAME-$geometry-$mode-${w}x$h-$screen" -uiPreviewScreen "$screen" \
+                  -uiPreviewOrientation "$orient" -uiPreviewWidth "$w" -uiPreviewHeight "$h"
+              done
+            done
+            if [ "$SIZE" = 11 ]; then
+              xcrun simctl ui "$UDID" appearance dark
+              for screen in $SCREENS; do
+                shot "$NAME-full-portrait-dark-$screen" -uiPreviewScreen "$screen" -uiPreviewOrientation portrait
+              done
+              xcrun simctl ui "$UDID" appearance light
+            fi
             xcrun simctl shutdown "$UDID" || true
           done < /tmp/list.txt
+          # each picture's shape against the way it was turned
+          python3 - <<'PY' | tee -a devices/shots.log
+          import glob, struct
+          def size(path):
+              with open(path, "rb") as f:
+                  head = f.read(33)
+              return struct.unpack(">II", head[16:24])
+          bad = 0
+          files = sorted(glob.glob("devices/*.png"))
+          for f in files:
+              w, h = size(f)
+              tall = "-portrait" in f
+              if tall and w >= h or not tall and w <= h:
+                  print(f"WRONG SHAPE: {f} is {w}x{h}")
+                  bad += 1
+          expected = int(open("devices/expected.txt").read().split("expected ")[1].split()[0])
+          print(f"shots {len(files)} of {expected}; {bad} the wrong shape")
+          PY
           for f in devices/*.png; do sips --resampleWidth 1100 "$f" --out "$f" >/dev/null || true; done
-          ls -la devices
-        env:
-          LIST: ${{ steps.sim.outputs.list }}
       - name: Record
         if: ${{ !cancelled() }}
         run: |
@@ -122,5 +279,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: ipad-devices
+          name: ipad-devices-${{ matrix.job }}
           path: devices

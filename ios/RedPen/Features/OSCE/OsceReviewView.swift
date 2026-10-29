@@ -87,6 +87,7 @@ struct OsceReviewView: View {
             .environmentObject(llm)
             // a voice screen: the camera stays off while it listens
             .popOutFacePaused()
+            .wardSheet()
         }
         .navigationTitle(studySet.subject.isEmpty ? "OSCE" : studySet.subject)
         .diagnosticsScreen("screen:osce_review")

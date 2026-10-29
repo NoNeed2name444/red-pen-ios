@@ -307,7 +307,7 @@ struct LibraryView: View {
         // "Turn into…": an instant set opens straight away, in place of
         // whatever was open; a written one goes to New set, filled in
         .onChange(of: modeSwitch.opening) { _, set in openTurned(set) }
-        .sheet(item: $modeSwitch.writing) { preset in NewSetView(preset: preset) }
+        .sheet(item: $modeSwitch.writing) { preset in NewSetView(preset: preset).wardSheet() }
         // Ideas is a place in the dock now, not a pushed page: anything that
         // still asks for the old page is taken there instead.
         .onChange(of: support) { _, page in
@@ -337,12 +337,13 @@ struct LibraryView: View {
         .onChange(of: selecting) { rowTrack.touched() }
         .onChange(of: homeShowing) { rowTrack.touched() }
         .sheet(isPresented: $buildingSession) {
-            CustomSessionSheet(text: sessionText) { set, mode in startSession(set, mode) }
+            CustomSessionSheet(text: sessionText) { set, mode in startSession(set, mode) }.wardSheet()
         }
         .sheet(item: $foundCard) { found in
             FoundCardSheet(found: found) { set in opened.append(set) }
+                .wardSheet()
         }
-        .sheet(item: $foundNote) { found in NoteEditorView(noteID: found.id).noteSourceChip(noteID: found.id) }
+        .sheet(item: $foundNote) { found in NoteEditorView(noteID: found.id).noteSourceChip(noteID: found.id).wardSheet() }
         // decks, tables and backups opened from other apps: the import preview
         // (waiting while one of the library's own sheets is up)
         .incomingImportPreview(busy: presentingSheet)
@@ -1019,6 +1020,7 @@ struct LibraryView: View {
         if single, let mode = category.features(in: .modes).first, !mode.shelfSets(store).isEmpty {
             Button { start(mode) } label: { headerButtonFace("See all") }
                 .buttonStyle(.borderless)
+                .hoverEffect(.highlight)
                 .accessibilityHint("Every one of these sets, newest first")
                 .accessibilityIdentifier("feature-\(mode.rawValue)")
         }
@@ -1034,6 +1036,7 @@ struct LibraryView: View {
             headerButtonFace(title)
         }
         .buttonStyle(.borderless)
+        .hoverEffect(.highlight)
         .accessibilityHint(hint)
         .accessibilityIdentifier("selectSets")
     }
@@ -1166,6 +1169,8 @@ struct LibraryView: View {
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 .buttonStyle(.plain)
+                .contentShape(.hoverEffect, Circle())
+                .hoverEffect(.highlight)
                 .accessibilityLabel("Clear search")
             }
         }
@@ -1183,6 +1188,7 @@ struct LibraryView: View {
                 searchFocused = false
             }
             .buttonStyle(.plain)
+            .hoverEffect(.highlight)
             .foregroundStyle(Color.wardPrimaryInk)
         } else {
             if shortWindow && newSetShown { newSetCircle }

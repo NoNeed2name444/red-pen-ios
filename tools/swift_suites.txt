@@ -459,6 +459,11 @@ suite wardframeclear WardFrameClearTests.swift $S/Ward/WardRelief.swift $S/Ward/
 # band, the preview arguments, the iPhone's orientations in project.yml,
 # the frame's corner from the display, and no device-type checks
 suite deviceposture DevicePostureTests.swift $S/DevicePosture.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift
+# the iPad audit (T0140), from the sources and the workflows: the pointer's
+# highlight on every core button, the primary actions' shortcuts, every
+# core sheet in the page colour, the preview's four turns, and the iPad
+# workflows' orientations, window table, sizes and rotation-state pass
+suite ipadaudit IpadAuditTests.swift
 # one animated value for every Ward colour: the light/dark shift and the move
 # between sections, with each section's hue
 suite wardlook WardLookTests.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift $S/Ward/WardPalette.swift

@@ -194,8 +194,14 @@ final class LaunchStage {
     /// The page's opening (window points): WardPaper's panel, its top under
     /// home's header (WardPaperTop).
     var opening: CGRect? {
-        guard window.width > 0, let p = WardPaper.panel(width: Double(window.width), height: Double(window.height),
+        // the window's corner in Split View or Stage Manager, the display's
+        // full screen (WardPaper.frameCorner), as the paper's cut draws it
+        let w = Double(window.width), h = Double(window.height)
+        let corner = WardPaper.frameCorner(width: w, height: h, pad: WindowDisplay.roundsLikePad,
+                                           windowed: WardPaperTop.shared.windowed)
+        guard window.width > 0, let p = WardPaper.panel(width: w, height: h,
                                                         top: WardPaperTop.shared.y.map { Double($0) } ?? 0,
+                                                        safe: .none, device: corner,
                                                         pad: WindowDisplay.roundsLikePad) else { return nil }
         return CGRect(x: p.x, y: p.y, width: p.width, height: p.height)
     }

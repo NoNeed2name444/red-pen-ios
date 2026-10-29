@@ -8,9 +8,19 @@ import XCTest
 /// the mock paper on its part and question.
 ///
 /// Run by iphone-duo.yml (jobs duo and iphones) and ios-preview.yml's
-/// orientation pass; the result bundle goes into their artifacts.
+/// orientation pass; the result bundle goes into their artifacts. On an iPad
+/// (design-preview.yml's `ipad` part, `ROTATION_IPAD=1`, T0140) the turns
+/// are all four ways up, upside down too, every target on screen is checked
+/// for 44 points after each, and the window's width changes under the quiz
+/// and the library (the rail becoming a bottom bar and back).
 final class RotationStateUITests: XCTestCase {
-    private let turns: [UIDeviceOrientation] = [.portrait, .landscapeLeft, .landscapeRight, .portrait]
+    /// The iPad pass (`ROTATION_IPAD=1`).
+    private var onIpad: Bool { ProcessInfo.processInfo.environment["ROTATION_IPAD"] == "1" }
+
+    private var turns: [UIDeviceOrientation] {
+        onIpad ? [.portrait, .landscapeLeft, .portraitUpsideDown, .landscapeRight, .portrait]
+            : [.portrait, .landscapeLeft, .landscapeRight, .portrait]
+    }
 
     /// The postures to go through: the foldable's three where the job says
     /// it is one (`ROTATION_POSTURES=folded,open,half`), else the phone's own.
@@ -44,7 +54,21 @@ final class RotationStateUITests: XCTestCase {
             // the rotation's own animation, then a layout pass
             _ = app.wait(for: .runningForeground, timeout: 3)
             usleep(1_200_000)
-            XCTContext.runActivity(named: "\(what) after turning to \(turn.rawValue)") { _ in still() }
+            XCTContext.runActivity(named: "\(what) after turning to \(turn.rawValue)") { _ in
+                still()
+                if onIpad { targetsFit(app, "\(what), turn \(turn.rawValue)") }
+            }
+        }
+    }
+
+    /// Every button on screen that can be tapped is at least 44 points each
+    /// way (half a point for rounding).
+    private func targetsFit(_ app: XCUIApplication, _ what: String) {
+        let buttons = app.buttons.allElementsBoundByIndex.filter { $0.exists && $0.isHittable }
+        for b in buttons {
+            let f = b.frame
+            XCTAssertGreaterThanOrEqual(min(f.width, f.height), 43.5,
+                                        "\(what): '\(b.label)' (\(b.identifier)) is \(f.width) x \(f.height)")
         }
     }
 
@@ -184,6 +208,77 @@ final class RotationStateUITests: XCTestCase {
         XCTAssertGreaterThan(across, rows, "the dock is a rail at 390 points")
         let model: String = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "unknown"
         print("layout at 390 points on \(model): row of \(frames.count) tabs")
+    }
+
+    // MARK: a width change under the open screen (iPad)
+
+    /// The window narrows from broad to a phone's width and back
+    /// (`-uiPreviewWidth 1024 -uiPreviewWidthToggle 390`, the surround's
+    /// previewWidthToggle): the dock goes from the rail to the bottom bar
+    /// and back, and the library keeps its row.
+    func testWidthChangeKeepsTheLibrary() throws {
+        try XCTSkipUnless(onIpad, "the iPad pass only (ROTATION_IPAD=1): 1024 points is wider than a phone")
+        let app = XCUIApplication()
+        app.launchArguments += ["-uiPreviewScreen", "library", "-uiPreviewWidth", "1024", "-uiPreviewWidthToggle", "390"]
+        app.launch()
+        let tabs = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'dockCategory-'"))
+        XCTAssertTrue(tabs.firstMatch.waitForExistence(timeout: 30), "no dock")
+        func dockIsRow() -> Bool {
+            let frames: [CGRect] = (0..<tabs.count).map { tabs.element(boundBy: $0).frame }
+            let rows: CGFloat = (frames.map(\.midY).max() ?? 0) - (frames.map(\.midY).min() ?? 0)
+            let across: CGFloat = (frames.map(\.midX).max() ?? 0) - (frames.map(\.midX).min() ?? 0)
+            return rows < 8 && across > rows
+        }
+        XCTAssertFalse(dockIsRow(), "the dock is not the rail at 1024 points")
+        let cards = app.buttons["dockCategory-cards"]
+        XCTAssertTrue(cards.exists, "no Cards tab")
+        cards.tap()
+        let toggle = app.buttons["previewWidthToggle"]
+        XCTAssertTrue(toggle.exists, "no width toggle on the surround")
+        for (step, row) in [(1, true), (2, false)] {
+            toggle.tap()
+            usleep(1_200_000)
+            XCTAssertEqual(dockIsRow(), row, "width change \(step): the dock is \(row ? "not the bottom bar" : "not the rail")")
+            XCTAssertTrue(app.buttons["dockCategory-cards"].isSelected, "width change \(step): Cards is no longer chosen")
+            targetsFit(app, "library, width change \(step)")
+        }
+    }
+
+    /// The quiz on question 3 with its answer chosen, through the same
+    /// width change.
+    func testWidthChangeKeepsTheQuiz() throws {
+        try XCTSkipUnless(onIpad, "the iPad pass only (ROTATION_IPAD=1): 1024 points is wider than a phone")
+        let app = XCUIApplication()
+        app.launchArguments += ["-uiPreviewScreen", "quiz", "-uiPreviewWidth", "1024", "-uiPreviewWidthToggle", "390"]
+        app.launch()
+        for _ in 0..<2 {
+            let first = answers(app).firstMatch
+            XCTAssertTrue(first.waitForExistence(timeout: 20), "no answers on the quiz")
+            reach(first, in: app)
+            first.tap()
+            let check = app.buttons["Check answer"]
+            reach(check, in: app)
+            check.tap()
+            let next = app.buttons["Next question"]
+            XCTAssertTrue(next.waitForExistence(timeout: 5), "no Next question after checking")
+            reach(next, in: app)
+            next.tap()
+        }
+        XCTAssertTrue(app.staticTexts["Question 3 of 3"].waitForExistence(timeout: 5), "the quiz did not reach question 3")
+        let choice = answers(app).element(boundBy: 1)
+        reach(choice, in: app)
+        choice.tap()
+        let chosen = choice.label
+        let toggle = app.buttons["previewWidthToggle"]
+        XCTAssertTrue(toggle.exists, "no width toggle on the surround")
+        for step in 1...2 {
+            toggle.tap()
+            usleep(1_200_000)
+            XCTAssertTrue(app.staticTexts["Question 3 of 3"].exists, "width change \(step): left question 3")
+            let same = answers(app).matching(NSPredicate(format: "label == %@", chosen)).firstMatch
+            XCTAssertTrue(same.exists && same.isSelected, "width change \(step): the answer is no longer chosen")
+            targetsFit(app, "quiz, width change \(step)")
+        }
     }
 
     // MARK: the mock paper on its part and question

@@ -78,6 +78,7 @@ struct AnkiReviewView: View {
         // when it closes.
         .sheet(item: $reading) { opening in
             SourcePreviewView(source: opening.source, set: studySet, openAt: opening.page)
+                .wardSheet()
         }
         .alert("Not enough to quiz on", isPresented: Binding(
             get: { quizNote != nil }, set: { if !$0 { quizNote = nil } }

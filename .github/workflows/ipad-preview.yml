@@ -1,4 +1,5 @@
-# The same screens, on an iPad, in both orientations.
+# The same screens, on an iPad, in all four orientations (T0140), light
+# and dark.
 #
 # A separate workflow rather than more loops inside the iPhone one: the phone
 # job is the compile check that must stay fast and must not be cancelled by
@@ -120,45 +121,77 @@ jobs:
             --batteryState charged --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p ipad
-          for orient in portrait landscape; do
-            for screen in library quiz quiz-checked anki-revealed book osce-revealed; do
-              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
-                     -uiPreviewOrientation "$orient" >> ipad/shots.log 2>&1; then
-                echo "launch failed: $screen ($orient)" >> ipad/shots.log
-                continue
-              fi
-              # Longer than the phone job: the rotation animation has to finish
-              # before the picture is taken, or it catches the app mid-turn.
-              sleep 9
-              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
-                "ipad/$screen-$orient.png" >> ipad/shots.log 2>&1 \
-                || echo "shot failed: $screen ($orient)" >> ipad/shots.log
-              # The app writes down what happened when it asked to turn. A
-              # print from a simctl launch goes nowhere, so this is the only
-              # way to learn WHY a rotation was refused rather than guessing.
-              if [ "$orient" = landscape ]; then
+          # T0140 item 1: the core screens, all four ways up, light and dark.
+          # import-preview is here for A5 (a sheet at broad, in landscape).
+          SCREENS="library name-sheet new-make quiz-checked mock-sitting anki-revealed book draw-recall osce-revealed cases ideas settings import-preview"
+          ORIENTS="portrait portraitUpsideDown landscapeLeft landscapeRight"
+          set -- $SCREENS; n_screens=$#
+          echo "expected $((n_screens * 4 * 2)) shots" | tee ipad/expected.txt
+          for scheme in light dark; do
+            xcrun simctl ui "$UDID" appearance "$scheme"
+            for orient in $ORIENTS; do
+              for screen in $SCREENS; do
+                name="$screen-$orient-$scheme"
+                xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+                # the last run's log away first, so each shot's log is its own
                 CONTAINER=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
-                if [ -n "$CONTAINER" ] && [ -f "$CONTAINER/Documents/rotation.log" ]; then
-                  echo "--- rotation.log for $screen" >> ipad/rotation.log
-                  cat "$CONTAINER/Documents/rotation.log" >> ipad/rotation.log
+                [ -n "$CONTAINER" ] && rm -f "$CONTAINER/Documents/rotation.log"
+                start=$(date +%s)
+                if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                       -uiPreviewOrientation "$orient" >> ipad/shots.log 2>&1; then
+                  echo "launch failed: $name" >> ipad/shots.log
+                  continue
                 fi
-              fi
+                # Longer than the phone job: the rotation animation has to finish
+                # before the picture is taken, or it catches the app mid-turn.
+                sleep 9
+                xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
+                  "ipad/$name.png" >> ipad/shots.log 2>&1 \
+                  || echo "shot failed: $name" >> ipad/shots.log
+                echo "$name $(( $(date +%s) - start ))s" >> ipad/timing.log
+                # The app writes down what happened when it asked to turn. A
+                # print from a simctl launch goes nowhere, so this is the only
+                # way to learn WHY a rotation was refused rather than guessing.
+                CONTAINER=$(xcrun simctl get_app_container "$UDID" "$BID" data 2>/dev/null || true)
+                echo "--- rotation.log for $name" >> ipad/rotation.log
+                if [ -n "$CONTAINER" ] && [ -f "$CONTAINER/Documents/rotation.log" ]; then
+                  cat "$CONTAINER/Documents/rotation.log" >> ipad/rotation.log
+                else
+                  echo "NO LOG" >> ipad/rotation.log
+                fi
+              done
             done
           done
-          # A landscape shot that came out portrait means the rotation did not
-          # take, and the run should say so rather than hand over a lie.
+          xcrun simctl ui "$UDID" appearance light
+          # Each PNG's shape must match its orientation (upside down is a
+          # portrait shape), and every rotation.log must end where it was
+          # asked to: a run that did not turn says so rather than hand over
+          # pictures that look like evidence and are not.
           python3 - <<'PY' >> ipad/shots.log
-          import glob, struct
+          import glob, re, struct
           def size(path):
               with open(path, "rb") as f:
                   head = f.read(33)
               return struct.unpack(">II", head[16:24])
-          for f in sorted(glob.glob("ipad/*-landscape.png")):
+          bad = 0
+          for f in sorted(glob.glob("ipad/*.png")):
               w, h = size(f)
-              if w <= h:
-                  print(f"NOT ACTUALLY LANDSCAPE: {f} is {w}x{h}")
+              tall = "-portrait" in f
+              if tall and w >= h or not tall and w <= h:
+                  print(f"WRONG SHAPE: {f} is {w}x{h}")
+                  bad += 1
+          log = open("ipad/rotation.log").read() if __import__("os").path.exists("ipad/rotation.log") else ""
+          for block in log.split("--- rotation.log for ")[1:]:
+              name, _, body = block.partition("\n")
+              last = [l for l in body.splitlines() if l.strip()][-1:] or ["NO LOG"]
+              if not last[0].startswith("ended "):
+                  print(f"NOT TURNED: {name}: {last[0]}")
+                  bad += 1
+          expected = int(open("ipad/expected.txt").read().split()[1])
+          got = len(glob.glob("ipad/*.png"))
+          print(f"shots {got} of {expected}; {bad} shape or turn problems")
           PY
+          tail -1 ipad/shots.log
           for f in ipad/*.png; do sips --resampleWidth 1200 "$f" --out "$f" >/dev/null || true; done
           ls -la ipad
 
@@ -184,7 +217,7 @@ jobs:
               "runtime": os.environ.get("RUNTIME", ""),
               "build_ok": "BUILD SUCCEEDED" in log,
               "build_finished": ("BUILD SUCCEEDED" in log) or ("BUILD FAILED" in log),
-              "rotation_worked": "NOT ACTUALLY LANDSCAPE" not in shots,
+              "rotation_worked": "WRONG SHAPE" not in shots and "NOT TURNED" not in shots,
               "screens": sorted(f for f in os.listdir("ipad") if f.endswith(".png")),
           }, open("ipad/status.json", "w"), indent=2)
           PY

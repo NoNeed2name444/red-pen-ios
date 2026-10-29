@@ -602,6 +602,7 @@ struct HomeRoundCard: View {
                 .padding(.vertical, -12)
         }
         .buttonStyle(.borderless)
+        .hoverEffect(.highlight)
         .accessibilityHint("Opens the exam plan and forecast")
         .accessibilityIdentifier("missionPlan")
     }
@@ -747,6 +748,9 @@ struct HomeTiles: View {
             VitalsTileFace(readiness: readiness, streak: streak, rhythm: rhythm)
         }
         .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
+        // PopTileStyle draws no pointer highlight of its own
+        .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+        .hoverEffect(.highlight)
         .accessibilityLabel(vitalsSpoken)
         .accessibilityHint("Opens Progress")
         .accessibilityIdentifier("homeVitals")
@@ -757,6 +761,9 @@ struct HomeTiles: View {
             BrainMapTileFace(line: brainLine)
         }
         .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
+        // PopTileStyle draws no pointer highlight of its own
+        .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
+        .hoverEffect(.highlight)
         .accessibilityLabel("Brain map. " + brainLine)
         .accessibilityHint("Opens Ideas: the idea dump, its board and the 3D map")
         .accessibilityIdentifier("homeBrainMap")

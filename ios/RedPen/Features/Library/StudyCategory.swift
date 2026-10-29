@@ -606,6 +606,8 @@ struct CategoryDock: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, minHeight: 56)
             .contentShape(shape)
+            .contentShape(.hoverEffect, shape)
+            .hoverEffect(.highlight)
         }
         // raised, sinking under the finger like every Ward button
         .buttonStyle(WardPanelButtonStyle(lift: .mid, shape: shape))
@@ -620,6 +622,7 @@ struct CategoryDock: View {
             // a sheet has its lights, whatever the dock floats with
             DockListSheet(selection: $selection, inIdeas: $inIdeas, count: count)
                 .wardUnlit(false)
+                .wardSheet()
         }
     }
 
@@ -875,6 +878,7 @@ private struct DockListSheet: View {
             }
             .frame(minHeight: 56)
             .contentShape(Rectangle())
+            .hoverEffect(.highlight)
         }
         .wardRowBackground()
         .accessibilityAddTraits(chosen ? [.isSelected] : [])

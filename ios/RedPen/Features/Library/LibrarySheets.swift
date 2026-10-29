@@ -12,29 +12,33 @@ extension LibraryView {
     @ViewBuilder
     func attachingSheets<V: View>(to view: V) -> some View {
         view
-            .sheet(item: $naming) { which in namingSheet(which) }
+            .sheet(item: $naming) { which in namingSheet(which).wardSheet() }
             .sheet(item: $renaming) { set in
                 NameSheet(title: "Rename set", prompt: "Set name",
                           initial: set.name, confirm: "Rename") { name in
                     store.rename(set.id, to: name)
                 }
+                .wardSheet()
             }
             .sheet(item: $renamingFolder) { folder in
                 NameSheet(title: "Rename folder", prompt: "Folder name",
                           initial: folder.name, confirm: "Rename") { name in
                     store.renameFolder(folder.id, to: name)
                 }
+                .wardSheet()
             }
             .sheet(item: $editing) { set in
                 CardsEditorView(set: set)
+                .wardSheet()
             }
             .sheet(item: $reading) { opening in
                 SourcePreviewView(source: opening.source,
                                   set: store.library.first { $0.sources.contains(opening.source) },
                                   openAt: opening.page)
+                .wardSheet()
             }
-            .sheet(item: $newSetKind) { kind in NewSetView(kind: kind) }
-            .sheet(item: $addingKind) { kind in NewSetView(kind: kind, startingAt: .material) }
+            .sheet(item: $newSetKind) { kind in NewSetView(kind: kind).wardSheet() }
+            .sheet(item: $addingKind) { kind in NewSetView(kind: kind, startingAt: .material).wardSheet() }
             .turnIntoPicker(for: $turning)
             .sheet(item: $reasoningFor) { set in
                 NavigationStack {
@@ -43,6 +47,7 @@ extension LibraryView {
                             ToolbarItem(placement: .confirmationAction) { Button("Done") { reasoningFor = nil }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
                         }
                 }
+                .wardSheet()
             }
             .sheet(item: $creditsFor) { set in
                 NavigationStack {
@@ -51,6 +56,7 @@ extension LibraryView {
                             ToolbarItem(placement: .confirmationAction) { Button("Done") { creditsFor = nil }.buttonStyle(.wardCompact) }.sharedBackgroundVisibility(.hidden)
                         }
                 }
+                .wardSheet()
             }
             .sheet(isPresented: Binding(get: { exportURL != nil },
                                         set: { if !$0 { exportURL = nil } })) {

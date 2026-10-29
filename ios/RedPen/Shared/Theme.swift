@@ -161,6 +161,8 @@ private struct PressableRowFace<Label: View>: View {
         label
             .brightness(pressed ? -0.04 : 0)
             .capPop(pressed)
+            // the pointer's highlight, as every Ward control has (iPad)
+            .hoverEffect(.highlight)
     }
 }
 extension ButtonStyle where Self == PressableRowStyle {

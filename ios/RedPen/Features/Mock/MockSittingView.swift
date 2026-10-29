@@ -256,7 +256,7 @@ struct MockSittingView: View {
             .id(q.id)
         }
         .studyBar(folds: true) { bar }
-        .sheet(isPresented: $showGrid) { grid }
+        .sheet(isPresented: $showGrid) { grid.wardSheet() }
         .confirmationDialog(endTitle, isPresented: $confirmEnd, titleVisibility: .visible) {
             Button(isLastSection ? "Finish paper" : "Close \(spec.title)", role: .destructive) { closeSection() }
             Button("Keep going", role: .cancel) {}
@@ -471,8 +471,10 @@ struct MockSittingView: View {
                         .padding(4)
                 }
             }
+            .contentShape(.hoverEffect, shape)
         }
         .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .accessibilityLabel("Question \(i + 1), \(state)")
     }
 

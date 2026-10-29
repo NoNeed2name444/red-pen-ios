@@ -70,6 +70,7 @@ struct BookReaderView: View {
                 }
             }
             .presentationDetents([.medium, .large])
+            .wardSheet()
         }
         // the first opening: five quick guesses before any reading
         // (an onAppear only, so the layout is untouched)

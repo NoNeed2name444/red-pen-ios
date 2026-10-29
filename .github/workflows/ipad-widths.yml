@@ -10,9 +10,11 @@ on:
   workflow_dispatch:
     inputs:
       widths:
-        description: window widths in points, space separated
+        description: windows in points, space separated, a width or WIDTHxHEIGHT
         required: false
-        default: 320 507 740 1024
+        # the multitasking widths, then two Stage Manager windows (T0140
+        # item 2): a short, wide one and a tall, narrow one
+        default: 320 507 740 1024 800x500 420x1000
 # read only: this job builds third-party packages and uploads an artifact;
 # it pushes nothing
 permissions:
@@ -35,6 +37,14 @@ jobs:
       - name: Generate the project
         working-directory: ios
         run: xcodegen generate
+      - name: Let this build turn
+        run: |
+          set -euo pipefail
+          # the rig's concession, as in ipad-preview.yml: the shipping app
+          # keeps multitasking; this generated plist asks for full screen so
+          # the app can turn itself for the landscape pass
+          /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" ios/RedPen/Info.plist \
+            || /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" ios/RedPen/Info.plist
       - name: Pick an iPad
         id: sim
         run: |
@@ -84,18 +94,32 @@ jobs:
             --batteryState charged --wifiBars 3
           xcrun simctl install "$UDID" "$APP"
           mkdir -p widths
-          for w in ${{ inputs.widths }}; do
-            for screen in library quiz; do
-              xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
-              if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
-                     -uiPreviewWidth "$w" >> widths/shots.log 2>&1; then
-                echo "launch failed: $screen (w$w)" >> widths/shots.log
-                continue
-              fi
-              sleep 7
-              xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
-                "widths/$screen-w$w.png" >> widths/shots.log 2>&1 \
-                || echo "shot failed: $screen (w$w)" >> widths/shots.log
+          WINDOWS="${{ inputs.widths }}"
+          WINDOWS="${WINDOWS:-320 507 740 1024 800x500 420x1000}"
+          # the core screens PreviewRoot draws: it alone gives the pretend
+          # window; PreviewExtras' screens (name-sheet, new-make,
+          # mock-sitting, draw-recall, ideas, settings) are routed round it by
+          # RedPenApp.swift and would come out full screen (T0140 notes)
+          SCREENS="library quiz-checked anki-revealed book osce-revealed cases"
+          # both ways round on the iPad behind the window (portrait and
+          # landscapeLeft; upside down and landscapeRight are the same shapes)
+          for orient in portrait landscapeLeft; do
+            for win in $WINDOWS; do
+              w="${win%%x*}"
+              args=(-uiPreviewWidth "$w")
+              case "$win" in *x*) args+=(-uiPreviewHeight "${win##*x}") ;; esac
+              for screen in $SCREENS; do
+                xcrun simctl terminate "$UDID" "$BID" 2>/dev/null || true
+                if ! xcrun simctl launch "$UDID" "$BID" -uiPreviewScreen "$screen" \
+                       -uiPreviewOrientation "$orient" "${args[@]}" >> widths/shots.log 2>&1; then
+                  echo "launch failed: $screen ($orient, $win)" >> widths/shots.log
+                  continue
+                fi
+                sleep 7
+                xcrun simctl io "$UDID" screenshot --type=png --mask=alpha \
+                  "widths/$screen-$orient-w$win.png" >> widths/shots.log 2>&1 \
+                  || echo "shot failed: $screen ($orient, $win)" >> widths/shots.log
+              done
             done
           done
           for f in widths/*.png; do sips --resampleWidth 1100 "$f" --out "$f" >/dev/null || true; done

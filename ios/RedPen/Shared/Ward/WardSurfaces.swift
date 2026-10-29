@@ -446,6 +446,11 @@ final class WardPaperTop {
     /// WardPaperFrame from its window's safe area (none on home), so the
     /// paper's cut (WardPaperCutStage) and the ring agree.
     var safe: WardSystemInsets = .none
+    /// The window is not the whole display (Split View, Slide Over, a Stage
+    /// Manager window, the screenshot rig's pretend window): the frame's
+    /// corners are then the window's (WardPaper.frameCorner), set by
+    /// WardPaperFrame's WindowFillProbe.
+    var windowed = false
 }
 
 /// Each window owns this store. A sheet inherits it, but its edges do not
@@ -492,11 +497,12 @@ final class WardEdgeStore {
     func setWindow(_ frame: CGRect, pad: Bool, top: CGFloat?, safe: WardSystemInsets = .none) {
         // the same opening the frame strokes: clear of the system bars, its
         // corners concentric with the display's (WardPaper.panel)
+        let corner = WardPaper.frameCorner(width: Double(frame.width), height: Double(frame.height),
+                                           pad: pad, windowed: WardPaperTop.shared.windowed)
         let next = WardPaper.panel(width: frame.width, height: frame.height,
-                                   top: Double(top ?? 0) - frame.minY, safe: safe, device: nil, pad: pad)
+                                   top: Double(top ?? 0) - frame.minY, safe: safe, device: corner, pad: pad)
         let corners: WardCornerFrame? = WardPaperTop.shared.home
-            ? WardCornerFrame.screen(width: Double(frame.width), height: Double(frame.height),
-                                     device: WardPaper.deviceRadius(width: Double(frame.width), height: Double(frame.height), pad: pad))
+            ? WardCornerFrame.screen(width: Double(frame.width), height: Double(frame.height), device: corner)
             : next.map(WardCornerFrame.ring)
         if cornerFrame != corners { cornerFrame = corners }
         guard window != frame || panel != next else { return }
@@ -738,7 +744,10 @@ struct WardPaperFrame: View {
                 WardPaperCutStage()
                 if !onHome,
                    let moved = WardPaper.panel(width: size.width, height: size.height,
-                                               top: Double(top ?? 0) - window.minY, safe: safe, device: nil,
+                                               top: Double(top ?? 0) - window.minY, safe: safe,
+                                               device: WardPaper.frameCorner(width: Double(size.width), height: Double(size.height),
+                                                                             pad: display.roundsLikePad,
+                                                                             windowed: paperTop.windowed),
                                                pad: display.roundsLikePad) {
                     ZStack {
                         Canvas { context, _ in
@@ -765,6 +774,16 @@ struct WardPaperFrame: View {
                 paperTop.safe = now
                 edges.setWindow(window, pad: display.roundsLikePad, top: top, safe: now)
             }
+            #if canImport(UIKit)
+            // a window beside or over another app takes its own corners
+            .background {
+                WindowFillProbe { windowed in
+                    guard paperTop.windowed != windowed else { return }
+                    paperTop.windowed = windowed
+                    edges.setWindow(window, pad: display.roundsLikePad, top: top, safe: safe)
+                }
+            }
+            #endif
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
@@ -794,6 +813,9 @@ struct WardPaperCut: Equatable {
     var ink: WardPaperInk
     var base: UInt32
     var pad: Bool
+    /// The window is not the whole display: the window's corners
+    /// (WardPaper.frameCorner).
+    var windowed = false
     /// The system bars the opening stays clear of (none on home).
     var safe: WardSystemInsets = .none
     var displayScale: CGFloat
@@ -831,11 +853,69 @@ private struct WardPaperCutStage: View {
         #if canImport(UIKit)
         WardPaperCutSheet(cut: WardPaperCut(scale: pose?.scale, drop: pose?.drop ?? 0,
                                             top: top, dark: dark, highContrast: strong,
-                                            ink: ink, base: base, pad: display.roundsLikePad, safe: safe,
+                                            ink: ink, base: base, pad: display.roundsLikePad,
+                                            windowed: WardPaperTop.shared.windowed, safe: safe,
                                             displayScale: displayScale))
         #endif
     }
 }
+
+#if canImport(UIKit)
+/// Whether this window fills its display (WardPaper.fillsDisplay), read
+/// from its own window and its own scene's screen at each layout: a Split
+/// View resize, a Stage Manager drag, a turn. The screenshot rig's pretend
+/// window (`-uiPreviewWidth`) counts as a window too.
+private struct WindowFillProbe: UIViewRepresentable {
+    let report: (Bool) -> Void
+
+    func makeUIView(context: Context) -> WindowFillProbeView {
+        let view = WindowFillProbeView(frame: .zero)
+        view.report = report
+        return view
+    }
+
+    func updateUIView(_ view: WindowFillProbeView, context: Context) {
+        view.report = report
+    }
+}
+
+final class WindowFillProbeView: UIView {
+    var report: ((Bool) -> Void)?
+    private var last: Bool?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        read()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        read()
+    }
+
+    private func read() {
+        guard let window, let screen = window.windowScene?.screen else { return }
+        let fills = WardPaper.fillsDisplay(windowWidth: Double(window.bounds.width),
+                                           windowHeight: Double(window.bounds.height),
+                                           displayWidth: Double(screen.bounds.width),
+                                           displayHeight: Double(screen.bounds.height))
+        let windowed = !fills || PreviewLaunch.pretendWidth != nil
+        guard windowed != last else { return }
+        last = windowed
+        let report = report
+        // not during the layout pass that asked
+        DispatchQueue.main.async { report?(windowed) }
+    }
+}
+#endif
 
 #if canImport(UIKit)
 /// Home's paper in Core Animation, including warm-up and rest: the picture
@@ -896,9 +976,10 @@ final class WardPaperCutView: UIView {
         defer { CATransaction.commit() }
         guard bounds.width > 0, bounds.height > 0 else { return }
         let w = Double(bounds.width), h = Double(bounds.height)
-        guard let panel = WardPaper.panel(width: w, height: h, safe: cut.safe, device: nil, pad: cut.pad) else { return }
+        let corner = WardPaper.frameCorner(width: w, height: h, pad: cut.pad, windowed: cut.windowed)
+        guard let panel = WardPaper.panel(width: w, height: h, safe: cut.safe, device: corner, pad: cut.pad) else { return }
         let moved: WardPaperPanel? = cut.top.flatMap {
-            WardPaper.panel(width: w, height: h, top: Double($0), safe: cut.safe, device: nil, pad: cut.pad)
+            WardPaper.panel(width: w, height: h, top: Double($0), safe: cut.safe, device: corner, pad: cut.pad)
         }
             .flatMap { $0.y > panel.y ? $0 : nil }
         let opening = moved ?? panel
@@ -1527,6 +1608,21 @@ extension View {
             .lineSpacing(WardSpace.leading)
             .background(WardBackground())
             .wardControls()
+    }
+
+    /// A sheet's content in the page colour, so the sheet is one tone with
+    /// the page (iOS 26's glass otherwise shows round the content, on an iPad
+    /// form sheet most of all). Every sheet and cover in the study screens
+    /// goes through this (IpadAuditTests).
+    func wardSheet() -> some View {
+        presentationBackground(Color.wardBackground)
+    }
+
+    /// As wardSheet(), sized for a broad window (`.form` for a short sheet,
+    /// `.page` for one that holds a whole screen).
+    func wardSheet<S: PresentationSizing>(_ sizing: S) -> some View {
+        presentationBackground(Color.wardBackground)
+            .presentationSizing(sizing)
     }
 
     /// A List or Form row (or a Section's rows) as soft tiles, with insets

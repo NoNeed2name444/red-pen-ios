@@ -36,9 +36,56 @@ enum PreviewLaunch {
     static var landscape: Bool { orientation?.isLandscape ?? false }
 
     /// Which way up (`-uiPreviewOrientation portrait|landscapeLeft|
-    /// landscapeRight`; the iPad job's "landscape" is landscapeRight).
+    /// landscapeRight`; the iPad job's "landscape" is landscapeRight), for
+    /// the posture's sides. Upside down reads as portrait here: the same
+    /// geometry, and DevicePosture has no fourth case.
     static var orientation: DevicePosture.Orientation? {
         DevicePosture.preview(arguments: ProcessInfo.processInfo.arguments).orientation
+    }
+
+    /// Which way the window is turned before a still (T0140): the four ways
+    /// an iPad holds, `portraitUpsideDown` among them. Read by the launch
+    /// argument's own word, then T0138's parsing for the rest.
+    enum Turn: String, CaseIterable {
+        case portrait, portraitUpsideDown, landscapeLeft, landscapeRight
+
+        init?(word: String) {
+            switch word.lowercased() {
+            case "portraitupsidedown", "upsidedown", "upside-down": self = .portraitUpsideDown
+            default:
+                guard let o = DevicePosture.Orientation(word: word) else { return nil }
+                switch o {
+                case .portrait: self = .portrait
+                case .landscapeLeft: self = .landscapeLeft
+                case .landscapeRight: self = .landscapeRight
+                }
+            }
+        }
+
+        var mask: UIInterfaceOrientationMask {
+            switch self {
+            case .portrait: return .portrait
+            case .portraitUpsideDown: return .portraitUpsideDown
+            case .landscapeLeft: return .landscapeLeft
+            case .landscapeRight: return .landscapeRight
+            }
+        }
+
+        var interface: UIInterfaceOrientation {
+            switch self {
+            case .portrait: return .portrait
+            case .portraitUpsideDown: return .portraitUpsideDown
+            case .landscapeLeft: return .landscapeLeft
+            case .landscapeRight: return .landscapeRight
+            }
+        }
+    }
+
+    /// The turn the command line asks for, or nil.
+    static var turn: Turn? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewOrientation"), i + 1 < args.count else { return nil }
+        return Turn(word: args[i + 1])
     }
 
     /// A fold to photograph (`-uiPreviewPosture folded|open|half`): the
@@ -76,6 +123,17 @@ enum PreviewLaunch {
         return CGFloat(h)
     }
 
+    /// A second pretend width to switch to and back (`-uiPreviewWidthToggle
+    /// <points>`), for RotationStateUITests' width change: a hidden control
+    /// on the grey surround (`previewWidthToggle`) swaps the two, in place,
+    /// so what the screen holds must survive the rail becoming a bottom bar.
+    static var toggleWidth: CGFloat? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-uiPreviewWidthToggle"), i + 1 < args.count,
+              let w = Double(args[i + 1]), w > 100 else { return nil }
+        return CGFloat(w)
+    }
+
     /// On the "library" preview, pushes the first set and comes back before
     /// the fit check (`-uiPreviewPushBack`).
     static var pushBack: Bool {
@@ -92,11 +150,11 @@ enum PreviewLaunch {
     /// produces screenshots that look like evidence and are not.
     @MainActor
     static func applyOrientation() async {
-        guard let target = orientation, target.isLandscape, !turned else { return }
+        // every named turn, portrait and upside down too: the iPad rig's
+        // plist lists landscape first, so a portrait still has to turn back
+        guard let target = turn, !turned else { return }
         turned = true
-        let mask: UIInterfaceOrientationMask = target == .landscapeLeft ? .landscapeLeft : .landscapeRight
-        let wanted: UIInterfaceOrientation = target == .landscapeLeft ? .landscapeLeft : .landscapeRight
-        var notes: [String] = []
+        var notes: [String] = ["requested \(target.rawValue)"]
         for attempt in 1...12 {
             guard let scene = UIApplication.shared.connectedScenes
                     .compactMap({ $0 as? UIWindowScene }).first else {
@@ -104,19 +162,24 @@ enum PreviewLaunch {
                 try? await Task.sleep(for: .milliseconds(400))
                 continue
             }
-            if scene.interfaceOrientation == wanted {
+            if scene.interfaceOrientation == target.interface {
                 notes.append("attempt \(attempt): already \(target.rawValue)")
                 break
             }
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: target.mask)) { error in
                 notes.append("attempt \(attempt): refused - \(error.localizedDescription)")
             }
             try? await Task.sleep(for: .milliseconds(400))
-            if scene.interfaceOrientation == wanted {
+            if scene.interfaceOrientation == target.interface {
                 notes.append("attempt \(attempt): turned")
                 break
             }
         }
+        // the last line says where it ended, for the job's check
+        let ended = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first?
+            .interfaceOrientation
+        let reached: Bool = ended == target.interface
+        notes.append(reached ? "ended \(target.rawValue)" : "NOT TURNED: wanted \(target.rawValue), ended \(String(describing: ended?.rawValue))")
         // Written where the screenshot job can fish it out of the app
         // container, since a print from a simctl launch goes nowhere.
         let log = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -350,6 +413,8 @@ enum SampleData {
 /// Opens the requested screen directly, with the sample data in place.
 struct PreviewRoot: View {
     let screen: String
+    /// On the toggled width (`-uiPreviewWidthToggle`) rather than the first.
+    @State private var toggled = false
 
     init(screen: String) {
         self.screen = screen
@@ -364,12 +429,26 @@ struct PreviewRoot: View {
 
     var body: some View {
         Group {
-            if let w = PreviewLaunch.pretendWidth {
+            if let first = PreviewLaunch.pretendWidth {
+                let w: CGFloat = toggled ? (PreviewLaunch.toggleWidth ?? first) : first
                 ZStack {
                     Color(.systemGray4).ignoresSafeArea()
+                    if PreviewLaunch.toggleWidth != nil {
+                        // the test's hook: on the surround's corner, never
+                        // over the window
+                        Button { toggled.toggle() } label: {
+                            Color.clear.frame(width: 44, height: 44).contentShape(Rectangle())
+                        }
+                        .accessibilityLabel("Switch the window width")
+                        .accessibilityIdentifier("previewWidthToggle")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
                     content
                         .frame(width: w, height: PreviewLaunch.pretendHeight)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        // the window's own corner (WardPaper.windowRadius), and
+                        // the shape concentric pieces inside it follow
+                        .clipShape(RoundedRectangle(cornerRadius: WardPaper.windowRadius, style: .continuous))
+                        .containerShape(RoundedRectangle(cornerRadius: WardPaper.windowRadius, style: .continuous))
                         .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 6)
                         .padding(.vertical, 28)
                 }

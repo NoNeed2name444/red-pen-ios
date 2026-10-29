@@ -237,7 +237,10 @@ struct DrawRecallView: View {
         guard window.width > 0, paperRoom.width > 0 else { return WardRadius.card }
         // the large screen's corner from this window's display, not the device
         let pad: Bool = display.roundsLikePad
-        let device: Double = WardPaper.deviceRadius(width: Double(window.width), height: Double(window.height), pad: pad)
+        // full screen: the display's corner; in Split View or Stage Manager: the window's own
+        let device: Double = WardPaperTop.shared.windowed
+            ? WardPaper.windowRadius + WardPaper.frame
+            : WardPaper.deviceRadius(width: Double(window.width), height: Double(window.height), pad: pad)
         let inset: Double = Double(max(0, paperRoom.minX - window.minX))
         return CGFloat(WardCorner.concentric(device: device, inset: inset, floor: Double(WardRadius.card)))
     }
@@ -361,6 +364,7 @@ struct DrawRecallView: View {
                     ForEach(attempts) { attempt in
                         Button { load(attempt) } label: { thumbnail(attempt) }
                             .buttonStyle(.plain)
+                            .hoverEffect(.highlight)
                     }
                 }
                 .padding(WardSpace.s)
@@ -815,7 +819,8 @@ struct DrawFromMemoryButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
-        .fullScreenCover(item: $figure) { DrawRecallView(figure: $0) }
+        .hoverEffect(.highlight)
+        .fullScreenCover(item: $figure) { DrawRecallView(figure: $0).wardSheet() }
     }
 }
 
@@ -839,9 +844,11 @@ struct DrawRecallExampleRow: View {
                     detail: "An inguinal canal drawing ready to Compare")
         }
         .buttonStyle(.plain)
+        .hoverEffect(.highlight)
         .accessibilityIdentifier("example-draw")
         .fullScreenCover(item: $figure) { shown in
             DrawRecallView(figure: shown, opening: opening)
+                .wardSheet()
         }
     }
 }

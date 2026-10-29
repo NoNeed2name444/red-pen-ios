@@ -261,7 +261,13 @@ jobs:
               args=()
               for t in $GRAPH_TESTS; do args+=("-only-testing:RedPenUITests/GraphPreviewUITests/$t"); done
               if [ -n "$TOUR" ]; then args+=("$TOUR"); fi
-              if [ ${#args[@]} -gt 0 ]; then run_tests ipad.xcresult ipad.log "${args[@]}"; fi ;;
+              if [ ${#args[@]} -gt 0 ]; then run_tests ipad.xcresult ipad.log "${args[@]}"; fi
+              # T0140 item 7: the iPad's pass through all four orientations
+              # and the rail <-> bottom bar width change, its own bundle
+              if echo testRotationState | grep -qE "${ONLY:-.}"; then
+                TEST_RUNNER_ROTATION_IPAD=1 run_tests ipad-rotation.xcresult ipad-rotation.log \
+                  "-only-testing:RedPenUITests/RotationStateUITests"
+              fi ;;
             perf-proof-iphone|perf-proof-ipad)
               # the million's proof tour, a test at a time, each with its own
               # result and log, and no watch of the threads, so nothing else
@@ -336,6 +342,10 @@ jobs:
             fi
             rm -rf out/raw
           done
+          # the iPad's rotation-state bundle itself, for its checks (T0140 A7)
+          if [ -d ipad-rotation.xcresult ]; then
+            ditto -c -k --keepParent ipad-rotation.xcresult out/logs/ipad-rotation.xcresult.zip || true
+          fi
           # the recordings; one that is still over 95 MB is left out (and
           # said so in the log) rather than failing the push of everything
           for v in graph-*.mp4; do

@@ -90,9 +90,11 @@ struct IdeasView: View {
             .modifier(IdeasChrome(embedded: embedded, query: $ownQuery, night: overMap))
             .sheet(item: $opening) { ref in
                 NoteEditorView(noteID: ref.id)
+                    .wardSheet()
             }
             .sheet(item: $naming) { prompt in
                 nameSheet(prompt)
+                    .wardSheet()
             }
             .confirmationDialog("Move to", isPresented: movingShown, titleVisibility: .visible,
                                 presenting: moving) { note in

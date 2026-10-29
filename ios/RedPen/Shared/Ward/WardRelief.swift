@@ -471,6 +471,35 @@ enum WardPaper {
         min(displayWidth, displayHeight) >= padDisplaySide
     }
 
+    /// The corner of a window that does not fill its display: a Split View
+    /// pane, Slide Over, a Stage Manager window, and the screenshot rig's
+    /// pretend window (PreviewRoot clips to it). Its corners are the
+    /// window's, not the display's (T0140, item 3).
+    ///
+    /// An assumption to check on hardware: no public SDK value gives a
+    /// window's corner radius as a number (iOS 26 has ConcentricRectangle
+    /// and containerShape, which resolve only while drawing, and the
+    /// frame's ring is solved as numbers by WardEdge.join), so this is the
+    /// 18 points the pretend window has always used.
+    static let windowRadius = padRadius
+
+    /// Whether a window fills its display (either way round), to within a
+    /// point: full screen, rather than a window beside or over another app.
+    static func fillsDisplay(windowWidth: Double, windowHeight: Double,
+                             displayWidth: Double, displayHeight: Double) -> Bool {
+        guard windowWidth > 0, windowHeight > 0, displayWidth > 0, displayHeight > 0 else { return true }
+        let near: (Double, Double) -> Bool = { abs($0 - $1) <= 1 }
+        return (near(windowWidth, displayWidth) && near(windowHeight, displayHeight)) ||
+            (near(windowWidth, displayHeight) && near(windowHeight, displayWidth))
+    }
+
+    /// The corner the frame is concentric with: the display's in a full
+    /// screen window (deviceRadius, by `pad` from the display), the window's
+    /// own where it does not fill the display (`windowed`), plus the frame.
+    static func frameCorner(width: Double, height: Double, pad: Bool, windowed: Bool) -> Double {
+        windowed ? windowRadius + frame : deviceRadius(width: width, height: height, pad: pad)
+    }
+
     /// The opening's edge on a side whose system bar reaches `inset` in:
     /// the frame's own 12 points, or just past the bar, so the ring's whole
     /// width lies clear of it (the owner, 22 Oct: the frame never crosses a
