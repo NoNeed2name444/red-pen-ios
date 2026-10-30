@@ -30,7 +30,7 @@ where CC BY asks. The licences below were read on 29 Oct 2026.
 | HRA 3D Reference Organ Set for Female, v1.10 | The 3D atlas's female body: 35 parts, 900 structures | CC BY 4.0 (release metadata, checked 2026-10-29) | Resources/Anatomy, its SOURCES.md |
 | HRA ASCT+B 3D crosswalk, v1.10 | The atlas's labels and UBERON ids | CC BY 4.0 | Resources/Anatomy |
 | NIH 3D 3DPX-020591, Skull and Eyes - Visible Human Male (kbrowne, NLM 3D: Anatomy) | The skull in both bodies: 13 named bones, paired ones split left and right | CC BY 4.0 (stated on the entry) | Resources/Anatomy, via tools/anatomy_gaps.py |
-| TotalSegmentator dataset v3.0.0 (Wasserthal et al.; Zenodo 22688904) | Three CT scans, s1803 (a man), s1764 (a woman) and s1880 (a man, for his forearm and hand): the ribs and costal cartilages, the male sternum, clavicles, scapulae, humeri, the radius, ulna, carpus, metacarpals and phalanges (cut from the CT itself, which the dataset does not segment), gluteus maximus, medius and minimus, iliopsoas, the deep back muscles, thyroid, adrenals, oesophagus and stomach, in both bodies | CC BY 4.0 (record metadata) | Resources/Anatomy, via tools/anatomy_gaps.py |
+| TotalSegmentator dataset v3.0.0 (Wasserthal et al.; Zenodo 22688904) | Four CT scans, s1803 (a man), s1764 (a woman), s1880 (a man, for his forearm and hand) and s1767 (a man, for his foot): the ribs and costal cartilages, the male sternum, clavicles, scapulae, humeri, the radius, ulna, carpus, metacarpals and phalanges of the hands, and the tarsals, metatarsals, phalanges and great toe's sesamoids of the feet (cut from the CT itself, which the dataset does not segment), gluteus maximus, medius and minimus, iliopsoas, the deep back muscles, thyroid, adrenals, oesophagus and stomach, in both bodies | CC BY 4.0 (record metadata) | Resources/Anatomy, via tools/anatomy_gaps.py |
 | Visible Human Project (NLM) | The bodies the organ sets were made from | U.S. government; credit "Courtesy of the U.S. National Library of Medicine" | credited with the HRA |
 | UBERON | Identifiers on atlas structures | CC BY 3.0 (uberon.owl header) | anatomy.json |
 | Cell Ontology | Identifiers on immune cells | CC BY 4.0 (cl.owl header) | Immunology.swift |
@@ -40,7 +40,7 @@ where CC BY asks. The licences below were read on 29 Oct 2026.
 Build-time tools, not shipped: numpy (BSD) and fast-simplification (MIT)
 in tools/anatomy_atlas.py; scipy and scikit-image (BSD) and nibabel (MIT)
 in tools/anatomy_gaps.py; pyamg (MIT) speeds the random-walker split in
-tools/anatomy_limbs.py.
+tools/anatomy_limbs.py and tools/anatomy_feet.py.
 
 ## Admitted, not used yet
 

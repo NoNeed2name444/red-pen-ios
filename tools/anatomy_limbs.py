@@ -765,6 +765,35 @@ def pose(pts, hum, H, side, hand, pulp=0.004, stages=None):
         n_ = 0
         while (outside(chain(f)[-1]) or 0) > 0.05 and facts[f"{f} scale"] > 0.85 and n_ < 8:
             P.move(chain(f), np.eye(3), joints(f)[0], 0.97); facts[f"{f} scale"] *= 0.97; n_ += 1; lay(f)
+
+    def tuck_thumb(most=20, step=4, cost=0.002):
+        """A thumb metacarpal the skin cannot hold (a skin thin at the base of
+        the thumb): the thumb turned about its base, by at most `most`
+        degrees, to where the skin holds the metacarpal most (each degree
+        costing `cost` of it), its phalanges then laid along the skin's
+        thumb again. Returns the turn in degrees."""
+        ch = chain("thumb"); o0 = outside(ch[0])
+        if o0 is None or o0 <= 0.05:
+            return 0.0
+        J = joints("thumb"); c = J[0]; d = (J[1] - J[0]) / np.linalg.norm(J[1] - J[0])
+        u = np.cross(d, [0.0, 0.0, 1.0]); u /= np.linalg.norm(u); v = np.cross(d, u)
+        turn = lambda a, b: _turn(v, np.radians(b)) @ _turn(u, np.radians(a))
+        best, score = (0, 0), o0
+        for a in range(-most, most + 1, step):
+            for b in range(-most, most + 1, step):
+                if a * a + b * b > most * most or (a, b) == (0, 0):
+                    continue
+                R = turn(a, b); P.move(ch, R, c); o = outside(ch[0]); P.move(ch, R.T, c)
+                if o is not None and o + cost * np.hypot(a, b) < score:
+                    best, score = (a, b), o + cost * np.hypot(a, b)
+        if best == (0, 0):
+            return 0.0
+        P.move(ch, turn(*best), c)
+        for i in (1, 2):
+            J = joints("thumb"); q = _on_line(lines["thumb"], J[i], np.linalg.norm(J[i + 1] - J[i]))
+            P.move(ch[i:], _rot(J[i + 1] - J[i], q - J[i]), J[i])
+        return float(np.hypot(*best))
+    facts["thumb turn deg"] = tuck_thumb()
     W, a = wrist()
     twist = _angle_about(_end(P.p["radius"], a, False) - _end(P.p["ulna"], a, False),
                          _end(P.p["radius"], a, True) - _end(P.p["ulna"], a, True), a)
@@ -831,6 +860,7 @@ def limbs(sex, ct_dir, humeri, skin):
         P, f_ = pose(mine, hum @ M.T, H, sign, hand); f_["humerus stretched"] = kel; facts[side] = f_
         log(f"    {side} forearm and hand: humerus stretched x{kel:.3f}, fit {f_['humerus fit mm']:.1f} mm, forearm x{f_['forearm scale']:.2f}, "
             f"hand x{f_['hand scale']:.2f}, fingers x" + "/".join(f"{f_[f + ' scale']:.2f}" for f in FINGERS)
+            + (f", thumb turned {f_['thumb turn deg']:.0f} deg" if f_["thumb turn deg"] else "")
             + "; outside the skin: " + (", ".join(f"{k} {v:.0%}" for k, v in f_["outside the skin"].items() if v and v > 0.02) or "none"))
         for n in names:
             p, f = meshes[n]; p = (p @ M.T) @ P.A[n].T + P.t[n]

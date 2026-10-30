@@ -46,16 +46,16 @@
   },
   {
    "id": "totalsegmentator-v3",
-   "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 (TotalSegmentator; scans s1803, s1764 and s1880)",
+   "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 (TotalSegmentator; scans s1803, s1764, s1880 and s1767)",
    "creators": "Jakob Wasserthal et al. (Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024)",
    "doi": "https://doi.org/10.5281/zenodo.22688904",
    "url": "https://zenodo.org/records/22688904",
    "licence": "CC BY 4.0",
    "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
-   "sha256": "5ac8f44435d0599031fa50a1af0071d32c810608f61679f45651fe8e06a9c45b"
+   "sha256": "5e59d1a54adb4fb642f9ff6510d57e3c02c33de26120ee31b1cf9557b0d095aa"
   }
  ],
- "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by finger, the other side their mirror image.",
+ "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fourth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image.",
  "bodies": [
   {
    "id": "male",
@@ -8994,19 +8994,19 @@
     },
     {
      "id": "legs",
-     "name": "Thigh, knee and leg",
+     "name": "Thigh, knee, leg and foot",
      "system": "skeletal",
      "file": "male-legs.atlas",
-     "bytes": 151652,
-     "sha256": "3e96707f3589147cb5741a223fc83d737ca9a4986d9bb8ff6355166cd732afa7",
-     "triangles": 16286,
+     "bytes": 356652,
+     "sha256": "545e9864eabc2c356ce4fb415856f544f2a8b1bfbca11dcab7ce26ff5a54ccbd",
+     "triangles": 38938,
      "bounds": [
-      -0.23816,
-      -0.83335,
-      -0.11367,
-      0.24359,
+      -0.26445,
+      -0.90108,
+      -0.13667,
+      0.2525,
       0.0552,
-      0.05483
+      0.08795
      ],
      "structures": [
       {
@@ -9224,6 +9224,492 @@
        "group": "left knee joint",
        "inner": false,
        "triangles": 372
+      },
+      {
+       "node": "TS_distal_phalanx_of_great_toe_L",
+       "label": "left distal phalanx of great toe",
+       "uberon": "UBERON:0004315",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_great_toe_L",
+       "label": "left proximal phalanx of great toe",
+       "uberon": "UBERON:0004332",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_second_toe_L",
+       "label": "left distal phalanx of second toe",
+       "uberon": "UBERON:0004316",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_second_toe_L",
+       "label": "left middle phalanx of second toe",
+       "uberon": "UBERON:0004324",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_second_toe_L",
+       "label": "left proximal phalanx of second toe",
+       "uberon": "UBERON:0004333",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_third_toe_L",
+       "label": "left distal phalanx of third toe",
+       "uberon": "UBERON:0004317",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_third_toe_L",
+       "label": "left middle phalanx of third toe",
+       "uberon": "UBERON:0004325",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_third_toe_L",
+       "label": "left proximal phalanx of third toe",
+       "uberon": "UBERON:0004334",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_fourth_toe_L",
+       "label": "left distal phalanx of fourth toe",
+       "uberon": "UBERON:0004318",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_fourth_toe_L",
+       "label": "left middle phalanx of fourth toe",
+       "uberon": "UBERON:0004326",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_fourth_toe_L",
+       "label": "left proximal phalanx of fourth toe",
+       "uberon": "UBERON:0004335",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_toe_L",
+       "label": "left distal phalanx of little toe",
+       "uberon": "UBERON:0004319",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_toe_L",
+       "label": "left middle phalanx of little toe",
+       "uberon": "UBERON:0004327",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_toe_L",
+       "label": "left proximal phalanx of little toe",
+       "uberon": "UBERON:0004336",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_first_metatarsal_L",
+       "label": "left first metatarsal",
+       "uberon": "UBERON:0003650",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_medial_cuneiform_L",
+       "label": "left medial cuneiform",
+       "uberon": "UBERON:0001452",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_navicular_L",
+       "label": "left navicular",
+       "uberon": "UBERON:0001451",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 598
+      },
+      {
+       "node": "TS_second_metatarsal_L",
+       "label": "left second metatarsal",
+       "uberon": "UBERON:0003651",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_intermediate_cuneiform_L",
+       "label": "left intermediate cuneiform",
+       "uberon": "UBERON:0001453",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_third_metatarsal_L",
+       "label": "left third metatarsal",
+       "uberon": "UBERON:0003652",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_lateral_cuneiform_L",
+       "label": "left lateral cuneiform",
+       "uberon": "UBERON:0001454",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 598
+      },
+      {
+       "node": "TS_fourth_metatarsal_L",
+       "label": "left fourth metatarsal",
+       "uberon": "UBERON:0003653",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_cuboid_L",
+       "label": "left cuboid",
+       "uberon": "UBERON:0001455",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_calcaneus_L",
+       "label": "left calcaneus",
+       "uberon": "UBERON:0001450",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1498
+      },
+      {
+       "node": "TS_fifth_metatarsal_L",
+       "label": "left fifth metatarsal",
+       "uberon": "UBERON:0003654",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_sesamoid_bones_of_the_great_toe_L",
+       "label": "left sesamoid bones of the great toe",
+       "uberon": "UBERON:0008000",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 150
+      },
+      {
+       "node": "TS_talus_L",
+       "label": "left talus",
+       "uberon": "UBERON:0002395",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1198
+      },
+      {
+       "node": "TS_distal_phalanx_of_great_toe_R",
+       "label": "right distal phalanx of great toe",
+       "uberon": "UBERON:0004315",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_great_toe_R",
+       "label": "right proximal phalanx of great toe",
+       "uberon": "UBERON:0004332",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_second_toe_R",
+       "label": "right distal phalanx of second toe",
+       "uberon": "UBERON:0004316",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_second_toe_R",
+       "label": "right middle phalanx of second toe",
+       "uberon": "UBERON:0004324",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_second_toe_R",
+       "label": "right proximal phalanx of second toe",
+       "uberon": "UBERON:0004333",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_third_toe_R",
+       "label": "right distal phalanx of third toe",
+       "uberon": "UBERON:0004317",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_third_toe_R",
+       "label": "right middle phalanx of third toe",
+       "uberon": "UBERON:0004325",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_third_toe_R",
+       "label": "right proximal phalanx of third toe",
+       "uberon": "UBERON:0004334",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_fourth_toe_R",
+       "label": "right distal phalanx of fourth toe",
+       "uberon": "UBERON:0004318",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_fourth_toe_R",
+       "label": "right middle phalanx of fourth toe",
+       "uberon": "UBERON:0004326",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_fourth_toe_R",
+       "label": "right proximal phalanx of fourth toe",
+       "uberon": "UBERON:0004335",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_toe_R",
+       "label": "right distal phalanx of little toe",
+       "uberon": "UBERON:0004319",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_toe_R",
+       "label": "right middle phalanx of little toe",
+       "uberon": "UBERON:0004327",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_toe_R",
+       "label": "right proximal phalanx of little toe",
+       "uberon": "UBERON:0004336",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_first_metatarsal_R",
+       "label": "right first metatarsal",
+       "uberon": "UBERON:0003650",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_medial_cuneiform_R",
+       "label": "right medial cuneiform",
+       "uberon": "UBERON:0001452",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_navicular_R",
+       "label": "right navicular",
+       "uberon": "UBERON:0001451",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 598
+      },
+      {
+       "node": "TS_second_metatarsal_R",
+       "label": "right second metatarsal",
+       "uberon": "UBERON:0003651",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_intermediate_cuneiform_R",
+       "label": "right intermediate cuneiform",
+       "uberon": "UBERON:0001453",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_third_metatarsal_R",
+       "label": "right third metatarsal",
+       "uberon": "UBERON:0003652",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_lateral_cuneiform_R",
+       "label": "right lateral cuneiform",
+       "uberon": "UBERON:0001454",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 598
+      },
+      {
+       "node": "TS_fourth_metatarsal_R",
+       "label": "right fourth metatarsal",
+       "uberon": "UBERON:0003653",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_cuboid_R",
+       "label": "right cuboid",
+       "uberon": "UBERON:0001455",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_calcaneus_R",
+       "label": "right calcaneus",
+       "uberon": "UBERON:0001450",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1498
+      },
+      {
+       "node": "TS_fifth_metatarsal_R",
+       "label": "right fifth metatarsal",
+       "uberon": "UBERON:0003654",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_sesamoid_bones_of_the_great_toe_R",
+       "label": "right sesamoid bones of the great toe",
+       "uberon": "UBERON:0008000",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 150
+      },
+      {
+       "node": "TS_talus_R",
+       "label": "right talus",
+       "uberon": "UBERON:0002395",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1198
       }
      ]
     },
@@ -17933,7 +18419,7 @@
      "system": "skeletal",
      "file": "female-arms.atlas",
      "bytes": 198636,
-     "sha256": "032248ffabee58ab911566ef10326baa96564a26bbef86ef2af70742c3adcaf0",
+     "sha256": "616da9b0dd5ef822caa3af481cebd6215dbca38735c104a529c67b8d609f8133",
      "triangles": 21956,
      "bounds": [
       -0.4853,
@@ -17941,7 +18427,7 @@
       -0.12381,
       0.47383,
       0.58305,
-      0.02478
+      0.02314
      ],
      "structures": [
       {
@@ -19093,19 +19579,19 @@
     },
     {
      "id": "legs",
-     "name": "Thigh, knee and leg",
+     "name": "Thigh, knee, leg and foot",
      "system": "skeletal",
      "file": "female-legs.atlas",
-     "bytes": 152224,
-     "sha256": "dc1fc6e72b892d7f2289b64ea7a468867e5d27de28cd90f82be911dee711945d",
-     "triangles": 16382,
+     "bytes": 357084,
+     "sha256": "24122fec416ddc7179577b311d82fd5175967d52287b2d344c8468201e8356ce",
+     "triangles": 39018,
      "bounds": [
-      -0.19091,
-      -0.73267,
+      -0.20085,
+      -0.78238,
       -0.12351,
-      0.16946,
+      0.17471,
       0.03937,
-      -0.00896
+      0.1024
      ],
      "structures": [
       {
@@ -19323,6 +19809,492 @@
        "group": "left knee joint",
        "inner": false,
        "triangles": 468
+      },
+      {
+       "node": "TS_distal_phalanx_of_great_toe_L",
+       "label": "left distal phalanx of great toe",
+       "uberon": "UBERON:0004315",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_great_toe_L",
+       "label": "left proximal phalanx of great toe",
+       "uberon": "UBERON:0004332",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_distal_phalanx_of_second_toe_L",
+       "label": "left distal phalanx of second toe",
+       "uberon": "UBERON:0004316",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_second_toe_L",
+       "label": "left middle phalanx of second toe",
+       "uberon": "UBERON:0004324",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_second_toe_L",
+       "label": "left proximal phalanx of second toe",
+       "uberon": "UBERON:0004333",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_distal_phalanx_of_third_toe_L",
+       "label": "left distal phalanx of third toe",
+       "uberon": "UBERON:0004317",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_third_toe_L",
+       "label": "left middle phalanx of third toe",
+       "uberon": "UBERON:0004325",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_third_toe_L",
+       "label": "left proximal phalanx of third toe",
+       "uberon": "UBERON:0004334",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_distal_phalanx_of_fourth_toe_L",
+       "label": "left distal phalanx of fourth toe",
+       "uberon": "UBERON:0004318",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_fourth_toe_L",
+       "label": "left middle phalanx of fourth toe",
+       "uberon": "UBERON:0004326",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_fourth_toe_L",
+       "label": "left proximal phalanx of fourth toe",
+       "uberon": "UBERON:0004335",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_toe_L",
+       "label": "left distal phalanx of little toe",
+       "uberon": "UBERON:0004319",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_toe_L",
+       "label": "left middle phalanx of little toe",
+       "uberon": "UBERON:0004327",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_toe_L",
+       "label": "left proximal phalanx of little toe",
+       "uberon": "UBERON:0004336",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_first_metatarsal_L",
+       "label": "left first metatarsal",
+       "uberon": "UBERON:0003650",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_medial_cuneiform_L",
+       "label": "left medial cuneiform",
+       "uberon": "UBERON:0001452",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 598
+      },
+      {
+       "node": "TS_navicular_L",
+       "label": "left navicular",
+       "uberon": "UBERON:0001451",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_second_metatarsal_L",
+       "label": "left second metatarsal",
+       "uberon": "UBERON:0003651",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_intermediate_cuneiform_L",
+       "label": "left intermediate cuneiform",
+       "uberon": "UBERON:0001453",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_third_metatarsal_L",
+       "label": "left third metatarsal",
+       "uberon": "UBERON:0003652",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_lateral_cuneiform_L",
+       "label": "left lateral cuneiform",
+       "uberon": "UBERON:0001454",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_fourth_metatarsal_L",
+       "label": "left fourth metatarsal",
+       "uberon": "UBERON:0003653",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_cuboid_L",
+       "label": "left cuboid",
+       "uberon": "UBERON:0001455",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_calcaneus_L",
+       "label": "left calcaneus",
+       "uberon": "UBERON:0001450",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1498
+      },
+      {
+       "node": "TS_fifth_metatarsal_L",
+       "label": "left fifth metatarsal",
+       "uberon": "UBERON:0003654",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_sesamoid_bones_of_the_great_toe_L",
+       "label": "left sesamoid bones of the great toe",
+       "uberon": "UBERON:0008000",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 148
+      },
+      {
+       "node": "TS_talus_L",
+       "label": "left talus",
+       "uberon": "UBERON:0002395",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1198
+      },
+      {
+       "node": "TS_distal_phalanx_of_great_toe_R",
+       "label": "right distal phalanx of great toe",
+       "uberon": "UBERON:0004315",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_great_toe_R",
+       "label": "right proximal phalanx of great toe",
+       "uberon": "UBERON:0004332",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_distal_phalanx_of_second_toe_R",
+       "label": "right distal phalanx of second toe",
+       "uberon": "UBERON:0004316",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_second_toe_R",
+       "label": "right middle phalanx of second toe",
+       "uberon": "UBERON:0004324",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_second_toe_R",
+       "label": "right proximal phalanx of second toe",
+       "uberon": "UBERON:0004333",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_distal_phalanx_of_third_toe_R",
+       "label": "right distal phalanx of third toe",
+       "uberon": "UBERON:0004317",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_third_toe_R",
+       "label": "right middle phalanx of third toe",
+       "uberon": "UBERON:0004325",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_third_toe_R",
+       "label": "right proximal phalanx of third toe",
+       "uberon": "UBERON:0004334",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_distal_phalanx_of_fourth_toe_R",
+       "label": "right distal phalanx of fourth toe",
+       "uberon": "UBERON:0004318",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_fourth_toe_R",
+       "label": "right middle phalanx of fourth toe",
+       "uberon": "UBERON:0004326",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_fourth_toe_R",
+       "label": "right proximal phalanx of fourth toe",
+       "uberon": "UBERON:0004335",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_toe_R",
+       "label": "right distal phalanx of little toe",
+       "uberon": "UBERON:0004319",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_toe_R",
+       "label": "right middle phalanx of little toe",
+       "uberon": "UBERON:0004327",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_toe_R",
+       "label": "right proximal phalanx of little toe",
+       "uberon": "UBERON:0004336",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_first_metatarsal_R",
+       "label": "right first metatarsal",
+       "uberon": "UBERON:0003650",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 396
+      },
+      {
+       "node": "TS_medial_cuneiform_R",
+       "label": "right medial cuneiform",
+       "uberon": "UBERON:0001452",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 598
+      },
+      {
+       "node": "TS_navicular_R",
+       "label": "right navicular",
+       "uberon": "UBERON:0001451",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_second_metatarsal_R",
+       "label": "right second metatarsal",
+       "uberon": "UBERON:0003651",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_intermediate_cuneiform_R",
+       "label": "right intermediate cuneiform",
+       "uberon": "UBERON:0001453",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_third_metatarsal_R",
+       "label": "right third metatarsal",
+       "uberon": "UBERON:0003652",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_lateral_cuneiform_R",
+       "label": "right lateral cuneiform",
+       "uberon": "UBERON:0001454",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_fourth_metatarsal_R",
+       "label": "right fourth metatarsal",
+       "uberon": "UBERON:0003653",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_cuboid_R",
+       "label": "right cuboid",
+       "uberon": "UBERON:0001455",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 600
+      },
+      {
+       "node": "TS_calcaneus_R",
+       "label": "right calcaneus",
+       "uberon": "UBERON:0001450",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1498
+      },
+      {
+       "node": "TS_fifth_metatarsal_R",
+       "label": "right fifth metatarsal",
+       "uberon": "UBERON:0003654",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_sesamoid_bones_of_the_great_toe_R",
+       "label": "right sesamoid bones of the great toe",
+       "uberon": "UBERON:0008000",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 148
+      },
+      {
+       "node": "TS_talus_R",
+       "label": "right talus",
+       "uberon": "UBERON:0002395",
+       "tissue": "bone",
+       "group": "Foot bones",
+       "inner": false,
+       "triangles": 1198
       }
      ]
     },

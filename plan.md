@@ -2859,19 +2859,37 @@ for screenshots.
     turned so the knuckles lie as the skin's do, each finger laid joint by
     joint along the skin's. Left outside the skin: a fingertip's 4% (man),
     the woman's right thumb metacarpal 3% and her mirrored left one 20%
-    (the skin's thumb is thin there; to fix with S3g's build). The atlas is
-    now 976 structures for the man and 1,010 for the woman, 9.0 MB.
-  - [ ] S3g. The foot bones, 26 per foot (tools/anatomy_feet.py; the
-    Zenodo 5192130 CAD foot is not used): the woman's right from her own
-    s1764, the man's left from s1767 (a man of 56; his own scan and s1880
-    end above the toes), the other side mirrored. Found as the hand's are,
-    the toes' joints read along their rays, the tarsal bones along each
-    metatarsal's straight line, the talus and calcaneus along the tibia's
-    axis (the tibia's pieces kept: a young tibia's cortex is denser than
-    the metal filter allowed). Still to do: the man's joint readings
-    checked by labels, the pose into the skin, the build, docs and a topic.
+    (the skin's thumb is thin there): fixed in S3g's build, the thumb now
+    turned at its base (at most 20 degrees; hers 8) until it lies in the
+    skin's, leaving 3% of her left radius outside. The atlas was then
+    976 structures for the man and 1,010 for the woman, 9.0 MB.
+  - [x] S3g. The foot bones, 26 per foot and the great toe's two sesamoids
+    as one structure (tools/anatomy_feet.py; the Zenodo 5192130 CAD foot is
+    not used): the woman's right from her own s1764, the man's left from
+    s1767 (a man of 56; his own scan and s1880 end above the toes), the
+    other side mirrored. Found as the hand's are, the toes' joints read
+    along their rays, the tarsal bones along each metatarsal's straight
+    line, the talus and calcaneus along the tibia's axis (the tibia's
+    pieces kept: a young tibia's cortex is denser than the metal filter
+    allowed). Posed into the skin: set on the body's tibia and fibula at
+    the ankle (fit 5 to 6 mm), sized to the skin's foot (man x0.96 and
+    x0.97, woman x1.12 and x1.05), turned and sized within bounds until the
+    bones lie inside, each toe bent at its joints and, where the skin's toe
+    is shorter, shortened (at most 20%; the man's right second toe x0.81).
+    Outside the skin: none. The skin's heel pad is a lying body's, spread:
+    the skin reaches 2 to 4 cm behind the heel bone. In the build with
+    the thumb fix (S3f): 1,030 structures for the man and 1,064 for the
+    woman, about 499,000 and 509,000 triangles, 10.0 MB. Topic: ankle and
+    foot. The suite checks 27 foot bones a side, each with its UBERON id,
+    the talus at the tibia's lower end, the heel below it, the toes in
+    front and the great toe on the inner side.
+  - [ ] S3h. The woman's hip bones: her reference set's "hip bone" is the
+    ilium alone, stopping 1 cm above the femoral head (no pubis or
+    ischium, so no front to her pelvic ring). To come from her own scan's
+    hip masks, warped by the pelvis's closer warp with the scan's hip cut
+    to the part her ilium covers.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
-  ten body systems, 29 tools and 74 topics, each a short note written for
+  ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has
   anatomy, physiology and pathology, every tool and atlas part is reached
   (suite sciencecatalog). Pathology.swift adds the pathology tools: shock

@@ -12,6 +12,9 @@ What it adds, to each body:
     arms           the humeri, and the radius, ulna, carpus, metacarpals
                    and phalanges of each forearm and hand
                    (tools/anatomy_limbs.py)
+    legs           (the organ sets' part, which ends at the ankle) the
+                   tarsals, metatarsals, phalanges and the great toe's
+                   sesamoids of each foot (tools/anatomy_feet.py)
     hip-muscles    gluteus maximus, medius and minimus, iliopsoas
     back-muscles   the deep back muscles (erector spinae with the
                    transversospinal group)
@@ -28,10 +31,12 @@ SOURCES.md:
 - The rest: CT scans of the TotalSegmentator dataset, v3 (Wasserthal et
   al. 2023; Zenodo, doi 10.5281/zenodo.22688904): s1803, a man of 40, for the
   male body and s1764, a woman of 32, for the female, the pair whose
-  skeletons matched the bodies best among those judged; and for the man's
+  skeletons matched the bodies best among those judged; for the man's
   forearms and hands s1880, a man of 37, as s1803's hands lie outside its
-  field of view. The forearm and hand bones are found in the CT itself
-  (the dataset segments none below the humerus): see tools/anatomy_limbs.py. Each mask is meshed
+  field of view; and for the man's feet s1767, a man of 56, as neither of
+  those reaches the toes. The forearm, hand and foot bones are found in the
+  CT itself (the dataset segments none below the humerus or the femur): see
+  tools/anatomy_limbs.py and tools/anatomy_feet.py. Each mask is meshed
   and carried into its body by a smooth warp fitted on what the scan and the
   body both have (vertebrae, sacrum, hip bones, femurs, kidneys, liver,
   spleen, lungs, trachea, heart, brain, aorta, pancreas), then, for the hip
@@ -96,7 +101,7 @@ SKULL_SOURCE = {
 CT_SOURCE = {
     "id": "totalsegmentator-v3",
     "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 "
-             "(TotalSegmentator; scans s1803, s1764 and s1880)",
+             "(TotalSegmentator; scans s1803, s1764, s1880 and s1767)",
     "creators": "Jakob Wasserthal et al. (Wasserthal et al., Radiology: Artificial Intelligence 2023, "
                 "https://doi.org/10.1148/ryai.230024)",
     "doi": "https://doi.org/10.5281/zenodo.22688904",
@@ -108,7 +113,8 @@ SUBJECT = {"male": "s1803", "female": "s1764"}
 # SHA-256 of the lines "<file> <its SHA-256>\n" for the masks used, in name order, per scan.
 CT_SHA256 = {"s1803": "a80b8b04288fbbf036d9097c0bd4f5af7824cbd184342d5897e02bda9b5a4337",
              "s1764": "783bff12299de037206dfb432144580dadc485d2645b34137c9716f5a773a98d",
-             "s1880": "718e1a59035e1dabfca91f01874c33d023e559cdea4e9676a20a8c26c8e55f3c"}
+             "s1880": "718e1a59035e1dabfca91f01874c33d023e559cdea4e9676a20a8c26c8e55f3c",
+             "s1767": "62fa7c94217e7d4cd33905e6914e872141b06bf7a5a6f52fa35e6ff3294fc35f"}
 # What the run found, for the manifest's account of its changes.
 RESULTS = {}
 
@@ -970,12 +976,14 @@ def extend(bodies, skull_path, ct_dir, atlas):
     triangles)], as anatomy_atlas.py collected them; changed in place."""
     got = _sha(skull_path)
     assert got == SKULL_SOURCE["sha256"], f"{skull_path}: SHA-256 {got}, expected {SKULL_SOURCE['sha256']}"
-    import anatomy_limbs
+    import anatomy_limbs, anatomy_feet
     need = {}
     for sex, subject in SUBJECT.items():
         need.setdefault(subject, set()).update(masks_used(sex))
     for sex in ("male", "female"):   # the forearms and hands: the CT itself, and the bones taken out before them
         need.setdefault(anatomy_limbs.LIMBS[sex]["subject"], set()).update(anatomy_limbs.files_used(sex))
+    for sex in ("male", "female"):   # the feet: the CT itself
+        need.setdefault(anatomy_feet.FEET[sex]["subject"], set()).update(anatomy_feet.files_used(sex))
     for subject, names in need.items():
         folder = os.path.join(ct_dir, subject); got = digest(folder, names)
         assert CT_SHA256[subject] in (None, got), f"{folder}: files digest {got}, expected {CT_SHA256[subject]}"
@@ -1049,5 +1057,13 @@ def extend(bodies, skull_path, ct_dir, atlas):
         arms["structures"] += structures
         arms["meshes"] += [tuple(atlas.simplify(p, f, b)) for p, f, b in meshes]
         arms["name"] = "Arm and hand bones"; RESULTS[sex + " limbs"] = facts
+        body.__init__(sex, body.parts)
+        log(f"  {sex}: the feet, from the scan {anatomy_feet.FEET[sex]['subject']}")
+        legs = {side: np.vstack([body.mesh(f"tibia_{s}")[0], body.mesh(f"fibula_{s}")[0]]) for side, s in SIDES}
+        structures, meshes, facts = anatomy_feet.feet(sex, ct_dir, legs, body.mesh("skin"))
+        part = body.part("legs")
+        part["structures"] += structures
+        part["meshes"] += [tuple(atlas.simplify(p, f, b)) for p, f, b in meshes]
+        part["name"] = "Thigh, knee, leg and foot"; RESULTS[sex + " feet"] = facts
         body.__init__(sex, body.parts)
     return {"male": male.parts, "female": female.parts}

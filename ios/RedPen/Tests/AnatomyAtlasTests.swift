@@ -48,8 +48,8 @@ for body in manifest.bodies {
           Set(body.parts.map(\.system)) == Set(AnatomySystem.allCases),
           "\(Set(AnatomySystem.allCases).subtracting(body.parts.map(\.system)))")
 }
-check("976 male structures and 1010 female",
-      male.parts.flatMap(\.structures).count == 976 && female.parts.flatMap(\.structures).count == 1010,
+check("1030 male structures and 1064 female",
+      male.parts.flatMap(\.structures).count == 1030 && female.parts.flatMap(\.structures).count == 1064,
       "\(male.parts.flatMap(\.structures).count), \(female.parts.flatMap(\.structures).count)")
 check("the body for a topic's parts: the one that has them all",
       manifest.body(for: ["heart"]) == .male && manifest.body(for: ["heart"], preferred: .female) == .female
@@ -84,7 +84,7 @@ for body in manifest.bodies {
     }
     check("\(body.name): every structure has the triangles the manifest says", mismatched.isEmpty, mismatched.prefix(5).joined(separator: ", "))
     let total: Int = parts.map(\.triangles).reduce(0, +)
-    check("\(body.name): between 460,000 and 500,000 triangles", (460_000...500_000).contains(total), "\(total)")
+    check("\(body.name): between 480,000 and 520,000 triangles", (480_000...520_000).contains(total), "\(total)")
     let empty = parts.flatMap { p in zip(p.structures, meshes[p.file] ?? []).filter { $0.1.triangleCount == 0 }.map { $0.0.node } }
     check("\(body.name): no structure is empty", empty.isEmpty, empty.joined(separator: ", "))
     let outside: [String] = parts.compactMap { part in
@@ -315,6 +315,28 @@ for body in manifest.bodies {
               tip.y < radius.y && radius.y < humerus.y)
         check("\(body.name): the \(side) radius and thumb lie on the outer side",
               outward * radius.x > outward * ulna.x && outward * thumb.x > outward * little.x)
+    }
+    // the feet (tools/anatomy_feet.py): 27 bones a side (the great toe's two sesamoids as one), the talus at the
+    // tibia's lower end (its middle about level with the tip of the medial malleolus, the tibia's lowest point,
+    // which reaches down beside it), the heel bone below it, the toes in front of the heel and the great toe on the inner side
+    let foot = body.part("legs")?.structures.filter { $0.group == "Foot bones" } ?? []
+    check("\(body.name): 27 foot bones a side, each bone with its UBERON id",
+          foot.count == 54 && foot.allSatisfy { $0.uberon != nil && $0.tissue == .bone } && Set(foot.map(\.node)).count == 54,
+          "\(foot.count)")
+    for (s, side) in [("L", "left"), ("R", "right")] {
+        let outward: Float = s == "L" ? 1 : -1
+        guard let tibia = mesh((body.id == .male ? "VH_M_" : "VH_F_") + "tibia_\(s)", in: body),
+              let talus = centre("TS_talus_\(s)", in: body), let heel = centre("TS_calcaneus_\(s)", in: body),
+              let great = centre("TS_distal_phalanx_of_great_toe_\(s)", in: body),
+              let little = centre("TS_distal_phalanx_of_little_toe_\(s)", in: body) else {
+            check("\(body.name): the \(side) foot is there", false); continue
+        }
+        let ankle = (0..<tibia.vertexCount).map(tibia.position).min { $0.y < $1.y }!
+        let gap = ((talus - ankle) * (talus - ankle)).sum().squareRoot()
+        check("\(body.name): the \(side) talus sits at its tibia's lower end (\(Int(gap * 1000)) mm), the heel bone below it",
+              gap < 0.04 && talus.y < ankle.y + 0.012 && heel.y < talus.y)
+        check("\(body.name): the \(side) toes lie in front of the heel, the great toe on the inner side",
+              great.z > heel.z + 0.1 && little.z > heel.z + 0.08 && outward * great.x < outward * little.x)
     }
     // the thyroid in the neck, below the larynx's top and in front of the spine; the adrenals above the kidneys
     let thyroid = centre("TS_thyroid_gland", in: body) ?? SIMD3(9, 9, 9)

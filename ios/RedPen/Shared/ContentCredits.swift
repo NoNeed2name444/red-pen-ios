@@ -140,14 +140,14 @@ enum ContentSources {
         home: "https://3d.nih.gov/entries/3DPX-020591")
 
     /// The scans' credit line, as the atlas's SOURCES.md gives it.
-    static let totalSegmentatorCredit = "3D ribs, sternum, shoulder girdle, arm and hand bones, hip and back muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans s1803, s1764 and s1880 of the TotalSegmentator dataset v3.0.0, by Jakob Wasserthal et al. (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY 4.0."
+    static let totalSegmentatorCredit = "3D ribs, sternum, shoulder girdle, arm, hand and foot bones, hip and back muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans s1803, s1764, s1880 and s1767 of the TotalSegmentator dataset v3.0.0, by Jakob Wasserthal et al. (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY 4.0."
 
     static let totalSegmentator = ContentSource(
         id: "totalsegmentator", name: "TotalSegmentator CT dataset",
-        use: "The parts of the 3D anatomy atlas the organ sets lack: ribs, shoulders, arm and hand bones, hip and back muscles, thyroid, adrenals, oesophagus and stomach",
+        use: "The parts of the 3D anatomy atlas the organ sets lack: ribs, shoulders, arm, hand and foot bones, hip and back muscles, thyroid, adrenals, oesophagus and stomach",
         licences: [ccBy4],
         attribution: totalSegmentatorCredit,
-        changes: "Two scans' masks (a man's for the male body, a woman's for the female) turned into meshes, simplified, and carried into each body by a smooth warp fitted on the bones and organs both have; the rib cage widened to hold the organs, the shoulders turned down under the skin, each humerus laid along the arm, and every part pushed clear of what it cut into. The forearm and hand bones found by density in the CT of one arm per body (a third scan for the man's, as his own scan's hands lie outside it), each humerus lengthened or shortened so its elbow sits where the scan's arm bends, the forearm set on it at the elbow and posed into the skin's hand finger by finger; the other side is their mirror image.",
+        changes: "Two scans' masks (a man's for the male body, a woman's for the female) turned into meshes, simplified, and carried into each body by a smooth warp fitted on the bones and organs both have; the rib cage widened to hold the organs, the shoulders turned down under the skin, each humerus laid along the arm, and every part pushed clear of what it cut into. The forearm and hand bones found by density in the CT of one arm per body (a third scan for the man's, as his own scan's hands lie outside it), each humerus lengthened or shortened so its elbow sits where the scan's arm bends, the forearm set on it at the elbow and posed into the skin's hand finger by finger; the other side is their mirror image. The foot bones found the same way in the CT of one foot per body (a fourth scan for the man's, as neither of his others reaches the toes), set on the body's leg bones at the ankle and fitted into the skin's foot toe by toe; the other side is their mirror image.",
         home: "https://zenodo.org/records/22688904")
 
     static let uberon = ContentSource(

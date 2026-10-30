@@ -4,22 +4,24 @@ The anatomy atlas in the Sciences screens is drawn from these files (reader:
 `Shared/Sciences/AnatomyAtlas.swift`). It has two bodies, a man and a
 woman. Most meshes come from the Human Reference Atlas's male and female
 reference organ sets; the skull from NIH 3D's skull of the Visible Human
-Male; the ribs, shoulder girdle, arm and hand bones, hip and back muscles,
-thyroid, adrenals, oesophagus and stomach from three TotalSegmentator CT
-scans. All are CC BY 4.0. The files here were made from the downloads below
-by `tools/anatomy_atlas.py`, `tools/anatomy_gaps.py` and
-`tools/anatomy_limbs.py`, which say exactly how:
+Male; the ribs, shoulder girdle, arm, hand and foot bones, hip and back
+muscles, thyroid, adrenals, oesophagus and stomach from four
+TotalSegmentator CT scans. All are CC BY 4.0. The files here were made from
+the downloads below by `tools/anatomy_atlas.py`, `tools/anatomy_gaps.py`,
+`tools/anatomy_limbs.py` and `tools/anatomy_feet.py`, which say exactly
+how:
 
     python3 -I tools/anatomy_atlas.py --male 3d-vh-m-united.glb \
         --female 3d-vh-f-united.glb --crosswalk asct-b-3d-models-crosswalk.csv \
-        --skull 3DPX-020591.glb --ct <folder holding s1803/, s1764/ and s1880/>
+        --skull 3DPX-020591.glb \
+        --ct <folder holding s1803/, s1764/, s1880/ and s1767/>
 
 The downloads themselves are not kept in the repository. The tool checks
 each against the SHA-256 below, and the same inputs give the same bytes.
 
 | File | What it holds |
 |---|---|
-| `anatomy.json` | The manifest: the sources, then each body's parts (44 male, 45 female) and their structures (976 and 1010), each with a label, UBERON id (where the crosswalk's is right), tissue, group and whether it sits inside another |
+| `anatomy.json` | The manifest: the sources, then each body's parts (44 male, 45 female) and their structures (1030 and 1064), each with a label, UBERON id (where the crosswalk's is right), tissue, group and whether it sits inside another |
 | `male-<part>.atlas`, `female-<part>.atlas` | One part's meshes in one body, simplified and quantised (format: the tool's docstring) |
 
 Most parts are in both bodies. Only the woman's are the breasts, ovaries,
@@ -48,10 +50,10 @@ https://3d.nih.gov/entries/3DPX-020591), by kbrowne, NLM 3D: Anatomy, CC BY
 4.0, from the Visible Human Male, courtesy of the U.S. National Library of
 Medicine."
 
-"3D ribs, sternum, shoulder girdle, arm and hand bones, hip and back
+"3D ribs, sternum, shoulder girdle, arm, hand and foot bones, hip and back
 muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans
-s1803, s1764 and s1880 of the TotalSegmentator dataset v3.0.0, by Jakob
-Wasserthal et al.
+s1803, s1764, s1880 and s1767 of the TotalSegmentator dataset v3.0.0, by
+Jakob Wasserthal et al.
 (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology:
 Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
 4.0."
@@ -139,13 +141,15 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
 - Record: https://zenodo.org/records/22688904,
   https://doi.org/10.5281/zenodo.22688904 (published 10 Sep 2026)
 - File: `Totalsegmentator_dataset_v300.zip` (37,415,622,057 bytes, MD5
-  `0728beea76475e92cdb3160e228265d1`, as the record lists it); three scans
+  `0728beea76475e92cdb3160e228265d1`, as the record lists it); four scans
   are read: s1803 (a man of 40) for the male body and s1764 (a woman of 32)
   for the female, the pair whose skeletons matched the bodies best among
-  those judged, their masks; and for the forearms and hands the CT itself
-  of s1764 and of s1880 (a man of 37), as s1803's hands lie outside its
-  field of view. The manifest pins the files used by the SHA-256 of each
-  scan's list of file digests (`tools/anatomy_gaps.py`, `CT_SHA256`).
+  those judged, their masks; for the forearms and hands the CT itself of
+  s1764 and of s1880 (a man of 37), as s1803's hands lie outside its field
+  of view; and for the feet the CT of s1764 and of s1767 (a man of 56), as
+  s1803's and s1880's scans end above the toes. The manifest pins the
+  files used by the SHA-256 of each scan's list of file digests
+  (`tools/anatomy_gaps.py`, `CT_SHA256`).
 - Licence: CC BY 4.0, stated in the record's metadata.
 - Credit: Jakob Wasserthal et al. *Dataset with segmentations of 117
   important anatomical structures in 1939 CT images*, v3.0.0. Zenodo.
@@ -155,8 +159,9 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   2023;5(5):e230024, https://doi.org/10.1148/ryai.230024.
 - Use: the ribs and costal cartilages, the male body's sternum, the
   clavicles and scapulae, the humeri, the radius, ulna, carpal bones (as
-  one structure), metacarpals and phalanges of each forearm and hand,
-  gluteus maximus, medius and minimus,
+  one structure), metacarpals and phalanges of each forearm and hand, the
+  tarsal bones, metatarsals, phalanges and the great toe's two sesamoids
+  (as one structure) of each foot, gluteus maximus, medius and minimus,
   iliopsoas, the deep back muscles, the thyroid, the adrenals, the
   oesophagus and the stomach, in both bodies.
 - Changes: each mask smoothed and meshed (marching cubes), simplified to
@@ -190,7 +195,21 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   whose tip still lay outside the skin is shortened, by at most 15%.
   Forearm, hand and fingers are sized to the skin within 15% (fingers
   10%). The carpal bones stay one structure: at the scans' 1.5 mm they are
-  not told apart reliably.
+  not told apart reliably. The feet are found the same way
+  (`tools/anatomy_feet.py`) in the CT of one foot per body (the woman's
+  right, from s1764; the man's left, from s1767), the other side its
+  mirror image: the bone traced along each toe's ray, the joints read
+  along it, the tarsal bones grown from seeds along each metatarsal's line
+  and the tibia's axis, the great toe's two sesamoids found below its
+  metatarsal head, and each bone closed until it is one piece without
+  tunnels. Each foot is set on the body's own tibia and fibula at the
+  ankle (the scan's leg bones fitted to them, within 6 mm), sized to the
+  skin's foot (the man's x0.96 and x0.97, the woman's x1.12 and x1.05),
+  turned and sized along its axes within bounds (by up to 15%) until its
+  bones lie inside the skin, then each toe bent at its joints and, where
+  the skin's toe is shorter than the scan's bones, shortened, by at most
+  20%. The skin's feet are those of bodies lying down: the heel pad
+  spreads, so the skin reaches 2 to 4 cm behind the heel bone.
 
 ### The labels: ASCT+B Tables to 3D Reference Object Library Mapping, v1.10
 
@@ -204,9 +223,8 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
 
 ## What is not here yet, and why
 
-- The foot bones, in both bodies: neither the organ sets nor
-  TotalSegmentator's masks have them; the scans' CT shows them, as it does
-  the hands. The carpal bones one by one.
+- The carpal bones one by one: at the scans' 1.5 mm they are not told
+  apart reliably (the tarsals, larger, are).
 - Named muscles beyond the eye, larynx, rectus femoris, glutei, iliopsoas
   and the deep back muscles: no clean source has more.
 - The pituitary and parathyroids: no clean mesh found yet.
