@@ -1256,7 +1256,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "احتفظ به"
+            "value" : "احتفظ"
           }
         },
         "en" : {
@@ -1274,7 +1274,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حذف"
+            "value" : "احذف"
           }
         },
         "en" : {

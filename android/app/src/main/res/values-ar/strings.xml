@@ -33,6 +33,6 @@
     <string name="recorder_transcribe">فرّغه نصًّا</string>
     <string name="recorder_recover_title">هل تحتفظ بالتسجيل غير المكتمل؟</string>
     <string name="recorder_recover_body">أُغلق Stethoscore أثناء التسجيل. يمكنك الاحتفاظ بما سجّله حتى تلك اللحظة.</string>
-    <string name="recorder_keep">احتفظ به</string>
-    <string name="recorder_discard">حذف</string>
+    <string name="recorder_keep">احتفظ</string>
+    <string name="recorder_discard">احذف</string>
 </resources>
