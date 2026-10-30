@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Make the 3D anatomy atlas (ios/RedPen/Resources/Anatomy) from the Human
 Reference Atlas's male and female reference organ sets, the NIH 3D skull of
-the Visible Human Male and two TotalSegmentator CT scans, the same way every
-time.
+the Visible Human Male and three TotalSegmentator CT scans, the same way
+every time.
 
     python3 -I tools/anatomy_atlas.py \\
         --male 3d-vh-m-united.glb --female 3d-vh-f-united.glb \\
         --crosswalk asct-b-3d-models-crosswalk.csv \\
-        --skull 3DPX-020591.glb --ct <folder holding s1803/ and s1764/> \\
+        --skull 3DPX-020591.glb --ct <folder holding s1803/, s1764/ and s1880/> \\
         [--out ios/RedPen/Resources/Anatomy]
 
 Every input is CC BY 4.0 (HuBMAP Human Reference Atlas; NIH 3D 3DPX-020591;
@@ -16,10 +16,11 @@ it asks for are in Resources/Anatomy/SOURCES.md, and the inputs themselves
 are not kept in the repository. Each organ set is one body (the Visible
 Human Male, the Visible Human Female), in metres with y up and the origin
 near the hips, so every part lands where it belongs in its body. What the
-organ sets lack (the skull, ribs, sternum, shoulder girdle, humeri, hip and
-deep back muscles, thyroid, adrenals, oesophagus, stomach) is added by
-tools/anatomy_gaps.py, fitted into each body and kept clear of what is
-already there; see its header.
+organ sets lack (the skull, ribs, sternum, shoulder girdle, the bones of the
+arms and hands, hip and deep back muscles, thyroid, adrenals, oesophagus,
+stomach) is added by tools/anatomy_gaps.py and tools/anatomy_limbs.py,
+fitted into each body and kept clear of what is already there; see their
+headers.
 
 Repairs on the way (checked by rendering the result single-sided, as the
 app draws it): stray debris left out; each structure simplified piece by
@@ -596,7 +597,7 @@ def main():
     ap.add_argument("--female", required=True, help="3d-vh-f-united.glb")
     ap.add_argument("--crosswalk", required=True)
     ap.add_argument("--skull", required=True, help="the NIH 3D 3DPX-020591 GLB (see anatomy_gaps.py)")
-    ap.add_argument("--ct", required=True, help="a folder holding the TotalSegmentator scans s1803 and s1764, one folder each")
+    ap.add_argument("--ct", required=True, help="a folder holding the TotalSegmentator scans s1803, s1764 and s1880, one folder each")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ios", "RedPen", "Resources", "Anatomy"))
     a = ap.parse_args()
     got = sha256(a.crosswalk)
@@ -631,7 +632,11 @@ def main():
                    "clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach "
                    "meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures "
                    "both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the "
-                   "skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into.",
+                   "skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; "
+                   "the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand "
+                   "per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the "
+                   "scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by "
+                   "finger, the other side their mirror image.",
         "bodies": [write_body(sex, bodies[sex], a.out) for sex in BOTH],
     }
     json.dump(manifest, open(os.path.join(a.out, "anatomy.json"), "w"), indent=1, ensure_ascii=False)

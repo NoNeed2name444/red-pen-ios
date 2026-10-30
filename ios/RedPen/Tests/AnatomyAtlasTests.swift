@@ -48,8 +48,8 @@ for body in manifest.bodies {
           Set(body.parts.map(\.system)) == Set(AnatomySystem.allCases),
           "\(Set(AnatomySystem.allCases).subtracting(body.parts.map(\.system)))")
 }
-check("932 male structures and 966 female",
-      male.parts.flatMap(\.structures).count == 932 && female.parts.flatMap(\.structures).count == 966,
+check("976 male structures and 1010 female",
+      male.parts.flatMap(\.structures).count == 976 && female.parts.flatMap(\.structures).count == 1010,
       "\(male.parts.flatMap(\.structures).count), \(female.parts.flatMap(\.structures).count)")
 check("the body for a topic's parts: the one that has them all",
       manifest.body(for: ["heart"]) == .male && manifest.body(for: ["heart"], preferred: .female) == .female
@@ -84,7 +84,7 @@ for body in manifest.bodies {
     }
     check("\(body.name): every structure has the triangles the manifest says", mismatched.isEmpty, mismatched.prefix(5).joined(separator: ", "))
     let total: Int = parts.map(\.triangles).reduce(0, +)
-    check("\(body.name): about 450,000 to 470,000 triangles", (440_000...480_000).contains(total), "\(total)")
+    check("\(body.name): between 460,000 and 500,000 triangles", (460_000...500_000).contains(total), "\(total)")
     let empty = parts.flatMap { p in zip(p.structures, meshes[p.file] ?? []).filter { $0.1.triangleCount == 0 }.map { $0.0.node } }
     check("\(body.name): no structure is empty", empty.isEmpty, empty.joined(separator: ", "))
     let outside: [String] = parts.compactMap { part in
@@ -296,6 +296,25 @@ for body in manifest.bodies {
         let gap = ((top - outer) * (top - outer)).sum().squareRoot()
         check("\(body.name): the \(s == "L" ? "left" : "right") humerus's head is at its shoulder (\(Int(gap * 100)) cm from the clavicle's end)",
               gap < 0.06 && (s == "L" ? top.x > 0 : top.x < 0))
+    }
+    // the forearms and hands (tools/anatomy_limbs.py): 22 bones a side, the hand below the forearm below the
+    // humerus, the radius and the thumb on the outer side (the body stands palms forward)
+    let limb = body.part("arms")?.structures.filter { $0.group == "Forearm bones" || $0.group == "Hand bones" } ?? []
+    check("\(body.name): 22 forearm and hand bones a side, each bone with its UBERON id",
+          limb.count == 44 && limb.allSatisfy { $0.uberon != nil && $0.tissue == .bone } && Set(limb.map(\.node)).count == 44,
+          "\(limb.count)")
+    for (s, side) in [("L", "left"), ("R", "right")] {
+        let outward: Float = s == "L" ? 1 : -1
+        guard let humerus = centre("TS_humerus_\(s)", in: body), let radius = centre("TS_radius_\(s)", in: body),
+              let ulna = centre("TS_ulna_\(s)", in: body), let tip = centre("TS_distal_phalanx_of_middle_finger_\(s)", in: body),
+              let thumb = centre("TS_distal_phalanx_of_thumb_\(s)", in: body),
+              let little = centre("TS_distal_phalanx_of_little_finger_\(s)", in: body) else {
+            check("\(body.name): the \(side) forearm and hand are there", false); continue
+        }
+        check("\(body.name): the \(side) hand hangs below its forearm, the forearm below the humerus",
+              tip.y < radius.y && radius.y < humerus.y)
+        check("\(body.name): the \(side) radius and thumb lie on the outer side",
+              outward * radius.x > outward * ulna.x && outward * thumb.x > outward * little.x)
     }
     // the thyroid in the neck, below the larynx's top and in front of the spine; the adrenals above the kidneys
     let thyroid = centre("TS_thyroid_gland", in: body) ?? SIMD3(9, 9, 9)

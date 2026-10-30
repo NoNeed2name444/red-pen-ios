@@ -9,7 +9,9 @@ What it adds, to each body:
     sternum        the male body's (the female organ set has its own)
     ribs           24 ribs and the costal cartilages
     shoulders      clavicles and scapulae
-    arms           the humeri
+    arms           the humeri, and the radius, ulna, carpus, metacarpals
+                   and phalanges of each forearm and hand
+                   (tools/anatomy_limbs.py)
     hip-muscles    gluteus maximus, medius and minimus, iliopsoas
     back-muscles   the deep back muscles (erector spinae with the
                    transversospinal group)
@@ -23,10 +25,13 @@ SOURCES.md:
   (kbrowne, NLM 3D: Anatomy), segmented from the Visible Human Male's CT:
   the same man as the male body. It is placed on that body by a similarity
   fit of its eyes and upper teeth to the body's own.
-- The rest: two CT scans of the TotalSegmentator dataset, v3 (Wasserthal et
+- The rest: CT scans of the TotalSegmentator dataset, v3 (Wasserthal et
   al. 2023; Zenodo, doi 10.5281/zenodo.22688904): s1803, a man of 40, for the
   male body and s1764, a woman of 32, for the female, the pair whose
-  skeletons matched the bodies best among those judged. Each mask is meshed
+  skeletons matched the bodies best among those judged; and for the man's
+  forearms and hands s1880, a man of 37, as s1803's hands lie outside its
+  field of view. The forearm and hand bones are found in the CT itself
+  (the dataset segments none below the humerus): see tools/anatomy_limbs.py. Each mask is meshed
   and carried into its body by a smooth warp fitted on what the scan and the
   body both have (vertebrae, sacrum, hip bones, femurs, kidneys, liver,
   spleen, lungs, trachea, heart, brain, aorta, pancreas), then, for the hip
@@ -53,11 +58,17 @@ Repairs, each checked by rendering the bodies:
   past the skin; the shoulder girdle rides with it. Each shoulder is then
   turned down about the sternoclavicular joint until the clavicle and
   scapula lie under the skin, the humerus following.
+- Each forearm and hand is set on its humerus at the elbow (the scan's own
+  humerus fitted to the body's carries it there), straightened toward the
+  skin's wrist, turned so the knuckles lie across as the skin's do, and
+  each finger laid along the skin's, joint by joint; forearm, hand and
+  fingers are sized to the skin within 15% (fingers 10%). One side is the
+  scanned one, the other its mirror image.
 - Whatever else came from a scan is pushed out of the organs and bones it
   cuts into (the stomach out of the colon, muscles off the bone), smoothly
   and a few millimetres at a time.
 
-Needs numpy, scipy (BSD), scikit-image (BSD) and nibabel (MIT). The inputs
+Needs numpy, scipy (BSD), scikit-image (BSD), nibabel (MIT) and pyamg (MIT). The inputs
 are downloaded files: anatomy_atlas.py is run with python3 -I from outside
 their folders.
 """
@@ -85,7 +96,7 @@ SKULL_SOURCE = {
 CT_SOURCE = {
     "id": "totalsegmentator-v3",
     "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 "
-             "(TotalSegmentator; scans s1803 and s1764)",
+             "(TotalSegmentator; scans s1803, s1764 and s1880)",
     "creators": "Jakob Wasserthal et al. (Wasserthal et al., Radiology: Artificial Intelligence 2023, "
                 "https://doi.org/10.1148/ryai.230024)",
     "doi": "https://doi.org/10.5281/zenodo.22688904",
@@ -96,7 +107,8 @@ CT_SOURCE = {
 SUBJECT = {"male": "s1803", "female": "s1764"}
 # SHA-256 of the lines "<file> <its SHA-256>\n" for the masks used, in name order, per scan.
 CT_SHA256 = {"s1803": "a80b8b04288fbbf036d9097c0bd4f5af7824cbd184342d5897e02bda9b5a4337",
-             "s1764": "a6eff87d17fb1e1e8077e2015b48f70a2dfd34706e9e72dd3d5638c6e052ef06"}
+             "s1764": "783bff12299de037206dfb432144580dadc485d2645b34137c9716f5a773a98d",
+             "s1880": "718e1a59035e1dabfca91f01874c33d023e559cdea4e9676a20a8c26c8e55f3c"}
 # What the run found, for the manifest's account of its changes.
 RESULTS = {}
 
@@ -958,9 +970,15 @@ def extend(bodies, skull_path, ct_dir, atlas):
     triangles)], as anatomy_atlas.py collected them; changed in place."""
     got = _sha(skull_path)
     assert got == SKULL_SOURCE["sha256"], f"{skull_path}: SHA-256 {got}, expected {SKULL_SOURCE['sha256']}"
+    import anatomy_limbs
+    need = {}
     for sex, subject in SUBJECT.items():
-        folder = os.path.join(ct_dir, subject); got = digest(folder, masks_used(sex))
-        assert CT_SHA256[subject] in (None, got), f"{folder}: masks digest {got}, expected {CT_SHA256[subject]}"
+        need.setdefault(subject, set()).update(masks_used(sex))
+    for sex in ("male", "female"):   # the forearms and hands: the CT itself, and the bones taken out before them
+        need.setdefault(anatomy_limbs.LIMBS[sex]["subject"], set()).update(anatomy_limbs.files_used(sex))
+    for subject, names in need.items():
+        folder = os.path.join(ct_dir, subject); got = digest(folder, names)
+        assert CT_SHA256[subject] in (None, got), f"{folder}: files digest {got}, expected {CT_SHA256[subject]}"
         CT_SHA256[subject] = got
     male, female = Body("male", bodies["male"]), Body("female", bodies["female"])
 
@@ -1019,5 +1037,17 @@ def extend(bodies, skull_path, ct_dir, atlas):
         for pid in ("oesophagus", "stomach", "thyroid", "adrenals", "arms", "hip-muscles", "back-muscles"):
             make_room(body, pid, made[pid], cache)
             cache.pop(pid, None)
+        body.__init__(sex, body.parts)
+        log(f"  {sex}: the forearms and hands, from the scan {anatomy_limbs.LIMBS[sex]['subject']}")
+        arms = made["arms"]
+        humeri = {side: next(m[0] for st, m in zip(arms["structures"], arms["meshes"]) if st["node"] == f"TS_humerus_{s}")
+                  for side, s in SIDES}
+        structures, meshes, facts, fitted = anatomy_limbs.limbs(sex, ct_dir, humeri, body.mesh("skin"))
+        for side, s in SIDES:   # each humerus stretched so its elbow sits where the skin's arm bends
+            hi = next(i for i, st in enumerate(arms["structures"]) if st["node"] == f"TS_humerus_{s}")
+            m = list(arms["meshes"][hi]); m[0] = fitted[side]; arms["meshes"][hi] = type(arms["meshes"][hi])(m)
+        arms["structures"] += structures
+        arms["meshes"] += [tuple(atlas.simplify(p, f, b)) for p, f, b in meshes]
+        arms["name"] = "Arm and hand bones"; RESULTS[sex + " limbs"] = facts
         body.__init__(sex, body.parts)
     return {"male": male.parts, "female": female.parts}

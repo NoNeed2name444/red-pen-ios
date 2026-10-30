@@ -30,7 +30,7 @@ where CC BY asks. The licences below were read on 29 Oct 2026.
 | HRA 3D Reference Organ Set for Female, v1.10 | The 3D atlas's female body: 35 parts, 900 structures | CC BY 4.0 (release metadata, checked 2026-10-29) | Resources/Anatomy, its SOURCES.md |
 | HRA ASCT+B 3D crosswalk, v1.10 | The atlas's labels and UBERON ids | CC BY 4.0 | Resources/Anatomy |
 | NIH 3D 3DPX-020591, Skull and Eyes - Visible Human Male (kbrowne, NLM 3D: Anatomy) | The skull in both bodies: 13 named bones, paired ones split left and right | CC BY 4.0 (stated on the entry) | Resources/Anatomy, via tools/anatomy_gaps.py |
-| TotalSegmentator dataset v3.0.0 (Wasserthal et al.; Zenodo 22688904) | Two CT scans, a man's and a woman's: the ribs and costal cartilages, the male sternum, clavicles, scapulae, humeri, gluteus maximus, medius and minimus, iliopsoas, the deep back muscles, thyroid, adrenals, oesophagus and stomach, in both bodies | CC BY 4.0 (record metadata) | Resources/Anatomy, via tools/anatomy_gaps.py |
+| TotalSegmentator dataset v3.0.0 (Wasserthal et al.; Zenodo 22688904) | Three CT scans, s1803 (a man), s1764 (a woman) and s1880 (a man, for his forearm and hand): the ribs and costal cartilages, the male sternum, clavicles, scapulae, humeri, the radius, ulna, carpus, metacarpals and phalanges (cut from the CT itself, which the dataset does not segment), gluteus maximus, medius and minimus, iliopsoas, the deep back muscles, thyroid, adrenals, oesophagus and stomach, in both bodies | CC BY 4.0 (record metadata) | Resources/Anatomy, via tools/anatomy_gaps.py |
 | Visible Human Project (NLM) | The bodies the organ sets were made from | U.S. government; credit "Courtesy of the U.S. National Library of Medicine" | credited with the HRA |
 | UBERON | Identifiers on atlas structures | CC BY 3.0 (uberon.owl header) | anatomy.json |
 | Cell Ontology | Identifiers on immune cells | CC BY 4.0 (cl.owl header) | Immunology.swift |
@@ -39,7 +39,8 @@ where CC BY asks. The licences below were read on 29 Oct 2026.
 
 Build-time tools, not shipped: numpy (BSD) and fast-simplification (MIT)
 in tools/anatomy_atlas.py; scipy and scikit-image (BSD) and nibabel (MIT)
-in tools/anatomy_gaps.py.
+in tools/anatomy_gaps.py; pyamg (MIT) speeds the random-walker split in
+tools/anatomy_limbs.py.
 
 ## Admitted, not used yet
 
@@ -48,8 +49,8 @@ These passed, for the gaps the plan names (plan.md, S3a to S3c and S4).
 ### Bones and muscles
 
 - **TotalSegmentator v3**, beyond what the atlas takes from it: the other
-  scans (1,939 in all), for the forearm and hand bones it does not segment
-  but its CT volumes show, and for a second look at each part.
+  scans (1,939 in all), for the foot bones it does not segment but its CT
+  volumes show, and for a second look at each part.
 - **NIH 3D "My Segmenter" skeleton**, 3DPX-016799 to 016838 (CC BY 4.0), one
   bone per file. Which CT it came from is not stated, so ask its makers
   before shipping.
@@ -109,6 +110,7 @@ Everything else in nerves is drawn for the app.
 | Open Anatomy (SPL) atlases | 3D Slicer licence, section B | Custom terms that must travel with copies |
 | MorphoSource human media | No CC0 or CC BY items; the rest unknown, NC, ND or SA | Nothing admissible |
 | NIH 3D 3DPX-017249 (hand bones) | GNU GPLv3 | Not CC0 or CC BY |
+| SimTK carpal bone database (Brown University) | A custom "MIT Use Agreement" on the project page; carpals and metacarpal bases only, no phalanges | Custom terms; and it would not give a whole hand |
 | NIH 3D 3DPX-017321 (female pelvis with muscles) | CC BY 4.0, built from two Thingiverse models | Upstream licences unknown |
 | Open Anatomy os coxae and scapula on Commons | GPLv3 | Not CC0 or CC BY |
 | WHO publications, StatPearls, MedlinePlus licensed content | NC-SA, ND, or licensed to NLM | §23f §3 |

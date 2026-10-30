@@ -2806,7 +2806,8 @@ for screenshots.
     sit inside it (16.9% of rib points were inside organs, then 0) but
     never past the skin, each shoulder turned down about its
     sternoclavicular joint under the skin, each humerus laid along the
-    skin's arm. Still to come: the forearm and hand bones (S3f).
+    skin's arm. The forearm and hand bones followed (S3f); the foot bones
+    are S3g.
   - [x] S3b. Named muscles from TotalSegmentator: gluteus maximus, medius
     and minimus, iliopsoas and the deep back muscles, both sides, both
     bodies (a closer warp of the pelvis, then pushed off the bone); with
@@ -2843,11 +2844,34 @@ for screenshots.
     their shape; the spleen's diaphragmatic surface and the female liver's
     bare area kept (each closes a hole); solid tissues drawn double-sided,
     so a vessel's cut end shows its inside. The suite checks each.
-  - [ ] S3f. The forearm and hand bones (the CT volumes show them;
-    TotalSegmentator does not segment them) and the foot (the Zenodo
-    5192130 CAD foot, CC BY 4.0).
+  - [x] S3f. The forearm and hand bones, 22 per arm (radius, ulna, the
+    carpus as one structure, five metacarpals, fourteen phalanges), found
+    by density in the CT itself (tools/anatomy_limbs.py; TotalSegmentator
+    segments nothing below the humerus): the man's left from s1880 (a third
+    scan; his own scan's hands lie outside it), the woman's right from her
+    own s1764; the other side is the mirror image. The bone traced along
+    each finger, the fingers named by where their metacarpals lie, the
+    joints read from the CT straightened along each finger, each bone grown
+    from seeds by a random walk, a tunnel left through a bone closed. Posed
+    into the skin: each humerus stretched along its shaft (at most 20%) so
+    its elbow divides the arm as the scan's does (man x0.98 and x1.03, woman
+    x1.13 and x1.20), the forearm set on it and aimed at the skin's wrist,
+    turned so the knuckles lie as the skin's do, each finger laid joint by
+    joint along the skin's. Left outside the skin: a fingertip's 4% (man),
+    the woman's right thumb metacarpal 3% and her mirrored left one 20%
+    (the skin's thumb is thin there; to fix with S3g's build). The atlas is
+    now 976 structures for the man and 1,010 for the woman, 9.0 MB.
+  - [ ] S3g. The foot bones, 26 per foot (tools/anatomy_feet.py; the
+    Zenodo 5192130 CAD foot is not used): the woman's right from her own
+    s1764, the man's left from s1767 (a man of 56; his own scan and s1880
+    end above the toes), the other side mirrored. Found as the hand's are,
+    the toes' joints read along their rays, the tarsal bones along each
+    metatarsal's straight line, the talus and calcaneus along the tibia's
+    axis (the tibia's pieces kept: a young tibia's cortex is denser than
+    the metal filter allowed). Still to do: the man's joint readings
+    checked by labels, the pose into the skin, the build, docs and a topic.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
-  ten body systems, 29 tools and 73 topics, each a short note written for
+  ten body systems, 29 tools and 74 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has
   anatomy, physiology and pathology, every tool and atlas part is reached
   (suite sciencecatalog). Pathology.swift adds the pathology tools: shock
@@ -2901,7 +2925,8 @@ for screenshots.
   - Choosing a structure from search or a topic frames it with its
     surroundings, lifted clear of the card below (it sat under the card).
   - [x] S5a. App build green on design/sciences (d35dfc3, run 40950114091).
-  - [ ] S5b. Screenshots on preview/sciences, sent to the owner.
+  - [x] S5b. Screenshots on preview/sciences, sent to the owner (run
+    40974066351: 25 iPhone and 25 iPad pages, the atlas in both bodies).
   - [ ] S5c. Proposals to put to the owner: lift the examples hub's tile
     and the Sciences tile into one Shared/Ward tile, and the ward pocket's
     text section beside it (ScienceTextSection is a copy); the plots stand

@@ -46,16 +46,16 @@
   },
   {
    "id": "totalsegmentator-v3",
-   "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 (TotalSegmentator; scans s1803 and s1764)",
+   "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 (TotalSegmentator; scans s1803, s1764 and s1880)",
    "creators": "Jakob Wasserthal et al. (Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024)",
    "doi": "https://doi.org/10.5281/zenodo.22688904",
    "url": "https://zenodo.org/records/22688904",
    "licence": "CC BY 4.0",
    "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
-   "sha256": "4787b4026363bfdec85e794a7d04c205141eec2626cba866448a367356096c28"
+   "sha256": "5ac8f44435d0599031fa50a1af0071d32c810608f61679f45651fe8e06a9c45b"
   }
  ],
- "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into.",
+ "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by finger, the other side their mirror image.",
  "bodies": [
   {
    "id": "male",
@@ -7848,19 +7848,19 @@
     },
     {
      "id": "arms",
-     "name": "Arm bones",
+     "name": "Arm and hand bones",
      "system": "skeletal",
      "file": "male-arms.atlas",
-     "bytes": 28856,
-     "sha256": "8dd36c03c02774c7b33b1487476dcaf6e9d16ce93257e816e0013a23e99fd4db",
-     "triangles": 3198,
+     "bytes": 199344,
+     "sha256": "17c849746df87541af1888abbdd631711f5e401709386cfeb0a266f969e4eec8",
+     "triangles": 22030,
      "bounds": [
-      -0.27618,
-      0.29397,
+      -0.52153,
+      -0.0553,
       -0.04672,
-      0.29909,
-      0.62397,
-      0.02507
+      0.52213,
+      0.62456,
+      0.05426
      ],
      "structures": [
       {
@@ -7880,6 +7880,402 @@
        "group": "Arm bones",
        "inner": false,
        "triangles": 1598
+      },
+      {
+       "node": "TS_radius_L",
+       "label": "left radius",
+       "uberon": "UBERON:0001423",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1220
+      },
+      {
+       "node": "TS_ulna_L",
+       "label": "left ulna",
+       "uberon": "UBERON:0001424",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1198
+      },
+      {
+       "node": "TS_carpal_bones_L",
+       "label": "left carpal bones",
+       "uberon": "UBERON:0009880",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 1498
+      },
+      {
+       "node": "TS_distal_phalanx_of_thumb_L",
+       "label": "left distal phalanx of thumb",
+       "uberon": "UBERON:0004337",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_thumb_L",
+       "label": "left proximal phalanx of thumb",
+       "uberon": "UBERON:0004338",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_first_metacarpal_L",
+       "label": "left first metacarpal",
+       "uberon": "UBERON:0003645",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_distal_phalanx_of_index_finger_L",
+       "label": "left distal phalanx of index finger",
+       "uberon": "UBERON:0004311",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_index_finger_L",
+       "label": "left middle phalanx of index finger",
+       "uberon": "UBERON:0004320",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_index_finger_L",
+       "label": "left proximal phalanx of index finger",
+       "uberon": "UBERON:0004328",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_second_metacarpal_L",
+       "label": "left second metacarpal",
+       "uberon": "UBERON:0003646",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_middle_finger_L",
+       "label": "left distal phalanx of middle finger",
+       "uberon": "UBERON:0004312",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_middle_finger_L",
+       "label": "left middle phalanx of middle finger",
+       "uberon": "UBERON:0004321",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 270
+      },
+      {
+       "node": "TS_proximal_phalanx_of_middle_finger_L",
+       "label": "left proximal phalanx of middle finger",
+       "uberon": "UBERON:0004329",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_third_metacarpal_L",
+       "label": "left third metacarpal",
+       "uberon": "UBERON:0003647",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_ring_finger_L",
+       "label": "left distal phalanx of ring finger",
+       "uberon": "UBERON:0004313",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_ring_finger_L",
+       "label": "left middle phalanx of ring finger",
+       "uberon": "UBERON:0004322",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_ring_finger_L",
+       "label": "left proximal phalanx of ring finger",
+       "uberon": "UBERON:0004330",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_fourth_metacarpal_L",
+       "label": "left fourth metacarpal",
+       "uberon": "UBERON:0003648",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_finger_L",
+       "label": "left distal phalanx of little finger",
+       "uberon": "UBERON:0004314",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_finger_L",
+       "label": "left middle phalanx of little finger",
+       "uberon": "UBERON:0004323",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_finger_L",
+       "label": "left proximal phalanx of little finger",
+       "uberon": "UBERON:0004331",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_fifth_metacarpal_L",
+       "label": "left fifth metacarpal",
+       "uberon": "UBERON:0003649",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_radius_R",
+       "label": "right radius",
+       "uberon": "UBERON:0001423",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1220
+      },
+      {
+       "node": "TS_ulna_R",
+       "label": "right ulna",
+       "uberon": "UBERON:0001424",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1198
+      },
+      {
+       "node": "TS_carpal_bones_R",
+       "label": "right carpal bones",
+       "uberon": "UBERON:0009880",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 1498
+      },
+      {
+       "node": "TS_distal_phalanx_of_thumb_R",
+       "label": "right distal phalanx of thumb",
+       "uberon": "UBERON:0004337",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_thumb_R",
+       "label": "right proximal phalanx of thumb",
+       "uberon": "UBERON:0004338",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_first_metacarpal_R",
+       "label": "right first metacarpal",
+       "uberon": "UBERON:0003645",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_distal_phalanx_of_index_finger_R",
+       "label": "right distal phalanx of index finger",
+       "uberon": "UBERON:0004311",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_index_finger_R",
+       "label": "right middle phalanx of index finger",
+       "uberon": "UBERON:0004320",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_index_finger_R",
+       "label": "right proximal phalanx of index finger",
+       "uberon": "UBERON:0004328",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_second_metacarpal_R",
+       "label": "right second metacarpal",
+       "uberon": "UBERON:0003646",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_middle_finger_R",
+       "label": "right distal phalanx of middle finger",
+       "uberon": "UBERON:0004312",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_middle_finger_R",
+       "label": "right middle phalanx of middle finger",
+       "uberon": "UBERON:0004321",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 270
+      },
+      {
+       "node": "TS_proximal_phalanx_of_middle_finger_R",
+       "label": "right proximal phalanx of middle finger",
+       "uberon": "UBERON:0004329",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_third_metacarpal_R",
+       "label": "right third metacarpal",
+       "uberon": "UBERON:0003647",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_ring_finger_R",
+       "label": "right distal phalanx of ring finger",
+       "uberon": "UBERON:0004313",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_ring_finger_R",
+       "label": "right middle phalanx of ring finger",
+       "uberon": "UBERON:0004322",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_ring_finger_R",
+       "label": "right proximal phalanx of ring finger",
+       "uberon": "UBERON:0004330",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_fourth_metacarpal_R",
+       "label": "right fourth metacarpal",
+       "uberon": "UBERON:0003648",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_finger_R",
+       "label": "right distal phalanx of little finger",
+       "uberon": "UBERON:0004314",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_finger_R",
+       "label": "right middle phalanx of little finger",
+       "uberon": "UBERON:0004323",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_finger_R",
+       "label": "right proximal phalanx of little finger",
+       "uberon": "UBERON:0004331",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_fifth_metacarpal_R",
+       "label": "right fifth metacarpal",
+       "uberon": "UBERON:0003649",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
       }
      ]
     },
@@ -17533,19 +17929,19 @@
     },
     {
      "id": "arms",
-     "name": "Arm bones",
+     "name": "Arm and hand bones",
      "system": "skeletal",
      "file": "female-arms.atlas",
-     "bytes": 28856,
-     "sha256": "96b9d45b6d0d2585369ea9d2ac7d72c027f714114099bcc0ccef89685bc22270",
-     "triangles": 3198,
+     "bytes": 198636,
+     "sha256": "032248ffabee58ab911566ef10326baa96564a26bbef86ef2af70742c3adcaf0",
+     "triangles": 21956,
      "bounds": [
-      -0.26773,
-      0.30548,
-      -0.12363,
-      0.25051,
-      0.57987,
-      -0.03755
+      -0.4853,
+      -0.0585,
+      -0.12381,
+      0.47383,
+      0.58305,
+      0.02478
      ],
      "structures": [
       {
@@ -17565,6 +17961,402 @@
        "group": "Arm bones",
        "inner": false,
        "triangles": 1600
+      },
+      {
+       "node": "TS_radius_L",
+       "label": "left radius",
+       "uberon": "UBERON:0001423",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1200
+      },
+      {
+       "node": "TS_ulna_L",
+       "label": "left ulna",
+       "uberon": "UBERON:0001424",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1200
+      },
+      {
+       "node": "TS_carpal_bones_L",
+       "label": "left carpal bones",
+       "uberon": "UBERON:0009880",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 1498
+      },
+      {
+       "node": "TS_distal_phalanx_of_thumb_L",
+       "label": "left distal phalanx of thumb",
+       "uberon": "UBERON:0004337",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_thumb_L",
+       "label": "left proximal phalanx of thumb",
+       "uberon": "UBERON:0004338",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_first_metacarpal_L",
+       "label": "left first metacarpal",
+       "uberon": "UBERON:0003645",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_index_finger_L",
+       "label": "left distal phalanx of index finger",
+       "uberon": "UBERON:0004311",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_index_finger_L",
+       "label": "left middle phalanx of index finger",
+       "uberon": "UBERON:0004320",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_index_finger_L",
+       "label": "left proximal phalanx of index finger",
+       "uberon": "UBERON:0004328",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_second_metacarpal_L",
+       "label": "left second metacarpal",
+       "uberon": "UBERON:0003646",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_middle_finger_L",
+       "label": "left distal phalanx of middle finger",
+       "uberon": "UBERON:0004312",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_middle_finger_L",
+       "label": "left middle phalanx of middle finger",
+       "uberon": "UBERON:0004321",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_middle_finger_L",
+       "label": "left proximal phalanx of middle finger",
+       "uberon": "UBERON:0004329",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_third_metacarpal_L",
+       "label": "left third metacarpal",
+       "uberon": "UBERON:0003647",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_ring_finger_L",
+       "label": "left distal phalanx of ring finger",
+       "uberon": "UBERON:0004313",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_ring_finger_L",
+       "label": "left middle phalanx of ring finger",
+       "uberon": "UBERON:0004322",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_ring_finger_L",
+       "label": "left proximal phalanx of ring finger",
+       "uberon": "UBERON:0004330",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_fourth_metacarpal_L",
+       "label": "left fourth metacarpal",
+       "uberon": "UBERON:0003648",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_finger_L",
+       "label": "left distal phalanx of little finger",
+       "uberon": "UBERON:0004314",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_finger_L",
+       "label": "left middle phalanx of little finger",
+       "uberon": "UBERON:0004323",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_finger_L",
+       "label": "left proximal phalanx of little finger",
+       "uberon": "UBERON:0004331",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_fifth_metacarpal_L",
+       "label": "left fifth metacarpal",
+       "uberon": "UBERON:0003649",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 400
+      },
+      {
+       "node": "TS_radius_R",
+       "label": "right radius",
+       "uberon": "UBERON:0001423",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1200
+      },
+      {
+       "node": "TS_ulna_R",
+       "label": "right ulna",
+       "uberon": "UBERON:0001424",
+       "tissue": "bone",
+       "group": "Forearm bones",
+       "inner": false,
+       "triangles": 1200
+      },
+      {
+       "node": "TS_carpal_bones_R",
+       "label": "right carpal bones",
+       "uberon": "UBERON:0009880",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 1500
+      },
+      {
+       "node": "TS_distal_phalanx_of_thumb_R",
+       "label": "right distal phalanx of thumb",
+       "uberon": "UBERON:0004337",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_thumb_R",
+       "label": "right proximal phalanx of thumb",
+       "uberon": "UBERON:0004338",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_first_metacarpal_R",
+       "label": "right first metacarpal",
+       "uberon": "UBERON:0003645",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_index_finger_R",
+       "label": "right distal phalanx of index finger",
+       "uberon": "UBERON:0004311",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_index_finger_R",
+       "label": "right middle phalanx of index finger",
+       "uberon": "UBERON:0004320",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_index_finger_R",
+       "label": "right proximal phalanx of index finger",
+       "uberon": "UBERON:0004328",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_second_metacarpal_R",
+       "label": "right second metacarpal",
+       "uberon": "UBERON:0003646",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_middle_finger_R",
+       "label": "right distal phalanx of middle finger",
+       "uberon": "UBERON:0004312",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_middle_finger_R",
+       "label": "right middle phalanx of middle finger",
+       "uberon": "UBERON:0004321",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_middle_finger_R",
+       "label": "right proximal phalanx of middle finger",
+       "uberon": "UBERON:0004329",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_third_metacarpal_R",
+       "label": "right third metacarpal",
+       "uberon": "UBERON:0003647",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_ring_finger_R",
+       "label": "right distal phalanx of ring finger",
+       "uberon": "UBERON:0004313",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_middle_phalanx_of_ring_finger_R",
+       "label": "right middle phalanx of ring finger",
+       "uberon": "UBERON:0004322",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_proximal_phalanx_of_ring_finger_R",
+       "label": "right proximal phalanx of ring finger",
+       "uberon": "UBERON:0004330",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_fourth_metacarpal_R",
+       "label": "right fourth metacarpal",
+       "uberon": "UBERON:0003648",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 398
+      },
+      {
+       "node": "TS_distal_phalanx_of_little_finger_R",
+       "label": "right distal phalanx of little finger",
+       "uberon": "UBERON:0004314",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_middle_phalanx_of_little_finger_R",
+       "label": "right middle phalanx of little finger",
+       "uberon": "UBERON:0004323",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 248
+      },
+      {
+       "node": "TS_proximal_phalanx_of_little_finger_R",
+       "label": "right proximal phalanx of little finger",
+       "uberon": "UBERON:0004331",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 250
+      },
+      {
+       "node": "TS_fifth_metacarpal_R",
+       "label": "right fifth metacarpal",
+       "uberon": "UBERON:0003649",
+       "tissue": "bone",
+       "group": "Hand bones",
+       "inner": false,
+       "triangles": 400
       }
      ]
     },
