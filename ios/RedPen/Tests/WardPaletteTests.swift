@@ -304,6 +304,16 @@ check("LaunchBackground (light) is the base", components(nil, in: launch) == War
 check("LaunchBackground (dark) is the base", components("dark", in: launch) == WardPalette.hex(.background, dark: true),
       String(components("dark", in: launch) ?? 0, radix: 16))
 
+// D16: the cloze gap's underline is the mode colour token. SwiftUI's Text
+// ignores underlineColor, so the colour must ride in the line style.
+let cardFace = (try? String(contentsOf: root.appendingPathComponent("ios/RedPen/Features/Anki/AnkiCardFace.swift"),
+                            encoding: .utf8)) ?? ""
+check("the cloze card face is found", !cardFace.isEmpty)
+check("a cloze gap's underline takes the mode colour token in its line style (D16)",
+      cardFace.contains("gap.underlineStyle = Text.LineStyle(pattern: .solid, color: Color.wardPrimaryInk)"))
+check("a cloze gap's words are ink (D16)", cardFace.contains("gap.foregroundColor = Color.wardInk"))
+check("no cloze gap sets underlineColor, which Text ignores", !cardFace.contains("underlineColor"))
+
 // The owner's list holds only cases a check above measured short.
 check("the owner's list is read (\(ownerFile), WardPaletteTests.swift)", !ownerList.isEmpty)
 let ownerStale = ownerList.keys.filter { !ownerSeen.contains($0) }.sorted()

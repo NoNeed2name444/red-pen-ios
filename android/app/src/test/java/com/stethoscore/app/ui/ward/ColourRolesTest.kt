@@ -143,4 +143,34 @@ class ColourRolesTest {
         }
         check("no chosen chip is toned grey", greyChip.isEmpty(), greyChip.joinToString("; "))
     }
+
+    @Test fun aChosenLabelSaysItsWordsInNearBlack() = checks {
+        // D8: a chip that draws its own label (ChipBox's chipInk, Coverage's CountChip) and the
+        // timer on a chosen fill (WardTimerPill's onFill, the OSCE clock) say their words in onAccent
+        val mock = File(main, "ui/mock/MockKit.kt").readText()
+        check("ChipBox's chosen label is near-black (chipInk)", mock.contains("on -> wardColor(WardToken.onAccent)"))
+        val coverage = File(main, "ui/coverage/CoverageScreen.kt").readText()
+        check("CountChip's chosen count, words and glyph are near-black",
+            coverage.contains("val onFill = wardColor(WardToken.onAccent)") &&
+                coverage.contains("val countInk = if (chosen) onFill else") &&
+                coverage.contains("val words = if (chosen) onFill else") &&
+                coverage.contains("tint = if (chosen) onFill else"))
+        val controls = File(main, "ui/ward/WardControls.kt").readText()
+        check("the timer's words and glyph on a chosen fill are near-black (onFill)",
+            controls.contains("val words = if (onFill) wardColor(WardToken.onAccent) else") &&
+                controls.contains("val glyph = if (onFill) words else"))
+        val osce = File(main, "ui/osce/OsceReviewScreen.kt").readText()
+        check("the OSCE clock on its chosen fill draws the timer onFill, its glyph near-black",
+            osce.contains("onFill = running") && osce.contains("tint = wardColor(if (running) WardToken.onAccent else"))
+    }
+
+    @Test fun aClozeGapIsInkUnderTheModesColour() = checks {
+        // D16: a cloze answer's words are ink, the underline drawn under it the mode colour token
+        val face = File(main, "ui/AnkiCardFace.kt").readText()
+        val cloze = face.substringAfter("@Composable private fun ClozeSentence(").substringBefore("\n}\n")
+        check("the cloze gap's underline takes the mode colour token",
+            cloze.contains("val accent = wardColor(WardToken.primaryInk)") && cloze.contains("drawLine(accent,"))
+        check("the cloze sentence's words are ink", cloze.contains("color = wardColor(WardToken.ink)") &&
+            face.contains("val ink = wardColor(WardToken.ink)"))
+    }
 }

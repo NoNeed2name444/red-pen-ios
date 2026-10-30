@@ -253,8 +253,9 @@ struct AnkiCardFace: View {
             }
             var gap = AttributedString(revealed ? piece.text : AnkiCard.clozeGap(piece))
             gap.foregroundColor = Color.wardInk
-            gap.underlineStyle = .single
-            gap.underlineColor = Color.wardPrimaryInk
+            // SwiftUI's Text takes an underline's colour only from its line
+            // style; it has no thickness for the line (Android's is 2 dp)
+            gap.underlineStyle = Text.LineStyle(pattern: .solid, color: Color.wardPrimaryInk)
             gap.inlinePresentationIntent = .stronglyEmphasized
             out += gap
         }

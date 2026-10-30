@@ -55,10 +55,11 @@ kinds, Turn into) takes that mode's colour, not the screen's.
 | A chosen chip or segment (D8): its fill, and its words and glyph | `wardPrimary` / `WardToken.primary` under `wardOnAccent` / `WardToken.onAccent` | the mode colour under near-black #090E15 |
 | The mode's glyphs, edges, rings, chosen tab, chosen chip or segment edge, toggle track, focus ring, link glyph, progress | `wardPrimaryInk`, `wardPrimary`, `wardEdge` / `WardToken.primaryInk`, `primary`, `WardRelief.edgeColor` | the mode colour |
 | A given mode's own glyph | `wardAccent(section)` / `wardAccent(section)`, `WardTone.accent` | that mode's colour |
-| A cloze card's answer (D16) | words `wardInk` / `WardToken.ink`; underline `wardPrimaryInk` / `WardToken.primaryInk`, 2 pt | ink on the card (4.5:1 or more); the mode colour as a line under it, which carries no meaning alone (the answer is also bold), so it has no ratio |
+| A cloze card's answer (D16) | words `wardInk` / `WardToken.ink`; underline `wardPrimaryInk` / `WardToken.primaryInk` (on iOS in the underline's `Text.LineStyle`, as Text ignores `underlineColor`); 2 dp on Android only, as an iOS Text underline has no thickness setting | ink on the card (4.5:1 or more); the mode colour as a line under it, which carries no meaning alone (the answer is also bold), so it has no ratio |
 | A right answer (check, letter, ring) | `wardPrimaryInk` / `WardToken.primaryInk`, the mode colour token (D7) | the mode colour, in every mode |
 | A wrong answer | the faded row (`wardFaded`, `wardFadedInk`); its cross glyph `wardDanger` | grey; Vital Coral #FF6B6B for a cross outside an option row |
 | Scores and rings | the mode colour (D3) | the mode colour |
+| A card rating's ring (Again, Hard, Good, Easy) | the rating's tone at a control edge's strength, `WardRelief.edgeAlpha` (0.85 light, 0.7 dark), full under Increase Contrast / More contrast | kept as is: Hard's amber and Good's mint read fainter than Again and Easy because the tones are lighter, not because the strength differs. The same alpha on both platforms is held on purpose: iOS draws the ring through `WardPressFace(edge:)` at the press spec's alpha (WardSurfaces.swift:241), Android matches it (AnkiCardFace.kt:269), and AnkiReviewScreenTest's ring test pins "at a control edge's strength, not full" with full strength saved for more contrast. A stronger ring is a change to that rule and its test, for the owner |
 | Due, warnings | `wardWarning` / `WardToken.warning` (glyphs); words ink | Optimistic Amber #FBBF24 |
 | The progress beam, the countdown clock | `wardBeam` / `WardToken.beam` | Optimistic Amber #FBBF24 |
 | New | the mode colour (`WardTone.blue`) | the mode colour |
@@ -225,7 +226,7 @@ No line is left that no decision covers.
 | Android | learn/WardRoundViews.kt:330 | "Stop the focus session", danger words to ink (the glyph keeps the colour) | D1 |
 | Android | ward/WardControlStates.kt:235 | a chosen segment: the accent fill and near-black words | D8 |
 | Android | ward/WardControls.kt:216-217 | WardChipButton's comment: words ink, glyph in the tone | D1 |
-| Android | ward/WardControls.kt:255 | WardChipButton's glyph: ink off the fill, near-black on it | D1, D8 |
+| Android | ward/WardControls.kt:264 | WardChipButton's glyph: ink off the fill, near-black on it | D1, D8 |
 | Android | ward/WardStates.kt:124-125, 128, 131, 134 | WardFilterChip: words ink; on, the accent fill and near-black words | D1, D8 |
 | Android | test/.../ward/OwnerAccepted.kt:255-352 (7 ranges) | accepted states cases follow the colour from "its words" to "its glyph"; the chosen chip's and segment's cases are gone, as they now pass | D1, D8 |
 | iOS | Features/Coverage/CoverageView.swift:465-466 | the count chip's comment: words ink, the status colour on its glyph | D1 |
