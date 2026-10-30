@@ -554,9 +554,16 @@ do {
     let second = hold.turn(kept: other)
     check("hold: a second size keeps the first row and turn",
           second?.place == kept && second?.turn == first?.turn)
-    // released at the first rest after the sizes
-    hold.settled()
-    check("hold: the list at rest ends it", !hold.isHolding && hold.relaid() == nil)
+    // the hold's own scroll back comes to rest as a programmatic scroll
+    // (.animating, then .idle): that rest is not the student's, and in App
+    // build 40932408856 ending the hold there lost the row to the rows that
+    // laid out after a 5 s stall (T0161c)
+    hold.settled(atTop: false)
+    check("hold: a rest away from the top (its own scroll back) keeps it",
+          hold.isHolding && hold.relaid() == kept)
+    // released at a rest at the list's top: a scroll to the top
+    hold.settled(atTop: true)
+    check("hold: a rest at the top ends it", !hold.isHolding && hold.relaid() == nil)
     // released by an edit (a search, a set added, a scroll to the top, the page left)
     _ = hold.turn(kept: kept)
     check("hold: held again on the next turn", hold.isHolding)
@@ -642,8 +649,16 @@ do {
     check("hold: a finger ends it in the app; not .animating, its own scroll back",
           library.contains("if phase == .interacting { rowTrack.touched() }")
             && !library.contains("phase == .animating { rowTrack.touched() }"))
-    check("hold: the list at rest ends it in the app, then the place is noted",
-          library.contains("rowTrack.settled()\n                    rowTrack.capture(atTop:"))
+    check("hold: only a rest at the top ends it in the app, then the place is noted",
+          library.contains("rowTrack.settled(atTop: bandTrack.scroll < 1)\n                    rowTrack.capture(atTop: bandTrack.scroll < 1)")
+            && !library.contains("rowTrack.settled()"))
+    check("hold: its own scroll back's rest, after a stall, still scrolls back the late rows", {
+        var h = HomeRowKeep.Hold<String>()
+        let t = h.turn(kept: kept, at: 19.4)
+        h.settled(atTop: false)            // the scroll back at rest
+        h.expired(turn: t?.turn ?? -1, at: 24.5) // the late tick after the stall
+        return h.relaid(at: 24.6) == kept   // the rows that lay out after it
+    }())
     check("hold: the app ends it at its limit",
           library.contains("for _ in 0..<HomeRowKeep.Hold<UUID>.ticks {\n                try? await Task.sleep(for: .seconds(HomeRowKeep.Hold<UUID>.tick))\n                rowTrack.expired(turn: held.turn)")
             && !library.contains("Task.sleep(for: .seconds(HomeRowKeep.Hold<UUID>.limit))"))

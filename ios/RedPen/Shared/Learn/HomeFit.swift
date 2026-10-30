@@ -228,8 +228,8 @@ enum HomeRowKeep {
     ///
     /// A hold left running would pull the list back after things the
     /// student did (a search, a set added, a scroll to the top), and keep
-    /// the place from being noted afresh. So it ends at the first rest
-    /// after the turn, on any edit or scroll that is not the turn's, on
+    /// the place from being noted afresh. So it ends at a rest at the
+    /// list's top (a scroll to the top), on any edit or scroll that is not the turn's, on
     /// leaving the page, and on its time limit: `limit` seconds of a free
     /// app with no new layout. The caller ticks it (`expired`) every
     /// `tick` seconds; a stalled main thread runs no tick, and a late one
@@ -293,8 +293,14 @@ enum HomeRowKeep {
             return place
         }
 
-        /// The list came to rest: the turn's layout is done.
-        mutating func settled() { place = nil }
+        /// The list came to rest. Its own scroll back comes to rest too,
+        /// as a programmatic scroll (.animating, then .idle), so a rest
+        /// alone ends nothing: in App build 40932408856 the first scroll
+        /// back's rest ended the hold, the app stalled for 5 s, and the
+        /// rows that laid out after it kept the upright offset. Only a rest
+        /// at the list's top, a scroll to the top (the status bar), ends it;
+        /// a rest anywhere else waits for the window (`limit`) or the `cap`.
+        mutating func settled(atTop: Bool) { if atTop { place = nil } }
 
         /// A tick of turn `number`'s timer: a later turn holds on. It ends
         /// the hold after `limit` free seconds with no layout, or at `cap`.

@@ -816,14 +816,16 @@ struct LibraryView: View {
                 // a finger on the list ends a turn's hold: the place is the
                 // student's again. Not .animating: the phase cannot tell a
                 // scroll to the top (the status bar) from the hold's own
-                // scroll back, so that one ends at rest (.idle) or when the
+                // scroll back, so that one ends at a rest at the top or when the
                 // hold's window runs out (HomeRowKeep.Hold)
                 if phase == .interacting { rowTrack.touched() }
-                // at rest the turn's layout is done; where the student came
-                // to rest is the place the next turn keeps, and at the
-                // list's top there is nothing to keep
+                // a rest at the top (a scroll to the top) ends the hold; a
+                // rest elsewhere may be the hold's own scroll back, so the
+                // hold runs on to its window (HomeRowKeep.Hold). Where the
+                // student came to rest is the place the next turn keeps,
+                // noted once no row is held; at the top nothing is kept
                 if phase == .idle {
-                    rowTrack.settled()
+                    rowTrack.settled(atTop: bandTrack.scroll < 1)
                     rowTrack.capture(atTop: bandTrack.scroll < 1)
                 }
             }

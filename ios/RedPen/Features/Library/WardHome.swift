@@ -452,8 +452,9 @@ final class HomeRowTrack {
     /// The list laid out again: the row to scroll back to, while held.
     func relaid() -> HomeRowKeep.Place<UUID>? { hold.relaid() }
 
-    /// The list came to rest: the hold ends, and the place is noted afresh.
-    func settled() { hold.settled() }
+    /// The list came to rest: at its top the hold ends; elsewhere it may
+    /// be the hold's own scroll back, and the hold goes on.
+    func settled(atTop: Bool) { hold.settled(atTop: atTop) }
 
     /// Turn `number`'s time ran out.
     func expired(turn number: Int) { hold.expired(turn: number) }
