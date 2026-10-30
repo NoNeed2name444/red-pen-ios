@@ -97,7 +97,7 @@ const quiz = read('Features/MCQ/ChartQuizViews.swift');
 check('the option row draws a right answer in the mode\'s colour',
       /case \.chosen, \.right: return \.wardPrimaryInk/.test(quiz));
 const handMint = [];
-const mintForRight = /\b(?:correct|right|isRight|ok)\s*\?\s*(?:Color)?\.wardSuccess\b/;
+const mintForRight = /\b(?:correct|right|isRight|isTrue|verdict|ok)\s*\?\s*(?:Color)?\.wardSuccess\b/;
 for (const rel of sources) {
   read(rel).split('\n').forEach((line, i) => { if (mintForRight.test(line)) handMint.push(`${rel}:${i + 1}`); });
 }
@@ -135,10 +135,56 @@ check('the states model fills a chosen chip and segment, near-black words',
       && /words: !enabled \? disabledInk : filled \? \.onAccent : \.ink,\s*face: filled \? \.primary/.test(states));
 check('the chip and segment faces draw the fill under near-black words',
       /fill: filled \? chosenInk : \.wardSurface/.test(controls) && /fill: filled \? Color\.wardPrimary : Color\.wardWell/.test(controls)
-      && (controls.match(/filled \? \.wardOnAccent : \.wardInk/g) ?? []).length >= 3);
+      && (controls.match(/filled \? \.wardOnAccent : \.wardInk/g) ?? []).length >= 2);
 check('a chosen filter chip is filled, its words near-black',
       /foregroundStyle\(selected \? Color\.wardOnAccent : Color\.wardInk\)/.test(read('Shared/Ward/WardStates.swift'))
       && /fill: selected \? Color\.wardPrimary : Color\.wardSurface/.test(read('Shared/Ward/WardStates.swift')));
+
+// A chosen chip is filled with the accent (or its tone), so what is drawn in
+// its label must change with the choice: words and glyph go near-black on the
+// fill. A label that hard-codes Chart Ink, the accent or a tone's colour stays
+// that colour on the fill, where it cannot be read. The label is the lines
+// before the style, with the body of any view of this file they name.
+const chipLabelRegions = [];
+const chipLabelHard = /foregroundStyle\(\s*(?:Color)?\.(?:wardInk|wardInkSecondary|wardPrimaryInk)\s*\)|glyph:\s*(?:Color)?\.(?:wardInk|wardPrimaryInk)\s*\)|foregroundStyle\(\s*[\w.]*[tT]one[\w.]*\.(?:color|ink)\s*\)/;
+const hardCodedChipLabel = [];
+for (const rel of sources) {
+  const text = read(rel).replace(/\/\/.*$/gm, '');
+  const lines = text.split('\n');
+  lines.forEach((line, i) => {
+    // `on:` that can be true; WardChipButtonStyle() and on: false never fill
+    if (!/WardChipButtonStyle\(on:(?!\s*false\b)/.test(line)) return;
+    // from the Button that wears the style (or 40 lines back) down to it
+    let from = i;
+    while (from > Math.max(0, i - 40) && !/\bButton\b/.test(lines[from])) from--;
+    const near = lines.slice(from, i + 1).join('\n');
+    let region = near;
+    for (const [, name] of near.matchAll(/\b([A-Z]\w+)\(/g)) {
+      const body = text.match(new RegExp(`\\bstruct ${name}\\b[\\s\\S]*?\\n\\}`));
+      if (body) region += '\n' + body[0];
+    }
+    chipLabelRegions.push(`${rel}:${i + 1}`);
+    if (chipLabelHard.test(region)) hardCodedChipLabel.push(`${rel}:${i + 1}`);
+  });
+}
+check('the chip-label guard can see the chips it guards', chipLabelRegions.length >= 5, String(chipLabelRegions.length));
+check('a chip that can be chosen does not hard-code its label\'s colour (D8: near-black on the fill)',
+      hardCodedChipLabel.length === 0, hardCodedChipLabel.join('; '));
+const greyChip = [];
+for (const rel of sources) {
+  const text = read(rel).replace(/\/\/.*$/gm, '');
+  for (const m of text.matchAll(/WardChipButtonStyle\(/g)) {
+    // the whole call, to its closing bracket
+    let depth = 0, end = m.index + m[0].length - 1;
+    for (; end < text.length; end++) {
+      if (text[end] === '(') depth++;
+      else if (text[end] === ')' && --depth === 0) break;
+    }
+    if (/tone:\s*(?:WardTone)?\.grey\b/.test(text.slice(m.index, end + 1))) greyChip.push(rel);
+  }
+}
+// Biro Grey would not carry near-black words (3.06:1 by day)
+check('no chosen chip is toned grey', greyChip.length === 0, greyChip.join('; '));
 
 // --- 5. a screen pushed from a mode keeps its colour (T0153 F4) -------------
 

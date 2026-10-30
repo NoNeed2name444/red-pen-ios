@@ -130,8 +130,14 @@ class ColourRolesTest {
         // Biro Grey would not carry near-black words (3.06:1 by day), so no chosen chip is toned grey
         val greyChip = sources.flatMap { (rel, text) ->
             Regex("""WardChipButton\(""").findAll(text).mapNotNull { m ->
-                // the call's first lines, up to a blank line
-                val call = text.substring(m.range.first, minOf(text.length, m.range.first + 300)).substringBefore("\n\n")
+                // the whole call, to its closing bracket
+                var depth = 0
+                var end = m.range.last
+                while (end < text.length) {
+                    if (text[end] == '(') depth++ else if (text[end] == ')' && --depth == 0) break
+                    end++
+                }
+                val call = text.substring(m.range.first, minOf(text.length, end + 1))
                 if (call.contains("tone = WardTone.Grey")) rel else null
             }.toList()
         }
