@@ -4,9 +4,9 @@ The anatomy atlas in the Sciences screens is drawn from these files (reader:
 `Shared/Sciences/AnatomyAtlas.swift`). It has two bodies, a man and a
 woman. Most meshes come from the Human Reference Atlas's male and female
 reference organ sets; the skull from NIH 3D's skull of the Visible Human
-Male; the ribs, shoulder girdle, arm, hand and foot bones, hip and back
-muscles, thyroid, adrenals, oesophagus and stomach from four
-TotalSegmentator CT scans. All are CC BY 4.0. The files here were made from
+Male; the ribs, shoulder girdle, arm, hand and foot bones, the woman's hip
+bones, the hip and back muscles, thyroid, adrenals, oesophagus and stomach
+from four TotalSegmentator CT scans. All are CC BY 4.0. The files here were made from
 the downloads below by `tools/anatomy_atlas.py`, `tools/anatomy_gaps.py`,
 `tools/anatomy_limbs.py` and `tools/anatomy_feet.py`, which say exactly
 how:
@@ -21,7 +21,7 @@ each against the SHA-256 below, and the same inputs give the same bytes.
 
 | File | What it holds |
 |---|---|
-| `anatomy.json` | The manifest: the sources, then each body's parts (44 male, 45 female) and their structures (1030 and 1064), each with a label, UBERON id (where the crosswalk's is right), tissue, group and whether it sits inside another |
+| `anatomy.json` | The manifest: the sources, then each body's parts (44 male, 45 female) and their structures (1030 and 1064), each with a label, UBERON id (the crosswalk's where it is right, else the corrected label's own, if any), tissue, group and whether it sits inside another |
 | `male-<part>.atlas`, `female-<part>.atlas` | One part's meshes in one body, simplified and quantised (format: the tool's docstring) |
 
 Most parts are in both bodies. Only the woman's are the breasts, ovaries,
@@ -50,8 +50,9 @@ https://3d.nih.gov/entries/3DPX-020591), by kbrowne, NLM 3D: Anatomy, CC BY
 4.0, from the Visible Human Male, courtesy of the U.S. National Library of
 Medicine."
 
-"3D ribs, sternum, shoulder girdle, arm, hand and foot bones, hip and back
-muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans
+"3D ribs, sternum, shoulder girdle, arm, hand and foot bones, the woman's
+hip bones, the hip and back muscles, thyroid, adrenals, oesophagus and
+stomach: meshed from scans
 s1803, s1764, s1880 and s1767 of the TotalSegmentator dataset v3.0.0, by
 Jakob Wasserthal et al.
 (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology:
@@ -94,7 +95,9 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   skull's inner table. Labels corrected
   where the crosswalk's was wrong for the mesh, among them three pairs whose
   sides are swapped (the renal arteries, the ends of the vas deferens, the
-  thymus lobes); the list is in the tool, `CORRECTED`.
+  thymus lobes); the list is in the tool, `CORRECTED`. The ilium, ischium
+  and pubis, which the crosswalk calls compact bone tissue, are named as
+  the bones they are, with their own UBERON ids (`CORRECTED_UBERON`).
 
 ### The woman: 3D Reference Organ Set for Female, v1.10
 
@@ -114,8 +117,11 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   corrected where the crosswalk's was wrong for this mesh: the inferior
   pulmonary veins and round ligaments with their sides swapped, two liver
   segments, the left anterior descending artery, the dural sheaths, the
-  hip bones and the fat of each breast; the sixth lumbar vertebra the
-  Visible Human Female has is named as the normal variant it is.
+  ilia (called compact bone tissue there; each is the ilium alone, with
+  no pubis or ischium, so the atlas shows her scan's whole hip bones in
+  their place, below) and the fat of each breast; the sixth lumbar
+  vertebra the Visible Human Female has is named as the normal variant it
+  is.
 
 ### The skull: Skull and Eyes - Visible Human Male (NIH 3D, 3DPX-020591)
 
@@ -158,7 +164,7 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   anatomic structures in CT images. Radiology: Artificial Intelligence
   2023;5(5):e230024, https://doi.org/10.1148/ryai.230024.
 - Use: the ribs and costal cartilages, the male body's sternum, the
-  clavicles and scapulae, the humeri, the radius, ulna, carpal bones (as
+  female body's hip bones, the clavicles and scapulae, the humeri, the radius, ulna, carpal bones (as
   one structure), metacarpals and phalanges of each forearm and hand, the
   tarsal bones, metatarsals, phalanges and the great toe's two sesamoids
   (as one structure) of each foot, gluteus maximus, medius and minimus,
@@ -166,9 +172,18 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   oesophagus and the stomach, in both bodies.
 - Changes: each mask smoothed and meshed (marching cubes), simplified to
   the part's budget, and carried into its body by a smooth warp (thin-plate
-  splines, fitted on the vertebrae, sacrum, hip bones, femurs, kidneys,
-  liver, spleen, lungs, trachea, heart, brain, aorta and pancreas both
-  have; the hip muscles by a closer warp of the pelvis). The rib cage is
+  splines, fitted on the vertebrae, sacrum, hip bones, the femurs' tops
+  and the centres of their heads, kidneys, liver, spleen, lungs, trachea,
+  heart, brain, aorta and pancreas both have; the hip muscles by a closer
+  warp of the pelvis). The woman's organ set has only the ilium of each
+  hip bone, so her scan's whole hip bones take their place: each fitted
+  by a similarity (scaled x1.08 and x1.05, turned 8 degrees) to her ilium,
+  the scan's cut at the same height above its femoral head, and to the
+  centre of her femoral head (within 4 mm on the ilium and 1.4 mm at the
+  head), which keeps each bone whole (a warp fitted on the ilium alone
+  tips the pubis back); the two pubic bodies are then brought together at
+  the midline (by 8 and 17 mm), the rami eased smoothly, nothing 7 cm away
+  moving. The rib cage is
   widened, smoothly around the chest's axis, until the organs sit inside
   it, but never past the skin, the shoulder girdle riding with it; each
   shoulder is then turned down about its sternoclavicular joint until the

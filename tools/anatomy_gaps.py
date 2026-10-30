@@ -15,6 +15,8 @@ What it adds, to each body:
     legs           (the organ sets' part, which ends at the ankle) the
                    tarsals, metatarsals, phalanges and the great toe's
                    sesamoids of each foot (tools/anatomy_feet.py)
+    pelvis         (the female organ set's, whose hip bones are its ilia
+                   alone) the whole hip bones, in place of the ilia
     hip-muscles    gluteus maximus, medius and minimus, iliopsoas
     back-muscles   the deep back muscles (erector spinae with the
                    transversospinal group)
@@ -38,9 +40,10 @@ SOURCES.md:
   CT itself (the dataset segments none below the humerus or the femur): see
   tools/anatomy_limbs.py and tools/anatomy_feet.py. Each mask is meshed
   and carried into its body by a smooth warp fitted on what the scan and the
-  body both have (vertebrae, sacrum, hip bones, femurs, kidneys, liver,
-  spleen, lungs, trachea, heart, brain, aorta, pancreas), then, for the hip
-  muscles, by a closer warp of the pelvis.
+  body both have (vertebrae, sacrum, hip bones, the femurs' tops and the
+  centres of their heads, kidneys, liver, spleen, lungs, trachea, heart,
+  brain, aorta, pancreas), then, for the hip muscles, by a closer warp of
+  the pelvis.
 
 Repairs, each checked by rendering the bodies:
 
@@ -69,6 +72,13 @@ Repairs, each checked by rendering the bodies:
   each finger laid along the skin's, joint by joint; forearm, hand and
   fingers are sized to the skin within 15% (fingers 10%). One side is the
   scanned one, the other its mirror image.
+- The female organ set's hip bone is the ilium alone, stopping above the
+  hip joint. Her scan's whole hip bones take its place: each fitted to her
+  ilium (the scan's cut at the same height above its femoral head) and to
+  the centre of her femoral head by a similarity, which keeps the scan's
+  pelvis whole where a warp fitted on the ilium alone tips the pubis back;
+  then the two pubic bodies are brought together at the midline, the rami
+  eased smoothly, nothing 7 cm away moving.
 - Whatever else came from a scan is pushed out of the organs and bones it
   cuts into (the stomach out of the colon, muscles off the bone), smoothly
   and a few millimetres at a time.
@@ -853,9 +863,11 @@ def lower_shoulders(body, shoulders, arms):
 
 # MARK: the scans' warps
 
-def pairs(body, sex, folder):
-    """(name, scan points, body points, weight, kind) for every structure both have."""
-    P = body.prefix
+def pairs(body, sex, folder, hips=None):
+    """(name, scan points, body points, weight, kind) for every structure both have. hips: the
+    scan's whole hip bones already fitted to a body whose own stop short (whole_hips), paired in
+    their place."""
+    P = body.prefix; hips = hips or {}
     def ct(names, sigma=1.0):
         ms = []
         for n in names:
@@ -865,8 +877,10 @@ def pairs(body, sex, folder):
                 ms.append(m[0])
         return np.concatenate(ms) if ms else None
     out = []
-    def add(name, masks, target, w=1.0, n=500, kind="surface"):
+    def add(name, masks, target, w=1.0, n=500, kind="surface", top=None):
         c = ct(masks if isinstance(masks, list) else [masks])
+        if c is not None and top is not None:   # as much of the scan's as the body's: its top `top` metres
+            c = c[c[:, 1] > c[:, 1].max() - top]
         if c is not None and target is not None:
             out.append((name, sample(c, n), sample(target, 4 * n, 1), w, kind))
     for letter, word, count in LEVELS:
@@ -881,10 +895,14 @@ def pairs(body, sex, folder):
             cs = np.array([v.mean(0) for v in lumbar]); t = (i - 1) / 4 * (len(cs) - 1); k = min(int(t), len(cs) - 2); f_ = t - k
             out.append((f"L{i}", c.mean(0, keepdims=True), (cs[k] * (1 - f_) + cs[k + 1] * f_)[None], 4.0, "centre"))
     add("sacrum", "sacrum", body.pts("^sacrum$"))
+    mid_b, mid_c = midline(body.pts("^sacrum$")), midline(ct_surface(folder, "sacrum")[0])
     for side, s in SIDES:
-        add(f"hip {side}", f"hip_{side}", body.pts(f"^(ilium|ischium|pubis)_compact_bone_{s}$"))
+        add(f"hip {side}", f"hip_{side}", surface_points(*hips[side], 0.003) if side in hips
+            else body.pts(f"^(ilium|ischium|pubis)_compact_bone_{s}$"))
         femur = body.pts(f"^femur_{s}$")
-        add(f"femur {side}", f"femur_{side}", femur[femur[:, 1] > femur[:, 1].max() - 0.15])
+        add(f"femur {side}", f"femur_{side}", femur[femur[:, 1] > femur[:, 1].max() - 0.15], top=0.15)
+        out.append((f"head {side}", femoral_head(ct_surface(folder, f"femur_{side}")[0], mid_c)[0][None],
+                    femoral_head(femur, mid_b)[0][None], 4.0, "centre"))
         add(f"kidney {side}", f"kidney_{side}", body.pts(f"^kidney_capsule_{s}$"))
     add("liver", "liver", body.pts("^(liver_capsule|capsule_of_the_liver)$"))
     add("spleen", "spleen", shell(body.pts(part="spleen")))
@@ -906,12 +924,12 @@ def pairs(body, sex, folder):
 
 
 REGIONS = {
-    "pelvis": r"^(L[345]|sacrum|hip left|hip right|femur left|femur right)$",
+    "pelvis": r"^(L[345]|sacrum|hip left|hip right|femur left|femur right|head left|head right)$",
 }
 
 
-def warps(body, sex, folder):
-    found = pairs(body, sex, folder)
+def warps(body, sex, folder, hips=None):
+    found = pairs(body, sex, folder, hips)
     log(f"  {sex}: the warp, on {len(found)} pairs")
     w = register(found)
     out = {"global": w}
@@ -920,6 +938,85 @@ def warps(body, sex, folder):
         log(f"  {sex}: the {region}'s closer warp, on {len(local)} pairs")
         out[region] = Then(w, register(local, rounds=(1e-3, 3e-4, 1e-4, 3e-5), control=3000))
     return out
+
+
+# MARK: the hip bones
+
+def midline(p):
+    return float(np.median(p[:, 0]))
+
+
+def ct_surface(folder, name, sigma=0.8, share=0.05):
+    a, A = load_mask(os.path.join(folder, name + ".nii.gz"))
+    return ct_mesh(a, A, sigma=sigma, share=share)
+
+
+def femoral_head(p, mid):
+    """The femoral head's centre and radius: a sphere fitted to the top of the femur on its inner
+    side, then again to the points lying on it."""
+    top = p[p[:, 1] > p[:, 1].max() - 0.07]
+    d = np.abs(top[:, 0] - mid)
+    c, r = _sphere(top[d < np.percentile(d, 40)])
+    for _ in range(5):
+        c, r = _sphere(top[np.abs(np.linalg.norm(top - c, axis=1) - r) < 0.003])
+    return c, r
+
+
+def whole_hips(body, folder):
+    """The scan's whole hip bones for a body whose own stop above the hip joint (the female organ
+    set's "hip bone" is the ilium alone: no pubis or ischium). Each is fitted to the body's ilium
+    (the scan's cut at the same height above its femoral head) and femoral head by a similarity,
+    which keeps the scan's own pelvis whole (a warp fitted on the ilium alone tips the pubis back);
+    then the two pubic bodies are brought together at the midline, the rami eased smoothly, nothing
+    7 cm away moving. {side: (positions, triangles)}, or {} for a body whose hip bones are whole."""
+    mid_b, mid_c = midline(body.pts("^sacrum$")), midline(ct_surface(folder, "sacrum")[0])
+    heads = {side: femoral_head(body.pts(f"^femur_{s}$"), mid_b)[0] for side, s in SIDES}
+    if all(body.pts(f"^(ilium|ischium|pubis)_compact_bone_{s}$")[:, 1].min() < heads[side][1] for side, s in SIDES):
+        return {}
+    out, faces = {}, {}
+    for side, s in SIDES:
+        bh = heads[side]; ch = femoral_head(ct_surface(folder, f"femur_{side}")[0], mid_c)[0]
+        p, f = ct_surface(folder, f"hip_{side}")
+        ib = surface_points(*body.mesh(f"ilium_compact_bone_{s}"), 0.002); cp = surface_points(p, f, 0.002)
+        h = ib[:, 1].min() - bh[1] + 0.006     # just above where the body's ilium stops
+        dst = sample(ib[ib[:, 1] > bh[1] + h], 3000, 1); tree = cKDTree(dst)
+        sc, R, t = 1.0, np.eye(3), bh - ch
+        for k in range(60):
+            if k in (0, 30):                   # the scan cut at the same height, in the scan's own size
+                src = sample(cp[cp[:, 1] > ch[1] + h / sc], 3000, 0)
+            X = sc * src @ R.T + t
+            j = tree.query(X)[1]; i = cKDTree(X).query(dst)[1]
+            sc, R, t = umeyama(np.vstack([src, src[i], ch[None]]), np.vstack([dst[j], dst, bh[None]]),
+                               np.concatenate([np.ones(len(src) + len(dst)), [0.3 * (len(src) + len(dst))]]))
+        X = sc * src @ R.T + t; q = sc * p @ R.T + t
+        turned = np.degrees(np.arccos(np.clip((np.trace(R) - 1) / 2, -1, 1)))
+        log(f"    {side} hip bone: scaled x{sc:.3f}, turned {turned:.1f} degrees; ilium fit {tree.query(X)[0].mean() * 1000:.1f} mm, "
+            f"head {np.linalg.norm(sc * R @ ch + t - bh) * 1000:.1f} mm")
+        sgn = 1 if side == "left" else -1
+        low = q[q[:, 1] < bh[1]]; reach = (low[:, 0] * sgn).min()
+        faces[side] = low[low[:, 0] * sgn < reach + 0.006].mean(0)     # the symphyseal face
+        out[side] = (q, f)
+    mid = 0.5 * (faces["left"] + faces["right"])
+    for side, s in SIDES:
+        sgn = 1 if side == "left" else -1
+        D = np.array([mid_b + sgn * 0.002, mid[1], mid[2]]) - faces[side]
+        q, f = out[side]; dist = np.linalg.norm(q - faces[side], axis=1)
+        fixed = sample(np.flatnonzero(dist > 0.07), 400, 0); moved = np.flatnonzero(dist < 0.012)
+        ease = RBFInterpolator(np.vstack([q[fixed], q[moved]]), np.vstack([np.zeros((len(fixed), 3)), np.tile(D, (len(moved), 1))]),
+                               kernel="thin_plate_spline", smoothing=1e-6)
+        out[side] = (q + ease(q), f)
+        log(f"    {side} pubic body moved {np.linalg.norm(D) * 1000:.0f} mm to meet the other at the midline")
+    return out
+
+
+def put_hips(body, hips, atlas):
+    """The body's short hip bones (its ilia) replaced by the whole ones."""
+    part = body.part("pelvis")
+    for side, s in SIDES:
+        i = next(k for k, st in enumerate(part["structures"]) if st["node"] == f"{body.prefix}ilium_compact_bone_{s}")
+        part["structures"][i] = {"node": f"TS_hip_{s}", "label": f"{side} hip bone", "uberon": u("0001272"),
+                                 "tissue": "bone", "group": "Pelvis", "inner": False}
+        part["meshes"][i] = tuple(atlas.simplify(*hips[side], 4000))
 
 
 # MARK: the parts from the scans
@@ -1024,7 +1121,8 @@ def extend(bodies, skull_path, ct_dir, atlas):
     for body in (male, female):
         sex = body.sex; folder = os.path.join(ct_dir, SUBJECT[sex])
         log(f"{sex}: the scan {SUBJECT[sex]}")
-        ws = warps(body, sex, folder); ws["arm"] = ws["global"]
+        hips = whole_hips(body, folder)
+        ws = warps(body, sex, folder, hips); ws["arm"] = ws["global"]
         made = {}
         for pid, name, system, before, region, rows in CT_PARTS:
             if pid == "sternum" and body.part("sternum") is not None:
@@ -1034,6 +1132,9 @@ def extend(bodies, skull_path, ct_dir, atlas):
                     "meshes": [list(atlas.simplify(p, f, b)) for p, f, b in meshes]}
             place(body.parts, part, before); made[pid] = part
             log(f"    {pid}: {len(structures)} structures")
+        if hips:
+            put_hips(body, hips, atlas)
+            log("    pelvis: the whole hip bones in place of the ilia")
         body.__init__(sex, body.parts)
         widen_cage(body, made["ribs"]["meshes"] + (made["sternum"]["meshes"] if "sternum" in made else []),
                    made["shoulders"]["meshes"])

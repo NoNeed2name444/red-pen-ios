@@ -2883,11 +2883,20 @@ for screenshots.
     foot. The suite checks 27 foot bones a side, each with its UBERON id,
     the talus at the tibia's lower end, the heel below it, the toes in
     front and the great toe on the inner side.
-  - [ ] S3h. The woman's hip bones: her reference set's "hip bone" is the
+  - [x] S3h. The woman's hip bones: her reference set's "hip bone" is the
     ilium alone, stopping 1 cm above the femoral head (no pubis or
-    ischium, so no front to her pelvic ring). To come from her own scan's
-    hip masks, warped by the pelvis's closer warp with the scan's hip cut
-    to the part her ilium covers.
+    ischium, so no front to her pelvic ring). Now her own scan's whole hip
+    bones (TS_hip_L and _R, "left/right hip bone", UBERON:0001272) stand in
+    for it (anatomy_gaps.whole_hips): each fitted by a similarity to her
+    ilium and her femoral head (x1.08 and x1.05, turned 8 degrees; within
+    4 mm on the ilium, 1.4 mm at the head), then the two pubic bones eased
+    together at the midline (8 and 17 mm; nothing 7 cm away moves). The
+    crosswalk's "compact bone tissue" for the ilium, ischium and pubis is
+    now named and given each bone's own UBERON id, in both bodies. The
+    pelvis's warp (the hip and back muscles) now also fits the femurs'
+    tops and the centres of their heads, so the muscles meet the hip joint.
+    The suite checks that each body's hip bones reach well below the
+    femur's top and that the pubic bones meet at the midline.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has

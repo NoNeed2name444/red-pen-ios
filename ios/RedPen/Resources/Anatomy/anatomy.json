@@ -55,7 +55,7 @@
    "sha256": "5e59d1a54adb4fb642f9ff6510d57e3c02c33de26120ee31b1cf9557b0d095aa"
   }
  ],
- "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fourth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image.",
+ "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fourth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image.",
  "bodies": [
   {
    "id": "male",
@@ -5471,15 +5471,15 @@
      "system": "digestive",
      "file": "male-oesophagus.atlas",
      "bytes": 18036,
-     "sha256": "9900782311c766cb808b359d646e4d905020c63d55369b590919dd41c6255082",
+     "sha256": "12afae417ec59c8e180a7667959f59dc24606b3a5e0c91b46a2d88a9fcbdd479",
      "triangles": 1998,
      "bounds": [
-      -0.00992,
-      0.41874,
-      -0.03824,
-      0.0214,
-      0.65653,
-      0.02156
+      -0.00953,
+      0.40916,
+      -0.0328,
+      0.02176,
+      0.64976,
+      0.02238
      ],
      "structures": [
       {
@@ -5498,16 +5498,16 @@
      "name": "Stomach",
      "system": "digestive",
      "file": "male-stomach.atlas",
-     "bytes": 36036,
-     "sha256": "894cf1e386b05557fe02feb98ff5c24a04360a61dd9229ab0c930b0296f7cb4e",
-     "triangles": 3998,
+     "bytes": 36052,
+     "sha256": "d75194c37b8b8cd5cd4c4dd94031940e5ac4b41d137cd80cf4ef53abf5aa0c21",
+     "triangles": 4000,
      "bounds": [
-      -0.06512,
-      0.32898,
-      -0.08314,
-      0.13196,
-      0.44322,
-      0.10275
+      -0.06694,
+      0.30101,
+      -0.08755,
+      0.1294,
+      0.44089,
+      0.10455
      ],
      "structures": [
       {
@@ -5517,7 +5517,7 @@
        "tissue": "gut",
        "group": "Stomach",
        "inner": false,
-       "triangles": 3998
+       "triangles": 4000
       }
      ]
     },
@@ -6275,15 +6275,15 @@
      "system": "endocrine",
      "file": "male-thyroid.atlas",
      "bytes": 13528,
-     "sha256": "56142fcbddafa349017385db68d41ea3a0dcb4551432e362a6a1c67d0d7630bd",
+     "sha256": "0b58b11485d518aac48512fca2c965f5451e200f0b656ff1a8abd4f160bc5f92",
      "triangles": 1496,
      "bounds": [
-      -0.03594,
-      0.61288,
-      6e-05,
-      0.02747,
-      0.67482,
-      0.03844
+      -0.02997,
+      0.60724,
+      -2e-05,
+      0.02566,
+      0.66761,
+      0.04152
      ],
      "structures": [
       {
@@ -6303,15 +6303,15 @@
      "system": "endocrine",
      "file": "male-adrenals.atlas",
      "bytes": 14456,
-     "sha256": "64eb89c7e71c89a11299aa9bfe6cd1eb04cec892a5be1f0c68c59bdccd663e9b",
+     "sha256": "8871e9d57304e0053c057d7eaef7b6411b0007c3a3b5641825ad2df68e233498",
      "triangles": 1598,
      "bounds": [
-      -0.04073,
-      0.33798,
-      -0.05539,
-      0.03811,
-      0.37276,
-      -0.01609
+      -0.03719,
+      0.32062,
+      -0.04945,
+      0.03308,
+      0.35718,
+      0.00147
      ],
      "structures": [
       {
@@ -7525,15 +7525,15 @@
      "system": "skeletal",
      "file": "male-sternum.atlas",
      "bytes": 13536,
-     "sha256": "400b5af1eea43c670391549a79bad1b03be409be2bd86759e47f0c97eb47ba18",
+     "sha256": "58e7fd9dd0207776f39844943bd69a1129a8b66a74223fee837c336e5d50b5aa",
      "triangles": 1498,
      "bounds": [
-      -0.04124,
-      0.40039,
-      0.0424,
-      0.02429,
-      0.58361,
-      0.11119
+      -0.04531,
+      0.39098,
+      0.05325,
+      0.02398,
+      0.56463,
+      0.11259
      ],
      "structures": [
       {
@@ -7552,16 +7552,16 @@
      "name": "Ribs and costal cartilages",
      "system": "skeletal",
      "file": "male-ribs.atlas",
-     "bytes": 144276,
-     "sha256": "c6d7e1d45712ca45edd8d35e569b515b6a5f3d9c1c45d96aca237fb7e866f73d",
-     "triangles": 15962,
+     "bytes": 144312,
+     "sha256": "35418d5e07220f736f03da67400735907e533e0133c1ff655f7d122b6b04ee1d",
+     "triangles": 15966,
      "bounds": [
-      -0.14693,
-      0.24092,
-      -0.11327,
-      0.17443,
-      0.63425,
-      0.13051
+      -0.15536,
+      0.23051,
+      -0.11292,
+      0.17054,
+      0.64033,
+      0.14355
      ],
      "structures": [
       {
@@ -7625,7 +7625,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 498
+       "triangles": 500
       },
       {
        "node": "TS_rib_4_R",
@@ -7787,7 +7787,7 @@
        "tissue": "cartilage",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 3986
+       "triangles": 3988
       }
      ]
     },
@@ -7797,15 +7797,15 @@
      "system": "skeletal",
      "file": "male-shoulders.atlas",
      "bytes": 45064,
-     "sha256": "5dd62f0deea7127fc4e276bb9d13ba14dc2aa2981c845d9d2b4b745e2735491f",
+     "sha256": "797d6f133ae05e88fe20a54adf6164e61d7ff156fba6a55110c17f4452c23cad",
      "triangles": 4994,
      "bounds": [
-      -0.16258,
-      0.44831,
-      -0.13657,
-      0.19546,
-      0.63617,
-      0.06017
+      -0.15875,
+      0.45526,
+      -0.13216,
+      0.19325,
+      0.63633,
+      0.07189
      ],
      "structures": [
       {
@@ -7851,16 +7851,16 @@
      "name": "Arm and hand bones",
      "system": "skeletal",
      "file": "male-arms.atlas",
-     "bytes": 199344,
-     "sha256": "17c849746df87541af1888abbdd631711f5e401709386cfeb0a266f969e4eec8",
+     "bytes": 199348,
+     "sha256": "ac8dbac38bc9ec6d9399501bdbde8687921f6a3478295b827cca4b5eeabf437d",
      "triangles": 22030,
      "bounds": [
-      -0.52153,
-      -0.0553,
-      -0.04672,
-      0.52213,
-      0.62456,
-      0.05426
+      -0.52077,
+      -0.05402,
+      -0.04474,
+      0.52229,
+      0.62112,
+      0.05238
      ],
      "structures": [
       {
@@ -8939,7 +8939,7 @@
       {
        "node": "VH_M_pubis_compact_bone_L",
        "label": "left pubis",
-       "uberon": null,
+       "uberon": "UBERON:0001275",
        "tissue": "bone",
        "group": "compact bone tissue",
        "inner": false,
@@ -8948,7 +8948,7 @@
       {
        "node": "VH_M_pubis_compact_bone_R",
        "label": "right pubis",
-       "uberon": null,
+       "uberon": "UBERON:0001275",
        "tissue": "bone",
        "group": "compact bone tissue",
        "inner": false,
@@ -8957,7 +8957,7 @@
       {
        "node": "VH_M_ilium_compact_bone_L",
        "label": "left ilium",
-       "uberon": null,
+       "uberon": "UBERON:0001273",
        "tissue": "bone",
        "group": "compact bone tissue",
        "inner": false,
@@ -8966,7 +8966,7 @@
       {
        "node": "VH_M_ilium_compact_bone_R",
        "label": "right ilium",
-       "uberon": null,
+       "uberon": "UBERON:0001273",
        "tissue": "bone",
        "group": "compact bone tissue",
        "inner": false,
@@ -8975,7 +8975,7 @@
       {
        "node": "VH_M_ischium_compact_bone_L",
        "label": "left ischium",
-       "uberon": null,
+       "uberon": "UBERON:0001274",
        "tissue": "bone",
        "group": "compact bone tissue",
        "inner": false,
@@ -8984,7 +8984,7 @@
       {
        "node": "VH_M_ischium_compact_bone_R",
        "label": "right ischium",
-       "uberon": null,
+       "uberon": "UBERON:0001274",
        "tissue": "bone",
        "group": "compact bone tissue",
        "inner": false,
@@ -10047,15 +10047,15 @@
      "system": "muscular",
      "file": "male-hip-muscles.atlas",
      "bytes": 135096,
-     "sha256": "636158c9de5200d1984b4c87e0bc35aee6a88545a3f55a08b4ea2466bd302078",
+     "sha256": "318dc770a69a54559ee7a42a60282a79f77fd983c8ae3922a1bf389ff63b1d55",
      "triangles": 14988,
      "bounds": [
-      -0.13882,
-      -0.03521,
-      -0.12108,
-      0.16665,
-      0.29205,
-      0.0434
+      -0.15009,
+      -0.09426,
+      -0.12313,
+      0.17615,
+      0.31265,
+      0.04531
      ],
      "structures": [
       {
@@ -10138,15 +10138,15 @@
      "system": "muscular",
      "file": "male-back-muscles.atlas",
      "bytes": 63040,
-     "sha256": "e72d858663378ebf9e569a448c7ad1936e6d30b71d715d5609a1f0c416879e47",
+     "sha256": "b248cf1ddadddf61d7cfc0f03d20266752bcf5b3eccd231dc90f96766fb5a874",
      "triangles": 6996,
      "bounds": [
-      -0.0815,
-      0.1139,
-      -0.12491,
-      0.08702,
-      0.66565,
-      -0.0286
+      -0.08652,
+      0.09518,
+      -0.12842,
+      0.09149,
+      0.67049,
+      -0.02492
      ],
      "structures": [
       {
@@ -15757,15 +15757,15 @@
      "system": "digestive",
      "file": "female-oesophagus.atlas",
      "bytes": 18052,
-     "sha256": "142455c8699539d2111ec0d8f61ea047a68f5f04e5f9e20da5ba058f01e57561",
+     "sha256": "f5f9c2bc581f4501b92ffe99c9a31a0ba5817a5598e4db236465b466b46d9fe3",
      "triangles": 2000,
      "bounds": [
-      -0.01161,
-      0.38264,
-      -0.11745,
-      0.03905,
-      0.6117,
-      -0.04517
+      -0.01006,
+      0.37577,
+      -0.11779,
+      0.03216,
+      0.6204,
+      -0.04552
      ],
      "structures": [
       {
@@ -15785,15 +15785,15 @@
      "system": "digestive",
      "file": "female-stomach.atlas",
      "bytes": 36036,
-     "sha256": "3e3a9abcd6b922b092ee5dc4bb057e1dd4f928ca76701c571fb161ad0062c2db",
+     "sha256": "c16fb3c5b15db39411ffbb734cdca092cd80d90902c9342013189f3d6f0ee35c",
      "triangles": 3998,
      "bounds": [
-      -0.06737,
-      0.24001,
-      -0.12202,
-      0.09634,
-      0.39291,
-      -0.02277
+      -0.05422,
+      0.212,
+      -0.13419,
+      0.09797,
+      0.38628,
+      0.00299
      ],
      "structures": [
       {
@@ -16561,15 +16561,15 @@
      "system": "endocrine",
      "file": "female-thyroid.atlas",
      "bytes": 13548,
-     "sha256": "2ca4c6395c33ae1df9ae1d0efadb8f189d496144a0b1c375068e04aeccb9503d",
+     "sha256": "d66e63cfdcf5d6b80d132909ac65f838e194818ce4d3078b885815e6c43be05a",
      "triangles": 1498,
      "bounds": [
-      -0.03359,
-      0.59089,
-      -0.06053,
-      0.01383,
-      0.62682,
-      -0.03851
+      -0.0271,
+      0.58499,
+      -0.06609,
+      0.01438,
+      0.63616,
+      -0.03846
      ],
      "structures": [
       {
@@ -16588,16 +16588,16 @@
      "name": "Adrenal glands",
      "system": "endocrine",
      "file": "female-adrenals.atlas",
-     "bytes": 14472,
-     "sha256": "247ca2923ad078dadf88fad64d27eb1c0306bd1b450b5f641b4df6abc808e13f",
-     "triangles": 1600,
+     "bytes": 14456,
+     "sha256": "75336b880d8a500ad633e9bedf3497f14d6f6deee0a689a661bd1925c8d3687a",
+     "triangles": 1598,
      "bounds": [
-      -0.05633,
-      0.28705,
-      -0.12797,
-      0.04822,
-      0.32999,
-      -0.08665
+      -0.06664,
+      0.27868,
+      -0.14274,
+      0.04694,
+      0.32855,
+      -0.07052
      ],
      "structures": [
       {
@@ -16607,7 +16607,7 @@
        "tissue": "gland",
        "group": "Adrenal glands",
        "inner": false,
-       "triangles": 800
+       "triangles": 798
       },
       {
        "node": "TS_adrenal_gland_R",
@@ -18119,16 +18119,16 @@
      "name": "Ribs and costal cartilages",
      "system": "skeletal",
      "file": "female-ribs.atlas",
-     "bytes": 144376,
-     "sha256": "a74d9b9658b9555160f7e1c2c206ad12ea7f5715cd186c3b24b0b2db432e32bf",
-     "triangles": 15976,
+     "bytes": 144436,
+     "sha256": "42ef3a574bd5a205a9c7ebb33b56a1386a36a510e48aec785a3881c3dbc70b8d",
+     "triangles": 15982,
      "bounds": [
-      -0.15019,
-      0.24635,
-      -0.17766,
-      0.15417,
-      0.5997,
-      0.02291
+      -0.14819,
+      0.24237,
+      -0.16951,
+      0.15096,
+      0.60328,
+      0.03335
      ],
      "structures": [
       {
@@ -18237,7 +18237,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 520
+       "triangles": 522
       },
       {
        "node": "TS_rib_7_L",
@@ -18318,7 +18318,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 498
+       "triangles": 500
       },
       {
        "node": "TS_rib_11_R",
@@ -18336,7 +18336,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 500
+       "triangles": 498
       },
       {
        "node": "TS_rib_12_R",
@@ -18354,7 +18354,7 @@
        "tissue": "cartilage",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 3986
+       "triangles": 3990
       }
      ]
     },
@@ -18363,16 +18363,16 @@
      "name": "Shoulder girdle",
      "system": "skeletal",
      "file": "female-shoulders.atlas",
-     "bytes": 45072,
-     "sha256": "b2600b1821c8f71072661aa7d2eb23721f4882dcc03b78df803aa010671ad53e",
+     "bytes": 45068,
+     "sha256": "fa5f845ad102be55b6fd56d88368356d89b5e4137f6df4f89779411438d66ccc",
      "triangles": 4998,
      "bounds": [
-      -0.19687,
-      0.42089,
-      -0.17648,
-      0.16695,
-      0.59646,
-      -0.01915
+      -0.17362,
+      0.42659,
+      -0.18025,
+      0.14919,
+      0.60761,
+      -0.0113
      ],
      "structures": [
       {
@@ -18418,16 +18418,16 @@
      "name": "Arm and hand bones",
      "system": "skeletal",
      "file": "female-arms.atlas",
-     "bytes": 198636,
-     "sha256": "616da9b0dd5ef822caa3af481cebd6215dbca38735c104a529c67b8d609f8133",
+     "bytes": 198624,
+     "sha256": "d00bbcb67c7c6706156b615da13302a0feee0bc5c57d686b39f90be66ff4314c",
      "triangles": 21956,
      "bounds": [
-      -0.4853,
-      -0.0585,
-      -0.12381,
-      0.47383,
-      0.58305,
-      0.02314
+      -0.48556,
+      -0.05848,
+      -0.1213,
+      0.47384,
+      0.58397,
+      0.02296
      ],
      "structures": [
       {
@@ -18473,7 +18473,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 1498
+       "triangles": 1500
       },
       {
        "node": "TS_distal_phalanx_of_thumb_L",
@@ -18527,7 +18527,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 250
+       "triangles": 248
       },
       {
        "node": "TS_second_metacarpal_L",
@@ -18590,7 +18590,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_proximal_phalanx_of_ring_finger_L",
@@ -18689,7 +18689,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_first_metacarpal_R",
@@ -18725,7 +18725,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 250
+       "triangles": 248
       },
       {
        "node": "TS_second_metacarpal_R",
@@ -18833,7 +18833,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 250
+       "triangles": 248
       },
       {
        "node": "TS_fifth_metacarpal_R",
@@ -19527,16 +19527,16 @@
      "name": "Pelvis",
      "system": "skeletal",
      "file": "female-pelvis.atlas",
-     "bytes": 89876,
-     "sha256": "56b2f873d47738b141a5f6cc02bffb55fcdac11bcd70112df981cc2a2ebd65ce",
-     "triangles": 9996,
+     "bytes": 112136,
+     "sha256": "c8e8468f5587528e2dc4c3a2d1d68a02ea06be56afaf6f596ac6173e2caadd0b",
+     "triangles": 12472,
      "bounds": [
-      -0.16747,
-      0.01811,
+      -0.16523,
+      -0.05438,
       -0.18249,
-      0.14927,
-      0.16451,
-      0.00027
+      0.14462,
+      0.16852,
+      -0.00425
      ],
      "structures": [
       {
@@ -19558,22 +19558,22 @@
        "triangles": 540
       },
       {
-       "node": "VH_F_ilium_compact_bone_R",
+       "node": "TS_hip_R",
        "label": "right hip bone",
-       "uberon": null,
+       "uberon": "UBERON:0001272",
        "tissue": "bone",
-       "group": "compact bone tissue",
+       "group": "Pelvis",
        "inner": false,
-       "triangles": 2688
+       "triangles": 4000
       },
       {
-       "node": "VH_F_ilium_compact_bone_L",
+       "node": "TS_hip_L",
        "label": "left hip bone",
-       "uberon": null,
+       "uberon": "UBERON:0001272",
        "tissue": "bone",
-       "group": "compact bone tissue",
+       "group": "Pelvis",
        "inner": false,
-       "triangles": 2834
+       "triangles": 3998
       }
      ]
     },
@@ -20485,16 +20485,16 @@
      "name": "Hip muscles",
      "system": "muscular",
      "file": "female-hip-muscles.atlas",
-     "bytes": 135132,
-     "sha256": "5ee3ff8779e0e1ab07e870e937f803b6892dc44eda309d7ef6e3bf48d6c8df4f",
-     "triangles": 14994,
+     "bytes": 135148,
+     "sha256": "9abcec77613d35518b03f67ccec10f8c99a83fa34e3e5a15fd013e476bf3bd7c",
+     "triangles": 14996,
      "bounds": [
-      -0.19132,
-      -0.01653,
-      -0.18247,
-      0.16135,
-      0.29547,
-      -0.02385
+      -0.17358,
+      -0.10822,
+      -0.17413,
+      0.17812,
+      0.27361,
+      -0.00819
      ],
      "structures": [
       {
@@ -20522,7 +20522,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1798
+       "triangles": 1800
       },
       {
        "node": "TS_gluteus_medius_R",
@@ -20577,15 +20577,15 @@
      "system": "muscular",
      "file": "female-back-muscles.atlas",
      "bytes": 63056,
-     "sha256": "f58c929791cec4a3c2fded1dc5aa43cc50a8b7e4f6b81f483721000a20de6ce0",
+     "sha256": "bc824f5c43f84c8e880181592d0f80b1bb0e6177eac582e65fdd0f8343a74776",
      "triangles": 6998,
      "bounds": [
-      -0.11404,
-      0.11003,
-      -0.18308,
-      0.07391,
-      0.62222,
-      -0.09326
+      -0.1077,
+      0.10199,
+      -0.18417,
+      0.07612,
+      0.62886,
+      -0.09994
      ],
      "structures": [
       {

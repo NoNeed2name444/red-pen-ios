@@ -405,11 +405,18 @@ CORRECTED = {
     "VH_F_dura_mater_right": "dural sheath of right optic nerve",
     "VH_F_right_cardinal_ligament_of_uterus": "right cardinal ligament",
     "VH_F_left_cardinal_ligament_of_uterus": "left cardinal ligament",
-    # one mesh each for the whole hip bone (ilium, ischium and pubis)
-    "VH_F_ilium_compact_bone_R": "right hip bone", "VH_F_ilium_compact_bone_L": "left hip bone",
+    # the female set's "hip bone" is the ilium alone, no pubis or ischium (with
+    # her scan, anatomy_gaps.whole_hips puts whole hip bones in its place)
+    "VH_F_ilium_compact_bone_R": "right ilium", "VH_F_ilium_compact_bone_L": "left ilium",
     "VH_F_fat_L": "fatty tissue of left breast", "VH_F_fat_R": "fatty tissue of right breast",
     # the Visible Human Female has six lumbar vertebrae
     "VH_F_lumbar_vertebra_6": "sixth lumbar vertebra (a normal variant)",
+}
+# A corrected label's own UBERON id, where there is one (checked on OLS).
+CORRECTED_UBERON = {
+    f"VH_{x}_{bone}_compact_bone_{s}": "UBERON:" + n
+    for bone, n in (("ilium", "0001273"), ("ischium", "0001274"), ("pubis", "0001275"))
+    for x in "MF" for s in "LR"
 }
 # Parts mirrored left to right about their own middle. The Allen brain
 # came into the organ set with its x axis unflipped: every structure named
@@ -562,7 +569,7 @@ def build_body(sex, glb, crossed):
             structures.append({
                 "node": node,
                 "label": label(node, crossed_row),
-                "uberon": crossed_row[1] if crossed_row and node not in CORRECTED else None,
+                "uberon": crossed_row[1] if crossed_row and node not in CORRECTED else CORRECTED_UBERON.get(node),
                 "tissue": tissue(pid, system, node),
                 "group": parent_label,
                 "inner": bool(re.search(INNER[pid], node)) if pid in INNER else False,
@@ -590,6 +597,34 @@ def write_body(sex, parts, out):
         print(f"{sex:6} {part['id']:18} {len(structures):4} structures {triangles:7} triangles {os.path.getsize(path):9} bytes")
     print(f"{sex}: {total} triangles in {len(entries)} parts")
     return {"id": sex, "name": body["name"], "frame": body["frame"], "source": body["source"]["id"], "parts": entries}
+
+
+# The manifest's account of the changes made ({scales}: each body's brain scale).
+CHANGES = (
+    "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, "
+    "positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but "
+    "the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, "
+    "the female liver's bare area); the brain mirrored left to right so each side lies where its name "
+    "says, and scaled ({scales}) about a point between the medulla's foot and the optic chiasm so it fits "
+    "inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh "
+    "(sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, "
+    "which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper "
+    "teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, "
+    "neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, "
+    "humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two "
+    "TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; "
+    "the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her "
+    "ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib "
+    "cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri "
+    "laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, "
+    "ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body "
+    "(a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the "
+    "scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger "
+    "by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great "
+    "toe's sesamoids found the same way in the CT of one foot per body (a fourth scan for the man's), set "
+    "on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other "
+    "side their mirror image."
+)
 
 
 def main():
@@ -620,27 +655,7 @@ def main():
         "format": 2,
         "sources": [dict(BODIES[s]["source"], sha256=BODIES[s]["sha256"]) for s in BOTH]
                    + [dict(CROSSWALK, sha256=CROSSWALK_SHA256), anatomy_gaps.SKULL_SOURCE, ct],
-        "changes": "Structures simplified to a triangle budget per part, piece by piece with their open "
-                   "edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy "
-                   "bone left out, but the patches that close a hole put back (the femur's lower end, the "
-                   "spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each "
-                   f"side lies where its name says, and scaled ({scales}) about a point between the medulla's foot and the "
-                   "optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where "
-                   "wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); "
-                   "the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, "
-                   "placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp "
-                   "fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, "
-                   "clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach "
-                   "meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures "
-                   "both have; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the "
-                   "skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; "
-                   "the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand "
-                   "per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the "
-                   "scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by "
-                   "finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's "
-                   "sesamoids found the same way in the CT of one foot per body (a fourth scan for the man's), set on the "
-                   "body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their "
-                   "mirror image.",
+        "changes": CHANGES.format(scales=scales),
         "bodies": [write_body(sex, bodies[sex], a.out) for sex in BOTH],
     }
     json.dump(manifest, open(os.path.join(a.out, "anatomy.json"), "w"), indent=1, ensure_ascii=False)

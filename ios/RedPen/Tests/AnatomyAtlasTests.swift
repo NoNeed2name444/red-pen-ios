@@ -338,6 +338,23 @@ for body in manifest.bodies {
         check("\(body.name): the \(side) toes lie in front of the heel, the great toe on the inner side",
               great.z > heel.z + 0.1 && little.z > heel.z + 0.08 && outward * great.x < outward * little.x)
     }
+    // the hip bones whole (ilium, ischium and pubis): the ischium reaching well below the femur's head, the two
+    // pubic bones meeting at the midline. The female organ set's own hip bone is the ilium alone; hers come from
+    // her scan (tools/anatomy_gaps.py, whole_hips)
+    func hipPoints(_ s: String) -> [SIMD3<Float>] {
+        let nodes = body.id == .male ? ["ilium", "ischium", "pubis"].map { "VH_M_\($0)_compact_bone_\(s)" } : ["TS_hip_\(s)"]
+        return nodes.compactMap { mesh($0, in: body) }.flatMap { m in (0..<m.vertexCount).map(m.position) }
+    }
+    let hipL = hipPoints("L"), hipR = hipPoints("R"), femurs = (body.id == .male ? "VH_M_" : "VH_F_") + "femur_"
+    if let femurL = mesh(femurs + "L", in: body), let femurR = mesh(femurs + "R", in: body), !hipL.isEmpty, !hipR.isEmpty {
+        let top = { (m: AnatomyMesh) -> Float in (0..<m.vertexCount).map { m.position($0).y }.max()! }
+        let below = min(top(femurL) - hipL.map(\.y).min()!, top(femurR) - hipR.map(\.y).min()!)
+        let gap = hipL.map(\.x).min()! - hipR.map(\.x).max()!
+        check("\(body.name): each hip bone whole, reaching \(Int(below * 100)) cm below its femur's top; the pubic bones \(Int(gap * 1000)) mm apart",
+              below > 0.04 && gap > -0.004 && gap < 0.012)
+    } else {
+        check("\(body.name): the hip bones and femurs are there", false)
+    }
     // the thyroid in the neck, below the larynx's top and in front of the spine; the adrenals above the kidneys
     let thyroid = centre("TS_thyroid_gland", in: body) ?? SIMD3(9, 9, 9)
     let c7 = centre((body.id == .male ? "VH_M_" : "VH_F_") + "cervical_vertebra_7", in: body) ?? SIMD3(0, 0, 0)
@@ -373,9 +390,13 @@ check("the crosswalk's mislabels are corrected",
       named("VH_M_superior_mesenteric_vein")?.label == "superior mesenteric vein"
       && named("VH_M_left_anterior_descending_artery")?.label.contains("left coronary") == true
       && named("VH_M_ilium_compact_bone_L")?.label == "left ilium"
-      && named("VH_F_ilium_compact_bone_L")?.label == "left hip bone"
       && named("VH_F_left_anterior_descending_artery")?.label.contains("left coronary") == true)
-check("corrected labels drop the wrong UBERON id", named("VH_M_superior_mesenteric_vein")?.uberon == nil)
+check("corrected labels drop the wrong UBERON id, or carry their own",
+      named("VH_M_superior_mesenteric_vein")?.uberon == nil && named("VH_M_pubis_compact_bone_L")?.uberon == "UBERON:0001275"
+        && named("VH_M_ischium_compact_bone_R")?.uberon == "UBERON:0001274")
+check("the woman's whole hip bones, from her scan, stand in for her organ set's ilia",
+      named("TS_hip_L")?.label == "left hip bone" && named("TS_hip_R")?.uberon == "UBERON:0001272"
+        && named("VH_F_ilium_compact_bone_L") == nil)
 check("the female set's sixth lumbar vertebra is named as the variant it is",
       named("VH_F_lumbar_vertebra_6")?.label.contains("normal variant") == true)
 check("a structure from a scan says so; the organ sets' own say nothing",
