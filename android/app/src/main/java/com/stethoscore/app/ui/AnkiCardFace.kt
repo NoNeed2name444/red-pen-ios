@@ -33,7 +33,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -69,8 +74,7 @@ import com.stethoscore.app.ui.ward.*
         if (card.pictureOnFront) CardPicture(card, images, revealed, deck)
         if (card.type == AnkiCardType.CLOZE) {
             // as Anki shows it: the sentence stays where it is, the answer appears in its gap
-            Text(clozeSentence(card.clozeText, revealed), style = WardType.title.textStyle(), color = wardColor(WardToken.ink),
-                modifier = Modifier.semantics { contentDescription = CardReview.clozeSpoken(card.clozeText, revealed) })
+            ClozeSentence(card.clozeText, revealed)
         } else {
             Text(card.displayFront, style = WardType.title.textStyle(), color = wardColor(WardToken.ink))
         }
@@ -113,15 +117,52 @@ import com.stethoscore.app.ui.ward.*
     }
 }
 
-/** A cloze sentence with its gaps as Anki draws them: "[...]" (or the hint), then the answer, bold, in place. */
+/**
+ * A cloze sentence with its gaps as Anki draws them: "[...]" (or the hint),
+ * then the answer, bold, in place. Its words are ink (the owner, 30 Oct, D16:
+ * a revealed answer is ink, the mode's colour an underline under it).
+ */
 @Composable private fun clozeSentence(text: String, revealed: Boolean): AnnotatedString {
-    val ink = wardColor(WardToken.primaryInk)
+    val ink = wardColor(WardToken.ink)
     return buildAnnotatedString {
         CardReview.clozePieces(text).forEach { piece ->
             if (!piece.isGap) append(piece.text)
-            else withStyle(SpanStyle(color = ink, fontWeight = FontWeight.Bold)) { append(if (revealed) piece.text else CardReview.clozeGap(piece)) }
+            else withStyle(SpanStyle(color = ink, fontWeight = FontWeight.Bold)) { append(gapText(piece, revealed)) }
         }
     }
+}
+
+private fun gapText(piece: ClozePiece, revealed: Boolean): String = if (revealed) piece.text else CardReview.clozeGap(piece)
+
+/** Where each gap (or its answer) stands in [clozeSentence]'s text. */
+internal fun clozeGapRanges(text: String, revealed: Boolean): List<IntRange> {
+    var at = 0
+    val out = ArrayList<IntRange>()
+    CardReview.clozePieces(text).forEach { piece ->
+        val shown = if (piece.isGap) gapText(piece, revealed) else piece.text
+        if (piece.isGap && shown.isNotEmpty()) out += at until at + shown.length
+        at += shown.length
+    }
+    return out
+}
+
+/** The cloze sentence, each gap underlined in the mode's colour (D16). A text span cannot colour its own underline, so it is drawn under the text. */
+@Composable private fun ClozeSentence(text: String, revealed: Boolean) {
+    val accent = wardColor(WardToken.primaryInk)
+    val gaps = remember(text, revealed) { clozeGapRanges(text, revealed) }
+    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    Text(clozeSentence(text, revealed), style = WardType.title.textStyle(), color = wardColor(WardToken.ink),
+        onTextLayout = { layout = it },
+        modifier = Modifier.semantics { contentDescription = CardReview.clozeSpoken(text, revealed) }.drawBehind {
+            val l = layout ?: return@drawBehind
+            val width = 2.dp.toPx()
+            for (gap in gaps) for (line in l.getLineForOffset(gap.first)..l.getLineForOffset(gap.last)) {
+                val a = l.getHorizontalPosition(maxOf(gap.first, l.getLineStart(line)), true)
+                val b = l.getHorizontalPosition(minOf(gap.last + 1, l.getLineEnd(line, visibleEnd = true)), true)
+                val y = l.getLineBaseline(line) + 3.dp.toPx()
+                drawLine(accent, Offset(minOf(a, b), y), Offset(maxOf(a, b), y), strokeWidth = width)
+            }
+        })
 }
 
 /** `**term**` markers as real bold. */
@@ -228,10 +269,16 @@ private const val hintsKey = "anki.ratingHintsShown"
     val alpha = WardPress.spec(lift, 0.0, wardNight(), highContrast = ratingHighContrast()).edgeAlpha
     // raised off the base, pressed into it while held (the shared press face, as iOS's)
     val face = Modifier.wardPressFace(shape, lift, wardDepth(pressed), edge = tone(rating).copy(alpha = alpha.toFloat()))
-    // one label for the whole button: the word, when it comes back, and what it means
+    // one label for the whole button: the word, when it comes back, and what it means; the
+    // texts inside it are cleared so TalkBack does not read them a second time
+    val label = CardReview.ratingLabel(rating, whenBack)
     Box(modifier.heightIn(min = CardReview.ratingHeight.dp).then(face)
         .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick)
-        .semantics { contentDescription = CardReview.ratingLabel(rating, whenBack) }
+        .clearAndSetSemantics {
+            contentDescription = label
+            role = Role.Button
+            this.onClick(null) { onClick(); true }
+        }
         .padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             // one line each, never clipped: they shrink to CardReview.leastWordScale of their size

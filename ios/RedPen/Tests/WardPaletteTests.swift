@@ -94,6 +94,15 @@ for dark in [false, true] {
         }
     }
 }
+// A cloze card's revealed answer is ink on the card, the section's accent an
+// underline under it (the owner, 30 Oct, D16): the words read 4.5:1. The
+// underline carries no meaning alone (the answer is also bold), so it is not
+// held to a ratio: the owner's light accents sit under 3:1.
+for dark in [false, true] {
+    let words = WardPalette.contrast(WardPalette.hex(.ink, dark: dark), WardPalette.hex(.surface, dark: dark))
+    let label = "\(dark ? "dark" : "light"): a cloze answer's ink reads 4.5:1 on the card"
+    check(label, words >= 4.5 || owner(label, words), String(format: "%.3f", words))
+}
 check("the monitor card is dark in both modes",
       WardPalette.luminance(WardPalette.hex(.monitor, dark: false)) < 0.05 &&
       WardPalette.luminance(WardPalette.hex(.monitor, dark: true)) < 0.05)

@@ -59,7 +59,7 @@ class AnkiReviewScreenTest {
         compose.onNodeWithText("QUESTION").assertExists()
         compose.onNodeWithText("Reveal").performClick()
         compose.onNodeWithText("How well did you remember it?").assertExists()
-        // the meaning is no caption on the button (the owner, 22 Oct): TalkBack's click label
+        // the meaning is no caption on the button (the owner, 22 Oct): it is in the button's one TalkBack label
         compose.onNodeWithText("I got it").assertDoesNotExist()
         compose.onNodeWithContentDescription("Easy, back in", substring = true).performClick()
         compose.onNodeWithText("1 card left").assertExists()

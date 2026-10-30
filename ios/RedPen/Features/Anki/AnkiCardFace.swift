@@ -241,8 +241,9 @@ struct AnkiCardFace: View {
     }
 
     /// A cloze sentence with its gaps as Anki draws them: "[...]" (or the
-    /// hint) in the section's accent until revealed, then the answer, bold
-    /// and in that accent, in the same place.
+    /// hint) until revealed, then the answer, in the same place. A gap is bold
+    /// ink (the owner, 30 Oct, D16) with the section's accent as an underline
+    /// under it.
     static func clozeSentence(_ text: String, revealed: Bool) -> AttributedString {
         var out = AttributedString()
         for piece in AnkiCard.clozePieces(text) {
@@ -251,7 +252,9 @@ struct AnkiCardFace: View {
                 continue
             }
             var gap = AttributedString(revealed ? piece.text : AnkiCard.clozeGap(piece))
-            gap.foregroundColor = Color.wardPrimaryInk
+            gap.foregroundColor = Color.wardInk
+            gap.underlineStyle = .single
+            gap.underlineColor = Color.wardPrimaryInk
             gap.inlinePresentationIntent = .stronglyEmphasized
             out += gap
         }
@@ -434,7 +437,7 @@ struct AnkiRatingBar: View {
                 .minimumScaleFactor(0.8)
         }
         Button(action: action) { label }
-            .buttonStyle(AnkiRatingButtonStyle(tone: Self.tone(rating), filled: rating == .good))
+            .buttonStyle(AnkiRatingButtonStyle(tone: Self.tone(rating), bold: rating == .good))
             // 1 to 4, Again to Easy - Anki's own keys
             .numberKey(key)
             .accessibilityLabel(Self.spoken(rating, interval: when))
@@ -479,15 +482,15 @@ struct AnkiRatingBar: View {
 }
 
 /// A rating button: a soft tile raised off the base, its words in ink and
-/// its ring in the rating's tone, never a fill. The one to press most (`filled`) says its
+/// its ring in the rating's tone, never a fill. The one to press most (`bold`) says its
 /// word in bold. Held, it is pressed into the base.
 private struct AnkiRatingButtonStyle: ButtonStyle {
     let tone: WardTone
-    var filled = false
+    var bold = false
 
     func makeBody(configuration: Configuration) -> some View {
         AnkiRatingFace(label: configuration.label, pressed: configuration.isPressed,
-                       tone: tone, bold: filled)
+                       tone: tone, bold: bold)
     }
 }
 

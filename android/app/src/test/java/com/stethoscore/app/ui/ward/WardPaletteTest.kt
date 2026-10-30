@@ -72,6 +72,13 @@ class WardPaletteTest {
                 }
             }
         }
+        // A cloze card's revealed answer is ink on the card, the section's accent an underline under it
+        // (the owner, 30 Oct, D16): the words read 4.5:1. The underline carries no meaning alone (the
+        // answer is also bold), so it is not held to a ratio: the owner's light accents sit under 3:1.
+        for (dark in modes) {
+            val words = WardPalette.contrast(WardPalette.hex(WardToken.ink, dark), WardPalette.hex(WardToken.surface, dark))
+            check("${mode(dark)}: a cloze answer's ink reads 4.5:1 on the card", words >= 4.5, f3(words))
+        }
         check("the monitor card is dark in both modes",
             WardPalette.luminance(WardPalette.hex(WardToken.monitor, false)) < 0.05 &&
                 WardPalette.luminance(WardPalette.hex(WardToken.monitor, true)) < 0.05)
