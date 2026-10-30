@@ -450,6 +450,53 @@ check("the slots are WardDock's, and the names shrink to WardDock's least, never
       && slotsSource.contains(".minimumScaleFactor(CGFloat(WardDock.leastNameScale))")
       && !slotsSource.contains(".fixedSize(horizontal: true, vertical: false)"))
 
+// WardChip at the largest sizes (T0161c, App build 40932408856): held to one
+// line, the revealed card's "Not checked yet" chip was wider than the phone
+// and pushed the whole review screen, its ratings with it, 23.7 points past
+// both edges (AccessibilityUITests:117), and the quiz's "34 y" and "Male"
+// failed the Dynamic Type audit (:194). The chip keeps the project's rule
+// (OneLineLabel): one line below the accessibility sizes, so it never breaks
+// mid-word beside flexible content ("Fe-ma-le", 7f3f686a), and any number of
+// lines at them. ChipFlow keeps rows of chips whole and caps a chip wider
+// than the row at the row's width.
+let controlsSource = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardControls.swift", encoding: .utf8)) ?? ""
+let chipSource: String = {
+    guard let a = controlsSource.range(of: "struct WardChip: View {"),
+          let b = controlsSource.range(of: "\n}\n", range: a.upperBound..<controlsSource.endIndex) else { return "" }
+    return String(controlsSource[a.lowerBound..<b.lowerBound])
+}()
+check("WardChip found", !chipSource.isEmpty)
+check("WardChip limits its lines only through OneLineLabel, and holds no ideal width",
+      chipSource.contains("Text(text)\n                .modifier(OneLineLabel())")
+        && !chipSource.contains(".lineLimit(") && !chipSource.contains(".fixedSize(")
+        && !chipSource.contains("minimumScaleFactor"), chipSource)
+let themeSource = (try? String(contentsOfFile: "ios/RedPen/Shared/Theme.swift", encoding: .utf8)) ?? ""
+let oneLine: String = {
+    guard let a = themeSource.range(of: "struct OneLineLabel: ViewModifier {"),
+          let b = themeSource.range(of: "\n}\n", range: a.upperBound..<themeSource.endIndex) else { return "" }
+    return String(themeSource[a.lowerBound..<b.lowerBound])
+}()
+check("WardChip takes its width before flexible words beside it (not cut short below AX)",
+      chipSource.contains(".wardInset(in: Capsule())\n        // first to its width beside flexible words")
+        && chipSource.contains("        .layoutPriority(1)\n        .accessibilityElement(children: .combine)"), chipSource)
+check("OneLineLabel found, and shared (not private)", !oneLine.isEmpty
+        && !themeSource.contains("private struct OneLineLabel"))
+check("below the accessibility sizes a chip is one line, never broken mid-word",
+      oneLine.contains("} else {\n            content\n                .lineLimit(1)\n                .minimumScaleFactor(0.85)"), oneLine)
+check("at the accessibility sizes a chip takes any number of lines",
+      oneLine.contains("if typeSize.isAccessibilitySize {\n            content.lineLimit(nil)"), oneLine)
+check("OneLineLabel limits lines in exactly those two places",
+      oneLine.components(separatedBy: ".lineLimit(").count - 1 == 2, oneLine)
+let flowSource = (try? String(contentsOfFile: "ios/RedPen/Features/Library/TagChips.swift", encoding: .utf8)) ?? ""
+check("ChipFlow places each chip at its own ideal width, so a row wraps whole chips",
+      flowSource.contains("view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))")
+        && flowSource.contains("let ideal: CGSize = view.sizeThatFits(.unspecified)")
+        && flowSource.contains("let size: CGSize = Self.measure(view, width: width)")
+        && flowSource.contains("let size: CGSize = Self.measure(view, width: bounds.width)"))
+check("ChipFlow caps a chip wider than the row at the row's width, to wrap inside it",
+      flowSource.contains("guard width.isFinite, ideal.width > width else { return ideal }\n        return view.sizeThatFits(ProposedViewSize(width: width, height: nil))")
+        && !flowSource.contains("view.sizeThatFits(.unspecified)\n            if x"))
+
 print("ok   words and glyphs: the lowest is \(f(worstText.0)):1 (\(worstText.1))")
 print("ok   disabled from enabled: the nearest is \(f(worstDisabledApart.0)) (\(worstDisabledApart.1))")
 print("ok   chosen from unchosen: the nearest is \(f(worstChosenApart.0)) (\(worstChosenApart.1))")

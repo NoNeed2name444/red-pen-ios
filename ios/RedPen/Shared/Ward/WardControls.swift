@@ -546,17 +546,24 @@ struct WardChip: View {
     var body: some View {
         HStack(spacing: 4) {
             if let symbol { Image(systemName: symbol).imageScale(.small).foregroundStyle(tone.color) }
-            // one line, never broken mid-word: a row that runs out of room
-            // wraps whole chips (ChipFlow), as Android's FlowRow does
+            // one line below the accessibility sizes, never broken mid-word
+            // beside flexible content ("Fe-ma-le"); at them any number of
+            // lines (OneLineLabel), wrapping inside the row's width: held
+            // to one line there, "Not checked yet" alone was wider than a
+            // phone, pushed the revealed card's whole screen past both edges
+            // and failed the Dynamic Type audit (App build 40932408856). A
+            // row that runs out of room wraps whole chips (ChipFlow)
             Text(text)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
+                .modifier(OneLineLabel())
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(tone.ink)
         .padding(.horizontal, WardSpace.s)
         .padding(.vertical, WardSpace.xs)
         .wardInset(in: Capsule())
+        // first to its width beside flexible words, so below the
+        // accessibility sizes it is not squeezed past 85% and cut short
+        .layoutPriority(1)
         .accessibilityElement(children: .combine)
     }
 }

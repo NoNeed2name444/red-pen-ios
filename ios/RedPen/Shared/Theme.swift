@@ -420,8 +420,8 @@ struct BigButtonStyle: ButtonStyle {
 }
 
 /// One line, down to 85% before it would wrap; any number of lines at the
-/// accessibility text sizes.
-private struct OneLineLabel: ViewModifier {
+/// accessibility text sizes. The big buttons and WardChip.
+struct OneLineLabel: ViewModifier {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     func body(content: Content) -> some View {

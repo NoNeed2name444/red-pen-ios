@@ -153,7 +153,7 @@ struct ChipFlow: Layout {
         var line: CGFloat = 0
         var widest: CGFloat = 0
         for view in subviews {
-            let size: CGSize = view.sizeThatFits(.unspecified)
+            let size: CGSize = Self.measure(view, width: width)
             if x > 0 && x + size.width > width {
                 y += line + spacing
                 x = 0
@@ -171,7 +171,7 @@ struct ChipFlow: Layout {
         var y: CGFloat = bounds.minY
         var line: CGFloat = 0
         for view in subviews {
-            let size: CGSize = view.sizeThatFits(.unspecified)
+            let size: CGSize = Self.measure(view, width: bounds.width)
             if x > bounds.minX && x + size.width > bounds.maxX {
                 y += line + spacing
                 x = bounds.minX
@@ -181,5 +181,14 @@ struct ChipFlow: Layout {
             x += size.width + spacing
             line = max(line, size.height)
         }
+    }
+
+    /// A chip at its own one-line width; one wider than the row (a long
+    /// chip at the accessibility sizes) is capped at the row's width and
+    /// wraps inside it, rather than running past the row's edges.
+    private static func measure(_ view: LayoutSubview, width: CGFloat) -> CGSize {
+        let ideal: CGSize = view.sizeThatFits(.unspecified)
+        guard width.isFinite, ideal.width > width else { return ideal }
+        return view.sizeThatFits(ProposedViewSize(width: width, height: nil))
     }
 }
