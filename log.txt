@@ -1,0 +1,4 @@
+== logs/ipad.log
+Test Case '-[RedPenUITests.SciencesUITests testSciencesTour]' started.
+Test Case '-[RedPenUITests.SciencesUITests testSciencesTour]' passed (269.850 seconds).
+** TEST EXECUTE SUCCEEDED **
