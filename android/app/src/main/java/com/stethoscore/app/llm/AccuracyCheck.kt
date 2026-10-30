@@ -2,7 +2,6 @@ package com.stethoscore.app.llm
 
 import com.stethoscore.app.accuracy.AccuracyItem
 import com.stethoscore.app.network.BackendClient
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -67,7 +66,7 @@ object AccuracyCheck {
         val body = JSONArray(items.map { json(it) })
         val reply: JSONObject
         try {
-            reply = withContext(Dispatchers.IO) { client.checkAccuracy(body, priority) }
+            reply = withContext(CloudJobs.io) { client.checkAccuracy(body, priority) }
         } catch (e: BackendClient.BackendException) {
             if (e.status == 0) return Sent(AccuracySendOutcome.Offline, null)
             val said = e.response
