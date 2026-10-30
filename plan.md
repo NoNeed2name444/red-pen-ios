@@ -3568,6 +3568,20 @@ home follow iOS, Settings follows Android.
   platform, accuracy engine, About) as cards too, or as they are.
 - [ ] The next Mac run's screenshots are the proof for iOS (no SwiftUI here).
 
+### Colour roles, the rest of D8 and the cloze answer (30 Oct, T0163)
+
+Owner decision D16 (30 Oct): a cloze card's revealed answer is ink, with the
+mode's colour as an underline under it, on both apps.
+
+- [x] A1 iOS Coverage count chip: chosen, count, words and glyph near-black on the tone's fill.
+- [x] A2 iOS OSCE clock: running, glyph near-black; WardTimerPill `onFill`, the last minute in a warning glyph and bold words.
+- [x] A3 Android ChipBox filled when chosen (Flag, OSCE clock, with WardTimerPill `onFill`) and Coverage CountChip.
+- [x] A4 Comments and doc follow D1 and D8; the equal glyph/ink pairs are one value.
+- [x] A5 Guards: iOS mintForRight gains isTrue and verdict; no chosen chip toned grey; a chip label that can be chosen does not hard-code its colour; Android's grey scan covers the whole call.
+- [x] A6 D16 on both: answer ink, mode colour underline; contrast tests (ink 4.5:1; the underline has no ratio, the owner's light accents sit under 3:1 and it is not the only mark).
+- [x] A7 T0157 nits: test comment, iOS `filled` renamed `bold`, Android RatingButton reads one label.
+- [ ] The next Mac run's screenshots are the proof for iOS (no SwiftUI here).
+
 ### Waiting on the owner
 
 - Deploying the Worker with T0132 attempts 3 and 4 (only the owner is written for; 3.8 Flash, audio on it alone): built and tested here, not deployed.

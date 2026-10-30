@@ -22,6 +22,9 @@ Owner decisions this follows:
   White words are not used there. A toned chosen chip keeps its tone fill,
   with near-black words (Coverage's status chips; Hint, Flag and the mock's
   Flag in Optimistic Amber).
+- D16 (30 Oct): a cloze card's revealed answer is ink, with the mode's colour
+  as an underline under it, on both platforms. The "[...]" gap before it is
+  the same: bold ink under the same underline, so nothing moves on reveal.
 
 ## Where you are: the mode colour
 
@@ -52,6 +55,7 @@ kinds, Turn into) takes that mode's colour, not the screen's.
 | A chosen chip or segment (D8): its fill, and its words and glyph | `wardPrimary` / `WardToken.primary` under `wardOnAccent` / `WardToken.onAccent` | the mode colour under near-black #090E15 |
 | The mode's glyphs, edges, rings, chosen tab, chosen chip or segment edge, toggle track, focus ring, link glyph, progress | `wardPrimaryInk`, `wardPrimary`, `wardEdge` / `WardToken.primaryInk`, `primary`, `WardRelief.edgeColor` | the mode colour |
 | A given mode's own glyph | `wardAccent(section)` / `wardAccent(section)`, `WardTone.accent` | that mode's colour |
+| A cloze card's answer (D16) | words `wardInk` / `WardToken.ink`; underline `wardPrimaryInk` / `WardToken.primaryInk`, 2 pt | ink on the card (4.5:1 or more); the mode colour as a line under it, which carries no meaning alone (the answer is also bold), so it has no ratio |
 | A right answer (check, letter, ring) | `wardPrimaryInk` / `WardToken.primaryInk`, the mode colour token (D7) | the mode colour, in every mode |
 | A wrong answer | the faded row (`wardFaded`, `wardFadedInk`); its cross glyph `wardDanger` | grey; Vital Coral #FF6B6B for a cross outside an option row |
 | Scores and rings | the mode colour (D3) | the mode colour |
@@ -221,9 +225,15 @@ No line is left that no decision covers.
 | Android | learn/WardRoundViews.kt:330 | "Stop the focus session", danger words to ink (the glyph keeps the colour) | D1 |
 | Android | ward/WardControlStates.kt:235 | a chosen segment: the accent fill and near-black words | D8 |
 | Android | ward/WardControls.kt:216-217 | WardChipButton's comment: words ink, glyph in the tone | D1 |
-| Android | ward/WardControls.kt:255 | WardChipButton's glyph: the chosen colour off the fill, near-black on it | D1, D8 |
+| Android | ward/WardControls.kt:255 | WardChipButton's glyph: ink off the fill, near-black on it | D1, D8 |
 | Android | ward/WardStates.kt:124-125, 128, 131, 134 | WardFilterChip: words ink; on, the accent fill and near-black words | D1, D8 |
 | Android | test/.../ward/OwnerAccepted.kt:255-352 (7 ranges) | accepted states cases follow the colour from "its words" to "its glyph"; the chosen chip's and segment's cases are gone, as they now pass | D1, D8 |
 | iOS | Features/Coverage/CoverageView.swift:465-466 | the count chip's comment: words ink, the status colour on its glyph | D1 |
 | iOS | Features/MCQ/MCQQuizView.swift:751 | the verdict label's words to ink; its mark in the mode colour | D1, D7 |
 | iOS | Tests/OwnerAccepted.json:188-337 (7 ranges) | as Android's OwnerAccepted.kt | D1, D8 |
+| iOS | Features/Coverage/CoverageView.swift:462-492 | the count chip: chosen, its count, words and glyph are near-black on the tone's fill; off, unchanged | D8 |
+| iOS | Features/OSCE/OsceReviewView.swift:148-152 | the station clock, running: its glyph and WardTimerPill (`onFill`) near-black; the last minute shows in a warning glyph and bold words | D8 |
+| Android | coverage/CoverageScreen.kt:236-255 | CountChip: chosen, the tone fills it (wardPressFace, wardChosenEdge) under near-black count, words and glyph | D8 |
+| Android | mock/MockKit.kt:196-232 | ChipBox: on and enabled, the tone (or the accent) fills it under near-black words and glyph (Flag, the OSCE clock) | D8 |
+| Android | ward/WardControls.kt:383-405 | WardTimerPill gains `onFill`, as iOS's | D8 |
+| Both | AnkiCardFace.swift:243-258, AnkiCardFace.kt clozeSentence | a cloze gap and its answer: bold ink, the mode colour as an underline | D16 |
