@@ -444,8 +444,8 @@ private fun SittingBody(sitting: MockSitting, store: StudyStore, resumed: MockSi
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             WardSmallCapsText("Pick the one best answer", Modifier.weight(1f))
             ChipBox(on, onFlag, Modifier.semantics { contentDescription = if (on) "Remove flag" else "Flag for review" }, tone = WardTone.Warning) {
-                Icon(if (on) Icons.Rounded.Flag else Icons.Outlined.Flag, null, Modifier.size(16.dp), tint = chipInk(on, WardTone.Warning))
-                Text(if (on) "Flagged" else "Flag", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = chipInk(on, WardTone.Warning))
+                Icon(if (on) Icons.Rounded.Flag else Icons.Outlined.Flag, null, Modifier.size(16.dp), tint = chipInk(on))
+                Text(if (on) "Flagged" else "Flag", style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = chipInk(on))
             }
         }
         HighlightableStem(q.stem, AnnotatedString(q.stem), marked, onMarked, highlighting,

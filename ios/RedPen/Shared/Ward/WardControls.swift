@@ -24,13 +24,13 @@ enum WardTone: Equatable {
         }
     }
 
-    /// Small text in this tone, on the base or in a well pressed into it
-    /// (a chip, a pill). Every tone's words clear 4.5:1 there, in light and
-    /// dark, with and without Increase Contrast, but Pager Amber (3.3:1 in
-    /// the light scheme), so amber words read in Caution Amber; a glyph
-    /// keeps the tone's own colour. WardPaletteTests holds the ratios on
-    /// the well, shade included, for every ink here and every section's
-    /// accent.
+    /// This tone as a chosen chip's or segment's fill, and the edge round
+    /// it, on the base or in a well pressed into it (the owner, 30 Oct, D8).
+    /// Pager Amber is 3.3:1 in the light scheme, so amber reads as Caution
+    /// Amber; every other tone is its own colour. Near-black words
+    /// (`onAccent`) sit on it, and WardPaletteTests holds the ratios on the
+    /// well, shade included, for every ink here and every section's accent.
+    /// A glyph off the fill keeps the tone's own `color`; words are ink (D1).
     var ink: Color {
         switch self {
         case .amber, .warning: return .wardWarning
@@ -260,14 +260,14 @@ extension View {
 }
 
 /// The buttons: soft capsules raised off the base, 56 points tall, at most
-/// 360 points wide on a broad iPad. The kind shows in the label's colour
+/// 360 points wide on a broad iPad. The kind shows in its glyph's colour
 /// (the section's accent, Chart Ink, Resus Red), never a fill, and the
 /// primary stands a step higher; held, a button is pressed into the base;
 /// disabled, it sinks to the lowest step and says its word in Biro Grey
 /// (Color.wardDisabledInk), solid, so it is told from an enabled one of any
 /// kind: the owner wants nothing in the app to look faded. Compact and
-/// quiet are the small 44-point ones for a card or a panel: compact says
-/// its word in the accent, quiet in Chart Ink.
+/// quiet are the small 44-point ones for a card or a panel: compact shows
+/// the accent on its glyph; every kind's words are ink.
 struct WardButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, destructive, compact, quiet }
     var kind: Kind = .primary
@@ -423,14 +423,9 @@ private struct WardChipButtonFace: View {
     /// Chosen and enabled: the chosen colour fills it (the owner, 30 Oct, D8).
     private var filled: Bool { on && enabled }
 
-    /// Words are ink (the owner, 23 Oct, D1); on the chosen fill, words and
-    /// glyph are near-black (D8).
+    /// Words and glyph, one colour: ink (the owner, 23 Oct, D1); on the
+    /// chosen fill, near-black (D8).
     private var ink: Color {
-        if !enabled { return .wardDisabledInk }
-        return filled ? .wardOnAccent : .wardInk
-    }
-
-    private var glyph: Color {
         if !enabled { return .wardDisabledInk }
         return filled ? .wardOnAccent : .wardInk
     }
@@ -440,7 +435,7 @@ private struct WardChipButtonFace: View {
         // chosen stays pressed in, disabled too
         let down: Bool = on || held
         label
-            .labelStyle(WardGlyphLabelStyle(glyph: glyph))
+            .labelStyle(WardGlyphLabelStyle(glyph: ink))
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(ink)
             .padding(.horizontal, WardSpace.m)
@@ -659,13 +654,18 @@ struct WardPill: View {
     }
 }
 
-/// An exam timer in SF Mono: Resus Red once it is under `warnBelow`, "Time"
-/// at zero; hours shown for a paper over an hour (1:05:00). `well: false`
-/// drops its own well, for a pill that sits inside a button's face.
+/// An exam timer in SF Mono: Resus Red on its glyph once it is under
+/// `warnBelow`, "Time" at zero; hours shown for a paper over an hour
+/// (1:05:00). `well: false` drops its own well, for a pill that sits inside a
+/// button's face. `onFill: true` is for a pill on a chosen chip's accent
+/// fill: its words and glyph are near-black (the owner, 30 Oct, D8), and as
+/// red is gone there, the last minute shows in a warning glyph and heavier
+/// words instead.
 struct WardTimerPill: View {
     let seconds: Int
     var warnBelow = 60
     var well = true
+    var onFill = false
 
     var body: some View {
         let low: Bool = seconds < warnBelow
@@ -673,12 +673,16 @@ struct WardTimerPill: View {
         let clock: String = h > 0 ? String(format: "%d:%02d:%02d", h, seconds % 3600 / 60, seconds % 60)
             : String(format: "%d:%02d", seconds / 60, seconds % 60)
         let text: String = seconds <= 0 ? "Time" : clock
-        // words are ink (the owner, 23 Oct, D1); low, the timer glyph is red
-        let label = Label(text, systemImage: "timer")
-            .labelStyle(WardGlyphLabelStyle(glyph: low ? Color.wardDanger : Color.wardInk))
-            .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+        // words are ink (the owner, 23 Oct, D1); low, the timer glyph is red.
+        // On a fill both are near-black and low is told by shape and weight.
+        let words: Color = onFill ? Color.wardOnAccent : Color.wardInk
+        let glyph: Color = onFill ? Color.wardOnAccent : (low ? Color.wardDanger : Color.wardInk)
+        let symbol: String = onFill && low ? "exclamationmark.triangle.fill" : "timer"
+        let label = Label(text, systemImage: symbol)
+            .labelStyle(WardGlyphLabelStyle(glyph: glyph))
+            .font(.system(.subheadline, design: .monospaced).weight(onFill && low ? .bold : .semibold))
             .monospacedDigit()
-            .foregroundStyle(Color.wardInk)
+            .foregroundStyle(words)
         if well {
             label
                 .padding(.horizontal, WardSpace.m)

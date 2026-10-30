@@ -195,8 +195,11 @@ internal enum class BigKind { primary, secondary, companion }
 
 /**
  * A chip that is a button, holding any label (WardChipButtonStyle): a
- * capsule raised just off the base; chosen or held, pressed in, with a solid
- * edge in [tone] (the accent when it has none) when chosen.
+ * capsule raised just off the base; chosen or held, pressed in. Chosen and
+ * enabled, [tone] (the accent when it has none) fills it, its words and
+ * glyph are near-black ([chipInk], the owner, 30 Oct, D8) and a solid edge in
+ * the same colour goes round it. Chosen and disabled, it keeps the edge,
+ * unfilled.
  */
 @Composable internal fun ChipBox(on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, tone: WardTone? = null,
                                  enabled: Boolean = true, content: @Composable RowScope.() -> Unit) {
@@ -209,16 +212,17 @@ internal enum class BigKind { primary, secondary, companion }
         .selectable(on, enabled = enabled, role = Role.Button, interactionSource = source, indication = null, onClick = onClick)
         .capPop(held), contentAlignment = Alignment.Center) {
         Row(Modifier.wardChosenEdge(CircleShape, on, chosenInk)
-            .wardPressFace(CircleShape, WardLift.low, wardDepth(look.stand.isPressedIn))
+            .wardPressFace(CircleShape, WardLift.low, wardDepth(look.stand.isPressedIn),
+                fill = if (on && enabled) chosenInk else wardColor(WardToken.surface))
             .padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), content = content)
     }
 }
 
-/** A chip's words and glyph in its colours: [tone] when chosen, Chart Ink at rest, Biro Grey disabled. */
-@Composable internal fun chipInk(on: Boolean, tone: WardTone? = null, enabled: Boolean = true): Color = when {
+/** A chip's words and glyph, one colour: near-black on the chosen fill (D8), Chart Ink at rest (D1), Biro Grey disabled. */
+@Composable internal fun chipInk(on: Boolean, enabled: Boolean = true): Color = when {
     !enabled -> wardDisabledInk()
-    on -> tone?.ink() ?: wardColor(WardToken.primaryInk)
+    on -> wardColor(WardToken.onAccent)
     else -> wardColor(WardToken.ink)
 }
 

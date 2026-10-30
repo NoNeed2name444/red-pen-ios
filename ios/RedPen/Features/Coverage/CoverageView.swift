@@ -461,9 +461,9 @@ struct CoverageView: View {
 
 /// One of the three counts at the top, the label of a chip button that
 /// filters the rows to its status. WardChipButtonStyle draws the chip:
-/// raised off the base; the chosen one pressed in, with an edge in its tone.
-/// The count and words in ink, secondary until chosen; the status's colour
-/// on its glyph.
+/// raised off the base; the chosen one pressed in, filled with its tone,
+/// under near-black count, words and glyph (the owner, 30 Oct, D8). Off, the
+/// count is ink, the words secondary, and the status's colour is on the glyph.
 private struct CoverageCountChip: View {
     let count: Int
     let status: CoverageStatus
@@ -471,16 +471,19 @@ private struct CoverageCountChip: View {
 
     var body: some View {
         let colour: Color = CoverageView.color(status)
-        // words and the count are ink (the owner, 23 Oct, D1); the status's
-        // colour is on its glyph
-        let words: Color = chosen ? Color.wardInk : Color.wardInkSecondary
+        // off, words and the count are ink (the owner, 23 Oct, D1) and the
+        // status's colour is on its glyph; on the tone's fill (D8) all three
+        // are near-black
+        let countInk: Color = chosen ? Color.wardOnAccent : Color.wardInk
+        let words: Color = chosen ? Color.wardOnAccent : Color.wardInkSecondary
+        let glyph: Color = chosen ? Color.wardOnAccent : colour
         VStack(spacing: 2) {
             Text("\(count)")
                 .font(WardType.obsLarge)
                 .monospacedDigit()
-                .foregroundStyle(Color.wardInk)
+                .foregroundStyle(countInk)
             Label(status.label, systemImage: CoverageView.symbol(status))
-                .labelStyle(WardGlyphLabelStyle(glyph: colour))
+                .labelStyle(WardGlyphLabelStyle(glyph: glyph))
                 .font(.caption)
                 .foregroundStyle(words)
                 .lineLimit(1)

@@ -146,10 +146,11 @@ struct OsceReviewView: View {
                 // red in the last minute only while the clock runs
                 let warnBelow: Int = running ? 61 : 0
                 HStack(spacing: WardSpace.s) {
+                    // running, the chip is filled and its glyph near-black (D8)
                     Image(systemName: symbol)
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Color.wardPrimaryInk)
-                    WardTimerPill(seconds: left, warnBelow: warnBelow, well: false)
+                        .foregroundStyle(running ? Color.wardOnAccent : Color.wardPrimaryInk)
+                    WardTimerPill(seconds: left, warnBelow: warnBelow, well: false, onFill: running)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Station clock, " + SpokenText.duration(seconds: left))

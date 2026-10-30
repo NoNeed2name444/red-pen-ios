@@ -126,15 +126,15 @@ fun wardScoreTone(value: Double): WardTone = when {
  * off, its words are ink (the owner, 23 Oct, D1).
  */
 @Composable fun WardFilterChip(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+    // words and glyph are one colour
     val ink = wardColor(if (selected) WardToken.onAccent else WardToken.ink)
-    val glyph = ink
     Box(modifier.defaultMinSize(minHeight = WardControlSize.target.wardDp).selectable(selected, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center) {
         Row(Modifier.heightIn(min = WardControlSize.segment.wardDp).wardPressFace(CircleShape, WardLift.low, wardDepth(selected),
             fill = wardColor(if (selected) WardToken.primary else WardToken.surface))
             .padding(horizontal = WardSpace.m.wardDp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (icon != null) Icon(icon, null, tint = glyph, modifier = Modifier.size(14.dp))
+            if (icon != null) Icon(icon, null, tint = ink, modifier = Modifier.size(14.dp))
             Text(text, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = ink, maxLines = 1)
         }
     }

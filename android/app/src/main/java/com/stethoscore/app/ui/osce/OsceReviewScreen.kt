@@ -269,9 +269,10 @@ fun OsceReviewScreen(set: StudySet, store: StudyStore, onBack: () -> Unit, start
                     contentDescription = "Station clock, " + spokenDuration(left)
                     stateDescription = if (running) "Pauses the clock" else if (left == 0) "Resets the clock" else "Starts the clock"
                 }) {
-                    Icon(icon, null, Modifier.size(16.dp), tint = wardColor(WardToken.primaryInk))
+                    // running, the chip is filled and its glyph near-black (D8)
+                    Icon(icon, null, Modifier.size(16.dp), tint = wardColor(if (running) WardToken.onAccent else WardToken.primaryInk))
                     // red in the last minute only while the clock runs
-                    WardTimerPill(left, warnBelow = if (running) 61 else 0, well = false)
+                    WardTimerPill(left, warnBelow = if (running) 61 else 0, well = false, onFill = running)
                 }
             }
         }

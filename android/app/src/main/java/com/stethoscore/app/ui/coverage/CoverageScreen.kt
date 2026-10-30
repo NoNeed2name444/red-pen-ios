@@ -75,7 +75,9 @@ import com.stethoscore.app.ui.ward.WardToken
 import com.stethoscore.app.ui.ward.WardType
 import com.stethoscore.app.ui.ward.WardWeight
 import com.stethoscore.app.ui.ward.textStyle
-import com.stethoscore.app.ui.ward.wardRelief
+import com.stethoscore.app.ui.ward.wardChosenEdge
+import com.stethoscore.app.ui.ward.wardDepth
+import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.wardColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -232,20 +234,24 @@ object CoverageWords {
     }
 }
 
-/** One of the three counts at the top, as a chip that filters the rows to its status; the chosen one is pressed in. The count and words are ink, secondary until chosen; the status's tone is on its glyph (the owner, 23 Oct, D1). */
+/** One of the three counts at the top, as a chip that filters the rows to its status; the chosen one is pressed in and filled with its tone under near-black count, words and glyph (the owner, 30 Oct, D8). Off, the count is ink, the words secondary, and the status's tone is on its glyph (D1). */
 @Composable private fun CountChip(count: Int, status: CoverageStatus, chosen: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val tone = CoverageWords.tone(status)
-    val words = if (chosen) wardColor(WardToken.ink) else wardColor(WardToken.inkSecondary)
+    val onFill = wardColor(WardToken.onAccent)
+    val countInk = if (chosen) onFill else wardColor(WardToken.ink)
+    val words = if (chosen) onFill else wardColor(WardToken.inkSecondary)
+    val fill = tone.ink()
     val source = remember { MutableInteractionSource() }
     Column(modifier.defaultMinSize(minHeight = 56.dp)
         .selectable(chosen, interactionSource = source, indication = null, role = Role.Button, onClick = onClick)
         .semantics(mergeDescendants = true) { stateDescription = if (chosen) "Shows every row again" else "Shows only these" }
-        .wardRelief(CircleShape, WardLift.low, inset = chosen)
+        .wardChosenEdge(CircleShape, chosen, fill)
+        .wardPressFace(CircleShape, WardLift.low, wardDepth(chosen), fill = if (chosen) fill else wardColor(WardToken.surface))
         .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("$count", style = WardType.obsLarge.textStyle(), color = wardColor(WardToken.ink))
+        Text("$count", style = WardType.obsLarge.textStyle(), color = countInk)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(CoverageWords.icon(status), null, tint = tone.color(), modifier = Modifier.size(12.dp))
+            Icon(CoverageWords.icon(status), null, tint = if (chosen) onFill else tone.color(), modifier = Modifier.size(12.dp))
             Text(status.label, style = WardTextStyle.caption.textStyle(), color = words, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
