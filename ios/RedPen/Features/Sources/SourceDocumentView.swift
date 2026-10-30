@@ -34,7 +34,7 @@ struct SourceDocumentView: View {
                 VStack(spacing: WardSpace.m) {
                     EcgLoader()
                     Text(preparingLine)
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -178,7 +178,7 @@ struct TextPagesView: View {
                 .wardSmallCaps()
             if p.isBlank {
                 Label(blank, systemImage: "photo")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             } else {
                 LecturePassageText(text: p.text, page: p.number)
                     .foregroundStyle(Color.wardInk)

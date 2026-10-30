@@ -62,7 +62,7 @@ struct ExamplesHubView: View {
             Section {
                 libraryNotes
             } header: { Text("In the library") }
-            .font(.subheadline)
+            .font(WardType.face(.subheadline, weight: .regular))
             .wardRowBackground()
         }
         .wardForm()
@@ -82,7 +82,7 @@ struct ExamplesHubView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     ExamplesHeading(title: "In the library")
                     VStack(alignment: .leading, spacing: 10) { libraryNotes }
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInk)
                         .wardCard()
                 }
@@ -274,8 +274,8 @@ private struct ExampleRowLabel: View {
         HStack(spacing: 14) {
             WardIconSquare(symbol: symbol, size: 34)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
-                Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text(title).font(WardType.face(.body, weight: .semibold)).foregroundStyle(Color.wardInk)
+                Text(detail).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .padding(.vertical, 2)
@@ -294,10 +294,10 @@ private struct ExampleTile: View {
             WardIconSquare(symbol: symbol, size: 36)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.body.weight(.semibold))
+                    .font(WardType.face(.body, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 Text(detail)
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(3)
             }

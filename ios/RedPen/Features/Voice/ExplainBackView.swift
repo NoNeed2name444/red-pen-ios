@@ -130,7 +130,7 @@ struct ExplainBackView: View {
                 .frame(minHeight: 28)
                 .wardField()
             Text(sourceNote)
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(2)
         }
@@ -195,7 +195,7 @@ struct ExplainBackView: View {
             let words: String = liveText.isEmpty ? "Listening\u{2026} start explaining." : liveText
             ScrollView {
                 Text(words)
-                    .font(.body)
+                    .font(WardType.body)
                     .foregroundStyle(Color.wardInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -225,7 +225,7 @@ struct ExplainBackView: View {
     private var notes: some View {
         if listener.listening && !listener.onDevice {
             Text("This iPhone recognises speech on Apple's servers, which stop after about a minute. Stop and carry on in parts - each part is added to the end.")
-                .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
         }
         if let heardFailure = listener.failure {
             WardBanner(tone: .warning, symbol: "exclamationmark.triangle.fill", text: heardFailure)
@@ -235,7 +235,7 @@ struct ExplainBackView: View {
         }
         if needsMore {
             Text("Say a little more first - at least a few sentences.")
-                .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
         }
     }
 
@@ -422,9 +422,9 @@ private struct ExplainSetChipLabel: View {
             Image(systemName: "books.vertical")
             Text(title).lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
-                .font(.caption2)
+                .font(WardType.face(.caption2, weight: .regular))
         }
-        .font(.subheadline.weight(.semibold))
+        .font(WardType.face(.subheadline, weight: .semibold))
         .foregroundStyle(Color.wardPrimaryInk)
         .padding(.horizontal, WardSpace.l)
         .frame(minHeight: 44)
@@ -552,7 +552,7 @@ private struct ExplainAttemptLabel: View {
                     if attempt.isExample { VoiceExampleTag() }
                 }
                 Text(attempt.date, format: .dateTime.day().month().hour().minute())
-                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer()
             Text("\(score)")
@@ -589,7 +589,7 @@ struct ExplainResultView: View {
                 }
                 if !attempt.result.oneTip.isEmpty {
                     Label(attempt.result.oneTip, systemImage: "lightbulb")
-                        .font(.callout)
+                        .font(WardType.face(.callout, weight: .regular))
                         .foregroundStyle(Color.wardInk)
                 }
             } header: {
@@ -602,7 +602,7 @@ struct ExplainResultView: View {
             points("Wrong", attempt.result.wrong, symbol: "xmark.circle.fill", color: Color.wardDanger)
 
             Section("What you said") {
-                Text(attempt.transcript).font(.callout).foregroundStyle(Color.wardInkSecondary)
+                Text(attempt.transcript).font(WardType.face(.callout, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
         }
@@ -625,7 +625,7 @@ struct ExplainResultView: View {
         let note: String = madeMessage ?? "One card for each point missed or wrong, saved as a new deck."
         let title: String = making ? "Writing cards\u{2026}" : "Make cards from what I missed"
         Text(note)
-            .font(.footnote)
+            .font(WardType.face(.footnote, weight: .regular))
             .foregroundStyle(Color.wardInkSecondary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
@@ -648,7 +648,7 @@ struct ExplainResultView: View {
     private func points(_ title: String, _ items: [String], symbol: String, color: Color) -> some View {
         Section("\(title) (\(items.count))") {
             if items.isEmpty {
-                Text("Nothing").font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                Text("Nothing").font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 Label {
@@ -656,7 +656,7 @@ struct ExplainResultView: View {
                 } icon: {
                     Image(systemName: symbol).foregroundStyle(color)
                 }
-                .font(.callout)
+                .font(WardType.face(.callout, weight: .regular))
             }
         }
         .wardRowBackground()

@@ -20,7 +20,7 @@ struct ExamPickerView: View {
             if isOnboarding {
                 Section {
                     Text("Questions and mock papers follow this exam\u{2019}s format. Change it in Settings.")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .listRowBackground(Color.clear)
                 }
@@ -36,7 +36,7 @@ struct ExamPickerView: View {
             }
             Section {
                 Text("Formats and blueprints come from each exam's published outline; where an exam publishes no percentages the weights are our estimate and are marked approximate. Always check the official candidate guide.")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
@@ -106,7 +106,7 @@ struct ExamPickerView: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(exam.name).foregroundStyle(Color.wardInk)
-                    Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    Text(detail).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 8)
                 if chosen {

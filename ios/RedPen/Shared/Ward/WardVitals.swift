@@ -44,7 +44,7 @@ struct WardRing: View {
                     .lineLimit(1)
                     .contentTransition(.numericText())
                     .foregroundStyle(Color.wardInk)
-                if let label { Text(label).font(.caption2).lineLimit(1).foregroundStyle(Color.wardInkSecondary) }
+                if let label { Text(label).font(WardType.face(.caption2, weight: .regular)).lineLimit(1).foregroundStyle(Color.wardInkSecondary) }
             }
             .padding(lineWidth)
             .minimumScaleFactor(0.5)
@@ -134,7 +134,7 @@ struct ObsValue: View {
                 Text(value).font(WardType.obs.weight(.semibold)).foregroundStyle(flag == nil ? Color.wardInk : Color.wardDanger)
                 if let flag {
                     Image(systemName: flag == .high ? "arrow.up" : "arrow.down")
-                        .font(.caption.weight(.bold))
+                        .font(WardType.face(.caption, weight: .bold))
                         .foregroundStyle(Color.wardDanger)
                         .accessibilityLabel(flag == .high ? "high" : "low")
                 }

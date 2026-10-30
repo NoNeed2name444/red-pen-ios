@@ -139,16 +139,16 @@ private struct SwitcherListSheet<Value: Hashable>: View {
         } label: {
             HStack(spacing: 14) {
                 Image(systemName: item.symbol)
-                    .font(.title2)
+                    .font(WardType.face(.title2, weight: .regular))
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)
                 Text(title)
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 if chosen {
                     Image(systemName: "checkmark")
-                        .font(.headline)
+                        .font(WardType.headline)
                         .foregroundStyle(tint)
                         .accessibilityHidden(true)
                 }
@@ -206,7 +206,7 @@ private struct SwitcherSegment<Value: Hashable>: View {
                 Image(systemName: item.symbol)
                     .scaledFont(17, relativeTo: .body, weight: .semibold, maxSize: 28)
                 Text(L10n.lookup(item.title))
-                    .font(.caption2.weight(.bold))
+                    .font(WardType.face(.caption2, weight: .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }

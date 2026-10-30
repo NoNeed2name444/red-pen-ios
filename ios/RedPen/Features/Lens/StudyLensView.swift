@@ -195,7 +195,7 @@ struct StudyLensView: View {
 
     private func banner<L: View>(_ label: L) -> some View {
         label
-            .font(.footnote.weight(.semibold))
+            .font(WardType.face(.footnote, weight: .semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Color.wardMonitor.opacity(0.85), in: Capsule())
@@ -207,7 +207,7 @@ struct StudyLensView: View {
         VStack(spacing: 10) {
             Label("Pictures stay on this device. Only a question you tap is sent to be answered.",
                   systemImage: "lock.shield")
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(.white.opacity(0.9))
                 .multilineTextAlignment(.center)
             HStack(spacing: 10) {
@@ -437,10 +437,10 @@ struct LensChip: View {
         Button(action: action) {
             HStack(spacing: 5) {
                 Image(systemName: question.type.symbol)
-                    .font(.caption.weight(.bold))
+                    .font(WardType.face(.caption, weight: .bold))
                     .foregroundStyle(tint)
                 Text(label)
-                    .font(.caption.weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold))
                     .lineLimit(1)
             }
             .foregroundStyle(.white)

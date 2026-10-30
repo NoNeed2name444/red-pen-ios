@@ -135,11 +135,11 @@ private struct WardStatesTileLabel: View {
     var body: some View {
         VStack(spacing: WardSpace.xs) {
             Image(systemName: symbol)
-                .font(.title3.weight(.semibold))
+                .font(WardType.face(.title3, weight: .semibold))
                 .foregroundStyle(enabled ? Color.wardPrimaryInk : Color.wardDisabledInk)
                 .accessibilityHidden(true)
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(enabled ? Color.wardInk : Color.wardDisabledInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)

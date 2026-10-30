@@ -228,7 +228,7 @@ struct ImportInboxSheet: View {
                     VStack(spacing: 8) {
                         EcgLoader()
                         Text("Reading\u{2026}")
-                            .font(.callout)
+                            .font(WardType.face(.callout, weight: .regular))
                             .foregroundStyle(Color.wardInkSecondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -240,7 +240,7 @@ struct ImportInboxSheet: View {
                         WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: problem)
                     } else {
                         Text(elsewhere)
-                            .font(.callout)
+                            .font(WardType.face(.callout, weight: .regular))
                             .foregroundStyle(Color.wardInkSecondary)
                     }
                     takeItThere
@@ -334,9 +334,9 @@ struct ImportInboxSheet: View {
         HStack(spacing: 12) {
             WardIconSquare(symbol: symbol, size: 48)
             VStack(alignment: .leading, spacing: 2) {
-                Text(file.name).font(.headline).foregroundStyle(Color.wardInk).lineLimit(2)
+                Text(file.name).font(WardType.headline).foregroundStyle(Color.wardInk).lineLimit(2)
                 Text(file.kind.label + " \u{00B7} " + sizeText)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
@@ -376,7 +376,7 @@ struct ImportInboxSheet: View {
 
     private func setSummary(_ set: StudySet) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(set.name).font(.title3.weight(.semibold)).foregroundStyle(Color.wardInk)
+            Text(set.name).font(WardType.face(.title3, weight: .semibold)).foregroundStyle(Color.wardInk)
             Text("\(set.kind.label) \u{00B7} \(set.itemCount) items \u{00B7} \(set.subject)")
                 .foregroundStyle(Color.wardInkSecondary)
             Button {

@@ -63,12 +63,12 @@ struct HowToReachCard: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text(entry.name)
-                            .font(.body.weight(.medium))
+                            .font(WardType.face(.body, weight: .medium))
                             .foregroundStyle(Color.wardInk)
                             .multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                         Image(systemName: isOpen ? "chevron.up" : "chevron.down")
-                            .font(.caption.weight(.semibold))
+                            .font(WardType.face(.caption, weight: .semibold))
                             .foregroundStyle(Color.wardInkSecondary)
                             .contentTransition(.identity)
                     }
@@ -77,7 +77,7 @@ struct HowToReachCard: View {
                 .buttonStyle(.plain)
                 .accessibilityHint(Text(isOpen ? "Hides the findings" : "Shows the findings for and against"))
             } else {
-                Text(entry.name).font(.body.weight(.medium)).foregroundStyle(Color.wardInk)
+                Text(entry.name).font(WardType.face(.body, weight: .medium)).foregroundStyle(Color.wardInk)
             }
             if isOpen {
                 detail(entry)
@@ -99,16 +99,16 @@ struct HowToReachCard: View {
                 findingLine("Test", entry.test, symbol: "testtube.2", tint: Color.wardInkSecondary)
             }
         }
-        .font(.subheadline)
+        .font(WardType.face(.subheadline, weight: .regular))
         .padding(.leading, 4)
     }
 
     private func findingLine(_ title: String, _ text: String, symbol: String, tint: Color) -> some View {
         var line = AttributedString(title + ": ")
-        line.font = Font.subheadline.weight(.semibold)
+        line.font = WardType.face(.subheadline, weight: .semibold)
         line += AttributedString(text)
         return HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: symbol).foregroundStyle(tint).font(.caption)
+            Image(systemName: symbol).foregroundStyle(tint).font(WardType.caption)
             Text(line).foregroundStyle(Color.wardInk)
         }
     }
@@ -117,11 +117,11 @@ struct HowToReachCard: View {
 
     private var sources: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("Sources").font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
+            Text("Sources").font(WardType.face(.caption, weight: .semibold)).foregroundStyle(Color.wardInkSecondary)
             if let lecture, !lecture.isEmpty {
-                Label(lecture, systemImage: "doc.text").font(.caption)
+                Label(lecture, systemImage: "doc.text").font(WardType.caption)
             } else {
-                Text("From the lecture").font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text("From the lecture").font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(differential.evidence, id: \.self) { ref in
                 evidenceLink(ref)
@@ -133,10 +133,10 @@ struct HowToReachCard: View {
     private func evidenceLink(_ ref: EvidenceRef) -> some View {
         if let url = URL(string: ref.url), !ref.url.isEmpty {
             Link(destination: url) {
-                Label(ref.label, systemImage: "link").font(.caption).lineLimit(2)
+                Label(ref.label, systemImage: "link").font(WardType.caption).lineLimit(2)
             }
         } else {
-            Label(ref.label, systemImage: "link").font(.caption).lineLimit(2)
+            Label(ref.label, systemImage: "link").font(WardType.caption).lineLimit(2)
         }
     }
 }

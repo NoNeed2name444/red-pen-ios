@@ -91,7 +91,7 @@ struct ExamDayKitView: View {
     private func tip(_ symbol: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol).foregroundStyle(Color.wardPrimaryInk).frame(width: 24).accessibilityHidden(true)
-            Text(text).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+            Text(text).font(WardType.face(.subheadline, weight: .regular)).fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 2)
     }
@@ -110,7 +110,7 @@ struct ExamDayKitView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
+                    .font(WardType.face(.title3, weight: .regular))
                     .foregroundStyle(done ? Color.wardSuccess : Color.wardInkSecondary)
                     .accessibilityHidden(true)
                 Text(text).foregroundStyle(Color.wardInk)

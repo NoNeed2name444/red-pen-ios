@@ -115,10 +115,10 @@ struct AccountView: View {
             }
             if !subscriptions.isPro {
                 Text("Keeping your iPhone and iPad the same is part of Pro.")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             } else if isLocalOnly {
                 Text("This library is only on this device. Link another device to keep them the same.")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             if headerAction != .link {
                 Button { if subscriptions.isPro { linking = true } else { showPaywall = true } } label: {
@@ -132,7 +132,7 @@ struct AccountView: View {
                 // somebody else's library is on this device: nothing of it
                 // goes into this account until the student says so
                 Text("The library on this device was synced with another account. Nothing syncs until you choose.")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 Button("Add it to this account") {
                     Task { await sync.chooseLibrary(addToAccount: true) }
                 }
@@ -141,7 +141,7 @@ struct AccountView: View {
                 }
             } else if sync.setsKeptHere > 0 {
                 Text(keptNote)
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 Button("Add them to this account") {
                     Task { await sync.addKeptSets() }
                 }
@@ -296,11 +296,11 @@ private struct AccountHeaderCard<Action: View>: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(person.shownName)
-                    .font(.title3.weight(.semibold))
+                    .font(WardType.face(.title3, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(1)
                 Text(Self.how(person, localOnly: localOnly))
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)

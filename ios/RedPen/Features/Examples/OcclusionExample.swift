@@ -317,7 +317,7 @@ struct OcclusionExampleView: View {
                 VStack(spacing: 12) {
                     EcgLoader()
                     Text("Reading the heart diagram\u{2019}s labels\u{2026}")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

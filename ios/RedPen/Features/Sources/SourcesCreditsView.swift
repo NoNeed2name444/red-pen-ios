@@ -64,20 +64,20 @@ struct SetCreditsView: View {
                         WardIconSquare(symbol: lecture.source.kind.symbol, tone: .blue, size: 32)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(lecture.source.name.isEmpty ? "Untitled lecture" : lecture.source.name)
-                                .font(.body.weight(.medium))
+                                .font(WardType.face(.body, weight: .medium))
                                 .foregroundStyle(Color.wardInk)
                             Text(lecture.detail)
-                                .font(.caption)
+                                .font(WardType.caption)
                                 .foregroundStyle(Color.wardInkSecondary)
                             if lecture.cited > 0 {
                                 Text("Cited by \(lecture.cited) \(lecture.cited == 1 ? set.itemNoun : set.itemNoun + "s")")
-                                    .font(.caption)
+                                    .font(WardType.caption)
                                     .foregroundStyle(Color.wardInkSecondary)
                             }
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.forward")
-                            .font(.caption.weight(.semibold))
+                            .font(WardType.face(.caption, weight: .semibold))
                             .foregroundStyle(Color.wardInkSecondary)
                             .accessibilityHidden(true)
                     }
@@ -89,9 +89,9 @@ struct SetCreditsView: View {
             ForEach(credits.citedElsewhere, id: \.self) { name in
                 Label {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(name).font(.body.weight(.medium))
+                        Text(name).font(WardType.face(.body, weight: .medium))
                         Text("Cited, but not kept with this set")
-                            .font(.caption)
+                            .font(WardType.caption)
                             .foregroundStyle(Color.wardInkSecondary)
                     }
                 } icon: {
@@ -159,11 +159,11 @@ struct SetCreditsView: View {
         if let url = URL(string: ref.url), url.scheme == "https" {
             Link(destination: url) {
                 Label(ref.title.isEmpty ? ref.url : ref.title, systemImage: "link")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
             }
         } else {
             Label(ref.label, systemImage: "doc.text")
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
         }
     }
 }
@@ -175,7 +175,7 @@ struct ContentLicencesView: View {
         List {
             Section {
                 Text("Lectures, notes and decks you add are yours. \(Brand.name) keeps them on your devices and in your own sync so you can study from them, and claims nothing over them.")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
             } header: {
                 Text("Your material")
             }
@@ -204,13 +204,13 @@ struct ContentSourceDetail: View {
         VStack(alignment: .leading, spacing: 6) {
             if showsUse {
                 Text(source.use)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
             }
             Text(source.attribution)
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
             if let changes = source.changes {
                 Text("Changes: " + changes)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
@@ -219,14 +219,14 @@ struct ContentSourceDetail: View {
             if let url = URL(string: licence.url) {
                 Link(destination: url) {
                     Label(licence.name, systemImage: "checkmark.seal")
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                 }
             }
         }
         if let home = URL(string: source.home) {
             Link(destination: home) {
                 Label(home.host() ?? source.home, systemImage: "safari")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
             }
         }
     }

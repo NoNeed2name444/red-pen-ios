@@ -615,7 +615,7 @@ struct LibraryLoadingView: View {
         VStack(spacing: WardSpace.m) {
             EcgLoader()
             Text("Opening your library…")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -82,7 +82,7 @@ struct OsceGenerateSection: View {
             .wardButtonRow()
             if !sourceName.isEmpty {
                 Label(sourceName, systemImage: "checkmark.circle.fill")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             messages
         } header: {
@@ -98,7 +98,7 @@ struct OsceGenerateSection: View {
         Section {
             if sourceName.isEmpty {
                 Text("Nothing to write from yet \u{2014} go Back and add a file.")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             } else {
                 CountField(title: "How many stations", value: $stationCount,
                            range: 1...OsceGenerator.maxStationsTotal)
@@ -133,7 +133,7 @@ struct OsceGenerateSection: View {
     @ViewBuilder
     private var messages: some View {
         if let status {
-            Text(status).font(.caption).foregroundStyle(Color.wardInkSecondary)
+            Text(status).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
         }
         if let trouble {
             WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)

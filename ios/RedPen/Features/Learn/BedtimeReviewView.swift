@@ -17,16 +17,16 @@ struct BedtimeReviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Today\u{2019}s misses").font(.largeTitle.weight(.semibold)).foregroundStyle(Color.wardInk)
+                    Text("Today\u{2019}s misses").font(WardType.face(.largeTitle, weight: .semibold)).foregroundStyle(Color.wardInk)
                     Text(subtitle(picks.count))
-                        .font(.title3)
+                        .font(WardType.face(.title3, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 ForEach(picks, id: \.question.id) { pick in
                     BedtimeItem(pick: pick, rule: store.ruleSheet[pick.question.id]?.text)
                 }
                 Text("That\u{2019}s all. Good night \u{2014} tomorrow morning, two minutes on these.")
-                    .font(.title3)
+                    .font(WardType.face(.title3, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                 Button("Good night") { dismiss() }
                     .buttonStyle(.wardSecondary)
@@ -60,15 +60,15 @@ private struct BedtimeItem: View {
         let line: String = rule ?? RuleWriter.firstSentence(of: q.explanation)
         VStack(alignment: .leading, spacing: 10) {
             Text(q.stem)
-                .font(.body)
+                .font(WardType.body)
                 .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(4)
             Text(answer)
-                .font(.title2.weight(.semibold))
+                .font(WardType.face(.title2, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
             if !line.isEmpty {
                 Text(line)
-                    .font(.title3)
+                    .font(WardType.face(.title3, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -99,9 +99,9 @@ struct MorningCheckView: View {
                 .scaledFont(52, relativeTo: .largeTitle, maxSize: 80)
                 .foregroundStyle(Color.wardBeam)
                 .accessibilityHidden(true)
-            Text("Morning check").font(.largeTitle.weight(.bold)).foregroundStyle(Color.wardInk)
+            Text("Morning check").font(WardType.face(.largeTitle, weight: .bold)).foregroundStyle(Color.wardInk)
             Text(Self.note(count))
-                .font(.body)
+                .font(WardType.body)
                 .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 480)

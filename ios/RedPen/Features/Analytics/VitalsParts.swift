@@ -64,7 +64,7 @@ struct RhythmMonitor: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(reading.line)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -107,7 +107,7 @@ struct RhythmMonitor: View {
             Image(systemName: "heart.fill")
                 .foregroundStyle(Color.wardEcg)
             Text(words)
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .monospacedDigit()
         }
     }
@@ -138,7 +138,7 @@ private struct MonitorReading: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(label)
-                .font(.caption2.weight(.semibold))
+                .font(WardType.face(.caption2, weight: .semibold))
             Text(value)
                 .font(WardType.obsLarge)
                 .monospacedDigit()
@@ -252,7 +252,7 @@ struct ConsultCard: View {
                 }
             }
             Text(note)
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let first = spots.first {

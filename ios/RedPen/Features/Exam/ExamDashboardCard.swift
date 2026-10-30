@@ -36,7 +36,7 @@ struct ExamDashboardCard: View {
                     EcgLoader().frame(maxWidth: .infinity)
                 }
                 Text(ExamDashboardCard.sourceNote(exam))
-                    .font(.caption2)
+                    .font(WardType.face(.caption2, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
@@ -57,10 +57,10 @@ struct ExamDashboardCard: View {
     private var chooseFirst: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Which exam are you preparing for?", systemImage: "graduationcap")
-                .font(.headline)
+                .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
             Text("Pick it and questions, the plan, the coverage map and mock papers follow its format and blueprint.")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             Button("Choose your exam") { picking = true }
                 .buttonStyle(.wardCompact)
@@ -74,9 +74,9 @@ struct ExamDashboardCard: View {
         let second: String? = ExamChoice.currentSecondary.map { "with \($0.shortName)" }
         return HStack(alignment: .firstTextBaseline, spacing: WardSpace.m) {
             VStack(alignment: .leading, spacing: WardSpace.xs) {
-                Text(exam.name).font(.headline).foregroundStyle(Color.wardInk)
+                Text(exam.name).font(WardType.headline).foregroundStyle(Color.wardInk)
                 if let second {
-                    Text(second).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    Text(second).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             Spacer(minLength: 8)
@@ -135,7 +135,7 @@ struct ExamDashboardCard: View {
                         Image(systemName: "square.and.pencil").foregroundStyle(Color.wardPrimaryInk).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(s.area.title).foregroundStyle(Color.wardInk)
-                            Text(ExamDashboardCard.why(s)).font(.caption).monospacedDigit()
+                            Text(ExamDashboardCard.why(s)).font(WardType.caption).monospacedDigit()
                                 .foregroundStyle(Color.wardInkSecondary)
                         }
                         Spacer(minLength: 0)
@@ -211,7 +211,7 @@ struct BlueprintBar: View {
         let spoken: String = "\(standing.area.title), \(share) of the exam, \(ExamDashboardCard.percent(standing.coverage)) covered, readiness \(ExamDashboardCard.percent(standing.readiness))"
         return VStack(alignment: .leading, spacing: WardSpace.xs) {
             HStack {
-                Text(standing.area.title).font(.caption).lineLimit(1).foregroundStyle(Color.wardInk)
+                Text(standing.area.title).font(WardType.caption).lineLimit(1).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 6)
                 Text(ready).font(.system(.caption2, design: .monospaced)).foregroundStyle(readyTone.color)
                 Text(share).font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)

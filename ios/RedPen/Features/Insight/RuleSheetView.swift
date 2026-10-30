@@ -84,7 +84,7 @@ struct RuleSheetView: View {
             if let note {
                 Section {
                     Label(note, systemImage: "checkmark.circle")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 .wardRowBackground()
@@ -107,7 +107,7 @@ struct RuleSheetView: View {
             if !store.ruleSheet.isEmpty && shown.isEmpty {
                 Section {
                     Text("No rules match \u{201C}\(query)\u{201D}.")
-                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
                 .wardRowBackground()
             }
@@ -146,12 +146,12 @@ struct RuleSheetView: View {
     private func row(_ rule: StudyRule) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(rule.text)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             if !rule.detail.isEmpty {
                 Text(rule.detail)
-                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if rule.byAI || rule.isExample == true {
@@ -252,7 +252,7 @@ private struct RuleWritingProgress: View {
             }
             EcgStrip(progress: fraction)
             Text("Ten at a time. You can keep using the app while it works.")
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(Color.wardInkSecondary)
         }
         .frame(maxWidth: 560, alignment: .leading)

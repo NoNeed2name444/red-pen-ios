@@ -164,7 +164,7 @@ private struct AppLockShield: ViewModifier {
                 }
                 WardIconSquare(symbol: "lock.fill", tone: .blue, size: 72)
                 Text("Locked")
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardInk)
                 if (locked && !covered) || pictured {
                     Button("Unlock") { Task { await unlock() } }

@@ -27,7 +27,7 @@ struct ReasoningView: View {
         List {
             Section {
                 Text("Exams test how you reach a diagnosis, not just what you know. Pick a set and practise telling lookalikes apart and holding a whole disease on one screen.")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
@@ -70,7 +70,7 @@ struct ReasoningView: View {
         let anyMade: Bool = ReasoningTool.allCases.contains { tool in pack.count(of: tool) > 0 }
         let counts: String = "\(pack.count(of: .duels)) duels \u{00B7} \(pack.count(of: .scripts)) scripts"
         return VStack(alignment: .leading, spacing: 3) {
-            Text(set.name).font(.body.weight(.medium)).foregroundStyle(Color.wardInk).lineLimit(2)
+            Text(set.name).font(WardType.face(.body, weight: .medium)).foregroundStyle(Color.wardInk).lineLimit(2)
             HStack(spacing: 10) {
                 Text(set.subject).lineLimit(1)
                 if anyMade {
@@ -79,7 +79,7 @@ struct ReasoningView: View {
                         .monospacedDigit()
                 }
             }
-            .font(.caption)
+            .font(WardType.caption)
             .foregroundStyle(Color.wardInkSecondary)
         }
         .padding(.vertical, 2)
@@ -133,7 +133,7 @@ private struct ReasoningSetBody: View {
                     }
                 }
                 Text(footnote)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .padding(.horizontal, 4)
             }
@@ -178,17 +178,17 @@ private struct ReasoningToolTile: View {
             WardIconSquare(symbol: tool.symbol, tone: .blue)
             VStack(alignment: .leading, spacing: 3) {
                 Text(tool.title)
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardInk)
                 Text(line)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
@@ -272,7 +272,7 @@ struct ReasoningWriteBar: View {
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(job.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(1)
                 EcgStrip(progress: job.fraction)
@@ -321,10 +321,10 @@ private struct ReasoningCountMenu: View {
                 Text(label)
                     .monospacedDigit()
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption.weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold))
                     .accessibilityHidden(true)
             }
-            .font(.headline)
+            .font(WardType.headline)
             .foregroundStyle(Color.wardPrimaryInk)
             .padding(.horizontal, WardSpace.gutter)
             .padding(.vertical, 12)

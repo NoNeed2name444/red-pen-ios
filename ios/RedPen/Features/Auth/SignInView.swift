@@ -91,7 +91,7 @@ struct SignInView: View {
                 .accessibilityHidden(true)
             Text(Brand.name).font(WardType.display).foregroundStyle(Color.wardInk)
             Text(l10n: "Turn your lectures into questions and flashcards.")
-                .font(.body).foregroundStyle(Color.wardInkSecondary)
+                .font(WardType.body).foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
         }
     }
@@ -100,7 +100,7 @@ struct SignInView: View {
         // one line of small print instead of two: what each choice means,
         // and that nothing is shared
         Text(l10n: "No account needed to start \u{2014} you can link an iPad or another phone later in Account. Nothing is shared with anyone else.")
-            .font(.footnote)
+            .font(WardType.face(.footnote, weight: .regular))
             .foregroundStyle(Color.wardInkSecondary)
             .multilineTextAlignment(.center)
     }
@@ -154,7 +154,7 @@ struct SignInView: View {
             joining = true
         } label: {
             Label(L10n.string("I have a code from another device"), systemImage: "ipad.and.iphone")
-                .font(.body.weight(.semibold))
+                .font(WardType.face(.body, weight: .semibold))
                 .frame(maxWidth: .infinity, minHeight: 40)
         }
         .buttonStyle(.wardSecondary)

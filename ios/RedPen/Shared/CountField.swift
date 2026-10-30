@@ -108,7 +108,7 @@ private struct CountStepButton: View {
         let ink: Color = enabled ? Color.wardPrimaryInk : Color.wardInk
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.body.weight(.semibold))
+                .font(WardType.face(.body, weight: .semibold))
                 .foregroundStyle(ink)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())

@@ -24,7 +24,7 @@ struct QuestionReportSheet: View {
             Form {
                 Section("Reporting") {
                     Text(preview)
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(5)
                 }

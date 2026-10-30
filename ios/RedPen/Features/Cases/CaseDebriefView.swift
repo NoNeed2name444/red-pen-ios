@@ -57,10 +57,10 @@ struct CaseDebriefView: View {
             CaseAvatar(initials: file.patient.initials)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text("Discharge summary")
-                    .font(.title2.weight(.bold))
+                    .font(WardType.face(.title2, weight: .bold))
                     .accessibilityAddTraits(.isHeader)
                 Text("\(file.patient.ageSex) \u{00B7} \(file.setting.label) \u{00B7} \u{201C}\(file.complaint)\u{201D}")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(CaseInk.biro)
                     .lineLimit(3)
             }
@@ -89,7 +89,7 @@ struct CaseDebriefView: View {
             }
             if score.capped {
                 Label("Capped at 60: a must-not-miss red flag was missed.", systemImage: "exclamationmark.triangle.fill")
-                    .font(.footnote.weight(.semibold))
+                    .font(WardType.face(.footnote, weight: .semibold))
                     .foregroundStyle(CaseInk.resus)
             }
         }
@@ -103,10 +103,10 @@ struct CaseDebriefView: View {
             ForEach(debrief.missedRedFlags) { step in
                 VStack(alignment: .leading, spacing: 4) {
                     Text((step.mustNotMiss ? "Must not miss \u{00B7} " : "") + step.label)
-                        .font(.subheadline.weight(.bold))
+                        .font(WardType.face(.subheadline, weight: .bold))
                     Text(step.finding)
                     if !step.note.isEmpty {
-                        Text(step.note).font(.footnote)
+                        Text(step.note).font(WardType.face(.footnote, weight: .regular))
                     }
                 }
                 .foregroundStyle(CaseInk.resus)
@@ -125,18 +125,18 @@ struct CaseDebriefView: View {
                     .foregroundStyle(debrief.diagnosisRight ? CaseInk.discharge : CaseInk.resus)
                     .accessibilityHidden(true)
                 Text(file.diagnosis.name)
-                    .font(.title3.weight(.semibold))
+                    .font(WardType.face(.title3, weight: .semibold))
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Diagnosis: \(file.diagnosis.name). " + (debrief.diagnosisRight ? "You were right." : "You said \(debrief.chosenDiagnosis)."))
             if !debrief.diagnosisRight {
                 Text("You said: \(debrief.chosenDiagnosis)")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(CaseInk.biro)
             }
             if let other = file.runnerUp, !debrief.separating.isEmpty {
                 Text("What tells it from \(other.name):")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                 ForEach(debrief.separating, id: \.step.id) { item in
                     findingRow(item)
                 }
@@ -151,12 +151,12 @@ struct CaseDebriefView: View {
                 .accessibilityLabel("Right next step: \(debrief.rightNextStep)")
             if !file.nextStep.why.isEmpty {
                 Text(file.nextStep.why)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let reason = run.decision?.reason, !reason.isEmpty {
                 Text("Your reason: \(reason)")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(CaseInk.biro)
             }
         }
@@ -185,8 +185,8 @@ struct CaseDebriefView: View {
                 .foregroundStyle(item.found ? CaseInk.discharge : CaseInk.biro)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
-                Text(item.step.label).font(.subheadline.weight(.semibold))
-                Text(item.step.finding).font(.subheadline)
+                Text(item.step.label).font(WardType.face(.subheadline, weight: .semibold))
+                Text(item.step.finding).font(WardType.face(.subheadline, weight: .regular))
             }
         }
         .accessibilityElement(children: .ignore)
@@ -197,7 +197,7 @@ struct CaseDebriefView: View {
         VStack(alignment: .leading, spacing: 8) {
             CaseLabel("Turning point")
             Text(debrief.turningSaid)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .fixedSize(horizontal: false, vertical: true)
             if !run.ladders.isEmpty {
                 ladderTrail
@@ -218,10 +218,10 @@ struct CaseDebriefView: View {
                         .foregroundStyle(CaseInk.biro)
                         .frame(minWidth: 48, alignment: .leading)
                     Text(file.step(taken.stepID)?.label ?? "")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text(lead)
-                        .font(.caption.weight(.semibold))
+                        .font(WardType.face(.caption, weight: .semibold))
                         .foregroundStyle(right ? CaseInk.discharge : Color.primary)
                 }
                 .accessibilityElement(children: .ignore)
@@ -239,15 +239,15 @@ struct CaseDebriefView: View {
             }
             if debrief.lowYield.isEmpty {
                 Text("No low-yield steps.")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(CaseInk.biro)
             } else {
                 Text("Low-yield here:")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                 ForEach(debrief.lowYield) { step in
                     VStack(alignment: .leading, spacing: WardSpace.xs) {
-                        Text("\(step.label) \u{00B7} \(step.minutes) min").font(.subheadline.weight(.semibold))
-                        if !step.note.isEmpty { Text(step.note).font(.subheadline) }
+                        Text("\(step.label) \u{00B7} \(step.minutes) min").font(WardType.face(.subheadline, weight: .semibold))
+                        if !step.note.isEmpty { Text(step.note).font(WardType.face(.subheadline, weight: .regular)) }
                     }
                     .accessibilityElement(children: .combine)
                 }
@@ -266,14 +266,14 @@ struct CaseDebriefView: View {
                         .foregroundStyle(CaseInk.theatre)
                         .accessibilityHidden(true)
                     Text(point)
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             let cited: String = file.source.cited
             if !cited.isEmpty {
                 Text("Source: \(cited)")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(CaseInk.biro)
             }
         }
@@ -331,7 +331,7 @@ struct CaseDebriefView: View {
 
     private func note(_ text: String) -> some View {
         Text(text)
-            .font(.footnote)
+            .font(WardType.face(.footnote, weight: .regular))
             .foregroundStyle(CaseInk.biro)
             .fixedSize(horizontal: false, vertical: true)
     }

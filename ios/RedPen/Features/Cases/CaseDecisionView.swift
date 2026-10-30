@@ -67,7 +67,7 @@ struct CaseDecisionView: View {
             if !diagnosis.isEmpty {
                 HStack {
                     Text(diagnosis)
-                        .font(.title3.weight(.semibold))
+                        .font(WardType.face(.title3, weight: .semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Button(choosing ? "Keep" : "Change") { choosing.toggle() }
                         .frame(minHeight: 44)
@@ -109,7 +109,7 @@ struct CaseDecisionView: View {
         VStack(alignment: .leading, spacing: 10) {
             CaseLabel("Next step")
             Text("What is the single best next step?")
-                .font(.headline)
+                .font(WardType.headline)
             ForEach(Array(file.nextStep.options.enumerated()), id: \.offset) { index, text in
                 Button { option = index } label: {
                     WardOptionRow(letter: AccuracyItem.letter(index), text: text,

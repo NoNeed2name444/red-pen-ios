@@ -278,15 +278,15 @@ struct SavedIdeaToast: View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         HStack(spacing: 12) {
             Image(systemName: "lightbulb.fill")
-                .font(.title3)
+                .font(WardType.face(.title3, weight: .regular))
                 .foregroundStyle(Color.wardBeam)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(toast.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 Text(toast.message)
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
             }
@@ -297,7 +297,7 @@ struct SavedIdeaToast: View {
             if toast.undo != nil {
                 Button(action: onUndo) {
                     Text("Undo")
-                        .font(.subheadline.weight(.semibold))
+                        .font(WardType.face(.subheadline, weight: .semibold))
                         .padding(.horizontal, 12)
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())
@@ -363,7 +363,7 @@ struct SaveToIdeasButton: View {
     private func disc(_ symbol: String, saved: Bool) -> some View {
         let colour: Color = saved ? Color.wardSuccess : Color.wardPrimaryInk
         return Image(systemName: symbol)
-            .font(.title3)
+            .font(WardType.face(.title3, weight: .regular))
             .foregroundStyle(colour)
             .frame(width: 44, height: 44)
     }
@@ -377,7 +377,7 @@ struct SaveToIdeasButton: View {
             Text(title)
                 .foregroundStyle(Color.wardInk)
         }
-        .font(.subheadline.weight(.semibold))
+        .font(WardType.face(.subheadline, weight: .semibold))
         .padding(.horizontal, WardSpace.gutter)
         .frame(minHeight: 44)
         .contentShape(Capsule())
@@ -658,7 +658,7 @@ struct LecturePassageText: View {
             IdeaSelectableText(text: text) { picked in passage.save(picked, at) }
         } else {
             Text(text)
-                .font(.body)
+                .font(WardType.body)
                 .textSelection(.enabled)
         }
     }

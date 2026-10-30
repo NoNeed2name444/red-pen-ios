@@ -209,7 +209,7 @@ struct ScriptCard: View {
         let colour: Color = saved ? Color.wardSuccess : Color.wardPrimaryInk
         return Button(action: onSave) {
             Image(systemName: symbol)
-                .font(.title3)
+                .font(WardType.face(.title3, weight: .regular))
                 .foregroundStyle(colour)
                 .contentTransition(.identity)
                 .frame(width: 44, height: 44)
@@ -238,7 +238,7 @@ struct ScriptCard: View {
 
     private func heading(_ symbol: String, _ title: String) -> some View {
         Label(title, systemImage: symbol)
-            .font(.caption.weight(.semibold))
+            .font(WardType.face(.caption, weight: .semibold))
             .foregroundStyle(Color.wardInkSecondary)
     }
 
@@ -248,7 +248,7 @@ struct ScriptCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 heading(symbol, title)
                 Text(text)
-                    .font(strong ? .subheadline.weight(.semibold) : .subheadline)
+                    .font(strong ? WardType.face(.subheadline, weight: .semibold) : WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -263,7 +263,7 @@ struct ScriptCard: View {
                 ForEach(items, id: \.self) { item in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("\u{2022}").foregroundStyle(Color.wardInkSecondary)
-                        Text(item).font(.subheadline).foregroundStyle(Color.wardInk)
+                        Text(item).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -281,7 +281,7 @@ private struct LookalikeChipFace: View {
 
     var body: some View {
         let words = Text(name)
-            .font(.caption.weight(.medium))
+            .font(WardType.face(.caption, weight: .medium))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         if here {

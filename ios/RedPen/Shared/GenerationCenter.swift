@@ -226,7 +226,7 @@ private struct GenerationLines: View {
         let counted: String = counts
         VStack(alignment: .leading, spacing: 2) {
             Text(job.title)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
             HStack(spacing: 6) {
@@ -239,7 +239,7 @@ private struct GenerationLines: View {
             .monospacedDigit()
             .foregroundStyle(Color.wardInkSecondary)
             if let phase = job.phase {
-                Text(phase).font(.caption2).foregroundStyle(Color.wardInkSecondary).lineLimit(1)
+                Text(phase).font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary).lineLimit(1)
             }
         }
     }

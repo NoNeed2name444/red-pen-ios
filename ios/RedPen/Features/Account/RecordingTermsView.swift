@@ -57,17 +57,17 @@ struct RecordingTermsView: View {
                 Toggle(isOn: $shareReports) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(l10n: "Share crash and failure reports")
-                            .font(.subheadline.weight(.semibold))
+                            .font(WardType.face(.subheadline, weight: .semibold))
                             .foregroundStyle(Color.wardInk)
                         Text(l10n: "When something breaks, \(Brand.name) sends what went wrong and the phone model to be fixed \u{2014} never your notes, questions, recordings, name or email. You can change this any time in Settings.")
-                            .font(.footnote)
+                            .font(WardType.face(.footnote, weight: .regular))
                             .foregroundStyle(Color.wardInkSecondary)
                     }
                 }
                 .accessibilityIdentifier("shareCrashReports")
 
                 Text(l10n: "By tapping \u{201C}I understand and agree\u{201D} you confirm you have read all of this and accept full responsibility for how you use \(Brand.name).")
-                    .font(.footnote.weight(.semibold))
+                    .font(WardType.face(.footnote, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .padding(24)
@@ -93,13 +93,13 @@ struct RecordingTermsView: View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return VStack(alignment: .leading, spacing: 10) {
             Text(l10n: "\(Brand.name) is a study aid for students. It is NOT a medical tool.")
-                .font(.headline)
+                .font(WardType.headline)
             Text(l10n: "Never use it to diagnose, treat or prescribe for anyone, or to make any decision about a real patient's care or your own health.")
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
             Text(l10n: "AI content can be wrong, out of date or dangerous, even after it has been checked. Verify everything against current guidelines, your university's teaching and qualified clinicians before you rely on it.")
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
             Text(l10n: "In an emergency, call your local emergency number.")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
         }
         .foregroundStyle(Color.wardInk)
         .padding(WardSpace.gutter)
@@ -133,7 +133,7 @@ struct RecordingTermsView: View {
             onAccept()
         } label: {
             Text(title)
-                .font(.headline.monospacedDigit())
+                .font(WardType.headline.monospacedDigit())
                 .contentTransition(.numericText(countsDown: true))
         }
         .buttonStyle(.bigPrimary)
@@ -151,8 +151,8 @@ struct RecordingTermsView: View {
         HStack(alignment: .top, spacing: 14) {
             WardIconSquare(symbol: symbol, tone: .blue, size: 32)
             VStack(alignment: .leading, spacing: 4) {
-                Text(l10n: title).font(.headline).foregroundStyle(Color.wardInk)
-                Text(l10n: detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                Text(l10n: title).font(WardType.headline).foregroundStyle(Color.wardInk)
+                Text(l10n: detail).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
