@@ -1,0 +1,12 @@
+
+compile rc=0
+ok   light: the disabled ink #536171, nearest ink at 0.196
+ok   dark: the disabled ink #B8C2D0, nearest success at 0.137
+ok   words and glyphs: the lowest is 1.282:1 (light osce: the primary at rest)
+ok   disabled from enabled: the nearest is 0.146 (dark cases: the primary disabled)
+ok   chosen from unchosen: the nearest is 0.024 (light osce: the chip chosen and disabled)
+ok   the owner's accepted cases: 180 measured short, each at its listed value
+
+all 4154 passed
+
+run rc=0

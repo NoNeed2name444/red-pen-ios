@@ -1,0 +1,183 @@
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:146:12: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+144 | await MainActor.run {}
+145 | let fresh = FakeGate(.undetermined, answer: true)
+146 | let flow = await RecordFlow(gate: fresh)
+    |            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+147 | ok(fresh.requests == 0, "making the flow (the launch path) asks nothing")
+148 | let first = await flow.tapRecord()
+
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:148:13: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+146 | let flow = await RecordFlow(gate: fresh)
+147 | ok(fresh.requests == 0, "making the flow (the launch path) asks nothing")
+148 | let first = await flow.tapRecord()
+    |             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+149 | ok(first == .sheet && fresh.requests == 0, "the first Record tap shows the sheet, not the system prompt")
+150 | let allowed = await flow.continueFromSheet()
+
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:152:14: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+150 | let allowed = await flow.continueFromSheet()
+151 | ok(allowed == .record && fresh.requests == 1, "Continue asks the system once, and records when allowed")
+152 | let second = await flow.tapRecord()
+    |              `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+153 | ok(second == .record && fresh.requests == 1, "the next tap records without asking again")
+154 | let twice = await flow.continueFromSheet()
+
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:158:15: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+156 | 
+157 | let refusing = FakeGate(.undetermined, answer: false)
+158 | let refused = await RecordFlow(gate: refusing)
+    |               `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+159 | _ = await refused.tapRecord()
+160 | let no = await refused.continueFromSheet()
+
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:159:5: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+157 | let refusing = FakeGate(.undetermined, answer: false)
+158 | let refused = await RecordFlow(gate: refusing)
+159 | _ = await refused.tapRecord()
+    |     `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+160 | let no = await refused.continueFromSheet()
+161 | ok(no == .settingsRow && refusing.requests == 1, "refused: the Open Settings row")
+
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:162:13: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+160 | let no = await refused.continueFromSheet()
+161 | ok(no == .settingsRow && refusing.requests == 1, "refused: the Open Settings row")
+162 | let after = await refused.tapRecord()
+    |             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+163 | ok(after == .settingsRow && refusing.requests == 1, "and a later tap shows the row again, never the prompt")
+164 | 
+
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:166:15: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+164 | 
+165 | let off = FakeGate(.denied, answer: true)
+166 | let offFlow = await RecordFlow(gate: off)
+    |               `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+167 | let offTap = await offFlow.tapRecord()
+168 | ok(offTap == .settingsRow && off.requests == 0, "already off in Settings: the row, no prompt")
+
+/__w/red-pen-ios/red-pen-ios/build/recorder/main.swift:167:14: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+165 | let off = FakeGate(.denied, answer: true)
+166 | let offFlow = await RecordFlow(gate: off)
+167 | let offTap = await offFlow.tapRecord()
+    |              `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+168 | ok(offTap == .settingsRow && off.requests == 0, "already off in Settings: the row, no prompt")
+169 | 
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+
+compile rc=0
+ok   idle -> asking on the first Record tap
+ok   asking -> idle when the microphone is refused
+ok   idle -> recording
+ok   asking -> recording once allowed
+ok   failed -> recording again
+ok   recording -> paused, banking 5 s
+ok   paused -> recording, keeping the banked 5 s
+ok   recording -> saving on Stop
+ok   paused -> saving on Stop
+ok   recording -> paused by a call, saying why
+ok   a call's pause -> recording when asked to resume after it
+ok   a call's pause -> Resume works too
+ok   saving -> idle once handed on
+ok   failed -> idle once read
+ok   recording -> failed
+ok   asking -> failed
+ok   saving -> failed
+ok   paused -> failed
+ok   idle cannot pause
+ok   idle cannot resume
+ok   idle cannot stop
+ok   idle is not interrupted
+ok   idle does not fail
+ok   idle has nothing to finish
+ok   idle has nothing to cancel
+ok   recording cannot start again
+ok   recording does not ask
+ok   recording cannot resume
+ok   recording cannot resume after an interruption
+ok   recording cannot finish without Stop
+ok   paused cannot pause
+ok   paused cannot start
+ok   paused is not interrupted again
+ok   a pause the student chose is not undone by a call ending
+ok   saving cannot start
+ok   saving cannot pause
+ok   saving cannot stop again
+ok   asking cannot pause
+ok   asking does not ask twice
+ok   failed does not fail twice
+ok   60 s in while recording
+ok   frozen at 60 s while paused
+ok   resumed with the banked 60 s
+ok   and counting on from it: 90 s
+ok   a clock that went back never takes time off
+ok   nothing elapsed when not recording
+ok   a call pauses it at 105 s with the reason
+ok   the clock reads 12:03, 1:02:03 and 0:00
+ok   a fixed date read in its time zone
+ok   file name lecture-20261023-1405.m4a
+ok   English title: Lecture, 23 Oct 14:05
+ok   Arabic title in Arabic digits
+ok   ar-EG reads Arabic too
+ok   single digits padded in the file name
+ok   and the title: Lecture, 3 Jan 09:07
+ok   meter: -60 dB silent, -25 dB half, 0 dB full
+ok   meter: no signal reads silent
+ok   under 200 MB free stops the recording
+ok   round trip: idle
+ok   round trip: asking
+ok   round trip: recording
+ok   round trip: paused
+ok   round trip: paused
+ok   round trip: saving
+ok   round trip: failed
+ok   the file says v, phase, startedAt and banked
+ok   a missing file reads as idle
+ok   a garbled file reads as idle
+ok   a newer app's file reads as idle
+ok   a recording with no clock reads as idle
+ok   the wrong shape reads as idle
+ok   making the flow (the launch path) asks nothing
+ok   the first Record tap shows the sheet, not the system prompt
+ok   Continue asks the system once, and records when allowed
+ok   the next tap records without asking again
+ok   Continue after it was allowed does not ask again
+ok   refused: the Open Settings row
+ok   and a later tap shows the row again, never the prompt
+ok   already off in Settings: the row, no prompt
+ok   the sheet and row say what the owner wrote
+ok   the pause and low-disk lines are whole sentences, no bare hyphen
+ok   read back from the file name
+ok   any extension
+ok   not ours: nothing
+ok   a name cut short: nothing
+ok   Stop offers the choice
+ok   Cancel keeps the recording, waiting to be saved
+ok   Save the recording opens the choice again
+ok   saved: kept under the set, nothing waiting
+ok   the save path made one copy and no upload call
+ok   nothing to reopen once saved
+ok   Transcribe, its own action, sends the saved copy once
+ok   a copy that failed leaves it waiting to be saved again
+ok   an unsaved recording is never sent
+ok   the newest stem
+ok   its live .caf before a half-made export
+ok   a finished export alone
+ok   none of ours
+ok   a recording cut off by a kill is found
+ok   the shared file is reset to idle
+ok   and found once
+ok   paused when killed: found too
+ok   stopped but not saved: found too
+ok   a failure: nothing offered, and reset
+ok   an empty file: nothing offered, and reset
+ok   the recovery question says when, and its Keep and Delete have keys of their own
+ok   a failed copy leaves Save the recording ready again
+ok   and the choice opens again
+ok   the microphone lost: what was written is handed on to be saved
+ok   and Save the recording offers it
+ok   an empty file is dropped
+ok   nothing recording: nothing handed on
+
+ALL RECORDER TESTS PASS (112 checks)
+
+run rc=0

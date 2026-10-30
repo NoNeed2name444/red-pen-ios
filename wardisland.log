@@ -1,0 +1,73 @@
+
+compile rc=0
+PASS A1 sides: page
+PASS A1 sides: sheet
+PASS A1 sides: trailing host
+PASS A1 sides: sky
+PASS A1 sides: one point
+PASS A1 sides: outside tolerance
+PASS A1 local line stays half the stroke below strip top
+PASS A1 local left center
+PASS A1 local right center
+PASS A1 local left join
+PASS A1 local right join
+PASS A1 local straight ends
+PASS translation keeps an unjoined side
+PASS A1 two clearance pieces
+PASS A1 left piece only 12...16
+PASS A1 right piece only 386...390
+PASS A1 pieces never enter the page
+PASS one-sided clearance
+PASS sheet and sky have no pieces
+PASS A1 iPad 834.0x1194.0, including narrow window: 18
+PASS A1 moved iPad opening: 18
+PASS A1 non-iPad unchanged
+PASS A1 iPad 1194.0x834.0, including narrow window: 18
+PASS A1 moved iPad opening: 18
+PASS A1 non-iPad unchanged
+PASS A1 iPad 1032.0x1376.0, including narrow window: 18
+PASS A1 moved iPad opening: 18
+PASS A1 non-iPad unchanged
+PASS A1 iPad 744.0x1133.0, including narrow window: 18
+PASS A1 moved iPad opening: 18
+PASS A1 non-iPad unchanged
+PASS A1 iPad 375.0x812.0, including narrow window: 18
+PASS A1 moved iPad opening: 18
+PASS A1 non-iPad unchanged
+PASS A1 phone still 47.10
+PASS A1 iPad left radius
+PASS A1 iPad left join
+PASS A1 iPad left tangent to vertical outline within 0.5 degrees
+PASS A1 iPad left tangent to horizontal line
+PASS A1 iPad right radius
+PASS A1 iPad right join
+PASS A1 iPad right tangent to vertical outline within 0.5 degrees
+PASS A1 iPad right tangent to horizontal line
+PASS iPad radius halves the remaining room
+FOLD phone default inset=9.50 slab=2.121 island=2.201 pt (rim included)
+PASS fold phone default clears both curves by 2pt
+FOLD phone AX5 inset=9.50 slab=2.121 island=2.201 pt (rim included)
+PASS fold phone AX5 clears both curves by 2pt
+FOLD phone short inset=34.00 slab=2.192 island=2.105 pt (rim included)
+PASS fold phone short clears both curves by 2pt
+FOLD SE default inset=6.50 slab=2.133 island=2.216 pt (rim included)
+PASS fold SE default clears both curves by 2pt
+FOLD SE AX5 inset=6.50 slab=2.133 island=2.216 pt (rim included)
+PASS fold SE AX5 clears both curves by 2pt
+FOLD SE short inset=29.00 slab=2.192 island=2.125 pt (rim included)
+PASS fold SE short clears both curves by 2pt
+FOLD Pro Max default inset=14.00 slab=2.135 island=2.195 pt (rim included)
+PASS fold Pro Max default clears both curves by 2pt
+FOLD Pro Max AX5 inset=14.00 slab=2.135 island=2.195 pt (rim included)
+PASS fold Pro Max AX5 clears both curves by 2pt
+FOLD Pro Max short inset=41.50 slab=2.214 island=2.140 pt (rim included)
+PASS fold Pro Max short clears both curves by 2pt
+FOLD iPad default inset=3.50 slab=2.205 island=2.250 pt (rim included)
+PASS fold iPad default clears both curves by 2pt
+FOLD iPad AX5 inset=3.50 slab=2.205 island=2.250 pt (rim included)
+PASS fold iPad AX5 clears both curves by 2pt
+FOLD iPad short inset=3.50 slab=2.205 island=2.250 pt (rim included)
+PASS fold iPad short clears both curves by 2pt
+0 WARD ISLAND FAILURES
+
+run rc=0

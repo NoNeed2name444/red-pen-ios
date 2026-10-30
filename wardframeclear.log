@@ -1,0 +1,170 @@
+
+compile rc=0
+PASS radius is the device's less the inset
+PASS floored at the element's own minimum
+PASS corner 0: floor 12.0 at 0.0
+PASS corner 0: floor 12.0 at 12.0
+PASS corner 0: floor 12.0 at 16.0
+PASS corner 0: floor 12.0 at 62.0
+PASS corner 0: floor 16.0 at 0.0
+PASS corner 0: floor 16.0 at 12.0
+PASS corner 0: floor 16.0 at 16.0
+PASS corner 0: floor 16.0 at 62.0
+PASS corner 0: floor 24.0 at 0.0
+PASS corner 0: floor 24.0 at 12.0
+PASS corner 0: floor 24.0 at 16.0
+PASS corner 0: floor 24.0 at 62.0
+PASS iPhone 16 Pro: clear of the status bar
+PASS iPhone 16 Pro: clear of the home indicator
+PASS iPhone 16 Pro: clear of the side insets
+PASS iPhone 16 Pro: never nearer the edge than the frame
+PASS iPhone 16 Pro: top corners concentric
+PASS iPhone 16 Pro: bottom corners concentric
+PASS iPhone 16 Pro: a top above the bar is held below it
+PASS iPhone 16 Pro: outline inside the panel
+PASS iPhone 16 Pro: content inside the ring
+PASS iPhone SE: clear of the status bar
+PASS iPhone SE: clear of the home indicator
+PASS iPhone SE: clear of the side insets
+PASS iPhone SE: never nearer the edge than the frame
+PASS iPhone SE: top corners concentric
+PASS iPhone SE: bottom corners concentric
+PASS iPhone SE: a top above the bar is held below it
+PASS iPhone SE: outline inside the panel
+PASS iPhone SE: content inside the ring
+PASS Pro Max landscape: clear of the status bar
+PASS Pro Max landscape: clear of the home indicator
+PASS Pro Max landscape: clear of the side insets
+PASS Pro Max landscape: never nearer the edge than the frame
+PASS Pro Max landscape: top corners concentric
+PASS Pro Max landscape: bottom corners concentric
+PASS Pro Max landscape: a top above the bar is held below it
+PASS Pro Max landscape: outline inside the panel
+PASS Pro Max landscape: content inside the ring
+PASS iPad: clear of the status bar
+PASS iPad: clear of the home indicator
+PASS iPad: clear of the side insets
+PASS iPad: never nearer the edge than the frame
+PASS iPad: top corners concentric
+PASS iPad: bottom corners concentric
+PASS iPad: a top above the bar is held below it
+PASS iPad: outline inside the panel
+PASS iPad: content inside the ring
+PASS no bars: clear of the status bar
+PASS no bars: clear of the home indicator
+PASS no bars: clear of the side insets
+PASS no bars: never nearer the edge than the frame
+PASS no bars: top corners concentric
+PASS no bars: bottom corners concentric
+PASS no bars: a top above the bar is held below it
+PASS no bars: outline inside the panel
+PASS no bars: content inside the ring
+PASS no bars, no device: the frame as before
+PASS no bars, iPad: its 18-point corner as before
+PASS a reported 0: the frame's corners at their floor
+PASS Done keeps its capsule
+PASS a bar's bottom corners follow the ring
+PASS a bar's top corners stay square
+PASS the dock keeps its radius here
+PASS a mid-page card keeps its radius
+PASS near a round corner the dock is concentric
+PASS never rounder than half its height
+PASS corner 0: 24.0 keeps its own minimum
+PASS corner 0: 16.0 keeps its own minimum
+PASS corner 0: 0.0 keeps its own minimum
+PASS corner 0: 18.0 keeps its own minimum
+PASS portrait: fills the display true
+PASS portrait: concentric with the display
+PASS portrait: ring clear of the top bar or the window controls
+PASS portrait: ring clear of the home indicator
+PASS portrait: the top no lower than the bar asks
+PASS portrait: top corners concentric
+PASS portrait: bottom corners concentric
+PASS portrait: home's opening has the same corner
+PASS portraitUpsideDown: fills the display true
+PASS portraitUpsideDown: concentric with the display
+PASS portraitUpsideDown: ring clear of the top bar or the window controls
+PASS portraitUpsideDown: ring clear of the home indicator
+PASS portraitUpsideDown: the top no lower than the bar asks
+PASS portraitUpsideDown: top corners concentric
+PASS portraitUpsideDown: bottom corners concentric
+PASS portraitUpsideDown: home's opening has the same corner
+PASS landscapeLeft: fills the display true
+PASS landscapeLeft: concentric with the display
+PASS landscapeLeft: ring clear of the top bar or the window controls
+PASS landscapeLeft: ring clear of the home indicator
+PASS landscapeLeft: the top no lower than the bar asks
+PASS landscapeLeft: top corners concentric
+PASS landscapeLeft: bottom corners concentric
+PASS landscapeLeft: home's opening has the same corner
+PASS landscapeRight: fills the display true
+PASS landscapeRight: concentric with the display
+PASS landscapeRight: ring clear of the top bar or the window controls
+PASS landscapeRight: ring clear of the home indicator
+PASS landscapeRight: the top no lower than the bar asks
+PASS landscapeRight: top corners concentric
+PASS landscapeRight: bottom corners concentric
+PASS landscapeRight: home's opening has the same corner
+PASS Split View 1/3 portrait: fills the display false
+PASS Split View 1/3 portrait: concentric with the window
+PASS Split View 1/3 portrait: ring clear of the top bar or the window controls
+PASS Split View 1/3 portrait: ring clear of the home indicator
+PASS Split View 1/3 portrait: the top no lower than the bar asks
+PASS Split View 1/3 portrait: top corners concentric
+PASS Split View 1/3 portrait: bottom corners concentric
+PASS Split View 1/3 portrait: home's opening has the same corner
+PASS Split View 1/2 landscape: fills the display false
+PASS Split View 1/2 landscape: concentric with the window
+PASS Split View 1/2 landscape: ring clear of the top bar or the window controls
+PASS Split View 1/2 landscape: ring clear of the home indicator
+PASS Split View 1/2 landscape: the top no lower than the bar asks
+PASS Split View 1/2 landscape: top corners concentric
+PASS Split View 1/2 landscape: bottom corners concentric
+PASS Split View 1/2 landscape: home's opening has the same corner
+PASS Split View 2/3 landscape: fills the display false
+PASS Split View 2/3 landscape: concentric with the window
+PASS Split View 2/3 landscape: ring clear of the top bar or the window controls
+PASS Split View 2/3 landscape: ring clear of the home indicator
+PASS Split View 2/3 landscape: the top no lower than the bar asks
+PASS Split View 2/3 landscape: top corners concentric
+PASS Split View 2/3 landscape: bottom corners concentric
+PASS Split View 2/3 landscape: home's opening has the same corner
+PASS Slide Over: fills the display false
+PASS Slide Over: concentric with the window
+PASS Slide Over: ring clear of the top bar or the window controls
+PASS Slide Over: ring clear of the home indicator
+PASS Slide Over: the top no lower than the bar asks
+PASS Slide Over: top corners concentric
+PASS Slide Over: bottom corners concentric
+PASS Slide Over: home's opening has the same corner
+PASS Stage Manager minimum: fills the display false
+PASS Stage Manager minimum: concentric with the window
+PASS Stage Manager minimum: ring clear of the top bar or the window controls
+PASS Stage Manager minimum: ring clear of the home indicator
+PASS Stage Manager minimum: the top no lower than the bar asks
+PASS Stage Manager minimum: top corners concentric
+PASS Stage Manager minimum: bottom corners concentric
+PASS Stage Manager minimum: home's opening has the same corner
+PASS Stage Manager resized portrait: fills the display false
+PASS Stage Manager resized portrait: concentric with the window
+PASS Stage Manager resized portrait: ring clear of the top bar or the window controls
+PASS Stage Manager resized portrait: ring clear of the home indicator
+PASS Stage Manager resized portrait: the top no lower than the bar asks
+PASS Stage Manager resized portrait: top corners concentric
+PASS Stage Manager resized portrait: bottom corners concentric
+PASS Stage Manager resized portrait: home's opening has the same corner
+PASS Stage Manager tall controls inset: fills the display false
+PASS Stage Manager tall controls inset: concentric with the window
+PASS Stage Manager tall controls inset: ring clear of the top bar or the window controls
+PASS Stage Manager tall controls inset: ring clear of the home indicator
+PASS Stage Manager tall controls inset: the top no lower than the bar asks
+PASS Stage Manager tall controls inset: top corners concentric
+PASS Stage Manager tall controls inset: bottom corners concentric
+PASS Stage Manager tall controls inset: home's opening has the same corner
+PASS a window turned the other way still fills its display
+PASS a point's rounding still fills it
+PASS an unmeasured window counts as full screen
+PASS a phone's corner full screen is the display's, not the pad's
+0 WARD FRAME CLEAR FAILURES
+
+run rc=0

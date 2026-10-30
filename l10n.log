@@ -1,0 +1,52 @@
+
+compile rc=0
+ok   Arabic phone gets Arabic
+ok   plain ar too
+ok   underscore spelling
+ok   English phone gets English
+ok   the reader's order wins
+ok   first language the catalog has
+ok   nothing in common reads English
+ok   no preferences reads English
+ok   an empty catalog reads English
+ok   Base is never a language
+ok   script kept, region dropped
+ok   the catalog's own spelling comes back
+ok   base of ar-EG
+ok   base of ar_EG
+ok   Arabic reads right to left
+ok   Egyptian Arabic too
+ok   Hebrew too
+ok   Persian too
+ok   Urdu too
+ok   English reads left to right
+ok   French reads left to right
+ok   the app first when it has the table
+ok   the package bundle when the app has none
+ok   no table anywhere
+ok   no bundles at all
+ok   an Arabic phone keeps its own locale
+ok   an English phone keeps its own locale
+ok   Arabic app on an English phone counts in Arabic
+ok   ...in the phone's region
+ok   count in English
+ok   count groups thousands
+ok   count in Egyptian Arabic
+ok   clock m:ss
+ok   clock under a minute
+ok   clock rounds
+ok   clock past the hour
+ok   clock never negative
+ok   clock of not-a-number
+ok   clock of infinity
+ok   clock does not group
+ok   clock in Arabic digits
+ok   percent
+ok   percent rounds
+ok   percent of not-a-number
+ok   percent in Arabic digits
+ok   day and month in English
+ok   day and month in Arabic
+all l10n checks passed
+
+run rc=0

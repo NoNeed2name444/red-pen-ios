@@ -1,0 +1,306 @@
+
+compile rc=0
+PASS D0a a band for every SceneKit theme, tier and contrast
+PASS D0b none for Performance (its own engine)
+PASS D1a neurons smooth: crisp up to the start
+PASS D1b neurons smooth: all the way (its most) from the end on
+PASS D1c neurons smooth: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d neurons smooth: deeper never fades less
+PASS D1e neurons smooth: light is 1 - f
+PASS D1f neurons smooth: the shader is given where the fade starts, one over its width, and its most
+PASS D1a neurons smooth+contrast: crisp up to the start
+PASS D1b neurons smooth+contrast: all the way (its most) from the end on
+PASS D1c neurons smooth+contrast: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d neurons smooth+contrast: deeper never fades less
+PASS D1e neurons smooth+contrast: light is 1 - f
+PASS D1f neurons smooth+contrast: the shader is given where the fade starts, one over its width, and its most
+PASS D1a neurons high: crisp up to the start
+PASS D1b neurons high: all the way (its most) from the end on
+PASS D1c neurons high: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d neurons high: deeper never fades less
+PASS D1e neurons high: light is 1 - f
+PASS D1f neurons high: the shader is given where the fade starts, one over its width, and its most
+PASS D1a neurons high+contrast: crisp up to the start
+PASS D1b neurons high+contrast: all the way (its most) from the end on
+PASS D1c neurons high+contrast: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d neurons high+contrast: deeper never fades less
+PASS D1e neurons high+contrast: light is 1 - f
+PASS D1f neurons high+contrast: the shader is given where the fade starts, one over its width, and its most
+PASS D1a space smooth: crisp up to the start
+PASS D1b space smooth: all the way (its most) from the end on
+PASS D1c space smooth: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d space smooth: deeper never fades less
+PASS D1e space smooth: light is 1 - f
+PASS D1f space smooth: the shader is given where the fade starts, one over its width, and its most
+PASS D1a space smooth+contrast: crisp up to the start
+PASS D1b space smooth+contrast: all the way (its most) from the end on
+PASS D1c space smooth+contrast: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d space smooth+contrast: deeper never fades less
+PASS D1e space smooth+contrast: light is 1 - f
+PASS D1f space smooth+contrast: the shader is given where the fade starts, one over its width, and its most
+PASS D1a space high: crisp up to the start
+PASS D1b space high: all the way (its most) from the end on
+PASS D1c space high: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d space high: deeper never fades less
+PASS D1e space high: light is 1 - f
+PASS D1f space high: the shader is given where the fade starts, one over its width, and its most
+PASS D1a space high+contrast: crisp up to the start
+PASS D1b space high+contrast: all the way (its most) from the end on
+PASS D1c space high+contrast: f = clamp((z - start) / (end - start), 0, 1)^k
+PASS D1d space high+contrast: deeper never fades less
+PASS D1e space high+contrast: light is 1 - f
+PASS D1f space high+contrast: the shader is given where the fade starts, one over its width, and its most
+PASS D2a neurons smooth: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b neurons smooth: what the camera looks at is always crisp
+PASS D2c neurons smooth: the fade starts behind the focus
+PASS D2a neurons smooth+contrast: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b neurons smooth+contrast: what the camera looks at is always crisp
+PASS D2c neurons smooth+contrast: the fade starts behind the focus
+PASS D2a neurons high: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b neurons high: what the camera looks at is always crisp
+PASS D2c neurons high: the fade starts behind the focus
+PASS D2a neurons high+contrast: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b neurons high+contrast: what the camera looks at is always crisp
+PASS D2c neurons high+contrast: the fade starts behind the focus
+PASS D2a space smooth: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b space smooth: what the camera looks at is always crisp
+PASS D2c space smooth: the fade starts behind the focus
+PASS D2a space smooth+contrast: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b space smooth+contrast: what the camera looks at is always crisp
+PASS D2c space smooth+contrast: the fade starts behind the focus
+PASS D2a space high: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b space high: what the camera looks at is always crisp
+PASS D2c space high: the fade starts behind the focus
+PASS D2a space high+contrast: the same fade at every zoom (depth in multiples of the focus)
+PASS D2b space high+contrast: what the camera looks at is always crisp
+PASS D2c space high+contrast: the fade starts behind the focus
+PASS D3a straight ahead: its distance
+PASS D3b off to the side: only its depth along the view counts
+PASS D3c a forward that is not unit length is the same
+PASS D3d a target behind the eye: the nearest focus, never negative
+PASS D3e no direction: the nearest focus
+PASS D3f an unusable depth is the nearest focus
+PASS D4a neurons: Smooth pulls the end in (less drawn)
+PASS D4b neurons: High reaches further
+PASS D4c neurons: both fade all the way, so both cull
+PASS D4d neurons: the curve begins gently at both (k at least 1)
+PASS D4e neurons: the band ends at least 0.75 of the reach past the focus (0.55 past its start), and k 1
+PASS D4a space: Smooth pulls the end in (less drawn)
+PASS D4b space: High reaches further
+PASS D4c space: both fade all the way, so both cull
+PASS D4d space: the curve begins gently at both (k at least 1)
+PASS D4e space: the band ends at least 0.75 of the reach past the focus (0.55 past its start), and k 1
+PASS D4f Space culls its far strip on both tiers; the Neurons on High draw it all, faded
+PASS D5a neurons smooth: the fade starts later (a and b times 1.35)
+PASS D5e neurons smooth: flown in, the band 1.35 times wider and starting where the flight's crisp reach ends
+PASS D5b neurons smooth: and stops short of the fluid
+PASS D5c neurons smooth: so nothing is culled, and everything can be picked
+PASS D5d neurons smooth: never fades more than without it
+PASS D5a neurons high: the fade starts later (a and b times 1.35)
+PASS D5e neurons high: flown in, the band 1.35 times wider and starting where the flight's crisp reach ends
+PASS D5b neurons high: and stops short of the fluid
+PASS D5c neurons high: so nothing is culled, and everything can be picked
+PASS D5d neurons high: never fades more than without it
+PASS D5a space smooth: the fade starts later (a and b times 1.35)
+PASS D5e space smooth: flown in, the band 1.35 times wider and starting where the flight's crisp reach ends
+PASS D5b space smooth: and stops short of the fluid
+PASS D5c space smooth: so nothing is culled, and everything can be picked
+PASS D5d space smooth: never fades more than without it
+PASS D5a space high: the fade starts later (a and b times 1.35)
+PASS D5e space high: flown in, the band 1.35 times wider and starting where the flight's crisp reach ends
+PASS D5b space high: and stops short of the fluid
+PASS D5c space high: so nothing is culled, and everything can be picked
+PASS D5d space high: never fades more than without it
+PASS D6a neurons smooth: the far plane is the band's end
+PASS D6b neurons smooth: fully faded there
+PASS D6c neurons smooth: a body past it can't be picked; one before it can
+PASS D6d neurons smooth: the camera's far plane is the end
+PASS D6e neurons smooth: never closer than four near planes (a camera right up against its target)
+PASS D6a neurons high: the far plane is the band's end
+PASS D6b neurons high: fully faded there
+PASS D6c neurons high: a body past it can't be picked; one before it can
+PASS D6d neurons high: the camera's far plane is the end
+PASS D6e neurons high: never closer than four near planes (a camera right up against its target)
+PASS D6a space smooth: the far plane is the band's end
+PASS D6b space smooth: fully faded there
+PASS D6c space smooth: a body past it can't be picked; one before it can
+PASS D6d space smooth: the camera's far plane is the end
+PASS D6e space smooth: never closer than four near planes (a camera right up against its target)
+PASS D6a space high: the far plane is the band's end
+PASS D6b space high: fully faded there
+PASS D6c space high: a body past it can't be picked; one before it can
+PASS D6d space high: the camera's far plane is the end
+PASS D6e space high: never closer than four near planes (a camera right up against its target)
+PASS D6f neurons smooth+contrast: no far plane of its own when nothing is culled
+PASS D6f neurons high+contrast: no far plane of its own when nothing is culled
+PASS D6f space smooth+contrast: no far plane of its own when nothing is culled
+PASS D6f space high+contrast: no far plane of its own when nothing is culled
+PASS D7a extras go only at a fade of about 0.6 or more
+PASS D7b they come back only clearly crisper (a gap between)
+PASS D7c kept below the drop; gone at it
+PASS D7d not back in the gap; back at the restore
+PASS D7e a cell wobbling on the line changes once
+PASS D7f neurons smooth: extras go inside the band, past its middle
+PASS D7f neurons high: extras go inside the band, past its middle
+PASS D7f space smooth: extras go inside the band, past its middle
+PASS D7f space high: extras go inside the band, past its middle
+PASS D8a neurons smooth: a pill shows in the crisp zone
+PASS D8b neurons smooth: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c neurons smooth: the chosen cell's pill shows wherever it is drawn
+PASS D8e neurons smooth: none past the end, chosen or not (the body is not drawn)
+PASS D8d neurons smooth: a shown pill lingers while f < 0.04, then goes
+PASS D8a neurons smooth+contrast: a pill shows in the crisp zone
+PASS D8b neurons smooth+contrast: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c neurons smooth+contrast: the chosen cell's pill shows wherever it is drawn
+PASS D8d neurons smooth+contrast: a shown pill lingers while f < 0.04, then goes
+PASS D8a neurons high: a pill shows in the crisp zone
+PASS D8b neurons high: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c neurons high: the chosen cell's pill shows wherever it is drawn
+PASS D8e neurons high: none past the end, chosen or not (the body is not drawn)
+PASS D8d neurons high: a shown pill lingers while f < 0.04, then goes
+PASS D8a neurons high+contrast: a pill shows in the crisp zone
+PASS D8b neurons high+contrast: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c neurons high+contrast: the chosen cell's pill shows wherever it is drawn
+PASS D8d neurons high+contrast: a shown pill lingers while f < 0.04, then goes
+PASS D8a space smooth: a pill shows in the crisp zone
+PASS D8b space smooth: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c space smooth: the chosen cell's pill shows wherever it is drawn
+PASS D8e space smooth: none past the end, chosen or not (the body is not drawn)
+PASS D8d space smooth: a shown pill lingers while f < 0.04, then goes
+PASS D8a space smooth+contrast: a pill shows in the crisp zone
+PASS D8b space smooth+contrast: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c space smooth+contrast: the chosen cell's pill shows wherever it is drawn
+PASS D8d space smooth+contrast: a shown pill lingers while f < 0.04, then goes
+PASS D8a space high: a pill shows in the crisp zone
+PASS D8b space high: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c space high: the chosen cell's pill shows wherever it is drawn
+PASS D8e space high: none past the end, chosen or not (the body is not drawn)
+PASS D8d space high: a shown pill lingers while f < 0.04, then goes
+PASS D8a space high+contrast: a pill shows in the crisp zone
+PASS D8b space high+contrast: never once the cell is fading (no half-faded pill), and a linger only while f < 0.04
+PASS D8c space high+contrast: the chosen cell's pill shows wherever it is drawn
+PASS D8d space high+contrast: a shown pill lingers while f < 0.04, then goes
+PASS D9a neurons smooth focus 0.05: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons smooth focus 1.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons smooth focus 12.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons smooth focus 80.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons smooth focus 400.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons smooth+contrast focus 0.05: the backdrop as built when nothing is culled
+PASS D9a neurons smooth+contrast focus 1.0: the backdrop as built when nothing is culled
+PASS D9a neurons smooth+contrast focus 12.0: the backdrop as built when nothing is culled
+PASS D9a neurons smooth+contrast focus 80.0: the backdrop as built when nothing is culled
+PASS D9a neurons smooth+contrast focus 400.0: the backdrop as built when nothing is culled
+PASS D9a neurons high focus 0.05: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons high focus 1.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons high focus 12.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons high focus 80.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons high focus 400.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a neurons high+contrast focus 0.05: the backdrop as built when nothing is culled
+PASS D9a neurons high+contrast focus 1.0: the backdrop as built when nothing is culled
+PASS D9a neurons high+contrast focus 12.0: the backdrop as built when nothing is culled
+PASS D9a neurons high+contrast focus 80.0: the backdrop as built when nothing is culled
+PASS D9a neurons high+contrast focus 400.0: the backdrop as built when nothing is culled
+PASS D9a space smooth focus 0.05: the backdrop inside the far plane, clear of the near plane
+PASS D9a space smooth focus 1.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space smooth focus 12.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space smooth focus 80.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space smooth focus 400.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space smooth+contrast focus 0.05: the backdrop as built when nothing is culled
+PASS D9a space smooth+contrast focus 1.0: the backdrop as built when nothing is culled
+PASS D9a space smooth+contrast focus 12.0: the backdrop as built when nothing is culled
+PASS D9a space smooth+contrast focus 80.0: the backdrop as built when nothing is culled
+PASS D9a space smooth+contrast focus 400.0: the backdrop as built when nothing is culled
+PASS D9a space high focus 0.05: the backdrop inside the far plane, clear of the near plane
+PASS D9a space high focus 1.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space high focus 12.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space high focus 80.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space high focus 400.0: the backdrop inside the far plane, clear of the near plane
+PASS D9a space high+contrast focus 0.05: the backdrop as built when nothing is culled
+PASS D9a space high+contrast focus 1.0: the backdrop as built when nothing is culled
+PASS D9a space high+contrast focus 12.0: the backdrop as built when nothing is culled
+PASS D9a space high+contrast focus 80.0: the backdrop as built when nothing is culled
+PASS D9a space high+contrast focus 400.0: the backdrop as built when nothing is culled
+PASS D9b a still focus writes nothing
+PASS D9c a zoom writes
+PASS D9d the first frame writes
+PASS D9e a target well ahead stands as the focus; one at or behind the eye does not
+PASS D10a added light (and screened, subtracted, maxed) is light
+PASS D10b anything else is see-through; there is no solid mode
+PASS D10c the modes are 0 and 1
+PASS D10d light at fade 0.0: its contribution times 1 - f (no veil)
+PASS D10e see-through at fade 0.0: colour and coverage times 1 - f
+PASS D10d light at fade 0.3: its contribution times 1 - f (no veil)
+PASS D10e see-through at fade 0.3: colour and coverage times 1 - f
+PASS D10d light at fade 0.7: its contribution times 1 - f (no veil)
+PASS D10e see-through at fade 0.7: colour and coverage times 1 - f
+PASS D10d light at fade 1.0: its contribution times 1 - f (no veil)
+PASS D10e see-through at fade 1.0: colour and coverage times 1 - f
+PASS D10g fully faded, nothing is left of either
+PASS D11a gone in about a quarter of a second at 60 a second
+PASS D11b shrinking only, in small steps
+PASS D11c with Reduce Motion (or a still space) at once
+PASS D11d eased: no jolt at either end
+PASS D11e a long or bad frame never overshoots
+PASS D12a nothing yet: zeros
+PASS D12g the first 3.5 s are not counted
+PASS D12b mean, 95th percentile and worst of the gaps (ms)
+PASS D12c a pause (the app away) is not a frame
+PASS D12d only the last 600 are kept
+PASS D12e its line: the state, the numbers, drawn, dim, out, tilt and bad
+PASS D12f the probe's fallback shows in the numbers, never as on
+PASS D12h a restart: nothing counted for 3.5 s again
+PASS D13a the body starts past the end, not drawn
+PASS D13b it lands at the focus's depth, crisp and drawn
+PASS D13c on the goal's line of sight
+PASS D13d the focus stays as deep (the camera and its target move together)
+PASS D13a the body starts past the end, not drawn
+PASS D13b it lands at the focus's depth, crisp and drawn
+PASS D13c on the goal's line of sight
+PASS D13d the focus stays as deep (the camera and its target move together)
+PASS D13a the body starts past the end, not drawn
+PASS D13b it lands at the focus's depth, crisp and drawn
+PASS D13c on the goal's line of sight
+PASS D13d the focus stays as deep (the camera and its target move together)
+PASS D13a the body starts past the end, not drawn
+PASS D13b it lands at the focus's depth, crisp and drawn
+PASS D13c on the goal's line of sight
+PASS D13d the focus stays as deep (the camera and its target move together)
+PASS D13e a body nearer than the focus keeps its depth (the glide as it was): a move across the view only
+PASS D13f a body behind the eye is brought round in front, at the focus's depth
+PASS D13g no glide along a line of sight that does not go ahead
+reach neurons: R 0.20252955, far edge f 0.94117695
+PASS D14a neurons High: the far edge fades at least 0.7
+PASS D14c neurons: the middle is crisp
+PASS D14d neurons: a fly-in's framed points have f = 0
+reach space: R 0.23843706, far edge f 1.0
+PASS D14a space High: the far edge fades at least 0.7
+PASS D14b space High: and is culled
+PASS D14c space: the middle is crisp
+PASS D14d space: a fly-in's framed points have f = 0
+PASS D14e the reach is kept within 0.15 to 1
+PASS D15a neurons smooth: marked, no pow (k 1), no matrix
+PASS D15b neurons smooth: its formula equals the band's fade on a depth grid
+PASS D15a neurons smooth+contrast: marked, no pow (k 1), no matrix
+PASS D15b neurons smooth+contrast: its formula equals the band's fade on a depth grid
+PASS D15a neurons high: marked, no pow (k 1), no matrix
+PASS D15b neurons high: its formula equals the band's fade on a depth grid
+PASS D15a neurons high+contrast: marked, no pow (k 1), no matrix
+PASS D15b neurons high+contrast: its formula equals the band's fade on a depth grid
+PASS D15a space smooth: marked, no pow (k 1), no matrix
+PASS D15b space smooth: its formula equals the band's fade on a depth grid
+PASS D15a space smooth+contrast: marked, no pow (k 1), no matrix
+PASS D15b space smooth+contrast: its formula equals the band's fade on a depth grid
+PASS D15a space high: marked, no pow (k 1), no matrix
+PASS D15b space high: its formula equals the band's fade on a depth grid
+PASS D15a space high+contrast: marked, no pow (k 1), no matrix
+PASS D15b space high+contrast: its formula equals the band's fade on a depth grid
+PASS D15c a curved band's text has its pow; light and see differ
+PASS D16a opacity is 1 - f
+PASS D16b written only on a step of 1/255 or more
+PASS D16c neurons smooth: fully faded is not drawn
+PASS D16c neurons high: fully faded is not drawn
+PASS D16c space smooth: fully faded is not drawn
+PASS D16c space high: fully faded is not drawn
+ALL PASS
+
+run rc=0

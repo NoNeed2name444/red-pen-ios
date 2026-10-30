@@ -1,0 +1,19 @@
+
+compile rc=0
+ok   S1 Performance map: every top-level line is a declaration this test reads
+ok   S1 Performance map: its declarations are found
+ok   S2 Performance map: no top-level name is declared twice
+ok   S3 Performance map: every top-level function and constant starts perf_
+ok   S4 Performance map: every struct is CamelCase
+ok   S1 million map: every top-level line is a declaration this test reads
+ok   S1 million map: its declarations are found
+ok   S2 million map: no top-level name is declared twice
+ok   S3 million map: every top-level function and constant starts mil_
+ok   S4 million map: every struct is CamelCase
+ok   S5 Performance map: every function the renderer looks up is declared
+ok   S5 million map: every function the renderer looks up is declared
+ok   S6 the reader finds the sample's declarations
+ok   S6 and the line it cannot read
+ALL PASSED
+
+run rc=0

@@ -1,0 +1,152 @@
+
+compile rc=0
+PASS ios/RedPen/Features/Library/LibraryView.swift read
+PASS ios/RedPen/Features/Library/LibraryChrome.swift read
+PASS ios/RedPen/Features/Library/LibrarySheets.swift read
+PASS ios/RedPen/Features/Library/WardHome.swift read
+PASS ios/RedPen/Features/Library/StudyCategory.swift read
+PASS ios/RedPen/Features/Library/NewSetDock.swift read
+PASS ios/RedPen/Features/Library/NewSetView.swift read
+PASS ios/RedPen/Features/MCQ/MCQQuizView.swift read
+PASS ios/RedPen/Features/Mock/MockSittingView.swift read
+PASS ios/RedPen/Features/Anki/AnkiReviewView.swift read
+PASS ios/RedPen/Features/Book/BookReaderView.swift read
+PASS ios/RedPen/Features/Recall/DrawRecallView.swift read
+PASS ios/RedPen/Features/OSCE/OsceReviewView.swift read
+PASS ios/RedPen/Features/Cases/CaseListView.swift read
+PASS ios/RedPen/Features/Notes/IdeasView.swift read
+PASS ios/RedPen/Features/Support/SupportCenter.swift read
+PASS pointer: found the core screens' buttons
+PASS pointer: every core button has the highlight (67 buttons)
+pointer coverage: 67 of 67 buttons
+PASS WardButtonStyle, chips and circles draw the highlight
+PASS PressableRowStyle draws the highlight
+PASS keyboard: Library/LibraryView.swift's primary action has .keyboardShortcut("n", modifiers: .command)
+PASS keyboard: Library/StudyCategory.swift's primary action has .keyboardShortcut(CategoryDock.digit(number), modifiers: .command)
+PASS keyboard: Library/NewSetView.swift's primary action has .keyboardShortcut("s", modifiers: .command)
+PASS keyboard: Library/NewSetDock.swift has .keyboardShortcut(.defaultAction)
+PASS keyboard: MCQ/MCQQuizView.swift's primary action has .keyboardShortcut(.return, modifiers: [])
+PASS keyboard: Mock/MockSittingView.swift's primary action has .keyboardShortcut(.return, modifiers: [])
+PASS keyboard: Anki/AnkiReviewView.swift has .keyboardShortcut(.return, modifiers: [])
+PASS keyboard: Book/BookReaderView.swift's primary action has .keyboardShortcut(.return, modifiers: [])
+PASS keyboard: Recall/DrawRecallView.swift has .keyboardShortcut(.return, modifiers: [])
+PASS keyboard: OSCE/OsceReviewView.swift's primary action has .keyboardShortcut(.return, modifiers: [])
+PASS keyboard: the quiz's options answer to their digits (KeyboardShortcuts.swift)
+keyboard: 10 primary actions checked
+PASS sheets: found the core screens' sheets
+PASS sheets: every one takes the page colour (26 sheets)
+PASS wardSheet() is the page colour
+sheet coverage: 26 of 26 sheets
+PASS preview: four turns
+PASS preview: upside down by its word
+PASS preview: every named turn is asked for, portrait too
+PASS preview: the log says where it ended
+PASS preview: the pretend window has the window's corner
+PASS ipad-preview: all four orientations
+PASS ipad-preview: light and dark
+PASS ipad-preview: library
+PASS ipad-preview: name-sheet
+PASS ipad-preview: new-make
+PASS ipad-preview: quiz-checked
+PASS ipad-preview: mock-sitting
+PASS ipad-preview: anki-revealed
+PASS ipad-preview: book
+PASS ipad-preview: draw-recall
+PASS ipad-preview: osce-revealed
+PASS ipad-preview: cases
+PASS ipad-preview: ideas
+PASS ipad-preview: settings
+PASS ipad-preview: import-preview
+PASS ipad-preview: upside down counts as tall
+PASS ipad-preview: every turn's log is read
+PASS ipad-devices: two jobs of 40 minutes
+PASS ipad-devices: picks "mini": by size
+PASS ipad-devices: picks "base": by size
+PASS ipad-devices: picks "11": by size
+PASS ipad-devices: picks "13": by size
+PASS ipad-devices: prints the chosen list
+PASS ipad-devices: four orientations full screen
+PASS ipad-devices: the expected count first
+PASS ipad-devices: the window table has 4 sizes x 2 geometries x 6 windows
+PASS WindowSpan's breakpoints are 540 and 700
+PASS A9: mini portrait sv13 320x1077 lays out as the iPhone (slim)
+PASS window mini portrait sv13 320x1077 is at least 320 wide
+PASS window mini portrait sv12 367x1077 is at least 320 wide
+PASS window mini portrait sv23 414x1077 is at least 320 wide
+PASS A9: mini portrait slideover 320x1077 lays out as the iPhone (slim)
+PASS window mini portrait slideover 320x1077 is at least 320 wide
+PASS window mini portrait smmin 400x566 is at least 320 wide
+PASS window mini portrait smresized 446x1053 is at least 320 wide
+PASS A9: mini landscape sv13 374x688 lays out as the iPhone (slim)
+PASS window mini landscape sv13 374x688 is at least 320 wide
+PASS window mini landscape sv12 561x688 is at least 320 wide
+PASS A9: mini landscape sv23 749x688 has the rail (broad)
+PASS window mini landscape sv23 749x688 is at least 320 wide
+PASS A9: mini landscape slideover 320x688 lays out as the iPhone (slim)
+PASS window mini landscape slideover 320x688 is at least 320 wide
+PASS window mini landscape smmin 500x372 is at least 320 wide
+PASS window mini landscape smresized 680x664 is at least 320 wide
+PASS A9: base portrait sv13 320x1124 lays out as the iPhone (slim)
+PASS window base portrait sv13 320x1124 is at least 320 wide
+PASS window base portrait sv12 405x1124 is at least 320 wide
+PASS window base portrait sv23 490x1124 is at least 320 wide
+PASS A9: base portrait slideover 320x1124 lays out as the iPhone (slim)
+PASS window base portrait slideover 320x1124 is at least 320 wide
+PASS window base portrait smmin 400x590 is at least 320 wide
+PASS window base portrait smresized 492x1100 is at least 320 wide
+PASS A9: base landscape sv13 390x764 lays out as the iPhone (slim)
+PASS window base landscape sv13 390x764 is at least 320 wide
+PASS window base landscape sv12 585x764 is at least 320 wide
+PASS A9: base landscape sv23 780x764 has the rail (broad)
+PASS window base landscape sv23 780x764 is at least 320 wide
+PASS A9: base landscape slideover 320x764 lays out as the iPhone (slim)
+PASS window base landscape slideover 320x764 is at least 320 wide
+PASS window base landscape smmin 500x410 is at least 320 wide
+PASS window base landscape smresized 708x740 is at least 320 wide
+PASS A9: 11 portrait sv13 320x1154 lays out as the iPhone (slim)
+PASS window 11 portrait sv13 320x1154 is at least 320 wide
+PASS window 11 portrait sv12 412x1154 is at least 320 wide
+PASS window 11 portrait sv23 504x1154 is at least 320 wide
+PASS A9: 11 portrait slideover 320x1154 lays out as the iPhone (slim)
+PASS window 11 portrait slideover 320x1154 is at least 320 wide
+PASS window 11 portrait smmin 400x605 is at least 320 wide
+PASS window 11 portrait smresized 500x1130 is at least 320 wide
+PASS A9: 11 landscape sv13 400x778 lays out as the iPhone (slim)
+PASS window 11 landscape sv13 400x778 is at least 320 wide
+PASS window 11 landscape sv12 600x778 is at least 320 wide
+PASS A9: 11 landscape sv23 800x778 has the rail (broad)
+PASS window 11 landscape sv23 800x778 is at least 320 wide
+PASS A9: 11 landscape slideover 320x778 lays out as the iPhone (slim)
+PASS window 11 landscape slideover 320x778 is at least 320 wide
+PASS window 11 landscape smmin 500x417 is at least 320 wide
+PASS window 11 landscape smresized 726x754 is at least 320 wide
+PASS A9: 13 portrait sv13 341x1320 lays out as the iPhone (slim)
+PASS window 13 portrait sv13 341x1320 is at least 320 wide
+PASS window 13 portrait sv12 511x1320 is at least 320 wide
+PASS window 13 portrait sv23 681x1320 is at least 320 wide
+PASS A9: 13 portrait slideover 320x1320 lays out as the iPhone (slim)
+PASS window 13 portrait slideover 320x1320 is at least 320 wide
+PASS window 13 portrait smmin 500x688 is at least 320 wide
+PASS window 13 portrait smresized 619x1296 is at least 320 wide
+PASS A9: 13 landscape sv13 455x976 lays out as the iPhone (slim)
+PASS window 13 landscape sv13 455x976 is at least 320 wide
+PASS window 13 landscape sv12 683x976 is at least 320 wide
+PASS A9: 13 landscape sv23 911x976 has the rail (broad)
+PASS window 13 landscape sv23 911x976 is at least 320 wide
+PASS A9: 13 landscape slideover 320x976 lays out as the iPhone (slim)
+PASS window 13 landscape slideover 320x976 is at least 320 wide
+PASS window 13 landscape smmin 500x516 is at least 320 wide
+PASS window 13 landscape smresized 826x952 is at least 320 wide
+PASS ipad-widths: the multitasking widths and two Stage Manager windows
+PASS ipad-widths: both orientations
+PASS ipad-widths: passes the window's height
+PASS design-preview: the iPad's rotation-state pass
+PASS design-preview: its bundle in the artifact
+PASS RotationStateUITests: upside down on the iPad
+PASS RotationStateUITests: the width change
+PASS RotationStateUITests: 44 points after each turn
+PASS project.yml keeps multitasking (no UIRequiresFullScreen)
+PASS project.yml: UIApplicationSupportsMultipleScenes
+0 IPAD AUDIT FAILURES
+
+run rc=0

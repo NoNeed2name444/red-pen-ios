@@ -1,0 +1,15 @@
+
+compile rc=0
+ok   no file: day returns nil
+ok   no file: night returns nil
+ok   day file only: day picks stethoscore-logo.png
+ok   day file only: night falls back to stethoscore-logo.png
+ok   both files: day picks stethoscore-logo.png
+ok   both files: night picks stethoscore-logo-dark.png
+ok   default height is 72 pt at 1449:447 aspect
+ok   scaled height is kept within 56 to 112 pt
+ok   a narrow line scales the box down at the same aspect
+
+ALL BRAND LOGO TESTS PASS
+
+run rc=0

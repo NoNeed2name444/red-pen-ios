@@ -1,0 +1,64 @@
+
+compile rc=0
+ok   D1 crisp up to the start, gone at the end
+ok   D1 f = clamp((z - start) / (end - start), 0, 1)^k
+ok   D1 never fades back in as depth grows
+ok   D1 additive light goes to nothing: light = 1 - f
+ok   D1 a band never set fades nothing
+ok   D2 what the camera looks at is crisp at every zoom
+ok   D2 start and end are multiples of the focus's depth: a small note up close fades as the whole map
+ok   D2 depth is view-space z: a body off to the side at the same z fades the same
+ok   D2 turned round the focus, the far side sharpens and the near side fades
+ok   D3 Smooth pulls the end in (less drawn), High pushes it out
+ok   D3 every tier reaches the background, so what is past it is not drawn
+ok   D4 with Increase Contrast the fade starts later and stops short of the sky
+ok   D4 nothing stopped short is culled or dissolved
+ok   D5 past the end is gone, before it is not
+ok   D5 a solid body keeps its opacity until nearly faded, then goes smoothly to nothing at the end
+ok   D5 just before it is culled nothing of it is left to pop
+ok   D5 the dissolve starts only where f is 0.85
+ok   D6 up close the whole detail, every pixel the same as before
+ok   D6 small on screen, the simple path
+ok   D6 detail falls gradually and smoothly as it zooms out: no step anywhere
+ok   D6 size on screen is the Performance theme's (radius x focal / depth)
+ok   D7 a body at the edge of the point size does not flicker
+ok   D7 under 1.5 points a point; back to its body only from 2.25
+ok   D7 detail drops sooner only where the body has mostly faded (f 0.6)
+ok   D7 outside the view or past the band: gone
+ok   D7 coming back into view it takes the level its size says
+ok   D8 a point is drawn at the body's own size on screen, never under a point
+ok   D9 the same view volume as the Performance theme's camera
+ok   D9 a body in front is in view
+ok   D9 a body behind the camera is not
+ok   D9 a body far off to the side is not
+ok   D9 a comet just off screen whose tail reaches in is kept
+ok   D9 every look reaches past its body
+ok   D10 every Space shader fades by depth
+ok   D10 a solid body dissolves into the sky's colour; additive light only towards nothing
+ok   D10 the colour faded towards is the sky's near-black, in linear light
+ok   D10 a link fades by each fragment's depth, a body by its centre's
+ok   D10 granulation, lensing, clouds, ring shadows and city lights step down by size, with no switch left
+ok   D10 the shaders' detail band is SpaceDepth's
+ok   D10 the city lights and the ring's shadow go with size alone, so Smooth keeps them up close
+ok   D11 between the sky's darkest and its band, close to both (no grey veil, no dark hole)
+ok   D11 the sky's blue, not a grey
+ok   D12 at full weight the octaves are the old ones to the bit (the look up close is unchanged)
+ok   D12 at none they are the simple path's, and between they morph with no step
+ok   D12 the shaders use the morphing octaves
+ok   D13 a focus behind the eye, on it or not a number sets no band
+ok   D13 then every body ahead stays crisp and drawn, names and all: the map never goes blank
+ok   D13 a focus just ahead of the nearest still sets its band
+ok   D14 the dissolve only ever falls with depth, whole in the crisp zone, nothing at the end
+ok   D14 past the end: not drawn, no hit area, no element
+ok   D14 anywhere inside the band and in view: drawn and reachable, as before
+ok   D14 the chosen body is kept wherever it is
+ok   D14 the chip's body starts past the end, unreachable
+ok   D14 after the glide it is in the crisp zone, in view, drawn and reachable
+ok   D15 zoomed in, the camera stays short of Inguinal's system
+ok   D15 at fill 4.3 Atrial fibrillation starts 10% past the band's end (high)
+ok   D15 at fill 4.3 Atrial fibrillation starts 10% past the band's end (smooth)
+ok   D15 at the app's fill 0.88 it lies inside the band (why the test zooms in)
+ok   D15 the glide ends with it in the crisp zone (1.15 times the focus's depth or less)
+ALL PASSED
+
+run rc=0
