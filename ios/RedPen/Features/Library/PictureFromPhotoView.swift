@@ -106,7 +106,7 @@ struct PictureFromPhotoView: View {
         if let progress {
             HStack(spacing: 10) {
                 EcgLoader()
-                Text(progress).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                Text(progress).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             .accessibilityElement(children: .combine)
         }
@@ -120,7 +120,7 @@ struct PictureFromPhotoView: View {
     private var startPanel: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("A labelled diagram from a photo, a screenshot or a scanned page. The labels are read on this device and each gets a cover; move or add covers before saving.")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             sourceTiles
         }
@@ -148,8 +148,8 @@ struct PictureFromPhotoView: View {
             VStack(alignment: .leading, spacing: 10) {
                 WardIconSquare(symbol: symbol, tone: .blue, size: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline).foregroundStyle(Color.wardInk)
-                    Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    Text(title).font(WardType.headline).foregroundStyle(Color.wardInk)
+                    Text(detail).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .padding(WardSpace.gutter)
@@ -283,7 +283,7 @@ struct PictureFromPhotoView: View {
                 .frame(maxHeight: 540)
                 .frame(maxWidth: .infinity)
             Text("Drag a cover to move it, its corners to stretch it, or across the picture to draw a new one.")
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(Color.wardInkSecondary)
             coverTools(page)
             selectedPanel
@@ -428,7 +428,7 @@ struct PictureFromPhotoView: View {
                 .padding(.top, 6)
             } label: {
                 Text(labelSummary(covers))
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .frame(minHeight: 44, alignment: .leading)
             }
@@ -504,7 +504,7 @@ struct PictureFromPhotoView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Also keep the pages as a lecture")
                         Text("Listed under Sources, with the words read from each page.")
-                            .font(.caption)
+                            .font(WardType.caption)
                             .foregroundStyle(Color.wardInkSecondary)
                     }
                 }
@@ -597,7 +597,7 @@ struct PictureFromPhotoView: View {
                 Text("Saved \(result.cards) picture card\(plural) to \u{201C}\(result.set.name)\u{201D}.\(lecture)")
                     .foregroundStyle(Color.wardInk)
             }
-            .font(.headline)
+            .font(WardType.headline)
             .frame(maxWidth: .infinity, alignment: .leading)
             .wardCard()
             NavigationLink {

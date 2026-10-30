@@ -41,7 +41,7 @@ extension LibraryView {
             Section {
                 Button { support = .examples } label: {
                     Label("Try every feature", systemImage: "sparkles.rectangle.stack")
-                        .font(.footnote.weight(.semibold))
+                        .font(WardType.face(.footnote, weight: .semibold))
                         .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(.borderless)
@@ -112,7 +112,7 @@ extension LibraryView {
                 } label: {
                     HStack(spacing: 16) {
                         Image(systemName: selected.contains(set.id) ? "checkmark.circle.fill" : "circle")
-                            .font(.headline)
+                            .font(WardType.headline)
                             .accessibilityHidden(true)
                             .foregroundStyle(selected.contains(set.id) ? Color.wardPrimaryInk : Color.wardInkSecondary)
                             .contentTransition(.identity)
@@ -253,7 +253,7 @@ extension LibraryView {
             withAnimation(Motion.gentle(.snappy(duration: 0.25))) { selecting = false; selected = [] }
         } label: {
             Image(systemName: "xmark")
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
@@ -271,7 +271,7 @@ extension LibraryView {
         let count: Int = selected.count
         let text: String = count == 0 ? "Select sets" : "\(L10n.count(count)) selected"
         return Text(text)
-            .font(.caption.weight(.medium))
+            .font(WardType.face(.caption, weight: .medium))
             .foregroundStyle(Color.wardInkSecondary)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
@@ -372,7 +372,7 @@ extension LibraryView {
     var moreMenuFace: some View {
         let disc = Circle()
         return Image(systemName: "ellipsis")
-            .font(.subheadline.weight(.semibold))
+            .font(WardType.face(.subheadline, weight: .semibold))
             .foregroundStyle(Color.wardInkSecondary)
             .frame(width: 34, height: 34)
             .wardRaised(in: disc, lift: .low)
@@ -395,14 +395,14 @@ extension LibraryView {
             // either direction
             .keepsLeftToRight()
             .accessibilityHidden(true)
-            Text("Make your first set").font(.title3.weight(.bold))
+            Text("Make your first set").font(WardType.face(.title3, weight: .bold))
             Text("Add a lecture and \(Brand.name) turns it into questions or flashcards to study.")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
             Button { newSetKind = category.mainKind } label: {
                 Label("New set", systemImage: "plus")
-                    .font(.headline)
+                    .font(WardType.headline)
                     .frame(maxWidth: 280, minHeight: 44)
             }
             .buttonStyle(WardButtonStyle(kind: .primary, fills: false))
@@ -419,7 +419,7 @@ extension LibraryView {
                     Label("How it works", systemImage: "questionmark.app")
                 }
             }
-            .font(.footnote)
+            .font(WardType.face(.footnote, weight: .regular))
             .buttonStyle(.borderless)
             .accessibilityIdentifier("emptyLibraryLinks")
         }

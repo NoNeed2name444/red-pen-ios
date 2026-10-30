@@ -29,7 +29,7 @@ struct NarrateListenRow: View {
             Spacer(minLength: 0)
             SleepTimerMenu(sleep: sleep, sectioned: sections.count >= 2)
         }
-        .font(.subheadline.weight(.semibold))
+        .font(WardType.face(.subheadline, weight: .semibold))
         .sheet(isPresented: $listing) {
             SectionListSheet(sections: sections, current: current) { onPick($0) }
         }
@@ -151,16 +151,16 @@ struct SectionListSheet: View {
         let when: String = section.start.map { LectureAudio.clock($0, locale: L10n.locale) } ?? ""
         return HStack(spacing: 12) {
             Text("\(i + 1)")
-                .font(.subheadline.monospacedDigit())
+                .font(WardType.face(.subheadline, weight: .regular).monospacedDigit())
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(minWidth: 24, alignment: .trailing)
             Text(section.title)
-                .font(playing ? .body.weight(.semibold) : .body)
+                .font(playing ? WardType.face(.body, weight: .semibold) : WardType.body)
                 .lineLimit(2)
             Spacer(minLength: 8)
             if !when.isEmpty {
                 Text(when)
-                    .font(.subheadline.monospacedDigit())
+                    .font(WardType.face(.subheadline, weight: .regular).monospacedDigit())
                     .foregroundStyle(Color.wardInkSecondary)
             }
             if playing {

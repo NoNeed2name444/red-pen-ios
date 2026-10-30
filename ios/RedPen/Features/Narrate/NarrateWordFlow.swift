@@ -111,7 +111,7 @@ struct NarrateLine: View, Equatable {
         let mark: Color = speaking ? Color.wardPrimary.opacity(WardWash.alpha) : wash
         let shown: Color = wrong ? Color.wardFadedInk : ink
         return Text(text)
-            .font(.body)
+            .font(WardType.body)
             .underline(wrong, color: Color.wardFadedInk)
             .foregroundStyle(shown)
             .background {

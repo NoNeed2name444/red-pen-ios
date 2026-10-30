@@ -172,7 +172,7 @@ struct ReasoningToolPicker: View {
         List {
             Section {
                 Text(tool.blurb)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .listRowBackground(Color.clear)
             }

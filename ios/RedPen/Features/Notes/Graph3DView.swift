@@ -262,7 +262,7 @@ struct Graph3DView: View {
         .overlay {
             if filter != .all && shownCount == 0 {
                 Text("Nothing here for this filter.")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .allowsHitTesting(false)
             }

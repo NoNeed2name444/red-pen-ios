@@ -118,7 +118,7 @@ struct RecordLectureView: View {
                 .accessibilityValue(L10nFormat.clock(seconds: shownSeconds, locale: L10n.locale))
                 .accessibilityIdentifier("recordElapsed")
             Text(words(stateLine))
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             WardGroove(fraction: recorder.level, tint: AnyShapeStyle(Color.wardPrimaryInk))
                 .accessibilityHidden(true)
@@ -220,11 +220,11 @@ struct RecordLectureView: View {
     private var permissionSheet: some View {
         VStack(spacing: WardSpace.l) {
             Text(words(RecorderWords.sheetTitle))
-                .font(.headline)
+                .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
                 .accessibilityAddTraits(.isHeader)
             Text(words(RecorderWords.sheetBody))
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
             Button(words(RecorderWords.sheetContinue)) {

@@ -83,17 +83,17 @@ extension LibraryView {
                 WardIconSquare(symbol: "slider.horizontal.3", tone: .blue)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Build a session")
-                        .font(.subheadline.weight(.semibold))
+                        .font(WardType.face(.subheadline, weight: .semibold))
                         .foregroundStyle(Color.wardInk)
                     Text("Missed this week, a subject, a tag, what\u{2019}s due")
-                        .font(.caption2)
+                        .font(WardType.face(.caption2, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(true)
             }
@@ -111,18 +111,18 @@ extension LibraryView {
         Button { openHit(hit) } label: {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: hit.kind.symbol)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardPrimaryInk)
                     .frame(width: 24)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(Self.marked(hit))
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .foregroundStyle(Color.wardInk)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                     Text(Self.whereFound(hit))
-                        .font(.caption2)
+                        .font(WardType.face(.caption2, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(1)
                 }
@@ -258,17 +258,17 @@ struct FoundCardSheet: View {
     private var face: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(front)
-                .font(.title3.weight(.semibold))
+                .font(WardType.face(.title3, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             if revealed {
                 WardEtch()
                 ForEach(Array(answers.enumerated()), id: \.offset) { _, line in
-                    Text(line).font(.body).foregroundStyle(Color.wardInk)
+                    Text(line).font(WardType.body).foregroundStyle(Color.wardInk)
                 }
                 if !found.card.why.isEmpty {
                     Text(found.card.why)
-                        .font(.callout)
+                        .font(WardType.face(.callout, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }

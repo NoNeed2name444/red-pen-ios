@@ -33,7 +33,7 @@ struct IdeaToolFace: View {
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.body.weight(.medium))
+            .font(WardType.face(.body, weight: .medium))
             .frame(width: 44, height: 44)
             .contentShape(Circle())
     }

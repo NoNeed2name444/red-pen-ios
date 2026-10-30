@@ -113,20 +113,20 @@ struct LectureWriterSection: View {
                 let pages: Int = readSource.document.pages.count
                 let line: String = "\(readSource.name) \u{2014} \(pages) pages"
                 Label(line, systemImage: "checkmark.circle.fill")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             if let trouble {
                 WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)
             }
             VStack(alignment: .leading, spacing: 8) {
-                Text("Or paste your notes").font(.subheadline.weight(.semibold))
+                Text("Or paste your notes").font(WardType.face(.subheadline, weight: .semibold))
                 TextEditor(text: $pastedNotes)
                     .frame(minHeight: 120)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .popEditor()
                     .disabled(working)
             }
@@ -151,7 +151,7 @@ struct LectureWriterSection: View {
                 .disabled(working)
                 if style.usesDiagrams, readSource != nil {
                     Text(diagramNote)
-                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             if style.writesText || kind != .anki {
@@ -172,10 +172,10 @@ struct LectureWriterSection: View {
             .wardButtonRow()
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             if let status, !working {
-                Text(status).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                Text(status).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             // what the last run could not write, and only that, again
             if let missing, !working, canWriteMissing(missing) {
@@ -185,7 +185,7 @@ struct LectureWriterSection: View {
             }
             if !hasSource && !(kind == .anki && style == .image) {
                 Text("Go back and add a lecture first.")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             if let trouble {
                 WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill", text: trouble)
@@ -199,7 +199,7 @@ struct LectureWriterSection: View {
                     .popField()
                     .disabled(working)
                 Text(modelLine)
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .wardRowBackground()

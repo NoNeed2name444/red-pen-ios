@@ -54,7 +54,7 @@ struct NewSetDock: View {
         return VStack(spacing: 8) {
             if let hint {
                 Text(hint)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
                     .contentTransition(.identity)
@@ -141,7 +141,7 @@ struct NewSetStepDot: View {
                 WardReliefFace(shape: Circle(), lift: .low, inset: !done)
                 if done {
                     Image(systemName: "checkmark")
-                        .font(.caption.weight(.bold))
+                        .font(WardType.face(.caption, weight: .bold))
                         .foregroundStyle(ink)
                 } else {
                     Text("\(one.rawValue)")
@@ -151,7 +151,7 @@ struct NewSetStepDot: View {
             }
             .frame(width: 28, height: 28)
             Text(one.short)
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .foregroundStyle(caption)
                 .fixedSize()
         }

@@ -50,7 +50,7 @@ struct NoteMarkdownView: View {
                 }
         case .code(let body):
             Text(body)
-                .font(.callout.monospaced())
+                .font(WardType.face(.callout, weight: .regular).monospaced())
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
@@ -63,9 +63,9 @@ struct NoteMarkdownView: View {
 
     private static func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .title2.weight(.bold)
-        case 2: return .title3.weight(.semibold)
-        default: return .headline
+        case 1: return WardType.face(.title2, weight: .bold)
+        case 2: return WardType.face(.title3, weight: .semibold)
+        default: return WardType.headline
         }
     }
 }

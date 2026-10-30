@@ -49,7 +49,7 @@ struct TurnIntoPicker: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\u{201C}\(source.name)\u{201D} stays as it is. The new set is added beside it, with the same subject and folder.")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                     LazyVGrid(columns: GridItem.tiles(minimum: 150, accessibilitySize: typeSize.isAccessibilitySize), spacing: 12) {
                         ForEach(kinds) { kind in
@@ -94,10 +94,10 @@ struct TurnIntoPicker: View {
             VStack(alignment: .leading, spacing: 10) {
                 ModeTile(kind: kind, size: 40)
                 Text(kind.label)
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardInk)
                 Label(said.text, systemImage: said.symbol)
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)

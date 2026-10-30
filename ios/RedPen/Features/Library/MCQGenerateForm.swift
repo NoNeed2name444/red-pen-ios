@@ -99,7 +99,7 @@ struct MCQGenerateForm: View {
                 .disabled(isGenerating)
             if !writerReady {
                 Label(llm.noWriter, systemImage: "lock.fill")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 if !llm.isPro {
                     Button("See Pro") { showPaywall = true }
                         .buttonStyle(.wardCompact)
@@ -118,11 +118,11 @@ struct MCQGenerateForm: View {
             .floatingActionAnchor("mcq")
             .wardButtonRow()
             if let generationStatus, !isGenerating {
-                Text(generationStatus).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                Text(generationStatus).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             if let makeHint {
                 Text(makeHint)
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             DisclosureGroup("More options", isExpanded: $showMore) {
                 TextField("Subject", text: $subject, prompt: Text("Subject, e.g. Cardiology"))
@@ -131,7 +131,7 @@ struct MCQGenerateForm: View {
                 Toggle("Focus on high-yield facts", isOn: $highYield)
                     .disabled(isGenerating)
                 if let summary = llm.summary(for: .writer) {
-                    Text("Using \(summary).").font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    Text("Using \(summary).").font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }

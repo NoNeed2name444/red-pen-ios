@@ -75,7 +75,7 @@ private struct IncomingImport: ViewModifier {
             .overlay(alignment: .top) {
                 if let reading {
                     Label("Reading \(reading)\u{2026}", systemImage: "arrow.down.doc")
-                        .font(.footnote.weight(.medium))
+                        .font(WardType.face(.footnote, weight: .medium))
                         .foregroundStyle(Color.wardInk)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)

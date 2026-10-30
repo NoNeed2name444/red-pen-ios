@@ -138,7 +138,7 @@ struct NoteEditorView: View {
             Section {
                 // the title is a field you touch: a well pressed into the base
                 TextField("Title", text: $title, axis: .vertical)
-                    .font(.title3.weight(.semibold))
+                    .font(WardType.face(.title3, weight: .semibold))
                     .focused($editing, equals: .title)
                     .popFieldRow()
                 HStack(spacing: 8) {
@@ -246,7 +246,7 @@ struct NoteEditorView: View {
                 ForEach(suggestions) { note in
                     Button(note.title) { complete(with: note.title) }
                         .buttonStyle(.wardCompact)
-                        .font(.caption)
+                        .font(WardType.caption)
                 }
             }
         }
@@ -288,7 +288,7 @@ struct NoteEditorView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(name).foregroundStyle(Color.wardInk)
                     Text("No note by this name yet \u{2014} tap to make it")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }
@@ -397,12 +397,12 @@ struct NoteEditorView: View {
                         .foregroundStyle(Color.wardInk)
                         .lineLimit(2)
                     Text(how)
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.forward")
-                    .font(.caption.weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .contentShape(Rectangle())
@@ -502,7 +502,7 @@ struct LinkPickerView: View {
                             Spacer(minLength: 8)
                             if linked {
                                 Image(systemName: "checkmark")
-                                    .font(.body.weight(.semibold))
+                                    .font(WardType.face(.body, weight: .semibold))
                                     .foregroundStyle(Color.wardPrimaryInk)
                             }
                         }
@@ -596,10 +596,10 @@ private struct NoteChipLabel: View {
             Text(title)
                 .lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
-                .font(.caption2.weight(.semibold))
+                .font(WardType.face(.caption2, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
         }
-        .font(.subheadline.weight(.medium))
+        .font(WardType.face(.subheadline, weight: .medium))
         .foregroundStyle(Color.wardInk)
         .padding(.horizontal, 12)
         .frame(minHeight: 36)

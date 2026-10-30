@@ -106,7 +106,7 @@ struct CustomSessionSheet: View {
     private var startBar: some View {
         VStack(spacing: 10) {
             Text(summary)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity)

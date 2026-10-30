@@ -25,19 +25,19 @@ struct GraphLegendSheet: View {
                     ForEach(content.rows, id: \.name) { row in
                         HStack(alignment: .top, spacing: 14) {
                             Image(systemName: row.symbol)
-                                .font(.title3)
+                                .font(WardType.face(.title3, weight: .regular))
                                 .foregroundStyle(row.tint)
                                 .frame(width: 30)
                                 .accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(row.name).font(.headline)
+                                Text(row.name).font(WardType.headline)
                                 Text(row.text)
-                                    .font(.subheadline)
+                                    .font(WardType.face(.subheadline, weight: .regular))
                                     .foregroundStyle(Color.wardInkSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
                                 if !row.how.isEmpty {
                                     Label(row.how, systemImage: "plus.circle")
-                                        .font(.footnote.weight(.medium))
+                                        .font(WardType.face(.footnote, weight: .medium))
                                         .foregroundStyle(row.tint)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
@@ -50,7 +50,7 @@ struct GraphLegendSheet: View {
                     }
                 } footer: {
                     Text(content.footer)
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .padding(.top, 6)
                 }
@@ -80,7 +80,7 @@ struct GraphLegendSheet: View {
                             .frame(height: 36)
                         // two lines rather than cut short or shrunk
                         Text(rung.caption)
-                            .font(.caption)
+                            .font(WardType.caption)
                             .foregroundStyle(Color.wardInkSecondary)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
@@ -91,7 +91,7 @@ struct GraphLegendSheet: View {
                 }
             }
             Text(content.ladderCaption)
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .ignore)
@@ -378,12 +378,12 @@ struct GraphUniverseHint: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(steps ? theme.cardTitle : "Touching the map")
-                .font(.headline)
+                .font(WardType.headline)
             if touch {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(GraphPeek.coachLines.enumerated()), id: \.offset) { k, line in
                         Label(line, systemImage: Self.touchSymbols[k % Self.touchSymbols.count])
-                            .font(.subheadline)
+                            .font(WardType.face(.subheadline, weight: .regular))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -393,7 +393,7 @@ struct GraphUniverseHint: View {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(theme.cardSteps, id: \.self) { step in
                         Label(step, systemImage: "plus.circle")
-                            .font(.subheadline)
+                            .font(WardType.face(.subheadline, weight: .regular))
                             .foregroundStyle(Color.wardInkSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -435,7 +435,7 @@ struct GraphEmptyHint: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(words)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)

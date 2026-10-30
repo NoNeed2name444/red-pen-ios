@@ -112,12 +112,12 @@ struct LecturePDFSection: View {
             .wardButtonRow()
 
             if let status {
-                Text(status).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text(status).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
 
             if let diagramProgress {
                 Label(diagramProgress, systemImage: "photo.on.rectangle.angled")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             if !cards.isEmpty {
                 Button { confirmingPictures = true } label: {
@@ -132,7 +132,7 @@ struct LecturePDFSection: View {
                     Text("They are saved as a Cards set of their own, and New set closes. Make the questions first if you want those too.")
                 }
                 Text("One card per label on the diagrams, masking the label itself. Nothing was generated \u{2014} the labels are the slide's own words.")
-                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
             Text("Add a file")

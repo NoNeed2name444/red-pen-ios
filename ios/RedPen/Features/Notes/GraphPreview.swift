@@ -356,7 +356,7 @@ struct GraphPreviewBar: View {
                 Button {
                 } label: {
                     Image(systemName: "chevron.backward")
-                        .font(.body.weight(.semibold))
+                        .font(WardType.face(.body, weight: .semibold))
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)

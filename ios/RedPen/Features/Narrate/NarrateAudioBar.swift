@@ -133,9 +133,9 @@ struct TranscribingBanner: View {
         HStack(spacing: 12) {
             EcgLoader()
             VStack(alignment: .leading, spacing: 2) {
-                Text(message).font(.headline).foregroundStyle(Color.wardInk)
+                Text(message).font(WardType.headline).foregroundStyle(Color.wardInk)
                 Text(whereLine)
-                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 0)
         }

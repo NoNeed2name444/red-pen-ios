@@ -52,11 +52,11 @@ struct ImportPreviewSheet: View {
             WardIconSquare(symbol: preview.source.symbol, size: 48)
             VStack(alignment: .leading, spacing: 4) {
                 Text(preview.title)
-                    .font(.title3.weight(.bold))
+                    .font(WardType.face(.title3, weight: .bold))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                 Text("Nothing is added until you tap Import.")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
@@ -73,7 +73,7 @@ struct ImportPreviewSheet: View {
     private func factTile(_ fact: ImportFact) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Image(systemName: fact.symbol)
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHidden(true)
             Text(fact.value)
@@ -83,7 +83,7 @@ struct ImportPreviewSheet: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(fact.label)
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(Color.wardInkSecondary)
         }
         .wardCard(padding: 14)
@@ -101,7 +101,7 @@ struct ImportPreviewSheet: View {
                 if preview.sets.count > listed {
                     etch
                     Text("and \(preview.sets.count - listed) more")
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .padding(WardSpace.gutter)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -125,12 +125,12 @@ struct ImportPreviewSheet: View {
         return HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(set.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                 if let folder {
                     Label(folder, systemImage: "folder")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(1)
                 }
@@ -149,7 +149,7 @@ struct ImportPreviewSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(preview.notes, id: \.self) { line in
                 Label(line, systemImage: "info.circle")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -170,7 +170,7 @@ struct ImportPreviewSheet: View {
                     EcgLoader()
                 } else {
                     Image(systemName: "tray.and.arrow.down.fill")
-                        .font(.title3)
+                        .font(WardType.face(.title3, weight: .regular))
                 }
                 Text(importing ? "Adding\u{2026}" : "Import \(count.formatted()) \(noun)")
             }

@@ -67,7 +67,7 @@ struct GraphPeekCardView: View {
             header
             ForEach(Array(content.lines.enumerated()), id: \.offset) { _, line in
                 Text(line)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(2)
             }
@@ -91,17 +91,17 @@ struct GraphPeekCardView: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(content.title)
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                     .accessibilityIdentifier("graphPeekTitle")
                 Text(content.kind)
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.up")
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
@@ -118,7 +118,7 @@ struct GraphPeekCardView: View {
                         chip(item.id)
                     } label: {
                         Text(item.title)
-                            .font(.caption)
+                            .font(WardType.caption)
                             .lineLimit(1)
                     }
                     .buttonStyle(WardChipButtonStyle())
@@ -126,7 +126,7 @@ struct GraphPeekCardView: View {
                 }
                 if content.moreLinks > 0 {
                     Text("+\(content.moreLinks) more")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }
@@ -156,7 +156,7 @@ struct GraphPeekCardView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
+                        .font(WardType.face(.body, weight: .semibold))
                         .foregroundStyle(Color.wardInk)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
@@ -203,7 +203,7 @@ struct GraphNodeMenuView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1)
                 .padding(.horizontal, 14)
@@ -344,11 +344,11 @@ struct GraphLinkLengthBar: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("Link length")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 Spacer()
                 Text(GraphLinkLength.spoken(shown))
-                    .font(.footnote.monospacedDigit())
+                    .font(WardType.face(.footnote, weight: .regular).monospacedDigit())
                     .foregroundStyle(Color.wardInkSecondary)
                 Button("Done", action: done)
                     .buttonStyle(.wardCompact)
@@ -366,9 +366,9 @@ struct GraphLinkLengthBar: View {
                        step: GraphLinkLength.step) {
                     Text("Link length")
                 } minimumValueLabel: {
-                    Text("Shorter").font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                    Text("Shorter").font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 } maximumValueLabel: {
-                    Text("Longer").font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                    Text("Longer").font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 } onEditingChanged: { editing in
                     if !editing, let held = dragging {
                         dragging = nil
@@ -429,7 +429,7 @@ struct GraphRegionPill: View {
 
     var body: some View {
         Text(text)
-            .font(.subheadline.weight(.semibold))
+            .font(WardType.face(.subheadline, weight: .semibold))
             .foregroundStyle(Color.wardInk)
             .lineLimit(1)
             .padding(.horizontal, WardSpace.gutter)
