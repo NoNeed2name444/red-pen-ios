@@ -17,6 +17,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -290,7 +291,11 @@ class RecordingServiceTest {
         val io = java.util.concurrent.Executors.newSingleThreadExecutor { Thread(it, "recover-io").also { t -> trimmedOn[0] = t } }
         val found = kotlinx.coroutines.runBlocking { recorder.recoverLeftover(io.asCoroutineDispatcher()) }
         io.shutdown()
-        assertEquals("trimmed on the IO dispatcher given, not the caller's thread", "recover-io", trimmedOn[0]?.name)
+        // Coroutine debug mode adds " @coroutine#N" to a thread's name while a coroutine runs on it,
+        // so check the thread itself and its name without that suffix.
+        assertNotNull("trimmed on the IO dispatcher given", trimmedOn[0])
+        assertNotSame("not on the caller's thread", Thread.currentThread(), trimmedOn[0])
+        assertEquals("trimmed on the IO dispatcher given, not the caller's thread", "recover-io", trimmedOn[0]!!.name.substringBefore(" @"))
         assertEquals("the newest recording is found", partial, found)
         assertEquals("and offered", partial, recorder.recovered)
         assertEquals("trimmed to its whole frames, so it plays", 50L, partial.length())
