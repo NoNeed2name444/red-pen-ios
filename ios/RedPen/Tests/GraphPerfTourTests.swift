@@ -399,6 +399,14 @@ check("T7 each comparison has its own numbers: the fade off at 40, on at 60",
       && onLine.hasPrefix("compare saver fade on: 60.0 fps (p5 60.0, 1% low 60.0)")
       && offLine.hasSuffix(frameWords("compare saver fade off")) && onLine.hasSuffix(frameWords("compare saver fade on")),
       offLine + " / " + onLine)
+check("T7 every line of a full summary is under 512 characters (XCTest cuts a longer value)",
+      lines.allSatisfy { $0.count < 512 }, String(lines.map(\.count).max() ?? 0))
+var summed = GraphPerfStats()
+summed.tourPhase = "done"
+summed.tourSummary = run.summary
+check("T7 the readout's value holds the phase only, and each summary line is its own element's",
+      summed.tourLines == lines && summed.spoken.hasSuffix("tour: done") && !summed.spoken.contains("\n")
+          && GraphPerfStats().tourLines.isEmpty, summed.spoken.suffix(60).description)
 check("T7 done: the time, the frames and the whole tour's GPU memory peak",
       lines.last.map { $0.hasPrefix("done: ") && $0.hasSuffix(" frames \u{00B7} GPU memory peak 250.0 MB") } ?? false,
       lines.last ?? "")

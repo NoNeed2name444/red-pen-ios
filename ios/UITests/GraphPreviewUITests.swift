@@ -682,24 +682,42 @@ final class GraphPreviewUITests: XCTestCase {
     /// whether the fade was on, off, or off because its shader failed the
     /// device's check ("fallback"), the frame times, how many bodies were
     /// drawn, the tilt and whether the fade broke its protocol (bad).
-    func testDepthMeasure() {
+    ///
+    /// One test each, so that none comes near XCTest's 16-minute limit:
+    /// Space (`testDepthMeasureSpace`), Neurons (`testDepthMeasureNeurons`)
+    /// and the ablation (`testDepthMeasurePixel`), each attaching its own
+    /// lines ("74-depth-numbers-space", "-neurons", "-pixel").
+    func testDepthMeasureSpace() {
         var lines: [String] = []
-        defer { attachText(lines.joined(separator: "\n"), named: "74-depth-numbers") }
-        func cells(_ pair: (String, String), takes: Int) {
-            for level in ["High", "Smooth"] {
-                for near in [false, true] {
-                    for k in 1...takes {
-                        for mode in ["on", "off"] {
-                            lines.append(measureTake(pair, level, near: near, mode: mode, take: k))
-                        }
+        defer { attachText(lines.joined(separator: "\n"), named: "74-depth-numbers-space") }
+        measureCells(Self.depthThemes[1], takes: 3, into: &lines)
+    }
+
+    func testDepthMeasureNeurons() {
+        var lines: [String] = []
+        defer { attachText(lines.joined(separator: "\n"), named: "74-depth-numbers-neurons") }
+        measureCells(Self.depthThemes[0], takes: 1, into: &lines)
+    }
+
+    func testDepthMeasurePixel() {
+        var lines: [String] = []
+        defer { attachText(lines.joined(separator: "\n"), named: "74-depth-numbers-pixel") }
+        for k in 1...3 {
+            lines.append(measureTake(Self.depthThemes[1], "High", near: false, mode: "pixel", take: k))
+        }
+    }
+
+    /// A theme's takes at both Graphics levels, whole and flown in, on and
+    /// off, alternating within each take.
+    private func measureCells(_ pair: (String, String), takes: Int, into lines: inout [String]) {
+        for level in ["High", "Smooth"] {
+            for near in [false, true] {
+                for k in 1...takes {
+                    for mode in ["on", "off"] {
+                        lines.append(measureTake(pair, level, near: near, mode: mode, take: k))
                     }
                 }
             }
-        }
-        cells(Self.depthThemes[1], takes: 3)
-        cells(Self.depthThemes[0], takes: 1)
-        for k in 1...3 {
-            lines.append(measureTake(Self.depthThemes[1], "High", near: false, mode: "pixel", take: k))
         }
     }
 
@@ -881,7 +899,7 @@ final class GraphPreviewUITests: XCTestCase {
         return line
     }
 
-    /// One take of the numbers (`testDepthMeasure`): launched, given up to
+    /// One take of the numbers (`testDepthMeasureSpace`, `-Neurons`, `-Pixel`): launched, given up to
     /// twenty seconds to have a frame time, turned slowly once, read.
     private func measureTake(_ pair: (String, String), _ level: String, near: Bool, mode: String, take: Int) -> String {
         var more: [String] = ["-graphDepthMeter", "-graphics" + level]

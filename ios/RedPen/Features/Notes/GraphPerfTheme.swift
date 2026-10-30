@@ -49,6 +49,7 @@ struct GraphPerfSpace: View {
                 readout
                     .padding(.leading, WardSpace.gutter)
                     .padding(.top, 8)
+                tourLines
             }
         }
     }
@@ -77,6 +78,24 @@ struct GraphPerfSpace: View {
     private var tier: GraphPerfTier {
         if ProcessInfo.processInfo.isLowPowerModeEnabled { return .saver }
         return graphics.tier == .high ? .high : .smooth
+    }
+
+    /// The proof tour's numbers, each line an accessibility element of its own
+    /// ("perfTourLine", its words the value) beside the readout button, not in
+    /// it: one merged value is cut by XCTest at a fixed length. Nothing is
+    /// drawn, so the readout never grows over the map it measures.
+    private var tourLines: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(stats.tourLines.enumerated()), id: \.offset) { _, line in
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Tour line")
+                    .accessibilityValue(line)
+                    .accessibilityIdentifier("perfTourLine")
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     private var readout: some View {
@@ -111,9 +130,10 @@ struct GraphPerfSpace: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(Color.wardInkSecondary)
                 }
-                // on screen the phase only; the tour's numbers stay in the
-                // accessibility value (the proof reads them there), so the
-                // readout never grows over the map it measures
+                // on screen the phase only; the tour's numbers are the
+                // perfTourLine elements beside this button (the proof reads
+                // them there), so the readout never grows over the map it
+                // measures
                 if !stats.tourPhase.isEmpty {
                     Text("tour: " + stats.tourPhase)
                         .font(.caption2.monospacedDigit())

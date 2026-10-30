@@ -299,10 +299,17 @@ nonisolated struct GraphPerfStats: Sendable, Equatable {
         return out
     }
 
-    /// "tour: measure", then the tour's numbers (empty without a tour).
+    /// "tour: measure" (empty without a tour). The tour's numbers are not in
+    /// the readout's one value, which XCTest cuts at a fixed length: each
+    /// line of them is an element of its own (`tourLines`).
     var tour: String {
         guard !tourPhase.isEmpty else { return "" }
-        return "tour: " + tourPhase + (tourSummary.isEmpty ? "" : "\n" + tourSummary)
+        return "tour: " + tourPhase
+    }
+
+    /// The tour's numbers, a line per phase (empty before the first).
+    var tourLines: [String] {
+        tourSummary.split(separator: "\n").map(String.init)
     }
 
     /// "100,000 notes · 230,080 links"

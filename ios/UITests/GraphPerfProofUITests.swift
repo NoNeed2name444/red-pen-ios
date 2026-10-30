@@ -3,8 +3,10 @@ import XCTest
 /// The million map's measured proof (plan 4f's depth fade, before and after):
 /// the Performance theme's 1,000,000-note demo flies its proof tour by itself
 /// (GraphPerfTour, under -graphPreviewPerfTour), and this test follows it in
-/// the speed readout ("perfReadout", whose value ends "tour: <phase>" and then
-/// the tour's summary, a line per phase). It takes the stills - front, back,
+/// the speed readout ("perfReadout", whose value ends "tour: <phase>") and
+/// the tour's summary, a line per phase, each its own element beside the
+/// readout ("perfTourLine"; one merged value was cut by XCTest at about 250
+/// characters). It takes the stills - front, back,
 /// near, chosen and far, each once its phase has settled - with the readout's
 /// words beside each, and keeps the summary as text (the workflow puts it in
 /// the job's summary too).
@@ -97,14 +99,15 @@ final class GraphPerfProofUITests: XCTestCase {
         }
         // the end: the readout keeps the summary once the tour is done
         Self.wait(until: start.addingTimeInterval(Self.phases.last?.start ?? 0))
-        let final = watch(readout, until: { Self.phase(in: $0) == "done" && Self.summary(in: $0).contains("\ndone: ") },
+        let final = watch(readout, until: { Self.phase(in: $0) == "done" && Self.summary(app).contains("\ndone: ") },
                           within: 120, every: 0.5)
         if final == nil {
             last = Self.words(readout)
-            XCTFail("the tour did not end with its summary: " + String(last.suffix(300)))
+            XCTFail("the tour did not end with its summary (the readout has \(last.count) characters, the summary "
+                + "\(Self.summary(app).count)): " + String(last.suffix(300)))
         }
         let words = final ?? last
-        let summary = Self.summary(in: words)
+        let summary = Self.summary(app)
         let kept = note.isEmpty ? summary : note + "\n" + summary
         keepText(kept, as: name + "-summary")
         keepText(words, as: name + "-readout")
@@ -136,12 +139,12 @@ final class GraphPerfProofUITests: XCTestCase {
         return String(words[at.upperBound...].prefix { $0 != "\n" })
     }
 
-    /// The tour's summary in the readout's words: the lines after its phase.
-    private static func summary(in words: String) -> String {
-        guard let at = words.range(of: "tour: "), let line = words[at.upperBound...].firstIndex(of: "\n") else {
-            return ""
-        }
-        return String(words[words.index(after: line)...])
+    /// The tour's summary: the values of the "perfTourLine" elements, one line
+    /// each, in order ("" before the first).
+    private static func summary(_ app: XCUIApplication) -> String {
+        app.descendants(matching: .any).matching(identifier: "perfTourLine").allElementsBoundByIndex
+            .compactMap { (try? $0.snapshot())?.value as? String }
+            .joined(separator: "\n")
     }
 
     /// Sleeps until `date` (at once if it has passed).
