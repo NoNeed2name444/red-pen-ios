@@ -483,7 +483,7 @@ struct NewSetView: View {
                 .buttonStyle(.bigCompanion)
                 .accessibilityIdentifier("newSetRecordLecture")
                 .sheet(isPresented: $recordingLecture) {
-                    RecordLectureView(onSaved: { _ in recordedLecture = true })
+                    RecordLectureView(onSaved: { _ in recordedLecture = true }).wardSheet()
                 }
                 .onChange(of: recordingLecture) { _, open in
                     if !open && recordedLecture { dismiss() }

@@ -196,7 +196,7 @@ struct NarrateReviewView: View {
                     }
                     Task { await importer.transcribeRecorded(kept, of: studySet, learned: learned) }
                     return true
-                })
+                }).wardSheet()
             }
             .confirmationDialog("Transcribe the recording with", isPresented: $choosingEngine,
                                 titleVisibility: .visible) {

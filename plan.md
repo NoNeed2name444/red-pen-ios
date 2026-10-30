@@ -162,7 +162,7 @@ Last updated: 2026-10-14 (session branch claude/repo-branch-status-check-4k6js8)
   (WardPaper.frameCorner, WindowFillProbe), held for full screen x 4,
   Split View 1/3 1/2 2/3, Slide Over and Stage Manager by
   WardFrameClearTests; [x] every sheet takes the page colour (wardSheet(),
-  25 of 25) and every custom-styled button has a pointer highlight (66 of
+  25 of 25; the recorder's sheets in New set and Narrate too, after T0146) and every custom-styled button has a pointer highlight (66 of
   66), held by IpadAuditTests (suite ipadaudit, with the keyboard table and
   the workflows' matrices); [x] RotationStateUITests on iPad (four turns,
   44 pt targets after each, width change keeps the library and the quiz);
