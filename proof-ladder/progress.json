@@ -1,7 +1,7 @@
 {
  "v": 1,
  "started": "2026-10-14",
- "updated": "2026-10-31T10:08:15.525Z",
+ "updated": "2026-11-01T11:23:59.522Z",
  "checked": 2940,
  "right": 1443,
  "wrong": 1497,
@@ -152,16 +152,16 @@
   "An official source could not be read this time; it will be checked again.": 1
  },
  "spend": {
-  "month": "2026-10",
-  "day": "2026-10-31",
-  "start": 20.568932,
-  "end": 20.9358,
+  "month": "2026-11",
+  "day": "2026-11-01",
+  "start": 1.875712,
+  "end": 1.875712,
   "cap": 40
  },
  "last": {
-  "day": "2026-10-31",
-  "sent": 60,
-  "stopped": "the ladder's half of the Workers AI pool (15 batches)",
+  "day": "2026-11-01",
+  "sent": 0,
+  "stopped": "the paced share of the cloud checker (spent 1.88 of 40 this month)",
   "runners": [
    "granite-4.0-h-tiny",
    "phi-4-mini-instruct"

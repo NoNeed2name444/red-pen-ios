@@ -1,6 +1,6 @@
 # The proof ladder
 
-Updated 2026-10-31T10:08:15.525Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
+Updated 2026-11-01T11:23:59.522Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
 
 | checked | Verified | errors among Verified | proven accuracy of Verified (95%, one-sided) |
 |---|---|---|---|
@@ -29,7 +29,7 @@ Verified per check so far: 0.00%. Flagged 610, Check this 2330, not checked 0.
 | 2026-10-30 | 60 | 0 | 0 |
 | 2026-10-31 | 60 | 0 | 0 |
 
-The cloud checker this month (2026-10): $20.94 of the $40 cap at the end of the last run, $0.37 of it during that run.
+The cloud checker this month (2026-11): $1.88 of the $40 cap at the end of the last run, $0.00 of it during that run.
 
 Runner voters, every blind answer for the items sent (a runner holds a seat only at 80% or more by the lower bound, on 200 or more):
 
@@ -62,4 +62,4 @@ Each family's blind answers against the gold key (one witness per family per que
 | nvidia | 328 | 271 | 78.8112% |
 | microsoft (runner) | 12 | 5 | 18.1025% |
 
-Today: 60 sent; stopped at the ladder's half of the Workers AI pool (15 batches).
+Today: 0 sent; stopped at the paced share of the cloud checker (spent 1.88 of 40 this month).
