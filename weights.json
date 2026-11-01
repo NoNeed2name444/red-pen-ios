@@ -1,0 +1,93 @@
+{
+ "version": "trained-2026-11-01-480",
+ "features": [
+  "bias",
+  "rule_severe",
+  "rule_minor",
+  "risk_max",
+  "risk_mean",
+  "flag_frac",
+  "disagree",
+  "voters",
+  "key_disagree",
+  "ev_support",
+  "ev_contradict",
+  "ev_count",
+  "source_match",
+  "no_source",
+  "no_models",
+  "kind_mcq",
+  "kind_card",
+  "kind_case",
+  "kind_osce",
+  "kind_page"
+ ],
+ "weights": [
+  4.8108,
+  -4.1684,
+  2.0103,
+  -1.8473,
+  -0.114,
+  -4.3567,
+  0.3588,
+  0.1126,
+  -8.873,
+  -1.2872,
+  -1.1685,
+  -0.0176,
+  0,
+  0,
+  0,
+  1.5805,
+  -1.5805,
+  0,
+  0,
+  0
+ ],
+ "thresholds": {
+  "verified": 0.48,
+  "flagged": 0.43
+ },
+ "metrics": {
+  "n": 480,
+  "lambda": 0.1,
+  "cv": {
+   "logLoss": 0.1375,
+   "brier": 0.0378,
+   "auc": 0.9857,
+   "ece": 0.0224
+  },
+  "current": {
+   "logLoss": 0.1268,
+   "brier": 0.0363,
+   "auc": 0.9906,
+   "ece": 0.0269
+  },
+  "verified": {
+   "precision": 0.9700854700854701,
+   "recall": 0.9497907949790795,
+   "n": 234
+  },
+  "flagged": {
+   "precision": 0.9549180327868853,
+   "recall": 0.966804979253112,
+   "n": 244
+  },
+  "bySlice": {
+   "usmle-step2-3": {
+    "n": 221,
+    "auc": 0.9774,
+    "logLoss": 0.1616,
+    "verifiedRecall": 0.9455,
+    "flaggedRecall": 0.973
+   },
+   "usmle-step1": {
+    "n": 259,
+    "auc": 0.9914,
+    "logLoss": 0.1169,
+    "verifiedRecall": 0.9535,
+    "flaggedRecall": 0.9615
+   }
+  }
+ }
+}
