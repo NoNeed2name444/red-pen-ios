@@ -1,7 +1,7 @@
 {
  "v": 1,
  "started": "2026-10-14",
- "updated": "2026-11-01T11:23:59.522Z",
+ "updated": "2026-11-02T11:26:55.801Z",
  "checked": 2940,
  "right": 1443,
  "wrong": 1497,
@@ -153,13 +153,13 @@
  },
  "spend": {
   "month": "2026-11",
-  "day": "2026-11-01",
+  "day": "2026-11-02",
   "start": 1.875712,
   "end": 1.875712,
   "cap": 40
  },
  "last": {
-  "day": "2026-11-01",
+  "day": "2026-11-02",
   "sent": 0,
   "stopped": "the paced share of the cloud checker (spent 1.88 of 40 this month)",
   "runners": [

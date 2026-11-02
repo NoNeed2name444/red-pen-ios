@@ -1,6 +1,6 @@
 # The proof ladder
 
-Updated 2026-11-01T11:23:59.522Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
+Updated 2026-11-02T11:26:55.801Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
 
 | checked | Verified | errors among Verified | proven accuracy of Verified (95%, one-sided) |
 |---|---|---|---|
