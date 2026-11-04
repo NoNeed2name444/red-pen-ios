@@ -2946,11 +2946,24 @@ for screenshots.
     short of the budget): agg 9 alone left fans of slivers that shaded as
     spikes across smooth bone (on a test sphere at one count, 3.4% of the
     triangles under 15 degrees at agg 9, 0.1% at agg 3; twice the
-    triangles at agg 9 were still faceted). It changes every part. Still
-    to do: the rebuild with --vhct (started 4 Nov), the audits and renders,
-    then the atlas, the suite (its triangle totals move: the CT skull is
-    80,000 triangles a body in place of the model's 27,284), the credits
-    and SOURCES.md in one commit.
+    triangles at agg 9 were still faceted). It changes every part. The
+    rebuild with --vhct is in (4 Nov: 551,512 triangles for the man,
+    564,764 for the woman; the CT skull 80,000 a body). Two things it
+    showed, fixed in the tools for the next build: a ledge round the man's
+    vault, 35 mm below its top, where one slice of his CT lies 4.2 mm to
+    one side of both its neighbours (anatomy_skull.steady moves such a
+    slice back; the woman's has none), and faint rings on the top of the
+    vault from the 1 mm slices (anatomy_skull.level smooths thick bone
+    along the slices' axis only). Where three or more of the skull's
+    bones meet, welding could leave two of them 52 degrees apart (a and c
+    each agreed with b, not with each other); vertices that face alike
+    are now joined through one another. The suite's skull curvature check
+    reads the vault's outer face (the CT's skull has its inner table,
+    which hollows round the brain, so the whole's median is near 0).
+    Still uneven, for the next build: the girdles (the woman's left
+    scapula 33 mm higher and further back than her right, mirrored; the
+    man's clavicles 11 degrees apart), so the suite's mirror-image check
+    for them waits for it; and the man's left ribs (S3l).
   - [x] S3j. The atlas's look (the owner, 4 Nov: "the texture is too
     artificial and artifacty and isn't seamless and has sharp borders that
     don't exist in real bones"). Each part's structures are shaded as one
@@ -3003,6 +3016,38 @@ for screenshots.
     PN triangles (curved patches through each triangle's normals) gained
     little for 110,000 more triangles a body, and the re-simplified result
     shades no better (measured with the old simplifier's slivers, S3i).
+  - [ ] S3l. The owner, 4 Nov: "use free for commercial use image
+    references that u can fall back to every time u make a change. use many
+    images per change. these don't look anywhere near like muscle fibers
+    they look like play doh. fix that please some bones are weirdly bent.
+    please make a File having image references for u to use for every
+    single thing in the 3d model. also build the model as a whole model not
+    each part separate. we can separate them later."
+    - References: tools/atlas_refs.py indexes, for every structure, the
+      pictures its articles show in seven Wikipedias and its Commons
+      category, kept only when free for commercial use (public domain,
+      CC0, CC BY; CC BY-SA marked share-alike), each with its author and
+      licence; looked at, never shipped or traced. Through the Wikidata
+      Query Service's MediaWiki service (the wikis' own APIs refuse a
+      shared address after a few calls). Then pages per system and contact
+      sheets for each change.
+    - Bent bones: the man's left ribs are 15 to 20% longer than his right
+      and wavy (rib 9's wave 10 mm), though his scan's ribs are even and
+      smooth: the warp and widen_cage's push, point by point, bend them.
+      Fix: each scan bone moves rigidly (the warp's best similarity, one
+      scale for all the ribs); room for the organs by turning each rib
+      about its joint with the spine, the sides alike; the costal
+      cartilages follow their ribs' ends. Long bones (femur, tibia,
+      fibula, radius) bow within the normal range; the clavicles' lengths
+      now match (161 and 164 mm).
+    - Muscle as fibre: the shader's streaks lie in the colour alone, fade
+      at a normal distance and follow one axis per muscle. Next: fascicle
+      ridges in the normal (bump), coarser grooves that hold at a normal
+      distance, each vertex's own fibre direction (origin to insertion),
+      and tendon at the ends.
+    - Whole model: bones rigid, soft tissue fitted round them, every part
+      checked against every other, judged on whole-body renders; split
+      into parts at the end.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has

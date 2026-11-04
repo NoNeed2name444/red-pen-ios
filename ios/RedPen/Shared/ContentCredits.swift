@@ -133,21 +133,33 @@ enum ContentSources {
 
     static let nihSkull = ContentSource(
         id: "nih3d-skull", name: "NIH 3D skull of the Visible Human Male",
-        use: "The skull in the 3D anatomy atlas, for both bodies",
+        use: "The 3D anatomy atlas's skull model: it names the bones of each body's own skull (from the Visible Human Project CT), gives its face, and stands in where that bone is too thin to mesh",
         licences: [ccBy4],
         attribution: nihSkullCredit + " No endorsement by the NIH or the NLM is implied.",
-        changes: "Split into its bones, paired ones at the midline, and simplified; fitted onto the male body by its eyes and upper teeth and carried onto the female's head by a smooth warp; moved in by a few millimetres where it would come through the skin; the eyes and teeth left out, as the bodies have their own.",
+        changes: "Fitted onto the male body by its eyes and upper teeth and carried onto the female's head by a smooth warp; its jaw fitted on its own and the whole bent onto each body's own CT skull, whose bones it names, whose thinnest plates (the orbits' roofs and walls, the sinuses' walls) it gives, and whose face (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for the CT) it gives whole; split at the midline; the eyes and teeth left out, as the bodies have their own.",
         home: "https://3d.nih.gov/entries/3DPX-020591")
 
+    /// The head CT's credit line, as the atlas's SOURCES.md gives it.
+    static let visibleHumanCredit = "3D skull: each body's own, meshed from the Visible Human Project's CT of the male and female heads (https://www.nlm.nih.gov/research/visible/visible_human.html). Courtesy of the U.S. National Library of Medicine."
+
+    static let visibleHumanCT = ContentSource(
+        id: "nlm-visible-human-ct", name: "Visible Human Project CT (NLM)",
+        use: "The skull in the 3D anatomy atlas: each body's own, from the CT of that man or woman",
+        licences: [ContentLicence(name: "NLM Terms and Conditions: no fees or royalties, credit required",
+                                  url: "https://www.nlm.nih.gov/databases/download/terms_and_conditions.html")],
+        attribution: visibleHumanCredit + " No endorsement by the NLM is implied, and the meshes may not reflect the NLM's most current data.",
+        changes: "The head's slices put on one grid and its bone meshed wherever it covers the NIH 3D skull model laid on it or is thick enough to trust; the model names its bones, stands in where the bone is thin and broken into lace or missing, and gives the face whole; the surface smoothed without shrinking, simplified, and moved in by a few millimetres where it would come through the skin; the teeth left out, as the bodies have their own.",
+        home: "https://www.nlm.nih.gov/research/visible/visible_human.html")
+
     /// The scans' credit line, as the atlas's SOURCES.md gives it.
-    static let totalSegmentatorCredit = "3D ribs, sternum, shoulder girdle, arm, hand and foot bones, the woman's hip bones, the hip and back muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans s1803, s1764, s1880 and s1767 of the TotalSegmentator dataset v3.0.0, by Jakob Wasserthal et al. (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY 4.0."
+    static let totalSegmentatorCredit = "3D ribs, sternum, shoulder girdle, arm, hand and foot bones, the woman's hip bones, the hip and back muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans s1803, s1764, s1880, s1831 and s1767 of the TotalSegmentator dataset v3.0.0, by Jakob Wasserthal et al. (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY 4.0."
 
     static let totalSegmentator = ContentSource(
         id: "totalsegmentator", name: "TotalSegmentator CT dataset",
         use: "The parts of the 3D anatomy atlas the organ sets lack: ribs, shoulders, arm, hand and foot bones, the woman's hip bones, hip and back muscles, thyroid, adrenals, oesophagus and stomach",
         licences: [ccBy4],
         attribution: totalSegmentatorCredit,
-        changes: "Two scans' masks (a man's for the male body, a woman's for the female) turned into meshes, simplified, and carried into each body by a smooth warp fitted on the bones and organs both have; the rib cage widened to hold the organs, the shoulders turned down under the skin, each humerus laid along the arm, and every part pushed clear of what it cut into. The forearm and hand bones found by density in the CT of one arm per body (a third scan for the man's, as his own scan's hands lie outside it), each humerus lengthened or shortened so its elbow sits where the scan's arm bends, the forearm set on it at the elbow and posed into the skin's hand finger by finger; the other side is their mirror image. The foot bones found the same way in the CT of one foot per body (a fourth scan for the man's, as neither of his others reaches the toes), set on the body's leg bones at the ankle and fitted into the skin's foot toe by toe; the other side is their mirror image. The woman's whole hip bones, of which her organ set has only the ilium, fitted to her ilium and femoral head and joined at the midline.",
+        changes: "Two scans' masks (a man's for the male body, a woman's for the female) turned into meshes, simplified, and carried into each body by a smooth warp fitted on the bones and organs both have, each shoulder girdle as one rigid piece, the two sides mirror images; the rib cage widened to hold the organs, each shoulder girdle settled on the trunk about its sternoclavicular joint, at the sternum, under the skin and clear of the ribs, each humerus laid along the arm with its head on the glenoid as the scan's sits, and every part pushed clear of what it cut into. The forearm and hand bones found by density in the CT of one arm per body (a third scan for the man's, as his own scan's hands lie outside it), joined below the elbow to the humerus and upper forearm of a scan that holds the elbow whole (a fourth for the man's), that humerus lengthened or shortened so its elbow sits where the scans' arm bends, the forearm brought onto the skin's wrist by turning at the shoulder and bending at the elbow, and posed into the skin's hand finger by finger; the other side is their mirror image. The foot bones found the same way in the CT of one foot per body (a fifth scan for the man's, as none of his others reaches the toes), set on the body's leg bones at the ankle and fitted into the skin's foot toe by toe; the other side is their mirror image. The woman's whole hip bones, of which her organ set has only the ilium, fitted to her ilium and femoral head and joined at the midline.",
         home: "https://zenodo.org/records/22688904")
 
     static let uberon = ContentSource(
@@ -185,7 +197,7 @@ enum ContentSources {
 
     /// Every source of content the app brings, for Settings.
     static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth,
-                                      hraAnatomy, nihSkull, totalSegmentator, uberon, cellOntology, reactome,
+                                      hraAnatomy, visibleHumanCT, nihSkull, totalSegmentator, uberon, cellOntology, reactome,
                                       ncbiTaxonomy]
 
     /// The bank behind an exam's style examples (ExemplarSource's raw value).

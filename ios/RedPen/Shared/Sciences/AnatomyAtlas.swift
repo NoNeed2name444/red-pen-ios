@@ -3,11 +3,13 @@ import Foundation
 /// The 3D anatomy atlas: the manifest (Resources/Anatomy/anatomy.json) and
 /// the meshes of each part (<body>-<part>.atlas), made by
 /// tools/anatomy_atlas.py from the Human Reference Atlas's male and female
-/// reference organ sets, with the skull from NIH 3D and the ribs, shoulder
-/// girdle, humeri, hip and back muscles, thyroid, adrenals, oesophagus and
-/// stomach from two TotalSegmentator CT scans, which tools/anatomy_gaps.py
-/// carries into each body (all CC BY 4.0; sources and credits in
-/// Resources/Anatomy/SOURCES.md).
+/// reference organ sets, with each body's own skull from its Visible Human
+/// head CT (tools/anatomy_skull.py; NLM's terms), its bones named, its face
+/// and thinnest plates given by NIH 3D's skull model, and the ribs, shoulder
+/// girdle, arm, hand and foot bones, the woman's hip bones, hip and back
+/// muscles, thyroid, adrenals, oesophagus and stomach from five
+/// TotalSegmentator CT scans, which tools/anatomy_gaps.py carries into each
+/// body (CC BY 4.0; sources and credits in Resources/Anatomy/SOURCES.md).
 ///
 /// Two bodies, the Visible Human Male and Female, each in its own frame:
 /// metres, x to the body's left, y up, z forward, origin near the hips. A
@@ -123,9 +125,16 @@ struct AnatomyStructure: Decodable, Hashable {
     /// another person's scan, fitted to this body, which the card says.
     var origin: String? {
         if node.hasPrefix("TS_") { return "From a CT scan (TotalSegmentator), fitted to this body" }
-        if node.hasPrefix("NLM_") { return "The Visible Human Male's skull (NIH 3D), fitted to this body" }
+        if Self.modelFace.contains(where: { node.hasPrefix("NLM_" + $0) }) {
+            return "From the NIH 3D skull (Visible Human Male), fitted to this body"
+        }
+        if node.hasPrefix("NLM_") { return "From this body's own CT (Visible Human Project), thin plates from the NIH 3D skull" }
         return nil
     }
+
+    /// The face's bones, which the skull takes whole from the NIH 3D model
+    /// (tools/anatomy_skull.py FACE): at 1 mm the CT breaks their plates into lace.
+    static let modelFace = ["ethmoid_bone", "nasal_bone", "lacrimal_bone", "zygomatic_bone", "maxilla", "palatine_bone", "vomer"]
 }
 
 enum AnatomySystem: String, Decodable, CaseIterable, Identifiable {
@@ -252,7 +261,11 @@ struct AnatomyMesh: Hashable {
     /// every vertex at a shared place takes the sum over all the triangles
     /// round that place that face within `crease` degrees of its own, so the
     /// cut disappears, while the two faces of a thin plate, which meet at an
-    /// edge facing apart, keep their own. One array per mesh, as normals() gives.
+    /// edge facing apart, keep their own. Where three or more pieces meet, the
+    /// vertices that face alike are joined through one another (a and c, each
+    /// within `crease` of b, join though they are further apart), so any two
+    /// that face alike take the same normal and no line shows between them.
+    /// One array per mesh, as normals() gives.
     static func normals(welding meshes: [AnatomyMesh], crease: Float = 70) -> [[Float]] {
         struct Place: Hashable { let x, y, z: UInt32 }
         var sums: [SIMD3<Float>] = []
@@ -290,14 +303,26 @@ struct AnatomyMesh: Hashable {
         }
         let agree: Float = Float(cos(Double(crease) * .pi / 180))
         var welded: [SIMD3<Float>] = sums
+        var root: [Int] = []
+        var total: [SIMD3<Float>] = []
         for g in 0..<size.count where size[g] > 1 {
-            let shared = members[first[g]..<first[g + 1]]
-            for i in shared {
-                let own = unit(sums[i])
-                var total = SIMD3<Float>.zero
-                for j in shared where (own * unit(sums[j])).sum() >= agree { total += sums[j] }
-                welded[i] = total
+            let shared = Array(members[first[g]..<first[g + 1]])
+            let units = shared.map { unit(sums[$0]) }
+            root = Array(0..<shared.count)
+            func find(_ k: Int) -> Int {
+                var k = k
+                while root[k] != k { root[k] = root[root[k]]; k = root[k] }
+                return k
             }
+            for a in 0..<shared.count {
+                for b in (a + 1)..<shared.count where (units[a] * units[b]).sum() >= agree {
+                    let ra = find(a), rb = find(b)
+                    if ra != rb { root[rb] = ra }
+                }
+            }
+            total = Array(repeating: .zero, count: shared.count)
+            for k in 0..<shared.count { total[find(k)] += sums[shared[k]] }
+            for k in 0..<shared.count { welded[shared[k]] = total[find(k)] }
         }
         var out: [[Float]] = []
         out.reserveCapacity(meshes.count)

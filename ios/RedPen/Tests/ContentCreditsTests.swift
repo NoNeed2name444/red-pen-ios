@@ -143,18 +143,23 @@ check("the credit names every release the atlas's manifest pins",
           anatomyManifest.contains($0) && ContentSources.hraCredit.contains($0)
       })
 check("the skull's and the scans' credits are SOURCES.md's, word for word",
-      [ContentSources.nihSkullCredit, ContentSources.totalSegmentatorCredit].allSatisfy {
+      [ContentSources.nihSkullCredit, ContentSources.totalSegmentatorCredit, ContentSources.visibleHumanCredit].allSatisfy {
           anatomyFlat.contains("\"" + $0 + "\"")
       }
         && ContentSources.nihSkull.attribution.hasPrefix(ContentSources.nihSkullCredit)
-        && ContentSources.totalSegmentator.attribution.hasPrefix(ContentSources.totalSegmentatorCredit))
+        && ContentSources.totalSegmentator.attribution.hasPrefix(ContentSources.totalSegmentatorCredit)
+        && ContentSources.visibleHumanCT.attribution.hasPrefix(ContentSources.visibleHumanCredit))
+check("the Visible Human CT is credited as NLM asks: its words, no endorsement implied",
+      ContentSources.visibleHumanCredit.hasSuffix("Courtesy of the U.S. National Library of Medicine.")
+        && ContentSources.visibleHumanCT.attribution.contains("No endorsement by the NLM is implied")
+        && anatomyManifest.contains("nlm-visible-human-ct"))
 check("the manifest pins the skull's entry and the scans' release, and the credits name them",
       anatomyManifest.contains("https://3d.nih.gov/entries/3DPX-020591")
         && ContentSources.nihSkullCredit.contains("https://3d.nih.gov/entries/3DPX-020591")
         && anatomyManifest.contains("https://doi.org/10.5281/zenodo.22688904")
         && ContentSources.totalSegmentatorCredit.contains("https://doi.org/10.5281/zenodo.22688904"))
 check("the Sciences' sources are in Settings' list",
-      [ContentSources.hraAnatomy, ContentSources.nihSkull, ContentSources.totalSegmentator,
+      [ContentSources.hraAnatomy, ContentSources.visibleHumanCT, ContentSources.nihSkull, ContentSources.totalSegmentator,
        ContentSources.uberon, ContentSources.cellOntology,
        ContentSources.reactome, ContentSources.ncbiTaxonomy].allSatisfy(ContentSources.all.contains))
 

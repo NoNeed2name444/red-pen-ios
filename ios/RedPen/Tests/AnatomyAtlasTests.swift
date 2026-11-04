@@ -19,10 +19,11 @@ guard let manifestData = try? Data(contentsOf: folder.appendingPathComponent("an
     exit(1)
 }
 check("the manifest reads, format 2, two bodies", manifest.format == 2 && manifest.bodies.map(\.id) == [.male, .female])
-check("every source is CC BY 4.0 and pinned, with a DOI or (the NIH 3D skull) its entry's page",
-      manifest.sources.count == 5 && manifest.sources.allSatisfy {
-          $0.licence == "CC BY 4.0" && $0.sha256.count == 64 && $0.url.hasPrefix("https://")
-            && ($0.doi?.hasPrefix("https://doi.org/") ?? ($0.id == "nih3d-3dpx-020591"))
+check("every source is pinned, with a DOI or (the NIH 3D skull, the Visible Human CT) its page; each CC BY 4.0 but the CT, under NLM's terms",
+      manifest.sources.count == 6 && manifest.sources.allSatisfy {
+          ($0.licence == "CC BY 4.0" || ($0.id == "nlm-visible-human-ct" && $0.licence.hasPrefix("NLM Terms and Conditions")))
+            && $0.sha256.count == 64 && $0.url.hasPrefix("https://")
+            && ($0.doi?.hasPrefix("https://doi.org/") ?? ["nih3d-3dpx-020591", "nlm-visible-human-ct"].contains($0.id))
       }, manifest.sources.map(\.id).joined(separator: ", "))
 check("each body names its own source", Set(manifest.bodies.map(\.source)).count == 2
       && manifest.bodies.allSatisfy { b in manifest.sources.contains { $0.id == b.source } })
@@ -84,7 +85,7 @@ for body in manifest.bodies {
     }
     check("\(body.name): every structure has the triangles the manifest says", mismatched.isEmpty, mismatched.prefix(5).joined(separator: ", "))
     let total: Int = parts.map(\.triangles).reduce(0, +)
-    check("\(body.name): between 480,000 and 520,000 triangles", (480_000...520_000).contains(total), "\(total)")
+    check("\(body.name): between 530,000 and 600,000 triangles", (530_000...600_000).contains(total), "\(total)")
     let empty = parts.flatMap { p in zip(p.structures, meshes[p.file] ?? []).filter { $0.1.triangleCount == 0 }.map { $0.0.node } }
     check("\(body.name): no structure is empty", empty.isEmpty, empty.joined(separator: ", "))
     let outside: [String] = parts.compactMap { part in
@@ -369,12 +370,25 @@ do {
           && half.x > AtlasRelief.depth && half.x < 1)
 }
 for body in manifest.bodies {
+    // the vault's outer face (above the skull's middle, facing away from it) bulges, about as a ball its size does;
+    // the skull from the CT has its inner table too, which hollows round the brain, so the whole bends both ways
     let pieces: [AnatomyMesh] = meshes[body.part("skull")!.file] ?? []
-    let bends: [Float] = AnatomyMesh.curvature(welding: pieces).flatMap { $0 }.sorted()
-    let median: Float = bends.isEmpty ? 0 : bends[bends.count / 2]
+    let curvature = AnatomyMesh.curvature(welding: pieces), facing = AnatomyMesh.normals(welding: pieces)
+    let bends: [Float] = curvature.flatMap { $0 }
+    let points: [SIMD3<Float>] = pieces.flatMap { m in (0..<m.vertexCount).map(m.position) }
+    let centre: SIMD3<Float> = points.reduce(.zero, +) / Float(max(points.count, 1))
+    var outer: [Float] = []
+    for (k, m) in pieces.enumerated() {
+        for v in 0..<m.vertexCount {
+            let p = m.position(v)
+            if p.y > centre.y && ((p - centre) * normal(facing[k], v)).sum() > 0 { outer.append(curvature[k][v]) }
+        }
+    }
+    outer.sort()
+    let median: Float = outer.isEmpty ? 0 : outer[outer.count / 2]
     let hollows: Int = bends.filter { AtlasRelief.shade($0).x < 0.95 }.count
-    check("\(body.name): the skull bulges overall (a median of \(Int(median)) per metre) with hollows in it "
-          + "(\(hollows) of \(bends.count) points shaded), every value finite",
+    check("\(body.name): the skull's vault bulges (a median of \(Int(median)) per metre over its outer face) with hollows "
+          + "in the skull (\(hollows) of \(bends.count) points shaded), every value finite",
           !bends.isEmpty && bends.allSatisfy(\.isFinite) && median > 5 && median < 60 && hollows > bends.count / 100)
 }
 
@@ -483,6 +497,29 @@ for body in manifest.bodies {
         check("\(body.name): the \(side) radius and thumb lie on the outer side",
               outward * radius.x > outward * ulna.x && outward * thumb.x > outward * little.x)
     }
+    // the arm's joints (tools/anatomy_gaps.py seat_humeri, tools/anatomy_elbows.py): the humerus meets its
+    // scapula at the shoulder and its ulna and radius at the elbow (their nearest vertices within 8 mm: a
+    // simplified mesh's vertices lie some millimetres apart), and the olecranon, the ulna's top, stands above
+    // the humerus's lowest point, wrapping the trochlea from behind as it does with the arm straight
+    func nearest(_ a: AnatomyMesh, _ b: AnatomyMesh) -> Float {
+        let q = (0..<b.vertexCount).map(b.position)
+        return (0..<a.vertexCount).map(a.position).reduce(Float.infinity) { best, p in
+            q.reduce(best) { min($0, ((p - $1) * (p - $1)).sum()) }
+        }.squareRoot()
+    }
+    for (s, side) in [("L", "left"), ("R", "right")] {
+        guard let humerus = mesh("TS_humerus_\(s)", in: body), let scapula = mesh("TS_scapula_\(s)", in: body),
+              let ulna = mesh("TS_ulna_\(s)", in: body), let radius = mesh("TS_radius_\(s)", in: body) else {
+            check("\(body.name): the \(side) arm's joints are there", false); continue
+        }
+        let gaps = [scapula, ulna, radius].map { Int((nearest(humerus, $0) * 1000).rounded()) }
+        let low = (0..<humerus.vertexCount).map(humerus.position).min { $0.y < $1.y }!
+        let olecranon = (0..<ulna.vertexCount).map(ulna.position).max { $0.y < $1.y }!
+        check("\(body.name): the \(side) humerus meets its scapula, ulna and radius (\(gaps.map(String.init).joined(separator: ", ")) mm)",
+              gaps.allSatisfy { $0 < 8 })
+        check("\(body.name): the \(side) olecranon stands above the humerus's lowest point",
+              olecranon.y > low.y + 0.005, "\(Int(((olecranon.y - low.y) * 1000).rounded())) mm")
+    }
     // the feet (tools/anatomy_feet.py): 27 bones a side (the great toe's two sesamoids as one), the talus at the
     // tibia's lower end (its middle about level with the tip of the medial malleolus, the tibia's lowest point,
     // which reaches down beside it), the heel bone below it, the toes in front of the heel and the great toe on the inner side
@@ -567,7 +604,9 @@ check("the woman's whole hip bones, from her scan, stand in for her organ set's 
 check("the female set's sixth lumbar vertebra is named as the variant it is",
       named("VH_F_lumbar_vertebra_6")?.label.contains("normal variant") == true)
 check("a structure from a scan says so; the organ sets' own say nothing",
-      named("TS_stomach")?.origin?.contains("CT scan") == true && named("NLM_mandible")?.origin?.contains("NIH 3D") == true
+      named("TS_stomach")?.origin?.contains("CT scan") == true && named("NLM_mandible")?.origin?.contains("own CT") == true
+        && named("NLM_maxilla_L")?.origin?.hasPrefix("From the NIH 3D skull") == true && named("NLM_vomer")?.origin?.hasPrefix("From the NIH 3D skull") == true
+        && named("NLM_sphenoid_bone")?.origin?.contains("own CT") == true
         && named("VH_M_femur_L")?.origin == nil && named("Allen_thalamus_L")?.origin == nil)
 check("titles start with a capital", named("VH_M_femur_L")?.title == "Left femur" && named("VH_F_femur_L")?.title == "Left femur")
 check("tissues: veins are veins, arteries arteries, bones bone, the breast's fat fat",

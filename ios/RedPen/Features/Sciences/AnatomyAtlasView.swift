@@ -138,7 +138,7 @@ struct AnatomyAtlasView: View {
                 }
                 .padding(.horizontal, WardSpace.gutter)
             }
-            Text("Human Reference Atlas organs (from the Visible Human Male and Female, U.S. National Library of Medicine), the NIH 3D skull and two TotalSegmentator CT scans, all CC BY 4.0.")
+            Text("Human Reference Atlas organs, the NIH 3D skull and TotalSegmentator CT scans, with each body's own skull from the Visible Human Project CT, courtesy of the U.S. National Library of Medicine (the CT under NLM Terms and Conditions, the rest CC BY 4.0).")
                 .font(.caption2)
                 .foregroundStyle(Color.wardInkSecondary)
                 .padding(.horizontal, WardSpace.gutter)

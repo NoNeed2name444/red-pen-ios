@@ -46,16 +46,27 @@
   },
   {
    "id": "totalsegmentator-v3",
-   "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 (TotalSegmentator; scans s1803, s1764, s1880 and s1767)",
+   "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 (TotalSegmentator; scans s1803, s1764, s1880, s1831 and s1767)",
    "creators": "Jakob Wasserthal et al. (Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024)",
    "doi": "https://doi.org/10.5281/zenodo.22688904",
    "url": "https://zenodo.org/records/22688904",
    "licence": "CC BY 4.0",
    "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
-   "sha256": "5e59d1a54adb4fb642f9ff6510d57e3c02c33de26120ee31b1cf9557b0d095aa"
+   "sha256": "760206f43b89598e925a9561e6cfce3a7f15b3a16d1ab49b80d2dff602a970aa"
+  },
+  {
+   "id": "nlm-visible-human-ct",
+   "title": "The Visible Human Project's normal CT of the male and female heads (PNG with headers)",
+   "creators": "U.S. National Library of Medicine",
+   "url": "https://www.nlm.nih.gov/research/visible/visible_human.html",
+   "data": "https://data.lhncbc.nlm.nih.gov/public/Visible-Human/",
+   "licence": "NLM Terms and Conditions (no fees or royalties; credit \"Courtesy of the U.S. National Library of Medicine\")",
+   "licenceURL": "https://www.nlm.nih.gov/databases/download/terms_and_conditions.html",
+   "doi": null,
+   "sha256": "7547f7d98eb3b071ecc691dd65d15b5036685d17d3e943b13efd3eda5589dab2"
   }
  ],
- "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.92, female 0.91) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fourth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image.",
+ "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept and gently first, so the triangles stay well shaped and shade smoothly; positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.9, female 0.9) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: each body's own skull, meshed from the Visible Human Project's head CT of that man or woman, laid on the NIH 3D model of the man's skull (placed by its eyes and upper teeth, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth, its jaw fitted on its own and the whole bent onto the CT's thick bone); the CT's bone kept where it covers the model or is 2 mm thick or more (but not beside the teeth, which would make their sockets' thin walls count as thick), the model naming its bones, standing in where the CT's bone is thin and broken into lace or missing (the orbits' walls, the sinuses'), and giving the face's bones whole (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for a 1 mm CT); the surface smoothed without shrinking (Taubin), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have, each side's clavicle and scapula as one rigid piece, both sides at one scale and turned to mirror images of each other; the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib cage widened smoothly to clear the lungs and liver, each shoulder girdle settled on the trunk about its sternoclavicular joint, kept at the sternum as in the scan, under the skin, clear of the ribs and in the resting posture, the humeri laid along the arms, each head on its glenoid as the scan's sits on its own, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), joined below the elbow to the humerus and upper forearm of a scan that holds the elbow whole (a fourth for the man's), that humerus in place of the body's, its shaft lengthened or shortened so the elbow sits where the scans' arm would bend, the forearm stretched to the skin's wrist and brought onto it by turning at the shoulder and bending at the elbow about its own axis, the olecranon fossa deepened to take the olecranon, then posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fifth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image.",
  "bodies": [
   {
    "id": "male",
@@ -69,15 +80,15 @@
      "system": "integumentary",
      "file": "male-skin.atlas",
      "bytes": 216036,
-     "sha256": "48b2d1ae75c65bcb69bea312ddba81290bcfc7739cd3e85241675151b8a47d69",
+     "sha256": "0e532956ddd61cb9b2d7d3ced64237398f57e40dc540239e1235f901c9cf4abd",
      "triangles": 23998,
      "bounds": [
-      -0.52102,
-      -0.91339,
-      -0.16763,
-      0.52307,
-      0.91155,
-      0.15867
+      -0.52084,
+      -0.91309,
+      -0.16729,
+      0.52226,
+      0.91135,
+      0.15843
      ],
      "structures": [
       {
@@ -96,16 +107,16 @@
      "name": "Brain",
      "system": "nervous",
      "file": "male-brain.atlas",
-     "bytes": 417532,
-     "sha256": "5b6858c1000aa99e9f8d8128b4434dd45beb93eb36fe6481e4634c6a27825e1a",
-     "triangles": 45976,
+     "bytes": 417524,
+     "sha256": "5eb8b062bb60f2820c2bf9f05dec3a4f36d9aa284c97a8747684585d89bb2b81",
+     "triangles": 45986,
      "bounds": [
-      -0.0636,
-      0.75884,
-      -0.07684,
-      0.06316,
-      0.89303,
-      0.07649
+      -0.06149,
+      0.75943,
+      -0.07496,
+      0.06098,
+      0.891,
+      0.07495
      ],
      "structures": [
       {
@@ -538,7 +549,7 @@
        "tissue": "brain",
        "group": "left cerebral hemisphere",
        "inner": false,
-       "triangles": 1993
+       "triangles": 1991
       },
       {
        "node": "Allen_anterior_commissure_L",
@@ -1348,7 +1359,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 60
+       "triangles": 66
       },
       {
        "node": "Allen_frontal_agranular_insular_cortex_area_Fl_R",
@@ -1465,7 +1476,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 136
+       "triangles": 138
       },
       {
        "node": "Allen_anterior_amygdaloid_area_R",
@@ -1735,7 +1746,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 1937
+       "triangles": 1941
       },
       {
        "node": "Allen_anterior_commissure_R",
@@ -1762,7 +1773,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 86
+       "triangles": 88
       },
       {
        "node": "Allen_mammillothalamic_tract_R",
@@ -2518,7 +2529,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 60
+       "triangles": 58
       },
       {
        "node": "Allen_hypothalamus_R",
@@ -2663,15 +2674,15 @@
      "system": "nervous",
      "file": "male-spinal-cord.atlas",
      "bytes": 40984,
-     "sha256": "914428549688f9114ec8075fc34ecf86ab5ecce0488f8dd796afb0e105c2c625",
+     "sha256": "9d83d94241a9fb7fc9f240137583edfc363a4c56a43a73a5d280925f57439991",
      "triangles": 3978,
      "bounds": [
-      -0.01377,
+      -0.01358,
       0.28451,
       -0.08152,
       0.00715,
-      0.74967,
-      -0.00164
+      0.74966,
+      -0.00183
      ],
      "structures": [
       {
@@ -2952,15 +2963,15 @@
      "system": "nervous",
      "file": "male-optic-nerves.atlas",
      "bytes": 10856,
-     "sha256": "59f4e1ad3d4490c9a7fb33e78a36b1e5ee6bd312931e3b2cdbaa0071067437ff",
+     "sha256": "7a0e217fe435f6067180220286230549ca08f9256166de77f1ad05a36a6f7364",
      "triangles": 1196,
      "bounds": [
-      -0.03251,
-      0.80579,
-      0.03138,
-      0.0344,
-      0.81428,
-      0.0739
+      -0.03258,
+      0.80578,
+      0.03146,
+      0.03453,
+      0.81416,
+      0.07388
      ],
      "structures": [
       {
@@ -3006,15 +3017,15 @@
      "name": "Eyes",
      "system": "special senses",
      "file": "male-eyes.atlas",
-     "bytes": 295380,
-     "sha256": "2ae1a05721f13921450737c3116b006037a1635b67311b615f52c71a2243d68a",
-     "triangles": 31098,
+     "bytes": 295108,
+     "sha256": "d9b86fea5206c1aeabbc3c78514f79f70baa749fc9a70e7359c715530811b870",
+     "triangles": 31094,
      "bounds": [
-      -0.04664,
-      0.79689,
-      0.07105,
-      0.04862,
-      0.82333,
+      -0.04688,
+      0.79785,
+      0.07116,
+      0.0484,
+      0.82311,
       0.09712
      ],
      "structures": [
@@ -3061,7 +3072,7 @@
        "tissue": "eye",
        "group": "right palpebral conjunctiva",
        "inner": false,
-       "triangles": 200
+       "triangles": 196
       },
       {
        "node": "VH_M_palpebral_conjunctiva_of_lower_eyelid_R",
@@ -3070,7 +3081,7 @@
        "tissue": "eye",
        "group": "right palpebral conjunctiva",
        "inner": false,
-       "triangles": 196
+       "triangles": 200
       },
       {
        "node": "VH_M_sclera_R",
@@ -3106,7 +3117,7 @@
        "tissue": "eye",
        "group": "right eye",
        "inner": true,
-       "triangles": 3958
+       "triangles": 3960
       },
       {
        "node": "VH_M_suspensory_ligament_of_lens_R",
@@ -3268,7 +3279,7 @@
        "tissue": "eye",
        "group": "left palpebral conjunctiva",
        "inner": false,
-       "triangles": 208
+       "triangles": 202
       },
       {
        "node": "VH_M_palpebral_conjunctiva_of_lower_eyelid_L",
@@ -3277,7 +3288,7 @@
        "tissue": "eye",
        "group": "left palpebral conjunctiva",
        "inner": false,
-       "triangles": 218
+       "triangles": 214
       },
       {
        "node": "VH_M_vitreous_humor_L",
@@ -3385,7 +3396,7 @@
        "tissue": "eye",
        "group": "left eye",
        "inner": true,
-       "triangles": 918
+       "triangles": 916
       },
       {
        "node": "VH_M_suspensory_ligament_of_lens_L",
@@ -3403,7 +3414,7 @@
        "tissue": "eye",
        "group": "left eye",
        "inner": true,
-       "triangles": 3954
+       "triangles": 3960
       },
       {
        "node": "VH_M_pupil_L",
@@ -3439,16 +3450,16 @@
      "name": "Heart",
      "system": "cardiovascular",
      "file": "male-heart.atlas",
-     "bytes": 144156,
-     "sha256": "4c69a2a14bc781b41c814d89f0f5894af972ec4113d1db61035790af48a4c05a",
+     "bytes": 144140,
+     "sha256": "7b824038fb56287dcfb6f4b29737961b1615a6b865f6f7b4828089cbbcd5341c",
      "triangles": 16007,
      "bounds": [
-      -0.0435,
-      0.42349,
+      -0.04338,
+      0.42327,
       -0.01506,
-      0.08089,
-      0.52888,
-      0.09049
+      0.08101,
+      0.52882,
+      0.09034
      ],
      "structures": [
       {
@@ -3584,15 +3595,15 @@
      "name": "Blood vessels",
      "system": "cardiovascular",
      "file": "male-vessels.atlas",
-     "bytes": 437576,
-     "sha256": "eac6fff5fb6af6165bd9cda1ee70bffd3098b8e7ada692b554369c4f12ad3466",
+     "bytes": 437524,
+     "sha256": "dfada18b50f7fc397642e79eaea593c69a88b8283b7c20e180239263b6cb09f9",
      "triangles": 46752,
      "bounds": [
       -0.11189,
-      -0.04301,
-      -0.09052,
-      0.12443,
-      0.8288,
+      -0.04312,
+      -0.09047,
+      0.12428,
+      0.82879,
       0.09691
      ],
      "structures": [
@@ -4558,15 +4569,15 @@
      "system": "respiratory",
      "file": "male-larynx.atlas",
      "bytes": 27076,
-     "sha256": "bc098788e5a0f939138623854caa43f9f7d6671a350e1018849ba88818910aa2",
+     "sha256": "225a1efb972394d1f97c6406eb689fb0995b8b8fcc744972f852fcef4cbbc5b9",
      "triangles": 2990,
      "bounds": [
-      -0.02845,
-      0.6273,
-      0.0216,
-      0.02525,
-      0.70034,
-      0.06095
+      -0.02847,
+      0.62752,
+      0.02163,
+      0.02532,
+      0.70037,
+      0.06027
      ],
      "structures": [
       {
@@ -4639,15 +4650,15 @@
      "name": "Trachea and bronchi",
      "system": "respiratory",
      "file": "male-airways.atlas",
-     "bytes": 241156,
-     "sha256": "cc33c34e7ce5ae0394483a9020f3cead384ffbaada604f4a1ebe0e03c15cdc53",
-     "triangles": 24666,
+     "bytes": 240560,
+     "sha256": "5184402557fe9a587f35f5e20129ed701a2767c08960f2cbe3d0a237a201d536",
+     "triangles": 24708,
      "bounds": [
       -0.11001,
       0.41776,
       -0.07874,
       0.11793,
-      0.66019,
+      0.66011,
       0.06195
      ],
      "structures": [
@@ -4676,7 +4687,7 @@
        "tissue": "cartilage",
        "group": "trachea of respiratory system",
        "inner": false,
-       "triangles": 78
+       "triangles": 80
       },
       {
        "node": "VH_M_left_main_bronchus",
@@ -4703,7 +4714,7 @@
        "tissue": "airway",
        "group": "main bronchus",
        "inner": false,
-       "triangles": 82
+       "triangles": 78
       },
       {
        "node": "VH_M_cartilage_of_the_main_bronchus_R",
@@ -4721,7 +4732,7 @@
        "tissue": "cartilage",
        "group": "left bronchial cartilage",
        "inner": false,
-       "triangles": 395
+       "triangles": 397
       },
       {
        "node": "VH_M_cartilage_of_the_tertiary_bronchus_L",
@@ -4730,7 +4741,7 @@
        "tissue": "cartilage",
        "group": "left bronchial cartilage",
        "inner": false,
-       "triangles": 7052
+       "triangles": 7070
       },
       {
        "node": "VH_M_left_superior_lobar_bronchus",
@@ -4739,7 +4750,7 @@
        "tissue": "airway",
        "group": "lobar bronchus of left lung",
        "inner": false,
-       "triangles": 82
+       "triangles": 88
       },
       {
        "node": "VH_M_left_inferior_lobar_bronchus",
@@ -4748,7 +4759,7 @@
        "tissue": "airway",
        "group": "lobar bronchus of left lung",
        "inner": false,
-       "triangles": 156
+       "triangles": 154
       },
       {
        "node": "VH_M_left_superior_bronchus",
@@ -4766,7 +4777,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 624
+       "triangles": 630
       },
       {
        "node": "VH_M_left_medial_basal_bronchus",
@@ -4802,7 +4813,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 90
+       "triangles": 88
       },
       {
        "node": "VH_M_left_lingula_superior_bronchus",
@@ -4829,7 +4840,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 374
+       "triangles": 376
       },
       {
        "node": "VH_M_left_anterior_basal_bronchus",
@@ -4847,7 +4858,7 @@
        "tissue": "cartilage",
        "group": "right bronchial cartilage",
        "inner": false,
-       "triangles": 469
+       "triangles": 471
       },
       {
        "node": "VH_M_cartilage_of_the_tertiary_bronchus_R",
@@ -4856,7 +4867,7 @@
        "tissue": "cartilage",
        "group": "right bronchial cartilage",
        "inner": false,
-       "triangles": 6852
+       "triangles": 6862
       },
       {
        "node": "VH_M_right_intermediate_bronchus",
@@ -4874,7 +4885,7 @@
        "tissue": "airway",
        "group": "lobar bronchus of right lung",
        "inner": false,
-       "triangles": 78
+       "triangles": 74
       },
       {
        "node": "VH_M_right_superior_lobar_bronchus",
@@ -4901,7 +4912,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 356
+       "triangles": 358
       },
       {
        "node": "VH_M_right_lateral_bronchus",
@@ -4982,7 +4993,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 360
+       "triangles": 362
       },
       {
        "node": "VH_M_bronchus",
@@ -4991,7 +5002,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 132
+       "triangles": 134
       }
      ]
     },
@@ -5001,7 +5012,7 @@
      "system": "respiratory",
      "file": "male-lungs.atlas",
      "bytes": 177960,
-     "sha256": "abb1c23671a08851a28ae904e6c7e893a6e5db71eb9b8ce9cc0079af6ebe7ccb",
+     "sha256": "040b62eaa100e43cf71c890cc81333a47981fa36d66332816295568389a350a7",
      "triangles": 19169,
      "bounds": [
       -0.12498,
@@ -5262,16 +5273,16 @@
      "name": "Mouth",
      "system": "digestive",
      "file": "male-mouth.atlas",
-     "bytes": 221800,
-     "sha256": "49b1e259418ea1aa5c29a5572a1694e663d5a993820f1e06ced18025d71dbd6c",
-     "triangles": 21415,
+     "bytes": 221872,
+     "sha256": "7f709f4828d010f4f849f8ea7e005c91d95f6912d4be3a1e1e4049e07c4b922e",
+     "triangles": 21439,
      "bounds": [
-      -0.05889,
-      0.67935,
-      0.00573,
-      0.06925,
-      0.77487,
-      0.12895
+      -0.06058,
+      0.67944,
+      0.00446,
+      0.06993,
+      0.77442,
+      0.12932
      ],
      "structures": [
       {
@@ -5299,7 +5310,7 @@
        "tissue": "gland",
        "group": "parotid gland",
        "inner": false,
-       "triangles": 62
+       "triangles": 64
       },
       {
        "node": "VH_M_parotid_gland_L",
@@ -5344,7 +5355,7 @@
        "tissue": "organ",
        "group": "frenulum of lip",
        "inner": false,
-       "triangles": 74
+       "triangles": 76
       },
       {
        "node": "VH_M_frenulum_of_lower_lip",
@@ -5380,7 +5391,7 @@
        "tissue": "organ",
        "group": "gingiva",
        "inner": false,
-       "triangles": 1322
+       "triangles": 1334
       },
       {
        "node": "VH_M_posterior_part_of_tongue",
@@ -5389,7 +5400,7 @@
        "tissue": "organ",
        "group": "tongue",
        "inner": false,
-       "triangles": 1108
+       "triangles": 1110
       },
       {
        "node": "VH_M_dorsal_tongue",
@@ -5398,7 +5409,7 @@
        "tissue": "organ",
        "group": "tongue",
        "inner": false,
-       "triangles": 3384
+       "triangles": 3370
       },
       {
        "node": "VH_M_ventral_tongue",
@@ -5407,7 +5418,7 @@
        "tissue": "organ",
        "group": "tongue",
        "inner": false,
-       "triangles": 2071
+       "triangles": 2081
       },
       {
        "node": "VH_M_fungiform_papillae",
@@ -5434,7 +5445,7 @@
        "tissue": "organ",
        "group": "secondary palate",
        "inner": false,
-       "triangles": 1830
+       "triangles": 1840
       },
       {
        "node": "VH_M_mucosa_of_soft_palate",
@@ -5471,15 +5482,15 @@
      "system": "digestive",
      "file": "male-oesophagus.atlas",
      "bytes": 18036,
-     "sha256": "12afae417ec59c8e180a7667959f59dc24606b3a5e0c91b46a2d88a9fcbdd479",
+     "sha256": "3f2e8ead5624cff469583b2514928e3601143863a518dbd31cbf6d9a766f3455",
      "triangles": 1998,
      "bounds": [
-      -0.00953,
-      0.40916,
-      -0.0328,
-      0.02176,
-      0.64976,
-      0.02238
+      -0.00989,
+      0.41061,
+      -0.03323,
+      0.02111,
+      0.64773,
+      0.02294
      ],
      "structures": [
       {
@@ -5499,15 +5510,15 @@
      "system": "digestive",
      "file": "male-stomach.atlas",
      "bytes": 36052,
-     "sha256": "d75194c37b8b8cd5cd4c4dd94031940e5ac4b41d137cd80cf4ef53abf5aa0c21",
+     "sha256": "96f82d2c5a0aa0c5684aa2cccde61f55e28d8b3d6fdc4844e0251740e78e71a6",
      "triangles": 4000,
      "bounds": [
-      -0.06694,
-      0.30101,
-      -0.08755,
-      0.1294,
-      0.44089,
-      0.10455
+      -0.06759,
+      0.30149,
+      -0.08914,
+      0.13266,
+      0.44016,
+      0.09931
      ],
      "structures": [
       {
@@ -5527,14 +5538,14 @@
      "system": "digestive",
      "file": "male-liver.atlas",
      "bytes": 112432,
-     "sha256": "2162849d6dfbf35b2b30bb55221a79fb7a26f033d2a304f2e8ad0d96d65df6a9",
+     "sha256": "f3952490865f26745b711d8ea20f855a98f80c1ac17faae5b59e0b4712503781",
      "triangles": 11989,
      "bounds": [
-      -0.13327,
-      0.27966,
-      -0.08975,
-      0.05854,
-      0.4548,
+      -0.13317,
+      0.27992,
+      -0.08958,
+      0.05828,
+      0.45445,
       0.11218
      ],
      "structures": [
@@ -5699,15 +5710,15 @@
      "system": "digestive",
      "file": "male-gallbladder.atlas",
      "bytes": 9036,
-     "sha256": "a54b741ec987b3a78d32f22a76eadce01aa0421c9904284650758dd568ff62d8",
+     "sha256": "790f0767ca908a97b9bc69b9b62dd4a072e0e4db3a7edacba2e0694f9cd0220b",
      "triangles": 998,
      "bounds": [
-      -0.0977,
-      0.33083,
-      0.02134,
-      -0.05466,
-      0.37257,
-      0.0942
+      -0.0971,
+      0.33098,
+      0.02148,
+      -0.05472,
+      0.37273,
+      0.09422
      ],
      "structures": [
       {
@@ -5726,16 +5737,16 @@
      "name": "Bile and pancreatic ducts",
      "system": "digestive",
      "file": "male-biliary-tree.atlas",
-     "bytes": 19584,
-     "sha256": "833c2b360bdcb6d714dc7caa0bb3c08df425e7e4992e2cb7751ae890b3159211",
-     "triangles": 1992,
+     "bytes": 19596,
+     "sha256": "4a52aa62612e95e5183ebb62c92d6b4bf0a8e432f7a0dbe8e8692692f1c53b4c",
+     "triangles": 1996,
      "bounds": [
-      -0.06176,
+      -0.06173,
       0.3069,
-      -0.0213,
-      0.07143,
+      -0.02135,
+      0.07166,
       0.38972,
-      0.04478
+      0.0446
      ],
      "structures": [
       {
@@ -5799,7 +5810,7 @@
        "tissue": "duct",
        "group": "ducts of liver",
        "inner": false,
-       "triangles": 124
+       "triangles": 128
       },
       {
        "node": "VH_M_cystic_duct",
@@ -5817,16 +5828,16 @@
      "name": "Pancreas",
      "system": "digestive",
      "file": "male-pancreas.atlas",
-     "bytes": 29272,
-     "sha256": "1120851e704e461e1bfc99b9953460662781dcc64e428a852f10be939b0a3c53",
-     "triangles": 3022,
+     "bytes": 29288,
+     "sha256": "7e71f620dffb6bd0657d9ef9dfb9245f6ca2da33d22337b701ae2210332c6a2e",
+     "triangles": 3024,
      "bounds": [
-      -0.03418,
-      0.30344,
-      -0.03255,
-      0.07733,
-      0.37557,
-      0.05158
+      -0.03381,
+      0.30366,
+      -0.03254,
+      0.07732,
+      0.37564,
+      0.05137
      ],
      "structures": [
       {
@@ -5863,7 +5874,7 @@
        "tissue": "organ",
        "group": "pancreas",
        "inner": false,
-       "triangles": 143
+       "triangles": 145
       },
       {
        "node": "VH_M_uncinate_process_of_the_pancreas",
@@ -5882,15 +5893,15 @@
      "system": "digestive",
      "file": "male-small-intestine.atlas",
      "bytes": 55320,
-     "sha256": "406c6314fa2ef4a4b204c4baf8eb63c8bb0fbe53bb5813d7b009ba00930fa4a8",
+     "sha256": "5d2db2aea197e189b938414798c1ddc6c1ccb0323786ba5ab3e315f5513aca21",
      "triangles": 5976,
      "bounds": [
-      -0.0628,
-      0.10005,
-      0.0023,
-      0.12713,
-      0.36496,
-      0.12474
+      -0.06193,
+      0.10007,
+      0.00216,
+      0.12646,
+      0.36534,
+      0.12412
      ],
      "structures": [
       {
@@ -5991,15 +6002,15 @@
      "system": "digestive",
      "file": "male-colon.atlas",
      "bytes": 73992,
-     "sha256": "de3bde1a713b9e7683e554237466d436428fe30a37fb6e1b1007d2c693cf7b4e",
+     "sha256": "ab817ab6ea675cbe03b599fd3c9d40354c7ba4cf545f5f028023f842b1046472",
      "triangles": 7980,
      "bounds": [
-      -0.11623,
-      -0.03917,
-      -0.08617,
-      0.14335,
-      0.41122,
-      0.13965
+      -0.1162,
+      -0.03847,
+      -0.08558,
+      0.14243,
+      0.41187,
+      0.13898
      ],
      "structures": [
       {
@@ -6100,15 +6111,15 @@
      "system": "digestive",
      "file": "male-omentum.atlas",
      "bytes": 45056,
-     "sha256": "68e58dc56d18f453ae20fe6fa9b27db384e5fa3635f609c02b96e854a0d53749",
+     "sha256": "50f0dd70404c29fdb64fad1665bd0286bcc08a8415deab9fbf6b1b9903b35016",
      "triangles": 4998,
      "bounds": [
-      -0.12641,
-      0.05824,
-      0.00342,
-      0.15952,
-      0.38656,
-      0.14349
+      -0.1264,
+      0.05836,
+      0.00362,
+      0.15912,
+      0.38536,
+      0.1435
      ],
      "structures": [
       {
@@ -6137,15 +6148,15 @@
      "system": "lymphatic",
      "file": "male-tonsils.atlas",
      "bytes": 7256,
-     "sha256": "d7d9bc8b3b1c5a298e6b627389fe098535e544a69e5ee9c5aaefc3edb4920e97",
+     "sha256": "3e5ca4e162c74ddd405e90459e8da008d9ba25a89cc4eedc2239dd5a9a81305d",
      "triangles": 798,
      "bounds": [
       -0.02588,
-      0.71485,
-      0.0331,
+      0.71519,
+      0.03313,
       0.02057,
-      0.73986,
-      0.04963
+      0.73996,
+      0.04959
      ],
      "structures": [
       {
@@ -6174,15 +6185,15 @@
      "system": "lymphatic",
      "file": "male-spleen.atlas",
      "bytes": 29344,
-     "sha256": "4f59b071d75e38b68f351d0c5f17314e9ff0738d940ef1b74679de6431d85090",
+     "sha256": "f759a47c757a38487de68dbd817f75148acfa0303d906a6eecf3946a8e6daa9b",
      "triangles": 2992,
      "bounds": [
       0.02574,
       0.31074,
-      -0.0808,
-      0.13636,
-      0.42954,
-      0.008
+      -0.08088,
+      0.13634,
+      0.42949,
+      0.00782
      ],
      "structures": [
       {
@@ -6238,15 +6249,15 @@
      "system": "lymphatic",
      "file": "male-thymus.atlas",
      "bytes": 11028,
-     "sha256": "aac27185c42fac1937bcc509ac2198ba2e94bd4c11adbf5e3aeede54df0c4c8c",
+     "sha256": "e151d5669d98f2a5eb1fb1ac8701641795fb4b6e11ce9fb10d114910ff55d979",
      "triangles": 1198,
      "bounds": [
-      -0.02679,
-      0.50012,
-      0.02576,
+      -0.02673,
+      0.50014,
+      0.02574,
       0.01028,
       0.57583,
-      0.06087
+      0.06084
      ],
      "structures": [
       {
@@ -6274,16 +6285,16 @@
      "name": "Thyroid gland",
      "system": "endocrine",
      "file": "male-thyroid.atlas",
-     "bytes": 13528,
-     "sha256": "0b58b11485d518aac48512fca2c965f5451e200f0b656ff1a8abd4f160bc5f92",
-     "triangles": 1496,
+     "bytes": 13548,
+     "sha256": "46d406633370c818e6e0f89e97fa7dd190ac7ce9057b05965cef5f038160a610",
+     "triangles": 1498,
      "bounds": [
-      -0.02997,
-      0.60724,
-      -2e-05,
-      0.02566,
-      0.66761,
-      0.04152
+      -0.0293,
+      0.60959,
+      -0.00268,
+      0.02049,
+      0.66823,
+      0.04022
      ],
      "structures": [
       {
@@ -6293,7 +6304,7 @@
        "tissue": "gland",
        "group": "Thyroid gland",
        "inner": false,
-       "triangles": 1496
+       "triangles": 1498
       }
      ]
     },
@@ -6303,15 +6314,15 @@
      "system": "endocrine",
      "file": "male-adrenals.atlas",
      "bytes": 14456,
-     "sha256": "8871e9d57304e0053c057d7eaef7b6411b0007c3a3b5641825ad2df68e233498",
+     "sha256": "223e7e40ce2ad1752521449620b3a7246c9fe4a089e534ae0e3fc1714c74ade4",
      "triangles": 1598,
      "bounds": [
-      -0.03719,
-      0.32062,
-      -0.04945,
-      0.03308,
-      0.35718,
-      0.00147
+      -0.03556,
+      0.32174,
+      -0.04572,
+      0.03697,
+      0.36436,
+      0.0011
      ],
      "structures": [
       {
@@ -6339,16 +6350,16 @@
      "name": "Kidneys and ureters",
      "system": "urinary",
      "file": "male-kidneys.atlas",
-     "bytes": 147876,
-     "sha256": "28f4b1841bc703ab50f5d7e8e8838b12ba0b1eb9644905a6b10f4e1137156f6d",
-     "triangles": 14884,
+     "bytes": 148256,
+     "sha256": "76fe468e5f86da588e7bf1ebf9d42e2495de71f8c907ceb951eab1bf5fdf11cb",
+     "triangles": 14936,
      "bounds": [
-      -0.09785,
+      -0.09692,
       0.03732,
-      -0.06983,
-      0.1097,
-      0.35744,
-      0.0315
+      -0.06894,
+      0.10909,
+      0.35643,
+      0.03152
      ],
      "structures": [
       {
@@ -6367,7 +6378,7 @@
        "tissue": "duct",
        "group": "right major calyx",
        "inner": true,
-       "triangles": 162
+       "triangles": 160
       },
       {
        "node": "VH_M_minor_calyx_R_a",
@@ -6430,7 +6441,7 @@
        "tissue": "duct",
        "group": "right minor calyx",
        "inner": true,
-       "triangles": 124
+       "triangles": 122
       },
       {
        "node": "VH_M_minor_calyx_R_h",
@@ -6448,7 +6459,7 @@
        "tissue": "duct",
        "group": "right minor calyx",
        "inner": true,
-       "triangles": 94
+       "triangles": 98
       },
       {
        "node": "VH_M_renal_pelvis_R",
@@ -6457,7 +6468,7 @@
        "tissue": "duct",
        "group": "right renal pelvis ureter",
        "inner": true,
-       "triangles": 216
+       "triangles": 212
       },
       {
        "node": "VH_M_ureter_R",
@@ -6475,7 +6486,7 @@
        "tissue": "duct",
        "group": "left renal pelvis ureter",
        "inner": true,
-       "triangles": 252
+       "triangles": 256
       },
       {
        "node": "VH_M_major_calyx_L_a",
@@ -6484,7 +6495,7 @@
        "tissue": "duct",
        "group": "left major calyx",
        "inner": true,
-       "triangles": 192
+       "triangles": 194
       },
       {
        "node": "VH_M_major_calyx_L_b",
@@ -6502,7 +6513,7 @@
        "tissue": "duct",
        "group": "left major calyx",
        "inner": true,
-       "triangles": 116
+       "triangles": 124
       },
       {
        "node": "VH_M_minor_calyx_L_a",
@@ -6520,7 +6531,7 @@
        "tissue": "duct",
        "group": "left minor calyx",
        "inner": true,
-       "triangles": 98
+       "triangles": 102
       },
       {
        "node": "VH_M_minor_calyx_L_c",
@@ -6565,7 +6576,7 @@
        "tissue": "duct",
        "group": "left minor calyx",
        "inner": true,
-       "triangles": 56
+       "triangles": 58
       },
       {
        "node": "VH_M_minor_calyx_L_h",
@@ -6574,7 +6585,7 @@
        "tissue": "duct",
        "group": "left minor calyx",
        "inner": true,
-       "triangles": 140
+       "triangles": 144
       },
       {
        "node": "VH_M_minor_calyx_L_i",
@@ -6619,7 +6630,7 @@
        "tissue": "organ",
        "group": "left cortex of kidney",
        "inner": true,
-       "triangles": 1189
+       "triangles": 1191
       },
       {
        "node": "VH_M_outer_cortex_of_kidney_L",
@@ -6808,7 +6819,7 @@
        "tissue": "organ",
        "group": "right kidney",
        "inner": false,
-       "triangles": 363
+       "triangles": 393
       },
       {
        "node": "VH_M_renal_papilla_R_j",
@@ -7015,14 +7026,14 @@
      "name": "Urinary bladder",
      "system": "urinary",
      "file": "male-bladder.atlas",
-     "bytes": 21688,
-     "sha256": "72f90bf2e4c72d31c780a4ef97c4d101dbb0ee2e3fe018b4375ad2b7b2f95afa",
-     "triangles": 2109,
+     "bytes": 21708,
+     "sha256": "698f44a140c57fa561e50b40d44925e1290c47323e0778f571096f80db1c61d3",
+     "triangles": 2111,
      "bounds": [
-      -0.03663,
+      -0.03681,
       0.01044,
       -0.01745,
-      0.02706,
+      0.02692,
       0.0503,
       0.05486
      ],
@@ -7052,7 +7063,7 @@
        "tissue": "duct",
        "group": "ureteral orifice",
        "inner": false,
-       "triangles": 58
+       "triangles": 60
       },
       {
        "node": "VH_M_ureteral_orifice_L",
@@ -7088,14 +7099,14 @@
      "name": "Urethra",
      "system": "urinary",
      "file": "male-urethra.atlas",
-     "bytes": 36360,
-     "sha256": "e144eb4c7aad1dbf7e538ea3f85415658909e23aaea9d927e04017a772efdfb5",
-     "triangles": 3287,
+     "bytes": 35964,
+     "sha256": "5113bee46bfa9ba600c09f47327518efcfa3ce9f900a9d735e8228ae3cea7693",
+     "triangles": 3243,
      "bounds": [
       -0.00572,
       -0.10907,
-      -0.01546,
-      0.01201,
+      -0.01569,
+      0.01199,
       0.01768,
       0.1117
      ],
@@ -7107,7 +7118,7 @@
        "tissue": "duct",
        "group": "male urethra",
        "inner": false,
-       "triangles": 523
+       "triangles": 483
       },
       {
        "node": "VH_M_prostatic_urethra",
@@ -7116,7 +7127,7 @@
        "tissue": "duct",
        "group": "male urethra",
        "inner": false,
-       "triangles": 2764
+       "triangles": 2760
       }
      ]
     },
@@ -7125,16 +7136,16 @@
      "name": "Vas deferens and seminal vesicles",
      "system": "reproductive",
      "file": "male-genital-ducts.atlas",
-     "bytes": 18240,
-     "sha256": "54915a97fa4b1cce0762557a28db237e6258914f05d79a9030f62b7bbcce7b57",
-     "triangles": 2001,
+     "bytes": 18228,
+     "sha256": "33d564877733ae9f5a34c00f9281f74e7fdac6a83ee16e819d35467e050b79ec",
+     "triangles": 2003,
      "bounds": [
-      -0.03749,
+      -0.0328,
       0.00086,
-      -0.04294,
-      0.04553,
-      0.0622,
-      -0.00232
+      -0.04216,
+      0.03052,
+      0.05842,
+      -0.0113
      ],
      "structures": [
       {
@@ -7153,7 +7164,7 @@
        "tissue": "duct",
        "group": "vas deferens",
        "inner": false,
-       "triangles": 58
+       "triangles": 60
       },
       {
        "node": "VH_M_seminal_vesicle",
@@ -7180,16 +7191,16 @@
      "name": "Prostate",
      "system": "reproductive",
      "file": "male-prostate.atlas",
-     "bytes": 43368,
-     "sha256": "6266eb9860b43f7abae223ab9f806c4e4cd54dad98ac529441ce957ccd2c6450",
-     "triangles": 4619,
+     "bytes": 43400,
+     "sha256": "58f7a4291ce2e92ac92c1f5954e349f8c1c621a3e73a18d1d6254e1a178b8890",
+     "triangles": 4635,
      "bounds": [
-      -0.01446,
-      -0.00852,
-      -0.03051,
-      0.01509,
-      0.02852,
-      0.00039
+      -0.01462,
+      -0.00864,
+      -0.03046,
+      0.01549,
+      0.0277,
+      0.00036
      ],
      "structures": [
       {
@@ -7217,7 +7228,7 @@
        "tissue": "duct",
        "group": "prostate duct",
        "inner": true,
-       "triangles": 1004
+       "triangles": 1010
       },
       {
        "node": "VH_M_prostate_duct_L",
@@ -7226,7 +7237,7 @@
        "tissue": "duct",
        "group": "prostate duct",
        "inner": true,
-       "triangles": 1040
+       "triangles": 1044
       },
       {
        "node": "VH_M_apex_of_prostate",
@@ -7235,7 +7246,7 @@
        "tissue": "gland",
        "group": "prostate gland",
        "inner": false,
-       "triangles": 88
+       "triangles": 90
       },
       {
        "node": "VH_M_base_of_prostate",
@@ -7244,7 +7255,7 @@
        "tissue": "gland",
        "group": "prostate gland",
        "inner": false,
-       "triangles": 189
+       "triangles": 193
       },
       {
        "node": "VH_M_peripheral_zone_of_prostate_R",
@@ -7325,16 +7336,16 @@
      "name": "Skull",
      "system": "skeletal",
      "file": "male-skull.atlas",
-     "bytes": 246784,
-     "sha256": "ca668ab0c3c5c580606021d2e6cfc65bdded710261fa3e1d9d5edbe036df875f",
-     "triangles": 27284,
+     "bytes": 750508,
+     "sha256": "03587ba8e6dc5baefd399165a233d807376b44ef5c895cd307d3cef149496601",
+     "triangles": 79992,
      "bounds": [
-      -0.07282,
-      0.673,
-      -0.0949,
-      0.07481,
-      0.90824,
-      0.11923
+      -0.07286,
+      0.67326,
+      -0.0943,
+      0.07545,
+      0.90835,
+      0.11997
      ],
      "structures": [
       {
@@ -7344,7 +7355,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 828
+       "triangles": 12516
       },
       {
        "node": "NLM_parietal_bone_L",
@@ -7353,7 +7364,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 841
+       "triangles": 5622
       },
       {
        "node": "NLM_parietal_bone_R",
@@ -7362,7 +7373,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 997
+       "triangles": 5717
       },
       {
        "node": "NLM_occipital_bone",
@@ -7371,7 +7382,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1984
+       "triangles": 10887
       },
       {
        "node": "NLM_temporal_bone_L",
@@ -7380,7 +7391,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1108
+       "triangles": 8811
       },
       {
        "node": "NLM_temporal_bone_R",
@@ -7389,7 +7400,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1134
+       "triangles": 6938
       },
       {
        "node": "NLM_sphenoid_bone",
@@ -7398,7 +7409,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 6637
+       "triangles": 8388
       },
       {
        "node": "NLM_ethmoid_bone",
@@ -7407,7 +7418,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1647
+       "triangles": 3318
       },
       {
        "node": "NLM_nasal_bone_L",
@@ -7416,7 +7427,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 127
+       "triangles": 254
       },
       {
        "node": "NLM_nasal_bone_R",
@@ -7425,7 +7436,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 77
+       "triangles": 203
       },
       {
        "node": "NLM_lacrimal_bone_L",
@@ -7434,7 +7445,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 174
+       "triangles": 277
       },
       {
        "node": "NLM_lacrimal_bone_R",
@@ -7443,7 +7454,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 154
+       "triangles": 145
       },
       {
        "node": "NLM_zygomatic_bone_L",
@@ -7452,7 +7463,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 404
+       "triangles": 799
       },
       {
        "node": "NLM_zygomatic_bone_R",
@@ -7461,7 +7472,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 476
+       "triangles": 935
       },
       {
        "node": "NLM_maxilla_L",
@@ -7470,7 +7481,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 2458
+       "triangles": 3286
       },
       {
        "node": "NLM_maxilla_R",
@@ -7479,7 +7490,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 2128
+       "triangles": 3145
       },
       {
        "node": "NLM_palatine_bone_L",
@@ -7488,7 +7499,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1806
+       "triangles": 755
       },
       {
        "node": "NLM_palatine_bone_R",
@@ -7497,7 +7508,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1526
+       "triangles": 638
       },
       {
        "node": "NLM_vomer",
@@ -7506,7 +7517,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 866
+       "triangles": 576
       },
       {
        "node": "NLM_mandible",
@@ -7515,7 +7526,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1912
+       "triangles": 6782
       }
      ]
     },
@@ -7525,15 +7536,15 @@
      "system": "skeletal",
      "file": "male-sternum.atlas",
      "bytes": 13536,
-     "sha256": "58e7fd9dd0207776f39844943bd69a1129a8b66a74223fee837c336e5d50b5aa",
+     "sha256": "1c9dfdc3b14b00adad51035ab05a1b149b017bad03b8cce86a0d40cbc8510cb2",
      "triangles": 1498,
      "bounds": [
-      -0.04531,
-      0.39098,
-      0.05325,
-      0.02398,
-      0.56463,
-      0.11259
+      -0.04661,
+      0.39172,
+      0.05394,
+      0.0258,
+      0.56554,
+      0.11109
      ],
      "structures": [
       {
@@ -7552,16 +7563,16 @@
      "name": "Ribs and costal cartilages",
      "system": "skeletal",
      "file": "male-ribs.atlas",
-     "bytes": 144312,
-     "sha256": "35418d5e07220f736f03da67400735907e533e0133c1ff655f7d122b6b04ee1d",
-     "triangles": 15966,
+     "bytes": 144208,
+     "sha256": "c5081478595a5f48f3817bcad4906a17c7ddaad721c03e309bf952441d896bc1",
+     "triangles": 15956,
      "bounds": [
-      -0.15536,
-      0.23051,
-      -0.11292,
-      0.17054,
-      0.64033,
-      0.14355
+      -0.15385,
+      0.23609,
+      -0.11047,
+      0.17121,
+      0.63912,
+      0.14049
      ],
      "structures": [
       {
@@ -7616,7 +7627,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 500
+       "triangles": 498
       },
       {
        "node": "TS_rib_4_L",
@@ -7787,7 +7798,7 @@
        "tissue": "cartilage",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 3988
+       "triangles": 3980
       }
      ]
     },
@@ -7797,15 +7808,15 @@
      "system": "skeletal",
      "file": "male-shoulders.atlas",
      "bytes": 45064,
-     "sha256": "797d6f133ae05e88fe20a54adf6164e61d7ff156fba6a55110c17f4452c23cad",
+     "sha256": "a061eebe313e2988a98877a18e592ee1410256316608c0caab3e564397f1df9d",
      "triangles": 4994,
      "bounds": [
-      -0.15875,
-      0.45526,
-      -0.13216,
-      0.19325,
-      0.63633,
-      0.07189
+      -0.19484,
+      0.47311,
+      -0.12905,
+      0.1723,
+      0.63612,
+      0.0699
      ],
      "structures": [
       {
@@ -7851,16 +7862,16 @@
      "name": "Arm and hand bones",
      "system": "skeletal",
      "file": "male-arms.atlas",
-     "bytes": 199348,
-     "sha256": "ac8dbac38bc9ec6d9399501bdbde8687921f6a3478295b827cca4b5eeabf437d",
-     "triangles": 22030,
+     "bytes": 198928,
+     "sha256": "7b38bcbb9e69b9e5851ea7545eb90a1dee2de9effeee971a94f8fa2e407d2c29",
+     "triangles": 21988,
      "bounds": [
-      -0.52077,
-      -0.05402,
-      -0.04474,
-      0.52229,
-      0.62112,
-      0.05238
+      -0.51834,
+      -0.05763,
+      -0.04567,
+      0.52334,
+      0.60695,
+      0.052
      ],
      "structures": [
       {
@@ -7870,7 +7881,7 @@
        "tissue": "bone",
        "group": "Arm bones",
        "inner": false,
-       "triangles": 1600
+       "triangles": 1598
       },
       {
        "node": "TS_humerus_R",
@@ -7888,7 +7899,7 @@
        "tissue": "bone",
        "group": "Forearm bones",
        "inner": false,
-       "triangles": 1220
+       "triangles": 1200
       },
       {
        "node": "TS_ulna_L",
@@ -8086,7 +8097,7 @@
        "tissue": "bone",
        "group": "Forearm bones",
        "inner": false,
-       "triangles": 1220
+       "triangles": 1200
       },
       {
        "node": "TS_ulna_R",
@@ -8284,16 +8295,16 @@
      "name": "Vertebral column",
      "system": "skeletal",
      "file": "male-vertebral-column.atlas",
-     "bytes": 288324,
-     "sha256": "63aacb36492fc1e1991cdd4cd959b119988b1192e1e4f0e960a9d97854b7728e",
+     "bytes": 288316,
+     "sha256": "d41bd646c551e20a97a71b52bc92c9c4c850e70032299cc9c3737a518ce7a831",
      "triangles": 31925,
      "bounds": [
-      -0.04931,
-      0.14523,
-      -0.11615,
-      0.0605,
-      0.76263,
-      0.01819
+      -0.04959,
+      0.14717,
+      -0.11614,
+      0.06026,
+      0.76202,
+      0.01808
      ],
      "structures": [
       {
@@ -8907,15 +8918,15 @@
      "system": "skeletal",
      "file": "male-pelvis.atlas",
      "bytes": 89824,
-     "sha256": "519bb093d9c09c00b417a7159f48e119a69ab83cc5e6765955a2b1ece082db09",
+     "sha256": "159b81158cee26a7e08ff7219c40ffa8ce1485661ff46ef2abd2d6c232077e80",
      "triangles": 9988,
      "bounds": [
-      -0.13728,
-      -0.03489,
-      -0.11902,
-      0.14742,
-      0.18365,
-      0.05427
+      -0.13631,
+      -0.0348,
+      -0.1189,
+      0.14708,
+      0.18391,
+      0.05409
      ],
      "structures": [
       {
@@ -8997,16 +9008,16 @@
      "name": "Thigh, knee, leg and foot",
      "system": "skeletal",
      "file": "male-legs.atlas",
-     "bytes": 356652,
-     "sha256": "545e9864eabc2c356ce4fb415856f544f2a8b1bfbca11dcab7ce26ff5a54ccbd",
-     "triangles": 38938,
+     "bytes": 356664,
+     "sha256": "c830076ca35ad303c386634eccfdf149fb0dbae958234a89169aa0bef231e4bb",
+     "triangles": 38940,
      "bounds": [
-      -0.26445,
-      -0.90108,
-      -0.13667,
-      0.2525,
-      0.0552,
-      0.08795
+      -0.26209,
+      -0.90081,
+      -0.13975,
+      0.25454,
+      0.05495,
+      0.08814
      ],
      "structures": [
       {
@@ -9106,7 +9117,7 @@
        "tissue": "cartilage",
        "group": "right knee joint",
        "inner": false,
-       "triangles": 259
+       "triangles": 261
       },
       {
        "node": "VH_M_meniscus_R",
@@ -9205,7 +9216,7 @@
        "tissue": "cartilage",
        "group": "left knee joint",
        "inner": false,
-       "triangles": 259
+       "triangles": 261
       },
       {
        "node": "VH_M_tibia_L",
@@ -9457,7 +9468,7 @@
        "tissue": "bone",
        "group": "Foot bones",
        "inner": false,
-       "triangles": 150
+       "triangles": 148
       },
       {
        "node": "TS_talus_L",
@@ -9719,15 +9730,15 @@
      "system": "skeletal",
      "file": "male-hyoid.atlas",
      "bytes": 4536,
-     "sha256": "1350978dd9268283c2bc5e939f717c5339b1fc71d750b1e3b1473ad849f7be3f",
+     "sha256": "a9c7eda8f07808cfb1a9312b683cc1efa1394a78c173b00dd406845e02cea943",
      "triangles": 498,
      "bounds": [
-      -0.03039,
-      0.6809,
-      0.02432,
-      0.02406,
-      0.69269,
-      0.05782
+      -0.03052,
+      0.68079,
+      0.02426,
+      0.02404,
+      0.69261,
+      0.05777
      ],
      "structures": [
       {
@@ -9747,15 +9758,15 @@
      "system": "muscular",
      "file": "male-eye-muscles.atlas",
      "bytes": 27144,
-     "sha256": "7c2a5a045015e704bafe83f6644ca12ddda058f9fd5dc88cc098b07047d89a7a",
+     "sha256": "275cabcc6164a8b6bdeefa2d6519039c9a39f36f4cc5f2073ee50447c43751a5",
      "triangles": 2984,
      "bounds": [
       -0.04791,
-      0.79538,
-      0.04293,
-      0.04977,
-      0.82577,
-      0.09149
+      0.7954,
+      0.04294,
+      0.04973,
+      0.82567,
+      0.09132
      ],
      "structures": [
       {
@@ -9874,15 +9885,15 @@
      "system": "muscular",
      "file": "male-larynx-muscles.atlas",
      "bytes": 22624,
-     "sha256": "f77e0a5c55dc0a89176a248e5c8bcbd2709a605ec2a78576ce97412c49b0e705",
+     "sha256": "819eeb0d0afa20caa4b6e8737c25079e8e802bd1f9ee70a95a2e02670a324ed2",
      "triangles": 2481,
      "bounds": [
-      -0.01967,
-      0.62932,
-      0.02203,
-      0.01673,
-      0.69254,
-      0.05741
+      -0.02001,
+      0.62973,
+      0.02202,
+      0.01665,
+      0.69252,
+      0.05712
      ],
      "structures": [
       {
@@ -9992,14 +10003,14 @@
      "system": "muscular",
      "file": "male-knee-muscles.atlas",
      "bytes": 27376,
-     "sha256": "d3c67a108eee1c3e4b1da9ed8e146ce680e8d9ae2bdbfb2268e5e561441afd5d",
+     "sha256": "8598033b409eea22be9485459042b7edd1fc08384150912c6706c2b3a925cb01",
      "triangles": 2996,
      "bounds": [
-      -0.16186,
-      -0.37533,
-      0.02172,
-      0.16721,
-      0.08082,
+      -0.16189,
+      -0.37544,
+      0.02178,
+      0.16714,
+      0.08084,
       0.09797
      ],
      "structures": [
@@ -10047,15 +10058,15 @@
      "system": "muscular",
      "file": "male-hip-muscles.atlas",
      "bytes": 135096,
-     "sha256": "318dc770a69a54559ee7a42a60282a79f77fd983c8ae3922a1bf389ff63b1d55",
+     "sha256": "879c763521d4f924385d28e5d7518110a883a20577357b07adc3553015a90e93",
      "triangles": 14988,
      "bounds": [
-      -0.15009,
-      -0.09426,
-      -0.12313,
-      0.17615,
-      0.31265,
-      0.04531
+      -0.15621,
+      -0.09435,
+      -0.12365,
+      0.1681,
+      0.34877,
+      0.04959
      ],
      "structures": [
       {
@@ -10138,15 +10149,15 @@
      "system": "muscular",
      "file": "male-back-muscles.atlas",
      "bytes": 63040,
-     "sha256": "b248cf1ddadddf61d7cfc0f03d20266752bcf5b3eccd231dc90f96766fb5a874",
+     "sha256": "f52fe102a0cc9ccc536388c0b6c48dd5e21fe5a63e1c767ce267597e34984ff1",
      "triangles": 6996,
      "bounds": [
-      -0.08652,
-      0.09518,
-      -0.12842,
-      0.09149,
-      0.67049,
-      -0.02492
+      -0.09213,
+      0.09127,
+      -0.12707,
+      0.09223,
+      0.66854,
+      -0.0256
      ],
      "structures": [
       {
@@ -10183,15 +10194,15 @@
      "system": "integumentary",
      "file": "female-skin.atlas",
      "bytes": 216036,
-     "sha256": "6df6fb6c0e3024b901d3978c6014cec56fc7ec816b3dce3b98494b1a08aa25c2",
+     "sha256": "58d3b444b0da662e0b5e6c9d6b335203eafe1f6ccfb7385d1e662f43c193411a",
      "triangles": 23998,
      "bounds": [
-      -0.4873,
-      -0.79305,
-      -0.21909,
-      0.47501,
-      0.86485,
-      0.10692
+      -0.48697,
+      -0.79256,
+      -0.21911,
+      0.47473,
+      0.86514,
+      0.10813
      ],
      "structures": [
       {
@@ -10210,16 +10221,16 @@
      "name": "Breasts",
      "system": "reproductive",
      "file": "female-breasts.atlas",
-     "bytes": 185356,
-     "sha256": "973cb00ccc4c8c95f6da173e39d57424d6a6d4803250dad25db61710f0d65d29",
-     "triangles": 18178,
+     "bytes": 185084,
+     "sha256": "be786d7d92c1445d38aee3afaf19c345cf26731a17d251cb78ff2bce58bbd95e",
+     "triangles": 18184,
      "bounds": [
-      -0.15125,
-      0.34434,
-      -0.02387,
-      0.14078,
-      0.53102,
-      0.09005
+      -0.14979,
+      0.34599,
+      -0.02396,
+      0.13925,
+      0.52825,
+      0.09041
      ],
      "structures": [
       {
@@ -10238,7 +10249,7 @@
        "tissue": "skin",
        "group": "left mammary gland",
        "inner": false,
-       "triangles": 1071
+       "triangles": 1069
       },
       {
        "node": "VH_F_nipple_L",
@@ -10247,7 +10258,7 @@
        "tissue": "skin",
        "group": "left mammary gland",
        "inner": false,
-       "triangles": 440
+       "triangles": 434
       },
       {
        "node": "VH_F_areola_L",
@@ -10265,7 +10276,7 @@
        "tissue": "gland",
        "group": "left mammary gland",
        "inner": true,
-       "triangles": 1090
+       "triangles": 1106
       },
       {
        "node": "VH_F_main_lactiferous_ducts_L",
@@ -10283,7 +10294,7 @@
        "tissue": "duct",
        "group": "left mammary gland",
        "inner": true,
-       "triangles": 708
+       "triangles": 696
       },
       {
        "node": "VH_F_suspensory_ligaments_L",
@@ -10292,7 +10303,7 @@
        "tissue": "ligament",
        "group": "left mammary gland",
        "inner": true,
-       "triangles": 740
+       "triangles": 742
       },
       {
        "node": "VH_F_fat_R",
@@ -10301,7 +10312,7 @@
        "tissue": "fat",
        "group": "right mammary gland",
        "inner": false,
-       "triangles": 3695
+       "triangles": 3693
       },
       {
        "node": "VH_F_areolar_tubercles_R",
@@ -10310,7 +10321,7 @@
        "tissue": "skin",
        "group": "right mammary gland",
        "inner": false,
-       "triangles": 1065
+       "triangles": 1067
       },
       {
        "node": "VH_F_nipple_R",
@@ -10319,7 +10330,7 @@
        "tissue": "skin",
        "group": "right mammary gland",
        "inner": false,
-       "triangles": 432
+       "triangles": 438
       },
       {
        "node": "VH_F_areola_R",
@@ -10328,7 +10339,7 @@
        "tissue": "skin",
        "group": "right mammary gland",
        "inner": false,
-       "triangles": 1769
+       "triangles": 1759
       },
       {
        "node": "VH_F_main_lactiferous_sinuses_R",
@@ -10337,7 +10348,7 @@
        "tissue": "duct",
        "group": "right mammary gland",
        "inner": true,
-       "triangles": 693
+       "triangles": 685
       },
       {
        "node": "VH_F_main_lactiferous_ducts_R",
@@ -10346,7 +10357,7 @@
        "tissue": "duct",
        "group": "right mammary gland",
        "inner": true,
-       "triangles": 893
+       "triangles": 897
       },
       {
        "node": "VH_F_mammary_lobes_R",
@@ -10355,7 +10366,7 @@
        "tissue": "gland",
        "group": "right mammary gland",
        "inner": true,
-       "triangles": 1088
+       "triangles": 1104
       },
       {
        "node": "VH_F_suspensory_ligaments_R",
@@ -10373,16 +10384,16 @@
      "name": "Brain",
      "system": "nervous",
      "file": "female-brain.atlas",
-     "bytes": 417892,
-     "sha256": "b7867e4b67ab1e517ed88a81bbc6b6b29b9f818257924873928304e2ceeb0533",
-     "triangles": 46012,
+     "bytes": 417852,
+     "sha256": "e0ae97fe5364ab4575ddce7e5ab704a478a79cd59e5415ede33d5a84e7c0be64",
+     "triangles": 46022,
      "bounds": [
-      -0.06931,
-      0.71364,
-      -0.13932,
-      0.05607,
-      0.84637,
-      0.01235
+      -0.06789,
+      0.71393,
+      -0.13838,
+      0.05472,
+      0.8455,
+      0.01153
      ],
      "structures": [
       {
@@ -11634,7 +11645,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 60
+       "triangles": 68
       },
       {
        "node": "Allen_frontal_agranular_insular_cortex_area_Fl_R",
@@ -11751,7 +11762,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 136
+       "triangles": 138
       },
       {
        "node": "Allen_anterior_amygdaloid_area_R",
@@ -12048,7 +12059,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 86
+       "triangles": 88
       },
       {
        "node": "Allen_mammillothalamic_tract_R",
@@ -12804,7 +12815,7 @@
        "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
-       "triangles": 60
+       "triangles": 58
       },
       {
        "node": "Allen_hypothalamus_R",
@@ -12939,16 +12950,16 @@
      "name": "Spinal cord",
      "system": "nervous",
      "file": "female-spinal-cord.atlas",
-     "bytes": 76140,
-     "sha256": "493c21907ea10b5eb3bb765cb58503e7b54e063af40b88a168fe6de4ad1d08bf",
-     "triangles": 6536,
+     "bytes": 76336,
+     "sha256": "f4291e24cbdc15e305857f76b6aba28af5b97002790afdeb5ca0f9309dea8575",
+     "triangles": 6558,
      "bounds": [
-      -0.01644,
+      -0.01608,
       0.30195,
-      -0.1457,
-      0.00213,
-      0.71073,
-      -0.06364
+      -0.14595,
+      0.00177,
+      0.71077,
+      -0.06367
      ],
      "structures": [
       {
@@ -12967,7 +12978,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 266
+       "triangles": 260
       },
       {
        "node": "VH_F_C3_segment_of_cervical_spinal_cord",
@@ -12976,7 +12987,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 222
+       "triangles": 224
       },
       {
        "node": "VH_F_C4_segment_of_cervical_spinal_cord",
@@ -12985,7 +12996,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 240
+       "triangles": 244
       },
       {
        "node": "VH_F_C5_segment_of_cervical_spinal_cord",
@@ -12994,7 +13005,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 240
+       "triangles": 236
       },
       {
        "node": "VH_F_C6_segment_of_cervical_spinal_cord",
@@ -13021,7 +13032,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 212
+       "triangles": 214
       },
       {
        "node": "VH_F_first_thoracic_spinal_cord_segment",
@@ -13030,7 +13041,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 184
+       "triangles": 190
       },
       {
        "node": "VH_F_second_thoracic_spinal_cord_segment",
@@ -13039,7 +13050,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 194
+       "triangles": 190
       },
       {
        "node": "VH_F_third_thoracic_spinal_cord_segment",
@@ -13066,7 +13077,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 180
+       "triangles": 182
       },
       {
        "node": "VH_F_seventh_thoracic_spinal_cord_segment",
@@ -13102,7 +13113,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 174
+       "triangles": 180
       },
       {
        "node": "VH_F_tenth_thoracic_spinal_cord_segment",
@@ -13111,7 +13122,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 196
+       "triangles": 198
       },
       {
        "node": "VH_F_eleventh_thoracic_spinal_cord_segment",
@@ -13120,7 +13131,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 210
+       "triangles": 212
       },
       {
        "node": "VH_F_twelfth_thoracic_spinal_cord_segment",
@@ -13129,7 +13140,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 216
+       "triangles": 222
       },
       {
        "node": "VH_F_first_lumbar_spinal_cord_segment",
@@ -13156,7 +13167,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 292
+       "triangles": 296
       },
       {
        "node": "VH_F_fourth_lumbar_spinal_cord_segment",
@@ -13165,7 +13176,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 278
+       "triangles": 282
       },
       {
        "node": "VH_F_fifth_lumbar_spinal_cord_segment",
@@ -13174,7 +13185,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 318
+       "triangles": 320
       },
       {
        "node": "VH_F_first_sacral_spinal_cord_segment",
@@ -13183,7 +13194,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 292
+       "triangles": 288
       },
       {
        "node": "VH_F_second_sacral_spinal_cord_segment",
@@ -13192,7 +13203,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 292
+       "triangles": 290
       },
       {
        "node": "VH_F_third_sacral_spinal_cord_segment",
@@ -13201,7 +13212,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 266
+       "triangles": 268
       },
       {
        "node": "VH_F_fourth_sacral_spinal_cord_segment",
@@ -13210,7 +13221,7 @@
        "tissue": "nerve",
        "group": "spinal cord",
        "inner": false,
-       "triangles": 228
+       "triangles": 226
       }
      ]
     },
@@ -13220,15 +13231,15 @@
      "system": "nervous",
      "file": "female-optic-nerves.atlas",
      "bytes": 10804,
-     "sha256": "cbdc524c166ae7d8582ec4e68bca1647b099f8b65aca19ab98b58692f6ff88ec",
+     "sha256": "d7c4582e904a9011c60ffb24f6ceb47243475432f6fc144893938e9a137da8e2",
      "triangles": 1190,
      "bounds": [
-      -0.03896,
-      0.76012,
-      -0.03211,
-      0.02912,
-      0.76804,
-      0.01017
+      -0.03907,
+      0.76018,
+      -0.03213,
+      0.02907,
+      0.76817,
+      0.01009
      ],
      "structures": [
       {
@@ -13274,15 +13285,15 @@
      "name": "Eyes",
      "system": "special senses",
      "file": "female-eyes.atlas",
-     "bytes": 295408,
-     "sha256": "86940bc885fbc07af64073c38a97f5dc15f50ecb7d694aaa8cca29892517b9be",
-     "triangles": 31104,
+     "bytes": 295240,
+     "sha256": "219026332206f34b7597e71778a682a59b264734dcc975c7ece63c69ba281b94",
+     "triangles": 31106,
      "bounds": [
-      -0.05432,
-      0.75154,
-      0.00657,
-      0.04366,
-      0.77864,
+      -0.05375,
+      0.75251,
+      0.00668,
+      0.04355,
+      0.7776,
       0.03323
      ],
      "structures": [
@@ -13338,7 +13349,7 @@
        "tissue": "eye",
        "group": "right palpebral conjunctiva",
        "inner": false,
-       "triangles": 190
+       "triangles": 194
       },
       {
        "node": "VH_F_sclera_R",
@@ -13374,7 +13385,7 @@
        "tissue": "eye",
        "group": "right eye",
        "inner": true,
-       "triangles": 3958
+       "triangles": 3960
       },
       {
        "node": "VH_F_suspensory_ligament_of_lens_R",
@@ -13536,7 +13547,7 @@
        "tissue": "eye",
        "group": "left palpebral conjunctiva",
        "inner": false,
-       "triangles": 204
+       "triangles": 198
       },
       {
        "node": "VH_F_palpebral_conjunctiva_of_left_lower_eyelid",
@@ -13545,7 +13556,7 @@
        "tissue": "eye",
        "group": "left palpebral conjunctiva",
        "inner": false,
-       "triangles": 224
+       "triangles": 220
       },
       {
        "node": "VH_F_vitreous_humor_L",
@@ -13671,7 +13682,7 @@
        "tissue": "eye",
        "group": "left eye",
        "inner": true,
-       "triangles": 3954
+       "triangles": 3960
       },
       {
        "node": "VH_F_pupil_L",
@@ -13707,16 +13718,16 @@
      "name": "Heart",
      "system": "cardiovascular",
      "file": "female-heart.atlas",
-     "bytes": 149380,
-     "sha256": "c3f0f6987a51f3e0fad08f438bb4320cc5fb135e5c6e8fee7ebe20b2d19c6d28",
+     "bytes": 149376,
+     "sha256": "4548be2df35bc0157f8e85fe5346b502c5f891ebce95d37087c68f8e93b25655",
      "triangles": 16187,
      "bounds": [
-      -0.03514,
-      0.38903,
-      -0.10666,
-      0.1078,
-      0.49897,
-      -0.0047
+      -0.03488,
+      0.38905,
+      -0.10656,
+      0.10753,
+      0.49906,
+      -0.00499
      ],
      "structures": [
       {
@@ -13852,14 +13863,14 @@
      "name": "Blood vessels",
      "system": "cardiovascular",
      "file": "female-vessels.atlas",
-     "bytes": 432176,
-     "sha256": "a6f0e26464946c0c58e040bd630c9b717d6fff13d10ade548420f91e5da276c7",
-     "triangles": 45828,
+     "bytes": 432240,
+     "sha256": "348f4ef1eedfecbcd9159afdb01f62d7ede5e60a7a740ce69f0c409939975d80",
+     "triangles": 45838,
      "bounds": [
       -0.08952,
-      -0.01575,
-      -0.15161,
-      0.10334,
+      -0.01576,
+      -0.15123,
+      0.10335,
       0.78349,
       0.0336
      ],
@@ -14303,7 +14314,7 @@
        "tissue": "artery",
        "group": "arteries of large intestine",
        "inner": false,
-       "triangles": 88
+       "triangles": 96
       },
       {
        "node": "VH_F_superior_rectal_artery",
@@ -14852,7 +14863,7 @@
        "tissue": "artery",
        "group": "aorta",
        "inner": false,
-       "triangles": 134
+       "triangles": 136
       }
      ]
     },
@@ -14862,15 +14873,15 @@
      "system": "respiratory",
      "file": "female-larynx.atlas",
      "bytes": 27108,
-     "sha256": "c1b5c0520b4c360051100d84364cff138128f6873e6142cf098f7e97c91462d0",
+     "sha256": "5e283081ae0119d3dcc0a2ab3582db4732056e9d2f6e3eacd65263ebab43bc78",
      "triangles": 2991,
      "bounds": [
-      -0.0325,
-      0.60337,
-      -0.04342,
-      0.01392,
-      0.66395,
-      -0.00279
+      -0.03247,
+      0.60353,
+      -0.0434,
+      0.01391,
+      0.66386,
+      -0.00325
      ],
      "structures": [
       {
@@ -14943,16 +14954,16 @@
      "name": "Trachea and bronchi",
      "system": "respiratory",
      "file": "female-airways.atlas",
-     "bytes": 153540,
-     "sha256": "f85e8411f0b2526d399687d52174654860977b69040652fa56258dc099124847",
-     "triangles": 15096,
+     "bytes": 152300,
+     "sha256": "eb9ab09cf89aba4baa487bcf569fd937f7cbdcd43590efd127c7194e4bdc0a73",
+     "triangles": 15230,
      "bounds": [
       -0.10356,
       0.42695,
-      -0.13591,
+      -0.13578,
       0.09962,
-      0.62439,
-      -0.0127
+      0.62366,
+      -0.01274
      ],
      "structures": [
       {
@@ -14971,7 +14982,7 @@
        "tissue": "cartilage",
        "group": "trachea of respiratory system",
        "inner": false,
-       "triangles": 854
+       "triangles": 862
       },
       {
        "node": "VH_F_carina",
@@ -14989,7 +15000,7 @@
        "tissue": "airway",
        "group": "main bronchus",
        "inner": false,
-       "triangles": 58
+       "triangles": 62
       },
       {
        "node": "VH_F_cartilage_of_main_bronchus_R",
@@ -14998,7 +15009,7 @@
        "tissue": "cartilage",
        "group": "main bronchus",
        "inner": false,
-       "triangles": 782
+       "triangles": 786
       },
       {
        "node": "VH_F_left_main_bronchus",
@@ -15016,7 +15027,7 @@
        "tissue": "cartilage",
        "group": "main bronchus",
        "inner": false,
-       "triangles": 726
+       "triangles": 730
       },
       {
        "node": "VH_F_cartilage_of_lobar_bronchus_L",
@@ -15025,7 +15036,7 @@
        "tissue": "cartilage",
        "group": "left bronchial cartilage",
        "inner": false,
-       "triangles": 994
+       "triangles": 1000
       },
       {
        "node": "VH_F_cartilage_of_tertiary_bronchus_L",
@@ -15034,7 +15045,7 @@
        "tissue": "cartilage",
        "group": "left bronchial cartilage",
        "inner": false,
-       "triangles": 3640
+       "triangles": 3656
       },
       {
        "node": "VH_F_left_superior_lobar_bronchus",
@@ -15043,7 +15054,7 @@
        "tissue": "airway",
        "group": "lobar bronchus of left lung",
        "inner": false,
-       "triangles": 93
+       "triangles": 89
       },
       {
        "node": "VH_F_left_inferior_lobar_bronchus",
@@ -15052,7 +15063,7 @@
        "tissue": "airway",
        "group": "lobar bronchus of left lung",
        "inner": false,
-       "triangles": 106
+       "triangles": 110
       },
       {
        "node": "VH_F_left_anterior_basal_bronchus",
@@ -15061,7 +15072,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 55
+       "triangles": 59
       },
       {
        "node": "VH_F_left_lingula_superior_bronchus",
@@ -15070,7 +15081,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 92
+       "triangles": 98
       },
       {
        "node": "VH_F_left_apical_bronchus",
@@ -15088,7 +15099,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 80
+       "triangles": 78
       },
       {
        "node": "VH_F_left_medial_basal_bronchus",
@@ -15106,7 +15117,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 60
+       "triangles": 64
       },
       {
        "node": "VH_F_left_anterior_bronchus",
@@ -15115,7 +15126,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 58
+       "triangles": 56
       },
       {
        "node": "VH_F_left_posterior_bronchus",
@@ -15124,7 +15135,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 62
+       "triangles": 66
       },
       {
        "node": "VH_F_left_lateral_basal_bronchus",
@@ -15133,7 +15144,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 58
+       "triangles": 56
       },
       {
        "node": "VH_F_left_lingula_inferior_bronchi",
@@ -15142,7 +15153,7 @@
        "tissue": "airway",
        "group": "left segmental bronchus",
        "inner": false,
-       "triangles": 97
+       "triangles": 103
       },
       {
        "node": "VH_F_cartilage_of_lobar_bronchus_R",
@@ -15151,7 +15162,7 @@
        "tissue": "cartilage",
        "group": "right bronchial cartilage",
        "inner": false,
-       "triangles": 1372
+       "triangles": 1384
       },
       {
        "node": "VH_F_cartilage_of_tertiary_bronchus_R",
@@ -15160,7 +15171,7 @@
        "tissue": "cartilage",
        "group": "right bronchial cartilage",
        "inner": false,
-       "triangles": 4302
+       "triangles": 4334
       },
       {
        "node": "VH_F_right_middle_lobar_bronchus",
@@ -15187,7 +15198,7 @@
        "tissue": "airway",
        "group": "lobar bronchus of right lung",
        "inner": false,
-       "triangles": 146
+       "triangles": 142
       },
       {
        "node": "VH_F_right_anterior_bronchus",
@@ -15214,7 +15225,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 56
+       "triangles": 66
       },
       {
        "node": "VH_F_right_medial_bronchus",
@@ -15223,7 +15234,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 60
+       "triangles": 66
       },
       {
        "node": "VH_F_right_medial_basal_bronchus",
@@ -15232,7 +15243,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 58
+       "triangles": 62
       },
       {
        "node": "VH_F_right_posterior_basal_bronchus",
@@ -15250,7 +15261,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 78
+       "triangles": 82
       },
       {
        "node": "VH_F_right_superior_bronchus",
@@ -15259,7 +15270,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 68
+       "triangles": 72
       },
       {
        "node": "VH_F_right_apical_bronchus",
@@ -15277,7 +15288,7 @@
        "tissue": "airway",
        "group": "right segmental bronchus",
        "inner": false,
-       "triangles": 76
+       "triangles": 82
       }
      ]
     },
@@ -15287,15 +15298,15 @@
      "system": "respiratory",
      "file": "female-lungs.atlas",
      "bytes": 187892,
-     "sha256": "7ba61e365572e19eb3d1e3c5b7aa7376364b174a6128114d4579bd7bd47fb8e2",
+     "sha256": "bf802760329bcc564f0cfeb953884bc9542eae937c7395071042d812297eef39",
      "triangles": 19966,
      "bounds": [
-      -0.13053,
-      0.36694,
-      -0.15643,
+      -0.13054,
+      0.36702,
+      -0.15644,
       0.12061,
-      0.58994,
-      -0.00377
+      0.59011,
+      -0.00383
      ],
      "structures": [
       {
@@ -15548,16 +15559,16 @@
      "name": "Mouth",
      "system": "digestive",
      "file": "female-mouth.atlas",
-     "bytes": 221572,
-     "sha256": "87359946d6593cb34a3591d494c018d0ecc3c7b446ab48ab6db4a269f9f1d26f",
-     "triangles": 21309,
+     "bytes": 222496,
+     "sha256": "099831d27c71e89c9a6c77c4b7e2404381d94909f7c82b921c60226f8c7adedd",
+     "triangles": 21433,
      "bounds": [
-      -0.07531,
-      0.64531,
-      -0.07358,
-      0.06675,
-      0.75159,
-      0.05406
+      -0.07947,
+      0.64508,
+      -0.07397,
+      0.06328,
+      0.75457,
+      0.05376
      ],
      "structures": [
       {
@@ -15585,7 +15596,7 @@
        "tissue": "gland",
        "group": "parotid gland",
        "inner": false,
-       "triangles": 72
+       "triangles": 82
       },
       {
        "node": "VH_F_parotid_gland_L",
@@ -15630,7 +15641,7 @@
        "tissue": "organ",
        "group": "frenulum of lip",
        "inner": false,
-       "triangles": 200
+       "triangles": 196
       },
       {
        "node": "VH_F_frenulum_of_lower_lip",
@@ -15657,7 +15668,7 @@
        "tissue": "organ",
        "group": "gingiva",
        "inner": false,
-       "triangles": 1326
+       "triangles": 1324
       },
       {
        "node": "VH_F_gingiva_of_lower_jaw",
@@ -15666,7 +15677,7 @@
        "tissue": "organ",
        "group": "gingiva",
        "inner": false,
-       "triangles": 4642
+       "triangles": 4656
       },
       {
        "node": "VH_F_posterior_part_of_tongue",
@@ -15675,7 +15686,7 @@
        "tissue": "organ",
        "group": "tongue",
        "inner": false,
-       "triangles": 1120
+       "triangles": 1234
       },
       {
        "node": "VH_F_dorsal_tongue",
@@ -15684,7 +15695,7 @@
        "tissue": "organ",
        "group": "tongue",
        "inner": false,
-       "triangles": 3383
+       "triangles": 3365
       },
       {
        "node": "VH_F_ventral_tongue",
@@ -15693,7 +15704,7 @@
        "tissue": "organ",
        "group": "tongue",
        "inner": false,
-       "triangles": 2115
+       "triangles": 2109
       },
       {
        "node": "VH_F_fungiform_papillae",
@@ -15720,7 +15731,7 @@
        "tissue": "organ",
        "group": "secondary palate",
        "inner": false,
-       "triangles": 1840
+       "triangles": 1856
       },
       {
        "node": "VH_F_mucosa_of_soft_palate",
@@ -15757,15 +15768,15 @@
      "system": "digestive",
      "file": "female-oesophagus.atlas",
      "bytes": 18052,
-     "sha256": "f5f9c2bc581f4501b92ffe99c9a31a0ba5817a5598e4db236465b466b46d9fe3",
+     "sha256": "f1605d5fb454a09bb36223fc4b04c02936fd13a0a903b02c022abc4be3130bf1",
      "triangles": 2000,
      "bounds": [
-      -0.01006,
-      0.37577,
-      -0.11779,
-      0.03216,
-      0.6204,
-      -0.04552
+      -0.01092,
+      0.37449,
+      -0.11496,
+      0.03439,
+      0.61668,
+      -0.04495
      ],
      "structures": [
       {
@@ -15785,15 +15796,15 @@
      "system": "digestive",
      "file": "female-stomach.atlas",
      "bytes": 36036,
-     "sha256": "c16fb3c5b15db39411ffbb734cdca092cd80d90902c9342013189f3d6f0ee35c",
+     "sha256": "7688319647586334446d50db0de68e2eae12c15f6f85da0b770bf09792e8335d",
      "triangles": 3998,
      "bounds": [
-      -0.05422,
-      0.212,
-      -0.13419,
-      0.09797,
-      0.38628,
-      0.00299
+      -0.05899,
+      0.21164,
+      -0.12931,
+      0.09893,
+      0.38546,
+      0.00336
      ],
      "structures": [
       {
@@ -15813,15 +15824,15 @@
      "system": "digestive",
      "file": "female-liver.atlas",
      "bytes": 114476,
-     "sha256": "1e61ec316a926136595c958bc2255138a183eb4360a43559d51f021f32d150e7",
+     "sha256": "3e43bd1e7a35e30a2cb2bd4be04a13414bf73dc8c93d6cee7b417754b1e4689e",
      "triangles": 11974,
      "bounds": [
-      -0.13495,
-      0.26226,
-      -0.15414,
-      0.11264,
-      0.43251,
-      0.01258
+      -0.13491,
+      0.26247,
+      -0.15384,
+      0.11229,
+      0.4325,
+      0.01246
      ],
      "structures": [
       {
@@ -15994,15 +16005,15 @@
      "system": "digestive",
      "file": "female-gallbladder.atlas",
      "bytes": 9052,
-     "sha256": "19c3d3b932857e8e9c60b7de86c09f18becfc30e1f2b46d0e3df0434adc0847d",
+     "sha256": "374b68baec338b0bb08b901cb72ad4745c12672fc151f36a54f742680e568d39",
      "triangles": 1000,
      "bounds": [
       -0.08931,
-      0.25605,
-      -0.07191,
-      -0.0485,
-      0.29407,
-      -0.01958
+      0.25619,
+      -0.07164,
+      -0.04848,
+      0.29412,
+      -0.01965
      ],
      "structures": [
       {
@@ -16021,16 +16032,16 @@
      "name": "Bile and pancreatic ducts",
      "system": "digestive",
      "file": "female-biliary-tree.atlas",
-     "bytes": 18796,
-     "sha256": "d7e1141f90f393386de8fb3556db1f0a39709e492ff74d95b4b3d20dee0e19e5",
-     "triangles": 1978,
+     "bytes": 18820,
+     "sha256": "fcd31f9450e727da3a8b1333917f819e8d79d1b528da8f8bf8192e8db7225947",
+     "triangles": 1982,
      "bounds": [
-      -0.05243,
-      0.24532,
-      -0.10593,
-      0.11189,
-      0.34612,
-      -0.04238
+      -0.05258,
+      0.24544,
+      -0.10592,
+      0.11181,
+      0.34609,
+      -0.04233
      ],
      "structures": [
       {
@@ -16058,7 +16069,7 @@
        "tissue": "duct",
        "group": "ducts of liver",
        "inner": false,
-       "triangles": 106
+       "triangles": 110
       },
       {
        "node": "VH_F_hepatopancreatic_ampulla",
@@ -16113,15 +16124,15 @@
      "system": "digestive",
      "file": "female-pancreas.atlas",
      "bytes": 28760,
-     "sha256": "3b597f291935ec84b552f4bff4061f051534357aa9fc8be1c19d369905c14017",
+     "sha256": "492a0ae50ec8f46553fe5c594a9204bf706fbb9778596a0d0c72c4dc1c01ccd9",
      "triangles": 2994,
      "bounds": [
-      -0.05372,
-      0.2375,
-      -0.11196,
+      -0.05402,
+      0.23769,
+      -0.1121,
       0.11817,
-      0.29424,
-      -0.02769
+      0.29413,
+      -0.02772
      ],
      "structures": [
       {
@@ -16177,15 +16188,15 @@
      "system": "digestive",
      "file": "female-small-intestine.atlas",
      "bytes": 55408,
-     "sha256": "00b0a7748e3eca57950c7e5bd871206ac13d58d4b0ec358d759b4295eb2d40a4",
+     "sha256": "6f9df6a706a9710a3b21bf2d56ddbe0568f880d558021813068c29fc3822cdd5",
      "triangles": 5976,
      "bounds": [
-      -0.08878,
-      0.07894,
-      -0.07739,
-      0.07741,
-      0.29798,
-      0.02188
+      -0.08788,
+      0.07903,
+      -0.07855,
+      0.07446,
+      0.29624,
+      0.02185
      ],
      "structures": [
       {
@@ -16277,15 +16288,15 @@
      "system": "digestive",
      "file": "female-colon.atlas",
      "bytes": 74420,
-     "sha256": "56a6b4a1d590b23074643341070eae1d71be2d30f0d4f1671e61d1a1cb014138",
+     "sha256": "1c91c4a35db67e7973da14bdf7faa68e83a72248dd87fffcd29ec25a50fa9ea0",
      "triangles": 7971,
      "bounds": [
-      -0.1262,
-      -0.01332,
-      -0.14687,
-      0.11698,
+      -0.12645,
+      -0.01348,
+      -0.14685,
+      0.11662,
       0.28167,
-      0.04704
+      0.04719
      ],
      "structures": [
       {
@@ -16386,15 +16397,15 @@
      "system": "digestive",
      "file": "female-omentum.atlas",
      "bytes": 45036,
-     "sha256": "971e9d54794c5e337ff231d4f89fb1c43acfcee4d356400250039a10d7af2e75",
+     "sha256": "774c093aad86e2d6f9297eb3b3e24fe486366dd89833aaf87dc5663b27b9d14e",
      "triangles": 4996,
      "bounds": [
-      -0.13327,
-      0.06417,
-      -0.05051,
-      0.11495,
-      0.25493,
-      0.06579
+      -0.13293,
+      0.06398,
+      -0.05007,
+      0.11528,
+      0.25481,
+      0.06572
      ],
      "structures": [
       {
@@ -16423,15 +16434,15 @@
      "system": "lymphatic",
      "file": "female-tonsils.atlas",
      "bytes": 7256,
-     "sha256": "aa081989f35670494252b012e60ffc69e1d34fdb3f3b718517aeb31351e9ec44",
+     "sha256": "f0191e5ae3064b1ddc84e648e4a4a0854de6b5f767ecc63b268292e28bc3c0b0",
      "triangles": 798,
      "bounds": [
-      -0.03196,
-      0.68334,
-      -0.04417,
-      0.01983,
-      0.71417,
-      -0.02656
+      -0.03212,
+      0.6838,
+      -0.04423,
+      0.01987,
+      0.714,
+      -0.02625
      ],
      "structures": [
       {
@@ -16460,15 +16471,15 @@
      "system": "lymphatic",
      "file": "female-spleen.atlas",
      "bytes": 28756,
-     "sha256": "38e5cad782ef8b15e3782f7cc2e4a61adc8373b2f0437172b47c61121c16d722",
+     "sha256": "992f4fee378f89ae6df91d6ceefc073a050dea454d4e579b9ac9b4a68b263ac5",
      "triangles": 2992,
      "bounds": [
-      0.03672,
-      0.28551,
-      -0.15328,
+      0.03676,
+      0.28555,
+      -0.15323,
       0.12633,
-      0.38796,
-      -0.08225
+      0.38788,
+      -0.08224
      ],
      "structures": [
       {
@@ -16524,15 +16535,15 @@
      "system": "lymphatic",
      "file": "female-thymus.atlas",
      "bytes": 10856,
-     "sha256": "fa2fcc62d0d147afe98bf5712462d91015f801ad009d79cfb2541fad768625fc",
+     "sha256": "2c5902a2afbd6909714092bb32f3abd30ed93ed071f1fb628ecdcb64eae2bdf7",
      "triangles": 1198,
      "bounds": [
-      -0.02067,
-      0.4436,
-      -0.05022,
-      0.06544,
+      -0.02065,
+      0.44402,
+      -0.05044,
+      0.06538,
       0.56772,
-      0.00337
+      0.00328
      ],
      "structures": [
       {
@@ -16561,15 +16572,15 @@
      "system": "endocrine",
      "file": "female-thyroid.atlas",
      "bytes": 13548,
-     "sha256": "d66e63cfdcf5d6b80d132909ac65f838e194818ce4d3078b885815e6c43be05a",
+     "sha256": "f4dfc30a82e3c80811f4ddab402cbebef17cb36b27f4153a4fe5409726116253",
      "triangles": 1498,
      "bounds": [
-      -0.0271,
-      0.58499,
-      -0.06609,
-      0.01438,
-      0.63616,
-      -0.03846
+      -0.02431,
+      0.59071,
+      -0.06502,
+      0.01468,
+      0.6343,
+      -0.03772
      ],
      "structures": [
       {
@@ -16588,16 +16599,16 @@
      "name": "Adrenal glands",
      "system": "endocrine",
      "file": "female-adrenals.atlas",
-     "bytes": 14456,
-     "sha256": "75336b880d8a500ad633e9bedf3497f14d6f6deee0a689a661bd1925c8d3687a",
-     "triangles": 1598,
+     "bytes": 14472,
+     "sha256": "e0fa132763c3b7b434f452b7192925e2392b9aa9e0fd932865a924a0b7165f99",
+     "triangles": 1600,
      "bounds": [
-      -0.06664,
-      0.27868,
-      -0.14274,
-      0.04694,
-      0.32855,
-      -0.07052
+      -0.06461,
+      0.27944,
+      -0.14301,
+      0.04422,
+      0.32999,
+      -0.0715
      ],
      "structures": [
       {
@@ -16607,7 +16618,7 @@
        "tissue": "gland",
        "group": "Adrenal glands",
        "inner": false,
-       "triangles": 798
+       "triangles": 800
       },
       {
        "node": "TS_adrenal_gland_R",
@@ -16625,16 +16636,16 @@
      "name": "Kidneys and ureters",
      "system": "urinary",
      "file": "female-kidneys.atlas",
-     "bytes": 148908,
-     "sha256": "01c64d42e18dbd3fc67076a7d52f8a084f7541b8110895afc8565b8b5c5be00c",
-     "triangles": 15106,
+     "bytes": 149104,
+     "sha256": "d221300e530ad73d62624bb7bc9793681c2203c1bbb9b15b20c18b84de80ca56",
+     "triangles": 15134,
      "bounds": [
-      -0.1094,
-      0.00896,
-      -0.14016,
-      0.11525,
-      0.30099,
-      -0.0512
+      -0.10878,
+      0.00915,
+      -0.1393,
+      0.11317,
+      0.30107,
+      -0.05119
      ],
      "structures": [
       {
@@ -16887,7 +16898,7 @@
        "tissue": "organ",
        "group": "right kidney",
        "inner": false,
-       "triangles": 290
+       "triangles": 304
       },
       {
        "node": "VH_F_outer_cortex_of_kidney_R",
@@ -17094,7 +17105,7 @@
        "tissue": "duct",
        "group": "right minor calyx",
        "inner": true,
-       "triangles": 102
+       "triangles": 108
       },
       {
        "node": "VH_F_minor_calyx_R_b",
@@ -17103,7 +17114,7 @@
        "tissue": "duct",
        "group": "right minor calyx",
        "inner": true,
-       "triangles": 156
+       "triangles": 158
       },
       {
        "node": "VH_F_minor_calyx_R_c",
@@ -17112,7 +17123,7 @@
        "tissue": "duct",
        "group": "right minor calyx",
        "inner": true,
-       "triangles": 98
+       "triangles": 100
       },
       {
        "node": "VH_F_minor_calyx_R_d",
@@ -17130,7 +17141,7 @@
        "tissue": "duct",
        "group": "right minor calyx",
        "inner": true,
-       "triangles": 98
+       "triangles": 100
       },
       {
        "node": "VH_F_minor_calyx_R_f",
@@ -17184,7 +17195,7 @@
        "tissue": "duct",
        "group": "right major calyx",
        "inner": true,
-       "triangles": 126
+       "triangles": 130
       },
       {
        "node": "VH_F_major_calyx_R_b",
@@ -17238,7 +17249,7 @@
        "tissue": "duct",
        "group": "left minor calyx",
        "inner": true,
-       "triangles": 88
+       "triangles": 86
       },
       {
        "node": "VH_F_minor_calyx_L_c",
@@ -17310,7 +17321,7 @@
        "tissue": "duct",
        "group": "left minor calyx",
        "inner": true,
-       "triangles": 134
+       "triangles": 132
       },
       {
        "node": "VH_F_major_calyx_L_a",
@@ -17328,7 +17339,7 @@
        "tissue": "duct",
        "group": "left major calyx",
        "inner": true,
-       "triangles": 100
+       "triangles": 102
       },
       {
        "node": "VH_F_major_calyx_L_c",
@@ -17373,15 +17384,15 @@
      "name": "Urinary bladder",
      "system": "urinary",
      "file": "female-bladder.atlas",
-     "bytes": 24008,
-     "sha256": "a51ee555b779a4ebec15f84850c4b3d28a85f3ce7cb1073da8da7fdfbdab1dcf",
-     "triangles": 2220,
+     "bytes": 24044,
+     "sha256": "30722b51fe40ad221eb2ec941d62d20314dad7cda6103fae71ecb804b05220ce",
+     "triangles": 2224,
      "bounds": [
       -0.04054,
-      -0.01793,
-      -0.05964,
+      -0.01794,
+      -0.05945,
       0.01144,
-      0.02621,
+      0.02627,
       0.00242
      ],
      "structures": [
@@ -17419,7 +17430,7 @@
        "tissue": "organ",
        "group": "urinary bladder",
        "inner": false,
-       "triangles": 200
+       "triangles": 204
       },
       {
        "node": "VH_F_ureteral_orifice_R",
@@ -17447,15 +17458,15 @@
      "system": "reproductive",
      "file": "female-ovaries.atlas",
      "bytes": 5456,
-     "sha256": "cb32a4f0cdb34c8c731063afdead9ba6ac22d5e29e9a1a75f7600f7e08b5033a",
+     "sha256": "5ad0afd087578d88c0df2228766ae791477267611a101161c384d920a4565ea8",
      "triangles": 598,
      "bounds": [
-      -0.07685,
+      -0.07672,
       0.04894,
-      -0.05085,
+      -0.05082,
       0.05049,
-      0.07292,
-      -0.04013
+      0.07291,
+      -0.04019
      ],
      "structures": [
       {
@@ -17483,16 +17494,16 @@
      "name": "Uterine tubes",
      "system": "reproductive",
      "file": "female-uterine-tubes.atlas",
-     "bytes": 19724,
-     "sha256": "dc2130067347b27721365a0a002dcd638f73f944b8edaa612523d491b39a0c09",
+     "bytes": 19672,
+     "sha256": "ebb1e815214545c940d761ba9de868236e299f7837f14cf21f9d4e2f4998651c",
      "triangles": 1985,
      "bounds": [
-      -0.07375,
+      -0.07378,
       0.03989,
-      -0.05834,
-      0.0507,
-      0.08555,
-      -0.03352
+      -0.05795,
+      0.05071,
+      0.08541,
+      -0.03344
      ],
      "structures": [
       {
@@ -17547,7 +17558,7 @@
        "tissue": "organ",
        "group": "left uterine tube",
        "inner": false,
-       "triangles": 185
+       "triangles": 187
       },
       {
        "node": "VH_F_isthmus_of_fallopian_tube_L",
@@ -17556,7 +17567,7 @@
        "tissue": "organ",
        "group": "left uterine tube",
        "inner": false,
-       "triangles": 140
+       "triangles": 138
       },
       {
        "node": "VH_F_ampulla_of_uterine_tube_L",
@@ -17574,16 +17585,16 @@
      "name": "Uterus",
      "system": "reproductive",
      "file": "female-uterus.atlas",
-     "bytes": 40632,
-     "sha256": "614caa7f6187205e1364d6710f813b81e0f26daffa598591ef9c0c9d54b52242",
-     "triangles": 4130,
+     "bytes": 40604,
+     "sha256": "770a99bad39befcf871b4a64936169502caf75c3336949422072979db9f77626",
+     "triangles": 4126,
      "bounds": [
       -0.03975,
-      0.00599,
-      -0.08634,
+      0.00619,
+      -0.08614,
       0.01274,
-      0.0532,
-      -0.02759
+      0.05314,
+      -0.02751
      ],
      "structures": [
       {
@@ -17656,7 +17667,7 @@
        "tissue": "organ",
        "group": "uterus",
        "inner": false,
-       "triangles": 466
+       "triangles": 460
       },
       {
        "node": "VH_F_internal_cervical_os",
@@ -17665,7 +17676,7 @@
        "tissue": "organ",
        "group": "uterus",
        "inner": false,
-       "triangles": 62
+       "triangles": 64
       },
       {
        "node": "VH_F_external_cervical_os",
@@ -17684,15 +17695,15 @@
      "system": "reproductive",
      "file": "female-vagina.atlas",
      "bytes": 9836,
-     "sha256": "3dada9482d787dfc9cfd690591258f936cf7d9a086d945be0d0ad52a0942a221",
+     "sha256": "dd978b4dc3cb88acbe4f94928c6945091d295b5f981f01618ebeafc9ebc4fc6c",
      "triangles": 994,
      "bounds": [
-      -0.03466,
-      -0.05258,
-      -0.09028,
-      0.0105,
-      0.02565,
-      -0.05891
+      -0.03455,
+      -0.05205,
+      -0.09031,
+      0.01011,
+      0.02587,
+      -0.05899
      ],
      "structures": [
       {
@@ -17720,16 +17731,16 @@
      "name": "Ligaments of the uterus and ovaries",
      "system": "reproductive",
      "file": "female-uterine-ligaments.atlas",
-     "bytes": 42000,
-     "sha256": "9df841f72ecb3a3f979aba1e8f4c7034bd38d597821a81f8300364c65bec1126",
-     "triangles": 4228,
+     "bytes": 42116,
+     "sha256": "b06802e31ecc8ca90cc9af581a0fa42213488efb731501a517ec84cb19debca1",
+     "triangles": 4242,
      "bounds": [
-      -0.09124,
-      -0.01622,
-      -0.15984,
-      0.05591,
-      0.10695,
-      0.00961
+      -0.09154,
+      -0.01649,
+      -0.16083,
+      0.05558,
+      0.10688,
+      0.01014
      ],
      "structures": [
       {
@@ -17766,7 +17777,7 @@
        "tissue": "ligament",
        "group": "uterosacral ligament",
        "inner": false,
-       "triangles": 164
+       "triangles": 176
       },
       {
        "node": "VH_F_left_uterosacral_ligament",
@@ -17847,7 +17858,7 @@
        "tissue": "ligament",
        "group": "mesosalpinx",
        "inner": false,
-       "triangles": 228
+       "triangles": 230
       },
       {
        "node": "VH_F_mesosalpinx_R",
@@ -17883,16 +17894,16 @@
      "name": "Skull",
      "system": "skeletal",
      "file": "female-skull.atlas",
-     "bytes": 246448,
-     "sha256": "cb36d36e289edcdf8dd69a9074c6448906b683b79ff1af9c56d793a98e64fcc0",
-     "triangles": 27284,
+     "bytes": 752924,
+     "sha256": "62b57435f09a238eeb397e89e32e31611b5bdcb44fdd296db344b0c23b94d7f4",
+     "triangles": 79985,
      "bounds": [
-      -0.08293,
-      0.65304,
-      -0.14945,
-      0.06673,
-      0.8616,
-      0.04495
+      -0.08187,
+      0.65101,
+      -0.15021,
+      0.06627,
+      0.86043,
+      0.04518
      ],
      "structures": [
       {
@@ -17902,7 +17913,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 828
+       "triangles": 9437
       },
       {
        "node": "NLM_parietal_bone_L",
@@ -17911,7 +17922,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 624
+       "triangles": 6610
       },
       {
        "node": "NLM_parietal_bone_R",
@@ -17920,7 +17931,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1214
+       "triangles": 7656
       },
       {
        "node": "NLM_occipital_bone",
@@ -17929,7 +17940,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1984
+       "triangles": 9590
       },
       {
        "node": "NLM_temporal_bone_L",
@@ -17938,7 +17949,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1108
+       "triangles": 8137
       },
       {
        "node": "NLM_temporal_bone_R",
@@ -17947,7 +17958,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1134
+       "triangles": 7162
       },
       {
        "node": "NLM_sphenoid_bone",
@@ -17956,7 +17967,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 6637
+       "triangles": 8870
       },
       {
        "node": "NLM_ethmoid_bone",
@@ -17965,7 +17976,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1647
+       "triangles": 3383
       },
       {
        "node": "NLM_nasal_bone_L",
@@ -17974,7 +17985,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 132
+       "triangles": 179
       },
       {
        "node": "NLM_nasal_bone_R",
@@ -17983,7 +17994,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 72
+       "triangles": 145
       },
       {
        "node": "NLM_lacrimal_bone_L",
@@ -17992,7 +18003,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 174
+       "triangles": 166
       },
       {
        "node": "NLM_lacrimal_bone_R",
@@ -18001,7 +18012,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 154
+       "triangles": 115
       },
       {
        "node": "NLM_zygomatic_bone_L",
@@ -18010,7 +18021,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 404
+       "triangles": 810
       },
       {
        "node": "NLM_zygomatic_bone_R",
@@ -18019,7 +18030,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 476
+       "triangles": 1085
       },
       {
        "node": "NLM_maxilla_L",
@@ -18028,7 +18039,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 2406
+       "triangles": 2823
       },
       {
        "node": "NLM_maxilla_R",
@@ -18037,7 +18048,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 2180
+       "triangles": 3121
       },
       {
        "node": "NLM_palatine_bone_L",
@@ -18046,7 +18057,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1683
+       "triangles": 615
       },
       {
        "node": "NLM_palatine_bone_R",
@@ -18055,7 +18066,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1649
+       "triangles": 575
       },
       {
        "node": "NLM_vomer",
@@ -18064,7 +18075,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 866
+       "triangles": 568
       },
       {
        "node": "NLM_mandible",
@@ -18073,7 +18084,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1912
+       "triangles": 8938
       }
      ]
     },
@@ -18083,15 +18094,15 @@
      "system": "skeletal",
      "file": "female-sternum.atlas",
      "bytes": 13540,
-     "sha256": "3a51030411dba65490f711a12d3a0d09686c1caf86085a87f423619a8c041163",
+     "sha256": "1f61006a5fc6650a8a0d5713b7577c22d9fa61b1584c232acac427c956e06555",
      "triangles": 1496,
      "bounds": [
-      -0.04571,
-      0.40437,
-      -0.04364,
-      0.02676,
-      0.55717,
-      0.01287
+      -0.04563,
+      0.40457,
+      -0.04309,
+      0.02649,
+      0.55699,
+      0.01293
      ],
      "structures": [
       {
@@ -18119,16 +18130,16 @@
      "name": "Ribs and costal cartilages",
      "system": "skeletal",
      "file": "female-ribs.atlas",
-     "bytes": 144436,
-     "sha256": "42ef3a574bd5a205a9c7ebb33b56a1386a36a510e48aec785a3881c3dbc70b8d",
-     "triangles": 15982,
+     "bytes": 144404,
+     "sha256": "9fc17322f0ba59aa3360feecda1b60a0dec8ea3b0ad38afe137e0333013bc8ed",
+     "triangles": 15980,
      "bounds": [
-      -0.14819,
-      0.24237,
-      -0.16951,
-      0.15096,
-      0.60328,
-      0.03335
+      -0.14895,
+      0.2422,
+      -0.16964,
+      0.14695,
+      0.60331,
+      0.03419
      ],
      "structures": [
       {
@@ -18147,7 +18158,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 500
+       "triangles": 498
       },
       {
        "node": "TS_rib_2_L",
@@ -18273,7 +18284,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 500
+       "triangles": 498
       },
       {
        "node": "TS_rib_9_L",
@@ -18336,7 +18347,7 @@
        "tissue": "bone",
        "group": "Ribs and costal cartilages",
        "inner": false,
-       "triangles": 498
+       "triangles": 500
       },
       {
        "node": "TS_rib_12_R",
@@ -18364,15 +18375,15 @@
      "system": "skeletal",
      "file": "female-shoulders.atlas",
      "bytes": 45068,
-     "sha256": "fa5f845ad102be55b6fd56d88368356d89b5e4137f6df4f89779411438d66ccc",
+     "sha256": "c58cc9e218b9daf93a68209d55e9b52b8b94da271e961cf07d76c6f061907931",
      "triangles": 4998,
      "bounds": [
-      -0.17362,
-      0.42659,
-      -0.18025,
-      0.14919,
-      0.60761,
-      -0.0113
+      -0.20344,
+      0.40522,
+      -0.17075,
+      0.19534,
+      0.59105,
+      -0.00622
      ],
      "structures": [
       {
@@ -18418,16 +18429,16 @@
      "name": "Arm and hand bones",
      "system": "skeletal",
      "file": "female-arms.atlas",
-     "bytes": 198624,
-     "sha256": "d00bbcb67c7c6706156b615da13302a0feee0bc5c57d686b39f90be66ff4314c",
-     "triangles": 21956,
+     "bytes": 198568,
+     "sha256": "c8091fe9d2dcbce668473b9c3baeac011b88118106163df5a932377cdd1ee830",
+     "triangles": 21954,
      "bounds": [
-      -0.48556,
-      -0.05848,
-      -0.1213,
-      0.47384,
-      0.58397,
-      0.02296
+      -0.48596,
+      -0.05845,
+      -0.11127,
+      0.47349,
+      0.55953,
+      0.02358
      ],
      "structures": [
       {
@@ -18455,7 +18466,7 @@
        "tissue": "bone",
        "group": "Forearm bones",
        "inner": false,
-       "triangles": 1200
+       "triangles": 1198
       },
       {
        "node": "TS_ulna_L",
@@ -18491,7 +18502,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 250
+       "triangles": 248
       },
       {
        "node": "TS_first_metacarpal_L",
@@ -18527,7 +18538,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_second_metacarpal_L",
@@ -18545,7 +18556,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 250
+       "triangles": 248
       },
       {
        "node": "TS_middle_phalanx_of_middle_finger_L",
@@ -18653,7 +18664,7 @@
        "tissue": "bone",
        "group": "Forearm bones",
        "inner": false,
-       "triangles": 1200
+       "triangles": 1198
       },
       {
        "node": "TS_ulna_R",
@@ -18725,7 +18736,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_second_metacarpal_R",
@@ -18833,7 +18844,7 @@
        "tissue": "bone",
        "group": "Hand bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_fifth_metacarpal_R",
@@ -18851,16 +18862,16 @@
      "name": "Vertebral column",
      "system": "skeletal",
      "file": "female-vertebral-column.atlas",
-     "bytes": 288528,
-     "sha256": "c9c4d2bff5728c3bdfb921d674a19229aedaa8c87b22a6bd9d7d934d6afb9a4b",
-     "triangles": 31934,
+     "bytes": 288368,
+     "sha256": "5d7ed45a4003bbdddf4d17aabedf3e435590888be7de398b84d4e7a8f738167d",
+     "triangles": 31916,
      "bounds": [
-      -0.06164,
-      0.11225,
-      -0.17447,
-      0.04484,
-      0.7182,
-      -0.04018
+      -0.06119,
+      0.11232,
+      -0.17455,
+      0.04333,
+      0.71797,
+      -0.04107
      ],
      "structures": [
       {
@@ -19221,7 +19232,7 @@
        "tissue": "cartilage",
        "group": "nucleus pulposus of intervertebral disk of thoracic vertebra",
        "inner": true,
-       "triangles": 520
+       "triangles": 506
       },
       {
        "node": "VH_F_nucleus_pulposus_of_intervertebral_disk_of_fourth_thoracic_vertebra",
@@ -19284,7 +19295,7 @@
        "tissue": "cartilage",
        "group": "nucleus pulposus of intervertebral disk of thoracic vertebra",
        "inner": true,
-       "triangles": 490
+       "triangles": 486
       },
       {
        "node": "VH_F_nucleus_pulposus_of_intervertebral_disk_of_eleventh_thoracic_vertebra",
@@ -19528,15 +19539,15 @@
      "system": "skeletal",
      "file": "female-pelvis.atlas",
      "bytes": 112136,
-     "sha256": "c8e8468f5587528e2dc4c3a2d1d68a02ea06be56afaf6f596ac6173e2caadd0b",
+     "sha256": "11adf89bea912a4838c2db22b5eb9968a88654f4eb43a356912906e5235efa01",
      "triangles": 12472,
      "bounds": [
-      -0.16523,
-      -0.05438,
+      -0.16434,
+      -0.0543,
       -0.18249,
-      0.14462,
-      0.16852,
-      -0.00425
+      0.14433,
+      0.16844,
+      -0.00468
      ],
      "structures": [
       {
@@ -19582,16 +19593,16 @@
      "name": "Thigh, knee, leg and foot",
      "system": "skeletal",
      "file": "female-legs.atlas",
-     "bytes": 357084,
-     "sha256": "24122fec416ddc7179577b311d82fd5175967d52287b2d344c8468201e8356ce",
-     "triangles": 39018,
+     "bytes": 357056,
+     "sha256": "3256502b19ea58ff7a94ff30b1ffc049b13115ab2a1cb6c8ed99ffee97c80b72",
+     "triangles": 39016,
      "bounds": [
-      -0.20085,
-      -0.78238,
-      -0.12351,
-      0.17471,
-      0.03937,
-      0.1024
+      -0.19996,
+      -0.78125,
+      -0.12397,
+      0.17428,
+      0.03873,
+      0.10157
      ],
      "structures": [
       {
@@ -19673,7 +19684,7 @@
        "tissue": "cartilage",
        "group": "right knee joint",
        "inner": false,
-       "triangles": 266
+       "triangles": 264
       },
       {
        "node": "VH_F_tibia_R",
@@ -19781,7 +19792,7 @@
        "tissue": "cartilage",
        "group": "left knee joint",
        "inner": false,
-       "triangles": 268
+       "triangles": 264
       },
       {
        "node": "VH_F_patella_L",
@@ -19889,7 +19900,7 @@
        "tissue": "bone",
        "group": "Foot bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_middle_phalanx_of_fourth_toe_L",
@@ -20087,7 +20098,7 @@
        "tissue": "bone",
        "group": "Foot bones",
        "inner": false,
-       "triangles": 250
+       "triangles": 248
       },
       {
        "node": "TS_proximal_phalanx_of_second_toe_R",
@@ -20132,7 +20143,7 @@
        "tissue": "bone",
        "group": "Foot bones",
        "inner": false,
-       "triangles": 250
+       "triangles": 248
       },
       {
        "node": "TS_middle_phalanx_of_fourth_toe_R",
@@ -20141,7 +20152,7 @@
        "tissue": "bone",
        "group": "Foot bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_proximal_phalanx_of_fourth_toe_R",
@@ -20150,7 +20161,7 @@
        "tissue": "bone",
        "group": "Foot bones",
        "inner": false,
-       "triangles": 248
+       "triangles": 250
       },
       {
        "node": "TS_distal_phalanx_of_little_toe_R",
@@ -20186,7 +20197,7 @@
        "tissue": "bone",
        "group": "Foot bones",
        "inner": false,
-       "triangles": 396
+       "triangles": 398
       },
       {
        "node": "TS_medial_cuneiform_R",
@@ -20304,15 +20315,15 @@
      "system": "muscular",
      "file": "female-eye-muscles.atlas",
      "bytes": 27112,
-     "sha256": "8a6063a3673fb9dac92a0e322ba0225466e8ebe19dacfc966f7cc5af3410b086",
+     "sha256": "2cc6fb05824eeba67db99007a360c0e31c4505792b8378fc26ac784129350c53",
      "triangles": 2980,
      "bounds": [
-      -0.0546,
-      0.74927,
-      -0.02051,
-      0.04489,
+      -0.05448,
+      0.74929,
+      -0.0205,
+      0.04493,
       0.7791,
-      0.0285
+      0.02804
      ],
      "structures": [
       {
@@ -20431,15 +20442,15 @@
      "system": "muscular",
      "file": "female-knee-muscles.atlas",
      "bytes": 27480,
-     "sha256": "64fdac9d2bd8f757ffc4e21441c16db9ff9619349b6565605fc4a19ad48d0b9b",
+     "sha256": "62a8bb51554166bd420732b4b9cdfb6d72dce41f678324e7498a819a7d447346",
      "triangles": 2992,
      "bounds": [
-      -0.18857,
-      -0.34101,
-      -0.02625,
-      0.16786,
-      0.06261,
-      0.02497
+      -0.18827,
+      -0.34087,
+      -0.02622,
+      0.1674,
+      0.06265,
+      0.0246
      ],
      "structures": [
       {
@@ -20485,16 +20496,16 @@
      "name": "Hip muscles",
      "system": "muscular",
      "file": "female-hip-muscles.atlas",
-     "bytes": 135148,
-     "sha256": "9abcec77613d35518b03f67ccec10f8c99a83fa34e3e5a15fd013e476bf3bd7c",
-     "triangles": 14996,
+     "bytes": 135132,
+     "sha256": "ec29e5e34e29887fcf79a5fdea7058681cb903be3879ba1eb38e6d2f26d476c3",
+     "triangles": 14994,
      "bounds": [
-      -0.17358,
-      -0.10822,
-      -0.17413,
-      0.17812,
-      0.27361,
-      -0.00819
+      -0.17283,
+      -0.10675,
+      -0.17761,
+      0.17753,
+      0.29438,
+      -0.00784
      ],
      "structures": [
       {
@@ -20567,7 +20578,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 2000
+       "triangles": 1998
       }
      ]
     },
@@ -20577,15 +20588,15 @@
      "system": "muscular",
      "file": "female-back-muscles.atlas",
      "bytes": 63056,
-     "sha256": "bc824f5c43f84c8e880181592d0f80b1bb0e6177eac582e65fdd0f8343a74776",
+     "sha256": "fdcfc9f4137edc65a195e90e30de3a4c820521d5389d27e3f35748309b3dc150",
      "triangles": 6998,
      "bounds": [
-      -0.1077,
-      0.10199,
-      -0.18417,
-      0.07612,
-      0.62886,
-      -0.09994
+      -0.10674,
+      0.10042,
+      -0.18299,
+      0.07472,
+      0.62667,
+      -0.10136
      ],
      "structures": [
       {
