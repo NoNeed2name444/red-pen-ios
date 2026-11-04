@@ -10,7 +10,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.llm.CloudJobCollector
 import com.stethoscore.app.ui.StethoscoreApp
 import com.stethoscore.app.ui.WardGroundDrawable
 import com.stethoscore.app.ui.library.IncomingFiles
@@ -29,6 +31,8 @@ class MainActivity : ComponentActivity() {
         val store = StudyStore(filesDir)
         // a table or a backup opened from another app waits for the library to show it
         if (savedInstanceState == null) IncomingFiles.take(intent)
+        // cloud jobs finished while the app was closed become sets (iOS RedPenApp)
+        CloudJobCollector.start(this, store, lifecycleScope)
         setContent { StethoscoreApp(store) }
     }
 

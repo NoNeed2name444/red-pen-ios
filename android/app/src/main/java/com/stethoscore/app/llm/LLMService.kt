@@ -52,6 +52,17 @@ class LLMService(
     /** Whose jobs a bearer reaches: "owner" for the owner key; Android does not know the account's id yet. */
     fun cloudIdentity(bearer: String): String? = if (ownerKey != null && bearer == ownerKey) "owner" else null
 
+    /**
+     * The bearer to ask about a job made under [identity] (iOS cloudBearer(for:)):
+     * the cloud bearer for a job of unknown identity, the owner key for the
+     * owner's, and none for an account's, whose id Android does not know yet.
+     */
+    fun cloudBearer(identity: String?): String? = when (identity) {
+        null -> cloudToken
+        "owner" -> ownerKey
+        else -> null
+    }
+
     /** Why Stethoscore Cloud can't be used right now, or null when it can. */
     val cloudBlocker: String? get() = when {
         !isPro -> "${HostedProvider.BRAND} Cloud is part of Pro."

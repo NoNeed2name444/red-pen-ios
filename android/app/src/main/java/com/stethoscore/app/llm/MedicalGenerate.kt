@@ -29,7 +29,7 @@ object MedicalGenerate {
     suspend fun mcq(
         sourceText: String, count: Int, subject: String, highYield: Boolean,
         using: LLMBackend, exam: Exam = Exam(),
-        store: CloudJobs.PendingStore = CloudJobs.MemoryStore(),
+        store: CloudJobs.PendingStore = CloudJobs.store,
         pause: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ): List<MCQQuestion> {
