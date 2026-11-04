@@ -1270,13 +1270,72 @@ final class WardEdgeReachView: UIView {
         let inside: CGPoint = convert(CGPoint(x: CGFloat(x), y: point.y), to: window)
         // The stack's own view, never a hosting view the hit test is already
         // in: handing one of those back is what ran the stack out.
-        return WardEdgeReachRule.stack(
+        let found: UIView? = WardEdgeReachRule.stack(
             from: window as UIView,
             children: { $0.subviews },
             holdsPoint: { $0.bounds.contains($0.convert(inside, from: window)) },
             takesTouches: { !$0.isHidden && $0.alpha > 0.01 && $0.isUserInteractionEnabled },
             isStack: { $0.next is UINavigationController },
             holdsReach: { self.isDescendant(of: $0) })
+        if PreviewLaunch.screen != nil, let stack = found?.next as? UINavigationController {
+            PopTrace.shared.watch(stack)
+        }
+        return found
+    }
+}
+
+/// A trace for the UI tests only (GraphPreviewUITests' testIslandPushAndBack),
+/// under -uiPreviewScreen: each state of the stack's back pans, where the
+/// finger is and how fast UIKit reads it, then whether the pop finished, so
+/// a cancelled back that pops anyway shows which of them decided it. The
+/// lines go to the app's standard output, which the run keeps in
+/// ui.xcresult and the App build copies into uitest.log. Nothing is printed
+/// on a normal launch.
+final class PopTrace: NSObject {
+    static let shared = PopTrace()
+    /// Each watched pan's name in the trace, by the pan.
+    private var names: [ObjectIdentifier: String] = [:]
+
+    func watch(_ stack: UINavigationController) {
+        var pans: [(String, UIGestureRecognizer?)] = [("edge", stack.interactivePopGestureRecognizer)]
+        if #available(iOS 26.0, *) {
+            pans.append(("content", stack.interactiveContentPopGestureRecognizer))
+        }
+        for (name, pan) in pans {
+            guard let pan, names[ObjectIdentifier(pan)] == nil else { continue }
+            names[ObjectIdentifier(pan)] = name
+            pan.addTarget(self, action: #selector(moved(_:)))
+        }
+    }
+
+    @objc private func moved(_ pan: UIGestureRecognizer) {
+        guard let view = pan.view else { return }
+        let name: String = names[ObjectIdentifier(pan)] ?? "?"
+        let at: CGPoint = pan.location(in: view)
+        var line = "POP-GESTURE \(name) state=\(pan.state.rawValue) x=\(Self.f(at.x)) w=\(Self.f(view.bounds.width))"
+        if let drag = pan as? UIPanGestureRecognizer {
+            line += " tx=\(Self.f(drag.translation(in: view).x)) vx=\(Self.f(drag.velocity(in: view).x))"
+        }
+        print(line + " t=" + Self.f(ProcessInfo.processInfo.systemUptime, 3))
+        guard pan.state == .began else { return }
+        // once the pop it began is under way: did the lift finish or cancel it
+        DispatchQueue.main.async {
+            let stack: UINavigationController? = sequence(first: view as UIResponder?, next: { $0?.next })
+                .lazy.compactMap { $0 as? UINavigationController }.first
+            guard let coordinator = stack?.transitionCoordinator else {
+                print("POP-END \(name) no transition t=" + Self.f(ProcessInfo.processInfo.systemUptime, 3))
+                return
+            }
+            coordinator.notifyWhenInteractionChanges { context in
+                print("POP-END \(name) cancelled=\(context.isCancelled) percent=\(Self.f(context.percentComplete, 3))"
+                    + " velocity=\(Self.f(context.completionVelocity, 3))"
+                    + " t=" + Self.f(ProcessInfo.processInfo.systemUptime, 3))
+            }
+        }
+    }
+
+    private static func f(_ value: Double, _ places: Int = 1) -> String {
+        String(format: "%.\(places)f", value)
     }
 }
 #endif

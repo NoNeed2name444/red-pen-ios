@@ -70,14 +70,26 @@ final class SettingsRowsUITests: XCTestCase {
     }
 
     /// The middle of the page's leading margin, from the element tree: half
-    /// way between the window's edge and the nearest card's (a Form cell,
-    /// or a switch row's own edge), a few points in at least.
+    /// way between the paper's gutter and the nearest card's edge (a Form
+    /// cell, or a switch row's own edge), a few points in at least.
+    ///
+    /// Not from the window's edge: the first 16 points (WardPaper.sideInset)
+    /// are the paper's gutter, where WardEdgeReach hands a touch to the
+    /// navigation stack for its swipe back, never to the page's scroll view.
+    /// Half way from the window's edge to the cards (at x 32) was x 16, the
+    /// gutter's last point (WardEdgeReachRule.inside, x <= minX + inset), so
+    /// none of the drags moved the page (run 41876986518, "Press ... ->
+    /// (16.0, ...)" on all 300 drags, and every row "is not a row").
     private func marginX(in window: CGRect) -> CGFloat {
+        let gutter: CGFloat = window.minX + Self.paperGutter + 1
         var edge: CGFloat = window.maxX
         for item in [app.cells.firstMatch, app.switches.firstMatch] where item.exists {
             edge = min(edge, item.frame.minX)
         }
-        if edge >= window.maxX { edge = window.minX + 16 }
-        return window.minX + max((edge - window.minX) / 2, 4)
+        if edge >= window.maxX { edge = gutter + 16 }
+        return gutter + max((edge - gutter) / 2, 4)
     }
+
+    /// WardPaper.sideInset in the app: its leading gutter.
+    private static let paperGutter: CGFloat = 16
 }

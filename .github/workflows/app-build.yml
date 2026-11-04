@@ -81,6 +81,23 @@ jobs:
             -skip-testing:RedPenUITests/A11yProbeUITests \
             test 2>&1 | tee ../uitest.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* " || true
           grep -q "TEST SUCCEEDED" ../uitest.log
+      # The app's own standard output (its QUIZSET-CHANGE, POP-GESTURE and
+      # POP-END trace lines under -uiPreviewScreen) is not in uitest.log:
+      # XCTest keeps it in ui.xcresult as the diagnostic
+      # "StandardOutputAndStandardError-com.cramdown.app.txt" (run
+      # 41876986518). Its trace lines are copied to the end of uitest.log.
+      - name: The app's trace lines from the UI run
+        if: ${{ always() && steps.ui.outcome != 'skipped' }}
+        run: |
+          [ -d ui.xcresult ] || { echo 'no ui.xcresult'; exit 0; }
+          rm -rf ui-diag
+          xcrun xcresulttool export diagnostics --path ui.xcresult --output-path ui-diag || true
+          {
+            echo '=== APP-TRACE (StandardOutputAndStandardError-com.cramdown.app.txt in ui.xcresult)'
+            find ui-diag -name 'StandardOutputAndStandardError-*.txt' -print0 2>/dev/null \
+              | xargs -0 grep -hE "^(QUIZSET-CHANGE|POP-GESTURE|POP-END) " 2>/dev/null || echo 'no trace lines found'
+          } | tee -a uitest.log
+          rm -rf ui-diag
       # its own step, so it is written also when the step above ran out of time
       - name: Summary of the tap-through
         if: ${{ always() && steps.ui.outcome != 'skipped' }}

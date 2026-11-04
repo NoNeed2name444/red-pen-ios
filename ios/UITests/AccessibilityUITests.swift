@@ -120,6 +120,10 @@ final class AccessibilityUITests: XCTestCase {
             let named = NSPredicate(format: "label BEGINSWITH %@", "\(title),")
             let rating = app.buttons.matching(named).firstMatch
             XCTAssertTrue(rating.waitForExistence(timeout: 5), "no \(title) rating")
+            // at AX sizes the ratings scroll inside the deck, which holds at
+            // most part of the screen (AnkiRatingBar): moved there first,
+            // since a swipe at the window's middle moves the card instead
+            for _ in 0..<4 where !(rating.exists && rating.isHittable) { deckUp() }
             _ = self.reveal(rating, swipes: 4)
             assertInWindow(rating, "the \(title) rating")
         }
@@ -320,6 +324,17 @@ final class AccessibilityUITests: XCTestCase {
             }
             sleep(1)
         }
+    }
+
+    /// Moves the rating deck's column up by about a tenth of the window, by
+    /// a drag low in the window, where the deck is, held still before it
+    /// lets go so the column stops where the finger does.
+    private func deckUp() {
+        let window = app.windows.firstMatch
+        let from = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
+        let to = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.78))
+        from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.3)
+        usleep(300_000)
     }
 
     /// Scrolls until `target` can be pressed. True if it can.

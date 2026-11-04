@@ -384,10 +384,39 @@ struct AnkiRatingBar: View {
     @AppStorage("anki.ratingHintsShown") private var hintsShown = 0
     private static let hintCards = 5
     @Environment(\.dynamicTypeSize) private var typeSize
+    /// The column's own height, so the scroll it sits in at the
+    /// accessibility sizes is no taller than it needs.
+    @State private var columnHeight: CGFloat = 0
+
+    /// The most of the screen the deck takes at the accessibility sizes.
+    static let accessibilityShare: CGFloat = 0.45
 
     var body: some View {
+        if typeSize.isAccessibilitySize {
+            // The question, the four ratings one to a row and the fold band
+            // were taller than the phone at AX5: the deck covered the whole
+            // card, so its question could not be read, and its own words
+            // spilled over the buttons' rings (a11y.xcresult of run
+            // 41876986518, "card, revealed"). Now the deck takes at most
+            // part of the screen and its column scrolls inside it, each
+            // line at its full height.
+            ScrollView {
+                column
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { columnHeight = $0 }
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .containerRelativeFrame(.vertical, alignment: .bottom) { length, _ in
+                let cap: CGFloat = length * Self.accessibilityShare
+                return columnHeight > 0 ? min(columnHeight, cap) : cap
+            }
+        } else {
+            column
+        }
+    }
+
+    private var column: some View {
         let hints: Bool = hintsShown < Self.hintCards
-        VStack(spacing: 12) {
+        return VStack(spacing: 12) {
             if hints {
                 Text("How well did you remember it?")
                     .font(WardType.face(.subheadline, weight: .semibold))
