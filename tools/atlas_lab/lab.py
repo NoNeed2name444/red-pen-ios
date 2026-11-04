@@ -42,6 +42,7 @@ VIEWS = {
     "knee": ("male", "legs,knee-muscles", "patella_R", "-0.45,0.1,1", 2.6),
     "cheek": ("male", "skull", "zygomatic_bone_R", "-0.6,0.1,0.8", 2.2),
     "glute": ("male", "pelvis,legs,hip-muscles", "gluteus_maximus_R", "-0.6,0.1,-0.8", 0.75),
+    "spine": ("male", "vertebral-column,pelvis", "lumbar_vertebra", "-0.8,0.15,0.6", 1.1),
     "skeleton": ("male", SKELETON, "all", "0,0.05,1", 1.02),
 }
 

@@ -328,15 +328,19 @@ def area(p, f):
 
 def simplify_piece(p, f, target):
     # Many small pieces (the lens's zonule fibres) stop one pass short of
-    # its target, so a few passes, each from where the last one stopped.
-    for _ in range(4):
+    # its target, so a few passes, each from where the last one stopped:
+    # the first the gentlest (agg 3), whose triangles are well shaped and
+    # shade smoothly (agg 9 alone left fans of slivers that shaded as
+    # spikes across a smooth bone), each next one more aggressive, so the
+    # target is still reached where a gentle pass stops short.
+    for agg in (3, 5, 7, 9, 9):
         if len(f) <= target * 1.15:
             break
         q, g = fast_simplification.simplify(p.astype(np.float32), f.astype(np.int32),
-                                            target_reduction=1 - target / len(f), agg=9,
+                                            target_reduction=1 - target / len(f), agg=agg,
                                             preserve_border=True)
         if len(g) == 0 or len(g) >= len(f):
-            break
+            continue
         used = np.unique(g)
         remap = np.full(len(q), -1, dtype=np.int64); remap[used] = np.arange(len(used))
         p, f = q[used].astype(np.float64), remap[g]
@@ -604,7 +608,8 @@ def write_body(sex, parts, out):
 
 # The manifest's account of the changes made ({scales}: each body's brain scale).
 CHANGES = (
-    "Structures simplified to a triangle budget per part, piece by piece with their open edges kept, "
+    "Structures simplified to a triangle budget per part, piece by piece with their open edges kept and "
+    "gently first, so the triangles stay well shaped and shade smoothly; "
     "positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but "
     "the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, "
     "the female liver's bare area); the brain mirrored left to right so each side lies where its name "
@@ -614,8 +619,12 @@ CHANGES = (
     "which sits outside the body, left out. Added: each body's own skull, meshed from the Visible Human "
     "Project's head CT of that man or woman, laid on the NIH 3D model of the man's skull (placed by its eyes "
     "and upper teeth, and carried onto the female head by a warp fitted on the head's skin, neck "
-    "vertebrae, eyes and teeth), which names its bones and stands in where the CT's bone is too thin to "
-    "mesh (the orbits' floors, the sinuses' walls), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, "
+    "vertebrae, eyes and teeth, its jaw fitted on its own and the whole bent onto the CT's thick bone); "
+    "the CT's bone kept where it covers the model or is 2 mm thick or more (but not beside the teeth, "
+    "which would make their sockets' thin walls count as thick), the model naming its bones, standing in where the CT's bone is thin and broken into lace or missing (the "
+    "orbits' walls, the sinuses'), and giving the face's bones whole (the maxillae, zygomatic, nasal, "
+    "lacrimal, ethmoid and palatine bones and the vomer, too thin for a 1 mm CT); the surface smoothed "
+    "without shrinking (Taubin), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, "
     "humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two "
     "TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have, "
     "each side's clavicle and scapula as one rigid piece, both sides at one scale and turned to mirror "

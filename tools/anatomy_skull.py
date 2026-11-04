@@ -30,15 +30,25 @@ For each body:
    rigid move (the woman's jaw sits some millimetres from where the warp
    carries the man's), and the whole bent onto the CT's thick bone (bend),
    so that where it stands in below it meets the CT's bone without a step.
-4. Where the CT's bone is paper-thin - the orbits' floors and inner walls,
-   the walls of the sinuses and the nasal cavity, which at 1 mm break up
-   into lace - the model's bone, placed by the same fit, stands in: the
-   field meshed is the CT's where the nearest CT bone is 2 mm thick or more
-   and lies within 4 mm, and the model's (a smoothed solid) where the
-   nearest CT bone is thin or missing, within REACH mm of the model's;
-   blended over about a millimetre. Thin CT bone further than REACH + 1 mm
-   from the model's (specks, the conchae's noise) is left out.
-5. Named: each vertex by the nearest of the model's bones or the organ
+4. The field meshed: the CT's bone wherever it covers the model's surface
+   (CT bone along the surface's normal within COVER mm, over KEEP of the
+   surface round each point of it), thin or not, as over the vault and the
+   base, and wherever it is THICK mm thick or more within COVER mm (so a jaw
+   the fit leaves a few millimetres off keeps its own chin), but not within
+   COVER mm of the organ set's teeth, where the CT's own dense teeth would
+   make their sockets' thin walls count as thick; the model's (a smoothed
+   solid, placed by the same fit) where the CT's bone round it is both thin
+   and broken into lace or missing - the orbits' floors and inner walls, the
+   walls of the sinuses and the nasal cavity, which at 1 mm break up. In the
+   face (within FACE_AROUND mm of the model's facial bones, FACE, and over
+   FACE_CLEAR mm from its others) the model's bone stands in whole: its
+   plates are paper-thin, and the woman's (thinned with age) come out of her
+   CT as lace even where they cover the model's. CT bone under THICK mm
+   thick further than REACH + 1 mm from the model's (specks, the conchae's
+   noise) is left out. Blended over about a millimetre.
+5. The surface (marching cubes) smoothed without shrinking (Taubin's steps,
+   ten rounds): the grid's steps taken off, the bone's own relief kept.
+6. Named: each vertex by the nearest of the model's bones or the organ
    set's teeth (within 10 mm; the rest - the neck's vertebrae, the hyoid -
    left out), smoothed over the surface; the CT's teeth left out (the organ
    set's stay); the whole simplified to BUDGET triangles at once; each
@@ -83,6 +93,14 @@ VH_SHA256 = {"male": "b75e1a66a927bce1df5928cb8bbd460fe76428b7ebcdfbebfb52ec55c5
 STEP = 0.5        # mm across the grid (slices are 1 mm apart)
 ISO = 150.0       # HU: bone's surface
 REACH = 5.0       # mm from the model's bone within which it stands in for thin or missing CT bone
+COVER = 4.0       # mm along the model's surface normal within which CT bone covers it
+KEEP = 0.7        # the share of the model's surface round a point the CT must cover for its own bone to be kept
+THICK = 2.0       # mm: CT bone this thick is its own wherever it lies; thinner may be lace
+# The face's bones (the model's names), which the model gives whole: within
+# FACE_AROUND mm of them and over FACE_CLEAR mm from the model's other bones.
+FACE = ("Maxilla", "Zygomatic bone", "Nasal bone", "Lacrimal bone", "Ethmoid bone", "Palatine bone", "Vomer")
+FACE_AROUND = 8.0
+FACE_CLEAR = 5.0
 BUDGET = 80000    # triangles for the whole skull, all its bones
 
 
@@ -376,18 +394,85 @@ def bend(model, ct, g, reaches=(0.010, 0.006, 0.004, 0.0025), sigma=0.006):
     return {nm: (move(np.asarray(v, float)), f) for nm, (v, f) in model.items()}
 
 
-def hybrid(sm, body, bone, nih, thick, reach=REACH):
-    """Step 4: the field, the CT's where its bone is thick enough to trust,
-    the model's where it is thin or missing."""
+def model_points(model, placed, step=0.6):
+    """Points (the grid's mm) spread over the model's surface, about step mm
+    apart, with their triangles' normals."""
+    P, N = [], []
+    rng = np.random.default_rng(0)
+    for v, f in model.values():
+        q = to_grid(np.asarray(v, float), *placed); f = np.asarray(f); a, b, c = q[f[:, 0]], q[f[:, 1]], q[f[:, 2]]
+        n = np.cross(b - a, c - a); area = np.linalg.norm(n, axis=1) / 2; n = n / np.maximum(2 * area[:, None], 1e-12)
+        k = rng.choice(len(f), size=int(area.sum() / step ** 2) + 1, p=area / area.sum())
+        u, w = rng.random(len(k)), rng.random(len(k)); flip = u + w > 1; u[flip], w[flip] = 1 - u[flip], 1 - w[flip]
+        P.append(a[k] + u[:, None] * (b[k] - a[k]) + w[:, None] * (c[k] - a[k])); N.append(n[k])
+    return np.vstack(P), np.vstack(N)
+
+
+def _within(solid, mm):
+    """The voxels within mm of the solid."""
+    idx = np.argwhere(solid)
+    if not len(idx):
+        return np.zeros_like(solid)
+    pad = np.ceil(mm / SP).astype(int) + 1
+    lo, hi = np.maximum(idx.min(0) - pad, 0), np.minimum(idx.max(0) + pad + 1, solid.shape)
+    box = tuple(slice(a, b) for a, b in zip(lo, hi)); out = np.zeros_like(solid)
+    out[box] = ndimage.distance_transform_edt(~solid[box], sampling=SP) <= mm
+    return out
+
+
+def face_zone(model, shape, placed, g):
+    """Where the model's face stands in whole: within FACE_AROUND mm of its
+    facial bones and over FACE_CLEAR mm from its others."""
+    face = model_solid({k: v for k, v in model.items() if k in FACE}, shape, placed, g)
+    rest = model_solid({k: v for k, v in model.items() if k not in FACE}, shape, placed, g)
+    return _within(face, FACE_AROUND) & ~_within(rest, FACE_CLEAR)
+
+
+def blend(sm, body, bone, nih, thick, P, N, zone, teeth, reach=REACH):
+    """Step 4: the field, the CT's bone where it covers the model's surface
+    (P, N: points on it and their normals) or is thick (but not by the
+    teeth, teeth: the organ set's on the grid, whose sockets' thin walls
+    the CT's own teeth would make count as thick), the model's where round it the CT's
+    bone is thin and lace or missing, and the model's whole in the face's
+    zone."""
+    kept = bone & ~zone
+    far = kept & (thick < THICK) & ~ndimage.binary_dilation(nih, structure=_ball(reach + 1.0, SP)); kept &= ~far
     dist, ind = ndimage.distance_transform_edt(~bone, sampling=SP, return_indices=True)
-    reliable = (thick[ind[0], ind[1], ind[2]] >= 2.0) & (dist <= 4.0); del dist, ind
-    near_model = ndimage.binary_dilation(nih, structure=_ball(reach, SP))
-    frag = bone & (thick < 1.2) & ~ndimage.binary_dilation(nih, structure=_ball(reach + 1.0, SP)); del thick
-    ct = ct_field(sm, body, bone & ~frag)
+    solid = (thick[ind[0], ind[1], ind[2]] >= THICK) & (dist <= COVER); del dist, ind
+    solid &= ~_within(teeth, COVER)
+    grow = ndimage.binary_dilation(kept | ((sm > ISO - 50) & body), structure=_ball(0.5, SP))
+    covered = np.zeros(len(P), bool)
+    for k in np.linspace(-COVER, COVER, int(2 * COVER / 0.5) + 1):
+        idx = np.round((P + k * N) / SP).astype(int); ok = ((idx >= 0) & (idx < np.array(bone.shape))).all(1)
+        covered[ok] |= grow[tuple(idx[ok].T)]
+    del grow
+    idx = np.round(P / SP).astype(int); ok = ((idx >= 0) & (idx < np.array(bone.shape))).all(1); idx = idx[ok]
+    T = np.zeros(bone.shape, np.float32); C = np.zeros(bone.shape, np.float32)
+    np.add.at(T, tuple(idx.T), 1.0); np.add.at(C, tuple(idx.T), covered[ok].astype(np.float32))
+    T = ndimage.gaussian_filter(T, sigma=2.0 / SP); C = ndimage.gaussian_filter(C, sigma=2.0 / SP)
+    ratio = np.where(T > 1e-3, C / np.maximum(T, 1e-3), 1.0); del C
+    stand = ndimage.binary_dilation(nih, structure=_ball(reach, SP)) & ~solid & (T > 1e-3) & (ratio < KEEP); del T, ratio, solid
+    ct = ct_field(sm, body, kept)
     mf = (ISO + 1000 * (ndimage.gaussian_filter(nih.astype(np.float32), sigma=0.5 / SP) - 0.5)).astype(np.float32)
-    w = ndimage.gaussian_filter((near_model & ~reliable).astype(np.float32), sigma=1.0 / SP)
-    log(f"  the model's bone stands in over {np.mean(w > 0.5) * 100:.2f}% of the grid; {int(frag.sum())} voxels of thin CT bone far from it left out")
-    return ndimage.gaussian_filter((1 - w) * ct + w * mf, sigma=0.25 / SP)
+    w = ndimage.gaussian_filter(stand.astype(np.float32), sigma=1.0 / SP)
+    wz = ndimage.gaussian_filter(zone.astype(np.float32), sigma=1.0 / SP)
+    log(f"  the model's surface: {np.mean(~covered):.1%} not covered by the CT's bone within {COVER:.0f} mm; its bone stands in over "
+        f"{np.mean(w > 0.5) * 100:.2f}% of the grid, and over {np.mean(wz > 0.5) * 100:.2f}% in the face; "
+        f"{int(far.sum())} voxels of thin CT bone far from it left out")
+    field = ndimage.gaussian_filter((1 - w) * ct + w * mf, sigma=0.25 / SP); del ct, w
+    return (1 - wz) * field + wz * ndimage.gaussian_filter(mf, sigma=0.25 / SP)
+
+
+def smooth(v, f, rounds=10, lam=0.5, mu=-0.53):
+    """Step 5: Taubin smoothing, each step toward the neighbours' mean and
+    then back a little, so the surface loses the grid's steps, not size."""
+    e = np.vstack([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]])
+    A = sparse.coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(len(v), len(v))).tocsr()
+    A = ((A + A.T) > 0).astype(np.float64); deg = np.asarray(A.sum(1)).ravel()
+    W = sparse.diags(1 / np.maximum(deg, 1)) @ A
+    for _ in range(rounds):
+        v = v + lam * (W @ v - v); v = v + mu * (W @ v - v)
+    return v
 
 
 # MARK: naming
@@ -405,7 +490,7 @@ def _smooth_vertices(lab, f, n, k, rounds=3):
 
 
 def named(p, f, model, teeth, simplify, g, budget=BUDGET):
-    """Step 5: {the model's bone name: (vertices, triangles)}, from the CT's
+    """Step 6: {the model's bone name: (vertices, triangles)}, from the CT's
     surface p, f (the atlas's frame)."""
     names = list(model) + ["teeth"] * len(teeth)
     P, L = [], []
@@ -469,10 +554,14 @@ def ct_skull(sex, folder, model, body, simplify, g):
     thick = thickness(bone)
     at = ndimage.map_coordinates(ndimage.maximum_filter(thick, size=3), (v / SP).T, order=0)
     model = fit_jaw(model, axes(v) @ (s * R).T + t, g)
-    model = bend(model, g.sample(axes(v[at >= 2.0]) @ (s * R).T + t, 60000, 0), g); del v, f, at
+    model = bend(model, g.sample(axes(v[at >= THICK]) @ (s * R).T + t, 60000, 0), g); del v, f, at
     nih = model_solid(model, bone.shape, placed, g)
-    field = hybrid(sm, inside, bone, nih, thick); del sm, inside, bone, nih, thick
-    v, f, _ = _mesh(field, ISO); del field
-    p = axes(v) @ (s * R).T + t
+    zone = face_zone(model, bone.shape, placed, g)
     teeth = [body.mesh("set_of_upper_jaw_teeth"), body.mesh("set_of_lower_jaw_teeth")]
+    crowns = model_solid(dict(enumerate(teeth)), bone.shape, placed, g)
+    P, N = model_points(model, placed)
+    field = blend(sm, inside, bone, nih, thick, P, N, zone, crowns); del sm, inside, bone, nih, thick, zone, crowns
+    v, f, _ = _mesh(field, ISO); del field
+    v = smooth(v, f)
+    p = axes(v) @ (s * R).T + t
     return named(p, f[:, ::-1] if g.signed_volume(p, f) < 0 else f, model, teeth, simplify, g)

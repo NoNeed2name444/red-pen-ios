@@ -2920,9 +2920,37 @@ for screenshots.
     bones and standing in for the plates too thin to mesh. The model's
     jaw is fitted on its own to the CT's (the woman's lies 5 mm from where
     the warp carries the man's), then the whole model is bent onto the
-    CT's thick bone. Still to do: the rebuild with --vhct, the audits and
-    renders, then the atlas, the suite, the credits and SOURCES.md in one
-    commit.
+    CT's thick bone. The blend (anatomy_skull.blend), from trial renders of
+    both heads: the CT's bone is kept wherever it covers the model's
+    surface within 4 mm (over 70% of the surface round a point; this keeps
+    the woman's thinned parietals, which the old thickness-only rule
+    patched with the model) or is 2 mm thick or more within 4 mm (this
+    keeps the woman's chin, which the cover rule alone dented: her jaw
+    sits about 2 mm off the model's), but not within 4 mm of the organ
+    set's teeth (there the CT's own dense teeth made their sockets' thin
+    walls count as thick, and they came out as a strap along the woman's
+    back teeth); elsewhere near the model, its bone stands in. The face (within 8 mm of the model's maxillae, zygomatic,
+    nasal, lacrimal, ethmoid and palatine bones and vomer, over 5 mm from
+    its others) is the model's whole: the woman's facial plates, thinned
+    at 59, came out of her CT as lace under every CT rule tried. The
+    meshed surface is smoothed by Taubin's method (ten rounds), so the
+    grid's steps go and the relief stays. The card says which bones are
+    the model's (AnatomyStructure.modelFace). Known: thin lace arcs remain
+    at the orbits' roofs (the frontal's orbital plates, not in the face's
+    zone): on the woman they are the man's model roof, carried onto her,
+    standing a little off her own; the man has small holes there. Tried
+    and dropped: adding the model's thinnest frontal plates to the face's
+    zone (the woman's arcs grew; nothing changed for the man). The
+    simplifier (anatomy_atlas.simplify_piece) now goes gently first
+    (fast_simplification's agg 3, then 5, 7 and 9 only where a pass stops
+    short of the budget): agg 9 alone left fans of slivers that shaded as
+    spikes across smooth bone (on a test sphere at one count, 3.4% of the
+    triangles under 15 degrees at agg 9, 0.1% at agg 3; twice the
+    triangles at agg 9 were still faceted). It changes every part. Still
+    to do: the rebuild with --vhct (started 4 Nov), the audits and renders,
+    then the atlas, the suite (its triangle totals move: the CT skull is
+    80,000 triangles a body in place of the model's 27,284), the credits
+    and SOURCES.md in one commit.
   - [x] S3j. The atlas's look (the owner, 4 Nov: "the texture is too
     artificial and artifacty and isn't seamless and has sharp borders that
     don't exist in real bones"). Each part's structures are shaded as one
@@ -2947,6 +2975,34 @@ for screenshots.
     the numbers come from; the Mac screenshots confirm them (the tour now
     has the skull, the pelvis and the hip muscles close up:
     science-atlas-skull, -pelvis and -hip).
+  - [ ] S3k. Next for the atlas's shapes, from the probes of 4 Nov.
+    Muscles: the gluteus maximus pokes through the iliac crest, and the
+    muscles hover about 3 mm off the bone, because make_room pushes them
+    out of a 2 mm closed solid of the bones. Pushing the whole surface out
+    moved muscles up to 28 mm (the closing fills the bone's hollows), and
+    pushing only the deep crossings still creased the gluteus maximus. So
+    the fix is a fit that knows the attachments: origins and insertions on
+    the bone, the belly free (with the muscle attachments still to do).
+    A trial on the man's hip muscles (4 Nov): each muscle's deep side
+    (the vertices facing a bone within 8 mm) drawn to 0.5 mm off the
+    bone's own surface, the pull spread over the muscle (Gaussian, 6 mm,
+    at most 3 mm a round), then only out of the bone (3 mm): the gap under
+    the deep side fell from a median of 4 to 5.7 mm to 0.6 to 1.5 mm, with
+    under 1% of vertices left in bone and no creases in renders. Still to
+    do: a bony point through a muscle with no vertex in the bone (the
+    ischial tuberosity through the right gluteus maximus) needs the bone's
+    points tested inside the muscle, and the push made from them.
+    Vertebrae: the organ sets' looked coarse, but their sources are fine
+    (15,000 to 18,000 triangles a vertebra); the coarseness was the old
+    simplifier's slivers at 500 to 900 triangles each. The gentle
+    simplifier at the same count is much smoother (a C5, T7 and L3 tried
+    side by side); twice the count helps the lumbar processes a little
+    more, so the column's budget (32,000) may rise once the rebuild's
+    renders are seen. TotalSegmentator's vertebra masks (1.5 mm) would be
+    coarser than the sources, so they are not needed. Tried and dropped: rounding the coarse meshes by
+    PN triangles (curved patches through each triangle's normals) gained
+    little for 110,000 more triangles a body, and the re-simplified result
+    shades no better (measured with the old simplifier's slivers, S3i).
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has
