@@ -1,0 +1,20 @@
+Attributes: Button, 0x115480500, {{958.0, 32.0}, {44.0, 44.0}}, identifier: 'studyMore', label: 'More'
+Element subtree:
+ →Button, 0x115480500, {{958.0, 32.0}, {44.0, 44.0}}, identifier: 'studyMore', label: 'More'
+Path to element:
+ →Application, 0x115483700, pid: 98664, label: 'Stethoscore'
+  ↳Window (Main), 0x115483840, {{0.0, 0.0}, {1032.0, 1376.0}}
+   ↳Other, 0x115480140, {{inf, inf}, {0.0, 0.0}}
+    ↳Other, 0x115482f80, {{inf, inf}, {0.0, 0.0}}
+     ↳Other, 0x115483340, {{inf, inf}, {0.0, 0.0}}
+      ↳Other, 0x1154830c0, {{inf, inf}, {0.0, 0.0}}
+       ↳Other, 0x115483c00, {{inf, inf}, {0.0, 0.0}}
+        ↳Other, 0x115483d40, {{inf, inf}, {0.0, 0.0}}
+         ↳NavigationBar, 0x115482800, {{inf, inf}, {0.0, 0.0}}, identifier: 'Rheumatology'
+          ↳Other, 0x115481680, {{inf, inf}, {0.0, 0.0}}, identifier: 'studyMore', label: 'More'
+           ↳Other, 0x115481180, {{inf, inf}, {0.0, 0.0}}
+            ↳Button, 0x115480500, {{958.0, 32.0}, {44.0, 44.0}}, identifier: 'studyMore', label: 'More'
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  ↪︎Find: Descendants matching type Button
+    ↪︎Find: Elements matching predicate '"studyMore" IN identifiers'
