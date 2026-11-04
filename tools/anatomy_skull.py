@@ -12,7 +12,10 @@ For each body:
    (the field of view widens below the head), a missing slice filled
    between its neighbours; pixels out of the scanner's range (a few corrupt
    ones) replaced by their neighbours'; in the slices with dental metal,
-   bright streaks lying in one slice only flattened to soft tissue.
+   bright streaks lying in one slice only flattened to soft tissue; a
+   slice the scanner set off sideways from both its neighbours while they
+   agree (the man's 35 mm down lies 4.2 mm to one side, which left a ledge
+   round his vault) moved back onto them.
 2. Bone: the CT smoothed (0.4 mm), above 150 HU inside the head (its outline
    2 mm in), kept where it joins dense bone (over 600 HU: thin plates kept,
    specks of soft tissue left out); in the slices with dental metal, what
@@ -47,7 +50,11 @@ For each body:
    thick further than REACH + 1 mm from the model's (specks, the conchae's
    noise) is left out. Blended over about a millimetre.
 5. The surface (marching cubes) smoothed without shrinking (Taubin's steps,
-   ten rounds): the grid's steps taken off, the bone's own relief kept.
+   ten rounds): the grid's steps taken off, the bone's own relief kept;
+   then, where the bone is thick, smoothed along the slices' axis only
+   (twenty rounds), which takes off the rings the 1 mm slices leave on a
+   surface lying nearly level with them (the top of the vault) and moves
+   nothing across.
 6. Named: each vertex by the nearest of the model's bones or the organ
    set's teeth (within 10 mm; the rest - the neck's vertebrae, the hyoid -
    left out), smoothed over the surface; the CT's teeth left out (the organ
@@ -188,6 +195,40 @@ def clean(hu):
             lone = (hu[k] > ISO) & ~(near[k - 1] | near[k + 1]); soft = (hu[k] > -100) & (hu[k] < 100)
             hu[k][lone] = np.median(hu[k][soft]) if soft.any() else 40.0
     log(f"  cleaned: {int(bad.sum())} corrupt pixels; dental metal in {len(metal)} slices")
+    return hu
+
+
+def steady(hu, off=1.0, agree=0.5):
+    """Slices set off sideways from both their neighbours, moved back: each
+    slice's shift against the mean of the slices above and below it, found
+    on its bone (phase correlation, then fitted directly); a slice more than
+    `off` mm off while its neighbours agree within `agree` mm is shifted
+    back. A head that turned between slices moves its neighbours too, so
+    they would not agree; anatomy changing from one slice to the next is
+    not a shift of the whole slice."""
+    from scipy import optimize
+    from skimage.registration import phase_cross_correlation
+
+    def bone(k):
+        return ndimage.gaussian_filter(np.clip((hu[k] - 100.0) / 600.0, 0.0, 1.0), 1.0)
+
+    def shift(a, b, s0):   # the shift (px) that lays b on a
+        def cost(s):
+            return float(((ndimage.shift(b, s, order=1) - a) ** 2).sum())
+        return optimize.minimize(cost, s0, method="Nelder-Mead", options=dict(xatol=0.02, fatol=1e-3)).x
+
+    moved = []
+    for k in range(1, len(hu) - 1):
+        a, b, c = bone(k - 1), bone(k), bone(k + 1)
+        if min(a.sum(), b.sum(), c.sum()) < 400:
+            continue
+        s0 = phase_cross_correlation((a + c) / 2, b, upsample_factor=10, normalization=None)[0]
+        if np.hypot(*s0) * STEP <= off:
+            continue
+        s = shift((a + c) / 2, b, s0); n = shift(c, a, np.zeros(2))
+        if np.hypot(*s) * STEP > off and np.hypot(*n) * STEP <= agree:
+            hu[k] = ndimage.shift(hu[k], s, order=1, mode="nearest"); moved.append((k, np.round(s * STEP, 1)))
+    log(f"  slices set off from their neighbours, moved back: {', '.join(f'{k} mm down by {d} mm' for k, d in moved) or 'none'}")
     return hu
 
 
@@ -475,6 +516,20 @@ def smooth(v, f, rounds=10, lam=0.5, mu=-0.53):
     return v
 
 
+def level(v, f, w, rounds=20, lam=0.5):
+    """Step 5, last: smoothed along the grid's first axis (the slices') only, by w (0 to 1) at each vertex: a
+    surface lying nearly level with the slices loses their rings; one standing across them is only slid along
+    itself."""
+    e = np.vstack([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]])
+    A = sparse.coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(len(v), len(v))).tocsr()
+    A = ((A + A.T) > 0).astype(np.float64); W = sparse.diags(1 / np.maximum(np.asarray(A.sum(1)).ravel(), 1)) @ A
+    z = v[:, 0].copy(); k = lam * w
+    for _ in range(rounds):
+        z = z + k * (W @ z - z)
+    out = v.copy(); out[:, 0] = z
+    return out
+
+
 # MARK: naming
 
 def _smooth_vertices(lab, f, n, k, rounds=3):
@@ -545,7 +600,7 @@ def ct_skull(sex, folder, model, body, simplify, g):
     triangles)} in the body's frame. model: the model's skull fitted to this
     body, by those names; body: anatomy_gaps.Body (its head skin and teeth);
     simplify: anatomy_atlas.simplify; g: anatomy_gaps."""
-    hu = clean(head_grid(sex, folder))
+    hu = steady(clean(head_grid(sex, folder)))
     sm, inside, bone = bone_of(hu)
     skin = g.head_skin(body); head = skin[0][np.unique(skin[1])]
     start = by_skin(hu, head, g); del hu
@@ -560,8 +615,10 @@ def ct_skull(sex, folder, model, body, simplify, g):
     teeth = [body.mesh("set_of_upper_jaw_teeth"), body.mesh("set_of_lower_jaw_teeth")]
     crowns = model_solid(dict(enumerate(teeth)), bone.shape, placed, g)
     P, N = model_points(model, placed)
-    field = blend(sm, inside, bone, nih, thick, P, N, zone, crowns); del sm, inside, bone, nih, thick, zone, crowns
+    field = blend(sm, inside, bone, nih, thick, P, N, zone, crowns); del sm, inside, bone, nih, zone, crowns
     v, f, _ = _mesh(field, ISO); del field
     v = smooth(v, f)
+    at = ndimage.map_coordinates(ndimage.maximum_filter(thick, size=3), (v / SP).T, order=1); del thick
+    v = level(v, f, np.clip((at - THICK) / THICK, 0.0, 1.0))
     p = axes(v) @ (s * R).T + t
     return named(p, f[:, ::-1] if g.signed_volume(p, f) < 0 else f, model, teeth, simplify, g)
