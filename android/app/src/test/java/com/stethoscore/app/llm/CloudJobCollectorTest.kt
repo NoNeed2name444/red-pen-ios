@@ -297,4 +297,37 @@ class CloudJobCollectorTest {
         assertEquals(1, shelf.sets.size)
         assertTrue(store.all().isEmpty())
     }
+    @Test fun aSetGoesToTheLibraryOfTheActivityMadeAgain() = runBlocking {
+        CloudJobs.io = Dispatchers.IO
+        val asked = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        val done = worker("done")
+        val server = FakeServer { request ->
+            if (request.path == "/jobs/$id") { asked.countDown(); release.await(10, java.util.concurrent.TimeUnit.SECONDS) }
+            done.send(request.method, request.url, null, request.bearer, 0)
+        }
+        val first = kotlin.io.path.createTempDirectory("library-first").toFile()
+        val second = kotlin.io.path.createTempDirectory("library-second").toFile()
+        try {
+            val old = com.stethoscore.app.data.StudyStore(first)
+            val fresh = com.stethoscore.app.data.StudyStore(second)
+            val store = CloudJobs.MemoryStore().also { it.save(earlier()) }
+            val bearer: (String?) -> String? = { if (it == "owner") "bearer" else null }
+            val app = kotlinx.coroutines.CoroutineScope(Dispatchers.IO)
+            val running = CloudJobCollector.start(old, app, store, bearer, server::client)
+            assertTrue(asked.await(10, java.util.concurrent.TimeUnit.SECONDS))
+            // the activity is made again while the first collection asks the server
+            CloudJobCollector.start(fresh, app, store, bearer, server::client).join()
+            release.countDown()
+            running.join()
+            assertTrue(old.library.none { it.name == "Cardiology \u2013 questions" })
+            assertEquals(1, fresh.library.count { it.name == "Cardiology \u2013 questions" })
+            // and on disk, in the new library's file
+            assertEquals(1, com.stethoscore.app.data.StudyStore(second).library.count { it.name == "Cardiology \u2013 questions" })
+            assertTrue(store.all().isEmpty())
+        } finally {
+            first.deleteRecursively()
+            second.deleteRecursively()
+        }
+    }
 }

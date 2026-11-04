@@ -63,8 +63,25 @@ object CloudJobCollector {
         val app = context.applicationContext
         CloudJobs.store = CloudJobs.FileStore(File(app.filesDir, "cloud-jobs"))
         val llm = LLMService.from(app)
-        scope.launch {
-            collect(CloudJobs.store, { set -> runCatching { library.addSet(set) }.isSuccess }, llm::cloudBearer, llm::client)
+        start(library, scope, CloudJobs.store, llm::cloudBearer, llm::client)
+    }
+
+    /**
+     * The library the app shows now. Every start sets it: an activity made
+     * again while a collection runs has a library of its own, and a set put
+     * in the old one would be overwritten by the new one's next save.
+     */
+    @Volatile private var current: StudyStore? = null
+
+    /** [start] without the Context: the library becomes the current one, and a collection begins unless one is running. */
+    internal fun start(
+        library: StudyStore, scope: CoroutineScope, store: CloudJobs.PendingStore,
+        bearer: (String?) -> String?, client: (String) -> BackendClient,
+    ): kotlinx.coroutines.Job {
+        current = library
+        return scope.launch {
+            // into whichever library is current when the set is added
+            collect(store, { set -> runCatching { (current ?: library).addSet(set) }.isSuccess }, bearer, client)
         }
     }
 
