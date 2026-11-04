@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -41,7 +42,6 @@ import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.llm.MedicalGenerate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardTextField
@@ -156,6 +156,8 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
     // (a rotation) finds it still running, its status and its set. The screen
     // is known by its owner: New set's, or this form's own outside New set.
     val ownOwner = rememberGenerationOwner()
+    // the composition's dispatcher, for the run's work (GenerationCenter.launch)
+    val ui = rememberCoroutineScope()
     val generationOwner = LocalGenerationOwner.current ?: ownOwner
     val running: GenerationCenter.Job? = GenerationCenter.job?.takeIf { GenerationCenter.runs(generationOwner) }
     val isGenerating = running != null
@@ -197,7 +199,7 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
             GenerationCenter.note(owner, "Cancelled.")
         } ?: run { GenerationCenter.note(owner, GenerationCenter.busy); return }
         GenerationCenter.note(owner, null)
-        work = GenerationCenter.scope.launch {
+        work = GenerationCenter.launch(ui.coroutineContext) {
             try {
                 val questions: List<MCQQuestion> = MedicalGenerate.mcq(text, count, subj, hy, writer, exam) { done, total ->
                     GenerationCenter.update(job, done, total)

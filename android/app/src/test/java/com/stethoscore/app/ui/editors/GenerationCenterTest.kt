@@ -1,18 +1,41 @@
 package com.stethoscore.app.ui.editors
 
+import android.os.Looper
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onFirst
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.StateRestorationTester
+import com.stethoscore.app.data.StudySetKind
+import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.exam.NewSetPreset
+import com.stethoscore.app.llm.CloudJobs
+import com.stethoscore.app.llm.FakeJobs
+import com.stethoscore.app.llm.FakeServer
+import com.stethoscore.app.llm.LLMService
+import com.stethoscore.app.llm.OwnerSpend
 import com.stethoscore.app.ui.StethoscoreTheme
+import com.stethoscore.app.ui.learn.LearnRouter
+import com.stethoscore.app.ui.library.LibraryNewSetScreen
+import org.json.JSONArray
+import org.json.JSONObject
+import org.junit.Before
+import org.junit.rules.TemporaryFolder
+import org.robolectric.Robolectric
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.android.controller.ActivityController
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -33,7 +56,11 @@ import java.util.UUID
 class GenerationCenterTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @After fun clear() { GenerationCenter.cancel() }
+    @get:Rule val folder = TemporaryFolder()
+
+    private lateinit var ioBefore: kotlinx.coroutines.CoroutineDispatcher
+    @Before fun blockingWorkInPlace() { ioBefore = CloudJobs.io; CloudJobs.io = kotlinx.coroutines.Dispatchers.Unconfined }
+    @After fun clear() { GenerationCenter.cancel(); CloudJobs.io = ioBefore }
 
     @Test fun oneJobAtATimeAndTheRunningOneIsNotStopped() {
         var stopped = 0
@@ -165,5 +192,107 @@ class GenerationCenterTest {
         compose.onNodeWithText("Cancelled.").assertExists()
         GenerationCenter.forget(owner)
         compose.onNodeWithText("Cancelled.").assertDoesNotExist()
+    }
+
+    // R4: Android may destroy the activity in the background without the
+    // student leaving; the run (paid work) goes on. Finishing it stops the run.
+    private class Hosted(val activity: ActivityController<ComponentActivity>, val owner: UUID, val disposed: () -> Boolean)
+
+    private fun hosted(): Hosted {
+        val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        var owner: UUID? = null
+        var disposed = false
+        controller.get().setContent {
+            owner = rememberGenerationOwner()
+            DisposableEffect(Unit) { onDispose { disposed = true } }
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+        return Hosted(controller, owner!!) { disposed }
+    }
+
+    @Test fun aBackgroundDestroyKeepsTheRunAndFinishingStopsIt() {
+        assertTrue(GenerationLife.goesOn(finishing = false, changingConfigurations = false, destroyed = true))
+        assertTrue(GenerationLife.goesOn(finishing = false, changingConfigurations = true, destroyed = true))
+        assertTrue(!GenerationLife.goesOn(finishing = true, changingConfigurations = false, destroyed = true))
+        assertTrue(!GenerationLife.goesOn(finishing = false, changingConfigurations = false, destroyed = false))
+
+        val away = hosted()
+        var stopped = false
+        val id = GenerationCenter.begin("Writing 8 questions", 8, owner = away.owner) { stopped = true }!!
+        away.activity.pause().stop().destroy()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue("the screen went with its activity", away.disposed())
+        assertTrue("a background destroy stops nothing", !stopped)
+        assertTrue(GenerationCenter.runs(away.owner))
+        GenerationCenter.end(id)
+
+        val left = hosted()
+        var stoppedOnLeaving = false
+        GenerationCenter.begin("Writing 8 questions", 8, owner = left.owner) { stoppedOnLeaving = true }!!
+        left.activity.get().finish()
+        left.activity.pause().stop().destroy()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(left.disposed())
+        assertTrue("finishing the activity stops the run", stoppedOnLeaving)
+        assertNull(GenerationCenter.job)
+    }
+
+    // R5: the questions a run wrote, open in New set's quiz, are kept when
+    // the screen is recreated (a rotation), until they are saved or discarded
+    private val stem = "A 54-year-old diabetic with hypertension needs a first drug; which is best?"
+
+    private fun questions(): String = JSONObject().put("questions", JSONArray().put(JSONObject().put("stem", stem)
+        .put("options", JSONArray(listOf("Atenolol tablets", "Amlodipine tablets", "Ramipril tablets", "Indapamide tablets", "Doxazosin tablets")))
+        .put("correctIndex", 2).put("explanation", "Key point: ACE inhibitors first."))).toString()
+
+    /** Marks the test's activity as being recreated for a configuration change, as a rotation does. */
+    private fun rotating(on: Boolean) {
+        val field = android.app.Activity::class.java.getDeclaredField("mChangingConfigurations")
+        field.isAccessible = true
+        field.setBoolean(compose.activity, on)
+    }
+
+    private fun until(done: () -> Boolean) {
+        compose.waitUntil(timeoutMillis = 20_000) {
+            if (!done()) compose.mainClock.advanceTimeBy(500)
+            done()
+        }
+    }
+
+    @Test fun theFinishedSetSurvivesTheScreenBeingRecreatedUntilItIsTaken() {
+        val store = StudyStore(folder.newFolder("held"))
+        val jobs = FakeJobs(listOf(questions()))
+        val llm = LLMService(FakeServer.standInKey(), { null }, FakeServer.BASE,
+            FakeServer { jobs.answer(it) }, OwnerSpend(OwnerSpend.MemoryStore()))
+        val preset = NewSetPreset(StudySetKind.MCQ, "Ramipril", "Cardiology", "Ramipril is an ACE inhibitor, first for hypertension in diabetes.")
+        LearnRouter.close()
+        val tester = StateRestorationTester(compose)
+        tester.setContent {
+            CompositionLocalProvider(LocalLLMService provides llm) {
+                StethoscoreTheme { LibraryNewSetScreen(store, preset.kind, {}, {}, preset = preset) }
+            }
+        }
+        compose.onAllNodesWithText("Make 8 questions").onFirst().performScrollTo().performClick()
+        until { compose.onAllNodesWithText(stem, substring = true).fetchSemanticsNodes().isNotEmpty() }
+
+        rotating(true)
+        tester.emulateSavedInstanceStateRestore()
+        rotating(false)
+        compose.waitForIdle()
+        assertTrue("the set is still open after the screen is recreated",
+            compose.onAllNodesWithText(stem, substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue("nothing was saved yet", store.library.none { set -> set.questions.any { it.stem == stem } })
+
+        // Back asks; Discard takes the set, and a later recreation does not bring it back
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Discard").performClick()
+        compose.waitForIdle()
+        assertTrue(compose.onAllNodesWithText(stem, substring = true).fetchSemanticsNodes().isEmpty())
+        rotating(true)
+        tester.emulateSavedInstanceStateRestore()
+        rotating(false)
+        compose.waitForIdle()
+        assertTrue(compose.onAllNodesWithText(stem, substring = true).fetchSemanticsNodes().isEmpty())
+        compose.onAllNodesWithText("Make 8 questions").onFirst().assertExists()
     }
 }

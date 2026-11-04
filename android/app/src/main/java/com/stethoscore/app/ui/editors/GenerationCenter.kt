@@ -17,9 +17,13 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -59,6 +63,9 @@ import kotlin.math.roundToLong
 // MainActivity, and the work, its card, its status line and the set it makes
 // carry on into the new one (the work runs in [GenerationCenter.scope], not a
 // screen's; its screen is known by an owner id kept across the recreation).
+// So does Android destroying the activity in the background: only the student
+// leaving (the activity finishing, or the screen closing in a live activity)
+// stops a run.
 
 /** The one generation running, and its card's state (iOS GenerationCenter). */
 object GenerationCenter {
@@ -90,10 +97,22 @@ object GenerationCenter {
     /** Where generations run: the process's, so a recreated activity does not stop them (as CloudJobCollector's). */
     val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    /**
+     * Starts a run's work in [scope], so no screen's end stops it, but on the
+     * dispatcher of [ui], the screen's composition: the main thread's, which
+     * outlives any one activity, or under a test the clock the test drives.
+     * Plain Dispatchers.Main posts to a looper the test clock never moves, so
+     * the work's waits there never ended.
+     */
+    fun launch(ui: CoroutineContext, block: suspend CoroutineScope.() -> Unit): kotlinx.coroutines.Job =
+        scope.launch(ui.minusKey(kotlinx.coroutines.Job), block = block)
+
     /** Each owner's line under Make once nothing is running: "Done …", "Cancelled.", a refusal or an error. */
     private val notes = mutableStateMapOf<UUID, String>()
     /** What a finished generation made, waiting for its owner's screen to take it. */
     private val results = mutableStateMapOf<UUID, Any>()
+    /** What an owner's screen has open from a finished run, until it is saved or discarded. */
+    private val held = mutableStateMapOf<UUID, Any>()
 
     /** Whether the job running was started by [owner]. */
     fun runs(owner: UUID): Boolean = job != null && this.owner == owner
@@ -109,8 +128,16 @@ object GenerationCenter {
     /** The result is in its screen's hands. */
     fun take(owner: UUID) { results.remove(owner) }
 
-    /** Its screen is gone for good: its note and any result go with it. */
-    fun forget(owner: UUID) { notes.remove(owner); results.remove(owner) }
+    /** What [owner]'s screen holds open (New set's questions in the quiz), kept across a recreated activity. */
+    fun held(owner: UUID): Any? = held[owner]
+
+    fun hold(owner: UUID, value: Any) { held[owner] = value }
+
+    /** The held set was saved and closed, or discarded. */
+    fun release(owner: UUID) { held.remove(owner) }
+
+    /** Its screen is gone for good: its note, any result and what it held go with it. */
+    fun forget(owner: UUID) { notes.remove(owner); results.remove(owner); held.remove(owner) }
     private var stop: (() -> Unit)? = null
     /** The screen that started the running job (New set), if any. */
     private var owner: UUID? = null
@@ -172,8 +199,8 @@ val LocalGenerationOwner = staticCompositionLocalOf<UUID?> { null }
 /**
  * A screen's owner id, kept across a recreated activity (a rotation). When the
  * screen goes for good, what it started stops (iOS NewSetView's onDisappear)
- * and its note goes; when the activity is only being recreated ([changing]),
- * the work carries on into the new one.
+ * and its note goes; when the activity is only being recreated or destroyed in
+ * the background ([changing]), the work carries on into the new one.
  */
 @Composable fun rememberGenerationOwner(changing: () -> Boolean = activityChanging()): UUID {
     val owner = UUID.fromString(rememberSaveable { UUID.randomUUID().toString() })
@@ -189,10 +216,28 @@ val LocalGenerationOwner = staticCompositionLocalOf<UUID?> { null }
     return owner
 }
 
-/** Whether this screen's activity is being recreated rather than closed. */
+/** Whether this screen's activity will come back (recreated, or destroyed in the background) rather than closed. */
 @Composable private fun activityChanging(): () -> Boolean {
     val activity = LocalContext.current.findActivity()
-    return { activity?.isChangingConfigurations == true }
+    return {
+        activity != null && GenerationLife.goesOn(
+            finishing = activity.isFinishing,
+            changingConfigurations = activity.isChangingConfigurations,
+            destroyed = activity.isDestroyed ||
+                (activity as? LifecycleOwner)?.lifecycle?.currentState == Lifecycle.State.DESTROYED,
+        )
+    }
+}
+
+/** When a run outlives the screen that started it. */
+internal object GenerationLife {
+    /**
+     * A screen disposed as its activity goes: the run goes on unless the
+     * activity is finishing (the student left). A screen disposed while its
+     * activity stays alive was closed, so its run stops.
+     */
+    fun goesOn(finishing: Boolean, changingConfigurations: Boolean, destroyed: Boolean): Boolean =
+        !finishing && (changingConfigurations || destroyed)
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
