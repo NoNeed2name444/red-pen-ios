@@ -2897,6 +2897,32 @@ for screenshots.
     tops and the centres of their heads, so the muscles meet the hip joint.
     The suite checks that each body's hip bones reach well below the
     femur's top and that the pubic bones meet at the midline.
+  - [ ] S3i. The elbows, the shoulder girdles and the skull. The tools are
+    committed; the atlas is not yet rebuilt with them, so the suite's new
+    checks, the credits and SOURCES.md wait in the working tree for it.
+    Elbows: tools/anatomy_elbows.py finds each elbow whole in a scan that
+    holds it (the man's left in s1831, the woman's right in her own s1764)
+    and joins it to the hand scan's forearm; that humerus takes the body's
+    place, and the forearm reaches the skin's wrist by turning at the
+    shoulder and bending at the elbow (tools/anatomy_limbs.py pose). In a
+    test build every humerus meets its scapula, ulna and radius within
+    3 mm. Shoulder girdles: each side's clavicle and scapula one rigid
+    piece, both sides at one scale, settled on the trunk
+    (anatomy_gaps.settle_girdles). In the test build the woman's two sides
+    came out mirror images within 12 mm (clavicles) and 21 mm (scapulae),
+    where the warp had left 39 to 57 mm; the man's left girdle rests higher
+    than his right, as his own skin stands 8 to 24 mm higher over the left
+    shoulder. Next: fit each girdle to the body's own Visible Human CT
+    (both whole-body scans are on hand), which shows where the bones lie.
+    Skull: each body's own, meshed from its Visible Human head CT
+    (tools/anatomy_skull.py; NLM's terms: no fees, credit "Courtesy of the
+    U.S. National Library of Medicine"), with the NIH model naming the
+    bones and standing in for the plates too thin to mesh. The model's
+    jaw is fitted on its own to the CT's (the woman's lies 5 mm from where
+    the warp carries the man's), then the whole model is bent onto the
+    CT's thick bone. Still to do: the rebuild with --vhct, the audits and
+    renders, then the atlas, the suite, the credits and SOURCES.md in one
+    commit.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has

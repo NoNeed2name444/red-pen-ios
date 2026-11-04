@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
 """Make the 3D anatomy atlas (ios/RedPen/Resources/Anatomy) from the Human
-Reference Atlas's male and female reference organ sets, the NIH 3D skull of
-the Visible Human Male and four TotalSegmentator CT scans, the same way
-every time.
+Reference Atlas's male and female reference organ sets, the Visible Human
+Project's head CT of the same man and woman, the NIH 3D skull of the Visible
+Human Male and five TotalSegmentator CT scans, the same way every time.
 
     python3 -I tools/anatomy_atlas.py \\
         --male 3d-vh-m-united.glb --female 3d-vh-f-united.glb \\
         --crosswalk asct-b-3d-models-crosswalk.csv \\
-        --skull 3DPX-020591.glb --ct <folder holding s1803/, s1764/, s1880/ and s1767/> \\
+        --skull 3DPX-020591.glb --ct <folder holding s1803/, s1764/, s1880/, s1831/ and s1767/> \\
+        --vhct <folder holding male/ and female/, the Visible Human CT's head slices> \\
         [--out ios/RedPen/Resources/Anatomy]
 
 Every input is CC BY 4.0 (HuBMAP Human Reference Atlas; NIH 3D 3DPX-020591;
-TotalSegmentator v3.0.0); where each comes from, its SHA-256 and the credit
-it asks for are in Resources/Anatomy/SOURCES.md, and the inputs themselves
-are not kept in the repository. Each organ set is one body (the Visible
-Human Male, the Visible Human Female), in metres with y up and the origin
-near the hips, so every part lands where it belongs in its body. What the
-organ sets lack (the skull, ribs, sternum, shoulder girdle, the bones of the
-arms, hands and feet, hip and deep back muscles, thyroid, adrenals,
-oesophagus, stomach) is added by tools/anatomy_gaps.py, tools/anatomy_limbs.py
-and tools/anatomy_feet.py,
+TotalSegmentator v3.0.0) but the Visible Human CT, which NLM gives under its
+Terms and Conditions (no fees; credit "Courtesy of the U.S. National Library
+of Medicine"); where each comes from, its SHA-256 and the credit it asks for
+are in Resources/Anatomy/SOURCES.md, and the inputs themselves are not kept
+in the repository. Each organ set is one body (the Visible Human Male, the
+Visible Human Female), in metres with y up and the origin near the hips, so
+every part lands where it belongs in its body. What the organ sets lack (the
+skull, ribs, sternum, shoulder girdle, the bones of the arms, hands and
+feet, hip and deep back muscles, thyroid, adrenals, oesophagus, stomach) is
+added by tools/anatomy_gaps.py, tools/anatomy_skull.py,
+tools/anatomy_limbs.py, tools/anatomy_elbows.py and tools/anatomy_feet.py,
 fitted into each body and kept clear of what is already there; see their
 headers.
 
@@ -608,20 +611,28 @@ CHANGES = (
     "says, and scaled ({scales}) about a point between the medulla's foot and the optic chiasm so it fits "
     "inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh "
     "(sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, "
-    "which sits outside the body, left out. Added: the Visible Human skull, placed by its eyes and upper "
-    "teeth, kept under the skin, and carried onto the female head by a warp fitted on the head's skin, "
-    "neck vertebrae, eyes and teeth; ribs, costal cartilages, the male sternum, clavicles, scapulae, "
+    "which sits outside the body, left out. Added: each body's own skull, meshed from the Visible Human "
+    "Project's head CT of that man or woman, laid on the NIH 3D model of the man's skull (placed by its eyes "
+    "and upper teeth, and carried onto the female head by a warp fitted on the head's skin, neck "
+    "vertebrae, eyes and teeth), which names its bones and stands in where the CT's bone is too thin to "
+    "mesh (the orbits' floors, the sinuses' walls), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, "
     "humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two "
-    "TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have; "
+    "TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have, "
+    "each side's clavicle and scapula as one rigid piece, both sides at one scale and turned to mirror "
+    "images of each other; "
     "the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her "
     "ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib "
-    "cage widened smoothly to clear the lungs and liver, the shoulders lowered under the skin, the humeri "
-    "laid along the arms, and the rest pushed out of the organs and bones they cut into; the radius, "
+    "cage widened smoothly to clear the lungs and liver, each shoulder girdle settled on the trunk about its "
+    "sternoclavicular joint, kept at the sternum as in the scan, under the skin, clear of the ribs and in the "
+    "resting posture, the humeri laid along the arms, each head on its glenoid as the scan's sits on its own, and the rest pushed out of the organs and bones they cut into; the radius, "
     "ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body "
-    "(a third scan for the man's), each humerus lengthened or shortened so its elbow sits where the "
-    "scan's own arm would bend, the forearm set on it at the elbow and posed into the skin's hand, finger "
-    "by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great "
-    "toe's sesamoids found the same way in the CT of one foot per body (a fourth scan for the man's), set "
+    "(a third scan for the man's), joined below the elbow to the humerus and upper forearm of a scan that "
+    "holds the elbow whole (a fourth for the man's), that humerus in place of the body's, its shaft "
+    "lengthened or shortened so the elbow sits where the scans' arm would bend, the forearm stretched to "
+    "the skin's wrist and brought onto it by turning at the shoulder and bending at the elbow about its "
+    "own axis, the olecranon fossa deepened to take the olecranon, then posed into the skin's hand, finger by finger, the other side their mirror image; the "
+    "tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one "
+    "foot per body (a fifth scan for the man's), set "
     "on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other "
     "side their mirror image."
 )
@@ -633,7 +644,8 @@ def main():
     ap.add_argument("--female", required=True, help="3d-vh-f-united.glb")
     ap.add_argument("--crosswalk", required=True)
     ap.add_argument("--skull", required=True, help="the NIH 3D 3DPX-020591 GLB (see anatomy_gaps.py)")
-    ap.add_argument("--ct", required=True, help="a folder holding the TotalSegmentator scans s1803, s1764, s1880 and s1767, one folder each")
+    ap.add_argument("--ct", required=True, help="a folder holding the TotalSegmentator scans s1803, s1764, s1880, s1831 and s1767, one folder each")
+    ap.add_argument("--vhct", required=True, help="a folder holding the Visible Human CT's head slices, male/ and female/ (see anatomy_skull.py)")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ios", "RedPen", "Resources", "Anatomy"))
     a = ap.parse_args()
     got = sha256(a.crosswalk)
@@ -642,7 +654,7 @@ def main():
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import anatomy_gaps
     bodies = {sex: build_body(sex, getattr(a, sex), crossed) for sex in BOTH}
-    anatomy_gaps.extend(bodies, a.skull, a.ct, sys.modules[__name__])
+    anatomy_gaps.extend(bodies, a.skull, a.ct, a.vhct, sys.modules[__name__])
     os.makedirs(a.out, exist_ok=True)
     # the files of the one-body atlas (format 1), and parts no longer made
     for old in os.listdir(a.out):
@@ -650,11 +662,14 @@ def main():
             os.remove(os.path.join(a.out, old))
     ct = dict(anatomy_gaps.CT_SOURCE, sha256=hashlib.sha256("".join(
         f"{s} {anatomy_gaps.CT_SHA256[s]}\n" for s in sorted(anatomy_gaps.CT_SHA256)).encode()).hexdigest())
+    import anatomy_skull
+    vh = dict(anatomy_skull.VH_SOURCE, doi=None, sha256=hashlib.sha256("".join(
+        f"{s} {anatomy_skull.VH_SHA256[s]}\n" for s in sorted(anatomy_skull.VH_SHA256)).encode()).hexdigest())
     scales = ", ".join(f"{sex} {anatomy_gaps.RESULTS[sex + ' brain scale']}" for sex in BOTH)
     manifest = {
         "format": 2,
         "sources": [dict(BODIES[s]["source"], sha256=BODIES[s]["sha256"]) for s in BOTH]
-                   + [dict(CROSSWALK, sha256=CROSSWALK_SHA256), anatomy_gaps.SKULL_SOURCE, ct],
+                   + [dict(CROSSWALK, sha256=CROSSWALK_SHA256), anatomy_gaps.SKULL_SOURCE, ct, vh],
         "changes": CHANGES.format(scales=scales),
         "bodies": [write_body(sex, bodies[sex], a.out) for sex in BOTH],
     }

@@ -39,6 +39,24 @@ image (noted in SOURCES.md). The scans:
 - the man's: s1880 (a man of 37), his left forearm and hand; s1803, the
   male body's scan, has its hands cut off by the field of view;
 - the woman's: s1764 (a woman of 32, the female body's scan), her right.
+
+5. Each arm is then posed into the body as one chain (pose()). The humerus
+   is the elbow's scan's, joined to the forearm by tools/anatomy_elbows.py,
+   in place of the body's: laid over the body's, its head on the body's
+   glenoid as the body's head is (anatomy_gaps.seat_humeri sets that from
+   the body's own scan), its shaft stretched (the head and the condyles as
+   they are) so the elbow splits the arm from the shoulder to the skin's
+   wrist as the scans' arm splits its own. The forearm's shaft is
+   stretched likewise (its ends as they are) to reach the skin's wrist
+   from the elbow's flexion axis, and the wrist is brought onto the skin's
+   by the turns the joints allow: the shoulder's, about the humerus's long
+   axis and swung a little about the head's centre, and the elbow's, about
+   its flexion axis (bent back at most 5 degrees past straight). The
+   olecranon fossa, which the CT's mask fills in part, is deepened to take
+   the olecranon (anatomy_elbows.seat). The forearm is turned (pronation) so the knuckles lie across
+   as the skin's do, the hand at the wrist so its middle metacarpal follows
+   the skin's, and each finger is laid along its line in the skin, joint by
+   joint.
 """
 import os
 
@@ -492,16 +510,30 @@ def _angle_about(a, b, k):
 
 
 class Pose:
-    """Each bone's points as the steps move them: x -> c2 + s R (x - c)."""
+    """Each bone's points as the steps move them. A move is a similarity,
+    x -> c2 + s R (x - c), and the moves since the last stretch are kept as
+    one affine map per bone; a stretch along a bone (warp) is kept as its
+    function, so a mesh's vertices follow the same steps (apply)."""
     def __init__(self, pts):
         self.p = {n: p.copy() for n, p in pts.items()}
         self.A = {n: np.eye(3) for n in pts}; self.t = {n: np.zeros(3) for n in pts}
+        self.ops = {n: [] for n in pts}
 
     def move(self, names, R, c, s=1.0, c2=None):
         c2 = c if c2 is None else c2
         for n in names:
             self.p[n] = c2 + s * (self.p[n] - c) @ R.T
             self.A[n] = s * R @ self.A[n]; self.t[n] = c2 + s * R @ (self.t[n] - c)
+
+    def warp(self, names, fn):
+        for n in names:
+            self.p[n] = fn(self.p[n])
+            self.ops[n].append((self.A[n], self.t[n], fn)); self.A[n] = np.eye(3); self.t[n] = np.zeros(3)
+
+    def apply(self, n, x):
+        for A, t, fn in self.ops[n]:
+            x = fn(x @ A.T + t)
+        return x @ self.A[n].T + self.t[n]
 
 
 def _end(p, axis, top, share=4):
@@ -655,66 +687,156 @@ def chain(finger):
     return [f"{k} phalanx of {finger} finger" for k in ("proximal", "middle", "distal")]
 
 
-def fit_elbow(H, hum, pts, wrist, lo=0.9, hi=1.2):
-    """The body's humerus H stretched along its length, about its head, so
-    its elbow splits the arm from the shoulder to the skin's wrist as the
-    scan's humerus (hum) and forearm (pts) split theirs. (A humerus scaled
-    with the shoulders can come out as short as the forearm.) Returns the
-    new points and the stretch."""
+def _head(p, ax):
+    """A humerus's head: the centre and radius of the sphere fitted to its top 12% along ax (pointing to the head)."""
     import anatomy_gaps as g
-    def ends(p):
-        _, a = _axis(p); a = a if a[1] > 0 else -a
-        return _end(p, a, True, 6), _end(p, a, False, 6), a
-    Tc, Ec, _ = ends(hum)
-    f2 = np.vstack([pts["radius"], pts["ulna"]]); _, a = _axis(f2)
-    a = a if (pts["carpal bones"].mean(0) - f2.mean(0)) @ a > 0 else -a
-    Wc = (_end(pts["radius"], a, True) + _end(pts["ulna"], a, True)) / 2
-    rho = np.linalg.norm(Ec - Tc) / (np.linalg.norm(Ec - Tc) + np.linalg.norm(Wc - Ec))
-    T, E, ax = ends(H)
-    c = g._sphere(H[(H - H.mean(0)) @ ax > np.percentile((H - H.mean(0)) @ ax, 88)])[0]
+    t = (p - p.mean(0)) @ ax
+    return g._sphere(p[t > np.percentile(t, 88)])
+
+
+def fit_elbow(H, pts, wrist, lo=0.9, hi=1.2):
+    """Where the body's elbow goes: along the body's humerus H, about its
+    head, so the elbow splits the arm from the shoulder to the skin's wrist
+    as the arm (pts, name -> points: the humerus, the forearm and hand, and
+    "_axis", two points on the elbow's flexion axis) splits its own. The
+    forearm's length is taken from the flexion axis, less the humerus's
+    reach below it, so an elbow bent in the scan measures as a straight one.
+    (A humerus scaled with the shoulders can come out as short as the
+    forearm.) Returns the stretch, the head's centre, the humerus's axis
+    (toward the head) and where its lower end goes."""
+    m = pts["_axis"][0]; hum = pts["humerus"]
+    _, a = _axis(hum); a = a if (hum.mean(0) - m) @ a > 0 else -a
+    Tc, Ec = _end(hum, a, True, 6), _end(hum, a, False, 6)
+    f2 = np.vstack([pts["radius"], pts["ulna"]]); _, b = _axis(f2)
+    b = b if (pts["carpal bones"].mean(0) - f2.mean(0)) @ b > 0 else -b
+    Wc = (_end(pts["radius"], b, True) + _end(pts["ulna"], b, True)) / 2
+    lh = np.linalg.norm(Ec - Tc); lf = np.linalg.norm(Wc - m) - (m - Ec) @ a
+    rho = lh / (lh + lf)
+    _, ax = _axis(H); ax = ax if ax[1] > 0 else -ax
+    T, E = _end(H, ax, True, 6), _end(H, ax, False, 6); c, _ = _head(H, ax)
     def at(k):
         E2 = E + (k - 1) * ((E - c) @ ax) * ax
         return np.linalg.norm(E2 - T) / (np.linalg.norm(E2 - T) + np.linalg.norm(wrist - E2))
     a_, b_ = lo, hi
     for _ in range(40):
-        m = (a_ + b_) / 2; a_, b_ = (m, b_) if at(m) < rho else (a_, m)
+        k = (a_ + b_) / 2; a_, b_ = (k, b_) if at(k) < rho else (a_, k)
     k = (a_ + b_) / 2
-    return H + (k - 1) * ((H - c) @ ax)[:, None] * ax, float(k)
+    return float(k), c, ax, E + (k - 1) * ((E - c) @ ax) * ax
 
 
-def pose(pts, hum, H, side, hand, pulp=0.004, stages=None):
-    """Pose one forearm and hand: pts, name -> the scan's points of each bone
-    (atlas frame, on this side already); hum, the scan's humerus; H, the
-    body's; hand, skin_hand()'s. Returns the Pose and what it found."""
-    lines, Wsk, (G, glo, gh) = hand["lines"], hand["wrist"], hand["solid"]
-    P = Pose(pts); every = list(pts); facts = {}
-    hand_bones = [n for n in every if n not in ("radius", "ulna")]
-    fore = np.vstack([pts["radius"], pts["ulna"]]); _, ax = _axis(fore)
-    if (pts["carpal bones"].mean(0) - fore.mean(0)) @ ax < 0:
-        ax = -ax                                                             # elbow to wrist
-    medial = _end(pts["ulna"], ax, False) - _end(pts["radius"], ax, False)   # the ulna is medial at the elbow
-    s, R, t = fit_humerus(hum, H, medial, np.array([-side, 0.0, 0.0]))
-    P.move(every, R, np.zeros(3), s, t); hum2 = hum @ (s * R).T + t
-    snap = (lambda: stages.append({n: (P.A[n].copy(), P.t[n].copy()) for n in P.p})) if stages is not None else (lambda: None)
-    snap()
+def _flexion(m, d, hd, fd, ulna):
+    """The elbow's bend, radians: the forearm's direction (fd, elbow to
+    wrist) from the humerus's (hd, shoulder to elbow) about the flexion axis
+    (m, d), positive as the forearm comes forward (away from the olecranon,
+    the ulna's point farthest up its shaft); and the sign a turn about d
+    takes it with."""
+    h = hd - (hd @ d) * d; f = fd - (fd @ d) * d; f /= np.linalg.norm(f)   # across the axis
+    o = ulna[np.argmin((ulna - m) @ fd)] - m; o -= (o @ d) * d
+    post = o - (o @ f) * f                                                  # toward the olecranon
+    sgn = 1.0 if np.cross(d, f) @ -post > 0 else -1.0
+    return sgn * float(np.arctan2(np.cross(h, f) @ d, h @ f)), sgn
+
+
+def pose(pts, H, side, hand, reach, socket=None, pulp=0.004, hyper=np.radians(5)):
+    """Pose one arm into the body: pts, name -> its points (atlas frame, on
+    this side already): "humerus", the forearm and hand bones, and "_axis",
+    two points on the elbow's flexion axis, trochlea to capitulum; H, the
+    body's humerus as placed; hand, skin_hand()'s; reach, fit_elbow()'s;
+    socket, anatomy_gaps.seat_humeri()'s for this side (the glenoid's
+    normal and the radius of the head it was fitted to), or None. Returns
+    the Pose and what it found.
+
+    The humerus is laid over the body's, its head's centre on the body's
+    (moved along the glenoid's normal by as much as its head is larger than
+    the one the socket was fitted to, so it meets the glenoid as that did),
+    and stretched along its shaft to where fit_elbow puts the elbow (the head
+    and the condyles kept as they are). The forearm is stretched likewise,
+    its ends kept, to reach the skin's wrist, and aimed at it by the turns
+    the joints allow: the shoulder's, about the humerus's long axis (from
+    the head's centre to the elbow's axis) and swung a little about the
+    head's centre, and the elbow's, about its flexion axis, bent back no
+    more than `hyper` past straight."""
     from scipy.spatial import cKDTree
-    facts["humerus fit mm"] = float(np.mean(cKDTree(H).query(hum2)[0]) * 1000); facts["scale"] = float(s)
+    from scipy.optimize import least_squares
+    k_h, c, ax, E2 = reach
+    lines, Wsk, (G, glo, gh) = hand["lines"], hand["wrist"], hand["solid"]
+    P = Pose(pts); facts = {}
+    hand_bones = [n for n in pts if n not in ("radius", "ulna", "humerus", "_axis")]
+    fore_bones = ["radius", "ulna"] + hand_bones                  # what the elbow bends
+    every = fore_bones + ["humerus", "_axis"]
+    m0, m1 = pts["_axis"]                                         # the trochlea is medial to the capitulum
+    s, R, t = fit_humerus(pts["humerus"], H, m0 - m1, np.array([-side, 0.0, 0.0]))
+    P.move(every, R, np.zeros(3), s, t)
+    facts["humerus fit mm"] = float(np.mean(cKDTree(H).query(P.p["humerus"])[0]) * 1000); facts["scale"] = float(s)
+    ch, rh = _head(P.p["humerus"], ax)
+    if socket is not None:   # the head on the body's glenoid: its centre off it by its own radius, not the body's
+        n, rb = socket; c = c + n * (rh - rb); facts["head radius mm"] = float(rh * 1000); facts["glenoid's head radius mm"] = float(rb * 1000)
+    P.move(every, np.eye(3), np.zeros(3), 1.0, c - ch)
+    facts["head moved mm"] = float(np.linalg.norm(c - ch) * 1000)
 
-    # the elbow straightened toward the skin's wrist, the forearm sized to it
-    _, hax = _axis(H); hax = hax if hax[1] > 0 else -hax
-    E = _end(H, hax, False, 6)
+    # the humerus's shaft stretched (its middle 40%) so its lower end comes where fit_elbow puts it
+    uE = (_end(P.p["humerus"], ax, False, 6) - c) @ ax; grow_h = (E2 - c) @ ax - uE
+    def shaft(x, c=c, ax=ax, u0=0.3 * uE, u1=0.7 * uE, d=grow_h):
+        return x + (np.clip((u0 - (x - c) @ ax) / (u0 - u1), 0.0, 1.0) * d)[:, None] * ax
+    P.warp(["humerus"], shaft); P.move(fore_bones + ["_axis"], np.eye(3), np.zeros(3), 1.0, grow_h * ax)
+    facts["humerus stretched"] = k_h; facts["humerus lengthened mm"] = float(-grow_h * 1000)
+
     def wrist():
         f2 = np.vstack([P.p["radius"], P.p["ulna"]]); _, a = _axis(f2)
         a = a if (P.p["carpal bones"].mean(0) - f2.mean(0)) @ a > 0 else -a
         return (_end(P.p["radius"], a, True) + _end(P.p["ulna"], a, True)) / 2, a
-    W, _ = wrist()
-    want = float(np.linalg.norm(Wsk - E) / np.linalg.norm(W - E)); k = float(np.clip(want, 0.85, 1.15))
-    P.move(every, _rot(W - E, Wsk - E), E, k); facts["forearm scale"] = k; facts["forearm scale wanted"] = want; snap()
+
+    def elbow():
+        m, q = P.p["_axis"]; return m, (q - m) / np.linalg.norm(q - m)
+
+    def bend():
+        m, d = elbow(); W, _ = wrist()
+        return _flexion(m, d, (m - c) / np.linalg.norm(m - c), (W - m) / np.linalg.norm(W - m), P.p["ulna"])
+
+    # the forearm's shaft stretched (all but 40 mm at either end) to reach the skin's wrist from the elbow's axis
+    m, d = elbow(); W, _ = wrist(); L = float(np.linalg.norm(W - m)); fd = (W - m) / L
+    want = float(np.linalg.norm(Wsk - m) / L); k = float(np.clip(want, 0.85, 1.15)); grow_f = (k - 1) * L
+    def forearm(x, m=m, fd=fd, v0=0.04, v1=L - 0.04, d=grow_f):
+        return x + (np.clip(((x - m) @ fd - v0) / (v1 - v0), 0.0, 1.0) * d)[:, None] * fd
+    P.warp(["radius", "ulna"], forearm); P.move(hand_bones, np.eye(3), np.zeros(3), 1.0, grow_f * fd)
+    facts["forearm scale"] = k; facts["forearm scale wanted"] = want
+    facts["elbow bend in the scan deg"] = float(np.degrees(bend()[0]))
+
+    m_laid = elbow()[0]; hd0 = (m_laid - c) / np.linalg.norm(m_laid - c)   # the humerus's line as laid
+    u0 = np.cross(hd0, [0.0, 0.0, 1.0]); u0 /= np.linalg.norm(u0); v0 = np.cross(hd0, u0)
+    turned = {"shoulder": 0.0, "held": False}
+    def swing(a, b):
+        r = a * u0 + b * v0; t = float(np.linalg.norm(r))
+        return _turn(r, t) if t > 1e-12 else np.eye(3)
+    def aim():
+        """The arm turned at the shoulder (about the humerus's long axis, and
+        swung about the head's centre) and bent at the elbow about its own
+        axis, so the wrist meets the skin's. The shoulder's turns cost, each
+        counted from where the humerus was laid (so small turns cannot add up
+        to a large one): about the long axis 1 mm a 10 degrees, the swing 1
+        mm for every 2 mm it moves the elbow off the body's humerus."""
+        m, d = elbow(); W, _ = wrist(); lm = np.linalg.norm(m - c); hd = (m - c) / lm
+        f0, sgn = bend()
+        lo_, hi_ = -hyper - f0, np.radians(150) - f0                # the bend's limits, as a turn about d
+        lo_, hi_ = (lo_, hi_) if sgn > 0 else (-hi_, -lo_)
+        def R_of(x):
+            return swing(x[2], x[3]) @ _turn(hd, x[0])
+        def res(x):
+            R = R_of(x); h = R @ hd
+            w = c + (m + (W - m) @ _turn(d, x[1]).T - c) @ R.T
+            return np.r_[(w - Wsk) * 1000, np.degrees(turned["shoulder"] + x[0]) / 10,
+                         (h - hd0) @ u0 * lm * 500, (h - hd0) @ v0 * lm * 500]
+        x = least_squares(res, [0.0, float(np.clip(0.0, lo_ + 1e-6, hi_ - 1e-6)), 0.0, 0.0],
+                          bounds=([-np.pi / 2, lo_, -0.26, -0.26], [np.pi / 2, hi_, 0.26, 0.26])).x
+        P.move(fore_bones, _turn(d, x[1]), m); P.move(every, R_of(x), c)
+        turned["shoulder"] += float(x[0]); turned["held"] |= bool(min(x[1] - lo_, hi_ - x[1]) < 1e-3)
+
+    aim()
 
     def align_hand():
         for _ in range(2):
-            # the forearm aimed at the skin's wrist again (each turn below swings the radius round the ulna)
-            W, _ = wrist(); P.move(every, _rot(W - E, Wsk - E), E)
+            # the wrist aimed at the skin's again (each turn below swings the radius round the ulna)
+            aim()
             # the forearm turned (pronation) so the knuckles lie across as the skin's do
             W, a = wrist()
             axis = _end(P.p["ulna"], a, True) - _end(P.p["radius"], a, False); piv = _end(P.p["radius"], a, False)
@@ -756,7 +878,7 @@ def pose(pts, hum, H, side, hand, pulp=0.004, stages=None):
         Cw = _joint(P.p["radius"], P.p["carpal bones"]); tip = joints("middle")[-1]
         r = (np.linalg.norm(lines["middle"][-1] - Cw) - pulp) / np.linalg.norm(tip - Cw)
         r = float(np.clip(kh * r, 0.85, 1.15) / kh); P.move(hand_bones, np.eye(3), Cw, r); kh *= r
-    facts["hand scale"] = kh; snap()
+    facts["hand scale"] = kh
     for f in FINGERS:   # by the bones' lengths joint to joint against the line's to its tip (a bent chain measures short straight)
         J = joints(f); kf = (_arc_to_tip(lines[f], J[0]) - pulp) / sum(np.linalg.norm(J[i + 1] - J[i]) for i in range(len(J) - 1))
         kf = float(np.clip(kf, 0.9, 1.1)); P.move(chain(f), np.eye(3), J[0], kf); facts[f"{f} scale"] = kf
@@ -797,9 +919,13 @@ def pose(pts, hum, H, side, hand, pulp=0.004, stages=None):
     W, a = wrist()
     twist = _angle_about(_end(P.p["radius"], a, False) - _end(P.p["ulna"], a, False),
                          _end(P.p["radius"], a, True) - _end(P.p["ulna"], a, True), a)
-    facts["radius across the ulna deg"] = float(np.degrees(twist)); facts["wrist gap mm"] = float(np.linalg.norm(W - Wsk) * 1000); snap()
+    facts["radius across the ulna deg"] = float(np.degrees(twist)); facts["wrist gap mm"] = float(np.linalg.norm(W - Wsk) * 1000)
+    f, _ = bend(); facts["elbow bend deg"] = float(np.degrees(f))
+    facts["shoulder turned deg"] = float(np.degrees(turned["shoulder"])); facts["bend held at its limit"] = turned["held"]
+    m, _ = elbow(); facts["shoulder swung deg"] = float(np.degrees(np.arccos(np.clip((m - c) @ hd0 / np.linalg.norm(m - c), -1, 1))))
+    facts["elbow moved mm"] = float(np.linalg.norm(m - m_laid) * 1000)
 
-    facts["outside the skin"] = {n: outside(n) for n in every}
+    facts["outside the skin"] = {n: outside(n) for n in fore_bones}
     return P, facts
 
 
@@ -833,41 +959,63 @@ def bone_meshes(labels, names, lo, affine, sigma=1.0):
     return out
 
 
-def limbs(sex, ct_dir, humeri, skin):
-    """The forearm and hand bones of one body, both sides, posed into its
-    skin. humeri: {"left": points, "right": points}, the body's humeri as
-    placed; skin: (positions, triangles). Returns (structures, [(positions,
-    triangles, budget)], facts by side, the humeri's points with each
-    elbow fitted)."""
-    import nibabel
-    spec = LIMBS[sex]; folder = os.path.join(ct_dir, spec["subject"])
-    labels, names, lo, affine, _, _ = bones_from_scan(sex, folder)
+def limbs(sex, ct_dir, humeri, skin, sockets=None):
+    """The arm bones of one body, both sides, posed into its skin: the
+    forearm and hand bones found in LIMBS's scan, and the humerus with the
+    elbow from ELBOWS's (tools/anatomy_elbows.py), in place of the body's
+    humerus. humeri: {"left": points, "right": points}, the body's humeri as
+    placed; skin: (positions, triangles); sockets: {side: (the glenoid's
+    normal, the head's radius)}, anatomy_gaps.seat_humeri()'s, or None.
+    Returns (structures, [(positions, triangles, budget)], facts by side,
+    each side's humerus (positions, triangles))."""
+    spec = LIMBS[sex]
+    labels, names, lo, affine, _, _ = bones_from_scan(sex, os.path.join(ct_dir, spec["subject"]))
     meshes = bone_meshes(labels, names, lo, affine); del labels
-    im = nibabel.load(f"{folder}/humerus_{spec['side']}.nii.gz"); j = np.argwhere(np.asarray(im.dataobj) > 0).astype(float)
+    return posed(sex, ct_dir, meshes, names, humeri, skin, sockets)
+
+
+def posed(sex, ct_dir, meshes, names, humeri, skin, sockets=None):
+    """limbs() from the forearm and hand bones' meshes (bone_meshes()'s) on."""
+    import anatomy_elbows as el
+    spec = LIMBS[sex]; es = el.ELBOWS[sex]
+    elbow, ef = el.elbow_from_scan(sex, os.path.join(ct_dir, es["subject"]))
+    if es["side"] != spec["side"]:     # the elbow's scan holds the other side: its mirror image
+        Mx = np.diag([-1.0, 1, 1]); elbow = {k: (p @ Mx.T, f[:, [0, 2, 1]]) for k, (p, f) in elbow.items()}
+    J, jf = el.join(elbow, meshes, same=es["subject"] == spec["subject"])
+    log(f"    the elbow from {es['subject']}: " + ", ".join(f"{k} {v}" for k, v in jf.items()))
+    meshes = dict(meshes); meshes["radius"], meshes["ulna"], meshes["humerus"] = J["radius"], J["ulna"], J["humerus"]
     rng = np.random.default_rng(0)
-    hum = (j[rng.choice(len(j), min(len(j), 20000), replace=False)] @ im.affine[:3, :3].T + im.affine[:3, 3]) @ TO_ATLAS.T
     pts = {n: p[rng.choice(len(p), min(len(p), 20000), replace=False)] for n, (p, f) in meshes.items()}
+    m, d = J["axis"]; pts["_axis"] = np.array([m, m + 0.02 * d])
     taken = 1 if spec["side"] == "left" else -1
-    structures, out, facts, fitted = [], [], {}, {}
+    structures, out, facts, humerus = [], [], {}, {}
     for side, s in (("left", "L"), ("right", "R")):
         sign = 1 if side == "left" else -1
         M = np.diag([-1.0, 1, 1]) if sign != taken else np.eye(3)   # the other side: the mirror image
         mine = {n: q @ M.T for n, q in pts.items()}
         H = humeri[side]; _, hax = _axis(H); hax = hax if hax[1] > 0 else -hax
         hand = skin_hand(skin[0], skin[1], sign, abs(_end(H, hax, False, 6)[0]) + 0.03)
-        H, kel = fit_elbow(H, hum @ M.T, mine, hand["wrist"]); fitted[side] = H
-        hand = skin_hand(skin[0], skin[1], sign, abs(_end(H, hax, False, 6)[0]) + 0.03)
-        P, f_ = pose(mine, hum @ M.T, H, sign, hand); f_["humerus stretched"] = kel; facts[side] = f_
-        log(f"    {side} forearm and hand: humerus stretched x{kel:.3f}, fit {f_['humerus fit mm']:.1f} mm, forearm x{f_['forearm scale']:.2f}, "
+        reach = fit_elbow(H, mine, hand["wrist"])
+        hand = skin_hand(skin[0], skin[1], sign, abs(reach[3][0]) + 0.03)
+        P, f_ = pose(mine, H, sign, hand, reach, (sockets or {}).get(side)); f_["elbow"] = {**ef, **jf}; facts[side] = f_
+        bones = {}
+        for n in ["humerus"] + names:
+            p, f = meshes[n]; bones[n] = (P.apply(n, p @ M.T), f[:, [0, 2, 1]] if sign != taken else f)
+        p, deep = el.seat(bones["humerus"], [bones["ulna"], bones["radius"]], P.p["_axis"][0])
+        humerus[side] = (p, bones["humerus"][1]); f_["olecranon fossa deepened mm"] = deep
+        log(f"    {side} arm: humerus fit {f_['humerus fit mm']:.1f} mm, head moved {f_['head moved mm']:.1f} mm, "
+            f"lengthened {f_['humerus lengthened mm']:.0f} mm; forearm x{f_['forearm scale']:.2f}, elbow bent "
+            f"{f_['elbow bend deg']:.0f} deg (scan {f_['elbow bend in the scan deg']:.0f})"
+            + (" at its limit" if f_["bend held at its limit"] else "") + f", shoulder turned {f_['shoulder turned deg']:.0f} deg and swung {f_['shoulder swung deg']:.1f} deg "
+            f"(the elbow {f_['elbow moved mm']:.0f} mm off the body's humerus), olecranon fossa deepened {deep:.1f} mm; "
             f"hand x{f_['hand scale']:.2f}, fingers x" + "/".join(f"{f_[f + ' scale']:.2f}" for f in FINGERS)
             + (f", thumb turned {f_['thumb turn deg']:.0f} deg" if f_["thumb turn deg"] else "")
-            + "; outside the skin: " + (", ".join(f"{k} {v:.0%}" for k, v in f_["outside the skin"].items() if v and v > 0.02) or "none"))
+            + f"; wrist {f_['wrist gap mm']:.0f} mm from the skin's; outside the skin: "
+            + (", ".join(f"{k} {v:.0%}" for k, v in f_["outside the skin"].items() if v and v > 0.02) or "none"))
         for n in names:
-            p, f = meshes[n]; p = (p @ M.T) @ P.A[n].T + P.t[n]
-            if sign != taken:
-                f = f[:, [0, 2, 1]]
+            p, f = bones[n]
             structures.append({"node": f"TS_{n.replace(' ', '_')}_{s}", "label": f"{side} {n}", "uberon": uberon_of(n),
                                "tissue": "bone", "group": "Forearm bones" if n in ("radius", "ulna") else "Hand bones",
                                "inner": False})
             out.append((p, f, BUDGET.get(n, 400 if n.endswith("metacarpal") else 250)))
-    return structures, out, facts, fitted
+    return structures, out, facts, humerus

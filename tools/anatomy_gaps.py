@@ -1,6 +1,6 @@
 """The parts the organ sets lack, made for both bodies of the 3D anatomy atlas,
 and the repairs that letting them in needs. Called by tools/anatomy_atlas.py
-(its --skull and --ct inputs); not run on its own.
+(its --skull, --ct and --vhct inputs); not run on its own.
 
 What it adds, to each body:
 
@@ -23,20 +23,24 @@ What it adds, to each body:
     thyroid, adrenals      in a new system, endocrine
     oesophagus, stomach
 
-Sources, both CC BY 4.0, pinned below and credited in Resources/Anatomy/
-SOURCES.md:
+Sources, pinned below and credited in Resources/Anatomy/SOURCES.md:
 
-- The skull: NIH 3D 3DPX-020591, "Skull and Eyes - Visible Human Male"
-  (kbrowne, NLM 3D: Anatomy), segmented from the Visible Human Male's CT:
-  the same man as the male body. It is placed on that body by a similarity
-  fit of its eyes and upper teeth to the body's own.
+- The skull: each body's own head, from the Visible Human Project's CT
+  (U.S. National Library of Medicine; the organ sets were made from the same
+  man and woman), meshed by tools/anatomy_skull.py, its bones named, and its
+  thinnest plates drawn, after NIH 3D 3DPX-020591, "Skull and Eyes - Visible
+  Human Male" (kbrowne, NLM 3D: Anatomy; CC BY 4.0), a model segmented from
+  the man's CT at far less detail. The model is placed on the man by a
+  similarity fit of its eyes and upper teeth to the body's own and carried
+  onto the woman's head by a warp; each CT skull is laid on it.
 - The rest: CT scans of the TotalSegmentator dataset, v3 (Wasserthal et
-  al. 2023; Zenodo, doi 10.5281/zenodo.22688904): s1803, a man of 40, for the
+  al. 2023; Zenodo, doi 10.5281/zenodo.22688904; CC BY 4.0): s1803, a man of 40, for the
   male body and s1764, a woman of 32, for the female, the pair whose
   skeletons matched the bodies best among those judged; for the man's
   forearms and hands s1880, a man of 37, as s1803's hands lie outside its
-  field of view; and for the man's feet s1767, a man of 56, as neither of
-  those reaches the toes. The forearm, hand and foot bones are found in the
+  field of view; for the man's elbows s1831, a man of 33, as s1880's
+  olecranon lies outside its; and for the man's feet s1767, a man of 56, as
+  none of those reaches the toes. The forearm, hand and foot bones are found in the
   CT itself (the dataset segments none below the humerus or the femur): see
   tools/anatomy_limbs.py and tools/anatomy_feet.py. Each mask is meshed
   and carried into its body by a smooth warp fitted on what the scan and the
@@ -49,29 +53,45 @@ Repairs, each checked by rendering the bodies:
 
 - The skull is kept under the skin: where it would come within 2.5 mm of
   it, seen from the brain, it is moved in, smoothly, by at most 5 mm.
-- The female skull is the male's, carried onto her head by a warp fitted on
-  the head's skin, the upper three neck vertebrae, the eyes and the teeth,
-  then kept under her skin the same way.
+- The skull model is carried onto the woman's head by a warp fitted on the
+  head's skin, the upper three neck vertebrae, the eyes and the teeth; her
+  own CT skull, laid on it, is kept under her skin the same way.
 - The brain both organ sets use (the Allen atlas's) is larger than either
   skull holds; it is scaled down about a point midway between the foot of
   the medulla and the optic chiasm, so the brainstem and the optic nerves
   stay where they meet it, by the least that puts it inside the skull's
   inner table nearly everywhere over the vault; the vault is then eased out
   where it still touches.
-- Each humerus is placed along the skin's arm, its head in the shoulder, and
-  turned so its epicondyles lie across the arm, medial toward the body: the
-  scans' arms lie otherwise.
+- Each side's clavicle and scapula are carried as one rigid piece, not by
+  the warp: nothing it is fitted on lies beside the rib cage at shoulder
+  height, so there it extrapolates, and stretched or squashed the shoulder
+  bones by up to 45% along an axis, differently on each side. Each side
+  takes the similarity that best matches the warp over it, both sides one
+  scale; then the two are made mirror images of each other about the upper
+  thoracic spine's midline (the scans' own sides are, within about 2 mm).
+- Each humerus is placed along the skin's arm, its head on the glenoid as
+  the scan's sits on its own, and turned so its epicondyles lie across the
+  arm, medial toward the body: the scans' arms lie otherwise.
 - The rib cage is widened, smoothly around the chest's axis, until the
   lungs, heart, liver, spleen, kidneys and colon sit inside it, but never
-  past the skin; the shoulder girdle rides with it. Each shoulder is then
-  turned down about the sternoclavicular joint until the clavicle and
-  scapula lie under the skin, the humerus following.
-- Each forearm and hand is set on its humerus at the elbow (the scan's own
-  humerus fitted to the body's carries it there), straightened toward the
-  skin's wrist, turned so the knuckles lie across as the skin's do, and
-  each finger laid along the skin's, joint by joint; forearm, hand and
-  fingers are sized to the skin within 15% (fingers 10%). One side is the
-  scanned one, the other its mirror image.
+  past the skin; each shoulder girdle moves with it, still rigid, its
+  sternoclavicular joint carried as the sternum is. Each girdle is then
+  settled on the trunk (the scans' shoulders are raised): turned about that
+  joint and moved a little, its joint kept as near the sternum as the
+  scan's, until it lies under the skin (the clavicle and the acromion just
+  under it), clear of the ribs, in the resting posture (the clavicle near
+  level, the shoulder blade's medial border near upright), the two sides as
+  near mirror images as the trunk allows; the humeri follow.
+- Each arm is one chain, its elbow from one scan (tools/anatomy_elbows.py):
+  that scan's humerus takes the place of the one placed above, its head's
+  centre on that one's, its shaft stretched so the elbow splits the arm as
+  the scans' does; the forearm's shaft is stretched to reach the skin's
+  wrist, which the arm meets by turning at the shoulder about the humerus's
+  long axis and bending at the elbow about its flexion axis (at most 5
+  degrees past straight); the forearm is turned so the knuckles lie across
+  as the skin's do, and each finger laid along the skin's, joint by joint;
+  forearm, hand and fingers are sized to the skin within 15% (fingers 10%).
+  One side is the scanned one, the other its mirror image.
 - The female organ set's hip bone is the ilium alone, stopping above the
   hip joint. Her scan's whole hip bones take its place: each fitted to her
   ilium (the scan's cut at the same height above its femoral head) and to
@@ -111,7 +131,7 @@ SKULL_SOURCE = {
 CT_SOURCE = {
     "id": "totalsegmentator-v3",
     "title": "Dataset with segmentations of 117 important anatomical structures in 1939 CT images, v3.0.0 "
-             "(TotalSegmentator; scans s1803, s1764, s1880 and s1767)",
+             "(TotalSegmentator; scans s1803, s1764, s1880, s1831 and s1767)",
     "creators": "Jakob Wasserthal et al. (Wasserthal et al., Radiology: Artificial Intelligence 2023, "
                 "https://doi.org/10.1148/ryai.230024)",
     "doi": "https://doi.org/10.5281/zenodo.22688904",
@@ -124,7 +144,8 @@ SUBJECT = {"male": "s1803", "female": "s1764"}
 CT_SHA256 = {"s1803": "a80b8b04288fbbf036d9097c0bd4f5af7824cbd184342d5897e02bda9b5a4337",
              "s1764": "783bff12299de037206dfb432144580dadc485d2645b34137c9716f5a773a98d",
              "s1880": "718e1a59035e1dabfca91f01874c33d023e559cdea4e9676a20a8c26c8e55f3c",
-             "s1767": "62fa7c94217e7d4cd33905e6914e872141b06bf7a5a6f52fa35e6ff3294fc35f"}
+             "s1767": "62fa7c94217e7d4cd33905e6914e872141b06bf7a5a6f52fa35e6ff3294fc35f",
+             "s1831": "f051382551efada9cc013fc4e6d6fd92779f7d760e9d34d9b5a9a9333b5b165a"}
 # What the run found, for the manifest's account of its changes.
 RESULTS = {}
 
@@ -140,6 +161,9 @@ RIB_UBERON = ["0004601", "0004602", "0004603", "0004604", "0004605", "0004606", 
 
 def u(n):
     return "UBERON:" + n
+
+
+HUMERUS_BUDGET = 1600   # triangles, for each humerus (the elbow's scan's, in the end: tools/anatomy_limbs.py)
 
 
 # The parts made from the scans: (id, name, system, the parts it goes before
@@ -170,7 +194,7 @@ def _ct_parts():
          pair("clavicula", "clavicle", "clavicle", "bone", 700, u("0001105"))
          + pair("scapula", "scapula", "scapula", "bone", 1800, u("0006849"))),
         ("arms", "Arm bones", "skeletal", ["vertebral-column"], "arm",
-         pair("humerus", "humerus", "humerus", "bone", 1600, u("0000976"))),
+         pair("humerus", "humerus", "humerus", "bone", HUMERUS_BUDGET, u("0000976"))),
         ("hip-muscles", "Hip muscles", "muscular", [], "pelvis",
          pair("gluteus_maximus", "gluteus_maximus", "gluteus maximus", "muscle", 2500, u("0001370"))
          + pair("gluteus_medius", "gluteus_medius", "gluteus medius", "muscle", 1800, u("0001371"))
@@ -435,6 +459,27 @@ def umeyama(src, dst, w=None):
     return s, R, md - s * R @ ms
 
 
+def icp(src, dst, s, R, t, scale, rounds=40):
+    """The similarity (s, R, t) laying the points src on the points dst,
+    refined from a start by nearest points matched both ways (the nearest
+    90% of each way's), so the scale cannot shrink onto part of dst; with
+    scale False the scale stays s. Returns it and how far apart the two
+    then lie (metres, the mean of both ways)."""
+    bt = cKDTree(dst)
+    for _ in range(rounds):
+        cur = src @ (s * R).T + t
+        d1, i1 = bt.query(cur); d2, i2 = cKDTree(cur).query(dst)
+        k1, k2 = d1 <= np.percentile(d1, 90), d2 <= np.percentile(d2, 90)
+        A, B = np.vstack([src[k1], src[i2[k2]]]), np.vstack([dst[i1[k1]], dst[k2]])
+        s1, R, t = umeyama(A, B)
+        if scale:
+            s = s1
+        else:
+            t = B.mean(0) - s * R @ A.mean(0)
+    cur = src @ (s * R).T + t
+    return (s, R, t), float(bt.query(cur)[0].mean() + cKDTree(cur).query(dst)[0].mean()) / 2
+
+
 def fit_skull(skull, body, atlas):
     """The similarity placing the skull's eyes and upper teeth on the body's:
     first the eyes' centres (the file's axes turned to the atlas's), then
@@ -490,8 +535,11 @@ def spread(U, need, degrees):
 def along(p, centre, U, field, degrees):
     """The field's value at each point's direction from centre, blended over neighbouring directions."""
     r = p - centre; up = r / np.linalg.norm(r, axis=1, keepdims=True)
-    cs = np.cos(np.radians(degrees)); K = np.clip((up @ U.T - cs) / (1 - cs), 0, 1); ws = K.sum(1)
-    return up, np.where(ws > 0, (K * field[None]).sum(1) / np.maximum(ws, 1e-9), 0)
+    cs = np.cos(np.radians(degrees)); out = np.zeros(len(p))
+    for i in range(0, len(p), 4000):   # a few thousand points at a time: the weights are points x directions
+        K = np.clip((up[i:i + 4000] @ U.T - cs) / (1 - cs), 0, 1); ws = K.sum(1)
+        out[i:i + 4000] = np.where(ws > 0, (K * field[None]).sum(1) / np.maximum(ws, 1e-9), 0)
+    return up, out
 
 
 def tuck(d, centre, skin, margin=0.0025, cap=0.005, ignore=0.008, n=3000, degrees=12):
@@ -650,6 +698,47 @@ def place_humerus(p, skin, faces, side, medial):
     return q @ _axis_angle(d, np.arctan2(np.cross(e, want) @ d, e @ want)).T + head
 
 
+def socket(folder, side, frame):
+    """Where the body's humeral head goes: the scan's own shoulder joint,
+    carried by the similarity that put the scan's scapula in the body
+    (girdles(), then widen_cage() and settle_girdles()). In the scan the
+    head (the sphere on the humerus's top 12%, as place_humerus finds it)
+    sits on its glenoid, 0 to 1.6 mm off it. folder: the body's scan; side:
+    "left" or "right"; frame: (scale, rotation, shift), the scan to the
+    body. Returns the head's centre and radius, and the glenoid's normal
+    (toward the head), in the body."""
+    hum, _ = ct_surface(folder, f"humerus_{side}"); scp, _ = ct_surface(folder, f"scapula_{side}")
+    c0, ax = _long_axis(hum); t = (hum - c0) @ ax; tree = cKDTree(scp)
+    if tree.query(hum[t > np.percentile(t, 94)].mean(0))[0] > tree.query(hum[t < np.percentile(t, 6)].mean(0))[0]:
+        t = -t      # the head is the end nearer the scapula
+    C, r = _sphere(hum[t > np.percentile(t, 88)])
+    gap = np.linalg.norm(scp - C, axis=1) - r; G = scp[gap < gap.min() + 0.006].mean(0)
+    k, R, sh = frame
+    return k * R @ C + sh, k * r, R @ ((C - G) / np.linalg.norm(C - G))
+
+
+def seat_humeri(body, folder, shoulders, arms):
+    """Each humerus moved so its head's centre is where socket() carries the
+    scan's, and re-placed along the skin's arm from there. shoulders, arms:
+    their parts, the humeri changed in place. Returns {side: (the glenoid's
+    normal, the head's radius)}, for anatomy_limbs to seat its own head."""
+    sp, sf = body.mesh("skin"); sockets = {}
+    for side, s in SIDES:
+        sign = 1 if side == "left" else -1
+        hi = next(i for i, st in enumerate(arms["structures"]) if st["node"] == f"TS_humerus_{s}")
+        C, r, n = socket(folder, side, shoulders["frames"][side])
+        hp, hf = arms["meshes"][hi][:2]; c, ax = _long_axis(hp)
+        if ax[1] < 0:
+            ax = -ax
+        head, _ = _sphere(hp[(hp - c) @ ax > np.percentile((hp - c) @ ax, 88)])
+        e, _ = _epicondyles(hp, ax)
+        medial = e if e[0] * sign < 0 else -e
+        arms["meshes"][hi] = (place_humerus(hp - head + C, sp, sf, sign, medial), hf)
+        sockets[side] = (n, r)
+        log(f"    {side} humeral head moved {np.linalg.norm(C - head) * 1000:.0f} mm onto its glenoid")
+    return sockets
+
+
 # MARK: making room
 
 def surface_points(v, f, h):
@@ -805,15 +894,99 @@ def _grid_field(y, th, value, yb, tb, reduce, sy=0.025, st=np.radians(25)):
     return lambda yy, tt: f(np.stack([yy, tt], 1))
 
 
-def widen_cage(body, cage, riders):
+def mirror_motions(left, right, xm):
+    """The rigid motions making two pieces mirror images of each other about
+    the plane x = xm, each going half way, in turn and in shift, to the
+    other's mirror image. left, right: their points. Returns (rotation,
+    shift) for the left and for the right, the left's turn to the right's
+    mirror image (radians) and how far apart the two then lie (metres)."""
+    from scipy.spatial.transform import Rotation
+    S = np.diag([-1.0, 1, 1]); m = np.array([2 * xm, 0, 0])
+    a, b = sample(left, 6000, 0), sample(right @ S + m, 6000, 1)
+    starts = [np.eye(3)] + [_axis_angle(e, np.radians(d)) for e in np.eye(3) for d in (-20, 20)]
+    (_, RD, tD), err = min((icp(a, b, 1.0, R0, b.mean(0) - R0 @ a.mean(0), False) for R0 in starts), key=lambda x: x[1])
+    half = Rotation.from_matrix(RD).as_rotvec() / 2; Rh = Rotation.from_rotvec(half).as_matrix()
+    th = np.linalg.solve(Rh + np.eye(3), tD)   # x -> Rh x + th, done twice, is x -> RD x + tD
+    return (Rh, th), (S @ Rh.T @ S, S @ Rh.T @ (m - th) + m), 2 * float(np.linalg.norm(half)), err
+
+
+def girdles(body, folder, w, rows):
+    """The clavicles and scapulae, each side's two as one rigid piece. The
+    warp is fitted on the spine and the organs, so beside the rib cage at
+    shoulder height it extrapolates, and would stretch one shoulder blade
+    and squash the other. Each side is instead carried by the similarity
+    that best matches the warp over it, both sides at one scale (the
+    geometric mean of the two similarities'), the turn kept, its
+    sternoclavicular joint (the girdle's one joint with the trunk, by the
+    sternum, where the warp is held well) where the warp puts it; then the
+    two are turned about their joints to mirror images of each other about
+    the upper thoracic spine's midline, each half way to the other's mirror
+    image (the scans' own left and right are mirror images within about
+    2 mm). Returns the structures, the meshes, each side's frame (scale,
+    rotation, shift: the scan to the body), and each side's joint in the
+    scan with how far it lies from the scan's sternum (metres)."""
+    loaded = []
+    for mask, *_ in rows:
+        a, A = load_mask(os.path.join(folder, mask + ".nii.gz")); m = ct_mesh(a, A, sigma=0.8, share=0.05)
+        assert m is not None, f"the scan's {mask} is empty"
+        loaded.append(m)
+    on = {side: [i for i, row in enumerate(rows) if row[0].endswith("_" + side)] for side, _ in SIDES}
+    sims = {}
+    for side, idx in on.items():
+        p = np.vstack([loaded[i][0] for i in idx]); sims[side] = (p, *umeyama(p, w(p)))
+    k = float(np.sqrt(sims["left"][1] * sims["right"][1]))
+    # each side's sternoclavicular joint, the girdle's one joint with the trunk: the last 3% of the
+    # clavicle's end nearer the other clavicle; the warp carries it well (it lies by the sternum)
+    clav = {side: loaded[next(i for i in idx if rows[i][0].startswith("clavicula"))][0] for side, idx in on.items()}
+    joint = {}
+    for side, other in (("left", "right"), ("right", "left")):
+        c, ax = _long_axis(clav[side]); t = (clav[side] - c) @ ax; far = clav[other].mean(0)
+        if np.linalg.norm(clav[side][t > 0].mean(0) - far) > np.linalg.norm(clav[side][t < 0].mean(0) - far):
+            t = -t
+        joint[side] = clav[side][t > np.percentile(t, 97)].mean(0)
+    sternum = cKDTree(surface_points(*ct_surface(folder, "sternum"), 0.001))
+    joints = {side: (j, float(sternum.query(j)[0])) for side, j in joint.items()}
+    wj = {side: w(j[None])[0] for side, j in joint.items()}
+    # at a fixed scale the best turn is the same; the joint where the warp puts it
+    frames = {side: (k, R, wj[side] - k * R @ joint[side]) for side, (p, s, R, t) in sims.items()}
+    xm = midline(body.pts(r"^thoracic_vertebra_[1-7]$"))
+    placed = {side: sims[side][0] @ (k * R).T + t for side, (k, R, t) in frames.items()}
+    moves = mirror_motions(placed["left"], placed["right"], xm)
+    for side, (Q, d) in zip(("left", "right"), moves[:2]):
+        k, R, t = frames[side]; R, t = Q @ R, Q @ t + d
+        frames[side] = (k, R, t + wj[side] - (k * R @ joint[side] + t))   # the joint back where the warp put it
+        log(f"    shoulders: the {side} girdle scaled by {k:.3f} (the warp's {sims[side][1]:.3f}) about its "
+            f"sternoclavicular joint, turned {np.degrees(np.arccos(np.clip((np.trace(Q) - 1) / 2, -1, 1))):.1f} degrees about it")
+    log(f"    shoulders: the two turned to mirror images about x = {xm * 1000:.0f} mm (the left was "
+        f"{np.degrees(moves[2]):.0f} degrees from the right's, its bone within {moves[3] * 1000:.1f} mm of it, matched); "
+        f"the joints {np.round(wj['left'] * 1000).astype(int).tolist()} and {np.round(wj['right'] * 1000).astype(int).tolist()} mm")
+    structures, meshes = [], []
+    for (mask, node, label, tissue, budget, uberon), (p, f) in zip(rows, loaded):
+        k, R, t = frames["left" if mask.endswith("_left") else "right"]
+        meshes.append((p @ (k * R).T + t, f, budget))
+        structures.append({"node": node, "label": label, "uberon": uberon, "tissue": tissue, "group": "Shoulder girdle",
+                           "inner": False})
+    log(f"    shoulders: in the scan, the sternoclavicular joints lie {joints['left'][1] * 1000:.1f} (left) and "
+        f"{joints['right'][1] * 1000:.1f} mm (right) from the sternum")
+    return structures, meshes, frames, joints
+
+
+def widen_cage(body, cage, riders=(), joints=()):
     """Widen the rib cage, smoothly by height and angle about the chest's
     axis, until it clears the organs inside it, never closer than 6 mm to
-    the skin; what rides on it (the shoulder girdle) moves with it. cage,
-    riders: lists of [positions, triangles] changed in place."""
+    the skin. What rides on it (each side's shoulder girdle) moves with it
+    as one rigid piece: turned as the widening would turn its points, at
+    best, and shifted so its joint with the cage goes where the widening
+    takes that point (turning a girdle about its middle would carry its
+    sternoclavicular joint off the sternum). cage: [positions, triangles]
+    lists, changed in place; riders: lists of them, one per piece, changed
+    in place; joints: each piece's joint, a list, changed in place.
+    Returns each piece's motion (rotation, shift)."""
     organs = [Solid([m for m in body.part(o)["meshes"]]) for o in ("lungs", "liver", "heart", "spleen", "kidneys", "colon")
               if body.part(o) is not None]
     skin = Solid([body.mesh("skin")], h=0.003, close=1)
-    ax = chest_axis(body)
+    ax = chest_axis(body); motions = [(np.eye(3), np.zeros(3)) for _ in riders]
+    start = [np.concatenate([m[0] for m in piece]).mean(0) for piece in riders]
     for r in range(4):
         pts = np.concatenate([m[0] for m in cage]); need = _exits(pts, ax, organs)
         log(f"    cage, round {r}: {np.mean(need > 0):.1%} of its points inside organs, the deepest {need.max() * 1000:.0f} mm")
@@ -821,44 +994,159 @@ def widen_cage(body, cage, riders):
             break
         y, th = _cyl(pts, ax); yb = np.arange(y.min() - 0.02, y.max() + 0.02, 0.005); tb = np.linspace(-np.pi, np.pi, 72, endpoint=False)
         grow = _grid_field(y, th, need, yb, tb, "max"); room = _grid_field(y, th, _room(pts, ax, skin), yb, tb, "min")
-        for m in cage + riders:
-            yy, tt = _cyl(m[0], ax); m[0] = m[0] + _outward(m[0], ax) * np.minimum(grow(yy, tt), room(yy, tt))[:, None]
+        def moved(p):
+            yy, tt = _cyl(p, ax)
+            return p + _outward(p, ax) * np.minimum(grow(yy, tt), room(yy, tt))[:, None]
+        for m in cage:
+            m[0] = moved(m[0])
+        for i, piece in enumerate(riders):
+            p = np.concatenate([m[0] for m in piece]); q = moved(p)
+            _, Q, _ = umeyama(p, q); to = moved(joints[i][None])[0]; d = to - Q @ joints[i]
+            for m in piece:
+                m[0] = m[0] @ Q.T + d
+            motions[i] = (Q @ motions[i][0], Q @ motions[i][1] + d); joints[i] = to
+    for c, (Q, d) in zip(start, motions):
+        log(f"    a piece riding on the cage moved {np.round((Q @ c + d - c) * 1000).astype(int).tolist()} mm, "
+            f"turned {np.degrees(np.arccos(np.clip((np.trace(Q) - 1) / 2, -1, 1))):.1f} degrees")
+    return motions
 
 
-def lower_shoulders(body, shoulders, arms):
-    """Turn each side's clavicle and scapula down about the sternoclavicular
-    joint, by the least that brings them under the skin, and its humerus's
-    head with them (the scans' shoulders are raised); then re-place the
-    humerus along the arm. shoulders, arms: their parts, changed in place."""
-    skin = Solid([body.mesh("skin")], h=0.003, close=1); sp, sf = body.mesh("skin")
+# How a shoulder girdle rests on the trunk (settle_girdles), the usual resting
+# posture: the clavicle's shaft and the acromion this deep under the skin
+# (metres: both lie just under it); the shoulder blade at least this clear of
+# the ribs and every point of the girdle at least this far under the skin;
+# the clavicle near level, rising this much from the sternum to the acromion,
+# and the shoulder blade's medial border near upright, about parallel to the
+# spine, this far from it (degrees).
+REST = dict(clavicle=0.006, acromion=0.008, rib=0.003, skin=0.002, rise=10.0, tilt=5.0)
+# How far each may stray at the cost of one unit: those, and the girdle's turn
+# about its joint (degrees), its joint's distance to the sternum from the
+# scan's own, and the two sides' landmarks from mirror images of each other.
+SPREAD = dict(clavicle=0.004, acromion=0.005, rib=0.0015, skin=0.001, rise=6.0, tilt=6.0, turn=20.0, gap=0.003,
+              mirror=0.015)
+
+
+class _Signed:
+    """A signed distance (metres, positive inside the solids, at most `cap`
+    either way) on a grid over a box, read back between its points by
+    trilinear interpolation: the distance to the nearest of the surfaces'
+    points, its sign from the solids."""
+    def __init__(self, lo, hi, h, points, solids, cap=0.04):
+        self.lo, self.h = lo, h
+        n = np.ceil((hi - lo) / h).astype(int) + 1
+        grid = np.stack(np.meshgrid(*[lo[i] + h * np.arange(n[i]) for i in range(3)], indexing="ij"), -1).reshape(-1, 3)
+        near = points[((points > lo - cap) & (points < hi + cap)).all(1)]
+        d = np.minimum(cKDTree(near).query(grid, distance_upper_bound=cap, workers=-1)[0], cap) if len(near) else np.full(len(grid), cap)
+        inside = np.zeros(len(grid), bool)
+        for S in solids:
+            inside |= S.inside(grid)
+        self.f = np.where(inside, d, -d).reshape(n)
+
+    def __call__(self, p):
+        return ndimage.map_coordinates(self.f, ((p - self.lo) / self.h).T, order=1, mode="nearest")
+
+
+class _Girdle:
+    """One side's clavicle and scapula as one rigid piece, turned about its
+    sternoclavicular joint J and shifted: its landmarks (the clavicle's
+    medial and lateral ends, the acromion, the scapula's inferior and
+    superior angles, the joint) and samples of its points."""
+    def __init__(self, clav, scap, sign, xm, J, gap):
+        self.sign, self.J, self.gap = sign, J, gap
+        lat = (clav[:, 0] - xm) * sign; c, ax = _long_axis(clav); t = (clav - c) @ ax
+        lo, hi = np.percentile(t, [10, 90]); self.shaft = sample(clav[(t > lo) & (t < hi)], 200, 0)
+        slat = (scap[:, 0] - xm) * sign; med = scap[slat < np.percentile(slat, 8)]
+        self.marks = np.vstack([clav[np.argmin(lat)], clav[np.argmax(lat)], scap[slat > np.percentile(slat, 99)].mean(0),
+                                scap[np.argmin(scap[:, 1])], med[np.argmax(med[:, 1])], J])
+        self.scap = sample(scap, 600, 1); self.all = sample(np.vstack([clav, scap]), 800, 2)
+
+    def moved(self, p, R, d):
+        return (p - self.J) @ R.T + self.J + d
+
+    def measure(self, skin, ribs, sternum, R, d):
+        cm, cl, ac, inf, sup, J = self.moved(self.marks, R, d)
+        dep = skin(self.moved(self.all, R, d)); shaft = np.sort(skin(self.moved(self.shaft, R, d)))
+        rd = -ribs(self.moved(self.scap, R, d))
+        return dict(out=float(np.mean(dep < 0)), skin=float(np.mean(np.maximum(0, REST["skin"] - dep) ** 2)),
+                    clavicle=float(shaft[:10].mean()), acromion=float(skin(ac[None])[0]),
+                    inrib=float(np.mean(rd < 0)), rib=float(np.mean(np.maximum(0, REST["rib"] - rd) ** 2)),
+                    rib5=float(np.percentile(rd, 5)), gap=float(sternum.query(J)[0]),
+                    rise=float(np.degrees(np.arctan2(cl[1] - cm[1], abs(cl[0] - cm[0])))),
+                    tilt=float(np.degrees(np.arctan2((inf[0] - sup[0]) * self.sign, sup[1] - inf[1]))))
+
+    def cost(self, mm, turn):
+        s = SPREAD
+        return (400 * mm["skin"] / s["skin"] ** 2 + 400 * mm["rib"] / s["rib"] ** 2
+                + ((mm["clavicle"] - REST["clavicle"]) / s["clavicle"]) ** 2 + ((mm["acromion"] - REST["acromion"]) / s["acromion"]) ** 2
+                + ((mm["gap"] - self.gap) / s["gap"]) ** 2 + ((mm["rise"] - REST["rise"]) / s["rise"]) ** 2
+                + ((mm["tilt"] - REST["tilt"]) / s["tilt"]) ** 2 + (turn / s["turn"]) ** 2)
+
+
+def settle_girdles(body, shoulders, arms):
+    """Each side's shoulder girdle (clavicle and scapula, one rigid piece)
+    settled on the trunk, in place of the scan's raised shoulders: its
+    sternoclavicular joint kept at the sternum about as the scan's sits (its
+    distance to the sternum near the scan's), the piece turned about that
+    joint and moved a little until it lies under the skin (the clavicle's
+    shaft and the acromion at their usual depth), clear of the ribs, in the
+    resting posture (REST), the two sides as near mirror images of each other
+    as the body allows, about the plane halfway between their joints. The
+    trunk may not allow both: the reference man's spine and ribs are not
+    symmetric (his upper thoracic spine lies right of his skin's midline and
+    his left ribs reach farther out), so his left girdle rests a little
+    higher than his right. One side at a time against the other's mirror
+    image, three rounds, Nelder-Mead from a few starts; each humerus's head
+    goes with its side. shoulders, arms: their parts, changed in place, the
+    shoulders' frames with them."""
+    from scipy.optimize import minimize
+    from scipy.spatial.transform import Rotation
+    at = lambda part, node: next(i for i, st in enumerate(part["structures"]) if st["node"] == node)
+    pieces = {side: [shoulders["meshes"][at(shoulders, f"TS_{n}_{s}")][0] for n in ("clavicle", "scapula")] for side, s in SIDES}
+    allp = np.vstack([p for ps in pieces.values() for p in ps]); lo, hi = allp.min(0) - 0.06, allp.max(0) + 0.06
+    sp, sf = body.mesh("skin")
+    skin = _Signed(lo, hi, 0.003, surface_points(sp, sf, 0.003), [Solid([(sp, sf)], h=0.003, close=1)])
+    cage = [(np.asarray(m[0]), m[1]) for m in body.part("ribs")["meshes"]]
+    ribs = _Signed(lo, hi, 0.003, np.vstack([surface_points(*m, 0.002) for m in cage]), [Solid([m]) for m in cage])
+    sternum = cKDTree(np.vstack([surface_points(np.asarray(m[0]), m[1], 0.001) for m in body.part("sternum")["meshes"]]))
+    xm = midline(body.pts(r"^thoracic_vertebra_[1-7]$")); g = {}
     for side, s in SIDES:
-        sign = 1 if side == "left" else -1
-        ci = next(i for i, st in enumerate(shoulders["structures"]) if st["node"] == f"TS_clavicle_{s}")
-        si = next(i for i, st in enumerate(shoulders["structures"]) if st["node"] == f"TS_scapula_{s}")
-        hi = next(i for i, st in enumerate(arms["structures"]) if st["node"] == f"TS_humerus_{s}")
-        clav, scap = shoulders["meshes"][ci][0], shoulders["meshes"][si][0]
-        joint = clav[np.argmin(np.abs(clav[:, 0]))]
-        both = np.concatenate([clav, scap])
-        for deg in range(0, 41):
-            # about +z a positive turn takes +x up, so the left side (x > 0)
-            # turns by a negative angle to bring its lateral end down
-            R = _axis_angle(np.array([0, 0, 1.0]), -np.radians(deg) * sign)
-            out = 1 - skin.inside((both - joint) @ R.T + joint).mean()
-            if out < 0.003:
-                break
-        log(f"    {side} shoulder lowered {deg} degrees; {out:.1%} of it outside the skin")
-        if deg == 0:
-            continue
-        shoulders["meshes"][ci][0] = (clav - joint) @ R.T + joint
-        shoulders["meshes"][si][0] = (scap - joint) @ R.T + joint
-        hp = arms["meshes"][hi][0]; c, ax = _long_axis(hp)
+        (Js, gap), (k, R, t) = shoulders["joints"][side], shoulders["frames"][side]
+        g[side] = _Girdle(*pieces[side], 1 if side == "left" else -1, xm, k * R @ Js + t, k * gap)
+    S = np.diag([-1.0, 1, 1]); m2 = np.array([g["left"].J[0] + g["right"].J[0], 0, 0])
+    x = {side: np.zeros(6) for side, _ in SIDES}
+    unpack = lambda v: (Rotation.from_rotvec(np.radians(v[:3])).as_matrix(), v[3:] / 1000)   # degrees, mm
+    for r in range(3):
+        for side, other in (("left", "right"), ("right", "left")):
+            gd = g[side]; target = g[other].moved(g[other].marks, *unpack(x[other])) @ S + m2
+            def total(v):
+                R, d = unpack(v)
+                return (gd.cost(gd.measure(skin, ribs, sternum, R, d), np.linalg.norm(v[:3]))
+                        + (np.linalg.norm(gd.moved(gd.marks, R, d) - target, axis=1).mean() / SPREAD["mirror"]) ** 2)
+            starts = [x[side]] + ([np.r_[0, a, b, 0, 0, 0] for a in (-8, 8) for b in (-8, 8)] if r == 0 else [])
+            x[side] = min((minimize(total, x0, method="Nelder-Mead", options=dict(
+                initial_simplex=np.vstack([x0, x0 + np.diag([3.0] * 6)]), xatol=0.1, fatol=1e-3, maxfev=900)) for x0 in starts),
+                key=lambda res: res.fun).x
+    zero = (np.eye(3), np.zeros(3))
+    apart = lambda a, b: np.linalg.norm(g["left"].moved(g["left"].marks, *a) - (g["right"].moved(g["right"].marks, *b) @ S + m2), axis=1).mean()
+    for side, s in SIDES:
+        gd, sign = g[side], (1 if side == "left" else -1); R, d = unpack(x[side])
+        for tag, mm in (("as placed", gd.measure(skin, ribs, sternum, *zero)), ("settled", gd.measure(skin, ribs, sternum, R, d))):
+            log(f"    {side} girdle {tag}: joint {mm['gap'] * 1000:.1f} mm from the sternum (the scan's {gd.gap * 1000:.1f}); "
+                f"{mm['out']:.1%} outside the skin; clavicle {mm['clavicle'] * 1000:.0f} mm and acromion {mm['acromion'] * 1000:.0f} mm deep; "
+                f"{mm['inrib']:.1%} of the scapula inside the ribs; clavicle rising {mm['rise']:.0f} degrees, medial border {mm['tilt']:+.0f}")
+        log(f"    {side} girdle turned {np.linalg.norm(x[side][:3]):.1f} degrees about its joint, moved {np.linalg.norm(x[side][3:]):.1f} mm")
+        for n in ("clavicle", "scapula"):
+            i = at(shoulders, f"TS_{n}_{s}"); shoulders["meshes"][i][0] = gd.moved(shoulders["meshes"][i][0], R, d)
+        k, Rf, t = shoulders["frames"][side]; shoulders["frames"][side] = (k, R @ Rf, R @ (t - gd.J) + gd.J + d)
+        hi_ = at(arms, f"TS_humerus_{s}"); hp = arms["meshes"][hi_][0]; c, ax = _long_axis(hp)
         if ax[1] < 0:
             ax = -ax
         head, _ = _sphere(hp[(hp - c) @ ax > np.percentile((hp - c) @ ax, 88)])
-        moved = (head - joint) @ R.T + joint
         e, _ = _epicondyles(hp, ax)
         medial = e if e[0] * sign < 0 else -e
-        arms["meshes"][hi][0] = place_humerus(hp - head + moved, sp, sf, sign, medial)
+        arms["meshes"][hi_][0] = place_humerus(hp - head + gd.moved(head[None], R, d)[0], sp, sf, sign, medial)
+    log(f"    the two girdles' landmarks from mirror images: {apart(zero, zero) * 1000:.0f} mm as placed, "
+        f"{apart(unpack(x['left']), unpack(x['right'])) * 1000:.0f} mm settled")
 
 
 # MARK: the scans' warps
@@ -1025,6 +1313,8 @@ def ct_part(body, sex, folder, warp, pid, name, system, rows):
     structures, meshes = [], []
     if pid == "arms":
         return arms(body, folder, warp, rows)
+    if pid == "shoulders":
+        return girdles(body, folder, warp, rows)
     for mask, node, label, tissue, budget, uberon in rows:
         a, A = load_mask(os.path.join(folder, mask + ".nii.gz"))
         m = ct_mesh(a, A, sigma=0.8 if tissue in ("bone", "cartilage", "muscle") else 1.0, share=0.05)
@@ -1066,19 +1356,28 @@ def place(parts, new, before):
 
 # MARK: both bodies
 
-def extend(bodies, skull_path, ct_dir, atlas):
+def extend(bodies, skull_path, ct_dir, vh_dir, atlas):
     """Add the missing parts to both bodies and size their brains. bodies:
     {"male": parts, "female": parts}, each part a dict with id, name,
     system, structures (without triangles) and meshes [(positions,
-    triangles)], as anatomy_atlas.py collected them; changed in place."""
+    triangles)], as anatomy_atlas.py collected them; changed in place.
+    vh_dir: the Visible Human CT's head slices, a folder per body (male/,
+    female/; tools/anatomy_skull.py)."""
     got = _sha(skull_path)
     assert got == SKULL_SOURCE["sha256"], f"{skull_path}: SHA-256 {got}, expected {SKULL_SOURCE['sha256']}"
-    import anatomy_limbs, anatomy_feet
+    import sys
+    import anatomy_limbs, anatomy_feet, anatomy_elbows, anatomy_skull
+    for sex in ("male", "female"):
+        folder = os.path.join(vh_dir, sex); got = anatomy_skull.digest(folder, anatomy_skull.files_used(sex))
+        assert anatomy_skull.VH_SHA256[sex] in (None, got), f"{folder}: files digest {got}, expected {anatomy_skull.VH_SHA256[sex]}"
+        anatomy_skull.VH_SHA256[sex] = got
     need = {}
     for sex, subject in SUBJECT.items():
         need.setdefault(subject, set()).update(masks_used(sex))
     for sex in ("male", "female"):   # the forearms and hands: the CT itself, and the bones taken out before them
         need.setdefault(anatomy_limbs.LIMBS[sex]["subject"], set()).update(anatomy_limbs.files_used(sex))
+    for sex in ("male", "female"):   # the elbows: the CT, the humerus, and the bones set aside around it
+        need.setdefault(anatomy_elbows.ELBOWS[sex]["subject"], set()).update(anatomy_elbows.files_used(sex))
     for sex in ("male", "female"):   # the feet: the CT itself
         need.setdefault(anatomy_feet.FEET[sex]["subject"], set()).update(anatomy_feet.files_used(sex))
     for subject, names in need.items():
@@ -1091,7 +1390,6 @@ def extend(bodies, skull_path, ct_dir, atlas):
     log("the heads")
     skull = fit_skull(load_skull(skull_path, atlas), male, atlas)
     cm = male.pts(part="brain").mean(0); skin_m = head_skin(male)
-    skull_m = tuck(skull, cm, skin_m)
     skin_f = head_skin(female); cf = female.pts(part="brain").mean(0)
     def marks(b):
         return [centroid(*b.mesh(n)) for n in ("sclera_L", "sclera_R", "set_of_upper_jaw_teeth", "set_of_lower_jaw_teeth")]
@@ -1101,7 +1399,12 @@ def extend(bodies, skull_path, ct_dir, atlas):
     head += [(n, a[None], b[None], 4.0, "centre") for n, a, b in zip(("eye L", "eye R", "upper teeth", "lower teeth"), marks(male), marks(female))]
     log("  her head, from his")
     W = register(head, rounds=(3e-2, 1e-2, 3e-3, 1e-3))
-    skull_f = tuck({k: (W(v), f) for k, (v, f) in skull_m.items()}, cf, skin_f)
+    model = {"male": skull, "female": {k: (W(v), f) for k, (v, f) in skull.items()}}
+    for body in (male, female):   # each body's own skull, from its CT, laid on the model
+        log(f"  {body.sex}: the skull from the body's own CT")
+        model[body.sex] = anatomy_skull.ct_skull(body.sex, os.path.join(vh_dir, body.sex), model[body.sex], body,
+                                                 atlas.simplify, sys.modules[__name__])
+    skull_m, skull_f = tuck(model["male"], cm, skin_m), tuck(model["female"], cf, skin_f)
     for body, sk, skin, c in ((male, skull_m, skin_m, cm), (female, skull_f, skin_f, cf)):
         s, pv, sk = size_brain(body, sk); RESULTS[body.sex + " brain scale"] = s
         brain = body.part("brain")
@@ -1127,18 +1430,25 @@ def extend(bodies, skull_path, ct_dir, atlas):
         for pid, name, system, before, region, rows in CT_PARTS:
             if pid == "sternum" and body.part("sternum") is not None:
                 continue
-            structures, meshes = ct_part(body, sex, folder, ws[region], pid, name, system, rows)
+            structures, meshes, *extra = ct_part(body, sex, folder, ws[region], pid, name, system, rows)
             part = {"id": pid, "name": name, "system": system, "structures": structures,
                     "meshes": [list(atlas.simplify(p, f, b)) for p, f, b in meshes]}
+            if extra:   # the shoulders': each side's girdle, the scan to the body, and its joint in the scan
+                part["frames"], part["joints"] = extra
             place(body.parts, part, before); made[pid] = part
             log(f"    {pid}: {len(structures)} structures")
         if hips:
             put_hips(body, hips, atlas)
             log("    pelvis: the whole hip bones in place of the ilia")
         body.__init__(sex, body.parts)
-        widen_cage(body, made["ribs"]["meshes"] + (made["sternum"]["meshes"] if "sternum" in made else []),
-                   made["shoulders"]["meshes"])
-        lower_shoulders(body, made["shoulders"], made["arms"])
+        girdle = made["shoulders"]
+        pieces = [[m for st, m in zip(girdle["structures"], girdle["meshes"]) if st["node"].endswith("_" + s)] for _, s in SIDES]
+        joints = [girdle["frames"][side][0] * girdle["frames"][side][1] @ girdle["joints"][side][0] + girdle["frames"][side][2]
+                  for side, _ in SIDES]
+        motions = widen_cage(body, made["ribs"]["meshes"] + (made["sternum"]["meshes"] if "sternum" in made else []), pieces, joints)
+        for (side, _), (Q, d) in zip(SIDES, motions):
+            k, R, t = girdle["frames"][side]; girdle["frames"][side] = (k, Q @ R, Q @ t + d)
+        settle_girdles(body, girdle, made["arms"])
         for part in made.values():
             part["meshes"] = [tuple(m) for m in part["meshes"]]
         body.__init__(sex, body.parts)
@@ -1149,12 +1459,14 @@ def extend(bodies, skull_path, ct_dir, atlas):
         body.__init__(sex, body.parts)
         log(f"  {sex}: the forearms and hands, from the scan {anatomy_limbs.LIMBS[sex]['subject']}")
         arms = made["arms"]
+        sockets = seat_humeri(body, folder, made["shoulders"], arms)
+        del made["shoulders"]["frames"], made["shoulders"]["joints"]
         humeri = {side: next(m[0] for st, m in zip(arms["structures"], arms["meshes"]) if st["node"] == f"TS_humerus_{s}")
                   for side, s in SIDES}
-        structures, meshes, facts, fitted = anatomy_limbs.limbs(sex, ct_dir, humeri, body.mesh("skin"))
-        for side, s in SIDES:   # each humerus stretched so its elbow sits where the skin's arm bends
+        structures, meshes, facts, humerus = anatomy_limbs.limbs(sex, ct_dir, humeri, body.mesh("skin"), sockets)
+        for side, s in SIDES:   # each humerus the elbow's scan's, posed with the forearm (its budget the row's)
             hi = next(i for i, st in enumerate(arms["structures"]) if st["node"] == f"TS_humerus_{s}")
-            m = list(arms["meshes"][hi]); m[0] = fitted[side]; arms["meshes"][hi] = type(arms["meshes"][hi])(m)
+            arms["meshes"][hi] = tuple(atlas.simplify(*humerus[side], HUMERUS_BUDGET))
         arms["structures"] += structures
         arms["meshes"] += [tuple(atlas.simplify(p, f, b)) for p, f, b in meshes]
         arms["name"] = "Arm and hand bones"; RESULTS[sex + " limbs"] = facts
