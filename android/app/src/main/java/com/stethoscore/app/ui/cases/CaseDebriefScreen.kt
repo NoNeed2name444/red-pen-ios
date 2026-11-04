@@ -240,7 +240,7 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                         val right = file.isDiagnosis(lead)
                         val label = file.step(taken.stepID)?.label
                         Row(
-                            Modifier.clearAndSetSemantics { contentDescription = "After ${label ?: "a step"}, your leading diagnosis was $lead" + if (right) ", right" else "" },
+                            Modifier.clearAndSetSemantics { contentDescription = "After ${label ?: "a step"}, your leading diagnosis was $lead" + if (right) ", which was right" else "" },
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text("${taken.at} min", Modifier.widthIn(min = 48.dp), style = WardTextStyle.caption.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))

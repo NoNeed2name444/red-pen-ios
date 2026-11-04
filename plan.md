@@ -3582,7 +3582,7 @@ mode's colour as an underline under it, on both apps.
 - [x] A6 D16 on both: answer ink, mode colour underline; contrast tests (ink 4.5:1; the underline has no ratio, the owner's light accents sit under 3:1 and it is not the only mark).
 - [x] A7 T0157 nits: test comment, iOS `filled` renamed `bold`, Android RatingButton reads one label.
 - [x] Repair 1: iOS gap underline colour moved into its `Text.LineStyle` (Text ignores `underlineColor`), with a source guard on each platform; Android guards for ChipBox's, CountChip's and the timer's near-black chosen words; rating rings kept at a control edge's strength, the reason in colour-roles.md.
-- [x] T0168: the case debrief's teaching number in Biro Grey like the minute numbers, and a right leading diagnosis in ink with a check in the mode colour (spoken ", right"), on both apps.
+- [x] T0168: the case debrief's teaching number in Biro Grey like the minute numbers, and a right leading diagnosis in ink with a check in the mode colour (spoken ", which was right"), on both apps.
 - [ ] The next Mac run's screenshots are the proof for iOS (no SwiftUI here).
 ### The design audit's follow-through (T0154f, 29 Oct)
 

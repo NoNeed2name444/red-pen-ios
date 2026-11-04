@@ -232,7 +232,7 @@ struct CaseDebriefView: View {
                         .foregroundStyle(Color.primary)
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("After \(file.step(taken.stepID)?.label ?? "a step"), your leading diagnosis was \(lead)\(right ? ", right" : "")")
+                .accessibilityLabel("After \(file.step(taken.stepID)?.label ?? "a step"), your leading diagnosis was \(lead)\(right ? ", which was right" : "")")
             }
         }
     }
