@@ -52,7 +52,7 @@ struct CaseListView: View {
             // one comfortable column on a wide iPad
             .readableColumn()
         }
-        .wardScreen()
+        .wardScreen(wash: .cases)
         // the Cases hue on the paper's grid and the controls' edges
         .wardSection(.cases)
         .navigationTitle(current.name)

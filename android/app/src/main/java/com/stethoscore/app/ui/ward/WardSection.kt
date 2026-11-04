@@ -99,6 +99,55 @@ enum class WardSection {
     }
 }
 
+/**
+ * The colour wash behind a mode's screens (the owner, 4 Nov; iOS WardModeWash):
+ * the base, top to bottom, mixed toward the mode's earlier colour, which serves
+ * the wash alone (buttons, words and glyphs keep the section's accent). The
+ * colour is first pulled toward grey, and the mix runs from the top edge to
+ * nothing by a quarter down, nothing to six tenths, then up to the bottom edge;
+ * at night it is weaker. Ideas has none. Mixed in plain sRGB components.
+ */
+object WardModeWash {
+    /** Each mode's earlier colour, 0xRRGGBB. */
+    val colour: Map<WardSection, Int> = mapOf(
+        WardSection.questions to 0xC72929, WardSection.cards to 0x4F5CDB, WardSection.textbook to 0x1A8C80,
+        WardSection.cases to 0xE67D21, WardSection.osce to 0x339E59, WardSection.audio to 0x8C52CC,
+    )
+
+    /** How far the colour is pulled toward [grey] before it is mixed in. */
+    const val greyPull = 0.35
+    val grey = WardRgb(0.5, 0.5, 0.52)
+
+    /** (location, mix) from the top edge to the bottom edge. */
+    val stops: List<Pair<Double, Double>> = listOf(0.0 to 0.08, 0.25 to 0.0, 0.60 to 0.0, 1.0 to 0.12)
+
+    /** The night's share of each mix. */
+    const val night = 0.7
+
+    /** The wash's colour at [mix] (before the night's share), or null where the section has none. */
+    fun hex(section: WardSection, dark: Boolean, mix: Double): Int? {
+        val old = colour[section] ?: return null
+        val o = WardPalette.rgb(old)
+        val hue = WardRgb(o.r + (grey.r - o.r) * greyPull, o.g + (grey.g - o.g) * greyPull, o.b + (grey.b - o.b) * greyPull)
+        val base = WardPalette.rgb(WardPalette.hex(WardToken.background, dark))
+        val t = mix * (if (dark) night else 1.0)
+        fun channel(b: Double, to: Double): Int = WardPalette.round((b + (to - b) * t).coerceIn(0.0, 1.0) * 255)
+        return (channel(base.r, hue.r) shl 16) or (channel(base.g, hue.g) shl 8) or channel(base.b, hue.b)
+    }
+
+    /** The wash's stops as 0xRRGGBB, top to bottom, or null for no wash. */
+    fun stops(section: WardSection, dark: Boolean): List<Pair<Double, Int>>? {
+        if (section !in colour) return null
+        return stops.map { (at, mix) -> at to hex(section, dark, mix)!! }
+    }
+
+    /** The wash at its strongest, the bottom edge, where contrast is least. */
+    fun strongest(section: WardSection, dark: Boolean): Int? = hex(section, dark, stops.maxOf { it.second })
+
+    /** The wash at the top edge, under the bar area. */
+    fun top(section: WardSection, dark: Boolean): Int? = hex(section, dark, stops.first().second)
+}
+
 /** The wash behind the word being spoken in Audio: the section's fill at this strength, under Chart Ink words. */
 object WardWash {
     const val alpha = 0.22

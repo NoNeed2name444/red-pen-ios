@@ -214,7 +214,12 @@ import com.stethoscore.app.ui.library.LibraryEtch
         // the header as the list scrolls; gone with the header
         var bandBottom by remember { mutableStateOf<Float?>(null) }
         if(onGround) WardGroundBackground(WardGround.home(section, dark),Modifier.fillMaxSize(),gridBottom={ bandBottom })
-        Surface(Modifier.fillMaxSize(),color=if(onGround) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) { WardCornerScope(framed=!onGround) {
+        // a mode's screens stand on its wash (the owner, 4 Nov; iOS modeScreen), the faces on it see-through
+        val modeWash=if(screen in modeWashScreens) com.stethoscore.app.ui.ward.WardModeWash.stops(section, dark) else null
+        if(modeWash!=null) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(
+            *modeWash.map { (at, hex) -> at.toFloat() to wardRgb(hex) }.toTypedArray())))
+        Surface(Modifier.fillMaxSize(),color=if(onGround || modeWash!=null) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) {
+        androidx.compose.runtime.CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWardModeWash provides if(modeWash!=null) section else null) { WardCornerScope(framed=!onGround) {
             // a page in the paper's opening sits inside its ring (wardFrameClearance); home has
             // no frame, and the map (ui/map) keeps its own full-bleed layout
             val inFrame=!onGround && screen!="ideas"
@@ -373,9 +378,16 @@ import com.stethoscore.app.ui.library.LibraryEtch
             if(!onGround) WardPaperFrame(Modifier.fillMaxSize())
             // a ward round's chip, over every screen while one runs
             com.stethoscore.app.ui.learn.WardRoundFloat()
-        } }
+        } } }
     } }
 }
+
+/**
+ * The screens that stand on their mode's wash (iOS modeScreen and the Cases screens): a set
+ * open in its mode, a quick or library quiz or review, the mock paper and the cards due.
+ * Not home, sheets, settings, Sources or Ideas.
+ */
+internal val modeWashScreens = setOf("study", "quick", "mock", "due", "libquiz", "libreview")
 
 /** Home's first row (iOS LibraryView's searchField and accountMenu): the search well, then the account circle. */
 @Composable private fun HomeSearchRow(query:String,onQuery:(String)->Unit,onSources:()->Unit,onSettings:()->Unit) {

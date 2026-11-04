@@ -45,7 +45,7 @@ struct CaseDebriefView: View {
             .padding(WardSpace.gutter)
             .readableColumn()
         }
-        .wardScreen()
+        .wardScreen(wash: .cases)
         .saveToIdeasHost(ideaHost)
         .onDisappear { GenerationCenter.shared.cancel(startedBy: owner) }
     }

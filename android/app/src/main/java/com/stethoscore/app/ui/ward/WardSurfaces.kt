@@ -105,8 +105,8 @@ private fun roundRectPath(size: Size, radius: Float): Path = Path().apply {
  * below, as WardReliefDrawing and WardPressDrawing share one drawing on iOS.
  */
 internal fun DrawScope.drawWardFace(radiusDp: Double, fill: Color, outer: List<WardReliefLight>, inner: List<WardReliefLight>,
-                                    edgeAlpha: Double, edge: Color) =
-    drawWardFace(WardCornerRadii.all(radiusDp), fill, outer, inner, edgeAlpha, edge)
+                                    edgeAlpha: Double, edge: Color, seeThrough: Boolean = false) =
+    drawWardFace(WardCornerRadii.all(radiusDp), fill, outer, inner, edgeAlpha, edge, seeThrough)
 
 /** The face's outline with a radius per corner, in pixels, each at most half the shorter side, inset by [by]. */
 private fun DrawScope.cornerPath(radiiDp: WardCornerRadii, by: Float = 0f): Path = Path().apply {
@@ -115,13 +115,24 @@ private fun DrawScope.cornerPath(radiiDp: WardCornerRadii, by: Float = 0f): Path
         c(radiiDp.topLeft), c(radiiDp.topRight), c(radiiDp.bottomRight), c(radiiDp.bottomLeft)))
 }
 
-/** As above, with a radius per corner (WardCorner.radii); one radius draws exactly as before. */
+/**
+ * As above, with a radius per corner (WardCorner.radii); one radius draws exactly as before.
+ * [seeThrough] (over a mode's wash, LocalWardModeWash): no fill, and the outer lights only
+ * outside the face, so the wash runs under it.
+ */
 internal fun DrawScope.drawWardFace(radiiDp: WardCornerRadii, fill: Color, outer: List<WardReliefLight>, inner: List<WardReliefLight>,
-                                    edgeAlpha: Double, edge: Color) {
+                                    edgeAlpha: Double, edge: Color, seeThrough: Boolean = false) {
     if (size.width <= 0f || size.height <= 0f) return
     val uniform = radiiDp.uniform
     val r = min(radiiDp.topLeft.toFloat() * density, size.minDimension / 2)
     val shape = if (uniform) roundRectPath(size, r) else cornerPath(radiiDp)
+    if (seeThrough) clipPath(shape, ClipOp.Difference) { drawOuter(uniform, r, shape, fill, outer) }
+    else drawOuter(uniform, r, shape, fill, outer)
+    drawInnerAndEdge(radiiDp, uniform, r, shape, inner, edgeAlpha, edge)
+}
+
+/** The face's fill with its outer lights (drawWardFace). */
+private fun DrawScope.drawOuter(uniform: Boolean, r: Float, shape: Path, fill: Color, outer: List<WardReliefLight>) {
     drawIntoCanvas { canvas ->
         val native = canvas.nativeCanvas
         val paint = Paint().asFrameworkPaint().apply { isAntiAlias = true; color = fill.toArgb() }
@@ -137,6 +148,11 @@ internal fun DrawScope.drawWardFace(radiiDp: WardCornerRadii, fill: Color, outer
         }
         paint.clearShadowLayer()
     }
+}
+
+/** The face's inner lights and its edge (drawWardFace). */
+private fun DrawScope.drawInnerAndEdge(radiiDp: WardCornerRadii, uniform: Boolean, r: Float, shape: Path,
+                                       inner: List<WardReliefLight>, edgeAlpha: Double, edge: Color) {
     // pressed in: the shadow of a frame round the shape, clipped to the shape
     val inside = inner.filter { it.lit }
     if (inside.isNotEmpty()) clipPath(shape) {
@@ -191,7 +207,8 @@ private class FaceLook(val dark: Boolean, val fill: Color, val edge: Color)
     val f = faceLook(fill, held)
     val spec = if (control) WardRelief.rim(lift, f.dark) else WardRelief.raised(lift, f.dark)
     val lights = if (LocalWardUnlit.current && !control) emptyList() else listOf(spec.highlight, spec.shade)
-    return drawBehind { drawWardFace(radii, f.fill, lights, emptyList(), spec.edgeAlpha, f.edge) }
+    val through = wardSeeThrough(f.fill) && !LocalWardUnlit.current
+    return drawBehind { drawWardFace(radii, f.fill, lights, emptyList(), spec.edgeAlpha, f.edge, through) }
 }
 
 /**
@@ -262,7 +279,8 @@ fun WardCornerRadii.shape(): androidx.compose.foundation.shape.RoundedCornerShap
                                    held: Boolean = false): Modifier {
     val f = faceLook(fill, held)
     val spec = WardRelief.inset(lift, f.dark, control = control)
-    return drawBehind { drawWardFace(radius, f.fill, emptyList(), listOf(spec.shade, spec.highlight), spec.edgeAlpha, f.edge) }
+    val through = wardSeeThrough(f.fill) && !LocalWardUnlit.current
+    return drawBehind { drawWardFace(radius, f.fill, emptyList(), listOf(spec.shade, spec.highlight), spec.edgeAlpha, f.edge, through) }
 }
 
 /**
@@ -279,9 +297,10 @@ fun WardCornerRadii.shape(): androidx.compose.foundation.shape.RoundedCornerShap
     val depth by wardDepth(pressed)
     val spec = WardPress.spec(lift, depth.toDouble(), f.dark, control = control)
     val lit = control || !LocalWardUnlit.current
+    val through = wardSeeThrough(f.fill) && !LocalWardUnlit.current
     return drawBehind {
         drawWardFace(radius, f.fill, if (lit) listOf(spec.outerHighlight, spec.outerShade) else emptyList(),
-            listOf(spec.innerShade, spec.innerHighlight), spec.edgeAlpha, f.edge)
+            listOf(spec.innerShade, spec.innerHighlight), spec.edgeAlpha, f.edge, through)
     }
 }
 

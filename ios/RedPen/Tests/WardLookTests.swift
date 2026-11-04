@@ -578,6 +578,53 @@ do {
     check("mid-shift, wash is linear-light mix", midWash == expectWash, "\(h(midWash)) vs \(h(expectWash))")
 }
 
+// MARK: - Each mode's wash
+
+// The owner, 4 Nov: a wash of each mode's earlier colour behind its
+// screens, on the base; the accents stay the section's. Measured where the
+// wash is strongest, the bottom edge, since cards and wells are see-through
+// over it (one tone). Ideas has none, and home's ground stays the base.
+let modeWashColours: [WardSection: UInt32] = [
+    .questions: 0xC72929, .cards: 0x4F5CDB, .textbook: 0x1A8C80,
+    .cases: 0xE67D21, .osce: 0x339E59, .audio: 0x8C52CC,
+]
+check("each mode's wash colour is its earlier colour", WardModeWash.colour == modeWashColours)
+check("Ideas has no wash", WardModeWash.stops(.ideas, dark: false) == nil && WardModeWash.stops(.ideas, dark: true) == nil)
+check("the wash's shape: 0.08 at the top, none from 25% to 60%, 0.12 at the bottom, 0.7 at night, 35% to grey",
+      WardModeWash.stops.map(\.location) == [0, 0.25, 0.60, 1] && WardModeWash.stops.map(\.mix) == [0.08, 0, 0, 0.12]
+      && WardModeWash.night == 0.7 && WardModeWash.greyPull == 0.35)
+let pinnedModeWash: [String: (top: UInt32, bottom: UInt32)] = [
+    "light questions": (0xE4E0E4, 0xE2D9DE), "light cards": (0xDEE2EE, 0xD9DDEC),
+    "light textbook": (0xDBE5E9, 0xD4E1E5), "light cases": (0xE6E4E4, 0xE4E0DD),
+    "light osce": (0xDDE6E7, 0xD6E2E1), "light audio": (0xE1E2ED, 0xDDDCEA),
+    "dark questions": (0x1F1E26, 0x242027), "dark cards": (0x1B202D, 0x1D2231),
+    "dark textbook": (0x192229, 0x1A252C), "dark cases": (0x212126, 0x252427),
+    "dark osce": (0x1A2328, 0x1C262A), "dark audio": (0x1D202C, 0x202230),
+]
+for dark in [false, true] {
+    let mode = dark ? "dark" : "light"
+    let chartInk = WardPalette.hex(.ink, dark: dark)
+    let biroGrey = WardPalette.hex(.inkSecondary, dark: dark)
+    let base = WardPalette.hex(.background, dark: dark)
+    for s in sections where s != .ideas {
+        guard let stops = WardModeWash.stops(s, dark: dark), let strongest = WardModeWash.strongest(s, dark: dark),
+              let pinned = pinnedModeWash["\(mode) \(s)"] else {
+            check("\(mode) \(s): has a mode wash", false); continue
+        }
+        check("\(mode) \(s): mode wash is as measured",
+              stops.map(\.hex) == [pinned.top, base, base, pinned.bottom] && strongest == pinned.bottom,
+              stops.map { h($0.hex) }.joined(separator: " "))
+        check("\(mode) \(s): home's ground stays the plain base", WardGround.home(s, dark: dark).base == base)
+        let cChart = WardPalette.contrast(chartInk, strongest)
+        check("\(mode) \(s): Chart Ink keeps 4.5:1 on its mode wash", cChart >= 4.5, "\(h(strongest)) \(f(cChart))")
+        let cBiro = WardPalette.contrast(biroGrey, strongest)
+        check("\(mode) \(s): Biro Grey keeps 4.5:1 on its mode wash", cBiro >= 4.5, "\(h(strongest)) \(f(cBiro))")
+        let cAccent = WardPalette.contrast(s.accent(dark: dark), strongest)
+        let onWash = "\(mode) \(s): its accent keeps 4.5:1 on its mode wash"
+        check(onWash, cAccent >= 4.5 || owner(onWash, cAccent), "\(h(strongest)) \(f(cAccent))")
+    }
+}
+
 // MARK: - The opening's ground is home's
 
 // The owner, 21 Oct, on the launch's first frame and home: "the background

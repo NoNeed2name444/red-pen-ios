@@ -54,6 +54,18 @@ object OwnerAccepted {
             case("accent", "audio", "light", "its wash", 2.315)
             case("accent", "ideas", "light", "its wash", 2.253)
         }
+        // the owner, 4 Nov: a wash of each mode's earlier colour behind its screens (plan.md),
+        // measured where it is strongest, its bottom edge; dark cards passes on the plain base
+        // (4.650) and falls short on the wash
+        accept("WardGroundTest.eachModesWash", "its accent keeps 4.5:1 on its mode wash") {
+            case("accent", "questions", "light", "its mode wash", 2.010)
+            case("accent", "cards", "light", "its mode wash", 2.715)
+            case("accent", "textbook", "light", "its mode wash", 1.861)
+            case("accent", "cases", "light", "its mode wash", 1.525)
+            case("accent", "osce", "light", "its mode wash", 1.136)
+            case("accent", "audio", "light", "its mode wash", 2.009)
+            case("accent", "cards", "dark", "its mode wash", 4.308)
+        }
         accept("WardLookTest.sections", "a control's edge reads 3:1") {
             case("a control's edge", "questions", "light", "background", 2.106)
             case("a control's edge", "questions", "light", "surface", 2.106)

@@ -111,6 +111,58 @@ enum WardWash {
     static let alpha = 0.22
 }
 
+/// The colour wash behind a mode's screens (the owner, 4 Nov): the base,
+/// top to bottom, mixed toward the mode's earlier colour, which serves the
+/// wash alone (buttons, words and glyphs keep the section's accent). The
+/// colour is first pulled toward grey, and the mix runs from the top edge
+/// to nothing by a quarter down, nothing to six tenths, then up to the
+/// bottom edge; at night it is weaker. Ideas has none. Mixed in plain
+/// sRGB components, as the earlier backdrop mixed it.
+enum WardModeWash {
+    /// Each mode's earlier colour, 0xRRGGBB.
+    static let colour: [WardSection: UInt32] = [
+        .questions: 0xC72929, .cards: 0x4F5CDB, .textbook: 0x1A8C80,
+        .cases: 0xE67D21, .osce: 0x339E59, .audio: 0x8C52CC,
+    ]
+    /// How far the colour is pulled toward `grey` before it is mixed in.
+    static let greyPull = 0.35
+    static let grey: (r: Double, g: Double, b: Double) = (0.5, 0.5, 0.52)
+    /// (location, mix) from the top edge to the bottom edge.
+    static let stops: [(location: Double, mix: Double)] = [(0, 0.08), (0.25, 0), (0.60, 0), (1, 0.12)]
+    /// The night's share of each mix.
+    static let night = 0.7
+
+    /// The wash's colour at `mix` (before the night's share), or nil
+    /// where the section has no wash.
+    static func hex(_ section: WardSection, dark: Bool, mix: Double) -> UInt32? {
+        guard let old = colour[section] else { return nil }
+        let (r, g, b) = WardPalette.rgb(old)
+        let hue = (r + (grey.r - r) * greyPull, g + (grey.g - g) * greyPull, b + (grey.b - b) * greyPull)
+        let (br, bg, bb) = WardPalette.rgb(WardPalette.hex(.background, dark: dark))
+        let t = mix * (dark ? night : 1)
+        func channel(_ base: Double, _ to: Double) -> UInt32 {
+            UInt32((min(1, max(0, base + (to - base) * t)) * 255).rounded())
+        }
+        return channel(br, hue.0) << 16 | channel(bg, hue.1) << 8 | channel(bb, hue.2)
+    }
+
+    /// The wash's stops as 0xRRGGBB, top to bottom, or nil for no wash.
+    static func stops(_ section: WardSection, dark: Bool) -> [(location: Double, hex: UInt32)]? {
+        guard colour[section] != nil else { return nil }
+        return stops.map { ($0.location, hex(section, dark: dark, mix: $0.mix)!) }
+    }
+
+    /// The wash at its strongest, the bottom edge, where contrast is least.
+    static func strongest(_ section: WardSection, dark: Bool) -> UInt32? {
+        hex(section, dark: dark, mix: stops.map(\.mix).max()!)
+    }
+
+    /// The wash at the top edge, under the bar area.
+    static func top(_ section: WardSection, dark: Bool) -> UInt32? {
+        hex(section, dark: dark, mix: stops[0].mix)
+    }
+}
+
 /// What the app looks like at rest: light or dark, and which section.
 struct WardLook: Equatable, Sendable {
     var dark: Bool

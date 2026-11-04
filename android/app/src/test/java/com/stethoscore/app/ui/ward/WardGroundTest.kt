@@ -53,6 +53,58 @@ class WardGroundTest {
         everyOwnerCaseMade(test)
     }
 
+    // The owner, 4 Nov: a wash of each mode's earlier colour behind its screens
+    // (iOS WardLookTests "Each mode's wash", same cases), measured where it is
+    // strongest, the bottom edge, since cards and wells are see-through over it.
+    // Ideas has none, and home's ground stays the plain base.
+    @Test fun eachModesWash() = checks {
+        val test = "WardGroundTest.eachModesWash"
+        val colours = mapOf(
+            WardSection.questions to 0xC72929, WardSection.cards to 0x4F5CDB, WardSection.textbook to 0x1A8C80,
+            WardSection.cases to 0xE67D21, WardSection.osce to 0x339E59, WardSection.audio to 0x8C52CC,
+        )
+        check("each mode's wash colour is its earlier colour", WardModeWash.colour == colours)
+        check("Ideas has no wash", WardModeWash.stops(WardSection.ideas, false) == null && WardModeWash.stops(WardSection.ideas, true) == null)
+        check("the wash's shape: 0.08 at the top, none from 25% to 60%, 0.12 at the bottom, 0.7 at night, 35% to grey",
+            WardModeWash.stops == listOf(0.0 to 0.08, 0.25 to 0.0, 0.60 to 0.0, 1.0 to 0.12) &&
+                WardModeWash.night == 0.7 && WardModeWash.greyPull == 0.35)
+        val pinned = mapOf(
+            "light questions" to (0xE4E0E4 to 0xE2D9DE), "light cards" to (0xDEE2EE to 0xD9DDEC),
+            "light textbook" to (0xDBE5E9 to 0xD4E1E5), "light cases" to (0xE6E4E4 to 0xE4E0DD),
+            "light osce" to (0xDDE6E7 to 0xD6E2E1), "light audio" to (0xE1E2ED to 0xDDDCEA),
+            "dark questions" to (0x1F1E26 to 0x242027), "dark cards" to (0x1B202D to 0x1D2231),
+            "dark textbook" to (0x192229 to 0x1A252C), "dark cases" to (0x212126 to 0x252427),
+            "dark osce" to (0x1A2328 to 0x1C262A), "dark audio" to (0x1D202C to 0x202230),
+        )
+        for (dark in modes) {
+            val chartInk = WardPalette.hex(WardToken.ink, dark)
+            val biroGrey = WardPalette.hex(WardToken.inkSecondary, dark)
+            val base = plainBase.of(dark)
+            for (s in WardSection.entries.filter { it != WardSection.ideas }) {
+                val stops = WardModeWash.stops(s, dark)
+                val strongest = WardModeWash.strongest(s, dark)
+                val pin = pinned.getValue("${mode(dark)} $s")
+                check("${mode(dark)} $s: mode wash is as measured",
+                    stops?.map { it.second } == listOf(pin.first, base, base, pin.second) && strongest == pin.second,
+                    stops?.joinToString(" ") { hx(it.second) } ?: "none")
+                check("${mode(dark)} $s: home's ground stays the plain base", WardGround.home(s, dark).base == base)
+                if (strongest == null) continue
+                val cChart = WardPalette.contrast(chartInk, strongest)
+                check("${mode(dark)} $s: Chart Ink keeps 4.5:1 on its mode wash", cChart >= 4.5, "${hx(strongest)} ${f2(cChart)}")
+                val cBiro = WardPalette.contrast(biroGrey, strongest)
+                check("${mode(dark)} $s: Biro Grey keeps 4.5:1 on its mode wash", cBiro >= 4.5, "${hx(strongest)} ${f2(cBiro)}")
+                val cAccent = WardPalette.contrast(s.accent(dark), strongest)
+                check("${mode(dark)} $s: its accent keeps 4.5:1 on its mode wash", cAccent >= 4.5, "${hx(strongest)} ${f2(cAccent)}",
+                    OwnerCase(test, "its accent keeps 4.5:1 on its mode wash", "accent", "$s", mode(dark), "its mode wash"), cAccent)
+            }
+        }
+        val app = File("src/main/java/com/stethoscore/app/ui/StethoscoreApp.kt").takeIf { it.exists() }?.readText() ?: ""
+        check("the wash stands behind the mode's screens only, not home, settings, Sources or Ideas",
+            app.contains("if(screen in modeWashScreens) com.stethoscore.app.ui.ward.WardModeWash.stops(section, dark)") &&
+                com.stethoscore.app.ui.modeWashScreens.none { it in setOf("home", "settings", "sources", "ideas", "licences", "exam") })
+        everyOwnerCaseMade(test)
+    }
+
     // The backgrounds are the plain base, whatever the section and the fills:
     // every section's wash, the outside look's ground, home's ground and the
     // window's and the splash's (ward_ground); and the neutral tiers the

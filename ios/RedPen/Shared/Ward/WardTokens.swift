@@ -85,6 +85,16 @@ extension Color {
         return Color(uiColor: WardRestColors.liveWash())
     }
 
+    /// Whether this colour is the base's own tone, opaque, in that mode:
+    /// the cards', sheets' and wells' (WardPalette, one tone).
+    func isWardBase(dark: Bool) -> Bool {
+        let resolved = UIColor(self).resolvedColor(with: UITraitCollection(userInterfaceStyle: dark ? .dark : .light))
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a), a > 0.999 else { return false }
+        func byte(_ c: CGFloat) -> UInt32 { UInt32((min(1, max(0, Double(c))) * 255).rounded()) }
+        return byte(r) << 16 | byte(g) << 8 | byte(b) == WardPalette.hex(.background, dark: dark)
+    }
+
     static func uiColor(_ hex: UInt32, alpha: Double = 1) -> UIColor {
         let (r, g, b) = WardPalette.rgb(hex)
         return UIColor(red: r, green: g, blue: b, alpha: alpha)

@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -83,6 +84,25 @@ val LocalWardShowsPressed = staticCompositionLocalOf { false }
  * floating buttons"). Off everywhere else.
  */
 val LocalWardUnlit = staticCompositionLocalOf { false }
+
+/**
+ * The section whose wash (WardModeWash) lies under the page, or null for the
+ * plain base (iOS wardModeWash). Over a wash the faces in the base's tone are
+ * see-through, one tone with the ground: their fill is left out and their
+ * lights fall only outside a raised face and inside a pressed one, so the
+ * wash runs under them. What floats over a page (LocalWardUnlit) keeps its fill.
+ */
+val LocalWardModeWash = staticCompositionLocalOf<WardSection?> { null }
+
+/** Whether a face filled with [fill] stands on a mode's wash in the base's tone (LocalWardModeWash); unlit, it keeps its fill. */
+@Composable fun wardSeeThrough(fill: Color): Boolean =
+    LocalWardModeWash.current != null && fill.alpha >= 0.999f &&
+        (fill.toArgb() and 0xFFFFFF) == WardPalette.hex(WardToken.background, LocalWardLook.current.dark)
+
+/** One light cast round [path], outside it only: a see-through face's. */
+private fun DrawScope.outerLightOutside(path: Path, light: WardReliefLight, face: Color) {
+    clipPath(path, ClipOp.Difference) { outerLight(path, light, face) }
+}
 
 /** The Ward faces inside [content] are drawn without their lights (iOS wardUnlit). */
 @Composable fun WardUnlit(unlit: Boolean = true, content: @Composable () -> Unit) =
@@ -171,15 +191,23 @@ fun Modifier.wardPressFace(
     flat: Boolean = false,
     edge: Color? = null,
     unlit: Boolean = false,
+    seeThrough: Boolean = false,
 ): Modifier = drawBehind {
     val path = outlinePath(shape)
     val spec = WardPress.spec(lift, depth().toDouble(), night, highContrast = false, control = control)
+    // what floats over a page keeps its fill
+    val through = seeThrough && !unlit
     // a button keeps its small rim even where the page is unlit (WardRelief.rim)
     if ((control || !unlit) && !flat) {
-        outerLight(path, spec.outerShade, fill)
-        outerLight(path, spec.outerHighlight, fill)
+        if (through) {
+            outerLightOutside(path, spec.outerShade, fill)
+            outerLightOutside(path, spec.outerHighlight, fill)
+        } else {
+            outerLight(path, spec.outerShade, fill)
+            outerLight(path, spec.outerHighlight, fill)
+        }
     }
-    drawPath(path, fill)
+    if (!through) drawPath(path, fill)
     if (!flat) {
         innerLight(path, spec.innerShade)
         innerLight(path, spec.innerHighlight)
@@ -202,8 +230,11 @@ fun Modifier.wardReliefFace(
     inset: Boolean = false,
     control: Boolean = false,
     unlit: Boolean = false,
+    seeThrough: Boolean = false,
 ): Modifier = drawBehind {
     val path = outlinePath(shape)
+    // what floats over a page keeps its fill
+    val through = seeThrough && !unlit
     val rim = control && !inset
     val spec = when {
         inset -> WardRelief.inset(lift, night, control = control)
@@ -211,10 +242,15 @@ fun Modifier.wardReliefFace(
         else -> WardRelief.raised(lift, night, control = control)
     }
     if (!spec.inner && !(unlit && !rim)) {
-        outerLight(path, spec.shade, fill)
-        outerLight(path, spec.highlight, fill)
+        if (through) {
+            outerLightOutside(path, spec.shade, fill)
+            outerLightOutside(path, spec.highlight, fill)
+        } else {
+            outerLight(path, spec.shade, fill)
+            outerLight(path, spec.highlight, fill)
+        }
     }
-    drawPath(path, fill)
+    if (!through) drawPath(path, fill)
     if (spec.inner) {
         innerLight(path, spec.shade)
         innerLight(path, spec.highlight)
@@ -226,12 +262,14 @@ fun Modifier.wardReliefFace(
 @Composable fun Modifier.wardPressFace(
     shape: Shape, lift: WardLift, depth: State<Float>, fill: Color = wardColor(WardToken.surface),
     control: Boolean = true, flat: Boolean = false, edge: Color? = null,
-): Modifier = wardPressFace(shape, lift, { depth.value }, fill, wardNight(), wardInk(), control, flat, edge, LocalWardUnlit.current)
+): Modifier = wardPressFace(shape, lift, { depth.value }, fill, wardNight(), wardInk(), control, flat, edge, LocalWardUnlit.current,
+    wardSeeThrough(fill))
 
 @Composable fun Modifier.wardRelief(
     shape: Shape, lift: WardLift = WardLift.mid, fill: Color = wardColor(WardToken.surface),
     inset: Boolean = false, control: Boolean = false,
-): Modifier = wardReliefFace(shape, lift, fill, wardNight(), wardInk(), inset, control, LocalWardUnlit.current)
+): Modifier = wardReliefFace(shape, lift, fill, wardNight(), wardInk(), inset, control, LocalWardUnlit.current,
+    wardSeeThrough(fill))
 
 /** Pressed into the base: a well in the well's fill (the page colour), with a control's edge (wardInset). */
 @Composable fun Modifier.wardInset(shape: Shape, lift: WardLift = WardLift.low, control: Boolean = false): Modifier =

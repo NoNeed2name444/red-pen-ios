@@ -81,7 +81,7 @@ struct CaseWardView: View {
                     .transition(.slideIn(.trailing))
             }
         }
-        .wardScreen()
+        .wardScreen(wash: .cases)
         .studyBar(folds: true) { bottomBar }
         // a screenshot run's "case-differential": the ladder open
         .task { if PreviewLaunch.screen == "case-differential" { showingLadder = true } }

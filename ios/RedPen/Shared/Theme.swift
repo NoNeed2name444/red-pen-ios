@@ -61,11 +61,12 @@ enum PhotonRim {
     }
 }
 
-/// Each mode's screen: the soft UI's matte base.
+/// Each mode's screen: the soft UI's matte base under the mode's wash
+/// (WardModeWash).
 struct ModeBackdrop: View {
     let kind: StudySetKind
     var body: some View {
-        WardBackground()
+        WardModeWashView(section: WardSection(kindRaw: kind.rawValue))
     }
 }
 
@@ -91,6 +92,8 @@ extension View {
             .background(ModeBackdrop(kind: kind))
             .wardControls()
             .environment(\.modeTint, Color.wardPrimaryInk)
+            // the faces see-through over the mode's wash, one tone with it
+            .environment(\.wardModeWash, WardSection(kindRaw: kind.rawValue))
             // the mode's hue on the paper's grid and the controls' edges
             .wardSection(WardSection(kindRaw: kind.rawValue))
             // the bar, and the status bar over it, named light or dark with

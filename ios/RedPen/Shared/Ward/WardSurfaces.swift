@@ -75,6 +75,87 @@ extension EnvironmentValues {
     }
 }
 
+/// The section whose wash (WardModeWash) lies under the page, or nil for
+/// the plain base. Over a wash the faces are see-through, one tone with
+/// the ground: their fill is left out and their lights fall only outside
+/// a raised face and inside a pressed one, so the wash runs under them.
+/// What floats over a page (wardUnlit) keeps its fill.
+private struct WardWashKey: EnvironmentKey {
+    static let defaultValue: WardSection? = nil
+}
+
+extension EnvironmentValues {
+    var wardModeWash: WardSection? {
+        get { self[WardWashKey.self] }
+        set { self[WardWashKey.self] = newValue }
+    }
+}
+
+/// The base's mode wash, top to bottom, for a section that has one; the
+/// plain base otherwise. Decoration only, so VoiceOver skips it.
+struct WardModeWashView: View {
+    let section: WardSection
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        Group {
+            if let stops = WardModeWash.stops(section, dark: scheme == .dark) {
+                LinearGradient(stops: stops.map { .init(color: Color(uiColor: Color.uiColor($0.hex)), location: $0.location) },
+                               startPoint: .top, endPoint: .bottom)
+            } else {
+                WardBackground()
+            }
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The ring round a shape out to `reach`, filled even-odd: what casts a
+/// pressed face's lights inside it, so they need no fill of the face.
+struct WardRing<S: Shape>: Shape {
+    let shape: S
+    let reach: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path(rect.insetBy(dx: -reach, dy: -reach))
+        path.addPath(shape.path(in: rect))
+        return path
+    }
+}
+
+/// A see-through face's lights (WardWashKey): the outer ones cast by the
+/// face and then cut out of it, the inner ones cast by the ring round it
+/// and kept inside it. No fill is left behind.
+struct WardSeeThroughLights<S: Shape>: View {
+    let shape: S
+    let fill: AnyShapeStyle
+    let outer: [WardReliefLight]
+    let inner: [WardReliefLight]
+
+    var body: some View {
+        ZStack {
+            if !outer.isEmpty {
+                ZStack {
+                    ForEach(outer.indices, id: \.self) { i in
+                        shape.fill(fill.shadow(.ward(outer[i], inner: false)))
+                    }
+                    shape.fill(Color.black).blendMode(.destinationOut)
+                }
+                .compositingGroup()
+            }
+            ForEach(inner.indices, id: \.self) { i in
+                let light = inner[i]
+                let reach = CGFloat(light.radius * 2 + abs(light.x) + abs(light.y) + 4)
+                WardRing(shape: shape, reach: reach)
+                    .fill(Color.black.shadow(.ward(light, inner: false)), style: FillStyle(eoFill: true))
+                    .clipShape(shape)
+            }
+        }
+    }
+}
+
 extension View {
     /// The Ward faces inside are drawn without their lights (WardUnlitKey).
     func wardUnlit(_ unlit: Bool = true) -> some View {
@@ -108,6 +189,7 @@ struct WardPressFace<S: InsettableShape>: View {
     @Environment(\.wardUnlit) private var unlit
     @Environment(\.wardHeld) private var held
     @Environment(\.wardRestLook) private var restLook
+    @Environment(\.wardModeWash) private var modeWash
 
     init(shape: S, lift: WardLift = .mid, pressed: Bool, fill: Color = .wardSurface, control: Bool = true,
          flat: Bool = false, edge: Color? = nil) {
@@ -138,10 +220,12 @@ struct WardPressFace<S: InsettableShape>: View {
         // how far to dark the shift is, this frame (WardLookStore)
         let look = WardGlide.drawn(rest: restLook, live: WardLookStore.shared.glide)
         let night: Double = look.night(dark: scheme == .dark, held: held)
+        // over a mode's wash a face in the base's tone is see-through
+        let through = modeWash != nil && !unlit && (fillColor?.isWardBase(dark: scheme == .dark) ?? false)
         WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill, fillColor: fillColor,
                         night: night, dark: scheme == .dark, settled: look.settled,
                         strong: contrast == .increased, control: control,
-                        unlit: unlit, flat: flat, edge: edge)
+                        unlit: unlit, flat: flat, edge: edge, seeThrough: through)
             .animation(reduceMotion ? nil : .wardShade(down: pressed), value: pressed)
             .preference(key: WardHoldsControl.self, value: true)
     }
@@ -161,6 +245,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     var unlit = false
     var flat = false
     var edge: Color?
+    var seeThrough = false
     @State private var face = WardFaceToken()
 
     /// Below this a face counts as at rest: the picture is the same to the eye.
@@ -174,7 +259,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
     var body: some View {
         let live = WardPressDrawing(shape: shape, lift: lift, depth: depth, fill: fill,
                                     night: night, strong: strong, control: control, unlit: unlit,
-                                    flat: flat, edge: edge ?? .wardEdgeInk)
+                                    flat: flat, edge: edge ?? .wardEdgeInk, seeThrough: seeThrough)
         if let kind = cachedKind(), let fillColor {
             let spec = WardPress.spec(lift, depth: 0, night: night, highContrast: strong, control: control)
             WardLitFace(kind: kind, look: .press, lift: lift, control: control, dark: dark, strong: strong,
@@ -196,7 +281,7 @@ private struct WardPressRelief<S: InsettableShape>: View, Animatable {
         if depth > Self.rest { face.note(.live(.press)); return nil }
         if flat || (unlit && !control) { face.note(.live(.bare)); return nil }
         if !settled { face.note(.live(.look)); return nil }
-        if fillColor == nil { face.note(.live(.fill)); return nil }
+        if fillColor == nil || seeThrough { face.note(.live(.fill)); return nil }
         guard let kind = WardFaceShape(shape) else { face.note(.live(.shape)); return nil }
         return kind
     }
@@ -215,6 +300,7 @@ private struct WardPressDrawing<S: InsettableShape>: View {
     let unlit: Bool
     let flat: Bool
     let edge: Color
+    var seeThrough = false
 
     var body: some View {
         let spec = WardPress.spec(lift, depth: depth, night: night, highContrast: strong, control: control)
@@ -223,7 +309,11 @@ private struct WardPressDrawing<S: InsettableShape>: View {
         let lit: Bool = (control || !unlit) && !flat
         ZStack {
             ZStack {
-                if lit && (spec.outerShade.lit || spec.outerHighlight.lit) {
+                if seeThrough {
+                    WardSeeThroughLights(shape: shape, fill: fill,
+                                         outer: lit ? [spec.outerHighlight, spec.outerShade].filter(\.lit) : [],
+                                         inner: [spec.innerShade, spec.innerHighlight].filter(\.lit))
+                } else if lit && (spec.outerShade.lit || spec.outerHighlight.lit) {
                     if spec.outerHighlight.lit {
                         shape.fill(fill.shadow(.ward(spec.outerHighlight, inner: false)))
                     }
@@ -280,6 +370,7 @@ struct WardReliefFace<S: InsettableShape>: View {
     @Environment(\.wardUnlit) private var unlit
     @Environment(\.wardHeld) private var held
     @Environment(\.wardRestLook) private var restLook
+    @Environment(\.wardModeWash) private var modeWash
     @State private var face = WardFaceToken()
 
     init(shape: S, lift: WardLift = .mid, inset: Bool = false, flat: Bool = false, fill: Color = .wardSurface,
@@ -317,11 +408,14 @@ struct WardReliefFace<S: InsettableShape>: View {
         let spec: WardReliefSpec = inset ? WardRelief.inset(lift, night: night, highContrast: strong, control: control)
                                  : rim ? WardRelief.rim(lift, night: night, highContrast: strong)
                                        : WardRelief.raised(lift, night: night, highContrast: strong, control: control)
+        // over a mode's wash a face in the base's tone is see-through
+        let through: Bool = modeWash != nil && !unlit && (fillColor?.isWardBase(dark: dark) ?? false)
         let live = WardReliefDrawing(shape: shape, lift: lift, inset: inset, flat: flat, fill: fill, control: control,
-                                     night: night, strong: strong, unlit: unlit, edge: .wardEdgeInk)
+                                     night: night, strong: strong, unlit: unlit, edge: .wardEdgeInk,
+                                     seeThrough: through)
         // lit: it has lights to draw, and draws them
         let lit: Bool = !(flat || (unlit && !spec.inner && !rim)) && (spec.highlight.lit || spec.shade.lit)
-        if let kind = cachedKind(lit: lit, settled: look.settled), let fillColor {
+        if !through, let kind = cachedKind(lit: lit, settled: look.settled), let fillColor {
             WardLitFace(kind: kind, look: inset ? .inset : .raised, lift: lift, control: control,
                         dark: dark, strong: strong, fill: fillColor, edge: .wardEdgeInk, reach: WardLightSlice.reach(spec),
                         inner: spec.inner, live: live, face: face) { outline, dark, fill, edge in
@@ -358,6 +452,7 @@ private struct WardReliefDrawing<S: InsettableShape>: View {
     let strong: Bool
     let unlit: Bool
     let edge: Color
+    var seeThrough = false
 
     var body: some View {
         let rim: Bool = control && !inset && !flat
@@ -365,7 +460,12 @@ private struct WardReliefDrawing<S: InsettableShape>: View {
                                  : rim ? WardRelief.rim(lift, night: night, highContrast: strong)
                                        : WardRelief.raised(lift, night: night, highContrast: strong, control: control)
         ZStack {
-            if flat || (unlit && !spec.inner && !rim) {
+            if seeThrough {
+                let bare = flat || (unlit && !spec.inner && !rim)
+                WardSeeThroughLights(shape: shape, fill: fill,
+                                     outer: bare || spec.inner ? [] : [spec.highlight, spec.shade].filter(\.lit),
+                                     inner: spec.inner ? [spec.shade, spec.highlight].filter(\.lit) : [])
+            } else if flat || (unlit && !spec.inner && !rim) {
                 shape.fill(fill)
             } else if spec.inner {
                 shape.fill(fill
@@ -1194,7 +1294,13 @@ struct WardPaperBand: View {
 /// and is cut there instead of fading under iOS's soft scroll edge (the
 /// owner, 9 Oct: no fading). The bars' own buttons and fields stay on top.
 struct WardMasthead: ViewModifier {
+    @Environment(\.wardModeWash) private var modeWash
+    @Environment(\.colorScheme) private var scheme
+
     func body(content: Content) -> some View {
+        // over a mode's wash, the wash's own top edge
+        let top: Color = modeWash.flatMap { WardModeWash.top($0, dark: scheme == .dark) }
+            .map { Color(uiColor: Color.uiColor($0)) } ?? Color.wardWash
         content
             .scrollEdgeEffectHidden(true, for: .top)
             .overlay(alignment: .top) {
@@ -1203,7 +1309,7 @@ struct WardMasthead: ViewModifier {
                 Color.clear
                     .frame(height: 0)
                     .background(alignment: .bottom) {
-                        Color.wardWash.ignoresSafeArea(edges: .top)
+                        top.ignoresSafeArea(edges: .top)
                     }
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
@@ -1611,15 +1717,17 @@ extension View {
     }
 
     /// A screen in the soft UI: the matte base under it, a solid bar area
-    /// and its controls.
-    func wardScreen() -> some View {
+    /// and its controls. With `wash`, the base takes that section's mode
+    /// wash (WardModeWash) and the faces on it are see-through.
+    func wardScreen(wash: WardSection? = nil) -> some View {
         self
             // one side of a fold's hinge, the base across it
             .clearOfBand()
             .wardMasthead()
-            .background(WardBackground())
+            .background { if let wash { WardModeWashView(section: wash) } else { WardBackground() } }
             .lineSpacing(WardSpace.leading)
             .wardControls()
+            .environment(\.wardModeWash, wash)
     }
 
     /// A Form or List in the soft UI: its own grey ground hidden for the
@@ -1635,6 +1743,8 @@ extension View {
             .lineSpacing(WardSpace.leading)
             .background(WardBackground())
             .wardControls()
+            // a form stands on the plain base, its faces filled
+            .environment(\.wardModeWash, nil)
     }
 
     /// A sheet's content in the page colour, so the sheet is one tone with
@@ -1643,6 +1753,8 @@ extension View {
     /// goes through this (IpadAuditTests).
     func wardSheet() -> some View {
         presentationBackground(Color.wardBackground)
+            // a sheet stands on the plain base, not its mode's wash
+            .environment(\.wardModeWash, nil)
     }
 
     /// As wardSheet(), sized for a broad window (`.form` for a short sheet,
@@ -1650,6 +1762,7 @@ extension View {
     func wardSheet<S: PresentationSizing>(_ sizing: S) -> some View {
         presentationBackground(Color.wardBackground)
             .presentationSizing(sizing)
+            .environment(\.wardModeWash, nil)
     }
 
     /// A List or Form row (or a Section's rows) as soft tiles, with insets
