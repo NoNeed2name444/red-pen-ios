@@ -148,6 +148,8 @@ class WardGroundTest {
             Triple("Chart Ink", WardToken.ink, 4.5), Triple("Biro Grey", WardToken.inkSecondary, 4.5), Triple("ECG red", WardToken.ecg, 4.5),
             Triple("Discharge green", WardToken.success, 4.5), Triple("Caution amber", WardToken.warning, 4.5), Triple("Resus red", WardToken.danger, 4.5),
             Triple("the beam", WardToken.beam, 3.0), Triple("its accent as words", null, 4.5), Triple("its accent as glyphs", null, 3.0),
+            // Primary Ink as it stands in the palette, the modeTint ink of buttons and links
+            Triple("Primary Ink as words", WardToken.primaryInk, 4.5), Triple("Primary Ink as glyphs", WardToken.primaryInk, 3.0),
         )
         for (dark in modes) {
             val base = plainBase.of(dark)
@@ -161,8 +163,10 @@ class WardGroundTest {
                     val ink = token?.let { WardPalette.hex(it, dark) } ?: s.accent(dark)
                     val onBase = WardPalette.contrast(ink, base)
                     val onWash = WardPalette.contrast(ink, strongest)
-                    check("${mode(dark)} $s: $name reads on its mode wash wherever it reads on the base",
-                        onBase < ratio || onWash >= ratio, "${hx(strongest)} ${f2(onWash)}, base ${f2(onBase)}")
+                    // a case the owner accepted short on the wash (Primary Ink, 4 Nov, option C) passes only as itself
+                    val reads = "reads on its mode wash wherever it reads on the base"
+                    check("${mode(dark)} $s: $name $reads", onBase < ratio || onWash >= ratio, "${hx(strongest)} ${f2(onWash)}, base ${f2(onBase)}",
+                        OwnerCase(test, reads, name, "$s", mode(dark), "its mode wash"), onWash)
                 }
                 // the accents the owner's colours keep short on the base stay on the owner's list, re-measured here
                 val cAccent = WardPalette.contrast(s.accent(dark), strongest)

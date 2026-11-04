@@ -72,6 +72,21 @@ object OwnerAccepted {
             case("accent", "osce", "light", "its mode wash", 1.073)
             case("accent", "audio", "light", "its mode wash", 1.941)
         }
+        // the owner, 4 Nov, option C: the wash and its caps as they are, and Primary Ink (#3B82F6, the
+        // ink of buttons and links) accepted short at the strongest point, as words at night and as
+        // glyphs by day
+        accept("WardGroundTest.eachModesWash", "reads on its mode wash wherever it reads on the base") {
+            case("Primary Ink as glyphs", "questions", "light", "its mode wash", 2.617)
+            case("Primary Ink as glyphs", "textbook", "light", "its mode wash", 2.635)
+            case("Primary Ink as glyphs", "cases", "light", "its mode wash", 2.623)
+            case("Primary Ink as glyphs", "osce", "light", "its mode wash", 2.617)
+            case("Primary Ink as glyphs", "audio", "light", "its mode wash", 2.624)
+            case("Primary Ink as words", "questions", "dark", "its mode wash", 3.397)
+            case("Primary Ink as words", "textbook", "dark", "its mode wash", 3.406)
+            case("Primary Ink as words", "cases", "dark", "its mode wash", 3.427)
+            case("Primary Ink as words", "osce", "dark", "its mode wash", 3.417)
+            case("Primary Ink as words", "audio", "dark", "its mode wash", 3.429)
+        }
         accept("WardLookTest.sections", "a control's edge reads 3:1") {
             case("a control's edge", "questions", "light", "background", 2.106)
             case("a control's edge", "questions", "light", "surface", 2.106)

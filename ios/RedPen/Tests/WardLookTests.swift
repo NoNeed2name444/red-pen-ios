@@ -679,6 +679,8 @@ let washPairs: [(name: String, token: WardToken?, ratio: Double)] = [
     ("Chart Ink", .ink, 4.5), ("Biro Grey", .inkSecondary, 4.5), ("ECG red", .ecg, 4.5), ("Discharge green", .success, 4.5),
     ("Caution amber", .warning, 4.5), ("Resus red", .danger, 4.5), ("the beam", .beam, 3),
     ("its accent as words", nil, 4.5), ("its accent as glyphs", nil, 3),
+    // Primary Ink as it stands in the palette, the modeTint ink of buttons and links
+    ("Primary Ink as words", .primaryInk, 4.5), ("Primary Ink as glyphs", .primaryInk, 3),
 ]
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"
@@ -692,8 +694,10 @@ for dark in [false, true] {
         for pair in washPairs {
             let ink = pair.token.map { WardPalette.hex($0, dark: dark) } ?? s.accent(dark: dark)
             let onBase = WardPalette.contrast(ink, base), onWash = WardPalette.contrast(ink, strongest)
-            check("\(mode) \(s): \(pair.name) reads on its mode wash wherever it reads on the base",
-                  onBase < pair.ratio || onWash >= pair.ratio, "\(h(strongest)) \(f(onWash)), base \(f(onBase))")
+            // a case the owner accepted short on the wash (Primary Ink, 4 Nov, option C) passes only as itself
+            let reads = "\(mode) \(s): \(pair.name) reads on its mode wash wherever it reads on the base"
+            check(reads, onBase < pair.ratio || onWash >= pair.ratio || owner(reads, onWash),
+                  "\(h(strongest)) \(f(onWash)), base \(f(onBase))")
         }
         // the accents the owner's colours keep short on the base stay on the owner's list, re-measured here
         let cAccent = WardPalette.contrast(s.accent(dark: dark), strongest)
