@@ -257,21 +257,33 @@ object OsceGenerator {
      */
     const val maxPromptChars = 4_000
 
-    /** A writer of stations: the usable ones it wrote, none when nothing in the source reads like a station. */
-    fun interface Writer { suspend fun stations(sourceText: String, count: Int, subject: String): List<OsceChecklist> }
+    /**
+     * A writer of stations: the usable ones it wrote, none when nothing in the
+     * source reads like a station. Before each call it tells [onProgress] how
+     * many are written so far, of how many (iOS's "Writing 2 of 5…"). Not a
+     * fun interface: its one function could not then default [onProgress].
+     */
+    interface Writer {
+        suspend fun stations(sourceText: String, count: Int, subject: String,
+                             onProgress: (Int, Int) -> Unit = { _, _ -> }): List<OsceChecklist>
+    }
 
     /** A chosen backend as a station writer, asking for [exam]'s kind of station ([osceStyle]). */
     class BackendWriter(val backend: LLMBackend, val exam: ExamTrack = ExamTrack.general) : Writer {
-        override suspend fun stations(sourceText: String, count: Int, subject: String): List<OsceChecklist> =
-            OsceGenerator.write(sourceText, count, subject, backend, exam)
+        override suspend fun stations(sourceText: String, count: Int, subject: String,
+                                      onProgress: (Int, Int) -> Unit): List<OsceChecklist> =
+            OsceGenerator.write(sourceText, count, subject, backend, exam, onProgress)
     }
 
     /** The writer to use here: the writer route's backend, or null while it is blocked. */
     fun writer(backend: LLMBackend?, exam: ExamTrack = ExamTrack.general): Writer? = backend?.let { BackendWriter(it, exam) }
 
-    /** Up to [count] stations, never more than [maxStationsTotal], [maxStationsPerCall] a call, until three calls in a row keep none. */
+    /**
+     * Up to [count] stations, never more than [maxStationsTotal], [maxStationsPerCall] a call, until three calls in a row keep none,
+     * telling [onProgress] how many are kept so far, of how many, before each call (iOS MedicalGenerate.osce).
+     */
     suspend fun write(sourceText: String, count: Int, subject: String, using: LLMBackend,
-                      exam: ExamTrack = ExamTrack.general): List<OsceChecklist> {
+                      exam: ExamTrack = ExamTrack.general, onProgress: (Int, Int) -> Unit = { _, _ -> }): List<OsceChecklist> {
         val wanted = minOf(count, maxStationsTotal)
         // a station prompt is long: 12,000 characters of source a call on a
         // hosted model, 4,000 on a phone, and the whole lecture in turn
@@ -283,6 +295,7 @@ object OsceGenerator {
         while (collected.size < wanted && consecutiveFailures < 3) {
             coroutineContext.ensureActive()
             val callCount = minOf(maxStationsPerCall, wanted - collected.size)
+            onProgress(collected.size, wanted)
             val instructions = OsceStations.prompt(TextSlicing.window(windows, titles.size / maxStationsPerCall),
                 callCount, subject, titles, exam) + answerShape
             try {
