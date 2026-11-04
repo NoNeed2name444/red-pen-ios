@@ -954,6 +954,93 @@ def mirror_motions(left, right, xm):
     return (Rh, th), (S @ Rh.T @ S, S @ Rh.T @ (m - th) + m), 2 * float(np.linalg.norm(half)), err
 
 
+def _geodesic(v, f, src):
+    """Each point's distance along the surface from the nearest of `src` (-1 where none reaches)."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import dijkstra
+    e = np.vstack([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]]); wt = np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1)
+    G = coo_matrix((wt, (e[:, 0], e[:, 1])), shape=(len(v), len(v))).tocsr(); G = G.maximum(G.T)
+    d = dijkstra(G, indices=src, min_only=True); d[~np.isfinite(d)] = -1
+    return d
+
+
+def _far_end(v, f, head):
+    """A rib's far end: its 5% of points farthest along its surface from its head (its 3% nearest `head`)."""
+    v = np.asarray(v, float); f = np.asarray(f); dh = np.linalg.norm(v - head, axis=1)
+    g = _geodesic(v, f, np.flatnonzero(dh <= np.percentile(dh, 3))); ok = g >= 0
+    return np.flatnonzero(ok & (g >= np.percentile(g[ok], 95)))
+
+
+def _spread(x, src, dsp, wt, sigma=0.015):
+    """A smooth move at the points x from the moves dsp at the points src
+    (weights wt): their Gaussian-weighted sum, over the weights' sum where
+    that passes 1, so it is their mean near them and fades out away."""
+    out = np.zeros((len(x), 3)); ws = np.zeros(len(x))
+    for s in range(0, len(x), 500):
+        g = np.exp(-((x[s:s + 500, None] - src[None]) ** 2).sum(-1) / (2 * sigma ** 2)) * wt
+        out[s:s + 500] = g @ dsp; ws[s:s + 500] = g.sum(1)
+    return out / np.maximum(ws, 1.0)[:, None]
+
+
+def rib_cage(body, folder, w, rows):
+    """The ribs and costal cartilages. Warped point by point, a rib takes
+    every local stretch and bend of the warp: the reference man's left ribs
+    came out up to a fifth longer than his right, and wavy. Each rib is
+    instead carried rigidly by the similarity that best matches the warp
+    over it, every rib at one scale (the geometric mean of theirs), its head
+    (its 3% of points nearest the scan's thoracic vertebrae) where the warp
+    puts it; then the two of each pair are turned about their heads to
+    mirror images of each other about the thoracic spine's midline, each
+    half way to the other's. The costal cartilages take the warp, corrected
+    near each rib's far end by the move that takes the warped end onto the
+    placed one (spread over 15 mm). Returns the structures, the meshes and
+    {heads: each rib's head (None for the cartilages), pairs: (left, right)
+    indices, cartilage: the cartilages' index}."""
+    loaded = []
+    for mask, *_ in rows:
+        a, A = load_mask(os.path.join(folder, mask + ".nii.gz")); m = ct_mesh(a, A, sigma=0.8, share=0.05)
+        assert m is not None, f"the scan's {mask} is empty"
+        loaded.append(m)
+    ribs = [i for i, row in enumerate(rows) if row[0].startswith("rib_")]
+    ci = next(i for i, row in enumerate(rows) if row[0] == "costal_cartilages")
+    level = {i: (rows[i][0].split("_")[1], int(rows[i][0].split("_")[2])) for i in ribs}
+    pairs = [(next(i for i in ribs if level[i] == ("left", n)), next(i for i in ribs if level[i] == ("right", n)))
+             for n in range(1, 13)]
+    vert = cKDTree(np.concatenate([ct_surface(folder, f"vertebrae_T{i}")[0] for i in range(1, 13)]))
+    head, ends = {}, {}
+    for i in ribs:
+        p, f = loaded[i]; dv = vert.query(p)[0]; near = np.flatnonzero(dv <= np.percentile(dv, 3))
+        head[i] = p[near].mean(0)
+        g = _geodesic(p, f, near); ends[i] = np.flatnonzero(g >= np.percentile(g[g >= 0], 95))
+    warped = {i: w(loaded[i][0]) for i in ribs + [ci]}
+    sims = {i: umeyama(loaded[i][0], warped[i]) for i in ribs}
+    k = float(np.exp(np.mean([np.log(sims[i][0]) for i in ribs])))
+    log(f"    ribs: the warp's scale over each, {min(sims[i][0] for i in ribs):.2f} to {max(sims[i][0] for i in ribs):.2f}; "
+        f"all at {k:.3f}")
+    wh = {i: w(head[i][None])[0] for i in ribs}
+    frame = {i: (sims[i][1], wh[i] - k * sims[i][1] @ head[i]) for i in ribs}   # p -> k R p + t
+    put = lambda i, p: p @ (k * frame[i][0]).T + frame[i][1]
+    xm = midline(body.pts(r"^thoracic_vertebra_([1-9]|1[0-2])$")); turns = []
+    for a, b in pairs:
+        (Qa, da), (Qb, db), turn, err = mirror_motions(put(a, loaded[a][0]), put(b, loaded[b][0]), xm)
+        for i, Q, d in ((a, Qa, da), (b, Qb, db)):
+            R, t = frame[i]; R, t = Q @ R, Q @ t + d
+            frame[i] = (R, t + wh[i] - (k * R @ head[i] + t))   # the head back where the warp put it
+        turns.append(f"{level[a][1]} {np.degrees(turn):.0f}")
+    log(f"    ribs: each pair turned to mirror images about x = {xm * 1000:.0f} mm (degrees apart before: {', '.join(turns)})")
+    placed = {i: put(i, loaded[i][0]) for i in ribs}
+    ez = np.concatenate([loaded[i][0][ends[i]] for i in ribs])
+    corr = np.concatenate([placed[i][ends[i]] - warped[i][ends[i]] for i in ribs])
+    wz = np.concatenate([np.full(len(ends[i]), 1.0 / len(ends[i])) for i in ribs])
+    cartilage = warped[ci] + _spread(loaded[ci][0], ez, corr, wz)
+    structures, meshes = [], []
+    for i, ((mask, node, label, tissue, budget, uberon), (p, f)) in enumerate(zip(rows, loaded)):
+        meshes.append((placed[i] if i in placed else cartilage, f, budget))
+        structures.append({"node": node, "label": label, "uberon": uberon, "tissue": tissue, "group": "Ribs and costal cartilages",
+                           "inner": False})
+    return structures, meshes, {"heads": [wh.get(i) for i in range(len(rows))], "pairs": pairs, "cartilage": ci}
+
+
 def girdles(body, folder, w, rows):
     """The clavicles and scapulae, each side's two as one rigid piece. The
     warp is fitted on the spine and the organs, so beside the rib cage at
@@ -1012,26 +1099,40 @@ def girdles(body, folder, w, rows):
                            "inner": False})
     log(f"    shoulders: in the scan, the sternoclavicular joints lie {joints['left'][1] * 1000:.1f} (left) and "
         f"{joints['right'][1] * 1000:.1f} mm (right) from the sternum")
-    return structures, meshes, frames, joints
+    return structures, meshes, {"frames": frames, "joints": joints}
 
 
-def widen_cage(body, cage, riders=(), joints=()):
-    """Widen the rib cage, smoothly by height and angle about the chest's
-    axis, until it clears the organs inside it, never closer than 6 mm to
-    the skin. What rides on it (each side's shoulder girdle) moves with it
-    as one rigid piece: turned as the widening would turn its points, at
-    best, and shifted so its joint with the cage goes where the widening
-    takes that point (turning a girdle about its middle would carry its
-    sternoclavicular joint off the sternum). cage: [positions, triangles]
-    lists, changed in place; riders: lists of them, one per piece, changed
-    in place; joints: each piece's joint, a list, changed in place.
-    Returns each piece's motion (rotation, shift)."""
+def widen_cage(body, ribs, riders=(), joints=(), sternum=(), cap=np.radians(15)):
+    """Widen the rib cage until it clears the organs inside it, never
+    closer than 6 mm to the skin, every rib staying rigid: turned about its
+    head (its joint with the spine) toward where a smooth widening by height
+    and angle about the chest's axis would take its points (the best turn,
+    by Kabsch), the two of a pair alike as mirror images, at most `cap` in
+    all; the costal cartilages follow the ribs' far ends and the sternum the
+    cartilages beside it. What rides on the cage (each side's shoulder
+    girdle) moves with the widening as one rigid piece: turned as the
+    widening would turn its points, at best, and shifted so its joint with
+    the cage goes where the widening takes that point (turning a girdle
+    about its middle would carry its sternoclavicular joint off the
+    sternum). ribs: the ribs' part (rib_cage's), its meshes changed in
+    place; riders: lists of [positions, triangles], one per piece, changed
+    in place; joints: each piece's joint, a list, changed in place;
+    sternum: its [positions, triangles], changed in place. Returns each
+    piece's motion (rotation, shift)."""
+    from scipy.spatial.transform import Rotation
     organs = [Solid([m for m in body.part(o)["meshes"]]) for o in ("lungs", "liver", "heart", "spleen", "kidneys", "colon")
               if body.part(o) is not None]
     skin = Solid([body.mesh("skin")], h=0.003, close=1)
     ax = chest_axis(body); motions = [(np.eye(3), np.zeros(3)) for _ in riders]
     start = [np.concatenate([m[0] for m in piece]).mean(0) for piece in riders]
+    meshes, heads, ci = ribs["meshes"], ribs["heads"], ribs["cartilage"]
+    idx = [i for i, h in enumerate(heads) if h is not None]
+    ends = {i: _far_end(meshes[i][0], meshes[i][1], heads[i]) for i in idx}
+    wz = np.concatenate([np.full(len(ends[i]), 1.0 / len(ends[i])) for i in idx])
+    total = {i: np.zeros(3) for i in idx}
+    flip = np.array([1.0, -1, -1])   # a turn's mirror image about x: its rotation vector (x, y, z) -> (x, -y, -z)
     for r in range(4):
+        cage = [meshes[i] for i in idx + [ci]] + list(sternum)
         pts = np.concatenate([m[0] for m in cage]); need = _exits(pts, ax, organs)
         log(f"    cage, round {r}: {np.mean(need > 0):.1%} of its points inside organs, the deepest {need.max() * 1000:.0f} mm")
         if not (need > 0).any():
@@ -1041,18 +1142,95 @@ def widen_cage(body, cage, riders=(), joints=()):
         def moved(p):
             yy, tt = _cyl(p, ax)
             return p + _outward(p, ax) * np.minimum(grow(yy, tt), room(yy, tt))[:, None]
-        for m in cage:
-            m[0] = moved(m[0])
+        before = {i: np.array(meshes[i][0]) for i in idx}
+        for a, b in ribs["pairs"]:
+            rv = []
+            for i in (a, b):
+                A = meshes[i][0] - heads[i]; B = moved(meshes[i][0]) - heads[i]
+                U, _, Vt = np.linalg.svd(B.T @ A); D = np.eye(3); D[2, 2] = np.sign(np.linalg.det(U @ Vt))
+                rv.append(Rotation.from_matrix(U @ D @ Vt).as_rotvec())
+            v = (rv[0] + rv[1] * flip) / 2
+            for i, vi in ((a, v), (b, v * flip)):
+                tot = total[i] + vi
+                if np.linalg.norm(tot) > cap:
+                    tot = tot / np.linalg.norm(tot) * cap
+                step = Rotation.from_rotvec(tot).as_matrix() @ Rotation.from_rotvec(total[i]).as_matrix().T; total[i] = tot
+                meshes[i][0] = heads[i] + (meshes[i][0] - heads[i]) @ step.T
+        src = np.concatenate([before[i][ends[i]] for i in idx])
+        dsp = np.concatenate([meshes[i][0][ends[i]] - before[i][ends[i]] for i in idx])
+        cb = np.array(meshes[ci][0]); meshes[ci][0] = cb + _spread(cb, src, dsp, wz)
+        if len(sternum):   # the sternum goes with the cartilages beside it, rigidly
+            near = cKDTree(np.concatenate([m[0] for m in sternum])).query(cb)[0] < 0.015
+            if near.any():
+                d = (meshes[ci][0][near] - cb[near]).mean(0)
+                for m in sternum:
+                    m[0] = m[0] + d
         for i, piece in enumerate(riders):
             p = np.concatenate([m[0] for m in piece]); q = moved(p)
             _, Q, _ = umeyama(p, q); to = moved(joints[i][None])[0]; d = to - Q @ joints[i]
             for m in piece:
                 m[0] = m[0] @ Q.T + d
             motions[i] = (Q @ motions[i][0], Q @ motions[i][1] + d); joints[i] = to
+    log("    ribs turned about their heads (degrees): " + ", ".join(
+        f"{n + 1} {np.degrees(np.linalg.norm(total[a])):.1f}" for n, (a, b) in enumerate(ribs["pairs"])))
     for c, (Q, d) in zip(start, motions):
         log(f"    a piece riding on the cage moved {np.round((Q @ c + d - c) * 1000).astype(int).tolist()} mm, "
             f"turned {np.degrees(np.arccos(np.clip((np.trace(Q) - 1) / 2, -1, 1))):.1f} degrees")
     return motions
+
+
+# The organs that give way to the rib cage (conform_trunk): everything soft
+# inside it, moved as one, so organs that touch stay touching.
+SOFT_TRUNK = ("lungs", "heart", "vessels", "airways", "liver", "gallbladder", "biliary-tree", "spleen", "colon",
+              "small-intestine", "pancreas", "thymus", "omentum", "kidneys")
+
+
+def conform_trunk(body, cage, margin=0.002, depth=0.03):
+    """The organs inside the rib cage give way to it, the bones staying as
+    they are (the organ set's thorax and the scan's ribs are two people's:
+    the rigid ribs leave the organs reaching up to a centimetre or so into
+    the front of the cage). Wherever soft tissue reaches past `margin`
+    inside the cage's inner face (the innermost bone within 25 mm up or down
+    and 25 degrees round, which bridges the gaps between ribs), everything
+    soft from `depth` inside that face outward is squeezed in, level toward
+    the chest's axis, to end there: smooth by height and angle, faded out
+    where the cage ends (below the costal margin, above the first ribs),
+    one move for every soft structure. What lies outside the cage's outer
+    face is left alone. cage: the cage's [positions, triangles]."""
+    ax = chest_axis(body)
+    P = np.concatenate([surface_points(np.asarray(v, float), np.asarray(f), 0.002) for v, f in cage])
+    radius = lambda p: np.linalg.norm((p - ax)[:, [0, 2]], axis=1)
+    y, th = _cyl(P, ax); r = radius(P)
+    yb = np.arange(y.min() - 0.05, y.max() + 0.05, 0.005); tb = np.linspace(-np.pi, np.pi, 72, endpoint=False)
+    inner = _grid_field(y, th, r, yb, tb, "min"); outer = _grid_field(y, th, r, yb, tb, "max")
+    cover = _grid_field(y, th, np.ones(len(y)), yb, tb, "max")
+    parts = [body.part(o) for o in SOFT_TRUNK if body.part(o) is not None]
+    for rnd in range(2):
+        soft = [(part, k, np.asarray(v, float)) for part in parts for k, (v, f) in enumerate(part["meshes"])]
+        Q = np.concatenate([v for _, _, v in soft]); yq, tq = _cyl(Q, ax); rq = radius(Q)
+        Ri, Ro, c = inner(yq, tq), outer(yq, tq), np.clip(cover(yq, tq), 0, 1)
+        held = (rq < Ro) & (c > 0.01)
+        if not held.any():
+            break
+        Rs = _grid_field(yq[held], tq[held], rq[held], yb, tb, "max")(yq, tq)
+        over = Rs - (Ri - margin); a = Ri - margin - depth
+        squeeze = held & (over > 0) & (rq > a)
+        log(f"    organs past the cage's inner face, round {rnd}: {np.mean(held & (rq > Ri - margin)):.2%} of their points, "
+            f"the farthest {max(0.0, float((rq - Ri + margin)[held].max())) * 1000:.0f} mm")
+        if not squeeze.any():
+            break
+        rn = rq.copy()
+        rn[squeeze] = a[squeeze] + (rq[squeeze] - a[squeeze]) * depth / (depth + over[squeeze])
+        rn = rq + c * (rn - rq)
+        move = _outward(Q, ax) * (rn - rq)[:, None]
+        at = 0
+        for part, k, v in soft:
+            n = len(v); f = part["meshes"][k][1]
+            part["meshes"][k] = (v + move[at:at + n], f); at += n
+        moved = np.linalg.norm(move, axis=1)
+        log(f"    organs squeezed in from the cage: {np.mean(moved > 0.001):.1%} of their points by over 1 mm, "
+            f"the most {moved.max() * 1000:.0f} mm")
+
 
 
 # How a shoulder girdle rests on the trunk (settle_girdles), the usual resting
@@ -1063,11 +1241,10 @@ def widen_cage(body, cage, riders=(), joints=()):
 # and the shoulder blade's medial border near upright, about parallel to the
 # spine, this far from it (degrees).
 REST = dict(clavicle=0.006, acromion=0.008, rib=0.003, skin=0.002, rise=10.0, tilt=5.0)
-# How far each may stray at the cost of one unit: those, and the girdle's turn
-# about its joint (degrees), its joint's distance to the sternum from the
-# scan's own, and the two sides' landmarks from mirror images of each other.
-SPREAD = dict(clavicle=0.004, acromion=0.005, rib=0.0015, skin=0.001, rise=6.0, tilt=6.0, turn=20.0, gap=0.003,
-              mirror=0.015)
+# How far each may stray at the cost of one unit: those, the girdle's turn
+# about its joint (degrees) and its joint's distance to the sternum from the
+# scan's own.
+SPREAD = dict(clavicle=0.004, acromion=0.005, rib=0.0015, skin=0.001, rise=6.0, tilt=6.0, turn=20.0, gap=0.003)
 
 
 class _Signed:
@@ -1133,18 +1310,26 @@ def settle_girdles(body, shoulders, arms):
     distance to the sternum near the scan's), the piece turned about that
     joint and moved a little until it lies under the skin (the clavicle's
     shaft and the acromion at their usual depth), clear of the ribs, in the
-    resting posture (REST), the two sides as near mirror images of each other
-    as the body allows, about the plane halfway between their joints. The
-    trunk may not allow both: the reference man's spine and ribs are not
-    symmetric (his upper thoracic spine lies right of his skin's midline and
-    his left ribs reach farther out), so his left girdle rests a little
-    higher than his right. One side at a time against the other's mirror
-    image, three rounds, Nelder-Mead from a few starts; each humerus's head
-    goes with its side. shoulders, arms: their parts, changed in place, the
+    resting posture (REST). The two sides stay exact mirror images of each
+    other about the upper thoracic spine's midline: first turned half way
+    each to the other's mirror image (widening the cage moves each on its
+    own), then settled together, one move for the left and its mirror image
+    for the right, against both sides' costs (the reference woman's left
+    shoulder blade, settled one side at a time, came to rest 33 mm higher
+    than her right). Nelder-Mead from a few starts; each humerus's head goes
+    with its side. shoulders, arms: their parts, changed in place, the
     shoulders' frames with them."""
     from scipy.optimize import minimize
     from scipy.spatial.transform import Rotation
     at = lambda part, node: next(i for i, st in enumerate(part["structures"]) if st["node"] == node)
+    xm = midline(body.pts(r"^thoracic_vertebra_[1-7]$"))
+    pieces = {side: [shoulders["meshes"][at(shoulders, f"TS_{n}_{s}")][0] for n in ("clavicle", "scapula")] for side, s in SIDES}
+    pre = dict(zip(("left", "right"), mirror_motions(np.vstack(pieces["left"]), np.vstack(pieces["right"]), xm)[:2]))
+    for side, s in SIDES:   # mirror images first, each half way
+        Q, d = pre[side]
+        for n in ("clavicle", "scapula"):
+            i = at(shoulders, f"TS_{n}_{s}"); shoulders["meshes"][i][0] = shoulders["meshes"][i][0] @ Q.T + d
+        k, Rf, t = shoulders["frames"][side]; shoulders["frames"][side] = (k, Q @ Rf, Q @ t + d)
     pieces = {side: [shoulders["meshes"][at(shoulders, f"TS_{n}_{s}")][0] for n in ("clavicle", "scapula")] for side, s in SIDES}
     allp = np.vstack([p for ps in pieces.values() for p in ps]); lo, hi = allp.min(0) - 0.06, allp.max(0) + 0.06
     sp, sf = body.mesh("skin")
@@ -1152,33 +1337,37 @@ def settle_girdles(body, shoulders, arms):
     cage = [(np.asarray(m[0]), m[1]) for m in body.part("ribs")["meshes"]]
     ribs = _Signed(lo, hi, 0.003, np.vstack([surface_points(*m, 0.002) for m in cage]), [Solid([m]) for m in cage])
     sternum = cKDTree(np.vstack([surface_points(np.asarray(m[0]), m[1], 0.001) for m in body.part("sternum")["meshes"]]))
-    xm = midline(body.pts(r"^thoracic_vertebra_[1-7]$")); g = {}
+    g = {}
     for side, s in SIDES:
         (Js, gap), (k, R, t) = shoulders["joints"][side], shoulders["frames"][side]
         g[side] = _Girdle(*pieces[side], 1 if side == "left" else -1, xm, k * R @ Js + t, k * gap)
     S = np.diag([-1.0, 1, 1]); m2 = np.array([g["left"].J[0] + g["right"].J[0], 0, 0])
-    x = {side: np.zeros(6) for side, _ in SIDES}
     unpack = lambda v: (Rotation.from_rotvec(np.radians(v[:3])).as_matrix(), v[3:] / 1000)   # degrees, mm
-    for r in range(3):
-        for side, other in (("left", "right"), ("right", "left")):
-            gd = g[side]; target = g[other].moved(g[other].marks, *unpack(x[other])) @ S + m2
-            def total(v):
-                R, d = unpack(v)
-                return (gd.cost(gd.measure(skin, ribs, sternum, R, d), np.linalg.norm(v[:3]))
-                        + (np.linalg.norm(gd.moved(gd.marks, R, d) - target, axis=1).mean() / SPREAD["mirror"]) ** 2)
-            starts = [x[side]] + ([np.r_[0, a, b, 0, 0, 0] for a in (-8, 8) for b in (-8, 8)] if r == 0 else [])
-            x[side] = min((minimize(total, x0, method="Nelder-Mead", options=dict(
-                initial_simplex=np.vstack([x0, x0 + np.diag([3.0] * 6)]), xatol=0.1, fatol=1e-3, maxfev=900)) for x0 in starts),
-                key=lambda res: res.fun).x
+    mirrored = lambda R, d: (S @ R @ S, S @ d)   # the left's move, as its mirror image moves the right
+
+    def total(v):
+        R, d = unpack(v)
+        return sum(g[side].cost(g[side].measure(skin, ribs, sternum, *M), np.linalg.norm(v[:3]))
+                   for side, M in (("left", (R, d)), ("right", mirrored(R, d))))
+    starts = [np.zeros(6)] + [np.r_[0, a, b, 0, 0, 0] for a in (-8, 8) for b in (-8, 8)]
+    best = None
+    for r in range(2):
+        for x0 in (starts if best is None else [best.x]):
+            res = minimize(total, x0, method="Nelder-Mead", options=dict(
+                initial_simplex=np.vstack([x0, x0 + np.diag([3.0] * 6)]), xatol=0.1, fatol=1e-3, maxfev=900))
+            if best is None or res.fun < best.fun:
+                best = res
+    R0, d0 = unpack(best.x)
+    moves = {"left": (R0, d0), "right": mirrored(R0, d0)}
     zero = (np.eye(3), np.zeros(3))
     apart = lambda a, b: np.linalg.norm(g["left"].moved(g["left"].marks, *a) - (g["right"].moved(g["right"].marks, *b) @ S + m2), axis=1).mean()
     for side, s in SIDES:
-        gd, sign = g[side], (1 if side == "left" else -1); R, d = unpack(x[side])
+        gd, sign = g[side], (1 if side == "left" else -1); R, d = moves[side]
         for tag, mm in (("as placed", gd.measure(skin, ribs, sternum, *zero)), ("settled", gd.measure(skin, ribs, sternum, R, d))):
             log(f"    {side} girdle {tag}: joint {mm['gap'] * 1000:.1f} mm from the sternum (the scan's {gd.gap * 1000:.1f}); "
                 f"{mm['out']:.1%} outside the skin; clavicle {mm['clavicle'] * 1000:.0f} mm and acromion {mm['acromion'] * 1000:.0f} mm deep; "
                 f"{mm['inrib']:.1%} of the scapula inside the ribs; clavicle rising {mm['rise']:.0f} degrees, medial border {mm['tilt']:+.0f}")
-        log(f"    {side} girdle turned {np.linalg.norm(x[side][:3]):.1f} degrees about its joint, moved {np.linalg.norm(x[side][3:]):.1f} mm")
+        log(f"    {side} girdle turned {np.linalg.norm(best.x[:3]):.1f} degrees about its joint, moved {np.linalg.norm(best.x[3:]):.1f} mm")
         for n in ("clavicle", "scapula"):
             i = at(shoulders, f"TS_{n}_{s}"); shoulders["meshes"][i][0] = gd.moved(shoulders["meshes"][i][0], R, d)
         k, Rf, t = shoulders["frames"][side]; shoulders["frames"][side] = (k, R @ Rf, R @ (t - gd.J) + gd.J + d)
@@ -1188,9 +1377,10 @@ def settle_girdles(body, shoulders, arms):
         head, _ = _sphere(hp[(hp - c) @ ax > np.percentile((hp - c) @ ax, 88)])
         e, _ = _epicondyles(hp, ax)
         medial = e if e[0] * sign < 0 else -e
-        arms["meshes"][hi_][0] = place_humerus(hp - head + gd.moved(head[None], R, d)[0], sp, sf, sign, medial)
+        Q, dq = pre[side]; head_now = head @ Q.T + dq   # the humerus's head goes with its girdle, both moves
+        arms["meshes"][hi_][0] = place_humerus(hp - head + gd.moved(head_now[None], R, d)[0], sp, sf, sign, medial)
     log(f"    the two girdles' landmarks from mirror images: {apart(zero, zero) * 1000:.0f} mm as placed, "
-        f"{apart(unpack(x['left']), unpack(x['right'])) * 1000:.0f} mm settled")
+        f"{apart(moves['left'], moves['right']) * 1000:.0f} mm settled")
 
 
 # MARK: the scans' warps
@@ -1359,6 +1549,8 @@ def ct_part(body, sex, folder, warp, pid, name, system, rows):
         return arms(body, folder, warp, rows)
     if pid == "shoulders":
         return girdles(body, folder, warp, rows)
+    if pid == "ribs":
+        return rib_cage(body, folder, warp, rows)
     for mask, node, label, tissue, budget, uberon in rows:
         a, A = load_mask(os.path.join(folder, mask + ".nii.gz"))
         m = ct_mesh(a, A, sigma=0.8 if tissue in ("bone", "cartilage", "muscle") else 1.0, share=0.05)
@@ -1479,8 +1671,8 @@ def extend(bodies, skull_path, ct_dir, vh_dir, atlas):
                     "meshes": [list(atlas.simplify(p, f, b)) for p, f, b in meshes]}
             if pid in FINE:   # kept at the scan's resolution until pushed out (make_room)
                 part["fine"] = meshes
-            if extra:   # the shoulders': each side's girdle, the scan to the body, and its joint in the scan
-                part["frames"], part["joints"] = extra
+            if extra:   # the shoulders': each side's frame and joint; the ribs': their heads and pairs
+                part.update(extra[0])
             place(body.parts, part, before); made[pid] = part
             log(f"    {pid}: {len(structures)} structures")
         if hips:
@@ -1491,10 +1683,13 @@ def extend(bodies, skull_path, ct_dir, vh_dir, atlas):
         pieces = [[m for st, m in zip(girdle["structures"], girdle["meshes"]) if st["node"].endswith("_" + s)] for _, s in SIDES]
         joints = [girdle["frames"][side][0] * girdle["frames"][side][1] @ girdle["joints"][side][0] + girdle["frames"][side][2]
                   for side, _ in SIDES]
-        motions = widen_cage(body, made["ribs"]["meshes"] + (made["sternum"]["meshes"] if "sternum" in made else []), pieces, joints)
+        motions = widen_cage(body, made["ribs"], pieces, joints, made["sternum"]["meshes"] if "sternum" in made else ())
         for (side, _), (Q, d) in zip(SIDES, motions):
             k, R, t = girdle["frames"][side]; girdle["frames"][side] = (k, Q @ R, Q @ t + d)
         settle_girdles(body, girdle, made["arms"])
+        conform_trunk(body, made["ribs"]["meshes"] + list(body.part("sternum")["meshes"]))
+        for key in ("heads", "pairs", "cartilage"):
+            del made["ribs"][key]
         for part in made.values():
             part["meshes"] = [tuple(m) for m in part["meshes"]]
         body.__init__(sex, body.parts)

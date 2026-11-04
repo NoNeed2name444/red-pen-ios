@@ -3051,7 +3051,13 @@ for screenshots.
       about its joint with the spine, the sides alike; the costal
       cartilages follow their ribs' ends. Long bones (femur, tibia,
       fibula, radius) bow within the normal range; the clavicles' lengths
-      now match (161 and 164 mm).
+      now match (161 and 164 mm). The fix is in tools/anatomy_gaps.py
+      (rib_cage; widen_cage turning each rib about its head, at most 15
+      degrees, the pair alike; the girdles settled as mirror images); the
+      atlas is not yet rebuilt with it. In the bundled atlas each pair's
+      boxes, mirrored about the spine, lie 13 to 46 mm apart (the woman's
+      twelfth ribs differ by 42% in size). The suite's rib and girdle
+      mirror checks come with the rebuild.
     - Muscle as fibre: the shader's streaks lay in the colour alone, faded
       at a normal distance and followed one axis per muscle.
       - [x] Bundles laid in the build (tools/anatomy_fibres.py): each
