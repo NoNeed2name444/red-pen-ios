@@ -41,7 +41,7 @@ check('the Ideas pill is a panel button that is chosen when Ideas is',
 check('the face reads the state: Chart Ink, accent when chosen, Biro Grey when disabled',
       /if !enabled \{ return \.wardDisabledInk \}\s*return chosen \? \.wardPrimaryInk : \.wardInk/.test(category));
 check('the list button\'s chevron is in Chart Ink',
-      /systemName: "chevron\.up"\)\s*\.font\(\.headline\)\s*\.foregroundStyle\(Color\.wardInk\)/.test(dock));
+      /systemName: "chevron\.up"\)\s*\.font\(WardType\.headline\)\s*\.foregroundStyle\(Color\.wardInk\)/.test(dock));
 
 check('every switcher button is a Ward item button',
       (switcher.match(/WardItemButtonStyle\(/g) || []).length === 2 && !/\.buttonStyle\(\.plain\)/.test(switcher));
