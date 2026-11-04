@@ -101,7 +101,10 @@ Repairs, each checked by rendering the bodies:
   eased smoothly, nothing 7 cm away moving.
 - Whatever else came from a scan is pushed out of the organs and bones it
   cuts into (the stomach out of the colon, muscles off the bone), smoothly
-  and a few millimetres at a time.
+  and a few millimetres at a time; the muscles at the scan's own resolution,
+  before they are simplified, so a bony point that would come through between
+  a simplified muscle's corners (the ischial tuberosity through the gluteus
+  maximus) is caught too.
 
 Needs numpy, scipy (BSD), scikit-image (BSD), nibabel (MIT) and pyamg (MIT). The inputs
 are downloaded files: anatomy_atlas.py is run with python3 -I from outside
@@ -196,13 +199,13 @@ def _ct_parts():
         ("arms", "Arm bones", "skeletal", ["vertebral-column"], "arm",
          pair("humerus", "humerus", "humerus", "bone", HUMERUS_BUDGET, u("0000976"))),
         ("hip-muscles", "Hip muscles", "muscular", [], "pelvis",
-         pair("gluteus_maximus", "gluteus_maximus", "gluteus maximus", "muscle", 2500, u("0001370"))
-         + pair("gluteus_medius", "gluteus_medius", "gluteus medius", "muscle", 1800, u("0001371"))
-         + pair("gluteus_minimus", "gluteus_minimus", "gluteus minimus", "muscle", 1200, u("0008521"))
-         + pair("iliopsoas", "iliopsoas", "iliopsoas", "muscle", 2000, u("0001999"))),
+         pair("gluteus_maximus", "gluteus_maximus", "gluteus maximus", "muscle", 6000, u("0001370"))
+         + pair("gluteus_medius", "gluteus_medius", "gluteus medius", "muscle", 4000, u("0001371"))
+         + pair("gluteus_minimus", "gluteus_minimus", "gluteus minimus", "muscle", 2500, u("0008521"))
+         + pair("iliopsoas", "iliopsoas", "iliopsoas", "muscle", 4500, u("0001999"))),
         ("back-muscles", "Deep back muscles", "muscular", [], "global",
          pair("autochthon", "deep_back_muscles", "deep back muscles (erector spinae and transversospinales)",
-              "muscle", 3500, u("0002462"))),
+              "muscle", 8000, u("0002462"))),
     ]
 
 
@@ -774,25 +777,56 @@ class Solid:
         d = q - p; return d + d / np.maximum(np.linalg.norm(d, axis=1, keepdims=True), 1e-9) * margin
 
 
-def push_out(p, solids, margin=0.0015, sigma=0.010, rounds=10, step=0.003):
+def push_out(p, solids, margin=0.0015, sigma=0.010, rounds=10, step=0.003, f=None):
     """Move a mesh's points out of the solids: each round, the points inside
     pulled toward the way out, the pull spread smoothly over the mesh, no
-    point moving more than `step`."""
-    for _ in range(rounds):
+    point moving more than `step`. The points inside are pooled per 2 mm
+    cell, and the spread reaches 3 sigma.
+
+    Given its triangles `f` (a mesh at the scan's own resolution, its
+    points a millimetre apart), each point takes the pulls near it averaged
+    by the surface they stand for, in full at the points inside and fading
+    as a Gaussian of its distance from the nearest of them: however finely
+    the mesh is cut, the move is the same, and it reaches only about sigma
+    past what was inside. (Without `f`, a simplified mesh's points, some
+    millimetres apart, each pull alike, summed, and a point takes their
+    mean once their weight passes one point's.) The round that leaves the
+    fewest points inside is kept: a pull can drag a muscle into the next
+    bone (the gluteus minimus, between the ilium and the femur)."""
+    best = (np.inf, p)
+    for done in range(rounds + 1):
         D = np.zeros_like(p); hit = np.zeros(len(p), bool)
         for S in solids:
             m = S.inside(p)
             if m.any():
                 D[m] += S.way_out(p[m], margin); hit |= m
-        if not hit.any():
+        if hit.sum() < best[0]:
+            best = (hit.sum(), p)
+        if not hit.any() or done == rounds:
             break
-        src, d = p[hit], D[hit]; out = np.zeros_like(p); ws = np.zeros(len(p))
-        for i in range(0, len(p), 2000):
-            g = np.exp(-((p[i:i + 2000, None] - src[None]) ** 2).sum(-1) / (2 * sigma ** 2))
-            out[i:i + 2000] = g @ d; ws[i:i + 2000] = g.sum(1)
-        mv = out / np.maximum(ws, 1)[:, None]; n = np.linalg.norm(mv, axis=1, keepdims=True)
-        p = p + mv * np.minimum(1, step / np.maximum(n, 1e-9))
-    return p
+        a = vertex_area(p, f)[hit] if f is not None else np.ones(hit.sum())
+        _, cell = np.unique(np.floor(p[hit] / 0.002).astype(np.int64), axis=0, return_inverse=True)
+        cell = cell.reshape(-1); wt = np.bincount(cell, weights=a)
+        src = np.stack([np.bincount(cell, weights=a * p[hit][:, k]) for k in range(3)], 1) / wt[:, None]
+        d = np.stack([np.bincount(cell, weights=a * D[hit][:, k]) for k in range(3)], 1) / wt[:, None]
+        r, _ = cKDTree(src).query(p, distance_upper_bound=3 * sigma); near = np.flatnonzero(np.isfinite(r))
+        out = np.zeros((len(near), 3)); ws = np.zeros(len(near))
+        for i in range(0, len(near), 1000):
+            g = np.exp(-((p[near[i:i + 1000], None] - src[None]) ** 2).sum(-1) / (2 * sigma ** 2)) * wt
+            out[i:i + 1000] = g @ d; ws[i:i + 1000] = g.sum(1)
+        if f is not None:
+            mv = out / ws[:, None] * np.exp(-r[near] ** 2 / (2 * sigma ** 2))[:, None]
+        else:
+            mv = out / np.maximum(ws, 1)[:, None]
+        n = np.linalg.norm(mv, axis=1, keepdims=True)
+        p = p.copy(); p[near] += mv * np.minimum(1, step / np.maximum(n, 1e-9))
+    return best[1]
+
+
+def vertex_area(p, f):
+    """Each point's share of the surface: a third of its triangles' areas."""
+    ar = np.linalg.norm(np.cross(p[f[:, 1]] - p[f[:, 0]], p[f[:, 2]] - p[f[:, 0]]), axis=1) / 6
+    return np.bincount(f.ravel(), weights=np.repeat(ar, 3), minlength=len(p))
 
 
 # What each part from a scan must stay out of.
@@ -810,9 +844,17 @@ OBSTACLES = {
 }
 # Parts whose structures are each a solid of their own (bones), rather than one together.
 EACH = {"pelvis", "vertebral-column", "legs", "ribs"}
+# Parts pushed out at the scan's own resolution and simplified after: a bony point
+# (the ischial tuberosity) can come through a simplified muscle between its corners,
+# where the push, which moves corners, cannot see it.
+FINE = {"hip-muscles", "back-muscles"}
 
 
-def make_room(body, pid, part, cache):
+def make_room(body, pid, part, cache, simplify=None):
+    """Part `pid`'s structures pushed out of its OBSTACLES. A FINE part's are
+    pushed at the scan's resolution (part["fine"]: positions, triangles and
+    budget) and then simplified to their budgets."""
+    fine = part.pop("fine", None)
     solids = []
     for o in OBSTACLES[pid]:
         other = body.part(o)
@@ -825,12 +867,14 @@ def make_room(body, pid, part, cache):
         solids += cache[o]
     moved = []
     for i, (s, (p, f)) in enumerate(zip(part["structures"], part["meshes"])):
+        if fine is not None:
+            p, f, budget = fine[i]
         before = np.mean(np.any([S.inside(p) for S in solids], 0))
-        q = push_out(p, solids)
+        q = push_out(p, solids, f=f if fine is not None else None)
         after = np.mean(np.any([S.inside(q) for S in solids], 0))
         if before > 0.01:
             moved.append(f"{s['node']} {before:.0%}->{after:.0%}")
-        part["meshes"][i] = (q, f)
+        part["meshes"][i] = tuple(simplify(q, f, budget)) if fine is not None else (q, f)
     if moved:
         log(f"    {pid}: out of {', '.join(OBSTACLES[pid])}: " + "; ".join(moved))
 
@@ -1433,6 +1477,8 @@ def extend(bodies, skull_path, ct_dir, vh_dir, atlas):
             structures, meshes, *extra = ct_part(body, sex, folder, ws[region], pid, name, system, rows)
             part = {"id": pid, "name": name, "system": system, "structures": structures,
                     "meshes": [list(atlas.simplify(p, f, b)) for p, f, b in meshes]}
+            if pid in FINE:   # kept at the scan's resolution until pushed out (make_room)
+                part["fine"] = meshes
             if extra:   # the shoulders': each side's girdle, the scan to the body, and its joint in the scan
                 part["frames"], part["joints"] = extra
             place(body.parts, part, before); made[pid] = part
@@ -1454,7 +1500,7 @@ def extend(bodies, skull_path, ct_dir, vh_dir, atlas):
         body.__init__(sex, body.parts)
         cache = {}
         for pid in ("oesophagus", "stomach", "thyroid", "adrenals", "arms", "hip-muscles", "back-muscles"):
-            make_room(body, pid, made[pid], cache)
+            make_room(body, pid, made[pid], cache, atlas.simplify)
             cache.pop(pid, None)
         body.__init__(sex, body.parts)
         log(f"  {sex}: the forearms and hands, from the scan {anatomy_limbs.LIMBS[sex]['subject']}")
