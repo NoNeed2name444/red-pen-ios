@@ -3031,8 +3031,18 @@ for screenshots.
       CC0, CC BY; CC BY-SA marked share-alike), each with its author and
       licence; looked at, never shipped or traced. Through the Wikidata
       Query Service's MediaWiki service (the wikis' own APIs refuse a
-      shared address after a few calls). Then pages per system and contact
-      sheets for each change.
+      shared address after a few calls). Done: the index,
+      docs/sciences/anatomy-references.json (688 structures, left and
+      right as one; 12,496 pictures, a median of 17 each; 77 with none),
+      and a page per body system to browse on a phone,
+      docs/sciences/anatomy-references/ (README.md lists them). Pictures
+      of animals, fossils, Neanderthals and works of art in the articles
+      are left out. For a change: `atlas_refs.py sheet <index> <regex>
+      <png>` lays a structure's pictures out on one sheet. Still to do:
+      pictures for the 77 (mostly the liver's and kidneys' segments, the
+      brain's nuclei and gyri and the papillary muscles' heads: parts
+      named too finely for an article of their own; their whole organ's
+      pictures stand in).
     - Bent bones: the man's left ribs are 15 to 20% longer than his right
       and wavy (rib 9's wave 10 mm), though his scan's ribs are even and
       smooth: the warp and widen_cage's push, point by point, bend them.
